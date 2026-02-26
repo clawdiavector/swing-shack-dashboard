@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swing Shack TikTok Dashboard</title>
+    <title>Swing Shack Social Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -11,100 +11,241 @@
             box-sizing: border-box;
         }
         
+        :root {
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252542;
+            --accent-tiktok: #ff0050;
+            --accent-instagram: #e1306c;
+            --accent-youtube: #ff0000;
+            --accent-x: #1da1f2;
+            --accent-facebook: #1877f2;
+            --accent-woocommerce: #96588a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --success: #00d26a;
+            --warning: #ffa500;
+            --danger: #ff4757;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: var(--bg-dark);
             min-height: 100vh;
-            color: #fff;
+            color: var(--text-primary);
             padding: 20px;
         }
         
         .header {
             text-align: center;
-            padding: 40px 0;
+            padding: 30px 0;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #00d26a, #00b4d8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
         .header p {
-            color: rgba(255,255,255,0.6);
-            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-size: 1rem;
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
         
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
+        /* Platform Tabs */
+        .platform-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
         }
         
-        .card {
-            background: rgba(255,255,255,0.05);
+        .platform-tab {
+            padding: 12px 24px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .platform-tab.active {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .platform-tab.tiktok { background: var(--accent-tiktok); color: white; }
+        .platform-tab.instagram { background: var(--accent-instagram); color: white; }
+        .platform-tab.youtube { background: var(--accent-youtube); color: white; }
+        .platform-tab.x { background: var(--accent-x); color: white; }
+        .platform-tab.facebook { background: var(--accent-facebook); color: white; }
+        
+        .platform-section {
+            display: none;
+        }
+        
+        .platform-section.active {
+            display: block;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
             border-radius: 16px;
-            padding: 25px;
-            border: 1px solid rgba(255,255,255,0.1);
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .stat-value.success { color: var(--success); }
+        .stat-value.warning { color: var(--warning); }
+        .stat-value.danger { color: var(--danger); }
+        .stat-value.tiktok { color: var(--accent-tiktok); }
+        .stat-value.instagram { color: var(--accent-instagram); }
+        
+        .stat-change {
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        
+        .stat-change.up { color: var(--success); }
+        .stat-change.down { color: var(--danger); }
+        
+        /* Posts Table */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 20px;
         }
         
         .card h2 {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             margin-bottom: 20px;
-            color: rgba(255,255,255,0.8);
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .card h2 span {
-            font-size: 1.5rem;
+        .posts-table {
+            width: 100%;
+            border-collapse: collapse;
         }
         
-        .stat {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
+        .posts-table th,
+        .posts-table td {
+            padding: 12px;
+            text-align: left;
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
         
-        .stat:last-child {
-            border-bottom: none;
+        .posts-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
         }
         
-        .stat-label {
-            color: rgba(255,255,255,0.6);
+        .posts-table tr:hover {
+            background: rgba(255,255,255,0.02);
         }
         
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #00d4ff;
+        .post-title {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
-        .stat-value.warning {
-            color: #ffa500;
+        .platform-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
         
-        .stat-value.danger {
-            color: #ff4757;
+        .platform-badge.tiktok { background: var(--accent-tiktok); }
+        .platform-badge.instagram { background: var(--accent-instagram); }
+        
+        /* Content Ideas */
+        .ideas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
         }
         
-        .stat-value.success {
-            color: #2ed573;
+        .idea-card {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 18px;
+            border-left: 3px solid;
         }
         
+        .idea-card.tiktok { border-color: var(--accent-tiktok); }
+        .idea-card.instagram { border-color: var(--accent-instagram); }
+        .idea-card.youtube { border-color: var(--accent-youtube); }
+        
+        .idea-card h4 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        
+        .idea-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .idea-pillar {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Trends */
         .trends-list {
             list-style: none;
         }
@@ -114,256 +255,471 @@
             border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-        
-        .trends-list li:last-child {
-            border-bottom: none;
+            justify-content: space-between;
         }
         
         .trend-tag {
-            background: linear-gradient(90deg, #7b2cbf, #00d4ff);
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.8rem;
-            font-weight: bold;
+            font-weight: 600;
         }
         
-        .hook-card {
+        .trend-tag.hot {
+            background: linear-gradient(90deg, #ff0050, #ff4d4d);
+            color: white;
+        }
+        
+        .trend-tag.new {
+            background: linear-gradient(90deg, #00d26a, #00b4d8);
+            color: white;
+        }
+        
+        .trend-tag.rising {
+            background: linear-gradient(90deg, #ffa500, #ff6b6b);
+            color: white;
+        }
+        
+        /* Schedule */
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        
+        .schedule-item {
             background: rgba(255,255,255,0.03);
-            border-radius: 12px;
             padding: 15px;
-            margin-bottom: 15px;
-            border-left: 3px solid #7b2cbf;
+            border-radius: 10px;
+            text-align: center;
         }
         
-        .hook-card h4 {
-            color: #00d4ff;
-            margin-bottom: 8px;
+        .schedule-day {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-secondary);
         }
         
-        .hook-card p {
-            color: rgba(255,255,255,0.7);
+        .schedule-topic {
             font-size: 0.9rem;
-            line-height: 1.5;
         }
         
-        .topic-pillar {
+        /* Hashtags */
+        .hashtags {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
         }
         
-        .pillar {
-            background: rgba(255,255,255,0.1);
-            padding: 8px 16px;
-            border-radius: 8px;
+        .hashtag {
+            padding: 6px 14px;
+            border-radius: 20px;
             font-size: 0.85rem;
+            background: rgba(255,255,255,0.08);
+            transition: all 0.2s ease;
         }
         
-        .pillar.active {
-            background: linear-gradient(90deg, #7b2cbf, #00d4ff);
+        .hashtag:hover {
+            background: rgba(255,255,255,0.15);
+            transform: scale(1.05);
         }
         
-        .last-updated {
+        .hashtag.primary {
+            background: linear-gradient(90deg, var(--accent-tiktok), var(--accent-instagram));
+        }
+        
+        /* Footer */
+        .footer {
             text-align: center;
-            color: rgba(255,255,255,0.4);
-            font-size: 0.9rem;
-            margin-top: 40px;
-            padding-top: 20px;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
             border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 40px;
         }
         
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(90deg, #7b2cbf, #00d4ff);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            margin-top: 15px;
-        }
-        
+        /* Responsive */
         @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .grid {
-                grid-template-columns: 1fr;
-            }
+            .header h1 { font-size: 1.6rem; }
+            .platform-tabs { justify-content: center; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>⛳ Swing Shack TikTok Dashboard</h1>
-        <p>Real-time performance analytics & content intelligence</p>
+        <h1>⛳ Swing Shack Social Dashboard</h1>
+        <p>Cross-platform analytics & content intelligence</p>
     </div>
     
     <div class="container">
-        <!-- Performance Stats -->
-        <div class="grid">
-            <div class="card">
-                <h2><span>📊</span> Last 7 Days</h2>
-                <div class="stat">
-                    <span class="stat-label">Video Views</span>
-                    <span class="stat-value danger">47</span>
+        <!-- Platform Tabs -->
+        <div class="platform-tabs">
+            <button class="platform-tab tiktok active" onclick="showPlatform('tiktok')">
+                🎵 TikTok
+            </button>
+            <button class="platform-tab instagram" onclick="showPlatform('instagram')">
+                📸 Instagram
+            </button>
+            <button class="platform-tab youtube" onclick="showPlatform('youtube')">
+                🎥 YouTube
+            </button>
+            <button class="platform-tab x" onclick="showPlatform('x')">
+                🐦 X
+            </button>
+            <button class="platform-tab facebook" onclick="showPlatform('facebook')">
+                📘 Facebook
+            </button>
+        </div>
+        
+        <!-- TIKTOK SECTION -->
+        <div id="tiktok" class="platform-section active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Video Views (7d)</div>
+                    <div class="stat-value danger">47</div>
+                    <div class="stat-change down">-94.7%</div>
                 </div>
-                <div class="stat">
-                    <span class="stat-label">Profile Views</span>
-                    <span class="stat-value">0</span>
+                <div class="stat-card">
+                    <div class="stat-label">Profile Views</div>
+                    <div class="stat-value">0</div>
+                    <div class="stat-change down">-100%</div>
                 </div>
-                <div class="stat">
-                    <span class="stat-label">Likes</span>
-                    <span class="stat-value">0</span>
+                <div class="stat-card">
+                    <div class="stat-label">Likes</div>
+                    <div class="stat-value">0</div>
                 </div>
-                <div class="stat">
-                    <span class="stat-label">Comments</span>
-                    <span class="stat-value">0</span>
+                <div class="stat-card">
+                    <div class="stat-label">Comments</div>
+                    <div class="stat-value">0</div>
                 </div>
-                <div class="stat">
-                    <span class="stat-label">Shares</span>
-                    <span class="stat-value">0</span>
+                <div class="stat-card">
+                    <div class="stat-label">Shares</div>
+                    <div class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Followers</div>
+                    <div class="stat-value tiktok">~50</div>
+                    <div class="stat-change">@swingshacksa</div>
                 </div>
             </div>
             
             <div class="card">
-                <h2><span>🏆</span> Top Performing Posts</h2>
-                <div class="stat">
-                    <span class="stat-label">CCJ Woodmead</span>
-                    <span class="stat-value success">25K</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Reality TV Edit</span>
-                    <span class="stat-value">773</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Tournament Prep</span>
-                    <span class="stat-value">472</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">DNA Clubs</span>
-                    <span class="stat-value">456</span>
-                </div>
+                <h2>🏆 Top Performing Posts</h2>
+                <table class="posts-table">
+                    <thead>
+                        <tr>
+                            <th>Post</th>
+                            <th>Views</th>
+                            <th>Likes</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="post-title">CCJ Woodmead – Joburg's hidden gem</td>
+                            <td class="stat-value success">25K</td>
+                            <td>—</td>
+                            <td>Jun 2024</td>
+                        </tr>
+                        <tr>
+                            <td class="post-title">Editing members social like a reality TV show</td>
+                            <td>773</td>
+                            <td>—</td>
+                            <td>3 wk ago</td>
+                        </tr>
+                        <tr>
+                            <td class="post-title">Tournament prep</td>
+                            <td>472</td>
+                            <td>—</td>
+                            <td>2 wk ago</td>
+                        </tr>
+                        <tr>
+                            <td class="post-title">Same speed, different DNA's</td>
+                            <td>456</td>
+                            <td>—</td>
+                            <td>2 wk ago</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
             
             <div class="card">
-                <h2><span>🎯</span> Account Status</h2>
-                <div class="stat">
-                    <span class="stat-label">Account State</span>
-                    <span class="stat-value warning">COLD</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Warmup Needed</span>
-                    <span class="stat-value">7-14 days</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Posting Frequency</span>
-                    <span class="stat-value warning">0/day</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Goal</span>
-                    <span class="stat-value">3/day</span>
+                <h2>📈 Account Status</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Account State</div>
+                        <div class="stat-value warning">COLD</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Warmup Needed</div>
+                        <div class="stat-value">7-14 days</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Current Frequency</div>
+                        <div class="stat-value danger">0/day</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Target Frequency</div>
+                        <div class="stat-value success">3/day</div>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <!-- Trending Topics -->
-        <div class="grid">
-            <div class="card">
-                <h2><span>🔥</span> Trending Topics (Feb 2026)</h2>
-                <ul class="trends-list">
-                    <li><span class="trend-tag">HOT</span> Course discovery content</li>
-                    <li><span class="trend-tag">HOT</span> Fitting transformations</li>
-                    <li><span class="trend-tag">HOT</span> Gear comparisons</li>
-                    <li><span class="trend-tag">HOT</span> "Golf Ball Vs" challenges</li>
-                    <li><span class="trend-tag">NEW</span> 2026 club releases</li>
-                    <li><span class="trend-tag">NEW</span> Dynamic pricing complaints</li>
-                </ul>
+        <!-- INSTAGRAM SECTION -->
+        <div id="instagram" class="platform-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Followers</div>
+                    <div class="stat-value instagram">~200</div>
+                    <div class="stat-change">@swingshacksa</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Posts This Month</div>
+                    <div class="stat-value">2</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Likes</div>
+                    <div class="stat-value">~15</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Engagement Rate</div>
+                    <div class="stat-value">2.5%</div>
+                </div>
             </div>
             
             <div class="card">
-                <h2><span>💡</span> Today's Content Ideas</h2>
-                <div class="hook-card">
+                <h2>📸 Top Instagram Content</h2>
+                <p style="color: var(--text-secondary);">No recent post data available. Connect Instagram to sync.</p>
+            </div>
+        </div>
+        
+        <!-- YOUTUBE SECTION -->
+        <div id="youtube" class="platform-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Subscribers</div>
+                    <div class="stat-value youtube">~50</div>
+                    <div class="stat-change">@swingshacksa</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Views</div>
+                    <div class="stat-value">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Videos</div>
+                    <div class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Watch Time</div>
+                    <div class="stat-value">—</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>🎥 YouTube Strategy</h2>
+                <p style="color: var(--text-secondary);">YouTube Shorts recommended for cross-posting TikTok content.</p>
+            </div>
+        </div>
+        
+        <!-- X SECTION -->
+        <div id="x" class="platform-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Followers</div>
+                    <div class="stat-value x">~100</div>
+                    <div class="stat-change">@ShackSwing</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tweets</div>
+                    <div class="stat-value">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Impressions</div>
+                    <div class="stat-value">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Engagement</div>
+                    <div class="stat-value">—</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- FACEBOOK SECTION -->
+        <div id="facebook" class="platform-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Page Likes</div>
+                    <div class="stat-value facebook">~300</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Followers</div>
+                    <div class="stat-value">~350</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Posts This Month</div>
+                    <div class="stat-value">4</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Reach</div>
+                    <div class="stat-value">—</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SHARED: Content Ideas -->
+        <div class="card">
+            <h2>💡 Today's Content Ideas</h2>
+            <div class="ideas-grid">
+                <div class="idea-card tiktok">
                     <h4>#1 Fitting Controversy</h4>
                     <p>"I fitted a 30-handicap with Tour clubs. He didn't believe me."</p>
-                    <div class="topic-pillar">
-                        <span class="pillar active">Fitting</span>
-                    </div>
+                    <span class="idea-pillar">Fitting</span>
                 </div>
-                <div class="hook-card">
+                <div class="idea-card tiktok">
                     <h4>#2 Lie Angle Myth</h4>
                     <p>"The lie angle myth costing you 20 yards"</p>
-                    <div class="topic-pillar">
-                        <span class="pillar">Slice Fix</span>
-                    </div>
+                    <span class="idea-pillar">Slice Fix</span>
                 </div>
-                <div class="hook-card">
+                <div class="idea-card tiktok">
                     <h4>#3 Indoor vs Outdoor</h4>
                     <p>"Rainy day at Swing Shack vs your home simulator"</p>
-                    <div class="topic-pillar">
-                        <span class="pillar">Social Golf</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2><span>📅</span> Content Pillar Schedule</h2>
-                <div class="stat">
-                    <span class="stat-label">Day 1</span>
-                    <span class="stat-label">Slice/Face-to-path</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Day 2</span>
-                    <span class="stat-label">Fitting myth-busting</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Day 3</span>
-                    <span class="stat-label">Distance + contact</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Day 4</span>
-                    <span class="stat-label">Practice plan</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Day 5</span>
-                    <span class="stat-label">Gear reality</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Day 6</span>
-                    <span class="stat-label">TrackMan numbers</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Day 7</span>
-                    <span class="stat-label">Indoor golf fun</span>
+                    <span class="idea-pillar">Social Golf</span>
                 </div>
             </div>
         </div>
         
-        <!-- Hashtags -->
+        <!-- SHARED: Trends -->
         <div class="card">
-            <h2><span>#️⃣</span> Hashtag Strategy</h2>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
-                <span class="pillar active">#golf</span>
-                <span class="pillar active">#golftiktok</span>
-                <span class="pillar active">#golfsa</span>
-                <span class="pillar active">#fyp</span>
-                <span class="pillar">#golfing</span>
-                <span class="pillar">#golflife</span>
-                <span class="pillar">#joburggolf</span>
-                <span class="pillar">#swingshack</span>
-                <span class="pillar">#trackman</span>
-                <span class="pillar">#golffitting</span>
+            <h2>🔥 Trending Topics (Feb 2026)</h2>
+            <div class="stats-grid">
+                <div>
+                    <ul class="trends-list">
+                        <li>
+                            <span>Course discovery content</span>
+                            <span class="trend-tag hot">HOT</span>
+                        </li>
+                        <li>
+                            <span>Fitting transformations</span>
+                            <span class="trend-tag hot">HOT</span>
+                        </li>
+                        <li>
+                            <span>Gear comparisons</span>
+                            <span class="trend-tag hot">HOT</span>
+                        </li>
+                        <li>
+                            <span>"Golf Ball Vs" challenges</span>
+                            <span class="trend-tag rising">RISING</span>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <ul class="trends-list">
+                        <li>
+                            <span>2026 club releases</span>
+                            <span class="trend-tag new">NEW</span>
+                        </li>
+                        <li>
+                            <span>Dynamic pricing complaints</span>
+                            <span class="trend-tag rising">RISING</span>
+                        </li>
+                        <li>
+                            <span>LAB putters trend</span>
+                            <span class="trend-tag new">NEW</span>
+                        </li>
+                        <li>
+                            <span>Golf shoes 2026</span>
+                            <span class="trend-tag new">NEW</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
         
-        <div class="last-updated">
-            <p>Last updated: 2026-02-26 12:00 PM SAST</p>
-            <p>Next trend research: 2026-02-27 6:00 AM SAST</p>
+        <!-- SHARED: Schedule -->
+        <div class="card">
+            <h2>📅 Content Pillar Schedule</h2>
+            <div class="schedule-grid">
+                <div class="schedule-item">
+                    <div class="schedule-day">Day 1</div>
+                    <div class="schedule-topic">Slice/Face-to-path</div>
+                </div>
+                <div class="schedule-item">
+                    <div class="schedule-day">Day 2</div>
+                    <div class="schedule-topic">Fitting myths</div>
+                </div>
+                <div class="schedule-item">
+                    <div class="schedule-day">Day 3</div>
+                    <div class="schedule-topic">Distance + contact</div>
+                </div>
+                <div class="schedule-item">
+                    <div class="schedule-day">Day 4</div>
+                    <div class="schedule-topic">Practice plan</div>
+                </div>
+                <div class="schedule-item">
+                    <div class="schedule-day">Day 5</div>
+                    <div class="schedule-topic">Gear reality</div>
+                </div>
+                <div class="schedule-item">
+                    <div class="schedule-day">Day 6</div>
+                    <div class="schedule-topic">TrackMan numbers</div>
+                </div>
+                <div class="schedule-item">
+                    <div class="schedule-day">Day 7</div>
+                    <div class="schedule-topic">Indoor golf fun</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SHARED: Hashtags -->
+        <div class="card">
+            <h2>#️⃣ Hashtag Strategy</h2>
+            <div class="hashtags">
+                <span class="hashtag primary">#golf</span>
+                <span class="hashtag primary">#golftiktok</span>
+                <span class="hashtag primary">#golfsa</span>
+                <span class="hashtag primary">#fyp</span>
+                <span class="hashtag">#golfing</span>
+                <span class="hashtag">#golflife</span>
+                <span class="hashtag">#joburggolf</span>
+                <span class="hashtag">#swingshack</span>
+                <span class="hashtag">#trackman</span>
+                <span class="hashtag">#golffitting</span>
+                <span class="hashtag">#golfaddict</span>
+                <span class="hashtag">#weekendvibes</span>
+            </div>
         </div>
     </div>
+    
+    <div class="footer">
+        <p>Last updated: 2026-02-26 12:50 PM SAST</p>
+        <p>Next trend research: 2026-02-27 6:00 AM SAST</p>
+        <p>Dashboard auto-updates daily</p>
+    </div>
+    
+    <script>
+        function showPlatform(platform) {
+            // Hide all sections
+            document.querySelectorAll('.platform-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.platform-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(platform).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+    </script>
 </body>
 </html>
