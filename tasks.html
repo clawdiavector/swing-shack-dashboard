@@ -367,79 +367,172 @@
     <script>
         // Task data - this is the single source of truth
         const tasks = [
+            // === SHORT TERM (This Week) ===
             {
                 id: 1,
-                title: "Set up daily trend research cron",
-                status: "done",
-                assignee: "me",
-                priority: "high",
-                deadline: "2026-02-26",
-                completedDate: "2026-02-26",
-                notes: "Runs daily at 6am SAST"
-            },
-            {
-                id: 2,
-                title: "Create social media dashboard",
-                status: "done",
-                assignee: "me",
-                priority: "high",
-                deadline: "2026-02-26",
-                completedDate: "2026-02-26",
-                notes: "Live at: clawdiavector.github.io/swing-shack-dashboard/dashboard.html"
-            },
-            {
-                id: 3,
                 title: "Fix TikTok images - too AI looking",
                 status: "todo",
                 assignee: "me",
                 priority: "high",
                 deadline: "2026-02-27",
-                notes: "Need hyper-realistic images. Try Midjourney or edit real photos."
+                notes: "Need hyper-realistic images. Try Midjourney or edit real photos.",
+                category: "short-term"
             },
             {
-                id: 4,
+                id: 2,
                 title: "Post first TikTok slideshow",
                 status: "todo",
                 assignee: "you",
                 priority: "high",
                 deadline: "2026-02-27",
-                notes: "Upload slides 1-6 to TikTok. Hook: 'I fitted a 30-handicap with Tour clubs...'"
+                notes: "Upload slides 1-6 to TikTok. Hook: 'I fitted a 30-handicap with Tour clubs...'",
+                category: "short-term"
             },
             {
-                id: 5,
-                title: "Connect real Instagram analytics",
-                status: "progress",
-                assignee: "me",
-                priority: "medium",
-                deadline: "",
-                notes: "Found correct handle: @swingshack. Need to pull more detailed stats."
-            },
-            {
-                id: 6,
-                title: "Set up YouTube Shorts cross-posting",
-                status: "todo",
-                assignee: "me",
-                priority: "low",
-                deadline: "",
-                notes: "Use Postiz or manual upload"
-            },
-            {
-                id: 7,
+                id: 3,
                 title: "Get TikTok analytics access",
                 status: "review",
                 assignee: "you",
                 priority: "high",
                 deadline: "2026-02-28",
-                notes: "Need to log into TikTok on desktop to view analytics properly"
+                notes: "Need to log into TikTok on desktop to view analytics properly",
+                category: "short-term"
+            },
+            
+            // === MEDIUM TERM (This Month) ===
+            {
+                id: 4,
+                title: "Warm up TikTok account (7-14 days consistency)",
+                status: "todo",
+                assignee: "you",
+                priority: "high",
+                deadline: "2026-03-10",
+                notes: "Post 3x daily for 2 weeks to wake up algorithm",
+                category: "medium-term"
             },
             {
-                id: 8,
-                title: "Set up X (Twitter) posting",
+                id: 5,
+                title: "Set up Postiz for auto-posting & analytics",
                 status: "todo",
                 assignee: "me",
-                priority: "low",
+                priority: "high",
+                deadline: "2026-03-05",
+                notes: "Connect TikTok to Postiz for automated posting and analytics tracking",
+                category: "medium-term"
+            },
+            {
+                id: 6,
+                title: "Connect RevenueCat for conversion tracking",
+                status: "todo",
+                assignee: "me",
+                priority: "medium",
                 deadline: "",
-                notes: "Handle: @ShackSwing"
+                notes: "Track which posts drive actual bookings/subscriptions",
+                category: "medium-term"
+            },
+            {
+                id: 7,
+                title: "Set up daily analytics cron",
+                status: "todo",
+                assignee: "me",
+                priority: "high",
+                deadline: "2026-03-07",
+                notes: "Auto-pull TikTok analytics every morning and update dashboard",
+                category: "medium-term"
+            },
+            
+            // === LONG TERM (Quarterly) ===
+            {
+                id: 8,
+                title: "Grow TikTok to 1K followers",
+                status: "todo",
+                assignee: "you",
+                priority: "high",
+                deadline: "2026-04-30",
+                notes: "Target: 1000 followers. Post consistently, test hooks, optimize CTAs",
+                category: "long-term"
+            },
+            {
+                id: 9,
+                title: "Hit 100K total TikTok views",
+                status: "todo",
+                assignee: "you",
+                priority: "medium",
+                deadline: "2026-04-30",
+                notes: "Track views across all posts. Use trending sounds, good hooks",
+                category: "long-term"
+            },
+            {
+                id: 10,
+                title: "Establish content pillars (7-day rotation)",
+                status: "todo",
+                assignee: "me",
+                priority: "medium",
+                deadline: "2026-03-15",
+                notes: "Slice Fix, Fitting, Distance, Practice, Gear, TrackMan, Social - rotate daily",
+                category: "long-term"
+            },
+            {
+                id: 11,
+                title: "Set up cross-posting to YouTube Shorts",
+                status: "todo",
+                assignee: "me",
+                priority: "medium",
+                deadline: "2026-03-20",
+                notes: "Auto-post TikTok content to YouTube for extra reach",
+                category: "long-term"
+            },
+            {
+                id: 12,
+                title: "Create competitor research doc",
+                status: "todo",
+                assignee: "me",
+                priority: "medium",
+                deadline: "2026-03-01",
+                notes: "Research top 5 golf TikTok accounts, document what works",
+                category: "long-term"
+            },
+            
+            // === BIG PICTURE (Year 1) ===
+            {
+                id: 13,
+                title: "Build TikTok as main lead gen channel",
+                status: "todo",
+                assignee: "you",
+                priority: "high",
+                deadline: "2026-12-31",
+                notes: "Target: 50% of new bookings from TikTok",
+                category: "big-picture"
+            },
+            {
+                id: 14,
+                title: "Establish brand as 'the golf fitter in JHB'",
+                status: "todo",
+                assignee: "you",
+                priority: "high",
+                deadline: "2026-12-31",
+                notes: "Be known for fitting content. Own the niche.",
+                category: "big-picture"
+            },
+            {
+                id: 15,
+                title: "Track ROI on content (bookings vs time spent)",
+                status: "todo",
+                assignee: "me",
+                priority: "medium",
+                deadline: "2026-06-30",
+                notes: "Connect analytics to WooCommerce bookings to measure ROI",
+                category: "big-picture"
+            },
+            {
+                id: 16,
+                title: "Build content library (100+ posts)",
+                status: "todo",
+                assignee: "you",
+                priority: "medium",
+                deadline: "2026-12-31",
+                notes: "Accumulate backlog of content. Never miss a posting day.",
+                category: "big-picture"
             }
         ];
         
