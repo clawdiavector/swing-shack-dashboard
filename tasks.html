@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swing Shack Task Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252542;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --success: #00d26a;
+            --warning: #ffa500;
+            --danger: #ff4757;
+            --info: #00b4d8;
+            --purple: #7b2cbf;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px 0 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #00d26a, #ffa500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header p {
+            color: var(--text-secondary);
+        }
+        
+        .header a {
+            color: var(--info);
+            text-decoration: none;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        /* Task Board */
+        .task-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        
+        @media (max-width: 1200px) {
+            .task-board {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .task-board {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .task-column {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            min-height: 500px;
+        }
+        
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .column-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .task-count {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+        
+        .column-todo .column-title { color: var(--info); }
+        .column-progress .column-title { color: var(--warning); }
+        .column-review .column-title { color: var(--purple); }
+        .column-done .column-title { color: var(--success); }
+        
+        /* Task Cards */
+        .task-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 3px solid;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .task-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateX(4px);
+        }
+        
+        .task-card.priority-high { border-color: var(--danger); }
+        .task-card.priority-medium { border-color: var(--warning); }
+        .task-card.priority-low { border-color: var(--success); }
+        
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        
+        .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+        
+        .task-assignee {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .task-assignee.me {
+            background: rgba(0, 178, 216, 0.2);
+            color: var(--info);
+        }
+        
+        .task-assignee.you {
+            background: rgba(123, 44, 191, 0.2);
+            color: var(--purple);
+        }
+        
+        .task-priority {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .task-priority.high {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--danger);
+        }
+        
+        .task-priority.medium {
+            background: rgba(255, 165, 0, 0.2);
+            color: var(--warning);
+        }
+        
+        .task-priority.low {
+            background: rgba(0, 210, 106, 0.2);
+            color: var(--success);
+        }
+        
+        .task-deadline {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .task-deadline.overdue {
+            color: var(--danger);
+        }
+        
+        .task-deadline.today {
+            color: var(--warning);
+        }
+        
+        .task-link {
+            color: var(--info);
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+        
+        .task-link:hover {
+            text-decoration: underline;
+        }
+        
+        .task-date-completed {
+            color: var(--success);
+            font-size: 0.75rem;
+            margin-top: 8px;
+        }
+        
+        /* Add Task Button */
+        .add-task-btn {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 12px;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-top: 10px;
+        }
+        
+        .add-task-btn:hover {
+            border-color: var(--info);
+            color: var(--info);
+        }
+        
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Swing Shack Task Board</h1>
+        <p>Single source of truth for all tasks</p>
+        <p><a href="dashboard.html">← Back to Social Dashboard</a></p>
+    </div>
+    
+    <div class="container">
+        <div class="task-board">
+            <!-- TO DO -->
+            <div class="task-column column-todo">
+                <div class="column-header">
+                    <div class="column-title">
+                        📝 To Do
+                        <span class="task-count" id="todo-count">0</span>
+                    </div>
+                </div>
+                <div id="todo-tasks">
+                    <!-- Tasks will be inserted here -->
+                </div>
+                <button class="add-task-btn" onclick="addTask('todo')">+ Add Task</button>
+            </div>
+            
+            <!-- IN PROGRESS -->
+            <div class="task-column column-progress">
+                <div class="column-header">
+                    <div class="column-title">
+                        🔄 In Progress
+                        <span class="task-count" id="progress-count">0</span>
+                    </div>
+                </div>
+                <div id="progress-tasks">
+                    <!-- Tasks will be inserted here -->
+                </div>
+                <button class="add-task-btn" onclick="addTask('progress')">+ Add Task</button>
+            </div>
+            
+            <!-- REVIEW -->
+            <div class="task-column column-review">
+                <div class="column-header">
+                    <div class="column-title">
+                        👀 Review
+                        <span class="task-count" id="review-count">0</span>
+                    </div>
+                </div>
+                <div id="review-tasks">
+                    <!-- Tasks will be inserted here -->
+                </div>
+                <button class="add-task-btn" onclick="addTask('review')">+ Add Task</button>
+            </div>
+            
+            <!-- DONE -->
+            <div class="task-column column-done">
+                <div class="column-header">
+                    <div class="column-title">
+                        ✅ Done
+                        <span class="task-count" id="done-count">0</span>
+                    </div>
+                </div>
+                <div id="done-tasks">
+                    <!-- Tasks will be inserted here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--danger);"></div>
+                High Priority
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--warning);"></div>
+                Medium Priority
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--success);"></div>
+                Low Priority
+            </div>
+            <div class="legend-item">
+                <span class="task-assignee me">Me (Clawdia)</span>
+            </div>
+            <div class="legend-item">
+                <span class="task-assignee you">You (Christelle)</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Last updated: <span id="last-updated">2026-02-27</span></p>
+    </div>
+    
+    <script>
+        // Task data - this is the single source of truth
+        const tasks = [
+            {
+                id: 1,
+                title: "Set up daily trend research cron",
+                status: "done",
+                assignee: "me",
+                priority: "high",
+                deadline: "2026-02-26",
+                completedDate: "2026-02-26",
+                notes: "Runs daily at 6am SAST"
+            },
+            {
+                id: 2,
+                title: "Create social media dashboard",
+                status: "done",
+                assignee: "me",
+                priority: "high",
+                deadline: "2026-02-26",
+                completedDate: "2026-02-26",
+                notes: "Live at: clawdiavector.github.io/swing-shack-dashboard/dashboard.html"
+            },
+            {
+                id: 3,
+                title: "Fix TikTok images - too AI looking",
+                status: "todo",
+                assignee: "me",
+                priority: "high",
+                deadline: "2026-02-27",
+                notes: "Need hyper-realistic images. Try Midjourney or edit real photos."
+            },
+            {
+                id: 4,
+                title: "Post first TikTok slideshow",
+                status: "todo",
+                assignee: "you",
+                priority: "high",
+                deadline: "2026-02-27",
+                notes: "Upload slides 1-6 to TikTok. Hook: 'I fitted a 30-handicap with Tour clubs...'"
+            },
+            {
+                id: 5,
+                title: "Connect real Instagram analytics",
+                status: "progress",
+                assignee: "me",
+                priority: "medium",
+                deadline: "",
+                notes: "Found correct handle: @swingshack. Need to pull more detailed stats."
+            },
+            {
+                id: 6,
+                title: "Set up YouTube Shorts cross-posting",
+                status: "todo",
+                assignee: "me",
+                priority: "low",
+                deadline: "",
+                notes: "Use Postiz or manual upload"
+            },
+            {
+                id: 7,
+                title: "Get TikTok analytics access",
+                status: "review",
+                assignee: "you",
+                priority: "high",
+                deadline: "2026-02-28",
+                notes: "Need to log into TikTok on desktop to view analytics properly"
+            },
+            {
+                id: 8,
+                title: "Set up X (Twitter) posting",
+                status: "todo",
+                assignee: "me",
+                priority: "low",
+                deadline: "",
+                notes: "Handle: @ShackSwing"
+            }
+        ];
+        
+        function renderTasks() {
+            const columns = {
+                todo: document.getElementById('todo-tasks'),
+                progress: document.getElementById('progress-tasks'),
+                review: document.getElementById('review-tasks'),
+                done: document.getElementById('done-tasks')
+            };
+            
+            const counts = { todo: 0, progress: 0, review: 0, done: 0 };
+            
+            // Clear all columns
+            Object.values(columns).forEach(col => col.innerHTML = '');
+            
+            // Sort tasks: high priority first
+            const priorityOrder = { high: 0, medium: 1, low: 2 };
+            const sortedTasks = [...tasks].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+            
+            sortedTasks.forEach(task => {
+                const card = createTaskCard(task);
+                columns[task.status].appendChild(card);
+                counts[task.status]++;
+            });
+            
+            // Update counts
+            document.getElementById('todo-count').textContent = counts.todo;
+            document.getElementById('progress-count').textContent = counts.progress;
+            document.getElementById('review-count').textContent = counts.review;
+            document.getElementById('done-count').textContent = counts.done;
+            
+            // Update timestamp
+            document.getElementById('last-updated').textContent = new Date().toISOString().split('T')[0];
+        }
+        
+        function createTaskCard(task) {
+            const card = document.createElement('div');
+            card.className = `task-card priority-${task.priority}`;
+            
+            let deadlineHtml = '';
+            if (task.deadline) {
+                const today = new Date('2026-02-27');
+                const deadline = new Date(task.deadline);
+                const diffDays = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+                
+                let deadlineClass = '';
+                if (diffDays < 0) deadlineClass = 'overdue';
+                else if (diffDays === 0) deadlineClass = 'today';
+                
+                deadlineHtml = `<span class="task-deadline ${deadlineClass}">📅 ${task.deadline}</span>`;
+            }
+            
+            let completedHtml = '';
+            if (task.completedDate) {
+                completedHtml = `<div class="task-date-completed">✓ Completed: ${task.completedDate}</div>`;
+            }
+            
+            let linkHtml = '';
+            if (task.link) {
+                linkHtml = `<a href="${task.link}" class="task-link" target="_blank">${task.link}</a>`;
+            }
+            
+            card.innerHTML = `
+                <div class="task-title">${task.title}</div>
+                <div class="task-meta">
+                    <span class="task-assignee ${task.assignee === 'me' ? 'me' : 'you'}">
+                        ${task.assignee === 'me' ? '👩‍💻 Me' : '👤 You'}
+                    </span>
+                    <span class="task-priority ${task.priority}">${task.priority.toUpperCase()}</span>
+                    ${deadlineHtml}
+                </div>
+                ${task.notes ? `<div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary);">${task.notes}</div>` : ''}
+                ${linkHtml}
+                ${completedHtml}
+            `;
+            
+            return card;
+        }
+        
+        function addTask(status) {
+            const title = prompt('Task title:');
+            if (!title) return;
+            
+            const assignee = prompt('Assigned to? (me/you):', 'me');
+            const priority = prompt('Priority? (high/medium/low):', 'medium');
+            const deadline = prompt('Deadline? (YYYY-MM-DD or leave empty):', '');
+            const notes = prompt('Notes:', '');
+            
+            const newTask = {
+                id: tasks.length + 1,
+                title: title,
+                status: status,
+                assignee: assignee.toLowerCase().startsWith('y') ? 'you' : 'me',
+                priority: priority.toLowerCase(),
+                deadline: deadline || '',
+                notes: notes || ''
+            };
+            
+            tasks.push(newTask);
+            renderTasks();
+            alert('Task added! (Note: This is temporary - tasks reset on refresh. Tell Clawdia to save permanently.)');
+        }
+        
+        // Initial render
+        renderTasks();
+    </script>
+</body>
+</html>
