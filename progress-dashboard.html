@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swing Shack - Progress Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --success: #00d26a;
+            --warning: #ffa500;
+            --danger: #ff4757;
+            --info: #00b4d8;
+            --purple: #7b2cbf;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #00d26a, #ffa500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* Progress Bar */
+        .progress-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .progress-title { font-size: 1.3rem; font-weight: 600; }
+        .progress-percent { font-size: 2.5rem; font-weight: 700; color: var(--success); }
+        .progress-bar {
+            height: 24px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--info), var(--success));
+            border-radius: 12px;
+            transition: width 0.5s ease;
+        }
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            text-align: center;
+        }
+        @media (max-width: 768px) { .progress-stats { grid-template-columns: repeat(2, 1fr); } }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; }
+        .stat-number { font-size: 1.8rem; font-weight: 700; }
+        .stat-label { font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px; }
+        
+        /* Task Columns */
+        .task-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+        @media (max-width: 1200px) { .task-board { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 768px) { .task-board { grid-template-columns: 1fr; } }
+        
+        .task-column {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 15px;
+            min-height: 300px;
+        }
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .column-title { font-size: 0.95rem; font-weight: 600; }
+        .column-done .column-title { color: var(--success); }
+        .column-progress .column-title { color: var(--info); }
+        .column-user .column-title { color: var(--warning); }
+        .column-blocked .column-title { color: var(--danger); }
+        .column-todo .column-title { color: var(--text-secondary); }
+        .task-count {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        
+        /* Task Card */
+        .task-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid;
+        }
+        .task-card.high { border-color: var(--danger); }
+        .task-card.medium { border-color: var(--warning); }
+        .task-card.low { border-color: var(--success); }
+        .task-title { font-weight: 600; font-size: 0.85rem; margin-bottom: 8px; }
+        .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+        }
+        .task-assignee {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+        .task-assignee.me { background: rgba(0,178,216,0.2); color: var(--info); }
+        .task-assignee.you { background: rgba(255,165,0,0.2); color: var(--warning); }
+        .task-assignee.auto { background: rgba(0,210,106,0.2); color: var(--success); }
+        
+        /* Task Progress */
+        .task-progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin-bottom: 6px;
+        }
+        .task-progress-fill {
+            height: 100%;
+            background: var(--success);
+            border-radius: 3px;
+        }
+        .task-progress-text {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .task-updated {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        /* Needed Section */
+        .needed-section {
+            background: rgba(255,71,87,0.15);
+            border: 2px solid var(--danger);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        .needed-title {
+            color: var(--danger);
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .needed-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+        }
+        .needed-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+        
+        /* Next Actions */
+        .next-actions {
+            background: rgba(0,178,216,0.15);
+            border: 2px solid var(--info);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        .next-title {
+            color: var(--info);
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+        .next-list { display: grid; gap: 10px; }
+        .next-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+        .next-num {
+            width: 28px;
+            height: 28px;
+            background: var(--info);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ Swing Shack - Progress Dashboard</h1>
+        <p>Marketing Automation Status</p>
+        <p style="margin-top:10px;"><a href="social-dashboard.html" style="color:var(--info);">View Social Intelligence Dashboard →</a></p>
+    </div>
+    
+    <div class="container">
+        <!-- Overall Progress -->
+        <div class="progress-section">
+            <div class="progress-header">
+                <div class="progress-title">📊 Overall Progress</div>
+                <div class="progress-percent" id="total-percent">30%</div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="total-fill" style="width: 30%;"></div>
+            </div>
+            <div class="progress-stats">
+                <div class="stat-box">
+                    <div class="stat-number" style="color: var(--success);">2</div>
+                    <div class="stat-label">✅ Done</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" style="color: var(--info);">3</div>
+                    <div class="stat-label">🔄 In Progress</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" style="color: var(--warning);">3</div>
+                    <div class="stat-label">👤 Waiting on You</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" style="color: var(--danger);">1</div>
+                    <div class="stat-label">🚫 Blocked</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" style="color: var(--text-secondary);">3</div>
+                    <div class="stat-label">📝 To Do</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- NEEDED FROM YOU -->
+        <div class="needed-section">
+            <div class="needed-title">🔴 NEEDED FROM YOU</div>
+            <div class="needed-grid">
+                <div class="needed-item">
+                    <span>🔑</span>
+                    <span>OpenAI API Key (for image generation)</span>
+                </div>
+                <div class="needed-item">
+                    <span>📱</span>
+                    <span>Postiz API Key + TikTok connection</span>
+                </div>
+                <div class="needed-item">
+                    <span>🎬</span>
+                    <span>Post first TikTok slideshow</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- NEXT ACTIONS -->
+        <div class="next-actions">
+            <div class="next-title">🎯 NEXT ACTIONS</div>
+            <div class="next-list">
+                <div class="next-item">
+                    <div class="next-num">1</div>
+                    <div>Set up Postiz + connect TikTok account</div>
+                </div>
+                <div class="next-item">
+                    <div class="next-num">2</div>
+                    <div>Get OpenAI API key for image generation</div>
+                </div>
+                <div class="next-item">
+                    <div class="next-num">3</div>
+                    <div>Generate first TikTok content + post</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Task Board -->
+        <div class="task-board">
+            <!-- DONE -->
+            <div class="task-column column-done">
+                <div class="column-header">
+                    <div class="column-title">✅ Done</div>
+                    <span class="task-count">2</span>
+                </div>
+                <div class="task-card low">
+                    <div class="task-title">Dashboard & Task Board</div>
+                    <div class="task-meta">
+                        <span class="task-assignee me">Clawdia</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 100%;"></div></div>
+                    <div class="task-progress-text">100% Complete</div>
+                    <div class="task-updated">Feb 27, 2026</div>
+                </div>
+                <div class="task-card low">
+                    <div class="task-title">Daily Research Crons</div>
+                    <div class="task-meta">
+                        <span class="task-assignee me">Clawdia</span>
+                        <span class="task-assignee auto">Auto</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 100%;"></div></div>
+                    <div class="task-progress-text">100% Complete</div>
+                    <div class="task-updated">Running daily 6am</div>
+                </div>
+            </div>
+            
+            <!-- IN PROGRESS -->
+            <div class="task-column column-progress">
+                <div class="column-header">
+                    <div class="column-title">🔄 In Progress</div>
+                    <span class="task-count">3</span>
+                </div>
+                <div class="task-card medium">
+                    <div class="task-title">Daily Research Running</div>
+                    <div class="task-meta">
+                        <span class="task-assignee auto">Auto</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 90%;"></div></div>
+                    <div class="task-progress-text">90% - Running daily</div>
+                    <div class="task-updated">Today 6am</div>
+                </div>
+                <div class="task-card medium">
+                    <div class="task-title">Reddit Outreach Active</div>
+                    <div class="task-meta">
+                        <span class="task-assignee auto">Auto</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 75%;"></div></div>
+                    <div class="task-progress-text">75% - Finding posts daily</div>
+                    <div class="task-updated">Today 6am</div>
+                </div>
+                <div class="task-card high">
+                    <div class="task-title">TikTok Analytics Access</div>
+                    <div class="task-meta">
+                        <span class="task-assignee me">Clawdia</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 60%;"></div></div>
+                    <div class="task-progress-text">60% - Manual access working</div>
+                    <div class="task-updated">Feb 27, 2026</div>
+                </div>
+            </div>
+            
+            <!-- WAITING ON USER -->
+            <div class="task-column column-user">
+                <div class="column-header">
+                    <div class="column-title">👤 Waiting on You</div>
+                    <span class="task-count">3</span>
+                </div>
+                <div class="task-card high">
+                    <div class="task-title">Get OpenAI API Key</div>
+                    <div class="task-meta">
+                        <span class="task-assignee you">You</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 0%;"></div></div>
+                    <div class="task-progress-text">0% - Need key from platform.openai.com</div>
+                    <div class="task-updated">Blocking image generation</div>
+                </div>
+                <div class="task-card high">
+                    <div class="task-title">Set up Postiz</div>
+                    <div class="task-meta">
+                        <span class="task-assignee you">You</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 0%;"></div></div>
+                    <div class="task-progress-text">0% - Need API key + TikTok connection</div>
+                    <div class="task-updated">Enables auto-posting</div>
+                </div>
+                <div class="task-card high">
+                    <div class="task-title">Post First TikTok</div>
+                    <div class="task-meta">
+                        <span class="task-assignee you">You</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 0%;"></div></div>
+                    <div class="task-progress-text">0% - Images ready, need upload</div>
+                    <div class="task-updated">Your turn!</div>
+                </div>
+            </div>
+            
+            <!-- BLOCKED -->
+            <div class="task-column column-blocked">
+                <div class="column-header">
+                    <div class="column-title">🚫 Blocked</div>
+                    <span class="task-count">1</span>
+                </div>
+                <div class="task-card high">
+                    <div class="task-title">Image Generation</div>
+                    <div class="task-meta">
+                        <span class="task-assignee me">Clawdia</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 20%;"></div></div>
+                    <div class="task-progress-text">20% - Gemini has no credits</div>
+                    <div class="task-updated">Need OpenAI key</div>
+                </div>
+            </div>
+            
+            <!-- TO DO -->
+            <div class="task-column column-todo">
+                <div class="column-header">
+                    <div class="column-title">📝 To Do</div>
+                    <span class="task-count">3</span>
+                </div>
+                <div class="task-card medium">
+                    <div class="task-title">Daily Analytics Cron</div>
+                    <div class="task-meta">
+                        <span class="task-assignee me">Clawdia</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 0%;"></div></div>
+                    <div class="task-progress-text">0% - After Postiz setup</div>
+                </div>
+                <div class="task-card medium">
+                    <div class="task-title">Content Pillars</div>
+                    <div class="task-meta">
+                        <span class="task-assignee me">Clawdia</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 0%;"></div></div>
+                    <div class="task-progress-text">0%</div>
+                </div>
+                <div class="task-card low">
+                    <div class="task-title">Cross-posting Setup</div>
+                    <div class="task-meta">
+                        <span class="task-assignee me">Clawdia</span>
+                    </div>
+                    <div class="task-progress-bar"><div class="task-progress-fill" style="width: 0%;"></div></div>
+                    <div class="task-progress-text">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Last updated: <span id="last-updated">March 4, 2026</span></p>
+            <p>Auto-updates daily at 6am SAST</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swing Shack - Social Intelligence Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --success: #00d26a;
+            --warning: #ffa500;
+            --danger: #ff4757;
+            --info: #00b4d8;
+            --purple: #7b2cbf;
+            --tiktok: #ff0050;
+            --instagram: #e1306c;
+            --youtube: #ff0000;
+            --reddit: #ff4500;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #e1306c, #ff0050, #ff0000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* Section styling */
+        .section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Platform Stats Grid */
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        @media (max-width: 1000px) { .platform-grid { grid-template-columns: repeat(2, 1fr); } }
+        .platform-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+        .platform-icon { font-size: 2rem; margin-bottom: 10px; }
+        .platform-name { font-weight: 600; margin-bottom: 10px; }
+        .platform-stats { display: grid; gap: 5px; }
+        .stat-row { display: flex; justify-content: space-between; font-size: 0.85rem; }
+        .stat-val { font-weight: 600; }
+        
+        /* Reddit Section */
+        .reddit-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--reddit);
+        }
+        .reddit-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+        }
+        .reddit-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+        .reddit-meta a { color: var(--info); text-decoration: none; }
+        .reddit-comment {
+            background: rgba(255,69,0,0.1);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+        .reddit-comment-label {
+            font-weight: 600;
+            color: var(--reddit);
+            font-size: 0.75rem;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        /* Trending Section */
+        .trend-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--tiktok);
+        }
+        .trend-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .trend-title { font-weight: 600; }
+        .trend-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .trend-badge.hot { background: var(--danger); }
+        .trend-badge.rising { background: var(--warning); }
+        .trend-badge.consistent { background: var(--purple); }
+        .trend-desc { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px; }
+        .trend-link a { color: var(--info); font-size: 0.85rem; }
+        .trend-idea {
+            background: rgba(0,210,106,0.1);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .trend-idea-label { font-weight: 600; color: var(--success); font-size: 0.8rem; }
+        .trend-idea-text { font-size: 0.85rem; margin-top: 5px; }
+        
+        /* Content Ideas */
+        .idea-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .idea-num {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: var(--info);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-right: 10px;
+        }
+        .idea-title { font-weight: 600; display: inline; }
+        .idea-hook { font-size: 0.9rem; color: var(--warning); margin: 8px 0; }
+        .idea-structure { font-size: 0.85rem; color: var(--text-secondary); }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 30px;
+        }
+        .footer a { color: var(--info); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Social Intelligence Dashboard</h1>
+        <p>Marketing insights, trends & opportunities</p>
+        <p style="margin-top:10px;"><a href="progress-dashboard.html" style="color:var(--info);">← View Progress Dashboard</a></p>
+    </div>
+    
+    <div class="container">
+        <!-- SECTION 1: SOCIAL MEDIA PERFORMANCE -->
+        <div class="section">
+            <div class="section-title">📱 Social Media Performance</div>
+            <div class="platform-grid">
+                <!-- TikTok -->
+                <div class="platform-card" style="border-top: 3px solid var(--tiktok);">
+                    <div class="platform-icon">🎵</div>
+                    <div class="platform-name">TikTok</div>
+                    <div class="platform-stats">
+                        <div class="stat-row"><span>Followers:</span><span class="stat-val">1,273</span></div>
+                        <div class="stat-row"><span>Posts:</span><span class="stat-val">~30</span></div>
+                        <div class="stat-row"><span>Total Views:</span><span class="stat-val">27K</span></div>
+                        <div class="stat-row"><span>Top Post:</span><span class="stat-val">25K</span></div>
+                    </div>
+                </div>
+                
+                <!-- Instagram -->
+                <div class="platform-card" style="border-top: 3px solid var(--instagram);">
+                    <div class="platform-icon">📸</div>
+                    <div class="platform-name">Instagram</div>
+                    <div class="platform-stats">
+                        <div class="stat-row"><span>Followers:</span><span class="stat-val">2,212</span></div>
+                        <div class="stat-row"><span>Posts:</span><span class="stat-val">704</span></div>
+                        <div class="stat-row"><span>Following:</span><span class="stat-val">174</span></div>
+                        <div class="stat-row"><span>Bio:</span><span class="stat-val">Active</span></div>
+                    </div>
+                </div>
+                
+                <!-- Facebook -->
+                <div class="platform-card" style="border-top: 3px solid #4267B2;">
+                    <div class="platform-icon">📘</div>
+                    <div class="platform-name">Facebook</div>
+                    <div class="platform-stats">
+                        <div class="stat-row"><span>Page:</span><span class="stat-val">@swingshacksa</span></div>
+                        <div class="stat-row"><span>Status:</span><span class="stat-val">Connected</span></div>
+                    </div>
+                </div>
+                
+                <!-- YouTube -->
+                <div class="platform-card" style="border-top: 3px solid var(--youtube);">
+                    <div class="platform-icon">▶️</div>
+                    <div class="platform-name">YouTube</div>
+                    <div class="platform-stats">
+                        <div class="stat-row"><span>Channel:</span><span class="stat-val">Not set</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SECTION 2: REDDIT DISCOVERY -->
+        <div class="section">
+            <div class="section-title" style="color: var(--reddit);">💬 Reddit Discovery - Today's Opportunities</div>
+            
+            <!-- Opportunity 1 -->
+            <div class="reddit-card">
+                <div class="reddit-title">PGA Superstore Fitting</div>
+                <div class="reddit-meta">
+                    <a href="https://www.reddit.com/r/golf/comments/1rgrt0n/pga_superstore_fitting/" target="_blank">View Post →</a> • r/golf • 4 days ago • <span style="color:var(--success);">High Intent</span>
+                </div>
+                <span class="reddit-comment-label">SUGGESTED COMMENT:</span>
+                <div class="reddit-comment">
+                    "The fitters there are good - just come prepared with specific goals. If you can, get a launch monitor session beforehand so you know your numbers. That's where the real insights come from. We use TrackMan at Swing Shack and the data honestly changes how you think about your swing."
+                </div>
+            </div>
+            
+            <!-- Opportunity 2 -->
+            <div class="reddit-card">
+                <div class="reddit-title">Buying First Set of Clubs - Budget Allocation</div>
+                <div class="reddit-meta">
+                    <a href="https://www.reddit.com/r/golf/comments/1rfx90q/buying_first_set_of_clubs_budget_allocation/" target="_blank">View Post →</a> • r/golf • 5 days ago • <span style="color:var(--success);">Decision Phase</span>
+                </div>
+                <span class="reddit-comment-label">SUGGESTED COMMENT:</span>
+                <div class="reddit-comment">
+                    "For a first set, honestly get something quality but used - Titleist, Ping, Callaway from a few years back are bargains. And even as a beginner, a basic fitting helps more than you'd think. The fitter can at least set you up with the right lie angles so you don't build bad habits."
+                </div>
+            </div>
+            
+            <!-- Opportunity 3 -->
+            <div class="reddit-card">
+                <div class="reddit-title">I Don't Get How People Drive 220 Yards+</div>
+                <div class="reddit-meta">
+                    <a href="https://www.reddit.com/r/golf/comments/1rh0ztl/i_dont_get_how_people_drive_220_yards/" target="_blank">View Post →</a> • r/golf • 4 days ago • <span style="color:var(--success);">High Intent</span>
+                </div>
+                <span class="reddit-comment-label">SUGGESTED COMMENT:</span>
+                <div class="reddit-comment">
+                    "110mph ball speed isn't bad at all - there's definitely room to optimize. The real question is your launch angle and spin. That's where a launch monitor helps. We see guys all the time who could gain 15-20 yards just by optimizing their attack angle. Get some data on your swing - it's a game changer."
+                </div>
+            </div>
+            
+            <!-- Opportunity 4 -->
+            <div class="reddit-card">
+                <div class="reddit-title">Which New Driver Should I Get?</div>
+                <div class="reddit-meta">
+                    <a href="https://www.reddit.com/r/golf/comments/1rhhocq/which_new_driver_should_i_get/" target="_blank">View Post →</a> • r/golf • 3 days ago • <span style="color:var(--success);">Ready to Buy</span>
+                </div>
+                <span class="reddit-comment-label">SUGGESTED COMMENT:</span>
+                <div class="reddit-comment">
+                    "G440 is a solid choice. But honestly, the biggest upgrade you can make is getting custom shaft fitted - the stock shaft might be killing your distance. A proper fitter can put you in the right flex and weight. Worth the extra bit honestly."
+                </div>
+            </div>
+        </div>
+        
+        <!-- SECTION 3: WHAT'S TRENDING -->
+        <div class="section">
+            <div class="section-title" style="color: var(--tiktok);">🔥 What's Trending in Golf Social</div>
+            
+            <div class="trend-card">
+                <div class="trend-header">
+                    <div class="trend-title">"Golf Can't Be This Serious" Comedy</div>
+                    <span class="trend-badge hot">HOT</span>
+                </div>
+                <div class="trend-desc">Making fun of overly serious golfers - relatable humor. High engagement.</div>
+                <div class="trend-link"><a href="https://www.tiktok.com/discover/golf-cant-be-this-serious" target="_blank">View Trend →</a></div>
+                <div class="trend-idea">
+                    <div class="trend-idea-label">🎯 SWING SHACK CAN POST:</div>
+                    <div class="trend-idea-text">"POV: You slice every drive but still act like you're playing The Masters 🏆"</div>
+                </div>
+            </div>
+            
+            <div class="trend-card">
+                <div class="trend-header">
+                    <div class="trend-title">Indoor Golf / Simulators</div>
+                    <span class="trend-badge rising">RISING</span>
+                </div>
+                <div class="trend-desc">Launch monitors becoming affordable. Growing interest in home setups.</div>
+                <div class="trend-link"><a href="https://www.tiktok.com/tag/indoorgolf" target="_blank">View Trend →</a></div>
+                <div class="trend-idea">
+                    <div class="trend-idea-label">🎯 SWING SHACK CAN POST:</div>
+                    <div class="trend-idea-text">"You don't need R500k for a simulator... here's what R500/month gets you ⛳"</div>
+                </div>
+            </div>
+            
+            <div class="trend-card">
+                <div class="trend-header">
+                    <div class="trend-title">Slice Fix / Distance Tips</div>
+                    <span class="trend-badge consistent">CONSISTENT</span>
+                </div>
+                <div class="trend-desc">Always viral. High search volume, problem-solving content.</div>
+                <div class="trend-link"><a href="https://www.tiktok.com/tag/slicefix" target="_blank">View Trend →</a></div>
+                <div class="trend-idea">
+                    <div class="trend-idea-label">🎯 SWING SHACK CAN POST:</div>
+                    <div class="trend-idea-text">"The ONE drill that fixed my slice (after 20 years) 🔧" - with TrackMan data proof</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SECTION 4: CONTENT IDEAS -->
+        <div class="section">
+            <div class="section-title" style="color: var(--success);">💡 Content Idea Engine</div>
+            
+            <div class="idea-card">
+                <div><span class="idea-num">1</span><span class="idea-title">POV: You finally get fitted...</span></div>
+                <div class="idea-hook">"POV: You finally get fitted for clubs and realize your driver was 2 degrees wrong"</div>
+                <div class="idea-structure">
+                    <strong>Format:</strong> Relatable story + data reveal<br>
+                    <strong>Why it works:</strong> Hooks golfers who've wondered about fitting
+                </div>
+            </div>
+            
+            <div class="idea-card">
+                <div><span class="idea-num">2</span><span class="idea-title">The truth about indoor golf in SA</span></div>
+                <div class="idea-hook">"The truth about indoor golf in SA (from a 30yo golfer)"</div>
+                <div class="idea-structure">
+                    <strong>Format:</strong> Educational + local angle<br>
+                    <strong>Why it works:</strong> SA-specific, relatable, differentiates facility
+                </div>
+            </div>
+            
+            <div class="idea-card">
+                <div><span class="idea-num">3</span><span class="idea-title">Wait for the impact...</span></div>
+                <div class="idea-hook">"Wait for the impact... 🔥 (TrackMan slow-mo data reveal)"</div>
+                <div class="idea-structure">
+                    <strong>Format:</strong> Suspense + visual impact<br>
+                    <strong>Why it works:</strong> Visual hook, shows tech advantage
+                </div>
+            </div>
+            
+            <div class="idea-card">
+                <div><span class="idea-num">4</span><span class="idea-title">Wife brought to golf...</span></div>
+                <div class="idea-hook">"I brought my wife to Swing Shack and now she's beating me 🏌️‍♀️"</div>
+                <div class="idea-structure">
+                    <strong>Format:</strong> Couple/relatable + humor<br>
+                    <strong>Why it works:</strong> Trendjacking Pookie & Jett format
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Last updated: March 4, 2026</p>
+            <p>Research runs daily at 6am SAST • <a href="progress-dashboard.html">Back to Progress Dashboard</a></p>
+        </div>
+    </div>
+</body>
+</html>
