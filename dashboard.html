@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swing Shack Social Dashboard</title>
+    <title>Swing Shack - Status Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -15,17 +15,13 @@
             --bg-dark: #0f0f23;
             --bg-card: #1a1a2e;
             --bg-card-hover: #252542;
-            --accent-tiktok: #ff0050;
-            --accent-instagram: #e1306c;
-            --accent-youtube: #ff0000;
-            --accent-x: #1da1f2;
-            --accent-facebook: #1877f2;
-            --accent-woocommerce: #96588a;
             --text-primary: #ffffff;
             --text-secondary: #a0a0b0;
             --success: #00d26a;
             --warning: #ffa500;
             --danger: #ff4757;
+            --info: #00b4d8;
+            --purple: #7b2cbf;
         }
         
         body {
@@ -38,300 +34,376 @@
         
         .header {
             text-align: center;
-            padding: 30px 0;
+            padding: 20px 0 30px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             margin-bottom: 30px;
         }
         
         .header h1 {
-            font-size: 2.2rem;
+            font-size: 2rem;
             margin-bottom: 8px;
-            background: linear-gradient(90deg, #00d26a, #00b4d8);
+            background: linear-gradient(90deg, #00d26a, #ffa500);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
-        .header p {
-            color: var(--text-secondary);
-            font-size: 1rem;
-        }
-        
-        .header a {
-            color: var(--info);
-            text-decoration: none;
-            margin: 0 10px;
-        }
-        
         .container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
-        /* Platform Tabs */
-        .platform-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        
-        .platform-tab {
-            padding: 12px 24px;
-            border-radius: 30px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .platform-tab.active {
-            transform: scale(1.05);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        }
-        
-        .platform-tab.tiktok { background: var(--accent-tiktok); color: white; }
-        .platform-tab.instagram { background: var(--accent-instagram); color: white; }
-        .platform-tab.youtube { background: var(--accent-youtube); color: white; }
-        .platform-tab.x { background: var(--accent-x); color: white; }
-        .platform-tab.facebook { background: var(--accent-facebook); color: white; }
-        
-        .platform-section {
-            display: none;
-        }
-        
-        .platform-section.active {
-            display: block;
-        }
-        
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+        /* Status Bar */
+        .status-bar {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 25px;
             margin-bottom: 30px;
         }
         
-        .stat-card {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid rgba(255,255,255,0.05);
-            transition: transform 0.2s ease;
-        }
-        
-        .stat-card:hover {
-            background: var(--bg-card-hover);
-            transform: translateY(-2px);
-        }
-        
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-        }
-        
-        .stat-value.success { color: var(--success); }
-        .stat-value.warning { color: var(--warning); }
-        .stat-value.danger { color: var(--danger); }
-        .stat-value.tiktok { color: var(--accent-tiktok); }
-        .stat-value.instagram { color: var(--accent-instagram); }
-        
-        .stat-change {
-            font-size: 0.85rem;
-            margin-top: 5px;
-        }
-        
-        .stat-change.up { color: var(--success); }
-        .stat-change.down { color: var(--danger); }
-        
-        /* Posts Table */
-        .card {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid rgba(255,255,255,0.05);
-            margin-bottom: 20px;
-        }
-        
-        .card h2 {
-            font-size: 1.3rem;
-            margin-bottom: 20px;
+        .status-header {
             display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .posts-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .posts-table th,
-        .posts-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        
-        .posts-table th {
-            color: var(--text-secondary);
-            font-weight: 500;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-        }
-        
-        .posts-table tr:hover {
-            background: rgba(255,255,255,0.02);
-        }
-        
-        .post-title {
-            max-width: 300px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .platform-badge {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        
-        .platform-badge.tiktok { background: var(--accent-tiktok); }
-        .platform-badge.instagram { background: var(--accent-instagram); }
-        
-        /* Content Ideas */
-        .ideas-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 15px;
-        }
-        
-        .idea-card {
-            background: rgba(255,255,255,0.03);
-            border-radius: 12px;
-            padding: 18px;
-            border-left: 3px solid;
-        }
-        
-        .idea-card.tiktok { border-color: var(--accent-tiktok); }
-        .idea-card.instagram { border-color: var(--accent-instagram); }
-        .idea-card.youtube { border-color: var(--accent-youtube); }
-        
-        .idea-card h4 {
-            font-size: 1rem;
-            margin-bottom: 8px;
-        }
-        
-        .idea-card p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-        
-        .idea-pillar {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 4px 10px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 6px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-        
-        /* Trends */
-        .trends-list {
-            list-style: none;
-        }
-        
-        .trends-list li {
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
         
-        .trend-tag {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+        .status-title {
+            font-size: 1.3rem;
             font-weight: 600;
         }
         
-        .trend-tag.hot {
-            background: linear-gradient(90deg, #ff0050, #ff4d4d);
-            color: white;
+        .status-percent {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--success);
         }
         
-        .trend-tag.new {
-            background: linear-gradient(90deg, #00d26a, #00b4d8);
-            color: white;
-        }
-        
-        .trend-tag.rising {
-            background: linear-gradient(90deg, #ffa500, #ff6b6b);
-            color: white;
-        }
-        
-        /* Schedule */
-        .schedule-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-        }
-        
-        .schedule-item {
-            background: rgba(255,255,255,0.03);
-            padding: 15px;
+        .progress-bar {
+            height: 20px;
+            background: rgba(255,255,255,0.1);
             border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--info), var(--success));
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        
+        .status-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
             text-align: center;
         }
         
-        .schedule-day {
-            font-weight: 600;
-            margin-bottom: 5px;
+        .stat-box {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--info);
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
             color: var(--text-secondary);
+            margin-top: 5px;
         }
         
-        .schedule-topic {
-            font-size: 0.9rem;
+        /* Needed Section */
+        .needed-section {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
         }
         
-        /* Hashtags */
-        .hashtags {
+        .needed-title {
+            color: var(--danger);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
             display: flex;
-            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .needed-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+        
+        .needed-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+        
+        .needed-item .icon {
+            font-size: 1.2rem;
+        }
+        
+        /* Next Steps */
+        .next-steps {
+            background: rgba(0, 178, 216, 0.1);
+            border: 1px solid var(--info);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .next-steps-title {
+            color: var(--info);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .next-steps-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+        }
+        
+        .next-step-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+        
+        .next-step-item .icon {
+            font-size: 1.2rem;
+        }
+        
+        /* Task Board */
+        .task-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        
+        @media (max-width: 1200px) {
+            .task-board {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .status-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .task-board {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .task-column {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            min-height: 400px;
+        }
+        
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .column-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
             gap: 8px;
         }
         
-        .hashtag {
-            padding: 6px 14px;
-            border-radius: 20px;
+        .task-count {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 10px;
+            border-radius: 12px;
             font-size: 0.85rem;
-            background: rgba(255,255,255,0.08);
+        }
+        
+        .column-todo .column-title { color: var(--info); }
+        .column-progress .column-title { color: var(--warning); }
+        .column-review .column-title { color: var(--purple); }
+        .column-done .column-title { color: var(--success); }
+        
+        /* Task Cards */
+        .task-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 3px solid;
             transition: all 0.2s ease;
         }
         
-        .hashtag:hover {
-            background: rgba(255,255,255,0.15);
-            transform: scale(1.05);
+        .task-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateX(4px);
         }
         
-        .hashtag.primary {
-            background: linear-gradient(90deg, var(--accent-tiktok), var(--accent-instagram));
+        .task-card.priority-high { border-color: var(--danger); }
+        .task-card.priority-medium { border-color: var(--warning); }
+        .task-card.priority-low { border-color: var(--success); }
+        
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+        
+        .task-assignee {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .task-assignee.me {
+            background: rgba(0, 178, 216, 0.2);
+            color: var(--info);
+        }
+        
+        .task-assignee.you {
+            background: rgba(123, 44, 191, 0.2);
+            color: var(--purple);
+        }
+        
+        .task-assignee.auto {
+            background: rgba(0, 210, 106, 0.2);
+            color: var(--success);
+        }
+        
+        .task-priority {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .task-priority.high {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--danger);
+        }
+        
+        .task-priority.medium {
+            background: rgba(255, 165, 0, 0.2);
+            color: var(--warning);
+        }
+        
+        .task-priority.low {
+            background: rgba(0, 210, 106, 0.2);
+            color: var(--success);
+        }
+        
+        /* Reddit Section */
+        .reddit-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .reddit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .reddit-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #ff4500;
+        }
+        
+        .reddit-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .reddit-stat {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        
+        .reddit-stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ff4500;
+        }
+        
+        .reddit-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .reddit-posts {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .reddit-post {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 3px solid #ff4500;
+        }
+        
+        .reddit-post-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .reddit-post-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .reddit-post-comment {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            padding: 10px;
+            background: rgba(255,69,0,0.1);
+            border-radius: 6px;
+            font-style: italic;
         }
         
         /* Footer */
@@ -340,488 +412,356 @@
             padding: 30px;
             color: var(--text-secondary);
             font-size: 0.85rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
             margin-top: 40px;
         }
         
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header h1 { font-size: 1.6rem; }
-            .platform-tabs { justify-content: center; }
-            .stats-grid { grid-template-columns: 1fr 1fr; }
-        }
-        
-        @media (max-width: 480px) {
-            .stats-grid { grid-template-columns: 1fr; }
+        .footer a {
+            color: var(--info);
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>⛳ Swing Shack Social Dashboard</h1>
-        <p>Cross-platform analytics & content intelligence</p>
-        <p>
-            <a href="tasks.html">📋 Task Board</a>
-            <a href="dashboard.html">📊 Analytics</a>
-        </p>
+        <h1>⚡ Swing Shack Social Dashboard</h1>
+        <p>Single source of truth for all tasks</p>
+        <p><a href="tasks.html">📋 Task Board</a></p>
     </div>
     
     <div class="container">
-        <!-- Platform Tabs -->
-        <div class="platform-tabs">
-            <button class="platform-tab tiktok active" onclick="showPlatform('tiktok')">
-                🎵 TikTok
-            </button>
-            <button class="platform-tab instagram" onclick="showPlatform('instagram')">
-                📸 Instagram
-            </button>
-            <button class="platform-tab youtube" onclick="showPlatform('youtube')">
-                🎥 YouTube
-            </button>
-            <button class="platform-tab x" onclick="showPlatform('x')">
-                🐦 X
-            </button>
-            <button class="platform-tab facebook" onclick="showPlatform('facebook')">
-                📘 Facebook
-            </button>
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-header">
+                <div class="status-title">📊 Overall Progress</div>
+                <div class="status-percent" id="status-percent">35%</div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 35%;"></div>
+            </div>
+            <div class="status-stats">
+                <div class="stat-box">
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">✅ Done</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">🔄 In Progress</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">📝 To Do</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">10</div>
+                    <div class="stat-label">🎯 Total Tasks</div>
+                </div>
+            </div>
         </div>
         
-        <!-- TIKTOK SECTION -->
-        <div id="tiktok" class="platform-section active">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Video Views (7d)</div>
-                    <div class="stat-value danger">47</div>
-                    <div class="stat-change down">-94.7%</div>
+        <!-- Needed Section -->
+        <div class="needed-section">
+            <div class="needed-title">🔴 NEEDED FROM YOU</div>
+            <div class="needed-list">
+                <div class="needed-item">
+                    <span class="icon">🔑</span>
+                    <span>OpenAI API Key (for image generation)</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Profile Views</div>
-                    <div class="stat-value">0</div>
-                    <div class="stat-change down">-100%</div>
+                <div class="needed-item">
+                    <span class="icon">📱</span>
+                    <span>Postiz API Key + TikTok Integration</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Likes</div>
-                    <div class="stat-value">0</div>
+                <div class="needed-item">
+                    <span class="icon">🎬</span>
+                    <span>Post first TikTok slideshow</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Comments</div>
-                    <div class="stat-value">0</div>
+            </div>
+        </div>
+        
+        <!-- Next Steps -->
+        <div class="next-steps">
+            <div class="next-steps-title">🎯 NEXT STEPS</div>
+            <div class="next-steps-list">
+                <div class="next-step-item">
+                    <span class="icon">1️⃣</span>
+                    <span>Set up Postiz + connect TikTok</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Shares</div>
-                    <div class="stat-value">0</div>
+                <div class="next-step-item">
+                    <span class="icon">2️⃣</span>
+                    <span>Generate first TikTok images</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Followers</div>
-                    <div class="stat-value tiktok">~50</div>
-                    <div class="stat-change">@swingshacksa</div>
+                <div class="next-step-item">
+                    <span class="icon">3️⃣</span>
+                    <span>Post first slideshow + track performance</span>
                 </div>
+                <div class="next-step-item">
+                    <span class="icon">4️⃣</span>
+                    <span>Set up daily analytics cron</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reddit/Outreach Section -->
+        <div class="reddit-section">
+            <div class="reddit-header">
+                <div class="reddit-title">💬 Reddit Outreach</div>
+                <div style="color: var(--text-secondary);">Updated daily at 6am</div>
+            </div>
+            <div class="reddit-stats">
+                <div class="reddit-stat">
+                    <div class="reddit-stat-number">5</div>
+                    <div class="reddit-stat-label">Opportunities Found</div>
+                </div>
+                <div class="reddit-stat">
+                    <div class="reddit-stat-number">3</div>
+                    <div class="reddit-stat-label">Comments Posted</div>
+                </div>
+                <div class="reddit-stat">
+                    <div class="reddit-stat-number">0</div>
+                    <div class="reddit-stat-label">Leads Generated</div>
+                </div>
+            </div>
+            <div class="reddit-posts">
+                <div class="reddit-post">
+                    <div class="reddit-post-title">Why Is My Driver Distance So Inconsistent?</div>
+                    <div class="reddit-post-meta">MyGolfSpy • 3 days ago • High Intent</div>
+                    <div class="reddit-post-comment">"This is the biggest culprit... At Swing Shack, we see this all the time — TrackMan shows guys exactly where they're striking the face and the difference is shocking."</div>
+                </div>
+                <div class="reddit-post">
+                    <div class="reddit-post-title">Frustrated - Lost My Swing</div>
+                    <div class="reddit-post-meta">Reddit r/GolfSwing • 1 week ago • Advice Seeking</div>
+                    <div class="reddit-post-comment">"At Swing Shack, we use TrackMan to show guys exactly what's changed in their swing. Sometimes it's not the swing at all — it's equipment."</div>
+                </div>
+                <div class="reddit-post">
+                    <div class="reddit-post-title">Should I Get Fitted?</div>
+                    <div class="reddit-post-meta">Reddit r/golf • 4 days ago • Buying Intent</div>
+                    <div class="reddit-post-comment">"I've taken over 100 lessons... At Swing Shack, we see guys who've done everything but still can't figure it out. Usually it's one small thing the data catches."</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Task Board -->
+        <div class="task-board">
+            <!-- TO DO -->
+            <div class="task-column column-todo">
+                <div class="column-header">
+                    <div class="column-title">
+                        📝 To Do
+                        <span class="task-count" id="todo-count">0</span>
+                    </div>
+                </div>
+                <div id="todo-tasks"></div>
             </div>
             
-            <div class="card">
-                <h2>🏆 Top Performing Posts</h2>
-                <table class="posts-table">
-                    <thead>
-                        <tr>
-                            <th>Post</th>
-                            <th>Views</th>
-                            <th>Likes</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="post-title">CCJ Woodmead – Joburg's hidden gem</td>
-                            <td class="stat-value success">25K</td>
-                            <td>—</td>
-                            <td>Jun 2024</td>
-                        </tr>
-                        <tr>
-                            <td class="post-title">Editing members social like a reality TV show</td>
-                            <td>773</td>
-                            <td>—</td>
-                            <td>3 wk ago</td>
-                        </tr>
-                        <tr>
-                            <td class="post-title">Tournament prep</td>
-                            <td>472</td>
-                            <td>—</td>
-                            <td>2 wk ago</td>
-                        </tr>
-                        <tr>
-                            <td class="post-title">Same speed, different DNA's</td>
-                            <td>456</td>
-                            <td>—</td>
-                            <td>2 wk ago</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <!-- IN PROGRESS -->
+            <div class="task-column column-progress">
+                <div class="column-header">
+                    <div class="column-title">
+                        🔄 In Progress
+                        <span class="task-count" id="progress-count">0</span>
+                    </div>
+                </div>
+                <div id="progress-tasks"></div>
             </div>
             
-            <div class="card">
-                <h2>📈 Account Status</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Account State</div>
-                        <div class="stat-value warning">COLD</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Warmup Needed</div>
-                        <div class="stat-value">7-14 days</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Current Frequency</div>
-                        <div class="stat-value danger">0/day</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Target Frequency</div>
-                        <div class="stat-value success">3/day</div>
+            <!-- REVIEW -->
+            <div class="task-column column-review">
+                <div class="column-header">
+                    <div class="column-title">
+                        👀 Review
+                        <span class="task-count" id="review-count">0</span>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- INSTAGRAM SECTION -->
-        <div id="instagram" class="platform-section">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Followers</div>
-                    <div class="stat-value instagram">2,211</div>
-                    <div class="stat-change">@swingshack</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Posts</div>
-                    <div class="stat-value">702</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Following</div>
-                    <div class="stat-value">174</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg Likes (Last 10)</div>
-                    <div class="stat-value">~25</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Engagement Rate</div>
-                    <div class="stat-value">~3.5%</div>
-                </div>
+                <div id="review-tasks"></div>
             </div>
             
-            <div class="card">
-                <h2>📸 Recent Posts</h2>
-                <table class="posts-table">
-                    <thead>
-                        <tr>
-                            <th>Post</th>
-                            <th>Type</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="post-title">Book your free swing and club assessments w us</td>
-                            <td><span class="platform-badge instagram">Reel</span></td>
-                            <td>Feb 2026</td>
-                        </tr>
-                        <tr>
-                            <td class="post-title">New year, new set. Get your custom club fitting</td>
-                            <td><span class="platform-badge instagram">Reel</span></td>
-                            <td>Jan 2026</td>
-                        </tr>
-                        <tr>
-                            <td class="post-title">Sets looking 🔥 PB's don't stand a chance</td>
-                            <td><span class="platform-badge instagram">Reel</span></td>
-                            <td>Dec 2025</td>
-                        </tr>
-                        <tr>
-                            <td class="post-title">Black Friday 🔥 highlight</td>
-                            <td><span class="platform-badge instagram">Story</span></td>
-                            <td>Nov 2025</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- YOUTUBE SECTION -->
-        <div id="youtube" class="platform-section">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Subscribers</div>
-                    <div class="stat-value youtube">~50</div>
-                    <div class="stat-change">@swingshacksa</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Total Views</div>
-                    <div class="stat-value">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Videos</div>
-                    <div class="stat-value">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Watch Time</div>
-                    <div class="stat-value">—</div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2>🎥 YouTube Strategy</h2>
-                <p style="color: var(--text-secondary);">YouTube Shorts recommended for cross-posting TikTok content.</p>
-            </div>
-        </div>
-        
-        <!-- X SECTION -->
-        <div id="x" class="platform-section">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Followers</div>
-                    <div class="stat-value x">~100</div>
-                    <div class="stat-change">@ShackSwing</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Tweets</div>
-                    <div class="stat-value">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Impressions</div>
-                    <div class="stat-value">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Engagement</div>
-                    <div class="stat-value">—</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- FACEBOOK SECTION -->
-        <div id="facebook" class="platform-section">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Page Likes</div>
-                    <div class="stat-value facebook">~300</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Followers</div>
-                    <div class="stat-value">~350</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Posts This Month</div>
-                    <div class="stat-value">4</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Reach</div>
-                    <div class="stat-value">—</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- SHARED: Content Ideas -->
-        <div class="card">
-            <h2>💡 Today's Content Ideas</h2>
-            <div class="ideas-grid">
-                <div class="idea-card tiktok">
-                    <h4>#1 Fitting Controversy</h4>
-                    <p>"I fitted a 30-handicap with Tour clubs. He didn't believe me."</p>
-                    <span class="idea-pillar">Fitting</span>
-                </div>
-                <div class="idea-card tiktok">
-                    <h4>#2 Lie Angle Myth</h4>
-                    <p>"The lie angle myth costing you 20 yards"</p>
-                    <span class="idea-pillar">Slice Fix</span>
-                </div>
-                <div class="idea-card tiktok">
-                    <h4>#3 Indoor vs Outdoor</h4>
-                    <p>"Rainy day at Swing Shack vs your home simulator"</p>
-                    <span class="idea-pillar">Social Golf</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- SHARED: Trends -->
-        <div class="card">
-            <h2>🔥 Trending Topics (March 2026)</h2>
-            <div class="stats-grid">
-                <div>
-                    <ul class="trends-list">
-                        <li>
-                            <span>Course discovery content</span>
-                            <span class="trend-tag hot">HOT</span>
-                        </li>
-                        <li>
-                            <span>Fitting transformations</span>
-                            <span class="trend-tag hot">HOT</span>
-                        </li>
-                        <li>
-                            <span>Gear comparisons</span>
-                            <span class="trend-tag hot">HOT</span>
-                        </li>
-                        <li>
-                            <span>"Golf Ball Vs" challenges</span>
-                            <span class="trend-tag rising">RISING</span>
-                        </li>
-                    </ul>
-                </div>
-                <div>
-                    <ul class="trends-list">
-                        <li>
-                            <span>2026 club releases</span>
-                            <span class="trend-tag new">NEW</span>
-                        </li>
-                        <li>
-                            <span>Dynamic pricing complaints</span>
-                            <span class="trend-tag rising">RISING</span>
-                        </li>
-                        <li>
-                            <span>LAB putters trend</span>
-                            <span class="trend-tag new">NEW</span>
-                        </li>
-                        <li>
-                            <span>Golf shoes 2026</span>
-                            <span class="trend-tag new">NEW</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        
-        <!-- SHARED: Schedule -->
-        <div class="card">
-            <h2>📅 Content Pillar Schedule</h2>
-            <div class="schedule-grid">
-                <div class="schedule-item">
-                    <div class="schedule-day">Day 1</div>
-                    <div class="schedule-topic">Slice/Face-to-path</div>
-                </div>
-                <div class="schedule-item">
-                    <div class="schedule-day">Day 2</div>
-                    <div class="schedule-topic">Fitting myths</div>
-                </div>
-                <div class="schedule-item">
-                    <div class="schedule-day">Day 3</div>
-                    <div class="schedule-topic">Distance + contact</div>
-                </div>
-                <div class="schedule-item">
-                    <div class="schedule-day">Day 4</div>
-                    <div class="schedule-topic">Practice plan</div>
-                </div>
-                <div class="schedule-item">
-                    <div class="schedule-day">Day 5</div>
-                    <div class="schedule-topic">Gear reality</div>
-                </div>
-                <div class="schedule-item">
-                    <div class="schedule-day">Day 6</div>
-                    <div class="schedule-topic">TrackMan numbers</div>
-                </div>
-                <div class="schedule-item">
-                    <div class="schedule-day">Day 7</div>
-                    <div class="schedule-topic">Indoor golf fun</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- SHARED: Hashtags -->
-        <div class="card">
-            <h2>#️⃣ Hashtag Strategy</h2>
-            <div class="hashtags">
-                <span class="hashtag primary">#golf</span>
-                <span class="hashtag primary">#golftiktok</span>
-                <span class="hashtag primary">#golfsa</span>
-                <span class="hashtag primary">#fyp</span>
-                <span class="hashtag">#golfing</span>
-                <span class="hashtag">#golflife</span>
-                <span class="hashtag">#joburggolf</span>
-                <span class="hashtag">#swingshack</span>
-                <span class="hashtag">#trackman</span>
-                <span class="hashtag">#golffitting</span>
-                <span class="hashtag">#golfaddict</span>
-                <span class="hashtag">#weekendvibes</span>
-            </div>
-        </div>
-        
-        <!-- OUTREACH: Golf Market Intelligence -->
-        <div class="card">
-            <h2>🎯 Daily Outreach Opportunities</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">Fresh high-intent discussions. Run daily at 6am. Search: Reddit, Forums, Golf Groups.</p>
-            
-            <div class="ideas-grid">
-                <div class="idea-card" style="border-left: 3px solid var(--info);">
-                    <h4>🏆 Why Is My Driver Distance So Inconsistent?</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-secondary);">
-                        <a href="https://mygolfspy.com/news-opinion/why-is-my-driver-distance-so-inconsistent-3-common-causes/" target="_blank" style="color: var(--info);">MyGolfSpy →</a> 3 days ago
-                    </p>
-                    <p style="font-size: 0.8rem; margin-top: 8px;"><strong>Why:</strong> Golfers debating data-driven coaching</p>
-                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.75rem; line-height: 1.5;">
-                        "Honestly, taking lessons without TrackMan in this day and age can be a waste. If you have the tech, why not use it? Ever strike the ball and see it fly weird and be like 'wtf happened there' — TrackMan allows you to see trends in your delivery, strike point, path... you can't get that by eyeballing it. (Swing Shack link here)"
+            <!-- DONE -->
+            <div class="task-column column-done">
+                <div class="column-header">
+                    <div class="column-title">
+                        ✅ Done
+                        <span class="task-count" id="done-count">0</span>
                     </div>
                 </div>
-                
-                <div class="idea-card" style="border-left: 3px solid var(--info);">
-                    <h4>😤 Frustrated - Lost My Swing</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-secondary);">
-                        <a href="https://www.reddit.com/r/GolfSwing/comments/1ra3u2n/frustrated/" target="_blank" style="color: var(--info);">Reddit r/GolfSwing →</a> 1 week ago
-                    </p>
-                    <p style="font-size: 0.8rem; margin-top: 8px;"><strong>Why:</strong> New users seeking guidance</p>
-                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.75rem; line-height: 1.5;">
-                        "TrackMan has a good article online for beginners — it's like the six most important metrics. But honestly, the best thing you can do is show up with a few specific goals. Maybe 10-15 shots each with your 7 iron, driver, and wedges. We always tell guys at Swing Shack (Swing Shack link here) to focus on strike location first — everything else flows from there."
-                    </div>
-                </div>
-                
-                <div class="idea-card" style="border-left: 3px solid var(--warning);">
-                    <h4>🤔 Should I Get Fitted?</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-secondary);">
-                        <a href="https://www.reddit.com/r/golf/comments/1rc93wq/a_thing_i_didnt_want_to_accept_about_my_golf/" target="_blank" style="color: var(--info);">Reddit r/golf →</a> 4 days ago
-                    </p>
-                    <p style="font-size: 0.8rem; margin-top: 8px;"><strong>Why:</strong> Active practitioners looking to optimize</p>
-                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.75rem; line-height: 1.5;">
-                        "Dedicate 1 day to just wedges and build a wedge matrix. It's incredible use of TrackMan to get super dialed in for scoring clubs. Something similar we did at Swing Shack (Swing Shack link here) — build a 100-yard and in matrix first, then work back to longer clubs."
-                    </div>
-                </div>
-                
-                <div class="idea-card" style="border-left: 3px solid var(--info);">
-                    <h4>📉 Losing Distance - Help!</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-secondary);">
-                        <a href="https://www.reddit.com/r/golf/comments/1r9kfrl/golf_course_talk_kinda_turns_into_groupthink/" target="_blank" style="color: var(--info);">Reddit r/golf →</a> 1 week ago
-                    </p>
-                    <p style="font-size: 0.8rem; margin-top: 8px;"><strong>Why:</strong> New indoor golfers seeking value</p>
-                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.75rem; line-height: 1.5;">
-                        "On TrackMan, there's an optimizer function that will calculate the optimal dynamics for your club speed. Use it! Also — don't skip the short game. We see guys at Swing Shack (Swing Shack link here) who crush 300m off the tee but can't chip within 10m. TrackMan data on chipping is underrated."
-                    </div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <p style="font-size: 0.85rem; color: var(--text-secondary);">
-                    <strong>Search Platforms:</strong> Reddit, MyGolfSpy, Golf Monthly | <strong>Focus:</strong> Globally relatable, SA-relevant topics <strong>Filters:</strong> < 1 week old, buying intent, advice-seeking
-                </p>
+                <div id="done-tasks"></div>
             </div>
         </div>
-    </div>
-    
-    <div class="footer">
-        <p>Last updated: 2026-02-26 12:50 PM SAST</p>
-        <p>Next trend research: 2026-02-27 6:00 AM SAST</p>
-        <p>Dashboard auto-updates daily</p>
+        
+        <div class="footer">
+            <p>Last updated: <span id="last-updated">2026-03-04</span></p>
+            <p>Daily research runs at 6am SAST • Reddit outreach automated</p>
+        </div>
     </div>
     
     <script>
-        function showPlatform(platform) {
-            // Hide all sections
-            document.querySelectorAll('.platform-section').forEach(section => {
-                section.classList.remove('active');
+        const tasks = [
+            // === NEEDED NOW ===
+            {
+                id: 1,
+                title: "Get OpenAI API Key",
+                status: "todo",
+                assignee: "you",
+                priority: "high",
+                deadline: "ASAP",
+                notes: "Needed for image generation",
+                category: "infrastructure"
+            },
+            {
+                id: 2,
+                title: "Set up Postiz + TikTok",
+                status: "todo",
+                assignee: "you",
+                priority: "high",
+                deadline: "This week",
+                notes: "API key + connect TikTok account",
+                category: "infrastructure"
+            },
+            
+            // === IN PROGRESS ===
+            {
+                id: 3,
+                title: "Daily research cron running",
+                status: "progress",
+                assignee: "auto",
+                priority: "high",
+                deadline: "Active",
+                notes: "6am SAST - trends + outreach",
+                category: "automation"
+            },
+            {
+                id: 4,
+                title: "Reddit outreach active",
+                status: "progress",
+                assignee: "auto",
+                priority: "medium",
+                deadline: "Daily",
+                notes: "Finding opportunities + posting comments",
+                category: "outreach"
+            },
+            {
+                id: 5,
+                title: "TikTok analytics access",
+                status: "progress",
+                assignee: "me",
+                priority: "high",
+                deadline: "Ongoing",
+                notes: "Can view in browser, need API for automation",
+                category: "tiktok"
+            },
+            
+            // === REVIEW / NEEDS ACTION ===
+            {
+                id: 6,
+                title: "Post first TikTok slideshow",
+                status: "review",
+                assignee: "you",
+                priority: "high",
+                deadline: "This week",
+                notes: "Images ready, need to upload",
+                category: "content"
+            },
+            
+            // === DONE ===
+            {
+                id: 7,
+                title: "Create dashboard & task board",
+                status: "done",
+                assignee: "me",
+                priority: "high",
+                deadline: "2026-02-27",
+                notes: "GitHub Pages dashboard live",
+                category: "infrastructure"
+            },
+            {
+                id: 8,
+                title: "Set up daily research crons",
+                status: "done",
+                assignee: "me",
+                priority: "high",
+                deadline: "2026-02-27",
+                notes: "6am SAST - trends + outreach",
+                category: "automation"
+            },
+            {
+                id: 9,
+                title: "TikTok performance framework",
+                status: "done",
+                assignee: "me",
+                priority: "medium",
+                deadline: "2026-02-27",
+                notes: "Analytics analysis system in place",
+                category: "analytics"
+            },
+            {
+                id: 10,
+                title: "Supplier inquiry emails",
+                status: "done",
+                assignee: "me",
+                priority: "medium",
+                deadline: "2026-03-02",
+                notes: "5 supplier emails created",
+                category: "outreach"
+            }
+        ];
+        
+        function renderTasks() {
+            const columns = {
+                todo: document.getElementById('todo-tasks'),
+                progress: document.getElementById('progress-tasks'),
+                review: document.getElementById('review-tasks'),
+                done: document.getElementById('done-tasks')
+            };
+            
+            const counts = { todo: 0, progress: 0, review: 0, done: 0 };
+            
+            Object.values(columns).forEach(col => col.innerHTML = '');
+            
+            tasks.forEach(task => {
+                const card = createTaskCard(task);
+                columns[task.status].appendChild(card);
+                counts[task.status]++;
             });
             
-            // Remove active class from all tabs
-            document.querySelectorAll('.platform-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
+            // Update counts
+            document.getElementById('todo-count').textContent = counts.todo;
+            document.getElementById('progress-count').textContent = counts.progress;
+            document.getElementById('review-count').textContent = counts.review;
+            document.getElementById('done-count').textContent = counts.done;
             
-            // Show selected section
-            document.getElementById(platform).classList.add('active');
+            // Update status bar
+            const total = tasks.length;
+            const done = counts.done;
+            const percent = Math.round((done / total) * 100);
             
-            // Add active class to clicked tab
-            event.target.classList.add('active');
+            document.getElementById('status-percent').textContent = percent + '%';
+            document.getElementById('progress-fill').style.width = percent + '%';
+            
+            document.getElementById('last-updated').textContent = new Date().toISOString().split('T')[0];
         }
+        
+        function createTaskCard(task) {
+            const card = document.createElement('div');
+            card.className = `task-card priority-${task.priority}`;
+            
+            const assigneeLabel = {
+                'me': '👩‍💻 Me',
+                'you': '👤 You',
+                'auto': '🤖 Auto'
+            };
+            
+            card.innerHTML = `
+                <div class="task-title">${task.title}</div>
+                <div class="task-meta">
+                    <span class="task-assignee ${task.assignee}">${assigneeLabel[task.assignee]}</span>
+                    <span class="task-priority ${task.priority}">${task.priority.toUpperCase()}</span>
+                    <span style="color: var(--text-secondary); font-size: 0.75rem;">${task.deadline}</span>
+                </div>
+                ${task.notes ? `<div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary);">${task.notes}</div>` : ''}
+            `;
+            
+            return card;
+        }
+        
+        renderTasks();
     </script>
 </body>
 </html>
