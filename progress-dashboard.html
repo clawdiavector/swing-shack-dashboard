@@ -243,7 +243,8 @@
         <p>Marketing Automation Status</p>
         <p style="margin-top:10px;">
             <a href="social-dashboard.html" style="color:var(--info); margin-right: 15px;">← Social Dashboard</a>
-            <a href="golf-news.html" style="color:var(--success);">🇿🇦 Golf News</a>
+            <a href="golf-news.html" style="color:var(--success); margin-right: 15px;">🇿🇦 Golf News</a>
+            <a href="content-calendar.html" style="color:var(--warning);">📅 Content Calendar</a>
         </p>
     </div>
     
@@ -502,20 +503,24 @@
     // Read Reddit progress from localStorage
     const redditProgress = JSON.parse(localStorage.getItem('swingShackRedditProgress') || '{"checked":0,"total":4,"pct":0}');
     
-    // Update the Reddit progress display if it exists
-    const redditBox = document.querySelector('.stat-box');
-    if (redditBox && document.querySelector('.stat-box:nth-child(1)').textContent.includes('Done')) {
-        // Find the progress stats section and add Reddit count
-    }
+    // Read Content Calendar progress from localStorage
+    const contentProgress = JSON.parse(localStorage.getItem('swingShackContentProgress') || '{"posted":0,"total":0,"pct":0}');
     
-    // Update overall progress based on Reddit checklist
-    // Base progress is 30%, add up to 10% for Reddit outreach
-    let overallProgress = 30;
+    // Update overall progress based on Reddit + Content Calendar
+    // Base progress is 25%, add up to 15% for Reddit + Content
+    let overallProgress = 25;
+    
+    // Add up to 10% for Reddit outreach
     if (redditProgress.pct > 0) {
-        overallProgress = 30 + Math.round((redditProgress.pct / 100) * 10);
+        overallProgress += Math.round((redditProgress.pct / 100) * 10);
     }
     
-    document.getElementById('total-percent').textContent = overallProgress + '%';
-    document.getElementById('total-fill').style.width = overallProgress + '%';
+    // Add up to 15% for content calendar (per post posted)
+    if (contentProgress.posted > 0) {
+        overallProgress += Math.min(15, contentProgress.posted * 3); // 3% per post, max 15%
+    }
+    
+    document.getElementById('total-percent').textContent = Math.min(overallProgress, 100) + '%';
+    document.getElementById('total-fill').style.width = Math.min(overallProgress, 100) + '%';
 </script>
 </html>

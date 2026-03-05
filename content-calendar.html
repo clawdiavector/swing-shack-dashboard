@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swing Shack - Content Calendar</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --success: #00d26a;
+            --warning: #ffa500;
+            --danger: #ff4757;
+            --info: #00b4d8;
+            --purple: #7b2cbf;
+            --tiktok: #ff0050;
+            --instagram: #e1306c;
+            --facebook: #4267B2;
+            --youtube: #ff0000;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #ff0050, #e1306c, #4267B2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* Nav */
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .nav a:hover { background: var(--info); }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .week-nav {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .week-nav button {
+            padding: 8px 15px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .week-nav button:hover { background: var(--info); }
+        .week-title { font-size: 1.2rem; font-weight: 600; }
+        
+        .generate-btn {
+            padding: 10px 20px;
+            background: linear-gradient(90deg, var(--info), var(--success));
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 1200px) { .calendar-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 768px) { .calendar-grid { grid-template-columns: repeat(2, 1fr); } }
+        
+        .day-column {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 300px;
+        }
+        .day-header {
+            text-align: center;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .day-name { font-weight: 600; font-size: 0.9rem; }
+        .day-date { font-size: 0.8rem; color: var(--text-secondary); }
+        
+        .day-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        /* Post Card */
+        .post-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 10px;
+            border-left: 3px solid var(--info);
+        }
+        .post-card.claimed { border-color: var(--warning); }
+        .post-card.filming { border-color: var(--purple); }
+        .post-card.editing { border-color: var(--instagram); }
+        .post-card.posted { border-color: var(--success); }
+        
+        .post-type {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .post-type-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+        }
+        .post-type-badge.tiktok { background: var(--tiktok); }
+        .post-type-badge.instagram { background: var(--instagram); }
+        .post-type-badge.facebook { background: var(--facebook); }
+        
+        .post-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .post-hook {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+        
+        .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.7rem;
+        }
+        .post-status {
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--info);
+        }
+        .post-status.claimed { background: var(--warning); }
+        .post-status.filming { background: var(--purple); }
+        .post-status.editing { background: var(--instagram); }
+        .post-status.posted { background: var(--success); }
+        
+        .claim-btn {
+            padding: 5px 10px;
+            background: var(--warning);
+            border: none;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            color: #000;
+            font-weight: 600;
+        }
+        .claim-btn:hover { opacity: 0.8; }
+        
+        .employee-badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            background: var(--info);
+            border-radius: 4px;
+        }
+        
+        /* Progress */
+        .progress-summary {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .progress-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+        @media (max-width: 768px) { .progress-stats { grid-template-columns: repeat(2, 1fr); } }
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+        .stat-number { font-size: 1.5rem; font-weight: 700; }
+        .stat-label { font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px; }
+        
+        /* Add button */
+        .add-slot-btn {
+            width: 100%;
+            padding: 8px;
+            background: transparent;
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .add-slot-btn:hover {
+            border-color: var(--info);
+            color: var(--info);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📅 Content Calendar</h1>
+        <p>Swing Shack Social Media Schedule</p>
+    </div>
+    
+    <div class="nav">
+        <a href="progress-dashboard.html">← Progress Dashboard</a>
+        <a href="social-dashboard.html">← Social Dashboard</a>
+        <a href="golf-news.html">🇿🇦 Golf News</a>
+    </div>
+    
+    <div class="container">
+        <!-- Progress Summary -->
+        <div class="progress-summary">
+            <div class="progress-title">📊 This Week's Progress</div>
+            <div class="progress-stats">
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-idea" style="color: var(--info);">0</div>
+                    <div class="stat-label">Ideas</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-claimed" style="color: var(--warning);">0</div>
+                    <div class="stat-label">Claimed</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-filming" style="color: var(--purple);">0</div>
+                    <div class="stat-label">Filming</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-editing" style="color: var(--instagram);">0</div>
+                    <div class="stat-label">Editing</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-posted" style="color: var(--success);">0</div>
+                    <div class="stat-label">Posted</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Calendar Controls -->
+        <div class="controls">
+            <div class="week-nav">
+                <button onclick="changeWeek(-1)">← Prev</button>
+                <span class="week-title" id="week-title">March 2026</span>
+                <button onclick="changeWeek(1)">Next →</button>
+            </div>
+            <button class="generate-btn" onclick="generateIdeas()">⚡ Generate Ideas from News</button>
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div class="calendar-grid" id="calendar-grid">
+            <!-- Days will be populated by JS -->
+        </div>
+        
+        <div class="footer">
+            <p>Click "Generate Ideas from News" to auto-populate from golf news, trends & Reddit</p>
+            <p>Changes auto-save to local storage</p>
+        </div>
+    </div>
+
+    <script>
+        // Employees
+        const employees = ['Cat', 'Divan', 'Wandre'];
+        
+        // State
+        let currentWeekStart = getMonday(new Date());
+        let calendarData = JSON.parse(localStorage.getItem('swingShackCalendar') || '{}');
+        
+        function getMonday(d) {
+            d = new Date(d);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+        
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+        
+        function getWeekDates() {
+            const dates = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(currentWeekStart);
+                d.setDate(d.getDate() + i);
+                dates.push(d);
+            }
+            return dates;
+        }
+        
+        function changeWeek(dir) {
+            currentWeekStart.setDate(currentWeekStart.getDate() + (dir * 7));
+            renderCalendar();
+        }
+        
+        function getDayName(date) {
+            return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][date.getDay()];
+        }
+        
+        function getMonthName(date) {
+            return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+        }
+        
+        function getStatusColor(status) {
+            switch(status) {
+                case 'Idea': return 'var(--info)';
+                case 'Claimed': return 'var(--warning)';
+                case 'Filming': return 'var(--purple)';
+                case 'Editing': return 'var(--instagram)';
+                case 'Posted': return 'var(--success)';
+                default: return 'var(--info)';
+            }
+        }
+        
+        function getStatusNext(current) {
+            const flow = ['Idea', 'Claimed', 'Filming', 'Editing', 'Posted'];
+            const idx = flow.indexOf(current);
+            return idx < flow.length - 1 ? flow[idx + 1] : 'Posted';
+        }
+        
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            const dates = getWeekDates();
+            
+            document.getElementById('week-title').textContent = getMonthName(dates[0]);
+            
+            grid.innerHTML = '';
+            
+            dates.forEach((date, idx) => {
+                const dateStr = formatDate(date);
+                const dayData = calendarData[dateStr] || [];
+                
+                const dayCol = document.createElement('div');
+                dayCol.className = 'day-column';
+                dayCol.innerHTML = `
+                    <div class="day-header">
+                        <div class="day-name">${getDayName(date)}</div>
+                        <div class="day-date">${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}</div>
+                    </div>
+                    <div class="day-slots" id="slots-${dateStr}">
+                        ${dayData.map((post, postIdx) => renderPostCard(post, dateStr, postIdx)).join('')}
+                    </div>
+                    <button class="add-slot-btn" onclick="addPost('${dateStr}')">+ Add Post</button>
+                `;
+                grid.appendChild(dayCol);
+            });
+            
+            updateStats();
+            saveToStorage();
+        }
+        
+        function renderPostCard(post, dateStr, postIdx) {
+            const statusClass = post.status.toLowerCase();
+            const canClaim = post.status === 'Idea' && !post.assigned;
+            
+            return `
+                <div class="post-card ${statusClass}">
+                    <div class="post-type">
+                        <span class="post-type-badge ${post.platform}">${post.platform}</span>
+                        <span>${post.type}</span>
+                    </div>
+                    <div class="post-title">${post.title}</div>
+                    <div class="post-hook">"${post.hook}"</div>
+                    <div class="post-meta">
+                        ${post.assigned 
+                            ? `<span class="employee-badge">👤 ${post.assigned}</span>` 
+                            : (canClaim ? `<button class="claim-btn" onclick="claimPost('${dateStr}', ${postIdx})">Claim</button>` : '')}
+                        <span class="post-status ${statusClass}" onclick="cycleStatus('${dateStr}', ${postIdx})" style="cursor:pointer;">${post.status}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function addPost(dateStr) {
+            if (!calendarData[dateStr]) calendarData[dateStr] = [];
+            calendarData[dateStr].push({
+                title: 'New Post Idea',
+                hook: 'Your hook here',
+                format: 'Carousel',
+                platform: 'tiktok',
+                type: 'Post',
+                status: 'Idea',
+                assigned: null,
+                created: new Date().toISOString()
+            });
+            renderCalendar();
+        }
+        
+        function claimPost(dateStr, postIdx) {
+            const post = calendarData[dateStr][postIdx];
+            
+            // Simple cycle through employees
+            const currentIdx = employees.indexOf(post.assigned);
+            const nextIdx = (currentIdx + 1) % employees.length;
+            post.assigned = employees[nextIdx];
+            post.status = 'Claimed';
+            
+            renderCalendar();
+        }
+        
+        function cycleStatus(dateStr, postIdx) {
+            const post = calendarData[dateStr][postIdx];
+            post.status = getStatusNext(post.status);
+            
+            // Update progress in localStorage for dashboard
+            updateProgressForDashboard();
+            
+            renderCalendar();
+        }
+        
+        function updateStats() {
+            let stats = { idea: 0, claimed: 0, filming: 0, editing: 0, posted: 0 };
+            
+            Object.values(calendarData).forEach(dayPosts => {
+                dayPosts.forEach(post => {
+                    stats[post.status.toLowerCase()]++;
+                });
+            });
+            
+            document.getElementById('stat-idea').textContent = stats.idea;
+            document.getElementById('stat-claimed').textContent = stats.claimed;
+            document.getElementById('stat-filming').textContent = stats.filming;
+            document.getElementById('stat-editing').textContent = stats.editing;
+            document.getElementById('stat-posted').textContent = stats.posted;
+        }
+        
+        function updateProgressForDashboard() {
+            let posted = 0, total = 0;
+            Object.values(calendarData).forEach(dayPosts => {
+                dayPosts.forEach(post => {
+                    total++;
+                    if (post.status === 'Posted') posted++;
+                });
+            });
+            const pct = total > 0 ? Math.round((posted / total) * 100) : 0;
+            localStorage.setItem('swingShackContentProgress', JSON.stringify({ posted, total, pct }));
+        }
+        
+        function saveToStorage() {
+            localStorage.setItem('swingShackCalendar', JSON.stringify(calendarData));
+        }
+        
+        function generateIdeas() {
+            // Auto-generate ideas based on news/trends
+            const ideas = [
+                { title: 'LIV Golf Steyn City', hook: 'LIV Golf is coming to Joburg and I\'m hyped 🏆', format: 'Carousel', platform: 'tiktok', type: 'Post' },
+                { title: 'TrackMan Tuesday', hook: 'Know your numbers. Fix your game. 🔢', format: 'Reel', platform: 'instagram', type: 'Post' },
+                { title: 'Indoor Golf Rain Day', hook: 'Rain? No problem. We play Pebble Beach indoors ☔', format: 'Carousel', platform: 'facebook', type: 'Post' },
+                { title: 'Slice Fix Tips', hook: 'The ONE drill that fixed my slice 🔧', format: 'Reel', platform: 'tiktok', type: 'Post' },
+                { title: 'Simulator vs Range', hook: 'Simulator practice vs driving range - what\'s better?', format: 'Carousel', platform: 'instagram', type: 'Post' },
+                { title: 'TrackMan Fitting', hook: 'Your driver might be 2° wrong. Here\'s how to know. 🎯', format: 'Reel', platform: 'tiktok', type: 'Post' },
+                { title: 'Weekend Golf Vibes', hook: 'Social golf at Swing Shack 🏌️', format: 'Story', platform: 'instagram', type: 'Story' },
+                { title: 'New Member Welcome', hook: 'Welcome to the club! Let\'s get you fitted 🎉', format: 'Story', platform: 'instagram', type: 'Story' }
+            ];
+            
+            const dates = getWeekDates();
+            const today = formatDate(new Date());
+            
+            // Add ideas to next available days
+            let ideaIdx = 0;
+            for (let i = 0; i < 7; i++) {
+                const dateStr = formatDate(dates[i]);
+                if (!calendarData[dateStr]) calendarData[dateStr] = [];
+                
+                // Add 1-2 posts per day
+                if (ideaIdx < ideas.length && i >= 2) { // Start from Wednesday
+                    calendarData[dateStr].push({
+                        ...ideas[ideaIdx],
+                        status: 'Idea',
+                        assigned: null,
+                        created: new Date().toISOString()
+                    });
+                    ideaIdx++;
+                }
+            }
+            
+            renderCalendar();
+            alert('✅ Generated ' + ideaIdx + ' new post ideas from current trends!');
+        }
+        
+        // Initialize
+        renderCalendar();
+    </script>
+</body>
+</html>
