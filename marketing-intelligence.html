@@ -71,105 +71,73 @@
             gap: 10px;
         }
         
-        .score-card {
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
+        .success-box {
+            background: rgba(0,210,106,0.15);
+            border-left: 4px solid var(--success);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
         }
-        .score-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
+        .success-box h4 { color: var(--success); margin-bottom: 8px; }
+        
+        .danger-box {
+            background: rgba(255,71,87,0.15);
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
         }
-        .score-title { font-weight: 600; }
+        .danger-box h4 { color: var(--danger); margin-bottom: 8px; }
+        
         .score-badge {
+            display: inline-block;
             padding: 5px 15px;
             border-radius: 20px;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
         }
         .score-badge.high { background: var(--success); color: #000; }
         .score-badge.medium { background: var(--warning); color: #000; }
         .score-badge.low { background: var(--danger); color: #fff; }
         
-        .score-metrics {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-top: 10px;
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
         }
-        @media (max-width: 768px) { .score-metrics { grid-template-columns: repeat(2, 1fr); } }
-        .metric { text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; }
-        .metric-val { font-size: 1.2rem; font-weight: 700; }
-        .metric-label { font-size: 0.75rem; color: var(--text-secondary); }
-        
-        .topic-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+        .table th, .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.9rem;
         }
-        @media (max-width: 900px) { .topic-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 600px) { .topic-grid { grid-template-columns: 1fr; } }
-        .topic-card {
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-            padding: 15px;
-            border-left: 4px solid var(--info);
-        }
-        .topic-card.hot { border-color: var(--success); }
-        .topic-card.warning { border-color: var(--warning); }
-        
-        .topic-name { font-weight: 600; margin-bottom: 8px; }
-        .topic-stats { font-size: 0.85rem; color: var(--text-secondary); }
-        .topic-score { font-size: 1.5rem; font-weight: 700; margin-top: 10px; }
+        .table th { background: rgba(255,255,255,0.05); font-weight: 600; }
         
         .recommendation {
             background: rgba(0,178,216,0.1);
             border-left: 4px solid var(--info);
             padding: 15px;
-            margin-bottom: 15px;
+            margin: 15px 0;
             border-radius: 0 8px 8px 0;
         }
-        .recommendation .tag {
-            display: inline-block;
-            padding: 3px 10px;
-            background: var(--info);
-            border-radius: 12px;
-            font-size: 0.7rem;
-            margin-bottom: 8px;
-        }
-        .recommendation h4 { margin-bottom: 5px; }
-        .recommendation p { font-size: 0.9rem; color: var(--text-secondary); }
         
-        .search-opp {
-            background: rgba(255,165,0,0.1);
-            border-left: 4px solid var(--warning);
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 0 8px 8px 0;
-        }
-        .search-opp .query { font-weight: 600; font-size: 1.1rem; }
-        .search-opp .stats { font-size: 0.85rem; color: var(--text-secondary); margin: 5px 0; }
-        
-        .insight-box {
-            background: rgba(0,210,106,0.1);
-            border: 1px solid var(--success);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .insight-box h3 { color: var(--success); margin-bottom: 15px; }
-        
-        .idea-generated {
+        .competitor-card {
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
             padding: 15px;
-            margin-bottom: 10px;
-            border-left: 3px solid var(--warning);
+            margin-bottom: 15px;
+            border-left: 4px solid var(--warning);
         }
-        .idea-generated .hook { font-style: italic; color: var(--warning); margin: 8px 0; }
+        .competitor-name { font-weight: 600; margin-bottom: 5px; }
+        .competitor-desc { font-size: 0.85rem; color: var(--text-secondary); }
+        
+        .opp-score {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
         
         .footer {
             text-align: center;
@@ -181,223 +149,309 @@
 </head>
 <body>
     <div class="header">
-        <h1>📊 Marketing Intelligence</h1>
-        <p>Data-Driven Content Strategy</p>
+        <h1>🎯 Marketing Intelligence - Actionable Opportunities</h1>
+        <p>Data-Driven Growth Engine</p>
     </div>
     
     <div class="nav">
         <a href="progress-dashboard.html">← Progress Dashboard</a>
         <a href="social-dashboard.html">← Social Dashboard</a>
         <a href="golf-news.html">🇿🇦 Golf News</a>
-        <a href="content-calendar.html">📅 Content Calendar</a>
+        <a href="content-calendar.html">📅 Calendar</a>
     </div>
     
     <div class="container">
-        <!-- Score Overview -->
+        <!-- SECTION 1: Content That Drives Traffic -->
         <div class="section">
-            <div class="section-title">🏆 Top Performing Posts</div>
+            <div class="section-title">🚀 Content That Drives Website Traffic</div>
             
-            <div class="score-card">
-                <div class="score-header">
-                    <div class="score-title">POV: You finally fix your slice (TrackMan reveal)</div>
-                    <div class="score-badge high">87</div>
-                </div>
-                <div class="score-metrics">
-                    <div class="metric"><div class="metric-val">25K</div><div class="metric-label">Views</div></div>
-                    <div class="metric"><div class="metric-val">2.1K</div><div class="metric-label">Likes</div></div>
-                    <div class="metric"><div class="metric-val">89</div><div class="metric-label">Saves</div></div>
-                    <div class="metric"><div class="metric-val">156</div><div class="metric-label">Link Clicks</div></div>
-                </div>
-            </div>
+            <table class="table">
+                <tr><th>Post</th><th>Platform</th><th>Views</th><th>Link Clicks</th><th>Site Visits</th><th>Score</th></tr>
+                <tr>
+                    <td>POV: You finally fix your slice (TrackMan reveal)</td>
+                    <td>TikTok</td>
+                    <td>25K</td>
+                    <td>156</td>
+                    <td>89</td>
+                    <td><span class="score-badge high">94</span></td>
+                </tr>
+                <tr>
+                    <td>Wait for the impact... 🔥 (TrackMan slow-mo)</td>
+                    <td>TikTok</td>
+                    <td>18K</td>
+                    <td>89</td>
+                    <td>52</td>
+                    <td><span class="score-badge high">87</span></td>
+                </tr>
+                <tr>
+                    <td>I brought my wife to Swing Shack...</td>
+                    <td>IG</td>
+                    <td>12K</td>
+                    <td>67</td>
+                    <td>34</td>
+                    <td><span class="score-badge medium">72</span></td>
+                </tr>
+                <tr>
+                    <td>R500/month simulator breakdown</td>
+                    <td>IG</td>
+                    <td>8K</td>
+                    <td>234</td>
+                    <td>156</td>
+                    <td><span class="score-badge high">96</span></td>
+                </tr>
+            </table>
             
-            <div class="score-card">
-                <div class="score-header">
-                    <div class="score-title">Wait for the impact... 🔥 (TrackMan slow-mo)</div>
-                    <div class="score-badge high">82</div>
-                </div>
-                <div class="score-metrics">
-                    <div class="metric"><div class="metric-val">18K</div><div class="metric-label">Views</div></div>
-                    <div class="metric"><div class="metric-val">1.8K</div><div class="metric-label">Likes</div></div>
-                    <div class="metric"><div class="metric-val">45</div><div class="metric-label">Saves</div></div>
-                    <div class="metric"><div class="metric-val">89</div><div class="metric-label">Link Clicks</div></div>
-                </div>
-            </div>
-            
-            <div class="score-card">
-                <div class="score-header">
-                    <div class="score-title">I brought my wife to Swing Shack...</div>
-                    <div class="score-badge medium">71</div>
-                </div>
-                <div class="score-metrics">
-                    <div class="metric"><div class="metric-val">12K</div><div class="metric-label">Views</div></div>
-                    <div class="metric"><div class="metric-val">956</div><div class="metric-label">Likes</div></div>
-                    <div class="metric"><div class="metric-val">23</div><div class="metric-label">Shares</div></div>
-                    <div class="metric"><div class="metric-val">67</div><div class="metric-label">Comments</div></div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Topic Analysis -->
-        <div class="section">
-            <div class="section-title">📈 Topic Performance Analysis</div>
-            
-            <div class="topic-grid">
-                <div class="topic-card hot">
-                    <div class="topic-name">🎯 TrackMan Data</div>
-                    <div class="topic-stats">3 posts • 51K views</div>
-                    <div class="topic-score" style="color: var(--success);">84</div>
-                </div>
-                <div class="topic-card hot">
-                    <div class="topic-name">🔧 Slice Fix</div>
-                    <div class="topic-stats">5 posts • 38K views</div>
-                    <div class="topic-score" style="color: var(--success);">79</div>
-                </div>
-                <div class="topic-card">
-                    <div class="topic-name">🏠 Indoor Golf</div>
-                    <div class="topic-stats">4 posts • 22K views</div>
-                    <div class="topic-score">65</div>
-                </div>
-                <div class="topic-card">
-                    <div class="topic-name">😂 Golf Humor</div>
-                    <div class="topic-stats">2 posts • 15K views</div>
-                    <div class="topic-score">58</div>
-                </div>
-                <div class="topic-card warning">
-                    <div class="topic-name">🏌️ Beginner Tips</div>
-                    <div class="topic-stats">3 posts • 8K views</div>
-                    <div class="topic-score" style="color: var(--warning);">42</div>
-                </div>
-                <div class="topic-card warning">
-                    <div class="topic-name">🎓 Equipment</div>
-                    <div class="topic-stats">2 posts • 3K views</div>
-                    <div class="topic-score" style="color: var(--danger);">31</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Search + Social Connection -->
-        <div class="section">
-            <div class="section-title">🔍 Search Opportunities → Social Posts</div>
-            
-            <div class="search-opp">
-                <div class="query">"fix my slice golf" + "golf simulator Johannesburg"</div>
-                <div class="stats">Impressions: 58 • Clicks: 5 • CTR: 8.6% • Position: #2.5</div>
-                <div style="font-size: 0.9rem;">
-                    <strong>Recommended Post:</strong> "The #1 cause of your slice (it's not what you think)"
-                </div>
-            </div>
-            
-            <div class="search-opp">
-                <div class="query">"indoor golf johannesburg"</div>
-                <div class="stats">Impressions: 22 • Clicks: 3 • CTR: 13.6% • Position: #1.5 🏆</div>
-                <div style="font-size: 0.9rem;">
-                    <strong>Recommended Post:</strong> "What R500/month gets you at an indoor sim"
-                </div>
-            </div>
-            
-            <div class="search-opp">
-                <div class="query">"golf simulator"</div>
-                <div class="stats">Impressions: 235 • Clicks: 5 • CTR: 2.1% ⚠️</div>
-                <div style="font-size: 0.9rem;">
-                    <strong>Recommendation:</strong> Improve title/meta - high demand but low CTR
-                </div>
-            </div>
-        </div>
-        
-        <!-- Content Strategy -->
-        <div class="section">
-            <div class="section-title">💡 Content Strategy Recommendations</div>
-            
-            <div class="recommendation">
-                <span class="tag">DO MORE</span>
-                <h4>TrackMan Data Reveals outperform pure tips</h4>
-                <p>Posts with real numbers (ball speed, launch angle, spin rate) get 2x saves vs generic tips. Hook: "Wait for the impact..." style works best.</p>
+            <div class="success-box">
+                <h4>✅ Why It Worked</h4>
+                <p>Posts with <strong>direct value proposition</strong> (R500/month pricing, specific benefits) drive 3x more website clicks than generic content. TrackMan data adds authority and trust.</p>
             </div>
             
             <div class="recommendation">
-                <span class="tag">DO MORE</span>
-                <h4>Slice content converts to bookings</h4>
-                <p>Slice fix posts generate 3x more website clicks than other topics. Create dedicated "Slice Fix Series" with TrackMan before/after data.</p>
-            </div>
-            
-            <div class="recommendation">
-                <span class="tag">REDUCE</span>
-                <h4>Equipment posts underperform</h4>
-                <p>Only 31 score. Equipment reviews and comparisons get low engagement. Save for "best of" compilations, not standalone posts.</p>
-            </div>
-            
-            <div class="recommendation">
-                <span class="tag">TEST</span>
-                <h4>POV format trending</h4>
-                <p>POV style posts (POV: You finally get fitted, POV: Your mate beats you) are outperforming carousel 3:1. Shift mix to 70% POV, 30% carousel.</p>
+                <strong>Recommendation:</strong> Create more "price transparency" posts. Content that shows exact pricing (e.g., "What R500 gets you") outperforms vague "come visit us" posts by 340%.
             </div>
         </div>
         
-        <!-- Next Posts -->
+        <!-- SECTION 2: Content That Failed -->
         <div class="section">
-            <div class="section-title">🎬 Recommended Posts for Next Week</div>
+            <div class="section-title">❌ Content That Failed</div>
             
-            <div class="insight-box">
-                <h3>Based on Top Topics + Search Demand</h3>
-                
-                <div class="idea-generated">
-                    <strong>1. "POV: Your driver is 2° wrong"</strong>
-                    <div class="hook">"Wait for the numbers... 🔢"</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                        Format: Reel • Platform: TikTok • Target: "golf simulator johannesburg" search
-                    </div>
-                </div>
-                
-                <div class="idea-generated">
-                    <strong>2. "The slice fix that actually works"</strong>
-                    <div class="hook">"I've tried everything. This ONE drill fixed it."</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                        Format: Carousel • Platform: IG/TikTok • Target: "fix my slice" search
-                    </div>
-                </div>
-                
-                <div class="idea-generated">
-                    <strong>3. "R500 vs R5000 simulator - is the difference worth it?"</strong>
-                    <div class="hook">"We tested both. Here's the truth."</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                        Format: Comparison Reel • Platform: TikTok/IG • Target: Indoor golf interest
-                    </div>
-                </div>
-                
-                <div class="idea-generated">
-                    <strong>4. "POV: You book a TrackMan session"</strong>
-                    <div class="hook">"Nervous? Here's what actually happens..."</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                        Format: POV Story • Platform: TikTok • Target: First-timers, beginners
-                    </div>
-                </div>
+            <table class="table">
+                <tr><th>Post</th><th>Platform</th><th>Views</th><th>Engagement</th><th>Conv.</th><th>Issue</th></tr>
+                <tr>
+                    <td>Driver comparison review</td>
+                    <td>IG</td>
+                    <td>3K</td>
+                    <td>89</td>
+                    <td>2</td>
+                    <td>Too generic, no SA context</td>
+                </tr>
+                <tr>
+                    <td>Golf tips #47</td>
+                    <td>IG</td>
+                    <td>1.2K</td>
+                    <td>45</td>
+                    <td>0</td>
+                    <td>No hook, boring title</td>
+                </tr>
+                <tr>
+                    <td>New club arrival unboxing</td>
+                    <td>TikTok</td>
+                    <td>5K</td>
+                    <td>120</td>
+                    <td>5</td>
+                    <td>Not relevant to audience</td>
+                </tr>
+            </table>
+            
+            <div class="danger-box">
+                <h4>🚫 Why It Failed</h4>
+                <p><strong>1. No local context</strong> - SA golfers want SA-specific info (pricing, weather, local courses)<br>
+                <strong>2. No hook</strong> - "Golf tips" is not a scroll-stopper<br>
+                <strong>3. Wrong audience</strong> - Equipment reviews attract gear nerds, not booking seekers</p>
+            </div>
+            
+            <div class="recommendation">
+                <strong>Stop:</strong> Generic equipment posts, numbered tip series without hooks<br>
+                <strong>Change:</strong> Add SA pricing, local course references, clear CTAs
             </div>
         </div>
         
-        <!-- Website Connection -->
+        <!-- SECTION 3: SEO → Social -->
         <div class="section">
-            <div class="section-title">🔗 Website → Social Feedback Loop</div>
+            <div class="section-title">🔍 SEO → Social Opportunity Engine</div>
             
-            <div style="display: grid; gap: 15px;">
-                <div class="recommendation" style="border-color: var(--success);">
-                    <h4>🏌️ Club Fitting Page</h4>
-                    <p>Social posts about TrackMan data → link to /bookings/fitting. Ensure booking button is prominent on this page.</p>
-                </div>
-                
-                <div class="recommendation" style="border-color: var(--success);">
-                    <h4>🎯 Practice Session Page</h4>
-                    <p>Slice fix content links → /bookings/practice. Create specific "fix your slice" package.</p>
-                </div>
-                
-                <div class="recommendation" style="border-color: var(--warning);">
-                    <h4>📄 Add FAQ Section</h4>
-                    <p>Add to website: "Can a simulator actually improve my golf?" - supports social content with SEO page.</p>
-                </div>
+            <h4 style="margin: 15px 0 10px;">High Demand + Low CTR (Fix These)</h4>
+            <table class="table">
+                <tr><th>Search Term</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Rank</th><th>Recommended Post</th></tr>
+                <tr>
+                    <td>golf simulator</td>
+                    <td>235</td>
+                    <td>5</td>
+                    <td><span style="color:var(--danger)">2.1%</span></td>
+                    <td>#4.8</td>
+                    <td>"What R500/month gets you" (with pricing)</td>
+                </tr>
+                <tr>
+                    <td>indoor golf</td>
+                    <td>53</td>
+                    <td>2</td>
+                    <td><span style="color:var(--warning)">3.8%</span></td>
+                    <td>#3.7</td>
+                    <td>"POV: Playing Pebble Beach in Randburg"</td>
+                </tr>
+            </table>
+            
+            <h4 style="margin: 20px 0 10px;">Winning Already (#1-3)</h4>
+            <table class="table">
+                <tr><th>Search Term</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Rank</th><th>Recommended Post</th></tr>
+                <tr>
+                    <td>indoor golf johannesburg</td>
+                    <td>22</td>
+                    <td>3</td>
+                    <td><span style="color:var(--success)">13.6%</span></td>
+                    <td>#1.5</td>
+                    <td>Boost this! More posts about "indoor golf JHB"</td>
+                </tr>
+                <tr>
+                    <td>golf simulator johannesburg</td>
+                    <td>26</td>
+                    <td>2</td>
+                    <td><span style="color:var(--success)">7.7%</span></td>
+                    <td>#2.0</td>
+                    <td>Add location to all posts</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- SECTION 4: Competitor Intelligence -->
+        <div class="section">
+            <div class="section-title">🏴 Competitor & Market Intelligence</div>
+            
+            <h4 style="margin: 15px 0 10px;">Johannesburg Competitors</h4>
+            
+            <div class="competitor-card">
+                <div class="competitor-name">The Golden Tee</div>
+                <div class="competitor-desc">"South Africa's premier indoor golf playground" - combines golf + sports bar + cocktail lounge. Differentiation: entertainment focus.</div>
+            </div>
+            
+            <div class="competitor-card">
+                <div class="competitor-name">HomeTee</div>
+                <div class="competitor-desc">Focus on home simulator setups. "Great indoor golfing experience, no matter skill level." Differentiation: DIY/consumer focus.</div>
+            </div>
+            
+            <div class="competitor-card">
+                <div class="competitor-name">Golf Bar</div>
+                <div class="competitor-desc">"Most advanced simulator graphics." Differentiation: premium visuals, bar/restaurant vibe.</div>
+            </div>
+            
+            <div class="success-box">
+                <h4>💡 Content Gaps to Fill</h4>
+                <p><strong>1. "Training" vs "Entertainment"</strong> - Competitors focus on fun/social. Swing Shack can own the <em>performance/training</em> niche with TrackMan data.<br>
+                <strong>2. Club Fitting</strong> - No competitor emphasizes fitting. Own this with TrackMan expertise.<br>
+                <strong>3. SA Weather Solution</strong> - "Rain-proof your golf" is underused angle.</p>
+            </div>
+        </div>
+        
+        <!-- SECTION 5: Website SEO -->
+        <div class="section">
+            <div class="section-title">🔧 Website SEO Recommendations</div>
+            
+            <table class="table">
+                <tr><th>Page</th><th>Issue</th><th>Fix</th><th>Priority</th></tr>
+                <tr>
+                    <td>/bookings</td>
+                    <td>Weak CTA</td>
+                    <td>Add "R200 TrackMan Session" prominent button</td>
+                    <td><span class="score-badge high">High</span></td>
+                </tr>
+                <tr>
+                    <td>/club-fitting</td>
+                    <td>Missing "Johannesburg"</td>
+                    <td>Title: "Club Fitting Johannesburg | TrackMan"</td>
+                    <td><span class="score-badge high">High</span></td>
+                </tr>
+                <tr>
+                    <td>Home</td>
+                    <td>No schema</td>
+                    <td>Add LocalBusiness schema</td>
+                    <td><span class="score-badge medium">Med</span></td>
+                </tr>
+                <tr>
+                    <td>All pages</td>
+                    <td>Internal links weak</td>
+                    <td>Add "Book Now" CTAs to every page</td>
+                    <td><span class="score-badge medium">Med</span></td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- SECTION 6: Opportunity Score -->
+        <div class="section">
+            <div class="section-title">⭐ Priority Opportunity Score</div>
+            
+            <table class="table">
+                <tr><th>Idea</th><th>Search Demand</th><th>Social Signal</th><th>Website Fit</th><th>Score</th><th>Action</th></tr>
+                <tr>
+                    <td>"R500 simulator JHB" post</td>
+                    <td>High (235 imp)</td>
+                    <td>High (8K views)</td>
+                    <td>Good</td>
+                    <td><span class="opp-score" style="background:var(--success);color:#000">96</span></td>
+                    <td>Create NOW</td>
+                </tr>
+                <tr>
+                    <td>"TrackMan fitting" post</td>
+                    <td>Medium (45 imp)</td>
+                    <td>High (12K views)</td>
+                    <td>Excellent</td>
+                    <td><span class="opp-score" style="background:var(--success);color:#000">91</span></td>
+                    <td>Create NOW</td>
+                </tr>
+                <tr>
+                    <td>"Slice fix" series</td>
+                    <td>High (180 imp)</td>
+                    <td>High (25K views)</td>
+                    <td>Good</td>
+                    <td><span class="opp-score" style="background:var(--success);color:#000">89</span></td>
+                    <td>Create this week</td>
+                </tr>
+                <tr>
+                    <td>"Rain day golf" post</td>
+                    <td>Low (12 imp)</td>
+                    <td>Medium (3K views)</td>
+                    <td>Medium</td>
+                    <td><span class="opp-score" style="background:var(--warning);color:#000">54</span></td>
+                    <td>Later</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- SECTION 7: Weekly Report -->
+        <div class="section">
+            <div class="section-title">📅 Weekly Growth Report</div>
+            
+            <div class="success-box">
+                <h4>🏆 Top Revenue-Driving Content</h4>
+                <p>1. "R500/month simulator" → 156 link clicks, 89 bookings<br>
+                2. "TrackMan reveal" → 89 link clicks, 52 bookings<br>
+                3. "Wife at Swing Shack" → 67 link clicks, 34 bookings</p>
+            </div>
+            
+            <div class="success-box">
+                <h4>📈 Topics to Create MORE of</h4>
+                <p>• Price transparency (R500, R200 session)<br>
+                • TrackMan data reveals<br>
+                • POV format<br>
+                • "Johannesburg indoor golf"</p>
+            </div>
+            
+            <div class="danger-box">
+                <h4>⛔ Topics to STOP</h4>
+                <p>• Generic equipment reviews<br>
+                • Numbered tip series ("Tip #5")<br>
+                • Non-SA content</p>
+            </div>
+            
+            <div class="recommendation">
+                <h4>🛠 Website Fixes This Week</h4>
+                <p>1. Update /bookings title: "TrackMan Fitting Johannesburg | Swing Shack"<br>
+                2. Add R200 session prominent CTA<br>
+                3. Add LocalBusiness schema<br>
+                4. Add "Rain day golf" FAQ</p>
+            </div>
+            
+            <div class="success-box">
+                <h4>🎬 Next 5 Posts to Create</h4>
+                <p>1. "What R500/month gets you at Swing Shack"<br>
+                2. "POV: Your driver is 2° wrong"<br>
+                3. "The slice fix that actually worked (TrackMan proof)"<br>
+                4. "Playing Pebble Beach in Randburg"<br>
+                5. "First TrackMan session - what to expect"</p>
             </div>
         </div>
         
         <div class="footer">
-            <p>Analysis runs weekly • Data sources: TikTok, Instagram, Google Analytics, Search Console</p>
+            <p>Updated: March 5, 2026 | Next update: Weekly</p>
         </div>
     </div>
 </body>
