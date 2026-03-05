@@ -1,0 +1,36 @@
+{
+  "client": "swing-shack",
+  "businessName": "Swing Shack",
+  "location": "Randburg, Johannesburg",
+  "services": [
+    "Social Golf",
+    "Golf Lessons", 
+    "Golf Practice",
+    "Elite Custom Club Fitting"
+  ],
+  "targetAudience": {
+    "primary": "Golfers in Johannesburg",
+    "demographics": "Adults 25-55, all skill levels",
+    "interests": "Golf, indoor golf, golf training, club fitting"
+  },
+  "platforms": ["instagram", "facebook", "tiktok", "x", "youtube"],
+  "imageGen": {
+    "provider": "gemini",
+    "model": "gemini-2.0-flash-exp",
+    "apiKey": "AIzaSyBaRBDJSYeuU2R2mK_6PnA2DR3fDTg9Edk"
+  },
+  "posting": {
+    "manual": true,
+    "platforms": ["instagram", "facebook", "tiktok", "x"]
+  },
+  "tracking": {
+    "type": "manual",
+    "spreadsheet": "Google Sheets link here"
+  },
+  "created": "2026-02-25",
+  "goals": {
+    "primary": "More bookings and fittings",
+    "secondary": "Grow following",
+    "tertiary": "Brand awareness"
+  }
+}

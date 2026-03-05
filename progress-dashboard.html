@@ -241,7 +241,10 @@
     <div class="header">
         <h1>⚡ Swing Shack - Progress Dashboard</h1>
         <p>Marketing Automation Status</p>
-        <p style="margin-top:10px;"><a href="social-dashboard.html" style="color:var(--info);">View Social Intelligence Dashboard →</a></p>
+        <p style="margin-top:10px;">
+            <a href="social-dashboard.html" style="color:var(--info); margin-right: 15px;">← Social Dashboard</a>
+            <a href="golf-news.html" style="color:var(--success);">🇿🇦 Golf News</a>
+        </p>
     </div>
     
     <div class="container">
@@ -495,4 +498,24 @@
         </div>
     </div>
 </body>
+<script>
+    // Read Reddit progress from localStorage
+    const redditProgress = JSON.parse(localStorage.getItem('swingShackRedditProgress') || '{"checked":0,"total":4,"pct":0}');
+    
+    // Update the Reddit progress display if it exists
+    const redditBox = document.querySelector('.stat-box');
+    if (redditBox && document.querySelector('.stat-box:nth-child(1)').textContent.includes('Done')) {
+        // Find the progress stats section and add Reddit count
+    }
+    
+    // Update overall progress based on Reddit checklist
+    // Base progress is 30%, add up to 10% for Reddit outreach
+    let overallProgress = 30;
+    if (redditProgress.pct > 0) {
+        overallProgress = 30 + Math.round((redditProgress.pct / 100) * 10);
+    }
+    
+    document.getElementById('total-percent').textContent = overallProgress + '%';
+    document.getElementById('total-fill').style.width = overallProgress + '%';
+</script>
 </html>

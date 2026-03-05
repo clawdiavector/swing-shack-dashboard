@@ -185,7 +185,10 @@
     <div class="header">
         <h1>📊 Social Intelligence Dashboard</h1>
         <p>Marketing insights, trends & opportunities</p>
-        <p style="margin-top:10px;"><a href="progress-dashboard.html" style="color:var(--info);">← View Progress Dashboard</a></p>
+        <p style="margin-top:10px;">
+            <a href="progress-dashboard.html" style="color:var(--info); margin-right: 15px;">← Progress Dashboard</a>
+            <a href="golf-news.html" style="color:var(--success);">🇿🇦 Golf News</a>
+        </p>
     </div>
     
     <div class="container">
@@ -319,9 +322,30 @@
                 🇿🇦 South African-focused comments. No Americans. Real solutions.
             </div>
             
+            <!-- Reddit Progress -->
+            <div style="background: rgba(255,165,0,0.15); border: 1px solid var(--warning); border-radius: 8px; padding: 12px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <strong>📝 Reddit Outreach Progress</strong>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">
+                        <span id="reddit-count">0/4</span> comments posted
+                    </div>
+                </div>
+                <div style="flex: 1; max-width: 200px; margin-left: 20px;">
+                    <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                        <div id="reddit-progress" style="height: 100%; background: var(--warning); width: 0%; transition: 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Opportunity 1: SA Simulator Budget -->
-            <div class="reddit-card">
-                <div class="reddit-title">🏆 Building a Golf Simulator in SA (R30k-R40k Budget)</div>
+            <div class="reddit-card" data-id="reddit-1">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div class="reddit-title">🏆 Building a Golf Simulator in SA (R30k-R40k Budget)</div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" class="reddit-checkbox" style="width: 20px; height: 20px; cursor: pointer;">
+                        <span class="status-badge" style="background: var(--warning); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">💬 Suggested</span>
+                    </div>
+                </div>
                 <div class="reddit-meta">
                     <a href="https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/" target="_blank">View Post →</a> • r/Golfsimulator • <span style="color:var(--success);">HIGHLY RELEVANT</span>
                 </div>
@@ -332,8 +356,14 @@
             </div>
             
             <!-- Opportunity 2: Simulator Numbers -->
-            <div class="reddit-card">
-                <div class="reddit-title">How much stock do you put in simulator numbers?</div>
+            <div class="reddit-card" data-id="reddit-2">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div class="reddit-title">How much stock do you put in simulator numbers?</div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" class="reddit-checkbox" style="width: 20px; height: 20px; cursor: pointer;">
+                        <span class="status-badge" style="background: var(--warning); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">💬 Suggested</span>
+                    </div>
+                </div>
                 <div class="reddit-meta">
                     <a href="https://www.reddit.com/r/golf/comments/1rj54el/how_much_stock_do_you_put_in_simulator_numbers/" target="_blank">View Post →</a> • r/golf • 2 days ago • <span style="color:var(--success);">Active Discussion</span>
                 </div>
@@ -344,8 +374,14 @@
             </div>
             
             <!-- Opportunity 3: Golf Lessons Using Simulator -->
-            <div class="reddit-card">
-                <div class="reddit-title">Golf lessons using simulator?</div>
+            <div class="reddit-card" data-id="reddit-3">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div class="reddit-title">Golf lessons using simulator?</div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" class="reddit-checkbox" style="width: 20px; height: 20px; cursor: pointer;">
+                        <span class="status-badge" style="background: var(--warning); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">💬 Suggested</span>
+                    </div>
+                </div>
                 <div class="reddit-meta">
                     <a href="https://www.reddit.com/r/golf/comments/j6r4ej/golf_lessons_using_simulator/" target="_blank">View Post →</a> • r/golf • <span style="color:var(--success);">Helpful Answer</span>
                 </div>
@@ -356,8 +392,14 @@
             </div>
             
             <!-- Opportunity 4: Simulator Worth It -->
-            <div class="reddit-card">
-                <div class="reddit-title">Golf simulator worth it?</div>
+            <div class="reddit-card" data-id="reddit-4">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div class="reddit-title">Golf simulator worth it?</div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" class="reddit-checkbox" style="width: 20px; height: 20px; cursor: pointer;">
+                        <span class="status-badge" style="background: var(--warning); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">💬 Suggested</span>
+                    </div>
+                </div>
                 <div class="reddit-meta">
                     <a href="https://www.reddit.com/r/golf/comments/1qu0l44/golf_league_software_you_love/" target="_blank">View Post →</a> • r/golf • <span style="color:var(--warning);">Considerate Answer</span>
                 </div>
@@ -694,4 +736,67 @@
         </div>
     </div>
 </body>
+<script>
+    // Reddit Checklist Functionality
+    const redditItems = document.querySelectorAll('.reddit-card[data-id]');
+    
+    // Load saved states
+    const saved = JSON.parse(localStorage.getItem('redditChecklist') || '{}');
+    
+    redditItems.forEach(item => {
+        const id = item.dataset.id;
+        const checkbox = item.querySelector('.reddit-checkbox');
+        const statusBadge = item.querySelector('.status-badge');
+        
+        if (saved[id]) {
+            checkbox.checked = true;
+            statusBadge.textContent = '✓ Posted';
+            statusBadge.style.background = 'var(--success)';
+            if (saved[id].date) {
+                let dateEl = item.querySelector('.posted-date');
+                if (!dateEl) {
+                    dateEl = document.createElement('div');
+                    dateEl.className = 'posted-date';
+                    dateEl.style.fontSize = '0.75rem';
+                    dateEl.style.color = 'var(--success)';
+                    dateEl.style.marginTop = '5px';
+                    statusBadge.parentNode.appendChild(dateEl);
+                }
+                dateEl.textContent = 'Posted: ' + saved[id].date;
+            }
+        }
+        
+        checkbox.addEventListener('change', function() {
+            const newSaved = JSON.parse(localStorage.getItem('redditChecklist') || '{}');
+            if (this.checked) {
+                newSaved[id] = { posted: true, date: new Date().toLocaleDateString() };
+                statusBadge.textContent = '✓ Posted';
+                statusBadge.style.background = 'var(--success)';
+            } else {
+                delete newSaved[id];
+                statusBadge.textContent = '💬 Suggested';
+                statusBadge.style.background = 'var(--warning)';
+                const dateEl = item.querySelector('.posted-date');
+                if (dateEl) dateEl.remove();
+            }
+            localStorage.setItem('redditChecklist', JSON.stringify(newSaved));
+            updateProgress();
+        });
+    });
+    
+    // Progress calculation
+    function updateProgress() {
+        const total = document.querySelectorAll('.reddit-card[data-id]').length;
+        const checked = document.querySelectorAll('.reddit-checkbox:checked').length;
+        document.getElementById('reddit-count').textContent = checked + '/' + total;
+        const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+        document.getElementById('reddit-progress').style.width = pct + '%';
+        
+        // Save to localStorage for progress dashboard to read
+        localStorage.setItem('swingShackRedditProgress', JSON.stringify({ checked, total, pct }));
+    }
+    
+    // Initial update
+    updateProgress();
+</script>
 </html>
