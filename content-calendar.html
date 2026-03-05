@@ -196,6 +196,61 @@
         }
         .claim-btn:hover { opacity: 0.8; }
         
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 300px;
+            width: 90%;
+        }
+        .modal h3 { margin-bottom: 15px; }
+        .employee-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .employee-option {
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.2s;
+        }
+        .employee-option:hover { border-color: var(--info); }
+        .employee-option.selected { border-color: var(--success); background: rgba(0,210,106,0.2); }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .modal-btn.confirm { background: var(--success); color: white; }
+        .modal-btn.cancel { background: var(--danger); color: white; }
+        
+        /* Drag states */
+        .day-column.drag-over { background: rgba(0,178,216,0.2); border: 2px dashed var(--info); }
+        .post-card.dragging { opacity: 0.5; transform: scale(0.95); }
+        
         .employee-badge {
             font-size: 0.65rem;
             padding: 2px 6px;
@@ -311,7 +366,23 @@
         
         <div class="footer">
             <p>Click "Generate Ideas from News" to auto-populate from golf news, trends & Reddit</p>
-            <p>Changes auto-save to local storage</p>
+            <p>Changes auto-save to local storage • Drag posts between days</p>
+        </div>
+    </div>
+    
+    <!-- Employee Picker Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <h3>👤 Assign Employee</h3>
+            <div class="employee-options" id="employee-options">
+                <div class="employee-option" data-employee="Cat">Cat</div>
+                <div class="employee-option" data-employee="Divan">Divan</div>
+                <div class="employee-option" data-employee="Wandre">Wandre</div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+                <button class="modal-btn confirm" onclick="confirmClaim()">Confirm</button>
+            </div>
         </div>
     </div>
 
@@ -322,6 +393,96 @@
         // State
         let currentWeekStart = getMonday(new Date());
         let calendarData = JSON.parse(localStorage.getItem('swingShackCalendar') || '{}');
+        let selectedEmployee = null;
+        let pendingClaim = null; // { dateStr, postIdx }
+        
+        // Modal functions
+        function openClaimModal(dateStr, postIdx) {
+            pendingClaim = { dateStr, postIdx };
+            selectedEmployee = null;
+            document.querySelectorAll('.employee-option').forEach(el => el.classList.remove('selected'));
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+            pendingClaim = null;
+            selectedEmployee = null;
+        }
+        
+        function selectEmployee(name) {
+            selectedEmployee = name;
+            document.querySelectorAll('.employee-option').forEach(el => {
+                el.classList.toggle('selected', el.dataset.employee === name);
+            });
+        }
+        
+        function confirmClaim() {
+            if (!selectedEmployee || !pendingClaim) return;
+            const { dateStr, postIdx } = pendingClaim;
+            calendarData[dateStr][postIdx].assigned = selectedEmployee;
+            calendarData[dateStr][postIdx].status = 'Claimed';
+            closeModal();
+            renderCalendar();
+            saveToStorage();
+        }
+        
+        // Add event listeners for modal
+        document.querySelectorAll('.employee-option').forEach(el => {
+            el.addEventListener('click', () => selectEmployee(el.dataset.employee));
+        });
+        
+        // Drag and drop
+        let draggedItem = null;
+        let draggedFromDate = null;
+        
+        function handleDragStart(e, dateStr, postIdx) {
+            draggedItem = { dateStr, postIdx };
+            draggedFromDate = dateStr;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.day-column').forEach(col => col.classList.remove('drag-over'));
+            draggedItem = null;
+            draggedFromDate = null;
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        
+        function handleDragEnter(e) {
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e, toDateStr) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            if (!draggedItem || draggedFromDate === toDateStr) return;
+            
+            const { dateStr: fromDate, postIdx } = draggedItem;
+            const post = calendarData[fromDate][postIdx];
+            
+            // Remove from old day
+            calendarData[fromDate].splice(postIdx, 1);
+            if (calendarData[fromDate].length === 0) delete calendarData[fromDate];
+            
+            // Add to new day
+            if (!calendarData[toDateStr]) calendarData[toDateStr] = [];
+            calendarData[toDateStr].push(post);
+            
+            renderCalendar();
+            saveToStorage();
+        }
         
         function getMonday(d) {
             d = new Date(d);
@@ -388,6 +549,10 @@
                 
                 const dayCol = document.createElement('div');
                 dayCol.className = 'day-column';
+                dayCol.setAttribute('ondragover', 'handleDragOver(event)');
+                dayCol.setAttribute('ondragenter', 'handleDragEnter(event)');
+                dayCol.setAttribute('ondragleave', 'handleDragLeave(event)');
+                dayCol.setAttribute('ondrop', 'handleDrop(event, "' + dateStr + '")');
                 dayCol.innerHTML = `
                     <div class="day-header">
                         <div class="day-name">${getDayName(date)}</div>
@@ -408,9 +573,13 @@
         function renderPostCard(post, dateStr, postIdx) {
             const statusClass = post.status.toLowerCase();
             const canClaim = post.status === 'Idea' && !post.assigned;
+            const isClaimed = post.status === 'Claimed' || post.status === 'Filming' || post.status === 'Editing' || post.status === 'Posted';
             
             return `
-                <div class="post-card ${statusClass}">
+                <div class="post-card ${statusClass}" 
+                     draggable="true"
+                     ondragstart="handleDragStart(event, '${dateStr}', ${postIdx})"
+                     ondragend="handleDragEnd(event)">
                     <div class="post-type">
                         <span class="post-type-badge ${post.platform}">${post.platform}</span>
                         <span>${post.type}</span>
@@ -419,7 +588,7 @@
                     <div class="post-hook">"${post.hook}"</div>
                     <div class="post-meta">
                         ${post.assigned 
-                            ? `<span class="employee-badge">👤 ${post.assigned}</span>` 
+                            ? `<span class="employee-badge" ${isClaimed ? 'onclick="reassignPost(\'' + dateStr + '\', ' + postIdx + ')" style="cursor:pointer;" title="Click to reassign"' : ''}>👤 ${post.assigned}</span>` 
                             : (canClaim ? `<button class="claim-btn" onclick="claimPost('${dateStr}', ${postIdx})">Claim</button>` : '')}
                         <span class="post-status ${statusClass}" onclick="cycleStatus('${dateStr}', ${postIdx})" style="cursor:pointer;">${post.status}</span>
                     </div>
@@ -443,15 +612,13 @@
         }
         
         function claimPost(dateStr, postIdx) {
-            const post = calendarData[dateStr][postIdx];
-            
-            // Simple cycle through employees
-            const currentIdx = employees.indexOf(post.assigned);
-            const nextIdx = (currentIdx + 1) % employees.length;
-            post.assigned = employees[nextIdx];
-            post.status = 'Claimed';
-            
-            renderCalendar();
+            // Open modal to select employee
+            openClaimModal(dateStr, postIdx);
+        }
+        
+        function reassignPost(dateStr, postIdx) {
+            // Reassign - open modal again
+            openClaimModal(dateStr, postIdx);
         }
         
         function cycleStatus(dateStr, postIdx) {
