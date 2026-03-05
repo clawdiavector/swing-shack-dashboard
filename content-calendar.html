@@ -1,411 +1,211 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swing Shack - Content Calendar</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --bg-dark: #0f0f23;
-            --bg-card: #1a1a2e;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0b0;
-            --success: #00d26a;
-            --warning: #ffa500;
-            --danger: #ff4757;
-            --info: #00b4d8;
-            --purple: #7b2cbf;
-            --tiktok: #ff0050;
-            --instagram: #e1306c;
-            --facebook: #4267B2;
-            --youtube: #ff0000;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-dark);
-            min-height: 100vh;
-            color: var(--text-primary);
-            padding: 20px;
-        }
-        .header {
-            text-align: center;
-            padding: 20px 0 30px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            font-size: 2rem;
-            margin-bottom: 8px;
-            background: linear-gradient(90deg, #ff0050, #e1306c, #4267B2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .container { max-width: 1400px; margin: 0 auto; }
-        
-        .nav {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .nav a {
-            padding: 10px 20px;
-            background: var(--bg-card);
-            border-radius: 8px;
-            color: var(--text-primary);
-            text-decoration: none;
-            transition: 0.2s;
-        }
-        .nav a:hover { background: var(--info); }
-        
-        .main-layout { display: flex; gap: 20px; }
-        .calendar-area { flex: 1; min-width: 0; }
-        
-        .idea-bank {
-            width: 280px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 15px;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: sticky;
-            top: 20px;
-        }
-        @media (max-width: 900px) { 
-            .main-layout { flex-direction: column; }
-            .idea-bank { width: 100%; position: static; max-height: none; }
-        }
-        
-        .idea-bank-title { font-size: 1rem; font-weight: 600; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        
-        .idea-bank-card {
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            cursor: grab;
-            border-left: 3px solid var(--info);
-        }
-        .idea-bank-card:hover { background: rgba(255,255,255,0.1); }
-        .idea-bank-card h4 { font-size: 0.85rem; margin-bottom: 5px; }
-        .idea-bank-card p { font-size: 0.75rem; color: var(--text-secondary); font-style: italic; }
-        .idea-bank-card .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-        .idea-bank-card .tag { font-size: 0.6rem; padding: 2px 6px; background: rgba(255,255,255,0.1); border-radius: 4px; }
-        .idea-bank-card .place-btn { width: 100%; margin-top: 8px; padding: 5px; background: var(--info); border: none; border-radius: 4px; color: white; font-size: 0.75rem; cursor: pointer; }
-        
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .week-nav { display: flex; align-items: center; gap: 15px; }
-        .week-nav button { padding: 8px 15px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); border-radius: 6px; cursor: pointer; }
-        .week-nav button:hover { background: var(--info); }
-        .week-title { font-size: 1.2rem; font-weight: 600; }
-        
-        .generate-btn { padding: 10px 20px; background: linear-gradient(90deg, var(--info), var(--success)); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; }
-        
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 30px; }
-        @media (max-width: 1400px) { .calendar-grid { grid-template-columns: repeat(4, 1fr); } }
-        @media (max-width: 900px) { .calendar-grid { grid-template-columns: repeat(2, 1fr); } }
-        
-        .day-column { background: var(--bg-card); border-radius: 12px; padding: 15px; min-height: 250px; }
-        .day-header { text-align: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .day-name { font-weight: 600; font-size: 0.9rem; }
-        .day-date { font-size: 0.8rem; color: var(--text-secondary); }
-        .day-slots { display: flex; flex-direction: column; gap: 8px; min-height: 50px; }
-        
-        .post-card { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; border-left: 3px solid var(--info); position: relative; }
-        .post-card.claimed { border-color: var(--warning); }
-        .post-card.filming { border-color: var(--purple); }
-        .post-card.editing { border-color: var(--instagram); }
-        .post-card.posted { border-color: var(--success); }
-        
-        .remove-btn { position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 14px; opacity: 0.5; }
-        .remove-btn:hover { opacity: 1; }
-        
-        .post-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; padding-right: 20px; }
-        .post-hook { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 8px; font-style: italic; }
-        .post-notes { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 8px; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px; }
-        
-        .post-channels { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
-        .channel-tag { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); }
-        .channel-tag.ig { background: var(--instagram); }
-        .channel-tag.tiktok { background: var(--tiktok); }
-        .channel-tag.facebook { background: var(--facebook); }
-        .channel-tag.youtube { background: var(--youtube); }
-        
-        .post-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; }
-        .post-status { padding: 2px 8px; border-radius: 10px; background: var(--info); cursor: pointer; }
-        .post-status.claimed { background: var(--warning); }
-        .post-status.filming { background: var(--purple); }
-        .post-status.editing { background: var(--instagram); }
-        .post-status.posted { background: var(--success); }
-        
-        .claim-btn { padding: 5px 10px; background: var(--warning); border: none; border-radius: 4px; font-size: 0.7rem; cursor: pointer; color: #000; font-weight: 600; }
-        .employee-badge { font-size: 0.65rem; padding: 2px 6px; background: var(--info); border-radius: 4px; cursor: pointer; }
-        
-        .progress-summary { background: var(--bg-card); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-        .progress-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; }
-        .progress-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; }
-        @media (max-width: 768px) { .progress-stats { grid-template-columns: repeat(2, 1fr); } }
-        .stat-box { text-align: center; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; }
-        .stat-number { font-size: 1.5rem; font-weight: 700; }
-        .stat-label { font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px; }
-        
-        .add-custom-btn { width: 100%; padding: 8px; background: transparent; border: 2px dashed rgba(255,255,255,0.2); border-radius: 6px; color: var(--warning); cursor: pointer; margin-top: 10px; font-size: 0.75px; }
-        .add-custom-btn:hover { background: rgba(255,165,0,0.1); }
-        
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-overlay.active { display: flex; }
-        .modal { background: var(--bg-card); padding: 25px; border-radius: 12px; max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; }
-        .modal h3 { margin-bottom: 15px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 0.85rem; margin-bottom: 5px; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: var(--text-primary); font-size: 0.9rem; }
-        .form-group textarea { min-height: 60px; resize: vertical; }
-        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
-        .checkbox-label { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; cursor: pointer; }
-        
-        .employee-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        .employee-option { padding: 12px; background: rgba(255,255,255,0.1); border: 2px solid transparent; border-radius: 8px; cursor: pointer; text-align: center; transition: 0.2s; }
-        .employee-option:hover { border-color: var(--info); }
-        .employee-option.selected { border-color: var(--success); background: rgba(0,210,106,0.2); }
-        
-        .modal-buttons { display: flex; gap: 10px; }
-        .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        .modal-btn.confirm { background: var(--success); color: white; }
-        .modal-btn.cancel { background: var(--danger); color: white; }
-        
-        .day-column.drag-over, .idea-bank.drag-over { background: rgba(0,178,216,0.2); border: 2px dashed var(--info); }
-        .post-card.dragging, .idea-bank-card.dragging { opacity: 0.5; transform: scale(0.95); }
-        
-        .footer { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 0.85rem; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swing Shack - Content Calendar</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0f23;--bg-card:#1a1a2e;--text-primary:#fff;--text-secondary:#a0a0b0;--success:#00d26a;--warning:#ffa500;--danger:#ff4757;--info:#00b4d8;--purple:#7b2cbf;--tiktok:#ff0050;--instagram:#e1306c;--facebook:#4267B2;--youtube:#ff0000;--cat:#ff6b35;--divan:#00b4d8;--wandre:#7b2cbf}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg-dark);min-height:100vh;color:var(--text-primary);padding:20px}
+.header{text-align:center;padding:20px 0 30px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:30px}
+.header h1{font-size:2rem;margin-bottom:8px;background:linear-gradient(90deg,#ff0050,#e1306c,#4267B2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.container{max-width:1500px;margin:0 auto}
+.nav{display:flex;justify-content:center;gap:15px;margin-bottom:30px;flex-wrap:wrap}
+.nav a{padding:10px 20px;background:var(--bg-card);border-radius:8px;color:var(--text-primary);text-decoration:none}
+.nav a:hover{background:var(--info)}
+.gaming-section{background:var(--bg-card);border-radius:16px;padding:20px;margin-bottom:25px;border:2px solid var(--warning)}
+.gaming-title{font-size:1.3rem;font-weight:700;text-align:center;margin-bottom:15px;display:flex;align-items:center;justify-content:center;gap:10px}
+.gaming-title span{background:var(--warning);color:#000;padding:5px 15px;border-radius:20px;font-size:0.9rem}
+.leaderboard{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:20px}
+.racer-card{background:rgba(255,255,255,0.05);border-radius:12px;padding:15px;text-align:center}
+.racer-card.cat{border:2px solid var(--cat)}.racer-card.divan{border:2px solid var(--divan)}.racer-card.wandre{border:2px solid var(--wandre)}
+.racer-icon{font-size:2.5rem}.racer-name{font-weight:700;font-size:1.1rem}.racer-points{font-size:2rem;font-weight:700;margin:10px 0}
+.racer-card.cat .racer-points{color:var(--cat)}.racer-card.divan .racer-points{color:var(--divan)}.racer-card.wandre .racer-points{color:var(--wandre)}
+.racer-breakdown{font-size:0.8rem;color:var(--text-secondary)}
+.race-track{background:rgba(0,0,0,0.3);border-radius:10px;padding:20px;margin-bottom:15px;position:relative;height:60px}
+.race-track::after{content:'🏁';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:1.5rem}
+.racer-position{position:absolute;top:50%;transform:translateY(-50%);transition:left 0.5s ease;font-size:1.8rem}
+.winner-banner{display:none;background:linear-gradient(90deg,var(--warning),var(--success));padding:20px;border-radius:12px;text-align:center;margin-bottom:15px}
+.winner-banner.show{display:block}.winner-banner h2{font-size:1.5rem;color:#000}
+.main-layout{display:flex;gap:20px}
+.calendar-area{flex:1}
+.idea-bank{width:320px;background:var(--bg-card);border-radius:12px;padding:15px;max-height:85vh;overflow-y:auto;position:sticky;top:20px}
+@media(max-width:1100px){.main-layout{flex-direction:column}.idea-bank{width:100%;position:static}}
+.idea-bank-title{font-size:1rem;font-weight:600;margin-bottom:15px}
+.idea-bank-card{background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;margin-bottom:12px;border-left:3px solid var(--info);position:relative}
+.idea-bank-card h4{font-size:0.85rem;margin-bottom:5px;font-weight:600}
+.idea-bank-card .hook{font-size:0.8rem;color:var(--warning);font-style:italic;margin-bottom:8px}
+.idea-bank-card .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.idea-bank-card .tag{font-size:0.65rem;padding:2px 8px;border-radius:10px}
+.idea-bank-card .tag.trend{background:var(--success);color:#000}.idea-bank-card .tag.search{background:var(--info);color:#000}.idea-bank-card .tag.fitting{background:var(--cat);color:#000}
+.idea-bank-card .hashtags{font-size:0.7rem;color:var(--text-secondary);margin-top:6px}
+.idea-bank-card .trend-score{font-size:0.7rem;color:var(--warning);margin-top:4px}
+.idea-bank-card .place-btn{width:100%;margin-top:10px;padding:6px;background:var(--info);border:none;border-radius:4px;color:#fff;font-size:0.75rem;cursor:pointer;font-weight:600}
+.controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:15px}
+.week-nav{display:flex;align-items:center;gap:15px}
+.week-nav button{padding:8px 15px;background:var(--bg-card);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);border-radius:6px;cursor:pointer}
+.week-title{font-size:1.2rem;font-weight:600}
+.generate-btn{padding:10px 20px;background:linear-gradient(90deg,var(--info),var(--success));border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:30px}
+@media(max-width:1400px){.calendar-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:900px){.calendar-grid{grid-template-columns:repeat(2,1fr)}}
+.day-column{background:var(--bg-card);border-radius:12px;padding:15px;min-height:200px}
+.day-header{text-align:center;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.day-name{font-weight:600;font-size:0.9rem}.day-date{font-size:0.8rem;color:var(--text-secondary)}
+.day-slots{display:flex;flex-direction:column;gap:8px;min-height:50px}
+.post-card{background:rgba(255,255,255,0.05);border-radius:8px;padding:10px;border-left:3px solid var(--info);position:relative}
+.post-card.claimed{border-color:var(--warning)}.post-card.filming{border-color:var(--purple)}.post-card.editing{border-color:var(--instagram)}.post-card.posted{border-color:var(--success)}
+.post-card .trend-badge{position:absolute;top:-5px;right:-5px;background:var(--success);color:#000;font-size:0.6rem;padding:2px 6px;border-radius:10px}
+.post-card .fitting-badge{position:absolute;top:-5px;left:-5px;background:var(--cat);color:#000;font-size:0.6rem;padding:2px 6px;border-radius:10px}
+.remove-btn{position:absolute;top:5px;right:5px;width:20px;height:20px;background:0 0;border:none;color:var(--danger);cursor:pointer;font-size:14px}
+.post-title{font-size:0.85rem;font-weight:600;margin-bottom:5px;padding-right:20px}
+.post-hook{font-size:0.75rem;color:var(--text-secondary);margin-bottom:8px;font-style:italic}
+.post-hashtags{font-size:0.65rem;color:var(--info);margin-top:5px}
+.post-channels{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.channel-tag{font-size:0.6rem;padding:2px 6px;border-radius:4px}.channel-tag.ig{background:var(--instagram)}.channel-tag.tiktok{background:var(--tiktok)}.channel-tag.facebook{background:var(--facebook)}.channel-tag.youtube{background:var(--youtube)}
+.post-meta{display:flex;justify-content:space-between;align-items:center;font-size:0.7rem;margin-top:8px}
+.post-status{padding:2px 8px;border-radius:10px;background:var(--info);cursor:pointer}.post-status.claimed{background:var(--warning)}.post-status.filming{background:var(--purple)}.post-status.editing{background:var(--instagram)}.post-status.posted{background:var(--success)}
+.claim-btn{padding:5px 10px;background:var(--warning);border:none;border-radius:4px;font-size:0.7rem;cursor:pointer;color:#000;font-weight:600}
+.employee-badge{font-size:0.65rem;padding:2px 6px;border-radius:4px;cursor:pointer}.employee-badge.cat{background:var(--cat);color:#000}.employee-badge.divan{background:var(--divan);color:#000}.employee-badge.wandre{background:var(--wandre)}
+.add-custom-btn{width:100%;padding:8px;background:0 0;border:2px dashed rgba(255,255,255,0.2);border-radius:6px;color:var(--warning);cursor:pointer;margin-top:10px;font-size:0.75rem}
+.progress-summary{background:var(--bg-card);border-radius:12px;padding:20px;margin-bottom:20px}
+.progress-title{font-size:1.1rem;font-weight:600;margin-bottom:15px}
+.progress-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:15px}
+.stat-box{text-align:center;padding:15px;background:rgba(255,255,255,0.05);border-radius:8px}.stat-number{font-size:1.5rem;font-weight:700}.stat-label{font-size:0.8rem;color:var(--text-secondary);margin-top:5px}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:1000;justify-content:center;align-items:center}.modal-overlay.active{display:flex}
+.modal{background:var(--bg-card);padding:25px;border-radius:12px;max-width:400px;width:90%;max-height:90vh;overflow-y:auto}
+.modal h3{margin-bottom:15px}
+.form-group{margin-bottom:15px}
+.form-group label{display:block;font-size:0.85rem;margin-bottom:5px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:var(--text-primary);font-size:0.9rem}
+.form-group textarea{min-height:60px;resize:vertical}
+.employee-options{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.employee-option{padding:12px;background:rgba(255,255,255,0.1);border:2px solid transparent;border-radius:8px;cursor:pointer;text-align:center}
+.employee-option:hover{border-color:var(--info)}.employee-option.selected{border-color:var(--success);background:rgba(0,210,106,0.2)}
+.modal-buttons{display:flex;gap:10px}
+.modal-btn{flex:1;padding:10px;border:none;border-radius:6px;cursor:pointer;font-weight:600}.modal-btn.confirm{background:var(--success);color:#fff}.modal-btn.cancel{background:var(--danger);color:#fff}
+.day-column.drag-over{background:rgba(0,178,216,0.2)}
+.post-card.dragging{opacity:0.5}
+.footer{text-align:center;padding:30px;color:var(--text-secondary);font-size:0.85rem}
+.priority-notice{background:rgba(255,107,53,0.15);border:1px solid var(--cat);border-radius:8px;padding:10px;margin-bottom:15px;font-size:0.8rem;text-align:center}
+</style>
 </head>
 <body>
-    <div class="header">
-        <h1>📅 Content Calendar</h1>
-        <p>Swing Shack Social Media Schedule</p>
-    </div>
-    
-    <div class="nav">
-        <a href="progress-dashboard.html">← Progress Dashboard</a>
-        <a href="social-dashboard.html">← Social Dashboard</a>
-        <a href="golf-news.html">🇿🇦 Golf News</a>
-        <a href="marketing-intelligence.html">📊 Marketing Intel</a>
-    </div>
-    
-    <div class="container">
-        <div class="progress-summary">
-            <div class="progress-title">📊 This Week's Progress</div>
-            <div class="progress-stats">
-                <div class="stat-box"><div class="stat-number" id="stat-idea" style="color: var(--info);">0</div><div class="stat-label">Ideas</div></div>
-                <div class="stat-box"><div class="stat-number" id="stat-claimed" style="color: var(--warning);">0</div><div class="stat-label">Claimed</div></div>
-                <div class="stat-box"><div class="stat-number" id="stat-filming" style="color: var(--purple);">0</div><div class="stat-label">Filming</div></div>
-                <div class="stat-box"><div class="stat-number" id="stat-editing" style="color: var(--instagram);">0</div><div class="stat-label">Editing</div></div>
-                <div class="stat-box"><div class="stat-number" id="stat-posted" style="color: var(--success);">0</div><div class="stat-label">Posted</div></div>
-            </div>
-        </div>
-        
-        <div class="main-layout">
-            <div class="calendar-area">
-                <div class="controls">
-                    <div class="week-nav">
-                        <button onclick="changeWeek(-1)">← Prev</button>
-                        <span class="week-title" id="week-title">March 2026</span>
-                        <button onclick="changeWeek(1)">Next →</button>
-                    </div>
-                    <button class="generate-btn" onclick="addToIdeaBank()">⚡ Generate Ideas to Bank</button>
-                </div>
-                <div class="calendar-grid" id="calendar-grid"></div>
-            </div>
-            
-            <div class="idea-bank" id="idea-bank" ondragover="handleDragOver(event)" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropBank(event)">
-                <div class="idea-bank-title">💡 Idea Bank</div>
-                <div id="idea-bank-list"></div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <p>Drag posts between days • Click "Claim" to assign • Click status to progress</p>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modal-overlay">
-        <div class="modal">
-            <h3>👤 Assign Employee</h3>
-            <div class="employee-options" id="employee-options"></div>
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
-                <button class="modal-btn confirm" onclick="confirmClaim()">Confirm</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="custom-post-modal">
-        <div class="modal">
-            <h3>➕ Add Custom Post</h3>
-            <div class="form-group"><label>Title *</label><input type="text" id="custom-title" placeholder="Post title"></div>
-            <div class="form-group"><label>Hook</label><input type="text" id="custom-hook" placeholder="Your hook/caption"></div>
-            <div class="form-group"><label>Notes / Outline</label><textarea id="custom-notes" placeholder="Post details..."></textarea></div>
-            <div class="form-group">
-                <label>Channels (optional)</label>
-                <div class="checkbox-group">
-                    <label class="checkbox-label"><input type="checkbox" value="ig" class="channel-check"> IG</label>
-                    <label class="checkbox-label"><input type="checkbox" value="tiktok" class="channel-check"> TikTok</label>
-                    <label class="checkbox-label"><input type="checkbox" value="facebook" class="channel-check"> FB</label>
-                    <label class="checkbox-label"><input type="checkbox" value="youtube" class="channel-check"> YT</label>
-                </div>
-            </div>
-            <div class="form-group"><label>Assign to</label><select id="custom-assign"><option value="">Unassigned</option><option value="Cat">Cat</option><option value="Divan">Divan</option><option value="Wandre">Wandre</option></select></div>
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" onclick="closeCustomModal()">Cancel</button>
-                <button class="modal-btn confirm" onclick="saveCustomPost()">Save Post</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="remove-modal">
-        <div class="modal">
-            <h3>🗑️ Remove Post?</h3>
-            <p style="margin-bottom: 20px; color: var(--text-secondary);">This action cannot be undone.</p>
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" onclick="closeRemoveModal()">Cancel</button>
-                <button class="modal-btn confirm" onclick="confirmRemove()">Remove</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="place-modal">
-        <div class="modal">
-            <h3>📅 Choose Day</h3>
-            <div class="form-group"><select id="place-day-select"></select></div>
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" onclick="closePlaceModal()">Cancel</button>
-                <button class="modal-btn confirm" onclick="confirmPlace()">Place</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const employees = ['Cat', 'Divan', 'Wandre'];
-        let currentWeekStart = getMonday(new Date());
-        let calendarData = JSON.parse(localStorage.getItem('swingShackCalendar') || '{}');
-        let ideaBank = JSON.parse(localStorage.getItem('swingShackIdeaBank') || '[]');
-        
-        let selectedEmployee = null, pendingClaim = null, pendingRemove = null, pendingPlace = null, customPostDate = null;
-        
-        function getMonday(d) { d = new Date(d); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); return new Date(d.setDate(diff)); }
-        function formatDate(date) { return date.toISOString().split('T')[0]; }
-        function getWeekDates() { const dates = []; for (let i = 0; i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); dates.push(d); } return dates; }
-        function changeWeek(dir) { currentWeekStart.setDate(currentWeekStart.getDate() + (dir * 7)); renderCalendar(); }
-        function getDayName(date) { return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][date.getDay()]; }
-        function getMonthName(date) { return date.toLocaleString('default', { month: 'long', year: 'numeric' }); }
-        
-        function getStatusNext(current) { const flow = ['Idea', 'Claimed', 'Filming', 'Editing', 'Posted']; const idx = flow.indexOf(current); return idx < flow.length - 1 ? flow[idx + 1] : 'Posted'; }
-        
-        function renderCalendar() {
-            const grid = document.getElementById('calendar-grid');
-            const dates = getWeekDates();
-            document.getElementById('week-title').textContent = getMonthName(dates[0]);
-            grid.innerHTML = '';
-            
-            dates.forEach(date => {
-                const dateStr = formatDate(date);
-                const dayData = calendarData[dateStr] || [];
-                
-                const dayCol = document.createElement('div');
-                dayCol.className = 'day-column';
-                dayCol.setAttribute('ondragover', 'handleDragOver(event)');
-                dayCol.setAttribute('ondragenter', 'handleDragEnter(event)');
-                dayCol.setAttribute('ondragleave', 'handleDragLeave(event)');
-                dayCol.setAttribute('ondrop', 'handleDrop(event, "' + dateStr + '")');
-                
-                dayCol.innerHTML = `
-                    <div class="day-header">
-                        <div class="day-name">${getDayName(date)}</div>
-                        <div class="day-date">${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}</div>
-                    </div>
-                    <div class="day-slots">
-                        ${dayData.map((post, postIdx) => renderPostCard(post, dateStr, postIdx)).join('')}
-                    </div>
-                    <button class="add-custom-btn" onclick="openCustomModal('${dateStr}')">+ Custom Post</button>
-                `;
-                grid.appendChild(dayCol);
-            });
-            updateStats();
-            saveToStorage();
-        }
-        
-        function renderPostCard(post, dateStr, postIdx) {
-            const statusClass = post.status.toLowerCase();
-            const channels = post.channels || [];
-            const channelTags = channels.map(c => `<span class="channel-tag ${c}">${c.toUpperCase()}</span>`).join('');
-            
-            return `
-                <div class="post-card ${statusClass}" draggable="true" ondragstart="handleDragStart(event, '${dateStr}', ${postIdx})" ondragend="handleDragEnd(event)">
-                    <button class="remove-btn" onclick="openRemoveModal('${dateStr}', ${postIdx})">×</button>
-                    <div class="post-title">${post.title}</div>
-                    ${post.hook ? `<div class="post-hook">"${post.hook}"</div>` : ''}
-                    ${post.notes ? `<div class="post-notes">${post.notes}</div>` : ''}
-                    ${channelTags ? `<div class="post-channels">${channelTags}</div>` : ''}
-                    <div class="post-meta">
-                        ${post.assigned ? `<span class="employee-badge" onclick="openClaimModal('${dateStr}', ${postIdx})">👤 ${post.assigned}</span>` : (post.status === 'Idea' ? `<button class="claim-btn" onclick="openClaimModal('${dateStr}', ${postIdx})">Claim</button>` : '')}
-                        <span class="post-status ${statusClass}" onclick="cycleStatus('${dateStr}', ${postIdx})">${post.status}</span>
-                    </div>
-                </div>
-            `;
-        }
-        
-        function cycleStatus(dateStr, postIdx) { const post = calendarData[dateStr][postIdx]; post.status = getStatusNext(post.status); updateProgressForDashboard(); renderCalendar(); }
-        
-        function openClaimModal(dateStr, postIdx) { pendingClaim = { dateStr, postIdx }; selectedEmployee = null; const opts = document.getElementById('employee-options'); opts.innerHTML = employees.map(e => `<div class="employee-option" data-employee="${e}" onclick="selectEmployee('${e}')">${e}</div>`).join(''); document.getElementById('modal-overlay').classList.add('active'); }
-        function selectEmployee(name) { selectedEmployee = name; document.querySelectorAll('.employee-option').forEach(el => el.classList.toggle('selected', el.dataset.employee === name)); }
-        function closeModal() { document.getElementById('modal-overlay').classList.remove('active'); pendingClaim = null; selectedEmployee = null; }
-        function confirmClaim() { if (!selectedEmployee || !pendingClaim) return; const { dateStr, postIdx } = pendingClaim; calendarData[dateStr][postIdx].assigned = selectedEmployee; calendarData[dateStr][postIdx].status = 'Claimed'; closeModal(); renderCalendar(); }
-        
-        function openCustomModal(dateStr) { customPostDate = dateStr; document.getElementById('custom-title').value = ''; document.getElementById('custom-hook').value = ''; document.getElementById('custom-notes').value = ''; document.getElementById('custom-assign').value = ''; document.querySelectorAll('.channel-check').forEach(c => c.checked = false); document.getElementById('custom-post-modal').classList.add('active'); }
-        function closeCustomModal() { document.getElementById('custom-post-modal').classList.remove('active'); customPostDate = null; }
-        function saveCustomPost() { const title = document.getElementById('custom-title').value.trim(); if (!title) { alert('Title is required'); return; } const channels = Array.from(document.querySelectorAll('.channel-check:checked')).map(c => c.value); const assign = document.getElementById('custom-assign').value; if (!calendarData[customPostDate]) calendarData[customPostDate] = []; calendarData[customPostDate].push({ title, hook: document.getElementById('custom-hook').value, notes: document.getElementById('custom-notes').value, channels, status: assign ? 'Claimed' : 'Idea', assigned: assign || null, created: new Date().toISOString() }); closeCustomModal(); renderCalendar(); }
-        
-        function openRemoveModal(dateStr, postIdx) { pendingRemove = { dateStr, postIdx }; document.getElementById('remove-modal').classList.add('active'); }
-        function closeRemoveModal() { document.getElementById('remove-modal').classList.remove('active'); pendingRemove = null; }
-        function confirmRemove() { if (!pendingRemove) return; const { dateStr, postIdx } = pendingRemove; calendarData[dateStr].splice(postIdx, 1); if (calendarData[dateStr].length === 0) delete calendarData[dateStr]; closeRemoveModal(); renderCalendar(); }
-        
-        function renderIdeaBank() { const list = document.getElementById('idea-bank-list'); if (ideaBank.length === 0) { list.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.8rem;">No ideas in bank. Click "Generate Ideas to Bank" to add.</p>'; return; } list.innerHTML = ideaBank.map((idea, idx) => `<div class="idea-bank-card" draggable="true" ondragstart="handleBankDragStart(event, ${idx})" ondragend="handleDragEnd(event)"><h4>${idea.title}</h4><p>"${idea.hook}"</p><div class="tags">${(idea.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div><button class="place-btn" onclick="openPlaceModal(${idx})">Place →</button></div>`).join(''); }
-        
-        function addToIdeaBank() { const ideas = [{ title: 'LIV Golf Hype', hook: 'LIV Golf is coming to Joburg! 🏆', tags: ['news', 'trending'] }, { title: 'TrackMan Tuesday', hook: 'Know your numbers. Fix your game. 🔢', tags: ['TrackMan', 'tips'] }, { title: 'Rain Day Golf', hook: 'Rain? We play Pebble Beach indoors ☔', tags: ['indoor', 'fun'] }, { title: 'Slice Fix', hook: 'The ONE drill that fixed my slice 🔧', tags: ['tips', 'fix'] }, { title: 'Sim vs Range', hook: 'Simulator vs driving range - what\'s better?', tags: ['comparison'] }, { title: 'Driver Fitting', hook: 'Your driver might be 2° wrong. Here\'s how to know. 🎯', tags: ['fitting', 'TrackMan'] }, { title: 'Weekend Vibes', hook: 'Social golf at Swing Shack 🏌️', tags: ['social', 'fun'] }, { title: 'New Member', hook: 'Welcome to the club! Let\'s get you fitted 🎉', tags: ['community'] }]; ideas.forEach(idea => { if (!ideaBank.find(i => i.title === idea.title)) { ideaBank.push(idea); } }); localStorage.setItem('swingShackIdeaBank', JSON.stringify(ideaBank)); renderIdeaBank(); alert('✅ Added ' + ideas.length + ' ideas to bank!'); }
-        
-        function openPlaceModal(idx) { pendingPlace = idx; const select = document.getElementById('place-day-select'); const dates = getWeekDates(); select.innerHTML = dates.map((d, i) => `<option value="${formatDate(d)}">${getDayName(d)} - ${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}</option>`).join(''); document.getElementById('place-modal').classList.add('active'); }
-        function closePlaceModal() { document.getElementById('place-modal').classList.remove('active'); pendingPlace = null; }
-        function confirmPlace() { if (pendingPlace === null) return; const dateStr = document.getElementById('place-day-select').value; const idea = ideaBank[pendingPlace]; if (!calendarData[dateStr]) calendarData[dateStr] = []; calendarData[dateStr].push({ title: idea.title, hook: idea.hook, notes: '', channels: [], status: 'Idea', assigned: null, created: new Date().toISOString() }); ideaBank.splice(pendingPlace, 1); localStorage.setItem('swingShackIdeaBank', JSON.stringify(ideaBank)); closePlaceModal(); renderCalendar(); renderIdeaBank(); }
-        
-        let draggedItem = null, draggedFromDate = null, bankDragIdx = null;
-        
-        function handleDragStart(e, dateStr, postIdx) { draggedItem = { dateStr, postIdx }; draggedFromDate = dateStr; e.target.classList.add('dragging'); }
-        function handleBankDragStart(e, idx) { bankDragIdx = idx; e.target.classList.add('dragging'); }
-        function handleDragEnd(e) { e.target.classList.remove('dragging'); document.querySelectorAll('.day-column, .idea-bank').forEach(el => el.classList.remove('drag-over')); draggedItem = null; draggedFromDate = null; bankDragIdx = null; }
-        function handleDragOver(e) { e.preventDefault(); }
-        function handleDragEnter(e) { e.currentTarget.classList.add('drag-over'); }
-        function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
-        
-        function handleDrop(e, toDateStr) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); if (!draggedItem || draggedFromDate === toDateStr) return; const { dateStr: fromDate, postIdx } = draggedItem; const post = calendarData[fromDate][postIdx]; calendarData[fromDate].splice(postIdx, 1); if (calendarData[fromDate].length === 0) delete calendarData[fromDate]; if (!calendarData[toDateStr]) calendarData[toDateStr] = []; calendarData[toDateStr].push(post); renderCalendar(); }
-        
-        function handleDropBank(e) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); if (bankDragIdx === null) return; ideaBank.splice(bankDragIdx, 1); localStorage.setItem('swingShackIdeaBank', JSON.stringify(ideaBank)); renderIdeaBank(); }
-        
-        function updateStats() { let stats = { idea: 0, claimed: 0, filming: 0, editing: 0, posted: 0 }; Object.values(calendarData).forEach(dayPosts => { dayPosts.forEach(post => { stats[post.status.toLowerCase()]++; }); }); document.getElementById('stat-idea').textContent = stats.idea; document.getElementById('stat-claimed').textContent = stats.claimed; document.getElementById('stat-filming').textContent = stats.filming; document.getElementById('stat-editing').textContent = stats.editing; document.getElementById('stat-posted').textContent = stats.posted; }
-        
-        function updateProgressForDashboard() { let posted = 0, total = 0; Object.values(calendarData).forEach(dayPosts => { dayPosts.forEach(post => { total++; if (post.status === 'Posted') posted++; }); }); const pct = total > 0 ? Math.round((posted / total) * 100) : 0; localStorage.setItem('swingShackContentProgress', JSON.stringify({ posted, total, pct })); }
-        function saveToStorage() { localStorage.setItem('swingShackCalendar', JSON.stringify(calendarData)); }
-        
-        renderCalendar();
-        renderIdeaBank();
-    </script>
+<div class="header"><h1>📅 Content Calendar - Longest Drive 🏎️</h1><p>Swing Shack Social Media Championship</p></div>
+<div class="nav">
+<a href="progress-dashboard.html">← Progress</a>
+<a href="social-dashboard.html">← Social</a>
+<a href="golf-news.html">🇿🇦 Golf News</a>
+<a href="marketing-intelligence.html">📊 Intel</a>
+<a href="lead-engine.html">🎯 Leads</a>
+</div>
+<div class="container">
+<div class="gaming-section">
+<div class="gaming-title">🏆 LONGEST DRIVE CHAMPIONSHIP <span id="week-label">Week</span></div>
+<div class="winner-banner" id="winner-banner"><h2>🏁 WINNER: <span id="winner-name">-</span>! 🏁</h2></div>
+<div class="leaderboard" id="leaderboard"></div>
+<div class="race-track"><span class="racer-position" id="pos-cat" style="left:5%">🐱</span><span class="racer-position" id="pos-divan" style="left:5%">🏌️</span><span class="racer-position" id="pos-wandre" style="left:5%">⛳</span></div>
+<p style="text-align:center;font-size:0.85rem;color:var(--text-secondary)">📝1 Post=100pts • 📱1 Story=50pts • 🔥Trend=+30pts • Resets Monday</p>
+</div>
+<div class="priority-notice">🎯 <strong>Priority:</strong> Club Fitting • TrackMan • Equipment • Slices • Driver Distance</div>
+<div class="progress-summary">
+<div class="progress-title">📊 This Week</div>
+<div class="progress-stats">
+<div class="stat-box"><div class="stat-number" id="stat-idea" style="color:var(--info)">0</div><div class="stat-label">Ideas</div></div>
+<div class="stat-box"><div class="stat-number" id="stat-claimed" style="color:var(--warning)">0</div><div class="stat-label">Claimed</div></div>
+<div class="stat-box"><div class="stat-number" id="stat-filming" style="color:var(--purple)">0</div><div class="stat-label">Filming</div></div>
+<div class="stat-box"><div class="stat-number" id="stat-editing" style="color:var(--instagram)">0</div><div class="stat-label">Editing</div></div>
+<div class="stat-box"><div class="stat-number" id="stat-posted" style="color:var(--success)">0</div><div class="stat-label">Posted</div></div>
+</div>
+</div>
+<div class="main-layout">
+<div class="calendar-area">
+<div class="controls">
+<div class="week-nav"><button onclick="changeWeek(-1)">← Prev</button><span class="week-title" id="week-title">March 2026</span><button onclick="changeWeek(1)">Next →</button></div>
+<button class="generate-btn" onclick="addToIdeaBank()">⚡ Generate Priority Ideas</button>
+</div>
+<div class="calendar-grid" id="calendar-grid"></div>
+</div>
+<div class="idea-bank" id="idea-bank" ondrop="handleDropBank(event)" ondragover="handleDragOver(event)" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)">
+<div class="idea-bank-title">💡 Idea Bank - Priority</div>
+<div id="idea-bank-list"></div>
+</div>
+</div>
+<div class="footer"><p>Drag posts • Click "Claim" to assign • Click status to progress</p></div>
+</div>
+<div class="modal-overlay" id="modal-overlay">
+<div class="modal"><h3>👤 Assign Employee</h3><div class="employee-options" id="employee-options"></div>
+<div class="modal-buttons"><button class="modal-btn cancel" onclick="closeModal()">Cancel</button><button class="modal-btn confirm" onclick="confirmClaim()">Confirm</button></div>
+</div>
+</div>
+<div class="modal-overlay" id="custom-post-modal">
+<div class="modal"><h3>➕ Add Post</h3>
+<div class="form-group"><label>Title *</label><input type="text" id="custom-title"></div>
+<div class="form-group"><label>Hook</label><input type="text" id="custom-hook"></div>
+<div class="form-group"><label>Hashtags</label><input type="text" id="custom-hashtags" placeholder="#golf #Johannesburg"></div>
+<div class="form-group"><label>Assign</label><select id="custom-assign"><option value="">Unassigned</option><option value="Cat">Cat</option><option value="Divan">Divan</option><option value="Wandre">Wandre</option></select></div>
+<div class="modal-buttons"><button class="modal-btn cancel" onclick="closeCustomModal()">Cancel</button><button class="modal-btn confirm" onclick="saveCustomPost()">Save</button></div>
+</div>
+</div>
+<div class="modal-overlay" id="remove-modal">
+<div class="modal"><h3>🗑️ Remove?</h3><div class="modal-buttons"><button class="modal-btn cancel" onclick="closeRemoveModal()">Cancel</button><button class="modal-btn confirm" onclick="confirmRemove()">Remove</button></div>
+</div>
+</div>
+<div class="modal-overlay" id="place-modal">
+<div class="modal"><h3>📅 Choose Day</h3><div class="form-group"><select id="place-day-select"></select></div><div class="modal-buttons"><button class="modal-btn cancel" onclick="closePlaceModal()">Cancel</button><button class="modal-btn confirm" onclick="confirmPlace()">Place</button></div>
+</div>
+</div>
+<script>
+const employees=['Cat','Divan','Wandre'],employeeIcons={'Cat':'🐱','Divan':'🏌️','Wandre':'⛳'};
+let currentWeekStart=getMonday(new Date()),calendarData=JSON.parse(localStorage.getItem('swingShackCalendar')||'{}'),ideaBank=JSON.parse(localStorage.getItem('swingShackIdeaBank')||'[]'),racerScores=JSON.parse(localStorage.getItem('swingShackRacerScores')||'{"Cat":0,"Divan":0,"Wandre":0}');
+let selectedEmployee=null,pendingClaim=null,pendingRemove=null,pendingPlace=null,customPostDate=null;
+function getMonday(d){d=new Date(d);const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);return new Date(d.setDate(diff));}
+function formatDate(d){return d.toISOString().split('T')[0];}
+function getWeekDates(){const d=[];for(let i=0;i<7;i++){const x=new Date(currentWeekStart);x.setDate(x.getDate()+i);d.push(x);}return d;}
+function changeWeek(dir){currentWeekStart.setDate(currentWeekStart.getDate()+dir*7);renderCalendar();}
+function getDayName(d){return['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d.getDay()];}
+function getMonthName(d){return d.toLocaleString('default',{month:'long',year:'numeric'});}
+function getStatusNext(s){const f=['Idea','Claimed','Filming','Editing','Posted'];const i=f.indexOf(s);return i<f.length-1?f[i+1]:'Posted';}
+function resetWeeklyScores(){const last=localStorage.getItem('swingShackLastReset');const now=new Date();const thisMon=getMonday(now).toDateString();if(last!==thisMon){racerScores={Cat:0,Divan:0,Wandre:0};localStorage.setItem('swingShackRacerScores',JSON.stringify(racerScores));localStorage.setItem('swingShackLastReset',thisMon);}}
+function updateRacerScores(emp,pts){racerScores[emp]=(racerScores[emp]||0)+pts;localStorage.setItem('swingShackRacerScores',JSON.stringify(racerScores));renderLeaderboard();}
+function renderLeaderboard(){resetWeeklyScores();const maxP=Math.max(...Object.values(racerScores),100);const l=document.getElementById('leaderboard');const dates=getWeekDates();document.getElementById('week-label').textContent='Week of '+dates[0].getDate()+' '+dates[0].toLocaleString('default',{month:'short'});
+l.innerHTML=employees.map(e=>{const p=racerScores[e]||0;return`<div class="racer-card ${e.toLowerCase()}"><div class="racer-icon">${employeeIcons[e]}</div><div class="racer-name">${e}</div><div class="racer-points">${p}</div><div class="racer-breakdown">📝${Math.floor(p/100)} 📱${Math.floor((p%100)/50)} 🔥${Math.floor((p%50)/30)}</div></div>`;}).join('');
+employees.forEach(e=>{const p=racerScores[e]||0;document.getElementById('pos-'+e.toLowerCase()).style.left=(5+Math.min(p/maxP*90,90))+'%';});
+const s=Object.entries(racerScores).sort((a,b)=>b[1]-a[1]);if(s[0][1]>=300){document.getElementById('winner-banner').classList.add('show');document.getElementById('winner-name').textContent=s[0][0];}else{document.getElementById('winner-banner').classList.remove('show');}}
+function renderCalendar(){const g=document.getElementById('calendar-grid');const dates=getWeekDates();document.getElementById('week-title').textContent=getMonthName(dates[0]);g.innerHTML='';
+dates.forEach(d=>{const ds=formatDate(d);const day=calendarData[ds]||[];const col=document.createElement('div');col.className='day-column';col.ondragover=handleDragOver;col.ondragenter=handleDragEnter;col.ondragleave=handleDragLeave;col.ondrop=e=>handleDrop(e,ds);
+col.innerHTML=`<div class="day-header"><div class="day-name">${getDayName(d)}</div><div class="day-date">${d.getDate()} ${d.toLocaleString('default',{month:'short'})}</div></div><div class="day-slots">${day.map((p,i)=>renderPostCard(p,ds,i)).join('')}</div><button class="add-custom-btn" onclick="openCustomModal('${ds}')">+ Post</button>`;g.appendChild(col);});updateStats();saveToStorage();}
+function renderPostCard(p,ds,i){const sc=p.status.toLowerCase();const ct=(p.channels||[]).map(c=>`<span class="channel-tag ${c}">${c.toUpperCase()}</span>`).join('');const tb=p.isTrend?'<span class="trend-badge">🔥</span>':'';const fb=p.isFitting?'<span class="fitting-badge">⛳</span>':'';
+return`<div class="post-card ${sc}" draggable="true" ondragstart="handleDragStart(event,'${ds}',${i})" ondragend="handleDragEnd(event)">${tb}${fb}<button class="remove-btn" onclick="openRemoveModal('${ds}',${i})">×</button><div class="post-title">${p.title}</div>${p.hook?`<div class="post-hook">"${p.hook}"</div>`:''}${p.hashtags?`<div class="post-hashtags">${p.hashtags}</div>`:''}${ct?`<div class="post-channels">${ct}</div>`:''}<div class="post-meta">${p.assigned?`<span class="employee-badge ${p.assigned.toLowerCase()}" onclick="openClaimModal('${ds}',${i})">${employeeIcons[p.assigned]} ${p.assigned}</span>`:(p.status==='Idea'?`<button class="claim-btn" onclick="openClaimModal('${ds}',${i})">Claim</button>`:'')}<span class="post-status ${sc}" onclick="cycleStatus('${ds}',${i})">${p.status}</span></div></div>`;}
+function cycleStatus(ds,i){const p=calendarData[ds][i];const old=p.status;p.status=getStatusNext(p.status);if(p.assigned&&p.status==='Posted'&&old!=='Posted'){updateRacerScores(p.assigned,100);}renderCalendar();}
+function openClaimModal(ds,i){pendingClaim={ds,i};selectedEmployee=null;document.getElementById('employee-options').innerHTML=employees.map(e=>`<div class="employee-option" data-e="${e}" onclick="selectEmployee('${e}')">${employeeIcons[e]} ${e}</div>`).join('');document.getElementById('modal-overlay').classList.add('active');}
+function selectEmployee(n){selectedEmployee=n;document.querySelectorAll('.employee-option').forEach(el=>el.classList.toggle('selected',el.dataset.e===n));}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('active');pendingClaim=null;selectedEmployee=null;}
+function confirmClaim(){if(!selectedEmployee||!pendingClaim)return;const{ds,i}=pendingClaim;calendarData[ds][i].assigned=selectedEmployee;calendarData[ds][i].status='Claimed';closeModal();renderCalendar();}
+function openCustomModal(ds){customPostDate=ds;['custom-title','custom-hook','custom-hashtags'].forEach(id=>document.getElementById(id).value='');document.getElementById('custom-assign').value='';document.getElementById('custom-post-modal').classList.add('active');}
+function closeCustomModal(){document.getElementById('custom-post-modal').classList.remove('active');customPostDate=null;}
+function saveCustomPost(){const t=document.getElementById('custom-title').value.trim();if(!t){alert('Title required');return;}if(!calendarData[customPostDate])calendarData[customPostDate]=[];calendarData[customPostDate].push({title:t,hook:document.getElementById('custom-hook').value,hashtags:document.getElementById('custom-hashtags').value,channels:[],status:document.getElementById('custom-assign').value?'Claimed':'Idea',assigned:document.getElementById('custom-assign').value||null,isTrend:false,isFitting:false,created:new Date().toISOString()});closeCustomModal();renderCalendar();}
+function openRemoveModal(ds,i){pendingRemove={ds,i};document.getElementById('remove-modal').classList.add('active');}
+function closeRemoveModal(){document.getElementById('remove-modal').classList.remove('active');pendingRemove=null;}
+function confirmRemove(){if(!pendingRemove)return;const{ds,i}=pendingRemove;calendarData[ds].splice(i,1);if(calendarData[ds].length===0)delete calendarData[ds];closeRemoveModal();renderCalendar();}
+function renderIdeaBank(){const l=document.getElementById('idea-bank-list');if(ideaBank.length===0){l.innerHTML='<p style="color:var(--text-secondary);font-size:0.8rem">Click "Generate Priority Ideas"</p>';return;}l.innerHTML=ideaBank.map((idea,i)=>{const badges=(idea.tags||[]).map(t=>`<span class="tag ${t.toLowerCase().includes('trend')?'trend':t.toLowerCase().includes('search')?'search':t.toLowerCase().includes('fitting')?'fitting':''}">${t}</span>`).join('');return`<div class="idea-bank-card" draggable="true" ondragstart="handleBankDragStart(event,${i})" ondragend="handleDragEnd(event)"><h4>${idea.title}</h4><div class="hook">"${idea.hook}"</div><div class="tags">${badges}</div>${idea.hashtags?`<div class="hashtags">${idea.hashtags}</div>`:''}${idea.trendScore?`<div class="trend-score">Score: ${idea.trendScore}</div>`:''}<button class="place-btn" onclick="openPlaceModal(${i})">Place →</button></div>`;}).join('');}
+function addToIdeaBank(){const ideas=[{title:'Driver 2° Wrong',hook:'Wait for the numbers...',tags:['Trend Boost','Club Fitting Lead'],hashtags:'#driver #trackman #golf #Johannesburg',trendScore:95,isTrend:true,isFitting:true},{title:'Slice Fix Series',hook:'The ONE drill that fixed my slice',tags:['Trend Boost','Search Opportunity'],hashtags:'#slice #golf #fixmyslice #Johannesburg',trendScore:89,isTrend:true,isFitting:false},{title:'R500 Simulator',hook:'What R500/month actually gets you',tags:['Search Opportunity','Club Fitting Lead'],hashtags:'#golf #indoorgolf #Johannesburg #simulator',trendScore:82,isTrend:false,isFitting:false},{title:'TrackMan Data',hook:'TrackMan doesn\'t lie',tags:['Club Fitting Lead','Trend Boost'],hashtags:'#trackman #golfdata #fitting #Johannesburg',trendScore:91,isTrend:true,isFitting:true},{title:'Shaft Flex Myth',hook:'You\'re probably in the wrong flex',tags:['Club Fitting Lead'],hashtags:'#shaft #fitting #golf',trendScore:78,isTrend:false,isFitting:true},{title:'POV First Fitting',hook:'Nervous? Here\'s what actually happens',tags:['Search Opportunity','Trend Boost'],hashtags:'#golf #fitting #Johannesburg #firsttime',trendScore:85,isTrend:true,isFitting:true}];ideas.forEach(idea=>{if(!ideaBank.find(i=>i.title===idea.title)){ideaBank.push(idea);}});localStorage.setItem('swingShackIdeaBank',JSON.stringify(ideaBank));renderIdeaBank();alert('✅ Added '+ideas.length+' priority ideas!');}
+function openPlaceModal(i){pendingPlace=i;const sel=document.getElementById('place-day-select');const dates=getWeekDates();sel.innerHTML=dates.map(d=>`<option value="${formatDate(d)}">${getDayName(d)} - ${d.getDate()} ${d.toLocaleString('default',{month:'short'})}</option>`).join('');document.getElementById('place-modal').classList.add('active');}
+function closePlaceModal(){document.getElementById('place-modal').classList.remove('active');pendingPlace=null;}
+function confirmPlace(){if(pendingPlace===null)return;const ds=document.getElementById('place-day-select').value;const idea=ideaBank[pendingPlace];if(!calendarData[ds])calendarData[ds]=[];calendarData[ds].push({title:idea.title,hook:idea.hook,hashtags:idea.hashtags,channels:[],status:'Idea',assigned:null,isTrend:idea.isTrend,isFitting:idea.isFitting,created:new Date().toISOString()});ideaBank.splice(pendingPlace,1);localStorage.setItem('swingShackIdeaBank',JSON.stringify(ideaBank));closePlaceModal();renderCalendar();renderIdeaBank();}
+let draggedItem=null,draggedFromDate=null,bankDragIdx=null;
+function handleDragStart(e,ds,i){draggedItem={ds,i};draggedFromDate=ds;e.target.classList.add('dragging');}
+function handleBankDragStart(e,i){bankDragIdx=i;e.target.classList.add('dragging');}
+function handleDragEnd(e){e.target.classList.remove('dragging');document.querySelectorAll('.day-column').forEach(el=>el.classList.remove('drag-over'));draggedItem=null;draggedFromDate=null;bankDragIdx=null;}
+function handleDragOver(e){e.preventDefault();}
+function handleDragEnter(e){e.currentTarget.classList.add('drag-over');}
+function handleDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function handleDrop(e,toDS){e.preventDefault();e.currentTarget.classList.remove('drag-over');if(!draggedItem||draggedFromDate===toDS)return;const{ds:fromDS,i}=draggedItem;const post=calendarData[fromDS][i];calendarData[fromDS].splice(i,1);if(calendarData[fromDS].length===0)delete calendarData[fromDS];if(!calendarData[toDS])calendarData[toDS]=[];calendarData[toDS].push(post);renderCalendar();}
+function handleDropBank(e){e.preventDefault();e.currentTarget.classList.remove('drag-over');if(bankDragIdx===null)return;ideaBank.splice(bankDragIdx,1);localStorage.setItem('swingShackIdeaBank',JSON.stringify(ideaBank));renderIdeaBank();}
+function updateStats(){let stats={idea:0,claimed:0,filming:0,editing:0,posted:0};Object.values(calendarData).forEach(dayPosts=>{dayPosts.forEach(p=>{stats[p.status.toLowerCase()]++;});});['idea','claimed','filming','editing','posted'].forEach(s=>document.getElementById('stat-'+s).textContent=stats[s]);}
+function saveToStorage(){localStorage.setItem('swingShackCalendar',JSON.stringify(calendarData));}
+renderLeaderboard();renderCalendar();renderIdeaBank();
+</script>
 </body>
 </html>
