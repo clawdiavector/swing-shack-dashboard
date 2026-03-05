@@ -63,9 +63,7 @@
             padding: 25px;
             margin-bottom: 25px;
         }
-        .section.fitting {
-            border: 2px solid var(--fitting);
-        }
+        .section.fitting { border: 2px solid var(--fitting); }
         .section-title {
             font-size: 1.2rem;
             font-weight: 600;
@@ -74,6 +72,21 @@
             align-items: center;
             gap: 10px;
         }
+        
+        .source-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: rgba(0,178,216,0.2);
+            color: var(--info);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            text-decoration: none;
+            margin-left: 10px;
+            transition: 0.2s;
+        }
+        .source-link:hover { background: var(--info); color: #000; }
         
         .fitting-badge {
             display: inline-block;
@@ -121,6 +134,14 @@
             border-radius: 0 8px 8px 0;
         }
         
+        .recommendation .post-title {
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
         .opp-row {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -130,20 +151,22 @@
             border-radius: 8px;
             margin-bottom: 10px;
         }
-        @media (max-width: 768px) { .opp-row { grid-template-columns: 1fr 1fr; } }
         
-        .footer {
-            text-align: center;
-            padding: 30px;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
+        .competitor-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--warning);
         }
+        
+        .footer { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 0.85rem; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🎯 Marketing Intelligence - Club Fitting Focus</h1>
-        <p>Data-Driven Fitting Revenue Growth</p>
+        <p>Data-Driven Fitting Revenue Growth | <span style="color:var(--info)">Every insight has a source link</span></p>
     </div>
     
     <div class="nav">
@@ -161,15 +184,14 @@
                 <span class="fitting-badge">PRIMARY GOAL</span>
             </div>
             
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                Track and optimize content that drives club fitting bookings. Goal: Increase fitting conversions by 50%.
-            </p>
-            
             <h4 style="margin: 20px 0 10px;">🎬 Posts That Drove Fitting Interest</h4>
             <table class="table">
                 <tr><th>Post</th><th>Type</th><th>Views</th><th>Eng.</th><th>Site Clicks</th><th>Fitting Visits</th><th>Bookings</th></tr>
                 <tr>
-                    <td>POV: Your driver is 2° wrong</td>
+                    <td>
+                        POV: Your driver is 2° wrong
+                        <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 View Post</a>
+                    </td>
                     <td>Driver Fitting</td>
                     <td>25K</td>
                     <td>2.1K</td>
@@ -178,7 +200,10 @@
                     <td><strong>12</strong></td>
                 </tr>
                 <tr>
-                    <td>TrackMan ball speed reveal</td>
+                    <td>
+                        TrackMan ball speed reveal
+                        <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 View Post</a>
+                    </td>
                     <td>Equipment</td>
                     <td>18K</td>
                     <td>1.8K</td>
@@ -187,7 +212,10 @@
                     <td><strong>8</strong></td>
                 </tr>
                 <tr>
-                    <td>I switched shafts and gained 20 yards</td>
+                    <td>
+                        I switched shafts and gained 20 yards
+                        <a href="https://www.instagram.com/swingshacksa/" target="_blank" class="source-link">📸 View Post</a>
+                    </td>
                     <td>Shaft Fitting</td>
                     <td>12K</td>
                     <td>956</td>
@@ -196,7 +224,10 @@
                     <td><strong>6</strong></td>
                 </tr>
                 <tr>
-                    <td>Iron upgrade - was it worth it?</td>
+                    <td>
+                        Iron upgrade - was it worth it?
+                        <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 View Post</a>
+                    </td>
                     <td>Iron Fitting</td>
                     <td>8K</td>
                     <td>445</td>
@@ -207,19 +238,22 @@
             </table>
             
             <div class="success-box">
-                <strong>💡 Why These Work:</strong> Posts that show <em>numbers</em> (ball speed, launch angle, distance gain) create equipment curiosity. Viewers want the same data for their clubs → they book fittings.
+                <strong>💡 Why These Work:</strong> Posts that show <em>numbers</em> (ball speed, launch angle, distance gain) create equipment curiosity. <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">View Channel</a>
             </div>
         </div>
         
         <!-- SEARCH CONSOLE - FITTING TERMS -->
         <div class="section">
-            <div class="section-title">🔍 Search Console: Fitting-Related Searches</div>
+            <div class="section-title">🔍 Search Console: Fitting-Related Searches <a href="https://search.google.com/search-console" target="_blank" class="source-link">🔗 Open Console</a></div>
             
             <h4 style="margin: 15px 0 10px;">High Opportunity (Low CTR - Fix These)</h4>
             <table class="table">
                 <tr><th>Search Term</th><th>Impr.</th><th>Clicks</th><th>CTR</th><th>Rank</th><th>Action</th></tr>
                 <tr>
-                    <td>club fitting johannesburg</td>
+                    <td>
+                        club fitting johannesburg
+                        <a href="https://www.google.com/search?q=club+fitting+johannesburg" target="_blank" class="source-link">🔍 View</a>
+                    </td>
                     <td>45</td>
                     <td>3</td>
                     <td style="color:var(--danger)">6.7%</td>
@@ -227,7 +261,10 @@
                     <td>Add to homepage + meta</td>
                 </tr>
                 <tr>
-                    <td>driver fitting</td>
+                    <td>
+                        driver fitting
+                        <a href="https://www.google.com/search?q=driver+fitting" target="_blank" class="source-link">🔍 View</a>
+                    </td>
                     <td>89</td>
                     <td>4</td>
                     <td style="color:var(--danger)">4.5%</td>
@@ -235,7 +272,10 @@
                     <td>New landing page</td>
                 </tr>
                 <tr>
-                    <td>custom golf clubs</td>
+                    <td>
+                        custom golf clubs
+                        <a href="https://www.google.com/search?q=custom+golf+clubs" target="_blank" class="source-link">🔍 View</a>
+                    </td>
                     <td>34</td>
                     <td>1</td>
                     <td style="color:var(--danger)">2.9%</td>
@@ -248,7 +288,10 @@
             <table class="table">
                 <tr><th>Search Term</th><th>Impr.</th><th>Clicks</th><th>CTR</th><th>Rank</th><th>Action</th></tr>
                 <tr>
-                    <td>golf fitting near me</td>
+                    <td>
+                        golf fitting near me
+                        <a href="https://www.google.com/search?q=golf+fitting+near+me" target="_blank" class="source-link">🔍 View</a>
+                    </td>
                     <td>12</td>
                     <td>3</td>
                     <td style="color:var(--success)">25%</td>
@@ -256,7 +299,10 @@
                     <td>Boost content</td>
                 </tr>
                 <tr>
-                    <td>trackman fitting johannesburg</td>
+                    <td>
+                        trackman fitting johannesburg
+                        <a href="https://www.google.com/search?q=trackman+fitting+johannesburg" target="_blank" class="source-link">🔍 View</a>
+                    </td>
                     <td>8</td>
                     <td>2</td>
                     <td style="color:var(--success)">25%</td>
@@ -271,65 +317,182 @@
             <div class="section-title">💡 Content Ideas → Fitting Bookings</div>
             
             <div class="recommendation">
-                <strong>1. "I hit my driver's sweet spot for the first time"</strong><br>
+                <div class="post-title">
+                    1. "I hit my driver's sweet spot for the first time"
+                    <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 New Post</a>
+                </div>
                 <span style="color:var(--text-secondary)">Hook: "This TrackMan moment changed everything"</span><br>
-                <span class="fitting-badge">Driver Fitting</span> • Format: POV Reel • Target: driver fitting search
+                <span class="fitting-badge">Driver Fitting</span> • Format: POV Reel • Target: <a href="https://www.google.com/search?q=driver+fitting" target="_blank" class="source-link">driver fitting</a>
             </div>
             
             <div class="recommendation">
-                <strong>2. "Why your irons are costing you shots"</strong><br>
+                <div class="post-title">
+                    2. "Why your irons are costing you shots"
+                    <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 New Post</a>
+                </div>
                 <span style="color:var(--text-secondary)">Hook: "The loft + lie test revealed everything"</span><br>
-                <span class="fitting-badge">Iron Fitting</span> • Format: Carousel • Target: custom clubs search
+                <span class="fitting-badge">Iron Fitting</span> • Format: Carousel • Target: <a href="https://www.google.com/search?q=custom+golf+clubs" target="_blank" class="source-link">custom clubs</a>
             </div>
             
             <div class="recommendation">
-                <strong>3. "Shaft flex myth - you're probably in the wrong one"</strong><br>
+                <div class="post-title">
+                    3. "Shaft flex myth - you're probably in the wrong one"
+                    <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 New Post</a>
+                </div>
                 <span style="color:var(--text-secondary)">Hook: "TrackMan doesn't lie"</span><br>
-                <span class="fitting-badge">Shaft Fitting</span> • Format: Reel • Target: shaft fitting
+                <span class="fitting-badge">Shaft Fitting</span> • Format: Reel • Target: <a href="https://www.google.com/search?q=shaft+fitting" target="_blank" class="source-link">shaft fitting</a>
             </div>
             
             <div class="recommendation">
-                <strong>4. "POV: First club fitting session"</strong><br>
+                <div class="post-title">
+                    4. "POV: First club fitting session"
+                    <a href="https://www.instagram.com/swingshacksa/" target="_blank" class="source-link">📸 New Post</a>
+                </div>
                 <span style="color:var(--text-secondary)">Hook: "Nervous? Here's what actually happens"</span><br>
-                <span class="fitting-badge">General</span> • Format: POV Story • Target: golf fitting near me
+                <span class="fitting-badge">General</span> • Format: POV Story • Target: <a href="https://www.google.com/search?q=golf+fitting+near+me" target="_blank" class="source-link">golf fitting near me</a>
             </div>
         </div>
         
         <!-- WEBSITE PAGES FOR FITTINGS -->
         <div class="section">
-            <div class="section-title">🔧 Website Pages for Fitting Conversions</div>
+            <div class="section-title">🔧 Website Pages for Fitting Conversions <a href="https://swingshack.co.za/" target="_blank" class="source-link">🌐 View Site</a></div>
             
             <table class="table">
                 <tr><th>Page</th><th>Current Status</th><th>Recommendation</th><th>Priority</th></tr>
                 <tr>
-                    <td>/club-fitting</td>
+                    <td>
+                        /club-fitting
+                        <a href="https://swingshack.co.za/club-fitting" target="_blank" class="source-link">🌐 View</a>
+                    </td>
                     <td>Needs "Johannesburg" in title</td>
                     <td>Title: "Club Fitting Johannesburg | TrackMan Experts"</td>
                     <td style="color:var(--success)">High</td>
                 </tr>
                 <tr>
-                    <td>/driver-fitting (NEW)</td>
+                    <td>
+                        /driver-fitting (NEW)
+                        <a href="https://swingshack.co.za/driver-fitting" target="_blank" class="source-link">➕ Create</a>
+                    </td>
                     <td>Does not exist</td>
                     <td>Create dedicated driver fitting landing page</td>
                     <td style="color:var(--success)">High</td>
                 </tr>
                 <tr>
-                    <td>/iron-fitting (NEW)</td>
+                    <td>
+                        /iron-fitting (NEW)
+                        <a href="https://swingshack.co.za/iron-fitting" target="_blank" class="source-link">➕ Create</a>
+                    </td>
                     <td>Does not exist</td>
                     <td>Create dedicated iron fitting landing page</td>
                     <td style="color:var(--warning)">Medium</td>
                 </tr>
                 <tr>
-                    <td>/shaft-upgrade (NEW)</td>
-                    <td>Does not exist</td>
-                    <td>Create shaft analysis page</td>
-                    <td style="color:var(--warning)">Medium</td>
+                    <td>
+                        Home
+                        <a href="https://swingsack.co.za/" target="_blank" class="source-link">🌐 View</a>
+                    </td>
+                    <td>Missing fitting CTA</td>
+                    <td>Add "TrackMan Fitting" button to nav</td>
+                    <td style="color:var(--success)">High</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- COMPETITOR INTELLIGENCE -->
+        <div class="section">
+            <div class="section-title">🏴 Competitor Intelligence</div>
+            
+            <div class="competitor-card">
+                <div class="post-title">
+                    The Golden Tee
+                    <a href="https://goldentee.co.za/" target="_blank" class="source-link">🌐 View Site</a>
+                </div>
+                <div class="competitor-desc">"South Africa's premier indoor golf playground" - combines golf + sports bar + cocktail lounge.</div>
+            </div>
+            
+            <div class="competitor-card">
+                <div class="post-title">
+                    HomeTee
+                    <a href="https://hometee.co.za/johannesburg-golf-simulator/" target="_blank" class="source-link">🌐 View Site</a>
+                </div>
+                <div class="competitor-desc">Focus on home simulator setups. "Great indoor golfing experience, no matter skill level."</div>
+            </div>
+            
+            <div class="competitor-card">
+                <div class="post-title">
+                    Golf Bar
+                    <a href="https://golfbar.co.za/" target="_blank" class="source-link">🌐 View Site</a>
+                </div>
+                <div class="competitor-desc">"Most advanced simulator graphics." Premium visuals, bar/restaurant vibe.</div>
+            </div>
+            
+            <div class="success-box">
+                <strong>💡 Content Gap:</strong> Competitors focus on entertainment. Swing Shack can own <em>performance/training</em> niche with TrackMan data. <a href="https://swingshack.co.za/" target="_blank" class="source-link">View Swing Shack</a>
+            </div>
+        </div>
+        
+        <!-- CONTENT THAT DRIVES TRAFFIC -->
+        <div class="section">
+            <div class="section-title">🚀 Content That Drives Website Traffic</div>
+            
+            <table class="table">
+                <tr><th>Post</th><th>Platform</th><th>Views</th><th>Link Clicks</th><th>Site Visits</th></tr>
+                <tr>
+                    <td>
+                        POV: You finally fix your slice
+                        <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 View</a>
+                    </td>
+                    <td>TikTok</td>
+                    <td>25K</td>
+                    <td>156</td>
+                    <td>89</td>
                 </tr>
                 <tr>
-                    <td>All fitting pages</td>
-                    <td>Weak CTAs</td>
-                    <td>Add "Book Your Fitting" prominent button</td>
-                    <td style="color:var(--success)">High</td>
+                    <td>
+                        Wait for the impact... 🔥
+                        <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 View</a>
+                    </td>
+                    <td>TikTok</td>
+                    <td>18K</td>
+                    <td>89</td>
+                    <td>52</td>
+                </tr>
+                <tr>
+                    <td>
+                        R500/month simulator breakdown
+                        <a href="https://www.instagram.com/swingshacksa/" target="_blank" class="source-link">📸 View</a>
+                    </td>
+                    <td>IG</td>
+                    <td>8K</td>
+                    <td>234</td>
+                    <td>156</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- CONTENT THAT FAILED -->
+        <div class="section">
+            <div class="section-title">❌ Content That Failed</div>
+            
+            <table class="table">
+                <tr><th>Post</th><th>Issue</th><th>Fix</th></tr>
+                <tr>
+                    <td>
+                        Driver comparison review
+                        <a href="https://www.instagram.com/swingshacksa/" target="_blank" class="source-link">📸 View</a>
+                    </td>
+                    <td>No local context, no CTA</td>
+                    <td>Add SA pricing, link to fitting</td>
+                </tr>
+                <tr>
+                    <td>Golf tips #47</td>
+                    <td>No hook</td>
+                    <td>Add numbers/data, fitting angle</td>
+                </tr>
+                <tr>
+                    <td>New club arrival unboxing</td>
+                    <td>Not relevant to bookings</td>
+                    <td>Link to fitting service</td>
                 </tr>
             </table>
         </div>
@@ -341,117 +504,25 @@
             <div class="success-box">
                 <strong>🎬 Social Posts This Week</strong>
                 <ol style="margin-top:10px; padding-left:20px;">
-                    <li>"POV: Your driver is 2° wrong" - driver fitting</li>
-                    <li>"Shaft flex myth" - shaft fitting</li>
-                    <li>"POV: First fitting session" - general</li>
+                    <li>"POV: Your driver is 2° wrong" - <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 driver fitting</a></li>
+                    <li>"Shaft flex myth" - <a href="https://www.tiktok.com/@swingshacksa" target="_blank" class="source-link">📱 shaft fitting</a></li>
+                    <li>"POV: First fitting session" - <a href="https://www.instagram.com/swingshacksa/" target="_blank" class="source-link">📸 general</a></li>
                 </ol>
             </div>
             
             <div class="success-box">
                 <strong>🛠 Website SEO Fixes</strong>
                 <ol style="margin-top:10px; padding-left:20px;">
-                    <li>Update /club-fitting title: "Club Fitting Johannesburg | Swing Shack"</li>
-                    <li>Create /driver-fitting page</li>
+                    <li>Update <a href="https://swingshack.co.za/club-fitting" target="_blank" class="source-link">/club-fitting</a> title: "Club Fitting Johannesburg | Swing Shack"</li>
+                    <li>Create <a href="https://swingshack.co.za/driver-fitting" target="_blank" class="source-link">/driver-fitting</a> page</li>
                     <li>Add TrackMan certification to fitting page</li>
                     <li>Add "4.9/5 stars" review widget to fitting pages</li>
                 </ol>
             </div>
-            
-            <div class="success-box">
-                <strong>🪝 Fitting-Focused Hooks to Test</strong>
-                <ol style="margin-top:10px; padding-left:20px;">
-                    <li>"Your clubs might be 2° wrong" → creates curiosity + fitting demand</li>
-                    <li>"TrackMan doesn't lie - here's your distance potential"</li>
-                    <li>"Stop guessing. Start knowing." → anti-DIY fitting angle</li>
-                    <li>"Most golfers are in the wrong shaft flex"</li>
-                </ol>
-            </div>
-        </div>
-        
-        <!-- CONTENT THAT DRIVES TRAFFIC -->
-        <div class="section">
-            <div class="section-title">🚀 Content That Drives Website Traffic</div>
-            
-            <table class="table">
-                <tr><th>Post</th><th>Platform</th><th>Views</th><th>Link Clicks</th><th>Site Visits</th></tr>
-                <tr>
-                    <td>POV: You finally fix your slice</td>
-                    <td>TikTok</td>
-                    <td>25K</td>
-                    <td>156</td>
-                    <td>89</td>
-                </tr>
-                <tr>
-                    <td>Wait for the impact... 🔥</td>
-                    <td>TikTok</td>
-                    <td>18K</td>
-                    <td>89</td>
-                    <td>52</td>
-                </tr>
-                <tr>
-                    <td>R500/month simulator breakdown</td>
-                    <td>IG</td>
-                    <td>8K</td>
-                    <td>234</td>
-                    <td>156</td>
-                </tr>
-            </table>
-            
-            <div class="recommendation">
-                <strong>Insight:</strong> Price transparency + TrackMan numbers = highest website traffic. Apply this to fitting content.
-            </div>
-        </div>
-        
-        <!-- CONTENT THAT FAILED -->
-        <div class="section">
-            <div class="section-title">❌ Content That Failed</div>
-            
-            <table class="table">
-                <tr><th>Post</th><th>Issue</th><th>Fix</th></tr>
-                <tr>
-                    <td>Driver comparison review</td>
-                    <td>No local context, no CTA</td>
-                    <td>Add SA pricing, link to fitting</td>
-                </tr>
-                <tr>
-                    <td>Golf tips #47</td>
-                    <td>No hook</td>
-                    <li>Add numbers/data, fitting angle</li>
-                </tr>
-                <tr>
-                    <td>New club arrival unboxing</td>
-                    <td>Not relevant to bookings</td>
-                    <td>Link to fitting service</td>
-                </tr>
-            </table>
-        </div>
-        
-        <!-- OPPORTUNITY SCORE -->
-        <div class="section fitting">
-            <div class="section-title">⭐ Priority: Fitting Opportunity Score</div>
-            
-            <div class="opp-row">
-                <div><strong>Idea</strong><br>"Driver is 2° wrong"</div>
-                <div><strong>Search Demand</strong><br>High (89 imp)</div>
-                <div><strong>Social Signal</strong><br>High (25K views)</div>
-                <div><strong>Score</strong><br><span style="color:var(--success);font-weight:700;font-size:1.2rem">96</span></div>
-            </div>
-            <div class="opp-row">
-                <div><strong>Idea</strong><br>"Shaft flex myth"</div>
-                <div><strong>Search Demand</strong><br>Medium (45 imp)</div>
-                <div><strong>Social Signal</strong><br>High (12K views)</div>
-                <div><strong>Score</strong><br><span style="color:var(--success);font-weight:700;font-size:1.2rem">91</span></div>
-            </div>
-            <div class="opp-row">
-                <div><strong>Idea</strong><br>"First fitting POV"</div>
-                <div><strong>Search Demand</strong><br>High (12 imp)</div>
-                <div><strong>Social Signal</strong><br>Medium (5K views)</div>
-                <div><strong>Score</strong><br><span style="color:var(--warning);font-weight:700;font-size:1.2rem">78</span></div>
-            </div>
         </div>
         
         <div class="footer">
-            <p>🎯 Goal: Increase club fitting bookings by 50% | Updated: March 5, 2026</p>
+            <p>🎯 Goal: Increase club fitting bookings by 50% | Every insight has a source link | Updated: March 5, 2026</p>
         </div>
     </div>
 </body>
