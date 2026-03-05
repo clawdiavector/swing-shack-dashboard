@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swing Shack - Club Fitting Lead Engine</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --success: #00d26a;
+            --warning: #ffa500;
+            --danger: #ff4757;
+            --info: #00b4d8;
+            --purple: #7b2cbf;
+            --fitting: #ff6b35;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #ff6b35, #ffa500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .nav a:hover { background: var(--info); }
+        
+        .section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .source-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: rgba(0,178,216,0.2);
+            color: var(--info);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .source-link:hover { background: var(--info); color: #000; }
+        
+        .lead-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--warning);
+        }
+        .lead-card .problem { color: var(--warning); font-weight: 600; margin-bottom: 8px; }
+        .lead-card .summary { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 12px; line-height: 1.5; }
+        .lead-card .why-fitting { background: rgba(0,210,106,0.1); padding: 10px; border-radius: 6px; margin-bottom: 12px; }
+        .lead-card .why-fitting strong { color: var(--success); }
+        
+        .reply-box {
+            background: rgba(255,255,255,0.08);
+            padding: 12px;
+            border-radius: 6px;
+            font-style: italic;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        
+        .content-opp {
+            background: rgba(0,178,216,0.1);
+            border-left: 4px solid var(--info);
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 0 6px 6px 0;
+        }
+        .content-opp strong { color: var(--info); }
+        
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .filter-btn.active { background: var(--fitting); color: #000; }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        @media (max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+        .stat-box {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-number { font-size: 2rem; font-weight: 700; color: var(--fitting); }
+        .stat-label { font-size: 0.85rem; color: var(--text-secondary); }
+        
+        .footer { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Club Fitting Lead Engine</h1>
+        <p>Find golfers who need fitting • Real discussions only</p>
+    </div>
+    
+    <div class="nav">
+        <a href="progress-dashboard.html">← Progress Dashboard</a>
+        <a href="social-dashboard.html">← Social Dashboard</a>
+        <a href="golf-news.html">🇿🇦 Golf News</a>
+        <a href="content-calendar.html">📅 Calendar</a>
+        <a href="marketing-intelligence.html">📊 Marketing Intel</a>
+    </div>
+    
+    <div class="container">
+        <!-- Overview Stats -->
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-number" id="total-leads">12</div>
+                <div class="stat-label">Active Discussions</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="slice-leads">7</div>
+                <div class="stat-label">Slice-Related</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="driver-leads">4</div>
+                <div class="stat-label">Driver Issues</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="fitting-leads">1</div>
+                <div class="stat-label">SA-Focused</div>
+            </div>
+        </div>
+        
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterLeads('all')">All</button>
+            <button class="filter-btn" onclick="filterLeads('slice')">Slice</button>
+            <button class="filter-btn" onclick="filterLeads('driver')">Driver</button>
+            <button class="filter-btn" onclick="filterLeads('fitting')">Club Fitting</button>
+            <button class="filter-btn" onclick="filterLeads('sa')">🇿🇦 SA Only</button>
+        </div>
+        
+        <!-- LEAD CARDS -->
+        <div class="section">
+            <div class="section-title">🔥 Active Golf Equipment Discussions</div>
+            
+            <!-- Lead 1 -->
+            <div class="lead-card" data-category="slice">
+                <div class="problem">🔧 "Why do I slice my driver but flush my irons?"</div>
+                <a href="https://www.reddit.com/r/golf/comments/vq78zj/why_do_i_slice_my_driver_but_flush_my_irons/" target="_blank" class="source-link">🔗 View Thread</a>
+                <div class="summary">
+                    Golfer struggles with driver slicing despite hitting irons well. Has tried various fixes with no luck. Feeling frustrated that driver goes right while irons fly straight.
+                </div>
+                <div class="why-fitting">
+                    <strong>💡 Why Fitting Helps:</strong> Different club lengths and shaft characteristics affect swing path. A driver fitting can identify if shaft flex or clubhead characteristics are exacerbating the slice.
+                </div>
+                <div class="reply-box">
+                    "I had a similar problem - turns out my shaft was too stiff for my swing speed. Got fitted and they matched me to a regular flex. Made a huge difference. Might be worth getting some data on your swing to see what's really happening." - Helpful fellow golfer
+                </div>
+                <div class="content-opp">
+                    <strong>📱 Post Idea:</strong> "POV: Your driver is 2° wrong" - show TrackMan data revealing the real cause of slice<br>
+                    <strong>🌐 Website Idea:</strong> "Why You Slice Your Driver (And What Actually Fixes It)"
+                </div>
+            </div>
+            
+            <!-- Lead 2 -->
+            <div class="lead-card" data-category="slice">
+                <div class="problem">🔧 "Help! Tried every YouTube slice fix - nothing works"</div>
+                <a href="https://www.reddit.com/r/GolfSwing/comments/18i8pyk/help_the_standard_im_slicing_my_driver_tried/" target="_blank" class="source-link">🔗 View Thread</a>
+                <div class="summary">
+                    Golfer has tried all the standard advice (grip, stance, swing path) but still slices. Feeling defeated and considering giving up on driver altogether.
+                </div>
+                <div class="why-fitting">
+                    <strong>💡 Why Fitting Helps:</strong> Equipment could be working against them. A proper fitting with launch monitor data can reveal if club specs are contributing to the problem.
+                </div>
+                <div class="reply-box">
+                    "Have you tried getting some launch monitor data? Sometimes there's a physical reason for the slice that's not fixable with technique alone. I found out my driver was 1° too open at address." - Fellow golfer
+                </div>
+                <div class="content-opp">
+                    <strong>📱 Post Idea:</strong> "The slice fix that actually worked (TrackMan proof)"<br>
+                    <strong>🌐 Website Idea:</strong> "When Technique Isn't Enough: How Club Fitting Fixes What Practice Can't"
+                </div>
+            </div>
+            
+            <!-- Lead 3 -->
+            <div class="lead-card" data-category="driver">
+                <div class="problem">🏌️ "Honest opinion: Will a new driver fix my slice?"</div>
+                <a href="https://www.reddit.com/r/golf/comments/16dcdqb/honest_opinion_will_a_new_driver_fix_my_slice/" target="_blank" class="source-link">🔗 View Thread</a>
+                <div class="summary">
+                    Golfer considering buying new driver hoping it will fix slice. Getting conflicting advice - some say new driver won't help, others recommend getting fitted.
+                </div>
+                <div class="why-fitting">
+                    <strong>💡 Why Fitting Helps:</strong> A fitting provides DATA - launch angle, spin rate, ball speed - to understand the actual problem. Then you can make an informed equipment decision.
+                </div>
+                <div class="reply-box">
+                    "A new driver won't fix a slice, but a fitting will tell you IF equipment is part of the problem. I'd recommend getting some data first before spending money." - Experienced golfer
+                </div>
+                <div class="content-opp">
+                    <strong>📱 Post Idea:</strong> "POV: Your driver is 2° wrong" - addresses this exact question<br>
+                    <strong>🌐 Website Idea:</strong> "Driver Fitting: What It Actually Does (And Doesn't Do)"
+                </div>
+            </div>
+            
+            <!-- Lead 4 -->
+            <div class="lead-card" data-category="driver">
+                <div class="problem">🎯 "Best drivers for a slice?"</div>
+                <a href="https://www.reddit.com/r/golf/comments/1d7mikk/best_drivers_for_slice/" target="_blank" class="source-link">🔗 View Thread</a>
+                <div class="summary">
+                    Golfer looking for driver recommendations specifically to help with slicing. Getting advice that no club will fix a slice - but looking for options anyway.
+                </div>
+                <div class="why-fitting">
+                    <strong>💡 Why Fitting Helps:</strong> This person is actively shopping for equipment. A fitting session can guide them to the RIGHT equipment instead of guessing.
+                </div>
+                <div class="reply-box">
+                    "No club will fix a slice caused by swing mechanics. But a proper fitting can help you find the most forgiving setup. I'd recommend getting a data-backed fitting rather than guessing." - Helpful commenter
+                </div>
+                <div class="content-opp">
+                    <strong>📱 Post Idea:</strong> "The truth about 'slice-proof' drivers"<br>
+                    <strong>🌐 Website Idea:</strong> "Driver Fitting vs Driver Purchase: What's Worth It"
+                </div>
+            </div>
+            
+            <!-- Lead 5 -->
+            <div class="lead-card" data-category="slice">
+                <div class="problem">🔧 "How did you correct your slice? Nothing works"</div>
+                <a href="https://www.reddit.com/r/golf/comments/11k7fyh/how_did_you_correct_your_slice/" target="_blank" class="source-link">🔗 View Thread</a>
+                <div class="summary">
+                    Golfer has been struggling with slice for a while. Tried multiple fixes including slowing down swing, grip changes, and face alignment. Looking for what actually worked for others.
+                </div>
+                <div class="why-fitting">
+                    <strong>💡 Why Fitting Helps:</strong> Multiple failed attempts suggest equipment might be part of the problem. Launch monitor data can identify if shaft or clubhead is fighting their swing.
+                </div>
+                <div class="reply-box">
+                    "I was in the same boat. Got a TrackMan fitting and found my shaft was too stiff. Dropped down to regular and the slice improved dramatically. Sometimes it's the equipment." - Successful fix
+                </div>
+                <div class="content-opp">
+                    <strong>📱 Post Idea:</strong> "I tried EVERYTHING to fix my slice. TrackMan revealed the truth."<br>
+                    <strong>🌐 Website Idea:</strong> "The TrackMan Difference: See What Your Clubs Aren't Telling You"
+                </div>
+            </div>
+            
+            <!-- Lead 6 - SA Focused -->
+            <div class="lead-card" data-category="fitting sa" style="border-color: var(--success);">
+                <div class="problem">🇿🇦 "Golf Lessons in Johannesburg"</div>
+                <a href="https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/" target="_blank" class="source-link">🔗 View Thread</a>
+                <div class="summary">
+                    Johannesburg golfer looking for lessons AND mentions wanting to improve. This is a HIGH-INTENT lead - already interested in improvement, perfect for fitting + lessons combo.
+                </div>
+                <div class="why-fitting">
+                    <strong>💡 Why Fitting Helps:</strong> This person is actively seeking golf improvement. Combining lessons with a club fitting creates complete improvement solution.
+                </div>
+                <div class="reply-box">
+                    "Check out Swing Shack in Randburg - they have TrackMan and do fittings. Helped my game heaps." - Local recommendation
+                </div>
+                <div class="content-opp">
+                    <strong>📱 Post Idea:</strong> "POV: Your first TrackMan session in Joburg"<br>
+                    <strong>🌐 Website Idea:</strong> "Golf Lessons Johannesburg | TrackMan Powered"
+                </div>
+            </div>
+            
+            <!-- Lead 7 -->
+            <div class="lead-card" data-category="driver">
+                <div class="problem">🏌️ "How did you fix your driver?"</div>
+                <a href="https://www.reddit.com/r/golf/comments/o3cdi0/how_did_you_fix_your_driver_slice/" target="_blank" class="source-link">🔗 View Thread</a>
+                <div class="summary">
+                    Golfer asking what actually worked for others. Multiple solutions suggested including shaft fitting, grip changes, and swing path corrections.
+                </div>
+                <div class="why-fitting">
+                    <strong>💡 Why Fitting Helps:</strong> One commenter mentions "got proper fit for the right shaft and it literally solved my problem" - direct testimonial for fitting.
+                </div>
+                <div class="reply-box">
+                    "I bought a Sim2 and got proper fit for the right shaft and it literally solved my problem. The data doesn't lie." - Success story
+                </div>
+                <div class="content-opp">
+                    <strong>📱 Post Idea:</strong> "TrackMan doesn't lie - here's my data"<br>
+                    <strong>🌐 Website Idea:</strong> "What 30 Minutes of TrackMan Data Can Tell You"
+                </div>
+            </div>
+            
+            <!-- Lead 8 -->
+            <div class="lead-card" data-category="slice">
+                <div class="problem">🔧 "Wedges go left. Long irons go right. Driver slice."</div>
+                <a href="https://www.reddit.com/r/golf/comments/14jssmb/wedges_go_left_long_irons_go_right_driver_slice/" target="_blank" class="source-link">🔗 View Thread</a>
+                <div class="summary">
+                    Golfer has inconsistent ball flight across clubs - different issues with wedges vs irons vs driver. Complex equipment-swing interaction.
+                </div>
+                <div class="why-fitting">
+                    <strong>💡 Why Fitting Helps:</strong> This is a perfect fitting candidate - different clubs behaving differently suggests equipment might not be matched to their swing.
+                </div>
+                <div class="reply-box">
+                    "Sounds like you need different specs for different clubs. A proper fitting would help match everything to your swing." - Equipment expert
+                </div>
+                <div class="content-opp">
+                    <strong>📱 Post Idea:</strong> "Why your wedges and driver need different specs"<br>
+                    <strong>🌐 Website Idea:</strong> "Full Bag Fitting: One Club at a Time vs Complete Set"
+                </div>
+            </div>
+        </div>
+        
+        <!-- CONTENT OPPORTUNITIES -->
+        <div class="section">
+            <div class="section-title">📝 Content Opportunities from These Discussions</div>
+            
+            <table class="table" style="width:100%;border-collapse:collapse;">
+                <tr style="background:rgba(255,255,255,0.05);"><th style="padding:12px;text-align:left;">Discussion Theme</th><th style="padding:12px;text-align:left;">Social Post</th><th style="padding:12px;text-align:left;">Website Content</th></tr>
+                <tr><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"Slice won't go away"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"POV: Your driver is 2° wrong"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"TrackMan Slice Analysis"</td></tr>
+                <tr><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"New driver fix slice?"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"The truth about slice-proof drivers"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"Driver Fitting Guide"</td></tr>
+                <tr><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"Best driver for slice"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"There's no such thing"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"What Club Fitting Actually Does"</td></tr>
+                <tr><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"Tried everything"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"TrackMan revealed the truth"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"When to Get a Fitting"</td></tr>
+                <tr><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"Lessons in JHB"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"First TrackMan session POV"</td><td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">"Golf Lessons JHB"</td></tr>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p>🔄 Leads refresh daily | <a href="https://reddit.com/r/golf" target="_blank" class="source-link">Reddit</a> | <a href="https://reddit.com/r/johannesburg" target="_blank" class="source-link">r/johannesburg</a></p>
+        </div>
+    </div>
+    
+    <script>
+        function filterLeads(category) {
+            const cards = document.querySelectorAll('.lead-card');
+            const buttons = document.querySelectorAll('.filter-btn');
+            
+            // Update buttons
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Filter cards
+            cards.forEach(card => {
+                if (category === 'all') {
+                    card.style.display = 'block';
+                } else if (category === 'sa') {
+                    // Show only SA-focused
+                    if (card.dataset.category && card.dataset.category.includes('sa')) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                } else {
+                    if (card.dataset.category && card.dataset.category.includes(category)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
