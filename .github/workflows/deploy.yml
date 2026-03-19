@@ -1,0 +1,42 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Run at 6am, 12pm, 6pm, 9pm SAST (UTC+2 = 4am, 10am, 4pm, 7pm UTC)
+    - cron: '0 4,10,16,19 * * *'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            *.html
+            *.css
+            *.js
+            data/
+            research/
+            assets/
+            images/
+            tiktok-marketing/
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

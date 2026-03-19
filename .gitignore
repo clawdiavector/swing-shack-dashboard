@@ -1,1 +1,5 @@
 credentials.json
+tiktok-marketing/config.json
+*.log
+node_modules/
+.DS_Store
