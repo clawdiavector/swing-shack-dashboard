@@ -1,0 +1,141 @@
+{
+  "business_name": "Swing Shack",
+  "location_context": {
+    "city": "Johannesburg",
+    "region": "Gauteng",
+    "country": "South Africa",
+    "address": "Johannesburg, Gauteng",
+    "service_area": "Greater Johannesburg area"
+  },
+  "services": [
+    "Indoor Golf Simulator",
+    "TrackMan-Powered Coaching",
+    "Custom Club Fitting",
+    "Golf Lessons",
+    "Practice Sessions",
+    "Social Golf Events",
+    "Golf Leagues",
+    "Corporate Events"
+  ],
+  "seo_opportunities": [
+    {
+      "query": "indoor golf johannesburg",
+      "intent": "high-intent service search",
+      "volume": "high"
+    },
+    {
+      "query": "golf lessons johannesburg",
+      "intent": "high-intent service search",
+      "volume": "high"
+    },
+    {
+      "query": "club fitting johannesburg",
+      "intent": "high-intent purchase intent",
+      "volume": "medium"
+    },
+    {
+      "query": "trackman fitting johannesburg",
+      "intent": "high-intent service search",
+      "volume": "medium"
+    },
+    {
+      "query": "golf simulator hire johannesburg",
+      "intent": "high-intent booking intent",
+      "volume": "medium"
+    },
+    {
+      "query": "indoor golf simulator near me",
+      "intent": "high-intent local search",
+      "volume": "high"
+    },
+    {
+      "query": "golf coaching johannesburg",
+      "intent": "high-intent service search",
+      "volume": "medium"
+    }
+  ],
+  "geo_opportunities": [
+    {
+      "event": "LIV Golf Johannesburg",
+      "impact": "Golf interest surge in region",
+      "relevance": "high"
+    },
+    {
+      "event": "Jabra Ladies Classic",
+      "impact": "Local tournament driving interest",
+      "relevance": "medium"
+    },
+    {
+      "event": "Summer golf season",
+      "impact": "Peak golf season in Gauteng",
+      "relevance": "high"
+    }
+  ],
+  "conversion_signals": {
+    "primary_cta": "Book Now",
+    "booking_url": "https://swingshack.co.za/bookings/",
+    "phone": "info@swingshack.co.za",
+    "website_cta": "Book Now"
+  },
+  "live_site_facts": {
+    "tagline": "South Africa's First and only indoor golf club",
+    "unique_selling_points": [
+      "TrackMan-powered coaching with data-driven accuracy",
+      "Custom club fitting - built to fit your unique swing DNA",
+      "Science meets feel - data translated into trust on the course",
+      "Zen Swing Stage training",
+      "Personal coaching built around your goals, body, and style",
+      "Community & connection - social golf and fun leagues"
+    ],
+    "target_audiences": [
+      "Golfers looking to improve their game",
+      "Beginners wanting to learn",
+      "Experienced players seeking performance",
+      "Corporate event bookings"
+    ],
+    "website_content": {
+      "home_tagline": "Real Golf, Indoors",
+      "home_subtitle": "South Africa's first and only true indoor golf club",
+      " USP_1": "Science Meets Simplicity - We translate data into feels you can trust on the course",
+      "USP_2": "Coaching That Fits You - Every lesson is personal, built around your goals, body, and style",
+      "USP_3": "Custom Club Fitting - Precision-built clubs, crafted to your unique swing DNA",
+      "USP_4": "Purposeful Practice - Train with meaning using TrackMan feedback and the Zen Swing Stage",
+      "USP_5": "Community & Connection - Social golf, fun leagues, and members who love the game"
+    }
+  },
+  "active_offers": [],
+  "approved_urls": [
+    "https://swingshack.co.za/",
+    "https://swingshack.co.za/bookings/",
+    "https://swingshack.co.za/club-fitting/",
+    "https://swingshack.co.za/philosophy/"
+  ],
+  "previous_post": {
+    "summary": "No previous GBP post data available",
+    "content": ""
+  },
+  "performance_last_7_days": {
+    "status": "NO_DATA",
+    "reason": "Google Analytics refresh token expired",
+    "website_clicks": "unknown",
+    "direction_requests": "unknown",
+    "phone_calls": "unknown",
+    "bookings": "unknown"
+  },
+  "change_vs_previous_7_days": {
+    "status": "NO_DATA",
+    "reason": "Google Analytics refresh token expired"
+  },
+  "historical_learnings": [
+    "Price transparency posts (R500/month) drive 3x more clicks",
+    "POV format outperforms carousel 3:1",
+    "Indoor golf + Johannesburg ranking #1 with 13.6% CTR",
+    "Equipment posts underperform (score: 31)",
+    "Slice content converts 3x better to bookings"
+  ],
+  "notes": {
+    "token_status": "Google Analytics and Search Console refresh tokens are expired. Need re-authentication to fetch live performance data.",
+    "gmb_integration": "Connected via Postiz (GMB ID: cmmdgju7f00tppk0y6bne9zrk)",
+    "data_source": "Live website scrape from swingshack.co.za on 2026-03-16"
+  }
+}

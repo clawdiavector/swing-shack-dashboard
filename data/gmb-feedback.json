@@ -1,0 +1,35 @@
+{
+  "posts": [
+    {
+      "date": "2026-03-19",
+      "service": "Club Fitting",
+      "keywords": [
+        "club fitting Johannesburg",
+        "golf club fitting",
+        "driver fitting"
+      ],
+      "postId": "cmmxdhhv003tup30y6kuc9kvz",
+      "status": "posted",
+      "pageViews": {
+        "Home - Swing Shack": "288",
+        "Bookings - Swing Shack": "148",
+        "Customer Portal - Swing Shack": "123",
+        "Page not found - Swing Shack": "43",
+        "Checkout - Swing Shack": "38",
+        "Club Fitting - Swing Shack": "32",
+        "Philosophy - Swing Shack": "10",
+        "Membership - Swing Shack": "8",
+        "Terms & Conditions - Swing Shack": "6",
+        "2026 Annual Membership - Monthly Payment - Swing Shack": "3",
+        "Appointment - Swing Shack": "1",
+        "Cart - Swing Shack": "1",
+        "Fairway Wood / Hybrid (1.5h) - Booking - Swing Shack": "1",
+        "Full Bag (3 Sessions) - Booking - Swing Shack": "1",
+        "Test - Swing Shack": "1"
+      }
+    }
+  ],
+  "learnings": [
+    "Club Fitting: 7 posts, pages: {}"
+  ]
+}

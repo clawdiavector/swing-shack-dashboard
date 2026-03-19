@@ -1,0 +1,43 @@
+{
+  "chosen_angle": "SEO-driven service post with price transparency + LIV Golf local context",
+  "why_this_angle_wins": "High-intent search query 'indoor golf johannesburg' combined with LIV Golf event driving golf interest in the region. Historical data shows price transparency drives 3x more clicks.",
+  "seo_signals_used": [
+    "indoor golf johannesburg (high volume, high intent)",
+    "golf lessons johannesburg",
+    "trackman fitting johannesburg"
+  ],
+  "geo_signals_used": [
+    "LIV Golf Johannesburg - golf interest surge in region",
+    "Summer golf season peak in Gauteng"
+  ],
+  "previous_post_summary": "No previous GBP post data available",
+  "performance_summary": "No live data - tokens expired. Using historical learnings instead.",
+  "what_learning_was_applied": "Price transparency posts drive 3x more clicks. POV format outperforms carousel. Indoor golf + Johannesburg ranking #1 with 13.6% CTR.",
+  "what_was_avoided_based_on_history": "Equipment posts underperform (score: 31). Avoided generic service descriptions without pricing.",
+  "post_type": "STANDARD",
+  "cta_type": "BOOK",
+  "headline": "Indoor Golf in Johannesburg - From R500/Month",
+  "body": "Swing Shack brings real golf indoors with TrackMan-powered coaching and precision club fitting. Whether you're looking to improve your game, get custom clubs built to your swing DNA, or just practice in a comfortable environment, we've got you covered. Located in Johannesburg, we're South Africa's first and only true indoor golf club. Book a session today and experience golf where technology meets feel.",
+  "button_url": "https://swingshack.co.za/bookings/",
+  "image_brief": "Golfer using indoor simulator with TrackMan screen visible, Johannesburg urban setting",
+  "approval_status": "auto-approved",
+  "risk_flags": [],
+  "source_facts_used": [
+    "Business: Swing Shack, Johannesburg",
+    "Services: Indoor Golf Simulator, TrackMan Coaching, Custom Club Fitting",
+    "Tagline: South Africa's first and only indoor golf club",
+    "SEO: indoor golf johannesburg is top search query",
+    "Historical: Price transparency (R500/month) drives 3x clicks"
+  ],
+  "historical_signals_used": [
+    "Price transparency posts = 3x more clicks",
+    "POV format outperforms carousel 3:1",
+    "Indoor golf + Johannesburg ranking #1 with 13.6% CTR"
+  ],
+  "estimated_intent": "high",
+  "memory_record": {
+    "service_focus": "Indoor golf simulator with TrackMan coaching",
+    "test_hypothesis": "Price transparency + local SEO targeting will drive more bookings than generic posts",
+    "expected_goal": "Increase website clicks and booking conversions from Johannesburg golf searches"
+  }
+}

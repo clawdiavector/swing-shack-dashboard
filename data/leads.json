@@ -1,0 +1,89 @@
+{
+  "leads": [
+    {
+      "id": "lead-2026-03-19-6",
+      "url": "https://reddit.com/r/golf",
+      "title": "Software for South African Courses",
+      "source": "r/Golfsimulator - \"Software for South African courses\"",
+      "dateFound": "2026-03-19",
+      "problem": "**Source:** r/Golfsimulator - \"Software for South African courses\" SA golfers using Garmin R10 with ",
+      "service": "fitting",
+      "location": "SA",
+      "intent": "high",
+      "score": 8,
+      "status": "new"
+    },
+    {
+      "id": "lead-2026-03-19-1",
+      "url": "https://reddit.com/r/golf",
+      "title": "South Africans Building Home Golf Simulators",
+      "source": "r/Golfsimulator - \"Seeking Advice: Building a Golf Simulator in South Africa with a $1500–$2000 Budget\"",
+      "dateFound": "2026-03-19",
+      "problem": "**Source:** r/Golfsimulator - \"Seeking Advice: Building a Golf Simulator in South Africa with a $150",
+      "service": "practice",
+      "location": "SA",
+      "intent": "medium",
+      "score": 5,
+      "status": "new"
+    },
+    {
+      "id": "lead-2026-03-19-5",
+      "url": "https://reddit.com/r/golf",
+      "title": "Golf Lesson Frustration",
+      "source": "r/golf - \"Two years of lessons with little to no improvement...defeated.\"",
+      "dateFound": "2026-03-19",
+      "problem": "**Source:** r/golf - \"Two years of lessons with little to no improvement...defeated.\" Golfer spent m",
+      "service": "coaching",
+      "location": "international",
+      "intent": "medium",
+      "score": 4,
+      "status": "new"
+    },
+    {
+      "id": "lead-2026-03-19-2",
+      "url": "https://reddit.com/r/golf",
+      "title": "Golfers Struggling with Ball Striking Consistency",
+      "source": "r/golf - \"What helped you guys get consistently better at ball striking?\"",
+      "dateFound": "2026-03-19",
+      "problem": "**Source:** r/golf - \"What helped you guys get consistently better at ball striking?\" Redditors emph",
+      "service": "other",
+      "location": "international",
+      "intent": "medium",
+      "score": 3,
+      "status": "new"
+    },
+    {
+      "id": "lead-2026-03-19-3",
+      "url": "https://reddit.com/r/golf",
+      "title": "Golfers Seeking Practice Routines",
+      "source": "r/golf - \"How do I develop a practice routine?\"",
+      "dateFound": "2026-03-19",
+      "problem": "**Source:** r/golf - \"How do I develop a practice routine?\" Common theme: putt and chip daily, start",
+      "service": "practice",
+      "location": "international",
+      "intent": "medium",
+      "score": 3,
+      "status": "new"
+    },
+    {
+      "id": "lead-2026-03-19-4",
+      "url": "https://reddit.com/r/golf",
+      "title": "Club Fitting Questions - Beginners",
+      "source": "r/golf - \"What does it mean exactly to get fitted for golf clubs?\" + various fitting threads",
+      "dateFound": "2026-03-19",
+      "problem": "### 4. Club Fitting Questions - Beginners **Source:** r/golf - \"What does it mean exactly to get fit",
+      "service": "fitting",
+      "location": "international",
+      "intent": "medium",
+      "score": 3,
+      "status": "new"
+    }
+  ],
+  "lastUpdated": "2026-03-19",
+  "totalLeads": 6,
+  "stats": {
+    "totalFoundAllTime": 6,
+    "saLeads": 2,
+    "highIntent": 1
+  }
+}
