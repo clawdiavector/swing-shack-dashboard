@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700;900&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body { 
+        font-family: 'Montserrat', sans-serif;
+        background: linear-gradient(145deg, #0d0d0d 0%, #1a1a1a 50%, #0d0d0d 100%);
+        width: 1080px;
+        height: 1350px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    body::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 20% 80%, rgba(155, 89, 182, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(155, 89, 182, 0.1) 0%, transparent 40%);
+        pointer-events: none;
+    }
+    
+    .logo img {
+        width: 180px;
+        height: 180px;
+        object-fit: contain;
+        margin-bottom: 10px;
+    }
+    
+    .brand-name {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 80px;
+        color: #ffffff;
+        letter-spacing: 6px;
+        margin-bottom: 8px;
+    }
+    
+    .tagline {
+        font-size: 20px;
+        color: #888888;
+        margin-bottom: 40px;
+        font-weight: 400;
+    }
+    
+    .headline {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 130px;
+        color: #ffffff;
+        text-transform: uppercase;
+        line-height: 0.95;
+        margin-bottom: 25px;
+    }
+    
+    .headline span {
+        color: #9b59b6;
+    }
+    
+    .subheadline {
+        font-size: 34px;
+        color: #cccccc;
+        margin-bottom: 40px;
+        font-weight: 700;
+    }
+    
+    .cta-box {
+        background: #9b59b6;
+        padding: 25px 80px;
+        border-radius: 5px;
+    }
+    
+    .cta {
+        font-size: 30px;
+        color: #ffffff;
+        font-weight: 900;
+        letter-spacing: 3px;
+    }
+    
+    .website {
+        margin-top: 35px;
+        font-size: 22px;
+        color: #666666;
+    }
+    
+    .website span {
+        color: #9b59b6;
+    }
+    
+    .line {
+        width: 80px;
+        height: 3px;
+        background: #9b59b6;
+        margin: 25px auto;
+    }
+    
+    .feature {
+        font-size: 20px;
+        color: #888;
+        margin-top: 15px;
+    }
+    
+    .price {
+        font-size: 28px;
+        color: #9b59b6;
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+    <div class="logo">
+        <img src="https://clawdiavector.github.io/swing-shack-dashboard/media/inbound/6cc971f6-fe07-4db0-9030-3353a4cd1a24.png" alt="Swing Shack Logo">
+    </div>
+    
+    <div class="brand-name">SWING SHACK</div>
+    <div class="tagline">THE PLACE GOOD GOLFERS GO TO GET BETTER</div>
+    
+    <div class="headline">MEMBER<br><span>ACCESS</span></div>
+    
+    <div class="line"></div>
+    
+    <div class="subheadline">UNLIMITED PLAY</div>
+    
+    <div class="feature">Exclusive Benefits • Priority Booking</div>
+    
+    <div class="cta-box">
+        <div class="cta">BECOME A MEMBER</div>
+    </div>
+    
+    <div class="price">From R1,000/month</div>
+    
+    <div class="website">swingshack.co.za</div>
+</body>
+</html>
