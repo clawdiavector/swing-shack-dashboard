@@ -8,7 +8,7 @@
     
     body { 
         font-family: 'Montserrat', sans-serif;
-        background: linear-gradient(145deg, #0d0d0d 0%, #1a1a2e 50%, #0d0d0d 100%);
+        background: linear-gradient(145deg, #0d0d0d 0%, #16213e 100%);
         width: 1080px;
         height: 1350px;
         display: flex;
@@ -20,7 +20,6 @@
         overflow: hidden;
     }
     
-    /* Background pattern */
     body::before {
         content: '';
         position: absolute;
@@ -29,148 +28,114 @@
         right: 0;
         bottom: 0;
         background: 
-            radial-gradient(circle at 20% 80%, rgba(233, 69, 96, 0.15) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(233, 69, 96, 0.1) 0%, transparent 40%),
-            repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,0.02) 35px, rgba(255,255,255,0.02) 70px);
+            radial-gradient(circle at 30% 70%, rgba(233, 69, 96, 0.2) 0%, transparent 50%),
+            radial-gradient(circle at 70% 30%, rgba(233, 69, 96, 0.1) 0%, transparent 40%);
         pointer-events: none;
     }
     
-    .logo {
-        width: 200px;
-        height: 200px;
-        margin-bottom: 20px;
-        position: relative;
-        z-index: 1;
+    .slogan {
+        font-size: 24px;
+        color: #e94560;
+        letter-spacing: 4px;
+        margin-bottom: 15px;
+        text-transform: uppercase;
     }
     
     .logo img {
-        width: 100%;
-        height: 100%;
+        width: 160px;
+        height: 160px;
         object-fit: contain;
+        margin-bottom: 10px;
     }
     
     .brand-name {
         font-family: 'Bebas Neue', sans-serif;
         font-size: 90px;
         color: #ffffff;
-        letter-spacing: 8px;
-        margin-bottom: 10px;
-        position: relative;
-        z-index: 1;
+        letter-spacing: 6px;
+        margin-bottom: 5px;
     }
     
     .tagline {
-        font-size: 22px;
-        color: #888888;
-        margin-bottom: 50px;
-        font-weight: 400;
-        letter-spacing: 2px;
-        position: relative;
-        z-index: 1;
+        font-size: 18px;
+        color: #666666;
+        margin-bottom: 35px;
     }
     
     .headline {
         font-family: 'Bebas Neue', sans-serif;
-        font-size: 160px;
+        font-size: 140px;
         color: #ffffff;
         text-transform: uppercase;
         line-height: 0.95;
-        margin-bottom: 30px;
-        position: relative;
-        z-index: 1;
+        margin-bottom: 20px;
     }
     
     .headline span {
         color: #e94560;
     }
     
-    .subheadline {
-        font-size: 36px;
+    .value-points {
+        font-size: 22px;
         color: #cccccc;
-        margin-bottom: 50px;
-        font-weight: 700;
-        position: relative;
-        z-index: 1;
+        margin-bottom: 30px;
+        line-height: 1.5;
+    }
+    
+    .value-points strong {
+        color: #e94560;
     }
     
     .cta-box {
         background: #e94560;
-        padding: 25px 80px;
+        padding: 25px 70px;
         border-radius: 5px;
-        position: relative;
-        z-index: 1;
     }
     
     .cta {
-        font-size: 32px;
+        font-size: 28px;
         color: #ffffff;
         font-weight: 900;
         letter-spacing: 3px;
     }
     
     .website {
-        margin-top: 40px;
-        font-size: 24px;
+        margin-top: 30px;
+        font-size: 20px;
         color: #666666;
-        position: relative;
-        z-index: 1;
     }
     
-    .website a {
-        color: #e94560;
-        text-decoration: none;
-    }
-    
-    /* Decorative elements */
     .line {
-        width: 100px;
+        width: 60px;
         height: 3px;
         background: #e94560;
-        margin: 30px auto;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .dots {
-        display: flex;
-        gap: 15px;
-        margin-top: 30px;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .dot {
-        width: 12px;
-        height: 12px;
-        background: #e94560;
-        border-radius: 50%;
+        margin: 20px auto;
     }
 </style>
 </head>
 <body>
+    <div class="slogan">Real Golf, Indoors</div>
+    
     <div class="logo">
         <img src="https://clawdiavector.github.io/swing-shack-dashboard/media/inbound/6cc971f6-fe07-4db0-9030-3353a4cd1a24.png" alt="Swing Shack Logo">
     </div>
     
     <div class="brand-name">SWING SHACK</div>
-    <div class="tagline">THE PLACE GOOD GOLFERS GO TO GET BETTER</div>
+    <div class="tagline">The Place Good Golfers Go To Get Better</div>
     
-    <div class="headline">GET<br><span>FITTED</span></div>
+    <div class="headline">GET<br><span>FIT</span></div>
     
     <div class="line"></div>
     
-    <div class="subheadline">PRECISION MATTERS</div>
+    <div class="value-points">
+        <strong>Precision-built clubs</strong><br>
+        Crafted to your unique swing DNA
+    </div>
     
     <div class="cta-box">
-        <div class="cta">BOOK YOUR SESSION</div>
+        <div class="cta">BOOK YOUR FIT</div>
     </div>
     
     <div class="website">swingshack.co.za</div>
-    
-    <div class="dots">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-    </div>
 </body>
 </html>
