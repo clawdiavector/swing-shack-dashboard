@@ -1,0 +1,34 @@
+{
+  "pending": [
+    {
+      "id": "mmypgqh6",
+      "type": "Social Post",
+      "caption": "New blog post about club fitting! Check out our latest guide to finding the perfect clubs.",
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "facebook"
+      ],
+      "image": null,
+      "mediaUrl": null,
+      "notes": "",
+      "created": "2026-03-20T09:37:22.698Z"
+    },
+    {
+      "id": "mmypgtx9",
+      "type": "GMB Post",
+      "caption": "Book your club fitting session today! TrackMan technology for perfect club selection.",
+      "platforms": [
+        "google-business"
+      ],
+      "image": null,
+      "mediaUrl": null,
+      "notes": "",
+      "created": "2026-03-20T09:37:27.165Z"
+    }
+  ],
+  "approved": [],
+  "rejected": [],
+  "posted": [],
+  "lastUpdated": "2026-03-20T09:35:00.000Z"
+}

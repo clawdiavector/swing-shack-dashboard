@@ -17,7 +17,7 @@
   "imageGen": {
     "provider": "gemini",
     "model": "gemini-2.0-flash-exp",
-    "apiKey": "AIzaSyBaRBDJSYeuU2R2mK_6PnA2DR3fDTg9Edk"
+    "apiKey": "from-credentials"
   },
   "posting": {
     "manual": true,
