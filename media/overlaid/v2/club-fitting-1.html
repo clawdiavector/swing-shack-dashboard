@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=1080">
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700;900&display=swap');
     
@@ -10,133 +8,147 @@
     
     body { 
         font-family: 'Montserrat', sans-serif;
+        background: linear-gradient(145deg, #0d0d0d 0%, #16213e 100%);
         width: 1080px;
         height: 1350px;
-        background: linear-gradient(145deg, #0d0d0d 0%, #16213e 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
         position: relative;
         overflow: hidden;
-        margin: 0;
-        padding: 0;
     }
     
     body::before {
         content: '';
         position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: radial-gradient(circle at 50% 50%, rgba(233, 69, 96, 0.15) 0%, transparent 70%);
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 30% 70%, rgba(233, 69, 96, 0.2) 0%, transparent 50%),
+            radial-gradient(circle at 70% 30%, rgba(233, 69, 96, 0.1) 0%, transparent 40%);
         pointer-events: none;
     }
     
-    .container {
-        position: absolute;
-        width: 1080px;
-        height: 1350px;
-        left: 50%;
-        top: 50%;
-        margin-left: -540px;
-        margin-top: -675px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .slogan { 
-        font-size: 22px; 
-        color: #e94560; 
-        letter-spacing: 4px; 
-        margin-bottom: 15px; 
+    .slogan {
+        font-size: 24px;
+        color: #e94560;
+        letter-spacing: 4px;
+        margin-bottom: 15px;
         text-transform: uppercase;
-        text-align: center;
     }
     
-    .logo { 
-        width: 150px; 
-        height: 150px; 
+    .logo img {
+        width: 160px;
+        height: 160px;
+        object-fit: contain;
         margin-bottom: 10px;
     }
-    .logo img { 
-        width: 100%; 
-        height: 100%; 
-        object-fit: contain; 
+    
+    .brand-name {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 90px;
+        color: #ffffff;
+        letter-spacing: 6px;
+        margin-bottom: 5px;
     }
     
-    .brand-name { 
-        font-family: 'Bebas Neue', sans-serif; 
-        font-size: 85px; 
-        color: #fff; 
-        letter-spacing: 5px; 
-        margin-bottom: 5px; 
-        text-align: center;
+    .tagline {
+        font-size: 18px;
+        color: #666666;
+        margin-bottom: 35px;
     }
     
-    .headline { 
-        font-family: 'Bebas Neue', sans-serif; 
-        font-size: 130px; 
-        color: #fff; 
-        text-transform: uppercase; 
-        line-height: 0.95; 
-        margin-bottom: 15px; 
-        text-align: center;
-    }
-    .headline span { color: #e94560; }
-    
-    .line { 
-        width: 50px; 
-        height: 3px; 
-        background: #e94560; 
-        margin: 15px auto; 
+    .headline {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 140px;
+        color: #ffffff;
+        text-transform: uppercase;
+        line-height: 0.95;
+        margin-bottom: 20px;
     }
     
-    .hook { 
-        font-size: 28px; 
-        color: #fff; 
-        margin-bottom: 25px; 
-        font-weight: 700; 
-        text-align: center;
-    }
-    .hook span { color: #e94560; }
-    
-    .value { 
-        font-size: 20px; 
-        color: #aaa; 
-        margin-bottom: 30px; 
-        line-height: 1.5; 
-        text-align: center;
+    .headline span {
+        color: #e94560;
     }
     
-    .cta-box { 
-        background: #e94560; 
-        padding: 22px 60px; 
-        border-radius: 5px; 
+    .hook {
+        font-size: 28px;
+        color: #ffffff;
+        margin-bottom: 25px;
+        font-weight: 700;
     }
-    .cta { 
-        font-size: 26px; 
-        color: #fff; 
-        font-weight: 900; 
-        letter-spacing: 2px; 
+    
+    .hook span {
+        color: #e94560;
     }
-    .website { 
-        margin-top: 25px; 
-        font-size: 18px; 
-        color: #666; 
-        text-align: center;
+    
+    .value-points {
+        font-size: 22px;
+        color: #cccccc;
+        margin-bottom: 30px;
+        line-height: 1.5;
+    }
+    
+    .value-points strong {
+        color: #e94560;
+    }
+    
+    .cta-box {
+        background: #e94560;
+        padding: 25px 70px;
+        border-radius: 5px;
+    }
+    
+    .cta {
+        font-size: 28px;
+        color: #ffffff;
+        font-weight: 900;
+        letter-spacing: 3px;
+    }
+    
+    .website {
+        margin-top: 30px;
+        font-size: 20px;
+        color: #666666;
+    }
+    
+    .line {
+        width: 60px;
+        height: 3px;
+        background: #e94560;
+        margin: 20px auto;
     }
 </style>
 </head>
 <body>
-    <div class="container">
-        <div class="slogan">Real Golf, Indoors</div>
-        <div class="logo"><img src="https://clawdiavector.github.io/swing-shack-dashboard/media/inbound/6cc971f6-fe07-4db0-9030-3353a4cd1a24.png"></div>
-        <div class="brand-name">SWING SHACK</div>
-        
-        <div class="headline">GET<br><span>FIT</span></div>
-        <div class="line"></div>
-        <div class="hook"><span>Golf, Made Personal</span></div>
-        <div class="value">Precision-built clubs crafted to your unique swing DNA</div>
-        
-        <div class="cta-box"><div class="cta">GET FIT</div></div>
-        <div class="website">swingshack.co.za</div>
+    <div class="slogan">Real Golf, Indoors</div>
+    
+    <div class="logo">
+        <img src="https://clawdiavector.github.io/swing-shack-dashboard/media/inbound/6cc971f6-fe07-4db0-9030-3353a4cd1a24.png" alt="Swing Shack Logo">
     </div>
+    
+    <div class="brand-name">SWING SHACK</div>
+    <div class="tagline">The Place Good Golfers Go To Get Better</div>
+    
+    <div class="headline">GET<br><span>FIT</span></div>
+    
+    <div class="line"></div>
+    
+    <div class="hook"><span>Golf, Made Personal</span></div>
+    
+    <div class="value-points">
+        <strong>Precision-built clubs</strong><br>
+        Crafted to your unique swing DNA
+    </div>
+    
+    <div class="cta-box">
+        <div class="cta">GET FIT</div>
+    </div>
+    
+    <div class="website">swingshack.co.za</div>
 </body>
 </html>
