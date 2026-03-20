@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swing Shack Media Library</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        h1 { color: #e94560; margin-bottom: 20px; }
+        
+        .categories {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .cat-btn {
+            padding: 8px 16px;
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 20px;
+            color: #eee;
+            cursor: pointer;
+        }
+        .cat-btn.active { background: #e94560; border-color: #e94560; }
+        
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .item {
+            background: #16213e;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        .item .name {
+            padding: 10px;
+            font-size: 0.75em;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .item .cat-tag {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #e94560;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7em;
+        }
+        
+        .upload-zone {
+            border: 2px dashed #0f3460;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #16213e;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📸 Swing Shack Media Library</h1>
+    
+    <div class="upload-zone">
+        Drop new photos here to add to inbound folder
+    </div>
+    
+    <div class="stats" id="stats">
+        Loading...
+    </div>
+    
+    <div class="categories">
+        <button class="cat-btn active" data-cat="all">All</button>
+        <button class="cat-btn" data-cat="inbound">Inbound</button>
+        <button class="cat-btn" data-cat="facility">Facility</button>
+        <button class="cat-btn" data-cat="trackman">TrackMan</button>
+        <button class="cat-btn" data-cat="clubs">Clubs</button>
+        <button class="cat-btn" data-cat="customers">Customers</button>
+        <button class="cat-btn" data-cat="golf">Golf</button>
+        <button class="cat-btn" data-cat="logo">Logo</button>
+    </div>
+    
+    <div class="gallery" id="gallery"></div>
+    
+    <script>
+        const basePath = 'media/inbound';
+        
+        // Sample file list - in production this would be generated
+        const files = ["00514c24-8dc3-4986-a679-72ced3c769be.jpg","046cc8b5-b67a-4d58-b688-3b9a629458dc.jpg","07c3ecfb-703c-412a-979c-dadfeab2b442.heic","100a3904-a78f-4c87-a821-f228a84f7164.png","12467660-e2ad-4de5-ba5d-9040e0a83efe.png","13b19e04-0006-4be2-a8ca-6c91d06b16cb.jpg","13f2236d-c45b-4f84-b585-d856356f357e.jpg","15c52bb3-3d25-4fa7-bd46-9e6b39415d2c.jpg","16f4a688-06e2-45bd-bcc4-fa8847b28246.jpg","18eeaa5f-c345-4a69-8196-50aaa04e4cb8.png","1955431c-009e-4c1f-83af-ac33a66d7171.jpg","1d627029-20eb-47aa-98e5-e3360dcf4179.png","1ec12b06-4b62-4595-90c2-273696fc59ca.png","20966913-d7aa-4fb5-a410-a243669adc05.png","22fc8239-b57a-4872-a2c8-65cd11b75c1a.png","25c9b456-c0db-4c36-b6cf-236be47d6c35.jpg","260be7e5-9f59-4e39-af44-775644d270f5.png","26d13911-0e76-431e-8575-7478a10caa60.heic","2a473b1c-e770-4dbd-b1db-6756fe48baf0.png","2bc7ca2c-a569-45b0-b468-a907e6ad6cb4.png","2bf7ceea-dde4-4fb2-b3d0-54242a80b728.heic","2eca602c-7b66-4346-9e86-d1a014415109.png","2f09f83e-e6f8-4408-a28e-b2e3072031ad.png","329cbb80-ae4a-481e-a394-5bfc1f868a12.png","3345b277-e9f1-4a01-83ba-cb17fac0f130.png","374a9a5c-839a-437e-b543-d49048254671.png","38d3806e-ed1a-4fa8-a6a4-4c52397c2d3c.png","3a12a860-49ef-405a-a3ae-e4b04cda6821.png","3e45a280-3cf2-42e9-aa86-706d436891b8.png","441cedeb-ff7c-44f2-b047-b79aed4a6ad4.jpg","44284698-8369-4121-aed3-7ca745e85847.png","4844df57-61ba-4ba3-91b3-5997fa29e435.jpg","4898acda-5b6d-428b-b293-54814a8385b2.png","493ecacc-0ce3-4884-a3b7-1f03fc5d33c0.png","49f1ced8-c444-4a25-901f-d1982987a529.png","4a11cbba-0347-4043-a485-885e5e3e00dc.png","4b6cff35-7bb0-4d77-843d-91f55c42b33c.jpg","4cf6bf89-182d-44e2-87fe-a19934ef7dcd.png","4d828a48-1639-4405-b5c6-7e29e243e4b4.jpg","4da81ec0-ee4e-4b78-8d47-7ed3fcccc926.jpg","51fa770c-0fd2-472e-91ad-65840bc35075.heic","5282ddbf-85c1-4cbd-879b-9203b8548453.png","558e0457-eec5-4d68-8e2e-0fa5321b1370.png","56c28994-0162-40a3-a355-a4c5894d7596.png","57373cbb-d0c4-4596-a5b0-9eb14fb6b033.png","58389f2d-8b08-45fb-a0cb-45b5836cdc36.png","5c8b490e-c34a-432b-8350-a75c80da04ce.jpg","5cce202c-7164-449e-9662-2d9cb0d281f5.png","5f387ea3-d6fc-423f-a8f8-28647960b717.png","5f9bd306-78e4-40d6-9710-7e6c35199a71.png","61938af4-fa27-442c-ba4c-e1fcee22dfdf.png","6504d255-ee16-434b-be6b-a20442496db8.png","65c75ced-3b3c-4999-8678-c7bfa89722e6.png","66da67d5-0971-4a05-89fd-9de5eab866bd.png","67017480-0a70-4d06-ba1b-d6c63979558f.png","67abdc77-dbe5-4db2-8f80-9411c6d0d5b2.jpg","67b20fe8-307e-417b-9948-d50dd48e0e97.png","6a84489d-4caa-4704-8469-ef6806b10320.png","6cc971f6-fe07-4db0-9030-3353a4cd1a24.png","6d426e96-27fd-488b-ab35-40d9b18774b2.heic","7404c175-231f-46f1-906f-fe321f8ad79b.png","7576daa3-0bce-4bd0-b390-625447c9914e.jpg","7d4a1263-4be0-4355-ac28-aabf85b46316.jpg","7fa96d30-c78b-4eed-9013-5d5d1e7b33e5.jpg","800cc7d7-8fbf-41a8-a772-d34cb1ffbe87.png","8219a22b-f9b4-4049-9d66-b8637fd5bfe6.png","82dee3fc-f563-47dc-9ab9-f4ea73c2b342.png","83caac34-fe02-41dd-9796-593034787a9b.jpg","870ac1f2-a738-4cfa-a177-b7ea56252ca6.heic","8919d21b-68f2-41fa-a5cf-504fb9e63bf3.png","8cdf5889-5d47-473f-96f9-46613b3a2724.png","8d12179a-de5d-45d8-a0f9-36e88cd9b0a5.png","8e91260e-6a4e-45ba-b88d-7ee2951cfc6a.heic","8f957170-92a7-42ec-bcd5-82d6ef7ab425.jpg","9286b18f-cd12-4094-9644-e32e9f49f6f1.jpg","93a0daeb-d7d1-4da1-8eaa-e368705714f6.jpg","96e5b5e1-247e-446e-8234-22b4035c4a54.jpg","99d8cee0-8a9f-460d-840a-537554ffb61e.png","9a889119-cb35-4ab5-b299-5513ff291f87.png","9eedb677-d05f-4041-a550-436975c9282b.png","a071fb63-7117-46e4-af11-ef9f2a7ea14b.png","a07b891f-fbc0-45c7-b9b2-fad7fcf3ad9a.png","a197677f-33b4-4274-aca6-d3921309f92c.png","a2da2f2b-227c-49ac-96e1-ee6fc2df9d7c.jpg","a5ab083b-6912-4a68-8127-a196bb5c5e3c.png","a6324e5e-104a-4fca-9a88-5ccc3b0121ad.png","a6ea2778-591f-4629-999d-bf84396beec3.jpg","aa2607c0-be6e-457f-806b-25b644f9a41b.png","aa51930c-85f8-432d-a2ef-df19b7313d6d.jpg","ab487bec-f3e6-44d8-a2f8-b8a599ea015d.png","b00af764-4d4f-4ce6-91ea-7c0803e38a46.jpg","b18ef355-e56d-4bc2-8085-1ade9e2ef11c.jpg","b279633b-6a37-48ac-8375-039d62a972d4.png","b91af8ff-9327-439a-8c6a-1852fae3d027.png","c2b49c74-37c7-41a7-a7e4-0c3c4f3a010f.png","c36c8ab4-9dc4-4b16-a311-3aef9c6049fb.png","c5609e7d-dfb5-4092-a847-c1801bdce4fa.png","c8f4fb83-4425-4af1-a1ff-6641d76e0269.png","ca257608-ee2a-4d00-8f16-4b94cc5edaf4.png","ccf144f3-cb90-49a7-b1fe-12d135496810.png","ce11a804-2ef3-439d-b6a7-bcda677b5720.png","ce332d64-d87f-46ed-992c-7990ca49ad7c.png","ceaadea9-192e-4b97-aac4-eaa021561e86.png","cf815884-8259-4308-803e-09ef0d17aa88.png","d0f1e41c-c127-46bb-ae37-5cbd96e90dd0.png","d121ce2f-9b9c-4b18-97b7-4e4195ec818f.png","d19843d9-28f4-4836-badc-8e040a6028c2.png","d23733bd-c268-4903-9b89-8e518333717d.png","d326935c-6904-4774-9c02-009592419d43.png","d61ecfbe-9348-41cf-9b09-f5a74305ff5f.jpg","d940785a-ae3d-4723-803b-7b18e58617d4.jpg","d99b1f80-a732-4c91-ae69-a9a2a85e0423.jpg","d9e8fb6b-e6ab-43fc-a935-3eab39a946bc.png","da75133a-c36e-4c98-9cd0-8a86350da9f0.png","e2803069-3323-4b86-9fde-77083a2d5e3b.jpg","e2af901c-5c4e-4c8f-b0e2-7ba8abe4514e.png","e30ec59c-f124-4bd1-8ca2-58a21bb64839.png","e63e86de-75ae-49b3-8dd5-d9286a53676b.png","e6be7508-292d-4943-80c5-f54b6bd2a212.png","e7f0b463-0e26-4b0b-b5ce-6348943c8eff.jpg","e7f67480-b859-4699-990a-c6b4b4eec5cc.png","ea232615-926e-471d-96a1-cbb4054b524c.png","ec2077ca-1e2b-473c-a70a-708f7d8f1ab8.jpg","ed421cec-d0e8-4bd9-b4f0-e1ec643066c9.png","ef49ccac-8340-463b-bc5c-51b2fe524e3a.jpg","f0da1795-f9bd-4a09-915e-7cb8f0cd43d1.png","f7b3f8a9-cc01-43db-b625-98c5e5d26b32.png","fa09d51a-a7d9-438c-ae70-2ed83d722470.png","fc94d9aa-2300-476e-9c44-f515b1ed8ae6.jpg"];
+        
+        function renderGallery(filter = 'all') {
+            const gallery = document.getElementById('gallery');
+            const filtered = filter === 'all' ? files : files.filter(f => f.includes(filter));
+            
+            gallery.innerHTML = filtered.map(f => `
+                <div class="item">
+                    <img src="${basePath}/${f}" alt="${f}">
+                    <div class="name">${f.substring(0, 20)}...</div>
+                </div>
+            `).join('');
+        }
+        
+        // Count files by category (simplified)
+        document.getElementById('stats').innerHTML = `
+            <div><strong>${files.length}</strong> total photos</div>
+        `;
+        
+        document.querySelectorAll('.cat-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderGallery(btn.dataset.cat);
+            });
+        });
+        
+        renderGallery();
+    </script>
+</body>
+</html>
