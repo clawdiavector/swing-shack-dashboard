@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-21",
-  "scan_time": "2026-03-21T04:00Z",
+  "scan_time": "2026-03-21T12:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-21-1",
@@ -253,6 +253,66 @@
       "datePosted": null,
       "comment": "Incredible dedication! If you're investing that much time, having data to guide your practice is huge. Launch monitor sessions help you practice with purpose rather than just grinding on the range. Would love to help you optimize those 600+ hours!",
       "tags": ["dan-plan", "practice", "training", "data"]
+    },
+    {
+      "id": "reddit-2026-03-21-9",
+      "url": "https://www.reddit.com/r/golf/comments/1rz4bkj/best_budget_side_profile_launch_monitor/",
+      "title": "Best budget side profile launch monitor",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "For side profile in a budget, look at the Rapsodo or flight scope打击. If you want accurate club data, the Swing Shack team can help you find the right unit for your space and budget!",
+      "tags": ["launch-monitor", "budget", "side-profile", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-21-10",
+      "url": "https://www.reddit.com/r/golf/comments/1rzjjg1/building_a_500_set/",
+      "title": "Building a $500 set",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "$500 is tight but doable for a basic set! Start with a quality putter and wedges, then build from there. We'd be happy to help you prioritize - sometimes onefitting session saves money vs buying wrong clubs twice.",
+      "tags": ["budget", "equipment", "beginner", "clubs"]
+    },
+    {
+      "id": "reddit-2026-03-21-11",
+      "url": "https://www.reddit.com/r/golf/comments/1rzb8o4/woods_vs_no_woods/",
+      "title": "Woods vs no woods",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "Hybrids are game changers for most handicaps - easier to hit than long irons, more forgiving than fairways. Come try some at Swing Shack and see what feels best for your swing!",
+      "tags": ["hybrids", "woods", "equipment", "fitting"]
+    },
+    {
+      "id": "reddit-2026-03-21-12",
+      "url": "https://www.reddit.com/r/golf/comments/1rz6mmh/golf_fitting_in_the_sacramento_area/",
+      "title": "Golf Fitting in the Sacramento Area",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "If you're near Sacramento, we'd love to help with your fitting! Even if you're elsewhere, we offer virtual fittings too - let us know your goals and we can work something out.",
+      "tags": ["fitting", "sacramento", "location", "club-fitting"]
+    },
+    {
+      "id": "reddit-2026-03-21-13",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1rz5pz0/looking_for_setup_advice_what_launch_monitor_and/",
+      "title": "Looking for setup advice - what launch monitor and do I use the small shed I have",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "Your shed dimensions are tight but workable! For club face data, look at SkyTrak or Mevo+. The MLM2Pro is solid but you're right about space - we'd be happy to help you figure out the best setup for your specific space.",
+      "tags": ["simulator", "setup", "launch-monitor", "space-constraints"]
     }
   ]
 }
