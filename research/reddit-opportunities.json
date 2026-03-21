@@ -1,7 +1,79 @@
 {
-  "last_updated": "2026-03-20",
-  "scan_time": "2026-03-20T18:00Z",
+  "last_updated": "2026-03-21",
+  "scan_time": "2026-03-21T04:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-03-21-1",
+      "url": "https://www.reddit.com/r/golftips/comments/1rhkymg/fixing_a_slice/",
+      "title": "Fixing a slice",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "The slice is honestly one of the most common issues we see - and the good news is it's usually a simple fix once you know what to work on. Getting on a launch monitor to see your path and face angle at impact is game-changing for this.",
+      "tags": ["slice", "swing-fix", "lessons", "launch-monitor"]
+    },
+    {
+      "id": "reddit-2026-03-21-2",
+      "url": "https://www.reddit.com/r/golf/comments/1rwz8zv/does_your_driverwood_swing_actually_feel_the_same/",
+      "title": "Does your driver/wood swing actually feel the same as your iron swing? Struggling with longer clubs",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "This is SO common bro - the longer the club, the harder it is to replicate your iron swing. Getting fitted helps heaps because the right shaft profile can smooth out the transition between clubs.",
+      "tags": ["swing-consistency", "driver", "long-irons", "club-fitting"]
+    },
+    {
+      "id": "reddit-2026-03-21-3",
+      "url": "https://www.reddit.com/r/golf/comments/1rxbequ/absolute_game_changer_swing_thoughtfor_me/",
+      "title": "Absolute Game changer swing thought(for me)",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "Distance control is where the strokes are saved! Without it, you're leaving 7-10 shots out there every round. Indoor practice with immediate feedback is honestly the fastest way to build this - come try it out!",
+      "tags": ["distance-control", "wedges", "practice", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-21-4",
+      "url": "https://www.reddit.com/r/golf/comments/1rwpyod/how_do_you_get_over_being_a_driving_range_hero/",
+      "title": "How do you get over being a driving range hero?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "We hear this all the time. The issue is usually that range practice doesn't replicate pressure. Indoor with a sim can help bridge that gap - you get instant data on each shot which helps translate to the course.",
+      "tags": ["driving-range", "course-performance", "practice", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-21-5",
+      "url": "https://www.reddit.com/r/golf/comments/1rvkgqd/any_swing_tools_that_actually_work/",
+      "title": "Any Swing Tools That Actually Work",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "SupperSpeed and Smart Ball are legit - they work IF you're consistent. The Smart Ball is great for feels, especially if your arms and body are disconnecting. Happy to show you how to use them properly!",
+      "tags": ["training-aids", "overspeed", "practice-tools"]
+    },
+    {
+      "id": "reddit-2026-03-21-6",
+      "url": "https://www.reddit.com/r/golf/comments/1rw4gox/what_do_you_care_about_most_in_a_golf_ball/",
+      "title": "What do you care about most in a golf ball?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-21",
+      "datePosted": null,
+      "comment": "Ball fitting is underrated! The right ball for YOUR swing speed makes a massive difference around the greens. We can help you figure out what works best for your game.",
+      "tags": ["golf-balls", "equipment", "ball-fitting"]
+    },
     {
       "id": "reddit-2026-03-20-1",
       "url": "https://www.reddit.com/r/golf/comments/1rxhnp0/in_to_wind_ball_flight_ballooning/",
@@ -111,94 +183,52 @@
       "tags": ["short-game", "simulator", "practice", "indoor-golf"]
     },
     {
-      "id": "reddit-2026-03-19-1",
-      "source": "r/golf",
-      "title": "Can someone explain fitting to a noob?",
-      "url": "https://www.reddit.com/r/golf/comments/1ry11fq/can_someone_explain_fitting_to_a_noob/",
-      "age": "2h ago",
-      "comments": 25,
-      "topic": "club fitting",
-      "comment_suggestion": "A fitting helps you find clubs that match your swing speed, launch angle, and ball flight. At Swing Shack, we use launch monitor data to dial in your exact specs - way more accurate than guessing! Happy to answer any questions about what to expect."
-    },
-    {
-      "id": "reddit-2026-03-19-2",
-      "source": "r/golf",
-      "title": "Tips to starting better?",
-      "url": "https://www.reddit.com/r/golf/comments/1rxyole/tips_to_starting_better/",
-      "age": "4h ago",
-      "comments": 19,
-      "topic": "practice tips",
-      "comment_suggestion": "Pre-shot routine is key! Also, indoor practice with a launch monitor can help you dial in distance control before hitting the course. Would recommend working on a consistent contact point first - everything else builds from there."
-    },
-    {
-      "id": "reddit-2026-03-19-3",
-      "source": "r/golf",
-      "title": "Am I just stupid?",
-      "url": "https://www.reddit.com/r/golf/comments/1rxurnc/am_i_just_stupid/",
-      "age": "8h ago",
-      "comments": 41,
-      "topic": "golf frustrations",
-      "comment_suggestion": "You're not stupid - golf is just hard! The mental side is half the battle. Consider getting fitted to make sure your equipment isn't working against you - wrong shaft flex or loft can make even good swings feel off."
-    },
-    {
-      "id": "reddit-2026-03-19-4",
-      "source": "r/Golfsimulator",
-      "title": "Bought a new Garmin R50 for $3368…here's how:",
-      "url": "https://www.reddit.com/r/Golfsimulator/comments/1ry14b7/bought_a_new_garmin_r50_for_3368heres_how/",
-      "age": "2h ago",
-      "comments": 14,
-      "topic": "launch monitor",
-      "comment_suggestion": "Great find! The R50 is a solid entry-level launch monitor. If you're looking to level up your indoor setup, Swing Shack offers professional fittings with premium monitors - DM if you want to compare options!"
-    },
-    {
-      "id": "reddit-2026-03-19-5",
-      "source": "r/Golfsimulator",
-      "title": "Launch Monitor Simulator Recommendation around $500-600",
-      "url": "https://www.reddit.com/r/Golfsimulator/comments/1rxln4d/launch_monitor_simulator_recommendation_around/",
-      "age": "15h ago",
-      "comments": 13,
-      "topic": "equipment recommendation",
-      "comment_suggestion": "At that budget, you're looking at radar-based units like the PRGR or swing speed trainers. For accurate ball data (launch angle, spin, etc.), you'd want to save up for a photometric unit. Swing Shack has options at various price points - let us know your goals!"
-    },
-    {
       "id": "reddit-2026-03-20-10",
-      "source": "r/golf",
-      "title": "Does anyone know what this divot board pattern mean I'm doing wrong?",
       "url": "https://www.reddit.com/r/golf/comments/1ryvioy/does_anyone_know_what_this_divot_board_pattern/",
-      "age": "3h ago",
-      "comments": 8,
-      "topic": "practice tips",
-      "comment_suggestion": "Divot pattern tells a story! If you're coming over the top, the divot will point left. A launch monitor session can pinpoint exactly what's happening - we see this all the time at Swing Shack and it's usually a simple swing adjustment."
+      "title": "Does anyone know what this divot board pattern mean I'm doing wrong?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-20",
+      "datePosted": null,
+      "comment": "Divot pattern tells a story! If you're coming over the top, the divot will point left. A launch monitor session can pinpoint exactly what's happening - we see this all the time at Swing Shack and it's usually a simple swing adjustment.",
+      "tags": ["divot", "practice", "swing-analysis", "launch-monitor"]
     },
     {
       "id": "reddit-2026-03-20-11",
-      "source": "r/golf",
-      "title": "Is my WITB sort of odd?",
       "url": "https://www.reddit.com/r/golf/comments/1ryvemq/is_my_witb_sort_of_odd/",
-      "age": "3h ago",
-      "comments": 19,
-      "topic": "equipment",
-      "comment_suggestion": "Mix-and-match sets are totally normal! However, inconsistent shaft profiles across clubs can affect consistency. We'd be happy to take a look at your setup - sometimes a unified shaft system makes a bigger difference than you'd think."
+      "title": "Is my WITB sort of odd?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-20",
+      "datePosted": null,
+      "comment": "Mix-and-match sets are totally normal! However, inconsistent shaft profiles across clubs can affect consistency. We'd be happy to take a look at your setup - sometimes a unified shaft system makes a bigger difference than you'd think.",
+      "tags": ["witb", "equipment", "clubs", "fitting"]
     },
     {
       "id": "reddit-2026-03-20-12",
-      "source": "r/golf",
-      "title": "Is golf just not for me?",
       "url": "https://www.reddit.com/r/golf/comments/1ryuh9e/is_golf_just_not_for_me/",
-      "age": "4h ago",
-      "comments": 37,
-      "topic": "golf frustrations",
-      "comment_suggestion": "Golf is HARD - that frustration is normal! But sometimes equipment is working against you. Wrong shaft flex, incorrect loft, or poor fit can make good swings feel terrible. A fitting might change your perspective - it's not just for pros!"
+      "title": "Is golf just not for me?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-20",
+      "datePosted": null,
+      "comment": "Golf is HARD - that frustration is normal! But sometimes equipment is working against you. Wrong shaft flex, incorrect loft, or poor fit can make good swings feel terrible. A fitting might change your perspective - it's not just for pros!",
+      "tags": ["frustration", "golf-struggles", "equipment", "fitting"]
     },
     {
       "id": "reddit-2026-03-20-13",
-      "source": "r/golf",
-      "title": "I attempted The Dan Plan in 2026 — 600+ hours in",
       "url": "https://www.reddit.com/r/golf/comments/1ryhezi/im_attempting_the_dan_plan_in_2026_600_hours_in/",
-      "age": "16h ago",
-      "comments": 110,
-      "topic": "practice tips",
-      "comment_suggestion": "Incredible dedication! If you're investing that much time, having data to guide your practice is huge. Launch monitor sessions help you practice with purpose rather than just grinding on the range. Would love to help you optimize those 600+ hours!"
+      "title": "I attempted The Dan Plan in 2026 — 600+ hours in",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-20",
+      "datePosted": null,
+      "comment": "Incredible dedication! If you're investing that much time, having data to guide your practice is huge. Launch monitor sessions help you practice with purpose rather than just grinding on the range. Would love to help you optimize those 600+ hours!",
+      "tags": ["dan-plan", "practice", "training", "data"]
     }
   ]
 }
