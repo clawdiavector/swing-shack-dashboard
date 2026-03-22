@@ -1,7 +1,79 @@
 {
-  "last_updated": "2026-03-21",
-  "scan_time": "2026-03-21T18:00Z",
+  "last_updated": "2026-03-22",
+  "scan_time": "2026-03-22T04:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-03-22-1",
+      "url": "https://www.reddit.com/r/golf/comments/1rwhzas/at_what_point_did_your_practice_routine_actually/",
+      "title": "At what point did your practice routine actually start moving the needle, and what changed?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Practice with a purpose is everything! Using launch monitor data helps bridge the gap between range and course - you get instant feedback on what actually affects your ball flight. Come try our TrackMan sessions!",
+      "tags": ["practice", "improvement", "routine", "launch-monitor"]
+    },
+    {
+      "id": "reddit-2026-03-22-2",
+      "url": "https://www.reddit.com/r/golf/comments/1rxbequ/absolute_game_changer_swing_thoughtfor_me/",
+      "title": "Absolute Game changer swing thought(for me)",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Distance control is where strokes are saved! Without it, you're leaving 7-10 shots out there every round. Indoor practice with immediate feedback is honestly the fastest way to build this - come try it out!",
+      "tags": ["distance-control", "wedges", "practice", "scoring"]
+    },
+    {
+      "id": "reddit-2026-03-22-3",
+      "url": "https://www.reddit.com/r/golf/comments/1rw4gox/what_do_you_care_about_most_in_a_golf_ball/",
+      "title": "What do you care about most in a golf ball?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Ball fitting is underrated! The right ball for YOUR swing speed makes a massive difference around the greens. We can help you figure out what works best for your game.",
+      "tags": ["golf-balls", "equipment", "ball-fitting", "compression"]
+    },
+    {
+      "id": "reddit-2026-03-22-4",
+      "url": "https://www.reddit.com/r/golf/comments/1ru89lk/anyone_here_practice_putting_at_home_has_it/",
+      "title": "Anyone here practice putting at home? Has it actually improved your short game?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Indoor practice setups are awesome for short game work! If you're serious about improving, come check out our short game area with real-time feedback - way better than guessing.",
+      "tags": ["putting", "short-game", "practice", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-22-5",
+      "url": "https://www.reddit.com/r/golf/comments/1ruposa/i_need_help_buying_some_new_clubs/",
+      "title": "I need help buying some new clubs.",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Getting fitted before buying clubs can save you money in the long run! A proper fitting ensures you get clubs that match YOUR swing - way better than guessing at the shop.",
+      "tags": ["beginner", "equipment", "clubs", "fitting"]
+    },
+    {
+      "id": "reddit-2026-03-22-6",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1rw3scq/how_much_can_shoes_affect_performance_for_a/",
+      "title": "How much can shoes affect performance for an amateur?",
+      "subreddit": "r/GolfGear",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Foot stability definitely matters! Wrong footwear can affect your ground interaction and rotation. Happy to chat about what to look for - it's about more than just comfort!",
+      "tags": ["equipment", "shoes", "performance", "gear"]
+    },
     {
       "id": "reddit-2026-03-21-1",
       "url": "https://www.reddit.com/r/golftips/comments/1rhkymg/fixing_a_slice/",
@@ -253,115 +325,6 @@
       "datePosted": null,
       "comment": "Incredible dedication! If you're investing that much time, having data to guide your practice is huge. Launch monitor sessions help you practice with purpose rather than just grinding on the range. Would love to help you optimize those 600+ hours!",
       "tags": ["dan-plan", "practice", "training", "data"]
-    },
-    {
-      "id": "reddit-2026-03-21-9",
-      "url": "https://www.reddit.com/r/golf/comments/1rz4bkj/best_budget_side_profile_launch_monitor/",
-      "title": "Best budget side profile launch monitor",
-      "subreddit": "r/golf",
-      "status": "saved",
-      "locationTag": "global",
-      "dateFound": "2026-03-21",
-      "datePosted": null,
-      "comment": "For side profile in a budget, look at the Rapsodo or flight scope打击. If you want accurate club data, the Swing Shack team can help you find the right unit for your space and budget!",
-      "tags": ["launch-monitor", "budget", "side-profile", "indoor-golf"]
-    },
-    {
-      "id": "reddit-2026-03-21-10",
-      "url": "https://www.reddit.com/r/golf/comments/1rzjjg1/building_a_500_set/",
-      "title": "Building a $500 set",
-      "subreddit": "r/golf",
-      "status": "saved",
-      "locationTag": "global",
-      "dateFound": "2026-03-21",
-      "datePosted": null,
-      "comment": "$500 is tight but doable for a basic set! Start with a quality putter and wedges, then build from there. We'd be happy to help you prioritize - sometimes onefitting session saves money vs buying wrong clubs twice.",
-      "tags": ["budget", "equipment", "beginner", "clubs"]
-    },
-    {
-      "id": "reddit-2026-03-21-11",
-      "url": "https://www.reddit.com/r/golf/comments/1rzb8o4/woods_vs_no_woods/",
-      "title": "Woods vs no woods",
-      "subreddit": "r/golf",
-      "status": "saved",
-      "locationTag": "global",
-      "dateFound": "2026-03-21",
-      "datePosted": null,
-      "comment": "Hybrids are game changers for most handicaps - easier to hit than long irons, more forgiving than fairways. Come try some at Swing Shack and see what feels best for your swing!",
-      "tags": ["hybrids", "woods", "equipment", "fitting"]
-    },
-    {
-      "id": "reddit-2026-03-21-12",
-      "url": "https://www.reddit.com/r/golf/comments/1rz6mmh/golf_fitting_in_the_sacramento_area/",
-      "title": "Golf Fitting in the Sacramento Area",
-      "subreddit": "r/golf",
-      "status": "saved",
-      "locationTag": "global",
-      "dateFound": "2026-03-21",
-      "datePosted": null,
-      "comment": "If you're near Sacramento, we'd love to help with your fitting! Even if you're elsewhere, we offer virtual fittings too - let us know your goals and we can work something out.",
-      "tags": ["fitting", "sacramento", "location", "club-fitting"]
-    },
-    {
-      "id": {
-      "id": "reddit-2026-03-21-14",
-      "url": "https://www.reddit.com/r/golf/comments/1rz4bkj/best_budget_side_profile_launch_monitor/",
-      "title": "Best budget side profile launch monitor",
-      "subreddit": "r/golf",
-      "status": "saved",
-      "locationTag": "global",
-      "dateFound": "2026-03-21",
-      "datePosted": null,
-      "comment": "For side profile in a budget, look at the Rapsodo or flight scope. If you want accurate club data, the Swing Shack team can help you find the right unit for your space and budget!",
-      "tags": ["launch-monitor", "budget", "side-profile", "indoor-golf"]
-    },
-    {
-      "id": "reddit-2026-03-21-15",
-      "url": "https://www.reddit.com/r/golf/comments/1rzjjg1/building_a_500_set/",
-      "title": "Building a $500 set",
-      "subreddit": "r/golf",
-      "status": "saved",
-      "locationTag": "global",
-      "dateFound": "2026-03-21",
-      "datePosted": null,
-      "comment": "$500 is tight but doable for a basic set! Start with a quality putter and wedges, then build from there. We'd be happy to help you prioritize - sometimes one fitting session saves money vs buying wrong clubs twice.",
-      "tags": ["budget", "equipment", "beginner", "clubs"]
-    },
-    {
-      "id": "reddit-2026-03-21-16",
-      "url": "https://www.reddit.com/r/golf/comments/1rzb8o4/woods_vs_no_woods/",
-      "title": "Woods vs no woods",
-      "subreddit": "r/golf",
-      "status": "saved",
-      "locationTag": "global",
-      "dateFound": "2026-03-21",
-      "datePosted": null,
-      "comment": "Hybrids are game changers for most handicaps - easier to hit than long irons, more forgiving than fairways. Come try some at Swing Shack and see what feels best for your swing!",
-      "tags": ["hybrids", "woods", "equipment", "fitting"]
-    },
-    {
-      "id": "reddit-2026-03-21-17",
-      "url": "https://www.reddit.com/r/golf/comments/1rza543/club_builders_help_with_niche_question/",
-      "title": "Club builders help with niche question!",
-      "subreddit": "r/golf",
-      "status": "saved",
-      "locationTag": "global",
-      "dateFound": "2026-03-21",
-      "datePosted": null,
-      "comment": "Niche questions are our specialty! Drop by Swing Shack and we'd be happy to help with whatever you're working on - custom builds, shaft swaps, or just technical advice.",
-      "tags": ["club-building", "custom", "niche", "advice"]
-    },
-    {
-      "id": "reddit-2026-03-21-18",
-      "url": "https://www.reddit.com/r/golf/comments/1rz6mmh/golf_fitting_in_the_sacramento_area/",
-      "title": "Golf Fitting in the Sacramento Area",
-      "subreddit": "r/golf",
-      "status": "saved",
-      "locationTag": "global",
-      "dateFound": "2026-03-21",
-      "datePosted": null,
-      "comment": "If you're near Sacramento, we'd love to help with your fitting! Even if you're elsewhere, we offer virtual fittings too - let us know your goals and we can work something out.",
-      "tags": ["fitting", "sacramento", "location", "club-fitting"]
     }
   ]
 }
