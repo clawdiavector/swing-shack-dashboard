@@ -397,6 +397,68 @@
       "datePosted": null,
       "comment": "Incredible dedication! If you're investing that much time, having data to guide your practice is huge. Launch monitor sessions help you practice with purpose rather than just grinding on the range. Would love to help you optimize those 600+ hours!",
       "tags": ["dan-plan", "practice", "training", "data"]
+    },
+    {
+      "id": "reddit-2026-03-22-13",
+      "url": "https://www.reddit.com/r/golf/comments/1s0p6p2/looking_to_regrip/",
+      "title": "Looking to regrip",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Grip choice depends on your hand size and sweat pattern! For sweaty hands, textured grips like Golf Pride MCC or Lamkin Crossline. For bigger hands, thicker wraps. Swing Shack has all the top brands in stock - come try a few!",
+      "tags": ["grips", "equipment", "regrip"]
+    },
+    {
+      "id": "reddit-2026-03-22-14",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s0n8ro/what_do_you_use_to_keep_balls_from_going_over_the/",
+      "title": "What do you use to keep balls from going over the impact screen?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "We've seen this issue before - soft-bounce curtains or a return chute system work best. You might also try lowering your hitting stance or adjusting the screen angle. We can help you figure out the best solution for your space!",
+      "tags": ["simulator", "impact-screen", "setup", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-22-15",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s0kd3g/dfw_golf_sim_contractors/",
+      "title": "DFW Golf Sim contractors",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "USA-DFW",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Need help with your DFW install? Swing Shack can point you in the right direction or help source the right equipment!",
+      "tags": ["simulator", "installation", "contractor", "DFW"]
+    },
+    {
+      "id": "reddit-2026-03-22-16",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s0i7ly/options_for_a_ball_spotlight_when_the_projector/",
+      "title": "Options for a ball spotlight when the projector is mounted behind the tee?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Try a small LED panel mounted on the ceiling at an angle, or a battery-operated light that clips to the mat. The key is diffusing the light so it doesn't create hot spots on the ball. We've got hitting bay lighting solutions in stock!",
+      "tags": ["simulator", "lighting", "setup", "projector"]
+    },
+    {
+      "id": "reddit-2026-03-22-17",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s0b8ml/screens_image_differences/",
+      "title": "Screens image differences",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Carls Place Basic is solid for the price, but the more you spend the better the image retention and durability. If you're going 13', definitely invest in the better screen - the stretch and image quality difference is noticeable. We stock a range of screens - let us know your budget!",
+      "tags": ["impact-screen", "carls-place", "simulator", "equipment"]
     }
-  ]
+  ],
+  "last_updated": "2026-03-22",
+  "scan_time": "2026-03-22T18:00Z"
 }
