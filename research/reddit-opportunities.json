@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-22",
-  "scan_time": "2026-03-22T06:05Z",
+  "scan_time": "2026-03-22T12:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-22-7",
@@ -61,6 +61,18 @@
       "datePosted": null,
       "comment": "Hard-to-find specs can be a pain! We might have what you need or can order it in. Also - if you're replacing specific irons, might be worth getting fitted to make sure the new clubs match your existing set.",
       "tags": ["equipment", "irons", "clubs", "replacement"]
+    },
+    {
+      "id": "reddit-2026-03-22-12",
+      "url": "https://www.reddit.com/r/golf/comments/1rzd0u6/smart_watches/",
+      "title": "Smart watches for golf - Apple Watch Series 9 experience",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Apple Watch is decent for yardages but if you want serious swing analysis and data, a dedicated launch monitor is in a different league. Happy to show you the difference!",
+      "tags": ["technology", "smart-watch", "gadgets", "launch-monitor"]
     },
     {
       "id": "reddit-2026-03-22-1",
