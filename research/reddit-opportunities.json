@@ -1,7 +1,67 @@
 {
   "last_updated": "2026-03-22",
-  "scan_time": "2026-03-22T04:00Z",
+  "scan_time": "2026-03-22T06:05Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-03-22-7",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1rzzl2w/launch_monitor_recomendation/",
+      "title": "Launch Monitor Recomendation - Is Quadmax/Trackman IO worth extra $5k over GCQuad?",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "The premium is worth it if you want Tour-level accuracy and features. But for a +18 handicap, GCQuad is MORE than enough - it's used on Tour. Come try them both and see if you notice the difference!",
+      "tags": ["launch-monitor", "high-end", "trackman", "gcquad", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-22-8",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1rzyg2x/launch_monitor_suggestions/",
+      "title": "Launch monitor suggestions - budget under $1k, need good club path data",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Garmin R10 is your best bet under $1k for club path data. It's not perfect but gives you enough to work on that outside-in move. Happy to show you how to read the data!",
+      "tags": ["launch-monitor", "budget", "club-path", "garmin-r10", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-22-9",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s081tk/just_getting_started_with_my_build_looking_for_a/",
+      "title": "Just getting started - looking for high quality thin rubber matting",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Thin mats are tricky - you want something dense enough to not jar your joints but not too thick that it affects club interaction. We carry several options that balance both - come try them!",
+      "tags": ["golf-mat", "simulator", "rubber-mat", "indoor-golf", "setup"]
+    },
+    {
+      "id": "reddit-2026-03-22-10",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s09twx/future_sim_plans_garage_stowaway_vs_golf_shed/",
+      "title": "Future Sim Plans - Garage Stow-away vs Golf Shed",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Garage is cheaper and convenient, but dedicated space wins for year-round use. Insulation and HVAC are key either way. Need help planning dimensions? We've got experience with all types of setups!",
+      "tags": ["simulator-build", "garage-sim", "golf-shed", "indoor-golf", "planning"]
+    },
+    {
+      "id": "reddit-2026-03-22-11",
+      "url": "https://www.reddit.com/r/golf/comments/1s02t57/need_to_source_the_5_and_7_iron/",
+      "title": "Need to source the 5 and 7 iron",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "Hard-to-find specs can be a pain! We might have what you need or can order it in. Also - if you're replacing specific irons, might be worth getting fitted to make sure the new clubs match your existing set.",
+      "tags": ["equipment", "irons", "clubs", "replacement"]
+    },
     {
       "id": "reddit-2026-03-22-1",
       "url": "https://www.reddit.com/r/golf/comments/1rwhzas/at_what_point_did_your_practice_routine_actually/",
