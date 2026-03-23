@@ -459,6 +459,80 @@
       "tags": ["impact-screen", "carls-place", "simulator", "equipment"]
     }
   ],
-  "last_updated": "2026-03-22",
-  "scan_time": "2026-03-22T18:00Z"
+  "last_updated": "2026-03-23",
+  "scan_time": "2026-03-23T04:00Z",
+  "opportunities": [
+    {
+      "id": "reddit-2026-03-23-1",
+      "url": "https://www.reddit.com/r/golftips/comments/1k5xmlg/fixed_slice_but_now_have_a_hook_problem/",
+      "title": "Fixed slice but now have a hook problem",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-23",
+      "datePosted": null,
+      "comment": "That slice-to-hook journey is SO common bro. The problem is you corrected the path but now face is closing too much. It's all about finding that middle ground - working on a neutral path then dialing in face control. This is exactly what we do on TrackMan - see exactly what's happening and make small tweaks. Come get some data on your swing and we'll find that happy medium!",
+      "tags": ["slice", "hook", "swing-correction", "lessons", "trackman"]
+    },
+    {
+      "id": "reddit-2026-03-23-2",
+      "url": "https://www.reddit.com/r/golf/comments/15fo8qx/has_anyone_in_here_actually_fixed_their_slice/",
+      "title": "Has anyone in here actually fixed their slice properly?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-23",
+      "datePosted": null,
+      "comment": "Yes you can fix it! The key is feeling like you're swinging outside-to-in to get that neutral path. But everyone's slice is different - what works for one person might not work for you. Get on a launch monitor to see YOUR specific path and face angles. That's the only way to really dial it in. We've helped hundreds of guys turn their slice into a draw - come see us!",
+      "tags": ["slice", "swing-fix", "lessons", "launch-monitor"]
+    },
+    {
+      "id": "reddit-2026-03-23-3",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1lyb7bx/the_absolute_best_launch_monitor_that_money_can/",
+      "title": "The absolute BEST launch monitor that money can buy for fittings?",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-23",
+      "datePosted": null,
+      "comment": "GCQuad is king for indoor accuracy, but TrackMan's software and ecosystem is unmatched for fittings - the data presentation, practice modes, and course library make the experience so much better for clients. Plus no stickers needed! We've got TrackMan at Swing Shack - come try both and see what YOU prefer!",
+      "tags": ["trackman", "gcquad", "launch-monitor", "fitting", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-23-4",
+      "url": "https://www.reddit.com/r/golf/comments/1i2sgk7/can_you_trust_launch_monitor_numbers_at_a_fitting/",
+      "title": "Can you trust launch monitor numbers at a fitting?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-23",
+      "datePosted": null,
+      "comment": "Most fitters are honest - the issue is usually how the simulator calculates rather than fudged numbers. At Swing Shack, we show YOU the data in real-time - what you see is what you get. No magic numbers. Want to see for yourself? Book a fitting and check out exactly what TrackMan is measuring!",
+      "tags": ["fitting", "trust", "trackman", "club-fitting"]
+    },
+    {
+      "id": "reddit-2026-03-23-5",
+      "url": "https://www.reddit.com/r/golf/comments/16bxzjd/joined_an_indoor_golf_club_how_to_best_take/",
+      "title": "Joined an indoor golf club - How to best take advantage of trackman?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-23",
+      "datePosted": null,
+      "comment": "Sweet setup! Target 2700-3000rpm spin for driver and the '1k rule' for irons (7i = 7000rpm). But numbers are only half the battle - you need to understand HOW to change them. That's where coaching comes in. We're happy to help you interpret your TrackMan data and build a practice plan around it!",
+      "tags": ["trackman", "indoor-golf", "launch-monitor", "practice", "data"]
+    },
+    {
+      "id": "reddit-2026-03-23-6",
+      "url": "https://www.reddit.com/r/golf/comments/wk0v8z/how_did_you_fix_your_overdrawhook/",
+      "title": "How did you fix your overdraw/hook?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-23",
+      "datePosted": null,
+      "comment": "Nice write-up! Grip and weight distribution are huge for hook correction. But everyone's swing is different - what worked for you might not work for the next guy. That's why getting on TrackMan to see YOUR specific data is so valuable. We can pinpoint exactly what's causing the hook and work on targeted adjustments. Book a session and let's get you hitting straighter!",
+      "tags": ["hook", "swing-fix", "grip", "lessons", "trackman"]
+    }
+  ]
 }
