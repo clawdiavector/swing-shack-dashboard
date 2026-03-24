@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-24",
-  "scan_time": "2026-03-24T04:00Z",
+  "scan_time": "2026-03-24T10:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-24-1",
@@ -535,3 +535,48 @@
       "url": "https://www.reddit.com/r/Golfsimulator/comments/1s0n8ro/what_do_you_use_to_keep_balls_from_going_over_the/",
       "title": "What do you use to keep balls from going over the impact screen?",
       "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-22",
+      "datePosted": null,
+      "comment": "We use bungee cords and.net systems for this - there are some good DIY options out there. Swing Shack can help you set up a proper system!",
+      "tags": ["simulator", "impact-screen", "setup", "balls"]
+    },
+    {
+      "id": "reddit-2026-03-24-11",
+      "url": "https://www.reddit.com/r/golf/comments/1s29jxv/putt_sg_strokes_gained_putting_tracker_golf/",
+      "title": "Putt SG - Strokes Gained Putting Tracker Golf",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-24",
+      "datePosted": null,
+      "comment": "Indoor tech for putting is great! We have similar stroke analysis tech at Swing Shack - come try it with real-time feedback!",
+      "tags": ["putting", "strokes-gained", "app", "practice", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-24-12",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s27njq/con_la_salida_del_square_omni_pensais_que_bajara/",
+      "title": "Square Home Edition price drop question (Spanish)",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-24",
+      "datePosted": null,
+      "comment": "If you're looking for a launch monitor, come try ours first! We have TrackMan and other top units so you can compare before buying - way better than guessing!",
+      "tags": ["launch-monitor", "square", "pricing", "indoor-golf", "buying"]
+    },
+    {
+      "id": "reddit-2026-03-24-13",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s26mwa/weekly_golf_simulator_deals/",
+      "title": "Weekly Golf Simulator Deals",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-24",
+      "datePosted": null,
+      "comment": "Great deals on launch monitors! If you're looking to upgrade or try before you buy, we have options at various price points. Come test them out!",
+      "tags": ["deals", "launch-monitor", "simulator", "indoor-golf", "equipment"]
+    }
+  ]
+}
