@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-24",
-  "scan_time": "2026-03-24T10:00Z",
+  "scan_time": "2026-03-24T18:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-24-1",
@@ -577,6 +577,78 @@
       "datePosted": null,
       "comment": "Great deals on launch monitors! If you're looking to upgrade or try before you buy, we have options at various price points. Come test them out!",
       "tags": ["deals", "launch-monitor", "simulator", "indoor-golf", "equipment"]
+    },
+    {
+      "id": "reddit-2026-03-24-14",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s2dqw8/r50_or_eye_mini/",
+      "title": "r50 or eye mini?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-24",
+      "datePosted": null,
+      "comment": "With 8.5-9ft ceiling, you're mainly hitting irons/wedges - both handle that fine. R50 is more established with better software ecosystem, but Eye Mini is newer. Come try both at Swing Shack before you commit!",
+      "tags": ["launch-monitor", "skytrak", "eye-mini", "comparison", "indoor-golf", "ceiling-height"]
+    },
+    {
+      "id": "reddit-2026-03-24-15",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s2fx9q/hit_the_wall_on_my_old_pc/",
+      "title": "Hit the Wall on my old PC",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-24",
+      "datePosted": null,
+      "comment": "GSPro is graphics-heavy - that 2012 PC is ancient for sim software! You can turn down settings but honestly for a smooth experience you'd want something from the last 5 years. We'd recommend a dedicated sim PC if you're serious about it.",
+      "tags": ["pc", "gspro", "graphics", "simulator", "hardware"]
+    },
+    {
+      "id": "reddit-2026-03-24-16",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s2duok/golf_simulator_final_stages/",
+      "title": "Golf simulator - Final stages",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-24",
+      "datePosted": null,
+      "comment": "Great progress! For the turf/foam question - you'd want something with give to protect joints but enough grip for consistent contact. Swing Shack can help you source the right combo! Also, that garage door issue is common - maybe look at a lower ceiling mount or adjust your hitting zone.",
+      "tags": ["simulator-build", "garage-sim", "turf", "foam", "lighting", "setup"]
+    },
+    {
+      "id": "reddit-2026-03-24-17",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s2d51c/golf_betting_app_for_tracking_bets/",
+      "title": "Golf betting app for tracking bets?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-24",
+      "datePosted": null,
+      "comment": "Most groups just use spreadsheet templates or WhatsApp groups. If you want something more integrated, some sim software has betting features built in. Come try our sim - we can show you options!",
+      "tags": ["betting", "app", "golf-games", "simulator", "tracking"]
+    },
+    {
+      "id": "reddit-2026-03-24-18",
+      "url": "https://www.reddit.com/r/golf/comments/1s2hqnq/tiger_playing_tgl_tonight/",
+      "title": "TIGER playing TGL tonight!",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-24",
+      "datePosted": null,
+      "comment": "TGL is great for off-season golf fix! If you're into the tech side of modern golf, come check out our indoor setup - we've got launch monitors similar to what the pros use.",
+      "tags": ["tgl", "tiger-woods", "indoor-golf", "tech", "simulation"]
+    },
+    {
+      "id": "reddit-2026-03-24-19",
+      "url": "https://www.reddit.com/r/golf/comments/1s2hxd8/30_handicapper_did_this_to_me_off_the_tee/",
+      "title": "30 handicapper did this to me off the tee 😂",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-24",
+      "datePosted": null,
+      "comment": "This is why we love golf 😂 The gap between course play and handicap is real. Indoor practice with data helps bridge that - come see us!",
+      "tags": ["humor", "handicap", "course-play", "practice", "indoor-golf"]
     }
   ]
 }
