@@ -1,7 +1,67 @@
 {
-  "last_updated": "2026-03-24",
-  "scan_time": "2026-03-24T18:00Z",
+  "last_updated": "2026-03-25",
+  "scan_time": "2026-03-25T06:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-03-25-1",
+      "url": "https://www.reddit.com/r/golf/comments/1s2e38j/80m_to_the_pin_60m_above_what_are_you_hitting/",
+      "title": "80m to the pin, ~60m above - what are you hitting?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "Altitude adjustments are a real pain point - and Johannesburg sits at ~1750m which makes a big difference! Come get fitted and we'll show you exactly how your distances change at altitude.",
+      "tags": ["club-selection", "altitude", "distance", "practice", " Johannesburg"]
+    },
+    {
+      "id": "reddit-2026-03-25-2",
+      "url": "https://www.reddit.com/r/golf/comments/1s2hqnq/tiger_playing_tgl_tonight/",
+      "title": "TIGER playing TGL tonight!",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "TGL is bringing simulator golf into the mainstream! If Tiger's indoor league has got you curious about launch monitors and data-driven practice, come see what all the fuss is about - we've got the same tech the pros use!",
+      "tags": ["tgl", "simulator", "indoor-golf", "launch-monitor", "trackman"]
+    },
+    {
+      "id": "reddit-2026-03-25-3",
+      "url": "https://www.reddit.com/r/golf/comments/1s2po2i/68_with_a_strong_breeze_was_the_perfect_day_to/",
+      "title": "68° with a strong breeze - mats today",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "Golf mats can feel terrible after a while! Swing Shack has premium turf that feels closer to real grass, plus you get TrackMan data on every shot - way better than guessing on the range.",
+      "tags": ["practice", "mats", "turf", "indoor-golf", "equipment"]
+    },
+    {
+      "id": "reddit-2026-03-25-4",
+      "url": "https://www.reddit.com/r/golf/comments/1s2xk3l/spring_clean_witb/",
+      "title": "Spring clean WITB",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "New season, new clubs? Before you buy, come get properly fitted - it's the single best investment you can make in your game. We use TrackMan to dial in your exact specs!",
+      "tags": ["witb", "equipment", "club-fitting", "spring", "upgrade"]
+    },
+    {
+      "id": "reddit-2026-03-25-5",
+      "url": "https://www.reddit.com/r/golf/comments/1s2xx78/looking_for_formats_or_side_games_for_mixed/",
+      "title": "Looking for formats or side games for mixed foursome",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "Getting beginners or non-golfers involved? Swing Shack offers introductory sessions perfect for families or couples looking to try golf in a low-pressure environment with instant feedback!",
+      "tags": ["beginner", "family-golf", "mixed-groups", "intro", "lessons"]
+    },
     {
       "id": "reddit-2026-03-24-1",
       "url": "https://www.reddit.com/r/golf/comments/1rwz8zv/does_your_driverwood_swing_actually_feel_the_same/",
