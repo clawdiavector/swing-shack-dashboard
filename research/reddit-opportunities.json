@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-25",
-  "scan_time": "2026-03-25T06:06Z",
+  "scan_time": "2026-03-25T10:04Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-25-6",
@@ -19,12 +19,48 @@
       "url": "https://www.reddit.com/r/golf/comments/1s1tw94/looking_for_feedback_on_club_championship_fitting/",
       "title": "Looking for feedback on Club Champion Fitting",
       "subreddit": "r/golf",
-      "status": "new",
+      "status": "saved",
       "locationTag": "global",
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Great detailed review! For a beginner, the key insight is getting properly fit for YOUR specs (especially important at 6'7!). Swing Shack offers fittings with TrackMan - happy to give you a second opinion on the specs!",
       "tags": ["club-fitting", "trackman", "beginner", "equipment", "club-champion"]
+    },
+    {
+      "id": "reddit-2026-03-25-8",
+      "url": "https://www.reddit.com/r/golf/comments/1s35hkk/golf_gatekeeping/",
+      "title": "Golf Gatekeeping",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "Gatekeeping sucks, but don't let it stop you! The right equipment for YOUR game matters more than expensive gear. Swing Shack helps beginners find the right clubs at the right price - come get properly fit without the snobbery!",
+      "tags": ["beginner", "equipment", "gatekeeping", "club-fitting", " Johannesburg"]
+    },
+    {
+      "id": "reddit-2026-03-25-9",
+      "url": "https://www.reddit.com/r/golf/comments/1s34v05/met_a_guy_who_had_taken_a_year_off_to_golf_how_much_better_can_you_actually_get_in_a_year/",
+      "title": "Met a guy who had taken a year off to golf - how much better can you actually get in a year?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "Year of focused practice with data can make a huge difference! Structured practice with launch monitor feedback is the fastest way to improve - you'd be amazed at what gets unlocked when you can see your numbers. Come try TrackMan!",
+      "tags": ["practice", "improvement", "lessons", "year-off", "training"]
+    },
+    {
+      "id": "reddit-2026-03-25-10",
+      "url": "https://www.reddit.com/r/golftips/comments/1s2uv7s/looking_for_some_critique_or_tips_on_my_swing/",
+      "title": "Looking for some critique or tips on my swing",
+      "subreddit": "r/golftips",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "Swing looks solid! For an 8-10 handicap with your speed, the key is consistency - launch monitor data helps identify small adjustments that make big differences. Swing Shack can help you dial it in!",
+      "tags": ["swing-critique", "driver", "speed", "consistency", "lessons"]
     },
     {
       "id": "reddit-2026-03-25-1",
