@@ -1,7 +1,31 @@
 {
   "last_updated": "2026-03-25",
-  "scan_time": "2026-03-25T06:00Z",
+  "scan_time": "2026-03-25T06:06Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-03-25-6",
+      "url": "https://www.reddit.com/r/golf/comments/1s2j0y8/who_is_tom_kim_taunting_at_tgl/",
+      "title": "Who is Tom Kim taunting at TGL?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "TGL is bringing simulator golf mainstream! Whether you're curious about launch monitors or want data-driven practice like the pros use, come see what all the fuss is about at Swing Shack!",
+      "tags": ["tgl", "simulator", "indoor-golf", "launch-monitor", "tom-kim"]
+    },
+    {
+      "id": "reddit-2026-03-25-7",
+      "url": "https://www.reddit.com/r/golf/comments/1s1tw94/looking_for_feedback_on_club_championship_fitting/",
+      "title": "Looking for feedback on Club Champion Fitting",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "Great detailed review! For a beginner, the key insight is getting properly fit for YOUR specs (especially important at 6'7!). Swing Shack offers fittings with TrackMan - happy to give you a second opinion on the specs!",
+      "tags": ["club-fitting", "trackman", "beginner", "equipment", "club-champion"]
+    },
     {
       "id": "reddit-2026-03-25-1",
       "url": "https://www.reddit.com/r/golf/comments/1s2e38j/80m_to_the_pin_60m_above_what_are_you_hitting/",
