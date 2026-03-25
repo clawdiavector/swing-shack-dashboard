@@ -1,7 +1,43 @@
 {
   "last_updated": "2026-03-25",
-  "scan_time": "2026-03-25T10:04Z",
+  "scan_time": "2026-03-25T18:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-03-25-11",
+      "url": "https://www.reddit.com/r/golf/comments/1s3e41n/first_time_putter_fitting_floored_at_the_results/",
+      "title": "First time putter fitting - floored at the results",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "This is exactly why putter fittings matter! Most golfers guess on the most-used club in their bag. Data doesn't replace feel - it explains why certain putts feel right. Swing Shack offers putter fittings - come see what your stroke is actually doing!",
+      "tags": ["putter-fitting", "club-fitting", "putting", "data", " Bettinardi"]
+    },
+    {
+      "id": "reddit-2026-03-25-12",
+      "url": "https://www.reddit.com/r/golf/comments/1s3dkgw/out_of_ideas_3_years_and_still_cant_hit_an_iron/",
+      "title": "Out of Ideas, 3 Years and still can't hit an iron 100+ yards",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "Three years of lessons and still struggling is rough - we've seen this before. The issue might be equipment not matching your swing. A launch monitor session could identify if shaft flex, lie angle, or club head speed is working against you. Come get data on your swing!",
+      "tags": ["swing-help", "practice", "frustration", "lessons", "launch-monitor"]
+    },
+    {
+      "id": "reddit-2026-03-25-13",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s3e5na/how_do_you_pick_which_facility/",
+      "title": "How do you pick which facility",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-25",
+      "datePosted": null,
+      "comment": "Proximity matters, but the right tech and coaching make the difference! Swing Shack has TrackMan and experienced instructors - come try a session and see what sets us apart!",
+      "tags": ["indoor-golf", "facility", "simulator", " Johannesburg", "trackman"]
+    },
     {
       "id": "reddit-2026-03-25-6",
       "url": "https://www.reddit.com/r/golf/comments/1s2j0y8/who_is_tom_kim_taunting_at_tgl/",
