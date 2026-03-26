@@ -1,7 +1,55 @@
 {
-  "last_updated": "2026-03-25",
-  "scan_time": "2026-03-25T18:00Z",
+  "last_updated": "2026-03-26",
+  "scan_time": "2026-03-26T06:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-03-26-1",
+      "url": "https://www.reddit.com/r/golf/comments/1s3t0b0/tips_on_my_drive_swing/",
+      "title": "Tips on my drive swing",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-26",
+      "datePosted": null,
+      "comment": "Looking good! For a new golfer, the most important thing is getting consistent contact. Then work on the slice. A launch monitor session can help you see exactly what's causing the slice - often it's simpler than people think. Lessons will definitely speed things up!",
+      "tags": ["beginner", "swing", "driver", "distance", "slice", "lessons"]
+    },
+    {
+      "id": "reddit-2026-03-26-2",
+      "url": "https://www.reddit.com/r/golf/comments/1s13zdo/lessons_or_fitting_first_chicken_vs_egg/",
+      "title": "Lessons or Fitting first. Chicken vs Egg?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-26",
+      "datePosted": null,
+      "comment": "Dude, you're 6'5 playing standard length clubs - that's your first problem! Get properly fit for length FIRST, then take lessons. You'll spend half your budget on clubs that fit and the other half on lessons. The right length will actually help you learn proper swing mechanics instead of compensating for poorly-fitted clubs.",
+      "tags": ["club-fitting", "lessons", "tall-golfer", "slice", "equipment", " Johannesburg"]
+    },
+    {
+      "id": "reddit-2026-03-26-3",
+      "url": "https://www.reddit.com/r/golf/comments/1s2bzt6/what_works_for_fixing_golfers_back_fast/",
+      "title": "What works for fixing golfer's back fast?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-26",
+      "datePosted": null,
+      "comment": "Back issues are part of golf unfortunately! Proper warm-up routine and swing technique adjustments help heaps. Also - equipment fit matters here. Wrong shaft length can cause you to overextend, putting stress on your back. Come get assessed - sometimes it's the clubs, not just the swing!",
+      "tags": ["injury", "back-pain", "equipment", "fitting", "health"]
+    },
+    {
+      "id": "reddit-2026-03-26-4",
+      "url": "https://www.reddit.com/r/golf/comments/1s2ovqh/ping_3wood_sft_or_max/",
+      "title": "Ping 3wood (SFT or Max)?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-26",
+      "datePosted": null,
+      "comment": "SFT is more draw-biased which helps if you slice - sounds like you could use that! Come try both at Swing Shack and see which one fits your swing better.",
+      "tags": ["equipment", "3-wood", "ping", "club-fitting", "driver"]
+    },
     {
       "id": "reddit-2026-03-25-11",
       "url": "https://www.reddit.com/r/golf/comments/1s3e41n/first_time_putter_fitting_floored_at_the_results/",
