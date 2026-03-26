@@ -1,7 +1,67 @@
 {
   "last_updated": "2026-03-26",
-  "scan_time": "2026-03-26T06:00Z",
+  "scan_time": "2026-03-26T10:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-03-26-5",
+      "url": "https://www.reddit.com/r/golf/comments/1s42pnk/practice_nets/",
+      "title": "Practice nets",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-26",
+      "datePosted": null,
+      "comment": "For under $100, you're looking at basic nets - they work but replacement costs add up. Swing Shack has quality options at various price points, plus you get to hit real shots with data feedback!",
+      "tags": ["beginner", "practice-net", "equipment", "budget", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-26-6",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s3mrgv/looking_for_some_advicecritiques_on_my_future_sim/",
+      "title": "Looking for some advice/critiques on my future sim set up",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-26",
+      "datePosted": null,
+      "comment": "Great incremental approach! For outdoor setup, make sure your projector is bright enough (at least 3500 lumens) and consider weather exposure. Swing Shack can help you plan the right setup - happy to give advice!",
+      "tags": ["simulator-build", "outdoor", "projector", "setup", "budget"]
+    },
+    {
+      "id": "reddit-2026-03-26-7",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s3e5na/how_do_you_pick_which_facility/",
+      "title": "How do you pick which facility",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-26",
+      "datePosted": null,
+      "comment": "Proximity matters, but the right tech and coaching make the difference! Swing Shack has TrackMan and experienced instructors - come try a session and see what sets us apart!",
+      "tags": ["indoor-golf", "facility", "simulator", "Johannesburg", "trackman"]
+    },
+    {
+      "id": "reddit-2026-03-26-8",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s3airk/most_people_pick_a_launch_monitor_first_i_dont/",
+      "title": "Most people pick a launch monitor first. I don't think that's right.",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-26",
+      "datePosted": null,
+      "comment": "This is actually really smart advice! Room dimensions determine everything - ceiling height, projector brightness, safe hitting zones. Most people regret the launch monitor they bought first. Swing Shack can help you plan before you buy!",
+      "tags": ["simulator-planning", "launch-monitor", "room-dimensions", "advice"]
+    },
+    {
+      "id": "reddit-2026-03-26-9",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s40if5/golf_sims_are_the_devil/",
+      "title": "golf sims are the devil",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-26",
+      "datePosted": null,
+      "comment": "The addiction is real 😂 But honestly, having a sim in cold weather months is a game-changer for keeping your game sharp. Swing Shack is here when you need your fix!",
+      "tags": ["simulator", "indoor-golf", "humor", "addiction", "practice"]
+    },
     {
       "id": "reddit-2026-03-26-1",
       "url": "https://www.reddit.com/r/golf/comments/1s3t0b0/tips_on_my_drive_swing/",
