@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-27",
-  "scan_time": "2026-03-27T06:00Z",
+  "scan_time": "2026-03-27T12:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-27-1",
@@ -85,6 +85,78 @@
       "datePosted": null,
       "comment": "Indoor golf going mainstream - people in cold climates (like Alaska) rely on simulators. This validates the market and shows growing interest in year-round practice options. Swing Shack is perfectly positioned for SA golfers!",
       "tags": ["indoor-golf", "simulator", "mainstream", "weather"]
+    },
+    {
+      "id": "reddit-2026-03-27-8",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s4z0zy/advice_needed_planning_a_simulator_in_metal_shed/",
+      "title": "Advice needed planning a simulator in metal shed",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "Metal shed sim builds are popular! Key things to consider: insulation for temp control, proper lighting (ambient LED, not fluorescent), and making sure your projector can handle the environment. We can help you plan the right setup!",
+      "tags": ["simulator-build", "metal-shed", "outdoor-setup", "planning", "advice"]
+    },
+    {
+      "id": "reddit-2026-03-27-9",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s4vk8e/pureplay_development_update/",
+      "title": "PurePlay Development Update",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "Course software updates are always exciting! The right sim software can make practice way more engaging. We offer multiple options at Swing Shack - come try different platforms and see which one fits your style!",
+      "tags": ["course-software", "simulator", "pureplay", "software", "update"]
+    },
+    {
+      "id": "reddit-2026-03-27-10",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s4ud0j/helpme_understand_the_data/",
+      "title": "Helpme understand the data",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "Launch monitor data can be overwhelming at first! Don't worry - Swing Shack can help you understand what the numbers actually mean for YOUR game. Sometimes simple adjustments make a huge difference.",
+      "tags": ["launch-monitor", "data", "beginner", "help", "understanding"]
+    },
+    {
+      "id": "reddit-2026-03-27-11",
+      "url": "https://www.reddit.com/r/golf/comments/1s4wrgn/taylormade_vs_titleist_wedges/",
+      "title": "Taylormade vs Titleist wedges?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "SM11s vs MG5s is a classic debate! Both are solid - it comes down to personal preference on feel and look. Come try both at Swing Shack and see which one fits YOUR swing better!",
+      "tags": ["equipment", "wedges", "taylormade", "titleist", "comparison"]
+    },
+    {
+      "id": "reddit-2026-03-27-12",
+      "url": "https://www.reddit.com/r/golf/comments/1s4uzgn/2_years_in_tired_of_wet_feet_anyone_recommend_me/",
+      "title": "2 years in, tired of wet feet. Anyone recommend me some golf shoes?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "Wet feet ruin golf shoes fast! For PNW weather, look for waterproof leather + good drainage. We can recommend brands that hold up in wet conditions - come chat!",
+      "tags": ["golf-shoes", "equipment", "weather", "beginner", "recommendation"]
+    },
+    {
+      "id": "reddit-2026-03-27-13",
+      "url": "https://www.reddit.com/r/golf/comments/1s4zgap/which_clubs_to_keep_in_my_bag/",
+      "title": "Which clubs to keep in my bag?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "15 clubs is the limit! For your bag, I'd drop the 3 wood - you likely don't need both driver and 3 wood, especially if you have a hybrid. Come get fitted and we'll help you optimize your bag!",
+      "tags": ["equipment", "bag-selection", "club-fitting", "advice"]
     },
     {
       "id": "reddit-2026-03-26-5",
