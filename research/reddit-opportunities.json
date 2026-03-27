@@ -1,7 +1,91 @@
 {
-  "last_updated": "2026-03-26",
-  "scan_time": "2026-03-26T10:00Z",
+  "last_updated": "2026-03-27",
+  "scan_time": "2026-03-27T06:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-03-27-1",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1s1dagc/fixing_your_slice_by_swinging_more_inside_is/",
+      "title": "Fixing your slice by swinging more inside is probably making it worse",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "Classic issue - trying to swing more inside to fix a slice actually makes it worse. This is one of the most common swing problems I see. A launch monitor session would show exactly what's happening with your path and face angle at impact - the fix isn't intuitive!",
+      "tags": ["slice", "swing-fix", "launch-monitor", "technique"]
+    },
+    {
+      "id": "reddit-2026-03-27-2",
+      "url": "https://www.reddit.com/r/golf/comments/1rztdee/shot_shape_throughout_entire_bag/",
+      "title": "Shot shape throughout entire bag?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "This is exactly what TrackMan shows - how your attack angle and club path change between clubs. Driver fades, irons draw, etc. It's different for everyone and that's what makes golf hard! Come get data on YOUR bag.",
+      "tags": ["shot-shape", "club-path", "consistency", "coaching"]
+    },
+    {
+      "id": "reddit-2026-03-27-3",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1rzzl2w/launch_monitor_recomendation/",
+      "title": "Launch Monitor Recomendation - Quadmax/Trackman IO vs GCQuad",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "+18 handicap wondering if premium launch monitors ($5k+ extra) are worth it over GCQuad. Honestly? GCQuad is MORE than enough for a +18 - it's used on Tour! Come try before you buy - let us show you the difference.",
+      "tags": ["launch-monitor", "trackman", "gcquad", "comparison", "budget"]
+    },
+    {
+      "id": "reddit-2026-03-27-4",
+      "url": "https://www.reddit.com/r/golf/comments/1s0ojtx/saw_this_pic_on_an_indoor_golf_facilitys_site/",
+      "title": "Saw this pic on an indoor golf facility's site under 'lessons.' Trying to figure out what is happening in this pic has broken my brain.",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "People are curious about what indoor facilities actually offer - this is a great opportunity to show them! Swing Shack has the tech and coaching to make those lessons actually work.",
+      "tags": ["indoor-golf", "facility", "lessons", "curiosity"]
+    },
+    {
+      "id": "reddit-2026-03-27-5",
+      "url": "https://www.reddit.com/r/golf/comments/1s1hyen/practice_at_a_public_golf_course_during_lunch/",
+      "title": "Practice at a public golf course during lunch break?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "Golfers trying to squeeze practice into lunch breaks - this is where indoor facilities shine! No weather issues, quick sessions, data feedback. Perfect for local workers who want to improve without taking a whole afternoon.",
+      "tags": ["practice", "lunch-break", "time-efficiency", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-27-6",
+      "url": "https://www.reddit.com/r/golf/comments/1ryv6xf/junior_golf_clubs_feedback_needed/",
+      "title": "Junior Golf Clubs Feedback Needed",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "Parent looking for junior club recommendations - getting kids properly fitted is crucial! Wrong size clubs actually hurt their development. Swing Shack can help find the right fit for your junior golfer.",
+      "tags": ["junior", "clubs", "fitting", "youth-golf", "beginner"]
+    },
+    {
+      "id": "reddit-2026-03-27-7",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1rzoegf/bbc_article_on_indoor_golff/",
+      "title": "BBC Article on indoor golf",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-27",
+      "datePosted": null,
+      "comment": "Indoor golf going mainstream - people in cold climates (like Alaska) rely on simulators. This validates the market and shows growing interest in year-round practice options. Swing Shack is perfectly positioned for SA golfers!",
+      "tags": ["indoor-golf", "simulator", "mainstream", "weather"]
+    },
     {
       "id": "reddit-2026-03-26-5",
       "url": "https://www.reddit.com/r/golf/comments/1s42pnk/practice_nets/",
