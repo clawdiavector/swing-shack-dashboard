@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-27",
-  "scan_time": "2026-03-27T18:00Z",
+  "last_updated": "2026-03-28",
+  "scan_time": "2026-03-28T04:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-27-1",
@@ -1069,6 +1069,66 @@
       "datePosted": null,
       "comment": "This is why we love golf 😂 The gap between course play and handicap is real. Indoor practice with data helps bridge that - come see us!",
       "tags": ["humor", "handicap", "course-play", "practice", "indoor-golf"]
+    },
+    {
+      "id": "reddit-2026-03-28-1",
+      "url": "https://www.reddit.com/r/golftips/comments/1k5xmlg/fixed_slice_but_now_have_a_hook_problem/",
+      "title": "Fixed slice but now have a hook problem",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-28",
+      "datePosted": null,
+      "comment": "Classic problem - fix one thing and create another! The slice-to-hook pendulum is SO common. A launch monitor session would show you exactly what's happening with your path and face angle at impact. Sometimes the fix isn't intuitive at all - come get data on YOUR swing!",
+      "tags": ["slice", "hook", "swing-fix", "launch-monitor", "technique"]
+    },
+    {
+      "id": "reddit-2026-03-28-2",
+      "url": "https://www.reddit.com/r/golf/comments/1bg1zr7/simple_question_high_handicapper_is_a_launch/",
+      "title": "Simple question - high handicapper is a launch monitor worth it?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-28",
+      "datePosted": null,
+      "comment": "If a home launch monitor makes you excited to practice and therefore practice more, then it's worth the purchase. But honestly? Come try ours first - no investment needed, just swing and see the data. Way better than dropping R10k+ before you know if it's for you.",
+      "tags": ["launch-monitor", "high-handicapper", "budget", "practice", "beginner"]
+    },
+    {
+      "id": "reddit-2026-03-28-3",
+      "url": "https://www.reddit.com/r/golf/comments/j6r4ej/golf_lessons_using_simulator/",
+      "title": "Golf lessons using simulator?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-28",
+      "datePosted": null,
+      "comment": "Absolutely nothing wrong with getting lessons indoors - GolfTEC built an entire chain on it! Would pay extra to go to the simulator because it shows you your club data. Swing Shack has TrackMan + coaching - exactly what these discussions are looking for.",
+      "tags": ["lessons", "simulator", "launch-monitor", "data", "coaching"]
+    },
+    {
+      "id": "reddit-2026-03-28-4",
+      "url": "https://www.reddit.com/r/WomenGolf/comments/1dig7wu/lessons_at_an_indoor_simulator/",
+      "title": "Lessons at an indoor simulator?",
+      "subreddit": "r/WomenGolf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-28",
+      "datePosted": null,
+      "comment": "Five Iron does a $99 swing evaluation which ended up being a mini lesson - helpful to see the bigger red flags. Low-commitment entry point works! We offer similar evaluations at Swing Shack - come see what YOUR data shows.",
+      "tags": ["lessons", "women", "beginner", "evaluation", "indoor-golf", "simulator"]
+    },
+    {
+      "id": "reddit-2026-03-28-5",
+      "url": "https://www.reddit.com/r/golf/comments/w2sail/what_do_you_look_for_when_using_a_launch_monitor/",
+      "title": "What do you look for when using a launch monitor for practice?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-28",
+      "datePosted": null,
+      "comment": "Technical discussion on ideal launch numbers - a well struck 8 iron launches around 20° with 7500 backspin. Golfers want to understand data but need guidance translating numbers to their game. Swing Shack can be your 'data translator' - helping you understand what the numbers actually mean!",
+      "tags": ["launch-monitor", "data", "practice", "spin", "launch-angle"]
     }
   ]
 }
