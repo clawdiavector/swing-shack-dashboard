@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-03-28",
+  "last_updated": "2026-03-29",
   "scan_time": "2026-03-28T04:03Z",
   "opportunities": [
     {
@@ -1129,6 +1129,54 @@
       "datePosted": null,
       "comment": "Technical discussion on ideal launch numbers - a well struck 8 iron launches around 20° with 7500 backspin. Golfers want to understand data but need guidance translating numbers to their game. Swing Shack can be your 'data translator' - helping you understand what the numbers actually mean!",
       "tags": ["launch-monitor", "data", "practice", "spin", "launch-angle"]
+    },
+    {
+      "id": "reddit-2026-03-29-1",
+      "url": "https://www.reddit.com/r/golf/comments/1s1fisw/best_golf_club_bags_to_buy_right_now_in_2026/",
+      "title": "Best golf club bags to buy right now in 2026?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-29",
+      "datePosted": null,
+      "comment": "Golfer shooting ~90 wants to upgrade gear this winter after progress. This is the perfect customer - they put in the work, now want proper equipment. Our angle: get fitted BEFORE buying new clubs ensures your upgrade actually makes you better, not just newer.",
+      "tags": ["equipment", "bag", "upgrade", "fitting", "beginner"]
+    },
+    {
+      "id": "reddit-2026-03-29-2",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1s20apn/club_champion_experience/",
+      "title": "Club Champion Experience",
+      "subreddit": "r/GolfGear",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-29",
+      "datePosted": null,
+      "comment": "Detailed breakdown of a proper club fitting - 5 hour session, lofts/lies adjusted, shaft upgrades. This validates what we offer: data-driven fitting with TrackMan to optimize your entire bag. Come get the same level of insight!",
+      "tags": ["club-fitting", "trackman", "custom", "club-champion", "experience"]
+    },
+    {
+      "id": "reddit-2026-03-29-3",
+      "url": "https://www.reddit.com/r/golftips/comments/1k5xmlg/fixed_slice_but_now_have_a_hook_problem/",
+      "title": "Fixed slice but now have a hook problem",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-29",
+      "datePosted": null,
+      "comment": "Classic problem - fix one thing and create another! The slice-to-hook pendulum is SO common. A launch monitor session shows exactly what's happening with path and face angle at impact. Sometimes the fix isn't intuitive at all - come get data on YOUR swing!",
+      "tags": ["slice", "hook", "swing-fix", "launch-monitor", "technique"]
+    },
+    {
+      "id": "reddit-2026-03-29-4",
+      "url": "https://www.reddit.com/r/golf/comments/1s3hrpn/of_course_ill_watch_but_pick_a_freaking_channel/",
+      "title": "of course I'll watch but pick a freaking channel",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-29",
+      "datePosted": null,
+      "comment": "TGL viewership frustration - people want to watch but can't find the channel. This is driving curiosity in indoor golf tech. If TGL has got you interested in launch monitors and data-driven practice, come see what the fuss is about atSwing Shack!",
+      "tags": ["tgl", "indoor-golf", "simulator", "viewership", "tech"]
     }
   ]
 }
