@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-29",
-  "scan_time": "2026-03-29T10:02Z",
+  "last_updated": "2026-03-30",
+  "scan_time": "2026-03-30T04:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-27-1",
@@ -1177,6 +1177,78 @@
       "datePosted": null,
       "comment": "TGL viewership frustration - people want to watch but can't find the channel. This is driving curiosity in indoor golf tech. If TGL has got you interested in launch monitors and data-driven practice, come see what the fuss is about atSwing Shack!",
       "tags": ["tgl", "indoor-golf", "simulator", "viewership", "tech"]
+    },
+    {
+      "id": "reddit-2026-03-30-1",
+      "url": "https://www.reddit.com/r/golf/comments/1s4tjkb/how_much_of_your_improvement_is_impact_training/",
+      "title": "How much of your improvement is impact training vs swing mechanics?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-30",
+      "datePosted": null,
+      "comment": "Impact-focused drills like punch shots (9-to-3), feet together, and divot boards with foot spray give instant feedback. That's exactly what we do at Swing Shack — real-time data showing you what actually happens at impact, not what it feels like. The gap between feel and real is where most amateurs get stuck.",
+      "tags": ["impact-training", "swing-mechanics", "drills", "practice", "strike-quality"]
+    },
+    {
+      "id": "reddit-2026-03-30-2",
+      "url": "https://www.reddit.com/r/golf/comments/1s1oqvq/is_a_fitting_worth_it_for_a_beginner/",
+      "title": "Is a fitting worth it for a beginner?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-30",
+      "datePosted": null,
+      "comment": "Here's the thing — the debate isn't whether fittings work, it's about timing. If you're a total beginner with an inconsistent swing, a basic static fit (length, lie) is free and prevents bad habits. Save the full TrackMan fitting for when you've got 6 months of consistent practice under your belt. We're happy to give you that baseline assessment first.",
+      "tags": ["club-fitting", "beginners", "advice", "confusion", "timing"]
+    },
+    {
+      "id": "reddit-2026-03-30-3",
+      "url": "https://www.reddit.com/r/golf/comments/1s5cm0w/first_time_getting_fitted_any_input/",
+      "title": "First time getting fitted, any input?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-30",
+      "datePosted": null,
+      "comment": "Don't stress it — a proper fitting is just hitting shots with different clubs while we measure your launch numbers. It's not a sales pitch if the fitter's any good. At Swing Shack, we'll tell you if what you're currently playing works fine. You only upgrade if the data shows a clear benefit. Budget about 90 minutes and wear something you can move in.",
+      "tags": ["fitting-first-time", "beginners", "nerves", "what-to-expect"]
+    },
+    {
+      "id": "reddit-2026-03-30-4",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1s2zq0k/chat_gpt_swing_analysis/",
+      "title": "Chat GPT SWING ANALYSIS",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-30",
+      "datePosted": null,
+      "comment": "AI can spot patterns but it can't feel what your body is doing. Launch monitor data is the middle ground — objective numbers without the bias of 'this is how I think I'm swinging.' Come get your numbers and we'll help you translate what they actually mean for your game.",
+      "tags": ["ai-analysis", "swing-critique", "tech", "coaching", "launch-monitor"]
+    },
+    {
+      "id": "reddit-2026-03-30-5",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1jyejbg/best_launch_monitor_for_indoor_use/",
+      "title": "Best Launch Monitor for Indoor Use",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-30",
+      "datePosted": null,
+      "comment": "For indoor use in South Africa where you're likely working with a garage or dedicated room, GCQuad or TrackMan IO are the gold standard. But if you're just starting out and want to test before investing, come try ours first — no commitment needed, just swings and data.",
+      "tags": ["launch-monitor", "indoor-golf", "simulator", "recommendations", "gcquad", "trackman"]
+    },
+    {
+      "id": "reddit-2026-03-30-6",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1s542n8/recommend_me_some_clubs_please/",
+      "title": "Recommend me some clubs, PLEASE",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-30",
+      "datePosted": null,
+      "comment": "Asking others what clubs you should buy is a bad starting point. If your swing is decently consistent and you can make solid contact, get fitted for irons first — that way you're buying what actually works for YOUR game, not what some stranger on the internet recommends.",
+      "tags": ["equipment", "clubs", "recommendation", "beginner", "fitting"]
     }
   ]
 }
