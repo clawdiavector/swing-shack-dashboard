@@ -1179,6 +1179,30 @@
       "tags": ["tgl", "indoor-golf", "simulator", "viewership", "tech"]
     },
     {
+      "id": "reddit-2026-03-30-7",
+      "url": "https://www.reddit.com/r/golf/comments/1s6u12h/retired_pga_tour_superstore_club_fitter_ama/",
+      "title": "Retired PGA tour Superstore Club fitter, AMA",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-30",
+      "datePosted": null,
+      "comment": "Real fitter insight - this is exactly what Swing Shack offers! Our fitting process shows you what's actually happening with YOUR swing - the numbers don't lie. Come get data-driven fitting from people who actually understand the equipment.",
+      "tags": ["club-fitting", "ama", "professional", "trackman", "data"]
+    },
+    {
+      "id": "reddit-2026-03-30-8",
+      "url": "https://www.reddit.com/r/golf/comments/1s6sqbz/best_golf_bag/",
+      "title": "Best golf bag",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-30",
+      "datePosted": null,
+      "comment": "Gear upgrade season - Ping Hoofer, Titleist Players, Vessel all recommendations. Before buying new gear, come get properly fitted so your new bag actually makes sense for YOUR game!",
+      "tags": ["equipment", "bag", "recommendations", "upgrade"]
+    },
+    {
       "id": "reddit-2026-03-30-1",
       "url": "https://www.reddit.com/r/golf/comments/1s4tjkb/how_much_of_your_improvement_is_impact_training/",
       "title": "How much of your improvement is impact training vs swing mechanics?",
