@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-31",
-  "scan_time": "2026-03-31T12:00Z",
+  "scan_time": "2026-03-31T18:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-27-1",
@@ -1393,6 +1393,42 @@
       "datePosted": null,
       "comment": "Buying used launch monitors is tricky - you want to verify it's not stolen and still has valid software support. Better path: come try ours first with no commitment! We have TrackMan and can help you find the right unit for your situation.",
       "tags": ["trackman", "used-gear", "buying", "caution", "launch-monitor"]
+    },
+    {
+      "id": "reddit-2026-03-31-11",
+      "url": "https://www.reddit.com/r/golf/comments/1ri0nyl/launch_monitor_helpsuggestions/",
+      "title": "Launch Monitor Help/suggestions",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "Looking for a launch monitor that sits beside the mat vs behind it? That's a common setup challenge. Swing Shack can help you find the right solution for your space - we have options that work for various setups!",
+      "tags": ["launch-monitor", "outdoor-setup", "slope-issue", "indoor-golf", "equipment"]
+    },
+    {
+      "id": "reddit-2026-03-31-12",
+      "url": "https://www.reddit.com/r/golf/comments/1s8qk9j/free_fitting_which_clubs/",
+      "title": "Free fitting - which club(s)?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "Great question! For your situation, a putter fitting makes tons of sense - 3-putting is often due to alignment or stroke path issues a fitter can identify. Swing Shack offers putter fittings - let's get that stroke dialed in!",
+      "tags": ["putter-fitting", "putting", "3-putt", "free-fitting", "improvement"]
+    },
+    {
+      "id": "reddit-2026-03-31-13",
+      "url": "https://www.reddit.com/r/golf/comments/1s8du9u/should_i_consider_a_fitting_advice_on_my_bag_situation/",
+      "title": "Should I consider a fitting? Advice on my bag situation at my current skill level",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "You're thinking exactly right! A fitting before buying clubs prevents wasted money on wrong specs. At your level, it's especially valuable because you can get data on what actually works for YOUR swing. Come get fitted first!",
+      "tags": ["club-fitting", "beginner", "equipment", "upgrade", "advice"]
     }
   ]
 }
