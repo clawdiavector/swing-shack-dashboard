@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-30",
-  "scan_time": "2026-03-30T16:00Z",
+  "last_updated": "2026-03-31",
+  "scan_time": "2026-03-31T04:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-27-1",
@@ -1273,6 +1273,78 @@
       "datePosted": null,
       "comment": "Asking others what clubs you should buy is a bad starting point. If your swing is decently consistent and you can make solid contact, get fitted for irons first — that way you're buying what actually works for YOUR game, not what some stranger on the internet recommends.",
       "tags": ["equipment", "clubs", "recommendation", "beginner", "fitting"]
+    },
+    {
+      "id": "reddit-2026-03-31-1",
+      "url": "https://www.reddit.com/r/golf/comments/1s6u12h/retired_pga_tour_superstore_club_fitter_ama/",
+      "title": "Retired PGA tour Superstore Club fitter, AMA",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "This is gold - a real fitter doing an AMA. Shows what proper fitting looks like and validates the need for data-driven club selection. Swing Shack offers the same TrackMan-backed fitting experience - come see what the pros actually look for!",
+      "tags": ["club-fitting", "ama", "professional", "trackman", "data"]
+    },
+    {
+      "id": "reddit-2026-03-31-2",
+      "url": "https://www.reddit.com/r/golf/comments/1s5cm0w/first_time_getting_fitted_any_input/",
+      "title": "First time getting fitted, any input?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "First-timers are nervous but don't be - it's just hitting shots while we measure your numbers. We'll tell you if your current clubs work fine. Only upgrade if the data shows clear benefit. Wear something you can move in and budget about 90 minutes. Same as we'd do at Swing Shack!",
+      "tags": ["fitting-first-time", "beginners", "nerves", "what-to-expect"]
+    },
+    {
+      "id": "reddit-2026-03-31-3",
+      "url": "https://www.reddit.com/r/golf/comments/1s3e41n/first_time_putter_fitting_floored_at_the_results/",
+      "title": "First time putter fitting - floored at the results",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "This is exactly why putter fittings matter! Most golfers guess on the most-used club in their bag. Data doesn't replace feel - it explains why certain putts feel right. Swing Shack offers putter fittings - come see what your stroke is actually doing!",
+      "tags": ["putter-fitting", "club-fitting", "putting", "data"]
+    },
+    {
+      "id": "reddit-2026-03-31-4",
+      "url": "https://www.reddit.com/r/golf/comments/1s4tjkb/how_much_of_your_improvement_is_impact_training/",
+      "title": "How much of your improvement is impact training vs swing mechanics?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "Impact-focused drills like punch shots, feet together, and divot boards give instant feedback. That's exactly what we do at Swing Shack - real-time data showing you what happens at impact, not what it feels like. The gap between feel and real is where most amateurs get stuck.",
+      "tags": ["impact-training", "swing-mechanics", "drills", "practice", "strike-quality"]
+    },
+    {
+      "id": "reddit-2026-03-31-5",
+      "url": "https://www.reddit.com/r/golf/comments/1s6dlod/20_handicappers_where_you_at/",
+      "title": "20+ Handicappers where you at?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "This community needs each other! For 20+ handicappers, the advice is: find your current weakest point and only work on that. Stay confident in your move and get long irons playable, or at least a one-way miss. Consistency beats power at this stage - we'd love to help you with data-driven practice!",
+      "tags": ["high-handicap", "community", "practice", "advice", "improvement"]
+    },
+    {
+      "id": "reddit-2026-03-31-6",
+      "url": "https://www.reddit.com/r/golf/comments/1rz211k/womens_club_recommends/",
+      "title": "Women's Club recommends",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "Women's clubs come down to the right shaft flex - lighter L-flex helps with slower swings. This is exactly what we do at fittings - matching equipment to YOUR swing speed, not generic recommendations. We do women's fittings - come see us!",
+      "tags": ["women", "club-fitting", "beginner", "equipment", "ladies-flex"]
     }
   ]
 }
