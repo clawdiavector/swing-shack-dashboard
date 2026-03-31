@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-31",
-  "scan_time": "2026-03-31T04:00Z",
+  "scan_time": "2026-03-31T06:04Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-27-1",
@@ -1345,6 +1345,54 @@
       "datePosted": null,
       "comment": "Women's clubs come down to the right shaft flex - lighter L-flex helps with slower swings. This is exactly what we do at fittings - matching equipment to YOUR swing speed, not generic recommendations. We do women's fittings - come see us!",
       "tags": ["women", "club-fitting", "beginner", "equipment", "ladies-flex"]
+    },
+    {
+      "id": "reddit-2026-03-31-7",
+      "url": "https://www.reddit.com/r/golf/comments/1s8a70v/breaking_100/",
+      "title": "Breaking 100.",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "Stuck at 105-110 for 6 months? That's frustrating but normal. The gap between range and course is real - indoor practice with immediate data feedback helps bridge that. Swing Shack can help you identify what's actually costing you strokes!",
+      "tags": ["beginner", "breaking-100", "practice", "frustration", "improvement"]
+    },
+    {
+      "id": "reddit-2026-03-31-8",
+      "url": "https://www.reddit.com/r/golf/comments/1s89yo2/apartment_golf_sim_in_boston/",
+      "title": "Apartment golf sim in Boston",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "Winter golfers totally get the sim itch! That's exactly why places like Swing Shack exist - year-round practice without weather worries. If you're serious about improving, a dedicated facility beats a $500/month apartment amenity. Come check us out!",
+      "tags": ["indoor-golf", "winter-golf", "simulator", "apartment", "climate"]
+    },
+    {
+      "id": "reddit-2026-03-31-9",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s8a9sy/garage_sim_setup/",
+      "title": "Garage Sim Setup",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "Building piece by piece is a smart approach! Key decisions: projector brightness (get at least 3500 lumens), hitting mat quality, and your launch monitor choice. Swing Shack can help you plan the right setup - happy to give advice!",
+      "tags": ["simulator-build", "garage", "planning", "diy", "budget"]
+    },
+    {
+      "id": "reddit-2026-03-31-10",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s89xis/have_a_question_about_trackman_could_use_some_help/",
+      "title": "Have a question about Trackman, could use some help.",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-03-31",
+      "datePosted": null,
+      "comment": "Buying used launch monitors is tricky - you want to verify it's not stolen and still has valid software support. Better path: come try ours first with no commitment! We have TrackMan and can help you find the right unit for your situation.",
+      "tags": ["trackman", "used-gear", "buying", "caution", "launch-monitor"]
     }
   ]
 }
