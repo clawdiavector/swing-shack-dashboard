@@ -2206,6 +2206,78 @@
         "tech-issues",
         "simulator"
       ]
+    },
+    {
+      "id": "reddit-2026-04-01-7",
+      "url": "https://www.reddit.com/r/golf/comments/1s98qew/golf_club_fitting/",
+      "title": "Golf club fitting",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "6'5 former athlete in South Florida looking for proper club fitting - this is exactly our jam. Tall guys need serious length adjustments and proper shaft profiles. Come get fitted properly!",
+      "tags": [
+        "club-fitting",
+        "tall-golfer",
+        "equipment",
+        "upgrade",
+        "custom"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-01-8",
+      "url": "https://www.reddit.com/r/golf/comments/1s9avsn/best_club_to_bridge_gap_between_6_iron_and_22/",
+      "title": "Best club to bridge gap between 6 iron and 22° hybrid?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "Mid-handicapper looking to fill a 20-25 yard gap between 6 iron and 4H hybrid. Getting fitted would answer this exactly - we can show you what actually works for YOUR numbers.",
+      "tags": [
+        "club-fitting",
+        "hybrid",
+        "gapping",
+        "equipment",
+        "mid-handicap"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-01-9",
+      "url": "https://www.reddit.com/r/golf/comments/1s983n4/handicap_is_up_15_strokes_since_last_fall_please/",
+      "title": "Handicap is up 1.5 strokes since last fall please help me end the suffering",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "Handicap going the wrong direction is frustrating as hell. Has video - we can actually analyze what's changing. Data-driven practice helps identify the real culprit, not just guessing.",
+      "tags": [
+        "handicap",
+        "frustration",
+        "video-analysis",
+        "practice",
+        "improvement"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-01-10",
+      "url": "https://www.reddit.com/r/golf/comments/1s98qs3/is_my_driver_fixable_or_get_a_new_one/",
+      "title": "Is my driver fixable? Or get a new one?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "Driver repair vs replace is a common question. Bring it in - we can assess whether it's worth fixing or if you'd benefit more from a proper fitting on something new.",
+      "tags": [
+        "driver",
+        "equipment",
+        "repair",
+        "fitting",
+        "upgrade"
+      ]
     }
   ]
 }
