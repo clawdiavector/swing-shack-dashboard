@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-31",
-  "scan_time": "2026-03-31T18:00Z",
+  "last_updated": "2026-04-01",
+  "scan_time": "2026-04-01T06:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-03-27-1",
@@ -12,7 +12,12 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "Classic issue - trying to swing more inside to fix a slice actually makes it worse. This is one of the most common swing problems I see. A launch monitor session would show exactly what's happening with your path and face angle at impact - the fix isn't intuitive!",
-      "tags": ["slice", "swing-fix", "launch-monitor", "technique"]
+      "tags": [
+        "slice",
+        "swing-fix",
+        "launch-monitor",
+        "technique"
+      ]
     },
     {
       "id": "reddit-2026-03-27-2",
@@ -24,7 +29,12 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "This is exactly what TrackMan shows - how your attack angle and club path change between clubs. Driver fades, irons draw, etc. It's different for everyone and that's what makes golf hard! Come get data on YOUR bag.",
-      "tags": ["shot-shape", "club-path", "consistency", "coaching"]
+      "tags": [
+        "shot-shape",
+        "club-path",
+        "consistency",
+        "coaching"
+      ]
     },
     {
       "id": "reddit-2026-03-27-3",
@@ -36,7 +46,13 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "+18 handicap wondering if premium launch monitors ($5k+ extra) are worth it over GCQuad. Honestly? GCQuad is MORE than enough for a +18 - it's used on Tour! Come try before you buy - let us show you the difference.",
-      "tags": ["launch-monitor", "trackman", "gcquad", "comparison", "budget"]
+      "tags": [
+        "launch-monitor",
+        "trackman",
+        "gcquad",
+        "comparison",
+        "budget"
+      ]
     },
     {
       "id": "reddit-2026-03-27-4",
@@ -48,7 +64,12 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "People are curious about what indoor facilities actually offer - this is a great opportunity to show them! Swing Shack has the tech and coaching to make those lessons actually work.",
-      "tags": ["indoor-golf", "facility", "lessons", "curiosity"]
+      "tags": [
+        "indoor-golf",
+        "facility",
+        "lessons",
+        "curiosity"
+      ]
     },
     {
       "id": "reddit-2026-03-27-5",
@@ -60,7 +81,12 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "Golfers trying to squeeze practice into lunch breaks - this is where indoor facilities shine! No weather issues, quick sessions, data feedback. Perfect for local workers who want to improve without taking a whole afternoon.",
-      "tags": ["practice", "lunch-break", "time-efficiency", "indoor-golf"]
+      "tags": [
+        "practice",
+        "lunch-break",
+        "time-efficiency",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-27-6",
@@ -72,7 +98,13 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "Parent looking for junior club recommendations - getting kids properly fitted is crucial! Wrong size clubs actually hurt their development. Swing Shack can help find the right fit for your junior golfer.",
-      "tags": ["junior", "clubs", "fitting", "youth-golf", "beginner"]
+      "tags": [
+        "junior",
+        "clubs",
+        "fitting",
+        "youth-golf",
+        "beginner"
+      ]
     },
     {
       "id": "reddit-2026-03-27-7",
@@ -84,7 +116,12 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "Indoor golf going mainstream - people in cold climates (like Alaska) rely on simulators. This validates the market and shows growing interest in year-round practice options. Swing Shack is perfectly positioned for SA golfers!",
-      "tags": ["indoor-golf", "simulator", "mainstream", "weather"]
+      "tags": [
+        "indoor-golf",
+        "simulator",
+        "mainstream",
+        "weather"
+      ]
     },
     {
       "id": "reddit-2026-03-27-8",
@@ -96,7 +133,13 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "Metal shed sim builds are popular! Key things to consider: insulation for temp control, proper lighting (ambient LED, not fluorescent), and making sure your projector can handle the environment. We can help you plan the right setup!",
-      "tags": ["simulator-build", "metal-shed", "outdoor-setup", "planning", "advice"]
+      "tags": [
+        "simulator-build",
+        "metal-shed",
+        "outdoor-setup",
+        "planning",
+        "advice"
+      ]
     },
     {
       "id": "reddit-2026-03-27-9",
@@ -108,7 +151,13 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "Course software updates are always exciting! The right sim software can make practice way more engaging. We offer multiple options at Swing Shack - come try different platforms and see which one fits your style!",
-      "tags": ["course-software", "simulator", "pureplay", "software", "update"]
+      "tags": [
+        "course-software",
+        "simulator",
+        "pureplay",
+        "software",
+        "update"
+      ]
     },
     {
       "id": "reddit-2026-03-27-10",
@@ -120,7 +169,13 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "Launch monitor data can be overwhelming at first! Don't worry - Swing Shack can help you understand what the numbers actually mean for YOUR game. Sometimes simple adjustments make a huge difference.",
-      "tags": ["launch-monitor", "data", "beginner", "help", "understanding"]
+      "tags": [
+        "launch-monitor",
+        "data",
+        "beginner",
+        "help",
+        "understanding"
+      ]
     },
     {
       "id": "reddit-2026-03-27-11",
@@ -132,7 +187,13 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "SM11s vs MG5s is a classic debate! Both are solid - it comes down to personal preference on feel and look. Come try both at Swing Shack and see which one fits YOUR swing better!",
-      "tags": ["equipment", "wedges", "taylormade", "titleist", "comparison"]
+      "tags": [
+        "equipment",
+        "wedges",
+        "taylormade",
+        "titleist",
+        "comparison"
+      ]
     },
     {
       "id": "reddit-2026-03-27-12",
@@ -144,7 +205,13 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "Wet feet ruin golf shoes fast! For PNW weather, look for waterproof leather + good drainage. We can recommend brands that hold up in wet conditions - come chat!",
-      "tags": ["golf-shoes", "equipment", "weather", "beginner", "recommendation"]
+      "tags": [
+        "golf-shoes",
+        "equipment",
+        "weather",
+        "beginner",
+        "recommendation"
+      ]
     },
     {
       "id": "reddit-2026-03-27-13",
@@ -156,7 +223,12 @@
       "dateFound": "2026-03-27",
       "datePosted": null,
       "comment": "15 clubs is the limit! For your bag, I'd drop the 3 wood - you likely don't need both driver and 3 wood, especially if you have a hybrid. Come get fitted and we'll help you optimize your bag!",
-      "tags": ["equipment", "bag-selection", "club-fitting", "advice"]
+      "tags": [
+        "equipment",
+        "bag-selection",
+        "club-fitting",
+        "advice"
+      ]
     },
     {
       "id": "reddit-2026-03-26-5",
@@ -168,7 +240,13 @@
       "dateFound": "2026-03-26",
       "datePosted": null,
       "comment": "For under $100, you're looking at basic nets - they work but replacement costs add up. Swing Shack has quality options at various price points, plus you get to hit real shots with data feedback!",
-      "tags": ["beginner", "practice-net", "equipment", "budget", "indoor-golf"]
+      "tags": [
+        "beginner",
+        "practice-net",
+        "equipment",
+        "budget",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-26-6",
@@ -180,7 +258,13 @@
       "dateFound": "2026-03-26",
       "datePosted": null,
       "comment": "Great incremental approach! For outdoor setup, make sure your projector is bright enough (at least 3500 lumens) and consider weather exposure. Swing Shack can help you plan the right setup - happy to give advice!",
-      "tags": ["simulator-build", "outdoor", "projector", "setup", "budget"]
+      "tags": [
+        "simulator-build",
+        "outdoor",
+        "projector",
+        "setup",
+        "budget"
+      ]
     },
     {
       "id": "reddit-2026-03-26-7",
@@ -192,7 +276,13 @@
       "dateFound": "2026-03-26",
       "datePosted": null,
       "comment": "Proximity matters, but the right tech and coaching make the difference! Swing Shack has TrackMan and experienced instructors - come try a session and see what sets us apart!",
-      "tags": ["indoor-golf", "facility", "simulator", "Johannesburg", "trackman"]
+      "tags": [
+        "indoor-golf",
+        "facility",
+        "simulator",
+        "Johannesburg",
+        "trackman"
+      ]
     },
     {
       "id": "reddit-2026-03-26-8",
@@ -204,7 +294,12 @@
       "dateFound": "2026-03-26",
       "datePosted": null,
       "comment": "This is actually really smart advice! Room dimensions determine everything - ceiling height, projector brightness, safe hitting zones. Most people regret the launch monitor they bought first. Swing Shack can help you plan before you buy!",
-      "tags": ["simulator-planning", "launch-monitor", "room-dimensions", "advice"]
+      "tags": [
+        "simulator-planning",
+        "launch-monitor",
+        "room-dimensions",
+        "advice"
+      ]
     },
     {
       "id": "reddit-2026-03-26-9",
@@ -215,8 +310,14 @@
       "locationTag": "global",
       "dateFound": "2026-03-26",
       "datePosted": null,
-      "comment": "The addiction is real 😂 But honestly, having a sim in cold weather months is a game-changer for keeping your game sharp. Swing Shack is here when you need your fix!",
-      "tags": ["simulator", "indoor-golf", "humor", "addiction", "practice"]
+      "comment": "The addiction is real \ud83d\ude02 But honestly, having a sim in cold weather months is a game-changer for keeping your game sharp. Swing Shack is here when you need your fix!",
+      "tags": [
+        "simulator",
+        "indoor-golf",
+        "humor",
+        "addiction",
+        "practice"
+      ]
     },
     {
       "id": "reddit-2026-03-26-1",
@@ -228,7 +329,14 @@
       "dateFound": "2026-03-26",
       "datePosted": null,
       "comment": "Looking good! For a new golfer, the most important thing is getting consistent contact. Then work on the slice. A launch monitor session can help you see exactly what's causing the slice - often it's simpler than people think. Lessons will definitely speed things up!",
-      "tags": ["beginner", "swing", "driver", "distance", "slice", "lessons"]
+      "tags": [
+        "beginner",
+        "swing",
+        "driver",
+        "distance",
+        "slice",
+        "lessons"
+      ]
     },
     {
       "id": "reddit-2026-03-26-2",
@@ -240,7 +348,14 @@
       "dateFound": "2026-03-26",
       "datePosted": null,
       "comment": "Dude, you're 6'5 playing standard length clubs - that's your first problem! Get properly fit for length FIRST, then take lessons. You'll spend half your budget on clubs that fit and the other half on lessons. The right length will actually help you learn proper swing mechanics instead of compensating for poorly-fitted clubs.",
-      "tags": ["club-fitting", "lessons", "tall-golfer", "slice", "equipment", " Johannesburg"]
+      "tags": [
+        "club-fitting",
+        "lessons",
+        "tall-golfer",
+        "slice",
+        "equipment",
+        " Johannesburg"
+      ]
     },
     {
       "id": "reddit-2026-03-26-3",
@@ -252,7 +367,13 @@
       "dateFound": "2026-03-26",
       "datePosted": null,
       "comment": "Back issues are part of golf unfortunately! Proper warm-up routine and swing technique adjustments help heaps. Also - equipment fit matters here. Wrong shaft length can cause you to overextend, putting stress on your back. Come get assessed - sometimes it's the clubs, not just the swing!",
-      "tags": ["injury", "back-pain", "equipment", "fitting", "health"]
+      "tags": [
+        "injury",
+        "back-pain",
+        "equipment",
+        "fitting",
+        "health"
+      ]
     },
     {
       "id": "reddit-2026-03-26-4",
@@ -264,7 +385,13 @@
       "dateFound": "2026-03-26",
       "datePosted": null,
       "comment": "SFT is more draw-biased which helps if you slice - sounds like you could use that! Come try both at Swing Shack and see which one fits your swing better.",
-      "tags": ["equipment", "3-wood", "ping", "club-fitting", "driver"]
+      "tags": [
+        "equipment",
+        "3-wood",
+        "ping",
+        "club-fitting",
+        "driver"
+      ]
     },
     {
       "id": "reddit-2026-03-25-11",
@@ -276,7 +403,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "This is exactly why putter fittings matter! Most golfers guess on the most-used club in their bag. Data doesn't replace feel - it explains why certain putts feel right. Swing Shack offers putter fittings - come see what your stroke is actually doing!",
-      "tags": ["putter-fitting", "club-fitting", "putting", "data", " Bettinardi"]
+      "tags": [
+        "putter-fitting",
+        "club-fitting",
+        "putting",
+        "data",
+        " Bettinardi"
+      ]
     },
     {
       "id": "reddit-2026-03-25-12",
@@ -288,7 +421,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Three years of lessons and still struggling is rough - we've seen this before. The issue might be equipment not matching your swing. A launch monitor session could identify if shaft flex, lie angle, or club head speed is working against you. Come get data on your swing!",
-      "tags": ["swing-help", "practice", "frustration", "lessons", "launch-monitor"]
+      "tags": [
+        "swing-help",
+        "practice",
+        "frustration",
+        "lessons",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-25-13",
@@ -300,7 +439,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Proximity matters, but the right tech and coaching make the difference! Swing Shack has TrackMan and experienced instructors - come try a session and see what sets us apart!",
-      "tags": ["indoor-golf", "facility", "simulator", " Johannesburg", "trackman"]
+      "tags": [
+        "indoor-golf",
+        "facility",
+        "simulator",
+        " Johannesburg",
+        "trackman"
+      ]
     },
     {
       "id": "reddit-2026-03-25-6",
@@ -312,7 +457,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "TGL is bringing simulator golf mainstream! Whether you're curious about launch monitors or want data-driven practice like the pros use, come see what all the fuss is about at Swing Shack!",
-      "tags": ["tgl", "simulator", "indoor-golf", "launch-monitor", "tom-kim"]
+      "tags": [
+        "tgl",
+        "simulator",
+        "indoor-golf",
+        "launch-monitor",
+        "tom-kim"
+      ]
     },
     {
       "id": "reddit-2026-03-25-7",
@@ -324,7 +475,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Great detailed review! For a beginner, the key insight is getting properly fit for YOUR specs (especially important at 6'7!). Swing Shack offers fittings with TrackMan - happy to give you a second opinion on the specs!",
-      "tags": ["club-fitting", "trackman", "beginner", "equipment", "club-champion"]
+      "tags": [
+        "club-fitting",
+        "trackman",
+        "beginner",
+        "equipment",
+        "club-champion"
+      ]
     },
     {
       "id": "reddit-2026-03-25-8",
@@ -336,7 +493,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Gatekeeping sucks, but don't let it stop you! The right equipment for YOUR game matters more than expensive gear. Swing Shack helps beginners find the right clubs at the right price - come get properly fit without the snobbery!",
-      "tags": ["beginner", "equipment", "gatekeeping", "club-fitting", " Johannesburg"]
+      "tags": [
+        "beginner",
+        "equipment",
+        "gatekeeping",
+        "club-fitting",
+        " Johannesburg"
+      ]
     },
     {
       "id": "reddit-2026-03-25-9",
@@ -348,7 +511,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Year of focused practice with data can make a huge difference! Structured practice with launch monitor feedback is the fastest way to improve - you'd be amazed at what gets unlocked when you can see your numbers. Come try TrackMan!",
-      "tags": ["practice", "improvement", "lessons", "year-off", "training"]
+      "tags": [
+        "practice",
+        "improvement",
+        "lessons",
+        "year-off",
+        "training"
+      ]
     },
     {
       "id": "reddit-2026-03-25-10",
@@ -360,7 +529,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Swing looks solid! For an 8-10 handicap with your speed, the key is consistency - launch monitor data helps identify small adjustments that make big differences. Swing Shack can help you dial it in!",
-      "tags": ["swing-critique", "driver", "speed", "consistency", "lessons"]
+      "tags": [
+        "swing-critique",
+        "driver",
+        "speed",
+        "consistency",
+        "lessons"
+      ]
     },
     {
       "id": "reddit-2026-03-25-1",
@@ -372,7 +547,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Altitude adjustments are a real pain point - and Johannesburg sits at ~1750m which makes a big difference! Come get fitted and we'll show you exactly how your distances change at altitude.",
-      "tags": ["club-selection", "altitude", "distance", "practice", " Johannesburg"]
+      "tags": [
+        "club-selection",
+        "altitude",
+        "distance",
+        "practice",
+        " Johannesburg"
+      ]
     },
     {
       "id": "reddit-2026-03-25-2",
@@ -384,19 +565,31 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "TGL is bringing simulator golf into the mainstream! If Tiger's indoor league has got you curious about launch monitors and data-driven practice, come see what all the fuss is about - we've got the same tech the pros use!",
-      "tags": ["tgl", "simulator", "indoor-golf", "launch-monitor", "trackman"]
+      "tags": [
+        "tgl",
+        "simulator",
+        "indoor-golf",
+        "launch-monitor",
+        "trackman"
+      ]
     },
     {
       "id": "reddit-2026-03-25-3",
       "url": "https://www.reddit.com/r/golf/comments/1s2po2i/68_with_a_strong_breeze_was_the_perfect_day_to/",
-      "title": "68° with a strong breeze - mats today",
+      "title": "68\u00b0 with a strong breeze - mats today",
       "subreddit": "r/golf",
       "status": "saved",
       "locationTag": "global",
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Golf mats can feel terrible after a while! Swing Shack has premium turf that feels closer to real grass, plus you get TrackMan data on every shot - way better than guessing on the range.",
-      "tags": ["practice", "mats", "turf", "indoor-golf", "equipment"]
+      "tags": [
+        "practice",
+        "mats",
+        "turf",
+        "indoor-golf",
+        "equipment"
+      ]
     },
     {
       "id": "reddit-2026-03-25-4",
@@ -408,7 +601,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "New season, new clubs? Before you buy, come get properly fitted - it's the single best investment you can make in your game. We use TrackMan to dial in your exact specs!",
-      "tags": ["witb", "equipment", "club-fitting", "spring", "upgrade"]
+      "tags": [
+        "witb",
+        "equipment",
+        "club-fitting",
+        "spring",
+        "upgrade"
+      ]
     },
     {
       "id": "reddit-2026-03-25-5",
@@ -420,7 +619,13 @@
       "dateFound": "2026-03-25",
       "datePosted": null,
       "comment": "Getting beginners or non-golfers involved? Swing Shack offers introductory sessions perfect for families or couples looking to try golf in a low-pressure environment with instant feedback!",
-      "tags": ["beginner", "family-golf", "mixed-groups", "intro", "lessons"]
+      "tags": [
+        "beginner",
+        "family-golf",
+        "mixed-groups",
+        "intro",
+        "lessons"
+      ]
     },
     {
       "id": "reddit-2026-03-24-1",
@@ -432,7 +637,12 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "This is SO common bro - the longer the club, the harder it is to replicate your iron swing. Getting fitted helps heaps because the right shaft profile can smooth out the transition between clubs.",
-      "tags": ["swing-consistency", "driver", "long-irons", "club-fitting"]
+      "tags": [
+        "swing-consistency",
+        "driver",
+        "long-irons",
+        "club-fitting"
+      ]
     },
     {
       "id": "reddit-2026-03-24-2",
@@ -444,7 +654,13 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "Distance control is where strokes are saved! Without it, you're leaving 7-10 shots out there every round. Indoor practice with immediate feedback is honestly the fastest way to build this - come try it out!",
-      "tags": ["distance-control", "wedges", "practice", "scoring", "swing-thought"]
+      "tags": [
+        "distance-control",
+        "wedges",
+        "practice",
+        "scoring",
+        "swing-thought"
+      ]
     },
     {
       "id": "reddit-2026-03-24-3",
@@ -456,7 +672,12 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "The grip is the most important single thing in the swing. Happy to help you find what works for YOUR grip style!",
-      "tags": ["grip", "swing-recovery", "lessons", "fundamentals"]
+      "tags": [
+        "grip",
+        "swing-recovery",
+        "lessons",
+        "fundamentals"
+      ]
     },
     {
       "id": "reddit-2026-03-24-4",
@@ -468,7 +689,12 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "With a swing speed of 100mph, the difference between a good shot and bad are matters of fractions of tenths of degrees. Simple grip adjustments can make a huge difference - come get fitted and we'll find your perfect grip!",
-      "tags": ["grip", "technique", "equipment", "face-angle"]
+      "tags": [
+        "grip",
+        "technique",
+        "equipment",
+        "face-angle"
+      ]
     },
     {
       "id": "reddit-2026-03-24-5",
@@ -480,7 +706,13 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "For reference I have gone through 4 different launch monitors. The difference between them was not that great, especially for a high handicap player. The club data was the deciding factor for me. We've got TrackMan at Swing Shack - come try before you buy!",
-      "tags": ["launch-monitor", "trackman", "gcquad", "comparison", "indoor-golf"]
+      "tags": [
+        "launch-monitor",
+        "trackman",
+        "gcquad",
+        "comparison",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-24-6",
@@ -492,7 +724,13 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "The most important thing about women's clubs is the lighter shaft flex which helps with slower swings (usually you'll see this as L-flex or ladies flex). We do women's fittings - come see us!",
-      "tags": ["women", "club-fitting", "beginner", "equipment", "ladies-flex"]
+      "tags": [
+        "women",
+        "club-fitting",
+        "beginner",
+        "equipment",
+        "ladies-flex"
+      ]
     },
     {
       "id": "reddit-2026-03-24-7",
@@ -504,7 +742,13 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "Practice with a purpose is everything! Using launch monitor data helps bridge the gap between range and course - you get instant feedback on what actually affects your ball flight. Come try our TrackMan sessions!",
-      "tags": ["practice", "improvement", "routine", "launch-monitor", "data"]
+      "tags": [
+        "practice",
+        "improvement",
+        "routine",
+        "launch-monitor",
+        "data"
+      ]
     },
     {
       "id": "reddit-2026-03-24-8",
@@ -516,7 +760,12 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "Ball fitting is underrated! The right ball for YOUR swing speed makes a massive difference around the greens. We can help you figure out what works best for your game.",
-      "tags": ["golf-balls", "equipment", "ball-fitting", "compression"]
+      "tags": [
+        "golf-balls",
+        "equipment",
+        "ball-fitting",
+        "compression"
+      ]
     },
     {
       "id": "reddit-2026-03-24-9",
@@ -528,7 +777,12 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "Apple Watch is decent for yardages but if you want serious swing analysis and data, a dedicated launch monitor is in a different league. Happy to show you the difference!",
-      "tags": ["technology", "smart-watch", "gadgets", "launch-monitor"]
+      "tags": [
+        "technology",
+        "smart-watch",
+        "gadgets",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-24-10",
@@ -540,7 +794,12 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "Congrats on the build! Need help with the next iteration? We've got experience with all types of setups - from basic nets to full custom builds.",
-      "tags": ["simulator", "home-build", "indoor-golf", "setup"]
+      "tags": [
+        "simulator",
+        "home-build",
+        "indoor-golf",
+        "setup"
+      ]
     },
     {
       "id": "reddit-2026-03-22-7",
@@ -552,7 +811,13 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "The premium is worth it if you want Tour-level accuracy and features. But for a +18 handicap, GCQuad is MORE than enough - it's used on Tour. Come try them both and see if you notice the difference!",
-      "tags": ["launch-monitor", "high-end", "trackman", "gcquad", "indoor-golf"]
+      "tags": [
+        "launch-monitor",
+        "high-end",
+        "trackman",
+        "gcquad",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-22-8",
@@ -564,7 +829,13 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Garmin R10 is your best bet under $1k for club path data. It's not perfect but gives you enough to work on that outside-in move. Happy to show you how to read the data!",
-      "tags": ["launch-monitor", "budget", "club-path", "garmin-r10", "indoor-golf"]
+      "tags": [
+        "launch-monitor",
+        "budget",
+        "club-path",
+        "garmin-r10",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-22-9",
@@ -576,7 +847,13 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Thin mats are tricky - you want something dense enough to not jar your joints but not too thick that it affects club interaction. We carry several options that balance both - come try them!",
-      "tags": ["golf-mat", "simulator", "rubber-mat", "indoor-golf", "setup"]
+      "tags": [
+        "golf-mat",
+        "simulator",
+        "rubber-mat",
+        "indoor-golf",
+        "setup"
+      ]
     },
     {
       "id": "reddit-2026-03-22-10",
@@ -588,7 +865,13 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Garage is cheaper and convenient, but dedicated space wins for year-round use. Insulation and HVAC are key either way. Need help planning dimensions? We've got experience with all types of setups!",
-      "tags": ["simulator-build", "garage-sim", "golf-shed", "indoor-golf", "planning"]
+      "tags": [
+        "simulator-build",
+        "garage-sim",
+        "golf-shed",
+        "indoor-golf",
+        "planning"
+      ]
     },
     {
       "id": "reddit-2026-03-22-11",
@@ -600,7 +883,12 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Hard-to-find specs can be a pain! We might have what you need or can order it in. Also - if you're replacing specific irons, might be worth getting fitted to make sure the new clubs match your existing set.",
-      "tags": ["equipment", "irons", "clubs", "replacement"]
+      "tags": [
+        "equipment",
+        "irons",
+        "clubs",
+        "replacement"
+      ]
     },
     {
       "id": "reddit-2026-03-22-12",
@@ -612,7 +900,12 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Apple Watch is decent for yardages but if you want serious swing analysis and data, a dedicated launch monitor is in a different league. Happy to show you the difference!",
-      "tags": ["technology", "smart-watch", "gadgets", "launch-monitor"]
+      "tags": [
+        "technology",
+        "smart-watch",
+        "gadgets",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-22-1",
@@ -624,7 +917,12 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Practice with a purpose is everything! Using launch monitor data helps bridge the gap between range and course - you get instant feedback on what actually affects your ball flight. Come try our TrackMan sessions!",
-      "tags": ["practice", "improvement", "routine", "launch-monitor"]
+      "tags": [
+        "practice",
+        "improvement",
+        "routine",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-22-2",
@@ -636,7 +934,12 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Distance control is where strokes are saved! Without it, you're leaving 7-10 shots out there every round. Indoor practice with immediate feedback is honestly the fastest way to build this - come try it out!",
-      "tags": ["distance-control", "wedges", "practice", "scoring"]
+      "tags": [
+        "distance-control",
+        "wedges",
+        "practice",
+        "scoring"
+      ]
     },
     {
       "id": "reddit-2026-03-22-3",
@@ -648,7 +951,12 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Ball fitting is underrated! The right ball for YOUR swing speed makes a massive difference around the greens. We can help you figure out what works best for your game.",
-      "tags": ["golf-balls", "equipment", "ball-fitting", "compression"]
+      "tags": [
+        "golf-balls",
+        "equipment",
+        "ball-fitting",
+        "compression"
+      ]
     },
     {
       "id": "reddit-2026-03-22-4",
@@ -660,7 +968,12 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Indoor practice setups are awesome for short game work! If you're serious about improving, come check out our short game area with real-time feedback - way better than guessing.",
-      "tags": ["putting", "short-game", "practice", "indoor-golf"]
+      "tags": [
+        "putting",
+        "short-game",
+        "practice",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-22-5",
@@ -672,7 +985,12 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Getting fitted before buying clubs can save you money in the long run! A proper fitting ensures you get clubs that match YOUR swing - way better than guessing at the shop.",
-      "tags": ["beginner", "equipment", "clubs", "fitting"]
+      "tags": [
+        "beginner",
+        "equipment",
+        "clubs",
+        "fitting"
+      ]
     },
     {
       "id": "reddit-2026-03-22-6",
@@ -684,7 +1002,12 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Foot stability definitely matters! Wrong footwear can affect your ground interaction and rotation. Happy to chat about what to look for - it's about more than just comfort!",
-      "tags": ["equipment", "shoes", "performance", "gear"]
+      "tags": [
+        "equipment",
+        "shoes",
+        "performance",
+        "gear"
+      ]
     },
     {
       "id": "reddit-2026-03-21-1",
@@ -696,7 +1019,12 @@
       "dateFound": "2026-03-21",
       "datePosted": null,
       "comment": "The slice is honestly one of the most common issues we see - and the good news is it's usually a simple fix once you know what to work on. Getting on a launch monitor to see your path and face angle at impact is game-changing for this.",
-      "tags": ["slice", "swing-fix", "lessons", "launch-monitor"]
+      "tags": [
+        "slice",
+        "swing-fix",
+        "lessons",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-21-2",
@@ -708,7 +1036,12 @@
       "dateFound": "2026-03-21",
       "datePosted": null,
       "comment": "This is SO common bro - the longer the club, the harder it is to replicate your iron swing. Getting fitted helps heaps because the right shaft profile can smooth out the transition between clubs.",
-      "tags": ["swing-consistency", "driver", "long-irons", "club-fitting"]
+      "tags": [
+        "swing-consistency",
+        "driver",
+        "long-irons",
+        "club-fitting"
+      ]
     },
     {
       "id": "reddit-2026-03-21-3",
@@ -720,7 +1053,12 @@
       "dateFound": "2026-03-21",
       "datePosted": null,
       "comment": "Distance control is where the strokes are saved! Without it, you're leaving 7-10 shots out there every round. Indoor practice with immediate feedback is honestly the fastest way to build this - come try it out!",
-      "tags": ["distance-control", "wedges", "practice", "indoor-golf"]
+      "tags": [
+        "distance-control",
+        "wedges",
+        "practice",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-21-4",
@@ -732,7 +1070,12 @@
       "dateFound": "2026-03-21",
       "datePosted": null,
       "comment": "We hear this all the time. The issue is usually that range practice doesn't replicate pressure. Indoor with a sim can help bridge that gap - you get instant data on each shot which helps translate to the course.",
-      "tags": ["driving-range", "course-performance", "practice", "indoor-golf"]
+      "tags": [
+        "driving-range",
+        "course-performance",
+        "practice",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-21-5",
@@ -744,7 +1087,11 @@
       "dateFound": "2026-03-21",
       "datePosted": null,
       "comment": "SupperSpeed and Smart Ball are legit - they work IF you're consistent. The Smart Ball is great for feels, especially if your arms and body are disconnecting. Happy to show you how to use them properly!",
-      "tags": ["training-aids", "overspeed", "practice-tools"]
+      "tags": [
+        "training-aids",
+        "overspeed",
+        "practice-tools"
+      ]
     },
     {
       "id": "reddit-2026-03-21-6",
@@ -756,7 +1103,11 @@
       "dateFound": "2026-03-21",
       "datePosted": null,
       "comment": "Ball fitting is underrated! The right ball for YOUR swing speed makes a massive difference around the greens. We can help you figure out what works best for your game.",
-      "tags": ["golf-balls", "equipment", "ball-fitting"]
+      "tags": [
+        "golf-balls",
+        "equipment",
+        "ball-fitting"
+      ]
     },
     {
       "id": "reddit-2026-03-21-7",
@@ -768,7 +1119,12 @@
       "dateFound": "2026-03-21",
       "datePosted": null,
       "comment": "SC4 Pro and Garmin R10 are your best bets at that budget. Swing Shack has options at various price points - let us know your goals and we can help you find the right fit!",
-      "tags": ["launch-monitor", "budget", "equipment", "indoor-golf"]
+      "tags": [
+        "launch-monitor",
+        "budget",
+        "equipment",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-21-8",
@@ -780,7 +1136,12 @@
       "dateFound": "2026-03-21",
       "datePosted": null,
       "comment": "Great time to be in the market for a launch monitor! New options like Square Omni are putting downward pressure on pricing. Come try before you buy - we've got TrackMan and other top units to test!",
-      "tags": ["launch-monitor", "pga-show", "new-products", "indoor-golf"]
+      "tags": [
+        "launch-monitor",
+        "pga-show",
+        "new-products",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-20-1",
@@ -792,7 +1153,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "Ballooning in wind usually means too much spin or too high launch. A launch monitor session would help identify exact numbers - we can then adjust club specs or swing technique to optimize trajectory.",
-      "tags": ["ball-flight", "wind", "spin", "launch-monitor"]
+      "tags": [
+        "ball-flight",
+        "wind",
+        "spin",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-20-2",
@@ -804,7 +1170,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "This is super common - the longer the club, the harder it is to replicate your iron swing. Getting fitted helps heaps because the right shaft profile can smooth out the transition between clubs.",
-      "tags": ["swing-consistency", "driver", "long-irons", "club-fitting"]
+      "tags": [
+        "swing-consistency",
+        "driver",
+        "long-irons",
+        "club-fitting"
+      ]
     },
     {
       "id": "reddit-2026-03-20-3",
@@ -816,7 +1187,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "Could be shaft length, lie angle, or swing speed mismatch. Would recommend getting on a launch monitor to see what's actually happening at impact. Sometimes it's a simple spec adjustment!",
-      "tags": ["equipment", "mid-irons", "club-fitting", "launch-monitor"]
+      "tags": [
+        "equipment",
+        "mid-irons",
+        "club-fitting",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-20-4",
@@ -828,7 +1204,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "A fitting helps you find clubs that match your swing speed, launch angle, and ball flight. At Swing Shack, we use launch monitor data to dial in your exact specs - way more accurate than guessing! Happy to answer any questions about what to expect.",
-      "tags": ["club-fitting", "beginner", "launch-monitor", "education"]
+      "tags": [
+        "club-fitting",
+        "beginner",
+        "launch-monitor",
+        "education"
+      ]
     },
     {
       "id": "reddit-2026-03-20-5",
@@ -840,7 +1221,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "New head can feel completely different even with the same shaft. Might need shaft adjustments or swing weight tweaks. Come try it on our TrackMan - we can often dial it in with shaft swaps or head weighting.",
-      "tags": ["equipment", "driver", "fitting", "customization"]
+      "tags": [
+        "equipment",
+        "driver",
+        "fitting",
+        "customization"
+      ]
     },
     {
       "id": "reddit-2026-03-20-6",
@@ -852,7 +1238,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "Height definitely requires longer shafts (+1\" to +1.5\") but also affects flex and swing weight. A proper fitting with launch monitor is crucial for tall guys - standard off-the-rack clubs are killing your consistency!",
-      "tags": ["club-fitting", "tall-golfer", "customshafts", "equipment"]
+      "tags": [
+        "club-fitting",
+        "tall-golfer",
+        "customshafts",
+        "equipment"
+      ]
     },
     {
       "id": "reddit-2026-03-20-7",
@@ -864,7 +1255,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "At that budget, you're looking at radar-based units like the PRGR or swing speed trainers. For accurate ball data (launch angle, spin, etc.), you'd want to save up for a photometric unit. Swing Shack has options at various price points - let us know your goals!",
-      "tags": ["launch-monitor", "budget", "indoor-golf", "equipment"]
+      "tags": [
+        "launch-monitor",
+        "budget",
+        "indoor-golf",
+        "equipment"
+      ]
     },
     {
       "id": "reddit-2026-03-20-8",
@@ -876,7 +1272,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "What are you trying to achieve with your setup? If it's just practice, a launch monitor like SkyTrak or Mevo+ works great. Full sim needs more investment. Tell us your goals and budget!",
-      "tags": ["simulator", "indoor-golf", "setup", "beginner"]
+      "tags": [
+        "simulator",
+        "indoor-golf",
+        "setup",
+        "beginner"
+      ]
     },
     {
       "id": "reddit-2026-03-20-9",
@@ -888,7 +1289,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "You don't need a full sim setup for short game work - even a basic launch monitor or just a net with a camera can help. But if you're serious, come by and try our short game area - way better than trying to diagnose issues yourself!",
-      "tags": ["short-game", "simulator", "practice", "indoor-golf"]
+      "tags": [
+        "short-game",
+        "simulator",
+        "practice",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-20-10",
@@ -900,7 +1306,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "Divot pattern tells a story! If you're coming over the top, the divot will point left. A launch monitor session can pinpoint exactly what's happening - we see this all the time at Swing Shack and it's usually a simple swing adjustment.",
-      "tags": ["divot", "practice", "swing-analysis", "launch-monitor"]
+      "tags": [
+        "divot",
+        "practice",
+        "swing-analysis",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-20-11",
@@ -912,7 +1323,12 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "Mix-and-match sets are totally normal! However, inconsistent shaft profiles across clubs can affect consistency. We'd be happy to take a look at your setup - sometimes a unified shaft system makes a bigger difference than you'd think.",
-      "tags": ["witb", "equipment", "clubs", "fitting"]
+      "tags": [
+        "witb",
+        "equipment",
+        "clubs",
+        "fitting"
+      ]
     },
     {
       "id": "reddit-2026-03-20-12",
@@ -924,19 +1340,29 @@
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "Golf is HARD - that frustration is normal! But sometimes equipment is working against you. Wrong shaft flex, incorrect loft, or poor fit can make good swings feel terrible. A fitting might change your perspective - it's not just for pros!",
-      "tags": ["frustration", "golf-struggles", "equipment", "fitting"]
+      "tags": [
+        "frustration",
+        "golf-struggles",
+        "equipment",
+        "fitting"
+      ]
     },
     {
       "id": "reddit-2026-03-20-13",
       "url": "https://www.reddit.com/r/golf/comments/1ryhezi/im_attempting_the_dan_plan_in_2026_600_hours_in/",
-      "title": "I attempted The Dan Plan in 2026 — 600+ hours in",
+      "title": "I attempted The Dan Plan in 2026 \u2014 600+ hours in",
       "subreddit": "r/golf",
       "status": "saved",
       "locationTag": "global",
       "dateFound": "2026-03-20",
       "datePosted": null,
       "comment": "Incredible dedication! If you're investing that much time, having data to guide your practice is huge. Launch monitor sessions help you practice with purpose rather than just grinding on the range. Would love to help you optimize those 600+ hours!",
-      "tags": ["dan-plan", "practice", "training", "data"]
+      "tags": [
+        "dan-plan",
+        "practice",
+        "training",
+        "data"
+      ]
     },
     {
       "id": "reddit-2026-03-22-13",
@@ -948,7 +1374,11 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "Grip choice depends on your hand size and sweat pattern! For sweaty hands, textured grips like Golf Pride MCC or Lamkin Crossline. For bigger hands, thicker wraps. Swing Shack has all the top brands in stock - come try a few!",
-      "tags": ["grips", "equipment", "regrip"]
+      "tags": [
+        "grips",
+        "equipment",
+        "regrip"
+      ]
     },
     {
       "id": "reddit-2026-03-22-14",
@@ -960,7 +1390,12 @@
       "dateFound": "2026-03-22",
       "datePosted": null,
       "comment": "We use bungee cords and.net systems for this - there are some good DIY options out there. Swing Shack can help you set up a proper system!",
-      "tags": ["simulator", "impact-screen", "setup", "balls"]
+      "tags": [
+        "simulator",
+        "impact-screen",
+        "setup",
+        "balls"
+      ]
     },
     {
       "id": "reddit-2026-03-24-11",
@@ -972,7 +1407,13 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "Indoor tech for putting is great! We have similar stroke analysis tech at Swing Shack - come try it with real-time feedback!",
-      "tags": ["putting", "strokes-gained", "app", "practice", "indoor-golf"]
+      "tags": [
+        "putting",
+        "strokes-gained",
+        "app",
+        "practice",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-24-12",
@@ -984,7 +1425,13 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "If you're looking for a launch monitor, come try ours first! We have TrackMan and other top units so you can compare before buying - way better than guessing!",
-      "tags": ["launch-monitor", "square", "pricing", "indoor-golf", "buying"]
+      "tags": [
+        "launch-monitor",
+        "square",
+        "pricing",
+        "indoor-golf",
+        "buying"
+      ]
     },
     {
       "id": "reddit-2026-03-24-13",
@@ -996,7 +1443,13 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "Great deals on launch monitors! If you're looking to upgrade or try before you buy, we have options at various price points. Come test them out!",
-      "tags": ["deals", "launch-monitor", "simulator", "indoor-golf", "equipment"]
+      "tags": [
+        "deals",
+        "launch-monitor",
+        "simulator",
+        "indoor-golf",
+        "equipment"
+      ]
     },
     {
       "id": "reddit-2026-03-24-14",
@@ -1008,7 +1461,14 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "With 8.5-9ft ceiling, you're mainly hitting irons/wedges - both handle that fine. R50 is more established with better software ecosystem, but Eye Mini is newer. Come try both at Swing Shack before you commit!",
-      "tags": ["launch-monitor", "skytrak", "eye-mini", "comparison", "indoor-golf", "ceiling-height"]
+      "tags": [
+        "launch-monitor",
+        "skytrak",
+        "eye-mini",
+        "comparison",
+        "indoor-golf",
+        "ceiling-height"
+      ]
     },
     {
       "id": "reddit-2026-03-24-15",
@@ -1020,7 +1480,13 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "GSPro is graphics-heavy - that 2012 PC is ancient for sim software! You can turn down settings but honestly for a smooth experience you'd want something from the last 5 years. We'd recommend a dedicated sim PC if you're serious about it.",
-      "tags": ["pc", "gspro", "graphics", "simulator", "hardware"]
+      "tags": [
+        "pc",
+        "gspro",
+        "graphics",
+        "simulator",
+        "hardware"
+      ]
     },
     {
       "id": "reddit-2026-03-24-16",
@@ -1032,7 +1498,14 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "Great progress! For the turf/foam question - you'd want something with give to protect joints but enough grip for consistent contact. Swing Shack can help you source the right combo! Also, that garage door issue is common - maybe look at a lower ceiling mount or adjust your hitting zone.",
-      "tags": ["simulator-build", "garage-sim", "turf", "foam", "lighting", "setup"]
+      "tags": [
+        "simulator-build",
+        "garage-sim",
+        "turf",
+        "foam",
+        "lighting",
+        "setup"
+      ]
     },
     {
       "id": "reddit-2026-03-24-17",
@@ -1044,7 +1517,13 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "Most groups just use spreadsheet templates or WhatsApp groups. If you want something more integrated, some sim software has betting features built in. Come try our sim - we can show you options!",
-      "tags": ["betting", "app", "golf-games", "simulator", "tracking"]
+      "tags": [
+        "betting",
+        "app",
+        "golf-games",
+        "simulator",
+        "tracking"
+      ]
     },
     {
       "id": "reddit-2026-03-24-18",
@@ -1056,19 +1535,31 @@
       "dateFound": "2026-03-24",
       "datePosted": null,
       "comment": "TGL is great for off-season golf fix! If you're into the tech side of modern golf, come check out our indoor setup - we've got launch monitors similar to what the pros use.",
-      "tags": ["tgl", "tiger-woods", "indoor-golf", "tech", "simulation"]
+      "tags": [
+        "tgl",
+        "tiger-woods",
+        "indoor-golf",
+        "tech",
+        "simulation"
+      ]
     },
     {
       "id": "reddit-2026-03-24-19",
       "url": "https://www.reddit.com/r/golf/comments/1s2hxd8/30_handicapper_did_this_to_me_off_the_tee/",
-      "title": "30 handicapper did this to me off the tee 😂",
+      "title": "30 handicapper did this to me off the tee \ud83d\ude02",
       "subreddit": "r/golf",
       "status": "new",
       "locationTag": "global",
       "dateFound": "2026-03-24",
       "datePosted": null,
-      "comment": "This is why we love golf 😂 The gap between course play and handicap is real. Indoor practice with data helps bridge that - come see us!",
-      "tags": ["humor", "handicap", "course-play", "practice", "indoor-golf"]
+      "comment": "This is why we love golf \ud83d\ude02 The gap between course play and handicap is real. Indoor practice with data helps bridge that - come see us!",
+      "tags": [
+        "humor",
+        "handicap",
+        "course-play",
+        "practice",
+        "indoor-golf"
+      ]
     },
     {
       "id": "reddit-2026-03-28-1",
@@ -1080,7 +1571,13 @@
       "dateFound": "2026-03-28",
       "datePosted": null,
       "comment": "Classic problem - fix one thing and create another! The slice-to-hook pendulum is SO common. A launch monitor session would show you exactly what's happening with your path and face angle at impact. Sometimes the fix isn't intuitive at all - come get data on YOUR swing!",
-      "tags": ["slice", "hook", "swing-fix", "launch-monitor", "technique"]
+      "tags": [
+        "slice",
+        "hook",
+        "swing-fix",
+        "launch-monitor",
+        "technique"
+      ]
     },
     {
       "id": "reddit-2026-03-28-2",
@@ -1092,7 +1589,13 @@
       "dateFound": "2026-03-28",
       "datePosted": null,
       "comment": "If a home launch monitor makes you excited to practice and therefore practice more, then it's worth the purchase. But honestly? Come try ours first - no investment needed, just swing and see the data. Way better than dropping R10k+ before you know if it's for you.",
-      "tags": ["launch-monitor", "high-handicapper", "budget", "practice", "beginner"]
+      "tags": [
+        "launch-monitor",
+        "high-handicapper",
+        "budget",
+        "practice",
+        "beginner"
+      ]
     },
     {
       "id": "reddit-2026-03-28-3",
@@ -1104,7 +1607,13 @@
       "dateFound": "2026-03-28",
       "datePosted": null,
       "comment": "Absolutely nothing wrong with getting lessons indoors - GolfTEC built an entire chain on it! Would pay extra to go to the simulator because it shows you your club data. Swing Shack has TrackMan + coaching - exactly what these discussions are looking for.",
-      "tags": ["lessons", "simulator", "launch-monitor", "data", "coaching"]
+      "tags": [
+        "lessons",
+        "simulator",
+        "launch-monitor",
+        "data",
+        "coaching"
+      ]
     },
     {
       "id": "reddit-2026-03-28-4",
@@ -1116,7 +1625,14 @@
       "dateFound": "2026-03-28",
       "datePosted": null,
       "comment": "Five Iron does a $99 swing evaluation which ended up being a mini lesson - helpful to see the bigger red flags. Low-commitment entry point works! We offer similar evaluations at Swing Shack - come see what YOUR data shows.",
-      "tags": ["lessons", "women", "beginner", "evaluation", "indoor-golf", "simulator"]
+      "tags": [
+        "lessons",
+        "women",
+        "beginner",
+        "evaluation",
+        "indoor-golf",
+        "simulator"
+      ]
     },
     {
       "id": "reddit-2026-03-28-5",
@@ -1127,8 +1643,14 @@
       "locationTag": "global",
       "dateFound": "2026-03-28",
       "datePosted": null,
-      "comment": "Technical discussion on ideal launch numbers - a well struck 8 iron launches around 20° with 7500 backspin. Golfers want to understand data but need guidance translating numbers to their game. Swing Shack can be your 'data translator' - helping you understand what the numbers actually mean!",
-      "tags": ["launch-monitor", "data", "practice", "spin", "launch-angle"]
+      "comment": "Technical discussion on ideal launch numbers - a well struck 8 iron launches around 20\u00b0 with 7500 backspin. Golfers want to understand data but need guidance translating numbers to their game. Swing Shack can be your 'data translator' - helping you understand what the numbers actually mean!",
+      "tags": [
+        "launch-monitor",
+        "data",
+        "practice",
+        "spin",
+        "launch-angle"
+      ]
     },
     {
       "id": "reddit-2026-03-29-1",
@@ -1140,7 +1662,13 @@
       "dateFound": "2026-03-29",
       "datePosted": null,
       "comment": "Golfer shooting ~90 wants to upgrade gear this winter after progress. This is the perfect customer - they put in the work, now want proper equipment. Our angle: get fitted BEFORE buying new clubs ensures your upgrade actually makes you better, not just newer.",
-      "tags": ["equipment", "bag", "upgrade", "fitting", "beginner"]
+      "tags": [
+        "equipment",
+        "bag",
+        "upgrade",
+        "fitting",
+        "beginner"
+      ]
     },
     {
       "id": "reddit-2026-03-29-2",
@@ -1152,7 +1680,13 @@
       "dateFound": "2026-03-29",
       "datePosted": null,
       "comment": "Detailed breakdown of a proper club fitting - 5 hour session, lofts/lies adjusted, shaft upgrades. This validates what we offer: data-driven fitting with TrackMan to optimize your entire bag. Come get the same level of insight!",
-      "tags": ["club-fitting", "trackman", "custom", "club-champion", "experience"]
+      "tags": [
+        "club-fitting",
+        "trackman",
+        "custom",
+        "club-champion",
+        "experience"
+      ]
     },
     {
       "id": "reddit-2026-03-29-3",
@@ -1164,7 +1698,13 @@
       "dateFound": "2026-03-29",
       "datePosted": null,
       "comment": "Classic problem - fix one thing and create another! The slice-to-hook pendulum is SO common. A launch monitor session shows exactly what's happening with path and face angle at impact. Sometimes the fix isn't intuitive at all - come get data on YOUR swing!",
-      "tags": ["slice", "hook", "swing-fix", "launch-monitor", "technique"]
+      "tags": [
+        "slice",
+        "hook",
+        "swing-fix",
+        "launch-monitor",
+        "technique"
+      ]
     },
     {
       "id": "reddit-2026-03-29-4",
@@ -1176,7 +1716,13 @@
       "dateFound": "2026-03-29",
       "datePosted": null,
       "comment": "TGL viewership frustration - people want to watch but can't find the channel. This is driving curiosity in indoor golf tech. If TGL has got you interested in launch monitors and data-driven practice, come see what the fuss is about atSwing Shack!",
-      "tags": ["tgl", "indoor-golf", "simulator", "viewership", "tech"]
+      "tags": [
+        "tgl",
+        "indoor-golf",
+        "simulator",
+        "viewership",
+        "tech"
+      ]
     },
     {
       "id": "reddit-2026-03-30-7",
@@ -1188,7 +1734,13 @@
       "dateFound": "2026-03-30",
       "datePosted": null,
       "comment": "Real fitter insight - this is exactly what Swing Shack offers! Our fitting process shows you what's actually happening with YOUR swing - the numbers don't lie. Come get data-driven fitting from people who actually understand the equipment.",
-      "tags": ["club-fitting", "ama", "professional", "trackman", "data"]
+      "tags": [
+        "club-fitting",
+        "ama",
+        "professional",
+        "trackman",
+        "data"
+      ]
     },
     {
       "id": "reddit-2026-03-30-8",
@@ -1200,7 +1752,12 @@
       "dateFound": "2026-03-30",
       "datePosted": null,
       "comment": "Gear upgrade season - Ping Hoofer, Titleist Players, Vessel all recommendations. Before buying new gear, come get properly fitted so your new bag actually makes sense for YOUR game!",
-      "tags": ["equipment", "bag", "recommendations", "upgrade"]
+      "tags": [
+        "equipment",
+        "bag",
+        "recommendations",
+        "upgrade"
+      ]
     },
     {
       "id": "reddit-2026-03-30-1",
@@ -1211,8 +1768,14 @@
       "locationTag": "global",
       "dateFound": "2026-03-30",
       "datePosted": null,
-      "comment": "Impact-focused drills like punch shots (9-to-3), feet together, and divot boards with foot spray give instant feedback. That's exactly what we do at Swing Shack — real-time data showing you what actually happens at impact, not what it feels like. The gap between feel and real is where most amateurs get stuck.",
-      "tags": ["impact-training", "swing-mechanics", "drills", "practice", "strike-quality"]
+      "comment": "Impact-focused drills like punch shots (9-to-3), feet together, and divot boards with foot spray give instant feedback. That's exactly what we do at Swing Shack \u2014 real-time data showing you what actually happens at impact, not what it feels like. The gap between feel and real is where most amateurs get stuck.",
+      "tags": [
+        "impact-training",
+        "swing-mechanics",
+        "drills",
+        "practice",
+        "strike-quality"
+      ]
     },
     {
       "id": "reddit-2026-03-30-2",
@@ -1223,8 +1786,14 @@
       "locationTag": "global",
       "dateFound": "2026-03-30",
       "datePosted": null,
-      "comment": "Here's the thing — the debate isn't whether fittings work, it's about timing. If you're a total beginner with an inconsistent swing, a basic static fit (length, lie) is free and prevents bad habits. Save the full TrackMan fitting for when you've got 6 months of consistent practice under your belt. We're happy to give you that baseline assessment first.",
-      "tags": ["club-fitting", "beginners", "advice", "confusion", "timing"]
+      "comment": "Here's the thing \u2014 the debate isn't whether fittings work, it's about timing. If you're a total beginner with an inconsistent swing, a basic static fit (length, lie) is free and prevents bad habits. Save the full TrackMan fitting for when you've got 6 months of consistent practice under your belt. We're happy to give you that baseline assessment first.",
+      "tags": [
+        "club-fitting",
+        "beginners",
+        "advice",
+        "confusion",
+        "timing"
+      ]
     },
     {
       "id": "reddit-2026-03-30-3",
@@ -1235,8 +1804,13 @@
       "locationTag": "global",
       "dateFound": "2026-03-30",
       "datePosted": null,
-      "comment": "Don't stress it — a proper fitting is just hitting shots with different clubs while we measure your launch numbers. It's not a sales pitch if the fitter's any good. At Swing Shack, we'll tell you if what you're currently playing works fine. You only upgrade if the data shows a clear benefit. Budget about 90 minutes and wear something you can move in.",
-      "tags": ["fitting-first-time", "beginners", "nerves", "what-to-expect"]
+      "comment": "Don't stress it \u2014 a proper fitting is just hitting shots with different clubs while we measure your launch numbers. It's not a sales pitch if the fitter's any good. At Swing Shack, we'll tell you if what you're currently playing works fine. You only upgrade if the data shows a clear benefit. Budget about 90 minutes and wear something you can move in.",
+      "tags": [
+        "fitting-first-time",
+        "beginners",
+        "nerves",
+        "what-to-expect"
+      ]
     },
     {
       "id": "reddit-2026-03-30-4",
@@ -1247,8 +1821,14 @@
       "locationTag": "global",
       "dateFound": "2026-03-30",
       "datePosted": null,
-      "comment": "AI can spot patterns but it can't feel what your body is doing. Launch monitor data is the middle ground — objective numbers without the bias of 'this is how I think I'm swinging.' Come get your numbers and we'll help you translate what they actually mean for your game.",
-      "tags": ["ai-analysis", "swing-critique", "tech", "coaching", "launch-monitor"]
+      "comment": "AI can spot patterns but it can't feel what your body is doing. Launch monitor data is the middle ground \u2014 objective numbers without the bias of 'this is how I think I'm swinging.' Come get your numbers and we'll help you translate what they actually mean for your game.",
+      "tags": [
+        "ai-analysis",
+        "swing-critique",
+        "tech",
+        "coaching",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-30-5",
@@ -1259,8 +1839,15 @@
       "locationTag": "global",
       "dateFound": "2026-03-30",
       "datePosted": null,
-      "comment": "For indoor use in South Africa where you're likely working with a garage or dedicated room, GCQuad or TrackMan IO are the gold standard. But if you're just starting out and want to test before investing, come try ours first — no commitment needed, just swings and data.",
-      "tags": ["launch-monitor", "indoor-golf", "simulator", "recommendations", "gcquad", "trackman"]
+      "comment": "For indoor use in South Africa where you're likely working with a garage or dedicated room, GCQuad or TrackMan IO are the gold standard. But if you're just starting out and want to test before investing, come try ours first \u2014 no commitment needed, just swings and data.",
+      "tags": [
+        "launch-monitor",
+        "indoor-golf",
+        "simulator",
+        "recommendations",
+        "gcquad",
+        "trackman"
+      ]
     },
     {
       "id": "reddit-2026-03-30-6",
@@ -1271,8 +1858,14 @@
       "locationTag": "global",
       "dateFound": "2026-03-30",
       "datePosted": null,
-      "comment": "Asking others what clubs you should buy is a bad starting point. If your swing is decently consistent and you can make solid contact, get fitted for irons first — that way you're buying what actually works for YOUR game, not what some stranger on the internet recommends.",
-      "tags": ["equipment", "clubs", "recommendation", "beginner", "fitting"]
+      "comment": "Asking others what clubs you should buy is a bad starting point. If your swing is decently consistent and you can make solid contact, get fitted for irons first \u2014 that way you're buying what actually works for YOUR game, not what some stranger on the internet recommends.",
+      "tags": [
+        "equipment",
+        "clubs",
+        "recommendation",
+        "beginner",
+        "fitting"
+      ]
     },
     {
       "id": "reddit-2026-03-31-1",
@@ -1284,7 +1877,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "This is gold - a real fitter doing an AMA. Shows what proper fitting looks like and validates the need for data-driven club selection. Swing Shack offers the same TrackMan-backed fitting experience - come see what the pros actually look for!",
-      "tags": ["club-fitting", "ama", "professional", "trackman", "data"]
+      "tags": [
+        "club-fitting",
+        "ama",
+        "professional",
+        "trackman",
+        "data"
+      ]
     },
     {
       "id": "reddit-2026-03-31-2",
@@ -1296,7 +1895,12 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "First-timers are nervous but don't be - it's just hitting shots while we measure your numbers. We'll tell you if your current clubs work fine. Only upgrade if the data shows clear benefit. Wear something you can move in and budget about 90 minutes. Same as we'd do at Swing Shack!",
-      "tags": ["fitting-first-time", "beginners", "nerves", "what-to-expect"]
+      "tags": [
+        "fitting-first-time",
+        "beginners",
+        "nerves",
+        "what-to-expect"
+      ]
     },
     {
       "id": "reddit-2026-03-31-3",
@@ -1308,7 +1912,12 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "This is exactly why putter fittings matter! Most golfers guess on the most-used club in their bag. Data doesn't replace feel - it explains why certain putts feel right. Swing Shack offers putter fittings - come see what your stroke is actually doing!",
-      "tags": ["putter-fitting", "club-fitting", "putting", "data"]
+      "tags": [
+        "putter-fitting",
+        "club-fitting",
+        "putting",
+        "data"
+      ]
     },
     {
       "id": "reddit-2026-03-31-4",
@@ -1320,7 +1929,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "Impact-focused drills like punch shots, feet together, and divot boards give instant feedback. That's exactly what we do at Swing Shack - real-time data showing you what happens at impact, not what it feels like. The gap between feel and real is where most amateurs get stuck.",
-      "tags": ["impact-training", "swing-mechanics", "drills", "practice", "strike-quality"]
+      "tags": [
+        "impact-training",
+        "swing-mechanics",
+        "drills",
+        "practice",
+        "strike-quality"
+      ]
     },
     {
       "id": "reddit-2026-03-31-5",
@@ -1332,7 +1947,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "This community needs each other! For 20+ handicappers, the advice is: find your current weakest point and only work on that. Stay confident in your move and get long irons playable, or at least a one-way miss. Consistency beats power at this stage - we'd love to help you with data-driven practice!",
-      "tags": ["high-handicap", "community", "practice", "advice", "improvement"]
+      "tags": [
+        "high-handicap",
+        "community",
+        "practice",
+        "advice",
+        "improvement"
+      ]
     },
     {
       "id": "reddit-2026-03-31-6",
@@ -1344,7 +1965,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "Women's clubs come down to the right shaft flex - lighter L-flex helps with slower swings. This is exactly what we do at fittings - matching equipment to YOUR swing speed, not generic recommendations. We do women's fittings - come see us!",
-      "tags": ["women", "club-fitting", "beginner", "equipment", "ladies-flex"]
+      "tags": [
+        "women",
+        "club-fitting",
+        "beginner",
+        "equipment",
+        "ladies-flex"
+      ]
     },
     {
       "id": "reddit-2026-03-31-7",
@@ -1356,7 +1983,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "Stuck at 105-110 for 6 months? That's frustrating but normal. The gap between range and course is real - indoor practice with immediate data feedback helps bridge that. Swing Shack can help you identify what's actually costing you strokes!",
-      "tags": ["beginner", "breaking-100", "practice", "frustration", "improvement"]
+      "tags": [
+        "beginner",
+        "breaking-100",
+        "practice",
+        "frustration",
+        "improvement"
+      ]
     },
     {
       "id": "reddit-2026-03-31-8",
@@ -1368,7 +2001,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "Winter golfers totally get the sim itch! That's exactly why places like Swing Shack exist - year-round practice without weather worries. If you're serious about improving, a dedicated facility beats a $500/month apartment amenity. Come check us out!",
-      "tags": ["indoor-golf", "winter-golf", "simulator", "apartment", "climate"]
+      "tags": [
+        "indoor-golf",
+        "winter-golf",
+        "simulator",
+        "apartment",
+        "climate"
+      ]
     },
     {
       "id": "reddit-2026-03-31-9",
@@ -1380,7 +2019,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "Building piece by piece is a smart approach! Key decisions: projector brightness (get at least 3500 lumens), hitting mat quality, and your launch monitor choice. Swing Shack can help you plan the right setup - happy to give advice!",
-      "tags": ["simulator-build", "garage", "planning", "diy", "budget"]
+      "tags": [
+        "simulator-build",
+        "garage",
+        "planning",
+        "diy",
+        "budget"
+      ]
     },
     {
       "id": "reddit-2026-03-31-10",
@@ -1392,7 +2037,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "Buying used launch monitors is tricky - you want to verify it's not stolen and still has valid software support. Better path: come try ours first with no commitment! We have TrackMan and can help you find the right unit for your situation.",
-      "tags": ["trackman", "used-gear", "buying", "caution", "launch-monitor"]
+      "tags": [
+        "trackman",
+        "used-gear",
+        "buying",
+        "caution",
+        "launch-monitor"
+      ]
     },
     {
       "id": "reddit-2026-03-31-11",
@@ -1404,7 +2055,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "Looking for a launch monitor that sits beside the mat vs behind it? That's a common setup challenge. Swing Shack can help you find the right solution for your space - we have options that work for various setups!",
-      "tags": ["launch-monitor", "outdoor-setup", "slope-issue", "indoor-golf", "equipment"]
+      "tags": [
+        "launch-monitor",
+        "outdoor-setup",
+        "slope-issue",
+        "indoor-golf",
+        "equipment"
+      ]
     },
     {
       "id": "reddit-2026-03-31-12",
@@ -1416,7 +2073,13 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "Great question! For your situation, a putter fitting makes tons of sense - 3-putting is often due to alignment or stroke path issues a fitter can identify. Swing Shack offers putter fittings - let's get that stroke dialed in!",
-      "tags": ["putter-fitting", "putting", "3-putt", "free-fitting", "improvement"]
+      "tags": [
+        "putter-fitting",
+        "putting",
+        "3-putt",
+        "free-fitting",
+        "improvement"
+      ]
     },
     {
       "id": "reddit-2026-03-31-13",
@@ -1428,7 +2091,121 @@
       "dateFound": "2026-03-31",
       "datePosted": null,
       "comment": "You're thinking exactly right! A fitting before buying clubs prevents wasted money on wrong specs. At your level, it's especially valuable because you can get data on what actually works for YOUR swing. Come get fitted first!",
-      "tags": ["club-fitting", "beginner", "equipment", "upgrade", "advice"]
+      "tags": [
+        "club-fitting",
+        "beginner",
+        "equipment",
+        "upgrade",
+        "advice"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-01-1",
+      "url": "https://www.reddit.com/r/golf/comments/1s98qew/golf_club_fitting/",
+      "title": "Golf club fitting",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "6'5 former athlete in South Florida looking for proper club fitting - this is exactly our jam. Tall guys need serious length adjustments and proper shaft profiles. Come get fitted properly!",
+      "tags": [
+        "club-fitting",
+        "tall-golfer",
+        "equipment",
+        "upgrade",
+        "custom"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-01-2",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s98ksz/is_the_skytrack_2023_worth_it_in_2026/",
+      "title": "Is the skytrack+ (2023) worth it in 2026?",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "Budget buyer looking at 3-year-old SkyTrack for 300 bucks. Here's the thing - before you buy used tech with unknown history, come try ours first. No investment needed, just swings and data.",
+      "tags": [
+        "launch-monitor",
+        "budget",
+        "used-gear",
+        "indoor-golf",
+        "simulator"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-01-3",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s96x2j/cannot_seem_to_play_decent_real_golf/",
+      "title": "Cannot seem to play decent real golf.....",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "Classic sim-to-course gap - hitting thin after months on mat. This is WHY we exist! The feedback loop between real turf and mats is different. Let us help you translate sim skills to the course.",
+      "tags": [
+        "simulator",
+        "course-play",
+        "gap",
+        "practice",
+        "indoor-golf"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-01-4",
+      "url": "https://www.reddit.com/r/golf/comments/1s983n4/handicap_is_up_15_strokes_since_last_fall_please/",
+      "title": "Handicap is up 1.5 strokes since last fall please help me end the suffering",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "Handicap going the wrong direction is frustrating as hell. Has video - we can actually analyze what's changing. Data-driven practice helps identify the real culprit, not just guessing.",
+      "tags": [
+        "handicap",
+        "frustration",
+        "video-analysis",
+        "practice",
+        "improvement"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-01-5",
+      "url": "https://www.reddit.com/r/golf/comments/1s98qs3/is_my_driver_fixable_or_get_a_new_one/",
+      "title": "Is my driver fixable? Or get a new one?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "Driver repair vs replace is a common question. Bring it in - we can assess whether it's worth fixing or if you'd benefit more from a proper fitting on something new.",
+      "tags": [
+        "driver",
+        "equipment",
+        "repair",
+        "fitting",
+        "upgrade"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-01-6",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1s989em/garmin_r10/",
+      "title": "Garmin r10",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-01",
+      "datePosted": null,
+      "comment": "Used R10 having accuracy issues - this is why buying used launch monitors can be a gamble. Before you go down that rabbit hole, come experience what professional-grade data actually looks like on TrackMan.",
+      "tags": [
+        "garmin-r10",
+        "used-launch-monitor",
+        "accuracy",
+        "tech-issues",
+        "simulator"
+      ]
     }
   ]
 }
