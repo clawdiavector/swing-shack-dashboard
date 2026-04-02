@@ -1,7 +1,97 @@
 {
-  "last_updated": "2026-04-01",
-  "scan_time": "2026-04-01T06:00Z",
+  "last_updated": "2026-04-02",
+  "scan_time": "2026-04-02T06:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-04-02-1",
+      "url": "https://www.reddit.com/r/golf/comments/1cee1dl/how_do_you_keep_your_swing_consistent/",
+      "title": "How do you keep your swing consistent",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-02",
+      "datePosted": null,
+      "comment": "The struggle is real - transition getting sloppy is one of the most common issues we see. Data-driven practice helps you actually see what's changing, not just feel it. Swing Shack can help you identify when your swing is drifting!",
+      "tags": [
+        "swing-consistency",
+        "practice",
+        "routine",
+        "transition",
+        "drills"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-02-2",
+      "url": "https://www.reddit.com/r/golf/comments/1bo55a9/how_to_spend_my_1hrs_of_daily_trackman_practice/",
+      "title": "How to spend my 1hrs of daily trackman practice (5d/wk)",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-02",
+      "datePosted": null,
+      "comment": "Trackman Combine is gold for structured practice - gives you benchmarks to track progress over time. Also worth doing a proper wedge matrix session to get dialed in on scoring clubs. We can help you build a program!",
+      "tags": [
+        "trackman",
+        "practice-routine",
+        "training",
+        "wedge-matrix",
+        "data"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-02-3",
+      "url": "https://www.reddit.com/r/golf/comments/160wmiz/i_have_access_to_a_trackman_for_30_minutes_a_day/",
+      "title": "I have access to a Trackman for 30 minutes a day. Help me make a training regimen.",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-02",
+      "datePosted": null,
+      "comment": "30 minutes is plenty if you use it right! Dedicate one day to wedges and build a wedge matrix - game changer for scoring. Another day to driver fitting optimization. Structure beats random practice every time.",
+      "tags": [
+        "trackman",
+        "training-regimen",
+        "practice",
+        "wedges",
+        "efficiency"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-02-4",
+      "url": "https://www.reddit.com/r/golf/comments/1f3aro6/indoor_trackman_session_any_tips_to_make_the_most/",
+      "title": "Indoor Trackman Session - Any tips to make the most of it?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-02",
+      "datePosted": null,
+      "comment": "Pro V1 RCT balls are worth it for indoor - regular balls with dark wedges can cause tracking issues. If spin numbers are in italics, Trackman guessed and that shot doesn't count. Come get proper setup and we'll show you how to maximize your session!",
+      "tags": [
+        "trackman",
+        "indoor-golf",
+        "balls",
+        "tips",
+        "setup"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-02-5",
+      "url": "https://www.reddit.com/r/golf/comments/6to056/how_to_build_consistency_in_the_swing_and_hit/",
+      "title": "How to build consistency in the swing and hit more fairways?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-02",
+      "datePosted": null,
+      "comment": "Pick a dimple, stick to a pre-shot routine - the fundamentals never change. Data feedback helps reinforce what works. Swing Shack can help you build consistency with purpose-driven practice!",
+      "tags": [
+        "consistency",
+        "fairways",
+        "pre-shot-routine",
+        "practice",
+        "fundamentals"
+      ]
+    },
     {
       "id": "reddit-2026-03-27-1",
       "url": "https://www.reddit.com/r/GolfSwing/comments/1s1dagc/fixing_your_slice_by_swinging_more_inside_is/",
@@ -2228,7 +2318,7 @@
     {
       "id": "reddit-2026-04-01-8",
       "url": "https://www.reddit.com/r/golf/comments/1s9avsn/best_club_to_bridge_gap_between_6_iron_and_22/",
-      "title": "Best club to bridge gap between 6 iron and 22° hybrid?",
+      "title": "Best club to bridge gap between 6 iron and 22\u00b0 hybrid?",
       "subreddit": "r/golf",
       "status": "new",
       "locationTag": "global",
