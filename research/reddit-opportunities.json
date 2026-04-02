@@ -1,6 +1,62 @@
 {
   "last_updated": "2026-04-02",
-  "scan_time": "2026-04-02T06:00Z",
+  "scan_time": "2026-04-02T06:04Z",
+  "opportunities": [
+    {
+      "id": "reddit-2026-04-02-6",
+      "url": "https://www.reddit.com/r/golf/comments/1sa5lty/do_i_need_to_get_a_longer_shaft_for_driver_im_65/",
+      "title": "Do I need to get a longer shaft for driver? I'm 6'5",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-02",
+      "datePosted": null,
+      "comment": "At 6'5 you might need longer, but honestly standard driver is probably fine. You're too close to the ball - that's your main issue. Get properly fit to dial in YOUR specs.",
+      "tags": [
+        "club-fitting",
+        "tall-golfer",
+        "driver",
+        "shaft-length",
+        "equipment"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-02-7",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sa1t9e/sig_pro_softy_curve/",
+      "title": "Sig Pro Softy curve",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-02",
+      "datePosted": null,
+      "comment": "Mat curve is real - you want something with give to protect joints but not too thick that it affects club interaction. We carry several options that balance both - come try them!",
+      "tags": [
+        "golf-mat",
+        "simulator",
+        "hitting-mat",
+        "equipment",
+        "setup"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-02-8",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sa4lx6/shes_coming_together/",
+      "title": "She's coming together!",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-02",
+      "datePosted": null,
+      "comment": "Sim builds are exciting! Looking good so far - key things to consider: projector brightness, proper lighting, and your hitting mat. Swing Shack can help you plan the right setup!",
+      "tags": [
+        "simulator-build",
+        "garage-sim",
+        "indoor-golf",
+        "setup",
+        "planning"
+      ]
+    }
+  ]
   "opportunities": [
     {
       "id": "reddit-2026-04-02-1",
