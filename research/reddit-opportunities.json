@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-04-03",
-  "scan_time": "2026-04-03T04:00Z",
+  "scan_time": "2026-04-03T10:00Z",
   "opportunities": [
     {
       "id": "reddit-2026-04-03-1",
@@ -2569,6 +2569,77 @@
         "scoring",
         "practice",
         "mental-game"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-03-5",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sbfgt9/looking_to_take_the_plunge/",
+      "title": "Looking to take the plunge - $5k garage sim setup",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-03",
+      "datePosted": null,
+      "comment": "$5k budget for garage sim with 10ft ceilings, 2-car garage, wants portable setup he can move in 20 mins. Perfect for South Africa - we help people build these exact setups! Come get advice on what actually works.",
+      "tags": [
+        "simulator-build",
+        "garage-sim",
+        "budget",
+        "portable",
+        "planning"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-03-6",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1savds4/full_send_on_9_foot_ceilings/",
+      "title": "Full send on 9 foot ceilings?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-03",
+      "datePosted": null,
+      "comment": "9ft ceiling with 16x22 room is tight but doable for a 5'7 golfer. Ceiling-mounted projector and launch monitor can work - key is positioning. We've helped clients with similar spaces!",
+      "tags": [
+        "simulator-build",
+        "ceiling-height",
+        "planning",
+        "setup"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-03-7",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1saweny/trackman_ease_of_use_vs_qc_quad/",
+      "title": "Trackman ease of use vs QC Quad",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-03",
+      "datePosted": null,
+      "comment": "Trackman's instant face impact data without stickers is a game-changer for lessons. Yes, indoors it's slightly less accurate than outdoor but the ease-of-use tradeoff is worth it for most golfers. Come try both!",
+      "tags": [
+        "launch-monitor",
+        "trackman",
+        "qc-quad",
+        "comparison",
+        "fitting"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-03-8",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sbelcy/how_do_you_practice_hitting_a_bad_lie_in_a_sim/",
+      "title": "How do you practice hitting a bad lie in a sim?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-03",
+      "datePosted": null,
+      "comment": "Building a adjustable platform with angled lies is the way to go. Can DIY with some wood and hinges. We've got tips on how to set this up properly!",
+      "tags": [
+        "simulator",
+        "practice",
+        "bad-lie",
+        "diy",
+        "training"
       ]
     }
   ]
