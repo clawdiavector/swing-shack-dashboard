@@ -1,7 +1,80 @@
 {
-  "last_updated": "2026-04-02",
-  "scan_time": "2026-04-02T06:04Z",
+  "last_updated": "2026-04-03",
+  "scan_time": "2026-04-03T04:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-04-03-1",
+      "url": "https://www.reddit.com/r/golf/comments/1salbqd/one_tip_only_for_hitting_3w_off_the_fairway/",
+      "title": "One tip only for hitting 3w off the fairway?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-03",
+      "datePosted": null,
+      "comment": "Fairway wood tip: focus on sweeping the ball vs picking it. Position the ball forward in your stance and keep your chest down through impact. A launch monitor session can show you exactly what's happening with your attack angle!",
+      "tags": [
+        "fairway-wood",
+        "technique",
+        "tips",
+        "equipment",
+        "practice"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-03-2",
+      "url": "https://www.reddit.com/r/golf/comments/1sak97o/120_forgiving_driver/",
+      "title": "£120 forgiving driver",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-03",
+      "datePosted": null,
+      "comment": "At that budget, look for last-gen models on sale - callaway pre-owned or TaylorMade RBZ. Forgiveness is more about the shaft and lofts than the model. Come get properly fit - we'll help you find forgiveness within YOUR budget!",
+      "tags": [
+        "driver",
+        "budget",
+        "equipment",
+        "forgiveness",
+        "beginner"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-03-3",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sal1t3/full_golf_simulator_build_projectorpcscreen_size/",
+      "title": "Full Golf Simulator Build - Projector/PC/Screen Size",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-03",
+      "datePosted": null,
+      "comment": "Great planning! For that space, 140\" screen should work. BenQ AH700ST is a solid choice - just make sure it's 4K for the sim software. PC wise, don't go cheaper than the recommended specs or you'll fight the sim. We can help you finalize the right setup - happy to give advice!",
+      "tags": [
+        "simulator-build",
+        "projector",
+        "pc",
+        "screen",
+        "planning",
+        "budget"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-03-4",
+      "url": "https://www.reddit.com/r/golf/comments/1sakkmi/score_pressure_rant_and_a_nice_course/",
+      "title": "Score pressure rant and a nice course.",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-03",
+      "datePosted": null,
+      "comment": "Score pressure is real - the gap between range and course is one of the most common frustrations we see. Indoor practice with immediate feedback helps bridge that gap. Come see us - we'll help you build consistency!",
+      "tags": [
+        "frustration",
+        "pressure",
+        "scoring",
+        "practice",
+        "mental-game"
+      ]
+    },
     {
       "id": "reddit-2026-04-02-6",
       "url": "https://www.reddit.com/r/golf/comments/1sa5lty/do_i_need_to_get_a_longer_shaft_for_driver_im_65/",
