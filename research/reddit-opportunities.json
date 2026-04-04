@@ -97,8 +97,8 @@
       "datePosted": null,
       "comment": "Your souling the club incorrectly in your setup - the leading edge should be square and directly behind the ball. You have it set up inside so you're hitting it on your toe out to the right. A launch monitor session can help you see exactly what's changing between shots - data beats guessing every time!",
       "tags": ["swing-consistency", "inconsistency", "setup", "launch-monitor", "practice"]
-    }
-  {
+    },
+    {
       "id": "reddit-2026-04-04-9",
       "url": "https://www.reddit.com/r/golf/comments/1sby9mi/golf_is_tearing_me_down_man/",
       "title": "Golf is tearing me down man..",
@@ -157,6 +157,54 @@
       "datePosted": null,
       "comment": "Your assessment is right - Trackman's face impact visualization alone is worth it for lessons. Indoors it's 'close enough' for most use cases. The swing plane data and ease of use for students makes it worth the trade-off. We use it daily!",
       "tags": ["trackman", "qc-quad", "launch-monitor", "comparison", "lessons"]
+    },
+    {
+      "id": "reddit-2026-04-04-14",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sc4598/budget_launch_monitor_for_right_and_lefthanded/",
+      "title": "Budget launch monitor for right and left-handed players?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": null,
+      "comment": "SkyTrak works fine for both - just flip the unit around. Mevo Plus is also dual-handed friendly. The real question is ball flight consistency. We'd recommend coming in to test both setups before buying!",
+      "tags": ["launch-monitor", "budget", "left-handed", "right-handed", "skytrak", "mevo"]
+    },
+    {
+      "id": "reddit-2026-04-04-15",
+      "url": "https://www.reddit.com/r/golftips/comments/1sc4dfi/decent_player_stuck_under_plane/",
+      "title": "Decent player - stuck under plane",
+      "subreddit": "r/golftips",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": null,
+      "comment": "Classic stuck move - you need to feel your hands 'leading' the club, not casting. Try feeling like you're pointing the grip at the target through impact. A launch monitor with face angle visualization would help you see exactly what's open at impact.",
+      "tags": ["swing-plane", "stuck", "early-extension", "face-angle", "drills"]
+    },
+    {
+      "id": "reddit-2026-04-04-16",
+      "url": "https://www.reddit.com/r/golf/comments/1sc4w56/do_you_analyse_why_you_are_not_making_progress/",
+      "title": "Do you analyze why you are not making progress?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": null,
+      "comment": "Love the data-driven approach! This is exactly what TrackMan gives you - concrete metrics on what's actually happening vs what you feel. Your putting focus is smart. Book a session and we can map your actual distances!",
+      "tags": ["data-analysis", "progress", "putting", "trackman", "distance"]
+    },
+    {
+      "id": "reddit-2026-04-04-17",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sc2sw5/lighting_setup/",
+      "title": "Lighting setup",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": null,
+      "comment": "Angle lighting toward the tee (not straight down) reduces shadows on the ball. Look for 5500K-6500K daylight bulbs. We use specific fixtures for our Protee VX setup - happy to share what works!",
+      "tags": ["lighting", "simulator", "protee-vx", "setup", "shadows"]
     }
   ]
 }
