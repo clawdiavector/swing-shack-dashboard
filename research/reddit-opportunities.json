@@ -206,5 +206,41 @@
       "comment": "Angle lighting toward the tee (not straight down) reduces shadows on the ball. Look for 5500K-6500K daylight bulbs. We use specific fixtures for our Protee VX setup - happy to share what works!",
       "tags": ["lighting", "simulator", "protee-vx", "setup", "shadows"]
     }
+{
+      "id": "reddit-2026-04-04-18",
+      "url": "https://www.reddit.com/r/golf/comments/1sb66bw/do_clubs_matter/",
+      "title": "Do clubs matter?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": "2026-04-03",
+      "comment": "This is the debate that never ends - tech matters less than fit. Sole design, bounce, lie angle, shaft flex - getting all that dialed in is what a proper fitting does. We'd love to show you the difference data makes!",
+      "tags": ["club-fitting", "equipment", "debate", "tech", "shaft-flex"]
+    },
+    {
+      "id": "reddit-2026-04-04-19",
+      "url": "https://www.reddit.com/r/golf/comments/1sba84w/irons_for_players_who_do_not_get_on_with_irons/",
+      "title": "Irons for players who do not get on with irons",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": "2026-04-03",
+      "comment": "Classic case of swing issues showing up in the hardest clubs. Before you spend on new clubs, get some lessons - your irons will tell you everything about your swing path. We'd happy to help you see the data!",
+      "tags": ["irons", "fitting", "lessons", "swing-issues", "equipment"]
+    },
+    {
+      "id": "reddit-2026-04-04-20",
+      "url": "https://www.reddit.com/r/golf/comments/1sba13c/the_best_golf_instruction_videos/",
+      "title": "The Best Golf Instruction Videos",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": "2026-04-03",
+      "comment": "Hank Haney's great - but nothing beats seeing YOUR swing on a launch monitor with real data. We'd recommend a TrackMan session over YouTube any day for personalized improvement!",
+      "tags": ["instruction", "videos", "lessons", "trackman", "practice"]
+    }
   ]
 }
