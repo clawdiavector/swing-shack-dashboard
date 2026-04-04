@@ -98,5 +98,65 @@
       "comment": "Your souling the club incorrectly in your setup - the leading edge should be square and directly behind the ball. You have it set up inside so you're hitting it on your toe out to the right. A launch monitor session can help you see exactly what's changing between shots - data beats guessing every time!",
       "tags": ["swing-consistency", "inconsistency", "setup", "launch-monitor", "practice"]
     }
+  {
+      "id": "reddit-2026-04-04-9",
+      "url": "https://www.reddit.com/r/golf/comments/1sby9mi/golf_is_tearing_me_down_man/",
+      "title": "Golf is tearing me down man..",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": null,
+      "comment": "This hits hard - 5 years of work and feeling stuck is brutal. The mental game is half the battle. Sometimes the issue isn't your swing but how you're practicing. Come try a session - sometimes seeing your actual numbers helps refocus on what you CAN control.",
+      "tags": ["golf-frustration", "mental-game", "practice", "empathy", "indoor"]
+    },
+    {
+      "id": "reddit-2026-04-04-10",
+      "url": "https://www.reddit.com/r/golf/comments/1sby2el/mats_vs_grass/",
+      "title": "Mats vs Grass",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": null,
+      "comment": "You're not being dramatic - mats DO change your swing. The lack of resistance encourages a steeper attack and you lose that 'giving' feeling through impact. Look into a quality hitting strip like EZTee or a well-cushioned mat system to bridge the gap.",
+      "tags": ["mats-vs-grass", "practice-surfaces", "equipment", "swing-changes"]
+    },
+    {
+      "id": "reddit-2026-04-04-11",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sbfgt9/looking_to_take_the_plunge/",
+      "title": "Looking to take the plunge",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": null,
+      "comment": "$5k is tight but doable - Focus on launch monitor + hitting mat first, hold off on the retractable system (they're pricey and limit your options). EZTee Hybrid hitting strip is your best bet for turf. GSPro is free to start, TGC2019 is cheap. Hit us up for more specific advice!",
+      "tags": ["garage-setup", "budget-sim", "beginner", "indoor-golf", "equipment"]
+    },
+    {
+      "id": "reddit-2026-04-04-12",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1savds4/full_send_on_9_foot_ceilings/",
+      "title": "Full send on 9 foot ceilings?",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": null,
+      "comment": "At 5'7 you're fine in 9ft - most short-throw projectors need 6-8ft throw distance so ceiling mount is doable. The bigger issue is camera placement for launch monitor. Drop ceiling or flush mount options exist. Come measure your space first!",
+      "tags": ["ceiling-height", "simulator-room", "projector", "garage-setup"]
+    },
+    {
+      "id": "reddit-2026-04-04-13",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1saweny/trackman_ease_of_use_vs_qc_quad/",
+      "title": "Trackman ease of use vs QC Quad",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-04",
+      "datePosted": null,
+      "comment": "Your assessment is right - Trackman's face impact visualization alone is worth it for lessons. Indoors it's 'close enough' for most use cases. The swing plane data and ease of use for students makes it worth the trade-off. We use it daily!",
+      "tags": ["trackman", "qc-quad", "launch-monitor", "comparison", "lessons"]
+    }
   ]
 }
