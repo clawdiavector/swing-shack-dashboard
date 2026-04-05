@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-04-05",
-  "scan_time": "2026-04-05T10:00Z",
-  "scan_note": "No new Reddit discussions found in last 24h - Reddit blocking direct search. Existing opportunities from recent scans remain valid.",
+  "scan_time": "2026-04-05T18:00Z",
+  "scan_note": "No new Reddit discussions found in last 24h matching criteria - Reddit blocking direct search API. Existing opportunities from recent scans remain valid. Tried searches for: indoor golf, TrackMan, launch monitors, club fitting, simulator.",
   "opportunities": [
     {
       "id": "reddit-2026-04-05-1",
