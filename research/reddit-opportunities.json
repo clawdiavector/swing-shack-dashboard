@@ -1,7 +1,67 @@
 {
-  "last_updated": "2026-04-04",
-  "scan_time": "2026-04-04T04:00Z",
+  "last_updated": "2026-04-05",
+  "scan_time": "2026-04-05T04:00Z",
   "opportunities": [
+    {
+      "id": "reddit-2026-04-05-1",
+      "url": "https://www.reddit.com/r/golf/comments/1l75tah/why_is_it_so_much_more_common_for_people_to_hit_a/",
+      "title": "Why is it so much more common for people to hit a slice than a hook?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-05",
+      "datePosted": "2025-06-09",
+      "comment": "The slice conversation is evergreen - 9/10 slicers have an outside-to-in path. The fix is simpler than people think once you see the data on a launch monitor. This is exactly where we add value - showing them the face angle vs path relationship.",
+      "tags": ["slice", "swing-fault", "path", "beginners", "common-issues"]
+    },
+    {
+      "id": "reddit-2026-04-05-2",
+      "url": "https://www.reddit.com/r/golf/comments/1d275c0/from_a_club_fitter_here_are_important_things_to/",
+      "title": "From a club fitter, here are important things to know before getting a fitting",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-05",
+      "datePosted": "2024-05-28",
+      "comment": "Good advice in this thread - talking to the fitter first, asking questions, and finding someone who gives you time. First fittings are intimidating but shouldn't be. We'll give you the honest answer - if your clubs work, we'll tell you.",
+      "tags": ["club-fitting", "first-time", "advice", "fitter-tips"]
+    },
+    {
+      "id": "reddit-2026-04-05-3",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/psx4fl/flightscope_mevo_plus_launch_monitor_vs_skytrack/",
+      "title": "Flightscope Mevo Plus Launch Monitor VS. Skytrack",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-05",
+      "datePosted": "2021-09-22",
+      "comment": "Mevo+ wins if you want indoor+outdoor use. SkyTrak is solid indoor-only but needs consistent lighting. For SA golfers wanting data without the pro price tag, the R10 is still the budget king. Come try both and see what clicks for YOUR game.",
+      "tags": ["launch-monitor", "mevo+", "skytrak", "comparison", "budget"]
+    },
+    {
+      "id": "reddit-2026-04-05-4",
+      "url": "https://www.reddit.com/r/golftips/comments/1jrr6o8/best_outdoor_golf_launch_monitor/",
+      "title": "Best Outdoor Golf Launch Monitor?",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-05",
+      "datePosted": "2025-04-05",
+      "comment": "Interesting ranking in here - Mevo+ recommended for most, Eye Mini for certain cases. The budget options (SkyTrak, R10) get knocked on accuracy but are 'good enough' for practice. We're happy to show you the real difference with TrackMan!",
+      "tags": ["launch-monitor", "outdoor", "recommendation", "accuracy"]
+    },
+    {
+      "id": "reddit-2026-04-05-5",
+      "url": "https://www.reddit.com/r/golf/comments/15lhkse/when_is_the_right_time_to_get_fitted/",
+      "title": "When is the right time to get fitted?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-05",
+      "datePosted": "2023-08-08",
+      "comment": "Here's the thing - basic static fit (length, lie) works for beginners and prevents bad habits. Save the full TrackMan fitting for when you've got consistency. We'll do that baseline assessment for free.",
+      "tags": ["beginners", "fitting-timing", "advice", "first-clubs"]
+    },
     {
       "id": "reddit-2026-04-04-1",
       "url": "https://www.reddit.com/r/golftips/comments/1rhkymg/fixing_a_slice/",
@@ -205,8 +265,8 @@
       "datePosted": null,
       "comment": "Angle lighting toward the tee (not straight down) reduces shadows on the ball. Look for 5500K-6500K daylight bulbs. We use specific fixtures for our Protee VX setup - happy to share what works!",
       "tags": ["lighting", "simulator", "protee-vx", "setup", "shadows"]
-    }
-{
+    },
+    {
       "id": "reddit-2026-04-04-18",
       "url": "https://www.reddit.com/r/golf/comments/1sb66bw/do_clubs_matter/",
       "title": "Do clubs matter?",
