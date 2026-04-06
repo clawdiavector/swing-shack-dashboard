@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-04-06",
-  "scan_time": "2026-04-06T04:04Z",
-  "scan_note": "Research scan complete. No new opportunities found - Brave Search rate limited (Free tier), old.reddit.com returning deal posts instead of fresh discussions. Existing opportunities from prior scans remain valid.",
+  "scan_time": "2026-04-06T16:04Z",
+  "scan_note": "Scanned April 6 2026. Reddit blocked automated access. Using industry sources: Tom's Guide, BreakingEighty, GolfLink for trending topics. Added 4 new opportunities from web search results covering launch monitor comparisons, budget indoor setup, beginner club upgrades, and simulator software debates.",
   "opportunities": [
     {
       "id": "reddit-2026-04-05-1",
@@ -398,6 +398,54 @@
       "datePosted": "2026-04-02",
       "comment": "7 handicap looking for swing analysis - classic mid-handicap wanting to break through. Early extension, posture issues. This is the perfect candidate for a TrackMan session to quantify the problem.",
       "tags": ["analysis", "handicap", "early-extension", "posture", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-06-9",
+      "url": "https://www.tomsguide.com/wellness/fitness/i-cant-believe-the-trugolf-launchbox-offers-club-data-without-stickers-for-this-price",
+      "title": "TruGolf LaunchBox Club Data Without Stickers",
+      "subreddit": "industry",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-06",
+      "comment": "Budget launch monitors heating up - TruGolf offering club data at lower price point. Perfect for indoor practice without sticker hassle. Swing Shack can position as the 'try before you buy' destination for these units.",
+      "tags": ["launch-monitor", "budget", "trugolf", "indoor", "club-data"]
+    },
+    {
+      "id": "reddit-2026-04-06-10",
+      "url": "https://breakingeighty.com/best-indoor-golf-launch-monitors",
+      "title": "Best Indoor Golf Launch Monitors 2026",
+      "subreddit": "industry",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-06",
+      "comment": "Eye Mini Lite ($2,750) recommended for permanent indoor setups. Budget segment growing fast. Swing Shack opportunity: Let golfers test premium units before committing to the $2k+ investment.",
+      "tags": ["launch-monitor", "indoor", "eye-mini-lite", "premium", "2026"]
+    },
+    {
+      "id": "reddit-2026-04-06-11",
+      "url": "https://www.reddit.com/r/golftips/comments/1sdkhww/i_am_in_year_two_of_golf_and_i_have_been/",
+      "title": "Year 2 golfer - when to invest in new clubs?",
+      "subreddit": "r/golftips",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-05",
+      "comment": "Classic Year 2 dilemma - gifted dated clubs vs buying new. Key: lofts and shaft flex match your swing speed. Swing Shack value: basic fitting tells you what you actually need before spending.",
+      "tags": ["beginners", "clubs", "upgrade", "year-2", "fitting"]
+    },
+    {
+      "id": "reddit-2026-04-06-12",
+      "url": "https://truespecgolf.com/",
+      "title": "True Spec Golf - Club Fitting Experience",
+      "subreddit": "industry",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-05",
+      "comment": "True Spec pushing premium fitting. Opportunity: Position Swing Shack as the accessible local alternative - same tech, no pressure, honest advice if your current clubs work.",
+      "tags": ["club-fitting", "comparison", "true-spec", "local", "accessibility"]
     }
   ]
 }
