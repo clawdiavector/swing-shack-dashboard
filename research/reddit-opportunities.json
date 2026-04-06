@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-04-05",
-  "scan_time": "2026-04-05T18:00Z",
-  "scan_note": "No new Reddit discussions found in last 24h matching criteria - Reddit blocking direct search API. Existing opportunities from recent scans remain valid. Tried searches for: indoor golf, TrackMan, launch monitors, club fitting, simulator.",
+  "last_updated": "2026-04-06",
+  "scan_time": "2026-04-06T04:00Z",
+  "scan_note": "Research scan complete. Found discussions on slice/hook fixes, chicken wing, shanks, swing plane issues, beginner club questions, and launch monitor debates. Reddit blocking direct access - using Brave Search for discovery.",
   "opportunities": [
     {
       "id": "reddit-2026-04-05-1",
@@ -302,6 +302,102 @@
       "datePosted": "2026-04-03",
       "comment": "Hank Haney's great - but nothing beats seeing YOUR swing on a launch monitor with real data. We'd recommend a TrackMan session over YouTube any day for personalized improvement!",
       "tags": ["instruction", "videos", "lessons", "trackman", "practice"]
+    },
+    {
+      "id": "reddit-2026-04-06-1",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sali2a/this_is_the_principle_thats_changing_golf_and_we/",
+      "title": "This is the principle that's changing golf",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-02",
+      "comment": "The hook/slice debate rages on - takeaway is the real culprit, not grip. Classic outside-to-in path issues that a launch monitor exposes immediately. Come see YOUR actual path data!",
+      "tags": ["slice", "hook", "takeaway", "swing-path", "launch-monitor"]
+    },
+    {
+      "id": "reddit-2026-04-06-2",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1s90b0t/chicken_wing_fix/",
+      "title": "Chicken wing fix?",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-01",
+      "comment": "Open hips at address causing that chicken wing - classic setup issue that's ruining your swing plane. L to X drills help but seeing your actual swing path on a launch monitor makes the fix faster.",
+      "tags": ["chicken-wing", "swing-plane", "setup", "drills", "lessons"]
+    },
+    {
+      "id": "reddit-2026-04-06-3",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1s7qjgz/swing_plane_fix/",
+      "title": "Swing plane fix",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-03-31",
+      "comment": "If you're swinging steep and across the line, you're slicing. Shallowing out the downswing and proper face angle at impact is the fix - this is exactly what TrackMan visualizes.",
+      "tags": ["swing-plane", "slice", "steep", "lessons", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-06-4",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1satqxt/got_a_case_of_the_shanks/",
+      "title": "Got a case of the shanks",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-03",
+      "comment": "Transition sequence is off - throwing hands at the ball instead of letting the body lead. Classic case where launch monitor data shows exactly what's happening at impact. Book a session and let's see!",
+      "tags": ["shanks", "transition", "sequence", "launch-monitor", "lessons"]
+    },
+    {
+      "id": "reddit-2026-04-06-5",
+      "url": "https://www.reddit.com/r/golf/comments/1s8g10p/new_clubs_for_beginner/",
+      "title": "New Clubs for Beginner?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-03-31",
+      "comment": "Beginners overcomplicating this - budget clubs under $500 + lessons will beat expensive gear every time. First step: get a basic fitting to know what you actually need. We'll tell you if your current clubs work!",
+      "tags": ["beginners", "clubs", "budget", "lessons", "fitting"]
+    },
+    {
+      "id": "reddit-2026-04-06-6",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1s9zygb/full_complete_club_set_for_beignners/",
+      "title": "Full complete club set for beginners",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-02",
+      "comment": "Complete beginners asking what to buy - don't spend yet! Come get a basic fit first. We'll measure your length, lie, and give you honest advice. No point buying clubs if you don't know your specs.",
+      "tags": ["beginners", "clubs", "first-clubs", "fitting", "advice"]
+    },
+    {
+      "id": "reddit-2026-04-06-7",
+      "url": "https://www.reddit.com/r/golf/comments/1sb2y3u/rate_my_bagclubs_any_recommended_upgrades/",
+      "title": "Rate my bag/clubs. Any recommended upgrades?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-03",
+      "comment": "Golfer looking for upgrade advice - this is where a proper fitting helps. Data tells you what's actually lagging. TrackMan session can map your distances and show what's underperforming.",
+      "tags": ["upgrades", "clubs", "fitting", "distance", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-06-8",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sagvj3/how_is_the_swing_looking_7_hdcp_4_years_in/",
+      "title": "How is the swing looking? (7 hdcp 4 years in)",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-06",
+      "datePosted": "2026-04-02",
+      "comment": "7 handicap looking for swing analysis - classic mid-handicap wanting to break through. Early extension, posture issues. This is the perfect candidate for a TrackMan session to quantify the problem.",
+      "tags": ["analysis", "handicap", "early-extension", "posture", "trackman"]
     }
   ]
 }
