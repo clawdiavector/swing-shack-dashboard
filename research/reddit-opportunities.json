@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-04-07",
-  "scan_time": "2026-04-07T06:04Z",
-  "scan_note": "Quick scan April 7 2026 - found irons fitting discussion (Callaway Quantum $1295), Full Swing launch monitor accuracy question, golf frustrations thread, AI+SkyTrak data discussion. Not many fresh posts from last 24h in these categories - limited opportunities today.",
+  "scan_time": "2026-04-07T18:00Z",
+  "scan_note": "Quick scan April 7 2026 - Indoor golf business proposal discussion (Korean model), AI+SkyTrak data analysis trend, irons fitting at $1295, launch monitor questions. Found 3 fresh opportunities.",
   "opportunities": [
     {
       "id": "reddit-2026-04-05-1",
@@ -614,6 +614,42 @@
       "datePosted": "2026-04-06",
       "comment": "Beginner asking for swing feedback - extends right leg, needs to bring club back not up. Classic beginner issues. Launch monitor can help visualize proper swing plane and path.",
       "tags": ["beginner", "swing-criticism", "swing-plane", "lessons", "feedback"]
+    },
+    {
+      "id": "reddit-2026-04-07-15",
+      "url": "https://www.reddit.com/r/golf/comments/1sethc8/indoor_golf_business_proposal/",
+      "title": "Indoor golf business proposal",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-07",
+      "comment": "Korean entrepreneur proposing Korean-style indoor golf model in US - comparing to entertainment-focused US sims. Great discussion on practice vs fun divide. Key insight: serious golfers often have home sims, so entertainment is where the money is. We exist in that practice-focused space - can position as the 'no pressure' local alternative.",
+      "tags": ["indoor-golf", "business", "korean-model", "practice-vs-fun", "us-market"]
+    },
+    {
+      "id": "reddit-2026-04-07-16",
+      "url": "https://www.reddit.com/r/golf/comments/1sejuab/claudechatgpt_skytrak_data_results/",
+      "title": "Claude/ChatGPT + Skytrak data = results",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-07",
+      "comment": "Using AI to analyze launch monitor data - cool trend! Using SkyTrak data with Claude to find patterns. Shows golfers want data-driven improvement. Perfect for Swing Shack - we've got the TrackMan data + expertise to help interpret what the AI is showing.",
+      "tags": ["ai", "skytrak", "data-analysis", "trackman", "technology", "trending"]
+    },
+    {
+      "id": "reddit-2026-04-07-17",
+      "url": "https://www.reddit.com/r/golf/comments/1sek7of/the_frustrations_continue/",
+      "title": "The frustrations continue…",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-07",
+      "comment": "Golfer venting about ongoing frustrations - 26 comments. This hits home for many. The empathy angle works here - we see this all the time. Sometimes a session with real data helps refocus. Offer: Book a TrackMan session and see YOUR numbers.",
+      "tags": ["golf-frustration", "mental-game", "empathy", "indoor", "data"]
     }
   ]
 }
