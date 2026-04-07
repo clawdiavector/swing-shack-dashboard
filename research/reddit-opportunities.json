@@ -566,6 +566,54 @@
       "datePosted": "2026-04-06",
       "comment": "Slice question with 41 comments - classic outside-to-in path. Top answers: clubface, swing path, grip, stance. This is bread and butter for what we fix. Launch monitor shows exact path vs face angle - the visual is worth a thousand words.",
       "tags": ["slice", "swing-path", "driver", "common-issues", "fix"]
+    },
+    {
+      "id": "reddit-2026-04-07-11",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sdp7ni/good_begineer_launch_monitor/",
+      "title": "Good beginner launch monitor",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-06",
+      "comment": "Beginner asking about launch monitors. MLM2Pro recommended for indoor/outdoor flexibility. R10 still the budget king for under $1k. Perfect opportunity - Swing Shack as the 'try before you buy' destination with premium TrackMan tech.",
+      "tags": ["launch-monitor", "beginner", "recommendation", "budget", "indoor"]
+    },
+    {
+      "id": "reddit-2026-04-07-12",
+      "url": "https://www.reddit.com/r/golftips/comments/1sdkhww/i_am_in_year_two_of_golf_and_i_have_been/",
+      "title": "Year 2 golfer - when to invest in new clubs?",
+      "subreddit": "r/golftips",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-06",
+      "comment": "Year 2 golfer with dated clubs (2007 Taylormade driver, Ping persimmon woods). Low 90s scoring. Comment says get lessons first, then fitting. Perfect - we offer exactly this path.",
+      "tags": ["year-2", "clubs", "upgrade", "lessons", "fitting"]
+    },
+    {
+      "id": "reddit-2026-04-07-13",
+      "url": "https://www.reddit.com/r/golf/comments/1se3l40/golf_courses_raising_prices/",
+      "title": "Golf courses raising prices?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-06",
+      "comment": "Golfer frustration about course prices - 18 hours ago, decent engagement. Indoor golf opportunity here - year-round practice without weather/green fee worries. Swing Shack positioning angle.",
+      "tags": ["frustration", "prices", "indoor-golf", "alternative", "value"]
+    },
+    {
+      "id": "reddit-2026-04-07-14",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sdpffj/beginner_looking_for_some_candid_criticism/",
+      "title": "Beginner looking for some candid criticism",
+      "subreddit": "r/GolfSwing",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-06",
+      "comment": "Beginner asking for swing feedback - extends right leg, needs to bring club back not up. Classic beginner issues. Launch monitor can help visualize proper swing plane and path.",
+      "tags": ["beginner", "swing-criticism", "swing-plane", "lessons", "feedback"]
     }
   ]
 }
