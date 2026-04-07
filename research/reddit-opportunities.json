@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-04-07",
-  "scan_time": "2026-04-07T04:04Z",
-  "scan_note": "Scanned April 7 2026. Reddit active discussions on swing path issues (pull hooks, over-the-top, chicken wing), hip rotation for beginners, ball position experiments. Brave search rate limited - used manual Reddit fetches. Added 5 new opportunities focused on swing fixes - Swing Shack's core strength.",
+  "scan_time": "2026-04-07T06:04Z",
+  "scan_note": "Quick scan April 7 2026 - found irons fitting discussion (Callaway Quantum $1295), Full Swing launch monitor accuracy question, golf frustrations thread, AI+SkyTrak data discussion. Not many fresh posts from last 24h in these categories - limited opportunities today.",
   "opportunities": [
     {
       "id": "reddit-2026-04-05-1",
@@ -506,6 +506,66 @@
       "datePosted": null,
       "comment": "Classic overcorrecting from slice to pulls. Hockey swing drill helps. Coming over the top is the main issue. We see this daily - launch monitor shows path vs face angle and the fix becomes obvious.",
       "tags": ["pull", "over-correction", "slice", "path", "launch-monitor"]
+    },
+    {
+      "id": "reddit-2026-04-07-6",
+      "url": "https://www.reddit.com/r/golf/comments/1seif1d/thoughts_on_new_irons_after_a_fitting/",
+      "title": "Thoughts on new irons after a fitting",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-07",
+      "comment": "Beginner getting fitted for Callaway Quantum irons at $1295 - instructor saw 2-3mph club head speed improvement. Classic first-fitting debate. Our take: if numbers show clear benefit, go for it. But get the full breakdown before dropping that cash.",
+      "tags": ["club-fitting", "beginners", "irons", "callaway", "first-time"]
+    },
+    {
+      "id": "reddit-2026-04-07-7",
+      "url": "https://www.reddit.com/r/golf/comments/1sbvikh/how_accurate_are_full_swing_launch_monitors/",
+      "title": "How accurate are Full Swing launch monitors?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-04",
+      "comment": "Golfer questioning Full Swing accuracy vs TrackMan - getting 140mph ball speed instead of expected 150-155. Comments say portable Full Swing uses doppler and is accurate - likely user expectation issue. Great opportunity to explain the data and why TrackMan is the gold standard.",
+      "tags": ["launch-monitor", "full-swing", "trackman", "accuracy", "expectations"]
+    },
+    {
+      "id": "reddit-2026-04-07-8",
+      "url": "https://www.reddit.com/r/golf/comments/1sek7of/the_frustrations_continue/",
+      "title": "The frustrations continue…",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-07",
+      "comment": "Golfer venting about ongoing frustrations (26 comments) - this hits home for many. The 'I hate this game' post also trending. Empathy angle: we see this all the time. Sometimes a session with real data helps refocus. Book a TrackMan session and see YOUR numbers.",
+      "tags": ["golf-frustration", "mental-game", "empathy", "indoor", "data"]
+    },
+    {
+      "id": "reddit-2026-04-07-9",
+      "url": "https://www.reddit.com/r/golf/comments/1sejuab/claudechatgpt_skytrak_data_results/",
+      "title": "Claude/ChatGPT + Skytrak data = results",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-07",
+      "comment": "Using AI to analyze launch monitor data - cool trend! Using SkyTrak data with Claude to find patterns. Shows golfers want data-driven improvement. Perfect for Swing Shack - we've got the TrackMan data + expertise to help interpret.",
+      "tags": ["ai", "skytrak", "data-analysis", "trackman", "technology"]
+    },
+    {
+      "id": "reddit-2026-04-07-10",
+      "url": "https://www.reddit.com/r/golf/comments/1se3fxs/what_are_some_reasons_i_would_be_slicing_my/",
+      "title": "What are some reasons I would be slicing my drives every time",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-07",
+      "datePosted": "2026-04-06",
+      "comment": "Slice question with 41 comments - classic outside-to-in path. Top answers: clubface, swing path, grip, stance. This is bread and butter for what we fix. Launch monitor shows exact path vs face angle - the visual is worth a thousand words.",
+      "tags": ["slice", "swing-path", "driver", "common-issues", "fix"]
     }
   ]
 }
