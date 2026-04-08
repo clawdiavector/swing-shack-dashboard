@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-04-07",
+  "last_updated": "2026-04-08",
   "scan_time": "2026-04-07T18:00Z",
   "scan_note": "Quick scan April 7 2026 - Indoor golf business proposal discussion (Korean model), AI+SkyTrak data analysis trend, irons fitting at $1295, launch monitor questions. Found 3 fresh opportunities.",
   "opportunities": [
@@ -650,6 +650,42 @@
       "datePosted": "2026-04-07",
       "comment": "Golfer venting about ongoing frustrations - 26 comments. This hits home for many. The empathy angle works here - we see this all the time. Sometimes a session with real data helps refocus. Offer: Book a TrackMan session and see YOUR numbers.",
       "tags": ["golf-frustration", "mental-game", "empathy", "indoor", "data"]
+    },
+    {
+      "id": "reddit-2026-04-08-1",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sdp7ni/good_begineer_launch_monitor/",
+      "title": "Good beginner launch monitor",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-08",
+      "datePosted": "2026-04-06",
+      "comment": "MLM2Pro recommended for indoor/outdoor flexibility. R10 still the budget king for under $1k. Perfect opportunity - Swing Shack as the 'try before you buy' destination with premium TrackMan tech.",
+      "tags": ["launch-monitor", "beginner", "recommendation", "budget", "indoor"]
+    },
+    {
+      "id": "reddit-2026-04-08-2",
+      "url": "https://thegolfwire.com/indoor-golf-the-software/",
+      "title": "The Unsung Hero of the Indoor Golf Experience: The Software",
+      "subreddit": "industry",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-08",
+      "datePosted": "2026-04-01",
+      "comment": "GSPro gives more control but SkyTrak and TrackMan guide you along better. Golfers think too much about the launch monitor, not the software. We can help golfers understand data metrics - that's where the real improvement happens.",
+      "tags": ["indoor-golf", "software", "gspro", "skytrak", "trackman", "data"]
+    },
+    {
+      "id": "reddit-2026-04-08-3",
+      "url": "https://breakingeighty.com/best-indoor-golf-launch-monitors",
+      "title": "The 14 Best Indoor Golf Launch Monitors of 2026",
+      "subreddit": "industry",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-08",
+      "datePosted": "2026-04-07",
+      "comment": "Eye Mini Lite at $2,750 is the smart call for permanent indoor setups. Budget segment growing fast. Swing Shack opportunity: Let golfers test premium units before committing to the $2k+ investment.",
+      "tags": ["launch-monitor", "indoor", "eye-mini-lite", "premium", "budget", "2026"]
     }
   ]
 }
