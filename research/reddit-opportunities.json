@@ -1,8 +1,80 @@
 {
   "last_updated": "2026-04-08",
-  "scan_time": "2026-04-08T04:03Z",
-  "scan_note": "Quick scan April 8 2026 - Masters week dominates r/golf, but r/golfsimulator has ceiling height questions, Impact Vision sourcing issues, and small business startup questions. 3 fresh opportunities.",
+  "scan_time": "2026-04-08T18:00Z",
+  "scan_note": "Quick scan April 8 2026 - Evening scan. Found: ceiling height mods, indoor business startup questions, Impact Vision sourcing, putting green discussions, TPI fitting experience question. 5 fresh opportunities.",
   "opportunities": [
+    {
+      "id": "reddit-2026-04-08-9",
+      "url": "https://www.reddit.com/r/golf/comments/1sfd4u6/anyone_out_there_playing_extremely_light_graphite/",
+      "title": "Anyone out there playing extremely light graphite shafts in their irons?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-08",
+      "datePosted": "2026-04-08",
+      "comment": "27yo with 150mph 7-iron speed got 55g KBS graphite shafts in Srixon ZXi5 irons. Curious if others have similar experience. 10h ago, 19 comments. Active equipment discussion - Swing Shack can offer shaft fitting consultation.",
+      "tags": ["graphite-shafts", "irons", "srixon", "kbs", "equipment", "fitting"]
+    },
+    {
+      "id": "reddit-2026-04-08-8",
+      "url": "https://www.reddit.com/r/golf/comments/1sfcpsb/if_youve_done_a_fitting_at_the_titleist/",
+      "title": "If you've done a fitting at the Titleist Performance Institute I want to hear about the experience",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-08",
+      "datePosted": "2026-04-08",
+      "comment": "Golfer considering TPI fitting in San Diego for 40th birthday - wants the 'experience' despite knowing it's expensive/unnecessary. 10h ago, 14 comments. Great opportunity: Position Swing Shack as accessible local alternative for fitting experience.",
+      "tags": ["tpi", "fitting", "experience", "titleist", "birthday"]
+    },
+    {
+      "id": "reddit-2026-04-08-7",
+      "url": "https://www.reddit.com/r/golf/comments/1sf9dch/indoor_putting_green_need_input/",
+      "title": "Indoor Putting Green - Need Input",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-08",
+      "datePosted": "2026-04-08",
+      "comment": "Basement golfer looking for putting green recommendations - flat turf mat vs adjustable slope (PuttOut/BirdieBall). 13h ago, 6 comments. Common indoor golf discussion - Swing Shack can offer putting analysis on TrackMan as alternative.",
+      "tags": ["putting", "indoor", "putting-green", "equipment", "basement"]
+    },
+    {
+      "id": "reddit-2026-04-08-6",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sfechr/impact_vision_experiences_and_sourcing/",
+      "title": "Impact Vision - Experiences and Sourcing?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-08",
+      "datePosted": "2026-04-08",
+      "comment": "Golfer trying to source Impact Vision (Korean brand) for commercial use - can't find info, no responses from company. Alternative opportunity: Position Swing Shack as the accessible local option vs expensive commercial systems.",
+      "tags": ["impact-vision", "sourcing", "korean", "commercial", "alternatives"]
+    },
+    {
+      "id": "reddit-2026-04-08-5",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sfckt6/thinking_of_starting_a_business/",
+      "title": "Thinking of starting a business",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-08",
+      "datePosted": "2026-04-08",
+      "comment": "Entrepreneur asking about starting a 3-bay sim business with $20k TrackMan budget - wants to know what others spent per bay. Great B2B opportunity - Swing Shack could offer consultation or become a supplier/referral source.",
+      "tags": ["business", "startup", "3-bay", "trackman", "budget", "b2b"]
+    },
+    {
+      "id": "reddit-2026-04-08-4",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sfgwdp/ceiling_mod_to_add_height_new_to_this_group/",
+      "title": "Ceiling Mod to Add Height / New to this group",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-08",
+      "datePosted": "2026-04-08",
+      "comment": "Home sim builder asking about ceiling height modifications - wants to modify truss for more headroom. Classic indoor golf setup challenge. Great opportunity to offer on-site consultation or installation help.",
+      "tags": ["ceiling-height", "garage-setup", "home-sim", "installation", "diy"]
+    },
     {
       "id": "reddit-2026-04-05-1",
       "url": "https://www.reddit.com/r/golf/comments/1l75tah/why_is_it_so_much_more_common_for_people_to_hit_a/",
