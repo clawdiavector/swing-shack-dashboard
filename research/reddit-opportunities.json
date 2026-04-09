@@ -97,9 +97,58 @@
     }
   ],
   "last_updated": "2026-04-09",
-  "scan_time": "2026-04-09T04:00Z",
-  "scan_note": "April 9 2026 - Morning scan. Found: Trackman practice routine questions, launch monitor comparisons (Trackman vs GCQuad), slice/hook fix discussions, two SA-specific posts on budget sim builds and software. 8 new opportunities added.",
+  "scan_time": "2026-04-09T04:04Z",
+  "scan_note": "April 9 2026 - Morning scan. Found: Ceiling height for sims (8'4-8'8 works for most), outdoor sim build $10-15k debate with UV/mosquito concerns, budget LM recommendations (Mevo/R10).",
   "opportunities": [
+    {
+      "id": "reddit-2026-04-09-1",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sfy2zc/my_ceiling_height_is_104_inches_8_ft_8_inches_is/",
+      "title": "My ceiling height is 104 inches (8 ft 8 inches). Is it worth getting a golf simulator for this height and has yours actually helped me improve?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2026-04-09",
+      "comment": "Golfer returning after 20 years, score 95-115, asking about sim viability at 8'8 ceiling. 17 comments - consensus is it works for irons but driver is tight. Mevo recommended as budget-friendly option. Great opportunity to offer consultation on room setup.",
+      "tags": ["ceiling-height", "simulator", "budget", "garage-setup", "mevo"]
+    },
+    {
+      "id": "reddit-2026-04-09-2",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sgdu3j/is_spending_1015k_on_an_outdoor_golf_simulator/",
+      "title": "Is spending $10-15k on an outdoor golf simulator actually worth it?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2026-04-09",
+      "comment": "Dallas homeowner considering outdoor covered pergola setup. Key concerns: UV damage to equipment, mosquitoes, weather (100F summers). 9 comments - consensus is UV will trash materials, enclosed shed better option. Great B2B opportunity for consultation.",
+      "tags": ["outdoor-simulator", "budget", "uv-damage", "diy", "pergola"]
+    },
+    {
+      "id": "reddit-2026-04-09-3",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sgam6j/building_a_shed_for_primarily_a_golf_simulator/",
+      "title": "Building a shed for primarily a golf simulator. Looking for feedback.",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2026-04-09",
+      "comment": "Homeowner building dedicated shed for sim - asking for feedback on design. 16 comments. Classic sim room build question - perfect for consultation or installation services.",
+      "tags": ["shed", "simulator-room", "diy", "installation", "construction"]
+    },
+    {
+      "id": "reddit-2026-04-09-4",
+      "url": "https://www.reddit.com/r/golf/comments/1sg5r36/do_i_need_a_fitting/",
+      "title": "Do I need a Fitting?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2026-04-09",
+      "comment": "Golfer asking if they need a fitting - 18 comments. Classic first-timer question. Our value prop: we'll tell you if your current clubs work. No pressure upsell.",
+      "tags": ["fitting", "first-time", "beginners", "advice", "club-fitting"]
+    }
+  ]
     {
       "id": "reddit-2026-04-08-9",
       "url": "https://www.reddit.com/r/golf/comments/1sfd4u6/anyone_out_there_playing_extremely_light_graphite/",
