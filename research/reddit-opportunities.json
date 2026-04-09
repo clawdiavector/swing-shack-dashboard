@@ -1,7 +1,104 @@
 {
-  "last_updated": "2026-04-08",
-  "scan_time": "2026-04-08T18:00Z",
-  "scan_note": "Quick scan April 8 2026 - Evening scan. Found: ceiling height mods, indoor business startup questions, Impact Vision sourcing, putting green discussions, TPI fitting experience question. 5 fresh opportunities.",
+  {
+      "id": "reddit-2026-04-09-1",
+      "url": "https://www.reddit.com/r/golf/comments/1bo55a9/how_to_spend_my_1hrs_of_daily_trackman_practice/",
+      "title": "How to spend my 1hrs of daily trackman practice (5d/wk)",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2024-03-26",
+      "comment": "Golfer with 30 min daily Trackman access asking for training regimen. This is exactly who we target - structured practice plans or 'how to get the most from your Trackman session' content would work well here.",
+      "tags": ["trackman", "practice-routine", "training", "lessons"]
+    },
+    {
+      "id": "reddit-2026-04-09-2",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1lyb7bx/the_absolute_best_launch_monitor_that_money_can/",
+      "title": "The absolute BEST launch monitor that money can buy for fittings?",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2025-07-12",
+      "comment": "Trackman wins for ease of use and software ecosystem - classic debate. We can position as the place to try Trackman before committing. 'Come see what the pros use' is strong.",
+      "tags": ["launch-monitor", "trackman", "gcquad", "comparison", "fitting"]
+    },
+    {
+      "id": "reddit-2026-04-09-3",
+      "url": "https://www.reddit.com/r/golf/comments/15fo8qx/has_anyone_in_here_actually_fixed_their_slice/",
+      "title": "Has anyone in here actually fixed their slice properly?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2023-08-01",
+      "comment": "Classic slice fix thread - advice is to learn to hook first then find middle ground. This is our bread and butter - launch monitor shows path vs face angle. 'Come see YOUR path data' is powerful.",
+      "tags": ["slice", "fix", "swing-fault", "hook", "path"]
+    },
+    {
+      "id": "reddit-2026-04-09-4",
+      "url": "https://www.reddit.com/r/golf/comments/r7kw6c/how_do_i_fix_my_hook/",
+      "title": "How do I fix my hook?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2021-12-02",
+      "comment": "Hook players overcorrect - data helps here. Trackman shows face angle at impact. Great for lesson positioning - showing someone their actual numbers beats guessing every time.",
+      "tags": ["hook", "fix", "over-correction", "swing-path"]
+    },
+    {
+      "id": "reddit-2026-04-09-5",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
+      "title": "Seeking Advice: Building a Golf Simulator in South Africa with a $1500-$2000 Budget",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "south-africa",
+      "dateFound": "2026-04-09",
+      "datePosted": "2025-09-19",
+      "comment": "Directly relevant to SA market - asking about launch monitors, mats, software, local suppliers. Rapsodo/Square/Mevo recommended. We can offer 'try before you buy' - especially valuable for import-heavy SA market.",
+      "tags": ["south-africa", "budget", "simulator", "launch-monitor", "local-suppliers", "diy"]
+    },
+    {
+      "id": "reddit-2026-04-09-6",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1jd5ju5/software_for_south_african_courses/",
+      "title": "Software for South African courses",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "south-africa",
+      "dateFound": "2026-04-09",
+      "datePosted": "2025-03-17",
+      "comment": "SA course coverage in sim software is a pain point - uses Garmin R10 + Home Tee Hero. Good content opportunity: 'Which sim software has the best SA courses?' can partner with or reference HTH.",
+      "tags": ["south-africa", "software", "courses", "garmin-r10", "home-tee-hero"]
+    },
+    {
+      "id": "reddit-2026-04-09-7",
+      "url": "https://www.reddit.com/r/golf/comments/16bxzjd/joined_an_indoor_golf_club_how_to_best_take/",
+      "title": "Joined an indoor golf club - How to best take advantage of trackman?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2023-09-06",
+      "comment": "Golfer asking where to learn Trackman metrics - exactly our value prop. We teach golfers to understand and USE their data. 'We don't just give you numbers, we teach you what they mean.'",
+      "tags": ["trackman", "data", "metrics", "lessons", "indoor"]
+    },
+    {
+      "id": "reddit-2026-04-09-8",
+      "url": "https://www.reddit.com/r/golf/comments/1dd8ht0/trackman_launch_monitor_experience/",
+      "title": "Trackman Launch Monitor experience?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2024-06-11",
+      "comment": "Golfer asking about Trackman experience - full swing/Flightscope mentioned, needs space indoors. Great opportunity: position Swing Shack as accessible way to try Trackman without buying.",
+      "tags": ["trackman", "launch-monitor", "indoor", "experience", "comparison"]
+    }
+  ],
+  "last_updated": "2026-04-09",
+  "scan_time": "2026-04-09T04:00Z",
+  "scan_note": "April 9 2026 - Morning scan. Found: Trackman practice routine questions, launch monitor comparisons (Trackman vs GCQuad), slice/hook fix discussions, two SA-specific posts on budget sim builds and software. 8 new opportunities added.",
   "opportunities": [
     {
       "id": "reddit-2026-04-08-9",
