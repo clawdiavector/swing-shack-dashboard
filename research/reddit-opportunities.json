@@ -155,9 +155,57 @@
       "datePosted": "2026-04-09",
       "comment": "Beginner looking for first set in €200-300 range. Classic beginner pain point. Our angle: upgrade path from 'starter set' to properly fitted clubs - swing by for a TrackMan session to see what specs you actually need.",
       "tags": ["beginner", "budget", "clubs", "euro"]
+    },
+    {
+      "id": "reddit-2026-04-09-14",
+      "url": "https://www.reddit.com/r/golf/comments/1seif1d/thoughts_on_new_irons_after_a_fitting/",
+      "title": "Thoughts on new irons after a fitting",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2026-04-06",
+      "comment": "OP got fitted for Callaway Quantum irons - $1295. Fitter suggested longer shafts (+0.5) for 6'1 height, stiffer flex, +1 degree. Interestingly, launch monitor showed only 2-3mph faster speed vs old clubs. Commenter (club fitter) warned Max Fast might be too light for someone swinging 7i over 70mph. Our angle: proper fitting matters - but data shows actual improvement, not just promises.",
+      "tags": ["irons", "fitting", "callaway", "trackman", "launch-monitor"]
+    },
+    {
+      "id": "reddit-2026-04-09-15",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sgox72/help_picking_new_launch_monitor/",
+      "title": "Help Picking new launch monitor",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2026-04-09",
+      "comment": "OG SkyTrak died after 2-3 years - connectivity issues finally killed it. User needs: indoor only, no subscriptions, club data (especially club path), no stickers, decent support, $3k budget (prefer less). Eye Mini Lite looks like best bet. Our angle: Swing Shack has TrackMan - come try before you buy, see if you actually need club path data or if ball data is enough.",
+      "tags": ["launch-monitor", "skytrak", "upgrade", "eye-mini", "budget"]
+    },
+    {
+      "id": "reddit-2026-04-09-16",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sgdu3j/is_spending_1015k_on_an_outdoor_golf_simulator/",
+      "title": "Is spending $10-15k on an outdoor golf simulator actually worth it?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2026-04-09",
+      "comment": "Dallas-based golfer considering outdoor sim with covered pergola aesthetic (wife-approved). 19x10.5ft space. Main concerns: Texas heat (100° summers), whether outdoor experience is actually good, transfer to real course. Wants cleaner look than typical cage. Our angle: indoor practice with TrackMan + coaching is more reliable year-round, but outdoor sim has novelty - position as premium experience.",
+      "tags": ["outdoor-sim", "diy", "budget", "texas", "pergola"]
+    },
+    {
+      "id": "reddit-2026-04-09-17",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sgtc18/projector_help_benq_th671st_vs_tk710sti/",
+      "title": "Projector Help BenQ TH671ST vs TK710STI",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-09",
+      "datePosted": "2026-04-09",
+      "comment": "Texas metal building (not climate controlled). Can control light. Narrowed to BenQ TH671ST ($999) vs TK710STI ($1999). 75% golf sim, 25% movies/games. $1k extra worth it? Our angle: golf sim specific projectors matter - but setup advice is free value-add for potential customers.",
+      "tags": ["projector", "benq", "outdoor", "texas", "setup"]
     }
   ],
   "last_updated": "2026-04-09",
-  "scan_time": "2026-04-09T10:00Z",
-  "scan_note": "April 9 2026 - Midday scan. Masters 2026 dominating. Found: Augusta distance debate (437 upvotes), club fitting swing weight story, beginner budget clubs question. Added 3 new opportunities."
+  "scan_time": "2026-04-09T16:00Z",
+  "scan_note": "April 9 2026 - Evening scan. Masters 2026 still dominating feed. Found: irons fitting discussion, launch monitor upgrade need, outdoor sim build question, projector help. Added 4 new opportunities."
 }
