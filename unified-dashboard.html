@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swing Shack — Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            swing: { 900: '#0a0a0f', 800: '#111118', 700: '#1a1a24', 600: '#252532', accent: '#00d4aa', gold: '#ffd700' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    .card { background: #111118; border: 1px solid #252532; border-radius: 12px; }
+    .stat-num { font-size: 2rem; font-weight: 700; color: #00d4aa; }
+    .pulse { animation: pulse-glow 2s ease-in-out infinite; }
+    @keyframes pulse-glow { 0%,100% { opacity:1; } 50% { opacity: 0.6; } }
+    .live-dot { width:8px; height:8px; background:#00d4aa; border-radius:50%; animation:pulse-glow 1.5s infinite; }
+    .engagement-bar { height:4px; background:#00d4aa; border-radius:2px; transition:width 0.3s; }
+    .hook-tag { background:#1a1a24; border:1px solid #00d4aa30; padding:2px 8px; border-radius:4px; font-size:11px; color:#00d4aa; }
+    .refresh-btn { background:#1a1a24; border:1px solid #252532; padding:8px 16px; border-radius:8px; cursor:pointer; transition:all 0.2s; }
+    .refresh-btn:hover { background:#252532; border-color:#00d4aa50; }
+    .tab-btn { padding:8px 16px; border-radius:8px; cursor:pointer; transition:all 0.2s; background:transparent; border:none; color:#666; }
+    .tab-btn.active { background:#1a1a24; color:#00d4aa; border:1px solid #252532; }
+    .tab-btn:hover:not(.active) { color:#999; }
+    .loading { display:flex; align-items:center; justify-content:center; min-height:200px; }
+    .spinner { width:32px; height:32px; border:3px solid #252532; border-top-color:#00d4aa; border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .post-row { transition: background 0.15s; }
+    .post-row:hover { background: #1a1a24; }
+    .metric-card { position: relative; overflow: hidden; }
+    .metric-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, #00d4aa, transparent); }
+    .winner-badge { background:#00d4aa; color:#0a0a0f; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-white flex items-center gap-3">
+          ⚡ Swing Shack Command Center
+          <span class="live-dot" title="Live data"></span>
+          <span class="text-xs text-gray-500 font-normal">LIVE</span>
+        </h1>
+        <p class="text-gray-500 text-sm mt-1" id="lastUpdated">Loading...</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="refreshAll()" class="refresh-btn text-sm text-gray-300 flex items-center gap-2" id="refreshBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0112.82-4.34M20.49 15a9 9 0 01-12.82 4.34"/></svg>
+          Refresh
+        </button>
+        <span class="text-xs text-gray-600" id="autoRefresh">Auto: 5min</span>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="statsRow">
+      <div class="card p-4 metric-card">
+        <div class="text-gray-400 text-xs uppercase tracking-wider mb-1">IG Followers</div>
+        <div class="stat-num" id="followers">—</div>
+        <div class="text-xs text-gray-500 mt-1" id="followersChange"></div>
+      </div>
+      <div class="card p-4 metric-card">
+        <div class="text-gray-400 text-xs uppercase tracking-wider mb-1">IG Posts</div>
+        <div class="stat-num" id="totalPosts">—</div>
+        <div class="text-xs text-gray-500 mt-1">Tracked in system</div>
+      </div>
+      <div class="card p-4 metric-card">
+        <div class="text-gray-400 text-xs uppercase tracking-wider mb-1">Avg Engagement</div>
+        <div class="stat-num" id="avgEngagement">—</div>
+        <div class="text-xs text-gray-500 mt-1">Last 30 days</div>
+      </div>
+      <div class="card p-4 metric-card">
+        <div class="text-gray-400 text-xs uppercase tracking-wider mb-1">Best Post</div>
+        <div class="text-lg font-bold text-gold" id="bestEngagement">—</div>
+        <div class="text-xs text-gray-500 mt-1" id="bestPostCaption"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-4">
+      <button class="tab-btn active" onclick="showTab('posts')" id="tabPosts">Recent Posts</button>
+      <button class="tab-btn" onclick="showTab('ab')" id="tabAB">A/B Tests</button>
+      <button class="tab-btn" onclick="showTab('website')" id="tabWebsite">Website</button>
+      <button class="tab-btn" onclick="showTab('hooks')" id="tabHooks">Hook Bank</button>
+    </div>
+
+    <!-- Recent Posts Tab -->
+    <div id="panelPosts" class="card p-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-white">Recent Posts</h2>
+        <span class="text-xs text-gray-500" id="postsCount"></span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+              <th class="text-left pb-3 pl-2">Date</th>
+              <th class="text-left pb-3">Caption</th>
+              <th class="text-center pb-3">Type</th>
+              <th class="text-right pb-3">Reach</th>
+              <th class="text-right pb-3">Views</th>
+              <th class="text-right pb-3">Likes</th>
+              <th class="text-right pb-3">Eng Rate</th>
+            </tr>
+          </thead>
+          <tbody id="postsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- A/B Tests Tab -->
+    <div id="panelAB" class="card p-4 hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-white">A/B Test Results</h2>
+        <div class="flex gap-2">
+          <button class="tab-btn text-xs" onclick="showRound('1')" id="round1Btn">Round 1</button>
+          <button class="tab-btn text-xs active" onclick="showRound('2')" id="round2Btn">Round 2</button>
+        </div>
+      </div>
+      <div id="abTestContent"></div>
+    </div>
+
+    <!-- Website Tab -->
+    <div id="panelWebsite" class="card p-4 hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-white">Website Analytics</h2>
+        <span class="text-xs text-gray-500">GA4 Data</span>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="websiteStats"></div>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-400 mb-3">Top Pages</h3>
+        <div id="topPages" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Hook Bank Tab -->
+    <div id="panelHooks" class="card p-4 hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-white">Hook Bank</h2>
+        <span class="text-xs text-gray-500">Winning angles + templates</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="hookBank"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-xs text-gray-600 mt-8">
+      Powered by Clawdia ⚡ — Data refreshes every 5 minutes
+    </div>
+  </div>
+
+<script>
+let currentTab = 'posts';
+let currentRound = '2';
+let igData = null;
+let websiteData = null;
+
+const ROUND1_DATA = [
+  { hook: 'A - Stats', caption: 'YOUR GOLF STATS DON\'T LIE', likes: 4, reach: 120, views: 196, engRate: 3.33, winner: true },
+  { hook: 'B - Transform', caption: 'FROM CONFUSED GOLFER TO CONFIDENT STRIKER', likes: 1, reach: 88, views: 133, engRate: 1.14, winner: false },
+  { hook: 'C - Convenience', caption: 'RAIN OR SHINE - YOUR GAME NEVER STOPS', likes: 3, reach: 119, views: 189, engRate: 2.52, winner: false },
+];
+
+const ROUND2_DATA = [
+  { hook: 'D - Distance', caption: 'YOUR DRIVE: 199 M\nPros average 264 meters.', likes: 2, reach: 152, views: 244, engRate: 1.32, winner: false },
+  { hook: 'E - Swing Speed', caption: 'SWING SPEED: 83 MPH\nPros average 112 mph.', likes: 2, reach: 118, views: 203, engRate: 1.69, winner: true },
+  { hook: 'F - Numbers', caption: 'YOUR NUMBERS ARE TALKING\nTrackMan makes them impossible to ignore.', likes: 1, reach: 87, views: 122, engRate: 1.15, winner: false },
+];
+
+const HOOK_BANK = [
+  { angle: 'Stats / TrackMan Data', hooks: ['YOUR GOLF STATS DON\'T LIE', 'YOUR DRIVE: 199 M', 'SWING SPEED: 83 MPH', 'YOUR NUMBERS ARE TALKING'], performance: '4.44%', status: 'WINNER', bg: 'bg-a-data.png' },
+  { angle: 'Slice Fix / Technical', hooks: ['That slice costing you yards off the tee? TrackMan found it in 3 swings.', 'TrackMan doesn\'t lie. Your swing data told a story. Now fix the ending.'], performance: '2.1%', status: 'ACTIVE', bg: 'bg-b-technique.png' },
+  { angle: 'Coaching / Transformation', hooks: ['FROM CONFUSED GOLFER TO CONFIDENT STRIKER'], performance: '1.14%', status: 'LOW', bg: 'bg-c-transform.png' },
+  { angle: 'Convenience / Weather', hooks: ['RAIN OR SHINE - YOUR GAME NEVER STOPS'], performance: '2.52%', status: 'TESTING', bg: 'bg-c-convenience.png' },
+];
+
+async function loadData() {
+  // Load IG analytics
+  try {
+    const igRes = await fetch('data/analytics/instagram-analytics.json');
+    igData = await igRes.json();
+  } catch(e) {
+    console.error('Failed to load IG data', e);
+  }
+
+  // Load website data
+  try {
+    const webRes = await fetch('data/dashboard-live.json');
+    websiteData = await webRes.json();
+  } catch(e) {
+    console.error('Failed to load website data', e);
+  }
+}
+
+function renderStats() {
+  if (!igData) return;
+  
+  const now = new Date(igData.lastUpdated);
+  document.getElementById('lastUpdated').textContent = `Last updated: ${now.toLocaleString('en-ZA')}`;
+  
+  document.getElementById('followers').textContent = websiteData?.instagram?.followers?.toLocaleString() || igData.posts.length + '+';
+  
+  const posts = igData.posts || [];
+  const tracked = posts.length;
+  document.getElementById('totalPosts').textContent = tracked;
+  
+  // Average engagement (last 30 days)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentPosts = posts.filter(p => new Date(p.timestamp) > thirtyDaysAgo);
+  const avgEng = recentPosts.length > 0 
+    ? (recentPosts.reduce((sum, p) => sum + parseFloat(p.engagementRate || 0), 0) / recentPosts.length).toFixed(2)
+    : '0.00';
+  document.getElementById('avgEngagement').textContent = avgEng + '%';
+  
+  // Best post
+  const topPost = igData.topPerformers?.[0] || posts.sort((a,b) => parseFloat(b.engagementRate) - parseFloat(a.engagementRate))[0];
+  if (topPost) {
+    document.getElementById('bestEngagement').textContent = topPost.engagementRate + '%';
+    document.getElementById('bestPostCaption').textContent = topPost.captionPreview?.substring(0, 40) + '...' || '';
+  }
+}
+
+function renderPosts() {
+  if (!igData) return;
+  const posts = igData.posts || [];
+  const tbody = document.getElementById('postsTable');
+  document.getElementById('postsCount').textContent = `${posts.length} posts tracked`;
+  
+  // Show 20 most recent
+  const recent = posts.slice(0, 20);
+  tbody.innerHTML = recent.map(p => {
+    const date = new Date(p.timestamp).toLocaleDateString('en-ZA', { day:'numeric', month:'short' });
+    const engRate = parseFloat(p.engagementRate || 0);
+    const engColor = engRate >= 2 ? '#00d4aa' : engRate >= 1 ? '#ffd700' : '#666';
+    const mediaIcon = p.mediaType === 'VIDEO' ? '🎥' : p.mediaType === 'CAROUSEL_ALBUM' ? '🎠' : '🖼';
+    return `<tr class="post-row border-b border-gray-800">
+      <td class="py-3 pl-2 text-gray-400 text-xs">${date}</td>
+      <td class="py-3 px-2 max-w-xs">
+        <div class="text-white text-xs truncate">${p.captionPreview || ''}</div>
+        <a href="${p.permalink}" target="_blank" class="text-gray-500 text-xs hover:text-accent">${p.permalink.substring(0,40)}...</a>
+      </td>
+      <td class="py-3 px-2 text-center">${mediaIcon}</td>
+      <td class="py-3 px-2 text-right text-white text-xs">${p.reach?.toLocaleString() || '-'}</td>
+      <td class="py-3 px-2 text-right text-gray-400 text-xs">${p.views?.toLocaleString() || '-'}</td>
+      <td class="py-3 px-2 text-right text-white text-xs">${p.likeCount || 0}</td>
+      <td class="py-3 px-2 text-right text-xs font-bold" style="color:${engColor}">${engRate.toFixed(2)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderABTests() {
+  const data = currentRound === '1' ? ROUND1_DATA : ROUND2_DATA;
+  const winner = data.find(d => d.winner);
+  const maxReach = Math.max(...data.map(d => d.reach));
+  
+  document.getElementById('abTestContent').innerHTML = `
+    <div class="space-y-4">
+      ${data.map(d => {
+        const barWidth = (d.reach / maxReach * 100).toFixed(0);
+        return `<div class="bg-swing-900 rounded-lg p-4 ${d.winner ? 'border border-accent' : ''}">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="hook-tag">${d.hook}</span>
+              ${d.winner ? '<span class="winner-badge">🏆 WINNER</span>' : ''}
+            </div>
+            <span class="text-lg font-bold ${d.winner ? 'text-accent' : 'text-white'}">${d.engRate}%</span>
+          </div>
+          <p class="text-gray-400 text-xs mb-3 font-mono whitespace-pre-line">${d.caption}</p>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Reach: ${d.reach}</span>
+            <span>Views: ${d.views}</span>
+            <span>Likes: ${d.likes}</span>
+          </div>
+          <div class="mt-2 bg-gray-800 rounded h-1">
+            <div class="engagement-bar" style="width:${barWidth}%"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="mt-4 p-3 bg-swing-900 rounded-lg border border-accent/30">
+      <h4 class="text-sm font-semibold text-accent mb-1">Key Insight</h4>
+      <p class="text-xs text-gray-400">Stats hooks outperform transformation hooks by <strong>2.5x</strong>. Hook "${winner.hook}" (${winner.caption.split('\n')[0]}) delivered the best engagement at ${winner.engRate}%.</p>
+    </div>
+  `;
+}
+
+function renderWebsite() {
+  const stats = websiteData?.website || {};
+  const users = stats.activeUsers || 0;
+  const sessions = stats.sessions || 0;
+  const pageViews = stats.pageViews || 0;
+  const avgTime = stats.avgSessionSeconds || 0;
+  const topPages = stats.topPages || [];
+  
+  document.getElementById('websiteStats').innerHTML = `
+    <div class="bg-swing-900 rounded-lg p-4">
+      <div class="text-gray-400 text-xs uppercase tracking-wider mb-1">Active Users</div>
+      <div class="stat-num">${users}</div>
+    </div>
+    <div class="bg-swing-900 rounded-lg p-4">
+      <div class="text-gray-400 text-xs uppercase tracking-wider mb-1">Sessions</div>
+      <div class="stat-num">${sessions}</div>
+    </div>
+    <div class="bg-swing-900 rounded-lg p-4">
+      <div class="text-gray-400 text-xs uppercase tracking-wider mb-1">Page Views</div>
+      <div class="stat-num">${pageViews}</div>
+    </div>
+    <div class="bg-swing-900 rounded-lg p-4">
+      <div class="text-gray-400 text-xs uppercase tracking-wider mb-1">Avg Session</div>
+      <div class="stat-num">${avgTime}s</div>
+    </div>
+  `;
+  
+  document.getElementById('topPages').innerHTML = topPages.length > 0
+    ? topPages.map((p, i) => `<div class="flex items-center justify-between p-3 bg-swing-900 rounded">
+        <div class="flex items-center gap-3">
+          <span class="text-gray-500 text-xs w-4">${i+1}</span>
+          <span class="text-sm text-white">${p.path || p.page || '/'}</span>
+        </div>
+        <span class="text-xs text-accent">${p.views || p.visits || 0} views</span>
+      </div>`).join('')
+    : '<p class="text-gray-500 text-sm">No GA4 data available. Check GA4 connection.</p>';
+}
+
+function renderHookBank() {
+  document.getElementById('hookBank').innerHTML = HOOK_BANK.map(h => `
+    <div class="bg-swing-900 rounded-lg p-4 ${h.status === 'WINNER' ? 'border border-accent' : ''}">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-semibold text-white">${h.angle}</span>
+        <span class="text-xs ${h.status === 'WINNER' ? 'text-accent' : 'text-gray-500'}">${h.performance}</span>
+      </div>
+      <div class="space-y-1 mb-3">
+        ${h.hooks.map(hook => `<p class="text-xs text-gray-300 font-mono">• ${hook.substring(0,50)}${hook.length > 50 ? '...' : ''}</p>`).join('')}
+      </div>
+      <div class="text-xs text-gray-500">Status: <span class="${h.status === 'WINNER' ? 'text-accent' : 'text-yellow-500'}">${h.status}</span></div>
+    </div>
+  `).join('');
+}
+
+function showTab(tab) {
+  currentTab = tab;
+  ['posts', 'ab', 'website', 'hooks'].forEach(t => {
+    document.getElementById(`panel${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('hidden', t !== tab);
+    document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('active', t === tab);
+  });
+}
+
+function showRound(round) {
+  currentRound = round;
+  document.getElementById('round1Btn').classList.toggle('active', round === '1');
+  document.getElementById('round2Btn').classList.toggle('active', round === '2');
+  renderABTests();
+}
+
+async function refreshAll() {
+  const btn = document.getElementById('refreshBtn');
+  btn.innerHTML = '<div class="spinner w-4 h-4"></div> Refreshing...';
+  btn.disabled = true;
+  
+  try {
+    await loadData();
+    renderStats();
+    renderPosts();
+    renderABTests();
+    renderWebsite();
+    renderHookBank();
+  } catch(e) {
+    console.error('Refresh failed', e);
+  }
+  
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0112.82-4.34M20.49 15a9 9 0 01-12.82 4.34"/></svg> Refresh';
+  btn.disabled = false;
+}
+
+// Init
+async function init() {
+  await loadData();
+  renderStats();
+  renderPosts();
+  renderABTests();
+  renderWebsite();
+  renderHookBank();
+  
+  // Auto-refresh every 5 min
+  setInterval(refreshAll, 5 * 60 * 1000);
+}
+
+init();
+</script>
+</body>
+</html>
