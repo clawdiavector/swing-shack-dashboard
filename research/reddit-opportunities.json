@@ -133,7 +133,32 @@
       "tags": ["tips", "fundamentals", "backswing", "weight-shift", "irons"]
     }
   ],
+  {
+      "id": "reddit-2026-04-10-12",
+      "url": "https://www.reddit.com/r/golf/comments/1shhl4w/im_wondering_if_i_should_continue_with_my_irons/",
+      "title": "I'm wondering if I should continue with my irons.",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-10",
+      "datePosted": "2026-04-10",
+      "comment": "8-month golfer struggling with Mizuno MP-63 forged irons - too hard for their level. Looking at Takomo 101 game improvement irons. Classic mistake: got 'good' clubs before skill was there. Proper fitting would have saved frustration - wrong clubs for swing speed/skill level.",
+      "tags": ["beginner", "irons", "mizuno", "takomo", "fitting", "forged-vs-game-improvement"]
+    },
+    {
+      "id": "reddit-2026-04-10-13",
+      "url": "https://www.reddit.com/r/golf/comments/1shhg8w/510_female_starting_her_golfing_journey/",
+      "title": "5\"10 female starting her golfing journey",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-10",
+      "datePosted": "2026-04-10",
+      "comment": "Beginner asking about Callaway Strata set - ladies vs men's. Long back, short legs means standard sets probably won't fit. Get properly measured - clubs too long/lie wrong = bad habits developing. Swing Shack can set her up right from start.",
+      "tags": ["beginner", "female", "clubs", "fitting", "callaway-strata", "custom-fit"]
+    }
+  ],
   "last_updated": "2026-04-10",
-  "scan_time": "2026-04-10T04:00Z",
+  "scan_time": "2026-04-10T10:00Z",
   "scan_note": "April 10 2026 - Morning scan. Found 11 opportunities across swing issues, club fitting, launch monitors, and practice tech. Style: South African golfer voice - knowledgeable, empathetic, no hard sell."
 }
