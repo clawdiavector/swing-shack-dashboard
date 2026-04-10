@@ -373,7 +373,21 @@ async function refreshAll() {
 }
 
 // Init
-async function init() {
+async 
+window.onerror = function(msg, url, line) {
+  alert('JS Error: ' + msg + ' at line ' + line);
+  return false;
+};
+try {
+  console.log('=== DEBUG ===');
+  console.log('igData exists:', typeof igData !== 'undefined', igData ? 'posts=' + igData.posts.length : 'null');
+  console.log('websiteData exists:', typeof websiteData !== 'undefined');
+  console.log('ROUND1_DATA exists:', typeof ROUND1_DATA !== 'undefined');
+  console.log('HOOK_BANK exists:', typeof HOOK_BANK !== 'undefined');
+} catch(e) { console.error('Debug error:', e); }
+
+
+function init() {
   await loadData();
   renderStats();
   renderPosts();
