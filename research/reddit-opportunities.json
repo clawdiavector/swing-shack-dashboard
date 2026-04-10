@@ -156,9 +156,33 @@
       "datePosted": "2026-04-10",
       "comment": "Beginner asking about Callaway Strata set - ladies vs men's. Long back, short legs means standard sets probably won't fit. Get properly measured - clubs too long/lie wrong = bad habits developing. Swing Shack can set her up right from start.",
       "tags": ["beginner", "female", "clubs", "fitting", "callaway-strata", "custom-fit"]
+    },
+    {
+      "id": "reddit-2026-04-10-14",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sg93wl/cannot_for_the_life_of_me_maintain_my_wrist/",
+      "title": "Cannot for the life of me maintain my wrist angles in the downswing",
+      "subreddit": "r/GolfSwing",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-10",
+      "datePosted": "2026-04-10",
+      "comment": "Wrist angle breakdown in downswing - classic 'casting' problem. Usually caused by early release, passive wrists at top, or trying to add power with arms instead of rotation. TrackMan shows exactly when angles break down. Fix: feel like wrists stay 'soft' until after impact, not before.",
+      "tags": ["wrist-angles", "downswing", "casting", "release", "technique"]
+    },
+    {
+      "id": "reddit-2026-04-10-15",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sgrjxo/new_to_golf/",
+      "title": "New To Golf - getting fitted as beginner?",
+      "subreddit": "r/GolfSwing",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-10",
+      "datePosted": "2026-04-10",
+      "comment": "Beginner asking if fitting worth it - reddit says wait until consistent. We'd say: basic length/grip at minimum, but full fitting once you have repeatable swing. Better to start with decent clubs than bad habits from wrong clubs. Truth is somewhere in between.",
+      "tags": ["beginner", "fitting", "when-to-fit", "new-golfer"]
     }
   ],
   "last_updated": "2026-04-10",
-  "scan_time": "2026-04-10T10:00Z",
-  "scan_note": "April 10 2026 - Morning scan. Found 11 opportunities across swing issues, club fitting, launch monitors, and practice tech. Style: South African golfer voice - knowledgeable, empathetic, no hard sell."
+  "scan_time": "2026-04-10T18:00Z",
+  "scan_note": "April 10 2026 - Evening scan. Added 2 fresh opportunities (wrist angles, beginner fitting). Web search limited by rate limits but found relevant Reddit discussions."
 }
