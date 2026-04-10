@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-04-10T14:25:00.324Z",
+  "lastUpdated": "2026-04-10T16:00:05.317Z",
   "source": "automated",
   "website": {
-    "activeUsers": 1064,
-    "sessions": 1282,
-    "pageViews": 1711,
-    "avgSessionSeconds": 69.81647577925118,
-    "bounceRate": 0.7979719188767551,
+    "activeUsers": 1068,
+    "sessions": 1292,
+    "pageViews": 1727,
+    "avgSessionSeconds": 70.78969007198143,
+    "bounceRate": 0.7995356037151703,
     "topPages": [
       {
         "path": "/cart/",
@@ -14,11 +14,11 @@
       },
       {
         "path": "/",
-        "views": 437
+        "views": 445
       },
       {
         "path": "/customer-portal/",
-        "views": 213
+        "views": 218
       },
       {
         "path": "/bookings/",
@@ -29,12 +29,12 @@
         "views": 53
       },
       {
-        "path": "/checkout/",
-        "views": 23
+        "path": "/404.html",
+        "views": 24
       },
       {
-        "path": "/404.html",
-        "views": 22
+        "path": "/checkout/",
+        "views": 23
       },
       {
         "path": "/membership/",
@@ -45,26 +45,26 @@
         "views": 11
       },
       {
-        "path": "/checkout/order-received/3504/",
-        "views": 3
+        "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
+        "views": 4
       }
     ],
     "topSources": [
       {
         "source": "(direct)",
-        "sessions": 883
+        "sessions": 889
       },
       {
         "source": "google",
-        "sessions": 319
+        "sessions": 323
       },
       {
         "source": "c.yoco.com",
-        "sessions": 47
+        "sessions": 48
       },
       {
         "source": "(not set)",
-        "sessions": 25
+        "sessions": 27
       },
       {
         "source": "bing",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "desktop",
-        "sessions": 931
+        "sessions": 935
       },
       {
         "device": "mobile",
-        "sessions": 350
+        "sessions": 356
       },
       {
         "device": "tablet",
