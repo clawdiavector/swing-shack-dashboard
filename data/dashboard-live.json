@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-04-10T14:18:25.781Z",
+  "lastUpdated": "2026-04-10T14:25:00.324Z",
   "source": "automated",
   "website": {
     "activeUsers": 1064,
-    "sessions": 1281,
-    "pageViews": 1710,
-    "avgSessionSeconds": 69.87097732162373,
-    "bounceRate": 0.7978142076502732,
+    "sessions": 1282,
+    "pageViews": 1711,
+    "avgSessionSeconds": 69.81647577925118,
+    "bounceRate": 0.7979719188767551,
     "topPages": [
       {
         "path": "/cart/",
@@ -22,7 +22,7 @@
       },
       {
         "path": "/bookings/",
-        "views": 177
+        "views": 178
       },
       {
         "path": "/club-fitting/",
@@ -52,7 +52,7 @@
     "topSources": [
       {
         "source": "(direct)",
-        "sessions": 882
+        "sessions": 883
       },
       {
         "source": "google",
@@ -98,7 +98,7 @@
       },
       {
         "device": "mobile",
-        "sessions": 349
+        "sessions": 350
       },
       {
         "device": "tablet",
