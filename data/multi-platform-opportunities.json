@@ -1,7 +1,55 @@
 {
-  "research_date": "2026-04-11T15:52:00+02:00",
+  "research_date": "2026-04-11T18:10:00+02:00",
   "research_type": "multi_platform_opportunities",
   "opportunities": [
+    {
+      "platform": "Reddit",
+      "title": "r/Golfsimulator - Screen & Projector Questions (DIY build)",
+      "preview": "Barn conversion: 12'2 wide, planning 12x9 screen with 4:3 projector. Questions about custom screen size and mounting.",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1silp49/screen_projector_questions/",
+      "location": "General (global)",
+      "problem_type": "simulator_build",
+      "engagement": "medium",
+      "score": {
+        "sa_location": 2,
+        "problem_type": 8,
+        "engagement": 6
+      },
+      "total_score": 16,
+      "suggested_comment": "Custom screen material is the way to go. Make sure to account for mounting hardware when calculating dimensions."
+    },
+    {
+      "platform": "Reddit",
+      "title": "r/golf - How did your first round of 2026 go?",
+      "preview": "23 hcp golfer: ugly range week, solid first round comeback. Range was terrible, then scored well on course. Short game saved the day.",
+      "url": "https://www.reddit.com/r/golf/comments/1sin2xr/how_did_your_first_round_of_2026_go/",
+      "location": "General (global)",
+      "problem_type": "round_recap",
+      "engagement": "medium",
+      "score": {
+        "sa_location": 2,
+        "problem_type": 6,
+        "engagement": 6
+      },
+      "total_score": 14,
+      "suggested_comment": "Good on you for getting out there. Short game is where the scores drop - indoor practice is good for keeping that sharp."
+    },
+    {
+      "platform": "Reddit",
+      "title": "r/golf - Chalk for grips discussion",
+      "preview": "Using chalk or resin bag like a pitcher - will it dry out skin or leave dust on grips causing problems?",
+      "url": "https://www.reddit.com/r/golf/comments/1sin174/chalk/",
+      "location": "General (global)",
+      "problem_type": "grip",
+      "engagement": "low",
+      "score": {
+        "sa_location": 2,
+        "problem_type": 5,
+        "engagement": 4
+      },
+      "total_score": 11,
+      "suggested_comment": "Try it on the range first. Grip aid products work better than raw chalk anyway."
+    },
     {
       "platform": "Reddit",
       "title": "r/golf - Sim 2 Max or Taylormade Qi10 (driver comparison)",
@@ -372,7 +420,7 @@
     }
   ],
   "summary": {
-    "total_opportunities": 23,
+    "total_opportunities": 26,
     "by_platform": {
       "Search/Web": 11,
       "Reddit": 5,
