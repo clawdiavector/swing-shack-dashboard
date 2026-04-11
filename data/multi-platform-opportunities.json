@@ -1,7 +1,55 @@
 {
-  "research_date": "2026-04-11T07:03:00+02:00",
+  "research_date": "2026-04-11T15:52:00+02:00",
   "research_type": "multi_platform_opportunities",
   "opportunities": [
+    {
+      "platform": "Reddit",
+      "title": "r/golf - Sim 2 Max or Taylormade Qi10 (driver comparison)",
+      "preview": "25 hcp with ~90 mph swing, hoping to improve handicap with new driver because current one isn't forgiving enough.",
+      "url": "https://www.reddit.com/r/golf/comments/1sijfpv/sim_2_max_or_taylormade_qi10/",
+      "location": "General (global)",
+      "problem_type": "equipment",
+      "engagement": "medium",
+      "score": {
+        "sa_location": 2,
+        "problem_type": 7,
+        "engagement": 6
+      },
+      "total_score": 15,
+      "suggested_comment": "Both are decent for your handicap. For the best fit, try getting a proper launch monitor session to see which one actually helps your numbers."
+    },
+    {
+      "platform": "Reddit",
+      "title": "r/GolfSwing - Am I compressing my irons?",
+      "preview": "Struggling to compress irons properly - looking for tips and advice on the feeling.",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sijht2/am_i_compressing_my_irons/",
+      "location": "General (global)",
+      "problem_type": "iron_technique",
+      "engagement": "low",
+      "score": {
+        "sa_location": 2,
+        "problem_type": 8,
+        "engagement": 5
+      },
+      "total_score": 15,
+      "suggested_comment": "Book some time with a launch monitor to see your spin rates - that's the clearest way to know if you're compressing properly."
+    },
+    {
+      "platform": "Reddit",
+      "title": "r/GolfSwing - Clean up the hips (pivot fix)",
+      "preview": "Complaining about collapsing lead knee, weight shift issues, changing grip. Looking for pivot tips.",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sijin7/clean_up_the_hips/",
+      "location": "General (global)",
+      "problem_type": "swing_pivot",
+      "engagement": "low",
+      "score": {
+        "sa_location": 2,
+        "problem_type": 8,
+        "engagement": 5
+      },
+      "total_score": 15,
+      "suggested_comment": "Classic pivot issue - weight transfer is key. Getting video analysis or a session with someone watching can spot what your eyes miss."
+    },
     {
       "platform": "Reddit",
       "title": "r/golf - Retired PGA Tour Superstore Club fitter, AMA",
@@ -324,7 +372,7 @@
     }
   ],
   "summary": {
-    "total_opportunities": 20,
+    "total_opportunities": 23,
     "by_platform": {
       "Search/Web": 11,
       "Reddit": 5,
