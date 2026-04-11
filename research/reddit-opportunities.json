@@ -1,6 +1,66 @@
 {
   "opportunities": [
     {
+      "id": "reddit-2026-04-11-11",
+      "url": "https://www.reddit.com/r/golfsimulator/comments/1si8ccu/first_sim_setup/",
+      "title": "First sim setup",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "Beginner asking about first sim setup - just 18 min ago. Getting into indoor golf. Perfect timing for Swing Shack: offer a TrackMan session to see what real data feels like before they buy.",
+      "tags": ["beginner", "simulator", "first-setup", "indoor", "new-to-golf"]
+    },
+    {
+      "id": "reddit-2026-04-11-12",
+      "url": "https://www.reddit.com/r/golfsimulator/comments/1si1f68/whats_a_good_10x10x10_net/",
+      "title": "What's a good 10x10x10 net",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "Beginner asking about net dimensions for home sim. 6 hours old, low engagement. Questions like this = opportunity to pivot to Swing Shack premium experience instead of DIY.",
+      "tags": ["net", "home-simulator", "beginner", "setup", "diy"]
+    },
+    {
+      "id": "reddit-2026-04-11-13",
+      "url": "https://www.reddit.com/r/golf/comments/1si8k1q/need_help_for_golf_trip_for_30th_bday_please/",
+      "title": "Need help for golf trip for 30th bday please",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "SoCal golfer looking for destination golf trip for 30th birthday. 4-5 days, wants premium experience. Could tie into Swing Shack as destination for group - premium practice before the trip.",
+      "tags": ["golf-trip", "birthday", "destination", "california", "group"]
+    },
+    {
+      "id": "reddit-2026-04-11-14",
+      "url": "https://www.reddit.com/r/golf/comments/1si6aqx/anyone_get_to_scratch_later_in_life/",
+      "title": "Anyone get to scratch later in life?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "Mid-30s golfer pushing for scratch after late start. 6.9 handicap, overhauled swing. This is our target demo: serious about improving, willing to put in work, wants data-driven coaching.",
+      "tags": ["scratch", "late-starter", "improvement", "handicap", "serious-golfer"]
+    },
+    {
+      "id": "reddit-2026-04-11-15",
+      "url": "https://www.reddit.com/r/golf/comments/1si795z/witb_budgetfirst_full_golf_season_edition/",
+      "title": "Witb (budget/first full golf season edition)",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "Budget WITB post - gear-focused but first season means they need fitting help too. Clubs for life vs budget tradeoffs. Perfect for custom fitting angle.",
+      "tags": ["witb", "budget", "first-season", "clubs", "fitting"]
+    },
+    {
       "id": "reddit-2026-04-10-1",
       "url": "https://www.reddit.com/r/golf/comments/1se3fxs/what_are_some_reasons_i_would_be_slicing_my/",
       "title": "What are some reasons I would be slicing my drives every time",
@@ -302,6 +362,6 @@
     }
   ],
   "last_updated": "2026-04-11",
-  "scan_time": "2026-04-11T04:00Z",
-  "scan_note": "April 11 2026 - Morning scan. Found 10 new opportunities focused on TrackMan indoor use, slice/hook fixes, and launch monitor buying decisions. Rate limited on search but used cached results effectively."
+  "scan_time": "2026-04-11T04:03Z",
+  "scan_note": "April 11 2026 - Morning scan. Found 5 new opportunities. r/golf dominated by Masters 2026. r/golfsimulator has beginners asking about first setups and nets."
 }
