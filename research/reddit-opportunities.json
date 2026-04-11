@@ -1,5 +1,89 @@
 {
-  "opportunities": [
+{
+      "id": "reddit-2026-04-11-16",
+      "url": "https://www.reddit.com/r/golf/comments/1sijfpv/sim_2_max_or_taylormade_qi10/",
+      "title": "Sim 2 max or Taylormade qi10",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "25 handicap, 90mph swing speed, wants forgiving driver to improve handicap. Classic fitting opportunity - swing speed suggests needs regular flex, high MOI for forgiveness. TrackMan session would show what actually matters.",
+      "tags": ["driver", "fitting", "handicap", "beginner", "equipment"]
+    },
+    {
+      "id": "reddit-2026-04-11-17",
+      "url": "https://www.reddit.com/r/golf/comments/1sij0fo/help_me_fix_my_swing/",
+      "title": "Help me fix my swing",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "Posting video asking for swing help. Classic - Reddit gives random tips but no real diagnosis. TrackMan would show what's actually happening vs what they feel. Could offer data-backed analysis.",
+      "tags": ["swing-help", "video", "diagnosis", "technique"]
+    },
+    {
+      "id": "reddit-2026-04-11-18",
+      "url": "https://www.reddit.com/r/golf/comments/1siile7/older_beginner/",
+      "title": "Older beginner",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "62 year old starting golf for first time in 40+ years. Looking for tips, YouTube channel recommendations, beginner clubs. Perfect demographic for Swing Shack - slower swing speed, needs proper fitting from start to avoid bad habits.",
+      "tags": ["beginner", "older-golfer", "first-clubs", "tips", "senior"]
+    },
+    {
+      "id": "reddit-2026-04-11-19",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sijin7/clean_up_the_hips/",
+      "title": "Clean up the hips",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "Collapsing lead knee, pivot issues. New neutral grip, still finding feel. Push/hook misses - classic pivot/weight shift problems. TrackMan would show path vs face timing.",
+      "tags": ["pivot", "hips", "weight-shift", "technique", "video-analysis"]
+    },
+    {
+      "id": "reddit-2026-04-11-20",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sijht2/am_i_compressing_my_irons/",
+      "title": "Am I compressing my Irons?",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "Video posted asking about iron compression - bottom of swing arc, strike quality. compression comes from proper sequence, not just equipment. TrackMan shows apex, descent angle, compression.",
+      "tags": ["compression", "iron-play", "strike", "video", "technique"]
+    },
+    {
+      "id": "reddit-2026-04-11-21",
+      "url": "https://www.reddit.com/r/golf/comments/1sii3v6/golf_instructors_purposely_teach_you_less_so_that/",
+      "title": "Golf instructors purposely teach you less so that you are inclined to buy more",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "Thread about instructors holding back. 20 comments, people venting about lesson experiences. Swing Shack opportunity - we provide value upfront, transparency, data-driven coaching not salesy.",
+      "tags": ["coaching", "lessons", "trust", "industry-critique", "value-proposition"]
+    },
+    {
+      "id": "reddit-2026-04-11-22",
+      "url": "https://www.reddit.com/r/golfsimulator/comments/1sih2te/projector_issues/",
+      "title": "Projector issues",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-11",
+      "datePosted": "2026-04-11",
+      "comment": "Struggling to get decent image on impact screen. Classic DIY vs pro setup question. Swing Shack angle - come hit in a proper setup, see what good looks like before spending on home setup.",
+      "tags": ["projector", "sim-setup", "diy", "home-sim", "frustration"]
+    }
+  ],
     {
       "id": "reddit-2026-04-11-11",
       "url": "https://www.reddit.com/r/golfsimulator/comments/1si8ccu/first_sim_setup/",
@@ -362,6 +446,6 @@
     }
   ],
   "last_updated": "2026-04-11",
-  "scan_time": "2026-04-11T04:06Z",
+  "scan_time": "2026-04-11T13:50Z",
   "scan_note": "April 11 2026 - Morning scan. Found 8 new opportunities. Masters 2026 week dominates r/golf. Multiple active driver slice threads. Beginners asking about first sim setups and launch monitors."
 }
