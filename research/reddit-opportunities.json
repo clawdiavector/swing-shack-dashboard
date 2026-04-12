@@ -1,76 +1,6 @@
 {
   "opportunities": [
     {
-      "id": "reddit-2026-04-12-9",
-      "url": "https://forums.golfwrx.com/topic/2090122-is-fitting-based-on-ball-data-on-an-indoor-lm-actually-realistic",
-      "title": "Is fitting based on ball data on an indoor LM actually realistic?",
-      "subreddit": "WRX Club Techs",
-      "status": "new",
-      "locationTag": "global",
-      "dateFound": "2026-04-12",
-      "datePosted": "2026-04-11",
-      "comment": "Question about indoor launch monitor accuracy for fittings. Swing Shack angle: full TrackMan with flight tracking vs consumer units - more accurate, professional-standard fitting.",
-      "tags": [
-        "launch-monitor",
-        "indoor",
-        "fitting",
-        "accuracy",
-        "trackman"
-      ]
-    },
-    {
-      "id": "reddit-2026-04-12-10",
-      "url": "https://www.reddit.com/r/GolfSwing/comments/1sd3cf1/is_most_golf_improvement_just_too_unstructured/",
-      "title": "Is most golf improvement just too unstructured?",
-      "subreddit": "r/GolfSwing",
-      "status": "new",
-      "locationTag": "global",
-      "dateFound": "2026-04-12",
-      "datePosted": "2026-04-05",
-      "comment": "Players complaining about unstructured practice. Coaches don't prescribe regimes. Swing Shack value prop: structured practice sessions with data, regime, clear progress metrics.",
-      "tags": [
-        "practice",
-        "improvement",
-        "structure",
-        "data",
-        "regime"
-      ]
-    },
-    {
-      "id": "reddit-2026-04-12-11",
-      "url": "https://www.reddit.com/r/golf/comments/1sdfxxi/i_totally_get_it_now/",
-      "title": "I totally get it now - golf frustration",
-      "subreddit": "r/golf",
-      "status": "new",
-      "locationTag": "global",
-      "dateFound": "2026-04-12",
-      "datePosted": "2026-04-04",
-      "comment": "Golfer expressing frustration, love-hate relationship with golf. 'Don't get hung up on chasing a score.' This is the core audience - data helps make practice less frustrating.",
-      "tags": [
-        "frustration",
-        "addiction",
-        "practice",
-        "motivation"
-      ]
-    },
-    {
-      "id": "reddit-2026-04-12-12",
-      "url": "https://www.reddit.com/r/GolfSwing/comments/1secsod/just_getting_started_any_tips_are_welcome/",
-      "title": "Just getting started - any tips welcome",
-      "subreddit": "r/GolfSwing",
-      "status": "new",
-      "locationTag": "global",
-      "dateFound": "2026-04-12",
-      "datePosted": "2026-04-07",
-      "comment": "Beginner looking for tips. New golfers = future customers. Swing Shack angle: come get comfortable with the club in a low-pressure environment, data helps remove guesswork.",
-      "tags": [
-        "beginner",
-        "tips",
-        "getting-started",
-        "newgolfer"
-      ]
-    },
-    {
       "id": "reddit-2026-04-12-1",
       "url": "https://www.reddit.com/r/golf/comments/15lhkse/when_is_the_right_time_to_get_fitted/",
       "title": "When is the right time to get fitted?",
@@ -80,12 +10,7 @@
       "dateFound": "2026-04-12",
       "datePosted": "2023-08-08",
       "comment": "Key question: will a fitter tell you if your swing has issues? Beginners confused about process. Swing Shack can position as no-pressure introduction.",
-      "tags": [
-        "club-fitting",
-        "beginner",
-        "questions",
-        "process"
-      ]
+      "tags": ["club-fitting", "beginner", "questions", "process"]
     },
     {
       "id": "reddit-2026-04-12-2",
@@ -97,12 +22,7 @@
       "dateFound": "2026-04-12",
       "datePosted": "2023-10-31",
       "comment": "Beginners confused about what happens in a fitting. This is education content gold - explain the process, remove the mystery.",
-      "tags": [
-        "club-fitting",
-        "beginner",
-        "process",
-        "education"
-      ]
+      "tags": ["club-fitting", "beginner", "process", "education"]
     },
     {
       "id": "reddit-2026-04-12-3",
@@ -114,12 +34,7 @@
       "dateFound": "2026-04-12",
       "datePosted": "2024-04-27",
       "comment": "Small things - sleep, coffee, muscle soreness - affect results massively. You think you're swinging one way, data shows another. TrackMan provides objective truth.",
-      "tags": [
-        "swing-consistency",
-        "technique",
-        "data",
-        "trackman"
-      ]
+      "tags": ["swing-consistency", "technique", "data", "trackman"]
     },
     {
       "id": "reddit-2026-04-12-4",
@@ -131,12 +46,7 @@
       "dateFound": "2026-04-12",
       "datePosted": "2024-04-16",
       "comment": "A couple degrees open produces vastly different results. A trackman can be very helpful to build awareness. Data removes the guesswork.",
-      "tags": [
-        "swing-consistency",
-        "trackman",
-        "data",
-        "strike"
-      ]
+      "tags": ["swing-consistency", "trackman", "data", "strike"]
     },
     {
       "id": "reddit-2026-04-12-5",
@@ -148,13 +58,7 @@
       "dateFound": "2026-04-12",
       "datePosted": "2025-10-13",
       "comment": "GCQuad best for indoor, TrackMan if you have room. People researching consumer units. Swing Shack angle: come try TrackMan before spending R50k+.",
-      "tags": [
-        "launch-monitor",
-        "indoor",
-        "trackman",
-        "gcquad",
-        "try-before-buy"
-      ]
+      "tags": ["launch-monitor", "indoor", "trackman", "gcquad", "try-before-buy"]
     },
     {
       "id": "reddit-2026-04-12-6",
@@ -166,13 +70,7 @@
       "dateFound": "2026-04-12",
       "datePosted": "2025-07-12",
       "comment": "TrackMan has more polished software ecosystem. Our advantage: premium experience, not just data. Position as the full package vs consumer units.",
-      "tags": [
-        "launch-monitor",
-        "trackman",
-        "software",
-        "ecosystem",
-        "premium"
-      ]
+      "tags": ["launch-monitor", "trackman", "software", "ecosystem", "premium"]
     },
     {
       "id": "reddit-2026-04-12-7",
@@ -184,13 +82,7 @@
       "dateFound": "2026-04-12",
       "datePosted": "2025-03-17",
       "comment": "SA user asking about Home Tee Hero with local courses. Indoor golf gaining traction in SA. Get them through the door for premium experience first.",
-      "tags": [
-        "south-africa",
-        "indoor",
-        "simulator",
-        "courses",
-        "local"
-      ]
+      "tags": ["south-africa", "indoor", "simulator", "courses", "local"]
     },
     {
       "id": "reddit-2026-04-12-8",
@@ -202,15 +94,58 @@
       "dateFound": "2026-04-12",
       "datePosted": "2024-02-07",
       "comment": "US golfers visiting SA: significantly cheaper than USA. Opportunity: target visiting golfers for premium practice sessions before/after rounds.",
-      "tags": [
-        "south-africa",
-        "tourism",
-        "visitors",
-        "golf-trip"
-      ]
+      "tags": ["south-africa", "tourism", "visitors", "golf-trip"]
+    },
+    {
+      "id": "reddit-2026-04-12-9",
+      "url": "https://forums.golfwrx.com/topic/2090122-is-fitting-based-on-ball-data-on-an-indoor-lm-actually-realistic",
+      "title": "Is fitting based on ball data on an indoor LM actually realistic?",
+      "subreddit": "WRX Club Techs",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-12",
+      "datePosted": "2026-04-11",
+      "comment": "Question about indoor launch monitor accuracy for fittings. Swing Shack angle: full TrackMan with flight tracking vs consumer units - more accurate, professional-standard fitting.",
+      "tags": ["launch-monitor", "indoor", "fitting", "accuracy", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-12-10",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sd3cf1/is_most_golf_improvement_just_too_unstructured/",
+      "title": "Is most golf improvement just too unstructured?",
+      "subreddit": "r/GolfSwing",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-12",
+      "datePosted": "2026-04-05",
+      "comment": "Players complaining about unstructured practice. Coaches don't prescribe regimes. Swing Shack value prop: structured practice sessions with data, regime, clear progress metrics.",
+      "tags": ["practice", "improvement", "structure", "data", "regime"]
+    },
+    {
+      "id": "reddit-2026-04-12-11",
+      "url": "https://www.reddit.com/r/golf/comments/1sdfxxi/i_totally_get_it_now/",
+      "title": "I totally get it now - golf frustration",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-12",
+      "datePosted": "2026-04-04",
+      "comment": "Golfer expressing frustration, love-hate relationship with golf. 'Don't get hung up on chasing a score.' This is the core audience - data helps make practice less frustrating.",
+      "tags": ["frustration", "addiction", "practice", "motivation"]
+    },
+    {
+      "id": "reddit-2026-04-12-12",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1secsod/just_getting_started_any_tips_are_welcome/",
+      "title": "Just getting started - any tips welcome",
+      "subreddit": "r/GolfSwing",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-12",
+      "datePosted": "2026-04-07",
+      "comment": "Beginner looking for tips. New golfers = future customers. Swing Shack angle: come get comfortable with the club in a low-pressure environment, data helps remove guesswork.",
+      "tags": ["beginner", "tips", "getting-started", "newgolfer"]
     }
   ],
   "last_updated": "2026-04-12",
-  "scan_time": "2026-04-12T04:10Z",
+  "scan_time": "2026-04-12T06:11Z",
   "scan_note": "April 12 2026 - Morning scan. Found 12 opportunities (4 new). Focus: indoor LM accuracy, unstructured practice pain, beginner tips, golf frustrations."
 }
