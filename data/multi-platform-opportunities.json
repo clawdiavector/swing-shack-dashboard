@@ -1,479 +1,182 @@
 {
-  "research_date": "2026-04-11T18:10:00+02:00",
-  "research_type": "multi_platform_opportunities",
+  "scan_date": "2026-04-12",
+  "scan_time": "07:04 SAST",
+  "platforms_scanned": ["reddit", "youtube", "web_search"],
+  "total_opportunities": 12,
   "opportunities": [
     {
-      "platform": "Reddit",
-      "title": "r/Golfsimulator - Screen & Projector Questions (DIY build)",
-      "preview": "Barn conversion: 12'2 wide, planning 12x9 screen with 4:3 projector. Questions about custom screen size and mounting.",
-      "url": "https://www.reddit.com/r/Golfsimulator/comments/1silp49/screen_projector_questions/",
-      "location": "General (global)",
-      "problem_type": "simulator_build",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 2,
-        "problem_type": 8,
-        "engagement": 6
-      },
-      "total_score": 16,
-      "suggested_comment": "Custom screen material is the way to go. Make sure to account for mounting hardware when calculating dimensions."
+      "id": "mp-2026-04-12-1",
+      "platform": "reddit",
+      "subreddit": "r/GolfZA",
+      "post_title": "Golf lessons",
+      "url": "https://www.reddit.com/r/GolfZA/comments/1f75z60/golf_lessons/",
+      "content_preview": "I was hoping someone could please recommend a decently priced golf coach for a beginner? Preferably in Pretoria but Joburg will do too.",
+      "location_tag": "Pretoria/Johannesburg",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "If you're looking for structured coaching with data to back it up, check out Swing Shack in Randpark. They use Trackman technology so you can actually see what's happening with your swing rather than just guessing. Good for beginners since the environment is comfortable and not as intimidating as a regular driving range.",
+      "comment_tone": "helpful-local"
     },
     {
-      "platform": "Reddit",
-      "title": "r/golf - How did your first round of 2026 go?",
-      "preview": "23 hcp golfer: ugly range week, solid first round comeback. Range was terrible, then scored well on course. Short game saved the day.",
-      "url": "https://www.reddit.com/r/golf/comments/1sin2xr/how_did_your_first_round_of_2026_go/",
-      "location": "General (global)",
-      "problem_type": "round_recap",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 2,
-        "problem_type": 6,
-        "engagement": 6
-      },
-      "total_score": 14,
-      "suggested_comment": "Good on you for getting out there. Short game is where the scores drop - indoor practice is good for keeping that sharp."
-    },
-    {
-      "platform": "Reddit",
-      "title": "r/golf - Chalk for grips discussion",
-      "preview": "Using chalk or resin bag like a pitcher - will it dry out skin or leave dust on grips causing problems?",
-      "url": "https://www.reddit.com/r/golf/comments/1sin174/chalk/",
-      "location": "General (global)",
-      "problem_type": "grip",
-      "engagement": "low",
-      "score": {
-        "sa_location": 2,
-        "problem_type": 5,
-        "engagement": 4
-      },
-      "total_score": 11,
-      "suggested_comment": "Try it on the range first. Grip aid products work better than raw chalk anyway."
-    },
-    {
-      "platform": "Reddit",
-      "title": "r/golf - Sim 2 Max or Taylormade Qi10 (driver comparison)",
-      "preview": "25 hcp with ~90 mph swing, hoping to improve handicap with new driver because current one isn't forgiving enough.",
-      "url": "https://www.reddit.com/r/golf/comments/1sijfpv/sim_2_max_or_taylormade_qi10/",
-      "location": "General (global)",
-      "problem_type": "equipment",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 2,
-        "problem_type": 7,
-        "engagement": 6
-      },
-      "total_score": 15,
-      "suggested_comment": "Both are decent for your handicap. For the best fit, try getting a proper launch monitor session to see which one actually helps your numbers."
-    },
-    {
-      "platform": "Reddit",
-      "title": "r/GolfSwing - Am I compressing my irons?",
-      "preview": "Struggling to compress irons properly - looking for tips and advice on the feeling.",
-      "url": "https://www.reddit.com/r/GolfSwing/comments/1sijht2/am_i_compressing_my_irons/",
-      "location": "General (global)",
-      "problem_type": "iron_technique",
-      "engagement": "low",
-      "score": {
-        "sa_location": 2,
-        "problem_type": 8,
-        "engagement": 5
-      },
-      "total_score": 15,
-      "suggested_comment": "Book some time with a launch monitor to see your spin rates - that's the clearest way to know if you're compressing properly."
-    },
-    {
-      "platform": "Reddit",
-      "title": "r/GolfSwing - Clean up the hips (pivot fix)",
-      "preview": "Complaining about collapsing lead knee, weight shift issues, changing grip. Looking for pivot tips.",
-      "url": "https://www.reddit.com/r/GolfSwing/comments/1sijin7/clean_up_the_hips/",
-      "location": "General (global)",
-      "problem_type": "swing_pivot",
-      "engagement": "low",
-      "score": {
-        "sa_location": 2,
-        "problem_type": 8,
-        "engagement": 5
-      },
-      "total_score": 15,
-      "suggested_comment": "Classic pivot issue - weight transfer is key. Getting video analysis or a session with someone watching can spot what your eyes miss."
-    },
-    {
-      "platform": "Reddit",
-      "title": "r/golf - Retired PGA Tour Superstore Club fitter, AMA",
-      "preview": "Wrist to floor measurement for correct length, lie for your swing, then get lessons, then get re-fit once consistent. Being 25+ means nowhere close to proper golf swing.",
-      "url": "https://www.reddit.com/r/golf/comments/1s6u12h/retired_pga_tour_superstore_club_fitter_ama/",
-      "location": "General (global)",
-      "problem_type": "club_fitting",
-      "engagement": "high",
-      "score": {
-        "sa_location": 2,
-        "problem_type": 9,
-        "engagement": 8
-      },
-      "total_score": 19,
-      "suggested_comment": "Solid advice on getting fitted properly. Worthwhile getting your clubs matched to your measurements early rather than trying to change your swing to fit wrong clubs."
-    },
-    {
-      "platform": "Web",
-      "title": "Epic Golf Cape Town - Review",
-      "preview": "Each sim room allows golfers to test their skills using the Trackman system - the same software used by pros globally. All shots are analysed with constructive feedback.",
-      "url": "https://www.timeout.com/cape-town/things-to-do/epic-golf",
-      "location": "Cape Town",
-      "problem_type": "indoor_golf",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 6
-      },
-      "total_score": 24,
-      "suggested_comment": "Trackman for analysis - that's what you want for proper feedback on your shots."
-    },
-    {
-      "platform": "Reddit",
-      "title": "r/johannesburg - Golf Lessons",
-      "preview": "I want to take up golf, can you please recommend a reliable and affordable place I can consider around Johannesburg area.",
+      "id": "mp-2026-04-12-2",
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Golf Lessons",
       "url": "https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/",
-      "location": "Johannesburg",
-      "problem_type": "golf_lessons",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 7,
-        "engagement": 5
-      },
-      "total_score": 22,
-      "suggested_comment": "Word of Golf in Woodmead was decent value when I went."
+      "content_preview": "I've seen lessons at huddle park. I'd definitely suggest going there. The course is also really nice for beginners... I did it many years ago at woord of golf in Woodmead, it was reasonable priced.",
+      "location_tag": "Johannesburg",
+      "problem_type": "lessons-pricing",
+      "engagement_level": "medium",
+      "score": 70,
+      "suggested_comment": "Worth checking out Swing Shack if you want to try something different - they have simulators so you can practice regardless of weather, and they use Trackman which gives proper data on your shots. The pricing is transparent on their website.",
+      "comment_tone": "informative"
     },
     {
-      "platform": "Web",
-      "title": "Superprof - Golf Lessons SA Cost",
-      "preview": "Average cost of private golf coaching in South Africa ranges from R100 to R850 per hour depending on experience and location.",
+      "id": "mp-2026-04-12-3",
+      "platform": "reddit",
+      "subreddit": "r/capetown",
+      "post_title": "Best golf club memberships in Cape Town (Northern Suburbs based)?",
+      "url": "https://www.reddit.com/r/capetown/comments/1mtpv8r/best_golf_club_memberships_in_cape_town_northern/",
+      "content_preview": "If you're familiar with the golf scene around here, where would you recommend we check out? We're keen to join somewhere that feels like a good long-term home for us.",
+      "location_tag": "Cape Town",
+      "problem_type": "membership",
+      "engagement_level": "medium",
+      "score": 60,
+      "suggested_comment": "Not in CT but if you ever find yourself in JHB and want to work on your game, Swing Shack has Trackman technology. Good for when you need to practice but the weather isn't playing nice.",
+      "comment_tone": "casual-local"
+    },
+    {
+      "id": "mp-2026-04-12-4",
+      "platform": "web_search",
+      "subreddit": "superprof.co.za",
+      "post_title": "The Cost to Learn Golf in South Africa",
       "url": "https://www.superprof.co.za/blog/the-cost-to-learn-golf-south-africa/",
-      "location": "South Africa",
-      "problem_type": "golf_lessons_pricing",
-      "engagement": "high",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 7,
-        "engagement": 7
-      },
-      "total_score": 24,
-      "suggested_comment": "Helpful guide on lesson costs - useful for budgeting your golf journey."
+      "content_preview": "Average price of Golf lessons is R680. Suburban or rural areas tend to offer more affordable options and beginners can generally find reasonably priced coaches.",
+      "location_tag": "South Africa",
+      "problem_type": "lessons-pricing",
+      "engagement_level": "high",
+      "score": 75,
+      "suggested_comment": "If you're looking for value, indoor facilities with launch monitor tech can actually work out more cost-effective since you get objective data on your progress rather than just subjective feel. Trackman tech is available at various price points around JHB.",
+      "comment_tone": "price-conscious"
     },
     {
-      "platform": "Web",
-      "title": "Truefit Golf - Club Fitting Johannesburg",
-      "preview": "Internationally certified fitter with 30+ years experience. Trackman 4 and FlightScope technology for precise fittings.",
-      "url": "https://truefitgolf.co.za/",
-      "location": "Johannesburg",
-      "problem_type": "club_fitting",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 5
-      },
-      "total_score": 23,
-      "suggested_comment": "Trackman 4 for fittings - proper professional setup. Had a session there before."
+      "id": "mp-2026-04-12-5",
+      "platform": "web_search",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Best launch monitor for an indoor simulator?",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1o5wh73/best_launch_monitor_for_an_indoor_simulator/",
+      "content_preview": "GCQuad best for indoor, TrackMan if you have room. People researching consumer units. Swing Shack angle: come try TrackMan before spending R50k+.",
+      "location_tag": "Global/SA",
+      "problem_type": "launch-monitor",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "If you're serious about getting fitted properly, rather book a session at a place with proper Trackman rather than buying consumer gear. Way cheaper than committing to R50k+ of equipment without knowing what actually works for your swing.",
+      "comment_tone": "practical-advice"
     },
     {
-      "platform": "Reddit",
-      "title": "r/GolfSwing - Help my slice 🙏🏻",
-      "preview": "This can be fixed i think with a few changes. Your lead arm needs to be aligned with your shoulder plane, it's way too high. This will make it so you'll cut across the ball every time.",
-      "url": "https://www.reddit.com/r/GolfSwing/comments/1senrgm/help_my_slice/",
-      "location": "General (global)",
-      "problem_type": "slice_fix",
-      "engagement": "high",
-      "score": {
-        "sa_location": 0,
-        "problem_type": 10,
-        "engagement": 9
-      },
-      "total_score": 19,
-      "suggested_comment": "Had the same issue - the lead arm being too high was my problem too. Got it checked at a local pro using Trackman and turned out my shoulder plane was way off. Best money I've spent. Look for somewhere with a launch monitor if you can."
+      "id": "mp-2026-04-12-6",
+      "platform": "web_search",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "The absolute BEST launch monitor for fittings?",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1lyb7bx/the_absolute_best_launch_monitor_that_money_can/",
+      "content_preview": "TrackMan has more polished software ecosystem. Our advantage: premium experience, not just data. Position as the full package vs consumer units.",
+      "location_tag": "Global",
+      "problem_type": "launch-monitor",
+      "engagement_level": "high",
+      "score": 75,
+      "suggested_comment": "Trackman is definitely the industry standard for fittings. If you're in SA and want to try before you buy, some indoor places let you test the full experience rather than just the hardware.",
+      "comment_tone": "informed"
     },
     {
-      "platform": "Reddit",
-      "title": "r/golf - What are some reasons I would be slicing my drives every time",
-      "preview": "I do it because my shoulders turn and not body, so i \"stall\" and clubhead gets pushed outward, then i recover by bringing hands in and swipe the ball right to left. It's a hot mess to fix, which is why most people slice.",
-      "url": "https://www.reddit.com/r/golf/comments/1se3fxs/what_are_some_reasons_i_would_be_slicing_my/",
-      "location": "General (global)",
-      "problem_type": "slice_fix",
-      "engagement": "high",
-      "score": {
-        "sa_location": 0,
-        "problem_type": 10,
-        "engagement": 8
-      },
-      "total_score": 18,
-      "suggested_comment": "That stall pattern sounds familiar. Had a session at a simulator place in JHB where they filmed my swing in slow mo - made a massive difference seeing exactly what my body was doing vs what I thought it was doing. Worth getting someone to watch you."
+      "id": "mp-2026-04-12-7",
+      "platform": "web_search",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Software for South African courses",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1jd5ju5/software_for_south_african_courses/",
+      "content_preview": "SA user asking about Home Tee Hero with local courses. Indoor golf gaining traction in SA. Get them through the door for premium experience first.",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-courses",
+      "engagement_level": "medium",
+      "score": 70,
+      "suggested_comment": "There's a few places in JHB with simulators that have SA courses loaded. Worth checking what's available locally rather than trying to build your own setup.",
+      "comment_tone": "local-knowledge"
     },
     {
-      "platform": "YouTube/Web",
-      "title": "Epic Golf - Review: Indoor Golf Cape Town",
-      "preview": "Each sim room allows golfers to test their skills using the Trackman system - the same software used by pros globally. All of your shots - using real clubs which you either bring along or hire at the venue - are analysed and constructive feedback...",
-      "url": "https://www.timeout.com/cape-town/things-to-do/epic-golf",
-      "location": "Cape Town",
-      "problem_type": "indoor_golf",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 6
-      },
-      "total_score": 24,
-      "suggested_comment": "They've got Trackman there which is ace for getting real data on your shots. Been thinking of trying one of these places for some off-season practice."
+      "id": "mp-2026-04-12-8",
+      "platform": "web_search",
+      "subreddit": "r/golf",
+      "post_title": "Just got back from South Africa. Got to play 3 amazing courses",
+      "url": "https://www.reddit.com/r/golf/comments/qdneu6/just_got_back_from_south_africa_got_to_play_3/",
+      "content_preview": "I live near a top 50 course in SA, I pay $15 for 18 on Mondays and Tuesdays, price goes up to about $25-30 for the rest of the week. There really are some gems that are unbelievably affordable here.",
+      "location_tag": "South Africa",
+      "problem_type": "tourism",
+      "engagement_level": "high",
+      "score": 65,
+      "suggested_comment": "Great that you got to experience SA golf. If you ever want to work on your game while you're here, there are some solid indoor facilities in JHB with proper launch monitor tech.",
+      "comment_tone": "welcoming"
     },
     {
-      "platform": "Search/Web",
-      "title": "Swing Shack - Premium Golf Simulators Johannesburg",
-      "preview": "At Swing Shack, we're proud to use the cutting-edge Trackman 4 and the first-in-South Africa Trackman iO technology. These state-of-the-art golf simulators provide unparalleled insights into your golf swing, ball flight, and overall indoor golfing experience.",
-      "url": "https://swingshack.co.za/",
-      "location": "Johannesburg",
-      "problem_type": "indoor_golf",
-      "engagement": "high",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 8
-      },
-      "total_score": 26,
-      "suggested_comment": "These guys have the Trackman iO - first one in SA which is pretty cool. Was looking for somewhere to get some proper data on my driver lately."
+      "id": "mp-2026-04-12-9",
+      "platform": "web_search",
+      "subreddit": "mygolfspy.com",
+      "post_title": "He's The Most Interesting Man In YouTube Golf | MyGolfSpy",
+      "url": "https://mygolfspy.com/youtube/hes-the-most-interesting-man-in-youtube-golf/",
+      "content_preview": "Growing up in South Africa as an all-around athlete, golf was just another sport on a list of many for the Golf Sidekick.",
+      "location_tag": "South Africa",
+      "problem_type": "content",
+      "engagement_level": "medium",
+      "score": 55,
+      "suggested_comment": "Not directly relevant but cool to see South Africans making waves in the golf content space.",
+      "comment_tone": "supportive"
     },
     {
-      "platform": "Search/Web",
-      "title": "Swing Lounge - Golf Simulator Benoni",
-      "preview": "Swing Lounge is the perfect place to enjoy a virtual golf experience with friends and families. Our simulators let you play multiple golf courses around the world and engage in various types of games.",
-      "url": "https://www.swinglounge.co.za/",
-      "location": "Johannesburg/Benoni",
-      "problem_type": "indoor_golf",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 5
-      },
-      "total_score": 23,
-      "suggested_comment": "Heard good things about this place - good for a fun session with mates."
+      "id": "mp-2026-04-12-10",
+      "platform": "web_search",
+      "subreddit": "golfwrx.com",
+      "post_title": "Is fitting based on ball data on an indoor LM actually realistic?",
+      "url": "https://forums.golfwrx.com/topic/2090122-is-fitting-based-on-ball-data-on-an-indoor-lm-actually-realistic",
+      "content_preview": "Question about indoor launch monitor accuracy for fittings. Swing Shack angle: full TrackMan with flight tracking vs consumer units - more accurate, professional-standard fitting.",
+      "location_tag": "Global",
+      "problem_type": "fitting-accuracy",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "There's a pretty big difference between consumer launch monitors and professional setups with flight tracking. If you're serious about fitting, rather go somewhere with proper Trackman and真人.",
+      "comment_tone": "technical"
     },
     {
-      "platform": "Search/Web",
-      "title": "The Golden Tee - Indoor Golf Playground",
-      "preview": "South Africa's premier indoor golf playground – combining the thrill of golf, the excitement of a sports bar, and the ambiance of a cocktail lounge.",
-      "url": "https://goldentee.co.za/",
-      "location": "South Africa",
-      "problem_type": "indoor_golf",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 5
-      },
-      "total_score": 23,
-      "suggested_comment": "Looks solid for a social round plus practice combo."
+      "id": "mp-2026-04-12-11",
+      "platform": "web_search",
+      "subreddit": "Randpark Golf Club",
+      "post_title": "First Mizuno performance fitting centre in Africa at Randpark",
+      "url": "https://randpark.co.za/2018/01/24/first-mizuno-performance-fitting-centre-africa/",
+      "content_preview": "Mizuno, the international golfing brand has performance fitment centres located throughout the world and has to the excitement of many golfers, just branched out into Africa. Randpark Golf Club based in Johannesburg has the first Mizuno performance fitting centre.",
+      "location_tag": "Johannesburg",
+      "problem_type": "club-fitting",
+      "engagement_level": "medium",
+      "score": 70,
+      "suggested_comment": "Good to see proper fitting centres opening in JHB. If you're after more advanced data tracking, some indoor facilities have Trackman which gives you the full picture beyond just club specs.",
+      "comment_tone": "informative"
     },
     {
-      "platform": "Search/Web",
-      "title": "The Tee - Premium Golf Simulators Cape Town",
-      "preview": "From home use to corporate settings, it's the ultimate gateway to immersive golfing. Experience the game of golf like never before at our state-of-the-art indoor simulator facility in beautiful Cape Town.",
-      "url": "https://thetee.co.za/",
-      "location": "Cape Town",
-      "problem_type": "indoor_golf",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 5
-      },
-      "total_score": 23,
-      "suggested_comment": "Another solid option for CT folks looking to practice indoors."
-    },
-    {
-      "platform": "Search/Web",
-      "title": "Superprof - Golf Lessons South Africa Cost",
-      "preview": "The average cost of private golf coaching in South Africa can vary depending on several factors. On platforms like Superprof, you can find a wide range of prices, with rates typically ranging from R100 to R850 per hour.",
-      "url": "https://www.superprof.co.za/blog/the-cost-to-learn-golf-south-africa/",
-      "location": "South Africa",
-      "problem_type": "golf_lessons_pricing",
-      "engagement": "high",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 7,
-        "engagement": 7
-      },
-      "total_score": 24,
-      "suggested_comment": "Good overview of pricing - helpful for anyone starting out and budgeting for lessons."
-    },
-    {
-      "platform": "Search/Web",
-      "title": "Truefit Golf - Club Fitting Johannesburg",
-      "preview": "Our founder, Arthur Horne is an internationally certified and professional golfer. His credibility is backed by 30+ years of golfing experience and his commitment to precision is only rivalled by our Trackman 4 & FlightScope technology.",
-      "url": "https://truefitgolf.co.za/",
-      "location": "Johannesburg",
-      "problem_type": "club_fitting",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 5
-      },
-      "total_score": 23,
-      "suggested_comment": "Trackman 4 for fitting - that's the real deal. Had a fitting there before, proper professional setup."
-    },
-    {
-      "platform": "Search/Web",
-      "title": "GOLFTEC Johannesburg - Instruction & Club Fitting",
-      "preview": "GOLFTEC – the world leader in golf lessons and premium club fittings, continues to expand its international footprint announcing the opening of a state-of-the-art instruction and club fitting center in Johannesburg.",
-      "url": "https://www.golftec.co.za/",
-      "location": "Johannesburg",
-      "problem_type": "club_fitting",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 6
-      },
-      "total_score": 24,
-      "suggested_comment": "They've got proper facilities in JHB now - good for both lessons and fittings."
-    },
-    {
-      "platform": "Search/Web",
-      "title": "Great Golf - Trackman Range Mount Edgecombe",
-      "preview": "Our range has 10 stations and time slots are bookable from 7am – 7pm. Each station can accommodate 1-4 players. Download the Trackman app and join us to enjoy the future of golf.",
-      "url": "https://www.greatgolf.co.za/product/trackman/",
-      "location": "Durban/Mount Edgecombe",
-      "problem_type": "trackman",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 7,
-        "engagement": 5
-      },
-      "total_score": 22,
-      "suggested_comment": "Trackman Range is solid for practice - good option if you're near Durban."
-    },
-    {
-      "platform": "Search/Web",
-      "title": "Zwartkop Country Club - TopTrack Range powered by Trackman",
-      "preview": "The TopTrack Range powered by Trackman, including how to use the range, availability and booking of private, VIP or Corporate Functions.",
-      "url": "https://www.zwartkopcountryclub.co.za/index.php/facilities2/top-track-range",
-      "location": "Pretoria",
-      "problem_type": "trackman",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 7,
-        "engagement": 5
-      },
-      "total_score": 22,
-      "suggested_comment": "Good option if you're in Pretoria area."
-    },
-    {
-      "platform": "Reddit",
-      "title": "r/johannesburg - Golf Lessons",
-      "preview": "I've seen lessons at huddle park. I'd definitely suggest going there. The course is also really nice for beginners. I've played huddle park recently... Not that great a course anymore. Poorly maintained. The mashie used to be good for beginners but is no longer well kept.",
-      "url": "https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/",
-      "location": "Johannesburg",
-      "problem_type": "golf_lessons",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 7,
-        "engagement": 5
-      },
-      "total_score": 22,
-      "suggested_comment": "Word of Golf in Woodmead was good value when I went years ago."
-    },
-    {
-      "platform": "Search/Web",
-      "title": "HomeTee - Premium Golf Simulators Johannesburg",
-      "preview": "With a Johannesburg Golf Simulator, you can enjoy the game you love anytime—without worrying about the weather or crowded courses. Hometee gives golfers in Johannesburg a great indoor golfing experience, no matter their skill level.",
-      "url": "https://hometee.co.za/johannesburg-golf-simulator/",
-      "location": "Johannesburg",
-      "problem_type": "indoor_golf",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 5
-      },
-      "total_score": 23,
-      "suggested_comment": "Another local option for home simulator setups."
-    },
-    {
-      "platform": "Search/Web",
-      "title": "ISim Golf Simulators - Building Golf Simulators SA",
-      "preview": "Isim Golf Simulators specialize in the building of golf simulators in South Africa and Africa.",
-      "url": "https://www.isim.co.za/",
-      "location": "South Africa",
-      "problem_type": "golf_simulator_build",
-      "engagement": "medium",
-      "score": {
-        "sa_location": 10,
-        "problem_type": 8,
-        "engagement": 4
-      },
-      "total_score": 22,
-      "suggested_comment": "These guys do custom builds if you're thinking of setting up at home."
+      "id": "mp-2026-04-12-12",
+      "platform": "web_search",
+      "subreddit": "First Call Golf",
+      "post_title": "Golftec: Opens instruction and club fitting center in South Africa",
+      "url": "https://www.firstcallgolf.com/industry-news/release/2023-11-12/golftec-opens-world-class-instruction-and-club-fitting-center-at-the-word-of-golf-in-johannesburg-south-africa",
+      "content_preview": "GOLFTEC – the world leader in golf lessons and premium club fittings, continues to expand its international footprint announcing the opening of a state-of-the-art instruction and club fitting center in Johannesburg.",
+      "location_tag": "Johannesburg",
+      "problem_type": "lessons-fitting",
+      "engagement_level": "high",
+      "score": 75,
+      "suggested_comment": "More options for JHB golfers is always good. Golftec is more lesson-focused but if you want club fitting with Trackman tech, there are other places around that offer that too.",
+      "comment_tone": "balanced"
     }
   ],
-  "summary": {
-    "total_opportunities": 26,
-    "by_platform": {
-      "Search/Web": 11,
-      "Reddit": 5,
-      "YouTube/Web": 1
-    },
-    "by_location": {
-      "Johannesburg": 9,
-      "Cape Town": 4,
-      "South Africa": 4,
-      "Pretoria": 1,
-      "Durban": 1,
-      "General (global)": 2
-    },
-    "by_problem_type": {
-      "indoor_golf": 7,
-      "club_fitting": 4,
-      "slice_fix": 2,
-      "golf_lessons": 2,
-      "golf_lessons_pricing": 1,
-      "trackman": 2,
-      "golf_simulator_build": 1
-    }
-  },
-  "top_opportunities": [
-    {
-      "rank": 1,
-      "title": "Swing Shack - Premium Golf Simulators Johannesburg",
-      "score": 26,
-      "reason": "Highest SA location score + strong engagement + relevant problem type"
-    },
-    {
-      "rank": 2,
-      "title": "Epic Golf - Review: Indoor Golf Cape Town",
-      "score": 24,
-      "reason": "Cape Town location + Trackman + indoor golf - strong local competitor info"
-    },
-    {
-      "rank": 3,
-      "title": "Superprof - Golf Lessons South Africa Cost",
-      "score": 24,
-      "reason": "Pricing transparency creates opportunity for value positioning"
-    },
-    {
-      "rank": 4,
-      "title": "GOLFTEC Johannesburg - Instruction & Club Fitting",
-      "score": 24,
-      "reason": "Major competitor - important for positioning strategy"
-    },
-    {
-      "rank": 5,
-      "title": "Truefit Golf - Club Fitting Johannesburg",
-      "score": 23,
-      "reason": "Johannesburg fitter - direct competitor for fitting services"
-    }
-  ]
+  "score_explanation": "Score = (SA location mention x20) + (problem type match x30) + (engagement level x15) + (platform relevance x10)",
+  "comment_voice_guide": "Clear, direct, helpful. No forced slang (bru, mate, Jozi). Mention Swing Shack naturally as one option among several. Sound like a regular South African golfer who knows the scene.",
+  "files_updated": [
+    "clients/swing-shack/data/multi-platform-opportunities.json"
+  ],
+  "next_scan": "2026-04-13T07:00 SAST"
 }
