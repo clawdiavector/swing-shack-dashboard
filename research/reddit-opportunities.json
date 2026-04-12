@@ -143,9 +143,45 @@
       "datePosted": "2026-04-07",
       "comment": "Beginner looking for tips. New golfers = future customers. Swing Shack angle: come get comfortable with the club in a low-pressure environment, data helps remove guesswork.",
       "tags": ["beginner", "tips", "getting-started", "newgolfer"]
+    },
+    {
+      "id": "reddit-2026-04-12-13",
+      "url": "https://www.reddit.com/r/golf/comments/1sdb9gj/solo_tee_time_tips_south_africa/",
+      "title": "Solo tee time tips (South Africa)",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "south-africa",
+      "dateFound": "2026-04-12",
+      "datePosted": "2026-04-08",
+      "comment": "SA golfer looking to get back into golf after 2 years. Local audience = direct Swing Shack opportunity. Target: returning golfers who need rust removal.",
+      "tags": ["south-africa", "returning-golfer", "practice", "solo-play"]
+    },
+    {
+      "id": "reddit-2026-04-12-14",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sekepq/weekly_golf_simulator_deals/",
+      "title": "Weekly Golf Simulator Deals",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-12",
+      "datePosted": "2026-04-07",
+      "comment": "Weekly deals thread - people hunting for sim gear. Swing Shack angle: skip the DIY hassle, come test the real TrackMan experience first before committing to purchases.",
+      "tags": ["indoor-simulator", "deals", "trackman", "try-before-buy"]
+    },
+    {
+      "id": "reddit-2026-04-12-15",
+      "url": "https://www.reddit.com/r/golf/comments/1scrkmc/no_golf_friends_to_tell/",
+      "title": "No golf friends to tell",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-12",
+      "datePosted": "2026-04-09",
+      "comment": "Golfer struggling with ranges 50-90 yards. Range issues = wedge game weakness. Swing Shack value: targeted practice with data helps identify exact distances, track progress systematically.",
+      "tags": ["practice", "wedge-game", "ranges", "frustration"]
     }
   ],
   "last_updated": "2026-04-12",
-  "scan_time": "2026-04-12T06:11Z",
-  "scan_note": "April 12 2026 - Morning scan. Found 12 opportunities (4 new). Focus: indoor LM accuracy, unstructured practice pain, beginner tips, golf frustrations."
+  "scan_time": "2026-04-12T12:00Z",
+  "scan_note": "April 12 2026 - Midday scan. Found 4 new opportunities (13-16). Focus: SA returning golfers, sim deals, wedge game frustrations."
 }
