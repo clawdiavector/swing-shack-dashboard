@@ -1,8 +1,8 @@
 {
   "scan_date": "2026-04-12",
-  "scan_time": "07:04 SAST",
-  "platforms_scanned": ["reddit", "youtube", "web_search"],
-  "total_opportunities": 12,
+  "scan_time": "12:05 SAST",
+  "platforms_scanned": ["reddit", "youtube", "web_search", "forums"],
+  "total_opportunities": 18,
   "opportunities": [
     {
       "id": "mp-2026-04-12-1",
@@ -141,7 +141,7 @@
       "problem_type": "fitting-accuracy",
       "engagement_level": "high",
       "score": 85,
-      "suggested_comment": "There's a pretty big difference between consumer launch monitors and professional setups with flight tracking. If you're serious about fitting, rather go somewhere with proper Trackman and真人.",
+      "suggested_comment": "There's a pretty big difference between consumer launch monitors and professional setups with flight tracking. If you're serious about fitting, rather go somewhere with proper Trackman and flight tracking.",
       "comment_tone": "technical"
     },
     {
@@ -171,6 +171,90 @@
       "score": 75,
       "suggested_comment": "More options for JHB golfers is always good. Golftec is more lesson-focused but if you want club fitting with Trackman tech, there are other places around that offer that too.",
       "comment_tone": "balanced"
+    },
+    {
+      "id": "mp-2026-04-12-13",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Seeking Advice: Building a Golf Simulator in South Africa with a $1500–$2000 Budget",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
+      "content_preview": "I'm looking to set up a golf simulator at home with a budget between $1500 and $2000 (R30,000–R40,000), including software. My goal is to play full courses, not just practice, and I'm based in South Africa.",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-build-budget",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "That's a tight budget for a proper setup. At that price point you're looking at consumer launch monitors which have limitations. Rather book sessions at an indoor facility with proper Trackman - gives you the full experience without the upfront commitment. Then you can decide if you want to invest in your own gear later.",
+      "comment_tone": "practical-budget"
+    },
+    {
+      "id": "mp-2026-04-12-14",
+      "platform": "web_search",
+      "subreddit": " Yardstickgolf.com forum",
+      "post_title": "Yardstickgolf.com forum - Golf simulators and indoor golf",
+      "url": "https://yardstickgolf.com/",
+      "content_preview": "Forum to discuss all things golf simulators and indoor golf in SA. Submit questions, ideas, stories, pictures, simulator equipment for sale, and reviews.",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-community",
+      "engagement_level": "medium",
+      "score": 65,
+      "suggested_comment": "Good resource for SA-specific simulator info. If you're serious about improving, an indoor facility with proper tech gives you more data than trying to build a home setup on a budget.",
+      "comment_tone": "informational"
+    },
+    {
+      "id": "mp-2026-04-12-15",
+      "platform": "web_search",
+      "subreddit": "iPlay SA",
+      "post_title": "iPlay SA - Indoor Golf Pretoria",
+      "url": "https://iplaysa.co.za/",
+      "content_preview": "iPlay SA is an indoor golf facility situated in Pretoria, South Africa designed to provide all golf enthusiasts an enticing true-to-life alternative to a round of golf when time or weather prohibits traditional play or a range session.",
+      "location_tag": "Pretoria",
+      "problem_type": "indoor-practice",
+      "engagement_level": "medium",
+      "score": 70,
+      "suggested_comment": "Good to see more indoor options popping up in Pretoria. If you're after more advanced data tracking with Trackman, there are places in JHB that offer that level of analysis.",
+      "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-12-16",
+      "platform": "web_search",
+      "subreddit": "Golf Simulation Centre",
+      "post_title": "Golf Simulation Centre - Indoor Golf Simulator",
+      "url": "https://golfsimcentre.co.za/",
+      "content_preview": "Play, practice, coach and have fun. Entertain friends or share your passion with your family. Unlock your full potential on the course with custom clubs. Custom fitting ensures your clubs are matched to your unique swing characteristics.",
+      "location_tag": "South Africa",
+      "problem_type": "indoor-practice-fitting",
+      "engagement_level": "medium",
+      "score": 70,
+      "suggested_comment": "Nice to see the indoor golf scene growing in SA. Different places offer different levels of tech - if you want the full Trackman experience with flight tracking that's a different tier from basic simulator setups.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-12-17",
+      "platform": "web_search",
+      "subreddit": "Golf Club Atlas",
+      "post_title": "South Africa, golf and sightseeing",
+      "url": "https://www.golfclubatlas.com/forum/index.php?topic=63998.0",
+      "content_preview": "Golf Club Atlas Discussion - South Africa golf and sightseeing threads.",
+      "location_tag": "South Africa",
+      "problem_type": "tourism",
+      "engagement_level": "medium",
+      "score": 60,
+      "suggested_comment": "SA is a great golf destination. If you're planning a trip and want to work on your game, there are indoor facilities in JHB with launch monitor tech that let you practice year-round regardless of weather.",
+      "comment_tone": "welcoming"
+    },
+    {
+      "id": "mp-2026-04-12-18",
+      "platform": "web_search",
+      "subreddit": "The Tee",
+      "post_title": "The Tee - Premium Golf Simulators and TrackMan Technology",
+      "url": "https://thetee.co.za/",
+      "content_preview": "Craft your dream golf sanctuary with our premium simulator builds. As the official TrackMan representatives in South Africa, The Tee brings you the world's most trusted golf radar system.",
+      "location_tag": "South Africa",
+      "problem_type": "trackman-installation",
+      "engagement_level": "high",
+      "score": 75,
+      "suggested_comment": "Good to see SA getting more Trackman options. If you're not looking to build a full setup and just want to use Trackman for practice or fitting, various places around JHB offer hourly sessions.",
+      "comment_tone": "informed"
     }
   ],
   "score_explanation": "Score = (SA location mention x20) + (problem type match x30) + (engagement level x15) + (platform relevance x10)",
@@ -178,5 +262,5 @@
   "files_updated": [
     "clients/swing-shack/data/multi-platform-opportunities.json"
   ],
-  "next_scan": "2026-04-13T07:00 SAST"
+  "next_scan": "2026-04-13T12:00 SAST"
 }
