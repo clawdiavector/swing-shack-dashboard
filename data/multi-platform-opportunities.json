@@ -1,8 +1,8 @@
 {
   "scan_date": "2026-04-12",
-  "scan_time": "12:05 SAST",
+  "scan_time": "18:04 SAST",
   "platforms_scanned": ["reddit", "youtube", "web_search", "forums"],
-  "total_opportunities": 18,
+  "total_opportunities": 25,
   "opportunities": [
     {
       "id": "mp-2026-04-12-1",
@@ -189,7 +189,7 @@
     {
       "id": "mp-2026-04-12-14",
       "platform": "web_search",
-      "subreddit": " Yardstickgolf.com forum",
+      "subreddit": "Yardstickgolf.com forum",
       "post_title": "Yardstickgolf.com forum - Golf simulators and indoor golf",
       "url": "https://yardstickgolf.com/",
       "content_preview": "Forum to discuss all things golf simulators and indoor golf in SA. Submit questions, ideas, stories, pictures, simulator equipment for sale, and reviews.",
@@ -255,6 +255,104 @@
       "score": 75,
       "suggested_comment": "Good to see SA getting more Trackman options. If you're not looking to build a full setup and just want to use Trackman for practice or fitting, various places around JHB offer hourly sessions.",
       "comment_tone": "informed"
+    },
+    {
+      "id": "mp-2026-04-12-19",
+      "platform": "youtube",
+      "subreddit": "Golf Day Buddy",
+      "post_title": "How to Improve Golf Swing Path: Tips for South African Golfers",
+      "url": "https://golfdaybuddy.com/how-to-improve-golf-swing-path-tips-for-south-african-golfers/",
+      "content_preview": "The more you practice these alignment techniques, especially in various South African environments, the more instinctive they will become, resulting in improved shot accuracy. Mastering clubface control is essential for effectively directing your swing path.",
+      "location_tag": "South Africa",
+      "problem_type": "golf-improvement",
+      "engagement_level": "medium",
+      "score": 70,
+      "suggested_comment": "Good article on swing path. The reality is you can have all the theory but without seeing the actual data it's hard to know if you're making progress. That's where launch monitor tech helps - you get objective feedback rather than relying on feel.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-12-20",
+      "platform": "youtube",
+      "subreddit": "YouTube",
+      "post_title": "Fix Your Slice This Year with this One Simple Drill",
+      "url": "https://www.youtube.com/watch?v=GHes9XeYTNM",
+      "content_preview": "Create your Account and Get Access To Elite Golf Lessons: Fix Your Slice Permanently (Proven System)",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "high",
+      "score": 65,
+      "suggested_comment": "Drills are helpful but the real issue with slicing is you can't see what's actually happening in your swing. A launch monitor shows you the club path and face angle - that's the data you need to actually fix the root cause.",
+      "comment_tone": "technical"
+    },
+    {
+      "id": "mp-2026-04-12-21",
+      "platform": "youtube",
+      "subreddit": "YouTube",
+      "post_title": "Fix Your Driver Slice | 2-Minute Drills",
+      "url": "https://www.youtube.com/watch?v=OzTnuMJPImI",
+      "content_preview": "GolfPass coach John Moore shows you a quick drill to fix your driver slice in just two minutes.",
+      "location_tag": "Global",
+      "problem_type": "slice-fix-driver",
+      "engagement_level": "high",
+      "score": 60,
+      "suggested_comment": "Quick drills can help but if you're still slicing after trying these, the issue might be deeper than a quick fix. Getting proper launch data shows you exactly what's causing it - face angle, path, attack angle. Then you know what to actually work on.",
+      "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-12-22",
+      "platform": "youtube",
+      "subreddit": "YouTube",
+      "post_title": "How To Fix A Slice With A Driver (So Simple!)",
+      "url": "https://www.youtube.com/watch?v=F0Io-53hrUE",
+      "content_preview": "Struggling with a driver slice? You're not alone! In this video Eric Cogorno teams up with legendary golf coach Martin Hall to reveal a game-changing drill.",
+      "location_tag": "Global",
+      "problem_type": "slice-fix-driver",
+      "engagement_level": "high",
+      "score": 60,
+      "suggested_comment": "The drills work for some people but the problem is you're guessing. Launch monitor data takes the guessing out - you see exactly what's causing your slice and can track improvement objectively.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-12-23",
+      "platform": "youtube",
+      "subreddit": "YouTube",
+      "post_title": "LIV Golf South Africa 2026",
+      "url": "https://www.youtube.com/watch?v=Np4GTYUAwqA",
+      "content_preview": "Go behind-the-scenes with GOLF.com to see how Bryson DeChambeau's win capped off a raucous event for LIV Golf in South Africa.",
+      "location_tag": "South Africa",
+      "problem_type": "pro-golf",
+      "engagement_level": "high",
+      "score": 55,
+      "suggested_comment": "Great to see LIV in SA. Shows the level of golf interest here. For the average golfer wanting to improve, technology like Trackman is what the pros use - now available at various levels for regular players too.",
+      "comment_tone": "engaging"
+    },
+    {
+      "id": "mp-2026-04-12-24",
+      "platform": "youtube",
+      "subreddit": "YouTube",
+      "post_title": "Branden Grace FIRED UP - LIV Golf South Africa",
+      "url": "https://www.youtube.com/watch?v=BoPE-DIfZMk",
+      "content_preview": "Branden Grace speaks after Round 3 of LIV Golf South Africa, sitting just two shots behind leader Bryson DeChambeau.",
+      "location_tag": "South Africa",
+      "problem_type": "local-pro",
+      "engagement_level": "medium",
+      "score": 50,
+      "suggested_comment": "Always good to see South African players doing well on the big stage. Shows the level of golf talent we have in the country.",
+      "comment_tone": "supportive"
+    },
+    {
+      "id": "mp-2026-04-12-25",
+      "platform": "web_search",
+      "subreddit": "Chaka Travel",
+      "post_title": "Planning a Golf Holiday to South Africa - What You Need to Know",
+      "url": "https://www.chakatravel.com/blog/planning-golf-holiday-south-africa-need-know",
+      "content_preview": "FAQ for golfers visiting South Africa for the first time. Covers travel time, currency, driving, best time to visit, climate, transportation.",
+      "location_tag": "South Africa",
+      "problem_type": "tourism",
+      "engagement_level": "high",
+      "score": 60,
+      "suggested_comment": "Good resource for planning a golf trip to SA. If you're visiting and want to work on your game while here, there are indoor facilities in JHB with launch monitor tech that let you practice year-round.",
+      "comment_tone": "helpful"
     }
   ],
   "score_explanation": "Score = (SA location mention x20) + (problem type match x30) + (engagement level x15) + (platform relevance x10)",
@@ -262,5 +360,5 @@
   "files_updated": [
     "clients/swing-shack/data/multi-platform-opportunities.json"
   ],
-  "next_scan": "2026-04-13T12:00 SAST"
+  "next_scan": "2026-04-13T07:00 SAST"
 }
