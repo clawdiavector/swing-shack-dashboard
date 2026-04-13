@@ -1,6 +1,42 @@
 {
   "opportunities": [
     {
+      "id": "reddit-2026-04-13-10",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjiwuu/simulator_setup_launch_monitor_advice/",
+      "title": "Simulator setup + Launch Monitor Advice",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2026-04-13",
+      "comment": "DIY outdoor sim builder seeking launch monitor advice. Skip the research headache — come try TrackMan firsthand before committing to consumer gear.",
+      "tags": ["launch-monitor", "simulator", "diy", "advice", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-13-11",
+      "url": "https://www.reddit.com/r/golf/comments/1sjg4ld/sizing_my_ladys_clubs_looking_for_help/",
+      "title": "Sizing my lady's clubs - looking for help",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2026-04-13",
+      "comment": "Guy asking about sizing clubs for his partner (new golfer). New golfer = perfect time for a proper fitting. Low-pressure intro to see if she's got the golf bug.",
+      "tags": ["club-fitting", "beginner", "newgolfer", "ladies", "size"]
+    },
+    {
+      "id": "reddit-2026-04-13-12",
+      "url": "https://www.reddit.com/r/golf/comments/1sizsq0/can_anyone_name_a_piece_of_gear_not_clubs_that/",
+      "title": "What piece of gear (not clubs) has helped your game?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2026-04-13",
+      "comment": "Non-clubs gear discussion - rangefinders, launch monitors. Launch monitors are game-changers for practice — track your data, see real progress.",
+      "tags": ["gear", "launch-monitor", "rangefinder", "practice", "data"]
+    },
+    {
       "id": "reddit-2026-04-13-7",
       "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjxs1x/would_sound_absorbing_panels_in_a_garage_make_a/",
       "title": "Would sound absorbing panels in a garage make a difference?",
@@ -290,6 +326,6 @@
     }
   ],
   "last_updated": "2026-04-13",
-  "scan_time": "2026-04-13T06:16Z",
-  "scan_note": "April 13 2026 - Morning scan. Slice fixing high activity. Practice routines unstructured. Club fitting beginners. Added 6 new opportunities."
+  "scan_time": "2026-04-13T10:03Z",
+  "scan_note": "April 13 2026 - Midday scan. Added 3 new opportunities (sim setup advice, ladies club sizing, gear discussion)."
 }
