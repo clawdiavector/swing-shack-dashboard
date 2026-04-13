@@ -1,8 +1,13 @@
 {
   "scan_date": "2026-04-13",
-  "scan_time": "12:07 SAST",
-  "platforms_scanned": ["reddit", "youtube", "web_search", "forums"],
-  "total_opportunities": 35,
+  "scan_time": "18:05 SAST",
+  "platforms_scanned": [
+    "reddit",
+    "youtube",
+    "web_search",
+    "forums"
+  ],
+  "total_opportunities": 39,
   "opportunities": [
     {
       "id": "mp-2026-04-13-1",
@@ -269,6 +274,62 @@
       "score": 75,
       "suggested_comment": "Good to see SA getting more Trackman options. If you're not looking to build a full setup and just want to use Trackman for practice or fitting, various places around JHB offer hourly sessions.",
       "comment_tone": "informed"
+    },
+    {
+      "id": "mp-2026-04-13-36",
+      "platform": "reddit",
+      "subreddit": "r/GolfSwing",
+      "post_title": "How do I fix my driver slice",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sgs23x/how_do_i_fix_my_driver_slice/",
+      "content_preview": "Which sucks cus I probably am going to have to pay for lessons to figure it out... Yeah I am really lost. I have considered the fact it is pretty windy at the range but I feel like that wouldn't be that sliced still.",
+      "location_tag": "Global (thread)",
+      "problem_type": "slice-fix",
+      "engagement_level": "high",
+      "score": 70,
+      "suggested_comment": "Getting a lesson is actually the fastest way to fix a slice - you'll save months of trial and error. Some places use launch monitors to show you exactly what's causing the slice so you can feel the difference. Worth it.",
+      "comment_tone": "practical-advice"
+    },
+    {
+      "id": "mp-2026-04-13-37",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Simulator setup + Launch Monitor Advice",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjiwuu/simulator_setup_launch_monitor_advice/",
+      "content_preview": "I can't regularly go out to a course & am trying to optimize being able to regularly play/practice vs. a $300-400/month Five Iron or other simulator membership.",
+      "location_tag": "Global (thread)",
+      "problem_type": "simulator-cost-compare",
+      "engagement_level": "high",
+      "score": 75,
+      "suggested_comment": "At that monthly cost you could get a fair number of sessions at an indoor facility with proper Trackman. Gives you access to better tech without the commitment. Worth doing the math.",
+      "comment_tone": "value-calculator"
+    },
+    {
+      "id": "mp-2026-04-13-38",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Sizing my lady's clubs - looking for help",
+      "url": "https://www.reddit.com/r/golf/comments/1sjg4ld/sizing_my_ladys_clubs_looking_for_help/",
+      "content_preview": "Guy asking about sizing clubs for his partner (new golfer)",
+      "location_tag": "Global (thread)",
+      "problem_type": "club-fitting",
+      "engagement_level": "high",
+      "score": 75,
+      "suggested_comment": "New golfer is actually the best time for a proper fitting - gives her the right clubs from the start. Some places do fitting sessions where you can test different specs before buying.",
+      "comment_tone": "informed"
+    },
+    {
+      "id": "mp-2026-04-13-39",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "What piece of gear (not clubs) has helped your game?",
+      "url": "https://www.reddit.com/r/golf/comments/1sizsq0/can_anyone_name_a_piece_of_gear_not_clubs_that/",
+      "content_preview": "Non-clubs gear discussion - rangefinders, launch monitors",
+      "location_tag": "Global (thread)",
+      "problem_type": "gear-recommendations",
+      "engagement_level": "high",
+      "score": 65,
+      "suggested_comment": "Launch monitors are game-changers for practice - you can actually track your progress with real numbers instead of just guessing. Some places let you try them out before committing to buying.",
+      "comment_tone": "casual-informed"
     }
   ],
   "score_explanation": "Score = (SA location mention x20) + (problem type match x30) + (engagement level x15) + (platform relevance x10)",
