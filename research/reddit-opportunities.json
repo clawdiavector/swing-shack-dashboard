@@ -179,9 +179,81 @@
       "datePosted": "2026-04-09",
       "comment": "Golfer struggling with ranges 50-90 yards. Range issues = wedge game weakness. Swing Shack value: targeted practice with data helps identify exact distances, track progress systematically.",
       "tags": ["practice", "wedge-game", "ranges", "frustration"]
+    },
+    {
+      "id": "reddit-2026-04-13-1",
+      "url": "https://www.reddit.com/r/golftips/comments/1k5xmlg/fixed_slice_but_now_have_a_hook_problem/",
+      "title": "Fixed slice but now have a hook problem",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2025-04-23",
+      "comment": "Classic case - fix one curvature issue, create another. Overcorrection is real. Camera angle is critical for self-diagnosis. This is exactly what TrackMan solves - you think you're doing one thing, data shows another.",
+      "tags": ["slice", "hook", "fix", "overcorrection", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-13-2",
+      "url": "https://www.reddit.com/r/golf/comments/15fo8qx/has_anyone_in_here_actually_fixed_their_slice/",
+      "title": "Has anyone in here actually fixed their slice properly?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2023-08-01",
+      "comment": "Swing outside target line feels wrong but works right. The disconnect between feel and real is massive. This is the perfect opportunity to position TrackMan as objective truth.",
+      "tags": ["slice", "fix", "feel-vs-real", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-13-3",
+      "url": "https://www.reddit.com/r/golf/comments/wk0v8z/how_did_you_fix_your_overdrawhook/",
+      "title": "How did you fix your overdraw/hook?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2022-08-09",
+      "comment": "Grip changes, weight distribution, overswing causing hooks. Smooth swing = subtle curve. Technical content goldmine for Swing Shack coaching.",
+      "tags": ["hook", "grip", "weight-transfer", "overswing"]
+    },
+    {
+      "id": "reddit-2026-04-13-4",
+      "url": "https://www.reddit.com/r/golf/comments/11k7fyh/how_did_you_correct_your_slice/",
+      "title": "How did you correct your slice?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2023-03-06",
+      "comment": "Learn to hook the ball bad first as overcorrection technique. Finding the middle ground. Saguto Golf recommended. Valid approach, good content source.",
+      "tags": ["slice", "correction", "drills", "overcorrection"]
+    },
+    {
+      "id": "reddit-2026-04-13-5",
+      "url": "https://www.reddit.com/r/golf/comments/xtr51p/why_is_a_slice_way_more_common_than_a_hook/",
+      "title": "Why is a slice way more common than a hook?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2022-10-02",
+      "comment": "Most golfers start with slice, many fight hook once fixed. Body rotation fixes slice. Discussion still relevant and relatable for content.",
+      "tags": ["slice", "hook", "anatomy", "common-issue"]
+    },
+    {
+      "id": "reddit-2026-04-13-6",
+      "url": "https://www.reddit.com/r/golf/comments/r7kw6c/how_do_i_fix_my_hook/",
+      "title": "How do I fix my hook?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2021-12-02",
+      "comment": "Christmas tree effect - overcorrect in both directions to find the middle. Practical swing theory content. Good educational resource.",
+      "tags": ["hook", "christmas-tree", "correction", "theory"]
     }
   ],
-  "last_updated": "2026-04-12",
-  "scan_time": "2026-04-12T18:00Z",
-  "scan_note": "April 12 2026 - Evening scan. Focus: launch monitor recommendations, practice frustrations. No fresh 24h posts found - Reddit blocking active crawls."
+  "last_updated": "2026-04-13",
+  "scan_time": "2026-04-13T04:00Z",
+  "scan_note": "April 13 2026 - Morning scan. Focus: slice/hook fixes, swing consistency. Found 6 new slice/hook discussion threads. Rate limited on some search queries."
 }
