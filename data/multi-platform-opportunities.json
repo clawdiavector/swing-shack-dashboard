@@ -1,8 +1,8 @@
 {
   "scan_date": "2026-04-13",
-  "scan_time": "07:03 SAST",
+  "scan_time": "12:07 SAST",
   "platforms_scanned": ["reddit", "youtube", "web_search", "forums"],
-  "total_opportunities": 31,
+  "total_opportunities": 35,
   "opportunities": [
     {
       "id": "mp-2026-04-13-1",
@@ -276,5 +276,5 @@
   "files_updated": [
     "clients/swing-shack/data/multi-platform-opportunities.json"
   ],
-  "next_scan": "2026-04-14T07:00 SAST"
+  "next_scan": "2026-04-13T12:00 SAST"
 }
