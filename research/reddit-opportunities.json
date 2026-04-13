@@ -323,9 +323,45 @@
       "datePosted": "2021-12-02",
       "comment": "Christmas tree effect - overcorrect in both directions to find the middle. Practical swing theory content. Good educational resource.",
       "tags": ["hook", "christmas-tree", "correction", "theory"]
+    },
+    {
+      "id": "reddit-2026-04-13-13",
+      "url": "https://www.reddit.com/r/golf/comments/1sjwqvo/question/",
+      "title": "Need a driver/wood fitting soon - advice",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2026-04-13",
+      "comment": "Golfer planning driver/wood fitting, focused on lessons + range time. Try-before-buy crowd - Swing Shack: come test TrackMan first.",
+      "tags": ["club-fitting", "driver", "lessons", "try-before-buy"]
+    },
+    {
+      "id": "reddit-2026-04-13-14",
+      "url": "https://www.reddit.com/r/golf/comments/1sjup74/best_beginner_club_set_for_a_short_woman/",
+      "title": "Best Beginner Club Set for a Short Woman",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2026-04-13",
+      "comment": "Beginner short woman asking about clubs. Advice to wait on custom length until committed. New golfer = perfect fitting opportunity.",
+      "tags": ["beginner", "clubs", "women", "sizing", "fitting"]
+    },
+    {
+      "id": "reddit-2026-04-13-15",
+      "url": "https://www.reddit.com/r/golf/comments/1sj9sug/landed_dream_job_in_golf_tech_got_fitted_played/",
+      "title": "Landed dream job in Golf Tech. Got fitted. Broke 90!",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2026-04-13",
+      "comment": "Golfer got fitted, switched to 120g irons, broke 90 for first time. Fitting works! Swing Shack: professional fitting for serious improvement.",
+      "tags": ["fitting", "irons", "break-90", "success-story", "trackman"]
     }
   ],
   "last_updated": "2026-04-13",
-  "scan_time": "2026-04-13T10:03Z",
-  "scan_note": "April 13 2026 - Midday scan. Added 3 new opportunities (sim setup advice, ladies club sizing, gear discussion)."
+  "scan_time": "2026-04-13T18:00Z",
+  "scan_note": "April 13 2026 - 6PM scan. Added 3 new opportunities (driver fitting, beginner woman clubs, golf tech fitting story)."
 }
