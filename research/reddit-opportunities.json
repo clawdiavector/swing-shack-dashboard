@@ -1,6 +1,42 @@
 {
   "opportunities": [
     {
+      "id": "reddit-2026-04-13-7",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjxs1x/would_sound_absorbing_panels_in_a_garage_make_a/",
+      "title": "Would sound absorbing panels in a garage make a difference?",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2026-04-13",
+      "comment": "Garage sim owners worried about noise. Real concern for residential setups. Swing Shack angle: skip the noise headaches, practice in a proper sim space without disturbing anyone.",
+      "tags": ["indoor-simulator", "garage", "noise", "acoustics"]
+    },
+    {
+      "id": "reddit-2026-04-13-8",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjxqmu/gspro_uneekor_exaggerated_driver_draw_is_a_hook/",
+      "title": "GSPro / Uneekor Exaggerated Driver draw is a hook",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2026-04-13",
+      "comment": "Uneekor showing hook when user hits draw. Software calibration issues plague consumer units. Swing Shack: professional TrackMan = accurate readings, no fiddling.",
+      "tags": ["launch-monitor", "uneekor", "gspro", "calibration", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-13-9",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjxhjp/golf_sim_recommendations/",
+      "title": "Golf sim recommendations",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-13",
+      "datePosted": "2026-04-13",
+      "comment": "Users building home sims asking for recommendations. This is the try-before-buy crowd. Swing Shack: come test on real TrackMan before dropping R50k+ on consumer gear.",
+      "tags": ["simulator", "recommendations", "try-before-buy", "trackman"]
+    },
+    {
       "id": "reddit-2026-04-12-1",
       "url": "https://www.reddit.com/r/golf/comments/15lhkse/when_is_the_right_time_to_get_fitted/",
       "title": "When is the right time to get fitted?",
@@ -254,6 +290,6 @@
     }
   ],
   "last_updated": "2026-04-13",
-  "scan_time": "2026-04-13T04:00Z",
-  "scan_note": "April 13 2026 - Morning scan. Focus: slice/hook fixes, swing consistency. Found 6 new slice/hook discussion threads. Rate limited on some search queries."
+  "scan_time": "2026-04-13T04:09Z",
+  "scan_note": "April 13 2026 - Morning scan. r/golf dominated by Masters 2026. Found r/golfsimulator activity. Added 3 new opportunities."
 }
