@@ -1,13 +1,13 @@
 {
   "scan_date": "2026-04-14",
-  "scan_time": "07:06 SAST",
+  "scan_time": "12:04 SAST",
   "platforms_scanned": [
     "reddit",
     "youtube",
     "web_search",
     "forums"
   ],
-  "total_opportunities": 26,
+  "total_opportunities": 29,
   "opportunities": [
     {
       "id": "mp-2026-04-13-1",
@@ -372,6 +372,48 @@
       "score": 85,
       "suggested_comment": "If you are looking for structured coaching with objective data, some places in JHB use Trackman technology which shows you exactly what is happening with your swing.",
       "comment_tone": "helpful-local"
+    },
+    {
+      "id": "mp-2026-04-14-4",
+      "platform": "reddit",
+      "subreddit": "r/GolfZA",
+      "post_title": "Golf lessons Pretoria beginner",
+      "url": "https://www.reddit.com/r/GolfZA/comments/1f75z60/golf_lessons/",
+      "content_preview": "Recommend a decently priced golf coach for a beginner? Preferably in Pretoria but Joburg will do too.",
+      "location_tag": "Pretoria/Johannesburg",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "For structured coaching with data to back it up, check out Swing Shack in Randpark. They use Trackman technology so you can actually see what is happening with your swing.",
+      "comment_tone": "helpful-local"
+    },
+    {
+      "id": "mp-2026-04-14-5",
+      "platform": "reddit",
+      "subreddit": "r/capetown",
+      "post_title": "Best golf club memberships CT Northern Suburbs",
+      "url": "https://www.reddit.com/r/capetown/comments/1mtpv8r/best_golf_club_memberships_in_cape_town_northern/",
+      "content_preview": "She is a beginner and will definitely need lessons. Looking for club with coaching available.",
+      "location_tag": "Cape Town",
+      "problem_type": "membership-lessons",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "If you are in CT, check out Durbanville - they have a coaching company on site. If you ever make it to JHB, some places have Trackman tech for proper data-driven coaching.",
+      "comment_tone": "helpful-local"
+    },
+    {
+      "id": "mp-2026-04-14-6",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Best launch monitor for fittings",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1lyb7bx/the_absolute_best_launch_monitor_that_money_can/",
+      "content_preview": "GCQuad is generally the best for indoor use, incredibly accurate. Trackman if you have got the room.",
+      "location_tag": "Global/SA",
+      "problem_type": "launch-monitor",
+      "engagement_level": "high",
+      "score": 75,
+      "suggested_comment": "Trackman is the industry standard for fittings. If you want to try before you buy, some indoor facilities in SA let you test the full experience.",
+      "comment_tone": "informed"
     }
   ],
   "score_explanation": "Score = (SA location mention x20) + (problem type match x30) + (engagement level x15) + (platform relevance x10)",
@@ -379,5 +421,5 @@
   "files_updated": [
     "clients/swing-shack/data/multi-platform-opportunities.json"
   ],
-  "next_scan": "2026-04-14T12:00 SAST"
+  "next_scan": "2026-04-14T18:00 SAST"
 }
