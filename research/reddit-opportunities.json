@@ -555,6 +555,44 @@
     }
   ],
   "last_updated": "2026-04-14",
-  "scan_time": "2026-04-14T04:00Z",
-  "scan_note": "April 14 2026 - 6AM scan (4AM UTC). Added 16 new opportunities covering slice/hook fixes, club fitting, indoor sims, practice improvement, and SA golf tourism."
+  "scan_time": "2026-04-14T04:07Z",
+  "scan_note": "April 14 2026 - 6AM scan (4AM UTC). Added 16 new opportunities covering slice/hook fixes, club fitting, indoor sims, practice improvement, and SA golf tourism.",
+  "new_opportunities": [
+    {
+      "id": "reddit-2026-04-14-20",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjxhjp/golf_sim_recommendations/",
+      "title": "Golf sim recommendations - building garage sim",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-14",
+      "datePosted": "2026-04-13",
+      "comment": "Building garage sim, 10ft ceiling, asking launch monitor recommendations. Try-before-buy crowd perfect for Swing Shack — test TrackMan before dropping R50k+ on consumer gear.",
+      "tags": ["simulator", "garage", "launch-monitor", "try-before-buy", "trackman", "indoor"]
+    },
+    {
+      "id": "reddit-2026-04-14-21",
+      "url": "https://www.reddit.com/r/golf/comments/1sjwqvo/question/",
+      "title": "$1000 golf gear question",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-14",
+      "datePosted": "2026-04-13",
+      "comment": "$1000 to spend on golf gear. Equipment-focused discussion. Swing Shack angle: fitting delivers 10+ yards — better ROI than random gear shopping.",
+      "tags": ["equipment", "budget", "driver-fitting", "gear", "value"]
+    },
+    {
+      "id": "reddit-2026-04-14-22",
+      "url": "https://www.reddit.com/r/golf/comments/1sjwctj/budget_grips_you_tell_me/",
+      "title": "Budget Grips - mid size grip under $75",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-14",
+      "datePosted": "2026-04-13",
+      "comment": "65yo, 15hcp looking for budget grips under $75. Price-conscious but engaged. Newgolfer angle: proper fitting helps standardize grip size too.",
+      "tags": ["budget", "grips", "senior", "price-conscious", "equipment"]
+    }
+  ]
 }
