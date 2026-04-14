@@ -801,9 +801,45 @@
     }
   ],
   "last_updated": "2026-04-14",
-  "scan_time": "2026-04-14T06:09Z",
-  "scan_note": "April 14 2026 - 6AM scan. Fresh slice/driver/lessons threads + classic SA opportunities.",
+  "scan_time": "2026-04-14T16:00Z",
+  "scan_note": "April 14 2026 - 6PM scan. Limited fresh (Reddit blocking), added 3 new from search + existing JSON.",
   "new_opportunities": [
+    {
+      "id": "reddit-2026-04-14-23",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1skpxqh/i_spent_nearly_a_decade_growing_indoor_golf_in/",
+      "title": "I spent nearly a decade growing indoor golf in NYC (2015-2023)",
+      "subreddit": "r/Golfsimulator",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-14",
+      "datePosted": "2026-04-14",
+      "comment": "Industry veteran running NYC indoor golf. SA market opportunity - position Swing Shack as professional alternative to DIY builds. Try TrackMan before full sim commitment.",
+      "tags": ["indoor-simulator", "industry", "trackman", "try-before-buy", "nyc"]
+    },
+    {
+      "id": "reddit-2026-04-14-24",
+      "url": "https://www.reddit.com/r/golf/comments/1skgjav/i_lost_my_favorite_wedge/",
+      "title": "I lost my favorite wedge",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-14",
+      "datePosted": "2026-04-13",
+      "comment": "Lost Mizuno S23 wedge - replacement shopping moment. Perfect pitch: get fitted for replacement, find exact specs with data, not guess.",
+      "tags": ["equipment", "wedge", "replacement", "fitting", "mizuno"]
+    },
+    {
+      "id": "reddit-2026-04-14-25",
+      "url": "https://www.reddit.com/r/golf/comments/1skv4p9/are_people_nuts_or_is_it_just_me/",
+      "title": "Are people nuts or is it just me - pricing sanity check",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-14",
+      "datePosted": "2026-04-13",
+      "comment": "People overspending on used clubs - sanity check thread. Swing Shack angle: try before you buy, professional fitting shows if gear fits your actual swing.",
+      "tags": ["value", "pricing", "fitting", "used-clubs", "sanity-check"]
+    },
     {
       "id": "reddit-2026-04-14-20",
       "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjxhjp/golf_sim_recommendations/",
