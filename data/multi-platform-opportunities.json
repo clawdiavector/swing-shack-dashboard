@@ -1,13 +1,13 @@
 {
-  "scan_date": "2026-04-13",
-  "scan_time": "18:05 SAST",
+  "scan_date": "2026-04-14",
+  "scan_time": "07:06 SAST",
   "platforms_scanned": [
     "reddit",
     "youtube",
     "web_search",
     "forums"
   ],
-  "total_opportunities": 39,
+  "total_opportunities": 26,
   "opportunities": [
     {
       "id": "mp-2026-04-13-1",
@@ -239,7 +239,7 @@
       "subreddit": "First Call Golf",
       "post_title": "Golftec: Opens instruction and club fitting center in South Africa",
       "url": "https://www.firstcallgolf.com/industry-news/release/2023-11-12/golftec-opens-world-class-instruction-and-club-fitting-center-at-the-word-of-golf-in-johannesburg-south-africa",
-      "content_preview": "GOLFTEC – the world leader in golf lessons and premium club fittings, continues to expand its international footprint announcing the opening of a state-of-the-art instruction and club fitting center in Johannesburg.",
+      "content_preview": "GOLFTEC \u2013 the world leader in golf lessons and premium club fittings, continues to expand its international footprint announcing the opening of a state-of-the-art instruction and club fitting center in Johannesburg.",
       "location_tag": "Johannesburg",
       "problem_type": "lessons-fitting",
       "engagement_level": "high",
@@ -251,9 +251,9 @@
       "id": "mp-2026-04-12-13",
       "platform": "reddit",
       "subreddit": "r/Golfsimulator",
-      "post_title": "Seeking Advice: Building a Golf Simulator in South Africa with a $1500–$2000 Budget",
+      "post_title": "Seeking Advice: Building a Golf Simulator in South Africa with a $1500\u2013$2000 Budget",
       "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
-      "content_preview": "I'm looking to set up a golf simulator at home with a budget between $1500 and $2000 (R30,000–R40,000), including software. My goal is to play full courses, not just practice, and I'm based in South Africa.",
+      "content_preview": "I'm looking to set up a golf simulator at home with a budget between $1500 and $2000 (R30,000\u2013R40,000), including software. My goal is to play full courses, not just practice, and I'm based in South Africa.",
       "location_tag": "South Africa",
       "problem_type": "simulator-build-budget",
       "engagement_level": "high",
@@ -330,6 +330,48 @@
       "score": 65,
       "suggested_comment": "Launch monitors are game-changers for practice - you can actually track your progress with real numbers instead of just guessing. Some places let you try them out before committing to buying.",
       "comment_tone": "casual-informed"
+    },
+    {
+      "id": "mp-2026-04-14-1",
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Golf Lessons - Beginner Johannesburg",
+      "url": "https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/",
+      "content_preview": "I want to take up golf, can you please recommend a reliable and affordable place I can consider around Johannesburg area.",
+      "location_tag": "Johannesburg",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "For structured coaching with data to back it up, check out Swing Shack in Randpark. They use Trackman technology so you can actually see what is happening with your swing rather than just guessing.",
+      "comment_tone": "helpful-local"
+    },
+    {
+      "id": "mp-2026-04-14-2",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Budget Golf Simulator Build SA (R30-40k)",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
+      "content_preview": "Building a golf simulator in South Africa with $1500-$2000 (R30k-R40k) budget. Looking for launch monitors, hitting mats, software.",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-build-budget",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Tight budget for a proper setup. Rather book sessions at a place with Trackman to test the full experience before committing to buying consumer gear.",
+      "comment_tone": "practical-budget"
+    },
+    {
+      "id": "mp-2026-04-14-3",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Recommend a Golf Pro for Lessons (Cape Town)",
+      "url": "https://www.reddit.com/r/golf/comments/liw3gn/recommend_a_golf_pro_for_lessons_cape_town/",
+      "content_preview": "Can anyone recommend a good pro in Cape Town to improve my golf. Inconsistent shots with long clubs.",
+      "location_tag": "Cape Town",
+      "problem_type": "lessons-recommendation",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "If you are looking for structured coaching with objective data, some places in JHB use Trackman technology which shows you exactly what is happening with your swing.",
+      "comment_tone": "helpful-local"
     }
   ],
   "score_explanation": "Score = (SA location mention x20) + (problem type match x30) + (engagement level x15) + (platform relevance x10)",
@@ -337,5 +379,5 @@
   "files_updated": [
     "clients/swing-shack/data/multi-platform-opportunities.json"
   ],
-  "next_scan": "2026-04-13T12:00 SAST"
+  "next_scan": "2026-04-14T12:00 SAST"
 }
