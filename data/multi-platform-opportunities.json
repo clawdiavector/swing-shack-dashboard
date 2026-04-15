@@ -131,12 +131,54 @@
       "score": 75,
       "suggested_comment": "Both matter. Best is a place that does both with proper launch monitor data.",
       "comment_tone": "balanced"
+    },
+    {
+      "id": "mp-2026-04-15-9",
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Johannesburg Golf Courses",
+      "url": "https://www.reddit.com/r/johannesburg/comments/10ohhmb/johannesburg_golf/",
+      "content_preview": "Best courses in JHB: Steyn City, Blair Atholl, Copperleaf, Rand Park, Royal Johannesburg, Houghton.",
+      "location_tag": "Johannesburg",
+      "problem_type": "course-selection",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Swing Shack in Randpark is more accessible - proper Trackman tech for practice and fitting.",
+      "comment_tone": "local-knowledge"
+    },
+    {
+      "id": "mp-2026-04-15-10",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Indoor simulator lessons vs club pro",
+      "url": "https://www.reddit.com/r/golf/comments/17orpot/would_you_recommend_lessons_with_a_pro_at_an/",
+      "content_preview": "Comparing Golftec-style indoor lessons vs traditional pro at club. Both can work.",
+      "location_tag": "Global",
+      "problem_type": "lessons-choice",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Ideally you want both - Trackman data PLUS experienced coach. Best of both worlds.",
+      "comment_tone": "balanced-advice"
+    },
+    {
+      "id": "mp-2026-04-15-11",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Remote lessons with launch monitor",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/16taw0j/remote_lessons_w_launch_monitor/",
+      "content_preview": "Using Skytrak for remote coaching. Uploading swings with data for feedback.",
+      "location_tag": "Global",
+      "problem_type": "remote-lessons",
+      "engagement_level": "medium",
+      "score": 70,
+      "suggested_comment": "In-person beats remote - coach sees your real swing, not just video.",
+      "comment_tone": "practical-advice"
     }
   ],
   "summary": "Found 7 opportunities across Reddit and web. Best engagement: r/Golfsimulator budget build thread + r/johannesburg lessons inquiry. Indoor golf simulator space is active in SA with people researching budget options.",
   "createdAt": "2026-04-15T07:04:00Z",
   "scan_date": "2026-04-15",
-  "scan_time": "12:24 SAST",
-  "next_scan": "2026-04-15T18:00 SAST",
-  "total_opportunities": 11
+  "scan_time": "18:06 SAST",
+  "next_scan": "2026-04-16T06:00 SAST",
+  "total_opportunities": 14
 }
