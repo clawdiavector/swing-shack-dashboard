@@ -803,97 +803,54 @@
   "last_updated": "2026-04-14",
   "scan_time": "2026-04-14T16:00Z",
   "scan_note": "April 14 2026 - 6PM scan. Limited fresh (Reddit blocking), added 3 new from search + existing JSON.",
-  "new_opportunities": [
     {
-      "id": "reddit-2026-04-14-23",
-      "url": "https://www.reddit.com/r/Golfsimulator/comments/1skpxqh/i_spent_nearly_a_decade_growing_indoor_golf_in/",
-      "title": "I spent nearly a decade growing indoor golf in NYC (2015-2023)",
+      "id": "reddit-2026-04-15-1",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sls52y/mevo_gen_2_and_just_a_net/",
+      "title": "Mevo Gen 2 and just a net",
       "subreddit": "r/Golfsimulator",
       "status": "new",
       "locationTag": "global",
-      "dateFound": "2026-04-14",
+      "dateFound": "2026-04-15",
+      "datePosted": "2026-04-15",
+      "comment": "Budget-conscious looking for sub-$8k setup that breaks down easily. Try-before-buy crowd — Swing Shack: come test TrackMan before consumer gear commitment.",
+      "tags": ["budget-sim", "mevo", "diy", "starter", "garage"]
+    },
+    {
+      "id": "reddit-2026-04-15-2",
+      "url": "https://www.reddit.com/r/golf/comments/1sla8a7/is_there_actually_demand_for_a_platform_that/",
+      "title": "Is there actually demand for a platform that turns your launch monitor data into a real practice plan?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-15",
       "datePosted": "2026-04-14",
-      "comment": "Industry veteran running NYC indoor golf. SA market opportunity - position Swing Shack as professional alternative to DIY builds. Try TrackMan before full sim commitment.",
-      "tags": ["indoor-simulator", "industry", "trackman", "try-before-buy", "nyc"]
+      "comment": "Users have launch monitor data but don't know what to work on. Swing Shack value prop: structured practice + coaching with data = exactly what they're asking for.",
+      "tags": ["launch-monitor", "data", "practice-plan", "software", "coaching"]
     },
     {
-      "id": "reddit-2026-04-14-24",
-      "url": "https://www.reddit.com/r/golf/comments/1skgjav/i_lost_my_favorite_wedge/",
-      "title": "I lost my favorite wedge",
+      "id": "reddit-2026-04-15-3",
+      "url": "https://www.reddit.com/r/golf/comments/1sluf81/monark_golf/",
+      "title": "Monark Golf - clone clubs question",
       "subreddit": "r/golf",
       "status": "new",
       "locationTag": "global",
-      "dateFound": "2026-04-14",
-      "datePosted": "2026-04-13",
-      "comment": "Lost Mizuno S23 wedge - replacement shopping moment. Perfect pitch: get fitted for replacement, find exact specs with data, not guess.",
-      "tags": ["equipment", "wedge", "replacement", "fitting", "mizuno"]
+      "dateFound": "2026-04-15",
+      "datePosted": "2026-04-15",
+      "comment": "New golfer asking about clone clubs vs Callaway Edge vs Takomo. Low-price newgolfer = perfect fitting intro to find exact specs their swing needs.",
+      "tags": ["beginner", "clubs", "clone-brands", "budget", "fitting"]
     },
     {
-      "id": "reddit-2026-04-14-25",
-      "url": "https://www.reddit.com/r/golf/comments/1skv4p9/are_people_nuts_or_is_it_just_me/",
-      "title": "Are people nuts or is it just me - pricing sanity check",
-      "subreddit": "r/golf",
-      "status": "new",
-      "locationTag": "global",
-      "dateFound": "2026-04-14",
-      "datePosted": "2026-04-13",
-      "comment": "People overspending on used clubs - sanity check thread. Swing Shack angle: try before you buy, professional fitting shows if gear fits your actual swing.",
-      "tags": ["value", "pricing", "fitting", "used-clubs", "sanity-check"]
-    },
-    {
-      "id": "reddit-2026-04-14-20",
-      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjxhjp/golf_sim_recommendations/",
-      "title": "Golf sim recommendations - building garage sim",
+      "id": "reddit-2026-04-15-4",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sln7jf/quick_set_up_budget_build/",
+      "title": "Quick set up budget build",
       "subreddit": "r/Golfsimulator",
       "status": "new",
       "locationTag": "global",
-      "dateFound": "2026-04-14",
-      "datePosted": "2026-04-13",
-      "comment": "Building garage sim, 10ft ceiling, asking launch monitor recommendations. Try-before-buy crowd perfect for Swing Shack \u2014 test TrackMan before dropping R50k+ on consumer gear.",
-      "tags": [
-        "simulator",
-        "garage",
-        "launch-monitor",
-        "try-before-buy",
-        "trackman",
-        "indoor"
-      ]
-    },
-    {
-      "id": "reddit-2026-04-14-21",
-      "url": "https://www.reddit.com/r/golf/comments/1sjwqvo/question/",
-      "title": "$1000 golf gear question",
-      "subreddit": "r/golf",
-      "status": "new",
-      "locationTag": "global",
-      "dateFound": "2026-04-14",
-      "datePosted": "2026-04-13",
-      "comment": "$1000 to spend on golf gear. Equipment-focused discussion. Swing Shack angle: fitting delivers 10+ yards \u2014 better ROI than random gear shopping.",
-      "tags": [
-        "equipment",
-        "budget",
-        "driver-fitting",
-        "gear",
-        "value"
-      ]
-    },
-    {
-      "id": "reddit-2026-04-14-22",
-      "url": "https://www.reddit.com/r/golf/comments/1sjwctj/budget_grips_you_tell_me/",
-      "title": "Budget Grips - mid size grip under $75",
-      "subreddit": "r/golf",
-      "status": "new",
-      "locationTag": "global",
-      "dateFound": "2026-04-14",
-      "datePosted": "2026-04-13",
-      "comment": "65yo, 15hcp looking for budget grips under $75. Price-conscious but engaged. Newgolfer angle: proper fitting helps standardize grip size too.",
-      "tags": [
-        "budget",
-        "grips",
-        "senior",
-        "price-conscious",
-        "equipment"
-      ]
+      "dateFound": "2026-04-15",
+      "datePosted": "2026-04-15",
+      "comment": "$1,385 CAD budget setup with Mevo, 39 upvotes. DIY crowd = perfect try-before-buy audience for premium TrackMan experience.",
+      "tags": ["diy-sim", "budget-build", "mevo", "garage", "try-before-buy"]
     }
   ]
+}  ]
 }
