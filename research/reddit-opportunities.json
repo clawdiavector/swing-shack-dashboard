@@ -1,6 +1,23 @@
 {
   "opportunities": [
     {
+      "id": "reddit-2026-04-15-5",
+      "url": "https://www.reddit.com/r/golf/comments/1sjup74/best_beginner_club_set_for_a_short_woman/",
+      "title": "Best Beginner Club Set for a Short Woman?",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-15",
+      "datePosted": "2026-04-12",
+      "comment": "Short women struggling with standard clubs. Professional fitting finds exact specs needed - Swing Shack fitting service directly addresses this.",
+      "tags": [
+        "beginner",
+        "women",
+        "club-fitting",
+        "sizing"
+      ]
+    },
+    {
       "id": "reddit-2026-04-15-1",
       "url": "https://www.reddit.com/r/Golfsimulator/comments/1sls52y/mevo_gen_2_and_just_a_net/",
       "title": "Mevo Gen 2 and just a net",
