@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-04-16T12:25:03.915Z",
+  "timestamp": "2026-04-16T12:27:18.766Z",
   "overall_status": "PASS",
   "summary": {
-    "pass": 15,
+    "pass": 16,
     "stale": 0,
     "fail": 0,
     "script_failures": 0,
@@ -57,7 +57,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-16T12:25:00.107Z"
+      "last_build": "2026-04-16T12:27:15.151Z"
     },
     {
       "file": "golf-news.json",
@@ -138,8 +138,8 @@
       "data_status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 0.6,
-      "reason": "Fresh - 0.6h old",
+      "age_hours": 0.7,
+      "reason": "Fresh - 0.7h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -180,6 +180,18 @@
       "qa_warnings": []
     },
     {
+      "file": "website-insights.json",
+      "label": "Website Insights",
+      "critical": false,
+      "data_status": "PASS",
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed",
+      "qa_warnings": []
+    },
+    {
       "file": "dashboard.html",
       "label": "Dashboard HTML",
       "critical": true,
@@ -187,9 +199,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/16, 14:25:00",
+      "reason": "Last build 2026/04/16, 14:27:15",
       "next_action": "No action needed",
-      "last_build": "2026/04/16, 14:25:00"
+      "last_build": "2026/04/16, 14:27:15"
     }
   ]
 }
