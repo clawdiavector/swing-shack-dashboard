@@ -164,30 +164,38 @@ function compileSummary(stageResults, validatorReport) {
   const failedChecks = checks.filter(c => c.data_status === 'FAIL');
   const scriptFails = checks.filter(c => c.script_status === 'FAIL');
   const fallbacks = checks.filter(c => c.fallback_used === true);
+  const syntheticChecks = checks.filter(c => c.source_mode === 'SYNTHETIC');
   
   // Trust Score - machine derived from validator checks
-  // -2 per failed file, -1 per stale file, -1 per script failure (already counted in fail/stale)
+  // -2 per failed file, -1 per stale file, -1 per synthetic non-critical
   let trustScore = 10;
   const trustDeductions = [];
   
-  // Stale non-critical = -1 each (trust already penalised for missing freshness)
+  // Stale non-critical = -1 each
   for (const c of staleChecks) {
     trustScore -= 1;
-    trustDeductions.push(`${c.label} stale (-1)`);
+    trustDeductions.push(c.label + ' stale (-1)');
   }
   // Failed = -2 each (more severe than stale)
   for (const c of failedChecks) {
     if (!staleChecks.find(s => s.file === c.file)) { // don't double count
       trustScore -= 2;
-      trustDeductions.push(`${c.label} failed (-2)`);
+      trustDeductions.push(c.label + ' failed (-2)');
+    }
+  }
+  // Synthetic = -1 each (not real data)
+  for (const c of syntheticChecks) {
+    if (!staleChecks.find(s => s.file === c.file) && !failedChecks.find(s => s.file === c.file)) {
+      trustScore -= 1;
+      trustDeductions.push(c.label + ' synthetic (-1)');
     }
   }
   trustScore = Math.max(0, trustScore);
   
-  // FAIL only if CRITICAL files failed; PARTIAL if non-critical failed or any stale
+  // FAIL only if CRITICAL files failed; PARTIAL if non-critical failed, stale, or synthetic
   const criticalFailed = failedChecks.filter(c => c.critical);
   const nonCriticalFailed = failedChecks.filter(c => !c.critical);
-  const overall = criticalFailed.length > 0 ? 'FAIL' : (nonCriticalFailed.length > 0 || staleChecks.length > 0) ? 'PARTIAL' : 'PASS';
+  const overall = criticalFailed.length > 0 ? 'FAIL' : (nonCriticalFailed.length > 0 || staleChecks.length > 0 || syntheticChecks.length > 0) ? 'PARTIAL' : 'PASS';
   
   const topIdea = ideas.post_today?.[0] || ideas.ideas?.[0] || null;
   
@@ -203,6 +211,7 @@ function compileSummary(stageResults, validatorReport) {
     })),
     stale_sources: staleChecks.map(c => c.label),
     failed_sources: failedChecks.map(c => c.label),
+    synthetic_sources: syntheticChecks.map(c => ({ label: c.label, reason: c.reason || 'synthetic fallback' })),
     script_failures: scriptFails.map(c => c.label),
     fallbacks_used: fallbacks.map(c => c.label),
     top_action_today: topIdea ? {
@@ -227,7 +236,9 @@ function compileSummary(stageResults, validatorReport) {
     },
     weakest_sources: failedChecks.length > 0 
       ? failedChecks.map(c => c.label) 
-      : staleChecks.map(c => c.label),
+      : staleChecks.length > 0
+        ? staleChecks.map(c => c.label)
+        : syntheticChecks.map(c => c.label),
   };
   
   fs.writeFileSync(SUMMARY_FILE, JSON.stringify(summary, null, 2));
@@ -286,6 +297,21 @@ function printFinalSummary(summary, validatorReport) {
   console.log('  Fresh files: ' + passCount + '/' + totalCount + ' checked');
   if (scriptFails > 0) console.log('  Script failures: ' + scriptFails + (fallbacksUsed > 0 ? ' (' + fallbacksUsed + ' used fallback)' : ''));
   console.log('');
+  
+  // SOURCE MODE - which sources are live vs synthetic
+  const syntheticSources = (v?.checks || []).filter(c => c.source_mode === 'SYNTHETIC').map(c => c.label);
+  const staleSources = (v?.checks || []).filter(c => c.data_status === 'STALE').map(c => c.label);
+  if (syntheticSources.length > 0 || staleSources.length > 0) {
+    console.log('SOURCE MODE:');
+    for (const c of (v?.checks || [])) {
+      if (c.source_mode === 'SYNTHETIC') {
+        console.log('  ⚠️  ' + c.label + ': SYNTHETIC fallback (no live external source)');
+      } else if (c.source_mode === 'STALE_FALLBACK') {
+        console.log('  ⚠️  ' + c.label + ': STALE_FALLBACK (fresh fetch failed, previous data used)');
+      }
+    }
+    console.log('');
+  }
   
   if (summary.stale_sources.length > 0) {
     console.log('⚠️  STALE SOURCES:');
@@ -388,6 +414,7 @@ async function main() {
         if (f === 'content-ideas.json' && (!data.ideas || data.ideas.length === 0)) return true;
         if (f === 'hook-bank.json' && (!data.proven_hooks && !data.hooks && !data.hooks_by_goal)) return true;
         if (f === 'youtube-trends.json' && (!data.videos_found || data.videos_found === 0)) return true;
+        if (f === 'youtube-trends.json' && data._synthetic === true) return true; // synthetic = partial
         if (f === 'youtube-ideas.json' && (!data.ideas || data.ideas.length === 0)) return true;
         return false;
       } catch { return true; }

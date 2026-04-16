@@ -67,7 +67,7 @@ function validateFile(file, label, critical) {
   if (!fs.existsSync(filepath)) {
     return {
       file, label, critical,
-      data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: null,
+      data_status: 'FAIL', qa_warnings: [], source_mode: 'FAILED', script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'File missing', next_action: 'Create ' + file + ' or restore from backup'
     };
   }
@@ -77,7 +77,7 @@ function validateFile(file, label, critical) {
   if (stats.size === 0) {
     return {
       file, label, critical,
-      data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: null,
+      data_status: 'FAIL', qa_warnings: [], source_mode: 'FAILED', script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'File is empty', next_action: 'Populate ' + file
     };
   }
@@ -89,7 +89,7 @@ function validateFile(file, label, critical) {
   } catch (e) {
     return {
       file, label, critical,
-      data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: null,
+      data_status: 'FAIL', qa_warnings: [], source_mode: 'FAILED', script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'Invalid JSON', next_action: 'Fix JSON syntax in ' + file
     };
   }
@@ -113,7 +113,7 @@ function validateFile(file, label, critical) {
   if (missing.length > 0) {
     return {
       file, label, critical,
-      data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: null,
+      data_status: 'FAIL', qa_warnings: [], source_mode: 'FAILED', script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'Missing keys: ' + missing.join(', '), next_action: 'Add missing keys to ' + file
     };
   }
@@ -141,7 +141,7 @@ function validateFile(file, label, critical) {
     if (data._fallback_used || data._no_previous_data) {
       return {
         file, label, critical,
-        data_status: 'FAIL', qa_warnings: [],
+        data_status: 'FAIL', qa_warnings: [], source_mode: 'FAILED',
         script_status: 'FAIL',
         fallback_used: false,
         age_hours: parseFloat(ageHours.toFixed(1)),
@@ -209,13 +209,24 @@ function validateFile(file, label, critical) {
     }
   }
 
+  // 9. Source mode detection — how fresh is this data really?
+  let source_mode = 'LIVE';
+  if (file === 'youtube-trends.json') {
+    if (data._synthetic === true || data.data_source === 'synthetic_sa_market') {
+      source_mode = 'SYNTHETIC';
+    } else if (data.data_source && data.data_source !== 'rss_feeds' && data.data_source !== 'newsapi') {
+      source_mode = 'SYNTHETIC'; // Known proxy source = not truly live
+    }
+  }
+  
   return {
     file, label, critical,
     data_status: 'PASS',
     script_status: 'PASS',
     fallback_used: false,
+    source_mode,
     age_hours: parseFloat(ageHours.toFixed(1)),
-    reason: 'Fresh - ' + ageHours.toFixed(1) + 'h old',
+    reason: 'Fresh - ' + ageHours.toFixed(1) + 'h old' + (source_mode === 'SYNTHETIC' ? ' (synthetic source)' : ''),
     next_action: 'No action needed',
     qa_warnings,
   };
@@ -225,17 +236,17 @@ function validateDashboard() {
   const dashPath = path.join(__dirname, '..', 'dashboard.html');
 
   if (!fs.existsSync(dashPath)) {
-    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'File missing', next_action: 'Run compile_dashboard.js' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', qa_warnings: [], source_mode: 'FAILED', script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'File missing', next_action: 'Run compile_dashboard.js' };
   }
 
   const stats = fs.statSync(dashPath);
   if (stats.size < 5000) {
-    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'File too small', next_action: 'Recompile dashboard' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', qa_warnings: [], source_mode: 'FAILED', script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'File too small', next_action: 'Recompile dashboard' };
   }
 
   const content = fs.readFileSync(dashPath, 'utf8');
   if (!content.includes('Swing Shack') || !content.includes('Marketing Intelligence')) {
-    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'Missing expected content', next_action: 'Recompile dashboard' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', qa_warnings: [], source_mode: 'FAILED', script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'Missing expected content', next_action: 'Recompile dashboard' };
   }
 
   const matches = content.match(/Last Build[\s\S]*?(\d{4}\/\d{2}\/\d{2},?\s*\d{2}:\d{2}:\d{2})/);
