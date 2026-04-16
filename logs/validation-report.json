@@ -1,0 +1,102 @@
+{
+  "timestamp": "2026-04-16T11:31:35.815Z",
+  "summary": {
+    "pass": 5,
+    "stale": 7,
+    "fail": 0
+  },
+  "pipeline_status": "PARTIAL",
+  "critical_failure": false,
+  "should_stop": false,
+  "results": [
+    {
+      "file": "ig-analytics.json",
+      "status": "PASS",
+      "reason": "valid",
+      "age_hours": "1.9",
+      "critical": true,
+      "action": "continue"
+    },
+    {
+      "file": "hook-bank.json",
+      "status": "PASS",
+      "reason": "valid",
+      "age_hours": "0.4",
+      "critical": true,
+      "action": "continue"
+    },
+    {
+      "file": "content-ideas.json",
+      "status": "PASS",
+      "reason": "valid",
+      "age_hours": "0.4",
+      "critical": true,
+      "action": "continue"
+    },
+    {
+      "file": "dashboard-summary.json",
+      "status": "PASS",
+      "reason": "valid",
+      "age_hours": "0.4",
+      "critical": true,
+      "action": "continue"
+    },
+    {
+      "file": "golf-news.json",
+      "status": "PASS",
+      "reason": "valid",
+      "age_hours": "0.4",
+      "critical": false,
+      "action": "continue"
+    },
+    {
+      "file": "reddit-trends.json",
+      "status": "STALE",
+      "reason": "no timestamp",
+      "critical": false,
+      "action": "continue"
+    },
+    {
+      "file": "ga4-metrics.json",
+      "status": "STALE",
+      "reason": "no timestamp",
+      "critical": false,
+      "action": "continue"
+    },
+    {
+      "file": "seo-rankings.json",
+      "status": "STALE",
+      "reason": "no timestamp",
+      "critical": false,
+      "action": "continue"
+    },
+    {
+      "file": "seo-audit.json",
+      "status": "STALE",
+      "reason": "no timestamp",
+      "critical": false,
+      "action": "continue"
+    },
+    {
+      "file": "ab-tests.json",
+      "status": "STALE",
+      "reason": "no timestamp",
+      "critical": false,
+      "action": "continue"
+    },
+    {
+      "file": "used-items.json",
+      "status": "STALE",
+      "reason": "no timestamp",
+      "critical": false,
+      "action": "continue"
+    },
+    {
+      "file": "dashboard.html",
+      "status": "STALE",
+      "reason": "no timestamp found",
+      "critical": true,
+      "action": "continue"
+    }
+  ]
+}

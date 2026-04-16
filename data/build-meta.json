@@ -1,21 +1,19 @@
 {
-  "last_run": "2026-04-16T11:09:54.170Z",
+  "last_run": "2026-04-16T11:32:04.911Z",
   "stale_sources": [
     "GA4",
-    "Reddit",
-    "SEO Rankings",
-    "SEO Audit"
+    "SEO Rankings"
   ],
   "errors": [],
   "build_version": "2.0",
   "sources_updated": {
     "IG Analytics": "2026-04-16T09:39:51.448Z",
     "GA4": "never",
-    "Reddit": "never",
-    "Golf News": "2026-04-16T11:09:53.998Z",
+    "Reddit": "2026-04-16T11:31:47.177Z",
+    "Golf News": "2026-04-16T11:31:46.706Z",
     "SEO Rankings": "never",
-    "SEO Audit": "never",
-    "Hook Bank": "2026-04-16T11:09:54.127Z",
-    "Ideas": "2026-04-16T11:09:54.081Z"
+    "SEO Audit": "2026-04-16T11:31:55.396Z",
+    "Hook Bank": "2026-04-16T11:31:47.340Z",
+    "Ideas": "2026-04-16T11:31:47.384Z"
   }
 }

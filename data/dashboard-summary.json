@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-16T11:09:54.170Z",
+  "updated": "2026-04-16T11:32:04.911Z",
   "sources": [
     {
       "name": "IG Analytics",
@@ -11,11 +11,11 @@
     },
     {
       "name": "Reddit",
-      "updated": "never"
+      "updated": "2026-04-16T11:31:47.177Z"
     },
     {
       "name": "Golf News",
-      "updated": "2026-04-16T11:09:53.998Z"
+      "updated": "2026-04-16T11:31:46.706Z"
     },
     {
       "name": "SEO Rankings",
@@ -23,18 +23,18 @@
     },
     {
       "name": "SEO Audit",
-      "updated": "never"
+      "updated": "2026-04-16T11:31:55.396Z"
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-04-16T11:09:54.127Z"
+      "updated": "2026-04-16T11:31:47.340Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-04-16T11:09:54.081Z"
+      "updated": "2026-04-16T11:31:47.384Z"
     }
   ],
-  "stale_count": 4,
+  "stale_count": 2,
   "top_recommendation": "That slice costing you yards off the tee? TrackMan found it ...",
   "total_posts": 64,
   "total_ideas": 15,
