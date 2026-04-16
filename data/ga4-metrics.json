@@ -1,12 +1,12 @@
 {
-  "updated": "2026-04-16T12:12:26.752Z",
+  "updated": "2026-04-16T12:20:05.006Z",
   "data_window": "2026-04-09 to 2026-04-16",
-  "total_sessions": 972,
+  "total_sessions": 983,
   "pages": [
     {
       "path": "/",
-      "sessions": 272,
-      "engRate": "70.6%"
+      "sessions": 274,
+      "engRate": "70.1%"
     },
     {
       "path": "/bookings/",
@@ -25,8 +25,8 @@
     },
     {
       "path": "/customer-portal/",
-      "sessions": 45,
-      "engRate": "73.3%"
+      "sessions": 48,
+      "engRate": "68.8%"
     },
     {
       "path": "/customer-portal/",
@@ -57,7 +57,7 @@
   "sources": [
     {
       "source": "google",
-      "sessions": 569
+      "sessions": 575
     },
     {
       "source": "(direct)",
@@ -73,7 +73,7 @@
     },
     {
       "source": "(not set)",
-      "sessions": 19
+      "sessions": 24
     }
   ],
   "insights": {
@@ -91,7 +91,7 @@
       {
         "type": "organic_opportunity",
         "priority": "medium",
-        "message": "569 organic sessions. Ensure these pages have clear booking CTAs."
+        "message": "575 organic sessions. Ensure these pages have clear booking CTAs."
       }
     ]
   },
