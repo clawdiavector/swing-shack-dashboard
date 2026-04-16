@@ -165,7 +165,10 @@ function compileSummary(stageResults, validatorReport) {
   }
   trustScore = Math.max(0, trustScore);
   
-  const overall = failedChecks.length > 0 ? 'FAIL' : staleChecks.length > 0 ? 'PARTIAL' : 'PASS';
+  // FAIL only if CRITICAL files failed; PARTIAL if non-critical failed or any stale
+  const criticalFailed = failedChecks.filter(c => c.critical);
+  const nonCriticalFailed = failedChecks.filter(c => !c.critical);
+  const overall = criticalFailed.length > 0 ? 'FAIL' : (nonCriticalFailed.length > 0 || staleChecks.length > 0) ? 'PARTIAL' : 'PASS';
   
   const topIdea = ideas.post_today?.[0] || ideas.ideas?.[0] || null;
   
