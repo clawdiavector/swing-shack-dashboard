@@ -1,1 +1,77 @@
-{"updated":"never","tests":[]}
+{
+  "updated": "2026-04-16T11:46:45.000Z",
+  "schema_version": "1.0",
+  "description": "A/B test tracking for Swing Shack social content",
+  "tests": [
+    {
+      "test_id": "hook_round_1_2026_03_30",
+      "platform": "instagram",
+      "post_id": "round1_post_a",
+      "variant_a": "YOUR GOLF STATS DON'T LIE. TrackMan certified analysis shows exactly what's costing you strokes.",
+      "variant_b": "FROM CONFUSED GOLFER TO CONFIDENT STRIKER. Real South Africa indoor golf improvement.",
+      "variant_c": "RAIN OR SHINE - YOUR GAME NEVER STOPS. 24/7 golf is waiting in Johannesburg.",
+      "winner": "a",
+      "metric": "engagement_rate",
+      "variant_a_value": 3.25,
+      "variant_b_value": 1.06,
+      "variant_c_value": 2.44,
+      "status": "complete",
+      "started_at": "2026-03-30T07:00:00+02:00",
+      "ended_at": "2026-04-02T07:00:00+02:00",
+      "confidence": "high",
+      "hook_or_format": "hook",
+      "notes": "Stats-led hook significantly outperforms transformation angle. TrackMan keyword strong."
+    },
+    {
+      "test_id": "hook_round_2_2026_04_01",
+      "platform": "instagram",
+      "post_id": "round2_posts",
+      "variant_a": "SWING SPEED: 83 MPH. Pros average 112 mph. TrackMan found you could gain 29 meters.",
+      "variant_b": "YOUR DRIVE: 199 M. Pros average 264 meters. TrackMan shows you how to close the gap.",
+      "variant_c": "YOUR NUMBERS ARE TALKING. TrackMan makes them impossible to ignore.",
+      "winner": "a",
+      "metric": "engagement_rate",
+      "variant_a_value": 1.63,
+      "variant_b_value": 1.25,
+      "variant_c_value": 1.10,
+      "status": "complete",
+      "started_at": "2026-04-01T07:00:00+02:00",
+      "ended_at": "2026-04-04T07:00:00+02:00",
+      "confidence": "medium",
+      "hook_or_format": "hook",
+      "notes": "Swing speed hook won over drive distance hook. Both underperformed Round 1 winner."
+    },
+    {
+      "test_id": "slice_test_2026_04_07",
+      "platform": "instagram",
+      "post_id": "slice_post",
+      "variant_a": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One session. Lasting fix.",
+      "winner": "a",
+      "metric": "engagement_rate",
+      "variant_a_value": 5.77,
+      "variant_b_value": null,
+      "status": "complete",
+      "started_at": "2026-04-07T07:00:00+02:00",
+      "ended_at": "2026-04-10T07:00:00+02:00",
+      "confidence": "high",
+      "hook_or_format": "hook",
+      "notes": "ALL-TIME WINNER. Slice pain point resonates strongly. Repetition recommended weekly."
+    },
+    {
+      "test_id": "hook_round_3_2026_04_14",
+      "platform": "instagram",
+      "post_id": "cmny82p3500e0nf0y3dftg1x0",
+      "variant_a": "BACKSPIN: 3,200 RPM. Too much spin killing your distance? TrackMan tells you exactly what to fix.",
+      "winner": "a",
+      "metric": "engagement_rate",
+      "variant_a_value": 2.29,
+      "variant_b_value": null,
+      "status": "complete",
+      "started_at": "2026-04-14T07:00:00+02:00",
+      "ended_at": "2026-04-17T07:00:00+02:00",
+      "confidence": "low",
+      "hook_or_format": "hook",
+      "notes": "Spin rate hook. Single variant posted - no competing hook this round."
+    }
+  ]
+}

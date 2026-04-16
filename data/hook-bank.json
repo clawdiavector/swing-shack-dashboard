@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-16T11:46:25.433Z",
+  "updated": "2026-04-16T11:47:20.745Z",
   "total_hooks": 64,
   "proven_hooks": [
     {
@@ -1249,5 +1249,26 @@
       "avg_score": "5.9"
     }
   ],
-  "ab_winners": []
+  "ab_winners": [
+    {
+      "winner": "a",
+      "eng": "?",
+      "next_action": "reuse formula"
+    },
+    {
+      "winner": "a",
+      "eng": "?",
+      "next_action": "reuse formula"
+    },
+    {
+      "winner": "a",
+      "eng": "?",
+      "next_action": "reuse formula"
+    },
+    {
+      "winner": "a",
+      "eng": "?",
+      "next_action": "reuse formula"
+    }
+  ]
 }
