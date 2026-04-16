@@ -146,6 +146,10 @@ function run() {
   });
   
   fs.writeFileSync(DATA_FILE, JSON.stringify(trends[0], null, 2));
+  if (allVideos.length === 0) {
+    console.log(`WARNING: No YouTube videos found - YouTube may be blocking scraper`);
+    process.exit(1);
+  }
   console.log(`✅ YouTube Trends: ${allVideos.length} videos, ${hooks.length} hooks, top theme: ${trends[0].summary.top_theme}`);
   return trends[0];
 }

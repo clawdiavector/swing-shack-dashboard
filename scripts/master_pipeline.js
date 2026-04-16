@@ -344,16 +344,25 @@ async function main() {
     }
     
     // Check for any stale outputs in this stage (required or optional)
+    // Use comprehensive stale check that mirrors validator logic
     const allOutputs = [...(stage.requiredOutputs || []), ...(stage.optionalOutputs || [])];
     const staleOutputs = allOutputs.filter(f => {
       const fpath = path.join(DATA_DIR, f);
-      if (!fs.existsSync(fpath)) return false;
+      if (!fs.existsSync(fpath)) return true; // missing = stale
       try {
         const data = JSON.parse(fs.readFileSync(fpath, 'utf8'));
         if (!data.updated || data.updated === 'never') return true;
+        if (data._stale === true) return true; // script marked it stale
         const age = (Date.now() - new Date(data.updated).getTime()) / 3600000;
-        return age > 26;
-      } catch { return false; }
+        if (age > 26) return true;
+        // Special cases: non-empty expected
+        if (f === 'ig-analytics.json' && (!data.posts || data.posts.length === 0)) return true;
+        if (f === 'content-ideas.json' && (!data.ideas || data.ideas.length === 0)) return true;
+        if (f === 'hook-bank.json' && (!data.proven_hooks && !data.hooks && !data.hooks_by_goal)) return true;
+        if (f === 'youtube-trends.json' && (!data.videos_found || data.videos_found === 0)) return true;
+        if (f === 'youtube-ideas.json' && (!data.ideas || data.ideas.length === 0)) return true;
+        return false;
+      } catch { return true; }
     });
     
     // Now compute stage status based on script results + stale outputs
