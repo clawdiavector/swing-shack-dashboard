@@ -40,6 +40,7 @@ const NON_CRITICAL_FILES = [
   { file: 'used-items.json', label: 'Used Items', critical: false },
   { file: 'youtube-trends.json', label: 'YouTube Trends', critical: false },
   { file: 'youtube-ideas.json', label: 'YouTube Ideas', critical: false },
+  { file: 'website-insights.json', label: 'Website Insights', critical: false },
 ];
 
 const REQUIRED_KEYS = {
@@ -56,6 +57,7 @@ const REQUIRED_KEYS = {
   'used-items.json': ['updated'],
   'youtube-trends.json': ['updated'],
   'youtube-ideas.json': ['updated'],
+  'website-insights.json': ['updated'],
 };
 
 function validateFile(file, label, critical) {

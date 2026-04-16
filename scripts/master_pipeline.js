@@ -69,6 +69,15 @@ const STAGES = [
     ]
   },
   {
+    name: 'Insights',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['website-insights.json'],
+    steps: [
+      { name: 'fetch_website_insights', script: `node ${BASE}/scripts/fetch_website_insights.js`, critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

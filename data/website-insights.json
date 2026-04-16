@@ -1,0 +1,96 @@
+{
+  "updated": "2026-04-16T12:27:15.107Z",
+  "data_window": "2026-04-09 to 2026-04-16",
+  "total_sessions": 983,
+  "source_share": {
+    "organic_pct": "58.5",
+    "direct_pct": "0.0",
+    "social_pct": "0.0",
+    "organic_sessions": 575,
+    "direct_sessions": 0,
+    "social_sessions": 0,
+    "total": 983
+  },
+  "funnel": {
+    "booking_pages": {
+      "sessions": 168,
+      "avg_engagement": "76.7%",
+      "paths": [
+        "/bookings/",
+        "/bookings/"
+      ]
+    },
+    "checkout_pages": {
+      "sessions": 31,
+      "avg_engagement": "96.8%",
+      "paths": [
+        "/checkout/"
+      ]
+    },
+    "coaching_pages": {
+      "sessions": 0,
+      "avg_engagement": "N/A",
+      "paths": []
+    },
+    "fitting_pages": {
+      "sessions": 32,
+      "avg_engagement": "93.8%",
+      "paths": [
+        "/club-fitting/"
+      ]
+    }
+  },
+  "weak_ctas": [],
+  "top_pages": [
+    {
+      "path": "/checkout/",
+      "sessions": 31,
+      "engagement": "96.8%"
+    },
+    {
+      "path": "/club-fitting/",
+      "sessions": 32,
+      "engagement": "93.8%"
+    },
+    {
+      "path": "/",
+      "sessions": 20,
+      "engagement": "85.0%"
+    }
+  ],
+  "seo_gaps": {
+    "missing_geo_targets": [],
+    "high_value_keywords": []
+  },
+  "sa_signals": {
+    "local_search_volume": "unknown",
+    "top_city": "Johannesburg",
+    "competitive_geo_terms": 0,
+    "insight": "SA golfers searching for indoor golf = high intent. Ensure Johannesburg pages rank for \"indoor golf johannesburg\"."
+  },
+  "recommendations": [
+    {
+      "type": "organic_opportunity",
+      "priority": "MEDIUM",
+      "message": "575 organic sessions (58.5%) — ensure booking CTA is prominent"
+    },
+    {
+      "type": "booking_funnel",
+      "priority": "HIGH",
+      "message": "Booking page: 168 sessions, Checkout: 31 sessions — checkout drop-off suspected"
+    }
+  ],
+  "insights": [
+    "✅ Top performing: /checkout/ (96.8% eng), /club-fitting/ (93.8% eng), / (85.0% eng)"
+  ],
+  "top_action_items": [
+    "Booking page: 168 sessions, Checkout: 31 sessions — checkout drop-off suspected",
+    "575 organic sessions (58.5%) — ensure booking CTA is prominent"
+  ],
+  "summary": {
+    "health_score": "GOOD",
+    "critical_issues": 0,
+    "medium_issues": 0,
+    "next_priority": "Booking page: 168 sessions, Checkout: 31 sessions — checkout drop-off suspected"
+  }
+}
