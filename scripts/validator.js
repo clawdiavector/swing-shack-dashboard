@@ -325,13 +325,8 @@ function run() {
   console.log('Pipeline Status: ' + overall);
   
   // Source integrity breakdown
-  const liveFresh = checks.filter(c => c.data_status === 'PASS' && c.source_mode === 'LIVE').length;
-  const generatedFresh = checks.filter(c => c.data_status === 'PASS' && c.source_mode && c.source_mode !== 'LIVE' && c.source_mode !== 'SYNTHETIC' && c.source_mode !== 'STALE_FALLBACK').length;
-  const syntheticFiles = checks.filter(c => c.source_mode === 'SYNTHETIC').length;
-  const staleFiles = checks.filter(c => c.data_status === 'STALE').length;
-  const failedFiles = checks.filter(c => c.data_status === 'FAIL').length;
-  
   console.log('');
+  
   console.log('SOURCE INTEGRITY:');
   for (const c of checks) {
     const mode = c.source_mode || 'LIVE';
