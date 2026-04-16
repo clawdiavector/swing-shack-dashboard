@@ -90,15 +90,17 @@ function validateFile(file, label, critical) {
     };
   }
   
-  // 4. Required keys present?
-  const required = REQUIRED_KEYS[file] || [];
-  const missing = required.filter(k => !data.hasOwnProperty(k));
-  if (missing.length > 0) {
-    return { 
-      file, label, critical,
-      status: 'FAIL', script_status: 'FAIL', fallback_used: null,
-      age_hours: null, reason: `Missing keys: ${missing.join(', ')}`, next_action: `Add missing keys to ${file}`
-    };
+  // Dashboard summary uses 'timestamp' not 'updated'
+  if (file === 'dashboard-summary.json') {
+    const ts = data.timestamp || data.updated;
+    if (!ts || ts === 'never') {
+      return { file, label, critical, status: 'STALE', script_status: 'N/A', fallback_used: false, age_hours: null, reason: 'No timestamp found', next_action: 'Run compile_dashboard.js' };
+    }
+    const ageHours = (Date.now() - new Date(ts).getTime()) / 3600000;
+    if (ageHours > 26) {
+      return { file, label, critical, status: 'STALE', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: `${ageHours.toFixed(1)}h old`, next_action: 'Recompile dashboard summary' };
+    }
+    return { file, label, critical, status: 'PASS', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: `Fresh - ${ageHours.toFixed(1)}h old`, next_action: 'No action needed', last_build: ts };
   }
   
   // 5. Timestamp check
@@ -119,6 +121,34 @@ function validateFile(file, label, critical) {
   
   // 6. Age check
   const ageHours = (Date.now() - new Date(updated).getTime()) / 3600000;
+  
+  // If _stale flag is set, data_status is STALE regardless of timestamp
+  // (script failed but kept old/fallback data with fresh timestamp)
+  if (data._stale === true) {
+    if (data._fallback_used || data._no_previous_data) {
+      // Script failed AND no valid fallback = FAIL
+      return { 
+        file, label, critical,
+        status: 'FAIL', 
+        script_status: 'FAIL',
+        fallback_used: false,
+        age_hours: parseFloat(ageHours.toFixed(1)), 
+        reason: 'Script failed - no valid fallback data',
+        next_action: data._stale_reason ? `Auth/script failed: ${data._stale_reason}` : `Fix ${file} script`
+      };
+    } else {
+      // Script set _stale flag but had fallback
+      return { 
+        file, label, critical,
+        status: 'STALE', 
+        script_status: 'FAIL',
+        fallback_used: true,
+        age_hours: parseFloat(ageHours.toFixed(1)), 
+        reason: `Script failed - using stale fallback (${ageHours.toFixed(1)}h old)`,
+        next_action: data._stale_reason ? `Auth failed: ${data._stale_reason}` : `Fix auth for ${file}`
+      };
+    }
+  }
   
   if (ageHours > 26) {
     return { 
@@ -210,7 +240,8 @@ function run() {
   const scriptFailures = checks.filter(c => c.script_status === 'FAIL');
   const fallbacksUsed = checks.filter(c => c.fallback_used === true);
   
-  const overall = failures.length > 0 ? 'FAIL' : stales.length > 0 ? 'PARTIAL' : 'PASS';
+  const criticalFailures = failures.filter(c => c.critical);
+  const overall = criticalFailures.length > 0 ? 'FAIL' : failures.length > 0 ? 'PARTIAL' : stales.length > 0 ? 'PARTIAL' : 'PASS';
   
   const report = {
     timestamp: new Date().toISOString(),

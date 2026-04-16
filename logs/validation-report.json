@@ -1,10 +1,12 @@
 {
-  "timestamp": "2026-04-16T11:46:45.489Z",
+  "timestamp": "2026-04-16T11:56:08.068Z",
   "overall_status": "PARTIAL",
   "summary": {
     "pass": 12,
-    "stale": 1,
-    "fail": 0
+    "stale": 0,
+    "fail": 1,
+    "script_failures": 1,
+    "fallbacks_used": 0
   },
   "critical_failure": false,
   "should_stop": false,
@@ -12,93 +14,147 @@
     {
       "file": "ig-analytics.json",
       "label": "IG Analytics",
+      "critical": true,
       "status": "PASS",
-      "reason": "Valid - 2.1h old",
-      "age_hours": 2.1
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 2.3,
+      "reason": "Fresh - 2.3h old",
+      "next_action": "No action needed"
     },
     {
       "file": "hook-bank.json",
       "label": "Hook Bank",
+      "critical": true,
       "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "content-ideas.json",
       "label": "Content Ideas",
+      "critical": true,
       "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "dashboard-summary.json",
       "label": "Dashboard Summary",
+      "critical": true,
       "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed",
+      "last_build": "2026-04-16T11:54:40.687Z"
     },
     {
       "file": "golf-news.json",
       "label": "Golf News",
+      "critical": false,
       "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "reddit-trends.json",
       "label": "Reddit Trends",
+      "critical": false,
       "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "ga4-metrics.json",
-      "label": "GA4 Fetch",
-      "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "label": "GA4 Metrics",
+      "critical": false,
+      "status": "FAIL",
+      "script_status": "FAIL",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Script failed - no valid fallback data",
+      "next_action": "Fix ga4-metrics.json script"
     },
     {
       "file": "seo-rankings.json",
       "label": "SEO Rankings",
+      "critical": false,
       "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "seo-audit.json",
       "label": "SEO Audit",
+      "critical": false,
       "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "geo-audit.json",
       "label": "GEO Audit",
+      "critical": false,
       "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "ab-tests.json",
       "label": "A/B Test Input",
-      "status": "STALE",
-      "reason": "Never updated - previous run used"
+      "critical": false,
+      "status": "PASS",
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0.2,
+      "reason": "Fresh - 0.2h old",
+      "next_action": "No action needed"
     },
     {
       "file": "used-items.json",
       "label": "Used Items",
+      "critical": false,
       "status": "PASS",
-      "reason": "Valid - 0.0h old",
-      "age_hours": 0
+      "script_status": "PASS",
+      "fallback_used": false,
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "dashboard.html",
       "label": "Dashboard HTML",
+      "critical": true,
       "status": "PASS",
-      "reason": "Last build 2026/04/16, 13:46:41",
+      "script_status": "PASS",
+      "fallback_used": false,
       "age_hours": 0,
-      "last_build": "2026/04/16, 13:46:41"
+      "reason": "Last build 2026/04/16, 13:54:36",
+      "next_action": "No action needed",
+      "last_build": "2026/04/16, 13:54:36"
     }
   ]
 }

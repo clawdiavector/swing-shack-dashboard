@@ -1,156 +1,84 @@
 {
-  "updated": "2026-04-16T11:54:23.527Z",
+  "updated": "2026-04-16T11:56:25.457Z",
   "keywords": [
     {
       "keyword": "indoor golf johannesburg",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     },
     {
       "keyword": "golf simulator johannesburg",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     },
     {
       "keyword": "club fitting johannesburg",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     },
     {
       "keyword": "golf lessons randburg",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     },
     {
       "keyword": "golf practice johannesburg",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     },
     {
       "keyword": "trackman johannesburg",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     },
     {
       "keyword": "custom clubs johannesburg",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     },
     {
       "keyword": "indoor golf randburg",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     },
     {
       "keyword": "golf simulator south africa",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     },
     {
       "keyword": "golf fitting johannesburg price",
-      "current_rank": null,
+      "current_rank": 26,
       "target_url": "https://swingshack.co.za",
       "search_intent": "commercial",
-      "note": "Not found in top results"
+      "note": "Found in search results"
     }
   ],
   "rising_keywords": [],
   "falling_keywords": [],
-  "quick_wins": [
-    "indoor golf johannesburg",
-    "golf simulator johannesburg",
-    "club fitting johannesburg",
-    "golf lessons randburg",
-    "golf practice johannesburg",
-    "trackman johannesburg",
-    "custom clubs johannesburg",
-    "indoor golf randburg",
-    "golf simulator south africa",
-    "golf fitting johannesburg price"
-  ],
+  "quick_wins": [],
   "summary": {
     "tracked": 10,
-    "found": 0,
-    "not_found": 10
+    "found": 10,
+    "not_found": 0
   },
-  "recommendations": [
-    {
-      "type": "not_indexed",
-      "keyword": "indoor golf johannesburg",
-      "action": "Create or optimize page targeting \"indoor golf johannesburg\"",
-      "priority": "high"
-    },
-    {
-      "type": "not_indexed",
-      "keyword": "golf simulator johannesburg",
-      "action": "Create or optimize page targeting \"golf simulator johannesburg\"",
-      "priority": "high"
-    },
-    {
-      "type": "not_indexed",
-      "keyword": "club fitting johannesburg",
-      "action": "Create or optimize page targeting \"club fitting johannesburg\"",
-      "priority": "high"
-    },
-    {
-      "type": "not_indexed",
-      "keyword": "golf lessons randburg",
-      "action": "Create or optimize page targeting \"golf lessons randburg\"",
-      "priority": "high"
-    },
-    {
-      "type": "not_indexed",
-      "keyword": "golf practice johannesburg",
-      "action": "Create or optimize page targeting \"golf practice johannesburg\"",
-      "priority": "high"
-    },
-    {
-      "type": "not_indexed",
-      "keyword": "trackman johannesburg",
-      "action": "Create or optimize page targeting \"trackman johannesburg\"",
-      "priority": "high"
-    },
-    {
-      "type": "not_indexed",
-      "keyword": "custom clubs johannesburg",
-      "action": "Create or optimize page targeting \"custom clubs johannesburg\"",
-      "priority": "high"
-    },
-    {
-      "type": "not_indexed",
-      "keyword": "indoor golf randburg",
-      "action": "Create or optimize page targeting \"indoor golf randburg\"",
-      "priority": "high"
-    },
-    {
-      "type": "not_indexed",
-      "keyword": "golf simulator south africa",
-      "action": "Create or optimize page targeting \"golf simulator south africa\"",
-      "priority": "high"
-    },
-    {
-      "type": "not_indexed",
-      "keyword": "golf fitting johannesburg price",
-      "action": "Create or optimize page targeting \"golf fitting johannesburg price\"",
-      "priority": "high"
-    }
-  ]
+  "recommendations": []
 }
