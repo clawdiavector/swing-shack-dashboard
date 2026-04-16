@@ -312,6 +312,7 @@ function printFinalSummary(summary, validatorReport) {
   console.log('');
   
   // SOURCE MODE - per-source integrity
+  const syntheticSources = (v?.checks || []).filter(c => c.source_mode === 'SYNTHETIC').map(c => c.label);
   const staleSources = (v?.checks || []).filter(c => c.data_status === 'STALE').map(c => c.label);
   const failedSources = (v?.checks || []).filter(c => c.data_status === 'FAIL').map(c => c.label);
   if (syntheticSources.length > 0 || staleSources.length > 0 || failedSources.length > 0) {
