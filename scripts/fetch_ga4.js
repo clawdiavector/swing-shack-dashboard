@@ -71,7 +71,7 @@ function run() {
     const weakPages = topPages.filter(p => p.engRate < 50);
     
     const insights = {
-      recommendations: [] as any[],
+      recommendations: [],
     };
     
     if (weakPages.length > 0) {

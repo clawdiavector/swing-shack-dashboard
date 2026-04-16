@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-04-16T11:31:35.815Z",
+  "timestamp": "2026-04-16T11:32:08.706Z",
   "summary": {
-    "pass": 5,
-    "stale": 7,
+    "pass": 7,
+    "stale": 5,
     "fail": 0
   },
   "pipeline_status": "PARTIAL",
@@ -21,7 +21,7 @@
       "file": "hook-bank.json",
       "status": "PASS",
       "reason": "valid",
-      "age_hours": "0.4",
+      "age_hours": "0.0",
       "critical": true,
       "action": "continue"
     },
@@ -29,7 +29,7 @@
       "file": "content-ideas.json",
       "status": "PASS",
       "reason": "valid",
-      "age_hours": "0.4",
+      "age_hours": "0.0",
       "critical": true,
       "action": "continue"
     },
@@ -37,7 +37,7 @@
       "file": "dashboard-summary.json",
       "status": "PASS",
       "reason": "valid",
-      "age_hours": "0.4",
+      "age_hours": "0.0",
       "critical": true,
       "action": "continue"
     },
@@ -45,14 +45,15 @@
       "file": "golf-news.json",
       "status": "PASS",
       "reason": "valid",
-      "age_hours": "0.4",
+      "age_hours": "0.0",
       "critical": false,
       "action": "continue"
     },
     {
       "file": "reddit-trends.json",
-      "status": "STALE",
-      "reason": "no timestamp",
+      "status": "PASS",
+      "reason": "valid",
+      "age_hours": "0.0",
       "critical": false,
       "action": "continue"
     },
@@ -72,8 +73,9 @@
     },
     {
       "file": "seo-audit.json",
-      "status": "STALE",
-      "reason": "no timestamp",
+      "status": "PASS",
+      "reason": "valid",
+      "age_hours": "0.0",
       "critical": false,
       "action": "continue"
     },

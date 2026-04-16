@@ -1,42 +1,48 @@
 {
-  "updated": "2026-04-16T11:32:04.911Z",
-  "sources": [
+  "pipeline_status": "PARTIAL",
+  "timestamp": "2026-04-16T11:32:08.708Z",
+  "stage_results": [
     {
-      "name": "IG Analytics",
-      "updated": "2026-04-16T09:39:51.448Z"
+      "stage": "Research",
+      "status": "PASS"
     },
     {
-      "name": "GA4",
-      "updated": "never"
+      "stage": "Analysis",
+      "status": "PASS"
     },
     {
-      "name": "Reddit",
-      "updated": "2026-04-16T11:31:47.177Z"
+      "stage": "Ideas",
+      "status": "PASS"
     },
     {
-      "name": "Golf News",
-      "updated": "2026-04-16T11:31:46.706Z"
+      "stage": "Audit",
+      "status": "PASS"
     },
     {
-      "name": "SEO Rankings",
-      "updated": "never"
+      "stage": "Compile",
+      "status": "PASS"
     },
     {
-      "name": "SEO Audit",
-      "updated": "2026-04-16T11:31:55.396Z"
-    },
-    {
-      "name": "Hook Bank",
-      "updated": "2026-04-16T11:31:47.340Z"
-    },
-    {
-      "name": "Ideas",
-      "updated": "2026-04-16T11:31:47.384Z"
+      "stage": "Publish",
+      "status": "PASS"
     }
   ],
-  "stale_count": 2,
-  "top_recommendation": "That slice costing you yards off the tee? TrackMan found it ...",
-  "total_posts": 64,
-  "total_ideas": 15,
-  "hooks_tracked": 56
+  "stale_sources": [
+    "ga4-metrics",
+    "seo-rankings",
+    "ab-tests",
+    "used-items",
+    "dashboard.html"
+  ],
+  "top_action_today": {
+    "idea": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+    "format": "static",
+    "reason": "Hook generated 5.77% eng, 52 reach",
+    "cta": "Link in bio · Book your session"
+  },
+  "data_summary": {
+    "ig_posts": 64,
+    "ideas_generated": 15,
+    "hooks_tracked": 64
+  }
 }
