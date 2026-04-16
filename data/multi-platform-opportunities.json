@@ -313,12 +313,68 @@
       "score": 80,
       "suggested_comment": "Launch monitor gives exact data on what needs fixing.",
       "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-16-11",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Golf lessons or club fitting first",
+      "url": "https://www.reddit.com/r/golf/comments/erfxbi/golf_lessons_or_club_fitting_first/",
+      "content_preview": "Lessons first vs fitting first debate - fitter gave free lesson",
+      "location_tag": "Global",
+      "problem_type": "lessons-vs-fitting",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Ideally both at a place with Trackman data.",
+      "comment_tone": "balanced"
+    },
+    {
+      "id": "mp-2026-04-16-12",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Club Fitting for Beginner",
+      "url": "https://www.reddit.com/r/golf/comments/1qdvms2/club_fitting_for_beginner/",
+      "content_preview": "Beginner asking if fitting worth it - lessons recommended first",
+      "location_tag": "Global",
+      "problem_type": "beginner-fitting",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Lessons first, then fitting once swing is stable.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-16-13",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Quit telling beginners to get fitted",
+      "url": "https://www.reddit.com/r/golf/comments/oyi9ig/can_we_collectively_quit_telling_beginners_to_get/",
+      "content_preview": " debate on beginners and fitting - lessons vs fitting depending on budget",
+      "location_tag": "Global",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 75,
+      "suggested_comment": "Lessons first is better advice for true beginners.",
+      "comment_tone": "balanced"
+    },
+    {
+      "id": "mp-2026-04-16-14",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Beginner club fitting question",
+      "url": "https://www.reddit.com/r/golf/comments/1fh11v8/beginner_question_about_club_fitting/",
+      "content_preview": "Used clubs then lessons then fitting pathway recommended",
+      "location_tag": "Global",
+      "problem_type": "beginner-fitting",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Solid advice - lessons first, fitting after.",
+      "comment_tone": "agree"
     }
   ],
   "summary": "Found 7 opportunities across Reddit and web. Best engagement: r/Golfsimulator budget build thread + r/johannesburg lessons inquiry. Indoor golf simulator space is active in SA with people researching budget options.",
   "createdAt": "2026-04-15T07:04:00Z",
   "scan_date": "2026-04-16",
-  "scan_time": "12:06 SAST",
-  "next_scan": "2026-04-16T18:00 SAST",
-  "total_opportunities": 24
+  "scan_time": "18:04 SAST",
+  "next_scan": "2026-04-17T06:00 SAST",
+  "total_opportunities": 28
 }
