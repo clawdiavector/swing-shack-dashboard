@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-16T11:02:01.543Z",
+  "updated": "2026-04-16T11:02:56.712Z",
   "sources": [
     {
       "name": "IG Analytics",
@@ -27,16 +27,16 @@
     },
     {
       "name": "Hook Bank",
-      "updated": "never"
+      "updated": "2026-04-16T11:02:56.671Z"
     },
     {
       "name": "Ideas",
-      "updated": "never"
+      "updated": "2026-04-16T11:02:56.628Z"
     }
   ],
-  "stale_count": 6,
-  "top_recommendation": "N/A",
+  "stale_count": 4,
+  "top_recommendation": "That slice costing you yards off the tee? TrackMan found it ...",
   "total_posts": 64,
-  "total_ideas": 0,
-  "hooks_tracked": 0
+  "total_ideas": 15,
+  "hooks_tracked": 56
 }
