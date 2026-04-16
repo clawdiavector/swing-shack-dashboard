@@ -1,5 +1,7 @@
 {
-  "updated": "2026-04-16T12:20:05.006Z",
+  "updated": "2026-04-16T12:24:43.632Z",
+  "fetched_at": "2026-04-16T12:24:43.632Z",
+  "property_id": "427380680",
   "data_window": "2026-04-09 to 2026-04-16",
   "total_sessions": 983,
   "pages": [
@@ -95,6 +97,8 @@
       }
     ]
   },
+  "top_pages_count": 10,
+  "insights_count": 2,
   "_stale": false,
   "_auth_worked": true
 }

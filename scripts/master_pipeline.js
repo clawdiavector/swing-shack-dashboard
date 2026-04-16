@@ -208,6 +208,14 @@ function compileSummary(stageResults, validatorReport) {
       ideas_generated: (ideas.ideas || []).length,
       hooks_tracked: (hooks.proven_hooks || []).length + (hooks.fresh_hooks_to_test || []).length,
     },
+    validator: {
+      overall_status: validatorReport?.overall_status || 'UNKNOWN',
+      fresh_files: validatorReport?.summary?.pass || 0,
+      total_files: (validatorReport?.checks || []).length || 0,
+      script_failures: validatorReport?.summary?.script_failures || 0,
+      fallbacks_used: validatorReport?.summary?.fallbacks_used || 0,
+      qa_warnings: (validatorReport?.checks || []).filter(c => c.qa_warnings?.length > 0).map(c => ({ file: c.label, warnings: c.qa_warnings })),
+    },
     weakest_sources: failedChecks.length > 0 
       ? failedChecks.map(c => c.label) 
       : staleChecks.map(c => c.label),
@@ -257,6 +265,17 @@ function printFinalSummary(summary, validatorReport) {
   console.log(`  IG Posts: ${summary.data_summary.ig_posts}`);
   console.log(`  Ideas: ${summary.data_summary.ideas_generated}`);
   console.log(`  Hooks: ${summary.data_summary.hooks_tracked}`);
+  console.log('');
+  
+  // Validator confirmation line
+  const v = validatorReport;
+  const passCount = v?.summary?.pass || 0;
+  const totalCount = (v?.checks || []).length || 0;
+  const scriptFails = v?.summary?.script_failures || 0;
+  const fallbacksUsed = v?.summary?.fallbacks_used || 0;
+  console.log('VALIDATOR: ' + (v?.overall_status || 'UNKNOWN'));
+  console.log('  Fresh files: ' + passCount + '/' + totalCount + ' checked');
+  if (scriptFails > 0) console.log('  Script failures: ' + scriptFails + (fallbacksUsed > 0 ? ' (' + fallbacksUsed + ' used fallback)' : ''));
   console.log('');
   
   if (summary.stale_sources.length > 0) {

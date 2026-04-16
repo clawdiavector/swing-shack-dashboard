@@ -65,7 +65,7 @@ function validateFile(file, label, critical) {
   if (!fs.existsSync(filepath)) {
     return {
       file, label, critical,
-      data_status: 'FAIL', script_status: 'FAIL', fallback_used: null,
+      data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'File missing', next_action: 'Create ' + file + ' or restore from backup'
     };
   }
@@ -75,7 +75,7 @@ function validateFile(file, label, critical) {
   if (stats.size === 0) {
     return {
       file, label, critical,
-      data_status: 'FAIL', script_status: 'FAIL', fallback_used: null,
+      data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'File is empty', next_action: 'Populate ' + file
     };
   }
@@ -87,7 +87,7 @@ function validateFile(file, label, critical) {
   } catch (e) {
     return {
       file, label, critical,
-      data_status: 'FAIL', script_status: 'FAIL', fallback_used: null,
+      data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'Invalid JSON', next_action: 'Fix JSON syntax in ' + file
     };
   }
@@ -96,11 +96,11 @@ function validateFile(file, label, critical) {
   if (file === 'dashboard-summary.json') {
     const ts = data.timestamp || data.updated;
     if (!ts || ts === 'never') {
-      return { file, label, critical, data_status: 'STALE', script_status: 'N/A', fallback_used: false, age_hours: null, reason: 'No timestamp found', next_action: 'Run compile_dashboard.js' };
+      return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'N/A', fallback_used: false, age_hours: null, reason: 'No timestamp found', next_action: 'Run compile_dashboard.js' };
     }
     const ageHours = (Date.now() - new Date(ts).getTime()) / 3600000;
     if (ageHours > 26) {
-      return { file, label, critical, data_status: 'STALE', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: ageHours.toFixed(1) + 'h old', next_action: 'Recompile dashboard summary' };
+      return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: ageHours.toFixed(1) + 'h old', next_action: 'Recompile dashboard summary' };
     }
     return { file, label, critical, data_status: 'PASS', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'Fresh - ' + ageHours.toFixed(1) + 'h old', next_action: 'No action needed', last_build: ts };
   }
@@ -111,7 +111,7 @@ function validateFile(file, label, critical) {
   if (missing.length > 0) {
     return {
       file, label, critical,
-      data_status: 'FAIL', script_status: 'FAIL', fallback_used: null,
+      data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'Missing keys: ' + missing.join(', '), next_action: 'Add missing keys to ' + file
     };
   }
@@ -122,7 +122,7 @@ function validateFile(file, label, critical) {
     const scriptFailed = data.error || data._stale;
     return {
       file, label, critical,
-      data_status: 'STALE',
+      data_status: 'STALE', qa_warnings: [],
       script_status: scriptFailed ? 'FAIL' : 'N/A',
       fallback_used: !!(data._fallback_used || data._stale),
       age_hours: null,
@@ -139,7 +139,7 @@ function validateFile(file, label, critical) {
     if (data._fallback_used || data._no_previous_data) {
       return {
         file, label, critical,
-        data_status: 'FAIL',
+        data_status: 'FAIL', qa_warnings: [],
         script_status: 'FAIL',
         fallback_used: false,
         age_hours: parseFloat(ageHours.toFixed(1)),
@@ -149,7 +149,7 @@ function validateFile(file, label, critical) {
     } else {
       return {
         file, label, critical,
-        data_status: 'STALE',
+        data_status: 'STALE', qa_warnings: [],
         script_status: 'FAIL',
         fallback_used: true,
         age_hours: parseFloat(ageHours.toFixed(1)),
@@ -162,7 +162,7 @@ function validateFile(file, label, critical) {
   if (ageHours > 26) {
     return {
       file, label, critical,
-      data_status: 'STALE',
+      data_status: 'STALE', qa_warnings: [],
       script_status: 'PASS',
       fallback_used: false,
       age_hours: parseFloat(ageHours.toFixed(1)),
@@ -173,19 +173,38 @@ function validateFile(file, label, critical) {
 
   // 7. Not unexpectedly empty
   if (file === 'ig-analytics.json' && (!data.posts || data.posts.length === 0)) {
-    return { file, label, critical, data_status: 'STALE', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No posts in array', next_action: 'Check sync_ig_analytics script' };
+    return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No posts in array', next_action: 'Check sync_ig_analytics script', qa_warnings: [] };
   }
   if (file === 'content-ideas.json' && (!data.ideas || data.ideas.length === 0)) {
-    return { file, label, critical, data_status: 'STALE', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No ideas generated', next_action: 'Check generate_content_ideas script' };
+    return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No ideas generated', next_action: 'Check generate_content_ideas script', qa_warnings: [] };
   }
   if (file === 'hook-bank.json' && (!data.proven_hooks && !data.hooks && !data.hooks_by_goal)) {
-    return { file, label, critical, data_status: 'STALE', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No hook data found', next_action: 'Check analyse_hooks script' };
+    return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No hook data found', next_action: 'Check analyse_hooks script', qa_warnings: [] };
   }
   if (file === 'youtube-trends.json' && (!data.videos_found || data.videos_found === 0)) {
-    return { file, label, critical, data_status: 'STALE', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No YouTube videos found', next_action: 'Check fetch_youtube_trends script' };
+    return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No YouTube videos found', next_action: 'Check fetch_youtube_trends script', qa_warnings: [] };
   }
   if (file === 'youtube-ideas.json' && (!data.ideas || data.ideas.length === 0)) {
-    return { file, label, critical, data_status: 'STALE', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No YouTube ideas generated', next_action: 'Check generate_youtube_ideas script' };
+    return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No YouTube ideas generated', next_action: 'Check generate_youtube_ideas script', qa_warnings: [] };
+  }
+  
+  // 8. GA4-specific sanity checks (QA layer - doesn't change PASS/STALE status)
+  const qa_warnings = [];
+  if (file === 'ga4-metrics.json') {
+    if (data.total_sessions === 0 && data.error) {
+      // True failure already handled above via _stale check
+    } else if (data.total_sessions === 0) {
+      qa_warnings.push('sessions=0 but script succeeded - possible auth/scope issue');
+    }
+    if ((data.pages || []).length === 0 && data.total_sessions > 0) {
+      qa_warnings.push('sessions reported but no pages - check API dimensions');
+    }
+    if (!data.insights || !data.insights.recommendations || data.insights.recommendations.length === 0) {
+      qa_warnings.push('no insights/recommendations generated - GA4 data may be insufficient');
+    }
+    if (data.insights && data.insights.recommendations && data.insights.recommendations.length === 0 && data.total_sessions > 100) {
+      qa_warnings.push('high sessions but no recommendations - low engagement pages may be missing');
+    }
   }
 
   return {
@@ -195,7 +214,8 @@ function validateFile(file, label, critical) {
     fallback_used: false,
     age_hours: parseFloat(ageHours.toFixed(1)),
     reason: 'Fresh - ' + ageHours.toFixed(1) + 'h old',
-    next_action: 'No action needed'
+    next_action: 'No action needed',
+    qa_warnings,
   };
 }
 
@@ -203,33 +223,33 @@ function validateDashboard() {
   const dashPath = path.join(__dirname, '..', 'dashboard.html');
 
   if (!fs.existsSync(dashPath)) {
-    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'File missing', next_action: 'Run compile_dashboard.js' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'File missing', next_action: 'Run compile_dashboard.js' };
   }
 
   const stats = fs.statSync(dashPath);
   if (stats.size < 5000) {
-    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'File too small', next_action: 'Recompile dashboard' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'File too small', next_action: 'Recompile dashboard' };
   }
 
   const content = fs.readFileSync(dashPath, 'utf8');
   if (!content.includes('Swing Shack') || !content.includes('Marketing Intelligence')) {
-    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'Missing expected content', next_action: 'Recompile dashboard' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'FAIL', qa_warnings: [], script_status: 'FAIL', fallback_used: false, age_hours: null, reason: 'Missing expected content', next_action: 'Recompile dashboard' };
   }
 
   const matches = content.match(/Last Build[\s\S]*?(\d{4}\/\d{2}\/\d{2},?\s*\d{2}:\d{2}:\d{2})/);
   if (!matches) {
-    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'STALE', script_status: 'N/A', fallback_used: false, age_hours: null, reason: 'No timestamp found', next_action: 'Recompile dashboard' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'STALE', qa_warnings: [], script_status: 'N/A', fallback_used: false, age_hours: null, reason: 'No timestamp found', next_action: 'Recompile dashboard' };
   }
 
   const lastBuild = matches[1];
   const buildDate = new Date(lastBuild.replace(',', ''));
   if (isNaN(buildDate.getTime())) {
-    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'STALE', script_status: 'N/A', fallback_used: false, age_hours: null, reason: 'Unparseable timestamp', next_action: 'Recompile dashboard' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'STALE', qa_warnings: [], script_status: 'N/A', fallback_used: false, age_hours: null, reason: 'Unparseable timestamp', next_action: 'Recompile dashboard' };
   }
 
   const ageHours = (Date.now() - buildDate.getTime()) / 3600000;
   if (ageHours > 26) {
-    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'STALE', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'Dashboard ' + ageHours.toFixed(1) + 'h old', next_action: 'Recompile and republish' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'Dashboard ' + ageHours.toFixed(1) + 'h old', next_action: 'Recompile and republish' };
   }
 
   return { file: 'dashboard.html', label: 'Dashboard HTML', critical: true, data_status: 'PASS', script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'Last build ' + lastBuild, next_action: 'No action needed', last_build: lastBuild };
@@ -302,6 +322,18 @@ function run() {
   }
   console.log('');
 
+  const qa_warnings = [];
+  const allChecks = checks.filter(c => c.qa_warnings && c.qa_warnings.length > 0);
+  if (allChecks.length > 0) {
+    console.log('QA WARNINGS:');
+    for (const c of allChecks) {
+      for (const w of c.qa_warnings) {
+        console.log('  ⚠️  ' + c.label + ': ' + w);
+      }
+    }
+    console.log('');
+  }
+  
   if (overall === 'FAIL') {
     console.log('STOPPING PIPELINE - Critical failure');
   } else if (overall === 'PARTIAL') {

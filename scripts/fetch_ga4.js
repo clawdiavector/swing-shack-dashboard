@@ -84,11 +84,15 @@ async function fetchGA4Data(authClient) {
   
   return {
     updated: new Date().toISOString(),
+    fetched_at: new Date().toISOString(),
+    property_id: PROPERTY_ID,
     data_window: `${startStr} to ${endStr}`,
     total_sessions: rows.reduce((s, r) => s + r.sessions, 0),
     pages: topPages,
     sources: topSources,
     insights: { recommendations },
+    top_pages_count: topPages.length,
+    insights_count: recommendations.length,
     _stale: false,
     _auth_worked: true,
   };
