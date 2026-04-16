@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-16T12:10:08.202Z",
+  "timestamp": "2026-04-16T12:12:48.589Z",
   "overall_status": "PARTIAL",
   "summary": {
     "pass": 14,
@@ -54,7 +54,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-16T12:10:04.555Z"
+      "last_build": "2026-04-16T12:12:44.851Z"
     },
     {
       "file": "golf-news.json",
@@ -174,9 +174,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/16, 14:10:04",
+      "reason": "Last build 2026/04/16, 14:12:44",
       "next_action": "No action needed",
-      "last_build": "2026/04/16, 14:10:04"
+      "last_build": "2026/04/16, 14:12:44"
     }
   ]
 }
