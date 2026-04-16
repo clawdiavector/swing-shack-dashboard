@@ -98,11 +98,16 @@ function runStep(step) {
   }
 }
 
-function computeStageStatus(stage, stepResults) {
+function computeStageStatus(stage, stepResults, validatorReport, staleOutputs) {
   // If any critical step failed, stage is FAIL
   const criticalFailed = stepResults.filter(r => r.status === 'FAIL' && r.critical);
   if (criticalFailed.length > 0) {
     return 'FAIL';
+  }
+  
+  // Check for required stale outputs
+  if (staleOutputs && staleOutputs.length > 0) {
+    return 'PARTIAL'; // required output stale but not missing
   }
   
   // If any step failed (critical or not), it's PARTIAL
@@ -111,7 +116,7 @@ function computeStageStatus(stage, stepResults) {
     return 'PARTIAL';
   }
   
-  // All steps passed
+  // All steps passed, no stale required outputs
   return 'PASS';
 }
 
@@ -128,19 +133,41 @@ function compileSummary(stageResults, validatorReport) {
   const ig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'ig-analytics.json'), 'utf8'));
   const ideas = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'content-ideas.json'), 'utf8'));
   const hooks = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'hook-bank.json'), 'utf8'));
+  const checks = validatorReport?.checks || [];
   
-  const staleChecks = (validatorReport?.checks || []).filter(c => c.status === 'STALE');
-  const failedChecks = (validatorReport?.checks || []).filter(c => c.status === 'FAIL');
+  const staleChecks = checks.filter(c => c.status === 'STALE');
+  const failedChecks = checks.filter(c => c.status === 'FAIL');
+  const passChecks = checks.filter(c => c.status === 'PASS');
   
-  // Determine overall pipeline status
-  const overall = validatorReport?.overall_status || 'UNKNOWN';
+  // Trust Score calculation
+  let trustScore = 10;
+  const trustDeductions = [];
   
-  // Get top idea
+  const ga4Check = checks.find(c => c.label === 'GA4 Fetch');
+  const igCheck = checks.find(c => c.label === 'IG Analytics');
+  const redditCheck = checks.find(c => c.label === 'Reddit Trends');
+  const newsCheck = checks.find(c => c.label === 'Golf News');
+  const seoCheck = checks.find(c => c.label === 'SEO Rankings');
+  const abCheck = checks.find(c => c.label === 'A/B Test Input');
+  const usedCheck = checks.find(c => c.label === 'Used Items');
+  
+  if (igCheck?.status !== 'PASS') { trustScore -= 2; trustDeductions.push('IG stale (-2)'); }
+  if (redditCheck?.status !== 'PASS') { trustScore -= 1; trustDeductions.push('Reddit stale (-1)'); }
+  if (newsCheck?.status !== 'PASS') { trustScore -= 1; trustDeductions.push('Golf News stale (-1)'); }
+  if (seoCheck?.status !== 'PASS') { trustScore -= 2; trustDeductions.push('SEO stale (-2)'); }
+  if (ga4Check?.status !== 'PASS') { trustScore -= 2; trustDeductions.push('GA4 stale (-2)'); }
+  if (abCheck?.status !== 'PASS') { trustScore -= 1; trustDeductions.push('A/B stale (-1)'); }
+  if (usedCheck?.status !== 'PASS') { trustScore -= 1; trustDeductions.push('Used Items stale (-1)'); }
+  
+  const overall = failedChecks.length > 0 ? 'FAIL' : staleChecks.length > 0 ? 'PARTIAL' : 'PASS';
+  
   const topIdea = ideas.post_today?.[0] || ideas.ideas?.[0] || null;
   
   const summary = {
     pipeline_status: overall,
     timestamp: new Date().toISOString(),
+    trust_score: trustScore,
+    trust_deductions: trustDeductions,
     stage_results: stageResults.map(s => ({
       stage: s.stage,
       status: s.status,
@@ -177,6 +204,10 @@ function printFinalSummary(summary, validatorReport) {
   console.log('📊 DAILY RUN SUMMARY');
   console.log('═'.repeat(60));
   console.log(`Pipeline Status: ${summary.pipeline_status}`);
+  console.log(`Trust Score: ${summary.trust_score}/10`);
+  if (summary.trust_deductions.length > 0) {
+    console.log(`  ${summary.trust_deductions.join(' | ')}`);
+  }
   console.log(`Timestamp: ${saTime}`);
   console.log('');
   
@@ -281,8 +312,20 @@ async function main() {
       }
     }
     
-    const stageStatus = computeStageStatus(stage, results);
-    stageResults.push({ stage: stage.name, status: stageStatus, results });
+    // Check for stale outputs in this stage (preliminary, validator will confirm later)
+    const staleOutputs = (stage.requiredOutputs || []).filter(f => {
+      const fpath = path.join(DATA_DIR, f);
+      if (!fs.existsSync(fpath)) return false;
+      try {
+        const data = JSON.parse(fs.readFileSync(fpath, 'utf8'));
+        if (!data.updated || data.updated === 'never') return true;
+        const age = (Date.now() - new Date(data.updated).getTime()) / 3600000;
+        return age > 26;
+      } catch { return false; }
+    });
+    
+    const stageStatus = computeStageStatus(stage, results, null, staleOutputs);
+    stageResults.push({ stage: stage.name, status: stageStatus, results, staleOutputs });
   }
   
   // Run validator
