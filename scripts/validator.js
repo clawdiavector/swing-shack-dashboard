@@ -360,7 +360,7 @@ function run() {
     const icon = c.data_status === 'PASS' ? 'PASS' : c.data_status === 'STALE' ? 'STALE' : 'FAIL';
     const fallback = c.fallback_used ? ' [fallback]' : '';
     const script = c.script_status === 'FAIL' ? ' [SCRIPT FAILED]' : '';
-    const mode = c.source_mode === "SYNTHETIC" ? " [SYNTHETIC]"' : c.source_mode === 'STALE_FALLBACK' ? ' [STALE_FALLBACK]' : '';
+    const mode = c.source_mode === 'SYNTHETIC' ? ' [SYNTHETIC]' : c.source_mode === 'STALE_FALLBACK' ? ' [STALE_FALLBACK]' : '';
     console.log('  ' + icon + ': ' + c.label + fallback + script + mode + ' - ' + c.reason);
   }
   console.log('');
