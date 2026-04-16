@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-16T11:41:52.703Z",
+  "timestamp": "2026-04-16T11:42:38.766Z",
   "overall_status": "PARTIAL",
   "summary": {
     "pass": 10,
@@ -94,9 +94,9 @@
       "file": "dashboard.html",
       "label": "Dashboard HTML",
       "status": "PASS",
-      "reason": "Last build 2026/04/16, 13:41:48",
+      "reason": "Last build 2026/04/16, 13:42:34",
       "age_hours": 0,
-      "last_build": "2026/04/16, 13:41:48"
+      "last_build": "2026/04/16, 13:42:34"
     }
   ]
 }
