@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-16T12:31:57.209Z",
+  "updated": "2026-04-16T12:36:46.564Z",
   "keywords": [
     {
       "keyword": "indoor golf johannesburg",
@@ -52,10 +52,10 @@
     },
     {
       "keyword": "indoor golf randburg",
-      "current_rank": 26,
+      "current_rank": null,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Found in search results"
+      "note": "Not found in top results"
     },
     {
       "keyword": "golf simulator south africa",
@@ -74,11 +74,20 @@
   ],
   "rising_keywords": [],
   "falling_keywords": [],
-  "quick_wins": [],
+  "quick_wins": [
+    "indoor golf randburg"
+  ],
   "summary": {
     "tracked": 10,
-    "found": 10,
-    "not_found": 0
+    "found": 9,
+    "not_found": 1
   },
-  "recommendations": []
+  "recommendations": [
+    {
+      "type": "not_indexed",
+      "keyword": "indoor golf randburg",
+      "action": "Create or optimize page targeting \"indoor golf randburg\"",
+      "priority": "high"
+    }
+  ]
 }

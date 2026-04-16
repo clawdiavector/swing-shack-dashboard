@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 /**
  * fetch_website_insights.js
- * Reads GA4 data + SEO data → generates website intelligence and recommendations
- * Adds to pipeline after Audit stage
- * Produces: pages needing attention, source analysis, booking funnel insights
+ * Reads GA4 + SEO + GEO data → structured website intelligence
+ * Each recommendation has: issue, severity, evidence, recommended_fix, source_metric
  */
 const fs = require('fs');
 const path = require('path');
@@ -24,25 +23,22 @@ function run() {
 
   const updated = new Date().toISOString();
   const insights = [];
-  const recommendations = [];
-  const priority_pages = [];
+  const structured_recs = [];
   const weak_ctas = [];
 
-  // 1. Page-level analysis from GA4
   const pages = ga4.pages || [];
   const totalSessions = ga4.total_sessions || 0;
 
-  // High traffic pages with low engagement = CTA problem
+  // High traffic + low engagement = CTA problem
   const highTrafficLowEng = pages
     .filter(p => {
       const eng = parseFloat(p.engRate) || 0;
-      return eng < 35; // Low engagement
+      return eng < 35 && p.sessions >= 10;
     })
     .sort((a, b) => b.sessions - a.sessions)
     .slice(0, 5);
 
   highTrafficLowEng.forEach(p => {
-    if (p.sessions < 10) return; // Only meaningful traffic
     weak_ctas.push({
       page: p.path,
       sessions: p.sessions,
@@ -51,135 +47,132 @@ function run() {
       likely_issue: parseFloat(p.engRate) < 20 ? 'No CTA visible above fold' : 'Weak or missing CTA',
       fix: 'Add prominent CTA to ' + p.path,
     });
-    priority_pages.push(p.path);
   });
 
-  if (weak_ctas.length > 0) {
-    recommendations.push({
-      type: 'weak_cta',
-      priority: 'HIGH',
-      message: weak_ctas.length + ' high-traffic pages have <35% engagement — CTA placement likely wrong',
-      pages: weak_ctas.map(w => w.page),
-    });
-    insights.push('⚠️ ' + weak_ctas.length + ' pages with high traffic but weak CTAs');
-  }
-
-  // 2. Traffic source analysis
+  // Source analysis
   const sources = ga4.sources || [];
-  const organic = sources.filter(s => (s.source || '').toLowerCase().includes('google'));
-  const direct = sources.filter(s => s.source === 'direct');
-  const social = sources.filter(s => ['instagram', 'facebook', 'tiktok', 'twitter', 'linkedin'].some(x => (s.source || '').toLowerCase().includes(x)));
-
-  const organic_sessions = organic.reduce((s, x) => s + (x.sessions || 0), 0);
-  const direct_sessions = direct.reduce((s, x) => s + (x.sessions || 0), 0);
-  const social_sessions = social.reduce((s, x) => s + (x.sessions || 0), 0);
+  const organic_sessions = sources
+    .filter(s => (s.source || '').toLowerCase().includes('google'))
+    .reduce((s, x) => s + (x.sessions || 0), 0);
+  const direct_sessions = sources
+    .filter(s => s.source === 'direct')
+    .reduce((s, x) => s + (x.sessions || 0), 0);
+  const social_sessions = sources
+    .filter(s => ['instagram', 'facebook', 'tiktok', 'twitter', 'linkedin']
+      .some(x => (s.source || '').toLowerCase().includes(x)))
+    .reduce((s, x) => s + (x.sessions || 0), 0);
 
   const source_share = {
     organic_pct: totalSessions > 0 ? ((organic_sessions / totalSessions) * 100).toFixed(1) : '0',
     direct_pct: totalSessions > 0 ? ((direct_sessions / totalSessions) * 100).toFixed(1) : '0',
     social_pct: totalSessions > 0 ? ((social_sessions / totalSessions) * 100).toFixed(1) : '0',
-    organic_sessions,
-    direct_sessions,
-    social_sessions,
-    total: totalSessions,
+    organic_sessions, direct_sessions, social_sessions, total: totalSessions,
   };
 
-  if (organic_sessions > 0) {
-    recommendations.push({
-      type: 'organic_opportunity',
-      priority: organic_sessions > 50 ? 'MEDIUM' : 'LOW',
-      message: `${organic_sessions} organic sessions (${source_share.organic_pct}%) — ensure booking CTA is prominent`,
-    });
-  }
-
-  // 3. Booking funnel analysis
+  // Funnel
   const bookingPages = pages.filter(p => (p.path || '').includes('book'));
   const checkoutPages = pages.filter(p => (p.path || '').includes('checkout') || (p.path || '').includes('pricing') || (p.path || '').includes('membership'));
   const coachingPages = pages.filter(p => (p.path || '').includes('coach') || (p.path || '').includes('lesson'));
   const fittingPages = pages.filter(p => (p.path || '').includes('fitting') || (p.path || '').includes('club'));
 
   const funnel = {
-    booking_pages: {
-      sessions: bookingPages.reduce((s, p) => s + p.sessions, 0),
-      avg_engagement: bookingPages.length > 0 ? (bookingPages.reduce((s, p) => s + parseFloat(p.engRate || 0), 0) / bookingPages.length).toFixed(1) + '%' : 'N/A',
-      paths: bookingPages.map(p => p.path),
-    },
-    checkout_pages: {
-      sessions: checkoutPages.reduce((s, p) => s + p.sessions, 0),
-      avg_engagement: checkoutPages.length > 0 ? (checkoutPages.reduce((s, p) => s + parseFloat(p.engRate || 0), 0) / checkoutPages.length).toFixed(1) + '%' : 'N/A',
-      paths: checkoutPages.map(p => p.path),
-    },
-    coaching_pages: {
-      sessions: coachingPages.reduce((s, p) => s + p.sessions, 0),
-      avg_engagement: coachingPages.length > 0 ? (coachingPages.reduce((s, p) => s + parseFloat(p.engRate || 0), 0) / coachingPages.length).toFixed(1) + '%' : 'N/A',
-      paths: coachingPages.map(p => p.path),
-    },
-    fitting_pages: {
-      sessions: fittingPages.reduce((s, p) => s + p.sessions, 0),
-      avg_engagement: fittingPages.length > 0 ? (fittingPages.reduce((s, p) => s + parseFloat(p.engRate || 0), 0) / fittingPages.length).toFixed(1) + '%' : 'N/A',
-      paths: fittingPages.map(p => p.path),
-    },
+    booking_pages: { sessions: bookingPages.reduce((s, p) => s + p.sessions, 0), paths: bookingPages.map(p => p.path) },
+    checkout_pages: { sessions: checkoutPages.reduce((s, p) => s + p.sessions, 0), paths: checkoutPages.map(p => p.path) },
+    coaching_pages: { sessions: coachingPages.reduce((s, p) => s + p.sessions, 0), paths: coachingPages.map(p => p.path) },
+    fitting_pages: { sessions: fittingPages.reduce((s, p) => s + p.sessions, 0), paths: fittingPages.map(p => p.path) },
   };
 
-  // 4. SEO gap analysis
-  const seoKeywords = seo.keywords || [];
-  const geoTerms = geo.geo_terms || [];
-
-  const missing_geo_targets = geoTerms.filter(t => {
-    const term = (t.term || '').toLowerCase();
-    const pagesCovered = pages.filter(p => (p.path || '').toLowerCase().includes(term.split(' ')[0]));
-    return pagesCovered.length === 0;
-  }).slice(0, 3);
-
-  if (missing_geo_targets.length > 0) {
-    recommendations.push({
-      type: 'seo_gap',
-      priority: 'MEDIUM',
-      message: missing_geo_targets.length + ' high-value geo terms have no dedicated landing page',
-      terms: missing_geo_targets.map(t => t.term),
+  // REC 1: Weak CTA pages
+  if (weak_ctas.length > 0) {
+    const high = weak_ctas.filter(w => w.severity === 'HIGH');
+    structured_recs.push({
+      issue: 'High-traffic pages with weak CTA',
+      severity: high.length > 0 ? 'HIGH' : 'MEDIUM',
+      evidence: high.length + ' page(s) with >50 sessions but <20% engagement. Pages: ' + weak_ctas.map(w => w.page + ' (' + w.sessions + ' sess, ' + w.engagement + ' eng)').join('; '),
+      recommended_fix: 'Add prominent \"Book Now\" CTA to: ' + weak_ctas.map(w => w.page).join(', ') + '. Test button contrast, size, and above-fold placement.',
+      source_metric: 'ga4.pages.engagementRate',
     });
-    insights.push('📍 ' + missing_geo_targets.length + ' geo targets without dedicated pages');
+    insights.push('⚠️ ' + weak_ctas.length + ' pages with high traffic but weak CTAs');
   }
 
-  // 5. Top-performing pages (what to replicate)
+  // REC 2: Booking funnel drop-off
+  const bookingSess = funnel.booking_pages.sessions;
+  const checkoutSess = funnel.checkout_pages.sessions;
+  if (bookingSess > 0 && checkoutSess > 0) {
+    const ratio = checkoutSess / bookingSess;
+    structured_recs.push({
+      issue: 'Booking funnel drop-off detected',
+      severity: ratio < 0.2 ? 'HIGH' : ratio < 0.3 ? 'MEDIUM' : 'LOW',
+      evidence: bookingSess + ' booking page sessions → ' + checkoutSess + ' checkout sessions (' + (ratio * 100).toFixed(1) + '% conversion rate)',
+      recommended_fix: ratio < 0.2
+        ? 'URGENT: Review booking flow for friction. Likely causes: form too long, page speed, or unclear next step. Test a single-field \"Book a Session\" CTA first.'
+        : 'Review booking confirmation flow. Ensure checkout page loads fast and has minimal form fields.',
+      source_metric: 'ga4.funnel.booking_to_checkout_ratio',
+    });
+    insights.push('⚠️ Booking funnel: ' + bookingSess + ' → ' + checkoutSess + ' checkout (' + (ratio * 100).toFixed(0) + '% conv)');
+  }
+
+  // REC 3: Organic traffic without clear booking path
+  if (organic_sessions > 0) {
+    structured_recs.push({
+      issue: 'Organic traffic without clear booking path',
+      severity: organic_sessions > 50 ? 'MEDIUM' : 'LOW',
+      evidence: organic_sessions + ' organic sessions (' + source_share.organic_pct + '% of all traffic)',
+      recommended_fix: 'Ensure every high-engagement page has a \"Book a TrackMan Session\" CTA visible in first viewport scroll. TrackMan keyword intent = high commercial intent.',
+      source_metric: 'ga4.sessions.organic',
+    });
+  }
+
+  // REC 4: SEO geo gap
+  const missingGeo = (geo.geo_terms || []).filter(t => {
+    const term = (t.term || '').toLowerCase();
+    return !(pages || []).some(p => (p.path || '').toLowerCase().includes(term.split(' ')[0]));
+  }).slice(0, 3);
+
+  if (missingGeo.length > 0) {
+    structured_recs.push({
+      issue: 'Geo search terms without dedicated landing pages',
+      severity: 'MEDIUM',
+      evidence: missingGeo.length + ' high-value geo terms with no matching page: ' + missingGeo.map(t => t.term).join(', '),
+      recommended_fix: 'Create dedicated landing pages for: ' + missingGeo.map(t => '"' + t.term + '"').join(', ') + '. Use city + service + \"Johannesburg\" in title and H1.',
+      source_metric: 'geo.terms.missing_coverage',
+    });
+    insights.push('📍 ' + missingGeo.length + ' geo targets without dedicated pages');
+  }
+
+  // REC 5: GA4 sessions high but no insights
+  if (totalSessions > 100 && (!ga4.insights || !ga4.insights.recommendations || ga4.insights.recommendations.length === 0)) {
+    structured_recs.push({
+      issue: 'High GA4 sessions but zero recommendations generated',
+      severity: 'LOW',
+      evidence: totalSessions + ' sessions tracked but 0 recommendations in ga4-metrics.json',
+      recommended_fix: 'Check GA4 account: ensure engagement events (scroll, CTA click, form submit) are firing. Check Property ID 427380680 has Data API enabled.',
+      source_metric: 'ga4.insights.count',
+    });
+  }
+
+  // REC 6: High sessions but no top pages
+  if (totalSessions > 100 && pages.length === 0) {
+    structured_recs.push({
+      issue: 'GA4 reports sessions but no page data',
+      severity: 'MEDIUM',
+      evidence: totalSessions + ' total sessions but 0 pages in GA4 response',
+      recommended_fix: 'Check GA4 Data API dimensions: pagePath dimension may be blocked or require different scope. Test with sessions dimension only.',
+      source_metric: 'ga4.pages.count',
+    });
+  }
+
+  // Top pages
   const topPages = pages
     .filter(p => parseFloat(p.engRate) > 50 && p.sessions > 10)
     .sort((a, b) => parseFloat(b.engRate) - parseFloat(a.engRate))
     .slice(0, 3);
 
   if (topPages.length > 0) {
-    insights.push('✅ Top performing: ' + topPages.map(p => p.path + ' (' + p.engRate + ' eng)').join(', '));
+    insights.push('✅ Top: ' + topPages.map(p => p.path + ' (' + p.engRate + ' eng)').join(', '));
+  } else {
+    insights.push('ℹ️ No pages with >50% engagement and >10 sessions — benchmark is high');
   }
-
-  // 6. South Africa market signals
-  const sa_signals = {
-    local_search_volume: geo?.local_volume || 'unknown',
-    top_city: geo?.top_city || 'Johannesburg',
-    competitive_geo_terms: geo?.competitive_terms?.length || 0,
-    insight: 'SA golfers searching for indoor golf = high intent. Ensure Johannesburg pages rank for "indoor golf johannesburg".',
-  };
-
-  // 7. Booking page conversion signal
-  const bookingSessions = funnel.booking_pages.sessions;
-  const checkoutSessions = funnel.checkout_pages.sessions;
-  if (bookingSessions > 0 && checkoutSessions > 0) {
-    recommendations.push({
-      type: 'booking_funnel',
-      priority: checkoutSessions < bookingSessions * 0.3 ? 'HIGH' : 'MEDIUM',
-      message: `Booking page: ${bookingSessions} sessions, Checkout: ${checkoutSessions} sessions — ${checkoutSessions > bookingSessions * 0.3 ? 'healthy ratio' : 'checkout drop-off suspected'}`,
-    });
-  }
-
-  // 8. Top action items sorted by priority
-  const topActions = recommendations
-    .filter(r => r.priority === 'HIGH')
-    .map(r => r.message)
-    .concat(
-      recommendations
-        .filter(r => r.priority === 'MEDIUM')
-        .map(r => r.message)
-    )
-    .slice(0, 5);
 
   const result = {
     updated,
@@ -189,25 +182,23 @@ function run() {
     funnel,
     weak_ctas,
     top_pages: topPages.map(p => ({ path: p.path, sessions: p.sessions, engagement: p.engRate })),
-    seo_gaps: {
-      missing_geo_targets: missing_geo_targets.map(t => t.term),
-      high_value_keywords: seoKeywords.filter(k => k.position <= 10 && k.position > 0).map(k => k.keyword).slice(0, 5),
-    },
-    sa_signals,
-    recommendations,
-    insights: insights.length > 0 ? insights : ['✅ No critical issues found in website data'],
-    top_action_items: topActions,
+    recommendations: structured_recs,
+    insights,
     summary: {
-      health_score: weak_ctas.filter(w => w.severity === 'HIGH').length === 0 ? 'GOOD' : 'NEEDS_ATTENTION',
-      critical_issues: weak_ctas.filter(w => w.severity === 'HIGH').length,
-      medium_issues: weak_ctas.filter(w => w.severity === 'MEDIUM').length,
-      next_priority: topActions[0] || 'No critical issues',
+      health_score: structured_recs.some(r => r.severity === 'HIGH') ? 'NEEDS_ATTENTION'
+        : structured_recs.some(r => r.severity === 'MEDIUM') ? 'FAIR' : 'GOOD',
+      critical_count: structured_recs.filter(r => r.severity === 'HIGH').length,
+      medium_count: structured_recs.filter(r => r.severity === 'MEDIUM').length,
+      low_count: structured_recs.filter(r => r.severity === 'LOW').length,
+      top_priority: structured_recs.find(r => r.severity === 'HIGH')?.issue
+        || structured_recs.find(r => r.severity === 'MEDIUM')?.issue
+        || 'No critical issues',
     },
   };
 
   fs.writeFileSync(DATA_FILE, JSON.stringify(result, null, 2));
-  console.log('Website Insights: ' + totalSessions + ' sessions, ' + weak_ctas.length + ' weak CTAs, ' + recommendations.length + ' recommendations');
-  console.log('  Health: ' + result.summary.health_score + ' | Critical: ' + result.summary.critical_issues + ' | Next: ' + (result.top_action_items[0] || 'none').slice(0, 60));
+  console.log('Website Insights: ' + totalSessions + ' sessions, recs=' + structured_recs.length + ' (HIGH=' + result.summary.critical_count + ' MED=' + result.summary.medium_count + ')');
+  console.log('  Health: ' + result.summary.health_score + ' | Top: ' + result.summary.top_priority?.slice(0, 70));
 
   return result;
 }

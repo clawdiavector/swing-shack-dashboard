@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-16T12:32:14.271Z",
+  "updated": "2026-04-16T12:37:10.542Z",
   "data_window": "2026-04-09 to 2026-04-16",
   "total_sessions": 983,
   "source_share": {
@@ -14,7 +14,6 @@
   "funnel": {
     "booking_pages": {
       "sessions": 168,
-      "avg_engagement": "76.7%",
       "paths": [
         "/bookings/",
         "/bookings/"
@@ -22,19 +21,16 @@
     },
     "checkout_pages": {
       "sessions": 31,
-      "avg_engagement": "96.8%",
       "paths": [
         "/checkout/"
       ]
     },
     "coaching_pages": {
       "sessions": 0,
-      "avg_engagement": "N/A",
       "paths": []
     },
     "fitting_pages": {
       "sessions": 32,
-      "avg_engagement": "93.8%",
       "paths": [
         "/club-fitting/"
       ]
@@ -58,39 +54,31 @@
       "engagement": "85.0%"
     }
   ],
-  "seo_gaps": {
-    "missing_geo_targets": [],
-    "high_value_keywords": []
-  },
-  "sa_signals": {
-    "local_search_volume": "unknown",
-    "top_city": "Johannesburg",
-    "competitive_geo_terms": 0,
-    "insight": "SA golfers searching for indoor golf = high intent. Ensure Johannesburg pages rank for \"indoor golf johannesburg\"."
-  },
   "recommendations": [
     {
-      "type": "organic_opportunity",
-      "priority": "MEDIUM",
-      "message": "575 organic sessions (58.5%) — ensure booking CTA is prominent"
+      "issue": "Booking funnel drop-off detected",
+      "severity": "HIGH",
+      "evidence": "168 booking page sessions → 31 checkout sessions (18.5% conversion rate)",
+      "recommended_fix": "URGENT: Review booking flow for friction. Likely causes: form too long, page speed, or unclear next step. Test a single-field \"Book a Session\" CTA first.",
+      "source_metric": "ga4.funnel.booking_to_checkout_ratio"
     },
     {
-      "type": "booking_funnel",
-      "priority": "HIGH",
-      "message": "Booking page: 168 sessions, Checkout: 31 sessions — checkout drop-off suspected"
+      "issue": "Organic traffic without clear booking path",
+      "severity": "MEDIUM",
+      "evidence": "575 organic sessions (58.5% of all traffic)",
+      "recommended_fix": "Ensure every high-engagement page has a \"Book a TrackMan Session\" CTA visible in first viewport scroll. TrackMan keyword intent = high commercial intent.",
+      "source_metric": "ga4.sessions.organic"
     }
   ],
   "insights": [
-    "✅ Top performing: /checkout/ (96.8% eng), /club-fitting/ (93.8% eng), / (85.0% eng)"
-  ],
-  "top_action_items": [
-    "Booking page: 168 sessions, Checkout: 31 sessions — checkout drop-off suspected",
-    "575 organic sessions (58.5%) — ensure booking CTA is prominent"
+    "⚠️ Booking funnel: 168 → 31 checkout (18% conv)",
+    "✅ Top: /checkout/ (96.8% eng), /club-fitting/ (93.8% eng), / (85.0% eng)"
   ],
   "summary": {
-    "health_score": "GOOD",
-    "critical_issues": 0,
-    "medium_issues": 0,
-    "next_priority": "Booking page: 168 sessions, Checkout: 31 sessions — checkout drop-off suspected"
+    "health_score": "NEEDS_ATTENTION",
+    "critical_count": 1,
+    "medium_count": 1,
+    "low_count": 0,
+    "top_priority": "Booking funnel drop-off detected"
   }
 }

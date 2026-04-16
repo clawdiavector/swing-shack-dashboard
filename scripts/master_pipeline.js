@@ -228,11 +228,15 @@ function compileSummary(stageResults, validatorReport) {
     },
     validator: {
       overall_status: validatorReport?.overall_status || 'UNKNOWN',
-      fresh_files: validatorReport?.summary?.pass || 0,
-      total_files: (validatorReport?.checks || []).length || 0,
+      live_fresh: validatorReport?.summary?.live_fresh || 0,
+      synthetic: validatorReport?.summary?.synthetic || 0,
+      stale: validatorReport?.summary?.stale || 0,
+      failed: validatorReport?.summary?.failed || 0,
+      total: validatorReport?.summary?.total || 0,
       script_failures: validatorReport?.summary?.script_failures || 0,
       fallbacks_used: validatorReport?.summary?.fallbacks_used || 0,
       qa_warnings: (validatorReport?.checks || []).filter(c => c.qa_warnings?.length > 0).map(c => ({ file: c.label, warnings: c.qa_warnings })),
+      source_integrity: (validatorReport?.checks || []).map(c => ({ label: c.label, mode: c.source_mode || 'LIVE', status: c.data_status })),
     },
     weakest_sources: failedChecks.length > 0 
       ? failedChecks.map(c => c.label) 
@@ -289,12 +293,13 @@ function printFinalSummary(summary, validatorReport) {
   
   // Validator confirmation line
   const v = validatorReport;
-  const passCount = v?.summary?.pass || 0;
-  const totalCount = (v?.checks || []).length || 0;
   const scriptFails = v?.summary?.script_failures || 0;
   const fallbacksUsed = v?.summary?.fallbacks_used || 0;
+  const liveFresh = v?.summary?.live_fresh || 0;
+  const syntheticFiles = v?.summary?.synthetic || 0;
   console.log('VALIDATOR: ' + (v?.overall_status || 'UNKNOWN'));
-  console.log('  Fresh files: ' + passCount + '/' + totalCount + ' checked');
+  console.log('  Live fresh: ' + liveFresh + '/' + (v?.summary?.total || 0) + ' checked');
+  if (syntheticFiles > 0) console.log('  Synthetic: ' + syntheticFiles + '/' + (v?.summary?.total || 0));
   if (scriptFails > 0) console.log('  Script failures: ' + scriptFails + (fallbacksUsed > 0 ? ' (' + fallbacksUsed + ' used fallback)' : ''));
   console.log('');
   
@@ -312,6 +317,13 @@ function printFinalSummary(summary, validatorReport) {
     }
     console.log('');
   }
+  
+  // OPEN GAP — known system limitations, explicitly called out
+  console.log('OPEN GAP:');
+  console.log('  - Real-time publish-triggered used-items marking not yet wired');
+  console.log('  - Current protection: daily Ideas stage reconciliation only');
+  console.log('  - Risk: same-day duplicate ideas may slip through once');
+  console.log('');
   
   if (summary.stale_sources.length > 0) {
     console.log('⚠️  STALE SOURCES:');

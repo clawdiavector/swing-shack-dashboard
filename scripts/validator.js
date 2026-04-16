@@ -291,6 +291,11 @@ function run() {
   const nonCriticalFails = failures.filter(c => !c.critical);
   const overall = criticalFailures.length > 0 ? 'FAIL' : (nonCriticalFails.length > 0 || stales.length > 0) ? 'PARTIAL' : 'PASS';
 
+  const liveFresh = checks.filter(c => c.data_status === 'PASS' && c.source_mode === 'LIVE').length;
+  const syntheticFiles = checks.filter(c => c.source_mode === 'SYNTHETIC').length;
+  const staleFiles = checks.filter(c => c.data_status === 'STALE').length;
+  const failedFiles = checks.filter(c => c.data_status === 'FAIL').length;
+  
   const report = {
     timestamp: new Date().toISOString(),
     overall_status: overall,
@@ -300,6 +305,11 @@ function run() {
       fail: failures.length,
       script_failures: scriptFailures.length,
       fallbacks_used: fallbacksUsed.length,
+      live_fresh: liveFresh,
+      synthetic: syntheticFiles,
+      stale: staleFiles,
+      failed: failedFiles,
+      total: checks.length,
     },
     critical_failure: criticalFailures.length > 0,
     should_stop: criticalFailures.length > 0,
@@ -313,8 +323,27 @@ function run() {
   console.log('VALIDATION REPORT');
   console.log('='.repeat(50));
   console.log('Pipeline Status: ' + overall);
-  console.log('PASS: ' + passes.length + ' | STALE: ' + stales.length + ' | FAIL: ' + failures.length);
-  console.log('Script Failures: ' + scriptFailures.length + ' | Fallbacks Used: ' + fallbacksUsed.length);
+  
+  // Source integrity breakdown
+  const liveFresh = checks.filter(c => c.data_status === 'PASS' && c.source_mode === 'LIVE').length;
+  const generatedFresh = checks.filter(c => c.data_status === 'PASS' && c.source_mode && c.source_mode !== 'LIVE' && c.source_mode !== 'SYNTHETIC' && c.source_mode !== 'STALE_FALLBACK').length;
+  const syntheticFiles = checks.filter(c => c.source_mode === 'SYNTHETIC').length;
+  const staleFiles = checks.filter(c => c.data_status === 'STALE').length;
+  const failedFiles = checks.filter(c => c.data_status === 'FAIL').length;
+  
+  console.log('');
+  console.log('SOURCE INTEGRITY:');
+  for (const c of checks) {
+    const mode = c.source_mode || 'LIVE';
+    const sym = mode === 'LIVE' ? 'LIVE' : mode === 'SYNTHETIC' ? 'SYNTH' : mode === 'STALE_FALLBACK' ? 'STALE_FALLBACK' : mode === 'FAILED' ? 'FAIL' : mode === 'STALE' ? 'STALE' : 'LIVE';
+    console.log('  ' + c.label + ': ' + sym);
+  }
+  console.log('');
+  console.log('SOURCE COUNTS:');
+  console.log('  Live fresh: ' + liveFresh + '/' + checks.length);
+  if (syntheticFiles > 0) console.log('  Synthetic: ' + syntheticFiles + '/' + checks.length);
+  if (staleFiles > 0) console.log('  Stale: ' + staleFiles + '/' + checks.length);
+  if (failedFiles > 0) console.log('  Failed: ' + failedFiles + '/' + checks.length);
   console.log('');
   console.log('CRITICAL FILES:');
   for (const c of checks.filter(c => c.critical)) {
