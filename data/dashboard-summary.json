@@ -1,0 +1,42 @@
+{
+  "updated": "2026-04-16T11:02:01.543Z",
+  "sources": [
+    {
+      "name": "IG Analytics",
+      "updated": "2026-04-16T09:39:51.448Z"
+    },
+    {
+      "name": "GA4",
+      "updated": "never"
+    },
+    {
+      "name": "Reddit",
+      "updated": "never"
+    },
+    {
+      "name": "Golf News",
+      "updated": "2026-04-16T11:01:43.989Z"
+    },
+    {
+      "name": "SEO Rankings",
+      "updated": "never"
+    },
+    {
+      "name": "SEO Audit",
+      "updated": "never"
+    },
+    {
+      "name": "Hook Bank",
+      "updated": "never"
+    },
+    {
+      "name": "Ideas",
+      "updated": "never"
+    }
+  ],
+  "stale_count": 6,
+  "top_recommendation": "N/A",
+  "total_posts": 64,
+  "total_ideas": 0,
+  "hooks_tracked": 0
+}

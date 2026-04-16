@@ -1,870 +1,297 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swing Shack - Status Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        :root {
-            --bg-dark: #0f0f23;
-            --bg-card: #1a1a2e;
-            --bg-card-hover: #252542;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0b0;
-            --success: #00d26a;
-            --warning: #ffa500;
-            --danger: #ff4757;
-            --info: #00b4d8;
-            --purple: #7b2cbf;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: var(--bg-dark);
-            min-height: 100vh;
-            color: var(--text-primary);
-            padding: 20px;
-        }
-        
-        .header {
-            text-align: center;
-            padding: 20px 0 30px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 30px;
-        }
-        
-        .header h1 {
-            font-size: 2rem;
-            margin-bottom: 8px;
-            background: linear-gradient(90deg, #00d26a, #ffa500);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        /* Status Bar */
-        .status-bar {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 30px;
-        }
-        
-        .status-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .status-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-        }
-        
-        .status-percent {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--success);
-        }
-        
-        .progress-bar {
-            height: 20px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--info), var(--success));
-            border-radius: 10px;
-            transition: width 0.5s ease;
-            width: 0%;
-        }
-        
-        .status-stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            text-align: center;
-        }
-        
-        .stat-box {
-            background: rgba(255,255,255,0.05);
-            padding: 15px;
-            border-radius: 10px;
-        }
-        
-        .stat-number {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--info);
-        }
-        
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 5px;
-        }
-        
-        /* Needed Section */
-        .needed-section {
-            background: rgba(255, 71, 87, 0.1);
-            border: 1px solid var(--danger);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .needed-title {
-            color: var(--danger);
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .needed-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 10px;
-        }
-        
-        .needed-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-        }
-        
-        .needed-item .icon {
-            font-size: 1.2rem;
-        }
-        
-        /* Next Steps */
-        .next-steps {
-            background: rgba(0, 178, 216, 0.1);
-            border: 1px solid var(--info);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .next-steps-title {
-            color: var(--info);
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .next-steps-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 10px;
-        }
-        
-        .next-step-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-        }
-        
-        .next-step-item .icon {
-            font-size: 1.2rem;
-        }
-        
-        /* Task Board */
-        .task-board {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-        }
-        
-        @media (max-width: 1200px) {
-            .task-board {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .status-stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .task-board {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .task-column {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 20px;
-            min-height: 400px;
-        }
-        
-        .column-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .column-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .task-count {
-            background: rgba(255,255,255,0.1);
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-        }
-        
-        .column-todo .column-title { color: var(--info); }
-        .column-progress .column-title { color: var(--warning); }
-        .column-review .column-title { color: var(--purple); }
-        .column-done .column-title { color: var(--success); }
-        
-        /* Task Cards */
-        .task-card {
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            border-left: 3px solid;
-            transition: all 0.2s ease;
-        }
-        
-        .task-card:hover {
-            background: var(--bg-card-hover);
-            transform: translateX(4px);
-        }
-        
-        .task-card.priority-high { border-color: var(--danger); }
-        .task-card.priority-medium { border-color: var(--warning); }
-        .task-card.priority-low { border-color: var(--success); }
-        
-        .task-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 0.95rem;
-        }
-        
-        .task-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            font-size: 0.8rem;
-        }
-        
-        .task-assignee {
-            padding: 3px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        
-        .task-assignee.me {
-            background: rgba(0, 178, 216, 0.2);
-            color: var(--info);
-        }
-        
-        .task-assignee.you {
-            background: rgba(123, 44, 191, 0.2);
-            color: var(--purple);
-        }
-        
-        .task-assignee.auto {
-            background: rgba(0, 210, 106, 0.2);
-            color: var(--success);
-        }
-        
-        .task-priority {
-            padding: 3px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        
-        .task-priority.high {
-            background: rgba(255, 71, 87, 0.2);
-            color: var(--danger);
-        }
-        
-        .task-priority.medium {
-            background: rgba(255, 165, 0, 0.2);
-            color: var(--warning);
-        }
-        
-        .task-priority.low {
-            background: rgba(0, 210, 106, 0.2);
-            color: var(--success);
-        }
-        
-        /* Reddit Section */
-        .reddit-section {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .reddit-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .reddit-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #ff4500;
-        }
-        
-        .reddit-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .reddit-stat {
-            text-align: center;
-            padding: 15px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-        }
-        
-        .reddit-stat-number {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #ff4500;
-        }
-        
-        .reddit-stat-label {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        
-        .reddit-posts {
-            display: grid;
-            gap: 10px;
-        }
-        
-        .reddit-post {
-            background: rgba(255,255,255,0.05);
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 3px solid #ff4500;
-        }
-        
-        .reddit-post-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
-        
-        .reddit-post-meta {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-        
-        .reddit-post-comment {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            padding: 10px;
-            background: rgba(255,69,0,0.1);
-            border-radius: 6px;
-            font-style: italic;
-        }
-        
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 30px;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin-top: 40px;
-        }
-        
-        .footer a {
-            color: var(--info);
-            text-decoration: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swing Shack — Marketing Intelligence Dashboard</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0f0f23;
+  --card: #1a1a2e;
+  --card-hover: #1f1f3a;
+  --text: #e0e0ff;
+  --muted: #7878a0;
+  --success: #00d26a;
+  --warning: #ffa500;
+  --danger: #ff4757;
+  --info: #00b4d8;
+  --purple: #9b59b6;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+.container { max-width: 1400px; margin: 0 auto; }
+
+.header { text-align: center; padding: 20px 0 30px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; }
+.header h1 { font-size: 2rem; background: linear-gradient(90deg, #e1306c, #ff0050); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header p { color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+
+.summary-bar { display: flex; gap: 20px; background: var(--card); border-radius: 12px; padding: 15px 20px; margin-bottom: 25px; flex-wrap: wrap; }
+.summary-item { display: flex; flex-direction: column; gap: 4px; }
+.summary-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.summary-value { font-weight: 600; font-size: 0.95rem; }
+.summary-value.warn { color: var(--warning); }
+.summary-value.ok { color: var(--success); }
+
+.section { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; }
+.section-header h2 { font-size: 1.2rem; }
+.badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 8px; }
+.badge.fresh { background: rgba(0,210,106,0.15); color: var(--success); }
+.badge.stale { background: rgba(255,71,87,0.15); color: var(--danger); }
+.badge.warn { background: rgba(255,165,0,0.15); color: var(--warning); }
+
+.empty { color: var(--muted); font-style: italic; font-size: 0.9rem; }
+.small { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+
+.ig-stats-row { display: flex; gap: 20px; margin-bottom: 15px; }
+.ig-stat { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 18px; text-align: center; }
+.ig-stat-num { font-size: 1.8rem; font-weight: bold; color: var(--info); display: block; }
+.ig-stat-label { font-size: 0.75rem; color: var(--muted); }
+
+.post-list { display: flex; flex-direction: column; gap: 6px; }
+.post-row { display: flex; gap: 10px; align-items: center; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 0.85rem; }
+.post-date { color: var(--muted); min-width: 80px; }
+.post-caption { flex: 1; color: var(--text); }
+.post-reach { color: var(--muted); }
+.post-likes { color: #e1306c; }
+.post-eng { color: var(--muted); }
+.post-eng.good { color: var(--success); }
+
+.hook-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hook-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 15px; }
+.hook-card.fresh { border-left: 3px solid var(--info); }
+.hook-text { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.hook-meta { display: flex; gap: 8px; font-size: 0.75rem; color: var(--muted); }
+.hook-score { color: var(--warning); }
+.hook-group { margin-bottom: 15px; }
+.hook-group h3 { font-size: 0.9rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+.idea-list { display: flex; flex-direction: column; gap: 8px; }
+.idea-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 15px; }
+.idea-card.today { border-left: 3px solid var(--success); }
+.idea-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.idea-meta { display: flex; gap: 8px; font-size: 0.75rem; color: var(--muted); }
+.idea-format { background: rgba(0,180,216,0.2); color: var(--info); padding: 2px 6px; border-radius: 4px; }
+.idea-cta { font-size: 0.8rem; color: var(--success); margin-top: 4px; }
+.idea-group { margin-bottom: 12px; }
+.idea-group h3 { font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
+
+.news-list { display: flex; flex-direction: column; gap: 8px; }
+.news-card { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px; }
+.news-headline { font-weight: 600; font-size: 0.9rem; margin-bottom: 5px; }
+.news-meta { font-size: 0.75rem; color: var(--muted); }
+.news-source { margin-right: 10px; }
+.news-badge { display: inline-block; background: rgba(255,71,87,0.2); color: var(--danger); font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-top: 4px; }
+
+.reddit-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.reddit-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px; border-left: 3px solid #ff4500; }
+.reddit-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.reddit-meta { display: flex; gap: 10px; font-size: 0.75rem; color: var(--muted); }
+.reddit-sub { color: #ff4500; }
+.reddit-intent { font-size: 0.75rem; color: var(--info); margin-top: 4px; }
+
+.seo-keywords { overflow-x: auto; }
+.seo-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.seo-table th { text-align: left; color: var(--muted); padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.seo-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.seo-table .good { color: var(--success); }
+.seo-table .bad { color: var(--danger); }
+.seo-summary { margin-bottom: 12px; font-size: 0.85rem; }
+.seo-win { color: var(--success); margin-bottom: 4px; }
+.seo-lose { color: var(--danger); }
+
+.ga4-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.ga4-table th { text-align: left; color: var(--muted); padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.ga4-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.ga4-table .good { color: var(--success); }
+
+.ab-list { display: flex; flex-direction: column; gap: 10px; }
+.ab-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px; }
+.ab-name { font-weight: 600; margin-bottom: 5px; }
+.ab-meta { display: flex; gap: 12px; font-size: 0.8rem; }
+.ab-winner.good { color: var(--success); }
+.ab-action { font-size: 0.8rem; color: var(--info); margin-top: 4px; }
+
+.cooldown-list { display: flex; flex-direction: column; gap: 6px; }
+.cooldown-item { background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; }
+</style>
 </head>
 <body>
-    <div class="header">
-        <h1>⚡ Swing Shack Social Dashboard</h1>
-        <p>Single source of truth for all tasks</p>
-        <p><a href="tasks.html">📋 Task Board</a></p>
+<div class="container">
+  <div class="header">
+    <h1>⛳ Swing Shack — Marketing Intelligence</h1>
+    <p>Auto-updated daily · Used items filtered · Ideas improve over time</p>
+  </div>
+
+  
+<div class="summary-bar">
+  <div class="summary-item">
+    <span class="summary-label">Last Build</span>
+    <span class="summary-value">2026/04/16, 13:02:01 SAST</span>
+  </div>
+  <div class="summary-item">
+    <span class="summary-label">Stale Sources</span>
+    <span class="summary-value warn">GA4, Reddit, SEO Rankings, SEO Audit, Hook Bank, Ideas</span>
+  </div>
+  <div class="summary-item">
+    <span class="summary-label">Today's Top Idea</span>
+    <span class="summary-value">N/A</span>
+  </div>
+</div>
+  <div class="section">
+    <div class="section-header">
+      <h2>📱 Instagram Performance</h2>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     
-    <div class="container">
-        <!-- Status Bar -->
-        <div class="status-bar">
-            <div class="status-header">
-                <div class="status-title">📊 Overall Progress</div>
-                <div class="status-percent" id="status-percent">35%</div>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 35%;"></div>
-            </div>
-            <div class="status-stats">
-                <div class="stat-box">
-                    <div class="stat-number">2</div>
-                    <div class="stat-label">✅ Done</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-number">3</div>
-                    <div class="stat-label">🔄 In Progress</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-number">5</div>
-                    <div class="stat-label">📝 To Do</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-number">10</div>
-                    <div class="stat-label">🎯 Total Tasks</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Needed Section -->
-        <div class="needed-section">
-            <div class="needed-title">🔴 NEEDED FROM YOU</div>
-            <div class="needed-list">
-                <div class="needed-item">
-                    <span class="icon">🔑</span>
-                    <span>OpenAI API Key (for image generation)</span>
-                </div>
-                <div class="needed-item">
-                    <span class="icon">📱</span>
-                    <span>Postiz API Key + TikTok Integration</span>
-                </div>
-                <div class="needed-item">
-                    <span class="icon">🎬</span>
-                    <span>Post first TikTok slideshow</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Next Steps -->
-        <div class="next-steps">
-            <div class="next-steps-title">🎯 NEXT STEPS</div>
-            <div class="next-steps-list">
-                <div class="next-step-item">
-                    <span class="icon">1️⃣</span>
-                    <span>Set up Postiz + connect TikTok</span>
-                </div>
-                <div class="next-step-item">
-                    <span class="icon">2️⃣</span>
-                    <span>Generate first TikTok images</span>
-                </div>
-                <div class="next-step-item">
-                    <span class="icon">3️⃣</span>
-                    <span>Post first slideshow + track performance</span>
-                </div>
-                <div class="next-step-item">
-                    <span class="icon">4️⃣</span>
-                    <span>Set up daily analytics cron</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Reddit/Outreach Section -->
-        <div class="reddit-section">
-            <div class="reddit-header">
-                <div class="reddit-title">💬 Reddit Outreach</div>
-                <div style="color: var(--text-secondary);">Updated daily at 6am</div>
-            </div>
-            <div class="reddit-stats">
-                <div class="reddit-stat">
-                    <div class="reddit-stat-number">5</div>
-                    <div class="reddit-stat-label">Opportunities Found</div>
-                </div>
-                <div class="reddit-stat">
-                    <div class="reddit-stat-number">3</div>
-                    <div class="reddit-stat-label">Comments Posted</div>
-                </div>
-                <div class="reddit-stat">
-                    <div class="reddit-stat-number">0</div>
-                    <div class="reddit-stat-label">Leads Generated</div>
-                </div>
-            </div>
-            <div class="reddit-posts">
-                <div class="reddit-post">
-                    <div class="reddit-post-title">Why Is My Driver Distance So Inconsistent?</div>
-                    <div class="reddit-post-meta">MyGolfSpy • 3 days ago • High Intent</div>
-                    <div class="reddit-post-comment">"This is the biggest culprit... At Swing Shack, we see this all the time — TrackMan shows guys exactly where they're striking the face and the difference is shocking."</div>
-                </div>
-                <div class="reddit-post">
-                    <div class="reddit-post-title">Frustrated - Lost My Swing</div>
-                    <div class="reddit-post-meta">Reddit r/GolfSwing • 1 week ago • Advice Seeking</div>
-                    <div class="reddit-post-comment">"At Swing Shack, we use TrackMan to show guys exactly what's changed in their swing. Sometimes it's not the swing at all — it's equipment."</div>
-                </div>
-                <div class="reddit-post">
-                    <div class="reddit-post-title">Should I Get Fitted?</div>
-                    <div class="reddit-post-meta">Reddit r/golf • 4 days ago • Buying Intent</div>
-                    <div class="reddit-post-comment">"I've taken over 100 lessons... At Swing Shack, we see guys who've done everything but still can't figure it out. Usually it's one small thing the data catches."</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Task Board -->
-        
-        <!-- Instagram Section -->
-        <div class="reddit-section" style="background: linear-gradient(135deg, #1a1a2e 0%, #2d1f3d 100%);">
-            <div class="reddit-header">
-                <div class="reddit-title" style="color: #e1306c;">📸 Instagram @swingshack</div>
-                <div style="color: var(--text-secondary);">Active</div>
-            </div>
-            <div class="reddit-stats">
-                <div class="reddit-stat">
-                    <div class="reddit-stat-number" style="color: #e1306c;">2,212</div>
-                    <div class="reddit-stat-label">Followers</div>
-                </div>
-                <div class="reddit-stat">
-                    <div class="reddit-stat-number" style="color: #e1306c;">704</div>
-                    <div class="reddit-stat-label">Posts</div>
-                </div>
-                <div class="reddit-stat">
-                    <div class="reddit-stat-number" style="color: #e1306c;">174</div>
-                    <div class="reddit-stat-label">Following</div>
-                </div>
-            </div>
-            <div style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
-                <div style="font-weight: 600; margin-bottom: 10px;">📝 Bio</div>
-                <div style="color: var(--text-secondary); font-size: 0.9rem;">Swing Shack - Real Golf, Indoors • Social Golf • Golf Lessons • Golf Practice • Elite Custom Club Fitting</div>
-                <div style="margin-top: 10px; font-size: 0.85rem; color: var(--text-secondary);">📍 Old Parktonian Sports Club, Bordeaux, Randburg</div>
-            </div>
-        </div>
-
-
-        
-        <!-- What's Trending Section -->
-        <div class="reddit-section" style="background: linear-gradient(135deg, #1a1a2e 0%, #0d1f2d 100%);">
-            <div class="reddit-header">
-                <div class="reddit-title" style="color: #ff0000;">🔥 WHAT'S TRENDING</div>
-                <div style="color: var(--text-secondary);">March 2026</div>
-            </div>
-            
-            <!-- Trend 1 -->
-            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border-left: 3px solid #ff0000;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <div style="font-weight: 700; font-size: 1.1rem;">1. "Golf Can't Be This Serious" - Comedy</div>
-                    <span style="background: #ff0000; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem;">HOT</span>
-                </div>
-                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">Making fun of overly serious golfers - relatable humor</div>
-                <div style="margin-bottom: 10px;">
-                    <a href="https://www.tiktok.com/discover/golf-cant-be-this-serious" target="_blank" style="color: var(--info); font-size: 0.85rem;">View Trend →</a>
-                </div>
-                <div style="background: rgba(0,210,106,0.1); padding: 10px; border-radius: 8px;">
-                    <div style="font-weight: 600; color: var(--success); font-size: 0.85rem; margin-bottom: 5px;">🎯 Swing Shack Could Post:</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">"POV: You slice every drive but still act like you're playing The Masters 🏆"</div>
-                </div>
-            </div>
-            
-            <!-- Trend 2 -->
-            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border-left: 3px solid #ff4500;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <div style="font-weight: 700; font-size: 1.1rem;">2. Indoor Golf / Simulators</div>
-                    <span style="background: #ff4500; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem;">RISING</span>
-                </div>
-                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">Launch monitors becoming affordable - growing interest in home setups</div>
-                <div style="margin-bottom: 10px;">
-                    <a href="https://www.tiktok.com/tag/indoorgolf" target="_blank" style="color: var(--info); font-size: 0.85rem;">View Trend →</a>
-                </div>
-                <div style="background: rgba(0,210,106,0.1); padding: 10px; border-radius: 8px;">
-                    <div style="font-weight: 600; color: var(--success); font-size: 0.85rem; margin-bottom: 5px;">🎯 Swing Shack Could Post:</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">"You don't need R500k for a simulator anymore ⛳ Here's what R500/month gets you..."</div>
-                </div>
-            </div>
-            
-            <!-- Trend 3 -->
-            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border-left: 3px solid #e1306c;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <div style="font-weight: 700; font-size: 1.1rem;">3. Slice Fix / Distance Tips</div>
-                    <span style="background: #e1306c; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem;">CONSISTENT</span>
-                </div>
-                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">Always viral - high search volume, problem-solving content</div>
-                <div style="margin-bottom: 10px;">
-                    <a href="https://www.tiktok.com/tag/slicefix" target="_blank" style="color: var(--info); font-size: 0.85rem;">View Trend →</a>
-                </div>
-                <div style="background: rgba(0,210,106,0.1); padding: 10px; border-radius: 8px;">
-                    <div style="font-weight: 600; color: var(--success); font-size: 0.85rem; margin-bottom: 5px;">🎯 Swing Shack Could Post:</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">"The ONE drill that fixed my slice (after 20 years) 🔧" - TrackMan data proof</div>
-                </div>
-            </div>
-            
-            <!-- Trend 4 -->
-            <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border-left: 3px solid #00b4d8;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <div style="font-weight: 700; font-size: 1.1rem;">4. Couple Golf / "Pookie & Jett"</div>
-                    <span style="background: #00b4d8; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem;">ENGAGING</span>
-                </div>
-                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">Couples playing golf together - high engagement format</div>
-                <div style="margin-bottom: 10px;">
-                    <a href="https://www.tiktok.com/tag/pookieandjett" target="_blank" style="color: var(--info); font-size: 0.85rem;">View Trend →</a>
-                </div>
-                <div style="background: rgba(0,210,106,0.1); padding: 10px; border-radius: 8px;">
-                    <div style="font-weight: 600; color: var(--success); font-size: 0.85rem; margin-bottom: 5px;">🎯 Swing Shack Could Post:</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">"I brought my wife to Swing Shack and now she's beating me 🏌️‍♀️💕"</div>
-                </div>
-            </div>
-        </div>
-
-
-        <div class="task-board">
-            <!-- TO DO -->
-            <div class="task-column column-todo">
-                <div class="column-header">
-                    <div class="column-title">
-                        📝 To Do
-                        <span class="task-count" id="todo-count">0</span>
-                    </div>
-                </div>
-                <div id="todo-tasks"></div>
-            </div>
-            
-            <!-- IN PROGRESS -->
-            <div class="task-column column-progress">
-                <div class="column-header">
-                    <div class="column-title">
-                        🔄 In Progress
-                        <span class="task-count" id="progress-count">0</span>
-                    </div>
-                </div>
-                <div id="progress-tasks"></div>
-            </div>
-            
-            <!-- REVIEW -->
-            <div class="task-column column-review">
-                <div class="column-header">
-                    <div class="column-title">
-                        👀 Review
-                        <span class="task-count" id="review-count">0</span>
-                    </div>
-                </div>
-                <div id="review-tasks"></div>
-            </div>
-            
-            <!-- DONE -->
-            <div class="task-column column-done">
-                <div class="column-header">
-                    <div class="column-title">
-                        ✅ Done
-                        <span class="task-count" id="done-count">0</span>
-                    </div>
-                </div>
-                <div id="done-tasks"></div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <p>Last updated: <span id="last-updated">2026-03-04</span></p>
-            <p>Daily research runs at 6am SAST • Reddit outreach automated</p>
-        </div>
+  <div class="ig-stats-row">
+    <div class="ig-stat">
+      <span class="ig-stat-num">10</span>
+      <span class="ig-stat-label">posts tracked</span>
     </div>
+    <div class="ig-stat">
+      <span class="ig-stat-num">2.40%</span>
+      <span class="ig-stat-label">avg engagement</span>
+    </div>
+    <div class="ig-stat">
+      <span class="ig-stat-num">5.77%</span>
+      <span class="ig-stat-label">best eng rate</span>
+    </div>
+  </div>
+  <div class="post-list">
     
-    <script>
-        const tasks = [
-            // === NEEDED NOW ===
-            {
-                id: 1,
-                title: "Get OpenAI API Key",
-                status: "todo",
-                assignee: "you",
-                priority: "high",
-                deadline: "ASAP",
-                notes: "Needed for image generation",
-                category: "infrastructure"
-            },
-            {
-                id: 2,
-                title: "Set up Postiz + TikTok",
-                status: "todo",
-                assignee: "you",
-                priority: "high",
-                deadline: "This week",
-                notes: "API key + connect TikTok account",
-                category: "infrastructure"
-            },
-            
-            // === IN PROGRESS ===
-            {
-                id: 3,
-                title: "Daily research cron running",
-                status: "progress",
-                assignee: "auto",
-                priority: "high",
-                deadline: "Active",
-                notes: "6am SAST - trends + outreach",
-                category: "automation"
-            },
-            {
-                id: 4,
-                title: "Reddit outreach active",
-                status: "progress",
-                assignee: "auto",
-                priority: "medium",
-                deadline: "Daily",
-                notes: "Finding opportunities + posting comments",
-                category: "outreach"
-            },
-            {
-                id: 5,
-                title: "TikTok analytics access",
-                status: "progress",
-                assignee: "me",
-                priority: "high",
-                deadline: "Ongoing",
-                notes: "Can view in browser, need API for automation",
-                category: "tiktok"
-            },
-            
-            // === REVIEW / NEEDS ACTION ===
-            {
-                id: 6,
-                title: "Post first TikTok slideshow",
-                status: "review",
-                assignee: "you",
-                priority: "high",
-                deadline: "This week",
-                notes: "Images ready, need to upload",
-                category: "content"
-            },
-            
-            // === DONE ===
-            {
-                id: 7,
-                title: "Create dashboard & task board",
-                status: "done",
-                assignee: "me",
-                priority: "high",
-                deadline: "2026-02-27",
-                notes: "GitHub Pages dashboard live",
-                category: "infrastructure"
-            },
-            {
-                id: 8,
-                title: "Set up daily research crons",
-                status: "done",
-                assignee: "me",
-                priority: "high",
-                deadline: "2026-02-27",
-                notes: "6am SAST - trends + outreach",
-                category: "automation"
-            },
-            {
-                id: 9,
-                title: "TikTok performance framework",
-                status: "done",
-                assignee: "me",
-                priority: "medium",
-                deadline: "2026-02-27",
-                notes: "Analytics analysis system in place",
-                category: "analytics"
-            },
-            {
-                id: 10,
-                title: "Supplier inquiry emails",
-                status: "done",
-                assignee: "me",
-                priority: "medium",
-                deadline: "2026-03-02",
-                notes: "5 supplier emails created",
-                category: "outreach"
-            }
-        ];
-        
-        function renderTasks() {
-            const columns = {
-                todo: document.getElementById('todo-tasks'),
-                progress: document.getElementById('progress-tasks'),
-                review: document.getElementById('review-tasks'),
-                done: document.getElementById('done-tasks')
-            };
-            
-            const counts = { todo: 0, progress: 0, review: 0, done: 0 };
-            
-            Object.values(columns).forEach(col => col.innerHTML = '');
-            
-            tasks.forEach(task => {
-                const card = createTaskCard(task);
-                columns[task.status].appendChild(card);
-                counts[task.status]++;
-            });
-            
-            // Update counts
-            document.getElementById('todo-count').textContent = counts.todo;
-            document.getElementById('progress-count').textContent = counts.progress;
-            document.getElementById('review-count').textContent = counts.review;
-            document.getElementById('done-count').textContent = counts.done;
-            
-            // Update status bar
-            const total = tasks.length;
-            const done = counts.done;
-            const percent = Math.round((done / total) * 100);
-            
-            document.getElementById('status-percent').textContent = percent + '%';
-            document.getElementById('progress-fill').style.width = percent + '%';
-            
-            document.getElementById('last-updated').textContent = new Date().toISOString().split('T')[0];
-        }
-        
-        function createTaskCard(task) {
-            const card = document.createElement('div');
-            card.className = `task-card priority-${task.priority}`;
-            
-            const assigneeLabel = {
-                'me': '👩‍💻 Me',
-                'you': '👤 You',
-                'auto': '🤖 Auto'
-            };
-            
-            card.innerHTML = `
-                <div class="task-title">${task.title}</div>
-                <div class="task-meta">
-                    <span class="task-assignee ${task.assignee}">${assigneeLabel[task.assignee]}</span>
-                    <span class="task-priority ${task.priority}">${task.priority.toUpperCase()}</span>
-                    <span style="color: var(--text-secondary); font-size: 0.75rem;">${task.deadline}</span>
-                </div>
-                ${task.notes ? `<div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary);">${task.notes}</div>` : ''}
-            `;
-            
-            return card;
-        }
-        
-        renderTasks();
-    </script>
+    <div class="post-row">
+      <span class="post-date">2026/04/16</span>
+      <span class="post-caption">Sometimes u just need a bit of tough love 😅�...</span>
+      <span class="post-reach">263 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng good">4.18% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/04/15</span>
+      <span class="post-caption">Clubs are made for launch conditions not skil...</span>
+      <span class="post-reach">241 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">0.83% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/04/14</span>
+      <span class="post-caption">BACKSPIN:3,200 RPM
+Too much spin killing your...</span>
+      <span class="post-reach">131 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">2.29% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/04/08</span>
+      <span class="post-caption">Coach Cat takes us through a simple process o...</span>
+      <span class="post-reach">336 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">1.49% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/04/07</span>
+      <span class="post-caption">That slice costing you yards off the tee? Tra...</span>
+      <span class="post-reach">52 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng good">5.77% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/04/07</span>
+      <span class="post-caption">TrackMan doesn't lie. Your swing data from yo...</span>
+      <span class="post-reach">127 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">1.57% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/04/01</span>
+      <span class="post-caption">YOUR DRIVE: 199 M
+Pros average 264 meters. Tr...</span>
+      <span class="post-reach">161 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">1.86% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/04/01</span>
+      <span class="post-caption">YOUR NUMBERS ARE TALKING
+TrackMan makes them ...</span>
+      <span class="post-reach">92 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">2.17% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/04/01</span>
+      <span class="post-caption">SWING SPEED: 83 MPH
+Pros average 112 mph. Tra...</span>
+      <span class="post-reach">124 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">2.42% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/03/31</span>
+      <span class="post-caption">Everything you need as a golfer in one place ...</span>
+      <span class="post-reach">281 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">1.42% eng</span>
+    </div>
+  </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🪝 Hook Bank</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No hook data yet. Run analyse_hooks.py.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>💡 Content Ideas</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No content ideas yet. Run generate_content_ideas.py.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🧪 A/B Test Lab</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No A/B test data yet.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🏌️ Golf News</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <p class="empty">No golf news yet.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔴 Reddit Pain Points</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No Reddit trends yet.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔍 SEO Rankings</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No SEO data yet.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🌐 Website Performance</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No GA4 data yet.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔄 Used Items On Cooldown</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">Nothing on cooldown.</p>
+  </div>
+</div>
 </body>
 </html>
