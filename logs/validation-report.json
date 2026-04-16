@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-04-16T11:42:38.766Z",
+  "timestamp": "2026-04-16T11:46:45.489Z",
   "overall_status": "PARTIAL",
   "summary": {
-    "pass": 10,
-    "stale": 3,
+    "pass": 12,
+    "stale": 1,
     "fail": 0
   },
   "critical_failure": false,
@@ -13,8 +13,8 @@
       "file": "ig-analytics.json",
       "label": "IG Analytics",
       "status": "PASS",
-      "reason": "Valid - 2.0h old",
-      "age_hours": 2
+      "reason": "Valid - 2.1h old",
+      "age_hours": 2.1
     },
     {
       "file": "hook-bank.json",
@@ -54,8 +54,9 @@
     {
       "file": "ga4-metrics.json",
       "label": "GA4 Fetch",
-      "status": "STALE",
-      "reason": "Never updated - previous run used"
+      "status": "PASS",
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
     },
     {
       "file": "seo-rankings.json",
@@ -87,16 +88,17 @@
     {
       "file": "used-items.json",
       "label": "Used Items",
-      "status": "STALE",
-      "reason": "Never updated - previous run used"
+      "status": "PASS",
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
     },
     {
       "file": "dashboard.html",
       "label": "Dashboard HTML",
       "status": "PASS",
-      "reason": "Last build 2026/04/16, 13:42:34",
+      "reason": "Last build 2026/04/16, 13:46:41",
       "age_hours": 0,
-      "last_build": "2026/04/16, 13:42:34"
+      "last_build": "2026/04/16, 13:46:41"
     }
   ]
 }
