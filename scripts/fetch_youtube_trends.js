@@ -196,9 +196,9 @@ function run() {
     dataSource = 'golf_news_reddit_fallback';
   }
   
-  if (articles.length === 0) {
-    // All external sources blocked - generate honest synthetic trend data
-    // This is better than empty data: it's labeled, structured, and still actionable
+  // All external sources blocked - generate honest synthetic trend data
+  // This is better than empty data: it's labeled, structured, and still actionable
+  {
     const existingIdeas = (() => {
       try {
         const ci = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'content-ideas.json'), 'utf8'));
@@ -259,7 +259,9 @@ function run() {
     // Exit with failure so validator catches this and reports it properly
     // Data file is already written above so dashboard still has data
     process.exit(1);
-  const hooks = buildHooks(articles, themes);
+  }
+  
+  const themes = extractThemes(articles);
   
   // Always supplement with SA-market hooks regardless of how much real data we got
   // This ensures YouTube Ideas always has something to work with

@@ -1,79 +1,118 @@
 {
-  "updated": "2026-04-16T12:52:44.188Z",
+  "updated": "2026-04-16T12:59:25.158Z",
   "data_source": "synthetic_sa_market",
-  "videos_found": 1,
+  "videos_found": 0,
   "top_videos": [],
-  "articles_sourced": [
-    {
-      "title": "Access Denied",
-      "description": "",
-      "source": "GolfDigest"
-    }
-  ],
+  "articles_sourced": [],
   "trending_themes": {
-    "swing_speed": false,
-    "short_game": false,
-    "trackman": false,
-    "slice_fix": false,
-    "practice": false,
-    "indoor": false,
-    "lessons": false,
-    "fitness": false
+    "swing_speed": true,
+    "short_game": true,
+    "trackman": true,
+    "slice_fix": true,
+    "indoor": true
   },
   "hooks": [
     {
-      "idea_id": "yt-sa-1776343967256-0",
-      "source": "sa_market_always",
+      "idea_id": "yt-synth-1776344368180-0",
+      "source": "content_ideas_synthesis",
+      "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swing",
+      "description": "Hook generated 5.77% eng, 52 reach",
+      "freshness_score": 9,
+      "theme_signal": "technique"
+    },
+    {
+      "idea_id": "yt-synth-1776344368180-1",
+      "source": "content_ideas_synthesis",
+      "hook_text": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "description": "Hook generated 4.99% eng, 381 reach",
+      "freshness_score": 9,
+      "theme_signal": "coaching"
+    },
+    {
+      "idea_id": "yt-synth-1776344368180-2",
+      "source": "content_ideas_synthesis",
+      "hook_text": "Have you ever been for an elite level Custom Fitting? Get the clubs th",
+      "description": "Hook generated 4.35% eng, 161 reach",
+      "freshness_score": 9,
+      "theme_signal": "equipment"
+    },
+    {
+      "idea_id": "yt-synth-1776344368180-3",
+      "source": "content_ideas_synthesis",
+      "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
+      "description": "Hook generated 4.18% eng, 263 reach",
+      "freshness_score": 9,
+      "theme_signal": "coaching"
+    },
+    {
+      "idea_id": "yt-synth-1776344368180-4",
+      "source": "content_ideas_synthesis",
+      "hook_text": "YOUR GOLF STATS DON'T LIE.",
+      "description": "Hook generated 4.03% eng, 124 reach",
+      "freshness_score": 9,
+      "theme_signal": "technique"
+    },
+    {
+      "idea_id": "yt-synth-1776344368180-5",
+      "source": "content_ideas_synthesis",
+      "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swing",
+      "description": "All-time winning hook formula - 5.77% engagement",
+      "freshness_score": 9,
+      "theme_signal": "technique"
+    },
+    {
+      "idea_id": "yt-synth-1776344368180-6",
+      "source": "content_ideas_synthesis",
+      "hook_text": "POV: First time at Swing Shack",
+      "description": "Reel format outperforms static for golf content",
+      "freshness_score": 9,
+      "theme_signal": "general"
+    },
+    {
+      "idea_id": "yt-synth-1776344368180-7",
+      "source": "content_ideas_synthesis",
+      "hook_text": "Your golf doesn't need more practice. It needs smarter practice.",
+      "description": "Coaching content hit 4.99% engagement - community/humor angle",
+      "freshness_score": 8,
+      "theme_signal": "coaching"
+    },
+    {
+      "idea_id": "yt-sa-1776344368180-0",
+      "source": "sa_market_synthesis",
       "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
-      "description": "SA-market hook - always included",
+      "description": "SA-market specific hook synthesized from proven winning angles",
       "freshness_score": 8,
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-sa-1776343967256-1",
-      "source": "sa_market_always",
+      "idea_id": "yt-sa-1776344368180-1",
+      "source": "sa_market_synthesis",
       "hook_text": "How fast should your club head speed actually be? Pros average 112 mph.",
-      "description": "SA-market hook - always included",
+      "description": "SA-market specific hook synthesized from proven winning angles",
       "freshness_score": 8,
       "theme_signal": "swing_speed"
     },
     {
-      "idea_id": "yt-sa-1776343967256-2",
-      "source": "sa_market_always",
+      "idea_id": "yt-sa-1776344368180-2",
+      "source": "sa_market_synthesis",
       "hook_text": "Your launch monitor data is telling you exactly what to fix.",
-      "description": "SA-market hook - always included",
+      "description": "SA-market specific hook synthesized from proven winning angles",
       "freshness_score": 8,
       "theme_signal": "trackman"
     },
     {
-      "idea_id": "yt-sa-1776343967256-3",
-      "source": "sa_market_always",
+      "idea_id": "yt-sa-1776344368180-3",
+      "source": "sa_market_synthesis",
       "hook_text": "Rain season. Your game doesn't have to stop. Indoor golf in Johannesburg.",
-      "description": "SA-market hook - always included",
+      "description": "SA-market specific hook synthesized from proven winning angles",
       "freshness_score": 8,
       "theme_signal": "indoor"
-    },
-    {
-      "idea_id": "yt-sa-1776343967256-4",
-      "source": "sa_market_always",
-      "hook_text": "Short game practice that actually transfers to the course.",
-      "description": "SA-market hook - always included",
-      "freshness_score": 8,
-      "theme_signal": "short_game"
-    },
-    {
-      "idea_id": "yt-sa-1776343967256-5",
-      "source": "sa_market_always",
-      "hook_text": "When was the last time a golf pro watched your actual swing on a launch monitor?",
-      "description": "SA-market hook - always included",
-      "freshness_score": 8,
-      "theme_signal": "lessons"
     }
   ],
   "summary": {
-    "top_theme": "general golf",
-    "source": "synthetic_sa_market",
-    "notes": "Insufficient external articles (< 3) — supplemented with SA-market synthesis"
+    "top_theme": "swing_speed_data",
+    "source": "synthetic",
+    "notes": "All external sources blocked - using SA-market synthesis from proven angles. Trust but verify."
   },
   "_synthetic": true
 }
