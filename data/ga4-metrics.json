@@ -1,12 +1,100 @@
 {
-  "updated": "2026-04-16T11:58:31.139Z",
-  "error": "Token fetch failed: ERR:No refresh token or refresh handler callback is set.",
-  "total_sessions": 0,
-  "pages": [],
+  "updated": "2026-04-16T12:03:33.696Z",
+  "data_window": "2026-04-09 to 2026-04-16",
+  "total_sessions": 972,
+  "pages": [
+    {
+      "path": "/",
+      "sessions": 272,
+      "engRate": "70.6%"
+    },
+    {
+      "path": "/bookings/",
+      "sessions": 135,
+      "engRate": "83.7%"
+    },
+    {
+      "path": "/",
+      "sessions": 95,
+      "engRate": "35.8%"
+    },
+    {
+      "path": "/customer-portal/",
+      "sessions": 62,
+      "engRate": "45.2%"
+    },
+    {
+      "path": "/customer-portal/",
+      "sessions": 45,
+      "engRate": "73.3%"
+    },
+    {
+      "path": "/customer-portal/",
+      "sessions": 43,
+      "engRate": "39.5%"
+    },
+    {
+      "path": "/bookings/",
+      "sessions": 33,
+      "engRate": "69.7%"
+    },
+    {
+      "path": "/club-fitting/",
+      "sessions": 32,
+      "engRate": "93.8%"
+    },
+    {
+      "path": "/checkout/",
+      "sessions": 31,
+      "engRate": "96.8%"
+    },
+    {
+      "path": "/",
+      "sessions": 20,
+      "engRate": "85.0%"
+    }
+  ],
+  "sources": [
+    {
+      "source": "google",
+      "sessions": 569
+    },
+    {
+      "source": "(direct)",
+      "sessions": 233
+    },
+    {
+      "source": "c.yoco.com",
+      "sessions": 96
+    },
+    {
+      "source": "bing",
+      "sessions": 30
+    },
+    {
+      "source": "(not set)",
+      "sessions": 19
+    }
+  ],
   "insights": {
-    "recommendations": []
+    "recommendations": [
+      {
+        "type": "weak_cta",
+        "priority": "high",
+        "message": "3 pages with high traffic but <50% engagement. Review CTA placement.",
+        "pages": [
+          "/",
+          "/customer-portal/",
+          "/customer-portal/"
+        ]
+      },
+      {
+        "type": "organic_opportunity",
+        "priority": "medium",
+        "message": "569 organic sessions. Ensure these pages have clear booking CTAs."
+      }
+    ]
   },
-  "_stale": true,
-  "_fallback_used": false,
-  "_no_previous_data": true
+  "_stale": false,
+  "_auth_worked": true
 }

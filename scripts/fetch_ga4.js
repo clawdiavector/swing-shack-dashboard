@@ -2,30 +2,53 @@
 /**
  * fetch_ga4.js
  * Pulls website performance from Google Analytics 4 Data API
- * Uses stale fallback if auth fails — never silently returns empty
+ * Uses GoogleAuth with service account for reliable token refresh
+ * Falls back to stale data if auth fails (non-critical file)
  */
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { GoogleAuth } = require('google-auth-library');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'ga4-metrics.json');
 const CREDS_FILE = '/Users/fivefriday/.openclaw-instance2/workspace/clients/swing-shack/credentials/google-service-account.json';
 const PROPERTY_ID = '427380680';
 
-function fetchGA4Data(token) {
+async function fetchGA4Data(authClient) {
   const today = new Date();
   const startDate = new Date(today);
   startDate.setDate(startDate.getDate() - 7);
   const startStr = startDate.toISOString().split('T')[0];
   const endStr = today.toISOString().split('T')[0];
   
+  const { execSync } = require('child_process');
+  const client = await authClient.getClient();
+  const accessTokenResult = await client.getAccessToken();
+  const accessToken = accessTokenResult.token;
+  
+  const requestBody = JSON.stringify({
+    dateRanges: [{ startDate: startStr, endDate: endStr }],
+    dimensions: [{ name: 'pagePath' }, { name: 'sessionSource' }],
+    metrics: [{ name: 'sessions' }, { name: 'engagementRate' }, { name: 'averageSessionDuration' }],
+    limit: 200,
+  });
+  
+  // Write body to temp file to avoid shell escaping issues
+  const tmpFile = '/tmp/ga4_request_body.json';
+  fs.writeFileSync(tmpFile, requestBody);
+  
   const cmd = `curl -s -X POST "https://analyticsdata.googleapis.com/v1beta/properties/${PROPERTY_ID}:runReport" \
-    -H "Authorization: Bearer ${token}" \
+    -H "Authorization: Bearer ${accessToken}" \
     -H "Content-Type: application/json" \
-    -d '{"dateRanges":[{"startDate":"' + startStr + '","endDate":"' + endStr + '"}],"dimensions":[{"name":"pagePath"},{"name":"sessionSource"}],"metrics":[{"name":"sessions"},{"name":"engagementRate"},{"name":"averageSessionDuration"}],"limit":200}' 2>/dev/null`;
+    -d @${tmpFile}`;
   
   const raw = execSync(cmd, { encoding: 'utf8', timeout: 20000 });
+  fs.unlinkSync(tmpFile);
+  
   const report = JSON.parse(raw);
+  
+  if (report.error) {
+    throw new Error('GA4 API error: ' + JSON.stringify(report.error).slice(0, 100));
+  }
   
   const rows = (report.rows || []).map(r => ({
     pagePath: r.dimensionValues?.[0]?.value || '',
@@ -71,53 +94,49 @@ function fetchGA4Data(token) {
   };
 }
 
-function run() {
-  // Check if previous valid data exists and its age
+async function runAsync() {
+  // Check if previous valid data exists (for fallback)
   let hadFallback = false;
+  let existingData = null;
   if (fs.existsSync(DATA_FILE)) {
     try {
-      const existing = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      if (existing.total_sessions && existing.total_sessions > 0) {
+      existingData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      if (existingData.total_sessions && existingData.total_sessions > 0) {
         hadFallback = true;
       }
     } catch (e) { hadFallback = false; }
   }
   
   try {
-    // Try to get access token
-    const tokenResult = execSync(
-      `node -e "const {OAuth2Client} = require('google-auth-library'); const c = JSON.parse(require('fs').readFileSync('${CREDS_FILE}','utf8')); const cl = new OAuth2Client(c.client_id, c.client_secret); cl.getAccessToken().then(t => console.log(t.token)).catch(e => console.log('ERR:'+e.message))"`,
-      { encoding: 'utf8', timeout: 15000 }
-    ).trim();
+    const creds = JSON.parse(fs.readFileSync(CREDS_FILE, 'utf8'));
+    const auth = new GoogleAuth({
+      credentials: creds,
+      scopes: 'https://www.googleapis.com/auth/analytics.readonly',
+    });
     
-    if (!tokenResult || tokenResult.startsWith('ERR:')) {
-      throw new Error('Token fetch failed: ' + tokenResult);
-    }
-    
-    const result = fetchGA4Data(tokenResult);
+    const result = await fetchGA4Data(auth);
     fs.writeFileSync(DATA_FILE, JSON.stringify(result, null, 2));
     console.log(`✅ GA4: ${result.total_sessions} sessions, ${result.pages.length} pages, ${result.insights.recommendations.length} insights`);
     return result;
   } catch (e) {
-    const errMsg = e.message.slice(-80);
+    const errMsg = e.message.slice(-100);
     
-    if (hadFallback) {
-      // Keep previous data, mark it stale but don't fail the script
-      const existing = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      existing.updated = new Date().toISOString();
-      existing._stale = true;
-      existing._stale_reason = errMsg;
-      existing._fallback_used = true;
-      fs.writeFileSync(DATA_FILE, JSON.stringify(existing, null, 2));
+    if (hadFallback && existingData) {
+      // Keep previous valid data, mark it stale
+      existingData.updated = new Date().toISOString();
+      existingData._stale = true;
+      existingData._stale_reason = errMsg;
+      existingData._fallback_used = true;
+      fs.writeFileSync(DATA_FILE, JSON.stringify(existingData, null, 2));
       console.log(`⚠️  GA4: stale fallback used (${errMsg})`);
-      return existing;
+      return existingData;
     } else {
-      // No fallback - this is a real failure, exit non-zero
-      const empty = { 
-        updated: new Date().toISOString(), 
-        error: errMsg, 
-        total_sessions: 0, 
-        pages: [], 
+      // No fallback — this is a real failure
+      const empty = {
+        updated: new Date().toISOString(),
+        error: errMsg,
+        total_sessions: 0,
+        pages: [],
         insights: { recommendations: [] },
         _stale: true,
         _fallback_used: false,
@@ -125,9 +144,16 @@ function run() {
       };
       fs.writeFileSync(DATA_FILE, JSON.stringify(empty, null, 2));
       console.log(`❌ GA4: no data and no fallback - ${errMsg}`);
-      process.exit(1); // Fail the script - no fallback available
+      process.exit(1); // Script failure — no fallback available
     }
   }
+}
+
+function run() {
+  runAsync().catch(e => {
+    console.log(`❌ GA4 async error: ${e.message.slice(-80)}`);
+    process.exit(1);
+  });
 }
 
 module.exports = { run };
