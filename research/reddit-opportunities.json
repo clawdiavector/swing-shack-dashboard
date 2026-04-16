@@ -188,8 +188,92 @@
         "gear-nerds"
       ]
     }
+    {
+      "id": "reddit-2026-04-16-7",
+      "url": "https://www.reddit.com/r/golf/comments/1sm5385/looking_for_a_good_launch_monitor_under_1000_for/",
+      "title": "Looking for a good launch monitor under $1000 for range use",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-15",
+      "comment": "Budget-conscious looking for launch monitor under $1000. Garmin R10 popular. Swing Shack: try TrackMan before committing to consumer gear — see the difference professional-grade data makes.",
+      "tags": [
+        "budget",
+        "launch-monitor",
+        "garmin-r10",
+        "try-before-buy"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-16-8",
+      "url": "https://www.reddit.com/r/golf/comments/1smgnn4/worst_purchasebest_purchases_in_golf_life/",
+      "title": "Worst Purchase/Best Purchases in Golf Life",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-16",
+      "comment": "Golfers sharing purchase regrets. Common theme: wrong clubs, wrong specs. Getting fitted prevents wasting money on gear that doesn't work for your swing.",
+      "tags": [
+        "regrets",
+        "club-fitting",
+        "beginner",
+        "value"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-16-9",
+      "url": "https://www.reddit.com/r/golf/comments/1smc8d5/improving_at_the_range_but_how_do_i_actually_get/",
+      "title": "Improving at the range but how do I actually get to play? (UK)",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-16",
+      "comment": "Range-to-course gap is real. Indoor golf/simulators let you practice in a low-pressure environment and build confidence before the real course.",
+      "tags": [
+        "practice",
+        "indoor-golf",
+        "simulator",
+        "beginner"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-16-10",
+      "url": "https://www.reddit.com/r/golf/comments/1sm50nc/help_with_kids_clubs/",
+      "title": "Help with kids clubs",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-15",
+      "comment": "Parent looking for kids clubs. US Kids is gold standard for juniors. Family fitting sessions — get the kid started right with clubs that actually fit.",
+      "tags": [
+        "kids",
+        "junior",
+        "beginner",
+        "family"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-16-11",
+      "url": "https://www.reddit.com/r/golf/comments/1sludwa/the_golf_ball_rollback_is_completely_pointless/",
+      "title": "The golf ball rollback is completely pointless",
+      "subreddit": "r/golf",
+      "status": "new",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-15",
+      "comment": "Equipment debates rage on. Frustrated golfers complaining about rules. Not directly actionable but shows equipment passion — good for fitting discussions.",
+      "tags": [
+        "equipment",
+        "frustration",
+        "golf-balls"
+      ]
+    }
   ],
   "last_updated": "2026-04-16",
-  "scan_time": "2026-04-16T04:00Z",
+  "scan_time": "2026-04-16T10:00Z",
   "scan_note": "April 16 2026 - 6AM scan. Found 6 new opportunities. Rate limited on search but captured from cached results."
 }
