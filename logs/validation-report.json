@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-16T12:20:26.268Z",
+  "timestamp": "2026-04-16T12:25:03.915Z",
   "overall_status": "PASS",
   "summary": {
     "pass": 15,
@@ -18,9 +18,10 @@
       "data_status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 2.7,
-      "reason": "Fresh - 2.7h old",
-      "next_action": "No action needed"
+      "age_hours": 2.8,
+      "reason": "Fresh - 2.8h old",
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "hook-bank.json",
@@ -31,7 +32,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "content-ideas.json",
@@ -42,7 +44,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "dashboard-summary.json",
@@ -54,7 +57,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-16T12:20:22.602Z"
+      "last_build": "2026-04-16T12:25:00.107Z"
     },
     {
       "file": "golf-news.json",
@@ -65,7 +68,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "reddit-trends.json",
@@ -76,7 +80,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "ga4-metrics.json",
@@ -87,7 +92,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "seo-rankings.json",
@@ -98,7 +104,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "seo-audit.json",
@@ -109,7 +116,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "geo-audit.json",
@@ -120,7 +128,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "ab-tests.json",
@@ -131,7 +140,8 @@
       "fallback_used": false,
       "age_hours": 0.6,
       "reason": "Fresh - 0.6h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "used-items.json",
@@ -142,7 +152,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "youtube-trends.json",
@@ -153,7 +164,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "youtube-ideas.json",
@@ -164,7 +176,8 @@
       "fallback_used": false,
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed"
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "dashboard.html",
@@ -174,9 +187,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/16, 14:20:22",
+      "reason": "Last build 2026/04/16, 14:25:00",
       "next_action": "No action needed",
-      "last_build": "2026/04/16, 14:20:22"
+      "last_build": "2026/04/16, 14:25:00"
     }
   ]
 }
