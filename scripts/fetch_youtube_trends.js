@@ -292,9 +292,12 @@ function run() {
   const topThemeEntry = Object.entries(themes).filter(([, v]) => v)[0];
   const topTheme = topThemeEntry ? topThemeEntry[0].replace(/_/g, ' ') : 'general golf';
   
+  // If we got very few external articles, mark as synthetic — not enough for real trends
+  const isInsufficientExternal = articles.length > 0 && articles.length < 3;
+  const effectiveSource = isInsufficientExternal ? 'synthetic_sa_market' : dataSource;
   const output = {
     updated,
-    data_source: dataSource,
+    data_source: effectiveSource,
     videos_found: articles.length,
     top_videos: [], // No YouTube IDs without API
     articles_sourced: articles.slice(0, 10),
@@ -302,13 +305,14 @@ function run() {
     hooks,
     summary: {
       top_theme: topTheme,
-      source: dataSource,
-      notes: dataSource === 'synthesized' ? 'Synthesized from golf news + reddit (YouTube scraping blocked)' : 'Golf RSS feeds',
+      source: effectiveSource,
+      notes: isInsufficientExternal ? 'Insufficient external articles (< 3) — supplemented with SA-market synthesis' : 'Golf RSS feeds',
     },
+    _synthetic: isInsufficientExternal,
   };
   
   fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2));
-  console.log('YouTube Trends: ' + articles.length + ' articles, ' + hooks.length + ' hooks, top theme: ' + topTheme + ' (' + dataSource + ')');
+  console.log('YouTube Trends: ' + articles.length + ' articles, ' + hooks.length + ' hooks, top theme: ' + topTheme + ' (' + effectiveSource + ')');
   
   return output;
 }

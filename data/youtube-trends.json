@@ -1,6 +1,6 @@
 {
-  "updated": "2026-04-16T12:30:30.608Z",
-  "data_source": "rss_feeds",
+  "updated": "2026-04-16T12:31:59.339Z",
+  "data_source": "synthetic_sa_market",
   "videos_found": 1,
   "top_videos": [],
   "articles_sourced": [
@@ -22,7 +22,7 @@
   },
   "hooks": [
     {
-      "idea_id": "yt-sa-1776342633591-0",
+      "idea_id": "yt-sa-1776342722364-0",
       "source": "sa_market_always",
       "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
       "description": "SA-market hook - always included",
@@ -30,7 +30,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-sa-1776342633591-1",
+      "idea_id": "yt-sa-1776342722364-1",
       "source": "sa_market_always",
       "hook_text": "How fast should your club head speed actually be? Pros average 112 mph.",
       "description": "SA-market hook - always included",
@@ -38,7 +38,7 @@
       "theme_signal": "swing_speed"
     },
     {
-      "idea_id": "yt-sa-1776342633591-2",
+      "idea_id": "yt-sa-1776342722364-2",
       "source": "sa_market_always",
       "hook_text": "Your launch monitor data is telling you exactly what to fix.",
       "description": "SA-market hook - always included",
@@ -46,7 +46,7 @@
       "theme_signal": "trackman"
     },
     {
-      "idea_id": "yt-sa-1776342633591-3",
+      "idea_id": "yt-sa-1776342722364-3",
       "source": "sa_market_always",
       "hook_text": "Rain season. Your game doesn't have to stop. Indoor golf in Johannesburg.",
       "description": "SA-market hook - always included",
@@ -54,7 +54,7 @@
       "theme_signal": "indoor"
     },
     {
-      "idea_id": "yt-sa-1776342633591-4",
+      "idea_id": "yt-sa-1776342722364-4",
       "source": "sa_market_always",
       "hook_text": "Short game practice that actually transfers to the course.",
       "description": "SA-market hook - always included",
@@ -62,7 +62,7 @@
       "theme_signal": "short_game"
     },
     {
-      "idea_id": "yt-sa-1776342633591-5",
+      "idea_id": "yt-sa-1776342722364-5",
       "source": "sa_market_always",
       "hook_text": "When was the last time a golf pro watched your actual swing on a launch monitor?",
       "description": "SA-market hook - always included",
@@ -72,7 +72,8 @@
   ],
   "summary": {
     "top_theme": "general golf",
-    "source": "rss_feeds",
-    "notes": "Golf RSS feeds"
-  }
+    "source": "synthetic_sa_market",
+    "notes": "Insufficient external articles (< 3) — supplemented with SA-market synthesis"
+  },
+  "_synthetic": true
 }
