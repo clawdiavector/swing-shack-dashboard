@@ -1,104 +1,102 @@
 {
-  "timestamp": "2026-04-16T11:32:08.706Z",
+  "timestamp": "2026-04-16T11:35:50.695Z",
+  "overall_status": "PARTIAL",
   "summary": {
-    "pass": 7,
-    "stale": 5,
+    "pass": 10,
+    "stale": 3,
     "fail": 0
   },
-  "pipeline_status": "PARTIAL",
   "critical_failure": false,
   "should_stop": false,
-  "results": [
+  "checks": [
     {
       "file": "ig-analytics.json",
+      "label": "IG Analytics",
       "status": "PASS",
-      "reason": "valid",
-      "age_hours": "1.9",
-      "critical": true,
-      "action": "continue"
+      "reason": "Valid - 1.9h old",
+      "age_hours": 1.9
     },
     {
       "file": "hook-bank.json",
+      "label": "Hook Bank",
       "status": "PASS",
-      "reason": "valid",
-      "age_hours": "0.0",
-      "critical": true,
-      "action": "continue"
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
     },
     {
       "file": "content-ideas.json",
+      "label": "Content Ideas",
       "status": "PASS",
-      "reason": "valid",
-      "age_hours": "0.0",
-      "critical": true,
-      "action": "continue"
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
     },
     {
       "file": "dashboard-summary.json",
+      "label": "Dashboard Summary",
       "status": "PASS",
-      "reason": "valid",
-      "age_hours": "0.0",
-      "critical": true,
-      "action": "continue"
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
     },
     {
       "file": "golf-news.json",
+      "label": "Golf News",
       "status": "PASS",
-      "reason": "valid",
-      "age_hours": "0.0",
-      "critical": false,
-      "action": "continue"
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
     },
     {
       "file": "reddit-trends.json",
+      "label": "Reddit Trends",
       "status": "PASS",
-      "reason": "valid",
-      "age_hours": "0.0",
-      "critical": false,
-      "action": "continue"
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
     },
     {
       "file": "ga4-metrics.json",
+      "label": "GA4 Fetch",
       "status": "STALE",
-      "reason": "no timestamp",
-      "critical": false,
-      "action": "continue"
+      "reason": "Never updated - previous run used"
     },
     {
       "file": "seo-rankings.json",
-      "status": "STALE",
-      "reason": "no timestamp",
-      "critical": false,
-      "action": "continue"
+      "label": "SEO Rankings",
+      "status": "PASS",
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
     },
     {
       "file": "seo-audit.json",
+      "label": "SEO Audit",
       "status": "PASS",
-      "reason": "valid",
-      "age_hours": "0.0",
-      "critical": false,
-      "action": "continue"
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
+    },
+    {
+      "file": "geo-audit.json",
+      "label": "GEO Audit",
+      "status": "PASS",
+      "reason": "Valid - 0.0h old",
+      "age_hours": 0
     },
     {
       "file": "ab-tests.json",
+      "label": "A/B Test Input",
       "status": "STALE",
-      "reason": "no timestamp",
-      "critical": false,
-      "action": "continue"
+      "reason": "Never updated - previous run used"
     },
     {
       "file": "used-items.json",
+      "label": "Used Items",
       "status": "STALE",
-      "reason": "no timestamp",
-      "critical": false,
-      "action": "continue"
+      "reason": "Never updated - previous run used"
     },
     {
       "file": "dashboard.html",
-      "status": "STALE",
-      "reason": "no timestamp found",
-      "critical": true,
-      "action": "continue"
+      "label": "Dashboard HTML",
+      "status": "PASS",
+      "reason": "Last build 2026/04/16, 13:35:38",
+      "age_hours": 0,
+      "last_build": "2026/04/16, 13:35:38"
     }
   ]
 }

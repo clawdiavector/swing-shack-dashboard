@@ -43,8 +43,7 @@ const REQUIRED_KEYS = {
   'used-items.json': ['updated'],
 };
 
-function validateFile(name, label) {
-  const { file } = name;
+function validateFile(file, label) {
   const filepath = path.join(DATA_DIR, file);
   
   // 1. File exists?
