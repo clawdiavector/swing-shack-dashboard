@@ -286,13 +286,17 @@ function run() {
   const passes = checks.filter(c => c.data_status === 'PASS');
   const scriptFailures = checks.filter(c => c.script_status === 'FAIL');
   const fallbacksUsed = checks.filter(c => c.fallback_used === true);
+  const syntheticFiles = checks.filter(c => c.source_mode === 'SYNTHETIC').length;
 
   const criticalFailures = failures.filter(c => c.critical);
   const nonCriticalFails = failures.filter(c => !c.critical);
-  const overall = criticalFailures.length > 0 ? 'FAIL' : (nonCriticalFails.length > 0 || stales.length > 0) ? 'PARTIAL' : 'PASS';
+  
+  // FAIL only if critical files failed; PARTIAL if any non-critical failures, stale, synthetic, or script failures
+  const overall = criticalFailures.length > 0 ? 'FAIL'
+    : (nonCriticalFails.length > 0 || stales.length > 0 || syntheticFiles > 0 || scriptFailures.length > 0) ? 'PARTIAL'
+    : 'PASS';
 
   const liveFresh = checks.filter(c => c.data_status === 'PASS' && c.source_mode === 'LIVE').length;
-  const syntheticFiles = checks.filter(c => c.source_mode === 'SYNTHETIC').length;
   const staleFiles = checks.filter(c => c.data_status === 'STALE').length;
   const failedFiles = checks.filter(c => c.data_status === 'FAIL').length;
   
@@ -339,6 +343,7 @@ function run() {
   if (syntheticFiles > 0) console.log('  Synthetic: ' + syntheticFiles + '/' + checks.length);
   if (staleFiles > 0) console.log('  Stale: ' + staleFiles + '/' + checks.length);
   if (failedFiles > 0) console.log('  Failed: ' + failedFiles + '/' + checks.length);
+  if (scriptFailures.length > 0) console.log('  Failed scripts: ' + scriptFailures.length);
   console.log('');
   console.log('CRITICAL FILES:');
   for (const c of checks.filter(c => c.critical)) {
@@ -355,9 +360,20 @@ function run() {
     const icon = c.data_status === 'PASS' ? 'PASS' : c.data_status === 'STALE' ? 'STALE' : 'FAIL';
     const fallback = c.fallback_used ? ' [fallback]' : '';
     const script = c.script_status === 'FAIL' ? ' [SCRIPT FAILED]' : '';
-    console.log('  ' + icon + ': ' + c.label + fallback + script + ' - ' + c.reason);
+    const mode = c.source_mode === 'SYNTHETIC' ? ' [SYNTH]' : c.source_mode === 'STALE_FALLBACK' ? ' [STALE_FALLBACK]' : '';
+    console.log('  ' + icon + ': ' + c.label + fallback + script + mode + ' - ' + c.reason);
   }
   console.log('');
+  
+  // Script failures detail
+  if (scriptFailures.length > 0) {
+    console.log('SCRIPT FAILURES:');
+    for (const c of checks.filter(c => c.script_status === 'FAIL')) {
+      const isCritical = c.critical ? ' (critical)' : ' (non-critical)' ;
+      console.log('  - ' + c.file + isCritical + ': ' + (c.next_action || c.reason));
+    }
+    console.log('');
+  }
 
   const qa_warnings = [];
   const allChecks = checks.filter(c => c.qa_warnings && c.qa_warnings.length > 0);

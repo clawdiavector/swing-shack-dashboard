@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-16T12:37:56.191Z",
+  "updated": "2026-04-16T12:40:36.090Z",
   "keywords": [
     {
       "keyword": "indoor golf johannesburg",
@@ -66,19 +66,28 @@
     },
     {
       "keyword": "golf fitting johannesburg price",
-      "current_rank": 26,
+      "current_rank": null,
       "target_url": "https://swingshack.co.za",
       "search_intent": "commercial",
-      "note": "Found in search results"
+      "note": "Not found in top results"
     }
   ],
   "rising_keywords": [],
   "falling_keywords": [],
-  "quick_wins": [],
+  "quick_wins": [
+    "golf fitting johannesburg price"
+  ],
   "summary": {
     "tracked": 10,
-    "found": 10,
-    "not_found": 0
+    "found": 9,
+    "not_found": 1
   },
-  "recommendations": []
+  "recommendations": [
+    {
+      "type": "not_indexed",
+      "keyword": "golf fitting johannesburg price",
+      "action": "Create or optimize page targeting \"golf fitting johannesburg price\"",
+      "priority": "high"
+    }
+  ]
 }
