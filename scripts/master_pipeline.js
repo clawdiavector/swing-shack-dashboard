@@ -49,6 +49,16 @@ const STAGES = [
     ]
   },
   {
+    name: 'YouTube',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['youtube-trends.json', 'youtube-ideas.json'],
+    steps: [
+      { name: 'fetch_youtube_trends', script: `node ${BASE}/scripts/fetch_youtube_trends.js`, critical: false },
+      { name: 'generate_youtube_ideas', script: `node ${BASE}/scripts/generate_youtube_ideas.js`, critical: false },
+    ]
+  },
+  {
     name: 'Audit',
     critical: false,
     requiredOutputs: ['seo-audit.json', 'geo-audit.json'],
@@ -141,8 +151,8 @@ function compileSummary(stageResults, validatorReport) {
   const hooks = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'hook-bank.json'), 'utf8'));
   const checks = validatorReport?.checks || [];
   
-  const staleChecks = checks.filter(c => c.status === 'STALE');
-  const failedChecks = checks.filter(c => c.status === 'FAIL');
+  const staleChecks = checks.filter(c => c.data_status === 'STALE');
+  const failedChecks = checks.filter(c => c.data_status === 'FAIL');
   const scriptFails = checks.filter(c => c.script_status === 'FAIL');
   const fallbacks = checks.filter(c => c.fallback_used === true);
   

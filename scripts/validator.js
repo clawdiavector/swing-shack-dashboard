@@ -9,7 +9,7 @@
  *   file: "data/xxx.json",
  *   label: "Human Label",
  *   critical: true/false,
- *   status: "PASS | STALE | FAIL",        // data freshness
+ *   data_status: "PASS | STALE | FAIL",        // data freshness
  *   script_status: "PASS | FAIL | N/A",   // did script succeed?
  *   fallback_used: true/false/null,
  *   age_hours: number,
@@ -40,6 +40,8 @@ const NON_CRITICAL_FILES = [
   { file: 'geo-audit.json', label: 'GEO Audit', critical: false },
   { file: 'ab-tests.json', label: 'A/B Test Input', critical: false },
   { file: 'used-items.json', label: 'Used Items', critical: false },
+  { file: 'youtube-trends.json', label: 'YouTube Trends', critical: false },
+  { file: 'youtube-ideas.json', label: 'YouTube Ideas', critical: false },
 ];
 
 const REQUIRED_KEYS = {
@@ -54,6 +56,8 @@ const REQUIRED_KEYS = {
   'geo-audit.json': ['updated'],
   'ab-tests.json': ['updated'],
   'used-items.json': ['updated'],
+  'youtube-trends.json': ['updated'],
+  'youtube-ideas.json': ['updated'],
 };
 
 function validateFile(file, label, critical) {
@@ -63,7 +67,7 @@ function validateFile(file, label, critical) {
   if (!fs.existsSync(filepath)) {
     return { 
       file, label, critical, 
-      status: 'FAIL', script_status: 'FAIL', fallback_used: null,
+      data_status: .FAIL., script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'File missing', next_action: `Create ${file} or restore from backup`
     };
   }
@@ -73,7 +77,7 @@ function validateFile(file, label, critical) {
   if (stats.size === 0) {
     return { 
       file, label, critical,
-      status: 'FAIL', script_status: 'FAIL', fallback_used: null,
+      data_status: .FAIL., script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'File is empty', next_action: `Populate ${file}`
     };
   }
@@ -85,7 +89,7 @@ function validateFile(file, label, critical) {
   } catch (e) {
     return { 
       file, label, critical,
-      status: 'FAIL', script_status: 'FAIL', fallback_used: null,
+      data_status: .FAIL., script_status: 'FAIL', fallback_used: null,
       age_hours: null, reason: 'Invalid JSON', next_action: `Fix JSON syntax in ${file}`
     };
   }
@@ -110,7 +114,7 @@ function validateFile(file, label, critical) {
     const scriptFailed = data.error || data._stale;
     return { 
       file, label, critical,
-      status: 'STALE', 
+      data_status: .STALE., 
       script_status: scriptFailed ? 'FAIL' : 'N/A',
       fallback_used: !!(data._fallback_used || data._stale),
       age_hours: null, 
@@ -129,7 +133,7 @@ function validateFile(file, label, critical) {
       // Script failed AND no valid fallback = FAIL
       return { 
         file, label, critical,
-        status: 'FAIL', 
+        data_status: .FAIL., 
         script_status: 'FAIL',
         fallback_used: false,
         age_hours: parseFloat(ageHours.toFixed(1)), 
@@ -140,7 +144,7 @@ function validateFile(file, label, critical) {
       // Script set _stale flag but had fallback
       return { 
         file, label, critical,
-        status: 'STALE', 
+        data_status: .STALE., 
         script_status: 'FAIL',
         fallback_used: true,
         age_hours: parseFloat(ageHours.toFixed(1)), 
@@ -153,7 +157,7 @@ function validateFile(file, label, critical) {
   if (ageHours > 26) {
     return { 
       file, label, critical,
-      status: 'STALE', 
+      data_status: .STALE., 
       script_status: data._stale ? 'FAIL' : 'PASS',
       fallback_used: !!(data._fallback_used || data._stale),
       age_hours: parseFloat(ageHours.toFixed(1)), 
@@ -175,7 +179,7 @@ function validateFile(file, label, critical) {
   
   return { 
     file, label, critical,
-    status: 'PASS', 
+    data_status: .PASS., 
     script_status: 'PASS',
     fallback_used: false,
     age_hours: parseFloat(ageHours.toFixed(1)), 
@@ -234,9 +238,9 @@ function run() {
   checks.push(validateDashboard());
   
   // Compute overall status
-  const failures = checks.filter(c => c.status === 'FAIL');
-  const stales = checks.filter(c => c.status === 'STALE');
-  const passes = checks.filter(c => c.status === 'PASS');
+  const failures = checks.filter(c => c.data_status === 'FAIL');
+  const stales = checks.filter(c => c.data_status === 'STALE');
+  const passes = checks.filter(c => c.data_status === 'PASS');
   const scriptFailures = checks.filter(c => c.script_status === 'FAIL');
   const fallbacksUsed = checks.filter(c => c.fallback_used === true);
   
@@ -270,9 +274,9 @@ function run() {
   console.log('');
   console.log('CRITICAL FILES:');
   for (const c of checks.filter(c => c.critical)) {
-    const icon = c.status === 'PASS' ? '✅' : c.status === 'STALE' ? '⚠️' : '❌';
+    const icon = c.data_status === 'PASS' ? '✅' : c.data_status === 'STALE' ? '⚠️' : '❌';
     const script = c.script_status === 'FAIL' ? ' [SCRIPT FAILED]' : '';
-    console.log(`  ${icon} ${c.label}: ${c.status}${script} — ${c.reason}`);
+    console.log(`  ${icon} ${c.label}: ${c.data_status}${script} — ${c.reason}`);
     if (c.next_action !== 'No action needed') {
       console.log(`     → ${c.next_action}`);
     }
@@ -280,10 +284,10 @@ function run() {
   console.log('');
   console.log('NON-CRITICAL FILES:');
   for (const c of checks.filter(c => !c.critical)) {
-    const icon = c.status === 'PASS' ? '✅' : c.status === 'STALE' ? '⚠️' : '❌';
+    const icon = c.data_status === 'PASS' ? '✅' : c.data_status === 'STALE' ? '⚠️' : '❌';
     const fallback = c.fallback_used ? ' [fallback]' : '';
     const script = c.script_status === 'FAIL' ? ' [SCRIPT FAILED]' : '';
-    console.log(`  ${icon} ${c.label}: ${c.status}${fallback}${script} — ${c.reason}`);
+    console.log(`  ${icon} ${c.label}: ${c.data_status}${fallback}${script} — ${c.reason}`);
   }
   console.log('');
   

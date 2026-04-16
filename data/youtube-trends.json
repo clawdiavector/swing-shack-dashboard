@@ -1,0 +1,19 @@
+{
+  "updated": "2026-04-16T12:08:03.790Z",
+  "query_count": 5,
+  "videos_found": 0,
+  "top_videos": [],
+  "trending_themes": {
+    "swing_speed": false,
+    "short_game": false,
+    "trackman_data": false,
+    "practice": false,
+    "lessons": false,
+    "simulator": false
+  },
+  "hooks": [],
+  "summary": {
+    "top_theme": "general golf",
+    "total_views": 0
+  }
+}
