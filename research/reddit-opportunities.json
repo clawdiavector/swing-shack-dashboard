@@ -26,7 +26,7 @@
       "locationTag": "global",
       "dateFound": "2026-04-15",
       "datePosted": "2026-04-15",
-      "comment": "Budget-conscious looking for sub-$8k setup that breaks down easily. Try-before-buy crowd \u2014 Swing Shack: come test TrackMan before consumer gear commitment.",
+      "comment": "Budget-conscious looking for sub-$8k setup that breaks down easily. Try-before-buy crowd — Swing Shack: come test TrackMan before consumer gear commitment.",
       "tags": [
         "budget-sim",
         "mevo",
@@ -88,9 +88,108 @@
         "garage",
         "try-before-buy"
       ]
+    },
+    {
+      "id": "reddit-2026-04-16-1",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1skxsrc/about_to_book_my_first_ever_fitting_i_have_a_few/",
+      "title": "About to book my first ever fitting, I have a few questions",
+      "subreddit": "r/GolfGear",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-14",
+      "comment": "First-time fitter nervous about what to expect. Pro tip: most places waive fitting fee if you buy. Ask what they're changing and why — TrackMan shows exact swing data.",
+      "tags": [
+        "first-fitting",
+        "club-fitting",
+        "questions"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-16-2",
+      "url": "https://www.reddit.com/r/golftips/comments/1sjf8kp/golf_club_set_recommendations/",
+      "title": "Golf club set recommendations",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-12",
+      "comment": "New golfer had lessons using dad's clubs, now needs own set. Classic beginner — get fitted from the start so you don't develop bad habits with wrong clubs.",
+      "tags": [
+        "beginner",
+        "first-clubs",
+        "lessons"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-16-3",
+      "url": "https://www.reddit.com/r/golf/comments/1sm50nc/help_with_kids_clubs/",
+      "title": "Help with kids clubs",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-15",
+      "comment": "Parent with kids showing golf interest. US Kids is gold standard for juniors — sizes by height. Start cheap, see if interest sticks first.",
+      "tags": [
+        "kids",
+        "junior",
+        "beginner",
+        "parents"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-16-4",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sgsvq2/getting_fit/",
+      "title": "Getting Fit",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-09",
+      "comment": "When good enough to get fitted? Consensus: consistently below 90. Your swing needs to be stable enough for data to matter.",
+      "tags": [
+        "fitting-threshold",
+        "consistency",
+        "when-to-fit"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-16-5",
+      "url": "https://www.reddit.com/r/golftips/comments/1skcbrh/newbie_golf_clubs/",
+      "title": "Newbie Golf Clubs",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-13",
+      "comment": "Tall golfers (6ft+) or XL hands need custom specs. Off-the-rack won't work. Standard Ping fitting charts or Maltby clubs from Golfworks — or get fitted properly.",
+      "tags": [
+        "sizing",
+        "tall",
+        "custom",
+        "fitting"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-16-6",
+      "url": "https://www.reddit.com/r/golf/comments/1sescma/first_time_building_irons_myself/",
+      "title": "First time building irons myself!",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-16",
+      "datePosted": "2026-04-07",
+      "comment": "DIY club building for gear nerds. Cool approach but honestly most people better off with a proper fitting — data doesn't lie and a good fitter dials you in faster.",
+      "tags": [
+        "DIY",
+        "clubs",
+        "custom",
+        "gear-nerds"
+      ]
     }
   ],
-  "last_updated": "2026-04-15",
-  "scan_time": "2026-04-15T10:00Z",
-  "scan_note": "April 15 2026 - 12PM scan. Found 4 new opportunities from search results."
+  "last_updated": "2026-04-16",
+  "scan_time": "2026-04-16T04:00Z",
+  "scan_note": "April 16 2026 - 6AM scan. Found 6 new opportunities. Rate limited on search but captured from cached results."
 }
