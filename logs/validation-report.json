@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-16T12:56:45.761Z",
+  "timestamp": "2026-04-16T12:59:44.018Z",
   "overall_status": "PARTIAL",
   "summary": {
     "pass": 16,
@@ -64,7 +64,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-16T12:56:42.092Z"
+      "last_build": "2026-04-16T12:59:40.399Z"
     },
     {
       "file": "golf-news.json",
@@ -181,7 +181,7 @@
       "qa_warnings": [
         "YouTube Trends uses synthetic SA-market data"
       ],
-      "age_hours": 0.1,
+      "age_hours": 0,
       "reason": "Synthetic fallback - no live YouTube data available",
       "next_action": "Add YouTube Data API v3 key to remove synthetic deduction"
     },
@@ -219,9 +219,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/16, 14:56:42",
+      "reason": "Last build 2026/04/16, 14:59:40",
       "next_action": "No action needed",
-      "last_build": "2026/04/16, 14:56:42"
+      "last_build": "2026/04/16, 14:59:40"
     }
   ]
 }
