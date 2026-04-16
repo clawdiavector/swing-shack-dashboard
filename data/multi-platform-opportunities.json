@@ -257,12 +257,68 @@
       "score": 75,
       "suggested_comment": "Indoor range with launch monitor is option - all weather, data-driven.",
       "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-16-7",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Driver Slice Fix",
+      "url": "https://www.reddit.com/r/golf/comments/o3cdi0/how_did_you_fix_your_driver_slice/",
+      "content_preview": "Slicers trying various fixes - Sim2 fitting solved the problem",
+      "location_tag": "Global",
+      "problem_type": "driver-slice",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Proper fitting with Trackman shows exact cause. Equipment alone is not the fix.",
+      "comment_tone": "informed"
+    },
+    {
+      "id": "mp-2026-04-16-8",
+      "platform": "reddit",
+      "subreddit": "r/GolfSwing",
+      "post_title": "Slicing Driver YouTube Fixes Not Working",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/18i8pyk/help_the_standard_im_slicing_my_driver_tried/",
+      "content_preview": "Tried YouTube fixes, still slicing. Club path issue.",
+      "location_tag": "Global",
+      "problem_type": "driver-slice",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Trackman shows club path and face angle - exact cause, not guesswork.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-16-9",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "How do I fix my driver",
+      "url": "https://www.reddit.com/r/golf/comments/1gczgka/how_do_i_fix_my_driver/",
+      "content_preview": "Driver setup issues, lessons recommended over equipment changes",
+      "location_tag": "Global",
+      "problem_type": "driver-fix",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Lessons plus launch monitor data - the fastest combo.",
+      "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-16-10",
+      "platform": "reddit",
+      "subreddit": "r/GolfSwing",
+      "post_title": "Driver Slice - What Worked",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1rsmmcw/those_of_you_who_havehad_driver_slicewhat_worked/",
+      "content_preview": "Various fixes tried - shaft fitting, address changes, release",
+      "location_tag": "Global",
+      "problem_type": "driver-slice",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Launch monitor gives exact data on what needs fixing.",
+      "comment_tone": "informative"
     }
   ],
   "summary": "Found 7 opportunities across Reddit and web. Best engagement: r/Golfsimulator budget build thread + r/johannesburg lessons inquiry. Indoor golf simulator space is active in SA with people researching budget options.",
   "createdAt": "2026-04-15T07:04:00Z",
   "scan_date": "2026-04-16",
-  "scan_time": "07:04 SAST",
-  "next_scan": "2026-04-16T12:00 SAST",
-  "total_opportunities": 20
+  "scan_time": "12:06 SAST",
+  "next_scan": "2026-04-16T18:00 SAST",
+  "total_opportunities": 24
 }
