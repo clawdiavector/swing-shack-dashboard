@@ -129,6 +129,11 @@ function run() {
   // Release any expired cooldowns
   const released = releaseExpired();
   
+  // Mark this as updated
+  const used = JSON.parse(fs.readFileSync(USED_FILE, 'utf8'));
+  used.updated = new Date().toISOString();
+  fs.writeFileSync(USED_FILE, JSON.stringify(used, null, 2));
+  
   // Read current status
   const used = JSON.parse(fs.readFileSync(USED_FILE, 'utf8'));
   const cooldowns = getCooldowns();

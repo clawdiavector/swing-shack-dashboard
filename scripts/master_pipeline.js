@@ -98,25 +98,31 @@ function runStep(step) {
   }
 }
 
-function computeStageStatus(stage, stepResults, validatorReport, staleOutputs) {
+function computeStageStatus(stage, stepResults, staleOutputs) {
   // If any critical step failed, stage is FAIL
   const criticalFailed = stepResults.filter(r => r.status === 'FAIL' && r.critical);
   if (criticalFailed.length > 0) {
     return 'FAIL';
   }
   
-  // Check for required stale outputs
-  if (staleOutputs && staleOutputs.length > 0) {
-    return 'PARTIAL'; // required output stale but not missing
+  // If any required output is stale, it's PARTIAL
+  const requiredStale = (stage.requiredOutputs || []).filter(f => staleOutputs.includes(f));
+  if (requiredStale.length > 0) {
+    return 'PARTIAL';
   }
   
-  // If any step failed (critical or not), it's PARTIAL
+  // If any step failed (non-critical), it's PARTIAL
   const anyFailed = stepResults.filter(r => r.status === 'FAIL');
   if (anyFailed.length > 0) {
     return 'PARTIAL';
   }
   
-  // All steps passed, no stale required outputs
+  // If any optional output is stale, it's PARTIAL
+  const optionalStale = (stage.optionalOutputs || []).filter(f => staleOutputs.includes(f));
+  if (optionalStale.length > 0) {
+    return 'PARTIAL';
+  }
+  
   return 'PASS';
 }
 
@@ -312,8 +318,9 @@ async function main() {
       }
     }
     
-    // Check for stale outputs in this stage (preliminary, validator will confirm later)
-    const staleOutputs = (stage.requiredOutputs || []).filter(f => {
+    // Check for any stale outputs in this stage (required or optional)
+    const allOutputs = [...(stage.requiredOutputs || []), ...(stage.optionalOutputs || [])];
+    const staleOutputs = allOutputs.filter(f => {
       const fpath = path.join(DATA_DIR, f);
       if (!fs.existsSync(fpath)) return false;
       try {
@@ -324,7 +331,7 @@ async function main() {
       } catch { return false; }
     });
     
-    const stageStatus = computeStageStatus(stage, results, null, staleOutputs);
+    const stageStatus = computeStageStatus(stage, results, staleOutputs);
     stageResults.push({ stage: stage.name, status: stageStatus, results, staleOutputs });
   }
   

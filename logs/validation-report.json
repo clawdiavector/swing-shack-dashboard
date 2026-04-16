@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-16T11:36:21.017Z",
+  "timestamp": "2026-04-16T11:41:52.703Z",
   "overall_status": "PARTIAL",
   "summary": {
     "pass": 10,
@@ -13,8 +13,8 @@
       "file": "ig-analytics.json",
       "label": "IG Analytics",
       "status": "PASS",
-      "reason": "Valid - 1.9h old",
-      "age_hours": 1.9
+      "reason": "Valid - 2.0h old",
+      "age_hours": 2
     },
     {
       "file": "hook-bank.json",
@@ -94,9 +94,9 @@
       "file": "dashboard.html",
       "label": "Dashboard HTML",
       "status": "PASS",
-      "reason": "Last build 2026/04/16, 13:36:17",
+      "reason": "Last build 2026/04/16, 13:41:48",
       "age_hours": 0,
-      "last_build": "2026/04/16, 13:36:17"
+      "last_build": "2026/04/16, 13:41:48"
     }
   ]
 }
