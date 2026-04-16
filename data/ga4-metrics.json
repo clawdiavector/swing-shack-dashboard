@@ -1,1 +1,12 @@
-{"updated":"never","metrics":{}}
+{
+  "updated": "2026-04-16T11:46:25.393Z",
+  "error": "Token fetch failed: ERR:No refresh token or refresh handler callback is set.",
+  "total_sessions": 0,
+  "pages": [],
+  "insights": {
+    "recommendations": []
+  },
+  "_stale": true,
+  "_fallback_used": false,
+  "_no_previous_data": true
+}

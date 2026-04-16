@@ -135,12 +135,12 @@ function run() {
   fs.writeFileSync(USED_FILE, JSON.stringify(usedData, null, 2));
   
   // Read current status
-  const used = JSON.parse(fs.readFileSync(USED_FILE, 'utf8'));
+  const usedStatus = JSON.parse(fs.readFileSync(USED_FILE, 'utf8'));
   const cooldowns = getCooldowns();
   
   console.log(`✅ Used items updated:`);
-  console.log(`   Suppressed hooks: ${used.suppressed_hooks.length}`);
-  console.log(`   Suppressed ideas: ${used.suppressed_ideas.length}`);
+  console.log(`   Suppressed hooks: ${usedStatus.suppressed_hooks.length}`);
+  console.log(`   Suppressed ideas: ${usedStatus.suppressed_ideas.length}`);
   console.log(`   Released this run: ${released}`);
   console.log(`   On cooldown: ${cooldowns.on_cooldown}`);
   console.log(`   Ready soon: ${cooldowns.ready_soon.length}`);
