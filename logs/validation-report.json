@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-04-16T11:58:47.603Z",
-  "overall_status": "PARTIAL",
+  "timestamp": "2026-04-16T12:03:51.833Z",
+  "overall_status": "PASS",
   "summary": {
-    "pass": 12,
+    "pass": 13,
     "stale": 0,
-    "fail": 1,
-    "script_failures": 1,
+    "fail": 0,
+    "script_failures": 0,
     "fallbacks_used": 0
   },
   "critical_failure": false,
@@ -18,8 +18,8 @@
       "status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 2.3,
-      "reason": "Fresh - 2.3h old",
+      "age_hours": 2.4,
+      "reason": "Fresh - 2.4h old",
       "next_action": "No action needed"
     },
     {
@@ -54,7 +54,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-16T11:58:44.003Z"
+      "last_build": "2026-04-16T12:03:48.123Z"
     },
     {
       "file": "golf-news.json",
@@ -82,12 +82,12 @@
       "file": "ga4-metrics.json",
       "label": "GA4 Metrics",
       "critical": false,
-      "status": "FAIL",
-      "script_status": "FAIL",
+      "status": "PASS",
+      "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Script failed - no valid fallback data",
-      "next_action": "Fix ga4-metrics.json script"
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "seo-rankings.json",
@@ -129,8 +129,8 @@
       "status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 0.2,
-      "reason": "Fresh - 0.2h old",
+      "age_hours": 0.3,
+      "reason": "Fresh - 0.3h old",
       "next_action": "No action needed"
     },
     {
@@ -152,9 +152,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/16, 13:58:44",
+      "reason": "Last build 2026/04/16, 14:03:48",
       "next_action": "No action needed",
-      "last_build": "2026/04/16, 13:58:44"
+      "last_build": "2026/04/16, 14:03:48"
     }
   ]
 }
