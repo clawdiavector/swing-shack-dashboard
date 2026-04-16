@@ -102,9 +102,9 @@ function run() {
     const errMsg = e.message.slice(-80);
     
     if (hadFallback) {
-      // Keep previous data, mark it stale
+      // Keep previous data, mark it stale but don't fail the script
       const existing = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      existing.updated = new Date().toISOString(); // refresh timestamp so validator sees it
+      existing.updated = new Date().toISOString();
       existing._stale = true;
       existing._stale_reason = errMsg;
       existing._fallback_used = true;
@@ -112,7 +112,7 @@ function run() {
       console.log(`⚠️  GA4: stale fallback used (${errMsg})`);
       return existing;
     } else {
-      // No fallback - write empty but mark clearly
+      // No fallback - this is a real failure, exit non-zero
       const empty = { 
         updated: new Date().toISOString(), 
         error: errMsg, 
@@ -125,7 +125,7 @@ function run() {
       };
       fs.writeFileSync(DATA_FILE, JSON.stringify(empty, null, 2));
       console.log(`❌ GA4: no data and no fallback - ${errMsg}`);
-      return null;
+      process.exit(1); // Fail the script - no fallback available
     }
   }
 }
