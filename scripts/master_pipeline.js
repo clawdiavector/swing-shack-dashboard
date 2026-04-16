@@ -2,7 +2,7 @@
 /**
  * master_pipeline.js
  * Orchestrator - runs all 6 stages in order, validates, stops on critical failure
- * Produces daily run summary
+ * Produces honest daily run summary with PASS/PARTIAL/FAIL per stage
  */
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -19,6 +19,8 @@ const STAGES = [
   {
     name: 'Research',
     critical: false,
+    requiredOutputs: ['ig-analytics.json', 'golf-news.json', 'reddit-trends.json'],
+    optionalOutputs: ['ga4-metrics.json', 'seo-rankings.json'],
     steps: [
       { name: 'sync_ig_analytics', script: `node ${BASE}/scripts/sync_ig_analytics.js`, critical: true },
       { name: 'fetch_golf_news', script: `node ${BASE}/scripts/fetch_golf_news.js`, critical: false },
@@ -30,6 +32,8 @@ const STAGES = [
   {
     name: 'Analysis',
     critical: true,
+    requiredOutputs: ['hook-bank.json'],
+    optionalOutputs: [],
     steps: [
       { name: 'analyse_hooks', script: `node ${BASE}/scripts/analyse_hooks.js`, critical: true },
     ]
@@ -37,6 +41,8 @@ const STAGES = [
   {
     name: 'Ideas',
     critical: true,
+    requiredOutputs: ['content-ideas.json'],
+    optionalOutputs: ['used-items.json'],
     steps: [
       { name: 'generate_content_ideas', script: `node ${BASE}/scripts/generate_content_ideas.js`, critical: true },
       { name: 'update_used_items', script: `node ${BASE}/scripts/update_used_items.js`, critical: false },
@@ -45,15 +51,18 @@ const STAGES = [
   {
     name: 'Audit',
     critical: false,
+    requiredOutputs: ['seo-audit.json', 'geo-audit.json'],
+    optionalOutputs: [],
     steps: [
       { name: 'run_seo_audit', script: `node ${BASE}/scripts/run_seo_audit.js`, critical: false },
       { name: 'run_geo_audit', script: `node ${BASE}/scripts/run_geo_audit.js`, critical: false },
-      { name: 'fetch_website_insights', script: 'node scripts/fetch_website_insights.js', critical: false },
     ]
   },
   {
     name: 'Compile',
     critical: true,
+    requiredOutputs: ['dashboard-summary.json'],
+    optionalOutputs: [],
     steps: [
       { name: 'compile_dashboard', script: `node ${BASE}/scripts/compile_dashboard.js`, critical: true },
     ]
@@ -61,6 +70,8 @@ const STAGES = [
   {
     name: 'Publish',
     critical: true,
+    requiredOutputs: [],
+    optionalOutputs: [],
     steps: [
       { name: 'publish_github', script: `node ${BASE}/scripts/publish_github.js`, critical: true },
     ]
@@ -71,83 +82,87 @@ function log(msg) {
   const line = `[${new Date().toISOString()}] ${msg}`;
   console.log(line);
   try {
+    if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
     const existing = fs.existsSync(LOG_FILE) ? fs.readFileSync(LOG_FILE, 'utf8').split('\n').slice(-300).join('\n') : '';
     fs.writeFileSync(LOG_FILE, existing + '\n' + line);
   } catch(e) {}
 }
 
 function runStep(step) {
-  return new Promise((resolve) => {
-    log(`  → Running: ${step.name}`);
-    try {
-      const out = execSync(step.script, { encoding: 'utf8', timeout: 60000 });
-      resolve({ name: step.name, status: 'PASS', output: out });
-    } catch(e) {
-      const err = e.status === 1 ? e.message.slice(-200) : `exit ${e.status}`;
-      resolve({ name: step.name, status: 'FAIL', error: err, critical: step.critical });
-    }
-  });
+  try {
+    const out = execSync(step.script, { encoding: 'utf8', timeout: 60000 });
+    return { name: step.name, status: 'PASS', output: out };
+  } catch(e) {
+    const err = e.status === 1 ? e.message.slice(-200) : `exit ${e.status}`;
+    return { name: step.name, status: 'FAIL', error: err, critical: step.critical };
+  }
 }
 
-async function runStage(stage) {
-  log(`\n📦 STAGE: ${stage.name}`);
-  const results = [];
-  
-  for (const step of stage.steps) {
-    const result = await runStep(step);
-    results.push(result);
-    
-    if (result.status === 'FAIL') {
-      if (step.critical) {
-        log(`  ❌ ${step.name} FAILED (CRITICAL) - STOPPING`);
-        return { stage: stage.name, status: 'FAIL', critical: true, results };
-      } else {
-        log(`  ⚠️  ${step.name} FAILED (non-critical) - marking stale, continuing`);
-      }
-    } else {
-      log(`  ✅ ${step.name}`);
-    }
+function computeStageStatus(stage, stepResults) {
+  // If any critical step failed, stage is FAIL
+  const criticalFailed = stepResults.filter(r => r.status === 'FAIL' && r.critical);
+  if (criticalFailed.length > 0) {
+    return 'FAIL';
   }
   
-  return { stage: stage.name, status: 'PASS', results };
+  // If any step failed (critical or not), it's PARTIAL
+  const anyFailed = stepResults.filter(r => r.status === 'FAIL');
+  if (anyFailed.length > 0) {
+    return 'PARTIAL';
+  }
+  
+  // All steps passed
+  return 'PASS';
 }
 
-async function runValidator() {
+function loadValidationReport() {
+  const REPORT_FILE = path.join(LOG_DIR, 'validation-report.json');
   try {
-    const { run } = require('./validator.js');
-    return run();
-  } catch(e) {
+    return JSON.parse(fs.readFileSync(REPORT_FILE, 'utf8'));
+  } catch (e) {
     return null;
   }
 }
 
-async function compileSummary(stageResults, validatorReport) {
+function compileSummary(stageResults, validatorReport) {
   const ig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'ig-analytics.json'), 'utf8'));
   const ideas = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'content-ideas.json'), 'utf8'));
   const hooks = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'hook-bank.json'), 'utf8'));
   
-  const staleSources = (validatorReport?.results || [])
-    .filter(r => r.status === 'STALE')
-    .map(r => r.file.replace('.json', ''));
+  const staleChecks = (validatorReport?.checks || []).filter(c => c.status === 'STALE');
+  const failedChecks = (validatorReport?.checks || []).filter(c => c.status === 'FAIL');
   
+  // Determine overall pipeline status
+  const overall = validatorReport?.overall_status || 'UNKNOWN';
+  
+  // Get top idea
   const topIdea = ideas.post_today?.[0] || ideas.ideas?.[0] || null;
   
   const summary = {
-    pipeline_status: validatorReport?.pipeline_status || 'UNKNOWN',
+    pipeline_status: overall,
     timestamp: new Date().toISOString(),
-    stage_results: stageResults.map(s => ({ stage: s.stage, status: s.status })),
-    stale_sources: staleSources,
+    stage_results: stageResults.map(s => ({
+      stage: s.stage,
+      status: s.status,
+      steps: s.results.map(r => ({ name: r.name, status: r.status })),
+    })),
+    stale_sources: staleChecks.map(c => c.label),
+    failed_sources: failedChecks.map(c => c.label),
     top_action_today: topIdea ? {
       idea: topIdea.title || topIdea.hook || 'N/A',
       format: topIdea.format || 'static',
       reason: topIdea.source_reason || '',
       cta: topIdea.best_cta || 'link in bio',
+      freshness_score: topIdea.freshness_score || 0,
     } : null,
     data_summary: {
       ig_posts: (ig.posts || []).length,
       ideas_generated: (ideas.ideas || []).length,
       hooks_tracked: (hooks.proven_hooks || []).length + (hooks.fresh_hooks_to_test || []).length,
-    }
+    },
+    weakest_sources: failedChecks.length > 0 
+      ? failedChecks.map(c => c.label) 
+      : staleChecks.map(c => c.label),
   };
   
   fs.writeFileSync(SUMMARY_FILE, JSON.stringify(summary, null, 2));
@@ -155,18 +170,24 @@ async function compileSummary(stageResults, validatorReport) {
 }
 
 function printFinalSummary(summary, validatorReport) {
+  const saTime = new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' });
+  
   console.log('\n');
   console.log('═'.repeat(60));
   console.log('📊 DAILY RUN SUMMARY');
   console.log('═'.repeat(60));
   console.log(`Pipeline Status: ${summary.pipeline_status}`);
-  console.log(`Timestamp: ${new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })}`);
+  console.log(`Timestamp: ${saTime}`);
   console.log('');
   
   console.log('STAGE RESULTS:');
   for (const s of summary.stage_results) {
-    const icon = s.status === 'PASS' ? '✅' : '❌';
+    const icon = s.status === 'PASS' ? '✅' : s.status === 'PARTIAL' ? '⚠️' : '❌';
     console.log(`  ${icon} ${s.stage}: ${s.status}`);
+    for (const step of s.steps) {
+      const stepIcon = step.status === 'PASS' ? '  ✅' : step.status === 'FAIL' ? '  ❌' : '  ⚠️';
+      console.log(`    ${stepIcon} ${step.name}`);
+    }
   }
   console.log('');
   
@@ -184,25 +205,42 @@ function printFinalSummary(summary, validatorReport) {
     console.log('');
   }
   
+  if (summary.failed_sources.length > 0) {
+    console.log('❌ FAILED SOURCES:');
+    for (const s of summary.failed_sources) {
+      console.log(`  - ${s}`);
+    }
+    console.log('');
+  }
+  
   if (summary.top_action_today) {
     console.log('🎯 TOP ACTION TODAY:');
     console.log(`  "${summary.top_action_today.idea}"`);
-    console.log(`  Format: ${summary.top_action_today.format}`);
+    console.log(`  Format: ${summary.top_action_today.format} | Freshness: ${summary.top_action_today.freshness_score}/10`);
     console.log(`  CTA: ${summary.top_action_today.cta}`);
     console.log('');
   }
   
-  const failedStages = summary.stage_results.filter(s => s.status === 'FAIL');
-  if (failedStages.length > 0) {
-    console.log('❌ FAILED STAGES:');
-    for (const s of failedStages) {
-      console.log(`  - ${s.stage}`);
+  if (summary.weakest_sources.length > 0) {
+    console.log('🔥 MOST IMPORTANT WEAKNESS:');
+    console.log(`  ${summary.weakest_sources[0]}`);
+    if (summary.weakest_sources.length > 1) {
+      console.log(`  Also stale: ${summary.weakest_sources.slice(1).join(', ')}`);
     }
     console.log('');
   }
   
   console.log('═'.repeat(60));
-  console.log(summary.pipeline_status === 'PASS' ? '✅ PIPELINE COMPLETE' : summary.pipeline_status === 'PARTIAL' ? '⚠️  PIPELINE COMPLETE - STALE DATA' : '🚫 PIPELINE FAILED');
+  
+  if (summary.pipeline_status === 'PASS') {
+    console.log('✅ PIPELINE COMPLETE - All sources fresh');
+  } else if (summary.pipeline_status === 'PARTIAL') {
+    console.log('⚠️  PIPELINE COMPLETE - Some sources stale');
+  } else if (summary.pipeline_status === 'FAIL') {
+    console.log('🚫 PIPELINE FAILED - Critical stage broken');
+  } else {
+    console.log('❓ PIPELINE STATUS UNKNOWN');
+  }
   console.log('═'.repeat(60));
 }
 
@@ -214,22 +252,46 @@ async function main() {
   const stageResults = [];
   
   for (const stage of STAGES) {
-    const result = await runStage(stage);
-    stageResults.push(result);
+    log(`\n📦 STAGE: ${stage.name}`);
     
-    // Stop if critical stage failed
-    if (result.status === 'FAIL' && result.critical) {
-      log(`\n🚫 CRITICAL STAGE FAILED: ${stage.name} - stopping pipeline`);
-      break;
+    const results = [];
+    for (const step of stage.steps) {
+      log(`  → Running: ${step.name}`);
+      const result = runStep(step);
+      results.push(result);
+      
+      if (result.status === 'FAIL') {
+        if (step.critical) {
+          log(`  ❌ ${step.name} FAILED (CRITICAL) - STOPPING`);
+          stageResults.push({ stage: stage.name, status: 'FAIL', critical: true, results });
+          log(`\n🚫 CRITICAL STAGE FAILED: ${stage.name} - stopping pipeline`);
+          
+          // Run validator to get final state
+          log('\n🔍 Running validation...');
+          execSync(`node ${BASE}/scripts/validator.js`, { encoding: 'utf8', timeout: 15000 });
+          const validatorReport = loadValidationReport();
+          const summary = compileSummary(stageResults, validatorReport);
+          printFinalSummary(summary, validatorReport);
+          return;
+        } else {
+          log(`  ⚠️  ${step.name} FAILED (non-critical) - continuing`);
+        }
+      } else {
+        log(`  ✅ ${step.name}`);
+      }
     }
+    
+    const stageStatus = computeStageStatus(stage, results);
+    stageResults.push({ stage: stage.name, status: stageStatus, results });
   }
   
-  // Validate outputs
+  // Run validator
   log('\n🔍 Running validation...');
-  const validatorReport = await runValidator();
+  execSync(`node ${BASE}/scripts/validator.js`, { encoding: 'utf8', timeout: 15000 });
+  const validatorReport = loadValidationReport();
   
   // Compile summary
-  const summary = await compileSummary(stageResults, validatorReport);
+  const summary = compileSummary(stageResults, validatorReport);
   
   // Print final summary
   printFinalSummary(summary, validatorReport);

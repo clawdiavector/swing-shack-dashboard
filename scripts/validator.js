@@ -2,6 +2,7 @@
  * validator.js
  * Validates each pipeline output before next stage runs
  * Marks each file as PASS / STALE / FAIL
+ * Writes logs/validation-report.json every run
  */
 const fs = require('fs');
 const path = require('path');
@@ -11,169 +12,200 @@ const LOG_DIR = path.join(__dirname, '..', 'logs');
 const REPORT_FILE = path.join(LOG_DIR, 'validation-report.json');
 
 const CRITICAL_FILES = [
-  'ig-analytics.json',
-  'hook-bank.json',
-  'content-ideas.json',
-  'dashboard-summary.json',
+  { file: 'ig-analytics.json', label: 'IG Analytics' },
+  { file: 'hook-bank.json', label: 'Hook Bank' },
+  { file: 'content-ideas.json', label: 'Content Ideas' },
+  { file: 'dashboard-summary.json', label: 'Dashboard Summary' },
 ];
 
 const NON_CRITICAL_FILES = [
-  'golf-news.json',
-  'reddit-trends.json',
-  'ga4-metrics.json',
-  'seo-rankings.json',
-  'seo-audit.json',
-  'ab-tests.json',
-  'used-items.json',
+  { file: 'golf-news.json', label: 'Golf News' },
+  { file: 'reddit-trends.json', label: 'Reddit Trends' },
+  { file: 'ga4-metrics.json', label: 'GA4 Fetch' },
+  { file: 'seo-rankings.json', label: 'SEO Rankings' },
+  { file: 'seo-audit.json', label: 'SEO Audit' },
+  { file: 'geo-audit.json', label: 'GEO Audit' },
+  { file: 'ab-tests.json', label: 'A/B Test Input' },
+  { file: 'used-items.json', label: 'Used Items' },
 ];
 
 const REQUIRED_KEYS = {
   'ig-analytics.json': ['updated', 'posts'],
-  'hook-bank.json': ['updated', 'proven_hooks'],
+  'hook-bank.json': ['updated'],
   'content-ideas.json': ['updated', 'ideas'],
   'golf-news.json': ['updated'],
   'reddit-trends.json': ['updated'],
   'ga4-metrics.json': ['updated'],
   'seo-rankings.json': ['updated'],
   'seo-audit.json': ['updated'],
+  'geo-audit.json': ['updated'],
   'ab-tests.json': ['updated'],
   'used-items.json': ['updated'],
 };
 
-function validateFile(filename) {
-  const filepath = path.join(DATA_DIR, filename);
+function validateFile(name, label) {
+  const { file } = name;
+  const filepath = path.join(DATA_DIR, file);
   
-  // Check exists
+  // 1. File exists?
   if (!fs.existsSync(filepath)) {
-    return { file: filename, status: 'FAIL', reason: 'file missing' };
+    return { file, label, status: 'FAIL', reason: 'File missing' };
   }
   
-  // Check not empty
+  // 2. Not empty?
   const stats = fs.statSync(filepath);
   if (stats.size === 0) {
-    return { file: filename, status: 'FAIL', reason: 'file is empty' };
+    return { file, label, status: 'FAIL', reason: 'File is empty' };
   }
   
-  // Check JSON validity
+  // 3. Valid JSON?
   let data;
   try {
     data = JSON.parse(fs.readFileSync(filepath, 'utf8'));
   } catch (e) {
-    return { file: filename, status: 'FAIL', reason: 'invalid JSON' };
+    return { file, label, status: 'FAIL', reason: 'Invalid JSON' };
   }
   
-  // Check required keys
-  const required = REQUIRED_KEYS[filename] || [];
+  // 4. Required keys present?
+  const required = REQUIRED_KEYS[file] || [];
   const missing = required.filter(k => !data.hasOwnProperty(k));
   if (missing.length > 0) {
-    return { file: filename, status: 'FAIL', reason: `missing keys: ${missing.join(', ')}` };
+    return { file, label, status: 'FAIL', reason: `Missing keys: ${missing.join(', ')}` };
   }
   
-  // Check timestamp freshness (within 26 hours = stale threshold)
+  // 5. Timestamp fresh?
   const updated = data.updated;
   if (!updated || updated === 'never') {
-    return { file: filename, status: 'STALE', reason: 'no timestamp' };
+    return { file, label, status: 'STALE', reason: 'Never updated - previous run used' };
   }
   
   const ageHours = (Date.now() - new Date(updated).getTime()) / 3600000;
   if (ageHours > 26) {
-    return { file: filename, status: 'STALE', reason: `${ageHours.toFixed(1)}h old` };
+    return { file, label, status: 'STALE', reason: `${ageHours.toFixed(1)}h old (stale threshold 26h)` };
   }
   
-  // Special check for arrays that should have items
-  if (filename === 'ig-analytics.json' && (!data.posts || data.posts.length === 0)) {
-    return { file: filename, status: 'STALE', reason: 'empty posts array' };
+  // 6. Not unexpectedly empty
+  if (file === 'ig-analytics.json' && (!data.posts || data.posts.length === 0)) {
+    return { file, label, status: 'STALE', reason: 'No posts in array' };
+  }
+  if (file === 'content-ideas.json' && (!data.ideas || data.ideas.length === 0)) {
+    return { file, label, status: 'STALE', reason: 'No ideas generated' };
+  }
+  if (file === 'hook-bank.json' && (!data.proven_hooks && !data.hooks)) {
+    return { file, label, status: 'STALE', reason: 'No hook data found' };
   }
   
-  if (filename === 'content-ideas.json' && (!data.ideas || data.ideas.length === 0)) {
-    return { file: filename, status: 'STALE', reason: 'empty ideas array' };
-  }
-  
-  return { file: filename, status: 'PASS', reason: 'valid', age_hours: ageHours.toFixed(1) };
+  return { file, label, status: 'PASS', reason: `Valid - ${ageHours.toFixed(1)}h old`, age_hours: parseFloat(ageHours.toFixed(1)) };
 }
 
 function validateDashboard() {
   const dashPath = path.join(__dirname, '..', 'dashboard.html');
+  
   if (!fs.existsSync(dashPath)) {
-    return { file: 'dashboard.html', status: 'FAIL', reason: 'file missing' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', status: 'FAIL', reason: 'File missing' };
   }
+  
   const stats = fs.statSync(dashPath);
-  if (stats.size < 1000) {
-    return { file: 'dashboard.html', status: 'FAIL', reason: 'file too small' };
+  if (stats.size < 5000) {
+    return { file: 'dashboard.html', label: 'Dashboard HTML', status: 'FAIL', reason: 'File too small - likely broken' };
   }
+  
   const content = fs.readFileSync(dashPath, 'utf8');
   if (!content.includes('Swing Shack') || !content.includes('Marketing Intelligence')) {
-    return { file: 'dashboard.html', status: 'FAIL', reason: 'missing expected content' };
+    return { file: 'dashboard.html', label: 'Dashboard HTML', status: 'FAIL', reason: 'Missing expected content' };
   }
-  // Check timestamp is recent
-  const match = content.match(/Last Build.*?(\d{4}\/\d{2}\/\d{2}, \d{2}:\d{2}:\d{2})/);
-  if (!match) {
-    return { file: 'dashboard.html', status: 'STALE', reason: 'no timestamp found' };
+  
+  // Find timestamp in content - look for SAST format
+  const matches = content.match(/Last Build[\s\S]*?(\d{4}\/\d{2}\/\d{2},?\s*\d{2}:\d{2}:\d{2})/);
+  if (!matches) {
+    return { file: 'dashboard.html', label: 'Dashboard HTML', status: 'STALE', reason: 'No timestamp found in dashboard' };
   }
-  return { file: 'dashboard.html', status: 'PASS', reason: 'valid dashboard', last_build: match[1] };
+  
+  const lastBuild = matches[1];
+  // Try to parse it
+  const buildDate = new Date(lastBuild.replace(',', ''));
+  if (isNaN(buildDate.getTime())) {
+    return { file: 'dashboard.html', label: 'Dashboard HTML', status: 'STALE', reason: 'Unparseable timestamp in dashboard' };
+  }
+  
+  const ageHours = (Date.now() - buildDate.getTime()) / 3600000;
+  if (ageHours > 26) {
+    return { file: 'dashboard.html', label: 'Dashboard HTML', status: 'STALE', reason: `Dashboard ${ageHours.toFixed(1)}h old`, age_hours: parseFloat(ageHours.toFixed(1)) };
+  }
+  
+  return { file: 'dashboard.html', label: 'Dashboard HTML', status: 'PASS', reason: `Last build ${lastBuild}`, age_hours: parseFloat(ageHours.toFixed(1)), last_build: lastBuild };
 }
 
 function run() {
-  const results = [];
+  const checks = [];
   
   // Validate critical files
-  for (const f of CRITICAL_FILES) {
-    const result = validateFile(f);
-    result.critical = true;
-    result.action = result.status === 'FAIL' ? 'STOP_PIPELINE' : 'continue';
-    results.push(result);
+  for (const item of CRITICAL_FILES) {
+    checks.push(validateFile(item.file, item.label));
   }
   
   // Validate non-critical files
-  for (const f of NON_CRITICAL_FILES) {
-    const result = validateFile(f);
-    result.critical = false;
-    result.action = result.status === 'FAIL' ? 'MARK_STALE' : 'continue';
-    results.push(result);
+  for (const item of NON_CRITICAL_FILES) {
+    checks.push(validateFile(item.file, item.label));
   }
   
   // Validate dashboard
-  const dashResult = validateDashboard();
-  dashResult.critical = true;
-  dashResult.action = dashResult.status === 'FAIL' ? 'STOP_PIPELINE' : 'continue';
-  results.push(dashResult);
+  checks.push(validateDashboard());
   
-  // Summary
-  const passed = results.filter(r => r.status === 'PASS').length;
-  const stale = results.filter(r => r.status === 'STALE').length;
-  const failed = results.filter(r => r.status === 'FAIL').length;
-  const criticalFailed = results.filter(r => r.critical && r.status === 'FAIL').length;
+  // Compute overall status
+  const failures = checks.filter(c => c.status === 'FAIL');
+  const stales = checks.filter(c => c.status === 'STALE');
+  const passes = checks.filter(c => c.status === 'PASS');
+  
+  const overall = failures.length > 0 ? 'FAIL' : stales.length > 0 ? 'PARTIAL' : 'PASS';
   
   const report = {
     timestamp: new Date().toISOString(),
-    summary: { pass: passed, stale, fail: failed },
-    pipeline_status: criticalFailed > 0 ? 'FAIL' : stale > 0 ? 'PARTIAL' : 'PASS',
-    critical_failure: criticalFailed > 0,
-    should_stop: criticalFailed > 0,
-    results,
+    overall_status: overall,
+    summary: {
+      pass: passes.length,
+      stale: stales.length,
+      fail: failures.length,
+    },
+    critical_failure: failures.length > 0,
+    should_stop: failures.filter(c => CRITICAL_FILES.find(f => f.file === c.file)).length > 0,
+    checks,
   };
   
+  // Write report
+  if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
   fs.writeFileSync(REPORT_FILE, JSON.stringify(report, null, 2));
   
   // Console output
   console.log('🔍 VALIDATION REPORT');
-  console.log('='.repeat(50));
-  console.log(`Pipeline Status: ${report.pipeline_status}`);
-  console.log(`PASS: ${passed} | STALE: ${stale} | FAIL: ${failed}`);
+  console.log('═'.repeat(50));
+  console.log(`Pipeline Status: ${overall}`);
+  console.log(`PASS: ${passes.length} | STALE: ${stales.length} | FAIL: ${failures.length}`);
   console.log('');
-  for (const r of results) {
-    const icon = r.status === 'PASS' ? '✅' : r.status === 'STALE' ? '⚠️' : '❌';
-    const crit = r.critical ? '🔴' : '🟡';
-    console.log(`${icon} ${r.file} (${r.status}) ${crit} - ${r.reason}`);
+  console.log('CRITICAL FILES:');
+  for (const c of checks.filter(c => CRITICAL_FILES.find(f => f.file === c.file))) {
+    const icon = c.status === 'PASS' ? '✅' : c.status === 'STALE' ? '⚠️' : '❌';
+    console.log(`  ${icon} ${c.label}: ${c.status} — ${c.reason}`);
   }
   console.log('');
-  console.log(criticalFailed > 0 ? '🚫 STOPPING PIPELINE - Critical failure' : stale > 0 ? '⚠️  CONTINUING - Non-critical stale data' : '✅ ALL CLEAR');
+  console.log('NON-CRITICAL FILES:');
+  for (const c of checks.filter(c => !CRITICAL_FILES.find(f => f.file === c.file))) {
+    const icon = c.status === 'PASS' ? '✅' : c.status === 'STALE' ? '⚠️' : '❌';
+    console.log(`  ${icon} ${c.label}: ${c.status} — ${c.reason}`);
+  }
+  console.log('');
+  
+  if (overall === 'FAIL') {
+    console.log('🚫 STOPPING PIPELINE - Critical failure');
+  } else if (overall === 'PARTIAL') {
+    console.log('⚠️  CONTINUING - Some sources stale but critical files OK');
+  } else {
+    console.log('✅ ALL CLEAR - All sources fresh and valid');
+  }
   
   return report;
 }
 
 module.exports = { run, validateFile, validateDashboard };
 
-if (require.main === module) {
-  run();
-}
+if (require.main === module) run();
