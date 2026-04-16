@@ -1,245 +1,42 @@
 {
-  "pipeline_status": "PARTIAL",
-  "timestamp": "2026-04-16T12:59:44.026Z",
-  "trust_score": 9,
-  "trust_deductions": [
-    "YouTube Trends synthetic (-1)"
-  ],
-  "stage_results": [
+  "updated": "2026-04-16T13:04:55.864Z",
+  "sources": [
     {
-      "stage": "Research",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "sync_ig_analytics",
-          "status": "PASS"
-        },
-        {
-          "name": "fetch_golf_news",
-          "status": "PASS"
-        },
-        {
-          "name": "fetch_reddit_trends",
-          "status": "PASS"
-        },
-        {
-          "name": "fetch_seo_rankings",
-          "status": "PASS"
-        },
-        {
-          "name": "fetch_ga4",
-          "status": "PASS"
-        }
-      ]
+      "name": "IG Analytics",
+      "updated": "2026-04-16T09:39:51.448Z"
     },
     {
-      "stage": "Analysis",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "analyse_hooks",
-          "status": "PASS"
-        }
-      ]
+      "name": "GA4",
+      "updated": "2026-04-16T13:04:36.735Z"
     },
     {
-      "stage": "Ideas",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "generate_content_ideas",
-          "status": "PASS"
-        },
-        {
-          "name": "update_used_items",
-          "status": "PASS"
-        }
-      ]
+      "name": "Reddit",
+      "updated": "2026-04-16T13:04:25.200Z"
     },
     {
-      "stage": "YouTube",
-      "status": "PARTIAL",
-      "steps": [
-        {
-          "name": "fetch_youtube_trends",
-          "status": "FAIL"
-        },
-        {
-          "name": "generate_youtube_ideas",
-          "status": "PASS"
-        }
-      ]
+      "name": "Golf News",
+      "updated": "2026-04-16T13:04:24.180Z"
     },
     {
-      "stage": "Audit",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "run_seo_audit",
-          "status": "PASS"
-        },
-        {
-          "name": "run_geo_audit",
-          "status": "PASS"
-        }
-      ]
+      "name": "SEO Rankings",
+      "updated": "2026-04-16T13:04:34.807Z"
     },
     {
-      "stage": "Insights",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "fetch_website_insights",
-          "status": "PASS"
-        }
-      ]
+      "name": "SEO Audit",
+      "updated": "2026-04-16T13:04:48.649Z"
     },
     {
-      "stage": "Compile",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "compile_dashboard",
-          "status": "PASS"
-        }
-      ]
+      "name": "Hook Bank",
+      "updated": "2026-04-16T13:04:36.819Z"
     },
     {
-      "stage": "Publish",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "publish_github",
-          "status": "PASS"
-        }
-      ]
+      "name": "Ideas",
+      "updated": "2026-04-16T13:04:36.864Z"
     }
   ],
-  "stale_sources": [],
-  "failed_sources": [],
-  "synthetic_sources": [
-    {
-      "label": "YouTube Trends",
-      "reason": "Synthetic fallback - no live YouTube data available"
-    }
-  ],
-  "script_failures": [
-    "YouTube Trends"
-  ],
-  "fallbacks_used": [],
-  "top_action_today": {
-    "idea": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
-    "format": "static",
-    "reason": "Hook generated 5.77% eng, 52 reach",
-    "cta": "Link in bio · Book your session",
-    "freshness_score": 9
-  },
-  "data_summary": {
-    "ig_posts": 64,
-    "ideas_generated": 15,
-    "hooks_tracked": 64
-  },
-  "validator": {
-    "overall_status": "PARTIAL",
-    "live_fresh": 13,
-    "synthetic": 1,
-    "stale": 0,
-    "failed": 0,
-    "total": 16,
-    "script_failures": 1,
-    "fallbacks_used": 0,
-    "qa_warnings": [
-      {
-        "file": "YouTube Trends",
-        "warnings": [
-          "YouTube Trends uses synthetic SA-market data"
-        ]
-      }
-    ],
-    "source_integrity": [
-      {
-        "label": "IG Analytics",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Hook Bank",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Content Ideas",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Dashboard Summary",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Golf News",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Reddit Trends",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "GA4 Metrics",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "SEO Rankings",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "SEO Audit",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "GEO Audit",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "A/B Test Input",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Used Items",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "YouTube Trends",
-        "mode": "SYNTHETIC",
-        "status": "PASS"
-      },
-      {
-        "label": "YouTube Ideas",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Website Insights",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Dashboard HTML",
-        "mode": "LIVE",
-        "status": "PASS"
-      }
-    ]
-  },
-  "weakest_sources": [
-    "YouTube Trends"
-  ]
+  "stale_count": 0,
+  "top_recommendation": "That slice costing you yards off the tee? TrackMan found it ...",
+  "total_posts": 64,
+  "total_ideas": 15,
+  "hooks_tracked": 56
 }

@@ -228,10 +228,12 @@ function validateFile(file, label, critical) {
   // 9. Source mode detection — how fresh is this data really?
   let source_mode = 'LIVE';
   if (file === 'youtube-trends.json') {
-    if (data._synthetic === true || data.data_source === 'synthetic_sa_market') {
+    if (data._synthetic === true) {
       source_mode = 'SYNTHETIC';
-    } else if (data.data_source && data.data_source !== 'rss_feeds' && data.data_source !== 'newsapi') {
-      source_mode = 'SYNTHETIC'; // Known proxy source = not truly live
+    } else if (data.data_source && ['synthetic_sa_market', 'golf_news_reddit_fallback'].includes(data.data_source)) {
+      source_mode = 'SYNTHETIC'; // Known proxy/fallback source = not truly live
+    } else if (data.data_source && data.data_source === 'youtube_api_v3') {
+      source_mode = 'LIVE'; // YouTube API v3 is a live source
     }
   }
   

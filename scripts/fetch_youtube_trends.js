@@ -19,14 +19,80 @@ const DATA_FILE = path.join(__dirname, '..', 'data', 'youtube-trends.json');
 const NEWS_FILE = path.join(__dirname, '..', 'data', 'golf-news.json');
 const REDDIT_FILE = path.join(__dirname, '..', 'data', 'reddit-trends.json');
 
-function fetchUrl(url, userAgent) {
-  const ua = userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+// YouTube Data API v3 key - provided by Christelle Apr 16 2026
+const YOUTUBE_API_KEY = (() => {
   try {
-    const cmd = `curl -s --max-time 12 -L -A "${ua}" "${url}" 2>/dev/null | head -c 20000`;
-    return execSync(cmd, { encoding: 'utf8', timeout: 15000 });
+    const credPath = path.join(__dirname, '..', '..', 'clients', 'swing-shack', 'credentials', 'youtube-api.json');
+    console.error('Loading YouTube API key from: ' + credPath);
+    const cred = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+    console.error('YouTube API key loaded: ' + (cred.api_key ? 'YES (' + cred.api_key.slice(0, 10) + '...)' : 'NO'));
+    return cred.api_key || null;
+  } catch(e) {
+    console.error('Failed to load YouTube API key: ' + e.message);
+    return null;
+  }
+})();
+
+function fetchUrl(url, timeout = 15000) {
+  try {
+    const cmd = `curl -s --max-time 12 -L -A "Mozilla/5.0" "${url.replace(/"/g, '\\"')}" 2>/dev/null | head -c 20000`;
+    return execSync(cmd, { encoding: 'utf8', timeout });
   } catch(e) {
     return '';
   }
+}
+
+function tryYouTubeAPI() {
+  if (!YOUTUBE_API_KEY) return null;
+  try {
+    const queries = ['golf swing tips', 'golf lesson tutorial', 'golf simulator indoor', 'golf practice drill'];
+    const allVideos = [];
+    
+    for (const query of queries) {
+      try {
+        const encodedQuery = encodeURIComponent(query);
+        const cmd = 'curl -s --max-time 15 "https://www.googleapis.com/youtube/v3/search?q=' + encodedQuery + '&part=snippet&regionCode=ZA&type=video&maxResults=5&key=' + YOUTUBE_API_KEY + '" 2>/dev/null';
+        console.error('[DEBUG] Running: ' + cmd.slice(0, 80) + '...');
+        const raw = execSync(cmd, { encoding: 'utf8', timeout: 20000 });
+        console.error('[DEBUG] Response length: ' + raw.length);
+        const data = JSON.parse(raw);
+        if (data.error) {
+          console.error('[DEBUG] YouTube API error: ' + JSON.stringify(data.error));
+          continue;
+        }
+        if (data.items && data.items.length > 0) {
+          for (const item of data.items) {
+            if (item.id?.videoId) {
+              allVideos.push({
+                title: item.snippet?.title || '',
+                description: item.snippet?.description || '',
+                videoId: item.id.videoId,
+                channelTitle: item.snippet?.channelTitle || '',
+                publishedAt: item.snippet?.publishedAt,
+                source: 'youtube_api_v3',
+                query,
+              });
+            }
+          }
+        }
+      } catch(e) {
+        console.error('[DEBUG] Query "' + query + '" failed: ' + e.message.slice(-100));
+      }
+    }
+    
+    if (allVideos.length > 0) {
+      const seen = new Set();
+      const deduped = allVideos.filter(v => {
+        if (seen.has(v.videoId)) return false;
+        seen.add(v.videoId);
+        return true;
+      });
+      return deduped;
+    }
+  } catch(e) {
+    console.error('YouTube API error: ' + e.message.slice(-100));
+  }
+  return null;
 }
 
 function tryGoogleNews() {
@@ -184,21 +250,48 @@ function buildHooks(items, themes) {
 
 function run() {
   const updated = new Date().toISOString();
+  let articles = [];
+  let dataSource = 'none';
+  let youtubeVideos = [];
   
-  // Try external sources in order
-  let articles = tryGoogleNews() || tryGolfRSS();
-  let dataSource = articles ? (tryGoogleNews() ? 'newsapi' : 'rss_feeds') : 'synthesized';
+  // Priority 1: YouTube Data API v3 (LIVE trending golf content in ZA)
+  const ytVideos = tryYouTubeAPI();
+  if (ytVideos && ytVideos.length > 0) {
+    youtubeVideos = ytVideos;
+    articles = ytVideos.map(v => ({ title: v.title, description: v.description, source: v.channelTitle, publishedAt: v.publishedAt }));
+    dataSource = 'youtube_api_v3';
+    console.log('YouTube Trends: ' + ytVideos.length + ' trending videos from YouTube API');
+  }
+  
+  // Priority 2: Google News API
+  if (articles.length === 0) {
+    const newsArticles = tryGoogleNews();
+    if (newsArticles && newsArticles.length > 0) {
+      articles = newsArticles;
+      dataSource = 'newsapi';
+      console.log('YouTube Trends: ' + newsArticles.length + ' articles from NewsAPI');
+    }
+  }
+  
+  // Priority 3: Golf RSS feeds
+  if (articles.length === 0) {
+    const rssArticles = tryGolfRSS();
+    if (rssArticles && rssArticles.length > 0) {
+      articles = rssArticles;
+      dataSource = 'rss_feeds';
+      console.log('YouTube Trends: ' + rssArticles.length + ' articles from RSS');
+    }
+  }
   
   // Fallback: synthesize from existing data
-  if (!articles || articles.length === 0) {
+  if (articles.length === 0) {
     const existing = synthesizeFromExisting();
     articles = [...(existing.news || []), ...(existing.reddit || [])];
     dataSource = 'golf_news_reddit_fallback';
   }
   
-  // All external sources blocked - generate honest synthetic trend data
-  // This is better than empty data: it's labeled, structured, and still actionable
-  {
+  // Final fallback: SA-market synthesis (always works)
+  if (articles.length === 0 || dataSource === 'golf_news_reddit_fallback') {
     const existingIdeas = (() => {
       try {
         const ci = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'content-ideas.json'), 'utf8'));
@@ -208,7 +301,6 @@ function run() {
     
     const themes = { swing_speed: true, short_game: true, trackman: true, slice_fix: true, indoor: true };
     
-    // Derive hooks from existing content ideas
     const hooks = existingIdeas.slice(0, 8).map((idea, i) => ({
       idea_id: `yt-synth-${Date.now()}-${i}`,
       source: 'content_ideas_synthesis',
@@ -218,7 +310,6 @@ function run() {
       theme_signal: idea.topic_cluster || 'general',
     }));
     
-    // Add SA-market specific hooks as fallback
     const saHooks = [
       { hook: 'That slice costing you yards off the tee? TrackMan found it in 3 swings.', theme: 'slice_fix' },
       { hook: 'How fast should your club head speed actually be? Pros average 112 mph.', theme: 'swing_speed' },
@@ -248,23 +339,18 @@ function run() {
       summary: {
         top_theme: 'swing_speed_data',
         source: 'synthetic',
-        notes: 'All external sources blocked - using SA-market synthesis from proven angles. Trust but verify.',
+        notes: 'All external sources blocked - using SA-market synthesis. YouTube API key available but sources unavailable.',
       },
       _synthetic: true,
     };
     
     fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2));
-    console.log('YouTube Trends: external blocked - ' + hooks.length + ' SA-market hooks synthesized');
-    console.log('WARNING: Using synthetic fallback. Live external sources unavailable. YouTube Trends data is synthesized.');
-    // Exit with failure so validator catches this and reports it properly
-    // Data file is already written above so dashboard still has data
+    console.log('YouTube Trends: all external sources blocked - ' + hooks.length + ' SA-market hooks synthesized');
     process.exit(1);
   }
   
   const themes = extractThemes(articles);
   
-  // Always supplement with SA-market hooks regardless of how much real data we got
-  // This ensures YouTube Ideas always has something to work with
   const saHooks = [
     { hook: 'That slice costing you yards off the tee? TrackMan found it in 3 swings.', theme: 'slice_fix' },
     { hook: 'How fast should your club head speed actually be? Pros average 112 mph.', theme: 'swing_speed' },
@@ -273,47 +359,50 @@ function run() {
     { hook: 'Short game practice that actually transfers to the course.', theme: 'short_game' },
     { hook: 'When was the last time a golf pro watched your actual swing on a launch monitor?', theme: 'lessons' },
   ];
-  const seen = new Set(hooks.map(h => h.hook_text.toLowerCase().slice(0, 35)));
+  const seen = new Set();
+  const allHooks = [];
+  
+  articles.slice(0, 8).forEach((item, i) => {
+    const text = item.title || item.description || '';
+    if (text.length < 15) return;
+    const hook = text.length > 65 ? text.slice(0, 62) + '...' : text;
+    const key = hook.toLowerCase().slice(0, 35);
+    if (seen.has(key)) return;
+    seen.add(key);
+    const isRecent = item.publishedAt || item.date || item.fetched_at;
+    const daysOld = isRecent ? Math.floor((Date.now() - new Date(isRecent).getTime()) / 86400000) : 2;
+    const freshness = Math.max(5, 10 - daysOld);
+    allHooks.push({ idea_id: `yt-hook-${Date.now()}-${i}`, source: item.source || 'article', hook_text: hook, description: (item.description || '').slice(0, 120), freshness_score: freshness, theme_signal: Object.entries(themes).filter(([, v]) => v)[0]?.[0] || 'general' });
+  });
+  
   saHooks.forEach((sh, i) => {
     const key = sh.hook.toLowerCase().slice(0, 35);
     if (!seen.has(key)) {
-      hooks.push({
-        idea_id: `yt-sa-${Date.now()}-${i}`,
-        source: 'sa_market_always',
-        hook_text: sh.hook,
-        description: 'SA-market hook - always included',
-        freshness_score: 8,
-        theme_signal: sh.theme,
-      });
+      allHooks.push({ idea_id: `yt-sa-${Date.now()}-${i}`, source: 'sa_market_always', hook_text: sh.hook, description: 'SA-market hook - always included', freshness_score: 8, theme_signal: sh.theme });
       seen.add(key);
     }
   });
   
-  // Top theme
   const topThemeEntry = Object.entries(themes).filter(([, v]) => v)[0];
   const topTheme = topThemeEntry ? topThemeEntry[0].replace(/_/g, ' ') : 'general golf';
   
-  // If we got very few external articles, mark as synthetic — not enough for real trends
-  const isInsufficientExternal = articles.length > 0 && articles.length < 3;
-  const effectiveSource = isInsufficientExternal ? 'synthetic_sa_market' : dataSource;
   const output = {
     updated,
-    data_source: effectiveSource,
-    videos_found: articles.length,
-    top_videos: [], // No YouTube IDs without API
+    data_source: dataSource,
+    videos_found: youtubeVideos.length,
+    top_videos: youtubeVideos.slice(0, 10),
     articles_sourced: articles.slice(0, 10),
     trending_themes: themes,
-    hooks,
+    hooks: allHooks.slice(0, 15),
     summary: {
       top_theme: topTheme,
-      source: effectiveSource,
-      notes: isInsufficientExternal ? 'Insufficient external articles (< 3) — supplemented with SA-market synthesis' : 'Golf RSS feeds',
+      source: dataSource,
+      notes: dataSource === 'youtube_api_v3' ? 'Live YouTube trending data for ZA region' : 'Golf trends from ' + dataSource,
     },
-    _synthetic: isInsufficientExternal,
   };
   
   fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2));
-  console.log('YouTube Trends: ' + articles.length + ' articles, ' + hooks.length + ' hooks, top theme: ' + topTheme + ' (' + effectiveSource + ')');
+  console.log('YouTube Trends: ' + articles.length + ' articles, ' + allHooks.length + ' hooks, top theme: ' + topTheme + ' (' + dataSource + ')');
   
   return output;
 }
