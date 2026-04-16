@@ -117,6 +117,14 @@ function runStep(step) {
   }
 }
 
+/**
+ * Stage PASS rule (locked):
+ * A stage may be PASS only if all scripts assigned to that stage either:
+ * - succeeded with LIVE output (no _synthetic flag), OR
+ * - are explicitly excluded from stage health (not in requiredOutputs)
+ * Any SYNTHETIC, STALE, or failed non-critical script makes the stage PARTIAL.
+ * Any failed critical script makes the stage FAIL.
+ */
 function computeStageStatus(stage, stepResults, staleOutputs) {
   // If any critical step failed, stage is FAIL
   const criticalFailed = stepResults.filter(r => r.status === 'FAIL' && r.critical);
@@ -298,21 +306,25 @@ function printFinalSummary(summary, validatorReport) {
   const liveFresh = v?.summary?.live_fresh || 0;
   const syntheticFiles = v?.summary?.synthetic || 0;
   console.log('VALIDATOR: ' + (v?.overall_status || 'UNKNOWN'));
-  console.log('  Live fresh: ' + liveFresh + '/' + (v?.summary?.total || 0) + ' checked');
+  console.log('  Live fresh: ' + liveFresh + '/' + (v?.summary?.total || 0));
   if (syntheticFiles > 0) console.log('  Synthetic: ' + syntheticFiles + '/' + (v?.summary?.total || 0));
-  if (scriptFails > 0) console.log('  Script failures: ' + scriptFails + (fallbacksUsed > 0 ? ' (' + fallbacksUsed + ' used fallback)' : ''));
+  if (scriptFails > 0) console.log('  Failed scripts: ' + scriptFails + (fallbacksUsed > 0 ? ' (' + fallbacksUsed + ' used fallback)' : ''));
   console.log('');
   
-  // SOURCE MODE - which sources are live vs synthetic
-  const syntheticSources = (v?.checks || []).filter(c => c.source_mode === 'SYNTHETIC').map(c => c.label);
+  // SOURCE MODE - per-source integrity
   const staleSources = (v?.checks || []).filter(c => c.data_status === 'STALE').map(c => c.label);
-  if (syntheticSources.length > 0 || staleSources.length > 0) {
+  const failedSources = (v?.checks || []).filter(c => c.data_status === 'FAIL').map(c => c.label);
+  if (syntheticSources.length > 0 || staleSources.length > 0 || failedSources.length > 0) {
     console.log('SOURCE MODE:');
     for (const c of (v?.checks || [])) {
       if (c.source_mode === 'SYNTHETIC') {
-        console.log('  ⚠️  ' + c.label + ': SYNTHETIC fallback (no live external source)');
+        console.log('  ' + c.label + ': SYNTHETIC');
       } else if (c.source_mode === 'STALE_FALLBACK') {
-        console.log('  ⚠️  ' + c.label + ': STALE_FALLBACK (fresh fetch failed, previous data used)');
+        console.log('  ' + c.label + ': STALE_FALLBACK');
+      } else if (c.data_status === 'STALE') {
+        console.log('  ' + c.label + ': STALE');
+      } else if (c.data_status === 'FAIL') {
+        console.log('  ' + c.label + ': FAIL');
       }
     }
     console.log('');

@@ -334,7 +334,7 @@ function run() {
   console.log('SOURCE INTEGRITY:');
   for (const c of checks) {
     const mode = c.source_mode || 'LIVE';
-    const sym = mode === 'LIVE' ? 'LIVE' : mode === 'SYNTHETIC' ? 'SYNTH' : mode === 'STALE_FALLBACK' ? 'STALE_FALLBACK' : mode === 'FAILED' ? 'FAIL' : mode === 'STALE' ? 'STALE' : 'LIVE';
+    const sym = mode === 'LIVE' ? 'LIVE' : mode === "SYNTHETIC" ? "SYNTHETIC" : mode === 'STALE_FALLBACK' ? 'STALE_FALLBACK' : mode === 'FAILED' ? 'FAIL' : mode === 'STALE' ? 'STALE' : 'LIVE';
     console.log('  ' + c.label + ': ' + sym);
   }
   console.log('');
@@ -360,7 +360,7 @@ function run() {
     const icon = c.data_status === 'PASS' ? 'PASS' : c.data_status === 'STALE' ? 'STALE' : 'FAIL';
     const fallback = c.fallback_used ? ' [fallback]' : '';
     const script = c.script_status === 'FAIL' ? ' [SCRIPT FAILED]' : '';
-    const mode = c.source_mode === 'SYNTHETIC' ? ' [SYNTH]' : c.source_mode === 'STALE_FALLBACK' ? ' [STALE_FALLBACK]' : '';
+    const mode = c.source_mode === "SYNTHETIC" ? " [SYNTHETIC]"' : c.source_mode === 'STALE_FALLBACK' ? ' [STALE_FALLBACK]' : '';
     console.log('  ' + icon + ': ' + c.label + fallback + script + mode + ' - ' + c.reason);
   }
   console.log('');
