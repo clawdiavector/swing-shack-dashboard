@@ -105,7 +105,7 @@ function computeStageStatus(stage, stepResults, staleOutputs) {
     return 'FAIL';
   }
   
-  // If any required output is stale, it's PARTIAL
+  // Check for any failed outputs in this stage
   const requiredStale = (stage.requiredOutputs || []).filter(f => staleOutputs.includes(f));
   if (requiredStale.length > 0) {
     return 'PARTIAL';
@@ -143,27 +143,27 @@ function compileSummary(stageResults, validatorReport) {
   
   const staleChecks = checks.filter(c => c.status === 'STALE');
   const failedChecks = checks.filter(c => c.status === 'FAIL');
-  const passChecks = checks.filter(c => c.status === 'PASS');
+  const scriptFails = checks.filter(c => c.script_status === 'FAIL');
+  const fallbacks = checks.filter(c => c.fallback_used === true);
   
-  // Trust Score calculation
+  // Trust Score - machine derived from validator checks
+  // -2 per failed file, -1 per stale file, -1 per script failure (already counted in fail/stale)
   let trustScore = 10;
   const trustDeductions = [];
   
-  const ga4Check = checks.find(c => c.label === 'GA4 Fetch');
-  const igCheck = checks.find(c => c.label === 'IG Analytics');
-  const redditCheck = checks.find(c => c.label === 'Reddit Trends');
-  const newsCheck = checks.find(c => c.label === 'Golf News');
-  const seoCheck = checks.find(c => c.label === 'SEO Rankings');
-  const abCheck = checks.find(c => c.label === 'A/B Test Input');
-  const usedCheck = checks.find(c => c.label === 'Used Items');
-  
-  if (igCheck?.status !== 'PASS') { trustScore -= 2; trustDeductions.push('IG stale (-2)'); }
-  if (redditCheck?.status !== 'PASS') { trustScore -= 1; trustDeductions.push('Reddit stale (-1)'); }
-  if (newsCheck?.status !== 'PASS') { trustScore -= 1; trustDeductions.push('Golf News stale (-1)'); }
-  if (seoCheck?.status !== 'PASS') { trustScore -= 2; trustDeductions.push('SEO stale (-2)'); }
-  if (ga4Check?.status !== 'PASS') { trustScore -= 2; trustDeductions.push('GA4 stale (-2)'); }
-  if (abCheck?.status !== 'PASS') { trustScore -= 1; trustDeductions.push('A/B stale (-1)'); }
-  if (usedCheck?.status !== 'PASS') { trustScore -= 1; trustDeductions.push('Used Items stale (-1)'); }
+  // Stale non-critical = -1 each (trust already penalised for missing freshness)
+  for (const c of staleChecks) {
+    trustScore -= 1;
+    trustDeductions.push(`${c.label} stale (-1)`);
+  }
+  // Failed = -2 each (more severe than stale)
+  for (const c of failedChecks) {
+    if (!staleChecks.find(s => s.file === c.file)) { // don't double count
+      trustScore -= 2;
+      trustDeductions.push(`${c.label} failed (-2)`);
+    }
+  }
+  trustScore = Math.max(0, trustScore);
   
   const overall = failedChecks.length > 0 ? 'FAIL' : staleChecks.length > 0 ? 'PARTIAL' : 'PASS';
   
@@ -181,6 +181,8 @@ function compileSummary(stageResults, validatorReport) {
     })),
     stale_sources: staleChecks.map(c => c.label),
     failed_sources: failedChecks.map(c => c.label),
+    script_failures: scriptFails.map(c => c.label),
+    fallbacks_used: fallbacks.map(c => c.label),
     top_action_today: topIdea ? {
       idea: topIdea.title || topIdea.hook || 'N/A',
       format: topIdea.format || 'static',
@@ -223,10 +225,20 @@ function printFinalSummary(summary, validatorReport) {
     console.log(`  ${icon} ${s.stage}: ${s.status}`);
     for (const step of s.steps) {
       const stepIcon = step.status === 'PASS' ? '  ✅' : step.status === 'FAIL' ? '  ❌' : '  ⚠️';
-      console.log(`    ${stepIcon} ${step.name}`);
+      const scriptDetail = step.script_status === 'FAIL' ? ' [SCRIPT FAILED]' : '';
+      const fallbackDetail = step.fallback_used ? ' [fallback used]' : '';
+      console.log(`    ${stepIcon} ${step.name}${scriptDetail}${fallbackDetail}`);
     }
   }
   console.log('');
+  
+  if (summary.script_failures.length > 0) {
+    console.log('🔴 SCRIPT FAILURES:');
+    for (const s of summary.script_failures) {
+      console.log(`  - ${s}`);
+    }
+    console.log('');
+  }
   
   console.log('DATA SUMMARY:');
   console.log(`  IG Posts: ${summary.data_summary.ig_posts}`);
@@ -331,7 +343,8 @@ async function main() {
       } catch { return false; }
     });
     
-    const stageStatus = computeStageStatus(stage, results, staleOutputs);
+    // Now compute stage status based on script results + stale outputs
+  const stageStatus = computeStageStatus(stage, results, staleOutputs);
     stageResults.push({ stage: stage.name, status: stageStatus, results, staleOutputs });
   }
   

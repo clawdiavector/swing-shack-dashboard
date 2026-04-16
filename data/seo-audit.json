@@ -1,15 +1,39 @@
 {
-  "updated": "2026-04-16T11:49:01.708Z",
+  "updated": "2026-04-16T11:54:31.150Z",
   "site": "https://swingshack.co.za",
-  "total_findings": 15,
-  "high_severity": 3,
-  "medium_severity": 6,
-  "low_severity": 6,
+  "total_findings": 16,
+  "high_severity": 8,
+  "medium_severity": 4,
+  "low_severity": 4,
   "recommendations": [
     {
       "type": "missing_meta_description",
       "severity": "high",
       "message": "Missing meta description",
+      "page": "Homepage",
+      "action": "FIX ASAP",
+      "priority": 1
+    },
+    {
+      "type": "missing_h1",
+      "severity": "high",
+      "message": "No H1 found",
+      "page": "Homepage",
+      "action": "FIX ASAP",
+      "priority": 1
+    },
+    {
+      "type": "missing_meta_description",
+      "severity": "high",
+      "message": "Missing meta description",
+      "page": "Membership",
+      "action": "FIX ASAP",
+      "priority": 1
+    },
+    {
+      "type": "missing_h1",
+      "severity": "high",
+      "message": "No H1 found",
       "page": "Membership",
       "action": "FIX ASAP",
       "priority": 1
@@ -23,6 +47,14 @@
       "priority": 1
     },
     {
+      "type": "missing_h1",
+      "severity": "high",
+      "message": "No H1 found",
+      "page": "Coaching",
+      "action": "FIX ASAP",
+      "priority": 1
+    },
+    {
       "type": "missing_meta_description",
       "severity": "high",
       "message": "Missing meta description",
@@ -31,49 +63,41 @@
       "priority": 1
     },
     {
-      "type": "title_too_short",
-      "severity": "medium",
-      "message": "Title too short (23 chars): \"503 Service Unavailable\"",
-      "page": "Membership",
-      "action": "Fix this week",
-      "priority": 2
-    },
-    {
-      "type": "missing_local_signals",
-      "severity": "medium",
-      "message": "Page missing local intent terms (Johannesburg/Randburg/SA)",
-      "page": "Membership",
-      "action": "Fix this week",
-      "priority": 2
-    },
-    {
-      "type": "title_too_short",
-      "severity": "medium",
-      "message": "Title too short (23 chars): \"503 Service Unavailable\"",
-      "page": "Coaching",
-      "action": "Fix this week",
-      "priority": 2
-    },
-    {
-      "type": "missing_local_signals",
-      "severity": "medium",
-      "message": "Page missing local intent terms (Johannesburg/Randburg/SA)",
-      "page": "Coaching",
-      "action": "Fix this week",
-      "priority": 2
-    },
-    {
-      "type": "title_too_short",
-      "severity": "medium",
-      "message": "Title too short (23 chars): \"503 Service Unavailable\"",
+      "type": "missing_h1",
+      "severity": "high",
+      "message": "No H1 found",
       "page": "Club Fitting",
+      "action": "FIX ASAP",
+      "priority": 1
+    },
+    {
+      "type": "title_too_short",
+      "severity": "medium",
+      "message": "Title too short (18 chars): \"Home - Swing Shack\"",
+      "page": "Homepage",
       "action": "Fix this week",
       "priority": 2
     },
     {
-      "type": "missing_local_signals",
+      "type": "title_too_short",
       "severity": "medium",
-      "message": "Page missing local intent terms (Johannesburg/Randburg/SA)",
+      "message": "Title too short (24 chars): \"Membership - Swing Shack\"",
+      "page": "Membership",
+      "action": "Fix this week",
+      "priority": 2
+    },
+    {
+      "type": "title_too_short",
+      "severity": "medium",
+      "message": "Title too short (28 chars): \"Page not found - Swing Shack\"",
+      "page": "Coaching",
+      "action": "Fix this week",
+      "priority": 2
+    },
+    {
+      "type": "title_too_short",
+      "severity": "medium",
+      "message": "Title too short (26 chars): \"Club Fitting - Swing Shack\"",
       "page": "Club Fitting",
       "action": "Fix this week",
       "priority": 2
@@ -82,14 +106,14 @@
       "type": "missing_faq",
       "severity": "low",
       "message": "No FAQ section found - adding FAQ could improve SEO",
-      "page": "Membership",
+      "page": "Homepage",
       "action": "Consider fixing",
       "priority": 3
     },
     {
-      "type": "weak_internal_linking",
+      "type": "missing_faq",
       "severity": "low",
-      "message": "Only 0 internal links found",
+      "message": "No FAQ section found - adding FAQ could improve SEO",
       "page": "Membership",
       "action": "Consider fixing",
       "priority": 3
@@ -103,25 +127,9 @@
       "priority": 3
     },
     {
-      "type": "weak_internal_linking",
-      "severity": "low",
-      "message": "Only 0 internal links found",
-      "page": "Coaching",
-      "action": "Consider fixing",
-      "priority": 3
-    },
-    {
       "type": "missing_faq",
       "severity": "low",
       "message": "No FAQ section found - adding FAQ could improve SEO",
-      "page": "Club Fitting",
-      "action": "Consider fixing",
-      "priority": 3
-    },
-    {
-      "type": "weak_internal_linking",
-      "severity": "low",
-      "message": "Only 0 internal links found",
       "page": "Club Fitting",
       "action": "Consider fixing",
       "priority": 3
@@ -131,8 +139,29 @@
     {
       "name": "Homepage",
       "url": "https://swingshack.co.za",
-      "status": "FETCH_FAILED",
-      "findings": []
+      "status": "OK",
+      "findings": [
+        {
+          "type": "title_too_short",
+          "severity": "medium",
+          "message": "Title too short (18 chars): \"Home - Swing Shack\""
+        },
+        {
+          "type": "missing_meta_description",
+          "severity": "high",
+          "message": "Missing meta description"
+        },
+        {
+          "type": "missing_h1",
+          "severity": "high",
+          "message": "No H1 found"
+        },
+        {
+          "type": "missing_faq",
+          "severity": "low",
+          "message": "No FAQ section found - adding FAQ could improve SEO"
+        }
+      ]
     },
     {
       "name": "Membership",
@@ -142,7 +171,7 @@
         {
           "type": "title_too_short",
           "severity": "medium",
-          "message": "Title too short (23 chars): \"503 Service Unavailable\""
+          "message": "Title too short (24 chars): \"Membership - Swing Shack\""
         },
         {
           "type": "missing_meta_description",
@@ -150,19 +179,14 @@
           "message": "Missing meta description"
         },
         {
+          "type": "missing_h1",
+          "severity": "high",
+          "message": "No H1 found"
+        },
+        {
           "type": "missing_faq",
           "severity": "low",
           "message": "No FAQ section found - adding FAQ could improve SEO"
-        },
-        {
-          "type": "missing_local_signals",
-          "severity": "medium",
-          "message": "Page missing local intent terms (Johannesburg/Randburg/SA)"
-        },
-        {
-          "type": "weak_internal_linking",
-          "severity": "low",
-          "message": "Only 0 internal links found"
         }
       ]
     },
@@ -174,7 +198,7 @@
         {
           "type": "title_too_short",
           "severity": "medium",
-          "message": "Title too short (23 chars): \"503 Service Unavailable\""
+          "message": "Title too short (28 chars): \"Page not found - Swing Shack\""
         },
         {
           "type": "missing_meta_description",
@@ -182,19 +206,14 @@
           "message": "Missing meta description"
         },
         {
+          "type": "missing_h1",
+          "severity": "high",
+          "message": "No H1 found"
+        },
+        {
           "type": "missing_faq",
           "severity": "low",
           "message": "No FAQ section found - adding FAQ could improve SEO"
-        },
-        {
-          "type": "missing_local_signals",
-          "severity": "medium",
-          "message": "Page missing local intent terms (Johannesburg/Randburg/SA)"
-        },
-        {
-          "type": "weak_internal_linking",
-          "severity": "low",
-          "message": "Only 0 internal links found"
         }
       ]
     },
@@ -206,7 +225,7 @@
         {
           "type": "title_too_short",
           "severity": "medium",
-          "message": "Title too short (23 chars): \"503 Service Unavailable\""
+          "message": "Title too short (26 chars): \"Club Fitting - Swing Shack\""
         },
         {
           "type": "missing_meta_description",
@@ -214,19 +233,14 @@
           "message": "Missing meta description"
         },
         {
+          "type": "missing_h1",
+          "severity": "high",
+          "message": "No H1 found"
+        },
+        {
           "type": "missing_faq",
           "severity": "low",
           "message": "No FAQ section found - adding FAQ could improve SEO"
-        },
-        {
-          "type": "missing_local_signals",
-          "severity": "medium",
-          "message": "Page missing local intent terms (Johannesburg/Randburg/SA)"
-        },
-        {
-          "type": "weak_internal_linking",
-          "severity": "low",
-          "message": "Only 0 internal links found"
         }
       ]
     }
