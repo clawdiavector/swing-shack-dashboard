@@ -256,7 +256,8 @@ function run() {
     fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2));
     console.log('YouTube Trends: external blocked - ' + hooks.length + ' SA-market hooks synthesized');
     console.log('NOTE: YouTube trends are synthetic - external scraping blocked by all sources');
-    return output;
+    console.log('WARNING: Using synthetic fallback. Live external sources unavailable.');
+    process.exit(1); // Validator catches this as script failure with PARTIAL output
   }
   
   const themes = extractThemes(articles);
