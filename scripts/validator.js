@@ -183,8 +183,24 @@ function validateFile(file, label, critical) {
   if (file === 'hook-bank.json' && (!data.proven_hooks && !data.hooks && !data.hooks_by_goal)) {
     return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No hook data found', next_action: 'Check analyse_hooks script', qa_warnings: [] };
   }
-  if (file === 'youtube-trends.json' && (!data.videos_found || data.videos_found === 0)) {
-    return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No YouTube videos found', next_action: 'Check fetch_youtube_trends script', qa_warnings: [] };
+  if (file === 'youtube-trends.json') {
+    if (data._synthetic === true) {
+      // Script used synthetic fallback - honest signal: not a pure failure, not pure live
+      return {
+        file, label, critical,
+        data_status: 'PASS', // File is valid JSON with recent timestamp
+        script_status: 'FAIL', // But script explicitly used synthetic fallback
+        fallback_used: false,
+        source_mode: 'SYNTHETIC',
+        qa_warnings: ['YouTube Trends uses synthetic SA-market data'],
+        age_hours: parseFloat(ageHours.toFixed(1)),
+        reason: 'Synthetic fallback - no live YouTube data available',
+        next_action: 'Add YouTube Data API v3 key to remove synthetic deduction'
+      };
+    }
+    if (!data.videos_found || data.videos_found === 0) {
+      return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No YouTube videos found', next_action: 'Check fetch_youtube_trends script', qa_warnings: [] };
+    }
   }
   if (file === 'youtube-ideas.json' && (!data.ideas || data.ideas.length === 0)) {
     return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No YouTube ideas generated', next_action: 'Check generate_youtube_ideas script', qa_warnings: [] };

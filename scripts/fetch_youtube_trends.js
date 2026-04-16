@@ -255,12 +255,10 @@ function run() {
     
     fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2));
     console.log('YouTube Trends: external blocked - ' + hooks.length + ' SA-market hooks synthesized');
-    console.log('NOTE: YouTube trends are synthetic - external scraping blocked by all sources');
-    console.log('WARNING: Using synthetic fallback. Live external sources unavailable.');
-    process.exit(1); // Validator catches this as script failure with PARTIAL output
-  }
-  
-  const themes = extractThemes(articles);
+    console.log('WARNING: Using synthetic fallback. Live external sources unavailable. YouTube Trends data is synthesized.');
+    // Exit with failure so validator catches this and reports it properly
+    // Data file is already written above so dashboard still has data
+    process.exit(1);
   const hooks = buildHooks(articles, themes);
   
   // Always supplement with SA-market hooks regardless of how much real data we got
