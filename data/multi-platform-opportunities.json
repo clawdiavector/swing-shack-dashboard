@@ -173,12 +173,40 @@
       "score": 70,
       "suggested_comment": "In-person beats remote - coach sees your real swing, not just video.",
       "comment_tone": "practical-advice"
+    },
+    {
+      "id": "mp-2026-04-16-1",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Female Golfer Trackman Experience",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjiwuu/simulator_setup_launch_monitor_advice/",
+      "content_preview": "Female amateur learned via Trackman, wants consistency improvement",
+      "location_tag": "Global",
+      "problem_type": "trackman-experience",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Trackman facilities give data without DIY hassle. Worth checking out.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-16-2",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Budget DIY Simulator SA",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
+      "content_preview": "Building simulator in SA with $1500-$2000 budget",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-budget",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Tight budget - try Trackman at a facility first to see if you want home sim.",
+      "comment_tone": "practical"
     }
   ],
   "summary": "Found 7 opportunities across Reddit and web. Best engagement: r/Golfsimulator budget build thread + r/johannesburg lessons inquiry. Indoor golf simulator space is active in SA with people researching budget options.",
   "createdAt": "2026-04-15T07:04:00Z",
-  "scan_date": "2026-04-15",
-  "scan_time": "18:06 SAST",
-  "next_scan": "2026-04-16T06:00 SAST",
-  "total_opportunities": 14
+  "scan_date": "2026-04-16",
+  "scan_time": "06:05 SAST",
+  "next_scan": "2026-04-16T12:00 SAST",
+  "total_opportunities": 16
 }
