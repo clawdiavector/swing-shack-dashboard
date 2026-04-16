@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-04-16T12:12:48.589Z",
-  "overall_status": "PARTIAL",
+  "timestamp": "2026-04-16T12:20:26.268Z",
+  "overall_status": "PASS",
   "summary": {
-    "pass": 14,
-    "stale": 1,
+    "pass": 15,
+    "stale": 0,
     "fail": 0,
     "script_failures": 0,
     "fallbacks_used": 0
@@ -18,8 +18,8 @@
       "data_status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 2.5,
-      "reason": "Fresh - 2.5h old",
+      "age_hours": 2.7,
+      "reason": "Fresh - 2.7h old",
       "next_action": "No action needed"
     },
     {
@@ -54,7 +54,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-16T12:12:44.851Z"
+      "last_build": "2026-04-16T12:20:22.602Z"
     },
     {
       "file": "golf-news.json",
@@ -129,8 +129,8 @@
       "data_status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 0.4,
-      "reason": "Fresh - 0.4h old",
+      "age_hours": 0.6,
+      "reason": "Fresh - 0.6h old",
       "next_action": "No action needed"
     },
     {
@@ -148,12 +148,12 @@
       "file": "youtube-trends.json",
       "label": "YouTube Trends",
       "critical": false,
-      "data_status": "STALE",
+      "data_status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "No YouTube videos found",
-      "next_action": "Check fetch_youtube_trends script"
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed"
     },
     {
       "file": "youtube-ideas.json",
@@ -174,9 +174,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/16, 14:12:44",
+      "reason": "Last build 2026/04/16, 14:20:22",
       "next_action": "No action needed",
-      "last_build": "2026/04/16, 14:12:44"
+      "last_build": "2026/04/16, 14:20:22"
     }
   ]
 }

@@ -1,42 +1,123 @@
 {
-  "updated": "2026-04-16T12:20:22.602Z",
-  "sources": [
+  "pipeline_status": "PASS",
+  "timestamp": "2026-04-16T12:20:26.276Z",
+  "trust_score": 10,
+  "trust_deductions": [],
+  "stage_results": [
     {
-      "name": "IG Analytics",
-      "updated": "2026-04-16T09:39:51.448Z"
+      "stage": "Research",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "sync_ig_analytics",
+          "status": "PASS"
+        },
+        {
+          "name": "fetch_golf_news",
+          "status": "PASS"
+        },
+        {
+          "name": "fetch_reddit_trends",
+          "status": "PASS"
+        },
+        {
+          "name": "fetch_seo_rankings",
+          "status": "PASS"
+        },
+        {
+          "name": "fetch_ga4",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "GA4",
-      "updated": "2026-04-16T12:20:05.006Z"
+      "stage": "Analysis",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "analyse_hooks",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "Reddit",
-      "updated": "2026-04-16T12:19:51.226Z"
+      "stage": "Ideas",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "generate_content_ideas",
+          "status": "PASS"
+        },
+        {
+          "name": "update_used_items",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "Golf News",
-      "updated": "2026-04-16T12:19:48.914Z"
+      "stage": "YouTube",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "fetch_youtube_trends",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_youtube_ideas",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "SEO Rankings",
-      "updated": "2026-04-16T12:20:02.782Z"
+      "stage": "Audit",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "run_seo_audit",
+          "status": "PASS"
+        },
+        {
+          "name": "run_geo_audit",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "SEO Audit",
-      "updated": "2026-04-16T12:20:14.473Z"
+      "stage": "Compile",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "compile_dashboard",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "Hook Bank",
-      "updated": "2026-04-16T12:20:05.087Z"
-    },
-    {
-      "name": "Ideas",
-      "updated": "2026-04-16T12:20:05.131Z"
+      "stage": "Publish",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "publish_github",
+          "status": "PASS"
+        }
+      ]
     }
   ],
-  "stale_count": 0,
-  "top_recommendation": "That slice costing you yards off the tee? TrackMan found it ...",
-  "total_posts": 64,
-  "total_ideas": 15,
-  "hooks_tracked": 56
+  "stale_sources": [],
+  "failed_sources": [],
+  "script_failures": [],
+  "fallbacks_used": [],
+  "top_action_today": {
+    "idea": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+    "format": "static",
+    "reason": "Hook generated 5.77% eng, 52 reach",
+    "cta": "Link in bio · Book your session",
+    "freshness_score": 9
+  },
+  "data_summary": {
+    "ig_posts": 64,
+    "ideas_generated": 15,
+    "hooks_tracked": 64
+  },
+  "weakest_sources": []
 }
