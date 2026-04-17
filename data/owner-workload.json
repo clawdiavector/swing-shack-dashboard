@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:40:27.210Z",
+  "updated": "2026-04-17T10:57:11.366Z",
   "generated": "generate_owner_workload.js",
   "total_owners": 5,
   "total_items": 16,
@@ -245,7 +245,7 @@
           "urgency": "this_week",
           "topic": null,
           "hook": null,
-          "suggested_fix": "Create IG content targeting \"/bookings/\" — 151 sessions with no social link.",
+          "suggested_fix": "Create IG content targeting \"/bookings/\" — 152 sessions with no social link.",
           "category": "content_gap"
         }
       ],

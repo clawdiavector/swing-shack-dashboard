@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:40:27.378Z",
+  "updated": "2026-04-17T10:57:11.536Z",
   "generated": "generate_retargeting_recommendations.js",
   "summary": {
     "total": 2,
@@ -22,7 +22,7 @@
     {
       "type": "push_booking_cta",
       "action": "Push booking CTA — traffic is hot",
-      "sessions": 151,
+      "sessions": 152,
       "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
       "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
       "format": "static",
@@ -33,7 +33,7 @@
         "label": "+20-35% booking rate from IG push"
       },
       "expiration_window": "today",
-      "source_evidence": "151 sessions on booking page but 0 booking CTAs in recent IG posts",
+      "source_evidence": "152 sessions on booking page but 0 booking CTAs in recent IG posts",
       "urgency": "high",
       "owner": "Swing Shack page",
       "why": "Booking page traffic hot with no retargeting",

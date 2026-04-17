@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-04-17T10:40:12.515Z",
+  "fetched_at": "2026-04-17T10:56:58.040Z",
   "source_file": "youtube-trends.json",
   "videos_analyzed": 10,
   "top_videos": [
@@ -22,15 +22,6 @@
       "query": "golf swing tips"
     },
     {
-      "title": "How to hit irons Consistently (Simple Golf Tips)",
-      "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
-      "videoId": "qdRSOKvjNZU",
-      "channelTitle": "Rick Shiels Golf",
-      "publishedAt": "2023-04-24T14:05:24Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
-    {
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
       "videoId": "DDoC4SCyeXI",
@@ -40,11 +31,20 @@
       "query": "golf swing tips"
     },
     {
-      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
-      "videoId": "aGdAdJu9Zr8",
-      "channelTitle": "US GOLF TV",
-      "publishedAt": "2023-09-15T11:00:01Z",
+      "title": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+      "description": "Learn why shoulder turn with a driver golf swing is costing you consistency and power and what to do in backswing instead .",
+      "videoId": "ejhaIrnjx08",
+      "channelTitle": "The Art of Simple Golf",
+      "publishedAt": "2022-11-14T11:00:33Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "How to hit irons Consistently (Simple Golf Tips)",
+      "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
+      "videoId": "qdRSOKvjNZU",
+      "channelTitle": "Rick Shiels Golf",
+      "publishedAt": "2023-04-24T14:05:24Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -98,18 +98,10 @@
     "recurring_phrases": [
       {
         "phrase": "golf swing",
-        "count": 3,
+        "count": 4,
         "examples": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
-        ]
-      },
-      {
-        "phrase": "your senior",
-        "count": 2,
-        "examples": [
-          "Master Your Senior Golf Swing in 3 Easy Steps",
-          "5 Powerful Tips to Unleash Your Senior Driver Swing"
+          "Don&#39;t Turn Your Shoulders for a Driver Golf Swing"
         ]
       },
       {
@@ -131,11 +123,11 @@
     ],
     "topic_clusters": {
       "driver": 3,
-      "senior": 2,
+      "senior": 1,
       "beginner": 5,
       "irons": 1,
       "simulator": 1,
-      "lessons": 6,
+      "lessons": 5,
       "swing": 5,
       "consistency": 1
     },
@@ -154,7 +146,7 @@
       },
       {
         "label": "\"Simple\" promise",
-        "example": "How to hit irons Consistently (Simple Golf Tips)"
+        "example": "4 Simple Steps For The Perfect Golf Drive"
       }
     ],
     "urgency_score": 4,
@@ -167,8 +159,12 @@
     "mistake_fix_examples": [],
     "top_channels": [
       [
-        "US GOLF TV",
+        "The Art of Simple Golf",
         2
+      ],
+      [
+        "US GOLF TV",
+        1
       ],
       [
         "Alistair Davies Golf",
@@ -176,10 +172,6 @@
       ],
       [
         "Rick Shiels Golf",
-        1
-      ],
-      [
-        "The Art of Simple Golf",
         1
       ],
       [
@@ -196,14 +188,14 @@
       {
         "template": "[Player Type]: [advice]",
         "source": "player-specific",
-        "count": 6
+        "count": 5
       }
     ]
   },
   "summary": {
     "dominant_topics": [
-      "lessons",
       "beginner",
+      "lessons",
       "swing"
     ],
     "dominant_formats": [

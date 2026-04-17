@@ -1,0 +1,25 @@
+{
+  "updated": "2026-04-17T10:57:11.793Z",
+  "generated": "generate_anomaly_alerts.js",
+  "summary": {
+    "total_alerts": 1,
+    "high_urgency": 1,
+    "medium_urgency": 0,
+    "low_urgency": 0,
+    "today_urgency": 1
+  },
+  "alerts": [
+    {
+      "type": "exec_rate_collapse",
+      "alert": "Recommendation execution rate critically low: 0%",
+      "severity": "high",
+      "evidence": "0 of 12 recommended actions executed",
+      "likely_cause": "Recommendations not being actioned OR publishing pipeline bottleneck",
+      "action": "Review DO THIS FIRST list — are recommendations reaching the right people?",
+      "owner": "Swing Shack page",
+      "urgency": "today",
+      "confidence": 5,
+      "rank": 1
+    }
+  ]
+}

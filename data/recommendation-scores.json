@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:40:27.419Z",
+  "updated": "2026-04-17T10:57:11.579Z",
   "generated": "generate_recommendation_scores.js",
   "summary": {
     "overall_priority_score": 8.3,
@@ -26,8 +26,8 @@
         "objective": "reach",
         "why_chosen": "Cross-signal score 8.0: IG proof 10 + YouTube alignment 10 · optimised for reach",
         "evidence": [
-          "Possibly The BEST DRIVER Tip Ever In GOLF",
-          "4 Simple Steps For The Perfect Golf Drive"
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Possibly The BEST DRIVER Tip Ever In GOLF"
         ],
         "status": "ready",
         "topics": [
@@ -71,7 +71,7 @@
       "item": {
         "type": "push_booking_cta",
         "action": "Push booking CTA — traffic is hot",
-        "sessions": 151,
+        "sessions": 152,
         "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
         "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
         "format": "static",
@@ -82,7 +82,7 @@
           "label": "+20-35% booking rate from IG push"
         },
         "expiration_window": "today",
-        "source_evidence": "151 sessions on booking page but 0 booking CTAs in recent IG posts",
+        "source_evidence": "152 sessions on booking page but 0 booking CTAs in recent IG posts",
         "urgency": "high",
         "owner": "Swing Shack page",
         "why": "Booking page traffic hot with no retargeting",
@@ -116,24 +116,24 @@
       "item": {
         "type": "funnel_leak",
         "page": "/bookings/",
-        "sessions": 151,
+        "sessions": 152,
         "severity": "high",
-        "revenue_impact": "151 sessions on booking page but < 2 booking CTAs in recent IG posts",
+        "revenue_impact": "152 sessions on booking page but < 2 booking CTAs in recent IG posts",
         "easy_fix": "Push booking CTA on IG this week — booking page traffic is there",
         "owner": "Swing Shack page",
         "rank": 1,
-        "score": 7.55,
+        "score": 7.6,
         "reason": "Push booking CTA on IG this week — booking page traffic is there",
         "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250"
       },
-      "score_note": "151 sessions"
+      "score_note": "152 sessions"
     }
   ],
   "ranked_items": [
     {
       "type": "push_booking_cta",
       "action": "Push booking CTA — traffic is hot",
-      "sessions": 151,
+      "sessions": 152,
       "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
       "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
       "format": "static",
@@ -144,7 +144,7 @@
         "label": "+20-35% booking rate from IG push"
       },
       "expiration_window": "today",
-      "source_evidence": "151 sessions on booking page but 0 booking CTAs in recent IG posts",
+      "source_evidence": "152 sessions on booking page but 0 booking CTAs in recent IG posts",
       "urgency": "high",
       "owner": "Swing Shack page",
       "why": "Booking page traffic hot with no retargeting",
@@ -215,7 +215,7 @@
     {
       "type": "push_booking_cta",
       "action": "Push booking CTA — traffic is hot",
-      "sessions": 151,
+      "sessions": 152,
       "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
       "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
       "format": "static",
@@ -226,7 +226,7 @@
         "label": "+20-35% booking rate from IG push"
       },
       "expiration_window": "today",
-      "source_evidence": "151 sessions on booking page but 0 booking CTAs in recent IG posts",
+      "source_evidence": "152 sessions on booking page but 0 booking CTAs in recent IG posts",
       "urgency": "high",
       "owner": "Swing Shack page",
       "why": "Booking page traffic hot with no retargeting",

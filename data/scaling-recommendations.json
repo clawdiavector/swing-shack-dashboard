@@ -1,0 +1,89 @@
+{
+  "updated": "2026-04-17T10:57:11.708Z",
+  "generated": "generate_scaling_recommendations.js",
+  "summary": {
+    "total": 5,
+    "hook_series": 2,
+    "cta_scales": 1,
+    "service_scales": 1,
+    "retarget_scales": 0,
+    "landing_pages": 1,
+    "email_nurtures": 0
+  },
+  "recommendations": [
+    {
+      "type": "hook_series",
+      "action": "Turn into recurring series",
+      "topic": "lessons",
+      "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "ig_score": 10,
+      "cross_score": 7.4,
+      "reason": "IG 10 + cross-signal 7.4 — proven on multiple channels",
+      "recommended_schedule": "1x per week for 4 weeks",
+      "scale_action": "Post same angle weekly, vary the data point each time",
+      "owner": "Coach Cat",
+      "channel": "IG Reel",
+      "urgency": "today",
+      "confidence": 5,
+      "already_scheduled": false,
+      "rank": 1
+    },
+    {
+      "type": "hook_series",
+      "action": "Turn into recurring series",
+      "topic": "short_game",
+      "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+      "ig_score": 9.86,
+      "cross_score": 7.1,
+      "reason": "IG 9.86 + cross-signal 7.1 — proven on multiple channels",
+      "recommended_schedule": "1x per week for 4 weeks",
+      "scale_action": "Post same angle weekly, vary the data point each time",
+      "owner": "Swing Shack page",
+      "channel": "IG Static",
+      "urgency": "today",
+      "confidence": 5,
+      "already_scheduled": false,
+      "rank": 2
+    },
+    {
+      "type": "cta_scale",
+      "action": "Scale Soft / Engagement CTA across all posts",
+      "cta_type": "SOFT",
+      "current_perf": "eng 2.5% | save rate undefined% | signal 1.25",
+      "recommendation": "Increase soft / engagement cta CTA usage by 40% — highest conversion signal of all CTA types",
+      "expected_impact": "save_rate +0.3% | booking_intent +15%",
+      "owner": "Swing Shack page",
+      "urgency": "this_week",
+      "confidence": 4,
+      "why": "SOFT has best conversion signal (1.25)",
+      "rank": 3
+    },
+    {
+      "type": "service_scale",
+      "action": "Push Club Fitting harder this week",
+      "service": "Club Fitting",
+      "score": 7.4,
+      "reason": "7.4/10 — Strong IG engagement (8)",
+      "recommendation": "Create 3 posts this week around Club Fitting",
+      "expected_impact": "booking sessions +20-30%",
+      "owner": "Divan",
+      "urgency": "this_week",
+      "confidence": 4,
+      "why": "Service priority #1 with score 7.4/10 — strong multi-signal consensus",
+      "rank": 4
+    },
+    {
+      "type": "landing_page",
+      "action": "Turn \"driver\" into a landing page",
+      "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "ig_score": 10,
+      "recommendation": "Create dedicated landing page for driver topic — high IG scorer deserves a conversion page",
+      "suggested_url": "/trackman-driver",
+      "owner": "Swing Shack page",
+      "urgency": "this_week",
+      "confidence": 3,
+      "why": "Hook scored 10 on IG — high intent audience deserves a landing destination",
+      "rank": 5
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:40:12.470Z",
+  "updated": "2026-04-17T10:56:57.995Z",
   "ideas_generated": 17,
   "by_format": {
     "shorts": 17,
@@ -43,20 +43,6 @@
     },
     {
       "idea_id": "yt-shorts-2026-04-17-3",
-      "title": "How to hit irons Consistently (Simple Golf Tips)",
-      "hook": "How to hit irons Consistently (Simple Golf Tips)",
-      "format": "shorts",
-      "source": "youtube_trending",
-      "source_reason": "Trending on YouTube (undefined views) under undefined",
-      "best_cta": "Link in bio · Book your TrackMan session",
-      "freshness_score": 5,
-      "difficulty": "easy",
-      "topic_cluster": "trending",
-      "used": false,
-      "is_youtube_remix": true
-    },
-    {
-      "idea_id": "yt-shorts-2026-04-17-4",
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "hook": "4 Simple Steps For The Perfect Golf Drive",
       "format": "shorts",
@@ -70,9 +56,23 @@
       "is_youtube_remix": true
     },
     {
+      "idea_id": "yt-shorts-2026-04-17-4",
+      "title": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+      "hook": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+      "format": "shorts",
+      "source": "youtube_trending",
+      "source_reason": "Trending on YouTube (undefined views) under undefined",
+      "best_cta": "Link in bio · Book your TrackMan session",
+      "freshness_score": 5,
+      "difficulty": "easy",
+      "topic_cluster": "trending",
+      "used": false,
+      "is_youtube_remix": true
+    },
+    {
       "idea_id": "yt-shorts-2026-04-17-5",
-      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "hook": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+      "title": "How to hit irons Consistently (Simple Golf Tips)",
+      "hook": "How to hit irons Consistently (Simple Golf Tips)",
       "format": "shorts",
       "source": "youtube_trending",
       "source_reason": "Trending on YouTube (undefined views) under undefined",
@@ -283,20 +283,6 @@
     },
     {
       "idea_id": "yt-shorts-2026-04-17-3",
-      "title": "How to hit irons Consistently (Simple Golf Tips)",
-      "hook": "How to hit irons Consistently (Simple Golf Tips)",
-      "format": "shorts",
-      "source": "youtube_trending",
-      "source_reason": "Trending on YouTube (undefined views) under undefined",
-      "best_cta": "Link in bio · Book your TrackMan session",
-      "freshness_score": 5,
-      "difficulty": "easy",
-      "topic_cluster": "trending",
-      "used": false,
-      "is_youtube_remix": true
-    },
-    {
-      "idea_id": "yt-shorts-2026-04-17-4",
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "hook": "4 Simple Steps For The Perfect Golf Drive",
       "format": "shorts",
@@ -310,9 +296,23 @@
       "is_youtube_remix": true
     },
     {
+      "idea_id": "yt-shorts-2026-04-17-4",
+      "title": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+      "hook": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+      "format": "shorts",
+      "source": "youtube_trending",
+      "source_reason": "Trending on YouTube (undefined views) under undefined",
+      "best_cta": "Link in bio · Book your TrackMan session",
+      "freshness_score": 5,
+      "difficulty": "easy",
+      "topic_cluster": "trending",
+      "used": false,
+      "is_youtube_remix": true
+    },
+    {
       "idea_id": "yt-shorts-2026-04-17-5",
-      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "hook": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+      "title": "How to hit irons Consistently (Simple Golf Tips)",
+      "hook": "How to hit irons Consistently (Simple Golf Tips)",
       "format": "shorts",
       "source": "youtube_trending",
       "source_reason": "Trending on YouTube (undefined views) under undefined",

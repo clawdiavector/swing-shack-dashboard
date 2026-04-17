@@ -77,7 +77,11 @@ const funnelLeak = readJson('funnel-leaks.json')          || null;
 const ctaPerf    = readJson('cta-performance.json')       || null;
 const retarget   = readJson('retargeting-recommendations.json') || null;
 const recScores  = readJson('recommendation-scores.json') || null;
-const recOutcome = readJson('recommendation-outcomes.json') || null;
+const recOutcome  = readJson('recommendation-outcomes.json')  || null;
+const expQueue    = readJson('experiment-queue.json')           || null;
+const scaleRecs   = readJson('scaling-recommendations.json')   || null;
+const killList    = readJson('kill-list.json')                 || null;
+const anomalyAlert = readJson('anomaly-alerts.json')           || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -665,6 +669,48 @@ if (recOutcome && recOutcome.summary && recOutcome.summary.total_recommended > 0
 }
 var wawsSection = buildSection('\ud83d\udcca WHAT ACTUALLY WORKED', freshnessBadge(recOutcome && recOutcome.updated), wawsContent);
 
+// TEST / SCALE / KILL
+var tskContent = '<p class="empty">No experiment data yet.</p>';
+if ((expQueue || scaleRecs || killList || anomalyAlert) && (
+  (expQueue && expQueue.experiments && expQueue.experiments.length > 0) ||
+  (scaleRecs && scaleRecs.recommendations && scaleRecs.recommendations.length > 0) ||
+  (killList && killList.items && killList.items.length > 0) ||
+  (anomalyAlert && anomalyAlert.alerts && anomalyAlert.alerts.length > 0)
+)) {
+  var tskToday = (anomalyAlert && anomalyAlert.alerts || []).filter(function(a){ return a.severity === 'high' && a.urgency === 'today'; });
+  var testItems = (expQueue && expQueue.experiments || []).slice(0, 3);
+  var scaleItems = (scaleRecs && scaleRecs.recommendations || []).slice(0, 3);
+  var killItems = (killList && killList.items || []).slice(0, 3);
+
+  function tskCard(item, color, icon, type) {
+    if (!item) return '';
+    var title = item.hook || item.action || item.description || item.alert || item.cta_type || item.type || '—';
+    var meta = item.success_metric || item.fix || item.likely_cause || item.reason || '';
+    var owner = item.owner ? '<span class="tsk-owner">\ud83d\udc64 ' + item.owner + '</span>' : '';
+    var badge = item.urgency ? '<span class="tsk-urg tsk-urg-' + item.urgency + '">' + item.urgency.toUpperCase() + '</span>' : '';
+    return '<div class="tsk-card" style="border-left-color:' + color + '">' + icon + '<div class="tsk-body"><div class="tsk-title">' + title.substring(0,60) + '</div><div class="tsk-meta">' + meta.substring(0,65) + '</div>' + owner + badge + '</div></div>';
+  }
+
+  var testCol = testItems.length > 0
+    ? '<div class="tsk-col"><div class="tsk-col-title tsk-test-title">\ud83d\udd2c TEST NEXT</div>' + testItems.map(function(t){ return tskCard(t, '#ffa502', '<div class="tsk-icon">\ud83d\udd2c</div>', 'test'); }).join('') + '</div>'
+    : '<div class="tsk-col"><div class="tsk-col-title tsk-test-title">\ud83d\udd2c TEST NEXT</div><div class="tsk-empty">No experiments queued</div></div>';
+
+  var scaleCol = scaleItems.length > 0
+    ? '<div class="tsk-col"><div class="tsk-col-title tsk-scale-title">\u2b06\ufe0f SCALE NOW</div>' + scaleItems.map(function(s){ return tskCard(s, '#2ed573', '<div class="tsk-icon">\u2b06\ufe0f</div>', 'scale'); }).join('') + '</div>'
+    : '<div class="tsk-col"><div class="tsk-col-title tsk-scale-title">\u2b06\ufe0f SCALE NOW</div><div class="tsk-empty">No scale candidates yet</div></div>';
+
+  var killCol = killItems.length > 0
+    ? '<div class="tsk-col"><div class="tsk-col-title tsk-kill-title">\ud83d\udd73\ufe0f KILL / PAUSE</div>' + killItems.map(function(k){ return tskCard(k, '#ff4757', '<div class="tsk-icon">\ud83d\udd73\ufe0f</div>', 'kill'); }).join('') + '</div>'
+    : '<div class="tsk-col"><div class="tsk-col-title tsk-kill-title">\ud83d\udd73\ufe0f KILL / PAUSE</div><div class="tsk-empty">No kill candidates</div></div>';
+
+  var alertBar = tskToday.length > 0
+    ? '<div class="tsk-alert-bar">\u26a0\ufe0f ' + tskToday.length + ' high-urgency anomaly alert(s) need action today</div>'
+    : '';
+
+  tskContent = alertBar + '<div class="tsk-grid">' + testCol + scaleCol + killCol + '</div>';
+}
+var tskSection = buildSection('\ud83d\udd2c TEST / SCALE / KILL', freshnessBadge(expQueue && expQueue.updated), tskContent);
+
 const ideaSection = buildSection('\ud83d\udca1 Content Ideas', freshnessBadge(ideas.updated), ideaContent);
 
 // ── GOLF NEWS ─────────────────────────────────────────────────────
@@ -1056,6 +1102,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .waws-sub-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
 .waws-ignored-row { font-size: 0.78rem; color: var(--muted); padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .waws-under-row { font-size: 0.78rem; color: #ff4757; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+
+/* TEST / SCALE / KILL */
+.tsk-alert-bar { background: rgba(255,71,87,0.15); border: 1px solid rgba(255,71,87,0.3); border-radius: 8px; padding: 8px 12px; font-size: 0.8rem; font-weight: 700; color: #ff4757; margin-bottom: 12px; }
+.tsk-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.tsk-col { display: flex; flex-direction: column; gap: 8px; }
+.tsk-col-title { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.8px; padding: 6px 10px; border-radius: 6px; margin-bottom: 2px; }
+.tsk-test-title { background: rgba(255,165,0,0.15); color: #ffa502; }
+.tsk-scale-title { background: rgba(46,213,115,0.12); color: #2ed573; }
+.tsk-kill-title { background: rgba(255,71,87,0.1); color: #ff4757; }
+.tsk-empty { font-size: 0.75rem; color: var(--muted); padding: 8px; text-align: center; font-style: italic; }
+.tsk-card { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px; border-left: 3px solid #888; display: flex; gap: 8px; align-items: flex-start; }
+.tsk-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.tsk-body { flex: 1; min-width: 0; }
+.tsk-title { font-size: 0.8rem; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+.tsk-meta { font-size: 0.7rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
+.tsk-owner { font-size: 0.68rem; color: var(--muted); font-weight: 600; display: inline-block; margin-right: 4px; }
+.tsk-urg { font-size: 0.62rem; font-weight: 800; padding: 1px 5px; border-radius: 3px; display: inline-block; }
+.tsk-urg-today { background: rgba(255,71,87,0.2); color: #ff4757; }
+.tsk-urg-this_week { background: rgba(255,165,0,0.2); color: #ffa502; }
+.tsk-urg-flexible { background: rgba(0,180,216,0.15); color: var(--info); }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -1101,6 +1167,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${execSummarySection}
   ${doFirstSection}
   ${wawsSection}
+  ${tskSection}
   ${igSection}
   ${hookSection}
   ${watchedSection}

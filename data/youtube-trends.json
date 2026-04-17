@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:40:08.724Z",
+  "updated": "2026-04-17T10:56:53.158Z",
   "data_source": "youtube_api_v3",
   "videos_found": 19,
   "top_videos": [
@@ -22,15 +22,6 @@
       "query": "golf swing tips"
     },
     {
-      "title": "How to hit irons Consistently (Simple Golf Tips)",
-      "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
-      "videoId": "qdRSOKvjNZU",
-      "channelTitle": "Rick Shiels Golf",
-      "publishedAt": "2023-04-24T14:05:24Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
-    {
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
       "videoId": "DDoC4SCyeXI",
@@ -40,11 +31,20 @@
       "query": "golf swing tips"
     },
     {
-      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
-      "videoId": "aGdAdJu9Zr8",
-      "channelTitle": "US GOLF TV",
-      "publishedAt": "2023-09-15T11:00:01Z",
+      "title": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+      "description": "Learn why shoulder turn with a driver golf swing is costing you consistency and power and what to do in backswing instead .",
+      "videoId": "ejhaIrnjx08",
+      "channelTitle": "The Art of Simple Golf",
+      "publishedAt": "2022-11-14T11:00:33Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "How to hit irons Consistently (Simple Golf Tips)",
+      "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
+      "videoId": "qdRSOKvjNZU",
+      "channelTitle": "Rick Shiels Golf",
+      "publishedAt": "2023-04-24T14:05:24Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -108,22 +108,22 @@
       "publishedAt": "2023-04-09T11:00:08Z"
     },
     {
-      "title": "How to hit irons Consistently (Simple Golf Tips)",
-      "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
-      "source": "Rick Shiels Golf",
-      "publishedAt": "2023-04-24T14:05:24Z"
-    },
-    {
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
       "source": "The Art of Simple Golf",
       "publishedAt": "2025-07-28T19:08:17Z"
     },
     {
-      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
-      "source": "US GOLF TV",
-      "publishedAt": "2023-09-15T11:00:01Z"
+      "title": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+      "description": "Learn why shoulder turn with a driver golf swing is costing you consistency and power and what to do in backswing instead .",
+      "source": "The Art of Simple Golf",
+      "publishedAt": "2022-11-14T11:00:33Z"
+    },
+    {
+      "title": "How to hit irons Consistently (Simple Golf Tips)",
+      "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
+      "source": "Rick Shiels Golf",
+      "publishedAt": "2023-04-24T14:05:24Z"
     },
     {
       "title": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
@@ -168,7 +168,7 @@
   },
   "hooks": [
     {
-      "idea_id": "yt-hook-1776422412387-0",
+      "idea_id": "yt-hook-1776423417914-0",
       "source": "US GOLF TV",
       "hook_text": "Master Your Senior Golf Swing in 3 Easy Steps",
       "description": "In this VLS Golf lesson from Todd Kolb, we're going to show you how to simplify your senior golf swing. By following the",
@@ -176,7 +176,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776422412387-1",
+      "idea_id": "yt-hook-1776423417914-1",
       "source": "Alistair Davies Golf",
       "hook_text": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple drive",
@@ -184,15 +184,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776422412387-2",
-      "source": "Rick Shiels Golf",
-      "hook_text": "How to hit irons Consistently (Simple Golf Tips)",
-      "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistent",
-      "freshness_score": 5,
-      "theme_signal": "slice_fix"
-    },
-    {
-      "idea_id": "yt-hook-1776422412387-3",
+      "idea_id": "yt-hook-1776423417914-2",
       "source": "The Art of Simple Golf",
       "hook_text": "4 Simple Steps For The Perfect Golf Drive",
       "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
@@ -200,15 +192,23 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776422412387-4",
-      "source": "US GOLF TV",
-      "hook_text": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to sho",
+      "idea_id": "yt-hook-1776423417914-3",
+      "source": "The Art of Simple Golf",
+      "hook_text": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+      "description": "Learn why shoulder turn with a driver golf swing is costing you consistency and power and what to do in backswing instea",
       "freshness_score": 5,
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776422412387-5",
+      "idea_id": "yt-hook-1776423417914-4",
+      "source": "Rick Shiels Golf",
+      "hook_text": "How to hit irons Consistently (Simple Golf Tips)",
+      "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistent",
+      "freshness_score": 5,
+      "theme_signal": "slice_fix"
+    },
+    {
+      "idea_id": "yt-hook-1776423417914-5",
       "source": "New Nine Golf | Brandon Cubitt",
       "hook_text": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
       "description": "Golf Swing Basics is a series of 3 golf lesson videos for beginners. We guarantee you will hit the ball better after wat",
@@ -216,7 +216,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776422412387-6",
+      "idea_id": "yt-hook-1776423417914-6",
       "source": " Durnian Golf",
       "hook_text": "Beginner golf lessons ⛳️ #golf",
       "description": "",
@@ -224,7 +224,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776422412387-7",
+      "idea_id": "yt-hook-1776423417914-7",
       "source": "Kerrod Gray Golf",
       "hook_text": "Better Golf Swing In 2 Minutes",
       "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you t",
@@ -232,7 +232,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-sa-1776422412388-0",
+      "idea_id": "yt-sa-1776423417914-0",
       "source": "sa_market_always",
       "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
       "description": "SA-market hook - always included",
@@ -240,7 +240,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-sa-1776422412388-1",
+      "idea_id": "yt-sa-1776423417914-1",
       "source": "sa_market_always",
       "hook_text": "How fast should your club head speed actually be? Pros average 112 mph.",
       "description": "SA-market hook - always included",
@@ -248,7 +248,7 @@
       "theme_signal": "swing_speed"
     },
     {
-      "idea_id": "yt-sa-1776422412388-2",
+      "idea_id": "yt-sa-1776423417914-2",
       "source": "sa_market_always",
       "hook_text": "Your launch monitor data is telling you exactly what to fix.",
       "description": "SA-market hook - always included",
@@ -256,7 +256,7 @@
       "theme_signal": "trackman"
     },
     {
-      "idea_id": "yt-sa-1776422412388-3",
+      "idea_id": "yt-sa-1776423417914-3",
       "source": "sa_market_always",
       "hook_text": "Rain season. Your game doesn't have to stop. Indoor golf in Johannesburg.",
       "description": "SA-market hook - always included",
@@ -264,7 +264,7 @@
       "theme_signal": "indoor"
     },
     {
-      "idea_id": "yt-sa-1776422412388-4",
+      "idea_id": "yt-sa-1776423417914-4",
       "source": "sa_market_always",
       "hook_text": "Short game practice that actually transfers to the course.",
       "description": "SA-market hook - always included",
@@ -272,7 +272,7 @@
       "theme_signal": "short_game"
     },
     {
-      "idea_id": "yt-sa-1776422412388-5",
+      "idea_id": "yt-sa-1776423417914-5",
       "source": "sa_market_always",
       "hook_text": "When was the last time a golf pro watched your actual swing on a launch monitor?",
       "description": "SA-market hook - always included",

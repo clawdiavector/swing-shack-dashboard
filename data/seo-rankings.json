@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:40:06.271Z",
+  "updated": "2026-04-17T10:56:50.758Z",
   "keywords": [
     {
       "keyword": "indoor golf johannesburg",
@@ -10,10 +10,10 @@
     },
     {
       "keyword": "golf simulator johannesburg",
-      "current_rank": 0,
+      "current_rank": null,
       "target_url": "https://swingshack.co.za",
       "search_intent": "mixed",
-      "note": "Found in search results"
+      "note": "Not found in top results"
     },
     {
       "keyword": "club fitting johannesburg",
@@ -76,6 +76,7 @@
   "falling_keywords": [],
   "quick_wins": [
     "indoor golf johannesburg",
+    "golf simulator johannesburg",
     "club fitting johannesburg",
     "golf lessons randburg",
     "golf practice johannesburg",
@@ -87,14 +88,20 @@
   ],
   "summary": {
     "tracked": 10,
-    "found": 1,
-    "not_found": 9
+    "found": 0,
+    "not_found": 10
   },
   "recommendations": [
     {
       "type": "not_indexed",
       "keyword": "indoor golf johannesburg",
       "action": "Create or optimize page targeting \"indoor golf johannesburg\"",
+      "priority": "high"
+    },
+    {
+      "type": "not_indexed",
+      "keyword": "golf simulator johannesburg",
+      "action": "Create or optimize page targeting \"golf simulator johannesburg\"",
       "priority": "high"
     },
     {

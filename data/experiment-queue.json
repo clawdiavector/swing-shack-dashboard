@@ -1,0 +1,141 @@
+{
+  "updated": "2026-04-17T10:57:11.665Z",
+  "generated": "generate_experiment_queue.js",
+  "summary": {
+    "total_tests": 5,
+    "hook_tests": 3,
+    "cta_tests": 0,
+    "service_tests": 0,
+    "yt_tests": 2,
+    "today_count": 3,
+    "this_week_count": 2
+  },
+  "experiments": [
+    {
+      "test_id": "hook_test_1776423431665_nobc",
+      "type": "hook_ab",
+      "variable": "hook_angle",
+      "description": "Test TrackMan stats angle vs transformation angle on \"lessons\" hook",
+      "variant_a": {
+        "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+        "label": "Stats/TrackMan (proven)"
+      },
+      "variant_b": {
+        "hook": "Your \"lessons\" problem? Here's how TrackMan finds it in one session.",
+        "label": "Problem-aware (test)"
+      },
+      "success_metric": "engagement_rate > 3% AND save_rate > 1.5%",
+      "target_metric": "engagement_rate",
+      "current_baseline": 10,
+      "owner": "Coach Cat",
+      "channel": "IG Reel",
+      "urgency": "today",
+      "upside": "If variant B outperforms by 20%+, upgrade to primary hook template",
+      "confidence": 8.4,
+      "why": "Hook scored 10 on IG but cross-signal only 7.4 — angle may not be optimal",
+      "rank": 1
+    },
+    {
+      "test_id": "hook_test_1776423431665_vd7w",
+      "type": "hook_ab",
+      "variable": "hook_angle",
+      "description": "Test TrackMan stats angle vs transformation angle on \"short_game\" hook",
+      "variant_a": {
+        "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+        "label": "Stats/TrackMan (proven)"
+      },
+      "variant_b": {
+        "hook": "Your \"short_game\" problem? Here's how TrackMan finds it in one session.",
+        "label": "Problem-aware (test)"
+      },
+      "success_metric": "engagement_rate > 3% AND save_rate > 1.5%",
+      "target_metric": "engagement_rate",
+      "current_baseline": 9.86,
+      "owner": "Swing Shack page",
+      "channel": "IG Static",
+      "urgency": "today",
+      "upside": "If variant B outperforms by 20%+, upgrade to primary hook template",
+      "confidence": 8.2,
+      "why": "Hook scored 9.86 on IG but cross-signal only 7.1 — angle may not be optimal",
+      "rank": 2
+    },
+    {
+      "test_id": "hook_test_1776423431665_4pi0",
+      "type": "hook_ab",
+      "variable": "hook_angle",
+      "description": "Test TrackMan stats angle vs transformation angle on \"driver\" hook",
+      "variant_a": {
+        "hook": "Lowest net score wins a *new custom fitted driver!*",
+        "label": "Stats/TrackMan (proven)"
+      },
+      "variant_b": {
+        "hook": "Your \"driver\" problem? Here's how TrackMan finds it in one session.",
+        "label": "Problem-aware (test)"
+      },
+      "success_metric": "engagement_rate > 3% AND save_rate > 1.5%",
+      "target_metric": "engagement_rate",
+      "current_baseline": 9.4,
+      "owner": "Swing Shack page",
+      "channel": "IG Static",
+      "urgency": "today",
+      "upside": "If variant B outperforms by 20%+, upgrade to primary hook template",
+      "confidence": 7.8,
+      "why": "Hook scored 9.4 on IG but cross-signal only 6.8 — angle may not be optimal",
+      "rank": 3
+    },
+    {
+      "test_id": "yt_test_1776423431665_zb03",
+      "type": "youtube_untested",
+      "variable": "youtube_angle_to_ig",
+      "description": "Take trending YouTube angle for \"lessons\" and port to IG",
+      "variant_a": {
+        "hook": "Master Your Senior Golf Swing in 3 Easy Steps",
+        "label": "YouTube angle (proven on YT)"
+      },
+      "variant_b": {
+        "hook": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+        "label": "Problem angle (IG-native)"
+      },
+      "yt_evidence": [
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "Don&#39;t Turn Your Shoulders for a Driver Golf Swing"
+      ],
+      "success_metric": "cross_signal_score > 7 after 2 posts",
+      "target_metric": "cross_signal_score",
+      "owner": "Coach Cat",
+      "channel": "IG Reel",
+      "urgency": "this_week",
+      "upside": "YouTube has 5 videos on this — proven interest, untested on IG",
+      "confidence": 3,
+      "why": "5 YT videos trending on \"lessons\" but no IG coverage",
+      "rank": 4
+    },
+    {
+      "test_id": "yt_test_1776423431665_9ilv",
+      "type": "youtube_untested",
+      "variable": "youtube_angle_to_ig",
+      "description": "Take trending YouTube angle for \"driver\" and port to IG",
+      "variant_a": {
+        "hook": "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "label": "YouTube angle (proven on YT)"
+      },
+      "variant_b": {
+        "hook": "4 Simple Steps For The Perfect Golf Drive",
+        "label": "Problem angle (IG-native)"
+      },
+      "yt_evidence": [
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "4 Simple Steps For The Perfect Golf Drive"
+      ],
+      "success_metric": "cross_signal_score > 7 after 2 posts",
+      "target_metric": "cross_signal_score",
+      "owner": "Swing Shack page",
+      "channel": "IG Static",
+      "urgency": "this_week",
+      "upside": "YouTube has 3 videos on this — proven interest, untested on IG",
+      "confidence": 3,
+      "why": "3 YT videos trending on \"driver\" but no IG coverage",
+      "rank": 5
+    }
+  ]
+}
