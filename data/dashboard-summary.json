@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T05:43:38.670Z",
+  "updated": "2026-04-17T05:46:00.357Z",
   "sources": [
     {
       "name": "IG Analytics",
@@ -7,31 +7,31 @@
     },
     {
       "name": "GA4",
-      "updated": "2026-04-17T05:43:22.003Z"
+      "updated": "2026-04-17T05:45:42.800Z"
     },
     {
       "name": "Reddit",
-      "updated": "2026-04-17T05:43:11.976Z"
+      "updated": "2026-04-17T05:45:33.708Z"
     },
     {
       "name": "Golf News",
-      "updated": "2026-04-17T05:43:11.410Z"
+      "updated": "2026-04-17T05:45:31.923Z"
     },
     {
       "name": "SEO Rankings",
-      "updated": "2026-04-17T05:43:19.186Z"
+      "updated": "2026-04-17T05:45:40.915Z"
     },
     {
       "name": "SEO Audit",
-      "updated": "2026-04-17T05:43:32.220Z"
+      "updated": "2026-04-17T05:45:53.606Z"
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-04-17T05:43:22.086Z"
+      "updated": "2026-04-17T05:45:42.884Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-04-17T05:43:22.130Z"
+      "updated": "2026-04-17T05:45:42.928Z"
     }
   ],
   "stale_count": 0,

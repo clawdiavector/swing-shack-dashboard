@@ -233,7 +233,7 @@ function compileSummary(stageResults, validatorReport) {
     data_summary: {
       ig_posts: (ig.posts || []).length,
       ideas_generated: (ideas.ideas || []).length,
-      hooks_tracked: (hooks.proven_hooks || []).length + (hooks.fresh_hooks_to_test || []).length,
+      hooks_tracked: hooks.total_hooks || 0,
     },
     validator: {
       overall_status: validatorReport?.overall_status || 'UNKNOWN',

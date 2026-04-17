@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-04-17T05:34:44.790Z",
-  "overall_status": "PASS",
+  "timestamp": "2026-04-17T05:43:42.747Z",
+  "overall_status": "PARTIAL",
   "summary": {
-    "pass": 16,
-    "stale": 0,
+    "pass": 15,
+    "stale": 1,
     "fail": 0,
     "script_failures": 0,
     "fallbacks_used": 0,
-    "live_fresh": 14,
+    "live_fresh": 13,
     "synthetic": 0,
     "failed": 0,
     "total": 16
@@ -23,8 +23,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.5,
-      "reason": "Fresh - 0.5h old",
+      "age_hours": 0.7,
+      "reason": "Fresh - 0.7h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -32,14 +32,13 @@
       "file": "hook-bank.json",
       "label": "Hook Bank",
       "critical": true,
-      "data_status": "PASS",
+      "data_status": "STALE",
+      "qa_warnings": [],
       "script_status": "PASS",
       "fallback_used": false,
-      "source_mode": "LIVE",
       "age_hours": 0,
-      "reason": "Fresh - 0.0h old",
-      "next_action": "No action needed",
-      "qa_warnings": []
+      "reason": "No hook data found",
+      "next_action": "Check analyse_hooks script"
     },
     {
       "file": "content-ideas.json",
@@ -64,7 +63,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-17T05:34:41.013Z"
+      "last_build": "2026-04-17T05:43:38.670Z"
     },
     {
       "file": "golf-news.json",
@@ -152,8 +151,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 17.8,
-      "reason": "Fresh - 17.8h old",
+      "age_hours": 17.9,
+      "reason": "Fresh - 17.9h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -217,9 +216,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/17, 07:34:41",
+      "reason": "Last build 2026/04/17, 07:43:38",
       "next_action": "No action needed",
-      "last_build": "2026/04/17, 07:34:41"
+      "last_build": "2026/04/17, 07:43:38"
     }
   ]
 }
