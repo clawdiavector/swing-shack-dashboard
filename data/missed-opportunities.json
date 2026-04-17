@@ -1,18 +1,24 @@
 {
-  "updated": "2026-04-17T08:18:57.805Z",
+  "updated": "2026-04-17T08:37:25.405Z",
   "generated": "detect_missed_opportunities.js",
-  "count": 10,
+  "count": 12,
   "by_severity": {
     "high": 8,
-    "medium": 2,
+    "medium": 4,
     "low": 0
   },
   "by_category": {
     "follow_up_gap": 5,
-    "content_gap": 5,
+    "content_gap": 7,
     "seo_gap": 0,
     "conversion_gap": 0,
     "offer_gap": 0
+  },
+  "by_owner": {
+    "Coach Cat": 5,
+    "Divan": 1,
+    "Nancy / Front Desk": 2,
+    "Swing Shack page": 4
   },
   "opportunities": [
     {
@@ -22,6 +28,8 @@
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "topic": "driver",
       "ig_score": 10,
+      "owner": "Coach Cat",
+      "suggested_fix": "Rework the \"driver\" hook into a follow-up Reel this week — IG proof 10.",
       "suggestion": "Hook scored 10 on IG. No follow-up posts found for \"driver\". Push this angle.",
       "why": "IG proof: 10 — strong performer with no refresh"
     },
@@ -32,6 +40,8 @@
       "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
       "topic": "lessons",
       "ig_score": 10,
+      "owner": "Coach Cat",
+      "suggested_fix": "Rework the \"lessons\" hook into a follow-up Reel this week — IG proof 10.",
       "suggestion": "Hook scored 10 on IG. No follow-up posts found for \"lessons\". Push this angle.",
       "why": "IG proof: 10 — strong performer with no refresh"
     },
@@ -42,6 +52,8 @@
       "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
       "topic": "short_game",
       "ig_score": 9.86,
+      "owner": "Coach Cat",
+      "suggested_fix": "Rework the \"short_game\" hook into a follow-up Reel this week — IG proof 9.86.",
       "suggestion": "Hook scored 9.86 on IG. No follow-up posts found for \"short_game\". Push this angle.",
       "why": "IG proof: 9.86 — strong performer with no refresh"
     },
@@ -52,6 +64,8 @@
       "hook": "Lowest net score wins a *new custom fitted driver!*",
       "topic": "driver",
       "ig_score": 9.4,
+      "owner": "Coach Cat",
+      "suggested_fix": "Rework the \"driver\" hook into a follow-up Reel this week — IG proof 9.4.",
       "suggestion": "Hook scored 9.4 on IG. No follow-up posts found for \"driver\". Push this angle.",
       "why": "IG proof: 9.4 — strong performer with no refresh"
     },
@@ -62,6 +76,8 @@
       "hook": "Book your session with Coach Cat @swingshack ⛳️",
       "topic": "lessons",
       "ig_score": 9.129999999999999,
+      "owner": "Coach Cat",
+      "suggested_fix": "Rework the \"lessons\" hook into a follow-up Reel this week — IG proof 9.129999999999999.",
       "suggestion": "Hook scored 9.129999999999999 on IG. No follow-up posts found for \"lessons\". Push this angle.",
       "why": "IG proof: 9.129999999999999 — strong performer with no refresh"
     },
@@ -70,27 +86,33 @@
       "category": "content_gap",
       "severity": "high",
       "page": "/",
-      "sessions": 270,
-      "suggestion": "Page \"/\" gets 270 sessions but no IG post links to it. Create content.",
-      "why": "270 sessions with no social presence"
+      "sessions": 272,
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG content targeting \"/\" — 272 sessions with no social link.",
+      "suggestion": "Page \"/\" gets 272 sessions but no IG post links to it. Create content.",
+      "why": "272 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
       "category": "content_gap",
       "severity": "high",
       "page": "/bookings/",
-      "sessions": 147,
-      "suggestion": "Page \"/bookings/\" gets 147 sessions but no IG post links to it. Create content.",
-      "why": "147 sessions with no social presence"
+      "sessions": 148,
+      "owner": "Nancy / Front Desk",
+      "suggested_fix": "Create IG content targeting \"/bookings/\" — 148 sessions with no social link.",
+      "suggestion": "Page \"/bookings/\" gets 148 sessions but no IG post links to it. Create content.",
+      "why": "148 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
       "category": "content_gap",
       "severity": "high",
       "page": "/customer-portal/",
-      "sessions": 54,
-      "suggestion": "Page \"/customer-portal/\" gets 54 sessions but no IG post links to it. Create content.",
-      "why": "54 sessions with no social presence"
+      "sessions": 55,
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG content targeting \"/customer-portal/\" — 55 sessions with no social link.",
+      "suggestion": "Page \"/customer-portal/\" gets 55 sessions but no IG post links to it. Create content.",
+      "why": "55 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
@@ -98,6 +120,8 @@
       "severity": "medium",
       "page": "/club-fitting/",
       "sessions": 36,
+      "owner": "Divan",
+      "suggested_fix": "Create IG content targeting \"/club-fitting/\" — 36 sessions with no social link.",
       "suggestion": "Page \"/club-fitting/\" gets 36 sessions but no IG post links to it. Create content.",
       "why": "36 sessions with no social presence"
     },
@@ -107,8 +131,40 @@
       "severity": "medium",
       "page": "/checkout/",
       "sessions": 29,
+      "owner": "Nancy / Front Desk",
+      "suggested_fix": "Create IG content targeting \"/checkout/\" — 29 sessions with no social link.",
       "suggestion": "Page \"/checkout/\" gets 29 sessions but no IG post links to it. Create content.",
       "why": "29 sessions with no social presence"
+    },
+    {
+      "type": "youtube_trend_no_ig",
+      "category": "content_gap",
+      "severity": "medium",
+      "topic": "lessons",
+      "yt_video_count": 5,
+      "yt_examples": [
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "5 Powerful Tips to Unleash Your Senior Driver Swing"
+      ],
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG post on \"lessons\" — YouTube has 5 trending videos.",
+      "suggestion": "YouTube has 5 videos on \"lessons\" but IG hasn't covered it.",
+      "why": "5 YouTube videos trending on this topic"
+    },
+    {
+      "type": "youtube_trend_no_ig",
+      "category": "content_gap",
+      "severity": "medium",
+      "topic": "driver",
+      "yt_video_count": 3,
+      "yt_examples": [
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "4 Simple Steps For The Perfect Golf Drive"
+      ],
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG post on \"driver\" — YouTube has 3 trending videos.",
+      "suggestion": "YouTube has 3 videos on \"driver\" but IG hasn't covered it.",
+      "why": "3 YouTube videos trending on this topic"
     }
   ]
 }

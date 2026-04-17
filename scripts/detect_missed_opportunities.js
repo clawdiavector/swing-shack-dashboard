@@ -4,6 +4,7 @@
  * Finds content gaps: high-performing topics with no follow-up,
  * trending keywords with no post, high-traffic pages with no matching content,
  * hook winners not reused, sale angles not pushed despite demand.
+ * Each opportunity: type, category, severity, owner, suggested_fix, suggestion, why
  */
 const fs = require('fs');
 const path = require('path');
@@ -19,15 +20,15 @@ function readJson(name) {
 const hb   = readJson('hook-bank.json')        || {};
 const ci   = readJson('content-ideas.json')     || {};
 const ig   = readJson('ig-analytics.json')     || {};
-const ga4  = readJson('ga4-metrics.json')       || {};
+const ga4  = readJson('ga4-metrics.json')      || {};
 const wi   = readJson('website-insights.json') || {};
 const rd   = readJson('reddit-trends.json')    || {};
 const yt   = readJson('youtube-trends.json')   || {};
-const seo  = readJson('seo-rankings.json')     || {};
+const seo  = readJson('seo-rankings.json')    || {};
 
 const opportunities = [];
 
-// ── 1. Hook winners not reused ─────────────────────────────────
+// ── 1. Hook winners not reused — follow_up_gap ────────────────────
 const winners = (hb.watched_and_worked || []).filter(h => (h.ig_proof_score || 0) >= 8);
 winners.forEach(w => {
   const relatedIdeas = (ci.ideas || []).filter(i =>
@@ -35,14 +36,16 @@ winners.forEach(w => {
   );
   if (relatedIdeas.length < 2) {
     opportunities.push({
-      type:     'hook_winner_not_reused',
-      category: 'follow_up_gap',
-      severity: 'high',
-      hook:   w.hook_text,
-      topic:  w.youtube_topic_match?.[0] || 'unknown',
-      ig_score: w.ig_proof_score,
-      suggestion: `Hook scored ${w.ig_proof_score} on IG. No follow-up posts found for "${w.youtube_topic_match?.[0]}". Push this angle.`,
-      why:    `IG proof: ${w.ig_proof_score} — strong performer with no refresh`,
+      type:         'hook_winner_not_reused',
+      category:     'follow_up_gap',
+      severity:     'high',
+      hook:         w.hook_text,
+      topic:        w.youtube_topic_match?.[0] || 'unknown',
+      ig_score:     w.ig_proof_score,
+      owner:        'Coach Cat',
+      suggested_fix:`Rework the "${w.youtube_topic_match?.[0]}" hook into a follow-up Reel this week — IG proof ${w.ig_proof_score}.`,
+      suggestion:   `Hook scored ${w.ig_proof_score} on IG. No follow-up posts found for "${w.youtube_topic_match?.[0]}". Push this angle.`,
+      why:          `IG proof: ${w.ig_proof_score} — strong performer with no refresh`,
     });
   }
 });
@@ -56,14 +59,18 @@ ga4Pages.slice(0, 10).forEach(p => {
   if (sessions < 20) return;
   const matched = igCaps.filter(c => pgPath.split(' ').some(w => w.length > 3 && c.includes(w)));
   if (matched.length === 0) {
+    const pageOwner = (p.path || '').includes('fitting') || (p.path || '').includes('club') ? 'Divan' :
+                      (p.path || '').includes('book') || (p.path || '').includes('checkout') ? 'Nancy / Front Desk' : 'Swing Shack page';
     opportunities.push({
-      type:     'traffic_no_content',
-      category: 'content_gap',
-      severity: sessions > 50 ? 'high' : 'medium',
-      page:   p.path || '/',
+      type:         'traffic_no_content',
+      category:     'content_gap',
+      severity:     sessions > 50 ? 'high' : 'medium',
+      page:         p.path || '/',
       sessions,
-      suggestion: `Page "${p.path}" gets ${sessions} sessions but no IG post links to it. Create content.`,
-      why:    `${sessions} sessions with no social presence`,
+      owner:        pageOwner,
+      suggested_fix:`Create IG content targeting "${p.path}" — ${sessions} sessions with no social link.`,
+      suggestion:   `Page "${p.path}" gets ${sessions} sessions but no IG post links to it. Create content.`,
+      why:          `${sessions} sessions with no social presence`,
     });
   }
 });
@@ -77,26 +84,27 @@ rdTrends.filter(t => (t.score || 0) >= 30).forEach(t => {
   ));
   if (!matchedPost) {
     opportunities.push({
-      type:     'reddit_pain_no_ig',
-      category: 'content_gap',
-      severity: (t.score || 0) >= 80 ? 'high' : 'medium',
+      type:         'reddit_pain_no_ig',
+      category:     'content_gap',
+      severity:     (t.score || 0) >= 80 ? 'high' : 'medium',
       reddit_title: t.title,
-      subreddit: t.subreddit || 'golf',
+      subreddit:    t.subreddit || 'golf',
       reddit_score: t.score,
-      suggestion: `r/${t.subreddit} is discussing "${t.title}". IG hasn't covered this.`,
-      why:    `Reddit score: ${t.score} — community pain point uncovered`,
+      owner:        'Swing Shack page',
+      suggested_fix:`Spin r/${t.subreddit} conversation "${t.title}" into an IG post angle this week.`,
+      suggestion:   `r/${t.subreddit} is discussing "${t.title}". IG hasn't covered this.`,
+      why:          `Reddit score: ${t.score} — community pain point uncovered`,
     });
   }
 });
 
 // ── 4. Trending YouTube topic with no IG presence ──────────────
-const ytTopics = yt.topics || [];
 const ytSvcMap = {
-  lessons:       ['lessons', 'swing', 'teaching', 'coach'],
-  driver:        ['driver', 'drive', 'tee'],
-  short_game:    ['putting', 'chipping', 'pitching', 'putt'],
-  fitting:       ['fitting', 'fitted', 'clubs', 'irons'],
-  slice_fix:     ['slice', 'hook', 'correction', 'fix'],
+  lessons:     ['lessons', 'swing', 'teaching', 'coach'],
+  driver:     ['driver', 'drive', 'tee'],
+  short_game: ['putting', 'chipping', 'pitching', 'putt'],
+  fitting:    ['fitting', 'fitted', 'clubs', 'irons'],
+  slice_fix:  ['slice', 'hook', 'correction', 'fix'],
 };
 Object.entries(ytSvcMap).forEach(([svc, kwArr]) => {
   const ytMatch = (yt.top_videos || []).filter(v =>
@@ -106,14 +114,16 @@ Object.entries(ytSvcMap).forEach(([svc, kwArr]) => {
   const igMatch = igCaps.filter(c => kwArr.some(k => c.includes(k)));
   if (igMatch.length === 0) {
     opportunities.push({
-      type:     'youtube_trend_no_ig',
-      category: 'content_gap',
-      severity: 'medium',
-      topic:  svc,
+      type:           'youtube_trend_no_ig',
+      category:       'content_gap',
+      severity:       'medium',
+      topic:          svc,
       yt_video_count: ytMatch.length,
-      yt_examples: ytMatch.slice(0, 2).map(v => v.title),
-      suggestion: `YouTube has ${ytMatch.length} videos on "${svc}" but IG hasn't covered it.`,
-      why:    `${ytMatch.length} YouTube videos trending on this topic`,
+      yt_examples:     ytMatch.slice(0, 2).map(v => v.title),
+      owner:          'Swing Shack page',
+      suggested_fix:  `Create IG post on "${svc}" — YouTube has ${ytMatch.length} trending videos.`,
+      suggestion:     `YouTube has ${ytMatch.length} videos on "${svc}" but IG hasn't covered it.`,
+      why:             `${ytMatch.length} YouTube videos trending on this topic`,
     });
   }
 });
@@ -125,37 +135,40 @@ Object.entries(ytSvcMap).forEach(([svc, kwArr]) => {
   const matchedPost = (ig.posts || []).find(p => (p.caption || '').toLowerCase().includes(keyword));
   if (!matchedPost) {
     opportunities.push({
-      type:     'seo_rising_no_content',
-      category: 'seo_gap',
-      severity: 'medium',
-      keyword,
-      rank:   kw.current_rank || '?',
-      delta:  kw.delta || kw.delta_7d || 0,
-      suggestion: `"${keyword}" is rising in SEO but no IG post covers it.`,
-      why:    `Rank: ${kw.current_rank || '?'}, Delta: +${kw.delta || kw.delta_7d || 0}`,
+      type:         'seo_rising_no_content',
+      category:     'seo_gap',
+      severity:     'medium',
+      keyword:      kw.keyword || kw.term || '',
+      rank:         kw.current_rank || '?',
+      delta:        kw.delta || kw.delta_7d || 0,
+      owner:        'Swing Shack page',
+      suggested_fix:`Write and schedule IG post targeting "${keyword}" — SEO rank rising.` ,
+      suggestion:   `"${kw.keyword || kw.term}" is rising in SEO but no IG post covers it.`,
+      why:          `Rank: ${kw.current_rank || '?'}, Delta: +${kw.delta || kw.delta_7d || 0}`,
     });
   }
 });
 
 // ── 6. Sale/product angle not pushed despite demand ─────────────
 const SALE_ANGLES = [
-  { id: 'lessons_value',  kw: ['save', 'deal', 'package', 'lesson', 'coach'], label: 'Lessons value proposition' },
-  { id: 'fitting_promo',  kw: ['fitting', 'fitted', 'custom'], label: 'Club fitting promotion' },
-  { id: 'membership_benefits', kw: ['member', 'membership', 'perks', 'unlimited'], label: 'Membership benefits' },
-  { id: 'event_promo',    kw: ['night golf', 'event', 'tournament', 'competition'], label: 'Events promotion' },
+  { id: 'lessons_value',    kw: ['save', 'deal', 'package', 'lesson', 'coach'],       label: 'Lessons value proposition' },
+  { id: 'fitting_promo',   kw: ['fitting', 'fitted', 'custom'],                      label: 'Club fitting promotion' },
+  { id: 'membership_benefits', kw: ['member', 'membership', 'perks', 'unlimited'],     label: 'Membership benefits' },
+  { id: 'event_promo',    kw: ['night golf', 'event', 'tournament', 'competition'],     label: 'Events promotion' },
 ];
 const igText = (ig.posts || []).map(p => (p.caption || '').toLowerCase()).join(' ');
 SALE_ANGLES.forEach(angle => {
   const saleTerms = angle.kw.filter(k => igText.includes(k));
   if (saleTerms.length === 0) {
     opportunities.push({
-      type:     'sale_angle_not_pushed',
-      category: 'offer_gap',
-      severity: 'low',
-      angle:  angle.label,
-      keywords_found: saleTerms,
-      suggestion: `"${angle.label}" hasn't been pushed this week despite relevance.`,
-      why:    'No sale/promo angle found in recent IG posts',
+      type:         'sale_angle_not_pushed',
+      category:     'offer_gap',
+      severity:     'low',
+      angle_label:  angle.label,
+      owner:        'Swing Shack page',
+      suggested_fix:`Schedule a promotional IG post around "${angle.label}".`,
+      suggestion:   `"${angle.label}" hasn't been pushed this week despite relevance.`,
+      why:          'No sale/promo angle found in recent IG posts',
     });
   }
 });
@@ -167,7 +180,7 @@ const deduped = opportunities.filter(o => {
   if (seen.has(key)) return false;
   seen.add(key);
   return true;
-}).slice(0, 10); // cap at 10
+}).slice(0, 12);
 
 // Sort by severity then by type
 const severityOrder = { high: 0, medium: 1, low: 2 };
@@ -189,20 +202,24 @@ const output = {
     low:    deduped.filter(o => o.severity === 'low').length,
   },
   by_category: {
-    follow_up_gap:   deduped.filter(o => o.category === 'follow_up_gap').length,
-    content_gap:     deduped.filter(o => o.category === 'content_gap').length,
-    seo_gap:         deduped.filter(o => o.category === 'seo_gap').length,
-    conversion_gap:  deduped.filter(o => o.category === 'conversion_gap').length,
-    offer_gap:       deduped.filter(o => o.category === 'offer_gap').length,
+    follow_up_gap:  deduped.filter(o => o.category === 'follow_up_gap').length,
+    content_gap:    deduped.filter(o => o.category === 'content_gap').length,
+    seo_gap:        deduped.filter(o => o.category === 'seo_gap').length,
+    conversion_gap: deduped.filter(o => o.category === 'conversion_gap').length,
+    offer_gap:      deduped.filter(o => o.category === 'offer_gap').length,
   },
+  by_owner: Object.fromEntries(
+    [...new Set(deduped.map(o => o.owner))].sort().map(o => [o, deduped.filter(d => d.owner === o).length])
+  ),
   opportunities: deduped,
 };
 
 fs.writeFileSync(OUTPUT, JSON.stringify(output, null, 2));
-console.log(`✅ Missed opportunities detected: ${OUTPUT}`);
-console.log(`   Total: ${deduped.length} | High: ${output.by_severity.high} | Medium: ${output.by_severity.medium} | Low: ${output.by_severity.low}`);
+console.log(`✅ Missed opportunities: ${OUTPUT}`);
+console.log(`   Total: ${deduped.length} | High: ${output.by_severity.high} | Med: ${output.by_severity.medium} | Low: ${output.by_severity.low}`);
 console.log(`   Categories: ${Object.entries(output.by_category).filter(([,n]) => n > 0).map(([k,n]) => `${k}×${n}`).join(', ')}`);
+console.log(`   By owner: ${Object.entries(output.by_owner).map(([o,n]) => `${o}×${n}`).join(', ')}`);
 deduped.forEach((o, i) => {
-  console.log(`   ${i+1}. [${o.severity.toUpperCase()}] ${o.category} → ${o.type}`);
-  console.log(`      → ${o.suggestion.substring(0, 75)}`);
+  console.log(`   ${i+1}. [${o.severity.toUpperCase()}] ${o.category} | ${o.owner}`);
+  console.log(`      Fix: ${o.suggested_fix.substring(0, 80)}`);
 });

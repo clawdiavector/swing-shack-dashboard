@@ -156,6 +156,34 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fu-footer { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .fu-asset { font-size: 0.7rem; color: var(--info); }
 .fu-cta { font-size: 0.7rem; color: var(--success); }
+
+/* ASSET NEEDS THIS WEEK */
+.an-summary { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+.an-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.an-card { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px; border-left: 3px solid var(--warning); }
+.an-header { display: flex; gap: 6px; align-items: center; margin-bottom: 5px; flex-wrap: wrap; }
+.an-owner { font-size: 0.75rem; font-weight: 800; color: var(--text); }
+.an-count { font-size: 0.7rem; color: var(--muted); }
+.an-urg { font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(255,71,87,0.2); color: #ff4757; margin-left: auto; }
+.an-urg.week { background: rgba(255,165,0,0.2); color: var(--warning); }
+.an-urg.flex { background: rgba(0,180,216,0.15); color: var(--info); }
+.an-label { font-size: 0.78rem; font-weight: 700; color: var(--warning); margin-bottom: 4px; }
+.an-posts { display: flex; flex-direction: column; gap: 2px; }
+.an-post { font-size: 0.68rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* OWNER WORKLOAD */
+.ow-header-row { display: grid; grid-template-columns: 140px 1fr 1fr; gap: 10px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.ow-col-owner, .ow-col-items, .ow-col-top { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 700; }
+.ow-row { display: grid; grid-template-columns: 140px 1fr 1fr; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.ow-owner { display: flex; flex-direction: column; gap: 2px; }
+.ow-name { font-size: 0.82rem; font-weight: 800; color: var(--text); }
+.ow-total { font-size: 0.7rem; color: var(--muted); }
+.ow-bars { display: flex; gap: 5px; flex-wrap: wrap; }
+.ow-bar { font-size: 0.7rem; padding: 2px 7px; border-radius: 5px; color: var(--muted); background: rgba(255,255,255,0.05); }
+.ow-bar--today.active { background: rgba(255,71,87,0.2); color: #ff4757; font-weight: 700; }
+.ow-bar--week { color: var(--muted); }
+.ow-top-item { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ow-note { font-size: 0.72rem; color: var(--muted); margin-top: 8px; font-style: italic; }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -200,7 +228,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/17, 10:18:57 SAST</span>
+    <span class="summary-value">2026/04/17, 10:37:25 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -229,7 +257,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
     <div class="tw-item tw-item--missed">
       <div class="tw-label">⚠️ You missed</div>
       <div class="tw-value" style="font-size:0.85rem;color:#ff4757">Hook scored 10 on IG. No follow-up posts found for "</div>
-      <div class="tw-meta">hook winner not reused (+9 more)</div>
+      <div class="tw-meta">hook winner not reused (+11 more)</div>
     </div>
     <div class="tw-sep"></div>
     <div class="tw-item tw-item--cta">
@@ -511,6 +539,58 @@ Pros average 112 mph. Tra...</span>
   </div>
   <div class="section">
     <div class="section-header">
+      <h2>📦 ASSET NEEDS THIS WEEK</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="an-summary">6 asset needs across 4 owners · 2 needed today</div><div class="an-grid">
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Coach Cat / Divan</span>
+        <span class="an-count">1 post</span>
+        <span class="an-urg">today</span>
+      </div>
+      <div class="an-label">📊 TrackMan screenshot or data graphic</div>
+      <div class="an-posts"><div class="an-post">· That slice costing you yards off the tee? TrackMan</div></div>
+    </div>
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Coach Cat</span>
+        <span class="an-count">4 posts</span>
+        <span class="an-urg">today</span>
+      </div>
+      <div class="an-label">🎬 Swing clip (video or photo)</div>
+      <div class="an-posts"><div class="an-post">· Need some help with your putting? Coach Cat explai</div><div class="an-post">· Need to relax and find your golf swing tempo? Join</div></div>
+    </div>
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Divan</span>
+        <span class="an-count">2 posts</span>
+        <span class="an-urg">week</span>
+      </div>
+      <div class="an-label">🖼 High-quality static image</div>
+      <div class="an-posts"><div class="an-post">· Lowest net score wins a *new custom fitted driver!</div><div class="an-post">· Have you ever been for an elite level Custom Fitti</div></div>
+    </div>
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Swing Shack page</span>
+        <span class="an-count">1 post</span>
+        <span class="an-urg">week</span>
+      </div>
+      <div class="an-label">🖼 High-quality static image</div>
+      <div class="an-posts"><div class="an-post">· Go to your coaching sessions. Your ball deserves b</div></div>
+    </div>
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Coach Cat</span>
+        <span class="an-count">1 post</span>
+        <span class="an-urg">flex</span>
+      </div>
+      <div class="an-label">📝 Text graphic / booking CTA image</div>
+      <div class="an-posts"><div class="an-post">· Book your session with Coach Cat @swingshack ⛳️</div></div>
+    </div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
       <h2>💡 Content Ideas</h2>
       <span class="badge fresh">✅ fresh</span>
     </div>
@@ -556,6 +636,80 @@ Pros average 112 mph. Tra...</span>
       </div>
     </div>
   </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>👥 OWNER WORKLOAD</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    
+  <div class="ow-header-row">
+    <span class="ow-col-owner">Owner</span>
+    <span class="ow-col-items">Workload</span>
+    <span class="ow-col-top">Top item</span>
+  </div>
+  
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Coach Cat</span>
+        <span class="ow-total">10 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today active" title="Today">1 today</span>
+        <span class="ow-bar ow-bar--week">6 this week</span>
+        <span class="ow-bar ow-bar--flex">1 flexible</span>
+      </div>
+      <div class="ow-top-item">Need some help with your putting? Coach Cat explai</div>
+    </div>
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Coach Cat / Divan</span>
+        <span class="ow-total">1 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today active" title="Today">1 today</span>
+        <span class="ow-bar ow-bar--week"></span>
+        <span class="ow-bar ow-bar--flex"></span>
+      </div>
+      <div class="ow-top-item">That slice costing you yards off the tee? TrackMan</div>
+    </div>
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Divan</span>
+        <span class="ow-total">3 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today " title="Today"></span>
+        <span class="ow-bar ow-bar--week">1 this week</span>
+        <span class="ow-bar ow-bar--flex">1 flexible</span>
+      </div>
+      <div class="ow-top-item">Have you ever been for an elite level Custom Fitti</div>
+    </div>
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Swing Shack page</span>
+        <span class="ow-total">1 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today " title="Today"></span>
+        <span class="ow-bar ow-bar--week">1 this week</span>
+        <span class="ow-bar ow-bar--flex"></span>
+      </div>
+      <div class="ow-top-item">Go to your coaching sessions. Your ball deserves b</div>
+    </div>
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Nancy / Front Desk</span>
+        <span class="ow-total">1 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today " title="Today"></span>
+        <span class="ow-bar ow-bar--week">1 this week</span>
+        <span class="ow-bar ow-bar--flex"></span>
+      </div>
+      <div class="ow-top-item">null</div>
+    </div>
+  <p class="ow-note">Most loaded: <b>Coach Cat</b> (10 items)</p>
   </div>
   <div class="section">
     <div class="section-header">
@@ -689,7 +843,7 @@ Pros average 112 mph. Tra...</span>
     <div class="ga4-pages">
       <table class="ga4-table">
         <tr><th>Landing Page</th><th>Sessions</th><th>Eng Rate</th></tr>
-        <tr><td>/</td><td>270</td><td class="">?</td></tr><tr><td>/bookings/</td><td>147</td><td class="">?</td></tr><tr><td>/</td><td>86</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>54</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>44</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>42</td><td class="">?</td></tr><tr><td>/club-fitting/</td><td>36</td><td class="">?</td></tr><tr><td>/bookings/</td><td>29</td><td class="">?</td></tr><tr><td>/checkout/</td><td>29</td><td class="">?</td></tr><tr><td>/</td><td>25</td><td class="">?</td></tr>
+        <tr><td>/</td><td>272</td><td class="">?</td></tr><tr><td>/bookings/</td><td>148</td><td class="">?</td></tr><tr><td>/</td><td>86</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>55</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>44</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>43</td><td class="">?</td></tr><tr><td>/club-fitting/</td><td>36</td><td class="">?</td></tr><tr><td>/bookings/</td><td>29</td><td class="">?</td></tr><tr><td>/checkout/</td><td>29</td><td class="">?</td></tr><tr><td>/</td><td>25</td><td class="">?</td></tr>
       </table>
     </div>
   </div>

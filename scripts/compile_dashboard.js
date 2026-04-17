@@ -70,6 +70,8 @@ const postPlan   = readJson('post-plan.json') || null;
 const salesPrio  = readJson('sales-priority.json') || null;
 const missed     = readJson('missed-opportunities.json') || null;
 const followUpQ  = readJson('follow-up-queue.json') || null;
+const assetNeeds = readJson('asset-needs.json') || null;
+const ownerWork  = readJson('owner-workload.json') || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -490,6 +492,56 @@ if (followUpQ && followUpQ.queue && followUpQ.queue.length > 0) {
 }
 const followUpSection = buildSection('🔄 FOLLOW UP NEXT', freshnessBadge(followUpQ?.updated), followUpContent);
 
+// ── ASSET NEEDS THIS WEEK ───────────────────────────────────────
+let assetContent = '<p class="empty">No asset needs detected.</p>';
+if (assetNeeds && assetNeeds.needs && assetNeeds.needs.length > 0) {
+  const cards = assetNeeds.needs.slice(0, 5).map(n => {
+    const urg = n.urgency === 'today' ? 'today' : n.urgency === 'this_week' ? 'week' : 'flex';
+    return `
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 ${n.owner}</span>
+        <span class="an-count">${n.count} post${n.count > 1 ? 's' : ''}</span>
+        <span class="an-urg">${urg}</span>
+      </div>
+      <div class="an-label">${n.asset_label || n.asset_raw}</div>
+      <div class="an-posts">${n.posts.slice(0,2).map(p => `<div class="an-post">· ${p.hook || ''}</div>`).join('')}</div>
+    </div>`;
+  }).join('');
+  assetContent = `<div class="an-summary">${assetNeeds.needs.length} asset needs across ${Object.keys(assetNeeds.by_owner || {}).length} owners · ${assetNeeds.summary?.by_urgency?.today || 0} needed today</div><div class="an-grid">${cards}</div>`;
+}
+const assetSection = buildSection('📦 ASSET NEEDS THIS WEEK', freshnessBadge(assetNeeds?.updated), assetContent);
+
+// ── OWNER WORKLOAD ───────────────────────────────────────────────
+let workloadContent = '<p class="empty">No workload data yet.</p>';
+if (ownerWork && ownerWork.owners && ownerWork.owners.length > 0) {
+  const rows = ownerWork.owners.slice(0, 5).map(ow => {
+    const hiToday = ow.by_urgency.today > 0;
+    return `
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">${ow.owner}</span>
+        <span class="ow-total">${ow.total} items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today ${hiToday ? 'active' : ''}" title="Today">${ow.by_urgency.today > 0 ? ow.by_urgency.today + ' today' : ''}</span>
+        <span class="ow-bar ow-bar--week">${ow.by_urgency.this_week > 0 ? ow.by_urgency.this_week + ' this week' : ''}</span>
+        <span class="ow-bar ow-bar--flex">${ow.by_urgency.flexible > 0 ? ow.by_urgency.flexible + ' flexible' : ''}</span>
+      </div>
+      <div class="ow-top-item">${ow.items[0] ? ow.items[0].hook?.substring(0, 50) || ow.items[0].topic : '—'}</div>
+    </div>`;
+  }).join('');
+  workloadContent = `
+  <div class="ow-header-row">
+    <span class="ow-col-owner">Owner</span>
+    <span class="ow-col-items">Workload</span>
+    <span class="ow-col-top">Top item</span>
+  </div>
+  ${rows}
+  <p class="ow-note">Most loaded: <b>${ownerWork.most_loaded || 'n/a'}</b> (${ownerWork.most_loaded_count || 0} items)</p>`;
+}
+const workloadSection = buildSection('👥 OWNER WORKLOAD', freshnessBadge(ownerWork?.updated), workloadContent);
+
 const ideaSection = buildSection('💡 Content Ideas', freshnessBadge(ideas.updated), ideaContent);
 
 // ── GOLF NEWS ─────────────────────────────────────────────────────
@@ -792,6 +844,34 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fu-footer { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .fu-asset { font-size: 0.7rem; color: var(--info); }
 .fu-cta { font-size: 0.7rem; color: var(--success); }
+
+/* ASSET NEEDS THIS WEEK */
+.an-summary { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+.an-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.an-card { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px; border-left: 3px solid var(--warning); }
+.an-header { display: flex; gap: 6px; align-items: center; margin-bottom: 5px; flex-wrap: wrap; }
+.an-owner { font-size: 0.75rem; font-weight: 800; color: var(--text); }
+.an-count { font-size: 0.7rem; color: var(--muted); }
+.an-urg { font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(255,71,87,0.2); color: #ff4757; margin-left: auto; }
+.an-urg.week { background: rgba(255,165,0,0.2); color: var(--warning); }
+.an-urg.flex { background: rgba(0,180,216,0.15); color: var(--info); }
+.an-label { font-size: 0.78rem; font-weight: 700; color: var(--warning); margin-bottom: 4px; }
+.an-posts { display: flex; flex-direction: column; gap: 2px; }
+.an-post { font-size: 0.68rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* OWNER WORKLOAD */
+.ow-header-row { display: grid; grid-template-columns: 140px 1fr 1fr; gap: 10px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.ow-col-owner, .ow-col-items, .ow-col-top { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 700; }
+.ow-row { display: grid; grid-template-columns: 140px 1fr 1fr; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.ow-owner { display: flex; flex-direction: column; gap: 2px; }
+.ow-name { font-size: 0.82rem; font-weight: 800; color: var(--text); }
+.ow-total { font-size: 0.7rem; color: var(--muted); }
+.ow-bars { display: flex; gap: 5px; flex-wrap: wrap; }
+.ow-bar { font-size: 0.7rem; padding: 2px 7px; border-radius: 5px; color: var(--muted); background: rgba(255,255,255,0.05); }
+.ow-bar--today.active { background: rgba(255,71,87,0.2); color: #ff4757; font-weight: 700; }
+.ow-bar--week { color: var(--muted); }
+.ow-top-item { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ow-note { font-size: 0.72rem; color: var(--muted); margin-top: 8px; font-style: italic; }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -838,7 +918,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${hookSection}
   ${watchedSection}
   ${followUpSection}
+  ${assetSection}
   ${ideaSection}
+  ${workloadSection}
   ${abSection}
   ${newsSection}
   ${redditSection}

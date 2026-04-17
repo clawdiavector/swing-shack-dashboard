@@ -1,0 +1,265 @@
+{
+  "updated": "2026-04-17T08:37:25.538Z",
+  "generated": "generate_owner_workload.js",
+  "total_owners": 5,
+  "total_items": 16,
+  "today_total": 2,
+  "this_week_total": 9,
+  "most_loaded": "Coach Cat",
+  "most_loaded_count": 10,
+  "owners": [
+    {
+      "owner": "Coach Cat",
+      "items": [
+        {
+          "source": "post_plan",
+          "urgency": "today",
+          "hook": "Need some help with your putting? Coach Cat explains what ma",
+          "cta": "Link in bio · Book your session",
+          "day": "Saturday Apr 18",
+          "objective": "reach",
+          "format": "static",
+          "topics": [
+            "short_game",
+            "lessons"
+          ]
+        },
+        {
+          "source": "post_plan",
+          "urgency": "this_week",
+          "hook": "Need to relax and find your golf swing tempo? Join Coach Cat",
+          "cta": "Save this · Share with a golfer",
+          "day": "Monday Apr 20",
+          "objective": "saves",
+          "format": "static",
+          "topics": [
+            "lessons",
+            "swing"
+          ]
+        },
+        {
+          "source": "missed_opportunity",
+          "urgency": "this_week",
+          "topic": "driver",
+          "hook": "That slice costing you yards off the tee? TrackMan found it ",
+          "suggested_fix": "Rework the \"driver\" hook into a follow-up Reel this week — IG proof 10.",
+          "category": "follow_up_gap"
+        },
+        {
+          "source": "missed_opportunity",
+          "urgency": "this_week",
+          "topic": "lessons",
+          "hook": "Need to relax and find your golf swing tempo? Join Coach Cat",
+          "suggested_fix": "Rework the \"lessons\" hook into a follow-up Reel this week — IG proof 10.",
+          "category": "follow_up_gap"
+        },
+        {
+          "source": "missed_opportunity",
+          "urgency": "this_week",
+          "topic": "short_game",
+          "hook": "Need some help with your putting? Coach Cat explains what ma",
+          "suggested_fix": "Rework the \"short_game\" hook into a follow-up Reel this week — IG proof 9.86.",
+          "category": "follow_up_gap"
+        },
+        {
+          "source": "missed_opportunity",
+          "urgency": "this_week",
+          "topic": "driver",
+          "hook": "Lowest net score wins a *new custom fitted driver!*",
+          "suggested_fix": "Rework the \"driver\" hook into a follow-up Reel this week — IG proof 9.4.",
+          "category": "follow_up_gap"
+        },
+        {
+          "source": "missed_opportunity",
+          "urgency": "this_week",
+          "topic": "lessons",
+          "hook": "Book your session with Coach Cat @swingshack ⛳️",
+          "suggested_fix": "Rework the \"lessons\" hook into a follow-up Reel this week — IG proof 9.129999999999999.",
+          "category": "follow_up_gap"
+        },
+        {
+          "source": "post_plan",
+          "urgency": "flexible",
+          "hook": "Book your session with Coach Cat @swingshack ⛳️",
+          "cta": "Book your session · Link in bio",
+          "day": "Sunday Apr 19",
+          "objective": "bookings",
+          "format": "static",
+          "topics": [
+            "lessons",
+            "swing"
+          ]
+        },
+        {
+          "source": "follow_up_queue",
+          "urgency": "high",
+          "hook": "Zero to 18 handicap in 6 months. Cat breaks down the session",
+          "original_hook": "Need to relax and find your golf swing tempo? Join Coach Cat",
+          "cta": "Book your first lesson · swingshack.co.za/membership",
+          "topic": "lessons",
+          "angle": "result/social proof",
+          "reason_blocked": "in_plan",
+          "already_planned": true
+        },
+        {
+          "source": "follow_up_queue",
+          "urgency": "high",
+          "hook": "One putting session with Cat changed everything. Here's the ",
+          "original_hook": "Need some help with your putting? Coach Cat explains what ma",
+          "cta": "Book a lesson · swingshack.co.za/membership",
+          "topic": "short_game",
+          "angle": "quick win lesson",
+          "reason_blocked": "in_plan",
+          "already_planned": true
+        }
+      ],
+      "by_urgency": {
+        "today": 1,
+        "this_week": 6,
+        "flexible": 1
+      },
+      "by_source": {
+        "post_plan": 3,
+        "follow_up_queue": 2,
+        "missed_opportunity": 5
+      },
+      "total": 10
+    },
+    {
+      "owner": "Coach Cat / Divan",
+      "items": [
+        {
+          "source": "post_plan",
+          "urgency": "today",
+          "hook": "That slice costing you yards off the tee? TrackMan found it ",
+          "cta": "Link in bio · Book your session",
+          "day": "Friday Apr 17",
+          "objective": "reach",
+          "format": "static",
+          "topics": [
+            "driver",
+            "slice_fix",
+            "simulator",
+            "swing",
+            "distance"
+          ]
+        }
+      ],
+      "by_urgency": {
+        "today": 1,
+        "this_week": 0,
+        "flexible": 0
+      },
+      "by_source": {
+        "post_plan": 1,
+        "follow_up_queue": 0,
+        "missed_opportunity": 0
+      },
+      "total": 1
+    },
+    {
+      "owner": "Divan",
+      "items": [
+        {
+          "source": "post_plan",
+          "urgency": "this_week",
+          "hook": "Have you ever been for an elite level Custom Fitting? Get th",
+          "cta": "Link in bio · Book your session",
+          "day": "Thursday Apr 23",
+          "objective": "awareness",
+          "format": "static",
+          "topics": [
+            "equipment"
+          ]
+        },
+        {
+          "source": "post_plan",
+          "urgency": "flexible",
+          "hook": "Lowest net score wins a *new custom fitted driver!*",
+          "cta": "Enter now · Link in bio",
+          "day": "Tuesday Apr 21",
+          "objective": "awareness",
+          "format": "static",
+          "topics": [
+            "driver",
+            "fitness"
+          ]
+        },
+        {
+          "source": "follow_up_queue",
+          "urgency": "high",
+          "hook": "Your driver data tells a story. TrackMan tells you how to fi",
+          "original_hook": "That slice costing you yards off the tee? TrackMan found it ",
+          "cta": "Book a lesson · Link in bio",
+          "topic": "driver",
+          "angle": "lesson CTA from data",
+          "reason_blocked": "in_plan",
+          "already_planned": true
+        }
+      ],
+      "by_urgency": {
+        "today": 0,
+        "this_week": 1,
+        "flexible": 1
+      },
+      "by_source": {
+        "post_plan": 2,
+        "follow_up_queue": 1,
+        "missed_opportunity": 0
+      },
+      "total": 3
+    },
+    {
+      "owner": "Swing Shack page",
+      "items": [
+        {
+          "source": "post_plan",
+          "urgency": "this_week",
+          "hook": "Go to your coaching sessions. Your ball deserves better 🫂",
+          "cta": "Link in bio · Book your session",
+          "day": "Wednesday Apr 22",
+          "objective": "awareness",
+          "format": "static",
+          "topics": [
+            "coaching"
+          ]
+        }
+      ],
+      "by_urgency": {
+        "today": 0,
+        "this_week": 1,
+        "flexible": 0
+      },
+      "by_source": {
+        "post_plan": 1,
+        "follow_up_queue": 0,
+        "missed_opportunity": 0
+      },
+      "total": 1
+    },
+    {
+      "owner": "Nancy / Front Desk",
+      "items": [
+        {
+          "source": "missed_opportunity",
+          "urgency": "this_week",
+          "topic": null,
+          "hook": null,
+          "suggested_fix": "Create IG content targeting \"/bookings/\" — 148 sessions with no social link.",
+          "category": "content_gap"
+        }
+      ],
+      "by_urgency": {
+        "today": 0,
+        "this_week": 1,
+        "flexible": 0
+      },
+      "by_source": {
+        "post_plan": 0,
+        "follow_up_queue": 0,
+        "missed_opportunity": 1
+      },
+      "total": 1
+    }
+  ]
+}

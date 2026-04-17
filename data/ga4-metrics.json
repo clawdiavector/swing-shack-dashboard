@@ -1,19 +1,19 @@
 {
-  "updated": "2026-04-17T08:18:34.105Z",
-  "fetched_at": "2026-04-17T08:18:34.105Z",
+  "updated": "2026-04-17T08:36:57.769Z",
+  "fetched_at": "2026-04-17T08:36:57.769Z",
   "property_id": "427380680",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 951,
+  "total_sessions": 956,
   "pages": [
     {
       "path": "/",
-      "sessions": 270,
-      "engRate": "73.7%"
+      "sessions": 272,
+      "engRate": "73.2%"
     },
     {
       "path": "/bookings/",
-      "sessions": 147,
-      "engRate": "81.6%"
+      "sessions": 148,
+      "engRate": "81.1%"
     },
     {
       "path": "/",
@@ -22,8 +22,8 @@
     },
     {
       "path": "/customer-portal/",
-      "sessions": 54,
-      "engRate": "44.4%"
+      "sessions": 55,
+      "engRate": "43.6%"
     },
     {
       "path": "/customer-portal/",
@@ -32,8 +32,8 @@
     },
     {
       "path": "/customer-portal/",
-      "sessions": 42,
-      "engRate": "45.2%"
+      "sessions": 43,
+      "engRate": "44.2%"
     },
     {
       "path": "/club-fitting/",
@@ -59,15 +59,15 @@
   "sources": [
     {
       "source": "google",
-      "sessions": 579
+      "sessions": 582
     },
     {
       "source": "(direct)",
-      "sessions": 204
+      "sessions": 205
     },
     {
       "source": "c.yoco.com",
-      "sessions": 99
+      "sessions": 100
     },
     {
       "source": "bing",
@@ -93,7 +93,7 @@
       {
         "type": "organic_opportunity",
         "priority": "medium",
-        "message": "579 organic sessions. Ensure these pages have clear booking CTAs."
+        "message": "582 organic sessions. Ensure these pages have clear booking CTAs."
       }
     ]
   },

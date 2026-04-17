@@ -171,18 +171,26 @@ followUpGaps.forEach(gap => {
   // Flag if already in this week's post plan
   const already_planned = plannedHookIds.has(originalHook?.hook_id);
 
+  const hasAsset = assetFor(topic) && !assetFor(topic).includes('generic');
+  const hasOwner = !!assignOwner(topic);
+  let reason_blocked = 'ready_now';
+  if (already_planned)          reason_blocked = 'in_plan';
+  else if (!hasAsset)          reason_blocked = 'needs_asset';
+  else if (!hasOwner)           reason_blocked = 'needs_owner';
+
   queue.push({
     topic,
-    original_hook:    originalHook?.hook_text || null,
+    original_hook:     originalHook?.hook_text || null,
     original_ig_score: originalHook?.ig_proof_score || gap.ig_score || null,
-    suggested_hook:   angle.hook,
-    suggested_cta:    angle.cta,
-    angle:             angle.angle,
-    why_now:           already_planned ? `Topic already scheduled this week — follow-up CTA still recommended` : angle.why,
-    owner:              assignOwner(topic),
-    asset_needed:      assetFor(topic),
-    suggested_format: topic === 'lessons' || topic === 'short_game' ? 'reel' : 'static',
-    urgency:            originalHook?.ig_proof_score >= 9 ? 'high' : 'medium',
+    suggested_hook:    angle.hook,
+    suggested_cta:     angle.cta,
+    angle:              angle.angle,
+    why_now:            already_planned ? `Topic already scheduled this week — follow-up CTA still recommended` : angle.why,
+    owner:               assignOwner(topic),
+    asset_needed:       assetFor(topic),
+    suggested_format:  topic === 'lessons' || topic === 'short_game' ? 'reel' : 'static',
+    urgency:             originalHook?.ig_proof_score >= 9 ? 'high' : 'medium',
+    reason_blocked,
     already_planned,
   });
 });
@@ -220,8 +228,8 @@ console.log(`✅ Follow-up queue generated: ${OUTPUT}`);
 console.log(`   Items: ${queue.length} | High: ${output.meta.high_urgency} | Medium: ${output.meta.medium_urgency}`);
 console.log(`   By owner: ${Object.entries(byOwner).map(([o,n]) => `${o}×${n.length}`).join(', ')}`);
 queue.forEach((q, i) => {
-  const flag = q.already_planned ? ' [📅 already in plan]' : '';
-  console.log(`   ${i+1}. [${q.urgency.toUpperCase()}] ${q.owner} | ${q.topic}${flag}`);
+  const rb = { in_plan: '📅 in_plan', needs_asset: '📦 needs_asset', needs_owner: '👤 needs_owner', ready_now: '✅ ready_now' }[q.reason_blocked] || q.reason_blocked;
+  console.log(`   ${i+1}. [${q.urgency.toUpperCase()}] ${q.owner} | ${q.topic} | ${rb}`);
   console.log(`      Suggested: ${q.suggested_hook.substring(0, 60)}`);
   console.log(`      CTA: ${q.suggested_cta}`);
   console.log(`      Asset: ${q.asset_needed}`);

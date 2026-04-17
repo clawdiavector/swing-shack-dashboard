@@ -309,6 +309,6 @@ const output = {
 fs.writeFileSync(OUTPUT, JSON.stringify(output, null, 2));
 console.log(`✅ Sales priority generated: ${OUTPUT}`);
 results.forEach((r, i) => {
-  const band = { high: '🟢', medium: '🟡', low: '🔴' }[r.confidence_band || 'low'];
-  console.log(`   ${i+1}. ${r.label} [${r.priority_level.toUpperCase()}] (${r.score}/10) ${band} ${r.confidence_band} confidence — ${r.reasons.slice(0,2).join(' · ')}`);
+  const band = { high: '🟢', medium: '🟡', low: '⚪' }[r.confidence_band || 'low'];
+  console.log(`   ${i+1}. ${r.label} [${r.priority_level.toUpperCase()}] (${r.score}/10) confidence:${r.confidence_band} — ${r.reasons.slice(0,2).join(' · ')}`);
 });

@@ -1,19 +1,19 @@
 {
-  "updated": "2026-04-17T08:18:57.659Z",
+  "updated": "2026-04-17T08:37:25.257Z",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 951,
+  "total_sessions": 956,
   "source_share": {
     "organic_pct": "60.9",
     "direct_pct": "0.0",
     "social_pct": "0.0",
-    "organic_sessions": 579,
+    "organic_sessions": 582,
     "direct_sessions": 0,
     "social_sessions": 0,
-    "total": 951
+    "total": 956
   },
   "funnel": {
     "booking_pages": {
-      "sessions": 176,
+      "sessions": 177,
       "paths": [
         "/bookings/",
         "/bookings/"
@@ -74,21 +74,21 @@
     {
       "issue": "Booking funnel drop-off detected",
       "severity": "HIGH",
-      "evidence": "176 booking page sessions → 29 checkout sessions (16.5% conversion rate)",
+      "evidence": "177 booking page sessions → 29 checkout sessions (16.4% conversion rate)",
       "recommended_fix": "URGENT: Review booking flow for friction. Likely causes: form too long, page speed, or unclear next step. Test a single-field \"Book a Session\" CTA first.",
       "source_metric": "ga4.funnel.booking_to_checkout_ratio"
     },
     {
       "issue": "Organic traffic without clear booking path",
       "severity": "MEDIUM",
-      "evidence": "579 organic sessions (60.9% of all traffic)",
+      "evidence": "582 organic sessions (60.9% of all traffic)",
       "recommended_fix": "Ensure every high-engagement page has a \"Book a TrackMan Session\" CTA visible in first viewport scroll. TrackMan keyword intent = high commercial intent.",
       "source_metric": "ga4.sessions.organic"
     }
   ],
   "insights": [
     "⚠️ 1 pages with high traffic but weak CTAs",
-    "⚠️ Booking funnel: 176 → 29 checkout (16% conv)",
+    "⚠️ Booking funnel: 177 → 29 checkout (16% conv)",
     "✅ Top: /checkout/ (96.6% eng), /club-fitting/ (91.7% eng), / (88.0% eng)"
   ],
   "summary": {

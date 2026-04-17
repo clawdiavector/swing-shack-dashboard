@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T08:18:57.848Z",
+  "updated": "2026-04-17T08:37:25.449Z",
   "generated": "generate_follow_up_queue.js",
   "count": 3,
   "by_owner": {
@@ -16,6 +16,7 @@
         "asset_needed": "Club/fitting photo or TrackMan data screenshot",
         "suggested_format": "static",
         "urgency": "high",
+        "reason_blocked": "in_plan",
         "already_planned": true
       }
     ],
@@ -32,6 +33,7 @@
         "asset_needed": "Swing clip or lesson photo",
         "suggested_format": "reel",
         "urgency": "high",
+        "reason_blocked": "in_plan",
         "already_planned": true
       },
       {
@@ -46,6 +48,7 @@
         "asset_needed": "Swing clip or lesson photo",
         "suggested_format": "reel",
         "urgency": "high",
+        "reason_blocked": "in_plan",
         "already_planned": true
       }
     ]
@@ -63,6 +66,7 @@
       "asset_needed": "Club/fitting photo or TrackMan data screenshot",
       "suggested_format": "static",
       "urgency": "high",
+      "reason_blocked": "in_plan",
       "already_planned": true
     },
     {
@@ -77,6 +81,7 @@
       "asset_needed": "Swing clip or lesson photo",
       "suggested_format": "reel",
       "urgency": "high",
+      "reason_blocked": "in_plan",
       "already_planned": true
     },
     {
@@ -91,6 +96,7 @@
       "asset_needed": "Swing clip or lesson photo",
       "suggested_format": "reel",
       "urgency": "high",
+      "reason_blocked": "in_plan",
       "already_planned": true
     }
   ],
