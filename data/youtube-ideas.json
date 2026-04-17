@@ -1,15 +1,15 @@
 {
-  "updated": "2026-04-17T05:34:23.742Z",
-  "ideas_generated": 20,
+  "updated": "2026-04-17T05:43:25.789Z",
+  "ideas_generated": 17,
   "by_format": {
-    "shorts": 20,
+    "shorts": 17,
     "static": 0
   },
   "by_source": {
     "youtube_trending": 14,
     "youtube_trending_theme": 0,
     "golf_news": 0,
-    "ig_hook_remix": 3,
+    "ig_hook_remix": 0,
     "sa_local_angle": 3
   },
   "ideas": [
@@ -113,8 +113,8 @@
     },
     {
       "idea_id": "yt-shorts-2026-04-17-8",
-      "title": "Better Golf Swing In 2 Minutes",
-      "hook": "Better Golf Swing In 2 Minutes",
+      "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
+      "hook": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
       "format": "shorts",
       "source": "youtube_trending",
       "source_reason": "Trending on YouTube (undefined views) under undefined",
@@ -210,52 +210,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-remix-2026-04-17-15",
-      "title": "[SHORTS] Sometimes u just need a bit of tough love 😅🤣",
-      "hook": "Sometimes u just need a bit of tough love 😅🤣",
-      "caption": "This hook worked on IG. Now try it as a Shorts. ",
-      "format": "shorts",
-      "source": "ig_hook_remix",
-      "source_reason": "IG winning hook (no data eng rate) → Shorts format",
-      "best_cta": "Link in bio",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "hook_remix",
-      "used": false,
-      "is_ig_to_shorts": true
-    },
-    {
-      "idea_id": "yt-remix-2026-04-17-16",
-      "title": "[SHORTS] That slice costing you yards off the tee? TrackMan foun",
-      "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
-      "caption": "This hook worked on IG. Now try it as a Shorts. ",
-      "format": "shorts",
-      "source": "ig_hook_remix",
-      "source_reason": "IG winning hook (no data eng rate) → Shorts format",
-      "best_cta": "Link in bio",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "hook_remix",
-      "used": false,
-      "is_ig_to_shorts": true
-    },
-    {
-      "idea_id": "yt-remix-2026-04-17-17",
-      "title": "[SHORTS] Another awesome day out @parkview_1916 . Course was in ",
-      "hook": "Another awesome day out @parkview_1916 . Course was in fantastic condition and a",
-      "caption": "This hook worked on IG. Now try it as a Shorts. ",
-      "format": "shorts",
-      "source": "ig_hook_remix",
-      "source_reason": "IG winning hook (no data eng rate) → Shorts format",
-      "best_cta": "Link in bio",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "hook_remix",
-      "used": false,
-      "is_ig_to_shorts": true
-    },
-    {
-      "idea_id": "yt-sa-2026-04-17-18",
+      "idea_id": "yt-sa-2026-04-17-15",
       "title": "Joburg rain season = indoor golf season. Here's what to work on.",
       "hook": "Joburg rain season = indoor golf season. Here's what to work on.",
       "caption": "Rain stops outdoor play but not your improvement. TrackMan indoor golf in Johannesburg.",
@@ -269,7 +224,7 @@
       "used": false
     },
     {
-      "idea_id": "yt-sa-2026-04-17-19",
+      "idea_id": "yt-sa-2026-04-17-16",
       "title": "Your handicap won't improve by hoping. TrackMan tells you what's actually wrong.",
       "hook": "Your handicap won't improve by hoping. TrackMan tells you what's actually wrong.",
       "caption": "Stop guessing. A TrackMan session shows you exactly where strokes are being lost.",
@@ -283,7 +238,7 @@
       "used": false
     },
     {
-      "idea_id": "yt-sa-2026-04-17-20",
+      "idea_id": "yt-sa-2026-04-17-17",
       "title": "That slice that comes and goes? It's not in your head. It's in your data.",
       "hook": "That slice that comes and goes? It's not in your head. It's in your data.",
       "caption": "TrackMan found it in 3 swings. Imagine what a full session reveals.",
@@ -369,5 +324,5 @@
       "is_youtube_remix": true
     }
   ],
-  "trending_themes_summary": "slice fix"
+  "trending_themes_summary": "practice"
 }

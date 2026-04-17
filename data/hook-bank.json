@@ -1,1076 +1,86 @@
 {
-  "updated": "2026-04-17T05:34:19.892Z",
+  "updated": "2026-04-17T05:43:22.086Z",
   "total_hooks": 64,
-  "proven_hooks": [
-    {
-      "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
-      "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
-      "score": 10,
-      "engagementRate": "3.37",
-      "saveRate": "0.00",
-      "shareRate": "0.35",
-      "reach": 564,
-      "topic_cluster": "coaching",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18078655349442093"
-    },
-    {
-      "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
-      "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
-      "score": 10,
-      "engagementRate": "5.66",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 53,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18110075536631986"
-    },
-    {
-      "hook_text": "Another awesome day out @parkview_1916 . Course was in fantastic condition and a",
-      "hook_id": "another-awesome-day-out--parkview-1916---course-wa",
-      "score": 10,
-      "engagementRate": "2.91",
-      "saveRate": "0.00",
-      "shareRate": "0.29",
-      "reach": 344,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18072089732557218"
-    },
-    {
-      "hook_text": "New Callaway Quantum range in- store. Come give them a go 🏌️‍♂️🏌🏻‍♀️",
-      "hook_id": "new-callaway-quantum-range-in--store--come-give-th",
-      "score": 10,
-      "engagementRate": "3.27",
-      "saveRate": "0.00",
-      "shareRate": "0.47",
-      "reach": 214,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17900476056243537"
-    },
-    {
-      "hook_text": "Go to your coaching sessions. Your ball deserves better 🫂",
-      "hook_id": "go-to-your-coaching-sessions--your-ball-deserves-b",
-      "score": 10,
-      "engagementRate": "4.99",
-      "saveRate": "0.00",
-      "shareRate": "0.52",
-      "reach": 381,
-      "topic_cluster": "coaching",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18111373378629295"
-    },
-    {
-      "hook_text": "Improve your game with the coaches tip of the day 🙌",
-      "hook_id": "improve-your-game-with-the-coaches-tip-of-the-day-",
-      "score": 10,
-      "engagementRate": "3.60",
-      "saveRate": "0.00",
-      "shareRate": "0.36",
-      "reach": 278,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18097159915908153"
-    },
-    {
-      "hook_text": "SwingShack merch coming in hot 🔥",
-      "hook_id": "swingshack-merch-coming-in-hot---",
-      "score": 10,
-      "engagementRate": "3.61",
-      "saveRate": "0.00",
-      "shareRate": "0.19",
-      "reach": 526,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18071482694622162"
-    },
-    {
-      "hook_text": "Here’s to a New Year and Good Golf! 🥂😉",
-      "hook_id": "here-s-to-a-new-year-and-good-golf------",
-      "score": 10,
-      "engagementRate": "3.26",
-      "saveRate": "0.00",
-      "shareRate": "0.38",
-      "reach": 521,
-      "topic_cluster": "coaching",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18067732487399015"
-    },
-    {
-      "hook_text": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
-      "hook_id": "have-you-ever-been-for-an-elite-level-custom-fitti",
-      "score": 10,
-      "engagementRate": "4.35",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 161,
-      "topic_cluster": "equipment",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17860872804563714"
-    },
-    {
-      "hook_text": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 202",
-      "hook_id": "391-000-strokes-later-------the-stats-are-in-and-y",
-      "score": 10,
-      "engagementRate": "3.82",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 262,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18082095485134677"
-    },
-    {
-      "hook_text": "Santa’s off days",
-      "hook_id": "santa-s-off-days",
-      "score": 10,
-      "engagementRate": "3.49",
-      "saveRate": "0.00",
-      "shareRate": "0.25",
-      "reach": 401,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18371404735083792"
-    },
-    {
-      "hook_text": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
-      "hook_id": "need-to-relax-and-find-your-golf-swing-tempo--join",
-      "score": 10,
-      "engagementRate": "3.10",
-      "saveRate": "0.00",
-      "shareRate": "0.27",
-      "reach": 743,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17977984817792608"
-    },
-    {
-      "hook_text": "Spin.control.Birdies 🤌",
-      "hook_id": "spin-control-birdies---",
-      "score": 10,
-      "engagementRate": "3.23",
-      "saveRate": "0.00",
-      "shareRate": "0.38",
-      "reach": 527,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18079998932180190"
-    },
-    {
-      "hook_text": "Have you had your loft and lies checked yet? Visit us today, we’ll fix it up for",
-      "hook_id": "have-you-had-your-loft-and-lies-checked-yet--visit",
-      "score": 10,
-      "engagementRate": "3.48",
-      "saveRate": "0.00",
-      "shareRate": "0.27",
-      "reach": 374,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18047839205452191"
-    },
-    {
-      "hook_text": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
-      "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
-      "score": 9.86,
-      "engagementRate": "3.43",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 350,
-      "topic_cluster": "equipment",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17937962787145598"
-    },
-    {
-      "hook_text": "Make it a party as u challenge yourself on Steyn City⛳️😎",
-      "hook_id": "make-it-a-party-as-u-challenge-yourself-on-steyn-c",
-      "score": 9.809999999999999,
-      "engagementRate": "2.88",
-      "saveRate": "0.00",
-      "shareRate": "0.21",
-      "reach": 486,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17881014690500366"
-    },
-    {
-      "hook_text": "Catch your flow @swingshack ",
-      "hook_id": "catch-your-flow--swingshack-",
-      "score": 9.75,
-      "engagementRate": "3.05",
-      "saveRate": "0.00",
-      "shareRate": "0.13",
-      "reach": 786,
-      "topic_cluster": "equipment",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18015056354814143"
-    },
-    {
-      "hook_text": "Your balls are important too 👀 Learn the key differences between one of the mos",
-      "hook_id": "your-balls-are-important-too----learn-the-key-diff",
-      "score": 9.52,
-      "engagementRate": "2.61",
-      "saveRate": "0.00",
-      "shareRate": "0.26",
-      "reach": 383,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18101162930499434"
-    },
-    {
-      "hook_text": "Lowest net score wins a *new custom fitted driver!*",
-      "hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
-      "score": 9.4,
-      "engagementRate": "1.60",
-      "saveRate": "0.00",
-      "shareRate": "0.64",
-      "reach": 312,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18094335746089574"
-    },
-    {
-      "hook_text": "YOUR GOLF STATS DON'T LIE.",
-      "hook_id": "your-golf-stats-don-t-lie-",
-      "score": 9.3,
-      "engagementRate": "4.03",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 124,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18109714780828192"
-    },
-    {
-      "hook_text": "Want to win a fully custom built driver?👀",
-      "hook_id": "want-to-win-a-fully-custom-built-driver---",
-      "score": 9.18,
-      "engagementRate": "3.09",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 356,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "question",
-      "post_id": "18055889312462062"
-    },
-    {
-      "hook_text": "Book your session with Coach Cat @swingshack ⛳️",
-      "hook_id": "book-your-session-with-coach-cat--swingshack---",
-      "score": 9.129999999999999,
-      "engagementRate": "1.79",
-      "saveRate": "0.00",
-      "shareRate": "0.51",
-      "reach": 390,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18381028009094142"
-    },
-    {
-      "hook_text": "Editing our SwingShack Members Social like a reality TV show 🤣 ",
-      "hook_id": "editing-our-swingshack-members-social-like-a-reali",
-      "score": 8.98,
-      "engagementRate": "2.99",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 402,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18098296201915090"
-    },
-    {
-      "hook_text": "I think Santa’s on the naughty list 🥹 #swingshack #golf #christmas",
-      "hook_id": "i-think-santa-s-on-the-naughty-list-----swingshack",
-      "score": 8.52,
-      "engagementRate": "2.76",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 617,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17878890069350655"
-    },
-    {
-      "hook_text": "What’s Santa up to now 🤣?!?",
-      "hook_id": "what-s-santa-up-to-now------",
-      "score": 8.42,
-      "engagementRate": "2.21",
-      "saveRate": "0.00",
-      "shareRate": "0.20",
-      "reach": 497,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "question",
-      "post_id": "17857342632523309"
-    },
-    {
-      "hook_text": "Same speed, different DNA’s 🏌🏻‍♀️🏌🏻‍♂️⛳️",
-      "hook_id": "same-speed--different-dna-s-----------------",
-      "score": 7.82,
-      "engagementRate": "2.41",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 540,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18164214061409872"
-    },
-    {
-      "hook_text": "It never rains in doors… Book your slot now before your tee time rains out🏌🏻‍♀",
-      "hook_id": "it-never-rains-in-doors--book-your-slot-now-before",
-      "score": 7.8,
-      "engagementRate": "2.40",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 334,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17906009436202876"
-    },
-    {
-      "hook_text": "Building a perfect swing one step at a time⛳️🔥",
-      "hook_id": "building-a-perfect-swing-one-step-at-a-time----",
-      "score": 7.77,
-      "engagementRate": "1.63",
-      "saveRate": "0.00",
-      "shareRate": "0.41",
-      "reach": 246,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "17957470542082414"
-    },
-    {
-      "hook_text": "RAIN OR SHINE - YOUR GAME NEVER STOPS.",
-      "hook_id": "rain-or-shine---your-game-never-stops-",
-      "score": 7.7,
-      "engagementRate": "3.23",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 124,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18104160178728798"
-    },
-    {
-      "hook_text": "We love seeing our members become buddies, eating good food, and having a fun ni",
-      "hook_id": "we-love-seeing-our-members-become-buddies--eating-",
-      "score": 7.56,
-      "engagementRate": "2.28",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 526,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "17931577092198704"
-    },
-    {
-      "hook_text": "Coach Cat takes us through a simple process on getting into one of the more chal",
-      "hook_id": "coach-cat-takes-us-through-a-simple-process-on-get",
-      "score": 7.46,
-      "engagementRate": "1.48",
-      "saveRate": "0.00",
-      "shareRate": "0.30",
-      "reach": 337,
-      "topic_cluster": "coaching",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17959293114110307"
-    },
-    {
-      "hook_text": "Is your budget looking a lil tight 😭 We’ve got u covered with discounts on your",
-      "hook_id": "is-your-budget-looking-a-lil-tight----we-ve-got-u-",
-      "score": 6.859999999999999,
-      "engagementRate": "1.93",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 414,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18084629818847869"
-    },
-    {
-      "hook_text": "Clubs are made for launch conditions not skill level. #golf #customfitting #golf",
-      "hook_id": "clubs-are-made-for-launch-conditions-not-skill-lev",
-      "score": 6.7,
-      "engagementRate": "1.06",
-      "saveRate": "0.00",
-      "shareRate": "0.35",
-      "reach": 283,
-      "topic_cluster": "equipment",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "17973083486868104"
-    },
-    {
-      "hook_text": "New year, new set. Get your custom club fitting @swingshack 🏌️",
-      "hook_id": "new-year--new-set--get-your-custom-club-fitting--s",
-      "score": 6.6,
-      "engagementRate": "1.80",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 444,
-      "topic_cluster": "equipment",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18053016737418173"
-    },
-    {
-      "hook_text": "Our SS team members take on each other with their go-to chip shot 👀 stay tuned ",
-      "hook_id": "our-ss-team-members-take-on-each-other-with-their-",
-      "score": 6.279999999999999,
-      "engagementRate": "1.64",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 305,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18066257237565873"
-    },
-    {
-      "hook_text": "Fresh Vice stock just landed 👀 Look good. Play bold 🔥 #vicegolf #swingshack",
-      "hook_id": "fresh-vice-stock-just-landed----look-good--play-bo",
-      "score": 6.18,
-      "engagementRate": "1.59",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 441,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18028893479571663"
-    },
-    {
-      "hook_text": "SWING SPEED: 83 MPH",
-      "hook_id": "swing-speed--83-mph",
-      "score": 6.08,
-      "engagementRate": "2.42",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 124,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18051071432708752"
-    },
-    {
-      "hook_text": "Book your free swing and club assessments w us @swingshack ✌️",
-      "hook_id": "book-your-free-swing-and-club-assessments-w-us--sw",
-      "score": 5.74,
-      "engagementRate": "1.69",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 236,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17951672903934499"
-    },
-    {
-      "hook_text": "BACKSPIN:3,200 RPM",
-      "hook_id": "backspin-3-200-rpm",
-      "score": 5.72,
-      "engagementRate": "2.17",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 138,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18073928609224626"
-    },
-    {
-      "hook_text": "Wedges matter. Yours could be free 🤷🏻‍♂️",
-      "hook_id": "wedges-matter--yours-could-be-free--------",
-      "score": 5.66,
-      "engagementRate": "1.38",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 290,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18011803721812989"
-    },
-    {
-      "hook_text": "Everything you need as a golfer in one place 🏌🏻‍♂️",
-      "hook_id": "everything-you-need-as-a-golfer-in-one-place------",
-      "score": 5.65,
-      "engagementRate": "1.42",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 281,
-      "topic_cluster": "equipment",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "17975349971991689"
-    },
-    {
-      "hook_text": "Need a new fresh look? 👀",
-      "hook_id": "need-a-new-fresh-look----",
-      "score": 5.65,
-      "engagementRate": "1.43",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 279,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "question",
-      "post_id": "17926830480177581"
-    },
-    {
-      "hook_text": "LA Golf ",
-      "hook_id": "la-golf-",
-      "score": 5.54,
-      "engagementRate": "1.27",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 315,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18123551317562570"
-    },
-    {
-      "hook_text": "Membership prices are going up but the perks are still unbeatable, DM us to get ",
-      "hook_id": "membership-prices-are-going-up-but-the-perks-are-s",
-      "score": 5.54,
-      "engagementRate": "1.27",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 314,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18249132223289629"
-    },
-    {
-      "hook_text": "Sets looking 🔥",
-      "hook_id": "sets-looking---",
-      "score": 5.34,
-      "engagementRate": "1.17",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 342,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18086812604329175"
-    },
-    {
-      "hook_text": "YOUR DRIVE: 199 M",
-      "hook_id": "your-drive--199-m",
-      "score": 5.32,
-      "engagementRate": "1.85",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 162,
-      "topic_cluster": "trackman",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18102096479066264"
-    },
-    {
-      "hook_text": "How long does it take to play our Takomo and Vice wedge competition? 🧐",
-      "hook_id": "how-long-does-it-take-to-play-our-takomo-and-vice-",
-      "score": 5.32,
-      "engagementRate": "1.16",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 344,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "question",
-      "post_id": "18328101289244744"
-    },
-    {
-      "hook_text": "YOUR NUMBERS ARE TALKING",
-      "hook_id": "your-numbers-are-talking",
-      "score": 5.26,
-      "engagementRate": "2.17",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 92,
-      "topic_cluster": "trackman",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17932643088055601"
-    },
-    {
-      "hook_text": "Small, simple changes can start your journey to hitting longer drives 🫵 DM us t",
-      "hook_id": "small--simple-changes-can-start-your-journey-to-hi",
-      "score": 5.26,
-      "engagementRate": "0.93",
-      "saveRate": "0.00",
-      "shareRate": "0.08",
-      "reach": 1177,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18096090964662082"
-    },
-    {
-      "hook_text": "FROM CONFUSED GOLFER TO CONFIDENT STRIKER.",
-      "hook_id": "from-confused-golfer-to-confident-striker-",
-      "score": 5.17,
-      "engagementRate": "2.11",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 95,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18014455163832669"
-    },
-    {
-      "hook_text": "Demo Day at Swing Shack on the 28th of Feb! 10am to 12pm🏌️‍♂️",
-      "hook_id": "demo-day-at-swing-shack-on-the-28th-of-feb--10am-t",
-      "score": 5.08,
-      "engagementRate": "1.61",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 186,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17979040532985391"
-    },
-    {
-      "hook_text": "Want a cleaner, tighter roll? LA Golf is ready to test in store. 🎯💚",
-      "hook_id": "want-a-cleaner--tighter-roll--la-golf-is-ready-to-",
-      "score": 5,
-      "engagementRate": "1.49",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 202,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "question",
-      "post_id": "18052507919339713"
-    },
-    {
-      "hook_text": "Win fitted wedges 🏆",
-      "hook_id": "win-fitted-wedges---",
-      "score": 4.86,
-      "engagementRate": "0.93",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 429,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "17852676069591021"
-    },
-    {
-      "hook_text": "Did you know that you can custom fit your putter? 🧐",
-      "hook_id": "did-you-know-that-you-can-custom-fit-your-putter--",
-      "score": 4.8,
-      "engagementRate": "0.90",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 335,
-      "topic_cluster": "equipment",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18110464996730699"
-    },
-    {
-      "hook_text": "New LA Golf putters just landed. Book a session and roll a few. 📩👏",
-      "hook_id": "new-la-golf-putters-just-landed--book-a-session-an",
-      "score": 4.63,
-      "engagementRate": "1.74",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 115,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18095426233867732"
-    },
-    {
-      "hook_text": "TrackMan doesn't lie. Your swing data from your last session told a story. Now f",
-      "hook_id": "trackman-doesn-t-lie--your-swing-data-from-your-la",
-      "score": 4.390000000000001,
-      "engagementRate": "1.55",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 129,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "17873711610581469"
-    }
-  ],
-  "fresh_hooks_to_test": [
-    {
-      "hook_text": "LAB Golf now available. Consistent roll, fewer variables, real results. 🏌️‍♀️👌",
-      "hook_id": "lab-golf-now-available--consistent-roll--fewer-var",
-      "score": 3.34,
-      "engagementRate": "0.39",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 256,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "17921457474054218"
-    },
-    {
-      "hook_text": "LAB putters just dropped at Swing Shack. Book a roll and see the hype. 👀🔥",
-      "hook_id": "lab-putters-just-dropped-at-swing-shack--book-a-ro",
-      "score": 2.94,
-      "engagementRate": "0.94",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 106,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18086824339810637"
-    },
-    {
-      "hook_text": "LA Golf putters now available. Premium feel, proper performance. DM to book a fi",
-      "hook_id": "la-golf-putters-now-available--premium-feel--prope",
-      "score": 2.8899999999999997,
-      "engagementRate": "0.58",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 173,
-      "topic_cluster": "equipment",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "17901389073317444"
-    },
-    {
-      "hook_text": "LAB Golf in store now. Straighter strokes start with the right tech. 🎯🧪",
-      "hook_id": "lab-golf-in-store-now--straighter-strokes-start-wi",
-      "score": 2.88,
-      "engagementRate": "0.85",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 118,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18028233410743325"
-    },
-    {
-      "hook_text": "More feel. More control. Less twist. Ripit grips are in 🧤 Grab yours in store o",
-      "hook_id": "more-feel--more-control--less-twist--ripit-grips-a",
-      "score": 2.88,
-      "engagementRate": "0.86",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 116,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18324786466244322"
-    },
-    {
-      "hook_text": "Your only contact with the club matters. Upgrade to Ripit and feel the quality w",
-      "hook_id": "your-only-contact-with-the-club-matters--upgrade-t",
-      "score": 2.62,
-      "engagementRate": "0.00",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 262,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "post_id": "18502305583072209"
-    },
-    {
-      "hook_text": "Winter hands, summer control 🌞❄️ Ripit grips keep it consistent all year. Pop i",
-      "hook_id": "winter-hands--summer-control------ripit-grips-keep",
-      "score": 2.53,
-      "engagementRate": "0.00",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 253,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18027913427562461"
-    },
-    {
-      "hook_text": "Slippy grips? Not here 😎 Ripit grips give you that locked in feel. Order in sto",
-      "hook_id": "slippy-grips--not-here----ripit-grips-give-you-tha",
-      "score": 2.04,
-      "engagementRate": "0.00",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 204,
-      "topic_cluster": "general",
-      "format_type": "static",
-      "formula_type": "question",
-      "post_id": "18348683614164118"
-    }
-  ],
-  "weak_hooks": [],
-  "hooks_by_goal": {
-    "reach": [
-      {
-        "hook_text": "Small, simple changes can start your journey to hitting longer drives 🫵 DM us t",
-        "hook_id": "small--simple-changes-can-start-your-journey-to-hi",
-        "score": 5.26,
-        "engagementRate": "0.93",
-        "saveRate": "0.00",
-        "shareRate": "0.08",
-        "reach": 1177,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "18096090964662082"
-      },
-      {
-        "hook_text": "Catch your flow @swingshack ",
-        "hook_id": "catch-your-flow--swingshack-",
-        "score": 9.75,
-        "engagementRate": "3.05",
-        "saveRate": "0.00",
-        "shareRate": "0.13",
-        "reach": 786,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "18015056354814143"
-      },
-      {
-        "hook_text": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
-        "hook_id": "need-to-relax-and-find-your-golf-swing-tempo--join",
-        "score": 10,
-        "engagementRate": "3.10",
-        "saveRate": "0.00",
-        "shareRate": "0.27",
-        "reach": 743,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "17977984817792608"
-      },
-      {
-        "hook_text": "I think Santa’s on the naughty list 🥹 #swingshack #golf #christmas",
-        "hook_id": "i-think-santa-s-on-the-naughty-list-----swingshack",
-        "score": 8.52,
-        "engagementRate": "2.76",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 617,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "17878890069350655"
-      },
-      {
-        "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
-        "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
-        "score": 10,
-        "engagementRate": "3.37",
-        "saveRate": "0.00",
-        "shareRate": "0.35",
-        "reach": 564,
-        "topic_cluster": "coaching",
-        "format_type": "static",
-        "formula_type": "general",
-        "post_id": "18078655349442093"
-      }
-    ],
-    "saves": [
-      {
-        "hook_text": "Small, simple changes can start your journey to hitting longer drives 🫵 DM us t",
-        "hook_id": "small--simple-changes-can-start-your-journey-to-hi",
-        "score": 5.26,
-        "engagementRate": "0.93",
-        "saveRate": "0.00",
-        "shareRate": "0.08",
-        "reach": 1177,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "18096090964662082"
-      },
-      {
-        "hook_text": "Catch your flow @swingshack ",
-        "hook_id": "catch-your-flow--swingshack-",
-        "score": 9.75,
-        "engagementRate": "3.05",
-        "saveRate": "0.00",
-        "shareRate": "0.13",
-        "reach": 786,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "18015056354814143"
-      },
-      {
-        "hook_text": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
-        "hook_id": "need-to-relax-and-find-your-golf-swing-tempo--join",
-        "score": 10,
-        "engagementRate": "3.10",
-        "saveRate": "0.00",
-        "shareRate": "0.27",
-        "reach": 743,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "17977984817792608"
-      },
-      {
-        "hook_text": "I think Santa’s on the naughty list 🥹 #swingshack #golf #christmas",
-        "hook_id": "i-think-santa-s-on-the-naughty-list-----swingshack",
-        "score": 8.52,
-        "engagementRate": "2.76",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 617,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "17878890069350655"
-      },
-      {
-        "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
-        "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
-        "score": 10,
-        "engagementRate": "3.37",
-        "saveRate": "0.00",
-        "shareRate": "0.35",
-        "reach": 564,
-        "topic_cluster": "coaching",
-        "format_type": "static",
-        "formula_type": "general",
-        "post_id": "18078655349442093"
-      }
-    ],
-    "engagement": [
-      {
-        "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
-        "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
-        "score": 10,
-        "engagementRate": "3.37",
-        "saveRate": "0.00",
-        "shareRate": "0.35",
-        "reach": 564,
-        "topic_cluster": "coaching",
-        "format_type": "static",
-        "formula_type": "general",
-        "post_id": "18078655349442093"
-      },
+  "cross_signal_sources": {
+    "ig_weight": "60%",
+    "youtube_weight": "20%",
+    "reddit_weight": "20%",
+    "youtube_videos_analyzed": 10,
+    "reddit_trends_available": 0
+  },
+  "output_buckets": {
+    "proven_and_trending": [
       {
         "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
         "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
-        "score": 10,
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 10,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 8,
+        "youtube_topic_match": [
+          "driver",
+          "slice_fix",
+          "simulator",
+          "swing",
+          "distance"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Possibly The BEST DRIVER Tip Ever In GOLF"
+        ],
         "engagementRate": "5.66",
         "saveRate": "0.00",
         "shareRate": "0.00",
         "reach": 53,
         "topic_cluster": "technique",
         "format_type": "static",
-        "formula_type": "stat-demand",
+        "formula_type": "question",
+        "signal_bucket": "proven_and_trending",
         "post_id": "18110075536631986"
       },
       {
-        "hook_text": "Another awesome day out @parkview_1916 . Course was in fantastic condition and a",
-        "hook_id": "another-awesome-day-out--parkview-1916---course-wa",
-        "score": 10,
-        "engagementRate": "2.91",
+        "hook_text": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+        "hook_id": "need-to-relax-and-find-your-golf-swing-tempo--join",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 7,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 7.4,
+        "youtube_topic_match": [
+          "lessons",
+          "swing"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Possibly The BEST DRIVER Tip Ever In GOLF"
+        ],
+        "engagementRate": "3.10",
         "saveRate": "0.00",
-        "shareRate": "0.29",
-        "reach": 344,
-        "topic_cluster": "general",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "18072089732557218"
-      },
-      {
-        "hook_text": "New Callaway Quantum range in- store. Come give them a go 🏌️‍♂️🏌🏻‍♀️",
-        "hook_id": "new-callaway-quantum-range-in--store--come-give-th",
-        "score": 10,
-        "engagementRate": "3.27",
-        "saveRate": "0.00",
-        "shareRate": "0.47",
-        "reach": 214,
+        "shareRate": "0.27",
+        "reach": 743,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
-        "post_id": "17900476056243537"
-      },
-      {
-        "hook_text": "Go to your coaching sessions. Your ball deserves better 🫂",
-        "hook_id": "go-to-your-coaching-sessions--your-ball-deserves-b",
-        "score": 10,
-        "engagementRate": "4.99",
-        "saveRate": "0.00",
-        "shareRate": "0.52",
-        "reach": 381,
-        "topic_cluster": "coaching",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "18111373378629295"
-      }
-    ],
-    "equipment": [
-      {
-        "hook_text": "Catch your flow @swingshack ",
-        "hook_id": "catch-your-flow--swingshack-",
-        "score": 9.75,
-        "engagementRate": "3.05",
-        "saveRate": "0.00",
-        "shareRate": "0.13",
-        "reach": 786,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "18015056354814143"
-      },
-      {
-        "hook_text": "New year, new set. Get your custom club fitting @swingshack 🏌️",
-        "hook_id": "new-year--new-set--get-your-custom-club-fitting--s",
-        "score": 6.6,
-        "engagementRate": "1.80",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 444,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "18053016737418173"
+        "signal_bucket": "proven_and_trending",
+        "post_id": "17977984817792608"
       },
       {
         "hook_text": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
         "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
-        "score": 9.86,
+        "ig_proof_score": 9.86,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 7.1,
+        "youtube_topic_match": [
+          "short_game",
+          "lessons"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Possibly The BEST DRIVER Tip Ever In GOLF"
+        ],
         "engagementRate": "3.43",
         "saveRate": "0.00",
         "shareRate": "0.00",
@@ -1078,94 +88,133 @@
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "stat-demand",
+        "signal_bucket": "proven_and_trending",
         "post_id": "17937962787145598"
       },
       {
-        "hook_text": "Did you know that you can custom fit your putter? 🧐",
-        "hook_id": "did-you-know-that-you-can-custom-fit-your-putter--",
-        "score": 4.8,
-        "engagementRate": "0.90",
+        "hook_text": "Lowest net score wins a *new custom fitted driver!*",
+        "hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
+        "ig_proof_score": 9.4,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.8,
+        "youtube_topic_match": [
+          "driver",
+          "fitness"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Possibly The BEST DRIVER Tip Ever In GOLF",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
+        "engagementRate": "1.60",
+        "saveRate": "0.00",
+        "shareRate": "0.64",
+        "reach": 312,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_and_trending",
+        "post_id": "18094335746089574"
+      },
+      {
+        "hook_text": "Book your session with Coach Cat @swingshack ⛳️",
+        "hook_id": "book-your-session-with-coach-cat--swingshack---",
+        "ig_proof_score": 9.129999999999999,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.7,
+        "youtube_topic_match": [
+          "lessons",
+          "swing"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Possibly The BEST DRIVER Tip Ever In GOLF"
+        ],
+        "engagementRate": "1.79",
+        "saveRate": "0.00",
+        "shareRate": "0.51",
+        "reach": 390,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "stat-demand",
+        "signal_bucket": "proven_and_trending",
+        "post_id": "18381028009094142"
+      },
+      {
+        "hook_text": "It never rains in doors… Book your slot now before your tee time rains out🏌🏻‍♀",
+        "hook_id": "it-never-rains-in-doors--book-your-slot-now-before",
+        "ig_proof_score": 7.8,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 5.9,
+        "youtube_topic_match": [
+          "driver",
+          "simulator"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Possibly The BEST DRIVER Tip Ever In GOLF",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
+        "engagementRate": "2.40",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 335,
-        "topic_cluster": "equipment",
+        "reach": 334,
+        "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
-        "post_id": "18110464996730699"
-      },
-      {
-        "hook_text": "Clubs are made for launch conditions not skill level. #golf #customfitting #golf",
-        "hook_id": "clubs-are-made-for-launch-conditions-not-skill-lev",
-        "score": 6.7,
-        "engagementRate": "1.06",
-        "saveRate": "0.00",
-        "shareRate": "0.35",
-        "reach": 283,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "general",
-        "post_id": "17973083486868104"
-      }
-    ],
-    "coaching": [
-      {
-        "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
-        "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
-        "score": 10,
-        "engagementRate": "3.37",
-        "saveRate": "0.00",
-        "shareRate": "0.35",
-        "reach": 564,
-        "topic_cluster": "coaching",
-        "format_type": "static",
-        "formula_type": "general",
-        "post_id": "18078655349442093"
-      },
-      {
-        "hook_text": "Here’s to a New Year and Good Golf! 🥂😉",
-        "hook_id": "here-s-to-a-new-year-and-good-golf------",
-        "score": 10,
-        "engagementRate": "3.26",
-        "saveRate": "0.00",
-        "shareRate": "0.38",
-        "reach": 521,
-        "topic_cluster": "coaching",
-        "format_type": "static",
-        "formula_type": "general",
-        "post_id": "18067732487399015"
-      },
-      {
-        "hook_text": "Go to your coaching sessions. Your ball deserves better 🫂",
-        "hook_id": "go-to-your-coaching-sessions--your-ball-deserves-b",
-        "score": 10,
-        "engagementRate": "4.99",
-        "saveRate": "0.00",
-        "shareRate": "0.52",
-        "reach": 381,
-        "topic_cluster": "coaching",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "post_id": "18111373378629295"
+        "signal_bucket": "proven_and_trending",
+        "post_id": "17906009436202876"
       },
       {
         "hook_text": "Coach Cat takes us through a simple process on getting into one of the more chal",
         "hook_id": "coach-cat-takes-us-through-a-simple-process-on-get",
-        "score": 7.46,
+        "ig_proof_score": 7.46,
+        "youtube_alignment_score": 5,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 5.5,
+        "youtube_topic_match": [
+          "lessons"
+        ],
+        "youtube_format_match": [
+          "\"simple\" promise"
+        ],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Possibly The BEST DRIVER Tip Ever In GOLF"
+        ],
         "engagementRate": "1.48",
         "saveRate": "0.00",
         "shareRate": "0.30",
         "reach": 337,
         "topic_cluster": "coaching",
         "format_type": "static",
-        "formula_type": "stat-demand",
+        "formula_type": "general",
+        "signal_bucket": "proven_and_trending",
         "post_id": "17959293114110307"
-      }
-    ],
-    "technique": [
+      },
       {
         "hook_text": "Small, simple changes can start your journey to hitting longer drives 🫵 DM us t",
         "hook_id": "small--simple-changes-can-start-your-journey-to-hi",
-        "score": 5.26,
+        "ig_proof_score": 5.26,
+        "youtube_alignment_score": 10,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 5.2,
+        "youtube_topic_match": [
+          "driver",
+          "beginner",
+          "distance"
+        ],
+        "youtube_format_match": [
+          "\"simple\" promise"
+        ],
+        "youtube_evidence_titles": [
+          "Possibly The BEST DRIVER Tip Ever In GOLF",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
         "engagementRate": "0.93",
         "saveRate": "0.00",
         "shareRate": "0.08",
@@ -1173,51 +222,102 @@
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
+        "signal_bucket": "proven_and_trending",
         "post_id": "18096090964662082"
       },
       {
-        "hook_text": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
-        "hook_id": "need-to-relax-and-find-your-golf-swing-tempo--join",
-        "score": 10,
-        "engagementRate": "3.10",
+        "hook_text": "TrackMan doesn't lie. Your swing data from your last session told a story. Now f",
+        "hook_id": "trackman-doesn-t-lie--your-swing-data-from-your-la",
+        "ig_proof_score": 4.390000000000001,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 3.8,
+        "youtube_topic_match": [
+          "simulator",
+          "swing"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
+        "engagementRate": "1.55",
         "saveRate": "0.00",
-        "shareRate": "0.27",
-        "reach": 743,
+        "shareRate": "0.00",
+        "reach": 129,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
-        "post_id": "17977984817792608"
+        "signal_bucket": "proven_and_trending",
+        "post_id": "17873711610581469"
+      }
+    ],
+    "proven_only": [
+      {
+        "hook_text": "Go to your coaching sessions. Your ball deserves better 🫂",
+        "hook_id": "go-to-your-coaching-sessions--your-ball-deserves-b",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.6,
+        "youtube_topic_match": [
+          "lessons"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Possibly The BEST DRIVER Tip Ever In GOLF"
+        ],
+        "engagementRate": "4.99",
+        "saveRate": "0.00",
+        "shareRate": "0.52",
+        "reach": 381,
+        "topic_cluster": "coaching",
+        "format_type": "static",
+        "formula_type": "stat-demand",
+        "signal_bucket": "proven_only",
+        "post_id": "18111373378629295"
       },
       {
-        "hook_text": "I think Santa’s on the naughty list 🥹 #swingshack #golf #christmas",
-        "hook_id": "i-think-santa-s-on-the-naughty-list-----swingshack",
-        "score": 8.52,
-        "engagementRate": "2.76",
+        "hook_text": "Improve your game with the coaches tip of the day 🙌",
+        "hook_id": "improve-your-game-with-the-coaches-tip-of-the-day-",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.6,
+        "youtube_topic_match": [
+          "lessons"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Possibly The BEST DRIVER Tip Ever In GOLF"
+        ],
+        "engagementRate": "3.60",
         "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 617,
+        "shareRate": "0.36",
+        "reach": 278,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
-        "post_id": "17878890069350655"
-      },
-      {
-        "hook_text": "Same speed, different DNA’s 🏌🏻‍♀️🏌🏻‍♂️⛳️",
-        "hook_id": "same-speed--different-dna-s-----------------",
-        "score": 7.82,
-        "engagementRate": "2.41",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 540,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "general",
-        "post_id": "18164214061409872"
+        "signal_bucket": "proven_only",
+        "post_id": "18097159915908153"
       },
       {
         "hook_text": "SwingShack merch coming in hot 🔥",
         "hook_id": "swingshack-merch-coming-in-hot---",
-        "score": 10,
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.6,
+        "youtube_topic_match": [
+          "swing"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
         "engagementRate": "3.61",
         "saveRate": "0.00",
         "shareRate": "0.19",
@@ -1225,28 +325,405 @@
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "general",
+        "signal_bucket": "proven_only",
         "post_id": "18071482694622162"
+      },
+      {
+        "hook_text": "Catch your flow @swingshack ",
+        "hook_id": "catch-your-flow--swingshack-",
+        "ig_proof_score": 9.75,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.5,
+        "youtube_topic_match": [
+          "swing"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
+        "engagementRate": "3.05",
+        "saveRate": "0.00",
+        "shareRate": "0.13",
+        "reach": 786,
+        "topic_cluster": "equipment",
+        "format_type": "static",
+        "formula_type": "stat-demand",
+        "signal_bucket": "proven_only",
+        "post_id": "18015056354814143"
+      },
+      {
+        "hook_text": "Your balls are important too 👀 Learn the key differences between one of the mos",
+        "hook_id": "your-balls-are-important-too----learn-the-key-diff",
+        "ig_proof_score": 9.52,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.3,
+        "youtube_topic_match": [
+          "beginner"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "5 Powerful Tips to Unleash Your Senior Driver Swing",
+          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
+        ],
+        "engagementRate": "2.61",
+        "saveRate": "0.00",
+        "shareRate": "0.26",
+        "reach": 383,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "stat-demand",
+        "signal_bucket": "proven_only",
+        "post_id": "18101162930499434"
+      },
+      {
+        "hook_text": "Want to win a fully custom built driver?👀",
+        "hook_id": "want-to-win-a-fully-custom-built-driver---",
+        "ig_proof_score": 9.18,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.1,
+        "youtube_topic_match": [
+          "driver"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Possibly The BEST DRIVER Tip Ever In GOLF",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
+        "engagementRate": "3.09",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 356,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "question",
+        "signal_bucket": "proven_only",
+        "post_id": "18055889312462062"
+      },
+      {
+        "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
+        "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 0,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6,
+        "youtube_topic_match": [],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [],
+        "engagementRate": "3.37",
+        "saveRate": "0.00",
+        "shareRate": "0.35",
+        "reach": 564,
+        "topic_cluster": "coaching",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_only",
+        "post_id": "18078655349442093"
+      },
+      {
+        "hook_text": "Another awesome day out @parkview_1916 . Course was in fantastic condition and a",
+        "hook_id": "another-awesome-day-out--parkview-1916---course-wa",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 0,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6,
+        "youtube_topic_match": [],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [],
+        "engagementRate": "2.91",
+        "saveRate": "0.00",
+        "shareRate": "0.29",
+        "reach": 344,
+        "topic_cluster": "general",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_only",
+        "post_id": "18072089732557218"
+      },
+      {
+        "hook_text": "New Callaway Quantum range in- store. Come give them a go 🏌️‍♂️🏌🏻‍♀️",
+        "hook_id": "new-callaway-quantum-range-in--store--come-give-th",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 0,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6,
+        "youtube_topic_match": [],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [],
+        "engagementRate": "3.27",
+        "saveRate": "0.00",
+        "shareRate": "0.47",
+        "reach": 214,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_only",
+        "post_id": "17900476056243537"
+      },
+      {
+        "hook_text": "Editing our SwingShack Members Social like a reality TV show 🤣 ",
+        "hook_id": "editing-our-swingshack-members-social-like-a-reali",
+        "ig_proof_score": 8.98,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6,
+        "youtube_topic_match": [
+          "swing"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
+        "engagementRate": "2.99",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 402,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_only",
+        "post_id": "18098296201915090"
       }
-    ]
+    ],
+    "trending_to_test": [
+      {
+        "hook_text": "LAB putters just dropped at Swing Shack. Book a roll and see the hype. 👀🔥",
+        "hook_id": "lab-putters-just-dropped-at-swing-shack--book-a-ro",
+        "ig_proof_score": 2.94,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 3,
+        "youtube_topic_match": [
+          "short_game",
+          "swing"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
+        "engagementRate": "0.94",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 106,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "trending_to_test",
+        "post_id": "18086824339810637"
+      },
+      {
+        "hook_text": "LA Golf putters now available. Premium feel, proper performance. DM to book a fi",
+        "hook_id": "la-golf-putters-now-available--premium-feel--prope",
+        "ig_proof_score": 2.8899999999999997,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 2.9,
+        "youtube_topic_match": [
+          "short_game",
+          "lessons"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Possibly The BEST DRIVER Tip Ever In GOLF"
+        ],
+        "engagementRate": "0.58",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 173,
+        "topic_cluster": "equipment",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "trending_to_test",
+        "post_id": "17901389073317444"
+      },
+      {
+        "hook_text": "LAB Golf in store now. Straighter strokes start with the right tech. 🎯🧪",
+        "hook_id": "lab-golf-in-store-now--straighter-strokes-start-wi",
+        "ig_proof_score": 2.88,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 2.9,
+        "youtube_topic_match": [
+          "slice_fix",
+          "beginner"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "5 Powerful Tips to Unleash Your Senior Driver Swing",
+          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
+        ],
+        "engagementRate": "0.85",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 118,
+        "topic_cluster": "general",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "trending_to_test",
+        "post_id": "18028233410743325"
+      }
+    ],
+    "retire": []
   },
+  "watched_and_worked": [
+    {
+      "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
+      "ig_proof_score": 10,
+      "youtube_alignment_score": 10,
+      "reddit_relevance_score": 0,
+      "cross_signal_score": 8,
+      "youtube_topic_match": [
+        "driver",
+        "slice_fix",
+        "simulator",
+        "swing",
+        "distance"
+      ],
+      "youtube_format_match": [],
+      "youtube_evidence_titles": [
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "Possibly The BEST DRIVER Tip Ever In GOLF"
+      ],
+      "engagementRate": "5.66",
+      "saveRate": "0.00",
+      "shareRate": "0.00",
+      "reach": 53,
+      "topic_cluster": "technique",
+      "format_type": "static",
+      "formula_type": "question",
+      "signal_bucket": "proven_and_trending",
+      "post_id": "18110075536631986"
+    },
+    {
+      "hook_text": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "hook_id": "need-to-relax-and-find-your-golf-swing-tempo--join",
+      "ig_proof_score": 10,
+      "youtube_alignment_score": 7,
+      "reddit_relevance_score": 0,
+      "cross_signal_score": 7.4,
+      "youtube_topic_match": [
+        "lessons",
+        "swing"
+      ],
+      "youtube_format_match": [],
+      "youtube_evidence_titles": [
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "Possibly The BEST DRIVER Tip Ever In GOLF"
+      ],
+      "engagementRate": "3.10",
+      "saveRate": "0.00",
+      "shareRate": "0.27",
+      "reach": 743,
+      "topic_cluster": "technique",
+      "format_type": "static",
+      "formula_type": "stat-demand",
+      "signal_bucket": "proven_and_trending",
+      "post_id": "17977984817792608"
+    },
+    {
+      "hook_text": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+      "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
+      "ig_proof_score": 9.86,
+      "youtube_alignment_score": 6,
+      "reddit_relevance_score": 0,
+      "cross_signal_score": 7.1,
+      "youtube_topic_match": [
+        "short_game",
+        "lessons"
+      ],
+      "youtube_format_match": [],
+      "youtube_evidence_titles": [
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "Possibly The BEST DRIVER Tip Ever In GOLF"
+      ],
+      "engagementRate": "3.43",
+      "saveRate": "0.00",
+      "shareRate": "0.00",
+      "reach": 350,
+      "topic_cluster": "equipment",
+      "format_type": "static",
+      "formula_type": "stat-demand",
+      "signal_bucket": "proven_and_trending",
+      "post_id": "17937962787145598"
+    },
+    {
+      "hook_text": "Lowest net score wins a *new custom fitted driver!*",
+      "hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
+      "ig_proof_score": 9.4,
+      "youtube_alignment_score": 6,
+      "reddit_relevance_score": 0,
+      "cross_signal_score": 6.8,
+      "youtube_topic_match": [
+        "driver",
+        "fitness"
+      ],
+      "youtube_format_match": [],
+      "youtube_evidence_titles": [
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "4 Simple Steps For The Perfect Golf Drive"
+      ],
+      "engagementRate": "1.60",
+      "saveRate": "0.00",
+      "shareRate": "0.64",
+      "reach": 312,
+      "topic_cluster": "technique",
+      "format_type": "static",
+      "formula_type": "general",
+      "signal_bucket": "proven_and_trending",
+      "post_id": "18094335746089574"
+    },
+    {
+      "hook_text": "Book your session with Coach Cat @swingshack ⛳️",
+      "hook_id": "book-your-session-with-coach-cat--swingshack---",
+      "ig_proof_score": 9.129999999999999,
+      "youtube_alignment_score": 6,
+      "reddit_relevance_score": 0,
+      "cross_signal_score": 6.7,
+      "youtube_topic_match": [
+        "lessons",
+        "swing"
+      ],
+      "youtube_format_match": [],
+      "youtube_evidence_titles": [
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "Possibly The BEST DRIVER Tip Ever In GOLF"
+      ],
+      "engagementRate": "1.79",
+      "saveRate": "0.00",
+      "shareRate": "0.51",
+      "reach": 390,
+      "topic_cluster": "technique",
+      "format_type": "static",
+      "formula_type": "stat-demand",
+      "signal_bucket": "proven_and_trending",
+      "post_id": "18381028009094142"
+    }
+  ],
   "hook_formulas": [
     {
-      "formula": "general",
-      "count": 23,
-      "best_example": "Sometimes u just need a bit of tough love 😅🤣",
-      "avg_score": "6.8"
+      "formula": "question",
+      "count": 8,
+      "best_example": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "avg_cross_score": "4.5"
     },
     {
       "formula": "stat-demand",
-      "count": 35,
-      "best_example": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
-      "avg_score": "7.3"
+      "count": 23,
+      "best_example": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "avg_cross_score": "5.0"
     },
     {
-      "formula": "question",
-      "count": 6,
-      "best_example": "Want to win a fully custom built driver?👀",
-      "avg_score": "5.9"
+      "formula": "general",
+      "count": 33,
+      "best_example": "Lowest net score wins a *new custom fitted driver!*",
+      "avg_cross_score": "4.5"
     }
   ],
   "ab_winners": [
@@ -1270,5 +747,19 @@
       "eng": "?",
       "next_action": "reuse formula"
     }
-  ]
+  ],
+  "youtube_signals_summary": {
+    "dominant_topics": [
+      "lessons",
+      "beginner",
+      "swing"
+    ],
+    "dominant_formats": [
+      "How to...",
+      "\"Best\" superlative",
+      "\"Easy\" simplicity",
+      "\"Simple\" promise"
+    ],
+    "top_template": "[Player Type]: [advice]"
+  }
 }

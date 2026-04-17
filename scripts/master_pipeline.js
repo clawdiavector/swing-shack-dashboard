@@ -52,10 +52,11 @@ const STAGES = [
     name: 'YouTube',
     critical: false,
     requiredOutputs: [],
-    optionalOutputs: ['youtube-trends.json', 'youtube-ideas.json'],
+    optionalOutputs: ['youtube-trends.json', 'youtube-ideas.json', 'youtube-hook-signals.json'],
     steps: [
       { name: 'fetch_youtube_trends', script: `node ${BASE}/scripts/fetch_youtube_trends.js`, critical: false },
       { name: 'generate_youtube_ideas', script: `node ${BASE}/scripts/generate_youtube_ideas.js`, critical: false },
+      { name: 'extract_youtube_signals', script: `node ${BASE}/scripts/extract_youtube_signals.js`, critical: false },
     ]
   },
   {

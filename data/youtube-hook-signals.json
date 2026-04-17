@@ -1,0 +1,217 @@
+{
+  "fetched_at": "2026-04-17T05:43:25.835Z",
+  "source_file": "youtube-trends.json",
+  "videos_analyzed": 10,
+  "top_videos": [
+    {
+      "title": "Master Your Senior Golf Swing in 3 Easy Steps",
+      "description": "In this VLS Golf lesson from Todd Kolb, we're going to show you how to simplify your senior golf swing. By following these 3 easy ...",
+      "videoId": "4WZd4B06zTg",
+      "channelTitle": "US GOLF TV",
+      "publishedAt": "2024-03-24T11:00:04Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
+      "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple driver ...",
+      "videoId": "Db6oNu9p6Kc",
+      "channelTitle": "Alistair Davies Golf",
+      "publishedAt": "2023-04-09T11:00:08Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "How to hit irons Consistently (Simple Golf Tips)",
+      "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
+      "videoId": "qdRSOKvjNZU",
+      "channelTitle": "Rick Shiels Golf",
+      "publishedAt": "2023-04-24T14:05:24Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "4 Simple Steps For The Perfect Golf Drive",
+      "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
+      "videoId": "DDoC4SCyeXI",
+      "channelTitle": "The Art of Simple Golf",
+      "publishedAt": "2025-07-28T19:08:17Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
+      "videoId": "aGdAdJu9Zr8",
+      "channelTitle": "US GOLF TV",
+      "publishedAt": "2023-09-15T11:00:01Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
+      "description": "Golf Swing Basics is a series of 3 golf lesson videos for beginners. We guarantee you will hit the ball better after watching this ...",
+      "videoId": "1iOa2ZwGhbU",
+      "channelTitle": "New Nine Golf | Brandon Cubitt",
+      "publishedAt": "2020-09-01T17:59:02Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "Beginner golf lessons ⛳️ #golf",
+      "description": "",
+      "videoId": "8m8_lt3_H9I",
+      "channelTitle": " Durnian Golf",
+      "publishedAt": "2023-10-10T07:42:37Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
+      "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you need to ...",
+      "videoId": "n4aOMLSRGrI",
+      "channelTitle": "Meandmygolf",
+      "publishedAt": "2024-06-17T13:00:55Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "Better Golf Swing In 2 Minutes",
+      "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you to ...",
+      "videoId": "j-g1SlpOm3g",
+      "channelTitle": "Kerrod Gray Golf",
+      "publishedAt": "2024-04-26T22:02:20Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "I’ve Owned a Golf Simulator for 5 Years: My (Honest) Advice to Beginners",
+      "description": "Follow my step-by-step system to build your DREAM home golf simulator https://mitch-s-site-003e.thinkific.com/collections",
+      "videoId": "DN1WPfhrf08",
+      "channelTitle": "Handicap Golf",
+      "publishedAt": "2025-04-26T17:00:13Z",
+      "source": "youtube_api_v3",
+      "query": "golf simulator indoor"
+    }
+  ],
+  "signals": {
+    "recurring_phrases": [
+      {
+        "phrase": "golf swing",
+        "count": 3,
+        "examples": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
+        ]
+      },
+      {
+        "phrase": "your senior",
+        "count": 2,
+        "examples": [
+          "Master Your Senior Golf Swing in 3 Easy Steps",
+          "5 Powerful Tips to Unleash Your Senior Driver Swing"
+        ]
+      },
+      {
+        "phrase": "golf tips",
+        "count": 2,
+        "examples": [
+          "How to hit irons Consistently (Simple Golf Tips)",
+          "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips"
+        ]
+      },
+      {
+        "phrase": "beginner golf",
+        "count": 2,
+        "examples": [
+          "Beginner golf lessons ⛳️ #golf",
+          "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips"
+        ]
+      }
+    ],
+    "topic_clusters": {
+      "driver": 3,
+      "senior": 2,
+      "beginner": 5,
+      "irons": 1,
+      "simulator": 1,
+      "lessons": 6,
+      "swing": 5,
+      "consistency": 1
+    },
+    "format_patterns": [
+      {
+        "label": "How to...",
+        "example": "How to hit irons Consistently (Simple Golf Tips)"
+      },
+      {
+        "label": "\"Best\" superlative",
+        "example": "Possibly The BEST DRIVER Tip Ever In GOLF"
+      },
+      {
+        "label": "\"Easy\" simplicity",
+        "example": "Master Your Senior Golf Swing in 3 Easy Steps"
+      },
+      {
+        "label": "\"Simple\" promise",
+        "example": "How to hit irons Consistently (Simple Golf Tips)"
+      }
+    ],
+    "urgency_score": 4,
+    "urgency_language": [
+      "how to"
+    ],
+    "has_before_after": false,
+    "before_after_examples": [],
+    "has_mistake_fix": false,
+    "mistake_fix_examples": [],
+    "top_channels": [
+      [
+        "US GOLF TV",
+        2
+      ],
+      [
+        "Alistair Davies Golf",
+        1
+      ],
+      [
+        "Rick Shiels Golf",
+        1
+      ],
+      [
+        "The Art of Simple Golf",
+        1
+      ],
+      [
+        "New Nine Golf | Brandon Cubitt",
+        1
+      ]
+    ],
+    "hook_templates": [
+      {
+        "template": "How to [skill] — [specific benefit]",
+        "source": "how-to-format",
+        "count": 2
+      },
+      {
+        "template": "[Player Type]: [advice]",
+        "source": "player-specific",
+        "count": 6
+      }
+    ]
+  },
+  "summary": {
+    "dominant_topics": [
+      "lessons",
+      "beginner",
+      "swing"
+    ],
+    "dominant_formats": [
+      "How to...",
+      "\"Best\" superlative",
+      "\"Easy\" simplicity",
+      "\"Simple\" promise"
+    ],
+    "top_template": "[Player Type]: [advice]"
+  }
+}
