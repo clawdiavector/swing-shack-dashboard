@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T05:45:40.915Z",
+  "updated": "2026-04-17T05:47:59.561Z",
   "keywords": [
     {
       "keyword": "indoor golf johannesburg",
@@ -66,10 +66,10 @@
     },
     {
       "keyword": "golf fitting johannesburg price",
-      "current_rank": 8,
+      "current_rank": null,
       "target_url": "https://swingshack.co.za",
       "search_intent": "commercial",
-      "note": "Found in search results"
+      "note": "Not found in top results"
     }
   ],
   "rising_keywords": [],
@@ -83,12 +83,13 @@
     "trackman johannesburg",
     "custom clubs johannesburg",
     "indoor golf randburg",
-    "golf simulator south africa"
+    "golf simulator south africa",
+    "golf fitting johannesburg price"
   ],
   "summary": {
     "tracked": 10,
-    "found": 1,
-    "not_found": 9
+    "found": 0,
+    "not_found": 10
   },
   "recommendations": [
     {
@@ -143,6 +144,12 @@
       "type": "not_indexed",
       "keyword": "golf simulator south africa",
       "action": "Create or optimize page targeting \"golf simulator south africa\"",
+      "priority": "high"
+    },
+    {
+      "type": "not_indexed",
+      "keyword": "golf fitting johannesburg price",
+      "action": "Create or optimize page targeting \"golf fitting johannesburg price\"",
       "priority": "high"
     }
   ]

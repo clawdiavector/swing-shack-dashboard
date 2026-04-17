@@ -180,7 +180,7 @@ function validateFile(file, label, critical) {
   if (file === 'content-ideas.json' && (!data.ideas || data.ideas.length === 0)) {
     return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No ideas generated', next_action: 'Check generate_content_ideas script', qa_warnings: [] };
   }
-  if (file === 'hook-bank.json' && (!data.proven_hooks && !data.hooks && !data.hooks_by_goal)) {
+  if (file === 'hook-bank.json' && (!data.proven_hooks && !data.output_buckets && !data.hooks && !data.hooks_by_goal)) {
     return { file, label, critical, data_status: 'STALE', qa_warnings: [], script_status: 'PASS', fallback_used: false, age_hours: parseFloat(ageHours.toFixed(1)), reason: 'No hook data found', next_action: 'Check analyse_hooks script', qa_warnings: [] };
   }
   if (file === 'youtube-trends.json') {
