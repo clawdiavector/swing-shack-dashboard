@@ -21,6 +21,7 @@ const sales    = readJson('sales-priority.json')             || {};
 const plan    = readJson('post-plan.json')                   || {};
 const conv    = readJson('conversion-attribution.json')     || {};
 const leaks   = readJson('funnel-leaks.json')               || {};
+const outcomes = readJson('recommendation-outcomes.json')   || null;
 
 // ── Scoring dimensions ──────────────────────────────────────────
 // revenue_impact: 1-5 (higher = more revenue potential)
@@ -45,19 +46,29 @@ function easeScore(channel, action) {
 
 function confidenceScore(rec) {
   const src = rec.source_evidence || '';
-  // Extract numbers from evidence
+  // Base confidence from signal strength
   const numMatch = src.match(/(\d+)/);
   const baseNum  = numMatch ? parseInt(numMatch[1]) : 50;
-  // Higher session/save numbers = higher confidence
-  const signalStrength = Math.min(baseNum / 40, 5); // cap at 5
+  const signalStrength = Math.min(baseNum / 40, 5);
   // IG score evidence
   const igMatch = src.match(/score\s+(\d+\.?\d*)/i);
   const igScore  = igMatch ? parseFloat(igMatch[1]) : 0;
-  if (igScore >= 9) return 5;
-  if (igScore >= 7) return 4;
-  if (signalStrength >= 4) return 4;
-  if (signalStrength >= 2) return 3;
-  return 2;
+  // Learned adjustment from outcome history
+  var learnedAdj = 0;
+  if (outcomes && outcomes.learned_signals && outcomes.learned_signals.confidence_adjustments) {
+    var adj = outcomes.learned_signals.confidence_adjustments[rec.type];
+    if (adj) {
+      if (adj.adjustment === '+0.5') learnedAdj = 0.5;
+      else if (adj.adjustment === '-1.0') learnedAdj = -1.0;
+    }
+  }
+  var baseConf;
+  if (igScore >= 9) baseConf = 5;
+  else if (igScore >= 7) baseConf = 4;
+  else if (signalStrength >= 4) baseConf = 4;
+  else if (signalStrength >= 2) baseConf = 3;
+  else baseConf = 2;
+  return Math.max(1, Math.min(5, baseConf + learnedAdj));
 }
 
 function revenueScore(rec) {

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:07:46.477Z",
+  "updated": "2026-04-17T10:40:27.079Z",
   "generated": "detect_missed_opportunities.js",
   "count": 12,
   "by_severity": {
@@ -143,8 +143,8 @@
       "topic": "lessons",
       "yt_video_count": 5,
       "yt_examples": [
-        "5 Powerful Tips to Unleash Your Senior Driver Swing",
-        "What Nobody Tells You About the Senior Golf Swing"
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "5 Powerful Tips to Unleash Your Senior Driver Swing"
       ],
       "owner": "Swing Shack page",
       "suggested_fix": "Create IG post on \"lessons\" — YouTube has 5 trending videos.",

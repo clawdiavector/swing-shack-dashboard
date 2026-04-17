@@ -220,6 +220,31 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .dtf-title { font-size: 0.82rem; font-weight: 800; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
 .dtf-meta { font-size: 0.7rem; color: var(--success); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dtf-score { font-size: 1.3rem; font-weight: 900; flex-shrink: 0; line-height: 1; }
+
+/* WHAT ACTUALLY WORKED */
+.waws-stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.waws-stat { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; text-align: center; }
+.waws-stat-val { font-size: 1.5rem; font-weight: 900; color: var(--text); }
+.waws-stat-lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 2px; }
+.waws-wr-section { margin-bottom: 12px; }
+.waws-wr-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+.waws-wr-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.waws-wr { display: flex; gap: 5px; align-items: center; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; }
+.waws-wr-name { color: var(--muted); text-transform: capitalize; }
+.waws-wr-rate { font-weight: 800; }
+.waws-wr-count { color: var(--muted); font-size: 0.7rem; }
+.waws-card { display: flex; gap: 10px; padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; }
+.wawc-won { background: rgba(46,213,115,0.1); border-left: 3px solid #2ed573; }
+.wawc-lost { background: rgba(255,71,87,0.08); border-left: 3px solid #ff4757; }
+.waws-card-icon { font-size: 1.3rem; flex-shrink: 0; }
+.waws-card-body { flex: 1; }
+.waws-card-type { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
+.waws-card-hook { font-size: 0.85rem; font-weight: 800; color: var(--text); margin-bottom: 2px; line-height: 1.3; }
+.waws-card-meta { font-size: 0.72rem; color: var(--muted); }
+.waws-sub { margin-top: 10px; }
+.waws-sub-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+.waws-ignored-row { font-size: 0.78rem; color: var(--muted); padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.waws-under-row { font-size: 0.78rem; color: #ff4757; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -264,7 +289,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/17, 12:07:46 SAST</span>
+    <span class="summary-value">2026/04/17, 12:40:27 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -339,6 +364,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
       <span class="badge fresh">✅ fresh</span>
     </div>
     <div class="dtf-summary">Overall priority: <b style="color:#ffa502">8.3/10</b> &middot; 4 actions queued</div><div class="dtf-grid"><div class="dtf-card"><div class="dtf-emoji">🎯</div><div class="dtf-body"><div class="dtf-label">Post this first</div><div class="dtf-title">That slice costing you yards off the tee? TrackMan foun...</div><div class="dtf-meta">Freshness 7/10</div></div><div class="dtf-score" style="color:#ffa502">7</div></div><div class="dtf-card"><div class="dtf-emoji">💰</div><div class="dtf-body"><div class="dtf-label">Push this service</div><div class="dtf-title">Club Fitting</div><div class="dtf-meta">7.4/10</div></div><div class="dtf-score" style="color:#ffa502">7.4</div></div><div class="dtf-card"><div class="dtf-emoji">🔁</div><div class="dtf-body"><div class="dtf-label">Retarget this first</div><div class="dtf-title">Your clubs are waiting. Your handicap won't fix itself....</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">11.25</div></div><div class="dtf-card"><div class="dtf-emoji">⚠️</div><div class="dtf-body"><div class="dtf-label">Fix this leak</div><div class="dtf-title">—</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#ffa502">7.55</div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>📊 WHAT ACTUALLY WORKED</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="waws-stats"><div class="waws-stat"><div class="waws-stat-val" style="color:#2ed573">0%</div><div class="waws-stat-lbl">Exec rate</div></div><div class="waws-stat"><div class="waws-stat-val" style="color:#ffa502">0%</div><div class="waws-stat-lbl">Win rate</div></div><div class="waws-stat"><div class="waws-stat-val">12</div><div class="waws-stat-lbl">Recs tracked</div></div><div class="waws-stat"><div class="waws-stat-val">0</div><div class="waws-stat-lbl">Executed</div></div></div><div class="waws-wr-section"><div class="waws-wr-title">Win rate by type</div><div class="waws-wr-grid"></div></div><div class="waws-sub"><div class="waws-sub-title">Ignored (no matching post found)</div><div class="waws-ignored-row">↳ That slice costing you yards off the tee? TrackMan foun...</div><div class="waws-ignored-row">↳ Need some help with your putting? Coach Cat explains wh...</div><div class="waws-ignored-row">↳ Book your session with Coach Cat @swingshack ⛳️</div></div>
   </div>
   <div class="section">
     <div class="section-header">
@@ -475,7 +507,7 @@ Pros average 112 mph. Tra...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 8</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">driver</span><span class="ww-topic">slice_fix</span><span class="ww-topic">simulator</span></div>
-      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
     </div>
     <div class="ww-card ww-card--pt" data-content-type="hook">
       <div class="ww-card-top">
@@ -492,7 +524,7 @@ Pros average 112 mph. Tra...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 7.4</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">lessons</span><span class="ww-topic">swing</span></div>
-      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
     </div>
     <div class="ww-card ww-card--pt" data-content-type="hook">
       <div class="ww-card-top">
@@ -509,7 +541,7 @@ Pros average 112 mph. Tra...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 7.1</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">short_game</span><span class="ww-topic">lessons</span></div>
-      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
     </div>
     <div class="ww-card ww-card--pt" data-content-type="promo">
       <div class="ww-card-top">
@@ -543,7 +575,7 @@ Pros average 112 mph. Tra...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 6.7</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">booking</span><span class="ww-topic">conversion</span></div>
-      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
     </div></div>
   <script>
   document.querySelectorAll('.ww-filter-btn').forEach(btn => {

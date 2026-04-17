@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:07:46.383Z",
+  "updated": "2026-04-17T10:40:26.986Z",
   "generated": "generate_post_plan.js",
   "plan_length": 7,
   "plan": [
@@ -15,8 +15,8 @@
       "objective": "reach",
       "why_chosen": "Cross-signal score 8.0: IG proof 10 + YouTube alignment 10 · optimised for reach",
       "evidence": [
-        "Master Your Senior Golf Swing in 3 Easy Steps",
-        "Possibly The BEST DRIVER Tip Ever In GOLF"
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "4 Simple Steps For The Perfect Golf Drive"
       ],
       "status": "ready",
       "topics": [
@@ -46,8 +46,8 @@
       "objective": "reach",
       "why_chosen": "Cross-signal score 7.1: IG proof 9.86 + YouTube alignment 6 · optimised for reach",
       "evidence": [
-        "Master Your Senior Golf Swing in 3 Easy Steps",
-        "Possibly The BEST DRIVER Tip Ever In GOLF"
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "How to hit irons Consistently (Simple Golf Tips)"
       ],
       "status": "ready",
       "topics": [
@@ -74,8 +74,8 @@
       "objective": "bookings",
       "why_chosen": "Cross-signal score 6.7: IG proof 9.129999999999999 + YouTube alignment 6 · optimised for bookings",
       "evidence": [
-        "Master Your Senior Golf Swing in 3 Easy Steps",
-        "Possibly The BEST DRIVER Tip Ever In GOLF"
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "How to hit irons Consistently (Simple Golf Tips)"
       ],
       "status": "ready",
       "topics": [
@@ -102,8 +102,8 @@
       "objective": "saves",
       "why_chosen": "Cross-signal score 7.4: IG proof 10 + YouTube alignment 7 · optimised for saves",
       "evidence": [
-        "Master Your Senior Golf Swing in 3 Easy Steps",
-        "Possibly The BEST DRIVER Tip Ever In GOLF"
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "How to hit irons Consistently (Simple Golf Tips)"
       ],
       "status": "ready",
       "topics": [

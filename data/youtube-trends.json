@@ -1,8 +1,17 @@
 {
-  "updated": "2026-04-17T10:07:22.896Z",
+  "updated": "2026-04-17T10:40:08.724Z",
   "data_source": "youtube_api_v3",
   "videos_found": 19,
   "top_videos": [
+    {
+      "title": "Master Your Senior Golf Swing in 3 Easy Steps",
+      "description": "In this VLS Golf lesson from Todd Kolb, we're going to show you how to simplify your senior golf swing. By following these 3 easy ...",
+      "videoId": "4WZd4B06zTg",
+      "channelTitle": "US GOLF TV",
+      "publishedAt": "2024-03-24T11:00:04Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
     {
       "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple driver ...",
@@ -36,15 +45,6 @@
       "videoId": "aGdAdJu9Zr8",
       "channelTitle": "US GOLF TV",
       "publishedAt": "2023-09-15T11:00:01Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
-    {
-      "title": "What Nobody Tells You About the Senior Golf Swing",
-      "description": "5 Things Senior Golfers Must Know About the Golf Swing If you want to learn the VLS Golf Swing, check out Todd Kolb's Top 5 ...",
-      "videoId": "tr_DcNk72C0",
-      "channelTitle": "US GOLF TV",
-      "publishedAt": "2024-03-29T11:00:48Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -96,6 +96,12 @@
   ],
   "articles_sourced": [
     {
+      "title": "Master Your Senior Golf Swing in 3 Easy Steps",
+      "description": "In this VLS Golf lesson from Todd Kolb, we're going to show you how to simplify your senior golf swing. By following these 3 easy ...",
+      "source": "US GOLF TV",
+      "publishedAt": "2024-03-24T11:00:04Z"
+    },
+    {
       "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple driver ...",
       "source": "Alistair Davies Golf",
@@ -118,12 +124,6 @@
       "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
       "source": "US GOLF TV",
       "publishedAt": "2023-09-15T11:00:01Z"
-    },
-    {
-      "title": "What Nobody Tells You About the Senior Golf Swing",
-      "description": "5 Things Senior Golfers Must Know About the Golf Swing If you want to learn the VLS Golf Swing, check out Todd Kolb's Top 5 ...",
-      "source": "US GOLF TV",
-      "publishedAt": "2024-03-29T11:00:48Z"
     },
     {
       "title": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
@@ -168,7 +168,15 @@
   },
   "hooks": [
     {
-      "idea_id": "yt-hook-1776420446673-0",
+      "idea_id": "yt-hook-1776422412387-0",
+      "source": "US GOLF TV",
+      "hook_text": "Master Your Senior Golf Swing in 3 Easy Steps",
+      "description": "In this VLS Golf lesson from Todd Kolb, we're going to show you how to simplify your senior golf swing. By following the",
+      "freshness_score": 5,
+      "theme_signal": "slice_fix"
+    },
+    {
+      "idea_id": "yt-hook-1776422412387-1",
       "source": "Alistair Davies Golf",
       "hook_text": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple drive",
@@ -176,7 +184,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776420446673-1",
+      "idea_id": "yt-hook-1776422412387-2",
       "source": "Rick Shiels Golf",
       "hook_text": "How to hit irons Consistently (Simple Golf Tips)",
       "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistent",
@@ -184,7 +192,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776420446673-2",
+      "idea_id": "yt-hook-1776422412387-3",
       "source": "The Art of Simple Golf",
       "hook_text": "4 Simple Steps For The Perfect Golf Drive",
       "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
@@ -192,7 +200,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776420446673-3",
+      "idea_id": "yt-hook-1776422412387-4",
       "source": "US GOLF TV",
       "hook_text": "5 Powerful Tips to Unleash Your Senior Driver Swing",
       "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to sho",
@@ -200,15 +208,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776420446673-4",
-      "source": "US GOLF TV",
-      "hook_text": "What Nobody Tells You About the Senior Golf Swing",
-      "description": "5 Things Senior Golfers Must Know About the Golf Swing If you want to learn the VLS Golf Swing, check out Todd Kolb's To",
-      "freshness_score": 5,
-      "theme_signal": "slice_fix"
-    },
-    {
-      "idea_id": "yt-hook-1776420446673-5",
+      "idea_id": "yt-hook-1776422412387-5",
       "source": "New Nine Golf | Brandon Cubitt",
       "hook_text": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
       "description": "Golf Swing Basics is a series of 3 golf lesson videos for beginners. We guarantee you will hit the ball better after wat",
@@ -216,7 +216,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776420446673-6",
+      "idea_id": "yt-hook-1776422412387-6",
       "source": " Durnian Golf",
       "hook_text": "Beginner golf lessons ⛳️ #golf",
       "description": "",
@@ -224,7 +224,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-hook-1776420446673-7",
+      "idea_id": "yt-hook-1776422412387-7",
       "source": "Kerrod Gray Golf",
       "hook_text": "Better Golf Swing In 2 Minutes",
       "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you t",
@@ -232,7 +232,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-sa-1776420446673-0",
+      "idea_id": "yt-sa-1776422412388-0",
       "source": "sa_market_always",
       "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
       "description": "SA-market hook - always included",
@@ -240,7 +240,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-sa-1776420446673-1",
+      "idea_id": "yt-sa-1776422412388-1",
       "source": "sa_market_always",
       "hook_text": "How fast should your club head speed actually be? Pros average 112 mph.",
       "description": "SA-market hook - always included",
@@ -248,7 +248,7 @@
       "theme_signal": "swing_speed"
     },
     {
-      "idea_id": "yt-sa-1776420446673-2",
+      "idea_id": "yt-sa-1776422412388-2",
       "source": "sa_market_always",
       "hook_text": "Your launch monitor data is telling you exactly what to fix.",
       "description": "SA-market hook - always included",
@@ -256,7 +256,7 @@
       "theme_signal": "trackman"
     },
     {
-      "idea_id": "yt-sa-1776420446673-3",
+      "idea_id": "yt-sa-1776422412388-3",
       "source": "sa_market_always",
       "hook_text": "Rain season. Your game doesn't have to stop. Indoor golf in Johannesburg.",
       "description": "SA-market hook - always included",
@@ -264,7 +264,7 @@
       "theme_signal": "indoor"
     },
     {
-      "idea_id": "yt-sa-1776420446673-4",
+      "idea_id": "yt-sa-1776422412388-4",
       "source": "sa_market_always",
       "hook_text": "Short game practice that actually transfers to the course.",
       "description": "SA-market hook - always included",
@@ -272,7 +272,7 @@
       "theme_signal": "short_game"
     },
     {
-      "idea_id": "yt-sa-1776420446673-5",
+      "idea_id": "yt-sa-1776422412388-5",
       "source": "sa_market_always",
       "hook_text": "When was the last time a golf pro watched your actual swing on a launch monitor?",
       "description": "SA-market hook - always included",

@@ -76,7 +76,8 @@ const convAttr   = readJson('conversion-attribution.json') || null;
 const funnelLeak = readJson('funnel-leaks.json')          || null;
 const ctaPerf    = readJson('cta-performance.json')       || null;
 const retarget   = readJson('retargeting-recommendations.json') || null;
-const recScores = readJson('recommendation-scores.json') || null;
+const recScores  = readJson('recommendation-scores.json') || null;
+const recOutcome = readJson('recommendation-outcomes.json') || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -630,6 +631,40 @@ if (recScores && recScores.do_first && recScores.do_first.length > 0) {
 }
 var doFirstSection = buildSection('\ud83d\udcaa DO THIS FIRST', freshnessBadge(recScores && recScores.updated), doFirstContent);
 
+// WHAT ACTUALLY WORKED
+var wawsContent = '<p class="empty">No outcome data yet. Measurement loop is building history.</p>';
+if (recOutcome && recOutcome.summary && recOutcome.summary.total_recommended > 0) {
+  var wows = recOutcome.summary;
+  var wrList = (recOutcome.type_win_rates || []).slice(0, 4).map(function(wr) {
+    var wrColor = wr.win_rate >= 60 ? '#2ed573' : wr.win_rate >= 40 ? '#ffa502' : '#ff4757';
+    return '<div class="waws-wr"><span class="waws-wr-name">' + (wr.type || '').replace(/_/g, ' ') + '</span><span class="waws-wr-rate" style="color:' + wrColor + '">' + wr.win_rate + '%</span><span class="waws-wr-count">(' + wr.won + 'W/' + wr.total + ')</span></div>';
+  }).join('');
+
+  var bestRec = recOutcome.best_recommendation;
+  var worstRec = recOutcome.worst_recommendation;
+  var ignoredItems = (recOutcome.ignored || []).slice(0, 3);
+  var underItems = (recOutcome.underperformed || []).slice(0, 2);
+
+  var bestRow = bestRec ? '<div class="waws-card wawc-won"><div class="waws-card-icon">\ud83c\udfc6</div><div class="waws-card-body"><div class="waws-card-type">Best performer</div><div class="waws-card-hook">' + truncate(bestRec.hook || '—', 65) + '</div><div class="waws-card-meta">+' + bestRec.delta + ' eng vs baseline | ' + bestRec.eng_rate + '% eng | ' + bestRec.reach + ' reach</div></div></div>' : '';
+
+  var worstRow = worstRec && worstRec !== bestRec ? '<div class="waws-card wawc-lost"><div class="waws-card-icon">\u26d4\ufe0f</div><div class="waws-card-body"><div class="waws-card-type">Underperformed</div><div class="waws-card-hook">' + truncate(worstRec.hook || '—', 65) + '</div><div class="waws-card-meta">' + worstRec.delta + ' eng vs baseline | ' + worstRec.type + '</div></div></div>' : '';
+
+  var ignoreList = ignoredItems.length > 0 ? '<div class="waws-sub"><div class="waws-sub-title">Ignored (no matching post found)</div>' + ignoredItems.map(function(r) { return '<div class="waws-ignored-row">\u21b3 ' + truncate(r.hook || r.type || '—', 55) + '</div>'; }).join('') + '</div>' : '';
+
+  var underList = underItems.length > 0 ? '<div class="waws-sub"><div class="waws-sub-title">Underperformed</div>' + underItems.map(function(r) { return '<div class="waws-under-row">\u2193 ' + truncate(r.hook || r.type || '—', 55) + ' (delta: ' + r.delta + ')</div>'; }).join('') + '</div>' : '';
+
+  wawsContent = '<div class="waws-stats">' +
+    '<div class="waws-stat"><div class="waws-stat-val" style="color:#2ed573">' + wows.exec_rate + '%</div><div class="waws-stat-lbl">Exec rate</div></div>' +
+    '<div class="waws-stat"><div class="waws-stat-val" style="color:' + (wows.overall_win_rate >= 50 ? '#2ed573' : '#ffa502') + '">' + wows.overall_win_rate + '%</div><div class="waws-stat-lbl">Win rate</div></div>' +
+    '<div class="waws-stat"><div class="waws-stat-val">' + wows.total_recommended + '</div><div class="waws-stat-lbl">Recs tracked</div></div>' +
+    '<div class="waws-stat"><div class="waws-stat-val">' + wows.executed + '</div><div class="waws-stat-lbl">Executed</div></div>' +
+    '</div>' +
+    '<div class="waws-wr-section"><div class="waws-wr-title">Win rate by type</div><div class="waws-wr-grid">' + wrList + '</div></div>' +
+    bestRow + worstRow +
+    ignoreList + underList;
+}
+var wawsSection = buildSection('\ud83d\udcca WHAT ACTUALLY WORKED', freshnessBadge(recOutcome && recOutcome.updated), wawsContent);
+
 const ideaSection = buildSection('\ud83d\udca1 Content Ideas', freshnessBadge(ideas.updated), ideaContent);
 
 // ── GOLF NEWS ─────────────────────────────────────────────────────
@@ -996,6 +1031,31 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .dtf-title { font-size: 0.82rem; font-weight: 800; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
 .dtf-meta { font-size: 0.7rem; color: var(--success); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dtf-score { font-size: 1.3rem; font-weight: 900; flex-shrink: 0; line-height: 1; }
+
+/* WHAT ACTUALLY WORKED */
+.waws-stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.waws-stat { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; text-align: center; }
+.waws-stat-val { font-size: 1.5rem; font-weight: 900; color: var(--text); }
+.waws-stat-lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 2px; }
+.waws-wr-section { margin-bottom: 12px; }
+.waws-wr-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+.waws-wr-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.waws-wr { display: flex; gap: 5px; align-items: center; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; }
+.waws-wr-name { color: var(--muted); text-transform: capitalize; }
+.waws-wr-rate { font-weight: 800; }
+.waws-wr-count { color: var(--muted); font-size: 0.7rem; }
+.waws-card { display: flex; gap: 10px; padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; }
+.wawc-won { background: rgba(46,213,115,0.1); border-left: 3px solid #2ed573; }
+.wawc-lost { background: rgba(255,71,87,0.08); border-left: 3px solid #ff4757; }
+.waws-card-icon { font-size: 1.3rem; flex-shrink: 0; }
+.waws-card-body { flex: 1; }
+.waws-card-type { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
+.waws-card-hook { font-size: 0.85rem; font-weight: 800; color: var(--text); margin-bottom: 2px; line-height: 1.3; }
+.waws-card-meta { font-size: 0.72rem; color: var(--muted); }
+.waws-sub { margin-top: 10px; }
+.waws-sub-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+.waws-ignored-row { font-size: 0.78rem; color: var(--muted); padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.waws-under-row { font-size: 0.78rem; color: #ff4757; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -1040,6 +1100,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${thisWeekStrip}
   ${execSummarySection}
   ${doFirstSection}
+  ${wawsSection}
   ${igSection}
   ${hookSection}
   ${watchedSection}
