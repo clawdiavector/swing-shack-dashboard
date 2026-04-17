@@ -1,15 +1,15 @@
 {
-  "updated": "2026-04-16T13:04:36.819Z",
+  "updated": "2026-04-17T05:06:43.120Z",
   "total_hooks": 64,
   "proven_hooks": [
     {
       "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
       "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
       "score": 10,
-      "engagementRate": "4.18",
+      "engagementRate": "3.37",
       "saveRate": "0.00",
-      "shareRate": "0.38",
-      "reach": 263,
+      "shareRate": "0.35",
+      "reach": 564,
       "topic_cluster": "coaching",
       "format_type": "static",
       "formula_type": "general",
@@ -19,10 +19,10 @@
       "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
       "score": 10,
-      "engagementRate": "5.77",
+      "engagementRate": "5.66",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 52,
+      "reach": 53,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "stat-demand",
@@ -295,7 +295,7 @@
       "engagementRate": "2.99",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 401,
+      "reach": 402,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "general",
@@ -347,7 +347,7 @@
       "engagementRate": "2.40",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 333,
+      "reach": 334,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "stat-demand",
@@ -382,11 +382,11 @@
     {
       "hook_text": "We love seeing our members become buddies, eating good food, and having a fun ni",
       "hook_id": "we-love-seeing-our-members-become-buddies--eating-",
-      "score": 7.58,
-      "engagementRate": "2.29",
+      "score": 7.56,
+      "engagementRate": "2.28",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 525,
+      "reach": 526,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "general",
@@ -395,11 +395,11 @@
     {
       "hook_text": "Coach Cat takes us through a simple process on getting into one of the more chal",
       "hook_id": "coach-cat-takes-us-through-a-simple-process-on-get",
-      "score": 7.48,
-      "engagementRate": "1.49",
+      "score": 7.46,
+      "engagementRate": "1.48",
       "saveRate": "0.00",
       "shareRate": "0.30",
-      "reach": 336,
+      "reach": 337,
       "topic_cluster": "coaching",
       "format_type": "static",
       "formula_type": "stat-demand",
@@ -417,6 +417,19 @@
       "format_type": "static",
       "formula_type": "stat-demand",
       "post_id": "18084629818847869"
+    },
+    {
+      "hook_text": "Clubs are made for launch conditions not skill level. #golf #customfitting #golf",
+      "hook_id": "clubs-are-made-for-launch-conditions-not-skill-lev",
+      "score": 6.7,
+      "engagementRate": "1.06",
+      "saveRate": "0.00",
+      "shareRate": "0.35",
+      "reach": 283,
+      "topic_cluster": "equipment",
+      "format_type": "static",
+      "formula_type": "general",
+      "post_id": "17973083486868104"
     },
     {
       "hook_text": "New year, new set. Get your custom club fitting @swingshack 🏌️",
@@ -458,19 +471,6 @@
       "post_id": "18028893479571663"
     },
     {
-      "hook_text": "Clubs are made for launch conditions not skill level. #golf #customfitting #golf",
-      "hook_id": "clubs-are-made-for-launch-conditions-not-skill-lev",
-      "score": 6.12,
-      "engagementRate": "0.83",
-      "saveRate": "0.00",
-      "shareRate": "0.41",
-      "reach": 241,
-      "topic_cluster": "equipment",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "17973083486868104"
-    },
-    {
       "hook_text": "SWING SPEED: 83 MPH",
       "hook_id": "swing-speed--83-mph",
       "score": 6.08,
@@ -484,19 +484,6 @@
       "post_id": "18051071432708752"
     },
     {
-      "hook_text": "BACKSPIN:3,200 RPM",
-      "hook_id": "backspin-3-200-rpm",
-      "score": 5.890000000000001,
-      "engagementRate": "2.29",
-      "saveRate": "0.00",
-      "shareRate": "0.00",
-      "reach": 131,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "general",
-      "post_id": "18073928609224626"
-    },
-    {
       "hook_text": "Book your free swing and club assessments w us @swingshack ✌️",
       "hook_id": "book-your-free-swing-and-club-assessments-w-us--sw",
       "score": 5.74,
@@ -508,6 +495,19 @@
       "format_type": "static",
       "formula_type": "stat-demand",
       "post_id": "17951672903934499"
+    },
+    {
+      "hook_text": "BACKSPIN:3,200 RPM",
+      "hook_id": "backspin-3-200-rpm",
+      "score": 5.72,
+      "engagementRate": "2.17",
+      "saveRate": "0.00",
+      "shareRate": "0.00",
+      "reach": 138,
+      "topic_cluster": "technique",
+      "format_type": "static",
+      "formula_type": "general",
+      "post_id": "18073928609224626"
     },
     {
       "hook_text": "Wedges matter. Yours could be free 🤷🏻‍♂️",
@@ -590,11 +590,11 @@
     {
       "hook_text": "YOUR DRIVE: 199 M",
       "hook_id": "your-drive--199-m",
-      "score": 5.33,
-      "engagementRate": "1.86",
+      "score": 5.32,
+      "engagementRate": "1.85",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 161,
+      "reach": 162,
       "topic_cluster": "trackman",
       "format_type": "static",
       "formula_type": "stat-demand",
@@ -720,11 +720,11 @@
     {
       "hook_text": "TrackMan doesn't lie. Your swing data from your last session told a story. Now f",
       "hook_id": "trackman-doesn-t-lie--your-swing-data-from-your-la",
-      "score": 4.41,
-      "engagementRate": "1.57",
+      "score": 4.390000000000001,
+      "engagementRate": "1.55",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 127,
+      "reach": 129,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "stat-demand",
@@ -893,17 +893,17 @@
         "post_id": "17878890069350655"
       },
       {
-        "hook_text": "Same speed, different DNA’s 🏌🏻‍♀️🏌🏻‍♂️⛳️",
-        "hook_id": "same-speed--different-dna-s-----------------",
-        "score": 7.82,
-        "engagementRate": "2.41",
+        "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
+        "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
+        "score": 10,
+        "engagementRate": "3.37",
         "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 540,
-        "topic_cluster": "technique",
+        "shareRate": "0.35",
+        "reach": 564,
+        "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
-        "post_id": "18164214061409872"
+        "post_id": "18078655349442093"
       }
     ],
     "saves": [
@@ -960,17 +960,17 @@
         "post_id": "17878890069350655"
       },
       {
-        "hook_text": "Same speed, different DNA’s 🏌🏻‍♀️🏌🏻‍♂️⛳️",
-        "hook_id": "same-speed--different-dna-s-----------------",
-        "score": 7.82,
-        "engagementRate": "2.41",
+        "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
+        "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
+        "score": 10,
+        "engagementRate": "3.37",
         "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 540,
-        "topic_cluster": "technique",
+        "shareRate": "0.35",
+        "reach": 564,
+        "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
-        "post_id": "18164214061409872"
+        "post_id": "18078655349442093"
       }
     ],
     "engagement": [
@@ -978,10 +978,10 @@
         "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
         "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
         "score": 10,
-        "engagementRate": "4.18",
+        "engagementRate": "3.37",
         "saveRate": "0.00",
-        "shareRate": "0.38",
-        "reach": 263,
+        "shareRate": "0.35",
+        "reach": 564,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -991,10 +991,10 @@
         "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
         "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
         "score": 10,
-        "engagementRate": "5.77",
+        "engagementRate": "5.66",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 52,
+        "reach": 53,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -1094,20 +1094,33 @@
         "post_id": "18110464996730699"
       },
       {
-        "hook_text": "Everything you need as a golfer in one place 🏌🏻‍♂️",
-        "hook_id": "everything-you-need-as-a-golfer-in-one-place------",
-        "score": 5.65,
-        "engagementRate": "1.42",
+        "hook_text": "Clubs are made for launch conditions not skill level. #golf #customfitting #golf",
+        "hook_id": "clubs-are-made-for-launch-conditions-not-skill-lev",
+        "score": 6.7,
+        "engagementRate": "1.06",
         "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 281,
+        "shareRate": "0.35",
+        "reach": 283,
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "general",
-        "post_id": "17975349971991689"
+        "post_id": "17973083486868104"
       }
     ],
     "coaching": [
+      {
+        "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
+        "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
+        "score": 10,
+        "engagementRate": "3.37",
+        "saveRate": "0.00",
+        "shareRate": "0.35",
+        "reach": 564,
+        "topic_cluster": "coaching",
+        "format_type": "static",
+        "formula_type": "general",
+        "post_id": "18078655349442093"
+      },
       {
         "hook_text": "Here’s to a New Year and Good Golf! 🥂😉",
         "hook_id": "here-s-to-a-new-year-and-good-golf------",
@@ -1137,28 +1150,15 @@
       {
         "hook_text": "Coach Cat takes us through a simple process on getting into one of the more chal",
         "hook_id": "coach-cat-takes-us-through-a-simple-process-on-get",
-        "score": 7.48,
-        "engagementRate": "1.49",
+        "score": 7.46,
+        "engagementRate": "1.48",
         "saveRate": "0.00",
         "shareRate": "0.30",
-        "reach": 336,
+        "reach": 337,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "stat-demand",
         "post_id": "17959293114110307"
-      },
-      {
-        "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
-        "hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
-        "score": 10,
-        "engagementRate": "4.18",
-        "saveRate": "0.00",
-        "shareRate": "0.38",
-        "reach": 263,
-        "topic_cluster": "coaching",
-        "format_type": "static",
-        "formula_type": "general",
-        "post_id": "18078655349442093"
       }
     ],
     "technique": [

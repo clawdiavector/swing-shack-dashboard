@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-16T13:04:20.330Z",
+  "timestamp": "2026-04-16T13:04:59.767Z",
   "overall_status": "PASS",
   "summary": {
     "pass": 16,
@@ -36,8 +36,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -49,8 +49,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -61,10 +61,10 @@
       "data_status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-16T12:59:44.026Z"
+      "last_build": "2026-04-16T13:04:55.864Z"
     },
     {
       "file": "golf-news.json",
@@ -74,8 +74,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -87,8 +87,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -100,8 +100,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -113,8 +113,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -126,8 +126,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -139,8 +139,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -165,8 +165,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -191,8 +191,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -204,8 +204,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.1,
-      "reason": "Fresh - 0.1h old",
+      "age_hours": 0,
+      "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -216,10 +216,10 @@
       "data_status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 0.1,
-      "reason": "Last build 2026/04/16, 14:59:40",
+      "age_hours": 0,
+      "reason": "Last build 2026/04/16, 15:04:55",
       "next_action": "No action needed",
-      "last_build": "2026/04/16, 14:59:40"
+      "last_build": "2026/04/16, 15:04:55"
     }
   ]
 }
