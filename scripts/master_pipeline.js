@@ -82,7 +82,7 @@ const STAGES = [
     name: 'Plan',
     critical: false,
     requiredOutputs: [],
-    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json'],
+    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json'],
     steps: [
       { name: 'generate_post_plan',          script: `node ${BASE}/scripts/generate_post_plan.js`,          critical: false },
       { name: 'generate_sales_priority',     script: `node ${BASE}/scripts/generate_sales_priority.js`,     critical: false },
@@ -93,7 +93,8 @@ const STAGES = [
       { name: 'generate_conversion_attribution', script: `node ${BASE}/scripts/generate_conversion_attribution.js`, critical: false },
       { name: 'generate_funnel_leaks',        script: `node ${BASE}/scripts/generate_funnel_leaks.js`,        critical: false },
       { name: 'generate_cta_performance',       script: `node ${BASE}/scripts/generate_cta_performance.js`,       critical: false },
-      { name: 'generate_retargeting_recommendations', script: `node ${BASE}/scripts/generate_retargeting_recommendations.js`, critical: false },
+      { name: 'generate_retargeting_recommendations',   script: `node ${BASE}/scripts/generate_retargeting_recommendations.js`,   critical: false },
+      { name: 'generate_recommendation_scores',       script: `node ${BASE}/scripts/generate_recommendation_scores.js`,       critical: false },
     ]
   },
   {

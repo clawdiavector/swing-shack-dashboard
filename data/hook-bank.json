@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T09:31:01.563Z",
+  "updated": "2026-04-17T10:07:22.765Z",
   "total_hooks": 64,
   "cross_signal_sources": {
     "ig_weight": "60%",
@@ -213,7 +213,7 @@
         ],
         "youtube_evidence_titles": [
           "Possibly The BEST DRIVER Tip Ever In GOLF",
-          "4 Simple Steps For The Perfect Golf Drive"
+          "What Nobody Tells You About the Senior Golf Swing"
         ],
         "engagementRate": "0.93",
         "saveRate": "0.00",
@@ -239,7 +239,7 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "4 Simple Steps For The Perfect Golf Drive"
+          "What Nobody Tells You About the Senior Golf Swing"
         ],
         "engagementRate": "1.55",
         "saveRate": "0.00",
@@ -316,7 +316,7 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "4 Simple Steps For The Perfect Golf Drive"
+          "What Nobody Tells You About the Senior Golf Swing"
         ],
         "engagementRate": "3.61",
         "saveRate": "0.00",
@@ -341,7 +341,7 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "4 Simple Steps For The Perfect Golf Drive"
+          "What Nobody Tells You About the Senior Golf Swing"
         ],
         "engagementRate": "3.05",
         "saveRate": "0.00",
@@ -365,7 +365,7 @@
         ],
         "youtube_format_match": [],
         "youtube_evidence_titles": [
-          "5 Powerful Tips to Unleash Your Senior Driver Swing",
+          "What Nobody Tells You About the Senior Golf Swing",
           "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
         ],
         "engagementRate": "2.61",
@@ -476,7 +476,7 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "4 Simple Steps For The Perfect Golf Drive"
+          "What Nobody Tells You About the Senior Golf Swing"
         ],
         "engagementRate": "2.99",
         "saveRate": "0.00",
@@ -504,7 +504,7 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "4 Simple Steps For The Perfect Golf Drive"
+          "What Nobody Tells You About the Senior Golf Swing"
         ],
         "engagementRate": "0.94",
         "saveRate": "0.00",
@@ -555,7 +555,7 @@
         ],
         "youtube_format_match": [],
         "youtube_evidence_titles": [
-          "5 Powerful Tips to Unleash Your Senior Driver Swing",
+          "What Nobody Tells You About the Senior Golf Swing",
           "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
         ],
         "engagementRate": "0.85",
@@ -750,16 +750,15 @@
   ],
   "youtube_signals_summary": {
     "dominant_topics": [
+      "beginner",
       "lessons",
-      "swing",
-      "beginner"
+      "swing"
     ],
     "dominant_formats": [
       "How to...",
       "\"Best\" superlative",
       "\"Easy\" simplicity",
-      "\"Simple\" promise",
-      "Mistake framing"
+      "\"Simple\" promise"
     ],
     "top_template": "[Player Type]: [advice]"
   }

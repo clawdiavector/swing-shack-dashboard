@@ -1,17 +1,8 @@
 {
-  "fetched_at": "2026-04-17T09:31:05.405Z",
+  "fetched_at": "2026-04-17T10:07:26.803Z",
   "source_file": "youtube-trends.json",
   "videos_analyzed": 10,
   "top_videos": [
-    {
-      "title": "Master Your Senior Golf Swing in 3 Easy Steps",
-      "description": "In this VLS Golf lesson from Todd Kolb, we're going to show you how to simplify your senior golf swing. By following these 3 easy ...",
-      "videoId": "4WZd4B06zTg",
-      "channelTitle": "US GOLF TV",
-      "publishedAt": "2024-03-24T11:00:04Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
     {
       "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple driver ...",
@@ -31,20 +22,29 @@
       "query": "golf swing tips"
     },
     {
-      "title": "What Nobody Tells You About the Senior Golf Swing",
-      "description": "5 Things Senior Golfers Must Know About the Golf Swing If you want to learn the VLS Golf Swing, check out Todd Kolb's Top 5 ...",
-      "videoId": "tr_DcNk72C0",
-      "channelTitle": "US GOLF TV",
-      "publishedAt": "2024-03-29T11:00:48Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
-    {
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
       "videoId": "DDoC4SCyeXI",
       "channelTitle": "The Art of Simple Golf",
       "publishedAt": "2025-07-28T19:08:17Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
+      "videoId": "aGdAdJu9Zr8",
+      "channelTitle": "US GOLF TV",
+      "publishedAt": "2023-09-15T11:00:01Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "What Nobody Tells You About the Senior Golf Swing",
+      "description": "5 Things Senior Golfers Must Know About the Golf Swing If you want to learn the VLS Golf Swing, check out Todd Kolb's Top 5 ...",
+      "videoId": "tr_DcNk72C0",
+      "channelTitle": "US GOLF TV",
+      "publishedAt": "2024-03-29T11:00:48Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -67,20 +67,20 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
-      "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you need to ...",
-      "videoId": "n4aOMLSRGrI",
-      "channelTitle": "Meandmygolf",
-      "publishedAt": "2024-06-17T13:00:55Z",
-      "source": "youtube_api_v3",
-      "query": "golf lesson tutorial"
-    },
-    {
       "title": "Better Golf Swing In 2 Minutes",
       "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you to ...",
       "videoId": "j-g1SlpOm3g",
       "channelTitle": "Kerrod Gray Golf",
       "publishedAt": "2024-04-26T22:02:20Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
+      "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you need to ...",
+      "videoId": "n4aOMLSRGrI",
+      "channelTitle": "Meandmygolf",
+      "publishedAt": "2024-06-17T13:00:55Z",
       "source": "youtube_api_v3",
       "query": "golf lesson tutorial"
     },
@@ -98,18 +98,10 @@
     "recurring_phrases": [
       {
         "phrase": "golf swing",
-        "count": 4,
+        "count": 3,
         "examples": [
-          "Master Your Senior Golf Swing in 3 Easy Steps",
-          "What Nobody Tells You About the Senior Golf Swing"
-        ]
-      },
-      {
-        "phrase": "senior golf",
-        "count": 2,
-        "examples": [
-          "Master Your Senior Golf Swing in 3 Easy Steps",
-          "What Nobody Tells You About the Senior Golf Swing"
+          "What Nobody Tells You About the Senior Golf Swing",
+          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
         ]
       },
       {
@@ -130,7 +122,7 @@
       }
     ],
     "topic_clusters": {
-      "driver": 2,
+      "driver": 3,
       "senior": 2,
       "beginner": 5,
       "irons": 1,
@@ -147,10 +139,6 @@
       {
         "label": "\"Best\" superlative",
         "example": "Possibly The BEST DRIVER Tip Ever In GOLF"
-      },
-      {
-        "label": "\"Easy\" simplicity",
-        "example": "Master Your Senior Golf Swing in 3 Easy Steps"
       },
       {
         "label": "\"Simple\" promise",
@@ -209,7 +197,6 @@
     "dominant_formats": [
       "How to...",
       "\"Best\" superlative",
-      "\"Easy\" simplicity",
       "\"Simple\" promise"
     ],
     "top_template": "[Player Type]: [advice]"

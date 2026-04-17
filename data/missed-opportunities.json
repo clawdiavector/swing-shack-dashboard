@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T09:31:23.150Z",
+  "updated": "2026-04-17T10:07:46.477Z",
   "generated": "detect_missed_opportunities.js",
   "count": 12,
   "by_severity": {
@@ -86,22 +86,22 @@
       "category": "content_gap",
       "severity": "high",
       "page": "/",
-      "sessions": 273,
+      "sessions": 275,
       "owner": "Swing Shack page",
-      "suggested_fix": "Create IG content targeting \"/\" — 273 sessions with no social link.",
-      "suggestion": "Page \"/\" gets 273 sessions but no IG post links to it. Create content.",
-      "why": "273 sessions with no social presence"
+      "suggested_fix": "Create IG content targeting \"/\" — 275 sessions with no social link.",
+      "suggestion": "Page \"/\" gets 275 sessions but no IG post links to it. Create content.",
+      "why": "275 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
       "category": "content_gap",
       "severity": "high",
       "page": "/bookings/",
-      "sessions": 149,
+      "sessions": 151,
       "owner": "Nancy / Front Desk",
-      "suggested_fix": "Create IG content targeting \"/bookings/\" — 149 sessions with no social link.",
-      "suggestion": "Page \"/bookings/\" gets 149 sessions but no IG post links to it. Create content.",
-      "why": "149 sessions with no social presence"
+      "suggested_fix": "Create IG content targeting \"/bookings/\" — 151 sessions with no social link.",
+      "suggestion": "Page \"/bookings/\" gets 151 sessions but no IG post links to it. Create content.",
+      "why": "151 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
@@ -143,7 +143,7 @@
       "topic": "lessons",
       "yt_video_count": 5,
       "yt_examples": [
-        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "5 Powerful Tips to Unleash Your Senior Driver Swing",
         "What Nobody Tells You About the Senior Golf Swing"
       ],
       "owner": "Swing Shack page",
@@ -156,15 +156,15 @@
       "category": "content_gap",
       "severity": "medium",
       "topic": "driver",
-      "yt_video_count": 2,
+      "yt_video_count": 3,
       "yt_examples": [
         "Possibly The BEST DRIVER Tip Ever In GOLF",
         "4 Simple Steps For The Perfect Golf Drive"
       ],
       "owner": "Swing Shack page",
-      "suggested_fix": "Create IG post on \"driver\" — YouTube has 2 trending videos.",
-      "suggestion": "YouTube has 2 videos on \"driver\" but IG hasn't covered it.",
-      "why": "2 YouTube videos trending on this topic"
+      "suggested_fix": "Create IG post on \"driver\" — YouTube has 3 trending videos.",
+      "suggestion": "YouTube has 3 videos on \"driver\" but IG hasn't covered it.",
+      "why": "3 YouTube videos trending on this topic"
     }
   ]
 }

@@ -2,7 +2,7 @@
 /**
  * generate_retargeting_recommendations.js
  * Turns detected funnel leaks and high-intent signals into actionable
- * retargeting content: posts to re-run, CTAs to add, second-chance content.
+ * retargeting content with channel, outcome, expiration and evidence.
  * Output: data/retargeting-recommendations.json
  */
 const fs = require('fs');
@@ -16,153 +16,171 @@ function readJson(name) {
   catch { return null; }
 }
 
-const leaks    = readJson('funnel-leaks.json')           || {};
-const conv     = readJson('conversion-attribution.json')  || {};
-const ig      = readJson('ig-analytics.json')            || {};
-const plan    = readJson('post-plan.json')               || {};
-const sales   = readJson('sales-priority.json')          || {};
-const missed  = readJson('missed-opportunities.json')    || {};
+const leaks    = readJson('funnel-leaks.json')          || {};
+const conv     = readJson('conversion-attribution.json') || {};
+const ig      = readJson('ig-analytics.json')           || {};
+const plan    = readJson('post-plan.json')              || {};
+const sales   = readJson('sales-priority.json')        || {};
+const missed  = readJson('missed-opportunities.json')  || {};
 const ctaPerf = readJson('cta-performance.json')        || {};
 
-const igPosts = ig.posts || [];
+const igPosts     = ig.posts || [];
 const plannedHooks = new Set((plan.plan || []).map(p => p.hook?.toLowerCase().substring(0, 40)));
 
 // ── 1. RETARGET EXISTING POSTS ──────────────────────────────────
-// Posts that performed well but haven't been pushed as a follow-up
 const followUpGaps = (missed.opportunities || [])
   .filter(o => o.category === 'follow_up_gap' && (o.ig_score || 0) >= 7)
   .slice(0, 4)
   .map(o => {
-    const topicKw = o.topic || '';
-    // Find the original high-performing post
-    const originalPost = igPosts.find(p =>
-      (p.caption || '').toLowerCase().includes(topicKw.split(' ')[0] || '')
-    );
+    const topicKw  = o.topic || '';
+    const score    = o.ig_score || 0;
     const alreadyPlanned = Array.from(plannedHooks).some(h =>
       (o.hook || '').toLowerCase().substring(0, 40).includes(h.substring(0, 20))
     );
+    const channel = topicKw.includes('lesson') || topicKw.includes('putt') || topicKw.includes('short') ? 'IG Reel' : 'IG Static';
+    const expDays = score >= 9 ? 'today' : score >= 8 ? '48h' : 'this_week';
     return {
-      type:           'retarget_existing',
-      action:         'Re-run with booking CTA',
-      topic:          topicKw,
-      original_hook:  o.hook,
-      original_score: o.ig_score,
-      suggested_caption: buildRetargetCaption(o),
-      suggested_cta:  'Book your session · Link in bio · swingshack.co.za/membership',
-      format:         topicKw.includes('lesson') || topicKw.includes('putt') ? 'reel' : 'static',
-      urgency:        o.ig_score >= 9 ? 'today' : 'this_week',
-      owner:          o.owner || 'Coach Cat',
-      why:            `Hook scored ${o.ig_score} on IG but no booking follow-up exists`,
-      already_planned: alreadyPlanned,
+      type:              'retarget_existing',
+      action:            'Re-run with booking CTA',
+      topic:             topicKw,
+      original_hook:      o.hook,
+      original_score:     score,
+      suggested_hook:     buildRetargetHook(o),
+      suggested_cta:      'Book your session \u00b7 swingshack.co.za/membership',
+      format:            channel === 'IG Reel' ? 'reel' : 'static',
+      channel,
+      expected_outcome:   { type: 'bookings', delta: '+15-25%', label: '+15-25% bookings vs. no CTA' },
+      expiration_window: expDays,
+      source_evidence:    `Hook scored ${score} on IG but no booking follow-up exists`,
+      urgency:            score >= 9 ? 'today' : 'this_week',
+      owner:              o.owner || 'Coach Cat',
+      why:                `IG score ${score} with no conversion CTA in follow-up`,
+      already_planned:    alreadyPlanned,
     };
   });
 
-// ── 2. SECOND-CHANCE CONTENT ───────────────────────────────────
-// High-save posts that didn't have a booking CTA — add one
+// ── 2. ADD BOOKING CTA ──────────────────────────────────────────
 const saveGaps = (leaks.leaks || [])
   .filter(l => l.type === 'high_save_no_booking_cta' && !l.has_booking_cta)
   .slice(0, 3)
   .map(l => {
+    const saveRate = l.save_rate || 0;
+    const saves    = l.saves || 0;
+    const channel  = saveRate > 4 ? 'IG Story' : 'IG Caption update';
     return {
-      type:      'add_booking_cta',
-      action:    'Add booking CTA to existing high-save post thread',
-      post_id:   l.post_id,
-      reach:     l.reach,
-      saves:     l.saves,
-      save_rate: l.save_rate,
-      caption_preview: l.caption_preview,
-      suggested_cta:   'Ready to fix your game? Book a session → swingshack.co.za/membership',
-      urgency:   l.save_rate > 5 ? 'today' : 'this_week',
-      owner:     'Swing Shack page',
-      why:       `${l.saves} saves (${l.save_rate}%) but no booking path — add CTA to comments or caption`,
+      type:              'add_booking_cta',
+      action:            'Add booking CTA to high-save content',
+      post_id:           l.post_id,
+      reach:             l.reach,
+      saves:             saves,
+      save_rate:         saveRate,
+      caption_preview:   l.caption_preview,
+      suggested_hook:    null,
+      suggested_cta:     'Ready to fix your game? Book a session \u2192 swingshack.co.za/membership',
+      format:            'caption_update',
+      channel,
+      expected_outcome:  { type: 'clicks', delta: '+8-12%', label: '+8-12% link clicks from saves' },
+      expiration_window: saves > 10 ? 'today' : '48h',
+      source_evidence:   `${saves} saves (${saveRate}%) but no booking path`,
+      urgency:           saveRate > 5 ? 'today' : 'this_week',
+      owner:             'Swing Shack page',
+      why:               `${saves} saves leaking without a booking path`,
     };
   });
 
 // ── 3. SERVICE REMINDER POSTS ───────────────────────────────────
-// Services with high booking page traffic but low IG coverage
 const serviceReminders = (leaks.leaks || [])
   .filter(l => l.type === 'service_page_no_ig')
   .slice(0, 3)
   .map(l => {
-    const ctaTemplates = {
-      'Golf Lessons':  'Book your first lesson · swingshack.co.za/membership · Coach Cat & Dave',
-      'Club Fitting':  'Get your clubs custom fitted · swingshack.co.za/membership · TrackMan powered',
-      'Simulator':     'Practice year-round in the sim · swingshack.co.za/book · From R250/session',
-      'Membership':    'Unlimited practice · 15% off everything · swingshack.co.za/membership',
-'Events':        'Enter this week events comp · swingshack.co.za/events · Prizes every week',
-    };
+    const sessions = l.sessions || 0;
+    const expDays  = sessions > 80 ? 'today' : sessions > 40 ? '48h' : 'this_week';
+    const svcMap   = { 'Golf Lessons': 'IG Reel', 'Club Fitting': 'IG Static', 'Simulator': 'IG Story', 'Membership': 'IG Static', 'Events': 'IG Static' };
     return {
-      type:      'new_service_reminder',
-      action:    'Publish service reminder post',
-      service:   l.service,
-      page:      l.page,
-      sessions:  l.sessions,
-      suggested_hook: buildServiceHook(l),
-      suggested_cta:  ctaTemplates[l.service] || 'Book your session · swingshack.co.za/membership',
-      format:    l.service === 'Golf Lessons' ? 'reel' : 'static',
-      urgency:   l.severity === 'high' ? 'today' : 'this_week',
-      owner:     l.owner,
-      why:       `${l.sessions} GA4 sessions on ${l.page} but no IG post this week`,
+      type:              'new_service_reminder',
+      action:            'Publish service reminder post',
+      service:           l.service,
+      page:              l.page,
+      sessions,
+      suggested_hook:    buildServiceHook(l),
+      suggested_cta:     buildServiceCTA(l.service),
+      format:            'static',
+      channel:           svcMap[l.service] || 'IG Static',
+      expected_outcome:  { type: 'bookings', delta: '+10-20%', label: '+10-20% sessions from IG push' },
+      expiration_window: expDays,
+      source_evidence:   `${sessions} GA4 sessions on ${l.page} with no IG coverage this week`,
+      urgency:           sessions > 80 ? 'today' : sessions > 40 ? 'this_week' : 'flexible',
+      owner:             l.owner,
+      why:               `${sessions} sessions with no social conversion path`,
     };
   });
 
-// ── 4. BOOKING PAGE RETARGETING ─────────────────────────────────
-// Push booking CTA this week if booking page has traffic
+// ── 4. BOOKING PAGE RETARGET ─────────────────────────────────────
 const bookingRetarget = (leaks.leaks || [])
   .filter(l => l.type === 'booking_traffic_no_retargeting')
   .slice(0, 1)
   .map(l => ({
-    type:     'push_booking_cta',
-    action:   'Push booking CTA — booking page traffic is hot',
-    sessions: l.sessions,
-    suggested_hook: 'Your clubs are waiting. Your handicap isn\'t going to fix itself. ⛳',
-    suggested_cta:  'Book a session · swingshack.co.za/bookings · From R250',
-    format:    'static',
-    urgency:   l.severity,
-    owner:    l.owner,
-    why:      `${l.sessions} sessions on booking page but 0 booking CTAs in recent IG`,
+    type:              'push_booking_cta',
+    action:            'Push booking CTA — traffic is hot',
+    sessions:          l.sessions,
+    suggested_hook:    'Your clubs are waiting. Your handicap won\'t fix itself. \u26f3',
+    suggested_cta:    'Book a session \u00b7 swingshack.co.za/bookings \u00b7 From R250',
+    format:            'static',
+    channel:           'IG Static',
+    expected_outcome:  { type: 'bookings', delta: '+20-35%', label: '+20-35% booking rate from IG push' },
+    expiration_window: 'today',
+    source_evidence:   `${l.sessions} sessions on booking page but 0 booking CTAs in recent IG posts`,
+    urgency:           l.severity,
+    owner:             l.owner,
+    why:               'Booking page traffic hot with no retargeting',
   }));
 
-// ── 5. WIN-BACK FOR UNDERPERFORMING HOOKS ───────────────────────
-// Hooks that scored 6-7 (good but not great) — rework the angle
+// ── 5. WIN-BACK / REWORK ──────────────────────────────────────────
 const winBack = (missed.opportunities || [])
   .filter(o => o.category === 'follow_up_gap' && (o.ig_score || 0) >= 6 && (o.ig_score || 0) < 8)
   .slice(0, 2)
   .map(o => ({
-    type:       'rework_angle',
-    action:     'Rework hook angle',
-    topic:      o.topic,
-    original_hook: o.hook,
-    original_score: o.ig_score,
-    suggested_hook: reworkHook(o.hook || '', o.topic || ''),
-    suggested_cta:  'Book your lesson · swingshack.co.za/membership · Catherine & Dave',
-    format:     'static',
-    urgency:    'this_week',
-    owner:      o.owner || 'Swing Shack page',
-    why:        `Hook scored ${o.ig_score} — reword angle for stronger booking intent`,
+    type:              'rework_angle',
+    action:            'Rework hook angle for stronger booking intent',
+    topic:             o.topic,
+    original_hook:     o.hook,
+    original_score:    o.ig_score,
+    suggested_hook:    reworkHook(o.hook || '', o.topic || ''),
+    suggested_cta:     'Book your lesson \u00b7 swingshack.co.za/membership \u00b7 Catherine & Dave',
+    format:            'static',
+    channel:           'IG Static',
+    expected_outcome:  { type: 'bookings', delta: '+8-15%', label: '+8-15% bookings from stronger hook' },
+    expiration_window: 'this_week',
+    source_evidence:   `Hook scored ${o.ig_score} — moderate, needs booking intent upgrade`,
+    urgency:           'this_week',
+    owner:             o.owner || 'Swing Shack page',
+    why:               `Score ${o.ig_score} — reword with direct booking urgency`,
   }));
 
-// ── 6. COMPETITIVE LOW-COST RETARGET ────────────────────────────
-// Contest/prize hooks drive awareness — pair with booking CTA
+// ── 6. PROMO + BOOKING ───────────────────────────────────────────
 const promoGaps = (missed.opportunities || [])
   .filter(o => o.category === 'offer_gap' || (o.type || '').includes('contest'))
   .slice(0, 2)
   .map(o => ({
-    type:      'promo_plus_booking',
-    action:    'Pair promo/contest with direct booking CTA',
-    topic:     o.topic || o.angle_label || 'contest',
-    hook:      o.hook || o.suggestion,
-    suggested_hook: `Win a custom driver fitting — or get one anyway. TrackMan tells you exactly what you need. ⛳`,
-    suggested_cta:  'Enter now · Or book your fitting → swingshack.co.za/membership',
-    format:    'static',
-    urgency:   'this_week',
-    owner:     'Swing Shack page',
-    why:       'Contest drives reach, booking CTA converts',
+    type:              'promo_plus_booking',
+    action:            'Pair contest hook with direct booking CTA',
+    topic:             o.topic || o.angle_label || 'contest',
+    hook:              o.hook || o.suggestion,
+    suggested_hook:    'Lowest net score wins a custom driver fitting. Or get one anyway.',
+    suggested_cta:     'Enter now \u00b7 Or book your fitting \u2192 swingshack.co.za/membership',
+    format:            'static',
+    channel:           'IG Static',
+    expected_outcome:  { type: 'awareness', delta: '+reach + bookings', label: '+reach (contest) + bookings (CTA)' },
+    expiration_window: 'this_week',
+    source_evidence:   'Contest drives reach; booking CTA converts high-intent audience',
+    urgency:           'this_week',
+    owner:             'Swing Shack page',
+    why:               'Contest hooks get reach but no conversion — pair with direct CTA',
   }));
 
-// ── All recommendations ─────────────────────────────────────────
+// ── Combine & deduplicate ───────────────────────────────────────
 const allRecs = [
-  ...bookingRetarget,  // highest intent — push first
+  ...bookingRetarget,
   ...saveGaps,
   ...serviceReminders,
   ...followUpGaps.filter(f => !f.already_planned),
@@ -170,16 +188,6 @@ const allRecs = [
   ...promoGaps,
 ].slice(0, 12);
 
-// Sort by urgency then by type
-const urgencyOrder = { today: 0, this_week: 1, flexible: 2 };
-allRecs.sort((a, b) => {
-  if (urgencyOrder[a.urgency] !== urgencyOrder[b.urgency]) {
-    return urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
-  }
-  return 0;
-});
-
-// Deduplicate by type+topic
 const seen = new Set();
 const deduped = allRecs.filter(r => {
   const key = r.type + (r.topic || r.service || r.post_id || '').substring(0, 20);
@@ -188,79 +196,89 @@ const deduped = allRecs.filter(r => {
   return true;
 });
 
-// Summary
-const todayCount    = deduped.filter(r => r.urgency === 'today').length;
-const thisWeekCount = deduped.filter(r => r.urgency === 'this_week').length;
-const byOwner = {};
-deduped.forEach(r => {
-  const o = r.owner || 'Unknown';
-  if (!byOwner[o]) byOwner[o] = [];
-  byOwner[o].push({ action: r.action, topic: r.topic || r.service, urgency: r.urgency });
+const urgencyOrder = { today: 0, '48h': 1, this_week: 2, flexible: 3 };
+deduped.sort((a, b) => {
+  if (urgencyOrder[a.expiration_window] !== urgencyOrder[b.expiration_window]) {
+    return urgencyOrder[a.expiration_window] - urgencyOrder[b.expiration_window];
+  }
+  return 0;
 });
 
-// ── Helper functions ─────────────────────────────────────────────
-function buildRetargetCaption(o) {
+// Summary stats
+const expWindow = {};
+deduped.forEach(r => {
+  const w = r.expiration_window;
+  expWindow[w] = (expWindow[w] || 0) + 1;
+});
+
+// ── Helpers ──────────────────────────────────────────────────────
+function buildRetargetHook(o) {
   const topic = o.topic || '';
-  if (topic.includes('lesson')) {
-    return `Still working on your swing? One session with Coach Cat changed everything for us. TrackMan breaks it down in real time. From R250.`;
-  }
-  if (topic.includes('driver') || topic.includes('slice')) {
-    return `Your driver data is telling a story. TrackMan tells you how to fix it. One session. Major difference. Book yours.`;
-  }
-  if (topic.includes('putt') || topic.includes('short')) {
-    return `Short game wins tournaments. One putting session with Cat — here's what she found. ⛳ Book your session.`;
-  }
-  return `Still thinking about ${topic}? Here's what TrackMan found in one session. From R250. Book yours.`;
+  if (topic.includes('lesson'))   return 'Still working on your swing? Here\'s what actually changes it.';
+  if (topic.includes('driver'))   return 'Your driver data is telling a story. TrackMan tells you how to fix it.';
+  if (topic.includes('putt'))     return 'One putting session changed everything. Here\'s what Cat found.';
+  return `One session. Major difference. Book yours.`;
 }
 
 function buildServiceHook(l) {
   const svc = l.service || '';
-  if (svc === 'Golf Lessons') return `Your handicap didn't drop by itself. Here's what actually changes it.`;
-  if (svc === 'Club Fitting') return `Off-the-rack clubs are costing you yards. Here's what TrackMan found during fitting.`;
-  if (svc === 'Simulator')     return `Rain, heat, winter — the simulator doesn't care. Your game still improves.`;
-  if (svc === 'Membership')    return `Unlimited practice. 15% off everything. The membership that pays for itself.`;
-  if (svc === 'Events')        return `This week's competition: lowest net score wins a custom driver fitting. Enter now.`;
-  return `You've been thinking about it long enough. ${svc} — here's where to start.`;
+  const map = {
+    'Golf Lessons':  'Your handicap didn\'t drop by itself. Here\'s what actually changes it.',
+    'Club Fitting':  'Off-the-rack clubs are costing you yards. Here\'s what TrackMan found.',
+    'Simulator':     'Rain, heat, winter \u2014 the sim doesn\'t care. Your game still improves.',
+    'Membership':    'Unlimited practice. 15% off everything. The membership that pays for itself.',
+    'Events':        'This week\'s competition: lowest net score wins a custom driver fitting.',
+  };
+  return map[svc] || `You\'ve been thinking about ${svc} long enough. Here\'s where to start.`;
+}
+
+function buildServiceCTA(svc) {
+  const map = {
+    'Golf Lessons':  'Book your first lesson \u00b7 swingshack.co.za/membership \u00b7 Coach Cat & Dave',
+    'Club Fitting':  'Get your clubs custom fitted \u00b7 swingshack.co.za/membership \u00b7 TrackMan powered',
+    'Simulator':     'Practice year-round in the sim \u00b7 swingshack.co.za/book \u00b7 From R250/session',
+    'Membership':    'Unlimited practice \u00b7 15% off everything \u00b7 swingshack.co.za/membership',
+    'Events':        'Enter this week\'s competition \u00b7 swingshack.co.za/events \u00b7 Prizes every week',
+  };
+  return map[svc] || 'Book your session \u00b7 swingshack.co.za/membership';
 }
 
 function reworkHook(hook, topic) {
-  // If original hook was stats-based, pair with booking urgency
-  if (hook.toLowerCase().includes('trackman') || hook.toLowerCase().includes('meter') || hook.toLowerCase().includes('yard')) {
-    return `Your numbers don't lie. Neither does the fix. One TrackMan session — book it.`;
+  if ((hook || '').toLowerCase().includes('trackman') || (hook || '').toLowerCase().includes('meter')) {
+    return `Your numbers don\'t lie. Neither does the fix. One TrackMan session \u2014 book it.`;
   }
-  // If it was a question, answer it with booking intent
   if (hook.includes('?')) {
-    return hook.replace(/\?$/, "? Here's exactly how to fix it. Book your session.");
+    return hook.replace(/\?$/, '? Here\'s exactly how to fix it. Book your session.');
   }
-  return `${hook.substring(0, 50)} — and here's exactly how to fix it. Book your session.`;
+  return `${hook.substring(0, 50)} \u2014 and here\'s exactly how to fix it. Book your session.`;
 }
 
-// ── Write output ─────────────────────────────────────────────────
+// ── Write ────────────────────────────────────────────────────────
 const output = {
-  updated:   new Date().toISOString(),
-  generated: 'generate_retargeting_recommendations.js',
+  updated:    new Date().toISOString(),
+  generated:  'generate_retargeting_recommendations.js',
   summary: {
-    total_recommendations: deduped.length,
-    today:     todayCount,
-    this_week: thisWeekCount,
-    by_type: Object.fromEntries(
-      [...new Set(deduped.map(r => r.type))].map(t => [t, deduped.filter(r => r.type === t).length])
+    total:              deduped.length,
+    by_channel:         Object.fromEntries(
+      [...new Set(deduped.map(r => r.channel))].sort().map(ch => [ch, deduped.filter(r => r.channel === ch).length])
     ),
-    by_owner: Object.fromEntries(
-      Object.entries(byOwner).sort(([a], [b]) => a.localeCompare(b))
-    ),
-    most_urgent: deduped[0] ? `${deduped[0].urgency}: ${deduped[0].action} (${deduped[0].topic || deduped[0].service || deduped[0].type})` : 'none',
+    by_expiration:      expWindow,
+    by_urgency:         { today: deduped.filter(r => r.urgency === 'today').length, this_week: deduped.filter(r => r.urgency === 'this_week').length, flexible: deduped.filter(r => r.urgency === 'flexible').length },
+    owner_count:        [...new Set(deduped.map(r => r.owner))].length,
+    top_action:         deduped[0] ? `${deduped[0].action} (${deduped[0].channel})` : 'none',
   },
   recommendations: deduped.map((r, i) => ({ ...r, rank: i + 1 })),
 };
 
 fs.writeFileSync(OUTPUT, JSON.stringify(output, null, 2));
 console.log(`✅ Retargeting recommendations: ${OUTPUT}`);
-console.log(`   Total: ${deduped.length} | Today: ${todayCount} | This week: ${thisWeekCount}`);
-console.log(`   Most urgent: ${output.summary.most_urgent}`);
-deduped.slice(0, 6).forEach((r, i) => {
-  const planned = r.already_planned ? ' [📅 already in plan]' : '';
-  console.log(`   ${i+1}. [${r.urgency.toUpperCase()}] ${r.action} | ${r.owner}${planned}`);
-  console.log(`      Hook: ${(r.suggested_hook || r.hook || '').substring(0, 60)}`);
-  console.log(`      CTA:  ${(r.suggested_cta || '').substring(0, 60)}`);
+console.log(`   Total: ${deduped.length} | Channels: ${Object.keys(output.summary.by_channel).join(', ')}`);
+console.log(`   Expiration: ${Object.entries(expWindow).map(([k,v]) => `${k}×${v}`).join(', ')}`);
+deduped.slice(0, 5).forEach((r, i) => {
+  const exp = r.expiration_window;
+  const planned = r.already_planned ? ' [📅 in plan]' : '';
+  console.log(`   ${i+1}. [${exp.toUpperCase()}] ${r.action} | ${r.channel} | ${r.owner}${planned}`);
+  console.log(`      Hook: ${(r.suggested_hook || r.hook || '—').substring(0, 60)}`);
+  console.log(`      Evidence: ${r.source_evidence}`);
+  console.log(`      Expected: ${r.expected_outcome.label}`);
 });

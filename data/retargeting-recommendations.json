@@ -1,42 +1,42 @@
 {
-  "updated": "2026-04-17T09:31:23.453Z",
+  "updated": "2026-04-17T10:07:46.780Z",
   "generated": "generate_retargeting_recommendations.js",
   "summary": {
-    "total_recommendations": 2,
-    "today": 0,
-    "this_week": 1,
-    "by_type": {
-      "push_booking_cta": 1,
-      "new_service_reminder": 1
+    "total": 2,
+    "by_channel": {
+      "IG Static": 2
     },
-    "by_owner": {
-      "Divan": [
-        {
-          "action": "Publish service reminder post",
-          "topic": "Club Fitting",
-          "urgency": "this_week"
-        }
-      ],
-      "Swing Shack page": [
-        {
-          "action": "Push booking CTA — booking page traffic is hot",
-          "urgency": "high"
-        }
-      ]
+    "by_expiration": {
+      "today": 1,
+      "48h": 1
     },
-    "most_urgent": "high: Push booking CTA — booking page traffic is hot (push_booking_cta)"
+    "by_urgency": {
+      "today": 0,
+      "this_week": 1,
+      "flexible": 0
+    },
+    "owner_count": 2,
+    "top_action": "Push booking CTA — traffic is hot (IG Static)"
   },
   "recommendations": [
     {
       "type": "push_booking_cta",
-      "action": "Push booking CTA — booking page traffic is hot",
-      "sessions": 149,
-      "suggested_hook": "Your clubs are waiting. Your handicap isn't going to fix itself. ⛳",
+      "action": "Push booking CTA — traffic is hot",
+      "sessions": 151,
+      "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
       "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
       "format": "static",
+      "channel": "IG Static",
+      "expected_outcome": {
+        "type": "bookings",
+        "delta": "+20-35%",
+        "label": "+20-35% booking rate from IG push"
+      },
+      "expiration_window": "today",
+      "source_evidence": "151 sessions on booking page but 0 booking CTAs in recent IG posts",
       "urgency": "high",
       "owner": "Swing Shack page",
-      "why": "149 sessions on booking page but 0 booking CTAs in recent IG",
+      "why": "Booking page traffic hot with no retargeting",
       "rank": 1
     },
     {
@@ -45,12 +45,20 @@
       "service": "Club Fitting",
       "page": "/customer-portal/",
       "sessions": 55,
-      "suggested_hook": "Off-the-rack clubs are costing you yards. Here's what TrackMan found during fitting.",
+      "suggested_hook": "Off-the-rack clubs are costing you yards. Here's what TrackMan found.",
       "suggested_cta": "Get your clubs custom fitted · swingshack.co.za/membership · TrackMan powered",
       "format": "static",
+      "channel": "IG Static",
+      "expected_outcome": {
+        "type": "bookings",
+        "delta": "+10-20%",
+        "label": "+10-20% sessions from IG push"
+      },
+      "expiration_window": "48h",
+      "source_evidence": "55 GA4 sessions on /customer-portal/ with no IG coverage this week",
       "urgency": "this_week",
       "owner": "Divan",
-      "why": "55 GA4 sessions on /customer-portal/ but no IG post this week",
+      "why": "55 sessions with no social conversion path",
       "rank": 2
     }
   ]

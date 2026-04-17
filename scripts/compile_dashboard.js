@@ -76,6 +76,7 @@ const convAttr   = readJson('conversion-attribution.json') || null;
 const funnelLeak = readJson('funnel-leaks.json')          || null;
 const ctaPerf    = readJson('cta-performance.json')       || null;
 const retarget   = readJson('retargeting-recommendations.json') || null;
+const recScores = readJson('recommendation-scores.json') || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -614,6 +615,21 @@ if (retarget && retarget.recommendations && retarget.recommendations.length > 0)
 }
 const retargetSection = buildSection('\ud83d\udd01 RETARGET THIS WEEK', freshnessBadge(retarget?.updated), retargetContent);
 
+// DO THIS FIRST
+let doFirstContent = '<p class="empty">No priority actions yet.</p>';
+if (recScores && recScores.do_first && recScores.do_first.length > 0) {
+  const cards = recScores.do_first.map(function(d) {
+    var score = d.item && d.item.score ? d.item.score : '?';
+    var scoreColor = score >= 8 ? '#2ed573' : score >= 5 ? '#ffa502' : '#ff4757';
+    var title = truncate(d.item && (d.item.suggested_hook || d.item.hook || d.item.service || d.item.action) || '—', 55);
+    var meta = truncate(d.item && d.item.suggested_cta || d.score_note || '', 50);
+    return '<div class="dtf-card"><div class="dtf-emoji">' + d.emoji + '</div><div class="dtf-body"><div class="dtf-label">' + d.label + '</div><div class="dtf-title">' + title + '</div><div class="dtf-meta">' + meta + '</div></div><div class="dtf-score" style="color:' + scoreColor + '">' + score + '</div></div>';
+  }).join('');
+  var overall = recScores.summary && recScores.summary.overall_priority_score ? recScores.summary.overall_priority_score : '?';
+  doFirstContent = '<div class="dtf-summary">Overall priority: <b style="color:#ffa502">' + overall + '/10</b> &middot; ' + recScores.do_first.length + ' actions queued</div><div class="dtf-grid">' + cards + '</div>';
+}
+var doFirstSection = buildSection('\ud83d\udcaa DO THIS FIRST', freshnessBadge(recScores && recScores.updated), doFirstContent);
+
 const ideaSection = buildSection('\ud83d\udca1 Content Ideas', freshnessBadge(ideas.updated), ideaContent);
 
 // ── GOLF NEWS ─────────────────────────────────────────────────────
@@ -968,6 +984,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .rt-hook { font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 3px; line-height: 1.3; }
 .rt-why { font-size: 0.72rem; color: var(--muted); font-style: italic; margin-bottom: 4px; }
 .rt-cta { font-size: 0.7rem; color: var(--success); }
+
+/* DO THIS FIRST */
+.dtf-summary { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+.dtf-summary b { color: #ffa502; }
+.dtf-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+.dtf-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 14px 14px 12px; border-left: 4px solid #ffa502; display: flex; gap: 10px; align-items: flex-start; }
+.dtf-emoji { font-size: 1.4rem; flex-shrink: 0; }
+.dtf-body { flex: 1; min-width: 0; }
+.dtf-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+.dtf-title { font-size: 0.82rem; font-weight: 800; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+.dtf-meta { font-size: 0.7rem; color: var(--success); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dtf-score { font-size: 1.3rem; font-weight: 900; flex-shrink: 0; line-height: 1; }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -1011,6 +1039,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${summaryBar}
   ${thisWeekStrip}
   ${execSummarySection}
+  ${doFirstSection}
   ${igSection}
   ${hookSection}
   ${watchedSection}

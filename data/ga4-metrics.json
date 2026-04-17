@@ -1,19 +1,19 @@
 {
-  "updated": "2026-04-17T09:31:01.481Z",
-  "fetched_at": "2026-04-17T09:31:01.481Z",
+  "updated": "2026-04-17T10:07:22.680Z",
+  "fetched_at": "2026-04-17T10:07:22.680Z",
   "property_id": "427380680",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 965,
+  "total_sessions": 971,
   "pages": [
     {
       "path": "/",
-      "sessions": 273,
-      "engRate": "73.3%"
+      "sessions": 275,
+      "engRate": "72.7%"
     },
     {
       "path": "/bookings/",
-      "sessions": 149,
-      "engRate": "80.5%"
+      "sessions": 151,
+      "engRate": "80.1%"
     },
     {
       "path": "/",
@@ -59,7 +59,7 @@
   "sources": [
     {
       "source": "google",
-      "sessions": 586
+      "sessions": 590
     },
     {
       "source": "(direct)",
@@ -67,7 +67,7 @@
     },
     {
       "source": "c.yoco.com",
-      "sessions": 100
+      "sessions": 101
     },
     {
       "source": "bing",
@@ -75,7 +75,7 @@
     },
     {
       "source": "(not set)",
-      "sessions": 18
+      "sessions": 19
     }
   ],
   "insights": {
@@ -93,7 +93,7 @@
       {
         "type": "organic_opportunity",
         "priority": "medium",
-        "message": "586 organic sessions. Ensure these pages have clear booking CTAs."
+        "message": "590 organic sessions. Ensure these pages have clear booking CTAs."
       }
     ]
   },
