@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-04-17T05:46:04.260Z",
-  "overall_status": "PARTIAL",
+  "timestamp": "2026-04-17T05:50:08.754Z",
+  "overall_status": "PASS",
   "summary": {
-    "pass": 15,
-    "stale": 1,
+    "pass": 16,
+    "stale": 0,
     "fail": 0,
     "script_failures": 0,
     "fallbacks_used": 0,
-    "live_fresh": 13,
+    "live_fresh": 14,
     "synthetic": 0,
     "failed": 0,
     "total": 16
@@ -23,8 +23,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0.7,
-      "reason": "Fresh - 0.7h old",
+      "age_hours": 0.8,
+      "reason": "Fresh - 0.8h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -32,13 +32,14 @@
       "file": "hook-bank.json",
       "label": "Hook Bank",
       "critical": true,
-      "data_status": "STALE",
-      "qa_warnings": [],
+      "data_status": "PASS",
       "script_status": "PASS",
       "fallback_used": false,
+      "source_mode": "LIVE",
       "age_hours": 0,
-      "reason": "No hook data found",
-      "next_action": "Check analyse_hooks script"
+      "reason": "Fresh - 0.0h old",
+      "next_action": "No action needed",
+      "qa_warnings": []
     },
     {
       "file": "content-ideas.json",
@@ -63,7 +64,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-17T05:46:00.357Z"
+      "last_build": "2026-04-17T05:50:05.191Z"
     },
     {
       "file": "golf-news.json",
@@ -125,8 +126,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0,
-      "reason": "Fresh - 0.0h old",
+      "age_hours": 0.1,
+      "reason": "Fresh - 0.1h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -138,8 +139,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 0,
-      "reason": "Fresh - 0.0h old",
+      "age_hours": 0.1,
+      "reason": "Fresh - 0.1h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -151,8 +152,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 18,
-      "reason": "Fresh - 18.0h old",
+      "age_hours": 18.1,
+      "reason": "Fresh - 18.1h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -216,9 +217,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/17, 07:46:00",
+      "reason": "Last build 2026/04/17, 07:50:05",
       "next_action": "No action needed",
-      "last_build": "2026/04/17, 07:46:00"
+      "last_build": "2026/04/17, 07:50:05"
     }
   ]
 }

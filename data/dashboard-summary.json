@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T05:50:05.191Z",
+  "updated": "2026-04-17T05:50:50.482Z",
   "sources": [
     {
       "name": "IG Analytics",
@@ -7,7 +7,7 @@
     },
     {
       "name": "GA4",
-      "updated": "2026-04-17T05:48:01.165Z"
+      "updated": "2026-04-17T05:50:07.673Z"
     },
     {
       "name": "Reddit",
@@ -19,19 +19,19 @@
     },
     {
       "name": "SEO Rankings",
-      "updated": "2026-04-17T05:47:59.561Z"
+      "updated": "2026-04-17T05:50:05.821Z"
     },
     {
       "name": "SEO Audit",
-      "updated": "2026-04-17T05:45:53.606Z"
+      "updated": "2026-04-17T05:50:50.148Z"
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-04-17T05:48:01.249Z"
+      "updated": "2026-04-17T05:50:07.756Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-04-17T05:48:01.292Z"
+      "updated": "2026-04-17T05:50:07.799Z"
     }
   ],
   "stale_count": 0,

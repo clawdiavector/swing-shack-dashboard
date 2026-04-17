@@ -1,248 +1,35 @@
 {
-  "updated": "2026-04-17T05:45:53.606Z",
+  "updated": "2026-04-17T05:50:50.148Z",
   "site": "https://swingshack.co.za",
-  "total_findings": 16,
-  "high_severity": 8,
-  "medium_severity": 4,
-  "low_severity": 4,
-  "recommendations": [
-    {
-      "type": "missing_meta_description",
-      "severity": "high",
-      "message": "Missing meta description",
-      "page": "Homepage",
-      "action": "FIX ASAP",
-      "priority": 1
-    },
-    {
-      "type": "missing_h1",
-      "severity": "high",
-      "message": "No H1 found",
-      "page": "Homepage",
-      "action": "FIX ASAP",
-      "priority": 1
-    },
-    {
-      "type": "missing_meta_description",
-      "severity": "high",
-      "message": "Missing meta description",
-      "page": "Membership",
-      "action": "FIX ASAP",
-      "priority": 1
-    },
-    {
-      "type": "missing_h1",
-      "severity": "high",
-      "message": "No H1 found",
-      "page": "Membership",
-      "action": "FIX ASAP",
-      "priority": 1
-    },
-    {
-      "type": "missing_meta_description",
-      "severity": "high",
-      "message": "Missing meta description",
-      "page": "Coaching",
-      "action": "FIX ASAP",
-      "priority": 1
-    },
-    {
-      "type": "missing_h1",
-      "severity": "high",
-      "message": "No H1 found",
-      "page": "Coaching",
-      "action": "FIX ASAP",
-      "priority": 1
-    },
-    {
-      "type": "missing_meta_description",
-      "severity": "high",
-      "message": "Missing meta description",
-      "page": "Club Fitting",
-      "action": "FIX ASAP",
-      "priority": 1
-    },
-    {
-      "type": "missing_h1",
-      "severity": "high",
-      "message": "No H1 found",
-      "page": "Club Fitting",
-      "action": "FIX ASAP",
-      "priority": 1
-    },
-    {
-      "type": "title_too_short",
-      "severity": "medium",
-      "message": "Title too short (18 chars): \"Home - Swing Shack\"",
-      "page": "Homepage",
-      "action": "Fix this week",
-      "priority": 2
-    },
-    {
-      "type": "title_too_short",
-      "severity": "medium",
-      "message": "Title too short (24 chars): \"Membership - Swing Shack\"",
-      "page": "Membership",
-      "action": "Fix this week",
-      "priority": 2
-    },
-    {
-      "type": "title_too_short",
-      "severity": "medium",
-      "message": "Title too short (28 chars): \"Page not found - Swing Shack\"",
-      "page": "Coaching",
-      "action": "Fix this week",
-      "priority": 2
-    },
-    {
-      "type": "title_too_short",
-      "severity": "medium",
-      "message": "Title too short (26 chars): \"Club Fitting - Swing Shack\"",
-      "page": "Club Fitting",
-      "action": "Fix this week",
-      "priority": 2
-    },
-    {
-      "type": "missing_faq",
-      "severity": "low",
-      "message": "No FAQ section found - adding FAQ could improve SEO",
-      "page": "Homepage",
-      "action": "Consider fixing",
-      "priority": 3
-    },
-    {
-      "type": "missing_faq",
-      "severity": "low",
-      "message": "No FAQ section found - adding FAQ could improve SEO",
-      "page": "Membership",
-      "action": "Consider fixing",
-      "priority": 3
-    },
-    {
-      "type": "missing_faq",
-      "severity": "low",
-      "message": "No FAQ section found - adding FAQ could improve SEO",
-      "page": "Coaching",
-      "action": "Consider fixing",
-      "priority": 3
-    },
-    {
-      "type": "missing_faq",
-      "severity": "low",
-      "message": "No FAQ section found - adding FAQ could improve SEO",
-      "page": "Club Fitting",
-      "action": "Consider fixing",
-      "priority": 3
-    }
-  ],
+  "total_findings": 0,
+  "high_severity": 0,
+  "medium_severity": 0,
+  "low_severity": 0,
+  "recommendations": [],
   "pages": [
     {
       "name": "Homepage",
       "url": "https://swingshack.co.za",
-      "status": "OK",
-      "findings": [
-        {
-          "type": "title_too_short",
-          "severity": "medium",
-          "message": "Title too short (18 chars): \"Home - Swing Shack\""
-        },
-        {
-          "type": "missing_meta_description",
-          "severity": "high",
-          "message": "Missing meta description"
-        },
-        {
-          "type": "missing_h1",
-          "severity": "high",
-          "message": "No H1 found"
-        },
-        {
-          "type": "missing_faq",
-          "severity": "low",
-          "message": "No FAQ section found - adding FAQ could improve SEO"
-        }
-      ]
+      "status": "FETCH_FAILED",
+      "findings": []
     },
     {
       "name": "Membership",
       "url": "https://swingshack.co.za/membership",
-      "status": "OK",
-      "findings": [
-        {
-          "type": "title_too_short",
-          "severity": "medium",
-          "message": "Title too short (24 chars): \"Membership - Swing Shack\""
-        },
-        {
-          "type": "missing_meta_description",
-          "severity": "high",
-          "message": "Missing meta description"
-        },
-        {
-          "type": "missing_h1",
-          "severity": "high",
-          "message": "No H1 found"
-        },
-        {
-          "type": "missing_faq",
-          "severity": "low",
-          "message": "No FAQ section found - adding FAQ could improve SEO"
-        }
-      ]
+      "status": "FETCH_FAILED",
+      "findings": []
     },
     {
       "name": "Coaching",
       "url": "https://swingshack.co.za/coaching",
-      "status": "OK",
-      "findings": [
-        {
-          "type": "title_too_short",
-          "severity": "medium",
-          "message": "Title too short (28 chars): \"Page not found - Swing Shack\""
-        },
-        {
-          "type": "missing_meta_description",
-          "severity": "high",
-          "message": "Missing meta description"
-        },
-        {
-          "type": "missing_h1",
-          "severity": "high",
-          "message": "No H1 found"
-        },
-        {
-          "type": "missing_faq",
-          "severity": "low",
-          "message": "No FAQ section found - adding FAQ could improve SEO"
-        }
-      ]
+      "status": "FETCH_FAILED",
+      "findings": []
     },
     {
       "name": "Club Fitting",
       "url": "https://swingshack.co.za/club-fitting",
-      "status": "OK",
-      "findings": [
-        {
-          "type": "title_too_short",
-          "severity": "medium",
-          "message": "Title too short (26 chars): \"Club Fitting - Swing Shack\""
-        },
-        {
-          "type": "missing_meta_description",
-          "severity": "high",
-          "message": "Missing meta description"
-        },
-        {
-          "type": "missing_h1",
-          "severity": "high",
-          "message": "No H1 found"
-        },
-        {
-          "type": "missing_faq",
-          "severity": "low",
-          "message": "No FAQ section found - adding FAQ could improve SEO"
-        }
-      ]
+      "status": "FETCH_FAILED",
+      "findings": []
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T05:48:04.992Z",
+  "updated": "2026-04-17T05:50:11.312Z",
   "ideas_generated": 17,
   "by_format": {
     "shorts": 17,
@@ -15,20 +15,6 @@
   "ideas": [
     {
       "idea_id": "yt-shorts-2026-04-17-1",
-      "title": "Master Your Senior Golf Swing in 3 Easy Steps",
-      "hook": "Master Your Senior Golf Swing in 3 Easy Steps",
-      "format": "shorts",
-      "source": "youtube_trending",
-      "source_reason": "Trending on YouTube (undefined views) under undefined",
-      "best_cta": "Link in bio · Book your TrackMan session",
-      "freshness_score": 5,
-      "difficulty": "easy",
-      "topic_cluster": "trending",
-      "used": false,
-      "is_youtube_remix": true
-    },
-    {
-      "idea_id": "yt-shorts-2026-04-17-2",
       "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "hook": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "format": "shorts",
@@ -42,7 +28,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-17-3",
+      "idea_id": "yt-shorts-2026-04-17-2",
       "title": "How to hit irons Consistently (Simple Golf Tips)",
       "hook": "How to hit irons Consistently (Simple Golf Tips)",
       "format": "shorts",
@@ -56,7 +42,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-17-4",
+      "idea_id": "yt-shorts-2026-04-17-3",
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "hook": "4 Simple Steps For The Perfect Golf Drive",
       "format": "shorts",
@@ -70,9 +56,23 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-17-5",
+      "idea_id": "yt-shorts-2026-04-17-4",
       "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
       "hook": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+      "format": "shorts",
+      "source": "youtube_trending",
+      "source_reason": "Trending on YouTube (undefined views) under undefined",
+      "best_cta": "Link in bio · Book your TrackMan session",
+      "freshness_score": 5,
+      "difficulty": "easy",
+      "topic_cluster": "trending",
+      "used": false,
+      "is_youtube_remix": true
+    },
+    {
+      "idea_id": "yt-shorts-2026-04-17-5",
+      "title": "Senior Golf Tips from Legend Tom Watson",
+      "hook": "Senior Golf Tips from Legend Tom Watson",
       "format": "shorts",
       "source": "youtube_trending",
       "source_reason": "Trending on YouTube (undefined views) under undefined",
@@ -255,20 +255,6 @@
   "top_ideas": [
     {
       "idea_id": "yt-shorts-2026-04-17-1",
-      "title": "Master Your Senior Golf Swing in 3 Easy Steps",
-      "hook": "Master Your Senior Golf Swing in 3 Easy Steps",
-      "format": "shorts",
-      "source": "youtube_trending",
-      "source_reason": "Trending on YouTube (undefined views) under undefined",
-      "best_cta": "Link in bio · Book your TrackMan session",
-      "freshness_score": 5,
-      "difficulty": "easy",
-      "topic_cluster": "trending",
-      "used": false,
-      "is_youtube_remix": true
-    },
-    {
-      "idea_id": "yt-shorts-2026-04-17-2",
       "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "hook": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "format": "shorts",
@@ -282,7 +268,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-17-3",
+      "idea_id": "yt-shorts-2026-04-17-2",
       "title": "How to hit irons Consistently (Simple Golf Tips)",
       "hook": "How to hit irons Consistently (Simple Golf Tips)",
       "format": "shorts",
@@ -296,7 +282,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-17-4",
+      "idea_id": "yt-shorts-2026-04-17-3",
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "hook": "4 Simple Steps For The Perfect Golf Drive",
       "format": "shorts",
@@ -310,7 +296,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-17-5",
+      "idea_id": "yt-shorts-2026-04-17-4",
       "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
       "hook": "5 Powerful Tips to Unleash Your Senior Driver Swing",
       "format": "shorts",
@@ -322,7 +308,21 @@
       "topic_cluster": "trending",
       "used": false,
       "is_youtube_remix": true
+    },
+    {
+      "idea_id": "yt-shorts-2026-04-17-5",
+      "title": "Senior Golf Tips from Legend Tom Watson",
+      "hook": "Senior Golf Tips from Legend Tom Watson",
+      "format": "shorts",
+      "source": "youtube_trending",
+      "source_reason": "Trending on YouTube (undefined views) under undefined",
+      "best_cta": "Link in bio · Book your TrackMan session",
+      "freshness_score": 5,
+      "difficulty": "easy",
+      "topic_cluster": "trending",
+      "used": false,
+      "is_youtube_remix": true
     }
   ],
-  "trending_themes_summary": "trackman"
+  "trending_themes_summary": "slice fix"
 }
