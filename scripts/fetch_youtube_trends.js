@@ -19,19 +19,21 @@ const DATA_FILE = path.join(__dirname, '..', 'data', 'youtube-trends.json');
 const NEWS_FILE = path.join(__dirname, '..', 'data', 'golf-news.json');
 const REDDIT_FILE = path.join(__dirname, '..', 'data', 'reddit-trends.json');
 
-// YouTube Data API v3 key - provided by Christelle Apr 16 2026
-const YOUTUBE_API_KEY = (() => {
+// YouTube Data API v3 key - use env variable YOUTUBE_API_KEY
+// Fallback: read from credentials file for local dev
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || (() => {
   try {
     const credPath = path.join(__dirname, '..', '..', 'clients', 'swing-shack', 'credentials', 'youtube-api.json');
-    console.error('Loading YouTube API key from: ' + credPath);
     const cred = JSON.parse(fs.readFileSync(credPath, 'utf8'));
-    console.error('YouTube API key loaded: ' + (cred.api_key ? 'YES (' + cred.api_key.slice(0, 10) + '...)' : 'NO'));
     return cred.api_key || null;
   } catch(e) {
-    console.error('Failed to load YouTube API key: ' + e.message);
     return null;
   }
 })();
+
+if (!YOUTUBE_API_KEY) {
+  console.error('Missing YOUTUBE_API_KEY env variable and no credentials file found');
+}
 
 function fetchUrl(url, timeout = 15000) {
   try {

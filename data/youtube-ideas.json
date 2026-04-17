@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-16T13:04:40.595Z",
+  "updated": "2026-04-17T05:34:23.742Z",
   "ideas_generated": 20,
   "by_format": {
     "shorts": 20,
@@ -14,7 +14,7 @@
   },
   "ideas": [
     {
-      "idea_id": "yt-shorts-2026-04-16-1",
+      "idea_id": "yt-shorts-2026-04-17-1",
       "title": "Master Your Senior Golf Swing in 3 Easy Steps",
       "hook": "Master Your Senior Golf Swing in 3 Easy Steps",
       "format": "shorts",
@@ -28,21 +28,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-2",
-      "title": "Better Golf Swing In 2 Minutes",
-      "hook": "Better Golf Swing In 2 Minutes",
-      "format": "shorts",
-      "source": "youtube_trending",
-      "source_reason": "Trending on YouTube (undefined views) under undefined",
-      "best_cta": "Link in bio · Book your TrackMan session",
-      "freshness_score": 5,
-      "difficulty": "easy",
-      "topic_cluster": "trending",
-      "used": false,
-      "is_youtube_remix": true
-    },
-    {
-      "idea_id": "yt-shorts-2026-04-16-3",
+      "idea_id": "yt-shorts-2026-04-17-2",
       "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "hook": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "format": "shorts",
@@ -56,7 +42,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-4",
+      "idea_id": "yt-shorts-2026-04-17-3",
       "title": "How to hit irons Consistently (Simple Golf Tips)",
       "hook": "How to hit irons Consistently (Simple Golf Tips)",
       "format": "shorts",
@@ -70,7 +56,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-5",
+      "idea_id": "yt-shorts-2026-04-17-4",
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "hook": "4 Simple Steps For The Perfect Golf Drive",
       "format": "shorts",
@@ -84,7 +70,21 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-6",
+      "idea_id": "yt-shorts-2026-04-17-5",
+      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+      "hook": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+      "format": "shorts",
+      "source": "youtube_trending",
+      "source_reason": "Trending on YouTube (undefined views) under undefined",
+      "best_cta": "Link in bio · Book your TrackMan session",
+      "freshness_score": 5,
+      "difficulty": "easy",
+      "topic_cluster": "trending",
+      "used": false,
+      "is_youtube_remix": true
+    },
+    {
+      "idea_id": "yt-shorts-2026-04-17-6",
       "title": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
       "hook": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
       "format": "shorts",
@@ -98,7 +98,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-7",
+      "idea_id": "yt-shorts-2026-04-17-7",
       "title": "Beginner golf lessons ⛳️ #golf",
       "hook": "Beginner golf lessons ⛳️ #golf",
       "format": "shorts",
@@ -112,9 +112,9 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-8",
-      "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
-      "hook": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
+      "idea_id": "yt-shorts-2026-04-17-8",
+      "title": "Better Golf Swing In 2 Minutes",
+      "hook": "Better Golf Swing In 2 Minutes",
       "format": "shorts",
       "source": "youtube_trending",
       "source_reason": "Trending on YouTube (undefined views) under undefined",
@@ -126,7 +126,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-9",
+      "idea_id": "yt-shorts-2026-04-17-9",
       "title": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
       "format": "shorts",
@@ -140,7 +140,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-10",
+      "idea_id": "yt-shorts-2026-04-17-10",
       "title": "How fast should your club head speed actually be? Pros average 112 mph.",
       "hook": "How fast should your club head speed actually be? Pros average 112 mph.",
       "format": "shorts",
@@ -154,7 +154,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-11",
+      "idea_id": "yt-shorts-2026-04-17-11",
       "title": "Your launch monitor data is telling you exactly what to fix.",
       "hook": "Your launch monitor data is telling you exactly what to fix.",
       "format": "shorts",
@@ -168,7 +168,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-12",
+      "idea_id": "yt-shorts-2026-04-17-12",
       "title": "Rain season. Your game doesn't have to stop. Indoor golf in Johannesburg.",
       "hook": "Rain season. Your game doesn't have to stop. Indoor golf in Johannesburg.",
       "format": "shorts",
@@ -182,7 +182,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-13",
+      "idea_id": "yt-shorts-2026-04-17-13",
       "title": "Short game practice that actually transfers to the course.",
       "hook": "Short game practice that actually transfers to the course.",
       "format": "shorts",
@@ -196,7 +196,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-14",
+      "idea_id": "yt-shorts-2026-04-17-14",
       "title": "When was the last time a golf pro watched your actual swing on a launch monitor?",
       "hook": "When was the last time a golf pro watched your actual swing on a launch monitor?",
       "format": "shorts",
@@ -210,7 +210,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-remix-2026-04-16-15",
+      "idea_id": "yt-remix-2026-04-17-15",
       "title": "[SHORTS] Sometimes u just need a bit of tough love 😅🤣",
       "hook": "Sometimes u just need a bit of tough love 😅🤣",
       "caption": "This hook worked on IG. Now try it as a Shorts. ",
@@ -225,7 +225,7 @@
       "is_ig_to_shorts": true
     },
     {
-      "idea_id": "yt-remix-2026-04-16-16",
+      "idea_id": "yt-remix-2026-04-17-16",
       "title": "[SHORTS] That slice costing you yards off the tee? TrackMan foun",
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "caption": "This hook worked on IG. Now try it as a Shorts. ",
@@ -240,7 +240,7 @@
       "is_ig_to_shorts": true
     },
     {
-      "idea_id": "yt-remix-2026-04-16-17",
+      "idea_id": "yt-remix-2026-04-17-17",
       "title": "[SHORTS] Another awesome day out @parkview_1916 . Course was in ",
       "hook": "Another awesome day out @parkview_1916 . Course was in fantastic condition and a",
       "caption": "This hook worked on IG. Now try it as a Shorts. ",
@@ -255,7 +255,7 @@
       "is_ig_to_shorts": true
     },
     {
-      "idea_id": "yt-sa-2026-04-16-18",
+      "idea_id": "yt-sa-2026-04-17-18",
       "title": "Joburg rain season = indoor golf season. Here's what to work on.",
       "hook": "Joburg rain season = indoor golf season. Here's what to work on.",
       "caption": "Rain stops outdoor play but not your improvement. TrackMan indoor golf in Johannesburg.",
@@ -269,7 +269,7 @@
       "used": false
     },
     {
-      "idea_id": "yt-sa-2026-04-16-19",
+      "idea_id": "yt-sa-2026-04-17-19",
       "title": "Your handicap won't improve by hoping. TrackMan tells you what's actually wrong.",
       "hook": "Your handicap won't improve by hoping. TrackMan tells you what's actually wrong.",
       "caption": "Stop guessing. A TrackMan session shows you exactly where strokes are being lost.",
@@ -283,7 +283,7 @@
       "used": false
     },
     {
-      "idea_id": "yt-sa-2026-04-16-20",
+      "idea_id": "yt-sa-2026-04-17-20",
       "title": "That slice that comes and goes? It's not in your head. It's in your data.",
       "hook": "That slice that comes and goes? It's not in your head. It's in your data.",
       "caption": "TrackMan found it in 3 swings. Imagine what a full session reveals.",
@@ -299,7 +299,7 @@
   ],
   "top_ideas": [
     {
-      "idea_id": "yt-shorts-2026-04-16-1",
+      "idea_id": "yt-shorts-2026-04-17-1",
       "title": "Master Your Senior Golf Swing in 3 Easy Steps",
       "hook": "Master Your Senior Golf Swing in 3 Easy Steps",
       "format": "shorts",
@@ -313,21 +313,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-2",
-      "title": "Better Golf Swing In 2 Minutes",
-      "hook": "Better Golf Swing In 2 Minutes",
-      "format": "shorts",
-      "source": "youtube_trending",
-      "source_reason": "Trending on YouTube (undefined views) under undefined",
-      "best_cta": "Link in bio · Book your TrackMan session",
-      "freshness_score": 5,
-      "difficulty": "easy",
-      "topic_cluster": "trending",
-      "used": false,
-      "is_youtube_remix": true
-    },
-    {
-      "idea_id": "yt-shorts-2026-04-16-3",
+      "idea_id": "yt-shorts-2026-04-17-2",
       "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "hook": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "format": "shorts",
@@ -341,7 +327,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-4",
+      "idea_id": "yt-shorts-2026-04-17-3",
       "title": "How to hit irons Consistently (Simple Golf Tips)",
       "hook": "How to hit irons Consistently (Simple Golf Tips)",
       "format": "shorts",
@@ -355,7 +341,7 @@
       "is_youtube_remix": true
     },
     {
-      "idea_id": "yt-shorts-2026-04-16-5",
+      "idea_id": "yt-shorts-2026-04-17-4",
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "hook": "4 Simple Steps For The Perfect Golf Drive",
       "format": "shorts",
@@ -367,7 +353,21 @@
       "topic_cluster": "trending",
       "used": false,
       "is_youtube_remix": true
+    },
+    {
+      "idea_id": "yt-shorts-2026-04-17-5",
+      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+      "hook": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+      "format": "shorts",
+      "source": "youtube_trending",
+      "source_reason": "Trending on YouTube (undefined views) under undefined",
+      "best_cta": "Link in bio · Book your TrackMan session",
+      "freshness_score": 5,
+      "difficulty": "easy",
+      "topic_cluster": "trending",
+      "used": false,
+      "is_youtube_remix": true
     }
   ],
-  "trending_themes_summary": "trackman"
+  "trending_themes_summary": "slice fix"
 }
