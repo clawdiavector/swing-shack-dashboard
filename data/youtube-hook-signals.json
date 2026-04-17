@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-04-17T09:24:55.645Z",
+  "fetched_at": "2026-04-17T09:31:05.405Z",
   "source_file": "youtube-trends.json",
   "videos_analyzed": 10,
   "top_videos": [
@@ -31,20 +31,20 @@
       "query": "golf swing tips"
     },
     {
+      "title": "What Nobody Tells You About the Senior Golf Swing",
+      "description": "5 Things Senior Golfers Must Know About the Golf Swing If you want to learn the VLS Golf Swing, check out Todd Kolb's Top 5 ...",
+      "videoId": "tr_DcNk72C0",
+      "channelTitle": "US GOLF TV",
+      "publishedAt": "2024-03-29T11:00:48Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
       "title": "4 Simple Steps For The Perfect Golf Drive",
       "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
       "videoId": "DDoC4SCyeXI",
       "channelTitle": "The Art of Simple Golf",
       "publishedAt": "2025-07-28T19:08:17Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
-    {
-      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
-      "videoId": "aGdAdJu9Zr8",
-      "channelTitle": "US GOLF TV",
-      "publishedAt": "2023-09-15T11:00:01Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -67,15 +67,6 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "Better Golf Swing In 2 Minutes",
-      "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you to ...",
-      "videoId": "j-g1SlpOm3g",
-      "channelTitle": "Kerrod Gray Golf",
-      "publishedAt": "2024-04-26T22:02:20Z",
-      "source": "youtube_api_v3",
-      "query": "golf lesson tutorial"
-    },
-    {
       "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
       "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you need to ...",
       "videoId": "n4aOMLSRGrI",
@@ -85,11 +76,20 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "Avoid These Golf Simulator Mistakes at All Costs!",
-      "description": "7 mistakes to avoid when building a golf simulator. Get a Sim Enclosure: ...",
-      "videoId": "LXHmx-wyWbs",
-      "channelTitle": "Lets Play Thru",
-      "publishedAt": "2024-09-23T17:30:02Z",
+      "title": "Better Golf Swing In 2 Minutes",
+      "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you to ...",
+      "videoId": "j-g1SlpOm3g",
+      "channelTitle": "Kerrod Gray Golf",
+      "publishedAt": "2024-04-26T22:02:20Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "I’ve Owned a Golf Simulator for 5 Years: My (Honest) Advice to Beginners",
+      "description": "Follow my step-by-step system to build your DREAM home golf simulator https://mitch-s-site-003e.thinkific.com/collections",
+      "videoId": "DN1WPfhrf08",
+      "channelTitle": "Handicap Golf",
+      "publishedAt": "2025-04-26T17:00:13Z",
       "source": "youtube_api_v3",
       "query": "golf simulator indoor"
     }
@@ -98,18 +98,18 @@
     "recurring_phrases": [
       {
         "phrase": "golf swing",
-        "count": 3,
+        "count": 4,
         "examples": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
+          "What Nobody Tells You About the Senior Golf Swing"
         ]
       },
       {
-        "phrase": "your senior",
+        "phrase": "senior golf",
         "count": 2,
         "examples": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "5 Powerful Tips to Unleash Your Senior Driver Swing"
+          "What Nobody Tells You About the Senior Golf Swing"
         ]
       },
       {
@@ -130,12 +130,12 @@
       }
     ],
     "topic_clusters": {
-      "driver": 3,
+      "driver": 2,
       "senior": 2,
-      "beginner": 4,
+      "beginner": 5,
       "irons": 1,
       "simulator": 1,
-      "lessons": 6,
+      "lessons": 5,
       "swing": 5,
       "consistency": 1
     },
@@ -155,23 +155,16 @@
       {
         "label": "\"Simple\" promise",
         "example": "How to hit irons Consistently (Simple Golf Tips)"
-      },
-      {
-        "label": "Mistake framing",
-        "example": "Avoid These Golf Simulator Mistakes at All Costs!"
       }
     ],
-    "urgency_score": 7,
+    "urgency_score": 4,
     "urgency_language": [
-      "how to",
-      "mistake"
+      "how to"
     ],
     "has_before_after": false,
     "before_after_examples": [],
-    "has_mistake_fix": true,
-    "mistake_fix_examples": [
-      "Avoid These Golf Simulator Mistakes at All Costs!"
-    ],
+    "has_mistake_fix": false,
+    "mistake_fix_examples": [],
     "top_channels": [
       [
         "US GOLF TV",
@@ -201,29 +194,23 @@
         "count": 2
       },
       {
-        "template": "The Truth About [common_mistake]",
-        "source": "mistake-reveal",
-        "count": 1
-      },
-      {
         "template": "[Player Type]: [advice]",
         "source": "player-specific",
-        "count": 5
+        "count": 6
       }
     ]
   },
   "summary": {
     "dominant_topics": [
+      "beginner",
       "lessons",
-      "swing",
-      "beginner"
+      "swing"
     ],
     "dominant_formats": [
       "How to...",
       "\"Best\" superlative",
       "\"Easy\" simplicity",
-      "\"Simple\" promise",
-      "Mistake framing"
+      "\"Simple\" promise"
     ],
     "top_template": "[Player Type]: [advice]"
   }

@@ -75,6 +75,7 @@ const ownerWork  = readJson('owner-workload.json') || null;
 const convAttr   = readJson('conversion-attribution.json') || null;
 const funnelLeak = readJson('funnel-leaks.json')          || null;
 const ctaPerf    = readJson('cta-performance.json')       || null;
+const retarget   = readJson('retargeting-recommendations.json') || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -589,7 +590,31 @@ if (ownerWork && ownerWork.owners && ownerWork.owners.length > 0) {
 }
 const workloadSection = buildSection('👥 OWNER WORKLOAD', freshnessBadge(ownerWork?.updated), workloadContent);
 
-const ideaSection = buildSection('💡 Content Ideas', freshnessBadge(ideas.updated), ideaContent);
+// ── RETARGETING RECOMMENDATIONS ──────────────────────────────────
+let retargetContent = '<p class="empty">No retargeting recommendations yet.</p>';
+if (retarget && retarget.recommendations && retarget.recommendations.length > 0) {
+  const urgColors = { today: '#ff4757', this_week: '#ffa500', flexible: '#00b4d8' };
+  const typeIcons = {
+    retarget_existing:       '\ud83d\udd01',
+    add_booking_cta:         '\ud83d\udcdd',
+    new_service_reminder:   '\ud83c\udfaf',
+    push_booking_cta:       '\ud83d\udcb8',
+    rework_angle:            '\ud83d\udd04',
+    promo_plus_booking:     '\ud83c\udf89',
+  };
+  const cards = retarget.recommendations.slice(0, 6).map(r => {
+    const urg = r.urgency === 'today' ? 'TODAY' : r.urgency === 'this_week' ? 'THIS WEEK' : 'flex';
+    const urgC = urgColors[r.urgency] || '#00b4d8';
+    const icon = typeIcons[r.type] || '\ud83d\udccb';
+    const planned = r.already_planned ? '<span class="rt-planned">\ud83d\udcc5 in plan</span>' : '';
+    return '<div class="rt-card"><div class="rt-header"><span class="rt-icon">' + icon + '</span><span class="rt-action">' + r.action + '</span><span class="rt-owner">\ud83d\udc64 ' + r.owner + '</span><span class="rt-urg" style="background:' + urgC + '22;color:' + urgC + '">' + urg + '</span>' + planned + '</div><div class="rt-hook">' + truncate(r.suggested_hook || r.hook || '—', 70) + '</div><div class="rt-why">\u2192 ' + truncate(r.why || '', 65) + '</div><div class="rt-cta">CTA: ' + truncate(r.suggested_cta || '', 55) + '</div></div>';
+  }).join('');
+  const summary = '<p class="rt-summary">' + retarget.recommendations.length + ' retargeting actions \u00b7 <b>' + retarget.summary.today + ' today</b> \u00b7 <b>' + retarget.summary.this_week + ' this week</b></p>';
+  retargetContent = summary + '<div class="rt-grid">' + cards + '</div>';
+}
+const retargetSection = buildSection('\ud83d\udd01 RETARGET THIS WEEK', freshnessBadge(retarget?.updated), retargetContent);
+
+const ideaSection = buildSection('\ud83d\udca1 Content Ideas', freshnessBadge(ideas.updated), ideaContent);
 
 // ── GOLF NEWS ─────────────────────────────────────────────────────
 let newsContent = '<p class="empty">No golf news yet.</p>';
@@ -928,6 +953,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .ow-bar--week { color: var(--muted); }
 .ow-top-item { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ow-note { font-size: 0.72rem; color: var(--muted); margin-top: 8px; font-style: italic; }
+
+/* RETARGET THIS WEEK */
+.rt-summary { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+.rt-summary b { color: #ff4757; }
+.rt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rt-card { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 11px 13px; border-left: 3px solid #ff6b35; }
+.rt-header { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.rt-icon { font-size: 0.9rem; }
+.rt-action { font-size: 0.78rem; font-weight: 800; color: var(--text); flex: 1; }
+.rt-owner { font-size: 0.7rem; color: var(--muted); font-weight: 600; }
+.rt-urg { font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+.rt-planned { font-size: 0.65rem; color: var(--success); background: rgba(0,210,106,0.1); padding: 2px 6px; border-radius: 4px; }
+.rt-hook { font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 3px; line-height: 1.3; }
+.rt-why { font-size: 0.72rem; color: var(--muted); font-style: italic; margin-bottom: 4px; }
+.rt-cta { font-size: 0.7rem; color: var(--success); }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -978,6 +1018,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${assetSection}
   ${ideaSection}
   ${workloadSection}
+  ${retargetSection}
   ${abSection}
   ${newsSection}
   ${redditSection}

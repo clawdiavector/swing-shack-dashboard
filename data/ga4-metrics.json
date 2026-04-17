@@ -1,9 +1,9 @@
 {
-  "updated": "2026-04-17T09:24:51.659Z",
-  "fetched_at": "2026-04-17T09:24:51.659Z",
+  "updated": "2026-04-17T09:31:01.481Z",
+  "fetched_at": "2026-04-17T09:31:01.481Z",
   "property_id": "427380680",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 962,
+  "total_sessions": 965,
   "pages": [
     {
       "path": "/",
@@ -41,14 +41,14 @@
       "engRate": "91.7%"
     },
     {
+      "path": "/checkout/",
+      "sessions": 30,
+      "engRate": "96.7%"
+    },
+    {
       "path": "/bookings/",
       "sessions": 29,
       "engRate": "69.0%"
-    },
-    {
-      "path": "/checkout/",
-      "sessions": 29,
-      "engRate": "96.6%"
     },
     {
       "path": "/",
@@ -59,7 +59,7 @@
   "sources": [
     {
       "source": "google",
-      "sessions": 585
+      "sessions": 586
     },
     {
       "source": "(direct)",
@@ -75,7 +75,7 @@
     },
     {
       "source": "(not set)",
-      "sessions": 16
+      "sessions": 18
     }
   ],
   "insights": {
@@ -93,7 +93,7 @@
       {
         "type": "organic_opportunity",
         "priority": "medium",
-        "message": "585 organic sessions. Ensure these pages have clear booking CTAs."
+        "message": "586 organic sessions. Ensure these pages have clear booking CTAs."
       }
     ]
   },

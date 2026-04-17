@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T09:24:51.741Z",
+  "updated": "2026-04-17T09:31:01.563Z",
   "total_hooks": 64,
   "cross_signal_sources": {
     "ig_weight": "60%",
@@ -751,14 +751,15 @@
   "youtube_signals_summary": {
     "dominant_topics": [
       "lessons",
-      "beginner",
-      "swing"
+      "swing",
+      "beginner"
     ],
     "dominant_formats": [
       "How to...",
       "\"Best\" superlative",
       "\"Easy\" simplicity",
-      "\"Simple\" promise"
+      "\"Simple\" promise",
+      "Mistake framing"
     ],
     "top_template": "[Player Type]: [advice]"
   }
