@@ -82,7 +82,7 @@ const STAGES = [
     name: 'Plan',
     critical: false,
     requiredOutputs: [],
-    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json', 'daily-task-cards.json', 'approval-queue.json', 'deadline-risk.json', 'blockers.json', 'capacity-shift.json'],
+    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json', 'daily-task-cards.json', 'approval-queue.json', 'deadline-risk.json', 'blockers.json', 'capacity-shift.json', 'nudge-queue.json', 'fallback-queue.json', 'next-day-queue.json', 'auto-messages.json', 'suppression-rules.json', 'discord-deliveries.json', 'delivery-audit.json'],
     steps: [
       { name: 'generate_post_plan',          script: `node ${BASE}/scripts/generate_post_plan.js`,          critical: false },
       { name: 'generate_sales_priority',     script: `node ${BASE}/scripts/generate_sales_priority.js`,     critical: false },
@@ -104,7 +104,15 @@ const STAGES = [
       { name: 'generate_approval_queue',          script: `node ${BASE}/scripts/generate_approval_queue.js`,          critical: false },
       { name: 'generate_deadline_risk',         script: `node ${BASE}/scripts/generate_deadline_risk.js`,         critical: false },
       { name: 'generate_blockers',               script: `node ${BASE}/scripts/generate_blockers.js`,               critical: false },
-      { name: 'generate_capacity_shift',         script: `node ${BASE}/scripts/generate_capacity_shift.js`,         critical: false },
+      { name: 'generate_capacity_shift',            script: `node ${BASE}/scripts/generate_capacity_shift.js`,            critical: false },
+      { name: 'generate_nudge_queue',               script: `node ${BASE}/scripts/generate_nudge_queue.js`,               critical: false },
+      { name: 'generate_fallback_queue',           script: `node ${BASE}/scripts/generate_fallback_queue.js`,           critical: false },
+      { name: 'generate_next_day_queue',          script: `node ${BASE}/scripts/generate_next_day_queue.js`,          critical: false },
+      { name: 'generate_auto_messages',           script: `node ${BASE}/scripts/generate_auto_messages.js`,           critical: false },
+      { name: 'generate_suppression_rules',        script: `node ${BASE}/scripts/generate_suppression_rules.js`,        critical: false },
+      { name: 'send_discord_nudges',              script: `node ${BASE}/scripts/send_discord_nudges.js`,              critical: false },
+      { name: 'log_discord_deliveries',           script: `node ${BASE}/scripts/log_discord_deliveries.js`,           critical: false },
+      { name: 'generate_delivery_audit',         script: `node ${BASE}/scripts/generate_delivery_audit.js`,         critical: false },
     ]
   },
   {

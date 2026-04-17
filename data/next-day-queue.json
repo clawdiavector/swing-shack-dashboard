@@ -1,0 +1,59 @@
+{
+  "updated": "2026-04-17T13:23:14.200Z",
+  "generated": "generate_next_day_queue.js",
+  "summary": {
+    "date": "2026-04-18",
+    "day_name": "Saturday",
+    "posts_ready": 0,
+    "posts_blocked": 0,
+    "needs_approval": 0,
+    "will_slip": 0,
+    "assets_needed": 4,
+    "confidence": "low"
+  },
+  "post_queue": [],
+  "blocked_items": [],
+  "assets_needed": [
+    {
+      "asset": "📊 TrackMan screenshot or data graphic",
+      "owner": "Coach Cat / Divan",
+      "posts_count": 1,
+      "urgency": "today",
+      "posts": [
+        "That slice costing you yards off the tee? TrackMan"
+      ]
+    },
+    {
+      "asset": "🎬 Swing clip (video or photo)",
+      "owner": "Coach Cat",
+      "posts_count": 4,
+      "urgency": "today",
+      "posts": [
+        "Need some help with your putting? Coach Cat explai",
+        "Need to relax and find your golf swing tempo? Join",
+        "Zero to 18 handicap in 6 months. Cat breaks down t"
+      ]
+    },
+    {
+      "asset": "🖼 High-quality static image",
+      "owner": "Divan",
+      "posts_count": 2,
+      "urgency": "this_week",
+      "posts": [
+        "Lowest net score wins a *new custom fitted driver!",
+        "Have you ever been for an elite level Custom Fitti"
+      ]
+    },
+    {
+      "asset": "🖼 High-quality static image",
+      "owner": "Swing Shack page",
+      "posts_count": 1,
+      "urgency": "this_week",
+      "posts": [
+        "Go to your coaching sessions. Your ball deserves b"
+      ]
+    }
+  ],
+  "fallback_options": [],
+  "approval_items": []
+}

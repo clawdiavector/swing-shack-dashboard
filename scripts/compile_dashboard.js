@@ -87,6 +87,12 @@ const apprQueue   = readJson('approval-queue.json')          || null;
 const deadlineRisk = readJson('deadline-risk.json')          || null;
 const blockers    = readJson('blockers.json')                 || null;
 const capShift   = readJson('capacity-shift.json')          || null;
+const nudgeQ    = readJson('nudge-queue.json')            || null;
+const fallbQ    = readJson('fallback-queue.json')           || null;
+const nextDayQ  = readJson('next-day-queue.json')          || null;
+const autoMsg   = readJson('auto-messages.json')           || null;
+const supprRul  = readJson('suppression-rules.json')        || null;
+const delAudit = readJson('delivery-audit.json')           || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -755,6 +761,97 @@ if (taskCards || apprQueue || deadlineRisk || blockers || capShift) {
 }
 var rtwSection = buildSection('\ud83d\udd27 RUN THE WEEK', freshnessBadge(taskCards && taskCards.updated), rtwContent);
 
+// AUTOMATE THE WEEK
+var autContent = '<p class="empty">No automations ready.</p>';
+if (nudgeQ || fallbQ || nextDayQ || autoMsg) {
+  var nudgeReady = (nudgeQ && nudgeQ.nudges || []).filter(function(n){ return n.status === 'ready'; });
+  var nudgeHigh = nudgeReady.filter(function(n){ return n.severity === 'high'; });
+  var fallbacks = (fallbQ && fallbQ.fallbacks || []).slice(0, 4);
+  var nextDay = nextDayQ;
+  var autoMsgs = (autoMsg && autoMsg.messages || []).filter(function(m){ return m.status === 'draft'; }).slice(0, 3);
+  var suppr = (supprRul && supprRul.suppressed_nudges || []).slice(0, 3);
+
+  // NUDGE NOW column
+  var nudgeCol = '';
+  if (nudgeReady.length > 0) {
+    var nudgeRows = nudgeReady.slice(0, 4).map(function(n) {
+      var sev = n.severity === 'high' ? '#ff4757' : n.severity === 'medium' ? '#ffa502' : 'var(--muted)';
+      return '<div class="aut-row"><div class="aut-row-title">' + (n.reason || n.type || '').substring(0, 55) + '</div><div class="aut-row-meta"><span class="aut-owner">\ud83d\udc64 ' + (n.owner || 'Unassigned') + '</span><span class="aut-sev" style="color:' + sev + '">' + (n.severity || '').toUpperCase() + '</span><span class="aut-win">' + (n.send_window || '') + '</span></div></div>';
+    });
+    nudgeCol = '<div class="aut-col"><div class="aut-col-head aut-head-nudge">\ud83d\udd27 NUDGE NOW <span class="aut-count">' + nudgeReady.length + '</span></div><div class="aut-rows">' + nudgeRows.join('') + '</div></div>';
+  } else {
+    nudgeCol = '<div class="aut-col"><div class="aut-col-head aut-head-nudge">\ud83d\udd27 NUDGE NOW</div><div class="aut-empty">All clear</div></div>';
+  }
+
+  // FALLBACK column
+  var fallCol = '';
+  if (fallbacks.length > 0) {
+    var fallRows = fallbacks.map(function(f) {
+      return '<div class="aut-row"><div class="aut-row-title">' + (f.fallback_hook || f.action || 'Fallback').substring(0, 55) + '</div><div class="aut-row-meta"><span class="aut-format">' + (f.fallback_format || f.swap_to_format || 'text') + '</span><span class="aut-owner">\ud83d\udc64 ' + (f.owner || '—') + '</span></div></div>';
+    });
+    fallCol = '<div class="aut-col"><div class="aut-col-head aut-head-fall">\u21a9\ufe0f USE THIS FALLBACK <span class="aut-count">' + fallbacks.length + '</span></div><div class="aut-rows">' + fallRows.join('') + '</div></div>';
+  } else {
+    fallCol = '<div class="aut-col"><div class="aut-col-head aut-head-fall">\u21a9\ufe0f USE THIS FALLBACK</div><div class="aut-empty">No fallbacks needed</div></div>';
+  }
+
+  // TOMORROW column
+  var tomCol = '';
+  if (nextDay && nextDay.post_queue && nextDay.post_queue.length > 0) {
+    var tomRows = nextDay.post_queue.map(function(p) {
+      var appr = p.approval_status === 'approved' ? '\u2705' : p.approval_status === 'needs_info' ? '\u23f3' : '\u2753';
+      return '<div class="aut-row"><div class="aut-row-title">' + (p.hook || p.title || '').substring(0, 55) + '</div><div class="aut-row-meta"><span class="aut-owner">\ud83d\udc64 ' + (p.owner || '—') + '</span>' + appr + ' ' + (p.format || 'static') + '</div></div>';
+    });
+    tomCol = '<div class="aut-col"><div class="aut-col-head aut-head-tom">\ud83d\udcc5 READY FOR TOMORROW <span class="aut-count">' + nextDay.day_name + '</span></div><div class="aut-rows">' + tomRows.join('') + '</div></div>';
+  } else {
+    tomCol = '<div class="aut-col"><div class="aut-col-head aut-head-tom">\ud83d\udcc5 READY FOR TOMORROW</div><div class="aut-empty">Nothing scheduled</div></div>';
+  }
+
+  // SUPPRESSED column
+  var supprCol = '';
+  if (suppr.length > 0) {
+    var supprRows = suppr.map(function(s) {
+      return '<div class="aut-row aut-row-suppr"><div class="aut-row-title">' + (s.reason || s.type || '').substring(0, 55) + '</div><div class="aut-row-meta"><span class="aut-owner">\ud83d\udc64 ' + (s.owner || '—') + '</span><span class="aut-suppr-reason">' + (s.suppression_reason || 'suppressed') + '</span></div></div>';
+    });
+    supprCol = '<div class="aut-col"><div class="aut-col-head aut-head-suppr">\ud83d\udd0d SUPPRESSED <span class="aut-count">' + suppr.length + '</span></div><div class="aut-rows">' + supprRows.join('') + '</div></div>';
+  } else {
+    supprCol = '<div class="aut-col"><div class="aut-col-head aut-head-suppr">\ud83d\udd0d SUPPRESSED</div><div class="aut-empty">No spam blocked</div></div>';
+  }
+
+  autContent = '<div class="aut-summary">' + (nudgeHigh.length > 0 ? '<span class="aut-alert">\u26a0\ufe0f ' + nudgeHigh.length + ' high-severity nudge(s) ready to send</span>' : '<span>All automations quiet</span>') + '</div><div class="aut-grid">' + nudgeCol + fallCol + tomCol + supprCol + '</div>';
+}
+var autSection = buildSection('\ud83e\uddd7 AUTOMATE THE WEEK', freshnessBadge(nudgeQ && nudgeQ.updated), autContent);
+
+// SENT TODAY
+var sentContent = '<p class="empty">No nudges sent yet.</p>';
+if (delAudit) {
+  var s = delAudit.summary || {};
+  var sentRows = (delAudit.sent || []).slice(0, 5).map(function(d) {
+    return '<div class="sent-row"><div class="sent-type">' + (d.type || '').replace(/_/g, ' ') + '</div><div class="sent-owner">\ud83d\udc64 ' + (d.owner || '—') + '</div><div class="sent-status sent-ok">SENT</div></div>';
+  });
+  var supprRows = (delAudit.suppressed || []).slice(0, 3).map(function(d) {
+    return '<div class="sent-row sent-row-suppr"><div class="sent-type">' + (d.type || '').replace(/_/g, ' ') + '</div><div class="sent-owner">\ud83d\udc64 ' + (d.owner || '—') + '</div><div class="sent-status sent-suppr">SUPPR</div><div class="sent-reason">' + (d.suppression_reason || '') + '</div></div>';
+  });
+  var failRows = (delAudit.failed || []).map(function(d) {
+    return '<div class="sent-row sent-row-fail"><div class="sent-type">' + (d.type || '') + '</div><div class="sent-owner">\ud83d\udc64 ' + (d.owner || '—') + '</div><div class="sent-status sent-fail">FAILED</div><div class="sent-reason">' + (d.error || '') + '</div></div>';
+  });
+
+  var sentSummary = '<div class="sent-summary">' +
+    '<span class="sent-count sent-ok-c">' + (s.sent || 0) + ' sent</span>' +
+    '<span class="sent-count sent-dry-c">' + (s.dry_run || 0) + ' dry-run</span>' +
+    '<span class="sent-count sent-suppr-c">' + (s.suppressed || 0) + ' suppressed</span>' +
+    '<span class="sent-count sent-fail-c">' + (s.failed || 0) + ' failed</span>' +
+    '</div>';
+
+  var sentBlocks = '';
+  if (sentRows.length > 0) sentBlocks += '<div class="sent-block-head">SENT</div>' + sentRows.join('');
+  if (supprRows.length > 0) sentBlocks += '<div class="sent-block-head">SUPPRESSED</div>' + supprRows.join('');
+  if (failRows.length > 0) sentBlocks += '<div class="sent-block-head">FAILED</div>' + failRows.join('');
+  if (sentBlocks === '') sentBlocks = '<div class="aut-empty">All quiet — no sends yet today</div>';
+
+  sentContent = sentSummary + '<div class="sent-list">' + sentBlocks + '</div>';
+}
+var sentSection = buildSection('\ud83d\udce4 SENT TODAY', freshnessBadge(delAudit && delAudit.updated), sentContent);
+
 const ideaSection = buildSection('\ud83d\udca1 Content Ideas', freshnessBadge(ideas.updated), ideaContent);
 
 // ── GOLF NEWS ─────────────────────────────────────────────────────
@@ -1182,7 +1279,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .rtw-sev-high { background: rgba(255,71,87,0.2); color: #ff4757; }
 .rtw-sev-medium { background: rgba(255,165,0,0.2); color: #ffa502; }
 .rtw-sev-low { background: rgba(0,180,216,0.15); color: var(--info); }
-.rtw-fix { font-size: 0.7rem; color: var(--muted); font-style: italic; margin-top: 2px; }
+/* SENT TODAY */
+.sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
+.sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
+.sent-ok-c { background: rgba(0,200,83,0.15); color: #00c853; }
+.sent-dry-c { background: rgba(100,100,255,0.15); color: #6464ff; }
+.sent-suppr-c { background: rgba(255,165,0,0.15); color: #ffa502; }
+.sent-fail-c { background: rgba(255,71,87,0.15); color: #ff4757; }
+.sent-list { display: flex; flex-direction: column; gap: 6px; }
+.sent-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 10px; background: rgba(255,255,255,0.04); border-radius: 7px; font-size: 0.75rem; }
+.sent-row-suppr { background: rgba(255,165,0,0.06); }
+.sent-row-fail { background: rgba(255,71,87,0.06); }
+.sent-type { text-transform: capitalize; color: var(--text); font-weight: 600; }
+.sent-owner { color: var(--muted); }
+.sent-status { font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+.sent-ok { background: rgba(0,200,83,0.2); color: #00c853; }
+.sent-suppr { background: rgba(255,165,0,0.2); color: #ffa502; }
+.sent-fail { background: rgba(255,71,87,0.2); color: #ff4757; }
+.sent-reason { font-size: 0.68rem; color: var(--muted); }
+.sent-block-head { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); padding: 4px 0 2px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }

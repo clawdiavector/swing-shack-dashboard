@@ -281,7 +281,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .rtw-sev-high { background: rgba(255,71,87,0.2); color: #ff4757; }
 .rtw-sev-medium { background: rgba(255,165,0,0.2); color: #ffa502; }
 .rtw-sev-low { background: rgba(0,180,216,0.15); color: var(--info); }
-.rtw-fix { font-size: 0.7rem; color: var(--muted); font-style: italic; margin-top: 2px; }
+/* SENT TODAY */
+.sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
+.sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
+.sent-ok-c { background: rgba(0,200,83,0.15); color: #00c853; }
+.sent-dry-c { background: rgba(100,100,255,0.15); color: #6464ff; }
+.sent-suppr-c { background: rgba(255,165,0,0.15); color: #ffa502; }
+.sent-fail-c { background: rgba(255,71,87,0.15); color: #ff4757; }
+.sent-list { display: flex; flex-direction: column; gap: 6px; }
+.sent-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 10px; background: rgba(255,255,255,0.04); border-radius: 7px; font-size: 0.75rem; }
+.sent-row-suppr { background: rgba(255,165,0,0.06); }
+.sent-row-fail { background: rgba(255,71,87,0.06); }
+.sent-type { text-transform: capitalize; color: var(--text); font-weight: 600; }
+.sent-owner { color: var(--muted); }
+.sent-status { font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+.sent-ok { background: rgba(0,200,83,0.2); color: #00c853; }
+.sent-suppr { background: rgba(255,165,0,0.2); color: #ffa502; }
+.sent-fail { background: rgba(255,71,87,0.2); color: #ff4757; }
+.sent-reason { font-size: 0.68rem; color: var(--muted); }
+.sent-block-head { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); padding: 4px 0 2px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -326,7 +344,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/17, 13:11:39 SAST</span>
+    <span class="summary-value">2026/04/17, 15:23:14 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -353,7 +371,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
     <div class="tw-item tw-item--money">
       <div class="tw-label">💸 Making money</div>
       <div class="tw-value" style="font-size:0.82rem">Golf Lessons</div>
-      <div class="tw-meta">249 booking sessions</div>
+      <div class="tw-meta">257 booking sessions</div>
       <div class="tw-meta" style="color:#ffa500">TrackMan / Stats converts</div>
     </div>
     <div class="tw-sep"></div>
@@ -400,7 +418,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
       <h2>💪 DO THIS FIRST</h2>
       <span class="badge fresh">✅ fresh</span>
     </div>
-    <div class="dtf-summary">Overall priority: <b style="color:#ffa502">8.3/10</b> &middot; 4 actions queued</div><div class="dtf-grid"><div class="dtf-card"><div class="dtf-emoji">🎯</div><div class="dtf-body"><div class="dtf-label">Post this first</div><div class="dtf-title">That slice costing you yards off the tee? TrackMan foun...</div><div class="dtf-meta">Freshness 7/10</div></div><div class="dtf-score" style="color:#ffa502">7</div></div><div class="dtf-card"><div class="dtf-emoji">💰</div><div class="dtf-body"><div class="dtf-label">Push this service</div><div class="dtf-title">Club Fitting</div><div class="dtf-meta">7.4/10</div></div><div class="dtf-score" style="color:#ffa502">7.4</div></div><div class="dtf-card"><div class="dtf-emoji">🔁</div><div class="dtf-body"><div class="dtf-label">Retarget this first</div><div class="dtf-title">Your clubs are waiting. Your handicap won't fix itself....</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">11.25</div></div><div class="dtf-card"><div class="dtf-emoji">⚠️</div><div class="dtf-body"><div class="dtf-label">Fix this leak</div><div class="dtf-title">—</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#ffa502">7.65</div></div></div>
+    <div class="dtf-summary">Overall priority: <b style="color:#ffa502">8.4/10</b> &middot; 4 actions queued</div><div class="dtf-grid"><div class="dtf-card"><div class="dtf-emoji">🎯</div><div class="dtf-body"><div class="dtf-label">Post this first</div><div class="dtf-title">That slice costing you yards off the tee? TrackMan foun...</div><div class="dtf-meta">Freshness 7/10</div></div><div class="dtf-score" style="color:#ffa502">7</div></div><div class="dtf-card"><div class="dtf-emoji">💰</div><div class="dtf-body"><div class="dtf-label">Push this service</div><div class="dtf-title">Club Fitting</div><div class="dtf-meta">7.4/10</div></div><div class="dtf-score" style="color:#ffa502">7.4</div></div><div class="dtf-card"><div class="dtf-emoji">🔁</div><div class="dtf-body"><div class="dtf-label">Retarget this first</div><div class="dtf-title">Your clubs are waiting. Your handicap won't fix itself....</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">11.25</div></div><div class="dtf-card"><div class="dtf-emoji">⚠️</div><div class="dtf-body"><div class="dtf-label">Fix this leak</div><div class="dtf-title">—</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#ffa502">7.95</div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
@@ -1007,7 +1025,7 @@ Pros average 112 mph. Tra...</span>
     <div class="ga4-pages">
       <table class="ga4-table">
         <tr><th>Landing Page</th><th>Sessions</th><th>Eng Rate</th></tr>
-        <tr><td>/</td><td>280</td><td class="">?</td></tr><tr><td>/bookings/</td><td>153</td><td class="">?</td></tr><tr><td>/</td><td>86</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>55</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>45</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>43</td><td class="">?</td></tr><tr><td>/club-fitting/</td><td>37</td><td class="">?</td></tr><tr><td>/checkout/</td><td>30</td><td class="">?</td></tr><tr><td>/bookings/</td><td>29</td><td class="">?</td></tr><tr><td>/</td><td>25</td><td class="">?</td></tr>
+        <tr><td>/</td><td>290</td><td class="">?</td></tr><tr><td>/bookings/</td><td>159</td><td class="">?</td></tr><tr><td>/</td><td>88</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>55</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>45</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>44</td><td class="">?</td></tr><tr><td>/club-fitting/</td><td>38</td><td class="">?</td></tr><tr><td>/checkout/</td><td>31</td><td class="">?</td></tr><tr><td>/bookings/</td><td>29</td><td class="">?</td></tr><tr><td>/</td><td>25</td><td class="">?</td></tr>
       </table>
     </div>
   </div>

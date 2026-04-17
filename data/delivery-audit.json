@@ -1,0 +1,27 @@
+{
+  "updated": "2026-04-17T13:23:14.409Z",
+  "generated": "generate_delivery_audit.js",
+  "period": {
+    "date": "2026-04-17",
+    "type": "today"
+  },
+  "summary": {
+    "total_evaluated": 0,
+    "sent": 0,
+    "skipped": 0,
+    "suppressed": 0,
+    "failed": 0,
+    "dry_run": 0,
+    "duplicates_prevented": 0,
+    "fallback_swaps": 0,
+    "fallbacks_available": 14,
+    "by_owner": {}
+  },
+  "suppression_rule_effectiveness": {},
+  "sent": [],
+  "skipped": [],
+  "suppressed": [],
+  "failed": [],
+  "duplicates_prevented": [],
+  "fallback_swaps": []
+}

@@ -1,0 +1,19 @@
+{
+  "updated": "2026-04-17T13:23:14.367Z",
+  "generated": "send_discord_nudges.js",
+  "summary": {
+    "updated": "2026-04-17T13:23:14.367Z",
+    "generated": "log_discord_deliveries.js",
+    "total_today": 0,
+    "by_status": {
+      "sent": 0,
+      "skipped": 0,
+      "suppressed": 0,
+      "failed": 0,
+      "dry_run": 0
+    },
+    "by_owner": {},
+    "by_type": {}
+  },
+  "deliveries": []
+}

@@ -1,24 +1,24 @@
 {
-  "updated": "2026-04-17T11:11:21.118Z",
-  "fetched_at": "2026-04-17T11:11:21.118Z",
+  "updated": "2026-04-17T13:22:18.726Z",
+  "fetched_at": "2026-04-17T13:22:18.726Z",
   "property_id": "427380680",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 984,
+  "total_sessions": 1025,
   "pages": [
     {
       "path": "/",
-      "sessions": 280,
-      "engRate": "71.4%"
+      "sessions": 290,
+      "engRate": "69.0%"
     },
     {
       "path": "/bookings/",
-      "sessions": 153,
-      "engRate": "79.1%"
+      "sessions": 159,
+      "engRate": "76.1%"
     },
     {
       "path": "/",
-      "sessions": 86,
-      "engRate": "34.9%"
+      "sessions": 88,
+      "engRate": "34.1%"
     },
     {
       "path": "/customer-portal/",
@@ -32,18 +32,18 @@
     },
     {
       "path": "/customer-portal/",
-      "sessions": 43,
-      "engRate": "44.2%"
+      "sessions": 44,
+      "engRate": "43.2%"
     },
     {
       "path": "/club-fitting/",
-      "sessions": 37,
-      "engRate": "89.2%"
+      "sessions": 38,
+      "engRate": "86.8%"
     },
     {
       "path": "/checkout/",
-      "sessions": 30,
-      "engRate": "96.7%"
+      "sessions": 31,
+      "engRate": "93.5%"
     },
     {
       "path": "/bookings/",
@@ -59,23 +59,23 @@
   "sources": [
     {
       "source": "google",
-      "sessions": 600
+      "sessions": 618
     },
     {
       "source": "(direct)",
-      "sessions": 205
+      "sessions": 207
     },
     {
       "source": "c.yoco.com",
-      "sessions": 101
-    },
-    {
-      "source": "bing",
-      "sessions": 31
+      "sessions": 102
     },
     {
       "source": "(not set)",
-      "sessions": 22
+      "sessions": 38
+    },
+    {
+      "source": "bing",
+      "sessions": 35
     }
   ],
   "insights": {
@@ -93,7 +93,7 @@
       {
         "type": "organic_opportunity",
         "priority": "medium",
-        "message": "600 organic sessions. Ensure these pages have clear booking CTAs."
+        "message": "618 organic sessions. Ensure these pages have clear booking CTAs."
       }
     ]
   },

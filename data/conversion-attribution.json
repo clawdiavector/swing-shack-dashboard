@@ -1,10 +1,10 @@
 {
-  "updated": "2026-04-17T11:11:38.991Z",
+  "updated": "2026-04-17T13:23:13.476Z",
   "generated": "generate_conversion_attribution.js",
   "summary": {
     "total_ig_posts_analysed": 30,
     "total_ga4_pages": 10,
-    "booking_sessions": 249,
+    "booking_sessions": 257,
     "avg_booking_eng_rate": 0,
     "top_converting_service": "Golf Lessons",
     "top_converting_cta": "SOFT",
@@ -158,19 +158,19 @@
   "top_booking_pages": [
     {
       "path": "/bookings/",
-      "sessions": 153,
+      "sessions": 159,
       "engRate": 0,
       "isBooking": true
     },
     {
       "path": "/club-fitting/",
-      "sessions": 37,
+      "sessions": 38,
       "engRate": 0,
       "isBooking": true
     },
     {
       "path": "/checkout/",
-      "sessions": 30,
+      "sessions": 31,
       "engRate": 0,
       "isBooking": true
     },
@@ -195,7 +195,7 @@
       "has_ig_content": false,
       "has_booking_page": true,
       "ig_post_count": 0,
-      "ga4_sessions": 37,
+      "ga4_sessions": 38,
       "coverage_score": 1
     },
     {

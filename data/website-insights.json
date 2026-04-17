@@ -1,26 +1,26 @@
 {
-  "updated": "2026-04-17T11:11:38.667Z",
+  "updated": "2026-04-17T13:23:13.150Z",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 984,
+  "total_sessions": 1025,
   "source_share": {
-    "organic_pct": "61.0",
+    "organic_pct": "60.3",
     "direct_pct": "0.0",
     "social_pct": "0.0",
-    "organic_sessions": 600,
+    "organic_sessions": 618,
     "direct_sessions": 0,
     "social_sessions": 0,
-    "total": 984
+    "total": 1025
   },
   "funnel": {
     "booking_pages": {
-      "sessions": 182,
+      "sessions": 188,
       "paths": [
         "/bookings/",
         "/bookings/"
       ]
     },
     "checkout_pages": {
-      "sessions": 30,
+      "sessions": 31,
       "paths": [
         "/checkout/"
       ]
@@ -30,7 +30,7 @@
       "paths": []
     },
     "fitting_pages": {
-      "sessions": 37,
+      "sessions": 38,
       "paths": [
         "/club-fitting/"
       ]
@@ -39,8 +39,8 @@
   "weak_ctas": [
     {
       "page": "/",
-      "sessions": 86,
-      "engagement": "34.9%",
+      "sessions": 88,
+      "engagement": "34.1%",
       "severity": "HIGH",
       "likely_issue": "Weak or missing CTA",
       "fix": "Add prominent CTA to /"
@@ -49,47 +49,47 @@
   "top_pages": [
     {
       "path": "/checkout/",
-      "sessions": 30,
-      "engagement": "96.7%"
-    },
-    {
-      "path": "/club-fitting/",
-      "sessions": 37,
-      "engagement": "89.2%"
+      "sessions": 31,
+      "engagement": "93.5%"
     },
     {
       "path": "/",
       "sessions": 25,
       "engagement": "88.0%"
+    },
+    {
+      "path": "/club-fitting/",
+      "sessions": 38,
+      "engagement": "86.8%"
     }
   ],
   "recommendations": [
     {
       "issue": "High-traffic pages with weak CTA",
       "severity": "HIGH",
-      "evidence": "1 page(s) with >50 sessions but <20% engagement. Pages: / (86 sess, 34.9% eng)",
+      "evidence": "1 page(s) with >50 sessions but <20% engagement. Pages: / (88 sess, 34.1% eng)",
       "recommended_fix": "Add prominent \"Book Now\" CTA to: /. Test button contrast, size, and above-fold placement.",
       "source_metric": "ga4.pages.engagementRate"
     },
     {
       "issue": "Booking funnel drop-off detected",
       "severity": "HIGH",
-      "evidence": "182 booking page sessions → 30 checkout sessions (16.5% conversion rate)",
+      "evidence": "188 booking page sessions → 31 checkout sessions (16.5% conversion rate)",
       "recommended_fix": "URGENT: Review booking flow for friction. Likely causes: form too long, page speed, or unclear next step. Test a single-field \"Book a Session\" CTA first.",
       "source_metric": "ga4.funnel.booking_to_checkout_ratio"
     },
     {
       "issue": "Organic traffic without clear booking path",
       "severity": "MEDIUM",
-      "evidence": "600 organic sessions (61.0% of all traffic)",
+      "evidence": "618 organic sessions (60.3% of all traffic)",
       "recommended_fix": "Ensure every high-engagement page has a \"Book a TrackMan Session\" CTA visible in first viewport scroll. TrackMan keyword intent = high commercial intent.",
       "source_metric": "ga4.sessions.organic"
     }
   ],
   "insights": [
     "⚠️ 1 pages with high traffic but weak CTAs",
-    "⚠️ Booking funnel: 182 → 30 checkout (16% conv)",
-    "✅ Top: /checkout/ (96.7% eng), /club-fitting/ (89.2% eng), / (88.0% eng)"
+    "⚠️ Booking funnel: 188 → 31 checkout (16% conv)",
+    "✅ Top: /checkout/ (93.5% eng), / (88.0% eng), /club-fitting/ (86.8% eng)"
   ],
   "summary": {
     "health_score": "NEEDS_ATTENTION",
