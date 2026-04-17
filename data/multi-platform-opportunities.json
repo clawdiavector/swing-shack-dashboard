@@ -369,12 +369,68 @@
       "score": 75,
       "suggested_comment": "Solid advice - lessons first, fitting after.",
       "comment_tone": "agree"
+    },
+    {
+      "id": "mp-2026-04-17-1",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "SA Budget Simulator Build",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
+      "content_preview": "Building simulator in SA with $1500-$2000 budget",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-budget",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Tight budget - try Trackman at a facility first before committing.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-17-2",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Free Launch Monitor Data Tool",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1q94lo8/free_launch_monitor_data_tool_new_updates_thanks/",
+      "content_preview": "Developer built free platform to analyze launch monitor data",
+      "location_tag": "Global",
+      "problem_type": "data-tool",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Great tool - but in-person coaching beats solo data.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-17-3",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Launch Monitor Beginner",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/15ngq9w/launch_monitor_for_a_beginner_golfer/",
+      "content_preview": "Beginner with slice looking at monitors vs lessons",
+      "location_tag": "Global",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Monitor shows what to fix, but coach shows how.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-17-4",
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Golf Lessons Johannesburg",
+      "url": "https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/",
+      "content_preview": "Beginner looking for reliable affordable lessons in JHB",
+      "location_tag": "Johannesburg",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Structured coaching with Trackman data available locally.",
+      "comment_tone": "helpful-local"
     }
   ],
   "summary": "Found 7 opportunities across Reddit and web. Best engagement: r/Golfsimulator budget build thread + r/johannesburg lessons inquiry. Indoor golf simulator space is active in SA with people researching budget options.",
   "createdAt": "2026-04-15T07:04:00Z",
-  "scan_date": "2026-04-16",
-  "scan_time": "18:04 SAST",
-  "next_scan": "2026-04-17T06:00 SAST",
-  "total_opportunities": 28
+  "scan_date": "2026-04-17",
+  "scan_time": "06:05 SAST",
+  "next_scan": "2026-04-17T12:00 SAST",
+  "total_opportunities": 32
 }
