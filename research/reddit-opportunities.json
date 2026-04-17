@@ -273,7 +273,81 @@
       ]
     }
   ],
-  "last_updated": "2026-04-16",
-  "scan_time": "2026-04-16T10:00Z",
-  "scan_note": "April 16 2026 - 6AM scan. Found 6 new opportunities. Rate limited on search but captured from cached results."
+  "opportunities": [
+    {
+      "id": "reddit-2026-04-17-1",
+      "url": "https://www.reddit.com/r/golf/comments/1sm5385/looking_for_a_good_launch_monitor_under_1000_for/",
+      "title": "Looking for a good launch monitor under $1000 for range use",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-17",
+      "datePosted": "2026-04-15",
+      "comment": "Budget-conscious looking at R10 at $300. Let them try TrackMan first — feel the professional data difference before dropping money on consumer gear they might outgrow.",
+      "tags": ["budget", "launch-monitor", "garmin-r10", "trackman", "try-before-buy"]
+    },
+    {
+      "id": "reddit-2026-04-17-2",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjh0xq/ive_worked_at_indoor_golf_facilities_in_nyc_since/",
+      "title": "Built app to turn TrackMan data into weekly practice plans",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-17",
+      "datePosted": "2026-04-12",
+      "comment": "This is exactly what Swing Shack does manually with coaches. Dispersion analysis + structured practice = data actually means something. No extra apps needed.",
+      "tags": ["practice-plan", "data", "trackman", "coaching", "indoor"]
+    },
+    {
+      "id": "reddit-2026-04-17-3",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjiwuu/simulator_setup_launch_monitor_advice/",
+      "title": "Simulator setup + Launch Monitor Advice",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-17",
+      "datePosted": "2026-04-13",
+      "comment": "DIY sim builder wants advice before spending. Bring them in to test real TrackMan — show them the difference between consumer and pro data before they commit.",
+      "tags": ["DIY", "simulator", "budget", "launch-monitor", "advice"]
+    },
+    {
+      "id": "reddit-2026-04-17-4",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1skpxqh/i_spent_nearly_a_decade_growing_indoor_golf_in/",
+      "title": "8 years in indoor golf — market discussion",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-17",
+      "datePosted": "2026-04-14",
+      "comment": "Good industry context — TrackMan/Foresight dominant in commercial. Shows data quality matters to facilities. Swing Shack already has the pro setup.",
+      "tags": ["industry", "trackman", "market", "facility"]
+    },
+    {
+      "id": "reddit-2026-04-17-5",
+      "url": "https://www.reddit.com/r/golf/comments/1sjrx83/which_club_to_add_to_bag/",
+      "title": "Which club to add to bag?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-17",
+      "datePosted": "2026-04-13",
+      "comment": "Gap analysis question — detailed distances posted. Classic fitting conversation. Let us check their numbers and recommend what fills the gap.",
+      "tags": ["gapping", "fitting", "bag", "distance"]
+    },
+    {
+      "id": "reddit-2026-04-17-6",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1slxtrx/best_golf_bags_options_in_2026_for_walking/",
+      "title": "Best golf bags options in 2026 for walking comfort and weight",
+      "subreddit": "r/GolfGear",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-17",
+      "datePosted": "2026-04-15",
+      "comment": "Walking golfers care about comfort. Equipment-adjacent — not core but shows what golfers care about in their gear buying decisions.",
+      "tags": ["bag", "walking", "comfort", "equipment"]
+    }
+  ],
+  "last_updated": "2026-04-17",
+  "scan_time": "2026-04-17T04:00Z",
+  "scan_note": "April 17 2026 - 6AM scan. Found 6 new opportunities. Rate limited on search (429), reduced volume."
 }
