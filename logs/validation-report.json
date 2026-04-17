@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-17T10:57:15.929Z",
+  "timestamp": "2026-04-17T11:11:43.780Z",
   "overall_status": "PASS",
   "summary": {
     "pass": 16,
@@ -23,8 +23,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 5.9,
-      "reason": "Fresh - 5.9h old",
+      "age_hours": 6.1,
+      "reason": "Fresh - 6.1h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -64,7 +64,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-17T10:57:11.838Z"
+      "last_build": "2026-04-17T11:11:39.634Z"
     },
     {
       "file": "golf-news.json",
@@ -152,8 +152,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 23.2,
-      "reason": "Fresh - 23.2h old",
+      "age_hours": 23.4,
+      "reason": "Fresh - 23.4h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -217,9 +217,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/17, 12:57:11",
+      "reason": "Last build 2026/04/17, 13:11:39",
       "next_action": "No action needed",
-      "last_build": "2026/04/17, 12:57:11"
+      "last_build": "2026/04/17, 13:11:39"
     }
   ]
 }
