@@ -1,40 +1,66 @@
 {
-  "updated": "2026-04-17T07:47:53.519Z",
+  "updated": "2026-04-17T08:18:57.763Z",
   "generated": "generate_sales_priority.js",
   "this_week": "April 17",
   "priorities": [
     {
       "service": "club_fitting",
       "label": "Club Fitting",
-      "score": 4,
-      "confidence": 4.4,
+      "score": 7.4,
+      "priority_level": "high",
+      "confidence": 6,
+      "confidence_band": "medium",
       "signals": {
-        "ig": 3.2,
+        "ig": 8,
         "ga4": 10,
         "reddit": 0,
         "youtube": 0,
         "news": 0,
         "seasonal": 5
       },
+      "supporting_signals": [
+        {
+          "signal": "instagram",
+          "strength": 8
+        },
+        {
+          "signal": "website_traffic",
+          "strength": 10
+        }
+      ],
       "reasons": [
-        "High website traffic interest (10)"
+        "Strong IG engagement (8)",
+        "High website traffic (10)"
       ],
       "recommended_cta": "Book your fit · swingshack.co.za/membership"
     },
     {
       "service": "lessons",
       "label": "Golf Lessons",
-      "score": 1.7,
-      "confidence": 1.1,
+      "score": 4.8,
+      "priority_level": "medium",
+      "confidence": 2.7,
+      "confidence_band": "low",
       "signals": {
-        "ig": 3.2,
+        "ig": 8,
         "ga4": 0,
         "reddit": 0,
         "youtube": 0,
         "news": 0,
         "seasonal": 7
       },
+      "supporting_signals": [
+        {
+          "signal": "instagram",
+          "strength": 8
+        },
+        {
+          "signal": "seasonality",
+          "strength": 7
+        }
+      ],
       "reasons": [
+        "Strong IG engagement (8)",
         "Seasonal boost (7)"
       ],
       "recommended_cta": "Book a lesson · swingshack.co.za/membership"
@@ -42,16 +68,28 @@
     {
       "service": "simulator_sessions",
       "label": "Simulator Sessions",
-      "score": 1.6,
-      "confidence": 0.9,
+      "score": 4.4,
+      "priority_level": "medium",
+      "confidence": 2.3,
+      "confidence_band": "low",
       "signals": {
-        "ig": 2.7,
+        "ig": 6.8,
         "ga4": 0,
         "reddit": 0,
         "youtube": 0,
         "news": 0,
         "seasonal": 8
       },
+      "supporting_signals": [
+        {
+          "signal": "instagram",
+          "strength": 6.8
+        },
+        {
+          "signal": "seasonality",
+          "strength": 8
+        }
+      ],
       "reasons": [
         "Seasonal boost (8)"
       ],
@@ -60,8 +98,10 @@
     {
       "service": "events",
       "label": "Events & Competitions",
-      "score": 1,
+      "score": 1.2,
+      "priority_level": "low",
       "confidence": 0,
+      "confidence_band": "unsubstantiated",
       "signals": {
         "ig": 0,
         "ga4": 0,
@@ -70,6 +110,12 @@
         "news": 0,
         "seasonal": 10
       },
+      "supporting_signals": [
+        {
+          "signal": "seasonality",
+          "strength": 10
+        }
+      ],
       "reasons": [
         "Seasonal boost (10)"
       ],
@@ -78,8 +124,10 @@
     {
       "service": "membership",
       "label": "Membership",
-      "score": 0.6,
+      "score": 0.9,
+      "priority_level": "low",
       "confidence": 0,
+      "confidence_band": "unsubstantiated",
       "signals": {
         "ig": 0,
         "ga4": 0,
@@ -88,13 +136,14 @@
         "news": 0,
         "seasonal": 6
       },
+      "supporting_signals": [],
       "reasons": [],
       "recommended_cta": "Join now · swingshack.co.za/membership"
     }
   ],
   "meta": {
     "top_service": "Club Fitting",
-    "top_score": 4,
+    "top_score": 7.4,
     "runner_up": "Golf Lessons",
     "season_note": "School holidays — push events + simulator sessions"
   }

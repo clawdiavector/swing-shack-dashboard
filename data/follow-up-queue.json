@@ -1,0 +1,105 @@
+{
+  "updated": "2026-04-17T08:18:57.848Z",
+  "generated": "generate_follow_up_queue.js",
+  "count": 3,
+  "by_owner": {
+    "Divan": [
+      {
+        "topic": "driver",
+        "original_hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+        "original_ig_score": 10,
+        "suggested_hook": "Your driver data tells a story. TrackMan tells you how to fix it.",
+        "suggested_cta": "Book a lesson · Link in bio",
+        "angle": "lesson CTA from data",
+        "why_now": "Topic already scheduled this week — follow-up CTA still recommended",
+        "owner": "Divan",
+        "asset_needed": "Club/fitting photo or TrackMan data screenshot",
+        "suggested_format": "static",
+        "urgency": "high",
+        "already_planned": true
+      }
+    ],
+    "Coach Cat": [
+      {
+        "topic": "lessons",
+        "original_hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+        "original_ig_score": 10,
+        "suggested_hook": "Zero to 18 handicap in 6 months. Cat breaks down the sessions that made it happen.",
+        "suggested_cta": "Book your first lesson · swingshack.co.za/membership",
+        "angle": "result/social proof",
+        "why_now": "Topic already scheduled this week — follow-up CTA still recommended",
+        "owner": "Coach Cat",
+        "asset_needed": "Swing clip or lesson photo",
+        "suggested_format": "reel",
+        "urgency": "high",
+        "already_planned": true
+      },
+      {
+        "topic": "short_game",
+        "original_hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+        "original_ig_score": 9.86,
+        "suggested_hook": "One putting session with Cat changed everything. Here's the drill she used first.",
+        "suggested_cta": "Book a lesson · swingshack.co.za/membership",
+        "angle": "quick win lesson",
+        "why_now": "Topic already scheduled this week — follow-up CTA still recommended",
+        "owner": "Coach Cat",
+        "asset_needed": "Swing clip or lesson photo",
+        "suggested_format": "reel",
+        "urgency": "high",
+        "already_planned": true
+      }
+    ]
+  },
+  "queue": [
+    {
+      "topic": "driver",
+      "original_hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "original_ig_score": 10,
+      "suggested_hook": "Your driver data tells a story. TrackMan tells you how to fix it.",
+      "suggested_cta": "Book a lesson · Link in bio",
+      "angle": "lesson CTA from data",
+      "why_now": "Topic already scheduled this week — follow-up CTA still recommended",
+      "owner": "Divan",
+      "asset_needed": "Club/fitting photo or TrackMan data screenshot",
+      "suggested_format": "static",
+      "urgency": "high",
+      "already_planned": true
+    },
+    {
+      "topic": "lessons",
+      "original_hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "original_ig_score": 10,
+      "suggested_hook": "Zero to 18 handicap in 6 months. Cat breaks down the sessions that made it happen.",
+      "suggested_cta": "Book your first lesson · swingshack.co.za/membership",
+      "angle": "result/social proof",
+      "why_now": "Topic already scheduled this week — follow-up CTA still recommended",
+      "owner": "Coach Cat",
+      "asset_needed": "Swing clip or lesson photo",
+      "suggested_format": "reel",
+      "urgency": "high",
+      "already_planned": true
+    },
+    {
+      "topic": "short_game",
+      "original_hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+      "original_ig_score": 9.86,
+      "suggested_hook": "One putting session with Cat changed everything. Here's the drill she used first.",
+      "suggested_cta": "Book a lesson · swingshack.co.za/membership",
+      "angle": "quick win lesson",
+      "why_now": "Topic already scheduled this week — follow-up CTA still recommended",
+      "owner": "Coach Cat",
+      "asset_needed": "Swing clip or lesson photo",
+      "suggested_format": "reel",
+      "urgency": "high",
+      "already_planned": true
+    }
+  ],
+  "meta": {
+    "high_urgency": 3,
+    "medium_urgency": 0,
+    "owners": [
+      "Divan",
+      "Coach Cat"
+    ]
+  }
+}

@@ -181,6 +181,10 @@ const plan = days.map((day, i) => {
   const cta = top.cta || defaultCTA(top.contentType, primaryObj);
   const status = top.hook && cta ? 'ready' : 'test';
   const whyChosen = buildWhy(top, primaryObj);
+  const owner = assignOwner(top.contentType, top.topics, top.hook);
+  const asset = assetNeeded(top.contentType, platform === 'tiktok' ? 'reel' : top.format, top.topics);
+  const urgency = calcUrgency(top.cross_score || 0, day.index);
+  const suggestedSection = sourceSection(top.source);
 
   return {
     day:       day.dayName,
@@ -199,6 +203,10 @@ const plan = days.map((day, i) => {
     ig_score:  top.ig_score,
     yt_score:  top.yt_score,
     cross_score: top.cross_score,
+    owner,
+    asset_needed: asset,
+    urgency,
+    suggested_source_section: suggestedSection,
   };
 });
 
@@ -218,6 +226,79 @@ function classifyHook(text) {
   if (/\b(lessons?|coach|teaching|instructor|cat|dave)\b/.test(t)) return 'lessons';
   if (/\b(trackman|swing speed|spin rate|club path|data|stats?)\b/.test(t)) return 'data';
   return 'hook';
+}
+
+// Owner assignment based on content type + topics
+function assignOwner(contentType, topics, hookText) {
+  const t = (hookText || '').toLowerCase();
+  // Coaching/lesson content
+  if (contentType === 'lessons' || /\b(lessons?|coach|cat |dave |teaching|instructor)\b/.test(t)) {
+    return 'Coach Cat';
+  }
+  // Driver/fitting/equipment
+  if (contentType === 'product' || /\b(driver|fitted?|fitting|irons|woods|wedge|putter|club|grip|shaft)\b/.test(t)) {
+    return 'Divan';
+  }
+  // TrackMan/data — could be either, flag for review
+  if (contentType === 'data' || /\b(trackman|swing speed|spin rate|stats?)\b/.test(t)) {
+    return 'Coach Cat / Divan';
+  }
+  // Promo/competition
+  if (contentType === 'promo' || /\b(competition|win|tournament|prize|championship|league)\b/.test(t)) {
+    return 'Swing Shack page';
+  }
+  // CTA-led
+  if (contentType === 'cta') {
+    return 'Nancy / Front Desk';
+  }
+  // Generic brand/awareness
+  if (contentType === 'awareness') {
+    return 'Swing Shack page';
+  }
+  return 'Swing Shack page';
+}
+
+// Asset needed based on content type + format
+function assetNeeded(contentType, format, topics) {
+  const hasTopic = (kw) => topics.some(t => t.toLowerCase().includes(kw));
+
+  if (contentType === 'data' || hasTopic('simulator') || hasTopic('trackman')) {
+    return 'TrackMan screenshot or data graphic';
+  }
+  if (contentType === 'lessons') {
+    return 'Swing clip or lesson photo';
+  }
+  if (contentType === 'product') {
+    return 'Club/equipment photo or fitting moment';
+  }
+  if (contentType === 'promo') {
+    return 'Contest/prize image or graphic';
+  }
+  if (contentType === 'cta') {
+    return 'Text graphic or booking CTA image';
+  }
+  if (format === 'reel' || format === 'video') {
+    return 'Swing clip or video footage';
+  }
+  return 'High-quality static image';
+}
+
+// Urgency based on cross_score and proximity to today
+function calcUrgency(crossScore, daysFromToday) {
+  if (daysFromToday === 0 && crossScore >= 8)  return 'today';
+  if (daysFromToday <= 1 && crossScore >= 7)    return 'today';
+  if (daysFromToday <= 3 && crossScore >= 7)    return 'this_week';
+  if (crossScore >= 8)                           return 'this_week';
+  return 'flexible';
+}
+
+function sourceSection(source) {
+  const map = {
+    watched_and_worked: 'WATCHED + WORKED',
+    content_idea:      'Hook Bank / Content Ideas',
+    golf_news:         'Golf News',
+  };
+  return map[source] || 'Hook Bank';
 }
 
 function isUsed(hookId, used) {
@@ -260,17 +341,39 @@ const output = {
   plan_length: plan.length,
   plan,
   meta: {
-    total_ready:   plan.filter(p => p.status === 'ready').length,
-    total_test:    plan.filter(p => p.status === 'test').length,
-    total_fallback:plan.filter(p => p.status === 'fallback').length,
-    objectives_used:[...new Set(plan.map(p => p.objective))],
+    total_ready:    plan.filter(p => p.status === 'ready').length,
+    total_test:     plan.filter(p => p.status === 'test').length,
+    total_fallback: plan.filter(p => p.status === 'fallback').length,
+    objectives_used: [...new Set(plan.map(p => p.objective))],
+    urgency_breakdown: {
+      today:      plan.filter(p => p.urgency === 'today').length,
+      this_week:  plan.filter(p => p.urgency === 'this_week').length,
+      flexible:   plan.filter(p => p.urgency === 'flexible').length,
+    },
+    owner_breakdown: Object.fromEntries(
+      [...new Set(plan.map(p => p.owner))].map(o => [o, plan.filter(p => p.owner === o).length])
+    ),
+    asset_alerts: plan.filter(p => p.asset_needed && p.status === 'ready').map(p => ({
+      owner: p.owner,
+      asset: p.asset_needed,
+      day: `${p.day} ${p.date}`,
+      hook: p.hook ? p.hook.substring(0, 50) : null,
+    })),
   },
 };
 
 fs.writeFileSync(OUTPUT, JSON.stringify(output, null, 2));
 console.log(`✅ Post plan generated: ${OUTPUT}`);
 console.log(`   Ready: ${output.meta.total_ready} | Test: ${output.meta.total_test} | Fallback: ${output.meta.total_fallback}`);
+console.log(`   Today: ${output.meta.urgency_breakdown.today} | This week: ${output.meta.urgency_breakdown.this_week} | Flexible: ${output.meta.urgency_breakdown.flexible}`);
+console.log(`   Owners: ${Object.entries(output.meta.owner_breakdown).map(([o,n]) => `${o}×${n}`).join(', ')}`);
 plan.forEach(p => {
-  const hook = p.hook ? p.hook.substring(0, 50) : '(none)';
-  console.log(`   ${p.day} ${p.date} [${p.status}] ${p.objective.toUpperCase()} | ${hook}`);
+  const hook = p.hook ? p.hook.substring(0, 45) : '(none)';
+  console.log(`   ${p.day.substring(0,3)} ${p.date} [${p.urgency}] ${p.owner} | ${p.objective.toUpperCase()} | ${hook}`);
 });
+if (output.meta.asset_alerts.length > 0) {
+  console.log('\n   📦 Asset alerts:');
+  output.meta.asset_alerts.slice(0,3).forEach(a => {
+    console.log(`     ${a.day}: ${a.owner} needs — ${a.asset}`);
+  });
+}

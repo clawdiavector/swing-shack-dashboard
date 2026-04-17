@@ -76,14 +76,22 @@ const SERVICES = [
 ];
 
 function scoreService(svc, signals) {
-  return (
-    signals.ig       * 0.30 +
-    signals.ga4      * 0.25 +
-    signals.reddit    * 0.15 +
-    signals.youtube   * 0.15 +
-    signals.seasonal  * 0.10 +
+  // Weighted composite score — boost primary channels (IG, GA4) so strong services get strong scores
+  const raw = (
+    signals.ig       * 0.40 +   // boosted: IG is the primary conversion driver
+    signals.ga4      * 0.30 +   // boosted: website intent is strong signal
+    signals.reddit    * 0.10 +
+    signals.youtube   * 0.10 +
+    signals.seasonal  * 0.05 +   // reduced: already a baseline factor
     signals.news      * 0.05
   );
+  // Max possible = 10 * sum of weights
+  const maxRaw = 10 * (0.40 + 0.30 + 0.10 + 0.10 + 0.05 + 0.05); // = 10
+  // Rescale so top service gets ~8-9, not ~5
+  // Use sqrt scaling to compress the middle range
+  const normalised = raw / maxRaw; // 0 to 1
+  const rescaled = Math.pow(normalised, 0.7); // slight expansion of mid-high range
+  return Math.min(Math.round(rescaled * 10 * 10) / 10, 10);
 }
 
 // ── 1. IG Signal ─────────────────────────────────────────────────
@@ -200,34 +208,73 @@ const newsMax = Math.max(...Object.values(newsSvcScores)) || 1;
 Object.keys(newsSvcScores).forEach(id => { newsSvcScores[id] = (newsSvcScores[id] / newsMax) * 10; });
 
 // ── Build final priority list ────────────────────────────────────
+function priorityLevel(score) {
+  if (score >= 7) return 'high';
+  if (score >= 4) return 'medium';
+  return 'low';
+}
+
+function confidenceBand(ig, ga4, yt) {
+  const active = [ig, ga4, yt].filter(s => s >= 4).length;
+  if (active >= 2) return 'high';
+  if (active >= 1) return 'medium';
+  return 'low';
+}
+
+function confidenceBand(ig, ga4, yt) {
+  const active = [ig, ga4, yt].filter(s => s >= 4).length;
+  if (active >= 3) return 'high';
+  if (active >= 2) return 'medium';
+  if (active >= 1) return 'low';
+  return 'unsubstantiated';
+}
+
 const results = SERVICES.map(svc => {
+  const rawIg     = Math.max(igSvcScores[svc.id], wwSvcScores[svc.id]);
+  const rawGa4    = ga4SvcScores[svc.id];
+  const rawRd     = rdSvcScores[svc.id];
+  const rawYt     = ytSvcScores[svc.id];
+  const rawSeason = seasonalScores[svc.id] || 5;
+
+  // Build signals as a clean 0-10 scale, then compute weighted total
   const signals = {
-    ig:       Math.round((igSvcScores[svc.id] * 0.6 + wwSvcScores[svc.id] * 0.4) * 10) / 10,
-    ga4:      Math.round(ga4SvcScores[svc.id] * 10) / 10,
-    reddit:   Math.round(rdSvcScores[svc.id] * 10) / 10,
-    youtube:  Math.round(ytSvcScores[svc.id] * 10) / 10,
-    news:     Math.round(newsSvcScores[svc.id] * 10) / 10,
-    seasonal: seasonalScores[svc.id] || 5,
+    ig:       Math.min(Math.round(rawIg * 10) / 10, 10),
+    ga4:      Math.min(Math.round(rawGa4 * 10) / 10, 10),
+    reddit:   Math.min(Math.round(rawRd * 10) / 10, 10),
+    youtube:  Math.min(Math.round(rawYt * 10) / 10, 10),
+    news:     Math.min(Math.round((newsSvcScores[svc.id] || 0) * 10) / 10, 10),
+    seasonal: rawSeason,
   };
 
   const total = Math.round(scoreService(svc, signals) * 10) / 10;
   const confidence = Math.min(Math.round((signals.ig + signals.ga4 + signals.youtube) / 3 * 10) / 10, 10);
 
-  // Build reasons
+  // supporting_signals: list of active signal labels
+  const supporting_signals = [];
+  if (signals.ig >= 4)       supporting_signals.push({ signal: 'instagram', strength: signals.ig });
+  if (signals.ga4 >= 4)      supporting_signals.push({ signal: 'website_traffic', strength: signals.ga4 });
+  if (signals.youtube >= 4)  supporting_signals.push({ signal: 'youtube_trending', strength: signals.youtube });
+  if (signals.reddit >= 3)   supporting_signals.push({ signal: 'reddit_community', strength: signals.reddit });
+  if (signals.seasonal >= 7) supporting_signals.push({ signal: 'seasonality', strength: signals.seasonal });
+  if (signals.news >= 3)     supporting_signals.push({ signal: 'golf_news', strength: signals.news });
+
   const reasons = [];
-  if (signals.ig >= 7) reasons.push(`Strong IG engagement (${signals.ig})`);
-  if (signals.ga4 >= 6) reasons.push(`High website traffic interest (${signals.ga4})`);
-  if (signals.youtube >= 6) reasons.push(`YouTube trending (${signals.youtube})`);
-  if (signals.reddit >= 5) reasons.push(`Reddit community interest (${signals.reddit})`);
+  if (signals.ig >= 7)       reasons.push(`Strong IG engagement (${signals.ig})`);
+  if (signals.ga4 >= 6)      reasons.push(`High website traffic (${signals.ga4})`);
+  if (signals.youtube >= 6)  reasons.push(`YouTube trending (${signals.youtube})`);
+  if (signals.reddit >= 5)   reasons.push(`Reddit community interest (${signals.reddit})`);
   if (signals.seasonal >= 7) reasons.push(`Seasonal boost (${signals.seasonal})`);
-  if (signals.news >= 5) reasons.push(`Golf news coverage`);
+  if (signals.news >= 5)     reasons.push(`Golf news coverage`);
 
   return {
-    service:    svc.id,
-    label:      svc.label,
-    score:      total,
-    confidence: confidence,
+    service:            svc.id,
+    label:              svc.label,
+    score:             total,
+    priority_level:    priorityLevel(total),
+    confidence:        confidence,
+    confidence_band:   confidenceBand(signals.ig, signals.ga4, signals.youtube),
     signals,
+    supporting_signals,
     reasons,
     recommended_cta: ctaFor(svc.id),
   };
@@ -262,5 +309,6 @@ const output = {
 fs.writeFileSync(OUTPUT, JSON.stringify(output, null, 2));
 console.log(`✅ Sales priority generated: ${OUTPUT}`);
 results.forEach((r, i) => {
-  console.log(`   ${i+1}. ${r.label} (${r.score}/10) — ${r.reasons.slice(0,2).join(' · ')}`);
+  const band = { high: '🟢', medium: '🟡', low: '🔴' }[r.confidence_band || 'low'];
+  console.log(`   ${i+1}. ${r.label} [${r.priority_level.toUpperCase()}] (${r.score}/10) ${band} ${r.confidence_band} confidence — ${r.reasons.slice(0,2).join(' · ')}`);
 });

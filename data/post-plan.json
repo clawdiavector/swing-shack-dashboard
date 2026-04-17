@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T07:47:53.468Z",
+  "updated": "2026-04-17T08:18:57.713Z",
   "generated": "generate_post_plan.js",
   "plan_length": 7,
   "plan": [
@@ -15,8 +15,8 @@
       "objective": "reach",
       "why_chosen": "Cross-signal score 8.0: IG proof 10 + YouTube alignment 10 · optimised for reach",
       "evidence": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "4 Simple Steps For The Perfect Golf Drive"
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "Possibly The BEST DRIVER Tip Ever In GOLF"
       ],
       "status": "ready",
       "topics": [
@@ -28,7 +28,11 @@
       ],
       "ig_score": 10,
       "yt_score": 10,
-      "cross_score": 8
+      "cross_score": 8,
+      "owner": "Coach Cat / Divan",
+      "asset_needed": "TrackMan screenshot or data graphic",
+      "urgency": "today",
+      "suggested_source_section": "WATCHED + WORKED"
     },
     {
       "day": "Saturday",
@@ -42,8 +46,8 @@
       "objective": "reach",
       "why_chosen": "Cross-signal score 7.1: IG proof 9.86 + YouTube alignment 6 · optimised for reach",
       "evidence": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "How to hit irons Consistently (Simple Golf Tips)"
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "Possibly The BEST DRIVER Tip Ever In GOLF"
       ],
       "status": "ready",
       "topics": [
@@ -52,7 +56,11 @@
       ],
       "ig_score": 9.86,
       "yt_score": 6,
-      "cross_score": 7.1
+      "cross_score": 7.1,
+      "owner": "Coach Cat",
+      "asset_needed": "Swing clip or lesson photo",
+      "urgency": "today",
+      "suggested_source_section": "WATCHED + WORKED"
     },
     {
       "day": "Sunday",
@@ -66,8 +74,8 @@
       "objective": "bookings",
       "why_chosen": "Cross-signal score 6.7: IG proof 9.129999999999999 + YouTube alignment 6 · optimised for bookings",
       "evidence": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "How to hit irons Consistently (Simple Golf Tips)"
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "Possibly The BEST DRIVER Tip Ever In GOLF"
       ],
       "status": "ready",
       "topics": [
@@ -76,7 +84,11 @@
       ],
       "ig_score": 9.129999999999999,
       "yt_score": 6,
-      "cross_score": 6.7
+      "cross_score": 6.7,
+      "owner": "Coach Cat",
+      "asset_needed": "Text graphic or booking CTA image",
+      "urgency": "flexible",
+      "suggested_source_section": "WATCHED + WORKED"
     },
     {
       "day": "Monday",
@@ -90,8 +102,8 @@
       "objective": "saves",
       "why_chosen": "Cross-signal score 7.4: IG proof 10 + YouTube alignment 7 · optimised for saves",
       "evidence": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "How to hit irons Consistently (Simple Golf Tips)"
+        "Master Your Senior Golf Swing in 3 Easy Steps",
+        "Possibly The BEST DRIVER Tip Ever In GOLF"
       ],
       "status": "ready",
       "topics": [
@@ -100,7 +112,11 @@
       ],
       "ig_score": 10,
       "yt_score": 7,
-      "cross_score": 7.4
+      "cross_score": 7.4,
+      "owner": "Coach Cat",
+      "asset_needed": "Swing clip or lesson photo",
+      "urgency": "this_week",
+      "suggested_source_section": "WATCHED + WORKED"
     },
     {
       "day": "Tuesday",
@@ -124,7 +140,11 @@
       ],
       "ig_score": 9.4,
       "yt_score": 6,
-      "cross_score": 6.8
+      "cross_score": 6.8,
+      "owner": "Divan",
+      "asset_needed": "Contest/prize image or graphic",
+      "urgency": "flexible",
+      "suggested_source_section": "WATCHED + WORKED"
     },
     {
       "day": "Wednesday",
@@ -146,7 +166,11 @@
       ],
       "ig_score": 0,
       "yt_score": 0,
-      "cross_score": 9
+      "cross_score": 9,
+      "owner": "Swing Shack page",
+      "asset_needed": "High-quality static image",
+      "urgency": "this_week",
+      "suggested_source_section": "Hook Bank / Content Ideas"
     },
     {
       "day": "Thursday",
@@ -168,7 +192,11 @@
       ],
       "ig_score": 0,
       "yt_score": 0,
-      "cross_score": 9
+      "cross_score": 9,
+      "owner": "Divan",
+      "asset_needed": "High-quality static image",
+      "urgency": "this_week",
+      "suggested_source_section": "Hook Bank / Content Ideas"
     }
   ],
   "meta": {
@@ -180,6 +208,61 @@
       "bookings",
       "saves",
       "awareness"
+    ],
+    "urgency_breakdown": {
+      "today": 2,
+      "this_week": 3,
+      "flexible": 2
+    },
+    "owner_breakdown": {
+      "Coach Cat / Divan": 1,
+      "Coach Cat": 3,
+      "Divan": 2,
+      "Swing Shack page": 1
+    },
+    "asset_alerts": [
+      {
+        "owner": "Coach Cat / Divan",
+        "asset": "TrackMan screenshot or data graphic",
+        "day": "Friday Apr 17",
+        "hook": "That slice costing you yards off the tee? TrackMan"
+      },
+      {
+        "owner": "Coach Cat",
+        "asset": "Swing clip or lesson photo",
+        "day": "Saturday Apr 18",
+        "hook": "Need some help with your putting? Coach Cat explai"
+      },
+      {
+        "owner": "Coach Cat",
+        "asset": "Text graphic or booking CTA image",
+        "day": "Sunday Apr 19",
+        "hook": "Book your session with Coach Cat @swingshack ⛳️"
+      },
+      {
+        "owner": "Coach Cat",
+        "asset": "Swing clip or lesson photo",
+        "day": "Monday Apr 20",
+        "hook": "Need to relax and find your golf swing tempo? Join"
+      },
+      {
+        "owner": "Divan",
+        "asset": "Contest/prize image or graphic",
+        "day": "Tuesday Apr 21",
+        "hook": "Lowest net score wins a *new custom fitted driver!"
+      },
+      {
+        "owner": "Swing Shack page",
+        "asset": "High-quality static image",
+        "day": "Wednesday Apr 22",
+        "hook": "Go to your coaching sessions. Your ball deserves b"
+      },
+      {
+        "owner": "Divan",
+        "asset": "High-quality static image",
+        "day": "Thursday Apr 23",
+        "hook": "Have you ever been for an elite level Custom Fitti"
+      }
     ]
   }
 }

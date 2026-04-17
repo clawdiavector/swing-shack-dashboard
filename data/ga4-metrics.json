@@ -1,9 +1,9 @@
 {
-  "updated": "2026-04-17T07:47:29.124Z",
-  "fetched_at": "2026-04-17T07:47:29.124Z",
+  "updated": "2026-04-17T08:18:34.105Z",
+  "fetched_at": "2026-04-17T08:18:34.105Z",
   "property_id": "427380680",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 950,
+  "total_sessions": 951,
   "pages": [
     {
       "path": "/",
@@ -17,8 +17,8 @@
     },
     {
       "path": "/",
-      "sessions": 85,
-      "engRate": "35.3%"
+      "sessions": 86,
+      "engRate": "34.9%"
     },
     {
       "path": "/customer-portal/",
@@ -63,7 +63,7 @@
     },
     {
       "source": "(direct)",
-      "sessions": 203
+      "sessions": 204
     },
     {
       "source": "c.yoco.com",

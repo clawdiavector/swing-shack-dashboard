@@ -1,7 +1,7 @@
 {
-  "updated": "2026-04-17T07:47:53.415Z",
+  "updated": "2026-04-17T08:18:57.659Z",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 950,
+  "total_sessions": 951,
   "source_share": {
     "organic_pct": "60.9",
     "direct_pct": "0.0",
@@ -9,7 +9,7 @@
     "organic_sessions": 579,
     "direct_sessions": 0,
     "social_sessions": 0,
-    "total": 950
+    "total": 951
   },
   "funnel": {
     "booking_pages": {
@@ -36,7 +36,16 @@
       ]
     }
   },
-  "weak_ctas": [],
+  "weak_ctas": [
+    {
+      "page": "/",
+      "sessions": 86,
+      "engagement": "34.9%",
+      "severity": "HIGH",
+      "likely_issue": "Weak or missing CTA",
+      "fix": "Add prominent CTA to /"
+    }
+  ],
   "top_pages": [
     {
       "path": "/checkout/",
@@ -56,6 +65,13 @@
   ],
   "recommendations": [
     {
+      "issue": "High-traffic pages with weak CTA",
+      "severity": "HIGH",
+      "evidence": "1 page(s) with >50 sessions but <20% engagement. Pages: / (86 sess, 34.9% eng)",
+      "recommended_fix": "Add prominent \"Book Now\" CTA to: /. Test button contrast, size, and above-fold placement.",
+      "source_metric": "ga4.pages.engagementRate"
+    },
+    {
       "issue": "Booking funnel drop-off detected",
       "severity": "HIGH",
       "evidence": "176 booking page sessions → 29 checkout sessions (16.5% conversion rate)",
@@ -71,14 +87,15 @@
     }
   ],
   "insights": [
+    "⚠️ 1 pages with high traffic but weak CTAs",
     "⚠️ Booking funnel: 176 → 29 checkout (16% conv)",
     "✅ Top: /checkout/ (96.6% eng), /club-fitting/ (91.7% eng), / (88.0% eng)"
   ],
   "summary": {
     "health_score": "NEEDS_ATTENTION",
-    "critical_count": 1,
+    "critical_count": 2,
     "medium_count": 1,
     "low_count": 0,
-    "top_priority": "Booking funnel drop-off detected"
+    "top_priority": "High-traffic pages with weak CTA"
   }
 }

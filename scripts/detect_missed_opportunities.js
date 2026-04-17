@@ -35,7 +35,8 @@ winners.forEach(w => {
   );
   if (relatedIdeas.length < 2) {
     opportunities.push({
-      type:   'hook_winner_not_reused',
+      type:     'hook_winner_not_reused',
+      category: 'follow_up_gap',
       severity: 'high',
       hook:   w.hook_text,
       topic:  w.youtube_topic_match?.[0] || 'unknown',
@@ -56,7 +57,8 @@ ga4Pages.slice(0, 10).forEach(p => {
   const matched = igCaps.filter(c => pgPath.split(' ').some(w => w.length > 3 && c.includes(w)));
   if (matched.length === 0) {
     opportunities.push({
-      type:   'traffic_no_content',
+      type:     'traffic_no_content',
+      category: 'content_gap',
       severity: sessions > 50 ? 'high' : 'medium',
       page:   p.path || '/',
       sessions,
@@ -75,7 +77,8 @@ rdTrends.filter(t => (t.score || 0) >= 30).forEach(t => {
   ));
   if (!matchedPost) {
     opportunities.push({
-      type:   'reddit_pain_no_ig',
+      type:     'reddit_pain_no_ig',
+      category: 'content_gap',
       severity: (t.score || 0) >= 80 ? 'high' : 'medium',
       reddit_title: t.title,
       subreddit: t.subreddit || 'golf',
@@ -103,7 +106,8 @@ Object.entries(ytSvcMap).forEach(([svc, kwArr]) => {
   const igMatch = igCaps.filter(c => kwArr.some(k => c.includes(k)));
   if (igMatch.length === 0) {
     opportunities.push({
-      type:   'youtube_trend_no_ig',
+      type:     'youtube_trend_no_ig',
+      category: 'content_gap',
       severity: 'medium',
       topic:  svc,
       yt_video_count: ytMatch.length,
@@ -121,7 +125,8 @@ Object.entries(ytSvcMap).forEach(([svc, kwArr]) => {
   const matchedPost = (ig.posts || []).find(p => (p.caption || '').toLowerCase().includes(keyword));
   if (!matchedPost) {
     opportunities.push({
-      type:   'seo_rising_no_content',
+      type:     'seo_rising_no_content',
+      category: 'seo_gap',
       severity: 'medium',
       keyword,
       rank:   kw.current_rank || '?',
@@ -144,7 +149,8 @@ SALE_ANGLES.forEach(angle => {
   const saleTerms = angle.kw.filter(k => igText.includes(k));
   if (saleTerms.length === 0) {
     opportunities.push({
-      type:   'sale_angle_not_pushed',
+      type:     'sale_angle_not_pushed',
+      category: 'offer_gap',
       severity: 'low',
       angle:  angle.label,
       keywords_found: saleTerms,
@@ -182,13 +188,21 @@ const output = {
     medium: deduped.filter(o => o.severity === 'medium').length,
     low:    deduped.filter(o => o.severity === 'low').length,
   },
+  by_category: {
+    follow_up_gap:   deduped.filter(o => o.category === 'follow_up_gap').length,
+    content_gap:     deduped.filter(o => o.category === 'content_gap').length,
+    seo_gap:         deduped.filter(o => o.category === 'seo_gap').length,
+    conversion_gap:  deduped.filter(o => o.category === 'conversion_gap').length,
+    offer_gap:       deduped.filter(o => o.category === 'offer_gap').length,
+  },
   opportunities: deduped,
 };
 
 fs.writeFileSync(OUTPUT, JSON.stringify(output, null, 2));
 console.log(`✅ Missed opportunities detected: ${OUTPUT}`);
 console.log(`   Total: ${deduped.length} | High: ${output.by_severity.high} | Medium: ${output.by_severity.medium} | Low: ${output.by_severity.low}`);
+console.log(`   Categories: ${Object.entries(output.by_category).filter(([,n]) => n > 0).map(([k,n]) => `${k}×${n}`).join(', ')}`);
 deduped.forEach((o, i) => {
-  console.log(`   ${i+1}. [${o.severity.toUpperCase()}] ${o.type}`);
-  console.log(`      → ${o.suggestion.substring(0, 80)}`);
+  console.log(`   ${i+1}. [${o.severity.toUpperCase()}] ${o.category} → ${o.type}`);
+  console.log(`      → ${o.suggestion.substring(0, 75)}`);
 });

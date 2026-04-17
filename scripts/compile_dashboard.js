@@ -66,9 +66,10 @@ const ab = readJson('ab-tests.json') || {};
 const used = readJson('used-items.json') || { suppressed_ideas: [], suppressed_hooks: [] };
 const published = readJson('published-posts.json') || { published: [] };
 const buildMeta = readJson('build-meta.json') || {};
-const postPlan  = readJson('post-plan.json') || null;
-const salesPrio = readJson('sales-priority.json') || null;
-const missed    = readJson('missed-opportunities.json') || null;
+const postPlan   = readJson('post-plan.json') || null;
+const salesPrio  = readJson('sales-priority.json') || null;
+const missed     = readJson('missed-opportunities.json') || null;
+const followUpQ  = readJson('follow-up-queue.json') || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -453,6 +454,42 @@ if (ideas.post_today && ideas.post_today.length > 0) {
     </div>
   </div>`;
 }
+
+// ── FOLLOW UP NEXT ───────────────────────────────────────────────
+let followUpContent = '<p class="empty">No follow-up queue yet.</p>';
+if (followUpQ && followUpQ.queue && followUpQ.queue.length > 0) {
+  const items = followUpQ.queue.slice(0, 4);
+  const cards = items.map(item => {
+    const urgClass = item.urgency === 'high' ? 'fu-urgency--high' : item.urgency === 'medium' ? 'fu-urgency--med' : 'fu-urgency--low';
+    const urgLabel = item.urgency === 'high' ? 'HIGH' : item.urgency === 'medium' ? 'MED' : 'low';
+    const planned = item.already_planned ? '<span class="fu-planned">📅 in this week\'s plan</span>' : '';
+    return `
+    <div class="fu-card">
+      <div class="fu-card-header">
+        <span class="fu-topic">${item.topic}</span>
+        <span class="fu-owner">👤 ${item.owner}</span>
+        <span class="fu-urgency ${urgClass}">${urgLabel}</span>
+        ${planned}
+      </div>
+      <div class="fu-hook">${truncate(item.suggested_hook || item.original_hook || '', 65)}</div>
+      <div class="fu-why">→ ${truncate(item.why_now || '', 60)}</div>
+      <div class="fu-footer">
+        <span class="fu-asset">📦 ${truncate(item.asset_needed || '', 40)}</span>
+        <span class="fu-cta">${truncate(item.suggested_cta || '', 35)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const summary = `<p class="fu-summary">
+    ${followUpQ.queue.length} topics need follow-up ·
+    <span class="fu-hi">${followUpQ.meta?.high_urgency || 0} high priority</span> ·
+    Owners: ${(followUpQ.meta?.owners || []).join(', ')}
+  </p>`;
+
+  followUpContent = summary + '<div class="fu-grid">' + cards + '</div>';
+}
+const followUpSection = buildSection('🔄 FOLLOW UP NEXT', freshnessBadge(followUpQ?.updated), followUpContent);
+
 const ideaSection = buildSection('💡 Content Ideas', freshnessBadge(ideas.updated), ideaContent);
 
 // ── GOLF NEWS ─────────────────────────────────────────────────────
@@ -736,6 +773,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .tw-meta--secondary { color: var(--muted); opacity: 0.7; margin-top: 2px; }
 .tw-action { font-size: 0.7rem; color: var(--info); margin-top: 3px; font-style: italic; }
 .tw-sales-main { color: #ffa500; }
+
+/* FOLLOW UP NEXT */
+.fu-summary { font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; font-weight: 600; }
+.fu-hi { color: #ff4757; }
+.fu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fu-card { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 12px 14px; border-left: 3px solid #ff6b35; }
+.fu-card-header { display: flex; gap: 8px; align-items: center; margin-bottom: 7px; flex-wrap: wrap; }
+.fu-topic { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #ff6b35; background: rgba(255,107,53,0.15); padding: 2px 7px; border-radius: 4px; }
+.fu-owner { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+.fu-urgency { font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+.fu-urgency--high { background: rgba(255,71,87,0.2); color: #ff4757; }
+.fu-urgency--med  { background: rgba(255,165,0,0.2); color: #ffa500; }
+.fu-urgency--low  { background: rgba(0,180,216,0.2); color: var(--info); }
+.fu-planned { font-size: 0.65rem; color: var(--success); background: rgba(0,210,106,0.1); padding: 2px 6px; border-radius: 4px; }
+.fu-hook { font-size: 0.87rem; font-weight: 700; color: var(--text); margin-bottom: 4px; line-height: 1.35; }
+.fu-why { font-size: 0.73rem; color: var(--muted); font-style: italic; margin-bottom: 5px; }
+.fu-footer { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.fu-asset { font-size: 0.7rem; color: var(--info); }
+.fu-cta { font-size: 0.7rem; color: var(--success); }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -781,6 +837,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${igSection}
   ${hookSection}
   ${watchedSection}
+  ${followUpSection}
   ${ideaSection}
   ${abSection}
   ${newsSection}

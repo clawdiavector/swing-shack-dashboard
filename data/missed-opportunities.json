@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T07:47:53.560Z",
+  "updated": "2026-04-17T08:18:57.805Z",
   "generated": "detect_missed_opportunities.js",
   "count": 10,
   "by_severity": {
@@ -7,9 +7,17 @@
     "medium": 2,
     "low": 0
   },
+  "by_category": {
+    "follow_up_gap": 5,
+    "content_gap": 5,
+    "seo_gap": 0,
+    "conversion_gap": 0,
+    "offer_gap": 0
+  },
   "opportunities": [
     {
       "type": "hook_winner_not_reused",
+      "category": "follow_up_gap",
       "severity": "high",
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "topic": "driver",
@@ -19,6 +27,7 @@
     },
     {
       "type": "hook_winner_not_reused",
+      "category": "follow_up_gap",
       "severity": "high",
       "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
       "topic": "lessons",
@@ -28,6 +37,7 @@
     },
     {
       "type": "hook_winner_not_reused",
+      "category": "follow_up_gap",
       "severity": "high",
       "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
       "topic": "short_game",
@@ -37,6 +47,7 @@
     },
     {
       "type": "hook_winner_not_reused",
+      "category": "follow_up_gap",
       "severity": "high",
       "hook": "Lowest net score wins a *new custom fitted driver!*",
       "topic": "driver",
@@ -46,6 +57,7 @@
     },
     {
       "type": "hook_winner_not_reused",
+      "category": "follow_up_gap",
       "severity": "high",
       "hook": "Book your session with Coach Cat @swingshack ⛳️",
       "topic": "lessons",
@@ -55,6 +67,7 @@
     },
     {
       "type": "traffic_no_content",
+      "category": "content_gap",
       "severity": "high",
       "page": "/",
       "sessions": 270,
@@ -63,6 +76,7 @@
     },
     {
       "type": "traffic_no_content",
+      "category": "content_gap",
       "severity": "high",
       "page": "/bookings/",
       "sessions": 147,
@@ -71,6 +85,7 @@
     },
     {
       "type": "traffic_no_content",
+      "category": "content_gap",
       "severity": "high",
       "page": "/customer-portal/",
       "sessions": 54,
@@ -79,6 +94,7 @@
     },
     {
       "type": "traffic_no_content",
+      "category": "content_gap",
       "severity": "medium",
       "page": "/club-fitting/",
       "sessions": 36,
@@ -87,6 +103,7 @@
     },
     {
       "type": "traffic_no_content",
+      "category": "content_gap",
       "severity": "medium",
       "page": "/checkout/",
       "sessions": 29,

@@ -137,6 +137,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .tw-meta--secondary { color: var(--muted); opacity: 0.7; margin-top: 2px; }
 .tw-action { font-size: 0.7rem; color: var(--info); margin-top: 3px; font-style: italic; }
 .tw-sales-main { color: #ffa500; }
+
+/* FOLLOW UP NEXT */
+.fu-summary { font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; font-weight: 600; }
+.fu-hi { color: #ff4757; }
+.fu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fu-card { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 12px 14px; border-left: 3px solid #ff6b35; }
+.fu-card-header { display: flex; gap: 8px; align-items: center; margin-bottom: 7px; flex-wrap: wrap; }
+.fu-topic { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #ff6b35; background: rgba(255,107,53,0.15); padding: 2px 7px; border-radius: 4px; }
+.fu-owner { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+.fu-urgency { font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+.fu-urgency--high { background: rgba(255,71,87,0.2); color: #ff4757; }
+.fu-urgency--med  { background: rgba(255,165,0,0.2); color: #ffa500; }
+.fu-urgency--low  { background: rgba(0,180,216,0.2); color: var(--info); }
+.fu-planned { font-size: 0.65rem; color: var(--success); background: rgba(0,210,106,0.1); padding: 2px 6px; border-radius: 4px; }
+.fu-hook { font-size: 0.87rem; font-weight: 700; color: var(--text); margin-bottom: 4px; line-height: 1.35; }
+.fu-why { font-size: 0.73rem; color: var(--muted); font-style: italic; margin-bottom: 5px; }
+.fu-footer { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.fu-asset { font-size: 0.7rem; color: var(--info); }
+.fu-cta { font-size: 0.7rem; color: var(--success); }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -181,7 +200,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/17, 09:47:53 SAST</span>
+    <span class="summary-value">2026/04/17, 10:18:57 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -203,7 +222,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
     <div class="tw-item tw-item--sales">
       <div class="tw-label">💰 Push this week</div>
       <div class="tw-value">Club Fitting</div>
-      <div class="tw-meta">4.0/10 · High website traffic interest (10)</div>
+      <div class="tw-meta">7.4/10 · Strong IG engagement (8)</div>
       <div class="tw-meta tw-meta--secondary">Also: Golf Lessons</div>
     </div>
     <div class="tw-sep"></div>
@@ -354,7 +373,7 @@ Pros average 112 mph. Tra...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 8</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">driver</span><span class="ww-topic">slice_fix</span><span class="ww-topic">simulator</span></div>
-      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
     </div>
     <div class="ww-card ww-card--pt" data-content-type="hook">
       <div class="ww-card-top">
@@ -371,7 +390,7 @@ Pros average 112 mph. Tra...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 7.4</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">lessons</span><span class="ww-topic">swing</span></div>
-      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
     </div>
     <div class="ww-card ww-card--pt" data-content-type="hook">
       <div class="ww-card-top">
@@ -388,7 +407,7 @@ Pros average 112 mph. Tra...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 7.1</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">short_game</span><span class="ww-topic">lessons</span></div>
-      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
     </div>
     <div class="ww-card ww-card--pt" data-content-type="promo">
       <div class="ww-card-top">
@@ -422,7 +441,7 @@ Pros average 112 mph. Tra...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 6.7</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">booking</span><span class="ww-topic">conversion</span></div>
-      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
     </div></div>
   <script>
   document.querySelectorAll('.ww-filter-btn').forEach(btn => {
@@ -436,6 +455,59 @@ Pros average 112 mph. Tra...</span>
     });
   });
   </script>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔄 FOLLOW UP NEXT</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <p class="fu-summary">
+    3 topics need follow-up ·
+    <span class="fu-hi">3 high priority</span> ·
+    Owners: Divan, Coach Cat
+  </p><div class="fu-grid">
+    <div class="fu-card">
+      <div class="fu-card-header">
+        <span class="fu-topic">driver</span>
+        <span class="fu-owner">👤 Divan</span>
+        <span class="fu-urgency fu-urgency--high">HIGH</span>
+        <span class="fu-planned">📅 in this week's plan</span>
+      </div>
+      <div class="fu-hook">Your driver data tells a story. TrackMan tells you how to fix it.</div>
+      <div class="fu-why">→ Topic already scheduled this week — follow-up CTA still reco...</div>
+      <div class="fu-footer">
+        <span class="fu-asset">📦 Club/fitting photo or TrackMan data scre...</span>
+        <span class="fu-cta">Book a lesson · Link in bio</span>
+      </div>
+    </div>
+    <div class="fu-card">
+      <div class="fu-card-header">
+        <span class="fu-topic">lessons</span>
+        <span class="fu-owner">👤 Coach Cat</span>
+        <span class="fu-urgency fu-urgency--high">HIGH</span>
+        <span class="fu-planned">📅 in this week's plan</span>
+      </div>
+      <div class="fu-hook">Zero to 18 handicap in 6 months. Cat breaks down the sessions tha...</div>
+      <div class="fu-why">→ Topic already scheduled this week — follow-up CTA still reco...</div>
+      <div class="fu-footer">
+        <span class="fu-asset">📦 Swing clip or lesson photo</span>
+        <span class="fu-cta">Book your first lesson · swingshack...</span>
+      </div>
+    </div>
+    <div class="fu-card">
+      <div class="fu-card-header">
+        <span class="fu-topic">short_game</span>
+        <span class="fu-owner">👤 Coach Cat</span>
+        <span class="fu-urgency fu-urgency--high">HIGH</span>
+        <span class="fu-planned">📅 in this week's plan</span>
+      </div>
+      <div class="fu-hook">One putting session with Cat changed everything. Here's the drill...</div>
+      <div class="fu-why">→ Topic already scheduled this week — follow-up CTA still reco...</div>
+      <div class="fu-footer">
+        <span class="fu-asset">📦 Swing clip or lesson photo</span>
+        <span class="fu-cta">Book a lesson · swingshack.co.za/me...</span>
+      </div>
+    </div></div>
   </div>
   <div class="section">
     <div class="section-header">
@@ -617,7 +689,7 @@ Pros average 112 mph. Tra...</span>
     <div class="ga4-pages">
       <table class="ga4-table">
         <tr><th>Landing Page</th><th>Sessions</th><th>Eng Rate</th></tr>
-        <tr><td>/</td><td>270</td><td class="">?</td></tr><tr><td>/bookings/</td><td>147</td><td class="">?</td></tr><tr><td>/</td><td>85</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>54</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>44</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>42</td><td class="">?</td></tr><tr><td>/club-fitting/</td><td>36</td><td class="">?</td></tr><tr><td>/bookings/</td><td>29</td><td class="">?</td></tr><tr><td>/checkout/</td><td>29</td><td class="">?</td></tr><tr><td>/</td><td>25</td><td class="">?</td></tr>
+        <tr><td>/</td><td>270</td><td class="">?</td></tr><tr><td>/bookings/</td><td>147</td><td class="">?</td></tr><tr><td>/</td><td>86</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>54</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>44</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>42</td><td class="">?</td></tr><tr><td>/club-fitting/</td><td>36</td><td class="">?</td></tr><tr><td>/bookings/</td><td>29</td><td class="">?</td></tr><tr><td>/checkout/</td><td>29</td><td class="">?</td></tr><tr><td>/</td><td>25</td><td class="">?</td></tr>
       </table>
     </div>
   </div>
