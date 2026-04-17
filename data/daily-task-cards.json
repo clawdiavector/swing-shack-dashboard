@@ -1,0 +1,663 @@
+{
+  "updated": "2026-04-17T11:11:39.416Z",
+  "generated": "generate_daily_task_cards.js",
+  "summary": {
+    "total": 18,
+    "by_status": {
+      "ready": 11,
+      "blocked": 7,
+      "scheduled": 0,
+      "done": 0,
+      "waiting_approval": 0
+    },
+    "by_owner": 4,
+    "today_count": 0,
+    "blocked_count": 7
+  },
+  "top_tasks": [
+    {
+      "task_id": "task_mo2t5tw8q2ci",
+      "title": "A/B Test: hook_angle",
+      "description": "Test: Test TrackMan stats angle vs transformation angle on \"lessons\" hook\nSuccess: engagement_rate > 3% AND save_rate > 1.5%",
+      "owner": "Coach Cat",
+      "source": "experiment",
+      "source_id": "hook_test_1776424299246_dibf",
+      "channel": "IG Reel",
+      "asset_needed": "variant_a_and_b_creative",
+      "expected_outcome": "winner emerges in 3-5 days",
+      "urgency_score": 16.8,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "test_variant_a": {
+        "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+        "label": "Stats/TrackMan (proven)"
+      },
+      "test_variant_b": {
+        "hook": "Your \"lessons\" problem? Here's how TrackMan finds it in one session.",
+        "label": "Problem-aware (test)"
+      },
+      "success_metric": "engagement_rate > 3% AND save_rate > 1.5%"
+    },
+    {
+      "task_id": "task_mo2t5tw8u7ey",
+      "title": "A/B Test: hook_angle",
+      "description": "Test: Test TrackMan stats angle vs transformation angle on \"short_game\" hook\nSuccess: engagement_rate > 3% AND save_rate > 1.5%",
+      "owner": "Swing Shack page",
+      "source": "experiment",
+      "source_id": "hook_test_1776424299246_re4u",
+      "channel": "IG Static",
+      "asset_needed": "variant_a_and_b_creative",
+      "expected_outcome": "winner emerges in 3-5 days",
+      "urgency_score": 16.4,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "test_variant_a": {
+        "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+        "label": "Stats/TrackMan (proven)"
+      },
+      "test_variant_b": {
+        "hook": "Your \"short_game\" problem? Here's how TrackMan finds it in one session.",
+        "label": "Problem-aware (test)"
+      },
+      "success_metric": "engagement_rate > 3% AND save_rate > 1.5%"
+    },
+    {
+      "task_id": "task_mo2t5tw836sk",
+      "title": "A/B Test: hook_angle",
+      "description": "Test: Test TrackMan stats angle vs transformation angle on \"driver\" hook\nSuccess: engagement_rate > 3% AND save_rate > 1.5%",
+      "owner": "Swing Shack page",
+      "source": "experiment",
+      "source_id": "hook_test_1776424299246_smlz",
+      "channel": "IG Static",
+      "asset_needed": "variant_a_and_b_creative",
+      "expected_outcome": "winner emerges in 3-5 days",
+      "urgency_score": 15.6,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "test_variant_a": {
+        "hook": "Lowest net score wins a *new custom fitted driver!*",
+        "label": "Stats/TrackMan (proven)"
+      },
+      "test_variant_b": {
+        "hook": "Your \"driver\" problem? Here's how TrackMan finds it in one session.",
+        "label": "Problem-aware (test)"
+      },
+      "success_metric": "engagement_rate > 3% AND save_rate > 1.5%"
+    },
+    {
+      "task_id": "task_mo2t5tw7ot8m",
+      "title": "That slice costing you yards off the tee? TrackMan found it ",
+      "description": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses\nCTA: Link in bio · Book your session",
+      "owner": "Coach Cat / Divan",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7v2w4",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "reach",
+      "day": "Friday",
+      "date": "Apr 17",
+      "due_date": "Apr 17",
+      "asset_needed": "TrackMan screenshot or data graphic",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 10,
+      "urgency": "today",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:TrackMan screenshot or data graphic"
+      ],
+      "suggested_hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "suggested_cta": "Link in bio · Book your session"
+    },
+    {
+      "task_id": "task_mo2t5tw7pqmh",
+      "title": "Need some help with your putting? Coach Cat explains what ma",
+      "description": "Need some help with your putting? Coach Cat explains what makes these zero torqu\nCTA: Link in bio · Book your session",
+      "owner": "Coach Cat",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7945e",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "reach",
+      "day": "Saturday",
+      "date": "Apr 18",
+      "due_date": "Apr 18",
+      "asset_needed": "Swing clip or lesson photo",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 10,
+      "urgency": "today",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:Swing clip or lesson photo"
+      ],
+      "suggested_hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+      "suggested_cta": "Link in bio · Book your session"
+    },
+    {
+      "task_id": "task_mo2t5tw8dat6",
+      "title": "Scale: Turn into recurring series",
+      "description": "Turn into recurring series\nExpected: growth",
+      "owner": "Coach Cat",
+      "source": "scale",
+      "asset_needed": null,
+      "urgency_score": 8,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "suggested_hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee"
+    },
+    {
+      "task_id": "task_mo2t5tw80wtr",
+      "title": "Scale: Turn into recurring series",
+      "description": "Turn into recurring series\nExpected: growth",
+      "owner": "Swing Shack page",
+      "source": "scale",
+      "asset_needed": null,
+      "urgency_score": 8,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "suggested_hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu"
+    },
+    {
+      "task_id": "task_mo2t5tw72hq3",
+      "title": "Need to relax and find your golf swing tempo? Join Coach Cat",
+      "description": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee\nCTA: Save this · Share with a golfer",
+      "owner": "Coach Cat",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7e9iw",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "saves",
+      "day": "Monday",
+      "date": "Apr 20",
+      "due_date": "Apr 20",
+      "asset_needed": "Swing clip or lesson photo",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 6,
+      "urgency": "this_week",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:Swing clip or lesson photo"
+      ],
+      "suggested_hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "suggested_cta": "Save this · Share with a golfer"
+    },
+    {
+      "task_id": "task_mo2t5tw7a5qa",
+      "title": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "description": "Go to your coaching sessions. Your ball deserves better 🫂\nCTA: Link in bio · Book your session",
+      "owner": "Swing Shack page",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7b9e3",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "awareness",
+      "day": "Wednesday",
+      "date": "Apr 22",
+      "due_date": "Apr 22",
+      "asset_needed": "High-quality static image",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 6,
+      "urgency": "this_week",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:High-quality static image"
+      ],
+      "suggested_hook": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "suggested_cta": "Link in bio · Book your session"
+    },
+    {
+      "task_id": "task_mo2t5tw78mht",
+      "title": "Have you ever been for an elite level Custom Fitting? Get th",
+      "description": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui\nCTA: Link in bio · Book your session",
+      "owner": "Divan",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7whg0",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "awareness",
+      "day": "Thursday",
+      "date": "Apr 23",
+      "due_date": "Apr 23",
+      "asset_needed": "High-quality static image",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 6,
+      "urgency": "this_week",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:High-quality static image"
+      ],
+      "suggested_hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
+      "suggested_cta": "Link in bio · Book your session"
+    }
+  ],
+  "by_owner": [
+    {
+      "owner": "Swing Shack page",
+      "count": 7,
+      "ready": 6,
+      "blocked": 1,
+      "scheduled": 0,
+      "top_task": "A/B Test: hook_angle"
+    },
+    {
+      "owner": "Coach Cat",
+      "count": 6,
+      "ready": 3,
+      "blocked": 3,
+      "scheduled": 0,
+      "top_task": "A/B Test: hook_angle"
+    },
+    {
+      "owner": "Divan",
+      "count": 4,
+      "ready": 2,
+      "blocked": 2,
+      "scheduled": 0,
+      "top_task": "Have you ever been for an elite level Custom Fitting? Get th"
+    },
+    {
+      "owner": "Coach Cat / Divan",
+      "count": 1,
+      "ready": 0,
+      "blocked": 1,
+      "scheduled": 0,
+      "top_task": "That slice costing you yards off the tee? TrackMan found it "
+    }
+  ],
+  "all_tasks": [
+    {
+      "task_id": "task_mo2t5tw8q2ci",
+      "title": "A/B Test: hook_angle",
+      "description": "Test: Test TrackMan stats angle vs transformation angle on \"lessons\" hook\nSuccess: engagement_rate > 3% AND save_rate > 1.5%",
+      "owner": "Coach Cat",
+      "source": "experiment",
+      "source_id": "hook_test_1776424299246_dibf",
+      "channel": "IG Reel",
+      "asset_needed": "variant_a_and_b_creative",
+      "expected_outcome": "winner emerges in 3-5 days",
+      "urgency_score": 16.8,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "test_variant_a": {
+        "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+        "label": "Stats/TrackMan (proven)"
+      },
+      "test_variant_b": {
+        "hook": "Your \"lessons\" problem? Here's how TrackMan finds it in one session.",
+        "label": "Problem-aware (test)"
+      },
+      "success_metric": "engagement_rate > 3% AND save_rate > 1.5%"
+    },
+    {
+      "task_id": "task_mo2t5tw8u7ey",
+      "title": "A/B Test: hook_angle",
+      "description": "Test: Test TrackMan stats angle vs transformation angle on \"short_game\" hook\nSuccess: engagement_rate > 3% AND save_rate > 1.5%",
+      "owner": "Swing Shack page",
+      "source": "experiment",
+      "source_id": "hook_test_1776424299246_re4u",
+      "channel": "IG Static",
+      "asset_needed": "variant_a_and_b_creative",
+      "expected_outcome": "winner emerges in 3-5 days",
+      "urgency_score": 16.4,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "test_variant_a": {
+        "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+        "label": "Stats/TrackMan (proven)"
+      },
+      "test_variant_b": {
+        "hook": "Your \"short_game\" problem? Here's how TrackMan finds it in one session.",
+        "label": "Problem-aware (test)"
+      },
+      "success_metric": "engagement_rate > 3% AND save_rate > 1.5%"
+    },
+    {
+      "task_id": "task_mo2t5tw836sk",
+      "title": "A/B Test: hook_angle",
+      "description": "Test: Test TrackMan stats angle vs transformation angle on \"driver\" hook\nSuccess: engagement_rate > 3% AND save_rate > 1.5%",
+      "owner": "Swing Shack page",
+      "source": "experiment",
+      "source_id": "hook_test_1776424299246_smlz",
+      "channel": "IG Static",
+      "asset_needed": "variant_a_and_b_creative",
+      "expected_outcome": "winner emerges in 3-5 days",
+      "urgency_score": 15.6,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "test_variant_a": {
+        "hook": "Lowest net score wins a *new custom fitted driver!*",
+        "label": "Stats/TrackMan (proven)"
+      },
+      "test_variant_b": {
+        "hook": "Your \"driver\" problem? Here's how TrackMan finds it in one session.",
+        "label": "Problem-aware (test)"
+      },
+      "success_metric": "engagement_rate > 3% AND save_rate > 1.5%"
+    },
+    {
+      "task_id": "task_mo2t5tw7ot8m",
+      "title": "That slice costing you yards off the tee? TrackMan found it ",
+      "description": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses\nCTA: Link in bio · Book your session",
+      "owner": "Coach Cat / Divan",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7v2w4",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "reach",
+      "day": "Friday",
+      "date": "Apr 17",
+      "due_date": "Apr 17",
+      "asset_needed": "TrackMan screenshot or data graphic",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 10,
+      "urgency": "today",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:TrackMan screenshot or data graphic"
+      ],
+      "suggested_hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "suggested_cta": "Link in bio · Book your session"
+    },
+    {
+      "task_id": "task_mo2t5tw7pqmh",
+      "title": "Need some help with your putting? Coach Cat explains what ma",
+      "description": "Need some help with your putting? Coach Cat explains what makes these zero torqu\nCTA: Link in bio · Book your session",
+      "owner": "Coach Cat",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7945e",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "reach",
+      "day": "Saturday",
+      "date": "Apr 18",
+      "due_date": "Apr 18",
+      "asset_needed": "Swing clip or lesson photo",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 10,
+      "urgency": "today",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:Swing clip or lesson photo"
+      ],
+      "suggested_hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+      "suggested_cta": "Link in bio · Book your session"
+    },
+    {
+      "task_id": "task_mo2t5tw8dat6",
+      "title": "Scale: Turn into recurring series",
+      "description": "Turn into recurring series\nExpected: growth",
+      "owner": "Coach Cat",
+      "source": "scale",
+      "asset_needed": null,
+      "urgency_score": 8,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "suggested_hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee"
+    },
+    {
+      "task_id": "task_mo2t5tw80wtr",
+      "title": "Scale: Turn into recurring series",
+      "description": "Turn into recurring series\nExpected: growth",
+      "owner": "Swing Shack page",
+      "source": "scale",
+      "asset_needed": null,
+      "urgency_score": 8,
+      "urgency": "today",
+      "status": "ready",
+      "blockers": [],
+      "suggested_hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu"
+    },
+    {
+      "task_id": "task_mo2t5tw72hq3",
+      "title": "Need to relax and find your golf swing tempo? Join Coach Cat",
+      "description": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee\nCTA: Save this · Share with a golfer",
+      "owner": "Coach Cat",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7e9iw",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "saves",
+      "day": "Monday",
+      "date": "Apr 20",
+      "due_date": "Apr 20",
+      "asset_needed": "Swing clip or lesson photo",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 6,
+      "urgency": "this_week",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:Swing clip or lesson photo"
+      ],
+      "suggested_hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "suggested_cta": "Save this · Share with a golfer"
+    },
+    {
+      "task_id": "task_mo2t5tw7a5qa",
+      "title": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "description": "Go to your coaching sessions. Your ball deserves better 🫂\nCTA: Link in bio · Book your session",
+      "owner": "Swing Shack page",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7b9e3",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "awareness",
+      "day": "Wednesday",
+      "date": "Apr 22",
+      "due_date": "Apr 22",
+      "asset_needed": "High-quality static image",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 6,
+      "urgency": "this_week",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:High-quality static image"
+      ],
+      "suggested_hook": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "suggested_cta": "Link in bio · Book your session"
+    },
+    {
+      "task_id": "task_mo2t5tw78mht",
+      "title": "Have you ever been for an elite level Custom Fitting? Get th",
+      "description": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui\nCTA: Link in bio · Book your session",
+      "owner": "Divan",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7whg0",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "awareness",
+      "day": "Thursday",
+      "date": "Apr 23",
+      "due_date": "Apr 23",
+      "asset_needed": "High-quality static image",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 6,
+      "urgency": "this_week",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:High-quality static image"
+      ],
+      "suggested_hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
+      "suggested_cta": "Link in bio · Book your session"
+    },
+    {
+      "task_id": "task_mo2t5tw8a6pb",
+      "title": "Push booking CTA — traffic is hot",
+      "description": "Hook: Your clubs are waiting. Your handicap won't fix itself. ⛳\nCTA: Book a session · swingshack.co.za/bookings · From R250",
+      "owner": "Swing Shack page",
+      "source": "retarget",
+      "channel": "IG Static",
+      "format": "static",
+      "asset_needed": null,
+      "expected_outcome": "+20-35% booking rate from IG push",
+      "urgency_score": 5,
+      "urgency": "high",
+      "status": "ready",
+      "blockers": [],
+      "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
+      "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
+      "expiration_window": "today"
+    },
+    {
+      "task_id": "task_mo2t5tw8jc0w",
+      "title": "Scale: Scale Soft / Engagement CTA across all posts",
+      "description": "Increase soft / engagement cta CTA usage by 40% — highest conversion signal of all CTA types\nExpected: save_rate +0.3% | booking_intent +15%",
+      "owner": "Swing Shack page",
+      "source": "scale",
+      "asset_needed": null,
+      "expected_outcome": "save_rate +0.3% | booking_intent +15%",
+      "urgency_score": 4,
+      "urgency": "this_week",
+      "status": "ready",
+      "blockers": [],
+      "suggested_cta": "SOFT"
+    },
+    {
+      "task_id": "task_mo2t5tw8vxan",
+      "title": "Scale: Push Club Fitting harder this week",
+      "description": "Create 3 posts this week around Club Fitting\nExpected: booking sessions +20-30%",
+      "owner": "Divan",
+      "source": "scale",
+      "asset_needed": null,
+      "expected_outcome": "booking sessions +20-30%",
+      "urgency_score": 4,
+      "urgency": "this_week",
+      "status": "ready",
+      "blockers": [],
+      "suggested_cta": "Create 3 posts this week around Club Fitting"
+    },
+    {
+      "task_id": "task_mo2t5tw8h9hj",
+      "title": "A/B Test: youtube_angle_to_ig",
+      "description": "Test: Take trending YouTube angle for \"lessons\" and port to IG\nSuccess: cross_signal_score > 7 after 2 posts",
+      "owner": "Coach Cat",
+      "source": "experiment",
+      "source_id": "yt_test_1776424299246_el64",
+      "channel": "IG Reel",
+      "asset_needed": "variant_a_and_b_creative",
+      "expected_outcome": "winner emerges in 3-5 days",
+      "urgency_score": 3.6,
+      "urgency": "this_week",
+      "status": "ready",
+      "blockers": [],
+      "test_variant_a": {
+        "hook": "Master Your Senior Golf Swing in 3 Easy Steps",
+        "label": "YouTube angle (proven on YT)"
+      },
+      "test_variant_b": {
+        "hook": "What Nobody Tells You About the Senior Golf Swing",
+        "label": "Problem angle (IG-native)"
+      },
+      "success_metric": "cross_signal_score > 7 after 2 posts"
+    },
+    {
+      "task_id": "task_mo2t5tw8we6s",
+      "title": "A/B Test: youtube_angle_to_ig",
+      "description": "Test: Take trending YouTube angle for \"driver\" and port to IG\nSuccess: cross_signal_score > 7 after 2 posts",
+      "owner": "Swing Shack page",
+      "source": "experiment",
+      "source_id": "yt_test_1776424299246_n38l",
+      "channel": "IG Static",
+      "asset_needed": "variant_a_and_b_creative",
+      "expected_outcome": "winner emerges in 3-5 days",
+      "urgency_score": 3.6,
+      "urgency": "this_week",
+      "status": "ready",
+      "blockers": [],
+      "test_variant_a": {
+        "hook": "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "label": "YouTube angle (proven on YT)"
+      },
+      "test_variant_b": {
+        "hook": "4 Simple Steps For The Perfect Golf Drive",
+        "label": "Problem angle (IG-native)"
+      },
+      "success_metric": "cross_signal_score > 7 after 2 posts"
+    },
+    {
+      "task_id": "task_mo2t5tw86owk",
+      "title": "Publish service reminder post",
+      "description": "Hook: Off-the-rack clubs are costing you yards. Here's what TrackMan found.\nCTA: Get your clubs custom fitted · swingshack.co.za/membership · TrackMan powered",
+      "owner": "Divan",
+      "source": "retarget",
+      "channel": "IG Static",
+      "format": "static",
+      "asset_needed": null,
+      "expected_outcome": "+10-20% sessions from IG push",
+      "urgency_score": 3.5,
+      "urgency": "this_week",
+      "status": "ready",
+      "blockers": [],
+      "suggested_hook": "Off-the-rack clubs are costing you yards. Here's what TrackMan found.",
+      "suggested_cta": "Get your clubs custom fitted · swingshack.co.za/membership · TrackMan powered",
+      "expiration_window": "48h"
+    },
+    {
+      "task_id": "task_mo2t5tw7ju1n",
+      "title": "Book your session with Coach Cat @swingshack ⛳️",
+      "description": "Book your session with Coach Cat @swingshack ⛳️\nCTA: Book your session · Link in bio",
+      "owner": "Coach Cat",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7isbw",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "bookings",
+      "day": "Sunday",
+      "date": "Apr 19",
+      "due_date": "Apr 19",
+      "asset_needed": "Text graphic or booking CTA image",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 3,
+      "urgency": "flexible",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:Text graphic or booking CTA image"
+      ],
+      "suggested_hook": "Book your session with Coach Cat @swingshack ⛳️",
+      "suggested_cta": "Book your session · Link in bio"
+    },
+    {
+      "task_id": "task_mo2t5tw72mdb",
+      "title": "Lowest net score wins a *new custom fitted driver!*",
+      "description": "Lowest net score wins a *new custom fitted driver!*\nCTA: Enter now · Link in bio",
+      "owner": "Divan",
+      "source": "post_plan",
+      "source_id": "task_mo2t5tw7a2pr",
+      "format": "static",
+      "platform": "instagram",
+      "objective": "awareness",
+      "day": "Tuesday",
+      "date": "Apr 21",
+      "due_date": "Apr 21",
+      "asset_needed": "Contest/prize image or graphic",
+      "dependency": "asset_required",
+      "expected_outcome": "saves > 3, booking_ctr > 1%",
+      "urgency_score": 3,
+      "urgency": "flexible",
+      "status": "blocked",
+      "blockers": [
+        "asset_needed:Contest/prize image or graphic"
+      ],
+      "suggested_hook": "Lowest net score wins a *new custom fitted driver!*",
+      "suggested_cta": "Enter now · Link in bio"
+    }
+  ]
+}

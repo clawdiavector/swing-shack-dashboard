@@ -1,19 +1,19 @@
 {
-  "updated": "2026-04-17T10:57:11.089Z",
+  "updated": "2026-04-17T11:11:38.667Z",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 976,
+  "total_sessions": 984,
   "source_share": {
-    "organic_pct": "60.7",
+    "organic_pct": "61.0",
     "direct_pct": "0.0",
     "social_pct": "0.0",
-    "organic_sessions": 592,
+    "organic_sessions": 600,
     "direct_sessions": 0,
     "social_sessions": 0,
-    "total": 976
+    "total": 984
   },
   "funnel": {
     "booking_pages": {
-      "sessions": 181,
+      "sessions": 182,
       "paths": [
         "/bookings/",
         "/bookings/"
@@ -30,7 +30,7 @@
       "paths": []
     },
     "fitting_pages": {
-      "sessions": 36,
+      "sessions": 37,
       "paths": [
         "/club-fitting/"
       ]
@@ -54,8 +54,8 @@
     },
     {
       "path": "/club-fitting/",
-      "sessions": 36,
-      "engagement": "91.7%"
+      "sessions": 37,
+      "engagement": "89.2%"
     },
     {
       "path": "/",
@@ -74,22 +74,22 @@
     {
       "issue": "Booking funnel drop-off detected",
       "severity": "HIGH",
-      "evidence": "181 booking page sessions → 30 checkout sessions (16.6% conversion rate)",
+      "evidence": "182 booking page sessions → 30 checkout sessions (16.5% conversion rate)",
       "recommended_fix": "URGENT: Review booking flow for friction. Likely causes: form too long, page speed, or unclear next step. Test a single-field \"Book a Session\" CTA first.",
       "source_metric": "ga4.funnel.booking_to_checkout_ratio"
     },
     {
       "issue": "Organic traffic without clear booking path",
       "severity": "MEDIUM",
-      "evidence": "592 organic sessions (60.7% of all traffic)",
+      "evidence": "600 organic sessions (61.0% of all traffic)",
       "recommended_fix": "Ensure every high-engagement page has a \"Book a TrackMan Session\" CTA visible in first viewport scroll. TrackMan keyword intent = high commercial intent.",
       "source_metric": "ga4.sessions.organic"
     }
   ],
   "insights": [
     "⚠️ 1 pages with high traffic but weak CTAs",
-    "⚠️ Booking funnel: 181 → 30 checkout (17% conv)",
-    "✅ Top: /checkout/ (96.7% eng), /club-fitting/ (91.7% eng), / (88.0% eng)"
+    "⚠️ Booking funnel: 182 → 30 checkout (16% conv)",
+    "✅ Top: /checkout/ (96.7% eng), /club-fitting/ (89.2% eng), / (88.0% eng)"
   ],
   "summary": {
     "health_score": "NEEDS_ATTENTION",

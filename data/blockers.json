@@ -1,0 +1,223 @@
+{
+  "updated": "2026-04-17T11:11:39.547Z",
+  "generated": "generate_blockers.js",
+  "summary": {
+    "total_blockers": 19,
+    "by_type": {
+      "asset_needed_today": 2,
+      "no_booking_link": 1,
+      "missing_asset": 7,
+      "not_scheduled": 2,
+      "no_owner": 7
+    },
+    "high_severity": 6,
+    "today_urgency": 5,
+    "actionable": 19
+  },
+  "blockers": [
+    {
+      "blocker_id": "blk_mo2t5tzv26ct",
+      "type": "asset_needed_today",
+      "blocker": "Asset needed today",
+      "affected": "📊 TrackMan screenshot or data graphic",
+      "affected_id": null,
+      "owner": "Coach Cat / Divan",
+      "fix": "Source TrackMan screenshot or data graphic — 1 post(s) need this today",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzv4oy7",
+      "type": "asset_needed_today",
+      "blocker": "Asset needed today",
+      "affected": "🎬 Swing clip (video or photo)",
+      "affected_id": null,
+      "owner": "Coach Cat",
+      "fix": "Source Swing clip or lesson photo — 4 post(s) need this today",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvm541",
+      "type": "no_booking_link",
+      "blocker": "Booking link missing",
+      "affected": "Book your session with Coach Cat @swingshack ⛳️",
+      "affected_id": "task_mo2t5tw7isbw",
+      "owner": "Coach Cat",
+      "fix": "Add swingshack.co.za/bookings or swingshack.co.za/membership to caption",
+      "urgency": "flexible",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvnacw",
+      "type": "missing_asset",
+      "blocker": "Missing: TrackMan screenshot or data graphic",
+      "affected": "That slice costing you yards off the tee? TrackMan found it ",
+      "affected_id": "task_mo2t5tw7v2w4",
+      "owner": "Coach Cat / Divan",
+      "fix": "Source or create TrackMan screenshot or data graphic — needed for post_plan post",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvkios",
+      "type": "missing_asset",
+      "blocker": "Missing: Swing clip or lesson photo",
+      "affected": "Need some help with your putting? Coach Cat explains what ma",
+      "affected_id": "task_mo2t5tw7945e",
+      "owner": "Coach Cat",
+      "fix": "Source or create Swing clip or lesson photo — needed for post_plan post",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzva2oi",
+      "type": "not_scheduled",
+      "blocker": "Ready but not in schedule",
+      "affected": "Push booking CTA — traffic is hot",
+      "owner": "Swing Shack page",
+      "fix": "Add to this week's post schedule before expiration window closes",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvoh21",
+      "type": "missing_asset",
+      "blocker": "Missing: Swing clip or lesson photo",
+      "affected": "Need to relax and find your golf swing tempo? Join Coach Cat",
+      "affected_id": "task_mo2t5tw7e9iw",
+      "owner": "Coach Cat",
+      "fix": "Source or create Swing clip or lesson photo — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvv6b5",
+      "type": "missing_asset",
+      "blocker": "Missing: High-quality static image",
+      "affected": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "affected_id": "task_mo2t5tw7b9e3",
+      "owner": "Swing Shack page",
+      "fix": "Source or create High-quality static image — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvtndm",
+      "type": "missing_asset",
+      "blocker": "Missing: High-quality static image",
+      "affected": "Have you ever been for an elite level Custom Fitting? Get th",
+      "affected_id": "task_mo2t5tw7whg0",
+      "owner": "Divan",
+      "fix": "Source or create High-quality static image — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvl2wr",
+      "type": "missing_asset",
+      "blocker": "Missing: Text graphic or booking CTA image",
+      "affected": "Book your session with Coach Cat @swingshack ⛳️",
+      "affected_id": "task_mo2t5tw7isbw",
+      "owner": "Coach Cat",
+      "fix": "Source or create Text graphic or booking CTA image — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvnjwe",
+      "type": "missing_asset",
+      "blocker": "Missing: Contest/prize image or graphic",
+      "affected": "Lowest net score wins a *new custom fitted driver!*",
+      "affected_id": "task_mo2t5tw7a2pr",
+      "owner": "Divan",
+      "fix": "Source or create Contest/prize image or graphic — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvl5jw",
+      "type": "not_scheduled",
+      "blocker": "Ready but not in schedule",
+      "affected": "Publish service reminder post",
+      "owner": "Divan",
+      "fix": "Add to this week's post schedule before expiration window closes",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvqvw1",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "A/B Test: hook_angle",
+      "affected_id": "hook_test_1776424299246_re4u",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this experiment?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzv1ipk",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "A/B Test: hook_angle",
+      "affected_id": "hook_test_1776424299246_smlz",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this experiment?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvcohm",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "Scale: Turn into recurring series",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this scale?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzv0hxh",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "affected_id": "task_mo2t5tw7b9e3",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this post_plan?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzv2zzk",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "Push booking CTA — traffic is hot",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this retarget?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvhmqs",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "Scale: Scale Soft / Engagement CTA across all posts",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this scale?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_mo2t5tzvtlzv",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "A/B Test: youtube_angle_to_ig",
+      "affected_id": "yt_test_1776424299246_n38l",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this experiment?",
+      "urgency": "this_week",
+      "severity": "medium"
+    }
+  ]
+}

@@ -82,7 +82,7 @@ const STAGES = [
     name: 'Plan',
     critical: false,
     requiredOutputs: [],
-    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json'],
+    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json', 'daily-task-cards.json', 'approval-queue.json', 'deadline-risk.json', 'blockers.json', 'capacity-shift.json'],
     steps: [
       { name: 'generate_post_plan',          script: `node ${BASE}/scripts/generate_post_plan.js`,          critical: false },
       { name: 'generate_sales_priority',     script: `node ${BASE}/scripts/generate_sales_priority.js`,     critical: false },
@@ -99,7 +99,12 @@ const STAGES = [
       { name: 'generate_experiment_queue',         script: `node ${BASE}/scripts/generate_experiment_queue.js`,         critical: false },
       { name: 'generate_scaling_recommendations', script: `node ${BASE}/scripts/generate_scaling_recommendations.js`, critical: false },
       { name: 'generate_kill_list',               script: `node ${BASE}/scripts/generate_kill_list.js`,               critical: false },
-      { name: 'generate_anomaly_alerts',          script: `node ${BASE}/scripts/generate_anomaly_alerts.js`,          critical: false },
+      { name: 'generate_anomaly_alerts',            script: `node ${BASE}/scripts/generate_anomaly_alerts.js`,            critical: false },
+      { name: 'generate_daily_task_cards',       script: `node ${BASE}/scripts/generate_daily_task_cards.js`,       critical: false },
+      { name: 'generate_approval_queue',          script: `node ${BASE}/scripts/generate_approval_queue.js`,          critical: false },
+      { name: 'generate_deadline_risk',         script: `node ${BASE}/scripts/generate_deadline_risk.js`,         critical: false },
+      { name: 'generate_blockers',               script: `node ${BASE}/scripts/generate_blockers.js`,               critical: false },
+      { name: 'generate_capacity_shift',         script: `node ${BASE}/scripts/generate_capacity_shift.js`,         critical: false },
     ]
   },
   {

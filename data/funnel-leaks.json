@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:57:11.452Z",
+  "updated": "2026-04-17T11:11:39.034Z",
   "generated": "generate_funnel_leaks.js",
   "summary": {
     "total_leaks": 5,
@@ -12,9 +12,9 @@
     {
       "type": "booking_traffic_no_retargeting",
       "page": "/bookings/",
-      "sessions": 152,
+      "sessions": 153,
       "severity": "high",
-      "revenue_impact": "152 sessions on booking page but < 2 booking CTAs in recent IG posts",
+      "revenue_impact": "153 sessions on booking page but < 2 booking CTAs in recent IG posts",
       "easy_fix": "Push booking CTA on IG this week — booking page traffic is there",
       "owner": "Swing Shack page",
       "rank": 1

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:56:53.028Z",
+  "updated": "2026-04-17T11:11:21.201Z",
   "total_hooks": 64,
   "cross_signal_sources": {
     "ig_weight": "60%",
@@ -365,7 +365,7 @@
         ],
         "youtube_format_match": [],
         "youtube_evidence_titles": [
-          "5 Powerful Tips to Unleash Your Senior Driver Swing",
+          "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
           "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
         ],
         "engagementRate": "2.61",
@@ -555,7 +555,7 @@
         ],
         "youtube_format_match": [],
         "youtube_evidence_titles": [
-          "5 Powerful Tips to Unleash Your Senior Driver Swing",
+          "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
           "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
         ],
         "engagementRate": "0.85",
@@ -750,8 +750,8 @@
   ],
   "youtube_signals_summary": {
     "dominant_topics": [
-      "lessons",
       "beginner",
+      "lessons",
       "swing"
     ],
     "dominant_formats": [

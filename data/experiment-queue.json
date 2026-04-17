@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T10:57:11.665Z",
+  "updated": "2026-04-17T11:11:39.246Z",
   "generated": "generate_experiment_queue.js",
   "summary": {
     "total_tests": 5,
@@ -12,7 +12,7 @@
   },
   "experiments": [
     {
-      "test_id": "hook_test_1776423431665_nobc",
+      "test_id": "hook_test_1776424299246_dibf",
       "type": "hook_ab",
       "variable": "hook_angle",
       "description": "Test TrackMan stats angle vs transformation angle on \"lessons\" hook",
@@ -36,7 +36,7 @@
       "rank": 1
     },
     {
-      "test_id": "hook_test_1776423431665_vd7w",
+      "test_id": "hook_test_1776424299246_re4u",
       "type": "hook_ab",
       "variable": "hook_angle",
       "description": "Test TrackMan stats angle vs transformation angle on \"short_game\" hook",
@@ -60,7 +60,7 @@
       "rank": 2
     },
     {
-      "test_id": "hook_test_1776423431665_4pi0",
+      "test_id": "hook_test_1776424299246_smlz",
       "type": "hook_ab",
       "variable": "hook_angle",
       "description": "Test TrackMan stats angle vs transformation angle on \"driver\" hook",
@@ -84,7 +84,7 @@
       "rank": 3
     },
     {
-      "test_id": "yt_test_1776423431665_zb03",
+      "test_id": "yt_test_1776424299246_el64",
       "type": "youtube_untested",
       "variable": "youtube_angle_to_ig",
       "description": "Take trending YouTube angle for \"lessons\" and port to IG",
@@ -93,12 +93,12 @@
         "label": "YouTube angle (proven on YT)"
       },
       "variant_b": {
-        "hook": "Don&#39;t Turn Your Shoulders for a Driver Golf Swing",
+        "hook": "What Nobody Tells You About the Senior Golf Swing",
         "label": "Problem angle (IG-native)"
       },
       "yt_evidence": [
         "Master Your Senior Golf Swing in 3 Easy Steps",
-        "Don&#39;t Turn Your Shoulders for a Driver Golf Swing"
+        "What Nobody Tells You About the Senior Golf Swing"
       ],
       "success_metric": "cross_signal_score > 7 after 2 posts",
       "target_metric": "cross_signal_score",
@@ -111,7 +111,7 @@
       "rank": 4
     },
     {
-      "test_id": "yt_test_1776423431665_9ilv",
+      "test_id": "yt_test_1776424299246_n38l",
       "type": "youtube_untested",
       "variable": "youtube_angle_to_ig",
       "description": "Take trending YouTube angle for \"driver\" and port to IG",
@@ -132,9 +132,9 @@
       "owner": "Swing Shack page",
       "channel": "IG Static",
       "urgency": "this_week",
-      "upside": "YouTube has 3 videos on this — proven interest, untested on IG",
+      "upside": "YouTube has 2 videos on this — proven interest, untested on IG",
       "confidence": 3,
-      "why": "3 YT videos trending on \"driver\" but no IG coverage",
+      "why": "2 YT videos trending on \"driver\" but no IG coverage",
       "rank": 5
     }
   ]

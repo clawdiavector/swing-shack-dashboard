@@ -1,0 +1,121 @@
+{
+  "updated": "2026-04-17T11:11:39.589Z",
+  "generated": "generate_capacity_shift.js",
+  "summary": {
+    "total_shifts": 9,
+    "high_urgency": 3,
+    "by_action": {
+      "reassign": 1,
+      "delay": 3,
+      "fallback_replace": 3,
+      "reassign_to_page": 2
+    },
+    "overloads_found": 1,
+    "fallbacks_found": 0
+  },
+  "shifts": [
+    {
+      "shift_id": "shift_mo2t5u1177ec",
+      "action": "reassign",
+      "from_owner": "Coach Cat",
+      "to_owner": "Swing Shack page",
+      "task_title": "A/B Test: youtube_angle_to_ig",
+      "task_id": "task_mo2t5tw8h9hj",
+      "reason": "Coach Cat has 10 tasks — move low-urgency item to balance",
+      "new_status": "ready",
+      "urgency_before": "this_week",
+      "urgency_after": "this_week",
+      "severity": "high"
+    },
+    {
+      "shift_id": "shift_mo2t5u11askm",
+      "action": "delay",
+      "owner": "Divan",
+      "asset": "🖼 High-quality static image",
+      "posts_affected": 2,
+      "reason": "Asset needed for 2 post(s) but urgency is this_week — push to next week",
+      "new_urgency": "next_week",
+      "severity": "low"
+    },
+    {
+      "shift_id": "shift_mo2t5u11o0ih",
+      "action": "delay",
+      "owner": "Swing Shack page",
+      "asset": "🖼 High-quality static image",
+      "posts_affected": 1,
+      "reason": "Asset needed for 1 post(s) but urgency is this_week — push to next week",
+      "new_urgency": "next_week",
+      "severity": "low"
+    },
+    {
+      "shift_id": "shift_mo2t5u114v3m",
+      "action": "delay",
+      "owner": "Coach Cat",
+      "asset": "📝 Text graphic / booking CTA image",
+      "posts_affected": 1,
+      "reason": "Asset needed for 1 post(s) but urgency is flexible — push to next week",
+      "new_urgency": "next_week",
+      "severity": "low"
+    },
+    {
+      "shift_id": "shift_mo2t5u11syty",
+      "action": "fallback_replace",
+      "blocked_task": "That slice costing you yards off the tee? TrackMan found it ",
+      "blocked_id": "task_mo2t5tw7ot8m",
+      "owner": "Coach Cat / Divan",
+      "replacement": null,
+      "replacement_id": null,
+      "reason": "Blocked: asset_needed:TrackMan screenshot or data graphic — replace with ready fallback",
+      "swap_benefit": "No fallback available — source asset immediately",
+      "severity": "high"
+    },
+    {
+      "shift_id": "shift_mo2t5u11ce28",
+      "action": "fallback_replace",
+      "blocked_task": "Need some help with your putting? Coach Cat explains what ma",
+      "blocked_id": "task_mo2t5tw7pqmh",
+      "owner": "Coach Cat",
+      "replacement": null,
+      "replacement_id": null,
+      "reason": "Blocked: asset_needed:Swing clip or lesson photo — replace with ready fallback",
+      "swap_benefit": "No fallback available — source asset immediately",
+      "severity": "high"
+    },
+    {
+      "shift_id": "shift_mo2t5u1187cu",
+      "action": "fallback_replace",
+      "blocked_task": "Need to relax and find your golf swing tempo? Join Coach Cat",
+      "blocked_id": "task_mo2t5tw72hq3",
+      "owner": "Coach Cat",
+      "replacement": null,
+      "replacement_id": null,
+      "reason": "Blocked: asset_needed:Swing clip or lesson photo — replace with ready fallback",
+      "swap_benefit": "No fallback available — source asset immediately",
+      "severity": "medium"
+    },
+    {
+      "shift_id": "shift_mo2t5u11m85l",
+      "action": "reassign_to_page",
+      "from_owner": "Coach Cat",
+      "to_owner": "Swing Shack page",
+      "task_title": "A/B Test: youtube_angle_to_ig",
+      "task_id": "task_mo2t5tw8h9hj",
+      "reason": "Coach Cat is the highest-loaded specialist — move low-priority non-lesson tasks to page",
+      "new_status": "ready",
+      "urgency_before": "this_week",
+      "severity": "medium"
+    },
+    {
+      "shift_id": "shift_mo2t5u11r5di",
+      "action": "reassign_to_page",
+      "from_owner": "Coach Cat",
+      "to_owner": "Swing Shack page",
+      "task_title": "Book your session with Coach Cat @swingshack ⛳️",
+      "task_id": "task_mo2t5tw7ju1n",
+      "reason": "Coach Cat is the highest-loaded specialist — move low-priority non-lesson tasks to page",
+      "new_status": "ready",
+      "urgency_before": "flexible",
+      "severity": "medium"
+    }
+  ]
+}

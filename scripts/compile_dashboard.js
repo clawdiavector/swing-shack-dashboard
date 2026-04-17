@@ -82,6 +82,11 @@ const expQueue    = readJson('experiment-queue.json')           || null;
 const scaleRecs   = readJson('scaling-recommendations.json')   || null;
 const killList    = readJson('kill-list.json')                 || null;
 const anomalyAlert = readJson('anomaly-alerts.json')           || null;
+const taskCards   = readJson('daily-task-cards.json')         || null;
+const apprQueue   = readJson('approval-queue.json')          || null;
+const deadlineRisk = readJson('deadline-risk.json')          || null;
+const blockers    = readJson('blockers.json')                 || null;
+const capShift   = readJson('capacity-shift.json')          || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -711,6 +716,45 @@ if ((expQueue || scaleRecs || killList || anomalyAlert) && (
 }
 var tskSection = buildSection('\ud83d\udd2c TEST / SCALE / KILL', freshnessBadge(expQueue && expQueue.updated), tskContent);
 
+// RUN THE WEEK
+var rtwContent = '<p class="empty">No operational data yet.</p>';
+if (taskCards || apprQueue || deadlineRisk || blockers || capShift) {
+  var rtwToday = (taskCards && taskCards.top_tasks || []).slice(0, 5);
+  var rtwAppr = (apprQueue && apprQueue.pending_items || []).slice(0, 4);
+  var rtwRisks = (deadlineRisk && deadlineRisk.risks || []).slice(0, 4);
+  var rtwBlk = (blockers && blockers.blockers || []).slice(0, 4);
+  var rtwShift = (capShift && capShift.shifts || []).slice(0, 3);
+
+  function rtwCard(title, items, color, icon) {
+    if (!items || items.length === 0) return '<div class="rtw-col"><div class="rtw-col-head" style="border-top-color:' + color + '">' + icon + ' ' + title + '</div><div class="rtw-empty">None</div></div>';
+    var rows = items.slice(0, 4).map(function(i) {
+      var itemTitle = (i.title || i.blocker || i.what_will_slip || i.task_title || i.action || '—').substring(0, 55);
+      var meta = i.owner ? '<span class="rtw-owner">\ud83d\udc64 ' + i.owner + '</span>' : '';
+      var badge = i.severity ? '<span class="rtw-sev rtw-sev-' + i.severity + '">' + i.severity.toUpperCase() + '</span>' : '';
+      var fix = i.fix ? '<div class="rtw-fix">\u2192 ' + i.fix.substring(0, 55) + '</div>' : '';
+      return '<div class="rtw-row"><div class="rtw-row-title">' + itemTitle + '</div>' + meta + badge + fix + '</div>';
+    }).join('');
+    return '<div class="rtw-col"><div class="rtw-col-head" style="border-top-color:' + color + '">' + icon + ' ' + title + '</div><div class="rtw-rows">' + rows + '</div></div>';
+  }
+
+  var todayTasksBlock = rtwCard('TODAY\'S TASKS', rtwToday, '#ff4757', '\ud83d\udcc5');
+  var apprBlock = rtwCard('WAITING APPROVAL', rtwAppr, '#ffa502', '\u23f3');
+  var riskBlock = rtwCard('AT RISK THIS WEEK', rtwRisks, '#ff6b35', '\u26a0\ufe0f');
+  var blkBlock = rtwCard('BLOCKING EXECUTION', rtwBlk, '#ff4757', '\ud83d\udd28');
+  var shiftBlock = rtwCard('REBALANCE WEEK', rtwShift, '#00b4d8', '\u21c4');
+
+  var rtwSummary = '<div class="rtw-summary">' +
+    '<span class="rtw-sum-item"><b>' + ((taskCards && taskCards.summary && taskCards.summary.total) || 0) + '</b> tasks</span>' +
+    '<span class="rtw-sum-item"><b>' + ((taskCards && taskCards.summary && taskCards.summary.blocked_count) || 0) + '</b> blocked</span>' +
+    '<span class="rtw-sum-item"><b>' + ((deadlineRisk && deadlineRisk.summary && deadlineRisk.summary.high_urgency) || 0) + '</b> risks high</span>' +
+    '<span class="rtw-sum-item"><b>' + ((blockers && blockers.summary && blockers.summary.total_blockers) || 0) + '</b> blockers</span>' +
+    '<span class="rtw-sum-item"><b>' + ((apprQueue && apprQueue.summary && apprQueue.summary.pending) || 0) + '</b> need approval</span>' +
+    '</div>';
+
+  rtwContent = rtwSummary + '<div class="rtw-grid">' + todayTasksBlock + apprBlock + riskBlock + blkBlock + shiftBlock + '</div>';
+}
+var rtwSection = buildSection('\ud83d\udd27 RUN THE WEEK', freshnessBadge(taskCards && taskCards.updated), rtwContent);
+
 const ideaSection = buildSection('\ud83d\udca1 Content Ideas', freshnessBadge(ideas.updated), ideaContent);
 
 // ── GOLF NEWS ─────────────────────────────────────────────────────
@@ -1122,6 +1166,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .tsk-urg-today { background: rgba(255,71,87,0.2); color: #ff4757; }
 .tsk-urg-this_week { background: rgba(255,165,0,0.2); color: #ffa502; }
 .tsk-urg-flexible { background: rgba(0,180,216,0.15); color: var(--info); }
+
+/* RUN THE WEEK */
+.rtw-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; color: var(--muted); }
+.rtw-summary b { color: var(--text); font-weight: 800; }
+.rtw-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px; }
+.rtw-col { background: rgba(255,255,255,0.03); border-radius: 10px; border-top: 3px solid #888; padding: 10px; }
+.rtw-col-head { font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 8px; padding-top: 6px; }
+.rtw-empty { font-size: 0.75rem; color: var(--muted); font-style: italic; text-align: center; padding: 8px; }
+.rtw-rows { display: flex; flex-direction: column; gap: 6px; }
+.rtw-row { padding: 7px 9px; background: rgba(255,255,255,0.04); border-radius: 7px; }
+.rtw-row-title { font-size: 0.78rem; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+.rtw-owner { font-size: 0.68rem; color: var(--muted); font-weight: 600; display: inline; margin-right: 4px; }
+.rtw-sev { font-size: 0.6rem; font-weight: 800; padding: 1px 5px; border-radius: 3px; display: inline-block; }
+.rtw-sev-high { background: rgba(255,71,87,0.2); color: #ff4757; }
+.rtw-sev-medium { background: rgba(255,165,0,0.2); color: #ffa502; }
+.rtw-sev-low { background: rgba(0,180,216,0.15); color: var(--info); }
+.rtw-fix { font-size: 0.7rem; color: var(--muted); font-style: italic; margin-top: 2px; }
 .ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
 .ww-grid { display: flex; flex-direction: column; gap: 10px; }
 .ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
@@ -1168,6 +1229,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${doFirstSection}
   ${wawsSection}
   ${tskSection}
+  ${rtwSection}
   ${igSection}
   ${hookSection}
   ${watchedSection}

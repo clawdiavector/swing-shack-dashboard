@@ -1,34 +1,306 @@
 {
-  "pending": [
+  "updated": "2026-04-17T11:11:39.458Z",
+  "generated": "generate_approval_queue.js",
+  "summary": {
+    "pending": 7,
+    "approved_not_scheduled": 2,
+    "missing_caption": 0,
+    "missing_visual": 7,
+    "missing_cta": 0,
+    "today_urgency": 0
+  },
+  "pending_items": [
     {
-      "id": "mmypgqh6",
-      "type": "Social Post",
-      "caption": "New blog post about club fitting! Check out our latest guide to finding the perfect clubs.",
-      "platforms": [
-        "instagram",
-        "tiktok",
-        "facebook"
+      "item_id": "ap_mo2t5txe8bnl",
+      "title": "That slice costing you yards off the tee? TrackMan found it ",
+      "owner": "Coach Cat / Divan",
+      "day": "Friday",
+      "date": "Apr 17",
+      "source": "post_plan",
+      "missing": [
+        "visual_needed:TrackMan screenshot or data graphic"
       ],
-      "image": null,
-      "mediaUrl": null,
-      "notes": "",
-      "created": "2026-03-20T09:37:22.698Z"
+      "what_missing": "visual:TrackMan screenshot or data graphic",
+      "urgency": "this_week",
+      "approver": "Swing Shack page",
+      "deadline": "Apr 17",
+      "suggested_hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "suggested_cta": "Link in bio · Book your session",
+      "status": "awaiting_info"
     },
     {
-      "id": "mmypgtx9",
-      "type": "GMB Post",
-      "caption": "Book your club fitting session today! TrackMan technology for perfect club selection.",
-      "platforms": [
-        "google-business"
+      "item_id": "ap_mo2t5txe4vtz",
+      "title": "Need some help with your putting? Coach Cat explains what ma",
+      "owner": "Coach Cat",
+      "day": "Saturday",
+      "date": "Apr 18",
+      "source": "post_plan",
+      "missing": [
+        "visual_needed:Swing clip or lesson photo"
       ],
-      "image": null,
-      "mediaUrl": null,
-      "notes": "",
-      "created": "2026-03-20T09:37:27.165Z"
+      "what_missing": "visual:Swing clip or lesson photo",
+      "urgency": "this_week",
+      "approver": "Coach Cat",
+      "deadline": "Apr 18",
+      "suggested_hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+      "suggested_cta": "Link in bio · Book your session",
+      "status": "awaiting_info"
+    },
+    {
+      "item_id": "ap_mo2t5txem9n2",
+      "title": "Book your session with Coach Cat @swingshack ⛳️",
+      "owner": "Coach Cat",
+      "day": "Sunday",
+      "date": "Apr 19",
+      "source": "post_plan",
+      "missing": [
+        "visual_needed:Text graphic or booking CTA image"
+      ],
+      "what_missing": "visual:Text graphic or booking CTA image",
+      "urgency": "this_week",
+      "approver": "Coach Cat",
+      "deadline": "Apr 19",
+      "suggested_hook": "Book your session with Coach Cat @swingshack ⛳️",
+      "suggested_cta": "Book your session · Link in bio",
+      "status": "awaiting_info"
+    },
+    {
+      "item_id": "ap_mo2t5txey63y",
+      "title": "Need to relax and find your golf swing tempo? Join Coach Cat",
+      "owner": "Coach Cat",
+      "day": "Monday",
+      "date": "Apr 20",
+      "source": "post_plan",
+      "missing": [
+        "visual_needed:Swing clip or lesson photo"
+      ],
+      "what_missing": "visual:Swing clip or lesson photo",
+      "urgency": "this_week",
+      "approver": "Coach Cat",
+      "deadline": "Apr 20",
+      "suggested_hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "suggested_cta": "Save this · Share with a golfer",
+      "status": "awaiting_info"
+    },
+    {
+      "item_id": "ap_mo2t5txechlz",
+      "title": "Lowest net score wins a *new custom fitted driver!*",
+      "owner": "Divan",
+      "day": "Tuesday",
+      "date": "Apr 21",
+      "source": "post_plan",
+      "missing": [
+        "visual_needed:Contest/prize image or graphic"
+      ],
+      "what_missing": "visual:Contest/prize image or graphic",
+      "urgency": "this_week",
+      "approver": "Divan",
+      "deadline": "Apr 21",
+      "suggested_hook": "Lowest net score wins a *new custom fitted driver!*",
+      "suggested_cta": "Enter now · Link in bio",
+      "status": "awaiting_info"
+    },
+    {
+      "item_id": "ap_mo2t5txeku8p",
+      "title": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "owner": "Swing Shack page",
+      "day": "Wednesday",
+      "date": "Apr 22",
+      "source": "post_plan",
+      "missing": [
+        "visual_needed:High-quality static image"
+      ],
+      "what_missing": "visual:High-quality static image",
+      "urgency": "this_week",
+      "approver": "Swing Shack page",
+      "deadline": "Apr 22",
+      "suggested_hook": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "suggested_cta": "Link in bio · Book your session",
+      "status": "awaiting_info"
+    },
+    {
+      "item_id": "ap_mo2t5txermbx",
+      "title": "Have you ever been for an elite level Custom Fitting? Get th",
+      "owner": "Divan",
+      "day": "Thursday",
+      "date": "Apr 23",
+      "source": "post_plan",
+      "missing": [
+        "visual_needed:High-quality static image"
+      ],
+      "what_missing": "visual:High-quality static image",
+      "urgency": "this_week",
+      "approver": "Divan",
+      "deadline": "Apr 23",
+      "suggested_hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
+      "suggested_cta": "Link in bio · Book your session",
+      "status": "awaiting_info"
     }
   ],
-  "approved": [],
-  "rejected": [],
-  "posted": [],
-  "lastUpdated": "2026-03-20T09:35:00.000Z"
+  "approved_not_scheduled": [
+    {
+      "item_id": "ap_mo2t5txebc6i",
+      "title": "Push booking CTA — traffic is hot",
+      "owner": "Swing Shack page",
+      "source": "retarget",
+      "missing": [],
+      "what_missing": "",
+      "urgency": "today",
+      "approver": "Swing Shack page",
+      "deadline": "2026-04-17",
+      "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
+      "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
+      "status": "approved"
+    },
+    {
+      "item_id": "ap_mo2t5txecb31",
+      "title": "Publish service reminder post",
+      "owner": "Divan",
+      "source": "retarget",
+      "missing": [],
+      "what_missing": "",
+      "urgency": "tomorrow",
+      "approver": "Swing Shack page",
+      "deadline": "2026-04-18",
+      "suggested_hook": "Off-the-rack clubs are costing you yards. Here's what TrackMan found.",
+      "suggested_cta": "Get your clubs custom fitted · swingshack.co.za/membership · TrackMan powered",
+      "status": "approved"
+    }
+  ],
+  "by_owner": {
+    "Coach Cat": [
+      {
+        "item_id": "ap_mo2t5txe4vtz",
+        "title": "Need some help with your putting? Coach Cat explains what ma",
+        "owner": "Coach Cat",
+        "day": "Saturday",
+        "date": "Apr 18",
+        "source": "post_plan",
+        "missing": [
+          "visual_needed:Swing clip or lesson photo"
+        ],
+        "what_missing": "visual:Swing clip or lesson photo",
+        "urgency": "this_week",
+        "approver": "Coach Cat",
+        "deadline": "Apr 18",
+        "suggested_hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+        "suggested_cta": "Link in bio · Book your session",
+        "status": "awaiting_info"
+      },
+      {
+        "item_id": "ap_mo2t5txem9n2",
+        "title": "Book your session with Coach Cat @swingshack ⛳️",
+        "owner": "Coach Cat",
+        "day": "Sunday",
+        "date": "Apr 19",
+        "source": "post_plan",
+        "missing": [
+          "visual_needed:Text graphic or booking CTA image"
+        ],
+        "what_missing": "visual:Text graphic or booking CTA image",
+        "urgency": "this_week",
+        "approver": "Coach Cat",
+        "deadline": "Apr 19",
+        "suggested_hook": "Book your session with Coach Cat @swingshack ⛳️",
+        "suggested_cta": "Book your session · Link in bio",
+        "status": "awaiting_info"
+      },
+      {
+        "item_id": "ap_mo2t5txey63y",
+        "title": "Need to relax and find your golf swing tempo? Join Coach Cat",
+        "owner": "Coach Cat",
+        "day": "Monday",
+        "date": "Apr 20",
+        "source": "post_plan",
+        "missing": [
+          "visual_needed:Swing clip or lesson photo"
+        ],
+        "what_missing": "visual:Swing clip or lesson photo",
+        "urgency": "this_week",
+        "approver": "Coach Cat",
+        "deadline": "Apr 20",
+        "suggested_hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+        "suggested_cta": "Save this · Share with a golfer",
+        "status": "awaiting_info"
+      }
+    ],
+    "Coach Cat / Divan": [
+      {
+        "item_id": "ap_mo2t5txe8bnl",
+        "title": "That slice costing you yards off the tee? TrackMan found it ",
+        "owner": "Coach Cat / Divan",
+        "day": "Friday",
+        "date": "Apr 17",
+        "source": "post_plan",
+        "missing": [
+          "visual_needed:TrackMan screenshot or data graphic"
+        ],
+        "what_missing": "visual:TrackMan screenshot or data graphic",
+        "urgency": "this_week",
+        "approver": "Swing Shack page",
+        "deadline": "Apr 17",
+        "suggested_hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+        "suggested_cta": "Link in bio · Book your session",
+        "status": "awaiting_info"
+      }
+    ],
+    "Divan": [
+      {
+        "item_id": "ap_mo2t5txechlz",
+        "title": "Lowest net score wins a *new custom fitted driver!*",
+        "owner": "Divan",
+        "day": "Tuesday",
+        "date": "Apr 21",
+        "source": "post_plan",
+        "missing": [
+          "visual_needed:Contest/prize image or graphic"
+        ],
+        "what_missing": "visual:Contest/prize image or graphic",
+        "urgency": "this_week",
+        "approver": "Divan",
+        "deadline": "Apr 21",
+        "suggested_hook": "Lowest net score wins a *new custom fitted driver!*",
+        "suggested_cta": "Enter now · Link in bio",
+        "status": "awaiting_info"
+      },
+      {
+        "item_id": "ap_mo2t5txermbx",
+        "title": "Have you ever been for an elite level Custom Fitting? Get th",
+        "owner": "Divan",
+        "day": "Thursday",
+        "date": "Apr 23",
+        "source": "post_plan",
+        "missing": [
+          "visual_needed:High-quality static image"
+        ],
+        "what_missing": "visual:High-quality static image",
+        "urgency": "this_week",
+        "approver": "Divan",
+        "deadline": "Apr 23",
+        "suggested_hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
+        "suggested_cta": "Link in bio · Book your session",
+        "status": "awaiting_info"
+      }
+    ],
+    "Swing Shack page": [
+      {
+        "item_id": "ap_mo2t5txeku8p",
+        "title": "Go to your coaching sessions. Your ball deserves better 🫂",
+        "owner": "Swing Shack page",
+        "day": "Wednesday",
+        "date": "Apr 22",
+        "source": "post_plan",
+        "missing": [
+          "visual_needed:High-quality static image"
+        ],
+        "what_missing": "visual:High-quality static image",
+        "urgency": "this_week",
+        "approver": "Swing Shack page",
+        "deadline": "Apr 22",
+        "suggested_hook": "Go to your coaching sessions. Your ball deserves better 🫂",
+        "suggested_cta": "Link in bio · Book your session",
+        "status": "awaiting_info"
+      }
+    ]
+  }
 }

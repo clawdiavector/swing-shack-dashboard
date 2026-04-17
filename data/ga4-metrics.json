@@ -1,19 +1,19 @@
 {
-  "updated": "2026-04-17T10:56:52.942Z",
-  "fetched_at": "2026-04-17T10:56:52.942Z",
+  "updated": "2026-04-17T11:11:21.118Z",
+  "fetched_at": "2026-04-17T11:11:21.118Z",
   "property_id": "427380680",
   "data_window": "2026-04-10 to 2026-04-17",
-  "total_sessions": 976,
+  "total_sessions": 984,
   "pages": [
     {
       "path": "/",
-      "sessions": 276,
-      "engRate": "72.5%"
+      "sessions": 280,
+      "engRate": "71.4%"
     },
     {
       "path": "/bookings/",
-      "sessions": 152,
-      "engRate": "79.6%"
+      "sessions": 153,
+      "engRate": "79.1%"
     },
     {
       "path": "/",
@@ -27,8 +27,8 @@
     },
     {
       "path": "/customer-portal/",
-      "sessions": 44,
-      "engRate": "77.3%"
+      "sessions": 45,
+      "engRate": "75.6%"
     },
     {
       "path": "/customer-portal/",
@@ -37,8 +37,8 @@
     },
     {
       "path": "/club-fitting/",
-      "sessions": 36,
-      "engRate": "91.7%"
+      "sessions": 37,
+      "engRate": "89.2%"
     },
     {
       "path": "/checkout/",
@@ -59,7 +59,7 @@
   "sources": [
     {
       "source": "google",
-      "sessions": 592
+      "sessions": 600
     },
     {
       "source": "(direct)",
@@ -93,7 +93,7 @@
       {
         "type": "organic_opportunity",
         "priority": "medium",
-        "message": "592 organic sessions. Ensure these pages have clear booking CTAs."
+        "message": "600 organic sessions. Ensure these pages have clear booking CTAs."
       }
     ]
   },

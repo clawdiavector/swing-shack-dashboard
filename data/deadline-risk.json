@@ -1,0 +1,63 @@
+{
+  "updated": "2026-04-17T11:11:39.504Z",
+  "generated": "generate_deadline_risk.js",
+  "summary": {
+    "total_risks": 4,
+    "high_urgency": 1,
+    "medium_urgency": 3,
+    "today_slip": 0,
+    "this_week_slips": 4
+  },
+  "risks": [
+    {
+      "risk_id": "risk_mo2t5tyomtc4",
+      "type": "owner_overload",
+      "title": "Coach Cat has 10 tasks this week",
+      "owner": "Coach Cat",
+      "severity": "high",
+      "what_will_slip": "Coach Cat may drop tasks — high workload (10 total)",
+      "fix": "Move 7 tasks to Swing Shack page or delay low-urgency items",
+      "blockers": [],
+      "urgency": "this_week",
+      "source": "owner_workload"
+    },
+    {
+      "risk_id": "risk_mo2t5tyocner",
+      "type": "service_no_content",
+      "title": "Club Fitting is priority #1 but has no scheduled content",
+      "owner": "Divan",
+      "severity": "medium",
+      "what_will_slip": "High-priority service push will be missed this week",
+      "fix": "Schedule at least 1 post for Club Fitting this week — score 7.4/10",
+      "blockers": [
+        "no_content_scheduled"
+      ],
+      "urgency": "this_week",
+      "source": "sales_priority"
+    },
+    {
+      "risk_id": "risk_mo2t5tyoe0fi",
+      "type": "missed_opportunity_ignored",
+      "title": "Rework the \"driver\" hook into a follow-up Reel this week — I",
+      "owner": "Coach Cat",
+      "severity": "medium",
+      "what_will_slip": "Hook winner with no follow-up — IG signal 10 going stale",
+      "fix": "Rework the \"driver\" hook into a follow-up Reel this week — IG proof 10.",
+      "blockers": [],
+      "urgency": "this_week",
+      "source": "missed_opportunities"
+    },
+    {
+      "risk_id": "risk_mo2t5tyog08h",
+      "type": "missed_opportunity_ignored",
+      "title": "Rework the \"lessons\" hook into a follow-up Reel this week — ",
+      "owner": "Coach Cat",
+      "severity": "medium",
+      "what_will_slip": "Hook winner with no follow-up — IG signal 10 going stale",
+      "fix": "Rework the \"lessons\" hook into a follow-up Reel this week — IG proof 10.",
+      "blockers": [],
+      "urgency": "this_week",
+      "source": "missed_opportunities"
+    }
+  ]
+}
