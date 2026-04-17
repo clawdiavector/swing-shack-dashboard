@@ -1,0 +1,185 @@
+{
+  "updated": "2026-04-17T07:47:53.468Z",
+  "generated": "generate_post_plan.js",
+  "plan_length": 7,
+  "plan": [
+    {
+      "day": "Friday",
+      "date": "Apr 17",
+      "dateISO": "2026-04-17",
+      "platform": "instagram",
+      "format": "static",
+      "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
+      "cta": "Link in bio · Book your session",
+      "objective": "reach",
+      "why_chosen": "Cross-signal score 8.0: IG proof 10 + YouTube alignment 10 · optimised for reach",
+      "evidence": [
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "4 Simple Steps For The Perfect Golf Drive"
+      ],
+      "status": "ready",
+      "topics": [
+        "driver",
+        "slice_fix",
+        "simulator",
+        "swing",
+        "distance"
+      ],
+      "ig_score": 10,
+      "yt_score": 10,
+      "cross_score": 8
+    },
+    {
+      "day": "Saturday",
+      "date": "Apr 18",
+      "dateISO": "2026-04-18",
+      "platform": "instagram",
+      "format": "static",
+      "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+      "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
+      "cta": "Link in bio · Book your session",
+      "objective": "reach",
+      "why_chosen": "Cross-signal score 7.1: IG proof 9.86 + YouTube alignment 6 · optimised for reach",
+      "evidence": [
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "How to hit irons Consistently (Simple Golf Tips)"
+      ],
+      "status": "ready",
+      "topics": [
+        "short_game",
+        "lessons"
+      ],
+      "ig_score": 9.86,
+      "yt_score": 6,
+      "cross_score": 7.1
+    },
+    {
+      "day": "Sunday",
+      "date": "Apr 19",
+      "dateISO": "2026-04-19",
+      "platform": "instagram",
+      "format": "static",
+      "hook": "Book your session with Coach Cat @swingshack ⛳️",
+      "hook_id": "book-your-session-with-coach-cat--swingshack---",
+      "cta": "Book your session · Link in bio",
+      "objective": "bookings",
+      "why_chosen": "Cross-signal score 6.7: IG proof 9.129999999999999 + YouTube alignment 6 · optimised for bookings",
+      "evidence": [
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "How to hit irons Consistently (Simple Golf Tips)"
+      ],
+      "status": "ready",
+      "topics": [
+        "lessons",
+        "swing"
+      ],
+      "ig_score": 9.129999999999999,
+      "yt_score": 6,
+      "cross_score": 6.7
+    },
+    {
+      "day": "Monday",
+      "date": "Apr 20",
+      "dateISO": "2026-04-20",
+      "platform": "instagram",
+      "format": "static",
+      "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "hook_id": "need-to-relax-and-find-your-golf-swing-tempo--join",
+      "cta": "Save this · Share with a golfer",
+      "objective": "saves",
+      "why_chosen": "Cross-signal score 7.4: IG proof 10 + YouTube alignment 7 · optimised for saves",
+      "evidence": [
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "How to hit irons Consistently (Simple Golf Tips)"
+      ],
+      "status": "ready",
+      "topics": [
+        "lessons",
+        "swing"
+      ],
+      "ig_score": 10,
+      "yt_score": 7,
+      "cross_score": 7.4
+    },
+    {
+      "day": "Tuesday",
+      "date": "Apr 21",
+      "dateISO": "2026-04-21",
+      "platform": "instagram",
+      "format": "static",
+      "hook": "Lowest net score wins a *new custom fitted driver!*",
+      "hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
+      "cta": "Enter now · Link in bio",
+      "objective": "awareness",
+      "why_chosen": "Cross-signal score 6.8: IG proof 9.4 + YouTube alignment 6 · optimised for awareness",
+      "evidence": [
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "4 Simple Steps For The Perfect Golf Drive"
+      ],
+      "status": "ready",
+      "topics": [
+        "driver",
+        "fitness"
+      ],
+      "ig_score": 9.4,
+      "yt_score": 6,
+      "cross_score": 6.8
+    },
+    {
+      "day": "Wednesday",
+      "date": "Apr 22",
+      "dateISO": "2026-04-22",
+      "platform": "instagram",
+      "format": "static",
+      "hook": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "hook_id": "Go_to_your_coaching_sessions._Your_ball_",
+      "cta": "Link in bio · Book your session",
+      "objective": "awareness",
+      "why_chosen": "Content idea score 9/10 · optimised for awareness",
+      "evidence": [
+        "Hook generated 4.99% eng, 381 reach"
+      ],
+      "status": "ready",
+      "topics": [
+        "coaching"
+      ],
+      "ig_score": 0,
+      "yt_score": 0,
+      "cross_score": 9
+    },
+    {
+      "day": "Thursday",
+      "date": "Apr 23",
+      "dateISO": "2026-04-23",
+      "platform": "instagram",
+      "format": "static",
+      "hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
+      "hook_id": "Have_you_ever_been_for_an_elite_level_Cu",
+      "cta": "Link in bio · Book your session",
+      "objective": "awareness",
+      "why_chosen": "Content idea score 9/10 · optimised for awareness",
+      "evidence": [
+        "Hook generated 4.35% eng, 161 reach"
+      ],
+      "status": "ready",
+      "topics": [
+        "equipment"
+      ],
+      "ig_score": 0,
+      "yt_score": 0,
+      "cross_score": 9
+    }
+  ],
+  "meta": {
+    "total_ready": 7,
+    "total_test": 0,
+    "total_fallback": 0,
+    "objectives_used": [
+      "reach",
+      "bookings",
+      "saves",
+      "awareness"
+    ]
+  }
+}

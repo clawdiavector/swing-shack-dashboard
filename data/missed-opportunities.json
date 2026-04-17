@@ -1,0 +1,97 @@
+{
+  "updated": "2026-04-17T07:47:53.560Z",
+  "generated": "detect_missed_opportunities.js",
+  "count": 10,
+  "by_severity": {
+    "high": 8,
+    "medium": 2,
+    "low": 0
+  },
+  "opportunities": [
+    {
+      "type": "hook_winner_not_reused",
+      "severity": "high",
+      "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "topic": "driver",
+      "ig_score": 10,
+      "suggestion": "Hook scored 10 on IG. No follow-up posts found for \"driver\". Push this angle.",
+      "why": "IG proof: 10 — strong performer with no refresh"
+    },
+    {
+      "type": "hook_winner_not_reused",
+      "severity": "high",
+      "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "topic": "lessons",
+      "ig_score": 10,
+      "suggestion": "Hook scored 10 on IG. No follow-up posts found for \"lessons\". Push this angle.",
+      "why": "IG proof: 10 — strong performer with no refresh"
+    },
+    {
+      "type": "hook_winner_not_reused",
+      "severity": "high",
+      "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+      "topic": "short_game",
+      "ig_score": 9.86,
+      "suggestion": "Hook scored 9.86 on IG. No follow-up posts found for \"short_game\". Push this angle.",
+      "why": "IG proof: 9.86 — strong performer with no refresh"
+    },
+    {
+      "type": "hook_winner_not_reused",
+      "severity": "high",
+      "hook": "Lowest net score wins a *new custom fitted driver!*",
+      "topic": "driver",
+      "ig_score": 9.4,
+      "suggestion": "Hook scored 9.4 on IG. No follow-up posts found for \"driver\". Push this angle.",
+      "why": "IG proof: 9.4 — strong performer with no refresh"
+    },
+    {
+      "type": "hook_winner_not_reused",
+      "severity": "high",
+      "hook": "Book your session with Coach Cat @swingshack ⛳️",
+      "topic": "lessons",
+      "ig_score": 9.129999999999999,
+      "suggestion": "Hook scored 9.129999999999999 on IG. No follow-up posts found for \"lessons\". Push this angle.",
+      "why": "IG proof: 9.129999999999999 — strong performer with no refresh"
+    },
+    {
+      "type": "traffic_no_content",
+      "severity": "high",
+      "page": "/",
+      "sessions": 270,
+      "suggestion": "Page \"/\" gets 270 sessions but no IG post links to it. Create content.",
+      "why": "270 sessions with no social presence"
+    },
+    {
+      "type": "traffic_no_content",
+      "severity": "high",
+      "page": "/bookings/",
+      "sessions": 147,
+      "suggestion": "Page \"/bookings/\" gets 147 sessions but no IG post links to it. Create content.",
+      "why": "147 sessions with no social presence"
+    },
+    {
+      "type": "traffic_no_content",
+      "severity": "high",
+      "page": "/customer-portal/",
+      "sessions": 54,
+      "suggestion": "Page \"/customer-portal/\" gets 54 sessions but no IG post links to it. Create content.",
+      "why": "54 sessions with no social presence"
+    },
+    {
+      "type": "traffic_no_content",
+      "severity": "medium",
+      "page": "/club-fitting/",
+      "sessions": 36,
+      "suggestion": "Page \"/club-fitting/\" gets 36 sessions but no IG post links to it. Create content.",
+      "why": "36 sessions with no social presence"
+    },
+    {
+      "type": "traffic_no_content",
+      "severity": "medium",
+      "page": "/checkout/",
+      "sessions": 29,
+      "suggestion": "Page \"/checkout/\" gets 29 sessions but no IG post links to it. Create content.",
+      "why": "29 sessions with no social presence"
+    }
+  ]
+}

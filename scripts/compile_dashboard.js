@@ -66,6 +66,9 @@ const ab = readJson('ab-tests.json') || {};
 const used = readJson('used-items.json') || { suppressed_ideas: [], suppressed_hooks: [] };
 const published = readJson('published-posts.json') || { published: [] };
 const buildMeta = readJson('build-meta.json') || {};
+const postPlan  = readJson('post-plan.json') || null;
+const salesPrio = readJson('sales-priority.json') || null;
+const missed    = readJson('missed-opportunities.json') || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -141,6 +144,47 @@ if (ig.posts && ig.posts.length > 0) {
 }
 const igSection = buildSection('📱 Instagram Performance', freshnessBadge(ig.updated), igContent);
 
+// ── THIS WEEK STRIP ───────────────────────────────────────────────
+let thisWeekStrip = '';
+if (postPlan || salesPrio || missed) {
+  const nextPost = postPlan?.plan?.[0];
+  const topSales = salesPrio?.priorities?.[0];
+  const runnerUpSales = salesPrio?.priorities?.[1];
+  const topMissed = missed?.opportunities?.[0];
+  const secondMissed = missed?.opportunities?.[1];
+  const bestCTA = topSales ? topSales.recommended_cta : null;
+  const sevColor = { high: '#ff4757', medium: '#ffa500', low: '#00b4d8' };
+  const missSev = topMissed?.severity ? (sevColor[topMissed.severity] || 'var(--muted)') : 'var(--muted)';
+
+  thisWeekStrip = `<div class="tw-strip">
+    <div class="tw-item tw-item--post">
+      <div class="tw-label">🎯 Post this first</div>
+      <div class="tw-value">${nextPost?.hook ? truncate(nextPost.hook, 52) : 'No post planned'}</div>
+      <div class="tw-meta">${(nextPost?.objective || '').toUpperCase()} · ${nextPost?.format || ''} · ${nextPost?.platform || 'instagram'}</div>
+      ${nextPost?.hook ? `<div class="tw-action">CTA: ${truncate(nextPost.cta || 'Link in bio', 45)}</div>` : ''}
+    </div>
+    <div class="tw-sep"></div>
+    <div class="tw-item tw-item--sales">
+      <div class="tw-label">💰 Push this week</div>
+      <div class="tw-value">${topSales?.label || 'n/a'}</div>
+      <div class="tw-meta">${topSales?.score ? topSales.score.toFixed(1) : '?'}/10 · ${topSales?.reasons?.[0] || ''}</div>
+      ${runnerUpSales ? `<div class="tw-meta tw-meta--secondary">Also: ${runnerUpSales.label}</div>` : ''}
+    </div>
+    <div class="tw-sep"></div>
+    <div class="tw-item tw-item--missed">
+      <div class="tw-label">⚠️ You missed</div>
+      <div class="tw-value" style="font-size:0.85rem;color:${missSev}">${topMissed ? topMissed.suggestion.substring(0, 52) : 'None detected'}</div>
+      <div class="tw-meta">${topMissed?.type?.replace(/_/g, ' ') || ''}${secondMissed ? ` (+${missed.opportunities.length - 1} more)` : ''}</div>
+    </div>
+    <div class="tw-sep"></div>
+    <div class="tw-item tw-item--cta">
+      <div class="tw-label">📲 Best CTA</div>
+      <div class="tw-value">${bestCTA ? truncate(bestCTA.split('·')[0], 38) : 'Link in bio · Book your session'}</div>
+      <div class="tw-meta">${topSales?.label || 'all posts'}</div>
+    </div>
+  </div>`;
+}
+
 // ── HOOK BANK ─────────────────────────────────────────────────────
 let hookContent = '<p class="empty">No hook data yet. Run analyse_hooks.py.</p>';
 if (hooks.hooks && hooks.hooks.length > 0) {
@@ -193,6 +237,169 @@ if (hooks.proven_hooks && hooks.proven_hooks.length > 0) {
   </div>`;
 }
 const hookSection = buildSection('🪝 Hook Bank', freshnessBadge(hooks.updated), hookContent);
+
+// ── WATCHED + WORKED ────────────────────────────────────────────
+// Helper: truncate at word boundary, not mid-word
+function wwTruncate(str, len) {
+  if (!str) return '';
+  if (str.length <= len) return str;
+  const truncated = str.substring(0, len);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return lastSpace > len * 0.7 ? truncated.substring(0, lastSpace) : truncated;
+}
+
+// Helper: determine content_type and override topics for non-hook cards
+function wwClassify(h) {
+  const text = (h.hook_text || '').toLowerCase();
+  const rawTopics = h.youtube_topic_match || [];
+  let contentType = 'hook';
+  let topics = rawTopics;
+
+  // CTA-led: starts with booking/session/schedule language
+  if (/^(book|schedule|book your|book a|get your|claim|secure)/.test(text) ||
+      (text.includes('book') && text.includes('session') && text.length < 70) ||
+      (text.includes('@swingshack') && /book/i.test(text))) {
+    contentType = 'cta';
+    topics = ['booking', 'conversion'];
+  }
+  // Promo/competition-led
+  else if (/\b(win|wins|competition|contest|prize|tournament|championship|leaderboard|lowest net|closest to|hole\-in\-one)\b/.test(text)) {
+    contentType = 'promo';
+    // Override: remove irrelevant carryover tags, keep competition/driver
+    topics = rawTopics.filter(t => !['fitness', 'beginner', 'weather'].includes(t));
+    if (!topics.includes('competition')) topics.unshift('competition');
+    if (!topics.includes('driver') && text.includes('driver')) topics.push('driver');
+    topics = topics.slice(0, 3);
+  }
+  // Product feature
+  else if (/\b(new|now available|just dropped|lab golf|la golf|golf bar|putters? (now|available|dropped|in store)|custom fitted)\b/.test(text) &&
+           /\b(driver|putter|iron|wedge|club|grip|shaft)\b/.test(text)) {
+    contentType = 'product';
+    topics = rawTopics.filter(t => !['fitness', 'beginner', 'weather', 'slice_fix'].includes(t));
+    if (!topics.includes('product')) topics.unshift('product');
+    topics = topics.slice(0, 3);
+  }
+
+  return { contentType, topics };
+}
+
+// Helper: action suggestion based on content_type + bucket
+function wwAction(contentType, bucket) {
+  if (contentType === 'cta')    return '<span class="ww-action ww-action--cta">📲 Use as CTA</span>';
+  if (contentType === 'promo')  return '<span class="ww-action ww-action--boost">🚀 Promote as contest</span>';
+  if (contentType === 'product') return '<span class="ww-action ww-action--product">🛒 Post as product feature</span>';
+  if (bucket === 'proven_and_trending') return '<span class="ww-action ww-action--boost">🚀 Boost on IG</span>';
+  return '<span class="ww-action ww-action--reel">🎬 Turn into Reel</span>';
+}
+
+let watchedContent = '<p class="empty">No watched + worked data yet.</p>';
+
+if ((hooks.watched_and_worked && hooks.watched_and_worked.length > 0) ||
+    (hooks.output_buckets && (hooks.output_buckets.proven_and_trending.length > 0 || hooks.output_buckets.trending_to_test.length > 0))) {
+
+  // Build unified list from both sources
+  const wwAll = [
+    ...(hooks.watched_and_worked || []),
+    ...((hooks.output_buckets && !hooks.watched_and_worked) ?
+      [...(hooks.output_buckets.proven_and_trending || []).map(h => ({ ...h, signal_bucket: 'proven_and_trending' })),
+       ...(hooks.output_buckets.trending_to_test || []).map(h => ({ ...h, signal_bucket: 'trending_to_test' }))] : [])
+  ];
+
+  // Deduplicate by hook_id
+  const seen = new Set();
+  const ww = wwAll.filter(h => {
+    if (!h.hook_id) return true;
+    if (seen.has(h.hook_id)) return false;
+    seen.add(h.hook_id); return true;
+  }).slice(0, 5);
+
+  const cards = ww.map(h => {
+    const bucket = h.signal_bucket || 'proven_only';
+    const { contentType, topics } = wwClassify(h);
+
+    let statusBadge = '';
+    if (bucket === 'proven_and_trending') statusBadge = '<span class="ww-badge ww-badge--pt">🔥 PROVEN + TRENDING</span>';
+    else if (bucket === 'trending_to_test') statusBadge = '<span class="ww-badge ww-badge--tt">🚀 PROMOTE NEXT</span>';
+    else if (bucket === 'proven_only') statusBadge = '<span class="ww-badge ww-badge--po">✅ PROVEN ONLY</span>';
+
+    let contentTypeBadge = '';
+    if (contentType === 'cta') contentTypeBadge = '<span class="ww-ct-badge ww-ct-badge--cta">CTA</span>';
+    else if (contentType === 'promo') contentTypeBadge = '<span class="ww-ct-badge ww-ct-badge--promo">PROMO</span>';
+    else if (contentType === 'product') contentTypeBadge = '<span class="ww-ct-badge ww-ct-badge--product">PRODUCT</span>';
+
+    const topicHtml = topics.slice(0, 3).map(t => `<span class="ww-topic">${t}</span>`).join('');
+
+    // Evidence: show first title + note about additional matches
+    let evidenceHtml = '';
+    if (h.youtube_evidence_titles && h.youtube_evidence_titles.length > 0) {
+      const first = h.youtube_evidence_titles[0];
+      const rest = h.youtube_evidence_titles.length - 1;
+      if (rest > 0) {
+        evidenceHtml = `<div class="ww-evidence">📺 ${wwTruncate(first, 45)} <span class="ww-evidence-more">+ ${rest} more video${rest > 1 ? 's' : ''}</span></div>`;
+      } else {
+        evidenceHtml = `<div class="ww-evidence">📺 ${wwTruncate(first, 50)}</div>`;
+      }
+    }
+
+    const action = wwAction(contentType, bucket);
+
+    return {
+      bucket,
+      html: `
+    <div class="ww-card ww-card--${bucket === 'proven_and_trending' ? 'pt' : bucket === 'trending_to_test' ? 'tt' : 'po'}" data-content-type="${contentType}">
+      <div class="ww-card-top">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          ${statusBadge}
+          ${contentTypeBadge}
+        </div>
+        ${action}
+      </div>
+      <div class="ww-hook">${wwTruncate(h.hook_text || 'n/a', 68)}</div>
+      <div class="ww-scores">
+        <span class="ww-score ig">IG ${h.ig_proof_score || '?'}</span>
+        <span class="ww-score yt">YT ${h.youtube_alignment_score || '?'}</span>
+        <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross ${h.cross_signal_score || '?'}</span>
+      </div>
+      ${topicHtml ? `<div class="ww-topics">${topicHtml}</div>` : ''}
+      ${evidenceHtml}
+    </div>`
+    };
+  });
+
+  // SUMMARY COUNTS: derived directly from rendered card badges — always accurate
+  const ptCount = cards.filter(c => c.bucket === 'proven_and_trending').length;
+  const ttCount = cards.filter(c => c.bucket === 'trending_to_test').length;
+  const poCount = cards.filter(c => c.bucket === 'proven_only').length;
+  const summaryLine = `<p class="ww-summary-line">${ptCount} 🔥 proven + trending · ${ttCount} 🚀 promote next · ${poCount} ✅ proven only</p>`;
+
+  const badge = '<span class="badge ig-yt-badge">IG + YT</span>';
+  const cardHtml = cards.map(c => c.html).join('');
+  // Wrap in a filterable container with tab buttons
+  watchedContent = `
+  <div class="ww-filter-bar">
+    <button class="ww-filter-btn active" data-filter="all">All</button>
+    <button class="ww-filter-btn" data-filter="hook">Hooks</button>
+    <button class="ww-filter-btn" data-filter="promo">Promo</button>
+    <button class="ww-filter-btn" data-filter="cta">CTA</button>
+    <button class="ww-filter-btn" data-filter="product">Product</button>
+  </div>
+  ${summaryLine}
+  <div class="ww-grid" id="ww-grid">${cardHtml}</div>
+  <script>
+  document.querySelectorAll('.ww-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = btn.dataset.filter;
+      document.querySelectorAll('.ww-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.ww-card').forEach(c => {
+        const ct = c.dataset.contentType || 'hook';
+        c.style.display = (f === 'all' || ct === f) ? '' : 'none';
+      });
+    });
+  });
+  </script>`;
+}
+
+const watchedSection = buildSection('👀 WATCHED + WORKED', freshnessBadge(hooks.updated), watchedContent);
 
 // ── CONTENT IDEAS ────────────────────────────────────────────────
 let ideaContent = '<p class="empty">No content ideas yet. Run generate_content_ideas.py.</p>';
@@ -506,6 +713,60 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 
 .cooldown-list { display: flex; flex-direction: column; gap: 6px; }
 .cooldown-item { background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; }
+
+/* WATCHED + WORKED */
+.ww-summary { font-size: 0.82rem; color: var(--muted); margin-bottom: 12px; font-style: italic; }
+.ww-summary-line { font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; font-weight: 600; }
+.ww-filter-bar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.ww-filter-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--muted); font-size: 0.75rem; padding: 4px 12px; border-radius: 20px; cursor: pointer; transition: all 0.15s; font-weight: 600; }
+.ww-filter-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.ww-filter-btn.active { background: rgba(155,89,182,0.3); border-color: rgba(155,89,182,0.5); color: #c07fd4; }
+
+/* THIS WEEK STRIP */
+.tw-strip { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: 0; background: var(--card); border-radius: 12px; padding: 14px 0; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.08); }
+.tw-item { padding: 0 16px; }
+.tw-item--post { border-left: 3px solid #00d26a; }
+.tw-item--sales { border-left: 3px solid #ffa500; }
+.tw-item--missed { border-left: 3px solid #ff4757; }
+.tw-item--cta { border-left: 3px solid #00b4d8; }
+.tw-sep { width: 1px; background: rgba(255,255,255,0.08); margin: 4px 0; }
+.tw-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 700; margin-bottom: 5px; }
+.tw-value { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 3px; line-height: 1.3; }
+.tw-meta { font-size: 0.7rem; color: var(--muted); }
+.tw-meta--secondary { color: var(--muted); opacity: 0.7; margin-top: 2px; }
+.tw-action { font-size: 0.7rem; color: var(--info); margin-top: 3px; font-style: italic; }
+.tw-sales-main { color: #ffa500; }
+.ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
+.ww-grid { display: flex; flex-direction: column; gap: 10px; }
+.ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
+.ww-card--pt { border-left: 4px solid var(--success); }
+.ww-card--tt { border-left: 4px solid #ff6b35; }
+.ww-card--po { border-left: 4px solid var(--purple); }
+.ww-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+.ww-badge { display: inline-block; font-size: 0.68rem; padding: 3px 9px; border-radius: 6px; font-weight: 700; letter-spacing: 0.3px; }
+.ww-badge--pt { background: rgba(0,210,106,0.25); color: #00d26a; border: 1px solid rgba(0,210,106,0.4); }
+.ww-badge--tt { background: rgba(255,107,53,0.25); color: #ff6b35; border: 1px solid rgba(255,107,53,0.4); }
+.ww-badge--po { background: rgba(155,89,182,0.2); color: #b07cc6; border: 1px solid rgba(155,89,182,0.35); }
+.ww-action { font-size: 0.72rem; padding: 3px 8px; border-radius: 5px; font-weight: 600; }
+.ww-action--cta   { background: rgba(0,210,106,0.15); color: var(--success); }
+.ww-action--reel  { background: rgba(225,48,108,0.15); color: #e1306c; }
+.ww-action--lessons { background: rgba(0,180,216,0.15); color: var(--info); }
+.ww-action--product { background: rgba(255,165,0,0.15); color: var(--warning); }
+.ww-action--boost { background: rgba(255,107,53,0.15); color: #ff6b35; }
+.ww-hook { font-weight: 600; font-size: 0.92rem; margin-bottom: 8px; line-height: 1.45; color: var(--text); }
+.ww-scores { display: flex; gap: 10px; margin-bottom: 6px; }
+.ww-score { font-size: 0.76rem; font-weight: 800; padding: 2px 8px; border-radius: 5px; letter-spacing: 0.2px; }
+.ww-score.ig { background: rgba(225,48,108,0.2); color: #e1306c; }
+.ww-score.yt { background: rgba(255,0,80,0.18); color: #ff4070; }
+.ww-score.cross { background: rgba(155,89,182,0.2); color: #c07fd4; cursor: help; border-bottom: 1px dotted rgba(155,89,182,0.5); }
+.ww-topics { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 4px; }
+.ww-topic { background: rgba(255,255,255,0.08); color: var(--muted); font-size: 0.7rem; padding: 2px 7px; border-radius: 20px; }
+.ww-evidence { font-size: 0.73rem; color: var(--muted); margin-top: 4px; }
+.ww-evidence-more { color: var(--info); font-style: italic; }
+.ww-ct-badge { display: inline-block; font-size: 0.62rem; padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+.ww-ct-badge--cta    { background: rgba(0,210,106,0.15); color: #00d26a; }
+.ww-ct-badge--promo { background: rgba(255,107,53,0.15); color: #ff6b35; }
+.ww-ct-badge--product { background: rgba(255,165,0,0.15); color: var(--warning); }
 </style>
 </head>
 <body>
@@ -516,8 +777,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   </div>
 
   ${summaryBar}
+  ${thisWeekStrip}
   ${igSection}
   ${hookSection}
+  ${watchedSection}
   ${ideaSection}
   ${abSection}
   ${newsSection}

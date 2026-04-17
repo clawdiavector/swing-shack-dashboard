@@ -79,6 +79,17 @@ const STAGES = [
     ]
   },
   {
+    name: 'Plan',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json'],
+    steps: [
+      { name: 'generate_post_plan',          script: `node ${BASE}/scripts/generate_post_plan.js`,          critical: false },
+      { name: 'generate_sales_priority',     script: `node ${BASE}/scripts/generate_sales_priority.js`,     critical: false },
+      { name: 'detect_missed_opportunities', script: `node ${BASE}/scripts/detect_missed_opportunities.js`, critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

@@ -1,0 +1,101 @@
+{
+  "updated": "2026-04-17T07:47:53.519Z",
+  "generated": "generate_sales_priority.js",
+  "this_week": "April 17",
+  "priorities": [
+    {
+      "service": "club_fitting",
+      "label": "Club Fitting",
+      "score": 4,
+      "confidence": 4.4,
+      "signals": {
+        "ig": 3.2,
+        "ga4": 10,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 5
+      },
+      "reasons": [
+        "High website traffic interest (10)"
+      ],
+      "recommended_cta": "Book your fit · swingshack.co.za/membership"
+    },
+    {
+      "service": "lessons",
+      "label": "Golf Lessons",
+      "score": 1.7,
+      "confidence": 1.1,
+      "signals": {
+        "ig": 3.2,
+        "ga4": 0,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 7
+      },
+      "reasons": [
+        "Seasonal boost (7)"
+      ],
+      "recommended_cta": "Book a lesson · swingshack.co.za/membership"
+    },
+    {
+      "service": "simulator_sessions",
+      "label": "Simulator Sessions",
+      "score": 1.6,
+      "confidence": 0.9,
+      "signals": {
+        "ig": 2.7,
+        "ga4": 0,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 8
+      },
+      "reasons": [
+        "Seasonal boost (8)"
+      ],
+      "recommended_cta": "Book a session · swingshack.co.za/practice"
+    },
+    {
+      "service": "events",
+      "label": "Events & Competitions",
+      "score": 1,
+      "confidence": 0,
+      "signals": {
+        "ig": 0,
+        "ga4": 0,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 10
+      },
+      "reasons": [
+        "Seasonal boost (10)"
+      ],
+      "recommended_cta": "Enter · swingshack.co.za/events"
+    },
+    {
+      "service": "membership",
+      "label": "Membership",
+      "score": 0.6,
+      "confidence": 0,
+      "signals": {
+        "ig": 0,
+        "ga4": 0,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 6
+      },
+      "reasons": [],
+      "recommended_cta": "Join now · swingshack.co.za/membership"
+    }
+  ],
+  "meta": {
+    "top_service": "Club Fitting",
+    "top_score": 4,
+    "runner_up": "Golf Lessons",
+    "season_note": "School holidays — push events + simulator sessions"
+  }
+}
