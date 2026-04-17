@@ -72,6 +72,9 @@ const missed     = readJson('missed-opportunities.json') || null;
 const followUpQ  = readJson('follow-up-queue.json') || null;
 const assetNeeds = readJson('asset-needs.json') || null;
 const ownerWork  = readJson('owner-workload.json') || null;
+const convAttr   = readJson('conversion-attribution.json') || null;
+const funnelLeak = readJson('funnel-leaks.json')          || null;
+const ctaPerf    = readJson('cta-performance.json')       || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -149,41 +152,85 @@ const igSection = buildSection('📱 Instagram Performance', freshnessBadge(ig.u
 
 // ── THIS WEEK STRIP ───────────────────────────────────────────────
 let thisWeekStrip = '';
-if (postPlan || salesPrio || missed) {
-  const nextPost = postPlan?.plan?.[0];
-  const topSales = salesPrio?.priorities?.[0];
-  const runnerUpSales = salesPrio?.priorities?.[1];
-  const topMissed = missed?.opportunities?.[0];
+let execSummarySection = '';
+if (postPlan || salesPrio || missed || convAttr || funnelLeak) {
+  const nextPost    = postPlan?.plan?.[0];
+  const topSales    = salesPrio?.priorities?.[0];
+  const runnerUp    = salesPrio?.priorities?.[1];
+  const topMissed   = missed?.opportunities?.[0];
   const secondMissed = missed?.opportunities?.[1];
-  const bestCTA = topSales ? topSales.recommended_cta : null;
-  const sevColor = { high: '#ff4757', medium: '#ffa500', low: '#00b4d8' };
-  const missSev = topMissed?.severity ? (sevColor[topMissed.severity] || 'var(--muted)') : 'var(--muted)';
+  const bestCTA     = topSales ? topSales.recommended_cta : null;
+  const topLeak     = funnelLeak?.leaks?.[0];
+  const topConvSvc   = convAttr?.summary?.top_converting_service || 'n/a';
+  const topConvCTA   = convAttr?.summary?.top_converting_cta || 'n/a';
+  const topHookTheme = convAttr?.summary?.top_hook_theme || 'n/a';
+  const bookingSess  = convAttr?.summary?.booking_sessions || 0;
+  const topBookingPg = convAttr?.summary?.top_booking_page || 'n/a';
+  const sevColor     = { high: '#ff4757', medium: '#ffa500', low: '#00b4d8' };
+  const missSev      = topMissed?.severity ? (sevColor[topMissed.severity] || 'var(--muted)') : 'var(--muted)';
 
   thisWeekStrip = `<div class="tw-strip">
     <div class="tw-item tw-item--post">
       <div class="tw-label">🎯 Post this first</div>
-      <div class="tw-value">${nextPost?.hook ? truncate(nextPost.hook, 52) : 'No post planned'}</div>
-      <div class="tw-meta">${(nextPost?.objective || '').toUpperCase()} · ${nextPost?.format || ''} · ${nextPost?.platform || 'instagram'}</div>
-      ${nextPost?.hook ? `<div class="tw-action">CTA: ${truncate(nextPost.cta || 'Link in bio', 45)}</div>` : ''}
+      <div class="tw-value">${nextPost?.hook ? truncate(nextPost.hook, 42) : 'No post planned'}</div>
+      <div class="tw-meta">${(nextPost?.objective || '').toUpperCase()} · ${nextPost?.format || ''}</div>
     </div>
     <div class="tw-sep"></div>
     <div class="tw-item tw-item--sales">
       <div class="tw-label">💰 Push this week</div>
       <div class="tw-value">${topSales?.label || 'n/a'}</div>
       <div class="tw-meta">${topSales?.score ? topSales.score.toFixed(1) : '?'}/10 · ${topSales?.reasons?.[0] || ''}</div>
-      ${runnerUpSales ? `<div class="tw-meta tw-meta--secondary">Also: ${runnerUpSales.label}</div>` : ''}
+    </div>
+    <div class="tw-sep"></div>
+    <div class="tw-item tw-item--money">
+      <div class="tw-label">💸 Making money</div>
+      <div class="tw-value" style="font-size:0.82rem">${topConvSvc}</div>
+      <div class="tw-meta">${bookingSess} booking sessions</div>
+      <div class="tw-meta" style="color:#ffa500">${topHookTheme} converts</div>
     </div>
     <div class="tw-sep"></div>
     <div class="tw-item tw-item--missed">
-      <div class="tw-label">⚠️ You missed</div>
-      <div class="tw-value" style="font-size:0.85rem;color:${missSev}">${topMissed ? topMissed.suggestion.substring(0, 52) : 'None detected'}</div>
-      <div class="tw-meta">${topMissed?.type?.replace(/_/g, ' ') || ''}${secondMissed ? ` (+${missed.opportunities.length - 1} more)` : ''}</div>
+      <div class="tw-label">⚠️ Biggest leak</div>
+      <div class="tw-value" style="font-size:0.82rem;color:${topLeak?.severity === 'high' ? '#ff4757' : missSev}">${topLeak ? topLeak.easy_fix?.substring(0, 44) : (topMissed ? truncate(topMissed.suggestion, 44) : 'None detected')}</div>
+      <div class="tw-meta">${topLeak ? topLeak.type?.replace(/_/g, ' ') : (topMissed?.type?.replace(/_/g, ' ') || '')}</div>
     </div>
     <div class="tw-sep"></div>
     <div class="tw-item tw-item--cta">
       <div class="tw-label">📲 Best CTA</div>
-      <div class="tw-value">${bestCTA ? truncate(bestCTA.split('·')[0], 38) : 'Link in bio · Book your session'}</div>
+      <div class="tw-value">${bestCTA ? truncate(bestCTA.split('·')[0], 36) : 'Book your session'}</div>
       <div class="tw-meta">${topSales?.label || 'all posts'}</div>
+    </div>
+  </div>`;
+
+  // Executive summary — inside same conditional as strip
+  function execBadge(label, value, color) {
+    return `<div class="es-item">
+      <div class="es-label">${label}</div>
+      <div class="es-value" style="${color ? 'color:' + color + ';font-weight:800' : ''}">${value}</div>
+    </div>`;
+  }
+  const livePosts = ig.posts ? ig.posts.filter(p => {
+    const age = (Date.now() - new Date(p.timestamp || p.created || 0).getTime()) / 86400000;
+    return age <= 14;
+  }).length : 0;
+  const trustScore = postPlan?.plan ? Math.min(10, (postPlan.plan.filter(p => p.status === 'ready').length * 2 + 4)).toFixed(1) : 'n/a';
+  const topAction  = nextPost ? truncate(nextPost.hook, 55) : 'None planned';
+  const topSvc     = topSales?.label || 'n/a';
+  const topLeakSvc = topLeak ? (topLeak.service || topLeak.type?.replace(/_/g, ' ')) : (topMissed ? (topMissed.topic || topMissed.type?.replace(/_/g, ' ')) : 'none');
+  const loadedOwner = ownerWork?.most_loaded || 'n/a';
+  const loadedCount = ownerWork?.most_loaded_count || 0;
+  const sevColorEs = { high: '#ff4757', medium: '#ffa500', low: '#00b4d8' };
+  const topLeakSeverity = topLeak?.severity || topMissed?.severity || 'low';
+  const topLeakColor = sevColorEs[topLeakSeverity] || 'var(--text)';
+  execSummarySection = `
+  <div class="es-box">
+    <div class="es-title">📋 THIS WEEK IN ONE LOOK</div>
+    <div class="es-grid">
+      ${execBadge('🎯 Top post', truncate(topAction, 40))}
+      ${execBadge('💰 Service to push', topSvc, '#ffa500')}
+      ${execBadge('⚠️ Missed / leak', topLeakSvc, topLeakColor)}
+      ${execBadge('👥 Owner pressure', loadedOwner !== 'n/a' ? `${loadedOwner} (${loadedCount})` : 'Balanced', '#ff6b81')}
+      ${execBadge('📊 Trust score', `${trustScore}/10`, livePosts >= 5 ? '#2ed573' : '#ffa500')}
     </div>
   </div>`;
 }
@@ -812,12 +859,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .ww-filter-btn.active { background: rgba(155,89,182,0.3); border-color: rgba(155,89,182,0.5); color: #c07fd4; }
 
 /* THIS WEEK STRIP */
-.tw-strip { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: 0; background: var(--card); border-radius: 12px; padding: 14px 0; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.08); }
+.tw-strip { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr; gap: 0; background: var(--card); border-radius: 12px; padding: 14px 0; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.08); }
 .tw-item { padding: 0 16px; }
 .tw-item--post { border-left: 3px solid #00d26a; }
 .tw-item--sales { border-left: 3px solid #ffa500; }
 .tw-item--missed { border-left: 3px solid #ff4757; }
 .tw-item--cta { border-left: 3px solid #00b4d8; }
+.tw-item--money { border-left: 3px solid #ff4757; }
+
+/* EXECUTIVE SUMMARY */
+.es-box { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.08); }
+.es-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 800; margin-bottom: 10px; }
+.es-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 14px; }
+.es-item { display: flex; flex-direction: column; gap: 3px; }
+.es-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+.es-value { font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.3; }
 .tw-sep { width: 1px; background: rgba(255,255,255,0.08); margin: 4px 0; }
 .tw-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 700; margin-bottom: 5px; }
 .tw-value { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 3px; line-height: 1.3; }
@@ -914,6 +970,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 
   ${summaryBar}
   ${thisWeekStrip}
+  ${execSummarySection}
   ${igSection}
   ${hookSection}
   ${watchedSection}

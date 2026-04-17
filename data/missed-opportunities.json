@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T08:37:25.405Z",
+  "updated": "2026-04-17T09:21:20.771Z",
   "generated": "detect_missed_opportunities.js",
   "count": 12,
   "by_severity": {
@@ -86,22 +86,22 @@
       "category": "content_gap",
       "severity": "high",
       "page": "/",
-      "sessions": 272,
+      "sessions": 273,
       "owner": "Swing Shack page",
-      "suggested_fix": "Create IG content targeting \"/\" — 272 sessions with no social link.",
-      "suggestion": "Page \"/\" gets 272 sessions but no IG post links to it. Create content.",
-      "why": "272 sessions with no social presence"
+      "suggested_fix": "Create IG content targeting \"/\" — 273 sessions with no social link.",
+      "suggestion": "Page \"/\" gets 273 sessions but no IG post links to it. Create content.",
+      "why": "273 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
       "category": "content_gap",
       "severity": "high",
       "page": "/bookings/",
-      "sessions": 148,
+      "sessions": 149,
       "owner": "Nancy / Front Desk",
-      "suggested_fix": "Create IG content targeting \"/bookings/\" — 148 sessions with no social link.",
-      "suggestion": "Page \"/bookings/\" gets 148 sessions but no IG post links to it. Create content.",
-      "why": "148 sessions with no social presence"
+      "suggested_fix": "Create IG content targeting \"/bookings/\" — 149 sessions with no social link.",
+      "suggestion": "Page \"/bookings/\" gets 149 sessions but no IG post links to it. Create content.",
+      "why": "149 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",

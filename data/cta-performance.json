@@ -1,0 +1,84 @@
+{
+  "updated": "2026-04-17T09:21:21.031Z",
+  "generated": "generate_cta_performance.js",
+  "summary": {
+    "ctas_analysed": 1,
+    "best_cta": "Soft / Engagement CTA",
+    "best_signal": 1.25,
+    "worst_cta": "Soft / Engagement CTA",
+    "worst_signal": 1.25,
+    "tests_to_run": 1
+  },
+  "cta_rankings": [
+    {
+      "cta_type": "SOFT",
+      "label": "Soft / Engagement CTA",
+      "color": "#748ffc",
+      "intent": "low",
+      "post_count": 30,
+      "total_reach": 8613,
+      "avg_reach": 287,
+      "avg_likes": 0,
+      "avg_saves": 0,
+      "avg_comments": 0,
+      "avg_engagement_rate": 2.5,
+      "save_rate": 0,
+      "click_proxy": 0,
+      "conversion_signal": 1.25,
+      "rank": 1
+    }
+  ],
+  "best_cta": {
+    "cta_type": "SOFT",
+    "label": "Soft / Engagement CTA",
+    "color": "#748ffc",
+    "intent": "low",
+    "post_count": 30,
+    "total_reach": 8613,
+    "avg_reach": 287,
+    "avg_likes": 0,
+    "avg_saves": 0,
+    "avg_comments": 0,
+    "avg_engagement_rate": 2.5,
+    "save_rate": 0,
+    "click_proxy": 0,
+    "conversion_signal": 1.25,
+    "rank": 1
+  },
+  "worst_cta": {
+    "cta_type": "SOFT",
+    "label": "Soft / Engagement CTA",
+    "color": "#748ffc",
+    "intent": "low",
+    "post_count": 30,
+    "total_reach": 8613,
+    "avg_reach": 287,
+    "avg_likes": 0,
+    "avg_saves": 0,
+    "avg_comments": 0,
+    "avg_engagement_rate": 2.5,
+    "save_rate": 0,
+    "click_proxy": 0,
+    "conversion_signal": 1.25,
+    "rank": 1
+  },
+  "recommendations": [
+    {
+      "cta_type": "SOFT",
+      "label": "Soft / Engagement CTA",
+      "rank": 1,
+      "signal": 1.25,
+      "verdict": "🏆 Best performer — push this CTA style",
+      "action": "Scale Soft / Engagement CTA posts — eng 2.5%, save rate 0%",
+      "owner": "Swing Shack page"
+    }
+  ],
+  "tests_to_run": [
+    {
+      "action": "Start testing",
+      "current": "Booking CTA — 0 posts in sample",
+      "why": "High intent CTA type with no performance data yet",
+      "owner": "Swing Shack page"
+    }
+  ]
+}
