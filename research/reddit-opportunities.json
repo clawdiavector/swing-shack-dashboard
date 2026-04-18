@@ -71,9 +71,81 @@
       "datePosted": "2026-04-15",
       "comment": "Walking golfers care about comfort. Equipment-adjacent — not core but shows what golfers care about in their gear buying decisions.",
       "tags": ["bag", "walking", "comfort", "equipment"]
+    },
+    {
+      "id": "reddit-2026-04-18-1",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1skp7wd/this_was_after_five_shots_was_completely_unaware/",
+      "title": "Was completely unaware I was doing this - gained 30yds",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-17",
+      "comment": "Classic didn't-know-what-I-didn't-know. Gained 30yds after fixing something they didn't even know they were doing. This is exactly where TrackMan + coaching helps — show them what's actually happening.",
+      "tags": ["swing-fix", "distance", "trackman", "coaching", "consistency"]
+    },
+    {
+      "id": "reddit-2026-04-18-2",
+      "url": "https://www.reddit.com/r/golf/comments/1sjczws/knuckles_down_feels_terrible_post_lesson_help/",
+      "title": "Knuckles down feels terrible. Post lesson Help",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-12",
+      "comment": "Got lessons, but struggling to make it work on the course. They need help applying what they learned — structured practice sessions with feedback would help.",
+      "tags": ["lessons", "application", "practice", "inconsistency"]
+    },
+    {
+      "id": "reddit-2026-04-18-3",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1sk60uz/driver_slicing_fix/",
+      "title": "Driver slicing fix",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-16",
+      "comment": "Active slice fixer trying different things — tee height, loft adjustments. These are the golfers actively looking for solutions. We can help.",
+      "tags": ["slice", "driver", "fix", "swing-help"]
+    },
+    {
+      "id": "reddit-2026-04-18-4",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1smqoih/trackman_4_launch_monitor_2022_model_just_curious/",
+      "title": "TrackMan 4 launch monitor 2022 model, just curious what it's going for nowadays",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-16",
+      "comment": "Shows TrackMan holds value — people checking resale prices. Pro-level gear retains worth. Good for facilities to have.",
+      "tags": ["trackman", "value", "resale", "pre-owned"]
+    },
+    {
+      "id": "reddit-2026-04-18-5",
+      "url": "https://www.reddit.com/r/golftips/comments/1sig74h/im_consistently_inconsistent/",
+      "title": "I'm consistently inconsistent",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-11",
+      "comment": "New golfer says a lesson helped them get consistency — 'a lesson helped me tremendously, it helped me get consistency.' Direct testimonial that lessons work.",
+      "tags": ["lessons", "consistency", "new-golfer", "progress"]
+    },
+    {
+      "id": "reddit-2026-04-18-6",
+      "url": "https://www.reddit.com/r/golftips/comments/1skfc32/swing_advice/",
+      "title": "Swing advice - mental block",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-17",
+      "comment": "Overthinking — 'I can't stop myself from doing it.' Classic mental block. They need help with the pipeline from range to course, not just swing mechanics.",
+      "tags": ["mental-game", "overthinking", "pipeline", "course-v-range"]
     }
   ],
-  "last_updated": "2026-04-17",
-  "scan_time": "2026-04-17T16:00Z",
-  "scan_note": "April 17 2026 - 6PM scan. Rate limited on Brave/Reddit. No fresh new posts from last 24h. Existing opportunities from earlier scan remain relevant."
+  "last_updated": "2026-04-18",
+  "scan_time": "2026-04-18T04:00Z",
+  "scan_note": "April 18 2026 - Early morning scan. Found swing issues (didn't know what they didn't know), slice fix requests, post-lesson help needed, TrackMan value discussion, and mental game/block issues. Universal themes that apply to SA golfers."
 }
