@@ -143,21 +143,57 @@
       "datePosted": "2026-04-17",
       "comment": "Overthinking — 'I can't stop myself from doing it.' Classic mental block. They need help with the pipeline from range to course, not just swing mechanics.",
       "tags": ["mental-game", "overthinking", "pipeline", "course-v-range"]
+    },
+    {
+      "id": "reddit-2026-04-18-7",
+      "url": "https://www.reddit.com/r/golf/comments/1somss6/vice_boost_starter_set_vs_callaway_edge_starter/",
+      "title": "Vice Boost Starter Set vs Callaway Edge Starter Set",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-18",
+      "comment": "Beginner looking for first set. Considering Vice Boost vs Callaway Edge. This is a classic 'what clubs should I buy' question — we can help them find the right fit.",
+      "tags": ["beginner", "clubs", "fitting", "equipment"]
+    },
+    {
+      "id": "reddit-2026-04-18-8",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1soofvb/beginner_club_suggestions/",
+      "title": "Beginner club suggestions - minimal setup",
+      "subreddit": "r/GolfGear",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-18",
+      "comment": "New golfer wants minimal clubs: driver/3w, 7i, sand wedge, putter. Classic starter setup question. We can help them find the right clubs for their game.",
+      "tags": ["beginner", "minimal", "starter-clubs", "setup"]
+    },
+    {
+      "id": "reddit-2026-04-18-9",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1somzim/need_a_new_driver/",
+      "title": "Need a new driver - Sim2Max vs used",
+      "subreddit": "r/GolfGear",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-18",
+      "comment": " golfer needs new driver. Sim2Max new at $350 vs used at same price. Upgrade conversation — fitting helps pick the right club, not just price.",
+      "tags": ["driver", "upgrade", "sim2max", "fitting"]
+    },
+    {
+      "id": "reddit-2026-04-18-10",
+      "url": "https://www.reddit.com/r/golf/comments/1snqwds/megathread_full_swing_season_4_netflix/",
+      "title": "Full Swing Season 4 - Netflix Megathread",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-18",
+      "datePosted": "2026-04-17",
+      "comment": "Netflix Full Swing S4 driving golf buzz. Big opportunity for indoor golf visibility. TrackMan is featured heavily in the show — leverage the interest.",
+      "tags": ["netflix", "full-swing", "trackman", "trending", "indoor-golf"]
     }
   ],
   "last_updated": "2026-04-18",
-  "scan_time": "2026-04-18T04:00Z",
-  "scan_note": "April 18 2026 - Early morning scan. Found swing issues (didn't know what they didn't know), slice fix requests, post-lesson help needed, TrackMan value discussion, and mental game/block issues. Universal themes that apply to SA golfers."
-},
-{
-  "id": "reddit-2026-04-18-7",
-  "url": "https://www.reddit.com/r/golf/comments/1somss6/vice_boost_starter_set_vs_callaway_edge_starter/",
-  "title": "Vice Boost Starter Set vs Callaway Edge Starter Set",
-  "subreddit": "r/golf",
-  "status": "saved",
-  "locationTag": "global",
-  "dateFound": "2026-04-18",
-  "datePosted": "2026-04-18",
-  "comment": "Beginner looking for first set. Considering Vice Boost vs Callaway Edge. This is a classic 'what clubs should I buy' question — we can help them find the right fit.',
-  "tags": ["beginner", "clubs", "fitting", "equipment"]
+  "scan_time": "2026-04-18T10:00Z",
+  "scan_note": "April 18 2026 - midday scan. Full Swing S4 megathread hot (Netflix driving interest). Beginner gear questions active. Driver upgrade questions. Minimal club setup seekers. All trends apply to SA market."
 }
