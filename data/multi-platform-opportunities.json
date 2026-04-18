@@ -222,6 +222,90 @@
       "score": 80,
       "suggested_comment": "Data is useful but a coach helps translate it into swing changes.",
       "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-18-11",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Simulator Practice Translation",
+      "url": "https://www.reddit.com/r/golf/comments/1je4vg4/how_do_you_practice_on_a_golf_simulator/",
+      "content_preview": "Simulator improved swing and distance confidence, but course lies different",
+      "location_tag": "Global",
+      "problem_type": "practice-transfer",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Coaches help bridge the gap between sim data and course reality.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-18-12",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Simulator Best Practice Use",
+      "url": "https://www.reddit.com/r/golf/comments/108ahly/advice_on_best_use_of_a_simulator_for_practice/",
+      "content_preview": "Hour range session followed by hour playing round - optimized practice",
+      "location_tag": "Global",
+      "problem_type": "practice-optimization",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Trackman data shows exactly what needs work before playing.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-18-13",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Sim Practice Programs",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/15pk8d5/sim_installed_now_how_to_practice/",
+      "content_preview": "20 handicapper looking for programs to improve with sim data",
+      "location_tag": "Global",
+      "problem_type": "practice-programs",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Structured coaching uses sim data to build practice plans.",
+      "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-18-14",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Simulator Breakthrough",
+      "url": "https://www.reddit.com/r/golf/comments/1sn476w/massive_breakthrough_carried_over_into_great/",
+      "content_preview": "Breakthrough on sim carried over to great score - varied practice key",
+      "location_tag": "Global",
+      "problem_type": "improvement-success",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Great result - data-driven practice works when consistent.",
+      "comment_tone": "congratulatory"
+    },
+    {
+      "id": "mp-2026-04-18-15",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Indoor Practice 6 Months",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1gjdwyd/indoor_golf_practice_for_6_months/",
+      "content_preview": "Hitting balls without plan leads to wash cycle - needs structure",
+      "location_tag": "Global",
+      "problem_type": "practice-structure",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Overseas coaches cheaper but local coaches know your course conditions.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-18-16",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "NYC Indoor Golf Pro Tools",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sjh0xq/ive_worked_at_indoor_golf_facilities_in_nyc_since/",
+      "content_preview": "Industry pro built tool to apply sim data to practice - gap in market",
+      "location_tag": "Global",
+      "problem_type": "data-application",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "This gap exists locally too - coaches bridge data to practice.",
+      "comment_tone": "insightful"
     }
   ],
   "summary": {
@@ -233,7 +317,7 @@
     ]
   },
   "scan_date": "2026-04-18",
-  "scan_time": "12:06 SAST",
-  "next_scan": "2026-04-18T18:00 SAST",
-  "total_opportunities": 16
+  "scan_time": "18:06 SAST",
+  "next_scan": "2026-04-18T22:00 SAST",
+  "total_opportunities": 22
 }
