@@ -335,9 +335,33 @@
       "datePosted": "2026-04-18",
       "comment": "Follow-up post: took 2 lessons, grip, takeaway, backswing, wrist hinge fixed. This is gold — it's a real beginner's journey with lessons. Great content to connect with: 'we see people like this every day.'",
       "tags": ["beginner", "progress", "lessons", "journey", "improvement", "swing"]
+    },
+    {
+      "id": "reddit-2026-04-19-14",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sn0es9/carls_place_new_sim_customizer/",
+      "title": "Carl's Place New Sim Customizer",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-19",
+      "datePosted": "2026-04-19",
+      "comment": "New 3D sim builder tool - design builds, check space dimensions, projector placement. DIY builders checking this out. Bring them in to try TrackMan before they commit to a build.",
+      "tags": ["DIY", "simulator", "3D", "design", "Carls Place", "builder", "try-before-buy"]
+    },
+    {
+      "id": "reddit-2026-04-19-15",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sekepq/weekly_golf_simulator_deals/",
+      "title": "Weekly Golf Simulator Deals",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-19",
+      "datePosted": "2026-04-18",
+      "comment": "Weekly deals: R10 $399, Mevo2 $1299, SkyTrak+ $1795. Price-conscious buyers shopping. Perfect for try-before-you-buy - come test on TrackMan before dropping $400-1800.",
+      "tags": ["deals", "launch-monitor", "budget", "garmin-r10", "skytrak", "mevo", "compare"]
     }
   ],
   "last_updated": "2026-04-19",
-  "scan_time": "2026-04-19T04:00Z",
-  "scan_note": "April 19 2026 - 6AM scan via old.reddit JSON. Found 12 new opportunities. Highlights: Keith Horne (SA) leading Senior PGA, equipment fitting story (126 to 105 with right clubs), multiple slice/fix help requests, sim setup questions. Active swing help conversations across r/GolfSwing."
+  "scan_time": "2026-04-19T10:00Z",
+  "scan_note": "April 19 2026 - 12PM scan. Found 2 new: Carl's Place 3D designer, weekly sim deals. Low new post volume. Full Swing S4 still hot."
 }
