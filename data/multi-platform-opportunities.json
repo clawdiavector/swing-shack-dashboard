@@ -516,6 +516,90 @@
       "score": 80,
       "suggested_comment": "Trackman is industry standard for fitting - book a session to see why.",
       "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-19-16",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Simulator Practice Tips",
+      "url": "https://www.reddit.com/r/golf/comments/1je4vg4/how_do_you_practice_on_a_golf_simulator/",
+      "content_preview": "Best improvement came from doing drills on a simulator",
+      "location_tag": "Global",
+      "problem_type": "practice-improvement",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Structured practice with data beats random range sessions.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-19-17",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "SA Course Software",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1jd5ju5/software_for_south_african_courses/",
+      "content_preview": "SA golfer using Garmin R10 wants local course options",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-software",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Indoor facilities have more course options than consumer software.",
+      "comment_tone": "helpful-local"
+    },
+    {
+      "id": "mp-2026-04-19-18",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Simulator Best Practice Use",
+      "url": "https://www.reddit.com/r/golf/comments/108ahly/advice_on_best_use_of_a_simulator_for_practice/",
+      "content_preview": "Hour range session followed by hour playing round - optimized practice",
+      "location_tag": "Global",
+      "problem_type": "practice-optimization",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Trackman data shows exactly what needs work before playing.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-19-19",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Simulator Breakthrough",
+      "url": "https://www.reddit.com/r/golf/comments/1sn476w/massive_breakthrough_carried_over_into_great/",
+      "content_preview": "Breakthrough on sim carried over to great score - varied practice key",
+      "location_tag": "Global",
+      "problem_type": "improvement-success",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Great result - data-driven practice works when consistent.",
+      "comment_tone": "congratulatory"
+    },
+    {
+      "id": "mp-2026-04-19-20",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Sim to Course Translation",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1njsf2f/how_well_does_practicing_in_a_simulator_translate/",
+      "content_preview": "Sim practice translates to outdoor golf - work on specific things",
+      "location_tag": "Global",
+      "problem_type": "practice-transfer",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Data shows what to work on - coaching helps apply to course.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-19-21",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Indoor Drills No Ball",
+      "url": "https://www.reddit.com/r/golf/comments/19eozs1/drills_i_can_do_indoor_without_hitting_an_actual/",
+      "content_preview": "Indoor drills without hitting ball to improve swing",
+      "location_tag": "Global",
+      "problem_type": "indoor-practice",
+      "engagement_level": "medium",
+      "score": 70,
+      "suggested_comment": "Indoor facilities let you practice with actual ball data.",
+      "comment_tone": "practical"
     }
   ],
   "summary": {
@@ -527,7 +611,7 @@
     ]
   },
   "scan_date": "2026-04-19",
-  "scan_time": "12:06 SAST",
-  "next_scan": "2026-04-19T18:00 SAST",
-  "total_opportunities": 37
+  "scan_time": "18:05 SAST",
+  "next_scan": "2026-04-19T22:00 SAST",
+  "total_opportunities": 43
 }
