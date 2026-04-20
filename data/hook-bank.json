@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T13:22:18.812Z",
+  "updated": "2026-04-20T05:07:05.692Z",
   "total_hooks": 64,
   "cross_signal_sources": {
     "ig_weight": "60%",
@@ -29,10 +29,10 @@
           "Master Your Senior Golf Swing in 3 Easy Steps",
           "Possibly The BEST DRIVER Tip Ever In GOLF"
         ],
-        "engagementRate": "5.66",
+        "engagementRate": "5.26",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 53,
+        "reach": 57,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "question",
@@ -68,7 +68,7 @@
       {
         "hook_text": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
         "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
-        "ig_proof_score": 9.86,
+        "ig_proof_score": 9.82,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 7.1,
@@ -81,10 +81,10 @@
           "Master Your Senior Golf Swing in 3 Easy Steps",
           "Possibly The BEST DRIVER Tip Ever In GOLF"
         ],
-        "engagementRate": "3.43",
+        "engagementRate": "3.41",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 350,
+        "reach": 352,
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -94,7 +94,7 @@
       {
         "hook_text": "Lowest net score wins a *new custom fitted driver!*",
         "hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
-        "ig_proof_score": 9.4,
+        "ig_proof_score": 9.38,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 6.8,
@@ -107,10 +107,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "1.60",
+        "engagementRate": "1.59",
         "saveRate": "0.00",
         "shareRate": "0.64",
-        "reach": 312,
+        "reach": 314,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "general",
@@ -136,7 +136,7 @@
         "engagementRate": "1.79",
         "saveRate": "0.00",
         "shareRate": "0.51",
-        "reach": 390,
+        "reach": 391,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -146,10 +146,10 @@
       {
         "hook_text": "It never rains in doors… Book your slot now before your tee time rains out🏌🏻‍♀",
         "hook_id": "it-never-rains-in-doors--book-your-slot-now-before",
-        "ig_proof_score": 7.8,
+        "ig_proof_score": 7.74,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 5.9,
+        "cross_signal_score": 5.8,
         "youtube_topic_match": [
           "driver",
           "simulator"
@@ -159,10 +159,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "2.40",
+        "engagementRate": "2.37",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 334,
+        "reach": 337,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -172,10 +172,10 @@
       {
         "hook_text": "Coach Cat takes us through a simple process on getting into one of the more chal",
         "hook_id": "coach-cat-takes-us-through-a-simple-process-on-get",
-        "ig_proof_score": 7.46,
+        "ig_proof_score": 7.37,
         "youtube_alignment_score": 5,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 5.5,
+        "cross_signal_score": 5.4,
         "youtube_topic_match": [
           "lessons"
         ],
@@ -186,10 +186,10 @@
           "Master Your Senior Golf Swing in 3 Easy Steps",
           "Possibly The BEST DRIVER Tip Ever In GOLF"
         ],
-        "engagementRate": "1.48",
+        "engagementRate": "1.46",
         "saveRate": "0.00",
-        "shareRate": "0.30",
-        "reach": 337,
+        "shareRate": "0.29",
+        "reach": 342,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -213,7 +213,7 @@
         ],
         "youtube_evidence_titles": [
           "Possibly The BEST DRIVER Tip Ever In GOLF",
-          "What Nobody Tells You About the Senior Golf Swing"
+          "4 Simple Steps For The Perfect Golf Drive"
         ],
         "engagementRate": "0.93",
         "saveRate": "0.00",
@@ -228,7 +228,7 @@
       {
         "hook_text": "TrackMan doesn't lie. Your swing data from your last session told a story. Now f",
         "hook_id": "trackman-doesn-t-lie--your-swing-data-from-your-la",
-        "ig_proof_score": 4.390000000000001,
+        "ig_proof_score": 4.37,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 3.8,
@@ -239,12 +239,12 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "What Nobody Tells You About the Senior Golf Swing"
+          "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "1.55",
+        "engagementRate": "1.53",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 129,
+        "reach": 131,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -293,10 +293,10 @@
           "Master Your Senior Golf Swing in 3 Easy Steps",
           "Possibly The BEST DRIVER Tip Ever In GOLF"
         ],
-        "engagementRate": "3.60",
+        "engagementRate": "3.58",
         "saveRate": "0.00",
         "shareRate": "0.36",
-        "reach": 278,
+        "reach": 279,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -316,12 +316,12 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "What Nobody Tells You About the Senior Golf Swing"
+          "4 Simple Steps For The Perfect Golf Drive"
         ],
         "engagementRate": "3.61",
         "saveRate": "0.00",
         "shareRate": "0.19",
-        "reach": 526,
+        "reach": 527,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "general",
@@ -341,7 +341,7 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "What Nobody Tells You About the Senior Golf Swing"
+          "4 Simple Steps For The Perfect Golf Drive"
         ],
         "engagementRate": "3.05",
         "saveRate": "0.00",
@@ -354,37 +354,12 @@
         "post_id": "18015056354814143"
       },
       {
-        "hook_text": "Your balls are important too 👀 Learn the key differences between one of the mos",
-        "hook_id": "your-balls-are-important-too----learn-the-key-diff",
-        "ig_proof_score": 9.52,
+        "hook_text": "Want to win a fully custom built driver?👀",
+        "hook_id": "want-to-win-a-fully-custom-built-driver---",
+        "ig_proof_score": 9.5,
         "youtube_alignment_score": 3,
         "reddit_relevance_score": 0,
         "cross_signal_score": 6.3,
-        "youtube_topic_match": [
-          "beginner"
-        ],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [
-          "What Nobody Tells You About the Senior Golf Swing",
-          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
-        ],
-        "engagementRate": "2.61",
-        "saveRate": "0.00",
-        "shareRate": "0.26",
-        "reach": 383,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "signal_bucket": "proven_only",
-        "post_id": "18101162930499434"
-      },
-      {
-        "hook_text": "Want to win a fully custom built driver?👀",
-        "hook_id": "want-to-win-a-fully-custom-built-driver---",
-        "ig_proof_score": 9.18,
-        "youtube_alignment_score": 3,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 6.1,
         "youtube_topic_match": [
           "driver"
         ],
@@ -393,15 +368,40 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "3.09",
+        "engagementRate": "3.25",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 356,
+        "reach": 369,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "question",
         "signal_bucket": "proven_only",
         "post_id": "18055889312462062"
+      },
+      {
+        "hook_text": "Your balls are important too 👀 Learn the key differences between one of the mos",
+        "hook_id": "your-balls-are-important-too----learn-the-key-diff",
+        "ig_proof_score": 9.5,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.3,
+        "youtube_topic_match": [
+          "beginner"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "5 Powerful Tips to Unleash Your Senior Driver Swing",
+          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
+        ],
+        "engagementRate": "2.60",
+        "saveRate": "0.00",
+        "shareRate": "0.26",
+        "reach": 385,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "stat-demand",
+        "signal_bucket": "proven_only",
+        "post_id": "18101162930499434"
       },
       {
         "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
@@ -413,35 +413,15 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "3.37",
+        "engagementRate": "3.15",
         "saveRate": "0.00",
-        "shareRate": "0.35",
-        "reach": 564,
+        "shareRate": "0.31",
+        "reach": 635,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
         "signal_bucket": "proven_only",
         "post_id": "18078655349442093"
-      },
-      {
-        "hook_text": "Another awesome day out @parkview_1916 . Course was in fantastic condition and a",
-        "hook_id": "another-awesome-day-out--parkview-1916---course-wa",
-        "ig_proof_score": 10,
-        "youtube_alignment_score": 0,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 6,
-        "youtube_topic_match": [],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [],
-        "engagementRate": "2.91",
-        "saveRate": "0.00",
-        "shareRate": "0.29",
-        "reach": 344,
-        "topic_cluster": "general",
-        "format_type": "static",
-        "formula_type": "general",
-        "signal_bucket": "proven_only",
-        "post_id": "18072089732557218"
       },
       {
         "hook_text": "New Callaway Quantum range in- store. Come give them a go 🏌️‍♂️🏌🏻‍♀️",
@@ -453,10 +433,10 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "3.27",
+        "engagementRate": "3.24",
         "saveRate": "0.00",
-        "shareRate": "0.47",
-        "reach": 214,
+        "shareRate": "0.46",
+        "reach": 216,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "general",
@@ -466,7 +446,7 @@
       {
         "hook_text": "Editing our SwingShack Members Social like a reality TV show 🤣 ",
         "hook_id": "editing-our-swingshack-members-social-like-a-reali",
-        "ig_proof_score": 8.98,
+        "ig_proof_score": 8.96,
         "youtube_alignment_score": 3,
         "reddit_relevance_score": 0,
         "cross_signal_score": 6,
@@ -476,17 +456,37 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "What Nobody Tells You About the Senior Golf Swing"
+          "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "2.99",
+        "engagementRate": "2.98",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 402,
+        "reach": 403,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "general",
         "signal_bucket": "proven_only",
         "post_id": "18098296201915090"
+      },
+      {
+        "hook_text": "Here’s to a New Year and Good Golf! 🥂😉",
+        "hook_id": "here-s-to-a-new-year-and-good-golf------",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 0,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6,
+        "youtube_topic_match": [],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [],
+        "engagementRate": "3.26",
+        "saveRate": "0.00",
+        "shareRate": "0.38",
+        "reach": 522,
+        "topic_cluster": "coaching",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_only",
+        "post_id": "18067732487399015"
       }
     ],
     "trending_to_test": [
@@ -504,7 +504,7 @@
         "youtube_format_match": [],
         "youtube_evidence_titles": [
           "Master Your Senior Golf Swing in 3 Easy Steps",
-          "What Nobody Tells You About the Senior Golf Swing"
+          "4 Simple Steps For The Perfect Golf Drive"
         ],
         "engagementRate": "0.94",
         "saveRate": "0.00",
@@ -555,7 +555,7 @@
         ],
         "youtube_format_match": [],
         "youtube_evidence_titles": [
-          "What Nobody Tells You About the Senior Golf Swing",
+          "5 Powerful Tips to Unleash Your Senior Driver Swing",
           "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
         ],
         "engagementRate": "0.85",
@@ -591,10 +591,10 @@
         "Master Your Senior Golf Swing in 3 Easy Steps",
         "Possibly The BEST DRIVER Tip Ever In GOLF"
       ],
-      "engagementRate": "5.66",
+      "engagementRate": "5.26",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 53,
+      "reach": 57,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "question",
@@ -630,7 +630,7 @@
     {
       "hook_text": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
       "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
-      "ig_proof_score": 9.86,
+      "ig_proof_score": 9.82,
       "youtube_alignment_score": 6,
       "reddit_relevance_score": 0,
       "cross_signal_score": 7.1,
@@ -643,10 +643,10 @@
         "Master Your Senior Golf Swing in 3 Easy Steps",
         "Possibly The BEST DRIVER Tip Ever In GOLF"
       ],
-      "engagementRate": "3.43",
+      "engagementRate": "3.41",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 350,
+      "reach": 352,
       "topic_cluster": "equipment",
       "format_type": "static",
       "formula_type": "stat-demand",
@@ -656,7 +656,7 @@
     {
       "hook_text": "Lowest net score wins a *new custom fitted driver!*",
       "hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
-      "ig_proof_score": 9.4,
+      "ig_proof_score": 9.38,
       "youtube_alignment_score": 6,
       "reddit_relevance_score": 0,
       "cross_signal_score": 6.8,
@@ -669,10 +669,10 @@
         "Possibly The BEST DRIVER Tip Ever In GOLF",
         "4 Simple Steps For The Perfect Golf Drive"
       ],
-      "engagementRate": "1.60",
+      "engagementRate": "1.59",
       "saveRate": "0.00",
       "shareRate": "0.64",
-      "reach": 312,
+      "reach": 314,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "general",
@@ -698,7 +698,7 @@
       "engagementRate": "1.79",
       "saveRate": "0.00",
       "shareRate": "0.51",
-      "reach": 390,
+      "reach": 391,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "stat-demand",
@@ -750,8 +750,8 @@
   ],
   "youtube_signals_summary": {
     "dominant_topics": [
-      "beginner",
       "lessons",
+      "beginner",
       "swing"
     ],
     "dominant_formats": [
