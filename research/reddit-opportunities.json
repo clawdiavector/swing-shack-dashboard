@@ -399,6 +399,54 @@
   ],
   "opportunities": [
     {
+      "id": "reddit-2026-04-20-12",
+      "url": "https://www.reddit.com/r/golf/comments/1sqtfxr/wedge_gap_help/",
+      "title": "Wedge gap help",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-20",
+      "comment": "Got a 25-30 yard gap between 43° PW and 50° wedge. Looking at 46/47° AW to fill it. Classic gapping conversation — we can measure their actual distances and recommend the right wedge setup.",
+      "tags": ["wedges", "gapping", "fitting", "distance", "equipment"]
+    },
+    {
+      "id": "reddit-2026-04-20-13",
+      "url": "https://www.reddit.com/r/golf/comments/1sqtfyt/bringing_5_year_old_to_my_golf_lesson/",
+      "title": "Bringing 5 year old to MY golf lesson",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-20",
+      "comment": "Dad wondering if bringing well-behaved 5-year-old to his lesson is okay. Discussion about introducing kids to golf — great family fitting opportunity. Get both dad and kid fitted together.",
+      "tags": ["kids", "family", "lessons", "beginner", "fitting", "family"]
+    },
+    {
+      "id": "reddit-2026-04-20-14",
+      "url": "https://www.reddit.com/r/golf/comments/1sqtjy8/the_crew_and_i_after_clearly_going_into_the_water/",
+      "title": "The crew and I after clearly going into the water",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-20",
+      "comment": "Meme post about water balls — high engagement (3429 upvotes). Good for light content but not an active lead. Save for humor content.",
+      "tags": ["humor", "meme", "water-ball", "course-stories"]
+    },
+    {
+      "id": "reddit-2026-04-20-15",
+      "url": "https://www.reddit.com/r/golf/comments/1sqa7hx/matt_fitzpatrick_was_asked_about_his_reaction_to/",
+      "title": "Matt Fitzpatrick RBC Heritage crowds",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-20",
+      "comment": "Tour pros discussing crowd behavior. Not indoor golf specific but shows what's trending in golf media. Full Swing still the big content driver.",
+      "tags": ["tour", "PGA", "heritage", "crowds", "media"]
+    },
+    {
       "id": "reddit-2026-04-20-1",
       "url": "https://www.reddit.com/r/GolfGear/comments/1skxsrc/about_to_book_my_first_ever_fitting_i_have_a_few/",
       "title": "About to book my first ever fitting, I have a few questions",
@@ -533,6 +581,6 @@
   ],
 
   "last_updated": "2026-04-20",
-  "scan_time": "2026-04-20T04:00Z",
-  "scan_note": "April 20 2026 - 6AM scan. 11 opportunities saved. Strong beginner/first-fitter theme. Found SA competitor: hi-Tee at Royal Cape GC."
+  "scan_time": "2026-04-20T18:00Z",
+  "scan_note": "April 20 2026 - 6PM scan. 15 opportunities saved. 4 new from this scan: wedge gap, bringing kid to lesson, water meme, RBC Heritage. Wedge gapping + family fitting active leads."
 }
