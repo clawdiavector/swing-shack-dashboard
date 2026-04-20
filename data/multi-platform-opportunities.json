@@ -754,6 +754,76 @@
       "score": 90,
       "suggested_comment": "Coaches with launch data show you exactly what your swing is doing.",
       "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-20-12",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "SA Simulator Budget Build",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
+      "content_preview": "Building simulator in SA with $1500-$2000 budget - local suppliers?",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-build",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Try before you buy - visit an indoor facility to test launch monitors first.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-20-13",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Slice Detection Monitor",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/u0gmbf/best_launch_monitor_that_detects_slicing_correctly/",
+      "content_preview": "Mixed reviews on whether monitors detect slicing correctly",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Professional monitors show exact face and path - the causes of slice.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-20-14",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "R10 Not Picking Up Left Slice",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/13cyul2/what_launch_monitor_to_get/",
+      "content_preview": "R10 does not pick up left slice - wants SkyTrak",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Higher-end monitors catch slice patterns better - worth the investment.",
+      "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-20-15",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Indoor Simulator Upgrade",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1o5wh73/best_launch_monitor_for_an_indoor_simulator/",
+      "content_preview": "Upgraded from R10 to Square - helped correct slice",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Indoor data reveals what you cannot see on the course.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-20-16",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Free Data Tool",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1q94lo8/free_launch_monitor_data_tool_new_updates_thanks/",
+      "content_preview": "Free platform to analyze launch data into training feedback",
+      "location_tag": "Global",
+      "problem_type": "data-tool",
+      "engagement_level": "high",
+      "score": 75,
+      "suggested_comment": "Data is useful but a coach helps translate it into swing changes.",
+      "comment_tone": "helpful"
     }
   ],
   "summary": {
@@ -765,7 +835,7 @@
     ]
   },
   "scan_date": "2026-04-20",
-  "scan_time": "07:04 SAST",
-  "next_scan": "2026-04-20T12:00 SAST",
-  "total_opportunities": 54
+  "scan_time": "12:05 SAST",
+  "next_scan": "2026-04-20T18:00 SAST",
+  "total_opportunities": 59
 }
