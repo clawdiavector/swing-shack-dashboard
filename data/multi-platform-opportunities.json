@@ -600,6 +600,104 @@
       "score": 70,
       "suggested_comment": "Indoor facilities let you practice with actual ball data.",
       "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-20-1",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "SA Simulator Budget Build",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
+      "content_preview": "Building simulator in SA with $1500-$2000 budget",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-budget",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Try Trackman at a facility first - see the data before buying consumer gear.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-20-2",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Slice Detection Monitor",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/u0gmbf/best_launch_monitor_that_detects_slicing_correctly/",
+      "content_preview": "Which monitors correctly detect slicing",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Face and path data show exactly what causes slice - pro monitors deliver this.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-20-3",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "R10 Slice Detection Issues",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/13cyul2/what_launch_monitor_to_get/",
+      "content_preview": "R10 not picking up left slice properly",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Higher-end monitors catch slice patterns better - book a session.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-20-4",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Indoor Simulator Monitor Upgrade",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1o5wh73/best_launch_monitor_for_an_indoor_simulator/",
+      "content_preview": "Upgraded from R10 to Square - helped correct slice quickly",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Indoor data shows what your eyes miss on the course.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-20-5",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Budget Face and Path Monitor",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1imn6pf/budget_launch_monitor_with_face_and_path_info/",
+      "content_preview": "Beginner wants face and path data under $1k after first lesson",
+      "location_tag": "Global",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Lessons plus data = faster improvement than gear alone.",
+      "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-20-6",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Club Data Priority",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/wsm2l1/help_finalizing_launch_monitor_selection/",
+      "content_preview": "Focused on club data - swing path and face angle most important",
+      "location_tag": "Global",
+      "problem_type": "club-data",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Professional fittings show path and face - book a session to see.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-20-7",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Free Launch Monitor Data Tool",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1q94lo8/free_launch_monitor_data_tool_new_updates_thanks/",
+      "content_preview": "Free platform to analyze launch monitor data into training feedback",
+      "location_tag": "Global",
+      "problem_type": "data-tool",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Data is useful but a coach helps translate it into swing changes.",
+      "comment_tone": "helpful"
     }
   ],
   "summary": {
@@ -610,8 +708,8 @@
       "Launch Monitor interest - general SA interest in data-driven golf improvement"
     ]
   },
-  "scan_date": "2026-04-19",
-  "scan_time": "18:05 SAST",
-  "next_scan": "2026-04-19T22:00 SAST",
-  "total_opportunities": 43
+  "scan_date": "2026-04-20",
+  "scan_time": "06:10 SAST",
+  "next_scan": "2026-04-20T12:00 SAST",
+  "total_opportunities": 50
 }
