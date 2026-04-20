@@ -824,6 +824,104 @@
       "score": 75,
       "suggested_comment": "Data is useful but a coach helps translate it into swing changes.",
       "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-20-17",
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Golf Lessons JHB",
+      "url": "https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/",
+      "content_preview": "Beginner looking for lessons - clubs and academies in JHB",
+      "location_tag": "Johannesburg",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Indoor facilities have launch data - great for beginners to see exactly what to fix.",
+      "comment_tone": "helpful-local"
+    },
+    {
+      "id": "mp-2026-04-20-18",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Golftec Fitting Prices",
+      "url": "https://www.reddit.com/r/golf/comments/f6dzed/golftec_fitting_experience_and_prices/",
+      "content_preview": "$250 for fitting session - worth it?",
+      "location_tag": "Global",
+      "problem_type": "fitting-prices",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Professional fittings with Trackman show face and path - worth the investment.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-20-19",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Golf Lesson Prices",
+      "url": "https://www.reddit.com/r/golf/comments/15nfeip/golf_lesson_prices/",
+      "content_preview": "What do lessons cost? $30 half hour vs $100+ with launch monitor",
+      "location_tag": "Global",
+      "problem_type": "lesson-prices",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Launch data adds value - shows exactly what needs fixing.",
+      "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-20-20",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Question about Golf Lesson Prices",
+      "url": "https://www.reddit.com/r/golf/comments/1qfhlaf/question_about_golf_lesson_prices/",
+      "content_preview": "PGA pro charges $125/hour - quality varies",
+      "location_tag": "Global",
+      "problem_type": "lesson-prices",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Coaches with launch data give clearer feedback on what to improve.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-20-21",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Best Launch Monitor for Fittings",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1lyb7bx/the_absolute_best_launch_monitor_that_money_can/",
+      "content_preview": "GCQuad vs Trackman for fittings - which is best?",
+      "location_tag": "Global",
+      "problem_type": "launch-monitor",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Trackman is industry standard for fittings - book a session to try it.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-20-22",
+      "platform": "reddit",
+      "subreddit": "r/capetown",
+      "post_title": "Golf Club Memberships Cape Town",
+      "url": "https://www.reddit.com/r/capetown/comments/1mtpv8r/best_golf_club_memberships_in_cape_town_northern/",
+      "content_preview": "Beginner couple looking for club with lessons - Northern Suburbs",
+      "location_tag": "Cape Town",
+      "problem_type": "beginner-membership",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Indoor practice facilities are great for beginners - all weather.",
+      "comment_tone": "helpful-local"
+    },
+    {
+      "id": "mp-2026-04-20-23",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Lessons with Launch Monitor",
+      "url": "https://www.reddit.com/r/golf/comments/ndpxv6/getting_lessons_should_i_use_someone_with_a/",
+      "content_preview": "Is launch monitor worth it for lessons?",
+      "location_tag": "Global",
+      "problem_type": "lessons-launch-monitor",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Launch data shows face and path - makes improvement faster.",
+      "comment_tone": "informative"
     }
   ],
   "summary": {
@@ -835,7 +933,7 @@
     ]
   },
   "scan_date": "2026-04-20",
-  "scan_time": "12:05 SAST",
-  "next_scan": "2026-04-20T18:00 SAST",
-  "total_opportunities": 59
+  "scan_time": "18:06 SAST",
+  "next_scan": "2026-04-20T22:00 SAST",
+  "total_opportunities": 66
 }
