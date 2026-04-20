@@ -397,7 +397,142 @@
       "tags": ["swing", "video", "coaching", "beginner", "help", "improvement"]
     }
   ],
-  "last_updated": "2026-04-19",
-  "scan_time": "2026-04-19T10:00Z",
-  "scan_note": "April 19 2026 - 12PM scan. Found 2 new: Carl's Place 3D designer, weekly sim deals. Low new post volume. Full Swing S4 still hot."
+  "opportunities": [
+    {
+      "id": "reddit-2026-04-20-1",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1skxsrc/about_to_book_my_first_ever_fitting_i_have_a_few/",
+      "title": "About to book my first ever fitting, I have a few questions",
+      "subreddit": "r/GolfGear",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-13",
+      "comment": "First-time fitter with all the classic questions: GolfTec vs PGA Superstore, what to expect, cost, shaft fitting for driver/3w/hybrid. This is exactly the nervous beginner we convert — book them in, show them TrackMan, answer every question patiently.",
+      "tags": ["first-fitting", "beginner", "questions", "cost", "what-to-expect", "nervous"]
+    },
+    {
+      "id": "reddit-2026-04-20-2",
+      "url": "https://www.reddit.com/r/golf/comments/1smkrh0/total_beginner_any_advice/",
+      "title": "Total Beginner - Any Advice?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-16",
+      "comment": "Brand new golfer asking where to start. Group lessons recommended, bucket of balls hitting each club 10 times. Classic entry point — get them in for intro session before they develop bad habits.",
+      "tags": ["beginner", "new-golfer", "starter", "advice", "lessons", "first-steps"]
+    },
+    {
+      "id": "reddit-2026-04-20-3",
+      "url": "https://www.reddit.com/r/golftips/comments/1sjwzwb/any_advice_andor_drills_i_can_do_to_help_with_my/",
+      "title": "Any advice and/or drills I can do to help with my hacking the ball on my drives. Main cause of my slice.",
+      "subreddit": "r/golftips",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-12",
+      "comment": "Classic case: club face decent but 'hacking downward' - over-the-top, swinging down not around. One commenter shortened driver to 44.5 and eliminated slice. TrackMan shows exactly what's happening at impact.",
+      "tags": ["slice", "driver", "hacking", "fix", "swing-path", "over-the-top", "drills"]
+    },
+    {
+      "id": "reddit-2026-04-20-4",
+      "url": "https://www.reddit.com/r/golf/comments/1sm50nc/help_with_kids_clubs/",
+      "title": "Help with kids clubs",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-15",
+      "comment": "Dad looking for first clubs for 36\" tall kid (around 4 years old). US Kids recommended. Family content opportunity — get dad and kid in together for fitting, makes it a whole family thing.",
+      "tags": ["kids", "family", "beginner", "equipment", "first-clubs", "US-Kids"]
+    },
+    {
+      "id": "reddit-2026-04-20-5",
+      "url": "https://www.reddit.com/r/golf/comments/1sl81k7/weekly_self_promotion_thread/",
+      "title": "Practice app beta - structured practice improvement",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-14",
+      "comment": "New beta app focuses practice on areas that matter most. 'Would especially love feedback from golfers who are starting the season' - structured practice is the gap most hackers have. We do this live with TrackMan data.",
+      "tags": ["practice-app", "structured", "beta", "improvement", "data", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-20-6",
+      "url": "https://www.reddit.com/r/golf/comments/1sk6asp/purposely_hit_a_draw/",
+      "title": "Purposely hit a draw.",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-11",
+      "comment": "Ex-slice golfer now hitting low pulls, working on over-the-top. Says backswing too inside, closing face. Classic shape control journey — TrackMan club path data shows exactly what's happening.",
+      "tags": ["draw", "fade", "shape", "club-path", "control", "slice-to-draw"]
+    },
+    {
+      "id": "reddit-2026-04-20-7",
+      "url": "https://www.reddit.com/r/golf/comments/1sjwyry/how_to_get_good_at_putting/",
+      "title": "How to get good at putting?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-12",
+      "comment": "'practice 5 days a week for 45 mins with no disruptions and intentional focus' - dedicated putter sharing structured routine. These are the golfers taking their game seriously. Offer a putting analysis session.",
+      "tags": ["putting", "practice-routine", "dedicated", "45-min", "focus", "improvement"]
+    },
+    {
+      "id": "reddit-2026-04-20-8",
+      "url": "https://www.reddit.com/r/golf/comments/1sludwa/the_golf_ball_rollback_is_completely_pointless/",
+      "title": "The golf ball rollback is completely pointless",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-15",
+      "comment": "Equipment debate going strong. 'Golf is hard enough as it is, no need to make it longer' - engagement heavy. Good content hook: data shows your distance is fine, it's consistency that matters.",
+      "tags": ["equipment", "distance", "ball-rollback", "debate", "consistency"]
+    },
+    {
+      "id": "reddit-2026-04-20-9",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1skb724/when_to_book_a_lesson_how_to_minimize_cost/",
+      "title": "When to Book a Lesson: How to Minimize Cost",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-11",
+      "comment": "'By the 3rd lesson, my game improved a lot. I take lessons about every 4-6 weeks' - shows value of ongoing coaching. This is the sweet spot for Swing Shack — regular data-driven tune-ups.",
+      "tags": ["lessons", "timing", "improvement", "cost", "frequency", "coaching"]
+    },
+    {
+      "id": "reddit-2026-04-20-10",
+      "url": "https://www.reddit.com/r/golf/comments/1slwwhb/beginner_setup_idea_you_dont_need_a_full_set_to/",
+      "title": "Beginner setup idea: you don't need a full set to get good",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-15",
+      "comment": "'Get a ladies or senior driver on the cheap. Lower loft + longer shaft makes mishits' - actually solid advice. But wait — this person needs a fitting, not garage sale clubs. Show them the difference proper clubs make.",
+      "tags": ["beginner", "minimal", "starter-set", "equipment", "shaft", "fitting"]
+    },
+    {
+      "id": "reddit-2026-04-20-11",
+      "url": "https://www.livingunderpar.com",
+      "title": "hi-Tee golf simulator - Royal Cape Golf Club, Cape Town, South Africa",
+      "subdirectory": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "south-africa",
+      "dateFound": "2026-04-20",
+      "datePosted": "2026-04-15",
+      "comment": "SA competitor intel: hi-Tee indoor simulator at Royal Cape Golf Club, Wynberg. TrackMan-powered, seats 8, food + beverage. We compete on coaching quality and data expertise, not just sim time.",
+      "tags": ["south-africa", "competitor", "simulator", "cape-town", "trackman", "facility", "hi-Tee"]
+    }
+  ],
+
+  "last_updated": "2026-04-20",
+  "scan_time": "2026-04-20T04:00Z",
+  "scan_note": "April 20 2026 - 6AM scan. 11 opportunities saved. Strong beginner/first-fitter theme. Found SA competitor: hi-Tee at Royal Cape GC."
 }
