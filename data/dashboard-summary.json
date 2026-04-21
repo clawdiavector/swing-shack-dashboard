@@ -1,9 +1,9 @@
 {
-  "updated": "2026-04-20T05:07:05.746Z",
+  "updated": "2026-04-21T05:06:10.534Z",
   "sources": [
     {
       "name": "IG Analytics",
-      "updated": "2026-04-20T05:03:54.536Z"
+      "updated": "2026-04-21T05:03:45.622Z"
     },
     {
       "name": "GA4",
@@ -15,7 +15,7 @@
     },
     {
       "name": "Golf News",
-      "updated": "2026-04-20T05:07:05.603Z"
+      "updated": "2026-04-21T05:06:10.350Z"
     },
     {
       "name": "SEO Rankings",
@@ -27,16 +27,16 @@
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-04-20T05:07:05.692Z"
+      "updated": "2026-04-21T05:06:10.483Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-04-20T05:07:05.647Z"
+      "updated": "2026-04-21T05:06:10.436Z"
     }
   ],
   "stale_count": 4,
   "top_recommendation": "That slice costing you yards off the tee? TrackMan found it ...",
-  "total_posts": 64,
+  "total_posts": 67,
   "total_ideas": 15,
   "hooks_tracked": 0
 }
