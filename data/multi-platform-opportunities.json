@@ -1020,6 +1020,90 @@
       "score": 75,
       "suggested_comment": "Professional help finds the real cause - not all slices are the same.",
       "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-21-8",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "How to Practice on Golf Simulator",
+      "url": "https://www.reddit.com/r/golf/comments/1je4vg4/how_do_you_practice_on_a_golf_simulator/",
+      "content_preview": "Best improvement came from doing drills on simulator",
+      "location_tag": "Global",
+      "problem_type": "practice-improvement",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Structured drills with data beat random hitting - book a session.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-21-9",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "SA Simulator Build Budget",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
+      "content_preview": "$1500-$2000 budget build in SA - launch monitors, mats, software",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-build",
+      "engagement_level": "high",
+      "score": 95,
+      "suggested_comment": "Try before you buy - visit an indoor facility first.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-21-10",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Sim Installed Now How to Practice",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/15pk8d5/sim_installed_now_how_to_practice/",
+      "content_preview": "20 HCP looking for practice programs - what to use?",
+      "location_tag": "Global",
+      "problem_type": "practice-programs",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Launch data helps focus practice - book a session.",
+      "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-21-11",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Software for SA Courses",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1jd5ju5/software_for_south_african_courses/",
+      "content_preview": "Using Garmin R10 with SA courses - cartoonish but works",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-software",
+      "engagement_level": "medium",
+      "score": 85,
+      "suggested_comment": "Professional software shows real courses - come try it.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-21-12",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Simulator for Beginner Worth It",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/wzzf6f/any_golf_simulators_worth_it_for_a_very_beginner/",
+      "content_preview": "Beginners improve faster with feedback - simulator worth it",
+      "location_tag": "Global",
+      "problem_type": "beginner-simulator",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Data accelerates improvement - book a session to try it.",
+      "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-21-13",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Simulator vs Driving Range",
+      "url": "https://www.reddit.com/r/golf/comments/15xse8q/novice_golfer_seeking_advice_golf_simulator_vs/",
+      "content_preview": "Novice choosing between simulator and driving range",
+      "location_tag": "Global",
+      "problem_type": "practice-choice",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Indoor data shows what range practice misses.",
+      "comment_tone": "informative"
     }
   ],
   "summary": {
@@ -1031,7 +1115,7 @@
     ]
   },
   "scan_date": "2026-04-21",
-  "scan_time": "07:04 SAST",
-  "next_scan": "2026-04-21T12:00 SAST",
-  "total_opportunities": 73
+  "scan_time": "12:09 SAST",
+  "next_scan": "2026-04-21T18:00 SAST",
+  "total_opportunities": 79
 }
