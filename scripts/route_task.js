@@ -180,6 +180,22 @@ const output = {
   assigned_agent: agent,
 };
 
+// Append to routing log
+const routeLogFile = path.join(BASE, 'data', 'routing-log.json');
+let routeLog = { updated: new Date().toISOString(), queries: [], routes: [] };
+try { const existing = JSON.parse(fs.readFileSync(routeLogFile, 'utf8')); routeLog = existing; } catch {}
+routeLog.routes.push({
+  route_id: output.route_id,
+  task: output.task,
+  routed_to: output.routed_to,
+  confidence: output.confidence,
+  alternatives: output.alternatives.map(a => a.agent_id),
+  routed_at: output.routed_at,
+  success: null, // filled when outcome known
+});
+routeLog.updated = new Date().toISOString();
+routeLog.queries_count = (routeLog.queries?.length || 0) + (routeLog.routes?.length || 0);
+fs.writeFileSync(routeLogFile, JSON.stringify(routeLog, null, 2));
 fs.writeFileSync(OUTPUT, JSON.stringify(output, null, 2));
 
 console.log(`\n🎯 Task Router v1 — deterministic routing`);

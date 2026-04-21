@@ -29,6 +29,10 @@ function timeAgo(isoString) {
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
 }
+function escHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 function freshnessBadge(updated, maxAgeHours = 26) {
   if (!updated || updated === 'never') return '<span class="badge stale">⚠️ stale</span>';
@@ -94,6 +98,9 @@ const autoMsg   = readJson('auto-messages.json')           || null;
 const supprRul  = readJson('suppression-rules.json')        || null;
 const delAudit = readJson('delivery-audit.json')           || null;
 const sysHealth = readJson('system-health.json')          || null;
+const today = new Date().toISOString().split('T')[0];
+let todayLearn = null;
+try { todayLearn = JSON.parse(fs.readFileSync(path.join(DATA_DIR, '..', 'memory', 'daily', today + '.json'), 'utf8')); } catch {}
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -207,6 +214,26 @@ if (sysHealth) {
   sysContent = healthBar + riskLine + (agentCells ? '<div class="hl-agents">' + agentCells + '</div>' : '') + opStrip;
 }
 var sysSection = buildSection('&#129504 SYSTEM HEALTH', freshnessBadge(sysHealth && sysHealth.generated), sysContent);
+
+// TODAY'S LEARNING
+var learnContent = '<p class="empty">No learnings stored yet. Run store_daily_learnings.js to populate.</p>';
+if (todayLearn) {
+  var lc = todayLearn.content || {};
+  var rep = (lc.what_to_repeat || []).slice(0, 2);
+  var stop = (lc.what_to_stop || []).slice(0, 2);
+  var agents = (lc.agent_scores || []).slice(0, 5);
+
+  learnContent = '<div class="lr-grid">' +
+    '<div class="lr-cell lr-cell-hook"><div class="lr-cell-head">&#127919 HOOK</div><div class="lr-cell-body">' + escHtml((lc.top_hook || '—').substring(0, 80)) + '</div></div>' +
+    '<div class="lr-cell lr-cell-cta"><div class="lr-cell-head">&#128200 BEST CTA</div><div class="lr-cell-body">' + escHtml((lc.best_cta?.cta || lc.best_cta?.type || '—').substring(0, 60)) + '</div></div>' +
+    '<div class="lr-cell lr-cell-risk"><div class="lr-cell-head">&#9888&#65039 TOP RISK</div><div class="lr-cell-body">' + escHtml((lc.biggest_leak?.what || sysHealth?.top_risk?.message || '—').substring(0, 60)) + '</div></div>' +
+    '<div class="lr-cell lr-cell-trust"><div class="lr-cell-head">&#128993 TRUST</div><div class="lr-cell-body lr-big">' + (lc.trust_score || '?') + '/10</div></div>' +
+  '</div>' +
+  (rep.length ? '<div class="lr-repeat"><b>&#9654 Repeat:</b> ' + rep.map(r => escHtml(r.substring(0, 80))).join('<br>&#9654 Repeat: ') + '</div>' : '') +
+  (stop.length ? '<div class="lr-stop"><b>&#9632 Stop:</b> ' + stop.map(s => escHtml(s.substring(0, 80))).join('<br>&#9632 Stop: ') + '</div>' : '') +
+  (agents.length ? '<div class="lr-agents">Agent scores: ' + agents.map(a => a.name + ' <b>' + a.score?.toFixed(1) + '</b>').join(' | ') + '</div>' : '');
+}
+var learnSection = buildSection('&#129504 TODAY\'S LEARNING', freshnessBadge(todayLearn && todayLearn.date), learnContent);
 
 // ── THIS WEEK STRIP ───────────────────────────────────────────────
 let thisWeekStrip = '';
@@ -1341,6 +1368,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .hl-opstrip { margin-top: 8px; font-size: 0.73rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; }
 .hl-opsep { color: rgba(255,255,255,0.15); }
 
+/* TODAY'S LEARNING */
+.lr-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 0.6fr; gap: 10px; margin-bottom: 10px; }
+.lr-cell { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px; }
+.lr-cell-head { font-size: 0.62rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 6px; }
+.lr-cell-body { font-size: 0.75rem; color: var(--text); line-height: 1.4; }
+.lr-cell-hook { border-top: 3px solid #00c853; }
+.lr-cell-cta { border-top: 3px solid #ff6b35; }
+.lr-cell-risk { border-top: 3px solid #ffa502; }
+.lr-cell-trust { border-top: 3px solid #00b4d8; }
+.lr-big { font-size: 1.4rem; font-weight: 900; color: #00b4d8; }
+.lr-repeat { font-size: 0.75rem; color: #00c853; margin-bottom: 4px; }
+.lr-stop { font-size: 0.75rem; color: #ff4757; margin-bottom: 4px; }
+.lr-agents { font-size: 0.68rem; color: var(--muted); margin-top: 6px; }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -1408,6 +1449,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${tskSection}
   ${rtwSection}
   ${sysSection}
+  ${learnSection}
   ${igSection}
   ${hookSection}
   ${watchedSection}

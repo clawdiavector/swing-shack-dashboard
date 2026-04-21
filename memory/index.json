@@ -1,0 +1,78 @@
+{
+  "schema": "https://clawdia.io/memory/castle/v1",
+  "updated": "2026-04-21T14:27:34.942Z",
+  "version": "1.0",
+  "folders": {
+    "daily": {
+      "path": "memory/daily/",
+      "desc": "Daily learning logs"
+    },
+    "wins": {
+      "path": "memory/wins/",
+      "desc": "Confirmed wins with evidence"
+    },
+    "losses": {
+      "path": "memory/losses/",
+      "desc": "Confirmed losses with evidence"
+    },
+    "bugs": {
+      "path": "memory/bugs/",
+      "desc": "System and script bugs"
+    },
+    "campaigns": {
+      "path": "memory/campaigns/",
+      "desc": "Campaign records"
+    },
+    "hooks": {
+      "path": "memory/hooks/",
+      "desc": "Hook performance history"
+    },
+    "tasks": {
+      "path": "memory/tasks/",
+      "desc": "Task outcome records"
+    },
+    "learnings": {
+      "path": "memory/learnings/",
+      "desc": "General learnings"
+    }
+  },
+  "index": {
+    "total_entries": 2,
+    "by_type": {
+      "daily_log": 2
+    },
+    "by_source_agent": {},
+    "top_importance": [],
+    "recent": [
+      "memory/daily/2026-04-21.json",
+      "memory/daily/2026-04-21.json"
+    ],
+    "unlinked": []
+  },
+  "rules": {
+    "min_importance_to_store": 5,
+    "must_have": [
+      "memory_id",
+      "date",
+      "type",
+      "source_agent",
+      "summary",
+      "tags"
+    ],
+    "no_vague": true,
+    "evidence_required": true
+  },
+  "linked_files": {
+    "hook_bank": "data/hook-bank.json",
+    "rec_outcomes": "data/recommendation-outcomes.json",
+    "agent_scores": "data/agent-scorecards.json",
+    "delivery_audit": "data/delivery-audit.json",
+    "blockers": "data/blockers.json",
+    "system_health": "data/system-health.json"
+  },
+  "notes": [
+    "Every entry must be specific and linked to evidence",
+    "No vague entries like 'video did well' — must be 'slice-fix hook outperformed generic lesson by 2.1x saves'",
+    "memory_id format: mem_{type}_{date}_{n} e.g. mem_win_2026-04-21_001"
+  ]
+}

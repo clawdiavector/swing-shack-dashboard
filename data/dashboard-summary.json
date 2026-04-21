@@ -1,363 +1,42 @@
 {
-  "pipeline_status": "PARTIAL",
-  "timestamp": "2026-04-21T14:05:55.347Z",
-  "trust_score": 9,
-  "trust_deductions": [
-    "A/B Test Input stale (-1)"
-  ],
-  "stage_results": [
+  "updated": "2026-04-21T14:27:34.987Z",
+  "sources": [
     {
-      "stage": "Research",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "sync_ig_analytics",
-          "status": "PASS"
-        },
-        {
-          "name": "fetch_golf_news",
-          "status": "PASS"
-        },
-        {
-          "name": "fetch_reddit_trends",
-          "status": "PASS"
-        },
-        {
-          "name": "fetch_seo_rankings",
-          "status": "PASS"
-        },
-        {
-          "name": "fetch_ga4",
-          "status": "PASS"
-        }
-      ]
+      "name": "IG Analytics",
+      "updated": "2026-04-21T05:03:45.622Z"
     },
     {
-      "stage": "Analysis",
-      "status": "PARTIAL",
-      "steps": [
-        {
-          "name": "analyse_hooks",
-          "status": "PASS"
-        }
-      ]
+      "name": "GA4",
+      "updated": "2026-04-21T14:27:13.720Z"
     },
     {
-      "stage": "Ideas",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "generate_content_ideas",
-          "status": "PASS"
-        },
-        {
-          "name": "update_used_items",
-          "status": "PASS"
-        }
-      ]
+      "name": "Reddit",
+      "updated": "2026-04-21T14:26:54.148Z"
     },
     {
-      "stage": "YouTube",
-      "status": "PARTIAL",
-      "steps": [
-        {
-          "name": "fetch_youtube_trends",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_youtube_ideas",
-          "status": "PASS"
-        },
-        {
-          "name": "extract_youtube_signals",
-          "status": "PASS"
-        }
-      ]
+      "name": "Golf News",
+      "updated": "2026-04-21T14:26:53.758Z"
     },
     {
-      "stage": "Audit",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "run_seo_audit",
-          "status": "PASS"
-        },
-        {
-          "name": "run_geo_audit",
-          "status": "PASS"
-        }
-      ]
+      "name": "SEO Rankings",
+      "updated": "2026-04-21T14:27:10.866Z"
     },
     {
-      "stage": "Insights",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "fetch_website_insights",
-          "status": "PASS"
-        }
-      ]
+      "name": "SEO Audit",
+      "updated": "2026-04-21T14:27:26.503Z"
     },
     {
-      "stage": "Plan",
-      "status": "PARTIAL",
-      "steps": [
-        {
-          "name": "generate_post_plan",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_sales_priority",
-          "status": "PASS"
-        },
-        {
-          "name": "detect_missed_opportunities",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_follow_up_queue",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_asset_needs",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_owner_workload",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_conversion_attribution",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_funnel_leaks",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_cta_performance",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_retargeting_recommendations",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_recommendation_scores",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_recommendation_outcomes",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_experiment_queue",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_scaling_recommendations",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_kill_list",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_anomaly_alerts",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_daily_task_cards",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_approval_queue",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_deadline_risk",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_blockers",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_capacity_shift",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_nudge_queue",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_fallback_queue",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_next_day_queue",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_auto_messages",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_suppression_rules",
-          "status": "PASS"
-        },
-        {
-          "name": "send_discord_nudges",
-          "status": "PASS"
-        },
-        {
-          "name": "log_discord_deliveries",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_delivery_audit",
-          "status": "PASS"
-        },
-        {
-          "name": "generate_pulse_keeper",
-          "status": "PASS"
-        }
-      ]
+      "name": "Hook Bank",
+      "updated": "2026-04-21T14:27:13.806Z"
     },
     {
-      "stage": "Compile",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "compile_dashboard",
-          "status": "PASS"
-        }
-      ]
-    },
-    {
-      "stage": "Publish",
-      "status": "PASS",
-      "steps": [
-        {
-          "name": "publish_github",
-          "status": "PASS"
-        }
-      ]
+      "name": "Ideas",
+      "updated": "2026-04-21T14:27:13.852Z"
     }
   ],
-  "stale_sources": [
-    "A/B Test Input"
-  ],
-  "failed_sources": [],
-  "synthetic_sources": [],
-  "script_failures": [],
-  "fallbacks_used": [],
-  "top_action_today": {
-    "idea": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
-    "format": "static",
-    "reason": "Hook generated 5.00% eng, 60 reach",
-    "cta": "Link in bio · Book your session",
-    "freshness_score": 9
-  },
-  "data_summary": {
-    "ig_posts": 67,
-    "ideas_generated": 15,
-    "hooks_tracked": 67
-  },
-  "validator": {
-    "overall_status": "PARTIAL",
-    "live_fresh": 13,
-    "synthetic": 0,
-    "stale": 1,
-    "failed": 0,
-    "total": 16,
-    "script_failures": 0,
-    "fallbacks_used": 0,
-    "qa_warnings": [],
-    "source_integrity": [
-      {
-        "label": "IG Analytics",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Hook Bank",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Content Ideas",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Dashboard Summary",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Golf News",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Reddit Trends",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "GA4 Metrics",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "SEO Rankings",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "SEO Audit",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "GEO Audit",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "A/B Test Input",
-        "mode": "LIVE",
-        "status": "STALE"
-      },
-      {
-        "label": "Used Items",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "YouTube Trends",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "YouTube Ideas",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Website Insights",
-        "mode": "LIVE",
-        "status": "PASS"
-      },
-      {
-        "label": "Dashboard HTML",
-        "mode": "LIVE",
-        "status": "PASS"
-      }
-    ]
-  },
-  "weakest_sources": [
-    "A/B Test Input"
-  ]
+  "stale_count": 0,
+  "top_recommendation": "That slice costing you yards off the tee? TrackMan found it ...",
+  "total_posts": 67,
+  "total_ideas": 15,
+  "hooks_tracked": 0
 }

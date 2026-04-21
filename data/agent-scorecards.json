@@ -1,20 +1,21 @@
 {
   "schema": "https://clawdia.io/agents/output-schema/v1",
   "agent_id": "pulse_keeper",
-  "generated": "2026-04-21T13:00:00.000Z",
+  "generated": "2026-04-21T14:00:00.000Z",
   "status": "PASS",
   "data_status": "FRESH",
   "confidence": 9,
   "priority": "HIGH",
   "owner": "pulse_keeper",
-  "next_action": "Run pipeline if any sources are stale",
+  "next_action": "Run pipeline if sources are stale",
   "notes": [
     "Initial scorecards — scores accumulate over time",
-    "Scores are honest assessments based on observed output quality",
-    "No fake 10s — a perfect score means never failing and always delivering value"
+    "No agent scores above 9.5 until 14+ days history + no critical failures",
+    "GA4 instability kept visible in SYSTEM HEALTH until stable streak confirmed"
   ],
   "qa_warnings": [],
   "period": "2026-04-17 to 2026-04-21",
+  "scoring_rule": "No agent scores 10/10 until: 14+ days history, no critical failures, evidence of usefulness over time",
 
   "agents": [
     {
@@ -26,14 +27,10 @@
       "freshness_score": 9,
       "usefulness_score": 9,
       "bug_rate_score": 10,
-      "contribution_score": 10,
-      "overall_score": 9.6,
+      "contribution_score": 9,
+      "overall_score": 9.4,
       "trend": "stable",
-      "notes": [
-        "Pipeline runs cleanly 6/6 times",
-        "Trust score consistently 10/10",
-        "Minor: schema compliance not yet enforced on all files"
-      ]
+      "notes": ["Pipeline runs cleanly 6/6 times", "Minor: schema compliance not yet on all files"]
     },
     {
       "agent_id": "data_harvester",
@@ -41,17 +38,13 @@
       "first_seen": "2026-04-17",
       "runs": 6,
       "reliability_score": 8,
-      "freshness_score": 9,
+      "freshness_score": 8,
       "usefulness_score": 9,
       "bug_rate_score": 8,
       "contribution_score": 9,
-      "overall_score": 8.6,
+      "overall_score": 8.4,
       "trend": "stable",
-      "notes": [
-        "All sources pulling consistently",
-        "GA4 auth issue flagged Apr 16 — may recur",
-        "YouTube endpoint returns SYNTHETIC data when quota exhausted"
-      ]
+      "notes": ["GA4 auth issue Apr 16 — may recur. Visible in SYSTEM HEALTH until stable.", "YouTube returns SYNTHETIC when quota exhausted"]
     },
     {
       "agent_id": "insight_analyst",
@@ -65,11 +58,7 @@
       "contribution_score": 9,
       "overall_score": 9.0,
       "trend": "stable",
-      "notes": [
-        "Recommendation outcomes now tracking properly",
-        "Hook cross-signal scoring is solid",
-        "Anomaly alerts generate reliably"
-      ]
+      "notes": ["Recommendation outcomes tracking properly", "Hook cross-signal scoring solid"]
     },
     {
       "agent_id": "hook_smith",
@@ -83,11 +72,7 @@
       "contribution_score": 9,
       "overall_score": 9.0,
       "trend": "stable",
-      "notes": [
-        "Hook bank seeded with cross-signal scoring",
-        "0 hooks currently in bank — depends on IG analytics being processed",
-        "Hook retirement logic (kill list) working correctly"
-      ]
+      "notes": ["Hook bank seeded with cross-signal scoring", "0 hooks currently — depends on IG analytics processing"]
     },
     {
       "agent_id": "taskmaster",
@@ -101,11 +86,7 @@
       "contribution_score": 9,
       "overall_score": 9.0,
       "trend": "new",
-      "notes": [
-        "18 task cards generated Apr 21 — all with clear owners and blockers",
-        "Experiment queue, scaling recommendations, kill list all working",
-        "Capacity shift recommendations are actionable"
-      ]
+      "notes": ["18 task cards Apr 21 — clear owners and blockers", "Capped at 9.0 until history builds"]
     },
     {
       "agent_id": "nudge_bot",
@@ -119,11 +100,7 @@
       "contribution_score": 8,
       "overall_score": 8.2,
       "trend": "new",
-      "notes": [
-        "Dry-run mode — no nudges actually sent yet",
-        "Suppression rules are thoughtful (no weekend spam, max 3/owner/day)",
-        "Fallback queue is the real value — prevents nagging, offers swap instead"
-      ]
+      "notes": ["Dry-run mode — no nudges actually sent yet", "Fallback queue is the real value — prevents nagging"]
     },
     {
       "agent_id": "idea_generator",
@@ -137,11 +114,7 @@
       "contribution_score": 8,
       "overall_score": 8.6,
       "trend": "stable",
-      "notes": [
-        "15 ideas in bank",
-        "Used-items tracking prevents duplicates within week",
-        "Ideas used in post plan consistently"
-      ]
+      "notes": ["15 ideas in bank", "Used-items tracking prevents duplicates within week"]
     },
     {
       "agent_id": "cta_analyst",
@@ -155,28 +128,21 @@
       "contribution_score": 8,
       "overall_score": 8.4,
       "trend": "stable",
-      "notes": [
-        "CTA performance tracking running",
-        "Postiz integration may have token issues (monitor)"
-      ]
+      "notes": ["CTA performance tracking running", "Postiz token may need monitoring"]
     },
     {
       "agent_id": "memory_keeper",
       "name": "Memory Castle Keeper",
       "first_seen": "2026-04-17",
       "runs": 6,
-      "reliability_score": 10,
-      "freshness_score": 10,
-      "usefulness_score": 10,
+      "reliability_score": 9,
+      "freshness_score": 9,
+      "usefulness_score": 9,
       "bug_rate_score": 10,
-      "contribution_score": 10,
-      "overall_score": 10.0,
+      "contribution_score": 9,
+      "overall_score": 9.2,
       "trend": "stable",
-      "notes": [
-        "MEMORY.md and memory/2026-04-17.md are well maintained",
-        "All campaigns, pricing, rules, and insights documented",
-        "The backbone of continuity between sessions"
-      ]
+      "notes": ["MEMORY.md and memory/2026-04-17.md well maintained", "Capped at 9.2 until 14+ days proves sustained performance"]
     },
     {
       "agent_id": "route_task",
@@ -190,21 +156,19 @@
       "contribution_score": 7,
       "overall_score": 7.6,
       "trend": "new",
-      "notes": [
-        "Deterministic routing — no AI guesswork",
-        "Routes by keyword and agent capability",
-        "Does not claim to be autonomous AI routing"
-      ]
+      "notes": ["Deterministic routing — no AI guesswork", "Capped at 7.6 until routing history proves accuracy"]
     }
   ],
 
   "summary": {
-    total_agents: 10,
-    layer1_active: 9,
-    layer2_active: 1,
-    avg_score: 8.8,
-    top_performer": "memory_keeper",
-    needs_attention": ["nudge_bot"],
-    new_agents": ["taskmaster", "nudge_bot", "route_task"],
+    "total_agents": 10,
+    "layer1_active": 9,
+    "layer2_active": 1,
+    "avg_score": 8.8,
+    "top_performer": "pulse_keeper",
+    "needs_attention": ["data_harvester"],
+    "ga4_risk_visible": true,
+    "new_agents": ["taskmaster", "nudge_bot", "route_task"],
+    "capped_above_max": ["memory_keeper"]
   }
 }

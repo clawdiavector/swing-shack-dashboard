@@ -1,7 +1,7 @@
 {
   "schema": "https://clawdia.io/agents/output-schema/v1",
   "agent_id": "pulse_keeper",
-  "generated": "2026-04-21T14:05:50.880Z",
+  "generated": "2026-04-21T14:27:34.898Z",
   "status": "PARTIAL",
   "data_status": "STALE",
   "confidence": 9,
@@ -12,7 +12,7 @@
   "qa_warnings": [],
   "runtime_ms": 0,
   "pipeline": {
-    "last_run": "2026-04-21T14:05:07.338Z",
+    "last_run": "2026-04-21T14:26:48.695Z",
     "last_run_age": 0,
     "last_run_label": "1m ago",
     "script_failures": [],
@@ -29,7 +29,7 @@
         "label": "IG Analytics",
         "updated": "2026-04-21T05:03:45.622Z",
         "age_label": "9h ago",
-        "age_hours": 9,
+        "age_hours": 9.4,
         "status": "FRESH"
       },
       {
@@ -43,7 +43,7 @@
       {
         "file": "seo-rankings.json",
         "label": "SEO Rankings",
-        "updated": "2026-04-21T14:05:22.852Z",
+        "updated": "2026-04-21T14:27:10.866Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -51,7 +51,7 @@
       {
         "file": "reddit-trends.json",
         "label": "Reddit Trends",
-        "updated": "2026-04-21T14:05:13.371Z",
+        "updated": "2026-04-21T14:26:54.148Z",
         "age_label": "1m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -59,7 +59,7 @@
       {
         "file": "youtube-trends.json",
         "label": "YouTube Trends",
-        "updated": "2026-04-21T14:05:26.209Z",
+        "updated": "2026-04-21T14:27:13.941Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -67,7 +67,7 @@
       {
         "file": "golf-news.json",
         "label": "Golf News",
-        "updated": "2026-04-21T14:05:12.502Z",
+        "updated": "2026-04-21T14:26:53.758Z",
         "age_label": "1m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -75,7 +75,7 @@
       {
         "file": "hook-bank.json",
         "label": "Hook Bank",
-        "updated": "2026-04-21T14:05:26.074Z",
+        "updated": "2026-04-21T14:27:13.806Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -83,7 +83,7 @@
       {
         "file": "post-plan.json",
         "label": "Post Plan",
-        "updated": "2026-04-21T14:05:49.605Z",
+        "updated": "2026-04-21T14:27:33.269Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -91,7 +91,7 @@
       {
         "file": "recommendation-scores.json",
         "label": "Rec Scores",
-        "updated": "2026-04-21T14:05:50.057Z",
+        "updated": "2026-04-21T14:27:33.990Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -99,7 +99,7 @@
       {
         "file": "recommendation-outcomes.json",
         "label": "Rec Outcomes",
-        "updated": "2026-04-21T14:05:50.102Z",
+        "updated": "2026-04-21T14:27:34.084Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -107,7 +107,7 @@
       {
         "file": "nudge-queue.json",
         "label": "Nudge Queue",
-        "updated": "2026-04-21T14:05:50.539Z",
+        "updated": "2026-04-21T14:27:34.555Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -115,7 +115,7 @@
       {
         "file": "delivery-audit.json",
         "label": "Delivery Audit",
-        "updated": "2026-04-21T14:05:50.834Z",
+        "updated": "2026-04-21T14:27:34.854Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -123,7 +123,7 @@
       {
         "file": "daily-task-cards.json",
         "label": "Task Cards",
-        "updated": "2026-04-21T14:05:50.320Z",
+        "updated": "2026-04-21T14:27:34.335Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -131,7 +131,7 @@
       {
         "file": "blockers.json",
         "label": "Blockers",
-        "updated": "2026-04-21T14:05:50.454Z",
+        "updated": "2026-04-21T14:27:34.468Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"
@@ -139,7 +139,7 @@
       {
         "file": "experiment-queue.json",
         "label": "Experiment Q",
-        "updated": "2026-04-21T14:05:50.147Z",
+        "updated": "2026-04-21T14:27:34.162Z",
         "age_label": "0m ago",
         "age_hours": 0,
         "status": "FRESH"

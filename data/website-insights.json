@@ -1,15 +1,15 @@
 {
-  "updated": "2026-04-21T14:05:49.549Z",
+  "updated": "2026-04-21T14:27:33.212Z",
   "data_window": "2026-04-14 to 2026-04-21",
-  "total_sessions": 1141,
+  "total_sessions": 1144,
   "source_share": {
-    "organic_pct": "62.1",
+    "organic_pct": "62.0",
     "direct_pct": "0.0",
     "social_pct": "0.0",
     "organic_sessions": 709,
     "direct_sessions": 0,
     "social_sessions": 0,
-    "total": 1141
+    "total": 1144
   },
   "funnel": {
     "booking_pages": {
@@ -81,7 +81,7 @@
     {
       "issue": "Organic traffic without clear booking path",
       "severity": "MEDIUM",
-      "evidence": "709 organic sessions (62.1% of all traffic)",
+      "evidence": "709 organic sessions (62.0% of all traffic)",
       "recommended_fix": "Ensure every high-engagement page has a \"Book a TrackMan Session\" CTA visible in first viewport scroll. TrackMan keyword intent = high commercial intent.",
       "source_metric": "ga4.sessions.organic"
     }

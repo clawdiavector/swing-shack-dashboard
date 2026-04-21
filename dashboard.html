@@ -303,6 +303,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .hl-opstrip { margin-top: 8px; font-size: 0.73rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; }
 .hl-opsep { color: rgba(255,255,255,0.15); }
 
+/* TODAY'S LEARNING */
+.lr-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 0.6fr; gap: 10px; margin-bottom: 10px; }
+.lr-cell { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px; }
+.lr-cell-head { font-size: 0.62rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 6px; }
+.lr-cell-body { font-size: 0.75rem; color: var(--text); line-height: 1.4; }
+.lr-cell-hook { border-top: 3px solid #00c853; }
+.lr-cell-cta { border-top: 3px solid #ff6b35; }
+.lr-cell-risk { border-top: 3px solid #ffa502; }
+.lr-cell-trust { border-top: 3px solid #00b4d8; }
+.lr-big { font-size: 1.4rem; font-weight: 900; color: #00b4d8; }
+.lr-repeat { font-size: 0.75rem; color: #00c853; margin-bottom: 4px; }
+.lr-stop { font-size: 0.75rem; color: #ff4757; margin-bottom: 4px; }
+.lr-agents { font-size: 0.68rem; color: var(--muted); margin-top: 6px; }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -366,7 +380,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/21, 16:05:50 SAST</span>
+    <span class="summary-value">2026/04/21, 16:27:34 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -469,6 +483,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
       <span class="badge fresh">✅ fresh</span>
     </div>
     <div class="hl-bar"><span class="hl-pipeline">&#128444; 1m ago</span><span class="hl-sep">|</span><span class="hl-sources">&#128173; 14/15 sources fresh</span></div><div class="hl-risk" style="border-left:3px solid #ffa502"><div class="hl-risk-head">&#9888&#65039; <b>TOP RISK:</b> <span style="color:#ffa502">19 blocked tasks</span></div><div class="hl-risk-fix">&#8594; Unblock tasks in RUN THE WEEK section</div></div><div class="hl-opstrip">&#128280 19 blocked <span class="hl-opsep">|</span> &#9888&#65039 1 high risk <span class="hl-opsep">|</span> &#9203 7 awaiting approval</div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129504 TODAY'S LEARNING</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="lr-grid"><div class="lr-cell lr-cell-hook"><div class="lr-cell-head">&#127919 HOOK</div><div class="lr-cell-body">Unknown</div></div><div class="lr-cell lr-cell-cta"><div class="lr-cell-head">&#128200 BEST CTA</div><div class="lr-cell-body">—</div></div><div class="lr-cell lr-cell-risk"><div class="lr-cell-head">&#9888&#65039 TOP RISK</div><div class="lr-cell-body">19 blocked tasks</div></div><div class="lr-cell lr-cell-trust"><div class="lr-cell-head">&#128993 TRUST</div><div class="lr-cell-body lr-big">10/10</div></div></div><div class="lr-repeat"><b>&#9654 Repeat:</b> Zero script failures — keep pipeline discipline</div><div class="lr-stop"><b>&#9632 Stop:</b> Stop: Funnel leak unaddressed: &quot;undefined&quot;<br>&#9632 Stop: Stop: 19 blocked tasks — clear before adding more</div><div class="lr-agents">Agent scores: Pulse Keeper <b>9.4</b> | Data Harvester <b>8.4</b> | Insight Analyst <b>9.0</b> | Hook Smith <b>9.0</b> | Taskmaster <b>9.0</b></div>
   </div>
   <div class="section">
     <div class="section-header">
@@ -606,7 +627,7 @@ Pros average 264 meters. Tr...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 8</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">driver</span><span class="ww-topic">slice_fix</span><span class="ww-topic">simulator</span></div>
-      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
     </div>
     <div class="ww-card ww-card--pt" data-content-type="hook">
       <div class="ww-card-top">
@@ -623,7 +644,7 @@ Pros average 264 meters. Tr...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 7.4</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">lessons</span><span class="ww-topic">swing</span></div>
-      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
     </div>
     <div class="ww-card ww-card--pt" data-content-type="hook">
       <div class="ww-card-top">
@@ -640,7 +661,7 @@ Pros average 264 meters. Tr...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 7.1</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">short_game</span><span class="ww-topic">lessons</span></div>
-      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
     </div>
     <div class="ww-card ww-card--pt" data-content-type="promo">
       <div class="ww-card-top">
@@ -674,7 +695,7 @@ Pros average 264 meters. Tr...</span>
         <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 6.7</span>
       </div>
       <div class="ww-topics"><span class="ww-topic">booking</span><span class="ww-topic">conversion</span></div>
-      <div class="ww-evidence">📺 Master Your Senior Golf Swing in 3 Easy Steps <span class="ww-evidence-more">+ 1 more video</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
     </div></div>
   <script>
   document.querySelectorAll('.ww-filter-btn').forEach(btn => {
@@ -986,7 +1007,7 @@ Pros average 264 meters. Tr...</span>
     </div>
     
   <div class="seo-summary">
-    
+    <div class="seo-win"><b>📈 Rising:</b> club fitting johannesburg</div>
     
   </div>
   <div class="seo-keywords">
@@ -1005,7 +1026,7 @@ Pros average 264 meters. Tr...</span>
       </tr>
       <tr>
         <td>club fitting johannesburg</td>
-        <td class="good">?</td>
+        <td class="good">4</td>
         <td class="ok">0</td>
       </tr>
       <tr>

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-21T14:05:50.057Z",
+  "updated": "2026-04-21T14:27:33.990Z",
   "generated": "generate_recommendation_scores.js",
   "summary": {
     "overall_priority_score": 9.8,
@@ -26,8 +26,8 @@
         "objective": "reach",
         "why_chosen": "Cross-signal score 8.0: IG proof 10 + YouTube alignment 10 · optimised for reach",
         "evidence": [
-          "Master Your Senior Golf Swing in 3 Easy Steps",
-          "Possibly The BEST DRIVER Tip Ever In GOLF"
+          "Possibly The BEST DRIVER Tip Ever In GOLF",
+          "4 Simple Steps For The Perfect Golf Drive"
         ],
         "status": "ready",
         "topics": [

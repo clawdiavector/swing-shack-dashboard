@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-21T14:05:50.362Z",
+  "updated": "2026-04-21T14:27:34.378Z",
   "generated": "generate_approval_queue.js",
   "summary": {
     "pending": 7,
@@ -11,7 +11,7 @@
   },
   "pending_items": [
     {
-      "item_id": "ap_mo8p58k9v5va",
+      "item_id": "ap_mo8px6qy8s9x",
       "title": "That slice costing you yards off the tee? TrackMan found it ",
       "owner": "Coach Cat / Divan",
       "day": "Tuesday",
@@ -29,7 +29,7 @@
       "status": "awaiting_info"
     },
     {
-      "item_id": "ap_mo8p58kak0u0",
+      "item_id": "ap_mo8px6qyhqd3",
       "title": "Need some help with your putting? Coach Cat explains what ma",
       "owner": "Coach Cat",
       "day": "Wednesday",
@@ -47,7 +47,7 @@
       "status": "awaiting_info"
     },
     {
-      "item_id": "ap_mo8p58kap4uh",
+      "item_id": "ap_mo8px6qyxfip",
       "title": "Book your session with Coach Cat @swingshack ⛳️",
       "owner": "Coach Cat",
       "day": "Thursday",
@@ -65,7 +65,7 @@
       "status": "awaiting_info"
     },
     {
-      "item_id": "ap_mo8p58kawjm3",
+      "item_id": "ap_mo8px6qy4136",
       "title": "Need to relax and find your golf swing tempo? Join Coach Cat",
       "owner": "Coach Cat",
       "day": "Friday",
@@ -83,7 +83,7 @@
       "status": "awaiting_info"
     },
     {
-      "item_id": "ap_mo8p58kae8wy",
+      "item_id": "ap_mo8px6qyqkxz",
       "title": "Lowest net score wins a *new custom fitted driver!*",
       "owner": "Divan",
       "day": "Saturday",
@@ -101,7 +101,7 @@
       "status": "awaiting_info"
     },
     {
-      "item_id": "ap_mo8p58kao0qo",
+      "item_id": "ap_mo8px6qy97yx",
       "title": "Go to your coaching sessions. Your ball deserves better 🫂",
       "owner": "Swing Shack page",
       "day": "Sunday",
@@ -119,7 +119,7 @@
       "status": "awaiting_info"
     },
     {
-      "item_id": "ap_mo8p58ka8ne8",
+      "item_id": "ap_mo8px6qy1p0q",
       "title": "Have you ever been for an elite level Custom Fitting? Get th",
       "owner": "Divan",
       "day": "Monday",
@@ -139,7 +139,7 @@
   ],
   "approved_not_scheduled": [
     {
-      "item_id": "ap_mo8p58ka5ixk",
+      "item_id": "ap_mo8px6qy1fy2",
       "title": "Push booking CTA — traffic is hot",
       "owner": "Swing Shack page",
       "source": "retarget",
@@ -153,7 +153,7 @@
       "status": "approved"
     },
     {
-      "item_id": "ap_mo8p58ka71an",
+      "item_id": "ap_mo8px6qy4ej5",
       "title": "Publish service reminder post",
       "owner": "Divan",
       "source": "retarget",
@@ -170,7 +170,7 @@
   "by_owner": {
     "Coach Cat": [
       {
-        "item_id": "ap_mo8p58kak0u0",
+        "item_id": "ap_mo8px6qyhqd3",
         "title": "Need some help with your putting? Coach Cat explains what ma",
         "owner": "Coach Cat",
         "day": "Wednesday",
@@ -188,7 +188,7 @@
         "status": "awaiting_info"
       },
       {
-        "item_id": "ap_mo8p58kap4uh",
+        "item_id": "ap_mo8px6qyxfip",
         "title": "Book your session with Coach Cat @swingshack ⛳️",
         "owner": "Coach Cat",
         "day": "Thursday",
@@ -206,7 +206,7 @@
         "status": "awaiting_info"
       },
       {
-        "item_id": "ap_mo8p58kawjm3",
+        "item_id": "ap_mo8px6qy4136",
         "title": "Need to relax and find your golf swing tempo? Join Coach Cat",
         "owner": "Coach Cat",
         "day": "Friday",
@@ -226,7 +226,7 @@
     ],
     "Coach Cat / Divan": [
       {
-        "item_id": "ap_mo8p58k9v5va",
+        "item_id": "ap_mo8px6qy8s9x",
         "title": "That slice costing you yards off the tee? TrackMan found it ",
         "owner": "Coach Cat / Divan",
         "day": "Tuesday",
@@ -246,7 +246,7 @@
     ],
     "Divan": [
       {
-        "item_id": "ap_mo8p58kae8wy",
+        "item_id": "ap_mo8px6qyqkxz",
         "title": "Lowest net score wins a *new custom fitted driver!*",
         "owner": "Divan",
         "day": "Saturday",
@@ -264,7 +264,7 @@
         "status": "awaiting_info"
       },
       {
-        "item_id": "ap_mo8p58ka8ne8",
+        "item_id": "ap_mo8px6qy1p0q",
         "title": "Have you ever been for an elite level Custom Fitting? Get th",
         "owner": "Divan",
         "day": "Monday",
@@ -284,7 +284,7 @@
     ],
     "Swing Shack page": [
       {
-        "item_id": "ap_mo8p58kao0qo",
+        "item_id": "ap_mo8px6qy97yx",
         "title": "Go to your coaching sessions. Your ball deserves better 🫂",
         "owner": "Swing Shack page",
         "day": "Sunday",
