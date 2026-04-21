@@ -1,0 +1,184 @@
+{
+  "schema": "https://clawdia.io/agents/output-schema/v1",
+  "agent_id": "pulse_keeper",
+  "generated": "2026-04-21T14:05:50.880Z",
+  "status": "PARTIAL",
+  "data_status": "STALE",
+  "confidence": 9,
+  "priority": "HIGH",
+  "owner": "pulse_keeper",
+  "next_action": "Unblock tasks in RUN THE WEEK section",
+  "notes": [],
+  "qa_warnings": [],
+  "runtime_ms": 0,
+  "pipeline": {
+    "last_run": "2026-04-21T14:05:07.338Z",
+    "last_run_age": 0,
+    "last_run_label": "1m ago",
+    "script_failures": [],
+    "failure_count": 0
+  },
+  "data_sources": {
+    "total": 15,
+    "fresh": 14,
+    "stale": 0,
+    "missing": 1,
+    "sources": [
+      {
+        "file": "ig-analytics.json",
+        "label": "IG Analytics",
+        "updated": "2026-04-21T05:03:45.622Z",
+        "age_label": "9h ago",
+        "age_hours": 9,
+        "status": "FRESH"
+      },
+      {
+        "file": "ga4-report.json",
+        "label": "GA4",
+        "updated": null,
+        "age_label": "never",
+        "age_hours": 999,
+        "status": "MISSING"
+      },
+      {
+        "file": "seo-rankings.json",
+        "label": "SEO Rankings",
+        "updated": "2026-04-21T14:05:22.852Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "reddit-trends.json",
+        "label": "Reddit Trends",
+        "updated": "2026-04-21T14:05:13.371Z",
+        "age_label": "1m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "youtube-trends.json",
+        "label": "YouTube Trends",
+        "updated": "2026-04-21T14:05:26.209Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "golf-news.json",
+        "label": "Golf News",
+        "updated": "2026-04-21T14:05:12.502Z",
+        "age_label": "1m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "hook-bank.json",
+        "label": "Hook Bank",
+        "updated": "2026-04-21T14:05:26.074Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "post-plan.json",
+        "label": "Post Plan",
+        "updated": "2026-04-21T14:05:49.605Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "recommendation-scores.json",
+        "label": "Rec Scores",
+        "updated": "2026-04-21T14:05:50.057Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "recommendation-outcomes.json",
+        "label": "Rec Outcomes",
+        "updated": "2026-04-21T14:05:50.102Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "nudge-queue.json",
+        "label": "Nudge Queue",
+        "updated": "2026-04-21T14:05:50.539Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "delivery-audit.json",
+        "label": "Delivery Audit",
+        "updated": "2026-04-21T14:05:50.834Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "daily-task-cards.json",
+        "label": "Task Cards",
+        "updated": "2026-04-21T14:05:50.320Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "blockers.json",
+        "label": "Blockers",
+        "updated": "2026-04-21T14:05:50.454Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      },
+      {
+        "file": "experiment-queue.json",
+        "label": "Experiment Q",
+        "updated": "2026-04-21T14:05:50.147Z",
+        "age_label": "0m ago",
+        "age_hours": 0,
+        "status": "FRESH"
+      }
+    ]
+  },
+  "schema_compliance": {
+    "compliant_count": 1,
+    "non_compliant_count": 14,
+    "non_compliant_files": [
+      "ig-analytics.json",
+      "seo-rankings.json",
+      "reddit-trends.json",
+      "youtube-trends.json",
+      "golf-news.json",
+      "hook-bank.json",
+      "post-plan.json",
+      "recommendation-scores.json",
+      "recommendation-outcomes.json",
+      "nudge-queue.json",
+      "delivery-audit.json",
+      "daily-task-cards.json",
+      "blockers.json",
+      "experiment-queue.json"
+    ]
+  },
+  "agents": [],
+  "operational": {
+    "active_blockers": 19,
+    "high_risks": 1,
+    "pending_approvals": 7,
+    "pending_nudges": 10,
+    "sent_today": 0,
+    "suppressed_today": 0
+  },
+  "top_risk": {
+    "level": "HIGH",
+    "message": "19 blocked tasks",
+    "fix": "Unblock tasks in RUN THE WEEK section"
+  },
+  "summary_line": "Pipeline 1m ago · 14/15 sources fresh · 19 blocked tasks"
+}

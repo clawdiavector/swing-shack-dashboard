@@ -93,6 +93,7 @@ const nextDayQ  = readJson('next-day-queue.json')          || null;
 const autoMsg   = readJson('auto-messages.json')           || null;
 const supprRul  = readJson('suppression-rules.json')        || null;
 const delAudit = readJson('delivery-audit.json')           || null;
+const sysHealth = readJson('system-health.json')          || null;
 
 // ── SUMMARY BAR ──────────────────────────────────────────────────
 const now = new Date().toISOString();
@@ -167,6 +168,45 @@ if (ig.posts && ig.posts.length > 0) {
   </div>`;
 }
 const igSection = buildSection('📱 Instagram Performance', freshnessBadge(ig.updated), igContent);
+
+// SYSTEM HEALTH — top of dashboard
+var sysContent = '<p class="empty">No health data yet.</p>';
+if (sysHealth) {
+  var sh = sysHealth;
+  var riskColor = sh.top_risk?.level === 'CRITICAL' ? '#ff4757' : sh.top_risk?.level === 'HIGH' ? '#ffa502' : sh.top_risk?.level === 'MEDIUM' ? '#00b4d8' : '#00c853';
+  var srcFresh = sh.data_sources?.fresh || 0;
+  var srcTotal = sh.data_sources?.total || 0;
+  var srcStale = sh.data_sources?.stale || 0;
+  var hl = sh.pipeline?.last_run_label || 'never';
+
+  var healthBar = '<div class="hl-bar">' +
+    '<span class="hl-pipeline">&#128444; ' + hl + '</span>' +
+    '<span class="hl-sep">|</span>' +
+    '<span class="hl-sources">&#128173; ' + srcFresh + '/' + srcTotal + ' sources fresh</span>' +
+    (srcStale > 0 ? '<span class="hl-sep">|</span><span class="hl-stale">&#26a0&#65039; ' + srcStale + ' stale</span>' : '') +
+    '</div>';
+
+  var riskLine = '<div class="hl-risk" style="border-left:3px solid ' + riskColor + '">' +
+    '<div class="hl-risk-head">&#9888&#65039; <b>TOP RISK:</b> <span style="color:' + riskColor + '">' + (sh.top_risk?.message || 'All clear') + '</span></div>' +
+    '<div class="hl-risk-fix">&#8594; ' + (sh.top_risk?.fix || '&mdash;') + '</div></div>';
+
+  var activeAgents = (sh.agents || []).filter(function(a){ return a.status === 'active'; });
+  var agentCells = activeAgents.slice(0, 8).map(function(a) {
+    var score = a.score != null ? '<span class="hl-score ' + (a.score >= 9 ? 'hl-score-hi' : a.score >= 7 ? 'hl-score-mid' : 'hl-score-lo') + '">' + a.score.toFixed(1) + '</span>' : '<span class="hl-score hl-score-new">new</span>';
+    var fail = a.failed_scripts && a.failed_scripts.length > 0 ? ' <span class="hl-fail">!</span>' : '';
+    return '<div class="hl-agent"><div class="hl-agent-name">' + a.name + '</div><div class="hl-agent-score">' + score + fail + '</div></div>';
+  }).join('');
+
+  var opItems = [];
+  if ((sh.operational?.active_blockers || 0) > 0) opItems.push('&#128280 ' + sh.operational.active_blockers + ' blocked');
+  if ((sh.operational?.high_risks || 0) > 0) opItems.push('&#9888&#65039 ' + sh.operational.high_risks + ' high risk');
+  if ((sh.operational?.pending_approvals || 0) > 0) opItems.push('&#9203 ' + sh.operational.pending_approvals + ' awaiting approval');
+  if ((sh.pipeline?.failure_count || 0) > 0) opItems.push('&#10060 ' + sh.pipeline.failure_count + ' script fails');
+  var opStrip = opItems.length > 0 ? '<div class="hl-opstrip">' + opItems.join(' <span class="hl-opsep">|</span> ') + '</div>' : '';
+
+  sysContent = healthBar + riskLine + (agentCells ? '<div class="hl-agents">' + agentCells + '</div>' : '') + opStrip;
+}
+var sysSection = buildSection('&#129504 SYSTEM HEALTH', freshnessBadge(sysHealth && sysHealth.generated), sysContent);
 
 // ── THIS WEEK STRIP ───────────────────────────────────────────────
 let thisWeekStrip = '';
@@ -1279,6 +1319,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .rtw-sev-high { background: rgba(255,71,87,0.2); color: #ff4757; }
 .rtw-sev-medium { background: rgba(255,165,0,0.2); color: #ffa502; }
 .rtw-sev-low { background: rgba(0,180,216,0.15); color: var(--info); }
+/* SYSTEM HEALTH */
+.hl-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 0.78rem; color: var(--muted); }
+.hl-bar b { color: var(--text); }
+.hl-sep { color: rgba(255,255,255,0.15); }
+.hl-pipeline { color: var(--info); font-weight: 700; }
+.hl-sources { color: var(--text); }
+.hl-stale { color: #ffa502; font-weight: 700; }
+.hl-risk { padding: 8px 12px; background: rgba(255,255,255,0.04); border-radius: 8px; margin-bottom: 10px; }
+.hl-risk-head { font-size: 0.8rem; margin-bottom: 3px; }
+.hl-risk-fix { font-size: 0.73rem; color: var(--muted); font-style: italic; }
+.hl-agents { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.hl-agent { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 7px 10px; min-width: 100px; text-align: center; }
+.hl-agent-name { font-size: 0.68rem; color: var(--muted); font-weight: 600; margin-bottom: 3px; }
+.hl-agent-score { font-size: 0.9rem; font-weight: 900; }
+.hl-score-hi { color: #00c853; }
+.hl-score-mid { color: #ffa502; }
+.hl-score-lo { color: #ff4757; }
+.hl-score-new { color: var(--info); font-size: 0.65rem; }
+.hl-fail { color: #ff4757; font-weight: 900; }
+.hl-opstrip { margin-top: 8px; font-size: 0.73rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; }
+.hl-opsep { color: rgba(255,255,255,0.15); }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -1345,6 +1407,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${wawsSection}
   ${tskSection}
   ${rtwSection}
+  ${sysSection}
   ${igSection}
   ${hookSection}
   ${watchedSection}

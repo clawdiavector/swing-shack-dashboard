@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T13:23:13.519Z",
+  "updated": "2026-04-21T14:05:49.927Z",
   "generated": "generate_funnel_leaks.js",
   "summary": {
     "total_leaks": 5,
@@ -12,9 +12,9 @@
     {
       "type": "booking_traffic_no_retargeting",
       "page": "/bookings/",
-      "sessions": 159,
+      "sessions": 199,
       "severity": "high",
-      "revenue_impact": "159 sessions on booking page but < 2 booking CTAs in recent IG posts",
+      "revenue_impact": "199 sessions on booking page but < 2 booking CTAs in recent IG posts",
       "easy_fix": "Push booking CTA on IG this week — booking page traffic is there",
       "owner": "Swing Shack page",
       "rank": 1
@@ -44,11 +44,11 @@
     {
       "type": "hook_winner_no_follow_up",
       "topic": "short_game",
-      "ig_score": 9.86,
+      "ig_score": 9.82,
       "hook": "Need some help with your putting? Coach Cat explains what ma",
       "severity": "high",
-      "revenue_impact": "Strong IG hook (9.86) with no booking funnel follow-up",
-      "easy_fix": "Rework the \"short_game\" hook into a follow-up Reel this week — IG proof 9.86.",
+      "revenue_impact": "Strong IG hook (9.82) with no booking funnel follow-up",
+      "easy_fix": "Rework the \"short_game\" hook into a follow-up Reel this week — IG proof 9.82.",
       "owner": "Coach Cat",
       "rank": 4
     },
@@ -56,10 +56,10 @@
       "type": "service_page_no_ig",
       "service": "Club Fitting",
       "page": "/customer-portal/",
-      "sessions": 55,
+      "sessions": 64,
       "severity": "medium",
-      "revenue_impact": "55 sessions with no IG content pushing this service",
-      "easy_fix": "Create IG post about Club Fitting — GA4 shows 55 sessions this week",
+      "revenue_impact": "64 sessions with no IG content pushing this service",
+      "easy_fix": "Create IG post about Club Fitting — GA4 shows 64 sessions this week",
       "owner": "Divan",
       "rank": 5
     }

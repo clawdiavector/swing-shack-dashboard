@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T13:23:13.730Z",
+  "updated": "2026-04-21T14:05:50.147Z",
   "generated": "generate_experiment_queue.js",
   "summary": {
     "total_tests": 5,
@@ -12,7 +12,7 @@
   },
   "experiments": [
     {
-      "test_id": "hook_test_1776432193730_8e96",
+      "test_id": "hook_test_1776780350147_t80s",
       "type": "hook_ab",
       "variable": "hook_angle",
       "description": "Test TrackMan stats angle vs transformation angle on \"lessons\" hook",
@@ -36,7 +36,7 @@
       "rank": 1
     },
     {
-      "test_id": "hook_test_1776432193730_mjqe",
+      "test_id": "hook_test_1776780350147_e78x",
       "type": "hook_ab",
       "variable": "hook_angle",
       "description": "Test TrackMan stats angle vs transformation angle on \"short_game\" hook",
@@ -50,17 +50,17 @@
       },
       "success_metric": "engagement_rate > 3% AND save_rate > 1.5%",
       "target_metric": "engagement_rate",
-      "current_baseline": 9.86,
+      "current_baseline": 9.82,
       "owner": "Swing Shack page",
       "channel": "IG Static",
       "urgency": "today",
       "upside": "If variant B outperforms by 20%+, upgrade to primary hook template",
       "confidence": 8.2,
-      "why": "Hook scored 9.86 on IG but cross-signal only 7.1 — angle may not be optimal",
+      "why": "Hook scored 9.82 on IG but cross-signal only 7.1 — angle may not be optimal",
       "rank": 2
     },
     {
-      "test_id": "hook_test_1776432193730_9lni",
+      "test_id": "hook_test_1776780350147_9jzm",
       "type": "hook_ab",
       "variable": "hook_angle",
       "description": "Test TrackMan stats angle vs transformation angle on \"driver\" hook",
@@ -74,44 +74,44 @@
       },
       "success_metric": "engagement_rate > 3% AND save_rate > 1.5%",
       "target_metric": "engagement_rate",
-      "current_baseline": 9.4,
+      "current_baseline": 9.33,
       "owner": "Swing Shack page",
       "channel": "IG Static",
       "urgency": "today",
       "upside": "If variant B outperforms by 20%+, upgrade to primary hook template",
       "confidence": 7.8,
-      "why": "Hook scored 9.4 on IG but cross-signal only 6.8 — angle may not be optimal",
+      "why": "Hook scored 9.33 on IG but cross-signal only 6.8 — angle may not be optimal",
       "rank": 3
     },
     {
-      "test_id": "yt_test_1776432193730_9ybz",
+      "test_id": "yt_test_1776780350147_nljz",
       "type": "youtube_untested",
       "variable": "youtube_angle_to_ig",
       "description": "Take trending YouTube angle for \"lessons\" and port to IG",
       "variant_a": {
-        "hook": "Master Your Senior Golf Swing in 3 Easy Steps",
+        "hook": "5 Powerful Tips to Unleash Your Senior Driver Swing",
         "label": "YouTube angle (proven on YT)"
       },
       "variant_b": {
-        "hook": "5 Powerful Tips to Unleash Your Senior Driver Swing",
+        "hook": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
         "label": "Problem angle (IG-native)"
       },
       "yt_evidence": [
-        "Master Your Senior Golf Swing in 3 Easy Steps",
-        "5 Powerful Tips to Unleash Your Senior Driver Swing"
+        "5 Powerful Tips to Unleash Your Senior Driver Swing",
+        "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
       ],
       "success_metric": "cross_signal_score > 7 after 2 posts",
       "target_metric": "cross_signal_score",
       "owner": "Coach Cat",
       "channel": "IG Reel",
       "urgency": "this_week",
-      "upside": "YouTube has 5 videos on this — proven interest, untested on IG",
+      "upside": "YouTube has 4 videos on this — proven interest, untested on IG",
       "confidence": 3,
-      "why": "5 YT videos trending on \"lessons\" but no IG coverage",
+      "why": "4 YT videos trending on \"lessons\" but no IG coverage",
       "rank": 4
     },
     {
-      "test_id": "yt_test_1776432193730_cety",
+      "test_id": "yt_test_1776780350147_lycr",
       "type": "youtube_untested",
       "variable": "youtube_angle_to_ig",
       "description": "Take trending YouTube angle for \"driver\" and port to IG",

@@ -281,6 +281,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .rtw-sev-high { background: rgba(255,71,87,0.2); color: #ff4757; }
 .rtw-sev-medium { background: rgba(255,165,0,0.2); color: #ffa502; }
 .rtw-sev-low { background: rgba(0,180,216,0.15); color: var(--info); }
+/* SYSTEM HEALTH */
+.hl-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 0.78rem; color: var(--muted); }
+.hl-bar b { color: var(--text); }
+.hl-sep { color: rgba(255,255,255,0.15); }
+.hl-pipeline { color: var(--info); font-weight: 700; }
+.hl-sources { color: var(--text); }
+.hl-stale { color: #ffa502; font-weight: 700; }
+.hl-risk { padding: 8px 12px; background: rgba(255,255,255,0.04); border-radius: 8px; margin-bottom: 10px; }
+.hl-risk-head { font-size: 0.8rem; margin-bottom: 3px; }
+.hl-risk-fix { font-size: 0.73rem; color: var(--muted); font-style: italic; }
+.hl-agents { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.hl-agent { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 7px 10px; min-width: 100px; text-align: center; }
+.hl-agent-name { font-size: 0.68rem; color: var(--muted); font-weight: 600; margin-bottom: 3px; }
+.hl-agent-score { font-size: 0.9rem; font-weight: 900; }
+.hl-score-hi { color: #00c853; }
+.hl-score-mid { color: #ffa502; }
+.hl-score-lo { color: #ff4757; }
+.hl-score-new { color: var(--info); font-size: 0.65rem; }
+.hl-fail { color: #ff4757; font-weight: 900; }
+.hl-opstrip { margin-top: 8px; font-size: 0.73rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; }
+.hl-opsep { color: rgba(255,255,255,0.15); }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -344,11 +366,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/21, 07:06:10 SAST</span>
+    <span class="summary-value">2026/04/21, 16:05:50 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
-    <span class="summary-value warn">GA4, Reddit, SEO Rankings, SEO Audit</span>
+    <span class="summary-value ok">none</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Today's Top Idea</span>
@@ -371,7 +393,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
     <div class="tw-item tw-item--money">
       <div class="tw-label">💸 Making money</div>
       <div class="tw-value" style="font-size:0.82rem">Golf Lessons</div>
-      <div class="tw-meta">257 booking sessions</div>
+      <div class="tw-meta">290 booking sessions</div>
       <div class="tw-meta" style="color:#ffa500">TrackMan / Stats converts</div>
     </div>
     <div class="tw-sep"></div>
@@ -416,30 +438,37 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   <div class="section">
     <div class="section-header">
       <h2>💪 DO THIS FIRST</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
-    <div class="dtf-summary">Overall priority: <b style="color:#ffa502">8.4/10</b> &middot; 4 actions queued</div><div class="dtf-grid"><div class="dtf-card"><div class="dtf-emoji">🎯</div><div class="dtf-body"><div class="dtf-label">Post this first</div><div class="dtf-title">That slice costing you yards off the tee? TrackMan foun...</div><div class="dtf-meta">Freshness 7/10</div></div><div class="dtf-score" style="color:#ffa502">7</div></div><div class="dtf-card"><div class="dtf-emoji">💰</div><div class="dtf-body"><div class="dtf-label">Push this service</div><div class="dtf-title">Club Fitting</div><div class="dtf-meta">7.4/10</div></div><div class="dtf-score" style="color:#ffa502">7.4</div></div><div class="dtf-card"><div class="dtf-emoji">🔁</div><div class="dtf-body"><div class="dtf-label">Retarget this first</div><div class="dtf-title">Your clubs are waiting. Your handicap won't fix itself....</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">11.25</div></div><div class="dtf-card"><div class="dtf-emoji">⚠️</div><div class="dtf-body"><div class="dtf-label">Fix this leak</div><div class="dtf-title">—</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#ffa502">7.95</div></div></div>
+    <div class="dtf-summary">Overall priority: <b style="color:#ffa502">9.8/10</b> &middot; 4 actions queued</div><div class="dtf-grid"><div class="dtf-card"><div class="dtf-emoji">🎯</div><div class="dtf-body"><div class="dtf-label">Post this first</div><div class="dtf-title">That slice costing you yards off the tee? TrackMan foun...</div><div class="dtf-meta">Freshness 7/10</div></div><div class="dtf-score" style="color:#ffa502">7</div></div><div class="dtf-card"><div class="dtf-emoji">💰</div><div class="dtf-body"><div class="dtf-label">Push this service</div><div class="dtf-title">Club Fitting</div><div class="dtf-meta">7.4/10</div></div><div class="dtf-score" style="color:#ffa502">7.4</div></div><div class="dtf-card"><div class="dtf-emoji">🔁</div><div class="dtf-body"><div class="dtf-label">Retarget this first</div><div class="dtf-title">Your clubs are waiting. Your handicap won't fix itself....</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">15</div></div><div class="dtf-card"><div class="dtf-emoji">⚠️</div><div class="dtf-body"><div class="dtf-label">Fix this leak</div><div class="dtf-title">—</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">9.95</div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>📊 WHAT ACTUALLY WORKED</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     <div class="waws-stats"><div class="waws-stat"><div class="waws-stat-val" style="color:#2ed573">0%</div><div class="waws-stat-lbl">Exec rate</div></div><div class="waws-stat"><div class="waws-stat-val" style="color:#ffa502">0%</div><div class="waws-stat-lbl">Win rate</div></div><div class="waws-stat"><div class="waws-stat-val">12</div><div class="waws-stat-lbl">Recs tracked</div></div><div class="waws-stat"><div class="waws-stat-val">0</div><div class="waws-stat-lbl">Executed</div></div></div><div class="waws-wr-section"><div class="waws-wr-title">Win rate by type</div><div class="waws-wr-grid"></div></div><div class="waws-sub"><div class="waws-sub-title">Ignored (no matching post found)</div><div class="waws-ignored-row">↳ That slice costing you yards off the tee? TrackMan foun...</div><div class="waws-ignored-row">↳ Need some help with your putting? Coach Cat explains wh...</div><div class="waws-ignored-row">↳ Book your session with Coach Cat @swingshack ⛳️</div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>🔬 TEST / SCALE / KILL</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
-    <div class="tsk-alert-bar">⚠️ 1 high-urgency anomaly alert(s) need action today</div><div class="tsk-grid"><div class="tsk-col"><div class="tsk-col-title tsk-test-title">🔬 TEST NEXT</div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "lesson</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Coach Cat</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "short_</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "driver</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div></div><div class="tsk-col"><div class="tsk-col-title tsk-scale-title">⬆️ SCALE NOW</div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Need to relax and find your golf swing tempo? Join Coach Cat</div><div class="tsk-meta">IG 10 + cross-signal 7.4 — proven on multiple channels</div><span class="tsk-owner">👤 Coach Cat</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Need some help with your putting? Coach Cat explains what ma</div><div class="tsk-meta">IG 9.86 + cross-signal 7.1 — proven on multiple channels</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Scale Soft / Engagement CTA across all posts</div><div class="tsk-meta"></div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-this_week">THIS_WEEK</span></div></div></div><div class="tsk-col"><div class="tsk-col-title tsk-kill-title">🕳️ KILL / PAUSE</div><div class="tsk-card" style="border-left-color:#ff4757"><div class="tsk-icon">🕳️</div><div class="tsk-body"><div class="tsk-title">Stop actively pushing Membership</div><div class="tsk-meta">Move Membership to bottom of priority list — weak demand signal</div></div></div></div></div>
+    <div class="tsk-alert-bar">⚠️ 1 high-urgency anomaly alert(s) need action today</div><div class="tsk-grid"><div class="tsk-col"><div class="tsk-col-title tsk-test-title">🔬 TEST NEXT</div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "lesson</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Coach Cat</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "short_</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "driver</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div></div><div class="tsk-col"><div class="tsk-col-title tsk-scale-title">⬆️ SCALE NOW</div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Need to relax and find your golf swing tempo? Join Coach Cat</div><div class="tsk-meta">IG 10 + cross-signal 7.4 — proven on multiple channels</div><span class="tsk-owner">👤 Coach Cat</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Need some help with your putting? Coach Cat explains what ma</div><div class="tsk-meta">IG 9.82 + cross-signal 7.1 — proven on multiple channels</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Scale Soft / Engagement CTA across all posts</div><div class="tsk-meta"></div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-this_week">THIS_WEEK</span></div></div></div><div class="tsk-col"><div class="tsk-col-title tsk-kill-title">🕳️ KILL / PAUSE</div><div class="tsk-card" style="border-left-color:#ff4757"><div class="tsk-icon">🕳️</div><div class="tsk-body"><div class="tsk-title">Stop actively pushing Events & Competitions</div><div class="tsk-meta">Move Events & Competitions to bottom of priority list — weak dema</div></div></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>🔧 RUN THE WEEK</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     <div class="rtw-summary"><span class="rtw-sum-item"><b>18</b> tasks</span><span class="rtw-sum-item"><b>7</b> blocked</span><span class="rtw-sum-item"><b>1</b> risks high</span><span class="rtw-sum-item"><b>19</b> blockers</span><span class="rtw-sum-item"><b>7</b> need approval</span></div><div class="rtw-grid"><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ff4757">📅 TODAY'S TASKS</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">A/B Test: hook_angle</div><span class="rtw-owner">👤 Coach Cat</span></div><div class="rtw-row"><div class="rtw-row-title">A/B Test: hook_angle</div><span class="rtw-owner">👤 Swing Shack page</span></div><div class="rtw-row"><div class="rtw-row-title">A/B Test: hook_angle</div><span class="rtw-owner">👤 Swing Shack page</span></div><div class="rtw-row"><div class="rtw-row-title">That slice costing you yards off the tee? TrackMan foun</div><span class="rtw-owner">👤 Coach Cat / Divan</span></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ffa502">⏳ WAITING APPROVAL</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">That slice costing you yards off the tee? TrackMan foun</div><span class="rtw-owner">👤 Coach Cat / Divan</span></div><div class="rtw-row"><div class="rtw-row-title">Need some help with your putting? Coach Cat explains wh</div><span class="rtw-owner">👤 Coach Cat</span></div><div class="rtw-row"><div class="rtw-row-title">Book your session with Coach Cat @swingshack ⛳️</div><span class="rtw-owner">👤 Coach Cat</span></div><div class="rtw-row"><div class="rtw-row-title">Need to relax and find your golf swing tempo? Join Coac</div><span class="rtw-owner">👤 Coach Cat</span></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ff6b35">⚠️ AT RISK THIS WEEK</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">Coach Cat has 10 tasks this week</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Move 7 tasks to Swing Shack page or delay low-urgency i</div></div><div class="rtw-row"><div class="rtw-row-title">Club Fitting is priority #1 but has no scheduled conten</div><span class="rtw-owner">👤 Divan</span><span class="rtw-sev rtw-sev-medium">MEDIUM</span><div class="rtw-fix">→ Schedule at least 1 post for Club Fitting this week — s</div></div><div class="rtw-row"><div class="rtw-row-title">Rework the "driver" hook into a follow-up Reel this wee</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-medium">MEDIUM</span><div class="rtw-fix">→ Rework the "driver" hook into a follow-up Reel this wee</div></div><div class="rtw-row"><div class="rtw-row-title">Rework the "lessons" hook into a follow-up Reel this we</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-medium">MEDIUM</span><div class="rtw-fix">→ Rework the "lessons" hook into a follow-up Reel this we</div></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ff4757">🔨 BLOCKING EXECUTION</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">Asset needed today</div><span class="rtw-owner">👤 Coach Cat / Divan</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Source TrackMan screenshot or data graphic — 1 post(s) </div></div><div class="rtw-row"><div class="rtw-row-title">Asset needed today</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Source Swing clip or lesson photo — 4 post(s) need this</div></div><div class="rtw-row"><div class="rtw-row-title">Booking link missing</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Add swingshack.co.za/bookings or swingshack.co.za/membe</div></div><div class="rtw-row"><div class="rtw-row-title">Missing: TrackMan screenshot or data graphic</div><span class="rtw-owner">👤 Coach Cat / Divan</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Source or create TrackMan screenshot or data graphic — </div></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#00b4d8">⇄ REBALANCE WEEK</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">A/B Test: youtube_angle_to_ig</div><span class="rtw-sev rtw-sev-high">HIGH</span></div><div class="rtw-row"><div class="rtw-row-title">delay</div><span class="rtw-owner">👤 Divan</span><span class="rtw-sev rtw-sev-low">LOW</span></div><div class="rtw-row"><div class="rtw-row-title">delay</div><span class="rtw-owner">👤 Swing Shack page</span><span class="rtw-sev rtw-sev-low">LOW</span></div></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129504 SYSTEM HEALTH</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="hl-bar"><span class="hl-pipeline">&#128444; 1m ago</span><span class="hl-sep">|</span><span class="hl-sources">&#128173; 14/15 sources fresh</span></div><div class="hl-risk" style="border-left:3px solid #ffa502"><div class="hl-risk-head">&#9888&#65039; <b>TOP RISK:</b> <span style="color:#ffa502">19 blocked tasks</span></div><div class="hl-risk-fix">&#8594; Unblock tasks in RUN THE WEEK section</div></div><div class="hl-opstrip">&#128280 19 blocked <span class="hl-opsep">|</span> &#9888&#65039 1 high risk <span class="hl-opsep">|</span> &#9203 7 awaiting approval</div>
   </div>
   <div class="section">
     <div class="section-header">
@@ -663,7 +692,7 @@ Pros average 264 meters. Tr...</span>
   <div class="section">
     <div class="section-header">
       <h2>🔄 FOLLOW UP NEXT</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     <p class="fu-summary">
     3 topics need follow-up ·
@@ -716,7 +745,7 @@ Pros average 264 meters. Tr...</span>
   <div class="section">
     <div class="section-header">
       <h2>📦 ASSET NEEDS THIS WEEK</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     <div class="an-summary">6 asset needs across 4 owners · 2 needed today</div><div class="an-grid">
     <div class="an-card">
@@ -816,7 +845,7 @@ Pros average 264 meters. Tr...</span>
   <div class="section">
     <div class="section-header">
       <h2>👥 OWNER WORKLOAD</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     
   <div class="ow-header-row">
@@ -890,9 +919,9 @@ Pros average 264 meters. Tr...</span>
   <div class="section">
     <div class="section-header">
       <h2>🔁 RETARGET THIS WEEK</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
-    <p class="rt-summary">2 retargeting actions · <b>undefined today</b> · <b>undefined this week</b></p><div class="rt-grid"><div class="rt-card"><div class="rt-header"><span class="rt-icon">💸</span><span class="rt-action">Push booking CTA — traffic is hot</span><span class="rt-owner">👤 Swing Shack page</span><span class="rt-urg" style="background:#00b4d822;color:#00b4d8">flex</span></div><div class="rt-hook">Your clubs are waiting. Your handicap won't fix itself. ⛳</div><div class="rt-why">→ Booking page traffic hot with no retargeting</div><div class="rt-cta">CTA: Book a session · swingshack.co.za/bookings · From R250</div></div><div class="rt-card"><div class="rt-header"><span class="rt-icon">🎯</span><span class="rt-action">Publish service reminder post</span><span class="rt-owner">👤 Divan</span><span class="rt-urg" style="background:#ffa50022;color:#ffa500">THIS WEEK</span></div><div class="rt-hook">Off-the-rack clubs are costing you yards. Here's what TrackMan found.</div><div class="rt-why">→ 55 sessions with no social conversion path</div><div class="rt-cta">CTA: Get your clubs custom fitted · swingshack.co.za/members...</div></div></div>
+    <p class="rt-summary">2 retargeting actions · <b>undefined today</b> · <b>undefined this week</b></p><div class="rt-grid"><div class="rt-card"><div class="rt-header"><span class="rt-icon">💸</span><span class="rt-action">Push booking CTA — traffic is hot</span><span class="rt-owner">👤 Swing Shack page</span><span class="rt-urg" style="background:#00b4d822;color:#00b4d8">flex</span></div><div class="rt-hook">Your clubs are waiting. Your handicap won't fix itself. ⛳</div><div class="rt-why">→ Booking page traffic hot with no retargeting</div><div class="rt-cta">CTA: Book a session · swingshack.co.za/bookings · From R250</div></div><div class="rt-card"><div class="rt-header"><span class="rt-icon">🎯</span><span class="rt-action">Publish service reminder post</span><span class="rt-owner">👤 Divan</span><span class="rt-urg" style="background:#ffa50022;color:#ffa500">THIS WEEK</span></div><div class="rt-hook">Off-the-rack clubs are costing you yards. Here's what TrackMan found.</div><div class="rt-why">→ 64 sessions with no social conversion path</div><div class="rt-cta">CTA: Get your clubs custom fitted · swingshack.co.za/members...</div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
@@ -946,14 +975,14 @@ Pros average 264 meters. Tr...</span>
   <div class="section">
     <div class="section-header">
       <h2>🔴 Reddit Pain Points</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     <p class="empty">No Reddit trends yet.</p>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>🔍 SEO Rankings</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     
   <div class="seo-summary">
@@ -1020,20 +1049,20 @@ Pros average 264 meters. Tr...</span>
   <div class="section">
     <div class="section-header">
       <h2>🌐 Website Performance</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     
     <div class="ga4-pages">
       <table class="ga4-table">
         <tr><th>Landing Page</th><th>Sessions</th><th>Eng Rate</th></tr>
-        <tr><td>/</td><td>290</td><td class="">?</td></tr><tr><td>/bookings/</td><td>159</td><td class="">?</td></tr><tr><td>/</td><td>88</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>55</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>45</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>44</td><td class="">?</td></tr><tr><td>/club-fitting/</td><td>38</td><td class="">?</td></tr><tr><td>/checkout/</td><td>31</td><td class="">?</td></tr><tr><td>/bookings/</td><td>29</td><td class="">?</td></tr><tr><td>/</td><td>25</td><td class="">?</td></tr>
+        <tr><td>/</td><td>314</td><td class="">?</td></tr><tr><td>/bookings/</td><td>199</td><td class="">?</td></tr><tr><td>/</td><td>95</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>64</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>61</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>45</td><td class="">?</td></tr><tr><td>/</td><td>35</td><td class="">?</td></tr><tr><td>/club-fitting/</td><td>35</td><td class="">?</td></tr><tr><td>/bookings/</td><td>28</td><td class="">?</td></tr><tr><td>/checkout/</td><td>28</td><td class="">?</td></tr>
       </table>
     </div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>🔄 Used Items On Cooldown</h2>
-      <span class="badge stale">⚠️ stale</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
     <p class="empty">Nothing on cooldown.</p>
   </div>

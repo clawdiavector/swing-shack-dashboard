@@ -1,14 +1,170 @@
 {
-  "updated": "2026-04-17T13:23:13.064Z",
+  "updated": "2026-04-21T14:05:49.464Z",
   "site": "https://swingshack.co.za",
-  "geo_score": "NEEDS_WORK",
+  "geo_score": "GOOD",
   "summary": {
-    "clear_pages": 0,
+    "clear_pages": 4,
     "needs_work": 0
   },
   "high_priority": [],
-  "medium_priority": [],
-  "low_priority": [],
-  "positive_signals": [],
-  "recommendations": []
+  "medium_priority": [
+    {
+      "type": "no_qa_blocks",
+      "severity": "medium",
+      "message": "No clear Q&A blocks found - AI summaries may miss key info",
+      "page": "Homepage"
+    },
+    {
+      "type": "no_qa_blocks",
+      "severity": "medium",
+      "message": "No clear Q&A blocks found - AI summaries may miss key info",
+      "page": "Membership"
+    },
+    {
+      "type": "missing_price",
+      "severity": "medium",
+      "message": "membership page missing pricing",
+      "page": "Membership"
+    },
+    {
+      "type": "no_qa_blocks",
+      "severity": "medium",
+      "message": "No clear Q&A blocks found - AI summaries may miss key info",
+      "page": "Coaching"
+    },
+    {
+      "type": "missing_price",
+      "severity": "medium",
+      "message": "coaching page missing pricing",
+      "page": "Coaching"
+    },
+    {
+      "type": "no_qa_blocks",
+      "severity": "medium",
+      "message": "No clear Q&A blocks found - AI summaries may miss key info",
+      "page": "Club Fitting"
+    },
+    {
+      "type": "missing_price",
+      "severity": "medium",
+      "message": "fitting page missing pricing",
+      "page": "Club Fitting"
+    }
+  ],
+  "low_priority": [
+    {
+      "type": "missing_duration",
+      "severity": "low",
+      "message": "coaching page missing session duration",
+      "page": "Coaching"
+    }
+  ],
+  "positive_signals": [
+    {
+      "text": "Clear entity signals (who/what/where) present",
+      "page": "Homepage"
+    },
+    {
+      "text": "Structured data (JSON-LD/schema.org) detected",
+      "page": "Homepage"
+    },
+    {
+      "text": "Good content depth (22248 chars)",
+      "page": "Homepage"
+    },
+    {
+      "text": "Clear entity signals (who/what/where) present",
+      "page": "Membership"
+    },
+    {
+      "text": "Structured data (JSON-LD/schema.org) detected",
+      "page": "Membership"
+    },
+    {
+      "text": "Good content depth (23817 chars)",
+      "page": "Membership"
+    },
+    {
+      "text": "Clear entity signals (who/what/where) present",
+      "page": "Coaching"
+    },
+    {
+      "text": "Structured data (JSON-LD/schema.org) detected",
+      "page": "Coaching"
+    },
+    {
+      "text": "Good content depth (22118 chars)",
+      "page": "Coaching"
+    },
+    {
+      "text": "Clear entity signals (who/what/where) present",
+      "page": "Club Fitting"
+    },
+    {
+      "text": "Structured data (JSON-LD/schema.org) detected",
+      "page": "Club Fitting"
+    },
+    {
+      "text": "Good content depth (23168 chars)",
+      "page": "Club Fitting"
+    }
+  ],
+  "recommendations": [
+    {
+      "type": "no_qa_blocks",
+      "severity": "medium",
+      "message": "No clear Q&A blocks found - AI summaries may miss key info",
+      "page": "Homepage",
+      "fix": "Add FAQ section with clear Q&A format"
+    },
+    {
+      "type": "no_qa_blocks",
+      "severity": "medium",
+      "message": "No clear Q&A blocks found - AI summaries may miss key info",
+      "page": "Membership",
+      "fix": "Add FAQ section with clear Q&A format"
+    },
+    {
+      "type": "missing_price",
+      "severity": "medium",
+      "message": "membership page missing pricing",
+      "page": "Membership",
+      "fix": "Add pricing information with R amount"
+    },
+    {
+      "type": "no_qa_blocks",
+      "severity": "medium",
+      "message": "No clear Q&A blocks found - AI summaries may miss key info",
+      "page": "Coaching",
+      "fix": "Add FAQ section with clear Q&A format"
+    },
+    {
+      "type": "missing_price",
+      "severity": "medium",
+      "message": "coaching page missing pricing",
+      "page": "Coaching",
+      "fix": "Add pricing information with R amount"
+    },
+    {
+      "type": "missing_duration",
+      "severity": "low",
+      "message": "coaching page missing session duration",
+      "page": "Coaching",
+      "fix": "Review and improve missing_duration"
+    },
+    {
+      "type": "no_qa_blocks",
+      "severity": "medium",
+      "message": "No clear Q&A blocks found - AI summaries may miss key info",
+      "page": "Club Fitting",
+      "fix": "Add FAQ section with clear Q&A format"
+    },
+    {
+      "type": "missing_price",
+      "severity": "medium",
+      "message": "fitting page missing pricing",
+      "page": "Club Fitting",
+      "fix": "Add pricing information with R amount"
+    }
+  ]
 }

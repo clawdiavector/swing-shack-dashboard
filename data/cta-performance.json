@@ -1,12 +1,12 @@
 {
-  "updated": "2026-04-17T13:23:13.562Z",
+  "updated": "2026-04-21T14:05:49.970Z",
   "generated": "generate_cta_performance.js",
   "summary": {
     "ctas_analysed": 1,
     "best_cta": "Soft / Engagement CTA",
-    "best_signal": 1.25,
+    "best_signal": 1.1,
     "worst_cta": "Soft / Engagement CTA",
-    "worst_signal": 1.25,
+    "worst_signal": 1.1,
     "tests_to_run": 1
   },
   "cta_rankings": [
@@ -16,15 +16,15 @@
       "color": "#748ffc",
       "intent": "low",
       "post_count": 30,
-      "total_reach": 8613,
-      "avg_reach": 287,
+      "total_reach": 7826,
+      "avg_reach": 261,
       "avg_likes": 0,
       "avg_saves": 0,
       "avg_comments": 0,
-      "avg_engagement_rate": 2.5,
+      "avg_engagement_rate": 2.2,
       "save_rate": 0,
       "click_proxy": 0,
-      "conversion_signal": 1.25,
+      "conversion_signal": 1.1,
       "rank": 1
     }
   ],
@@ -34,15 +34,15 @@
     "color": "#748ffc",
     "intent": "low",
     "post_count": 30,
-    "total_reach": 8613,
-    "avg_reach": 287,
+    "total_reach": 7826,
+    "avg_reach": 261,
     "avg_likes": 0,
     "avg_saves": 0,
     "avg_comments": 0,
-    "avg_engagement_rate": 2.5,
+    "avg_engagement_rate": 2.2,
     "save_rate": 0,
     "click_proxy": 0,
-    "conversion_signal": 1.25,
+    "conversion_signal": 1.1,
     "rank": 1
   },
   "worst_cta": {
@@ -51,15 +51,15 @@
     "color": "#748ffc",
     "intent": "low",
     "post_count": 30,
-    "total_reach": 8613,
-    "avg_reach": 287,
+    "total_reach": 7826,
+    "avg_reach": 261,
     "avg_likes": 0,
     "avg_saves": 0,
     "avg_comments": 0,
-    "avg_engagement_rate": 2.5,
+    "avg_engagement_rate": 2.2,
     "save_rate": 0,
     "click_proxy": 0,
-    "conversion_signal": 1.25,
+    "conversion_signal": 1.1,
     "rank": 1
   },
   "recommendations": [
@@ -67,9 +67,9 @@
       "cta_type": "SOFT",
       "label": "Soft / Engagement CTA",
       "rank": 1,
-      "signal": 1.25,
+      "signal": 1.1,
       "verdict": "🏆 Best performer — push this CTA style",
-      "action": "Scale Soft / Engagement CTA posts — eng 2.5%, save rate 0%",
+      "action": "Scale Soft / Engagement CTA posts — eng 2.2%, save rate 0%",
       "owner": "Swing Shack page"
     }
   ],

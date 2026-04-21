@@ -1,12 +1,12 @@
 {
-  "updated": "2026-04-17T13:23:13.858Z",
+  "updated": "2026-04-21T14:05:50.276Z",
   "generated": "generate_anomaly_alerts.js",
   "summary": {
-    "total_alerts": 1,
+    "total_alerts": 2,
     "high_urgency": 1,
-    "medium_urgency": 0,
+    "medium_urgency": 1,
     "low_urgency": 0,
-    "today_urgency": 1
+    "today_urgency": 2
   },
   "alerts": [
     {
@@ -20,6 +20,18 @@
       "urgency": "today",
       "confidence": 5,
       "rank": 1
+    },
+    {
+      "type": "ig_performance_drop",
+      "alert": "Instagram engagement rate dropping",
+      "severity": "medium",
+      "evidence": "Recent 7-post avg: 1.71% | Previous avg: 2.59% | Drop: -34%",
+      "likely_cause": "Hook quality drop OR algorithm shift OR audience fatigue",
+      "action": "Check last 3 posts for hook quality — compare to top-performing historical posts",
+      "owner": "Swing Shack page",
+      "urgency": "today",
+      "confidence": 5,
+      "rank": 2
     }
   ]
 }

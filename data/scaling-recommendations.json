@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T13:23:13.773Z",
+  "updated": "2026-04-21T14:05:50.190Z",
   "generated": "generate_scaling_recommendations.js",
   "summary": {
     "total": 5,
@@ -33,9 +33,9 @@
       "action": "Turn into recurring series",
       "topic": "short_game",
       "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
-      "ig_score": 9.86,
+      "ig_score": 9.82,
       "cross_score": 7.1,
-      "reason": "IG 9.86 + cross-signal 7.1 — proven on multiple channels",
+      "reason": "IG 9.82 + cross-signal 7.1 — proven on multiple channels",
       "recommended_schedule": "1x per week for 4 weeks",
       "scale_action": "Post same angle weekly, vary the data point each time",
       "owner": "Swing Shack page",
@@ -49,13 +49,13 @@
       "type": "cta_scale",
       "action": "Scale Soft / Engagement CTA across all posts",
       "cta_type": "SOFT",
-      "current_perf": "eng 2.5% | save rate undefined% | signal 1.25",
+      "current_perf": "eng 2.2% | save rate undefined% | signal 1.1",
       "recommendation": "Increase soft / engagement cta CTA usage by 40% — highest conversion signal of all CTA types",
       "expected_impact": "save_rate +0.3% | booking_intent +15%",
       "owner": "Swing Shack page",
       "urgency": "this_week",
       "confidence": 4,
-      "why": "SOFT has best conversion signal (1.25)",
+      "why": "SOFT has best conversion signal (1.1)",
       "rank": 3
     },
     {

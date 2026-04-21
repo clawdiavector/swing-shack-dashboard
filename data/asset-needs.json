@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T13:23:13.386Z",
+  "updated": "2026-04-21T14:05:49.790Z",
   "generated": "generate_asset_needs.js",
   "count": 6,
   "by_owner": {
@@ -12,12 +12,12 @@
         "posts": [
           {
             "hook": "Need some help with your putting? Coach Cat explai",
-            "day": "Saturday Apr 18",
+            "day": "Wednesday Apr 22",
             "source": "post_plan"
           },
           {
             "hook": "Need to relax and find your golf swing tempo? Join",
-            "day": "Monday Apr 20",
+            "day": "Friday Apr 24",
             "source": "post_plan"
           },
           {
@@ -41,7 +41,7 @@
         "posts": [
           {
             "hook": "Book your session with Coach Cat @swingshack ⛳️",
-            "day": "Sunday Apr 19",
+            "day": "Thursday Apr 23",
             "source": "post_plan"
           }
         ],
@@ -57,7 +57,7 @@
         "posts": [
           {
             "hook": "That slice costing you yards off the tee? TrackMan",
-            "day": "Friday Apr 17",
+            "day": "Tuesday Apr 21",
             "source": "post_plan"
           }
         ],
@@ -73,12 +73,12 @@
         "posts": [
           {
             "hook": "Lowest net score wins a *new custom fitted driver!",
-            "day": "Tuesday Apr 21",
+            "day": "Saturday Apr 25",
             "source": "post_plan"
           },
           {
             "hook": "Have you ever been for an elite level Custom Fitti",
-            "day": "Thursday Apr 23",
+            "day": "Monday Apr 27",
             "source": "post_plan"
           }
         ],
@@ -108,7 +108,7 @@
         "posts": [
           {
             "hook": "Go to your coaching sessions. Your ball deserves b",
-            "day": "Wednesday Apr 22",
+            "day": "Sunday Apr 26",
             "source": "post_plan"
           }
         ],
@@ -125,7 +125,7 @@
       "posts": [
         {
           "hook": "That slice costing you yards off the tee? TrackMan",
-          "day": "Friday Apr 17",
+          "day": "Tuesday Apr 21",
           "source": "post_plan"
         }
       ],
@@ -140,12 +140,12 @@
       "posts": [
         {
           "hook": "Need some help with your putting? Coach Cat explai",
-          "day": "Saturday Apr 18",
+          "day": "Wednesday Apr 22",
           "source": "post_plan"
         },
         {
           "hook": "Need to relax and find your golf swing tempo? Join",
-          "day": "Monday Apr 20",
+          "day": "Friday Apr 24",
           "source": "post_plan"
         },
         {
@@ -165,12 +165,12 @@
       "posts": [
         {
           "hook": "Lowest net score wins a *new custom fitted driver!",
-          "day": "Tuesday Apr 21",
+          "day": "Saturday Apr 25",
           "source": "post_plan"
         },
         {
           "hook": "Have you ever been for an elite level Custom Fitti",
-          "day": "Thursday Apr 23",
+          "day": "Monday Apr 27",
           "source": "post_plan"
         }
       ],
@@ -185,7 +185,7 @@
       "posts": [
         {
           "hook": "Go to your coaching sessions. Your ball deserves b",
-          "day": "Wednesday Apr 22",
+          "day": "Sunday Apr 26",
           "source": "post_plan"
         }
       ],
@@ -200,7 +200,7 @@
       "posts": [
         {
           "hook": "Book your session with Coach Cat @swingshack ⛳️",
-          "day": "Sunday Apr 19",
+          "day": "Thursday Apr 23",
           "source": "post_plan"
         }
       ],

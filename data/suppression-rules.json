@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T13:23:14.283Z",
+  "updated": "2026-04-21T14:05:50.707Z",
   "generated": "generate_suppression_rules.js",
   "summary": {
     "total_rules": 8,
@@ -9,7 +9,7 @@
   },
   "rules": [
     {
-      "rule_id": "spr_mo2xv1m3e5fl",
+      "rule_id": "spr_mo8p58tv3heh",
       "type": "already_done",
       "name": "Task already done",
       "description": "Suppress nudge if the related task is marked done or scheduled",
@@ -19,7 +19,7 @@
       "active": true
     },
     {
-      "rule_id": "spr_mo2xv1m3lqoz",
+      "rule_id": "spr_mo8p58tvdvtv",
       "type": "duplicate_nudge",
       "name": "Duplicate nudge within 24h",
       "description": "Do not send the same nudge type to the same owner within 24 hours",
@@ -30,7 +30,7 @@
       "active": true
     },
     {
-      "rule_id": "spr_mo2xv1m39z58",
+      "rule_id": "spr_mo8p58tvkj04",
       "type": "spam_owner",
       "name": "Max 3 nudges per owner per day",
       "description": "Never send more than 3 nudges to the same owner in a single day",
@@ -41,7 +41,7 @@
       "active": true
     },
     {
-      "rule_id": "spr_mo2xv1m3td3a",
+      "rule_id": "spr_mo8p58tvxkvv",
       "type": "low_priority_spam",
       "name": "Suppress low-priority during overload",
       "description": "When an owner is overloaded (5+ tasks), suppress low-severity nudges",
@@ -52,7 +52,7 @@
       "active": true
     },
     {
-      "rule_id": "spr_mo2xv1m3hi7c",
+      "rule_id": "spr_mo8p58tv5lfj",
       "type": "weekend_grace",
       "name": "No nudges on weekends",
       "description": "Suppress all nudges on Saturday and Sunday",
@@ -62,7 +62,7 @@
       "active": true
     },
     {
-      "rule_id": "spr_mo2xv1m3r8db",
+      "rule_id": "spr_mo8p58tvwyxn",
       "type": "approval_already_requested",
       "name": "Approval already requested",
       "description": "Suppress approval reminder if it was already sent today",
@@ -72,7 +72,7 @@
       "active": true
     },
     {
-      "rule_id": "spr_mo2xv1m32lpj",
+      "rule_id": "spr_mo8p58tvz325",
       "type": "task_not_due",
       "name": "Only nudge on the due day",
       "description": "Suppress reminder if the task is not due today or tomorrow",
@@ -82,7 +82,7 @@
       "active": true
     },
     {
-      "rule_id": "spr_mo2xv1m38vgb",
+      "rule_id": "spr_mo8p58tvt4hy",
       "type": "fallback_exists",
       "name": "Fallback available — no asset nudge needed",
       "description": "If a fallback exists for a blocked post, suppress asset nudge and send fallback instead",

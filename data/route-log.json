@@ -1,0 +1,50 @@
+{
+  "schema": "https://clawdia.io/agents/output-schema/v1",
+  "agent_id": "route_task",
+  "generated": "2026-04-21T14:01:37.858Z",
+  "status": "PASS",
+  "data_status": "FRESH",
+  "confidence": 6,
+  "priority": "MEDIUM",
+  "owner": "taskmaster",
+  "next_action": "Route to Taskmaster — see agents/registry.json",
+  "notes": [],
+  "qa_warnings": [],
+  "route_id": "rtl_mo8oztqaoffi",
+  "task": "schedule this post",
+  "routed_to": "taskmaster",
+  "alternatives": [],
+  "routed_at": "2026-04-21T14:01:37.858Z",
+  "routing_type": "deterministic_keyword_v1",
+  "assigned_agent": {
+    "name": "Taskmaster",
+    "role": "Turn insights into executable task cards with clear owners",
+    "owns": [
+      "daily task cards",
+      "approval queue",
+      "deadline risk tracking",
+      "blocker identification",
+      "capacity shift recommendations",
+      "follow-up queue",
+      "experiment queue",
+      "scaling recommendations",
+      "kill list"
+    ],
+    "scripts": [
+      "generate_post_plan.js",
+      "generate_sales_priority.js",
+      "generate_daily_task_cards.js",
+      "generate_approval_queue.js",
+      "generate_deadline_risk.js",
+      "generate_blockers.js",
+      "generate_capacity_shift.js",
+      "generate_follow_up_queue.js",
+      "generate_experiment_queue.js",
+      "generate_scaling_recommendations.js",
+      "generate_kill_list.js",
+      "generate_asset_needs.js",
+      "generate_owner_workload.js"
+    ],
+    "discord_channel": "#ops-planning"
+  }
+}

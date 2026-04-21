@@ -1,17 +1,8 @@
 {
-  "fetched_at": "2026-04-17T13:22:22.723Z",
+  "fetched_at": "2026-04-21T14:05:30.125Z",
   "source_file": "youtube-trends.json",
   "videos_analyzed": 10,
   "top_videos": [
-    {
-      "title": "Master Your Senior Golf Swing in 3 Easy Steps",
-      "description": "In this VLS Golf lesson from Todd Kolb, we're going to show you how to simplify your senior golf swing. By following these 3 easy ...",
-      "videoId": "4WZd4B06zTg",
-      "channelTitle": "US GOLF TV",
-      "publishedAt": "2024-03-24T11:00:04Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
     {
       "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
       "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple driver ...",
@@ -49,6 +40,15 @@
       "query": "golf swing tips"
     },
     {
+      "title": "Senior Golf Tips from Legend Tom Watson",
+      "description": "Senior Golf Tips from Legend Tom Watson when I'm asked about Senior Golf there are a few things I talk about before I even talk ...",
+      "videoId": "dWZuKgvTS28",
+      "channelTitle": "Golf Secrets",
+      "publishedAt": "2024-01-10T21:00:20Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
       "title": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
       "description": "Golf Swing Basics is a series of 3 golf lesson videos for beginners. We guarantee you will hit the ball better after watching this ...",
       "videoId": "1iOa2ZwGhbU",
@@ -67,15 +67,6 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "Better Golf Swing In 2 Minutes",
-      "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you to ...",
-      "videoId": "j-g1SlpOm3g",
-      "channelTitle": "Kerrod Gray Golf",
-      "publishedAt": "2024-04-26T22:02:20Z",
-      "source": "youtube_api_v3",
-      "query": "golf lesson tutorial"
-    },
-    {
       "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
       "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you need to ...",
       "videoId": "n4aOMLSRGrI",
@@ -85,11 +76,20 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "I’ve Owned a Golf Simulator for 5 Years: My (Honest) Advice to Beginners",
-      "description": "Follow my step-by-step system to build your DREAM home golf simulator https://mitch-s-site-003e.thinkific.com/collections",
-      "videoId": "DN1WPfhrf08",
-      "channelTitle": "Handicap Golf",
-      "publishedAt": "2025-04-26T17:00:13Z",
+      "title": "Better Golf Swing In 2 Minutes",
+      "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you to ...",
+      "videoId": "j-g1SlpOm3g",
+      "channelTitle": "Kerrod Gray Golf",
+      "publishedAt": "2024-04-26T22:02:20Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "Avoid These Golf Simulator Mistakes at All Costs!",
+      "description": "7 mistakes to avoid when building a golf simulator. Get a Sim Enclosure: ...",
+      "videoId": "LXHmx-wyWbs",
+      "channelTitle": "Lets Play Thru",
+      "publishedAt": "2024-09-23T17:30:02Z",
       "source": "youtube_api_v3",
       "query": "golf simulator indoor"
     }
@@ -97,27 +97,19 @@
   "signals": {
     "recurring_phrases": [
       {
-        "phrase": "golf swing",
+        "phrase": "golf tips",
         "count": 3,
         "examples": [
-          "Master Your Senior Golf Swing in 3 Easy Steps",
-          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
-        ]
-      },
-      {
-        "phrase": "your senior",
-        "count": 2,
-        "examples": [
-          "Master Your Senior Golf Swing in 3 Easy Steps",
-          "5 Powerful Tips to Unleash Your Senior Driver Swing"
-        ]
-      },
-      {
-        "phrase": "golf tips",
-        "count": 2,
-        "examples": [
           "How to hit irons Consistently (Simple Golf Tips)",
-          "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips"
+          "Senior Golf Tips from Legend Tom Watson"
+        ]
+      },
+      {
+        "phrase": "golf swing",
+        "count": 2,
+        "examples": [
+          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
+          "Better Golf Swing In 2 Minutes"
         ]
       },
       {
@@ -132,11 +124,11 @@
     "topic_clusters": {
       "driver": 3,
       "senior": 2,
-      "beginner": 5,
+      "beginner": 4,
       "irons": 1,
       "simulator": 1,
       "lessons": 6,
-      "swing": 5,
+      "swing": 4,
       "consistency": 1
     },
     "format_patterns": [
@@ -149,27 +141,26 @@
         "example": "Possibly The BEST DRIVER Tip Ever In GOLF"
       },
       {
-        "label": "\"Easy\" simplicity",
-        "example": "Master Your Senior Golf Swing in 3 Easy Steps"
-      },
-      {
         "label": "\"Simple\" promise",
         "example": "How to hit irons Consistently (Simple Golf Tips)"
+      },
+      {
+        "label": "Mistake framing",
+        "example": "Avoid These Golf Simulator Mistakes at All Costs!"
       }
     ],
-    "urgency_score": 4,
+    "urgency_score": 7,
     "urgency_language": [
-      "how to"
+      "how to",
+      "mistake"
     ],
     "has_before_after": false,
     "before_after_examples": [],
-    "has_mistake_fix": false,
-    "mistake_fix_examples": [],
+    "has_mistake_fix": true,
+    "mistake_fix_examples": [
+      "Avoid These Golf Simulator Mistakes at All Costs!"
+    ],
     "top_channels": [
-      [
-        "US GOLF TV",
-        2
-      ],
       [
         "Alistair Davies Golf",
         1
@@ -183,7 +174,11 @@
         1
       ],
       [
-        "New Nine Golf | Brandon Cubitt",
+        "US GOLF TV",
+        1
+      ],
+      [
+        "Golf Secrets",
         1
       ]
     ],
@@ -194,9 +189,14 @@
         "count": 2
       },
       {
+        "template": "The Truth About [common_mistake]",
+        "source": "mistake-reveal",
+        "count": 1
+      },
+      {
         "template": "[Player Type]: [advice]",
         "source": "player-specific",
-        "count": 6
+        "count": 5
       }
     ]
   },
@@ -209,8 +209,8 @@
     "dominant_formats": [
       "How to...",
       "\"Best\" superlative",
-      "\"Easy\" simplicity",
-      "\"Simple\" promise"
+      "\"Simple\" promise",
+      "Mistake framing"
     ],
     "top_template": "[Player Type]: [advice]"
   }

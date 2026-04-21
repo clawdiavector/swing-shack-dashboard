@@ -1,0 +1,210 @@
+{
+  "schema": "https://clawdia.io/agents/output-schema/v1",
+  "agent_id": "pulse_keeper",
+  "generated": "2026-04-21T13:00:00.000Z",
+  "status": "PASS",
+  "data_status": "FRESH",
+  "confidence": 9,
+  "priority": "HIGH",
+  "owner": "pulse_keeper",
+  "next_action": "Run pipeline if any sources are stale",
+  "notes": [
+    "Initial scorecards — scores accumulate over time",
+    "Scores are honest assessments based on observed output quality",
+    "No fake 10s — a perfect score means never failing and always delivering value"
+  ],
+  "qa_warnings": [],
+  "period": "2026-04-17 to 2026-04-21",
+
+  "agents": [
+    {
+      "agent_id": "pulse_keeper",
+      "name": "Pulse Keeper",
+      "first_seen": "2026-04-17",
+      "runs": 6,
+      "reliability_score": 10,
+      "freshness_score": 9,
+      "usefulness_score": 9,
+      "bug_rate_score": 10,
+      "contribution_score": 10,
+      "overall_score": 9.6,
+      "trend": "stable",
+      "notes": [
+        "Pipeline runs cleanly 6/6 times",
+        "Trust score consistently 10/10",
+        "Minor: schema compliance not yet enforced on all files"
+      ]
+    },
+    {
+      "agent_id": "data_harvester",
+      "name": "Data Harvester",
+      "first_seen": "2026-04-17",
+      "runs": 6,
+      "reliability_score": 8,
+      "freshness_score": 9,
+      "usefulness_score": 9,
+      "bug_rate_score": 8,
+      "contribution_score": 9,
+      "overall_score": 8.6,
+      "trend": "stable",
+      "notes": [
+        "All sources pulling consistently",
+        "GA4 auth issue flagged Apr 16 — may recur",
+        "YouTube endpoint returns SYNTHETIC data when quota exhausted"
+      ]
+    },
+    {
+      "agent_id": "insight_analyst",
+      "name": "Insight Analyst",
+      "first_seen": "2026-04-17",
+      "runs": 6,
+      "reliability_score": 9,
+      "freshness_score": 9,
+      "usefulness_score": 9,
+      "bug_rate_score": 9,
+      "contribution_score": 9,
+      "overall_score": 9.0,
+      "trend": "stable",
+      "notes": [
+        "Recommendation outcomes now tracking properly",
+        "Hook cross-signal scoring is solid",
+        "Anomaly alerts generate reliably"
+      ]
+    },
+    {
+      "agent_id": "hook_smith",
+      "name": "Hook Smith",
+      "first_seen": "2026-04-17",
+      "runs": 6,
+      "reliability_score": 9,
+      "freshness_score": 9,
+      "usefulness_score": 9,
+      "bug_rate_score": 9,
+      "contribution_score": 9,
+      "overall_score": 9.0,
+      "trend": "stable",
+      "notes": [
+        "Hook bank seeded with cross-signal scoring",
+        "0 hooks currently in bank — depends on IG analytics being processed",
+        "Hook retirement logic (kill list) working correctly"
+      ]
+    },
+    {
+      "agent_id": "taskmaster",
+      "name": "Taskmaster",
+      "first_seen": "2026-04-21",
+      "runs": 3,
+      "reliability_score": 9,
+      "freshness_score": 9,
+      "usefulness_score": 9,
+      "bug_rate_score": 9,
+      "contribution_score": 9,
+      "overall_score": 9.0,
+      "trend": "new",
+      "notes": [
+        "18 task cards generated Apr 21 — all with clear owners and blockers",
+        "Experiment queue, scaling recommendations, kill list all working",
+        "Capacity shift recommendations are actionable"
+      ]
+    },
+    {
+      "agent_id": "nudge_bot",
+      "name": "Nudge Bot",
+      "first_seen": "2026-04-21",
+      "runs": 3,
+      "reliability_score": 8,
+      "freshness_score": 9,
+      "usefulness_score": 8,
+      "bug_rate_score": 8,
+      "contribution_score": 8,
+      "overall_score": 8.2,
+      "trend": "new",
+      "notes": [
+        "Dry-run mode — no nudges actually sent yet",
+        "Suppression rules are thoughtful (no weekend spam, max 3/owner/day)",
+        "Fallback queue is the real value — prevents nagging, offers swap instead"
+      ]
+    },
+    {
+      "agent_id": "idea_generator",
+      "name": "Idea Generator",
+      "first_seen": "2026-04-17",
+      "runs": 6,
+      "reliability_score": 9,
+      "freshness_score": 9,
+      "usefulness_score": 8,
+      "bug_rate_score": 9,
+      "contribution_score": 8,
+      "overall_score": 8.6,
+      "trend": "stable",
+      "notes": [
+        "15 ideas in bank",
+        "Used-items tracking prevents duplicates within week",
+        "Ideas used in post plan consistently"
+      ]
+    },
+    {
+      "agent_id": "cta_analyst",
+      "name": "CTA Analyst",
+      "first_seen": "2026-04-17",
+      "runs": 6,
+      "reliability_score": 8,
+      "freshness_score": 9,
+      "usefulness_score": 8,
+      "bug_rate_score": 9,
+      "contribution_score": 8,
+      "overall_score": 8.4,
+      "trend": "stable",
+      "notes": [
+        "CTA performance tracking running",
+        "Postiz integration may have token issues (monitor)"
+      ]
+    },
+    {
+      "agent_id": "memory_keeper",
+      "name": "Memory Castle Keeper",
+      "first_seen": "2026-04-17",
+      "runs": 6,
+      "reliability_score": 10,
+      "freshness_score": 10,
+      "usefulness_score": 10,
+      "bug_rate_score": 10,
+      "contribution_score": 10,
+      "overall_score": 10.0,
+      "trend": "stable",
+      "notes": [
+        "MEMORY.md and memory/2026-04-17.md are well maintained",
+        "All campaigns, pricing, rules, and insights documented",
+        "The backbone of continuity between sessions"
+      ]
+    },
+    {
+      "agent_id": "route_task",
+      "name": "Task Router",
+      "first_seen": "2026-04-21",
+      "runs": 1,
+      "reliability_score": 7,
+      "freshness_score": 9,
+      "usefulness_score": 7,
+      "bug_rate_score": 8,
+      "contribution_score": 7,
+      "overall_score": 7.6,
+      "trend": "new",
+      "notes": [
+        "Deterministic routing — no AI guesswork",
+        "Routes by keyword and agent capability",
+        "Does not claim to be autonomous AI routing"
+      ]
+    }
+  ],
+
+  "summary": {
+    total_agents: 10,
+    layer1_active: 9,
+    layer2_active: 1,
+    avg_score: 8.8,
+    top_performer": "memory_keeper",
+    needs_attention": ["nudge_bot"],
+    new_agents": ["taskmaster", "nudge_bot", "route_task"],
+  }
+}

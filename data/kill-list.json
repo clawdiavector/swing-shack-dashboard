@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-17T13:23:13.815Z",
+  "updated": "2026-04-21T14:05:50.233Z",
   "generated": "generate_kill_list.js",
   "summary": {
     "total": 1,
@@ -13,14 +13,14 @@
   "items": [
     {
       "type": "service_deprioritise",
-      "action": "Stop actively pushing Membership",
-      "service": "Membership",
-      "score": 0.9,
+      "action": "Stop actively pushing Events & Competitions",
+      "service": "Events & Competitions",
+      "score": 0.6,
       "reason": "",
       "severity": "high",
-      "fix": "Move Membership to bottom of priority list — weak demand signal",
+      "fix": "Move Events & Competitions to bottom of priority list — weak demand signal",
       "confidence": 4,
-      "why": "Service priority #5 with score 0.9/10 — low ROI on promotion",
+      "why": "Service priority #5 with score 0.6/10 — low ROI on promotion",
       "rank": 1
     }
   ]

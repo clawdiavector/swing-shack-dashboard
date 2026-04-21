@@ -1,0 +1,450 @@
+{
+  "schema": "https://clawdia.io/agents/registry/v1",
+  "updated": "2026-04-21T13:00:00.000Z",
+  "note": "Layer 1 agents = script-backed with clear ownership. Layer 2 = spawn-on-demand via sessions_spawn. Layer 3 = persistent cron-triggered sessions (future).",
+  "agents": [
+    {
+      "agent_id": "pulse_keeper",
+      "name": "Pulse Keeper",
+      "layer": 1,
+      "role": "System health, pipeline reliability, dashboard uptime",
+      "criticality": "HIGH",
+      "status": "active",
+      "owns": [
+        "pipeline health",
+        "stale source detection",
+        "GitHub publish checks",
+        "trust score",
+        "failed script alerts",
+        "compile freshness"
+      ],
+      "scripts": [
+        "master_pipeline.js",
+        "compile_dashboard.js",
+        "validator.js",
+        "publish_github.js"
+      ],
+      "inputs": [
+        "logs/daily-run.log",
+        "data/dashboard-summary.json",
+        "data/build-meta.json"
+      ],
+      "outputs": [
+        "data/system-health.json",
+        "data/agent-scorecards.json",
+        "dashboard.html"
+      ],
+      "queues": [],
+      "discord_channel": "#ops-planning",
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "data_harvester",
+      "name": "Data Harvester",
+      "layer": 1,
+      "role": "Pull all external data sources on schedule",
+      "criticality": "HIGH",
+      "status": "active",
+      "owns": [
+        "Meta/Instagram analytics",
+        "GA4 web analytics",
+        "Google Search Console rankings",
+        "Reddit trend monitoring",
+        "SEO rank tracking",
+        "YouTube trending content",
+        "website insights",
+        "GMB metrics",
+        "competitor signals"
+      ],
+      "scripts": [
+        "sync_ig_analytics.js",
+        "fetch_ga4.js",
+        "fetch_seo_rankings.js",
+        "fetch_reddit_trends.js",
+        "fetch_youtube_trends.js",
+        "fetch_golf_news.js",
+        "fetch_website_insights.js",
+        "fetch_postiz_analytics.js",
+        "run_seo_audit.js",
+        "run_geo_audit.js"
+      ],
+      "inputs": [
+        "credentials/instagram-api-token.json",
+        "credentials/gcp-service-account.json"
+      ],
+      "outputs": [
+        "data/ig-analytics.json",
+        "data/ga4-report.json",
+        "data/seo-rankings.json",
+        "data/reddit-trends.json",
+        "data/youtube-trends.json",
+        "data/golf-news.json",
+        "data/website-insights.json",
+        "data/seo-audit.json",
+        "data/geo-audit.json",
+        "data/postiz-analytics.json"
+      ],
+      "queues": [],
+      "discord_channel": null,
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "insight_analyst",
+      "name": "Insight Analyst",
+      "layer": 1,
+      "role": "Turn raw data into decisions — anomalies, wins, leaks, opportunities",
+      "criticality": "HIGH",
+      "status": "active",
+      "owns": [
+        "anomaly detection",
+        "missed opportunity detection",
+        "funnel leak analysis",
+        "conversion attribution",
+        "retargeting recommendations",
+        "weekly pattern analysis",
+        "recommendation scoring",
+        "recommendation outcomes"
+      ],
+      "scripts": [
+        "generate_anomaly_alerts.js",
+        "detect_missed_opportunities.js",
+        "generate_funnel_leaks.js",
+        "generate_conversion_attribution.js",
+        "generate_retargeting_recommendations.js",
+        "generate_recommendation_scores.js",
+        "generate_recommendation_outcomes.js",
+        "analyse_hooks.js",
+        "extract_youtube_signals.js"
+      ],
+      "inputs": [
+        "data/ig-analytics.json",
+        "data/ga4-report.json",
+        "data/seo-rankings.json",
+        "data/hook-bank.json",
+        "data/recommendation-scores.json",
+        "data/recommendation-outcomes.json"
+      ],
+      "outputs": [
+        "data/anomaly-alerts.json",
+        "data/missed-opportunities.json",
+        "data/funnel-leaks.json",
+        "data/conversion-attribution.json",
+        "data/retargeting-recommendations.json",
+        "data/recommendation-scores.json",
+        "data/recommendation-outcomes.json",
+        "data/hook-bank.json"
+      ],
+      "queues": [],
+      "discord_channel": null,
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "hook_smith",
+      "name": "Hook Smith",
+      "layer": 1,
+      "role": "Create and maintain the hook bank — the core content asset",
+      "criticality": "HIGH",
+      "status": "active",
+      "owns": [
+        "hook bank",
+        "hook scoring",
+        "cross-signal analysis",
+        "new hook generation",
+        "hook retirement"
+      ],
+      "scripts": [
+        "analyse_hooks.js",
+        "extract_youtube_signals.js"
+      ],
+      "inputs": [
+        "data/ig-analytics.json",
+        "data/youtube-trends.json",
+        "data/reddit-trends.json",
+        "data/hook-bank.json"
+      ],
+      "outputs": [
+        "data/hook-bank.json"
+      ],
+      "queues": [],
+      "discord_channel": null,
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "taskmaster",
+      "name": "Taskmaster",
+      "layer": 1,
+      "role": "Turn insights into executable task cards with clear owners",
+      "criticality": "HIGH",
+      "status": "active",
+      "owns": [
+        "daily task cards",
+        "approval queue",
+        "deadline risk tracking",
+        "blocker identification",
+        "capacity shift recommendations",
+        "follow-up queue",
+        "experiment queue",
+        "scaling recommendations",
+        "kill list"
+      ],
+      "scripts": [
+        "generate_post_plan.js",
+        "generate_sales_priority.js",
+        "generate_daily_task_cards.js",
+        "generate_approval_queue.js",
+        "generate_deadline_risk.js",
+        "generate_blockers.js",
+        "generate_capacity_shift.js",
+        "generate_follow_up_queue.js",
+        "generate_experiment_queue.js",
+        "generate_scaling_recommendations.js",
+        "generate_kill_list.js",
+        "generate_asset_needs.js",
+        "generate_owner_workload.js"
+      ],
+      "inputs": [
+        "data/post-plan.json",
+        "data/sales-priority.json",
+        "data/missed-opportunities.json",
+        "data/retargeting-recommendations.json",
+        "data/experiment-queue.json",
+        "data/scaling-recommendations.json",
+        "data/recommendation-outcomes.json",
+        "data/hook-bank.json"
+      ],
+      "outputs": [
+        "data/post-plan.json",
+        "data/sales-priority.json",
+        "data/daily-task-cards.json",
+        "data/approval-queue.json",
+        "data/deadline-risk.json",
+        "data/blockers.json",
+        "data/capacity-shift.json",
+        "data/asset-needs.json",
+        "data/owner-workload.json",
+        "data/experiment-queue.json",
+        "data/scaling-recommendations.json",
+        "data/kill-list.json"
+      ],
+      "queues": [],
+      "discord_channel": "#ops-planning",
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "nudge_bot",
+      "name": "Nudge Bot",
+      "layer": 1,
+      "role": "Automated nudges — send the right message to the right owner at the right time",
+      "criticality": "MEDIUM",
+      "status": "active",
+      "owns": [
+        "nudge queue",
+        "fallback queue",
+        "auto messages",
+        "suppression rules",
+        "delivery audit",
+        "Discord delivery"
+      ],
+      "scripts": [
+        "generate_nudge_queue.js",
+        "generate_fallback_queue.js",
+        "generate_auto_messages.js",
+        "generate_suppression_rules.js",
+        "send_discord_nudges.js",
+        "log_discord_deliveries.js",
+        "generate_delivery_audit.js"
+      ],
+      "inputs": [
+        "data/daily-task-cards.json",
+        "data/blockers.json",
+        "data/approval-queue.json",
+        "data/deadline-risk.json",
+        "data/capacity-shift.json",
+        "data/fallback-queue.json",
+        "data/suppression-rules.json"
+      ],
+      "outputs": [
+        "data/nudge-queue.json",
+        "data/fallback-queue.json",
+        "data/auto-messages.json",
+        "data/suppression-rules.json",
+        "data/discord-deliveries.json",
+        "data/delivery-audit.json"
+      ],
+      "queues": [],
+      "discord_channel": "#ops-planning",
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "idea_generator",
+      "name": "Idea Generator",
+      "layer": 1,
+      "role": "Generate content ideas from data — never run dry",
+      "criticality": "MEDIUM",
+      "status": "active",
+      "owns": [
+        "content ideas bank",
+        "used items tracking",
+        "idea freshness",
+        "topic coverage"
+      ],
+      "scripts": [
+        "generate_content_ideas.js",
+        "generate_youtube_ideas.js",
+        "update_used_items.js"
+      ],
+      "inputs": [
+        "data/hook-bank.json",
+        "data/ig-analytics.json",
+        "data/youtube-trends.json",
+        "data/golf-news.json",
+        "data/reddit-trends.json",
+        "data/content-ideas.json"
+      ],
+      "outputs": [
+        "data/content-ideas.json",
+        "data/youtube-ideas.json",
+        "data/used-items.json"
+      ],
+      "queues": [],
+      "discord_channel": null,
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "cta_analyst",
+      "name": "CTA Analyst",
+      "layer": 1,
+      "role": "Track what CTAs perform — optimize for conversion",
+      "criticality": "MEDIUM",
+      "status": "active",
+      "owns": [
+        "CTA performance tracking",
+        "CTA type analysis",
+        "CTA recommendations"
+      ],
+      "scripts": [
+        "generate_cta_performance.js"
+      ],
+      "inputs": [
+        "data/ig-analytics.json",
+        "data/post-plan.json"
+      ],
+      "outputs": [
+        "data/cta-performance.json"
+      ],
+      "queues": [],
+      "discord_channel": null,
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "content_architect",
+      "name": "Content Architect",
+      "layer": 2,
+      "role": "Spawn-on-demand — turn hook into full post format (caption, asset brief, scheduling)",
+      "criticality": "MEDIUM",
+      "status": "active",
+      "owns": [
+        "post format selection",
+        "caption writing",
+        "asset brief generation",
+        "scheduling recommendations"
+      ],
+      "scripts": [],
+      "inputs": [
+        "data/hook-bank.json",
+        "data/post-plan.json"
+      ],
+      "outputs": [
+        "data/post-plan.json"
+      ],
+      "queues": [
+        "post-plan.json → scheduled posts"
+      ],
+      "discord_channel": null,
+      "spawn_mode": "sessions_spawn",
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "memory_keeper",
+      "name": "Memory Castle Keeper",
+      "layer": 1,
+      "role": "Permanent memory — all campaigns, wins, losses, bugs, patterns",
+      "criticality": "HIGH",
+      "status": "active",
+      "owns": [
+        "campaign memory",
+        "win/loss records",
+        "bug log",
+        "seasonal patterns",
+        "brand rules",
+        "hook performance history"
+      ],
+      "scripts": [
+        "store_daily_learnings.js"
+      ],
+      "inputs": [
+        "memory/index.json",
+        "memory/campaigns/",
+        "memory/wins/",
+        "memory/losses/",
+        "memory/bugs/"
+      ],
+      "outputs": [
+        "memory/index.json",
+        "memory/daily/2026-04-21.md"
+      ],
+      "queues": [],
+      "discord_channel": null,
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    },
+    {
+      "agent_id": "route_task",
+      "name": "Task Router",
+      "layer": 1,
+      "role": "Deterministic task routing — routes incoming tasks to correct agent using rules",
+      "criticality": "MEDIUM",
+      "status": "active",
+      "owns": [
+        "task routing rules",
+        "agent registry",
+        "queue priority"
+      ],
+      "scripts": [
+        "route_task.js"
+      ],
+      "inputs": [
+        "agents/registry.json",
+        "data/daily-task-cards.json",
+        "data/next-day-queue.json"
+      ],
+      "outputs": [
+        "data/route-log.json"
+      ],
+      "queues": [],
+      "discord_channel": null,
+      "last_score": null,
+      "last_run": null,
+      "score_history": []
+    }
+  ]
+}
