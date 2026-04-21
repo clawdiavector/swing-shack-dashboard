@@ -408,9 +408,45 @@
         "fitting",
         "adjustment"
       ]
+    },
+    {
+      "id": "reddit-2026-04-21-9",
+      "url": "https://www.reddit.com/r/golf/comments/1522h0e/anyone_else_get_worse_at_golf_the_more_you/",
+      "title": "Anyone else get worse at golf the more you practice?",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-21",
+      "datePosted": "2023-07-17",
+      "comment": "Scores going UP after lessons and practice = plateau. You're not getting worse, you're getting stuck. Come in for a TrackMan session — we show you exactly what's changing and what needs adjusting next.",
+      "tags": [
+        "frustration",
+        "practice-plateau",
+        "improvement",
+        "data",
+        "lessons"
+      ]
+    },
+    {
+      "id": "reddit-2026-04-21-10",
+      "url": "https://www.reddit.com/r/golf/comments/1ihouex/how_do_you_practice_golfing_really/",
+      "title": "How do you practice golfing? Really.",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-21",
+      "datePosted": "2025-02-18",
+      "comment": "Dad was right — no wail-fests. Real practice = TrackMan sessions where you see the data, understand what's happening, and fix it with intention. That's what we do here.",
+      "tags": [
+        "practice",
+        "technique",
+        "frustration",
+        "improvement",
+        "data"
+      ]
     }
   ],
   "last_updated": "2026-04-21",
-  "scan_time": "2026-04-21T10:00Z",
-  "scan_note": "April 21 2026 - Noon scan. No significant new opportunities from last 24h. Search limited by Reddit rate limiting and Brave API quotas. Reusing high-value evergreen opportunities from earlier scans."
+  "scan_time": "2026-04-21T16:00Z",
+  "scan_note": "April 21 2026 - 6PM scan. No significant fresh posts from last 24h. Brave API hit rate limits, Reddit throttling. Added 2 new evergreen opportunities from broader search. Push to GitHub."
 }
