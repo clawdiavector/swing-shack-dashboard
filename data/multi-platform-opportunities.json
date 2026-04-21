@@ -1104,6 +1104,90 @@
       "score": 80,
       "suggested_comment": "Indoor data shows what range practice misses.",
       "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-21-14",
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Golf Lessons JHB",
+      "url": "https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/",
+      "content_preview": "Beginner wanting reliable affordable lessons in JHB area",
+      "location_tag": "Johannesburg",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Indoor facilities with launch data help beginners see exactly what to fix.",
+      "comment_tone": "helpful-local"
+    },
+    {
+      "id": "mp-2026-04-21-15",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Golf Pro Cape Town",
+      "url": "https://www.reddit.com/r/golf/comments/liw3gn/recommend_a_golf_pro_for_lessons_cape_town/",
+      "content_preview": "Intermediate golfer seeking pro for inconsistent shots in Cape Town",
+      "location_tag": "Cape Town",
+      "problem_type": "intermediate-lessons",
+      "engagement_level": "medium",
+      "score": 85,
+      "suggested_comment": "Launch data shows face and path - the real cause of inconsistency.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-21-16",
+      "platform": "reddit",
+      "subreddit": "r/GolfZA",
+      "post_title": "Golf Lessons Pretoria/JHB",
+      "url": "https://www.reddit.com/r/GolfZA/comments/1f75z60/golf_lessons/",
+      "content_preview": "Beginner seeking affordable coach in Pretoria or JHB",
+      "location_tag": "Pretoria/Johannesburg",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Coaches with launch data show you exactly what your swing is doing.",
+      "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-21-17",
+      "platform": "reddit",
+      "subreddit": "r/capetown",
+      "post_title": "Golf Club Memberships Cape Town",
+      "url": "https://www.reddit.com/r/capetown/comments/1mtpv8r/best_golf_club_memberships_in_cape_town_northern/",
+      "content_preview": "Beginner couple looking for club with lessons, practice areas",
+      "location_tag": "Cape Town",
+      "problem_type": "beginner-membership",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Indoor practice areas are great for beginners - all-weather.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-21-18",
+      "platform": "reddit",
+      "subreddit": "r/capetown",
+      "post_title": "Golf Driving Ranges Cape Town",
+      "url": "https://www.reddit.com/r/capetown/comments/1kkoh6q/golf_driving_ranges/",
+      "content_preview": "Asking about driving ranges with club rental in Cape Town",
+      "location_tag": "Cape Town",
+      "problem_type": "driving-range",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Indoor facilities offer year-round practice - no weather concerns.",
+      "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-21-19",
+      "platform": "reddit",
+      "subreddit": "r/capetown",
+      "post_title": "Saturday Golf Courses Cape Town",
+      "url": "https://www.reddit.com/r/capetown/comments/1gv6gz4/any_golf_courses_in_cape_town_that_allow_visitors/",
+      "content_preview": "Beginners looking for visitor-friendly courses on Saturday",
+      "location_tag": "Cape Town",
+      "problem_type": "beginner-courses",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Indoor golf is great for practice before the course.",
+      "comment_tone": "practical"
     }
   ],
   "summary": {
@@ -1115,7 +1199,7 @@
     ]
   },
   "scan_date": "2026-04-21",
-  "scan_time": "12:09 SAST",
-  "next_scan": "2026-04-21T18:00 SAST",
-  "total_opportunities": 79
+  "scan_time": "18:09 SAST",
+  "next_scan": "2026-04-21T22:00 SAST",
+  "total_opportunities": 85
 }
