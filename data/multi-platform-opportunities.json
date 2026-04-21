@@ -922,6 +922,104 @@
       "score": 80,
       "suggested_comment": "Launch data shows face and path - makes improvement faster.",
       "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-21-1",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Using Launch Monitor to Improve",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/14fbcwk/using_launch_monitor_readings_to_improve/",
+      "content_preview": "Recommend taking at least 1 lesson with a pro that has a Launch Monitor",
+      "location_tag": "Global",
+      "problem_type": "improvement-lessons",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Launch data gives context to swing path and attack angle - book a session.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-21-2",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Best Drivers for Slice",
+      "url": "https://www.reddit.com/r/golf/comments/1d7mikk/best_drivers_for_slice/",
+      "content_preview": "$150 driver + $150 for a lesson = better than expensive gear",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Lesson + launch data beats equipment - shows exactly what to fix.",
+      "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-21-3",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "How Did You Correct Your Slice",
+      "url": "https://www.reddit.com/r/golf/comments/11k7fyh/how_did_you_correct_your_slice/",
+      "content_preview": "Grip change fixed slice - strong grip vs weak grip",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Face and path data shows what grip change does - book a session.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-21-4",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Launch Monitor for Beginner Golfer",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/15ngq9w/launch_monitor_for_a_beginner_golfer/",
+      "content_preview": "Beginner needs monitor for slice - shows face and path data",
+      "location_tag": "Global",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Professional launch data shows what beginners cannot feel - book a session.",
+      "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-21-5",
+      "platform": "reddit",
+      "subreddit": "r/GolfSwing",
+      "post_title": "Slicing Driver Fix YouTube Videos Not Working",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/18i8pyk/help_the_standard_im_slicing_my_driver_tried/",
+      "content_preview": "55 votes, tried YouTube fixes with no luck - needs professional help",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Launch data reveals the real cause - YouTube cannot see that.",
+      "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-21-6",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "How Are You Using Launch Monitor Data",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/13rg90m/how_are_you_using_your_launch_monitor_data/",
+      "content_preview": "Using data to identify swing patterns - lessons help translate data",
+      "location_tag": "Global",
+      "problem_type": "data-improvement",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Coach helps translate data into swing changes.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-21-7",
+      "platform": "reddit",
+      "subreddit": "r/GolfSwing",
+      "post_title": "Driver Slice What Worked",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1rsmmcw/those_of_you_who_havehad_driver_slicewhat_worked/",
+      "content_preview": "YouTube golf sensei recommended for diagnosis",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Professional help finds the real cause - not all slices are the same.",
+      "comment_tone": "helpful"
     }
   ],
   "summary": {
@@ -932,8 +1030,8 @@
       "Launch Monitor interest - general SA interest in data-driven golf improvement"
     ]
   },
-  "scan_date": "2026-04-20",
-  "scan_time": "18:06 SAST",
-  "next_scan": "2026-04-20T22:00 SAST",
-  "total_opportunities": 66
+  "scan_date": "2026-04-21",
+  "scan_time": "07:04 SAST",
+  "next_scan": "2026-04-21T12:00 SAST",
+  "total_opportunities": 73
 }
