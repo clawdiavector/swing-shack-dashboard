@@ -194,6 +194,19 @@ const STAGES = [
     ]
   },
   {
+    name: 'CommerceCapture',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['lead-capture-fixes.json', 'booking-flow-improvements.json', 'bundle-opportunities.json', 'lead-quality.json', 'whatsapp-flows.json'],
+    steps: [
+      { name: 'lead_capture_optimizer',       script: `node ${BASE}/scripts/run_lead_capture_optimizer.js`,       critical: false },
+      { name: 'booking_flow_engine',         script: `node ${BASE}/scripts/run_booking_flow_engine.js`,         critical: false },
+      { name: 'bundle_builder',              script: `node ${BASE}/scripts/run_bundle_builder.js`,              critical: false },
+      { name: 'lead_quality_scorer',         script: `node ${BASE}/scripts/run_lead_quality_scorer.js`,         critical: false },
+      { name: 'whatsapp_conversion_builder',  script: `node ${BASE}/scripts/run_whatsapp_conversion_builder.js`,  critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

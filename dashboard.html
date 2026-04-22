@@ -414,6 +414,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
 
+/* CAPTURE MORE LEADS */
+.cl-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cl-table { font-size: 0.65rem; }
+.cl-head { display: grid; grid-template-columns: 1fr 1.2fr 2.5fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cl-row { display: grid; grid-template-columns: 1fr 1.2fr 2.5fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cl-location { font-weight: 700; color: var(--text); }
+.cl-friction, .cl-fix, .cl-imp { font-size: 0.62rem; }
+
+/* WHATSAPP MONEY */
+.wa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.wa-table { font-size: 0.65rem; }
+.wa-head { display: grid; grid-template-columns: 2fr 1.5fr 0.7fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.wa-row { display: grid; grid-template-columns: 2fr 1.5fr 0.7fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.wa-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.wa-type, .wa-msgs, .wa-pri { font-size: 0.62rem; }
+
+/* BUNDLES TO PUSH */
+.bn-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.bn-table { font-size: 0.65rem; }
+.bn-head { display: grid; grid-template-columns: 2fr 1fr 1fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.bn-row { display: grid; grid-template-columns: 2fr 1fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.bn-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.bn-price, .bn-saving, .bn-conf { font-size: 0.62rem; }
+
 /* AUTONOMY CONTROL */
 .ac-header { display: flex; gap: 16px; margin-bottom: 8px; }
 .ac-mode { font-size: 0.75rem; font-weight: 700; color: var(--text); }
@@ -521,7 +545,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/22, 14:24:16 SAST</span>
+    <span class="summary-value">2026/04/22, 14:33:05 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -673,6 +697,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
       <span class="badge fresh">✅ fresh</span>
     </div>
     <div class="fp-summary">8 fixes &middot; <span class="pub-blocked">4 high severity</span></div><div class="fp-table"><div class="fp-head"><span>Page</span><span>Issue</span><span>Fix</span><span>Severity</span></div><div class="fp-row"><div class="fp-page">/membership</div><div class="fp-issue">pricing clarity</div><div class="fp-fix">Add clear pricing table with value conte</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/membership</div><div class="fp-issue">cta weak</div><div class="fp-fix">Replace &quot;Learn More&quot; with &quot;Book Your Fir</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/club-fitting</div><div class="fp-issue">intent mismatch</div><div class="fp-fix">Add booking urgency — limited slots, fit</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/book</div><div class="fp-issue">friction</div><div class="fp-fix">Reduce booking form to 3 fields — name, </div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/coaching</div><div class="fp-issue">trust gap</div><div class="fp-fix">Add instructor credentials + TrackMan ce</div><div class="fp-sev"><span class="pub-wait">medium</span></div></div><div class="fp-row"><div class="fp-page">/coaching</div><div class="fp-issue">faq missing</div><div class="fp-fix">Add FAQ section covering &quot;what to expect</div><div class="fp-sev"><span class="pub-wait">medium</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129720 CAPTURE MORE LEADS</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="cl-summary">8 fixes &middot; <span class="pub-blocked">3 high impact</span> &middot; fastest: lcf-1</div><div class="cl-table"><div class="cl-head"><span>Page</span><span>Friction</span><span>Fix</span><span>Impact</span></div><div class="cl-row"><div class="cl-location">/book</div><div class="cl-friction">booking form too lon</div><div class="cl-fix">Reduce /book form to 3 fields: name, email, p</div><div class="cl-imp"><span class="pub-blocked">high</span></div></div><div class="cl-row"><div class="cl-location">/membership</div><div class="cl-friction">cta not mobile respo</div><div class="cl-fix">Make &quot;Book Your Session&quot; CTA button sticky on</div><div class="cl-imp"><span class="pub-blocked">high</span></div></div><div class="cl-row"><div class="cl-location">/book</div><div class="cl-friction">no whatsapp booking </div><div class="cl-fix">Add WhatsApp click-to-chat: &quot;Or book via What</div><div class="cl-imp"><span class="pub-blocked">high</span></div></div><div class="cl-row"><div class="cl-location">/coaching</div><div class="cl-friction">pricing not on servi</div><div class="cl-fix">Add pricing from R850 on /coaching — &quot;from R8</div><div class="cl-imp"><span class="pub-wait">medium</span></div></div><div class="cl-row"><div class="cl-location">/contact</div><div class="cl-friction">contact form frictio</div><div class="cl-fix">Replace contact form with WhatsApp pre-fill: </div><div class="cl-imp"><span class="pub-wait">medium</span></div></div><div class="cl-row"><div class="cl-location">/book</div><div class="cl-friction">no booking reminder</div><div class="cl-fix">After form submit: trigger WhatsApp confirmat</div><div class="cl-imp"><span class="pub-wait">medium</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128241 WHATSAPP MONEY</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="wa-summary">4 flows &middot; <span class="pub-blocked">3 high priority</span></div><div class="wa-table"><div class="wa-head"><span>Flow</span><span>Type</span><span>Steps</span><span>Priority</span></div><div class="wa-row"><div class="wa-name">Booking Quick-Start</div><div class="wa-type">booking_assistance</div><div class="wa-msgs">6 msgs</div><div class="wa-pri"><span class="pub-blocked">high</span></div></div><div class="wa-row"><div class="wa-name">Which Service Suits Me?</div><div class="wa-type">qualification</div><div class="wa-msgs">4 msgs</div><div class="wa-pri"><span class="pub-blocked">high</span></div></div><div class="wa-row"><div class="wa-name">Pricing FAQ Automation</div><div class="wa-type">pricing</div><div class="wa-msgs">1 msgs</div><div class="wa-pri"><span class="pub-blocked">high</span></div></div><div class="wa-row"><div class="wa-name">Abandoned Booking Recovery</div><div class="wa-type">recovery</div><div class="wa-msgs">3 msgs</div><div class="wa-pri"><span class="pub-wait">medium</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128230 BUNDLES TO PUSH</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="bn-summary">5 bundles &middot; <span class="pub-ok">3 high confidence</span></div><div class="bn-table"><div class="bn-head"><span>Bundle</span><span>Price</span><span>Saving</span><span>Confidence</span></div><div class="bn-row"><div class="bn-name">Fitting Starter Pack</div><div class="bn-price">R1,100</div><div class="bn-saving">R150 (12%)</div><div class="bn-conf"><span class="pub-ok">high</span></div></div><div class="bn-row"><div class="bn-name">Junior Golf Development Bund</div><div class="bn-price">R2,100</div><div class="bn-saving">R250 (11%)</div><div class="bn-conf"><span class="pub-wait">medium</span></div></div><div class="bn-row"><div class="bn-name">Social Golf Experience (x4)</div><div class="bn-price">R920</div><div class="bn-saving">R100 (10%)</div><div class="bn-conf"><span class="pub-ok">high</span></div></div><div class="bn-row"><div class="bn-name">Precision Practice Pack (10 </div><div class="bn-price">R2,000</div><div class="bn-saving">R500 (20%)</div><div class="bn-conf"><span class="pub-ok">high</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">

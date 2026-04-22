@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+const fs=require('fs');const path=require('path');
+const DATA='/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data';
+function r(n){try{return JSON.parse(fs.readFileSync(path.join(DATA,n),'utf8'));}catch{return null;}}
+function uid(){return Math.random().toString(36).substring(2,10);}
+function run(){
+  const now=new Date();
+  const rec=r('recommendation-scores.json')||{};
+  const lead=r('lead-recovery.json')||{};
+  const topService=rec.summary?.top_service||'Practice';
+  const topCTA=rec.summary?.top_cta||'Book Your Session';
+  const flows=[
+    {flow_id:'wa-1',name:'Booking Quick-Start',type:'booking_assistance',trigger:'CTA click — "Book via WhatsApp"',priority:'high',messages:[
+      {step:1,trigger:'Auto-send on click',text:'Great choice! Quick question: what brings you to Swing Shack?\n\n1️⃣ Club fitting\n2️⃣ Coaching\n3️⃣ Practice\n4️⃣ Social / group',quick_replies:['Club Fitting','Coaching','Practice','Social / Group'],delay_minutes:0},
+      {step:2,trigger:'Reply: Club Fitting',text:'Smart move. Our fitting assessments start with a R900 Driver Fitting — tells you exactly where your numbers are bleeding yards.\n\nWe also do full bag fitting (R1,800), loft & lie (R800), and wedge assessments.\n\nWhat\'s your main goal: more distance off the tee, better accuracy, or both?',quick_replies:['More distance','More accuracy','Both','Not sure yet'],delay_minutes:0},
+      {step:2,trigger:'Reply: Coaching',text:'We have two certified instructors — Catherine and Dave. Coaching starts with a TPI assessment (R1,250) that maps your movement to your swing.\n\nOr if you want to try first: individual lessons from R850. What\'s your current handicap or level?',quick_replies:["Beginner (0-28)","Intermediate (18-10)","Single figures (under 9)","Prefer not to say"],delay_minutes:0},
+      {step:2,trigger:'Reply: Practice',text:'TrackMan is available during all practice sessions — you get data on every shot. From R250/hour.\n\nMost regulars grab a Practice Pack (5 sessions for R1,000) — works out to R200/session and keeps you accountable.\n\nWant me to check availability for this week?',quick_replies:['Yes, check availability','Tell me more first','Another time'],delay_minutes:0},
+      {step:2,trigger:'Reply: Social / Group',text:'Social play is brilliant for groups — TrackMan screens, full bar, and the vibe is unmatched.\n\n4 Players + Beer Bucket: R1,020 for 3 hours. Or if you\'re just 2 people: R340/hour.\n\nWhen are you looking to come? I can check what\'s open.',quick_replies:['This weekend','Next week','Flexible — send options'],delay_minutes:0},
+      {step:3,trigger:'Availability confirmed',text:'Sorted! You\'re booked for [date] at [time]. We\'ll send a WhatsApp reminder 24h before.\n\nSee you then — and welcome to Swing Shack!',delay_minutes:0,close:true},
+    ],why:'SA bookings via WhatsApp convert 3x faster than web forms. This flow qualifies intent before booking.'},
+    {flow_id:'wa-2',name:'Which Service Suits Me?',type:'qualification',trigger:'Universal — "Not sure which service?" CTA on any page',priority:'high',messages:[
+      {step:1,trigger:'Auto-send on click',text:'No stress — let\'s figure it out together. Quick Q:\n\nAre you looking to improve your game, or are you more about the experience?\n\n1️⃣ Improve my game\n2️⃣ Just have fun / social\n3️⃣ Both',quick_replies:['Improve my game','Just social','Both'],delay_minutes:0},
+      {step:2,trigger:'Reply: Improve my game',text:'Cool. Two questions:\n\n1. Do you know what\'s wrong with your game, or do you just want to get better?\n2. Do you have your own clubs?\n\nThis helps me figure out if you need fitting, coaching, or both.',quick_replies:["I know my issues (slice/hook/distance)","Not sure what to work on","I have clubs","Beginner - no clubs yet"],delay_minutes:0},
+      {step:2,trigger:'Reply: Just social',text:'Then you want Social Play — full bar, TrackMan screens, group bookings. It\'s the best indoor golf experience in Johannesburg.\n\nHow many in your group? And what day works?',quick_replies:['2 people','3-4 people','5+ (corporate)','Just checking it out solo'],delay_minutes:0},
+      {step:3,trigger:'Recommendation sent',text:'Based on what you\'ve told me, here\'s what I\'d suggest:\n\n[SERVICE RECOMMENDATION — pull from lead profile]\n\nSound about right? Want me to hold a spot?',quick_replies:['Yes please','Not quite — tell me more','I\'ll think about it'],delay_minutes:0},
+    ],why:'Captures leads who are browsing but not ready to commit. Qualifies intent, then routes to right service.'},
+    {flow_id:'wa-3',name:'Pricing FAQ Automation',type:'pricing',trigger:'"How much does it cost?" message keyword',priority:'high',messages:[
+      {step:1,trigger:'Auto on "cost" or "price" keyword',text:'Here\'s our pricing at a glance:\n\n🏌️ Practice/Social Play\n• Individual session (1h): R250\n• 2 Players (1h): R340\n• 3-4 Players (3h): R450\n• 4 Players + Beer: R1,020\n\n🛠 Club Fitting\n• Loft & Lie check: R800\n• Single club fitting: R900\n• Full bag fitting: R1,800\n\n📚 Coaching (per lesson)\n• Catherine or Dave: R850/session\n• TPI Assessment: R1,250\n\nQuestions about any of these?',quick_replies:['Book a practice session','Book a fitting','Book coaching','More info needed'],delay_minutes:0},
+    ],why:'Removes #1 objection (pricing unknown) instantly. Prevents bounce.'},
+    {flow_id:'wa-4',name:'Abandoned Booking Recovery',type:'recovery',trigger:'User left /book page without submitting',priority:'medium',messages:[
+      {step:1,trigger:'2h after booking page exit without submission',text:'Hey [name] — you left the Swing Shack booking page. Everything OK?\n\nDid you get stuck on something, or just not ready to book yet?',quick_replies:['Stuck on something','Not ready yet','Was just browsing'],delay_minutes:120},
+      {step:2,trigger:'Reply: Stuck',text:'No stress — tell me what you\'re looking for and I\'ll sort it out right here. Fitting, coaching, or practice?',quick_replies:['Fitting','Coaching','Practice','Social / Group'],delay_minutes:0},
+      {step:2,trigger:'Reply: Not ready yet',text:'Totally fair — it\'s a big decision. One thing I can tell you: our fitting assessment is R900 and most golfers say it\'s the best R900 they\'ve spent on their game.\n\nNo pressure. Just let me know when you\'re ready — I can check availability in real time.',delay_minutes:0},
+    ],why:'Recovers abandoned bookings. 2h delay avoids being annoying. SA WhatsApp culture accepts this timing.'},
+  ];
+  const out={schema:'https://clawdia.io/agents/whatsapp-conversion-builder/v1',generated:now.toISOString(),summary:{total_flows:flows.length,high_priority:flows.filter(f=>f.priority==='high').length},flows};
+  fs.writeFileSync(path.join(DATA,'whatsapp-flows.json'),JSON.stringify(out,null,2));
+  console.log('✅ WhatsApp conversion builder: '+flows.length+' flows');flows.filter(f=>f.priority==='high').forEach(f=>console.log('   HIGH: '+f.name+' — '+f.flow_id));}
+run();

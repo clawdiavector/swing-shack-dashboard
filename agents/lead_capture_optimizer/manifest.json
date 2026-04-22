@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "lead_capture_optimizer",
+  "layer": 7,
+  "role": "Form friction analysis, CTA gaps, mobile friction. Ranked by impact/effort/win.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_lead_capture_optimizer.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "lead-capture-fixes.json": "lead-capture-fixes.json"
+  }
+}

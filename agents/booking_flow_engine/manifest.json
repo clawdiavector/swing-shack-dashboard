@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "booking_flow_engine",
+  "layer": 7,
+  "role": "Improve booking path, abandoned booking logic, service-first routing.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_booking_flow_engine.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "booking-flow-improvements.json": "booking-flow-improvements.json"
+  }
+}

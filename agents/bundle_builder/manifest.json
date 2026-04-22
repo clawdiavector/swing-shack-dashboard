@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "bundle_builder",
+  "layer": 7,
+  "role": "Smart bundles based on real buying behaviour. No invented bundles.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_bundle_builder.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "bundle-opportunities.json": "bundle-opportunities.json"
+  }
+}

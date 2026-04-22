@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "whatsapp_conversion_builder",
+  "layer": 7,
+  "role": "Click-to-WhatsApp flows, quick reply sequences, SA-market pricing FAQ.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_whatsapp_conversion_builder.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "whatsapp-flows.json": "whatsapp-flows.json"
+  }
+}

@@ -12,6 +12,9 @@ const SUMMARY_OUT = path.join(DATA_DIR, 'dashboard-summary.json');
 const META_OUT = path.join(DATA_DIR, 'build-meta.json');
 
 function readJson(filename) {
+  
+  
+  
   try {
     const raw = fs.readFileSync(path.join(DATA_DIR, filename), 'utf8');
     return JSON.parse(raw);
@@ -138,6 +141,11 @@ const lpoFixes       = readJson('landing-page-fixes.json')      || null;
 const rtCampaigns    = readJson('retargeting-campaigns.json')   || null;
 const emailNurtures  = readJson('email-nurtures.json')           || null;
 const offerOpps      = readJson('offer-opportunities.json')     || null;
+const leadCapture  = readJson('lead-capture-fixes.json')         || null;
+const bookingFlow  = readJson('booking-flow-improvements.json') || null;
+const bundleOps    = readJson('bundle-opportunities.json')       || null;
+const leadQuality  = readJson('lead-quality.json')             || null;
+const waFlows      = readJson('whatsapp-flows.json')           || null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -316,6 +324,39 @@ if (lpoFixes && lpoFixes.fixes && lpoFixes.fixes.length > 0) {
   pageFixContent = '<div class="fp-summary">' + lpoFixes.fixes.length + ' fixes &middot; <span class="pub-blocked">' + (lpoFixes.summary.high_severity||0) + ' high severity</span></div><div class="fp-table"><div class="fp-head"><span>Page</span><span>Issue</span><span>Fix</span><span>Severity</span></div>' + fixRows + '</div>';
 }
 var pageFixSection = buildSection('&#128736 FIX THIS PAGE FIRST', freshnessBadge(lpoFixes && lpoFixes.generated), pageFixContent);
+
+// ── CAPTURE MORE LEADS ────────────────────────────────────────
+var capLeadsContent = '<p class="empty">Run lead_capture_optimizer to see lead capture fixes.</p>';
+if (leadCapture && leadCapture.fixes && leadCapture.fixes.length > 0) {
+  var capRows = leadCapture.fixes.slice(0,6).map(function(f){
+    var imp = {'high':'pub-blocked','medium':'pub-wait','low':'pub-ok'}[f.impact] || 'pub-brand';
+    return '<div class="cl-row"><div class="cl-location">' + escHtml(f.location||'') + '</div><div class="cl-friction">' + escHtml((f.friction||'').replace(/_/g,' ')).substring(0,20) + '</div><div class="cl-fix">' + escHtml((f.fix||'').substring(0,45)) + '</div><div class="cl-imp"><span class="' + imp + '">' + f.impact + '</span></div></div>';
+  }).join('');
+  capLeadsContent = '<div class="cl-summary">' + leadCapture.fixes.length + ' fixes &middot; <span class="pub-blocked">' + (leadCapture.summary.high_impact||0) + ' high impact</span> &middot; fastest: ' + escHtml(leadCapture.summary.fastest_win||'') + '</div><div class="cl-table"><div class="cl-head"><span>Page</span><span>Friction</span><span>Fix</span><span>Impact</span></div>' + capRows + '</div>';
+}
+var capLeadsSection = buildSection('&#129720 CAPTURE MORE LEADS', freshnessBadge(leadCapture && leadCapture.generated), capLeadsContent);
+
+// ── WHATSAPP MONEY ───────────────────────────────────────────
+var waContent = '<p class="empty">Run whatsapp_conversion_builder to see WA flows.</p>';
+if (waFlows && waFlows.flows && waFlows.flows.length > 0) {
+  var waRows = waFlows.flows.slice(0,4).map(function(f){
+    var pri = {'high':'pub-blocked','medium':'pub-wait','low':'pub-ok'}[f.priority] || 'pub-brand';
+    return '<div class="wa-row"><div class="wa-name">' + escHtml((f.name||'').substring(0,30)) + '</div><div class="wa-type">' + escHtml(f.type||'') + '</div><div class="wa-msgs">' + (f.messages||[]).length + ' msgs</div><div class="wa-pri"><span class="' + pri + '">' + f.priority + '</span></div></div>';
+  }).join('');
+  waContent = '<div class="wa-summary">' + waFlows.flows.length + ' flows &middot; <span class="pub-blocked">' + waFlows.summary.high_priority + ' high priority</span></div><div class="wa-table"><div class="wa-head"><span>Flow</span><span>Type</span><span>Steps</span><span>Priority</span></div>' + waRows + '</div>';
+}
+var waSection = buildSection('&#128241 WHATSAPP MONEY', freshnessBadge(waFlows && waFlows.generated), waContent);
+
+// ── BUNDLES TO PUSH ─────────────────────────────────────────
+var bundleContent = '<p class="empty">Run bundle_builder to see bundle opportunities.</p>';
+if (bundleOps && bundleOps.bundles && bundleOps.bundles.length > 0) {
+  var bunRows = bundleOps.bundles.slice(0,4).map(function(b){
+    var conf = {'high':'pub-ok','medium':'pub-wait','low':'pub-warn'}[b.confidence] || 'pub-brand';
+    return '<div class="bn-row"><div class="bn-name">' + escHtml((b.name||'').substring(0,28)) + '</div><div class="bn-price">' + escHtml(b.bundle_price||'') + '</div><div class="bn-saving">' + escHtml(b.saving||'') + '</div><div class="bn-conf"><span class="' + conf + '">' + b.confidence + '</span></div></div>';
+  }).join('');
+  bundleContent = '<div class="bn-summary">' + bundleOps.bundles.length + ' bundles &middot; <span class="pub-ok">' + (bundleOps.summary.high_confidence||0) + ' high confidence</span></div><div class="bn-table"><div class="bn-head"><span>Bundle</span><span>Price</span><span>Saving</span><span>Confidence</span></div>' + bunRows + '</div>';
+}
+var bundleSection = buildSection('&#128230 BUNDLES TO PUSH', freshnessBadge(bundleOps && bundleOps.generated), bundleContent);
 
 // ── AUTONOMY CONTROL ───────────────────────────────────────────
 var autoMode = (autonomyRules && autonomyRules.autonomy_mode) ? autonomyRules.autonomy_mode : 'OFF';
@@ -1758,6 +1799,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
 
+/* CAPTURE MORE LEADS */
+.cl-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cl-table { font-size: 0.65rem; }
+.cl-head { display: grid; grid-template-columns: 1fr 1.2fr 2.5fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cl-row { display: grid; grid-template-columns: 1fr 1.2fr 2.5fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cl-location { font-weight: 700; color: var(--text); }
+.cl-friction, .cl-fix, .cl-imp { font-size: 0.62rem; }
+
+/* WHATSAPP MONEY */
+.wa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.wa-table { font-size: 0.65rem; }
+.wa-head { display: grid; grid-template-columns: 2fr 1.5fr 0.7fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.wa-row { display: grid; grid-template-columns: 2fr 1.5fr 0.7fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.wa-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.wa-type, .wa-msgs, .wa-pri { font-size: 0.62rem; }
+
+/* BUNDLES TO PUSH */
+.bn-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.bn-table { font-size: 0.65rem; }
+.bn-head { display: grid; grid-template-columns: 2fr 1fr 1fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.bn-row { display: grid; grid-template-columns: 2fr 1fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.bn-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.bn-price, .bn-saving, .bn-conf { font-size: 0.62rem; }
+
 /* AUTONOMY CONTROL */
 .ac-header { display: flex; gap: 16px; margin-bottom: 8px; }
 .ac-mode { font-size: 0.75rem; font-weight: 700; color: var(--text); }
@@ -1876,6 +1941,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${recRevSection}
   ${nurtureSection}
   ${pageFixSection}
+  ${capLeadsSection}
+  ${waSection}
+  ${bundleSection}
   ${autoControlSection}
   ${safetySection}
   ${weekReviewSection}

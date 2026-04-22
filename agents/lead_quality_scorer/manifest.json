@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "lead_quality_scorer",
+  "layer": 7,
+  "role": "Score leads by intent: hot/warm/cold. Evidence-based SLA per profile.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_lead_quality_scorer.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "lead-quality.json": "lead-quality.json"
+  }
+}
