@@ -373,7 +373,32 @@
       "tags": ["trackman", "launch-monitor", "PGA-Show", "gold-standard", "competitive", "differentiator"]
     }
   ],
+    {
+      "id": "reddit-2026-04-22-8",
+      "url": "https://www.reddit.com/r/golf/comments/1srreih/apps_to_track_how_you_played_scores_clubs_used/",
+      "title": "Apps to track how you played (scores, clubs used, distance from green etc.)",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-22",
+      "datePosted": "2026-04-21",
+      "comment": "'I got tired of wasting time on the practice green, so I developed a game that actually structures my practice.' Data-driven practice is the answer. We do this with TrackMan — real numbers, real progress, not guessing.",
+      "tags": ["practice", "data", "apps", "tracking", "improvement", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-22-9",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1srndnq/simulator_accuracy/",
+      "title": "Simulator Accuracy",
+      "subreddit": "r/Golfsimulator",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-22",
+      "datePosted": "2026-04-21",
+      "comment": "'Photometric launch monitors on a high quality mat are by far the most accurate indoors. Trackman indoors can struggle with spin and shot shape on off centered strikes but is never going to get ball speed wrong.' Community discussion on accuracy. We're running TrackMan 4 + iO — premium setup. This is our differentiator.",
+      "tags": ["simulator", "accuracy", "trackman", "photometric", "launch-monitor", "indoor"]
+    }
+  ],
   "last_updated": "2026-04-22",
   "scan_time": "2026-04-22T04:00Z",
-  "scan_note": "April 22 2026 - 6AM SAST scan. Rate limited early on Brave API (throttled across instance). Worked around with targeted queries. Found good slice/fitting opportunities, plus SA competitor landscape. 7 new opportunities added (IDs reddit-2026-04-22-1 through -7). All saved. Push to GitHub."
+  "scan_note": "April 22 2026 - 6AM SAST scan. Rate limited early on Brave API (throttled across instance). Worked around with targeted queries. Found good slice/fitting opportunities, plus SA competitor landscape. 9 new opportunities added (IDs reddit-2026-04-22-1 through -9). All saved. Push to GitHub."
 }
