@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/autonomy-rules-engine/v1",
-  "generated": "2026-04-22T12:08:11.015Z",
+  "generated": "2026-04-22T12:16:16.870Z",
   "trust_score": 8,
   "autonomy_mode": "MINIMAL",
   "health_ok": true,

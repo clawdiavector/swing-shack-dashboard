@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/live-nudge-dispatcher/v1",
-  "generated": "2026-04-22T12:08:30.560Z",
+  "generated": "2026-04-22T12:16:16.912Z",
   "mode": "MINIMAL",
   "autonomy_rule": "discord_nudge",
   "total_eligible": 4,
@@ -9,10 +9,10 @@
   "dispatch_limit_remaining": 16,
   "log": [
     {
-      "log_id": "nudge-vo3nszb0",
+      "log_id": "nudge-mij5yc0j",
       "schema": "https://clawdia.io/agents/live-nudge-dispatcher/v1",
-      "generated": "2026-04-22T12:08:30.560Z",
-      "action_id": "nudge-6sistbfw",
+      "generated": "2026-04-22T12:16:16.912Z",
+      "action_id": "nudge-3axymszv",
       "agent_id": "live_nudge_dispatcher",
       "reason": "deadline_warning alert: ",
       "rule_triggered": "discord_nudge",
@@ -27,10 +27,10 @@
       "autopost_mode": "DRY_RUN"
     },
     {
-      "log_id": "nudge-030pdllh",
+      "log_id": "nudge-dr301mi1",
       "schema": "https://clawdia.io/agents/live-nudge-dispatcher/v1",
-      "generated": "2026-04-22T12:08:30.560Z",
-      "action_id": "nudge-mlsbujd5",
+      "generated": "2026-04-22T12:16:16.912Z",
+      "action_id": "nudge-yimq3bml",
       "agent_id": "live_nudge_dispatcher",
       "reason": "asset_reminder alert: ",
       "rule_triggered": "discord_nudge",
@@ -45,10 +45,10 @@
       "autopost_mode": "DRY_RUN"
     },
     {
-      "log_id": "nudge-ijcib48l",
+      "log_id": "nudge-x9ic4l1f",
       "schema": "https://clawdia.io/agents/live-nudge-dispatcher/v1",
-      "generated": "2026-04-22T12:08:30.560Z",
-      "action_id": "nudge-atlcrliv",
+      "generated": "2026-04-22T12:16:16.912Z",
+      "action_id": "nudge-a6z52zqq",
       "agent_id": "live_nudge_dispatcher",
       "reason": "asset_reminder alert: ",
       "rule_triggered": "discord_nudge",
@@ -63,10 +63,10 @@
       "autopost_mode": "DRY_RUN"
     },
     {
-      "log_id": "nudge-pu5zqtgx",
+      "log_id": "nudge-a12rrvj1",
       "schema": "https://clawdia.io/agents/live-nudge-dispatcher/v1",
-      "generated": "2026-04-22T12:08:30.560Z",
-      "action_id": "nudge-813rcdsh",
+      "generated": "2026-04-22T12:16:16.912Z",
+      "action_id": "nudge-h8k2kttg",
       "agent_id": "live_nudge_dispatcher",
       "reason": "owner_overload_warning alert: ",
       "rule_triggered": "discord_nudge",

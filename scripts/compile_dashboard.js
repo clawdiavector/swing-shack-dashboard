@@ -1808,6 +1808,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${makeSection}
   ${readySection}
   ${fixSection}
+  ${autoControlSection}
+  ${safetySection}
   ${weekReviewSection}
   ${learnKeepSection}
   ${ownerSection}
