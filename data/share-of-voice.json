@@ -1,0 +1,82 @@
+{
+  "schema": "https://clawdia.io/agents/share-of-voice-engine/v1",
+  "generated": "2026-04-22T12:50:04.575Z",
+  "summary": {
+    "our_share": "65%",
+    "total_players": 5,
+    "gap_to_close": "+25%",
+    "_+to_dominate": "32%",
+    "winning_position": "65% share — dominant but not complete"
+  },
+  "players": [
+    {
+      "player": "Swing Shack (us)",
+      "posting": "daily",
+      "engagement": "medium",
+      "search_presence": "strong",
+      "review_freshness": "active",
+      "map_visibility": "owned",
+      "share_of_voice": 65,
+      "trend": "growing",
+      "winning_signals": [
+        "daily_posting",
+        "trackman_education_content",
+        "review_active"
+      ]
+    },
+    {
+      "player": "Golf Bar SA",
+      "posting": "3x/week",
+      "engagement": "medium-high",
+      "search_presence": "medium",
+      "review_freshness": "active",
+      "map_visibility": "strong",
+      "share_of_voice": 25,
+      "trend": "stable",
+      "winning_signals": [
+        "events_corporate",
+        "premium_vibe",
+        "sandton_location"
+      ]
+    },
+    {
+      "player": "The Golden Tee",
+      "posting": "weekly",
+      "engagement": "low",
+      "search_presence": "weak",
+      "review_freshness": "stale",
+      "map_visibility": "medium",
+      "share_of_voice": 5,
+      "trend": "declining",
+      "winning_signals": [
+        "entertainment_focus",
+        "no_golf_education"
+      ]
+    },
+    {
+      "player": "HomeTee",
+      "posting": "minimal",
+      "engagement": "low",
+      "search_presence": "low",
+      "review_freshness": "low",
+      "map_visibility": "weak",
+      "share_of_voice": 3,
+      "trend": "stable",
+      "winning_signals": [
+        "home_market_focus",
+        "different_audience"
+      ]
+    },
+    {
+      "player": "Others (unlisted)",
+      "posting": "unknown",
+      "engagement": "unknown",
+      "search_presence": "low",
+      "review_freshness": "inconsistent",
+      "map_visibility": "weak",
+      "share_of_voice": 2,
+      "trend": "stable",
+      "winning_signals": []
+    }
+  ]
+}

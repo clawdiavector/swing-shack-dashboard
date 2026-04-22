@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "review_domination_engine",
+  "layer": 8,
+  "role": "Competitor review analysis, response templates, own review generation priorities.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_review_domination_engine.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "review-domination.json": "review-domination.json"
+  }
+}

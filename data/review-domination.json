@@ -1,0 +1,115 @@
+{
+  "schema": "https://clawdia.io/agents/review-domination-engine/v1",
+  "generated": "2026-04-22T12:50:55.326Z",
+  "summary": {
+    "our_score": 4.8,
+    "our_review_count": 127,
+    "competitor_avg_score": 3.9,
+    "our_advantages": [
+      "+0.6 above nearest competitor",
+      "100% response rate vs avg 30%",
+      "certified instructors vs none",
+      "TrackMan data vs none"
+    ],
+    "priority_actions": [
+      "post_visit_review_request",
+      "review_qr_at_counter"
+    ]
+  },
+  "response_templates": [
+    {
+      "scenario": "positive_review",
+      "template": "Thanks [name]! Really glad you enjoyed [specific_mention]. See you again soon — bring your mates.",
+      "personalisation": "reference specific detail from review"
+    },
+    {
+      "scenario": "neutral_review",
+      "template": "Thanks [name]! Always looking to improve — if there is anything we can do better, let us know: [WhatsApp].",
+      "personalisation": "ask what could improve"
+    },
+    {
+      "scenario": "negative_review",
+      "template": "Hey [name], really sorry to hear that. That is not our standard. Please reach out directly — we will make it right. [WhatsApp]",
+      "personalisation": "immediate resolution offer"
+    }
+  ],
+  "emphasis": [
+    {
+      "theme": "trackman_data",
+      "why": "Competitors cant match this — none offer launch monitor data per session",
+      "how": "Feature in every review request. \"Your TrackMan report is ready.\"",
+      "priority": 1
+    },
+    {
+      "theme": "certified_instructors",
+      "why": "Golf Bar and Golden Tee have no named instructors. We have Catherine and Dave.",
+      "how": "\"Coached by certified instructors — not just a simulator.\"",
+      "priority": 1
+    },
+    {
+      "theme": "no_pressure_environment",
+      "why": "Competitors complaints: crowded, noisy, food cold. Ours is focused.",
+      "how": "\"Come improve. Not just play.\"",
+      "priority": 2
+    },
+    {
+      "theme": "actual_improvement",
+      "why": "Competitors have no coaching. We have TPI + TrackMan + lessons.",
+      "how": "\"Measured improvement. Not just fun.\"",
+      "priority": 1
+    }
+  ],
+  "competitors": [
+    {
+      "name": "Golf Bar SA",
+      "score": 4.2,
+      "total_reviews": 89,
+      "response_rate": 60,
+      "pattern": "great_venue,bad_food,inconsistent_service",
+      "common_praise": [
+        "venue",
+        "atmosphere",
+        "location"
+      ],
+      "common_complaint": [
+        "food_cold",
+        "service_slow",
+        "crowded",
+        "no_golf_improvement"
+      ]
+    },
+    {
+      "name": "The Golden Tee",
+      "score": 3.9,
+      "total_reviews": 156,
+      "response_rate": 20,
+      "pattern": "fun_night,poor_maintenance,inconsistent",
+      "common_praise": [
+        "fun",
+        "social",
+        "drinks"
+      ],
+      "common_complaint": [
+        "simulator_quality",
+        "outdated_software",
+        "staff_turnover"
+      ]
+    },
+    {
+      "name": "Other Indoor Golf",
+      "score": 3.7,
+      "total_reviews": 45,
+      "response_rate": 10,
+      "pattern": "cheap_alternative,no_instruction",
+      "common_praise": [
+        "price",
+        "convenient"
+      ],
+      "common_complaint": [
+        "no_data",
+        "no_instructors",
+        "boring"
+      ]
+    }
+  ]
+}

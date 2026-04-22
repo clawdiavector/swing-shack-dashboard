@@ -207,6 +207,19 @@ const STAGES = [
     ]
   },
   {
+    name: 'CompetitorDomination',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['competitor-tracker.json', 'market-gaps.json', 'share-of-voice.json', 'counter-moves.json', 'review-domination.json'],
+    steps: [
+      { name: 'competitor_tracker',         script: `node ${BASE}/scripts/run_competitor_tracker.js`,         critical: false },
+      { name: 'gap_hunter',                 script: `node ${BASE}/scripts/run_gap_hunter.js`,                 critical: false },
+      { name: 'share_of_voice_engine',     script: `node ${BASE}/scripts/run_share_of_voice_engine.js`,     critical: false },
+      { name: 'counter_offer_builder',      script: `node ${BASE}/scripts/run_counter_offer_builder.js`,      critical: false },
+      { name: 'review_domination_engine',  script: `node ${BASE}/scripts/run_review_domination_engine.js`,  critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

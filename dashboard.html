@@ -414,6 +414,37 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
 
+/* COMPETITOR WATCH */
+.cw-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cw-table { font-size: 0.65rem; }
+.cw-head { display: grid; grid-template-columns: 1.5fr 2fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cw-row { display: grid; grid-template-columns: 1.5fr 2fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cw-comp { font-weight: 700; color: var(--text); }
+.cw-change, .cw-thr, .cw-opp { font-size: 0.62rem; }
+
+/* MARKET GAPS TO OWN */
+.mg-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.mg-table { font-size: 0.65rem; }
+.mg-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.mg-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.mg-type { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.mg-easiest, .mg-seo { font-size: 0.7rem; text-align: center; }
+.mg-pri { font-size: 0.62rem; }
+
+/* REVIEW BATTLEFIELD */
+.rb-ours { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px; }
+.rb-our-label { font-size: 0.58rem; text-transform: uppercase; color: var(--muted); writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.1em; }
+.rb-our-score { font-size: 1.4rem; font-weight: 900; color: #ffd700; line-height: 1; }
+.rb-our-reviews { font-size: 0.65rem; color: var(--muted); }
+.rb-our-adv { font-size: 0.62rem; color: var(--text); flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.rb-adv-item { }
+.rb-comp-table { font-size: 0.65rem; }
+.rb-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.rb-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.rb-name { font-weight: 700; color: var(--text); }
+.rb-score { font-weight: 700; }
+.rb-reviews, .rb-resp { font-size: 0.62rem; }
+
 /* CAPTURE MORE LEADS */
 .cl-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
 .cl-table { font-size: 0.65rem; }
@@ -545,7 +576,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/22, 14:33:05 SAST</span>
+    <span class="summary-value">2026/04/22, 14:52:35 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>

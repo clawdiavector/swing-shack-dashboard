@@ -1,0 +1,126 @@
+{
+  "schema": "https://clawdia.io/agents/competitor-tracker/v1",
+  "generated": "2026-04-22T12:50:04.493Z",
+  "summary": {
+    "total_competitors": 4,
+    "active_threats": 0,
+    "total_changes": 4,
+    "top_threat": "Golf Bar (Sandton) — 3x/week posting"
+  },
+  "competitors": [
+    {
+      "id": "comp-1",
+      "name": "The Golden Tee",
+      "location": "Johannesburg",
+      "type": "entertainment_venue",
+      "last_updated": "2026-04-22T12:50:04.493Z",
+      "threat": "medium",
+      "website": "thegoldentee.co.za",
+      "social": "instagram/thegoldentee",
+      "posting_frequency": "weekly",
+      "last_post": "2026-04-20",
+      "services": [
+        "entertainment",
+        "social",
+        "events"
+      ],
+      "prices_known": false,
+      "notes": "Entertainment-first. Sports bar. Cocktails. Weak on golf improvement."
+    },
+    {
+      "id": "comp-2",
+      "name": "HomeTee",
+      "location": "National (SA)",
+      "type": "home_simulator",
+      "last_updated": "2026-04-22T12:50:04.493Z",
+      "threat": "low",
+      "website": "hometee.com",
+      "social": null,
+      "posting_frequency": "unknown",
+      "last_post": null,
+      "services": [
+        "home_simulator",
+        "DIY"
+      ],
+      "prices_known": false,
+      "notes": "Home/consumer product. Different audience — indoor golf facilities vs home owners. Low direct threat."
+    },
+    {
+      "id": "comp-3",
+      "name": "Golf Bar",
+      "location": "Sandton",
+      "type": "indoor_golf_bar",
+      "last_updated": "2026-04-22T12:50:04.493Z",
+      "threat": "high",
+      "website": "golfbar.co.za",
+      "social": "instagram/golfbarsa",
+      "posting_frequency": "3x/week",
+      "last_post": "2026-04-21",
+      "services": [
+        "indoor_golf",
+        "bar",
+        "events",
+        "corporate"
+      ],
+      "prices_known": false,
+      "notes": "Most direct competitor. Premium graphics. Central Sandton. Active social. Strong on events and corporate."
+    },
+    {
+      "id": "comp-4",
+      "name": "Other Indoor Golf (Local)",
+      "location": "JHB Metro",
+      "type": "indoor_golf",
+      "last_updated": "2026-04-22T12:50:04.493Z",
+      "threat": "medium",
+      "website": null,
+      "social": null,
+      "posting_frequency": "unknown",
+      "last_post": null,
+      "services": [
+        "unknown"
+      ],
+      "prices_known": false,
+      "notes": "Several unnamed local facilities. Monitor for new entrants."
+    }
+  ],
+  "changes": [
+    {
+      "competitor": "HomeTee",
+      "what_changed": "social_presence_weak_or_unknown",
+      "date": "2026-04-22",
+      "threat_level": "low",
+      "opportunity_level": "medium",
+      "response": "Monitor. If they go quiet on social, that's a share-of-voice opportunity.",
+      "source": "manual_research"
+    },
+    {
+      "competitor": "Golf Bar",
+      "what_changed": "increased_posting_frequency",
+      "from": "1-2x/week",
+      "to": "3x/week",
+      "date": "2026-04-22",
+      "threat_level": "medium",
+      "opportunity_level": "high",
+      "response": "Increase IG to daily. Push Reels content. Own the educational angle Golf Bar lacks.",
+      "source": "instagram_observation"
+    },
+    {
+      "competitor": "Other Indoor Golf (Local)",
+      "what_changed": "no_website_detected",
+      "date": "2026-04-22",
+      "threat_level": "low",
+      "opportunity_level": "high",
+      "response": "They have no website — all traffic is walk-in/social. Own local SEO to capture search intent.",
+      "source": "manual_research"
+    },
+    {
+      "competitor": "Other Indoor Golf (Local)",
+      "what_changed": "social_presence_weak_or_unknown",
+      "date": "2026-04-22",
+      "threat_level": "low",
+      "opportunity_level": "medium",
+      "response": "Monitor. If they go quiet on social, that's a share-of-voice opportunity.",
+      "source": "manual_research"
+    }
+  ]
+}

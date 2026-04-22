@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "competitor_tracker",
+  "layer": 8,
+  "role": "Monitor top competitors \u2014 websites, socials, offers, prices, posting, service changes.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_competitor_tracker.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "competitor-tracker.json": "competitor-tracker.json"
+  }
+}

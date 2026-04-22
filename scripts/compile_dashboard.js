@@ -15,6 +15,9 @@ function readJson(filename) {
   
   
   
+  
+  
+  
   try {
     const raw = fs.readFileSync(path.join(DATA_DIR, filename), 'utf8');
     return JSON.parse(raw);
@@ -146,6 +149,11 @@ const bookingFlow  = readJson('booking-flow-improvements.json') || null;
 const bundleOps    = readJson('bundle-opportunities.json')       || null;
 const leadQuality  = readJson('lead-quality.json')             || null;
 const waFlows      = readJson('whatsapp-flows.json')           || null;
+const compTracker   = readJson('competitor-tracker.json')      || null;
+const marketGaps   = readJson('market-gaps.json')              || null;
+const sovEngine    = readJson('share-of-voice.json')           || null;
+const counterMoves = readJson('counter-moves.json')             || null;
+const reviewDom    = readJson('review-domination.json')          || null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -324,6 +332,41 @@ if (lpoFixes && lpoFixes.fixes && lpoFixes.fixes.length > 0) {
   pageFixContent = '<div class="fp-summary">' + lpoFixes.fixes.length + ' fixes &middot; <span class="pub-blocked">' + (lpoFixes.summary.high_severity||0) + ' high severity</span></div><div class="fp-table"><div class="fp-head"><span>Page</span><span>Issue</span><span>Fix</span><span>Severity</span></div>' + fixRows + '</div>';
 }
 var pageFixSection = buildSection('&#128736 FIX THIS PAGE FIRST', freshnessBadge(lpoFixes && lpoFixes.generated), pageFixContent);
+
+// ── COMPETITOR WATCH ──────────────────────────────────────────
+var compWatchContent = '<p class="empty">Run competitor_tracker to see competitor moves.</p>';
+if (compTracker && compTracker.changes && compTracker.changes.length > 0) {
+  var cwRows = compTracker.changes.slice(0,6).map(function(c){
+    var thr = {'high':'pub-blocked','medium':'pub-warn','low':'pub-ok'}[c.threat_level] || 'pub-brand';
+    var opp = {'high':'pub-ok','medium':'pub-wait','low':'pub-warn'}[c.opportunity_level] || 'pub-brand';
+    return '<div class="cw-row"><div class="cw-comp">' + escHtml(c.competitor||'') + '</div><div class="cw-change">' + escHtml((c.what_changed||'').replace(/_/g,' ')).substring(0,30) + '</div><div class="cw-thr"><span class="' + thr + '">' + (c.threat_level||'') + '</span></div><div class="cw-opp"><span class="' + opp + '">' + (c.opportunity_level||'') + '</span></div></div>';
+  }).join('');
+  compWatchContent = '<div class="cw-summary">' + compTracker.competitors.length + ' competitors tracked &middot; ' + compTracker.changes.length + ' changes this period &middot; <span class="pub-blocked">' + compTracker.summary.active_threats + ' active threats</span></div><div class="cw-table"><div class="cw-head"><span>Competitor</span><span>Change</span><span>Threat</span><span>Opp</span></div>' + cwRows + '</div>';
+}
+var compWatchSection = buildSection('&#128269 COMPETITOR WATCH', freshnessBadge(compTracker && compTracker.generated), compWatchContent);
+
+// ── MARKET GAPS TO OWN ───────────────────────────────────────
+var gapsContent = '<p class="empty">Run gap_hunter to see market gaps.</p>';
+if (marketGaps && marketGaps.gaps && marketGaps.gaps.length > 0) {
+  var gRows = marketGaps.gaps.slice(0,6).map(function(g){
+    var pri = {'1':'pub-blocked','2':'pub-warn','3':'pub-ok'}[String(g.priority)] || 'pub-brand';
+    return '<div class="mg-row"><div class="mg-type">' + escHtml((g.type||'').replace(/_/g,' ')).substring(0,20) + '</div><div class="mg-easiest">' + (g.easiest_win?'&#10003;':'&mdash;') + '</div><div class="mg-seo">' + (g.fastest_seo?'&#10003;':'&mdash;') + '</div><div class="mg-pri"><span class="' + pri + '">' + g.priority + '</span></div></div>';
+  }).join('');
+  gapsContent = '<div class="mg-summary">' + marketGaps.gaps.length + ' gaps &middot; <span class="pub-blocked">' + (marketGaps.summary.highest_value_gaps||0) + ' high value</span> &middot; <span class="pub-ok">' + (marketGaps.summary.easiest_gaps||0) + ' easiest</span></div><div class="mg-table"><div class="mg-head"><span>Gap Type</span><span>Easiest</span><span>SEO</span><span>Priority</span></div>' + gRows + '</div>';
+}
+var gapsSection = buildSection('&#128165 MARKET GAPS TO OWN', freshnessBadge(marketGaps && marketGaps.generated), gapsContent);
+
+// ── REVIEW BATTLEFIELD ──────────────────────────────────────
+var reviewContent = '<p class="empty">Run review_domination_engine to see review battle.</p>';
+if (reviewDom && reviewDom.summary) {
+  var rd = reviewDom;
+  var ourAdv = (rd.our_advantages||[]).slice(0,3);
+  var compRows = (rd.competitors||[]).slice(0,4).map(function(c){
+    return '<div class="rb-row"><div class="rb-name">' + escHtml(c.name||'') + '</div><div class="rb-score">' + c.score + ' &#9733;</div><div class="rb-reviews">' + c.total_reviews + ' rev</div><div class="rb-resp">' + c.response_rate + '% resp</div></div>';
+  }).join('');
+  reviewContent = '<div class="rb-ours"><div class="rb-our-label">OURS</div><div class="rb-our-score">' + rd.summary.our_score + ' &#9733;</div><div class="rb-our-reviews">' + rd.summary.our_review_count + ' reviews</div><div class="rb-our-adv">' + ourAdv.map(function(a){return '<div class="rb-adv-item">'+escHtml(a)+'</div>';}).join('') + '</div></div><div class="rb-comp-table"><div class="rb-head"><span>Competitor</span><span>Score</span><span>Reviews</span><span>Response</span></div>' + compRows + '</div>';
+}
+var reviewSection = buildSection('&#11088 REVIEW BATTLEFIELD', freshnessBadge(reviewDom && reviewDom.generated), reviewContent);
 
 // ── CAPTURE MORE LEADS ────────────────────────────────────────
 var capLeadsContent = '<p class="empty">Run lead_capture_optimizer to see lead capture fixes.</p>';
@@ -1798,6 +1841,37 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-row { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
+
+/* COMPETITOR WATCH */
+.cw-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cw-table { font-size: 0.65rem; }
+.cw-head { display: grid; grid-template-columns: 1.5fr 2fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cw-row { display: grid; grid-template-columns: 1.5fr 2fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cw-comp { font-weight: 700; color: var(--text); }
+.cw-change, .cw-thr, .cw-opp { font-size: 0.62rem; }
+
+/* MARKET GAPS TO OWN */
+.mg-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.mg-table { font-size: 0.65rem; }
+.mg-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.mg-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.mg-type { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.mg-easiest, .mg-seo { font-size: 0.7rem; text-align: center; }
+.mg-pri { font-size: 0.62rem; }
+
+/* REVIEW BATTLEFIELD */
+.rb-ours { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px; }
+.rb-our-label { font-size: 0.58rem; text-transform: uppercase; color: var(--muted); writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.1em; }
+.rb-our-score { font-size: 1.4rem; font-weight: 900; color: #ffd700; line-height: 1; }
+.rb-our-reviews { font-size: 0.65rem; color: var(--muted); }
+.rb-our-adv { font-size: 0.62rem; color: var(--text); flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.rb-adv-item { }
+.rb-comp-table { font-size: 0.65rem; }
+.rb-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.rb-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.rb-name { font-weight: 700; color: var(--text); }
+.rb-score { font-weight: 700; }
+.rb-reviews, .rb-resp { font-size: 0.62rem; }
 
 /* CAPTURE MORE LEADS */
 .cl-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }

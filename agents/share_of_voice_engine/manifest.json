@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "share_of_voice_engine",
+  "layer": 8,
+  "role": "Estimate share of attention \u2014 posting consistency, search presence, review freshness, engagement.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_share_of_voice_engine.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "share-of-voice.json": "share-of-voice.json"
+  }
+}

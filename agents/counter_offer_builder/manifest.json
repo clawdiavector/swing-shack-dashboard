@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "counter_offer_builder",
+  "layer": 8,
+  "role": "When rivals move, counter strategically \u2014 value over discount, proof over promise.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_counter_offer_builder.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "counter-moves.json": "counter-moves.json"
+  }
+}

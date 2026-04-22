@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "gap_hunter",
+  "layer": 8,
+  "role": "Find where competitors are weak \u2014 fitting content, junior golf, blog, reviews, SEO gaps.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_gap_hunter.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "market-gaps.json": "market-gaps.json"
+  }
+}
