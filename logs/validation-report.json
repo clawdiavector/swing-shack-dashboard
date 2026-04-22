@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-22T06:23:12.161Z",
+  "timestamp": "2026-04-22T06:31:19.690Z",
   "overall_status": "PARTIAL",
   "summary": {
     "pass": 15,
@@ -23,8 +23,8 @@
       "script_status": "PASS",
       "fallback_used": false,
       "source_mode": "LIVE",
-      "age_hours": 1.3,
-      "reason": "Fresh - 1.3h old",
+      "age_hours": 1.5,
+      "reason": "Fresh - 1.5h old",
       "next_action": "No action needed",
       "qa_warnings": []
     },
@@ -64,7 +64,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-22T06:23:08.157Z"
+      "last_build": "2026-04-22T06:31:15.668Z"
     },
     {
       "file": "golf-news.json",
@@ -152,8 +152,8 @@
       "qa_warnings": [],
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 138.6,
-      "reason": "138.6h old (stale threshold 26h)",
+      "age_hours": 138.7,
+      "reason": "138.7h old (stale threshold 26h)",
       "next_action": "Refresh ab-tests.json - data is stale"
     },
     {
@@ -216,9 +216,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/22, 08:23:08",
+      "reason": "Last build 2026/04/22, 08:31:15",
       "next_action": "No action needed",
-      "last_build": "2026/04/22, 08:23:08"
+      "last_build": "2026/04/22, 08:31:15"
     }
   ]
 }

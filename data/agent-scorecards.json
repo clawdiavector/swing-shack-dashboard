@@ -1,7 +1,7 @@
 {
   "schema": "https://clawdia.io/agents/output-schema/v1",
   "agent_id": "pulse_keeper",
-  "generated": "2026-04-22T06:31:15.618Z",
+  "generated": "2026-04-22T06:33:04.499Z",
   "status": "PARTIAL",
   "data_status": "FRESH",
   "confidence": 8,
@@ -16,18 +16,17 @@
       "agent_id": "pulse_keeper",
       "name": "Pulse Keeper",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 6.7,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 7.5,
-      "overall_score": 7.4,
-      "trend": "improving",
+      "overall_score": 7.5,
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     },
@@ -35,19 +34,18 @@
       "agent_id": "data_harvester",
       "name": "Data Harvester",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 8,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 8.2,
       "overall_score": 7.8,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
         "1/14 days",
-        "GA4 risk — SYSTEM HEALTH",
-        "Trending up"
+        "GA4 risk — SYSTEM HEALTH"
       ],
       "last_updated": "2026-04-22"
     },
@@ -55,18 +53,17 @@
       "agent_id": "insight_analyst",
       "name": "Insight Analyst",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 10,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 10,
       "overall_score": 8.5,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     },
@@ -74,18 +71,17 @@
       "agent_id": "hook_smith",
       "name": "Hook Smith",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 10,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 10,
       "overall_score": 8.5,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     },
@@ -93,18 +89,17 @@
       "agent_id": "taskmaster",
       "name": "Taskmaster",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 10,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 10,
       "overall_score": 8.5,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     },
@@ -112,18 +107,17 @@
       "agent_id": "nudge_bot",
       "name": "Nudge Bot",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 10,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 10,
       "overall_score": 8.5,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     },
@@ -131,18 +125,17 @@
       "agent_id": "idea_generator",
       "name": "Idea Generator",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 10,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 10,
       "overall_score": 8.5,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     },
@@ -150,18 +143,17 @@
       "agent_id": "cta_analyst",
       "name": "CTA Analyst",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 10,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 10,
       "overall_score": 8.5,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     },
@@ -169,18 +161,17 @@
       "agent_id": "content_architect",
       "name": "Content Architect",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 10,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 10,
       "overall_score": 8.5,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     },
@@ -188,18 +179,17 @@
       "agent_id": "memory_keeper",
       "name": "Memory Castle Keeper",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 0,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 3.3,
       "overall_score": 5.5,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     },
@@ -207,18 +197,17 @@
       "agent_id": "route_task",
       "name": "Task Router",
       "first_seen": "2026-04-22",
-      "runs": 11,
+      "runs": 12,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 10,
       "usefulness_score": 5,
-      "bug_rate_score": 6.5,
+      "bug_rate_score": 6.6,
       "contribution_score": 5,
       "overall_score": 7.7,
-      "trend": "improving",
+      "trend": "stable",
       "notes": [
-        "1/14 days",
-        "Trending up"
+        "1/14 days"
       ],
       "last_updated": "2026-04-22"
     }
