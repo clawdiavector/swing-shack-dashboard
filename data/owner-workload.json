@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-21T14:27:33.497Z",
+  "updated": "2026-04-22T06:23:06.980Z",
   "generated": "generate_owner_workload.js",
   "total_owners": 5,
   "total_items": 16,
@@ -16,7 +16,7 @@
           "urgency": "today",
           "hook": "Need some help with your putting? Coach Cat explains what ma",
           "cta": "Link in bio · Book your session",
-          "day": "Wednesday Apr 22",
+          "day": "Thursday Apr 23",
           "objective": "reach",
           "format": "static",
           "topics": [
@@ -29,7 +29,7 @@
           "urgency": "this_week",
           "hook": "Need to relax and find your golf swing tempo? Join Coach Cat",
           "cta": "Save this · Share with a golfer",
-          "day": "Friday Apr 24",
+          "day": "Saturday Apr 25",
           "objective": "saves",
           "format": "static",
           "topics": [
@@ -82,7 +82,7 @@
           "urgency": "flexible",
           "hook": "Book your session with Coach Cat @swingshack ⛳️",
           "cta": "Book your session · Link in bio",
-          "day": "Thursday Apr 23",
+          "day": "Friday Apr 24",
           "objective": "bookings",
           "format": "static",
           "topics": [
@@ -133,7 +133,7 @@
           "urgency": "today",
           "hook": "That slice costing you yards off the tee? TrackMan found it ",
           "cta": "Link in bio · Book your session",
-          "day": "Tuesday Apr 21",
+          "day": "Wednesday Apr 22",
           "objective": "reach",
           "format": "static",
           "topics": [
@@ -165,7 +165,7 @@
           "urgency": "this_week",
           "hook": "Have you ever been for an elite level Custom Fitting? Get th",
           "cta": "Link in bio · Book your session",
-          "day": "Monday Apr 27",
+          "day": "Tuesday Apr 28",
           "objective": "awareness",
           "format": "static",
           "topics": [
@@ -177,7 +177,7 @@
           "urgency": "flexible",
           "hook": "Lowest net score wins a *new custom fitted driver!*",
           "cta": "Enter now · Link in bio",
-          "day": "Saturday Apr 25",
+          "day": "Sunday Apr 26",
           "objective": "awareness",
           "format": "static",
           "topics": [
@@ -217,7 +217,7 @@
           "urgency": "this_week",
           "hook": "Go to your coaching sessions. Your ball deserves better 🫂",
           "cta": "Link in bio · Book your session",
-          "day": "Sunday Apr 26",
+          "day": "Monday Apr 27",
           "objective": "awareness",
           "format": "static",
           "topics": [
@@ -245,7 +245,7 @@
           "urgency": "this_week",
           "topic": null,
           "hook": null,
-          "suggested_fix": "Create IG content targeting \"/bookings/\" — 199 sessions with no social link.",
+          "suggested_fix": "Create IG content targeting \"/bookings/\" — 179 sessions with no social link.",
           "category": "content_gap"
         }
       ],

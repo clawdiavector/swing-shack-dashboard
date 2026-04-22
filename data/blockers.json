@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-21T14:27:34.468Z",
+  "updated": "2026-04-22T06:23:07.592Z",
   "generated": "generate_blockers.js",
   "summary": {
     "total_blockers": 19,
@@ -16,7 +16,7 @@
   },
   "blockers": [
     {
-      "blocker_id": "blk_mo8px6tgurf4",
+      "blocker_id": "blk_mo9o21c812dm",
       "type": "asset_needed_today",
       "blocker": "Asset needed today",
       "affected": "📊 TrackMan screenshot or data graphic",
@@ -27,7 +27,7 @@
       "severity": "high"
     },
     {
-      "blocker_id": "blk_mo8px6tgvmd4",
+      "blocker_id": "blk_mo9o21c8nghx",
       "type": "asset_needed_today",
       "blocker": "Asset needed today",
       "affected": "🎬 Swing clip (video or photo)",
@@ -38,40 +38,40 @@
       "severity": "high"
     },
     {
-      "blocker_id": "blk_mo8px6tgnngh",
+      "blocker_id": "blk_mo9o21c8qgdr",
       "type": "no_booking_link",
       "blocker": "Booking link missing",
       "affected": "Book your session with Coach Cat @swingshack ⛳️",
-      "affected_id": "task_mo8px6prn4n8",
+      "affected_id": "task_mo9o218gruqg",
       "owner": "Coach Cat",
       "fix": "Add swingshack.co.za/bookings or swingshack.co.za/membership to caption",
       "urgency": "flexible",
       "severity": "high"
     },
     {
-      "blocker_id": "blk_mo8px6tg56ov",
+      "blocker_id": "blk_mo9o21c8mq98",
       "type": "missing_asset",
       "blocker": "Missing: TrackMan screenshot or data graphic",
       "affected": "That slice costing you yards off the tee? TrackMan found it ",
-      "affected_id": "task_mo8px6prx8zm",
+      "affected_id": "task_mo9o218gdutt",
       "owner": "Coach Cat / Divan",
       "fix": "Source or create TrackMan screenshot or data graphic — needed for post_plan post",
       "urgency": "today",
       "severity": "high"
     },
     {
-      "blocker_id": "blk_mo8px6tguax6",
+      "blocker_id": "blk_mo9o21c88jxj",
       "type": "missing_asset",
       "blocker": "Missing: Swing clip or lesson photo",
       "affected": "Need some help with your putting? Coach Cat explains what ma",
-      "affected_id": "task_mo8px6prblej",
+      "affected_id": "task_mo9o218g43fj",
       "owner": "Coach Cat",
       "fix": "Source or create Swing clip or lesson photo — needed for post_plan post",
       "urgency": "today",
       "severity": "high"
     },
     {
-      "blocker_id": "blk_mo8px6tgi0pf",
+      "blocker_id": "blk_mo9o21c8fqom",
       "type": "not_scheduled",
       "blocker": "Ready but not in schedule",
       "affected": "Push booking CTA — traffic is hot",
@@ -81,62 +81,62 @@
       "severity": "high"
     },
     {
-      "blocker_id": "blk_mo8px6tg9luh",
+      "blocker_id": "blk_mo9o21c8zo90",
       "type": "missing_asset",
       "blocker": "Missing: Swing clip or lesson photo",
       "affected": "Need to relax and find your golf swing tempo? Join Coach Cat",
-      "affected_id": "task_mo8px6pr2hc4",
+      "affected_id": "task_mo9o218gfm9v",
       "owner": "Coach Cat",
       "fix": "Source or create Swing clip or lesson photo — needed for post_plan post",
       "urgency": "this_week",
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tgcgmt",
+      "blocker_id": "blk_mo9o21c8d249",
       "type": "missing_asset",
       "blocker": "Missing: High-quality static image",
       "affected": "Go to your coaching sessions. Your ball deserves better 🫂",
-      "affected_id": "task_mo8px6pr4y2y",
+      "affected_id": "task_mo9o218gkqgw",
       "owner": "Swing Shack page",
       "fix": "Source or create High-quality static image — needed for post_plan post",
       "urgency": "this_week",
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tgokcg",
+      "blocker_id": "blk_mo9o21c8alvw",
       "type": "missing_asset",
       "blocker": "Missing: High-quality static image",
       "affected": "Have you ever been for an elite level Custom Fitting? Get th",
-      "affected_id": "task_mo8px6prprbt",
+      "affected_id": "task_mo9o218gfvr2",
       "owner": "Divan",
       "fix": "Source or create High-quality static image — needed for post_plan post",
       "urgency": "this_week",
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tgc0r2",
+      "blocker_id": "blk_mo9o21c8hdv1",
       "type": "missing_asset",
       "blocker": "Missing: Text graphic or booking CTA image",
       "affected": "Book your session with Coach Cat @swingshack ⛳️",
-      "affected_id": "task_mo8px6prn4n8",
+      "affected_id": "task_mo9o218gruqg",
       "owner": "Coach Cat",
       "fix": "Source or create Text graphic or booking CTA image — needed for post_plan post",
       "urgency": "this_week",
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tgmhdg",
+      "blocker_id": "blk_mo9o21c8d2q6",
       "type": "missing_asset",
       "blocker": "Missing: Contest/prize image or graphic",
       "affected": "Lowest net score wins a *new custom fitted driver!*",
-      "affected_id": "task_mo8px6prluk3",
+      "affected_id": "task_mo9o218gmo0l",
       "owner": "Divan",
       "fix": "Source or create Contest/prize image or graphic — needed for post_plan post",
       "urgency": "this_week",
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tgckcr",
+      "blocker_id": "blk_mo9o21c8ue1d",
       "type": "not_scheduled",
       "blocker": "Ready but not in schedule",
       "affected": "Publish service reminder post",
@@ -146,29 +146,29 @@
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tgjny4",
+      "blocker_id": "blk_mo9o21c8ij5n",
       "type": "no_owner",
       "blocker": "No owner assigned",
       "affected": "A/B Test: hook_angle",
-      "affected_id": "hook_test_1776781654162_ppgy",
+      "affected_id": "hook_test_1776838987283_f83l",
       "owner": "Unassigned",
       "fix": "Assign owner — who is responsible for this experiment?",
       "urgency": "this_week",
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tgt02w",
+      "blocker_id": "blk_mo9o21c82hz4",
       "type": "no_owner",
       "blocker": "No owner assigned",
       "affected": "A/B Test: hook_angle",
-      "affected_id": "hook_test_1776781654162_xke8",
+      "affected_id": "hook_test_1776838987283_fbuw",
       "owner": "Unassigned",
       "fix": "Assign owner — who is responsible for this experiment?",
       "urgency": "this_week",
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tg1r86",
+      "blocker_id": "blk_mo9o21c859he",
       "type": "no_owner",
       "blocker": "No owner assigned",
       "affected": "Scale: Turn into recurring series",
@@ -178,18 +178,18 @@
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tg9djh",
+      "blocker_id": "blk_mo9o21c8dchd",
       "type": "no_owner",
       "blocker": "No owner assigned",
       "affected": "Go to your coaching sessions. Your ball deserves better 🫂",
-      "affected_id": "task_mo8px6pr4y2y",
+      "affected_id": "task_mo9o218gkqgw",
       "owner": "Unassigned",
       "fix": "Assign owner — who is responsible for this post_plan?",
       "urgency": "this_week",
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tgab12",
+      "blocker_id": "blk_mo9o21c825oh",
       "type": "no_owner",
       "blocker": "No owner assigned",
       "affected": "Push booking CTA — traffic is hot",
@@ -199,7 +199,7 @@
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tggbud",
+      "blocker_id": "blk_mo9o21c84xv2",
       "type": "no_owner",
       "blocker": "No owner assigned",
       "affected": "Scale: Scale Soft / Engagement CTA across all posts",
@@ -209,11 +209,11 @@
       "severity": "medium"
     },
     {
-      "blocker_id": "blk_mo8px6tg2i2n",
+      "blocker_id": "blk_mo9o21c8yeqp",
       "type": "no_owner",
       "blocker": "No owner assigned",
       "affected": "A/B Test: youtube_angle_to_ig",
-      "affected_id": "yt_test_1776781654162_m2dl",
+      "affected_id": "yt_test_1776838987283_b1v5",
       "owner": "Unassigned",
       "fix": "Assign owner — who is responsible for this experiment?",
       "urgency": "this_week",

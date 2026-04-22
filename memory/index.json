@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/memory/castle/v1",
-  "updated": "2026-04-21T14:27:34.942Z",
+  "updated": "2026-04-22T06:23:08.065Z",
   "version": "1.0",
   "folders": {
     "daily": {
@@ -37,13 +37,14 @@
     }
   },
   "index": {
-    "total_entries": 2,
+    "total_entries": 3,
     "by_type": {
-      "daily_log": 2
+      "daily_log": 3
     },
     "by_source_agent": {},
     "top_importance": [],
     "recent": [
+      "memory/daily/2026-04-22.json",
       "memory/daily/2026-04-21.json",
       "memory/daily/2026-04-21.json"
     ],

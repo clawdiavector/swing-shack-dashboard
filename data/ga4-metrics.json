@@ -1,81 +1,81 @@
 {
-  "updated": "2026-04-21T14:27:13.720Z",
-  "fetched_at": "2026-04-21T14:27:13.720Z",
+  "updated": "2026-04-22T06:22:56.007Z",
+  "fetched_at": "2026-04-22T06:22:56.007Z",
   "property_id": "427380680",
-  "data_window": "2026-04-14 to 2026-04-21",
-  "total_sessions": 1144,
+  "data_window": "2026-04-15 to 2026-04-22",
+  "total_sessions": 1064,
   "pages": [
     {
       "path": "/",
-      "sessions": 314,
-      "engRate": "75.5%"
+      "sessions": 281,
+      "engRate": "73.7%"
     },
     {
       "path": "/bookings/",
-      "sessions": 199,
-      "engRate": "75.9%"
+      "sessions": 179,
+      "engRate": "73.2%"
     },
     {
       "path": "/",
       "sessions": 95,
-      "engRate": "33.7%"
-    },
-    {
-      "path": "/customer-portal/",
-      "sessions": 64,
-      "engRate": "43.8%"
+      "engRate": "32.6%"
     },
     {
       "path": "/customer-portal/",
       "sessions": 61,
-      "engRate": "72.1%"
+      "engRate": "41.0%"
     },
     {
       "path": "/customer-portal/",
-      "sessions": 45,
-      "engRate": "57.8%"
+      "sessions": 55,
+      "engRate": "69.1%"
+    },
+    {
+      "path": "/customer-portal/",
+      "sessions": 40,
+      "engRate": "60.0%"
     },
     {
       "path": "/",
-      "sessions": 35,
-      "engRate": "71.4%"
+      "sessions": 32,
+      "engRate": "65.6%"
     },
     {
       "path": "/club-fitting/",
-      "sessions": 35,
-      "engRate": "94.3%"
-    },
-    {
-      "path": "/bookings/",
-      "sessions": 28,
-      "engRate": "67.9%"
+      "sessions": 32,
+      "engRate": "90.6%"
     },
     {
       "path": "/checkout/",
-      "sessions": 28,
-      "engRate": "92.9%"
+      "sessions": 25,
+      "engRate": "92.0%"
+    },
+    {
+      "path": "/bookings/",
+      "sessions": 22,
+      "engRate": "72.7%"
     }
   ],
   "sources": [
     {
       "source": "google",
-      "sessions": 709
+      "sessions": 638
     },
     {
       "source": "(direct)",
-      "sessions": 224
+      "sessions": 218
     },
     {
       "source": "c.yoco.com",
-      "sessions": 110
+      "sessions": 98
     },
     {
       "source": "(not set)",
-      "sessions": 40
+      "sessions": 53
     },
     {
       "source": "bing",
-      "sessions": 33
+      "sessions": 29
     }
   ],
   "insights": {
@@ -92,7 +92,7 @@
       {
         "type": "organic_opportunity",
         "priority": "medium",
-        "message": "709 organic sessions. Ensure these pages have clear booking CTAs."
+        "message": "638 organic sessions. Ensure these pages have clear booking CTAs."
       }
     ]
   },

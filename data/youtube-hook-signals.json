@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-04-21T14:27:17.885Z",
+  "fetched_at": "2026-04-22T06:22:59.729Z",
   "source_file": "youtube-trends.json",
   "videos_analyzed": 10,
   "top_videos": [
@@ -22,20 +22,20 @@
       "query": "golf swing tips"
     },
     {
-      "title": "4 Simple Steps For The Perfect Golf Drive",
-      "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
-      "videoId": "DDoC4SCyeXI",
-      "channelTitle": "The Art of Simple Golf",
-      "publishedAt": "2025-07-28T19:08:17Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
-    {
       "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
       "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
       "videoId": "aGdAdJu9Zr8",
       "channelTitle": "US GOLF TV",
       "publishedAt": "2023-09-15T11:00:01Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "4 Simple Steps For The Perfect Golf Drive",
+      "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
+      "videoId": "DDoC4SCyeXI",
+      "channelTitle": "The Art of Simple Golf",
+      "publishedAt": "2025-07-28T19:08:17Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -67,20 +67,20 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "Better Golf Swing In 2 Minutes",
-      "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you to ...",
-      "videoId": "j-g1SlpOm3g",
-      "channelTitle": "Kerrod Gray Golf",
-      "publishedAt": "2024-04-26T22:02:20Z",
-      "source": "youtube_api_v3",
-      "query": "golf lesson tutorial"
-    },
-    {
       "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
       "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you need to ...",
       "videoId": "n4aOMLSRGrI",
       "channelTitle": "Meandmygolf",
       "publishedAt": "2024-06-17T13:00:55Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "Better Golf Swing In 2 Minutes",
+      "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you to ...",
+      "videoId": "j-g1SlpOm3g",
+      "channelTitle": "Kerrod Gray Golf",
+      "publishedAt": "2024-04-26T22:02:20Z",
       "source": "youtube_api_v3",
       "query": "golf lesson tutorial"
     },
@@ -170,11 +170,11 @@
         1
       ],
       [
-        "The Art of Simple Golf",
+        "US GOLF TV",
         1
       ],
       [
-        "US GOLF TV",
+        "The Art of Simple Golf",
         1
       ],
       [

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-21T14:27:33.363Z",
+  "updated": "2026-04-22T06:23:06.844Z",
   "generated": "detect_missed_opportunities.js",
   "count": 12,
   "by_severity": {
@@ -86,55 +86,55 @@
       "category": "content_gap",
       "severity": "high",
       "page": "/",
-      "sessions": 314,
+      "sessions": 281,
       "owner": "Swing Shack page",
-      "suggested_fix": "Create IG content targeting \"/\" — 314 sessions with no social link.",
-      "suggestion": "Page \"/\" gets 314 sessions but no IG post links to it. Create content.",
-      "why": "314 sessions with no social presence"
+      "suggested_fix": "Create IG content targeting \"/\" — 281 sessions with no social link.",
+      "suggestion": "Page \"/\" gets 281 sessions but no IG post links to it. Create content.",
+      "why": "281 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
       "category": "content_gap",
       "severity": "high",
       "page": "/bookings/",
-      "sessions": 199,
+      "sessions": 179,
       "owner": "Nancy / Front Desk",
-      "suggested_fix": "Create IG content targeting \"/bookings/\" — 199 sessions with no social link.",
-      "suggestion": "Page \"/bookings/\" gets 199 sessions but no IG post links to it. Create content.",
-      "why": "199 sessions with no social presence"
+      "suggested_fix": "Create IG content targeting \"/bookings/\" — 179 sessions with no social link.",
+      "suggestion": "Page \"/bookings/\" gets 179 sessions but no IG post links to it. Create content.",
+      "why": "179 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
       "category": "content_gap",
       "severity": "high",
       "page": "/customer-portal/",
-      "sessions": 64,
+      "sessions": 61,
       "owner": "Swing Shack page",
-      "suggested_fix": "Create IG content targeting \"/customer-portal/\" — 64 sessions with no social link.",
-      "suggestion": "Page \"/customer-portal/\" gets 64 sessions but no IG post links to it. Create content.",
-      "why": "64 sessions with no social presence"
+      "suggested_fix": "Create IG content targeting \"/customer-portal/\" — 61 sessions with no social link.",
+      "suggestion": "Page \"/customer-portal/\" gets 61 sessions but no IG post links to it. Create content.",
+      "why": "61 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
       "category": "content_gap",
       "severity": "medium",
       "page": "/club-fitting/",
-      "sessions": 35,
+      "sessions": 32,
       "owner": "Divan",
-      "suggested_fix": "Create IG content targeting \"/club-fitting/\" — 35 sessions with no social link.",
-      "suggestion": "Page \"/club-fitting/\" gets 35 sessions but no IG post links to it. Create content.",
-      "why": "35 sessions with no social presence"
+      "suggested_fix": "Create IG content targeting \"/club-fitting/\" — 32 sessions with no social link.",
+      "suggestion": "Page \"/club-fitting/\" gets 32 sessions but no IG post links to it. Create content.",
+      "why": "32 sessions with no social presence"
     },
     {
       "type": "traffic_no_content",
       "category": "content_gap",
       "severity": "medium",
       "page": "/checkout/",
-      "sessions": 28,
+      "sessions": 25,
       "owner": "Nancy / Front Desk",
-      "suggested_fix": "Create IG content targeting \"/checkout/\" — 28 sessions with no social link.",
-      "suggestion": "Page \"/checkout/\" gets 28 sessions but no IG post links to it. Create content.",
-      "why": "28 sessions with no social presence"
+      "suggested_fix": "Create IG content targeting \"/checkout/\" — 25 sessions with no social link.",
+      "suggestion": "Page \"/checkout/\" gets 25 sessions but no IG post links to it. Create content.",
+      "why": "25 sessions with no social presence"
     },
     {
       "type": "youtube_trend_no_ig",
@@ -159,7 +159,7 @@
       "yt_video_count": 3,
       "yt_examples": [
         "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "4 Simple Steps For The Perfect Golf Drive"
+        "5 Powerful Tips to Unleash Your Senior Driver Swing"
       ],
       "owner": "Swing Shack page",
       "suggested_fix": "Create IG post on \"driver\" — YouTube has 3 trending videos.",

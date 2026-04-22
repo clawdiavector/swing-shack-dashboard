@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-21T14:27:34.292Z",
+  "updated": "2026-04-22T06:23:07.413Z",
   "generated": "generate_anomaly_alerts.js",
   "summary": {
     "total_alerts": 2,
@@ -25,7 +25,7 @@
       "type": "ig_performance_drop",
       "alert": "Instagram engagement rate dropping",
       "severity": "medium",
-      "evidence": "Recent 7-post avg: 1.71% | Previous avg: 2.59% | Drop: -34%",
+      "evidence": "Recent 7-post avg: 1.60% | Previous avg: 2.37% | Drop: -33%",
       "likely_cause": "Hook quality drop OR algorithm shift OR audience fatigue",
       "action": "Check last 3 posts for hook quality — compare to top-performing historical posts",
       "owner": "Swing Shack page",

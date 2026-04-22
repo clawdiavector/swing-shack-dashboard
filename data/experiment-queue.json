@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-21T14:27:34.162Z",
+  "updated": "2026-04-22T06:23:07.283Z",
   "generated": "generate_experiment_queue.js",
   "summary": {
     "total_tests": 5,
@@ -12,7 +12,7 @@
   },
   "experiments": [
     {
-      "test_id": "hook_test_1776781654162_zhwk",
+      "test_id": "hook_test_1776838987283_jb1k",
       "type": "hook_ab",
       "variable": "hook_angle",
       "description": "Test TrackMan stats angle vs transformation angle on \"lessons\" hook",
@@ -36,7 +36,7 @@
       "rank": 1
     },
     {
-      "test_id": "hook_test_1776781654162_ppgy",
+      "test_id": "hook_test_1776838987283_f83l",
       "type": "hook_ab",
       "variable": "hook_angle",
       "description": "Test TrackMan stats angle vs transformation angle on \"short_game\" hook",
@@ -60,7 +60,7 @@
       "rank": 2
     },
     {
-      "test_id": "hook_test_1776781654162_xke8",
+      "test_id": "hook_test_1776838987283_fbuw",
       "type": "hook_ab",
       "variable": "hook_angle",
       "description": "Test TrackMan stats angle vs transformation angle on \"driver\" hook",
@@ -84,7 +84,7 @@
       "rank": 3
     },
     {
-      "test_id": "yt_test_1776781654162_406p",
+      "test_id": "yt_test_1776838987283_63yd",
       "type": "youtube_untested",
       "variable": "youtube_angle_to_ig",
       "description": "Take trending YouTube angle for \"lessons\" and port to IG",
@@ -111,7 +111,7 @@
       "rank": 4
     },
     {
-      "test_id": "yt_test_1776781654162_m2dl",
+      "test_id": "yt_test_1776838987283_b1v5",
       "type": "youtube_untested",
       "variable": "youtube_angle_to_ig",
       "description": "Take trending YouTube angle for \"driver\" and port to IG",
@@ -120,12 +120,12 @@
         "label": "YouTube angle (proven on YT)"
       },
       "variant_b": {
-        "hook": "4 Simple Steps For The Perfect Golf Drive",
+        "hook": "5 Powerful Tips to Unleash Your Senior Driver Swing",
         "label": "Problem angle (IG-native)"
       },
       "yt_evidence": [
         "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "4 Simple Steps For The Perfect Golf Drive"
+        "5 Powerful Tips to Unleash Your Senior Driver Swing"
       ],
       "success_metric": "cross_signal_score > 7 after 2 posts",
       "target_metric": "cross_signal_score",

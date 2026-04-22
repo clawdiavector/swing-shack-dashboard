@@ -1,12 +1,12 @@
 {
-  "updated": "2026-04-21T14:27:33.269Z",
+  "updated": "2026-04-22T06:23:06.747Z",
   "generated": "generate_post_plan.js",
   "plan_length": 7,
   "plan": [
     {
-      "day": "Tuesday",
-      "date": "Apr 21",
-      "dateISO": "2026-04-21",
+      "day": "Wednesday",
+      "date": "Apr 22",
+      "dateISO": "2026-04-22",
       "platform": "instagram",
       "format": "static",
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
@@ -35,9 +35,9 @@
       "suggested_source_section": "WATCHED + WORKED"
     },
     {
-      "day": "Wednesday",
-      "date": "Apr 22",
-      "dateISO": "2026-04-22",
+      "day": "Thursday",
+      "date": "Apr 23",
+      "dateISO": "2026-04-23",
       "platform": "instagram",
       "format": "static",
       "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
@@ -63,9 +63,9 @@
       "suggested_source_section": "WATCHED + WORKED"
     },
     {
-      "day": "Thursday",
-      "date": "Apr 23",
-      "dateISO": "2026-04-23",
+      "day": "Friday",
+      "date": "Apr 24",
+      "dateISO": "2026-04-24",
       "platform": "instagram",
       "format": "static",
       "hook": "Book your session with Coach Cat @swingshack ⛳️",
@@ -91,9 +91,9 @@
       "suggested_source_section": "WATCHED + WORKED"
     },
     {
-      "day": "Friday",
-      "date": "Apr 24",
-      "dateISO": "2026-04-24",
+      "day": "Saturday",
+      "date": "Apr 25",
+      "dateISO": "2026-04-25",
       "platform": "instagram",
       "format": "static",
       "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
@@ -119,9 +119,9 @@
       "suggested_source_section": "WATCHED + WORKED"
     },
     {
-      "day": "Saturday",
-      "date": "Apr 25",
-      "dateISO": "2026-04-25",
+      "day": "Sunday",
+      "date": "Apr 26",
+      "dateISO": "2026-04-26",
       "platform": "instagram",
       "format": "static",
       "hook": "Lowest net score wins a *new custom fitted driver!*",
@@ -147,9 +147,9 @@
       "suggested_source_section": "WATCHED + WORKED"
     },
     {
-      "day": "Sunday",
-      "date": "Apr 26",
-      "dateISO": "2026-04-26",
+      "day": "Monday",
+      "date": "Apr 27",
+      "dateISO": "2026-04-27",
       "platform": "instagram",
       "format": "static",
       "hook": "Go to your coaching sessions. Your ball deserves better 🫂",
@@ -173,9 +173,9 @@
       "suggested_source_section": "Hook Bank / Content Ideas"
     },
     {
-      "day": "Monday",
-      "date": "Apr 27",
-      "dateISO": "2026-04-27",
+      "day": "Tuesday",
+      "date": "Apr 28",
+      "dateISO": "2026-04-28",
       "platform": "instagram",
       "format": "static",
       "hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
@@ -224,43 +224,43 @@
       {
         "owner": "Coach Cat / Divan",
         "asset": "TrackMan screenshot or data graphic",
-        "day": "Tuesday Apr 21",
+        "day": "Wednesday Apr 22",
         "hook": "That slice costing you yards off the tee? TrackMan"
       },
       {
         "owner": "Coach Cat",
         "asset": "Swing clip or lesson photo",
-        "day": "Wednesday Apr 22",
+        "day": "Thursday Apr 23",
         "hook": "Need some help with your putting? Coach Cat explai"
       },
       {
         "owner": "Coach Cat",
         "asset": "Text graphic or booking CTA image",
-        "day": "Thursday Apr 23",
+        "day": "Friday Apr 24",
         "hook": "Book your session with Coach Cat @swingshack ⛳️"
       },
       {
         "owner": "Coach Cat",
         "asset": "Swing clip or lesson photo",
-        "day": "Friday Apr 24",
+        "day": "Saturday Apr 25",
         "hook": "Need to relax and find your golf swing tempo? Join"
       },
       {
         "owner": "Divan",
         "asset": "Contest/prize image or graphic",
-        "day": "Saturday Apr 25",
+        "day": "Sunday Apr 26",
         "hook": "Lowest net score wins a *new custom fitted driver!"
       },
       {
         "owner": "Swing Shack page",
         "asset": "High-quality static image",
-        "day": "Sunday Apr 26",
+        "day": "Monday Apr 27",
         "hook": "Go to your coaching sessions. Your ball deserves b"
       },
       {
         "owner": "Divan",
         "asset": "High-quality static image",
-        "day": "Monday Apr 27",
+        "day": "Tuesday Apr 28",
         "hook": "Have you ever been for an elite level Custom Fitti"
       }
     ]

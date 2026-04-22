@@ -82,7 +82,7 @@ const STAGES = [
     name: 'Plan',
     critical: false,
     requiredOutputs: [],
-    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json', 'daily-task-cards.json', 'approval-queue.json', 'deadline-risk.json', 'blockers.json', 'capacity-shift.json', 'nudge-queue.json', 'fallback-queue.json', 'next-day-queue.json', 'auto-messages.json', 'suppression-rules.json', 'discord-deliveries.json', 'delivery-audit.json', 'system-health.json', 'route-log.json', 'routing-log.json'],
+    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json', 'daily-task-cards.json', 'approval-queue.json', 'deadline-risk.json', 'blockers.json', 'capacity-shift.json', 'nudge-queue.json', 'fallback-queue.json', 'next-day-queue.json', 'auto-messages.json', 'suppression-rules.json', 'discord-deliveries.json', 'delivery-audit.json', 'system-health.json', 'route-log.json', 'routing-log.json', 'agent-scorecards.json'],
     steps: [
       { name: 'generate_post_plan',          script: `node ${BASE}/scripts/generate_post_plan.js`,          critical: false },
       { name: 'generate_sales_priority',     script: `node ${BASE}/scripts/generate_sales_priority.js`,     critical: false },
@@ -115,6 +115,7 @@ const STAGES = [
       { name: 'generate_delivery_audit',         script: `node ${BASE}/scripts/generate_delivery_audit.js`,         critical: false },
       { name: 'generate_pulse_keeper',           script: `node ${BASE}/scripts/generate_pulse_keeper.js`,           critical: false },
       { name: 'store_daily_learnings',        script: `node ${BASE}/scripts/store_daily_learnings.js`,        critical: false },
+      { name: 'generate_agent_scorecards',    script: `node ${BASE}/scripts/generate_agent_scorecards.js`,    critical: false },
     ]
   },
   {

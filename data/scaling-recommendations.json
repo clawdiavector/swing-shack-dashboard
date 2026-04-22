@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-21T14:27:34.206Z",
+  "updated": "2026-04-22T06:23:07.326Z",
   "generated": "generate_scaling_recommendations.js",
   "summary": {
     "total": 5,
@@ -49,13 +49,13 @@
       "type": "cta_scale",
       "action": "Scale Soft / Engagement CTA across all posts",
       "cta_type": "SOFT",
-      "current_perf": "eng 2.2% | save rate undefined% | signal 1.1",
+      "current_perf": "eng 2.15% | save rate undefined% | signal 1.07",
       "recommendation": "Increase soft / engagement cta CTA usage by 40% — highest conversion signal of all CTA types",
       "expected_impact": "save_rate +0.3% | booking_intent +15%",
       "owner": "Swing Shack page",
       "urgency": "this_week",
       "confidence": 4,
-      "why": "SOFT has best conversion signal (1.1)",
+      "why": "SOFT has best conversion signal (1.07)",
       "rank": 3
     },
     {
