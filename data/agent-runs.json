@@ -466,7 +466,285 @@
           "task_cards_produced": 18
         }
       }
+    ],
+    "content_architect": [
+      {
+        "agent_id": "content_architect",
+        "run_at": "2026-04-22T07:04:43.222Z",
+        "duration_ms": 46,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_content_blueprints.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/content-blueprints.json": {
+            "valid": true,
+            "blueprint_count": 25
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "content_architect",
+        "run_at": "2026-04-22T07:06:09.913Z",
+        "duration_ms": 46,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_content_blueprints.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/content-blueprints.json": {
+            "valid": true,
+            "blueprint_count": 25
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "cta_analyst": [
+      {
+        "agent_id": "cta_analyst",
+        "run_at": "2026-04-22T07:04:43.309Z",
+        "duration_ms": 45,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_cta_performance.js",
+            "status": "PASS",
+            "duration_ms": 44
+          }
+        ],
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "cta_analyst",
+        "run_at": "2026-04-22T07:06:10.000Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_cta_performance.js",
+            "status": "PASS",
+            "duration_ms": 44
+          }
+        ],
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "hook_smith": [
+      {
+        "agent_id": "hook_smith",
+        "run_at": "2026-04-22T07:04:43.398Z",
+        "duration_ms": 46,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "analyse_hooks.js",
+            "status": "PASS",
+            "duration_ms": 45
+          }
+        ],
+        "outputs": {
+          "data/hook-bank.json": {
+            "valid": false,
+            "total_hooks": 0,
+            "buckets": 0
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "hook_smith",
+        "run_at": "2026-04-22T07:04:50.993Z",
+        "duration_ms": 46,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "analyse_hooks.js",
+            "status": "PASS",
+            "duration_ms": 46
+          }
+        ],
+        "outputs": {
+          "data/hook-bank.json": {
+            "valid": false,
+            "total_hooks": 0,
+            "buckets": 0
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "hook_smith",
+        "run_at": "2026-04-22T07:06:10.088Z",
+        "duration_ms": 46,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "analyse_hooks.js",
+            "status": "PASS",
+            "duration_ms": 45
+          }
+        ],
+        "outputs": {
+          "data/hook-bank.json": {
+            "valid": false,
+            "total_hooks": 0,
+            "bucket_entries": 0
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "idea_generator": [
+      {
+        "agent_id": "idea_generator",
+        "run_at": "2026-04-22T07:04:43.570Z",
+        "duration_ms": 130,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_content_ideas.js",
+            "status": "PASS",
+            "duration_ms": 43
+          },
+          {
+            "script": "generate_follow_up_queue.js",
+            "status": "PASS",
+            "duration_ms": 43
+          },
+          {
+            "script": "generate_retargeting_recommendations.js",
+            "status": "PASS",
+            "duration_ms": 44
+          }
+        ],
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "agent_id": "idea_generator",
+        "run_at": "2026-04-22T07:06:10.260Z",
+        "duration_ms": 130,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_content_ideas.js",
+            "status": "PASS",
+            "duration_ms": 43
+          },
+          {
+            "script": "generate_follow_up_queue.js",
+            "status": "PASS",
+            "duration_ms": 44
+          },
+          {
+            "script": "generate_retargeting_recommendations.js",
+            "status": "PASS",
+            "duration_ms": 43
+          }
+        ],
+        "passed": 3,
+        "failed": 0
+      }
+    ],
+    "nudge_bot": [
+      {
+        "agent_id": "nudge_bot",
+        "run_at": "2026-04-22T07:04:43.873Z",
+        "duration_ms": 261,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_nudge_queue.js",
+            "status": "PASS",
+            "duration_ms": 45
+          },
+          {
+            "script": "generate_suppression_rules.js",
+            "status": "PASS",
+            "duration_ms": 44
+          },
+          {
+            "script": "generate_fallback_queue.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_auto_messages.js",
+            "status": "PASS",
+            "duration_ms": 45
+          },
+          {
+            "script": "send_discord_nudges.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "log_discord_deliveries.js",
+            "status": "PASS",
+            "duration_ms": 43
+          }
+        ],
+        "passed": 6,
+        "failed": 0
+      },
+      {
+        "agent_id": "nudge_bot",
+        "run_at": "2026-04-22T07:06:10.558Z",
+        "duration_ms": 256,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_nudge_queue.js",
+            "status": "PASS",
+            "duration_ms": 46
+          },
+          {
+            "script": "generate_suppression_rules.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_fallback_queue.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_auto_messages.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "send_discord_nudges.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "log_discord_deliveries.js",
+            "status": "PASS",
+            "duration_ms": 41
+          }
+        ],
+        "passed": 6,
+        "failed": 0
+      }
     ]
   },
-  "updated": "2026-04-22T06:28:59.083Z"
+  "updated": "2026-04-22T07:06:10.559Z"
 }

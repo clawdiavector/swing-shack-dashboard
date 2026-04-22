@@ -65,6 +65,15 @@ const news = readJson('golf-news.json') || {};
 const seoRank = readJson('seo-rankings.json') || {};
 const seoAudit = readJson('seo-audit.json') || {};
 const hooks = readJson('hook-bank.json') || {};
+// Normalise hook-bank.json to also expose hooks/proven_hooks for dashboard compatibility
+if (hooks.output_buckets && !hooks.hooks) {
+  hooks.hooks = [
+    ...(hooks.output_buckets.proven_and_trending || []),
+    ...(hooks.output_buckets.proven_only || []),
+    ...(hooks.output_buckets.trending_to_test || []),
+  ];
+  hooks.proven_hooks = (hooks.output_buckets.proven_and_trending || []).slice(0, 8);
+}
 const ideas = readJson('content-ideas.json') || {};
 const ab = readJson('ab-tests.json') || {};
 const used = readJson('used-items.json') || { suppressed_ideas: [], suppressed_hooks: [] };

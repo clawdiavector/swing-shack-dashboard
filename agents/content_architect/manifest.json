@@ -1,0 +1,26 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "content_architect",
+  "layer": 2,
+  "role": "Bridge from idea to usable build brief — turn hook + CTA + goal + channel into content blueprints",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "generate_content_blueprints.js"
+  ],
+  "inputs": {
+    "data/hook-bank.json":             "Hook bank — proven and trending hooks",
+    "data/post-plan.json":            "Post plan with hooks and CTAs",
+    "data/cta-performance.json":      "CTA performance data",
+    "data/content-ideas.json":        "Content ideas to turn into blueprints"
+  },
+  "outputs": {
+    "data/content-blueprints.json":  "Reel, carousel, static, short script, blog outline blueprints"
+  },
+  "validates": [
+    "data/content-blueprints.json has blueprints array with 3+ entries",
+    "Each blueprint has: hook_id, format_type, caption, hashtags, objective, target"
+  ],
+  "runs_on": ["daily_pipeline"],
+  "note": "generate_content_blueprints.js is a new script — creates platform-specific content blueprints from hook bank and post plan"
+}

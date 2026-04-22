@@ -1,0 +1,32 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "idea_generator",
+  "layer": 2,
+  "role": "Generate content ideas, post plan ideas, follow-up queue, retargeting angles",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "generate_content_ideas.js",
+    "generate_follow_up_queue.js",
+    "generate_retargeting_recommendations.js"
+  ],
+  "inputs": {
+    "data/ig-analytics.json":                   "IG performance for idea direction",
+    "data/golf-news.json":                      "Golf news for timely ideas",
+    "data/reddit-trends.json":                  "Reddit pain points for ideas",
+    "data/hook-bank.json":                     "Hook bank for formula ideas",
+    "data/content-ideas.json":                  "Prior ideas for novelty check",
+    "data/used-items.json":                    "Used ideas to suppress"
+  },
+  "outputs": {
+    "data/content-ideas.json":                "Content ideas",
+    "data/follow-up-queue.json":             "Follow-up queue",
+    "data/retargeting-recommendations.json": "Retargeting angles"
+  },
+  "validates": [
+    "data/content-ideas.json has ideas array with 5+ entries",
+    "data/follow-up-queue.json has entries",
+    "No idea overlaps with used-items"
+  ],
+  "runs_on": ["daily_pipeline"]
+}

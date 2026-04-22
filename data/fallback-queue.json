@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-22T06:31:15.238Z",
+  "updated": "2026-04-22T07:06:10.427Z",
   "generated": "generate_fallback_queue.js",
   "summary": {
     "total": 14,
@@ -11,7 +11,7 @@
   },
   "fallbacks": [
     {
-      "fallback_id": "fb_mo9ochly0yi1",
+      "fallback_id": "fb_mo9ple9nv57u",
       "action": "swap_owner",
       "from_owner": "Coach Cat",
       "to_owner": "Swing Shack page",
@@ -24,7 +24,7 @@
       "quality_loss": "Low — content quality maintained, specialist input not required"
     },
     {
-      "fallback_id": "fb_mo9ochlykaiy",
+      "fallback_id": "fb_mo9ple9nvpa2",
       "action": "swap_owner",
       "from_owner": "Coach Cat",
       "to_owner": "Swing Shack page",
@@ -37,7 +37,7 @@
       "quality_loss": "Low — content quality maintained, specialist input not required"
     },
     {
-      "fallback_id": "fb_mo9ochly5p6q",
+      "fallback_id": "fb_mo9ple9nz5qy",
       "action": "swap_owner",
       "from_owner": "Coach Cat",
       "to_owner": "Swing Shack page",
@@ -50,7 +50,7 @@
       "quality_loss": "Low — content quality maintained, specialist input not required"
     },
     {
-      "fallback_id": "fb_mo9ochlyfhnv",
+      "fallback_id": "fb_mo9ple9ng9qj",
       "original_task_id": "task_mo9ocherxagq",
       "original_hook": "That slice costing you yards off the tee? TrackMan found it ",
       "blocker": "asset_needed:TrackMan screenshot or data graphic",
@@ -65,7 +65,7 @@
       "quality_loss": "Low — text-led posts have proven conversion for booking intent"
     },
     {
-      "fallback_id": "fb_mo9ochly5rn7",
+      "fallback_id": "fb_mo9ple9nwjbj",
       "original_task_id": "task_mo9ocheragua",
       "original_hook": "Need some help with your putting? Coach Cat explains what ma",
       "blocker": "asset_needed:Swing clip or lesson photo",
@@ -80,7 +80,7 @@
       "quality_loss": "Low — text-led posts have proven conversion for booking intent"
     },
     {
-      "fallback_id": "fb_mo9ochly8s6b",
+      "fallback_id": "fb_mo9ple9n853i",
       "original_task_id": "task_mo9ocherlabf",
       "original_hook": "Need to relax and find your golf swing tempo? Join Coach Cat",
       "blocker": "asset_needed:Swing clip or lesson photo",
@@ -95,7 +95,7 @@
       "quality_loss": "Low — text-led posts have proven conversion for booking intent"
     },
     {
-      "fallback_id": "fb_mo9ochlybo0t",
+      "fallback_id": "fb_mo9ple9n3j9j",
       "original_task_id": "task_mo9ocher2ch6",
       "original_hook": "Go to your coaching sessions. Your ball deserves better 🫂",
       "blocker": "asset_needed:High-quality static image",
@@ -110,7 +110,7 @@
       "quality_loss": "Low — text-led posts have proven conversion for booking intent"
     },
     {
-      "fallback_id": "fb_mo9ochly195l",
+      "fallback_id": "fb_mo9ple9n01rq",
       "original_task_id": "task_mo9ocherw5ew",
       "original_hook": "Have you ever been for an elite level Custom Fitting? Get th",
       "blocker": "asset_needed:High-quality static image",
@@ -125,7 +125,7 @@
       "quality_loss": "Low — text-led posts have proven conversion for booking intent"
     },
     {
-      "fallback_id": "fb_mo9ochly8144",
+      "fallback_id": "fb_mo9ple9ng240",
       "original_task_id": "task_mo9ocherudcc",
       "original_hook": "Book your session with Coach Cat @swingshack ⛳️",
       "blocker": "asset_needed:Text graphic or booking CTA image",
@@ -140,7 +140,7 @@
       "quality_loss": "Low — text-led posts have proven conversion for booking intent"
     },
     {
-      "fallback_id": "fb_mo9ochly6eui",
+      "fallback_id": "fb_mo9ple9nx4bc",
       "original_task_id": "task_mo9ocherqsj5",
       "original_hook": "Lowest net score wins a *new custom fitted driver!*",
       "blocker": "asset_needed:Contest/prize image or graphic",
@@ -155,7 +155,7 @@
       "quality_loss": "Low — text-led posts have proven conversion for booking intent"
     },
     {
-      "fallback_id": "fb_mo9ochlyu8g2",
+      "fallback_id": "fb_mo9ple9n8neo",
       "original_task_id": "task_mo9ocherudcc",
       "original_caption": "Book your session · Link in bio",
       "blocker": "CTA missing from caption",
@@ -167,7 +167,7 @@
       "quality_loss": "None — adding CTA improves conversion"
     },
     {
-      "fallback_id": "fb_mo9ochlyswif",
+      "fallback_id": "fb_mo9ple9nzysy",
       "action": "swap_to_ready_post",
       "original_asset": "🖼 High-quality static image",
       "blocker": "Asset 🖼 High-quality static image delayed — Asset needed for 2 post(s) but urgency is this_week — push to next week",
@@ -180,7 +180,7 @@
       "quality_loss": "Low — static booking CTA post is always executable"
     },
     {
-      "fallback_id": "fb_mo9ochly835x",
+      "fallback_id": "fb_mo9ple9n85hk",
       "action": "swap_to_ready_post",
       "original_asset": "🖼 High-quality static image",
       "blocker": "Asset 🖼 High-quality static image delayed — Asset needed for 1 post(s) but urgency is this_week — push to next week",
@@ -193,7 +193,7 @@
       "quality_loss": "Low — static booking CTA post is always executable"
     },
     {
-      "fallback_id": "fb_mo9ochlyrtho",
+      "fallback_id": "fb_mo9ple9ngmti",
       "action": "swap_to_ready_post",
       "original_asset": "📝 Text graphic / booking CTA image",
       "blocker": "Asset 📝 Text graphic / booking CTA image delayed — Asset needed for 1 post(s) but urgency is flexible — push to next week",

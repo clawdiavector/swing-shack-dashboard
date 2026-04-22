@@ -62,7 +62,7 @@ if (args.length === 0 || args[0] === '--help') {
   console.log('Usage:');
   console.log('  node run_agent.js <agent_id>   Run one agent');
   console.log('  node run_agent.js --list      List agents');
-  console.log('  node run_agent.js --all       Run all layer-1 agents');
+  console.log('  node run_agent.js --all [layer]  Run all agents (optionally: --all 2 for layer 2 only)');
   console.log('\nAgents:');
   for (const d of fs.readdirSync(AGENTS)) {
     const m = getManifest(d);
@@ -82,16 +82,19 @@ if (args[0] === '--list') {
 }
 
 if (args[0] === '--all') {
+  const layerFilter = args[1] ? parseInt(args[1]) : null;
   const results = [];
   for (const d of fs.readdirSync(AGENTS)) {
     const m = getManifest(d);
-    if (!m || m.layer !== 1) continue;
+    if (!m) continue;
+    if (layerFilter !== null && m.layer !== layerFilter) continue;
     const r = runAgent(d);
     if (r) results.push(r);
   }
   const passed = results.filter(r => r.status === 'PASS').length;
   console.log(`\n${'='.repeat(50)}`);
-  console.log(`ALL AGENTS: ${passed}/${results.length} passed`);
+  const label = layerFilter !== null ? `layer-${layerFilter} agents` : 'all agents';
+  console.log(`${label.toUpperCase()}: ${passed}/${results.length} passed`);
   process.exit(passed === results.length ? 0 : 1);
 }
 

@@ -1,0 +1,29 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "hook_smith",
+  "layer": 2,
+  "role": "Own the hook bank — generate, refine, retire, and promote hooks based on performance data",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "analyse_hooks.js"
+  ],
+  "inputs": {
+    "data/ig-analytics.json":           "IG posts — hook_text, reach, likes, engagement",
+    "data/hook-bank.json":              "Existing hook bank state",
+    "data/youtube-trends.json":         "YouTube trend signals for hook ideas",
+    "data/reddit-trends.json":          "Reddit pain points for hook angles",
+    "data/ab-test-input.json":          "A/B test results for hook performance"
+  },
+  "outputs": {
+    "data/hook-bank.json":             "Updated hook bank with hooks, variants, recommendations",
+    "data/hook-variants.json":         "Hook variant candidates for A/B testing",
+    "data/hook-recommendations.json": "Hook improvement recommendations"
+  },
+  "validates": [
+    "data/hook-bank.json has output_buckets with proven_and_trending",
+    "data/hook-bank.json total_hooks matches actual bucket counts"
+  ],
+  "runs_on": ["daily_pipeline", "manual_trigger"],
+  "priority_action": "Populate hook bank from IG analytics — every post has a hook_text field"
+}

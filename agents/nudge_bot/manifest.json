@@ -1,0 +1,35 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "nudge_bot",
+  "layer": 2,
+  "role": "Nudge generation, suppression logic, delivery prep, auto-messages, fallback routing",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "generate_nudge_queue.js",
+    "generate_suppression_rules.js",
+    "generate_fallback_queue.js",
+    "generate_auto_messages.js",
+    "send_discord_nudges.js",
+    "log_discord_deliveries.js"
+  ],
+  "inputs": {
+    "data/daily-task-cards.json":        "Task cards requiring owner action",
+    "data/approval-queue.json":          "Content awaiting approval",
+    "data/blockers.json":               "Blockers for nudge context",
+    "data/deadline-risk.json":          "Deadline risk for urgency nudges",
+    "data/suppression-rules.json":       "Suppression rules for smart nudging"
+  },
+  "outputs": {
+    "data/nudge-queue.json":          "Nudge tasks per owner",
+    "data/auto-messages.json":         "Auto-message templates",
+    "data/suppression-rules.json":    "Updated suppression rules",
+    "data/fallback-queue.json":       "Fallback tasks when primary blocked",
+    "logs/discord-deliveries.json":   "Discord delivery log"
+  },
+  "validates": [
+    "data/nudge-queue.json has nudges array",
+    "data/auto-messages.json has messages array"
+  ],
+  "runs_on": ["daily_pipeline"]
+}

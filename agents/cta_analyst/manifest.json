@@ -1,0 +1,26 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "cta_analyst",
+  "layer": 2,
+  "role": "CTA ranking, testing logic, replacement strategy, booking vs awareness selection",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "generate_cta_performance.js"
+  ],
+  "inputs": {
+    "data/ig-analytics.json":             "IG posts — for CTA performance analysis",
+    "data/conversion-attribution.json":   "Conversion attribution data",
+    "data/hook-bank.json":               "Hook bank — CTA paired with hooks",
+    "data/recommendation-scores.json":    "Prior recommendation scores"
+  },
+  "outputs": {
+    "data/cta-performance.json":     "CTA performance scores",
+    "data/cta-recommendations.json":  "CTA improvement recommendations"
+  },
+  "validates": [
+    "data/cta-performance.json has top_ctas array",
+    "data/cta-recommendations.json has recommendations array"
+  ],
+  "runs_on": ["daily_pipeline"]
+}
