@@ -371,8 +371,7 @@
       "datePosted": "2026-02-02",
       "comment": "Community recognizing Trackman as the gold standard for data accuracy. GC Quad and Trackman 4 at the top tier. We're running TrackMan 4 + TrackMan iO — first in South Africa. That's not just marketing, that's fact. Use it.",
       "tags": ["trackman", "launch-monitor", "PGA-Show", "gold-standard", "competitive", "differentiator"]
-    }
-  ],
+    },
     {
       "id": "reddit-2026-04-22-8",
       "url": "https://www.reddit.com/r/golf/comments/1srreih/apps_to_track_how_you_played_scores_clubs_used/",
@@ -435,6 +434,6 @@
     }
   ],
   "last_updated": "2026-04-22",
-  "scan_time": "2026-04-22T10:00Z",
-  "scan_note": "April 22 2026 - 10AM SAST scan. Added 4 fresh opportunities (IDs -10 through -12). Push to GitHub."
+  "scan_time": "2026-04-22T16:00Z",
+  "scan_note": "April 22 2026 - 4PM SAST scan. Added opportunities from last 24h. Push to GitHub."
 }
