@@ -168,6 +168,19 @@ const STAGES = [
     ]
   },
   {
+    name: 'Autonomy',
+    critical: false,
+    requiredOutputs: ['autonomy-rules.json'],
+    optionalOutputs: ['autonomy-decisions.json', 'live-nudge-log.json', 'auto-swaps.json', 'auto-approval-actions.json', 'autopublished-items.json'],
+    steps: [
+      { name: 'autonomy_rules_engine',      script: `node ${BASE}/scripts/run_autonomy_rules_engine.js`,      critical: true },
+      { name: 'live_nudge_dispatcher',      script: `node ${BASE}/scripts/run_live_nudge_dispatcher.js`,      critical: false },
+      { name: 'fallback_auto_swapper',      script: `node ${BASE}/scripts/run_fallback_auto_swapper.js`,      critical: false },
+      { name: 'approval_auto_promoter',     script: `node ${BASE}/scripts/run_approval_auto_promoter.js`,     critical: false },
+      { name: 'low_risk_publisher',         script: `node ${BASE}/scripts/run_low_risk_publisher.js`,         critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

@@ -1,0 +1,33 @@
+{
+  "schema": "https://clawdia.io/agents/autonomy-rules-engine/v1",
+  "generated": "2026-04-22T12:08:11.015Z",
+  "mode": "MINIMAL",
+  "trust_score": 8,
+  "health_ok": true,
+  "allowed_actions": [
+    "discord_nudge"
+  ],
+  "blocked_actions": [
+    "fallback_swap",
+    "reschedule_blocked",
+    "approval_promote",
+    "story_post",
+    "evergreen_reminder",
+    "approved_repost",
+    "high_stakes_promo",
+    "reddit_post",
+    "blog_publish",
+    "ad_budget_change",
+    "gmb_reply",
+    "price_promo"
+  ],
+  "decisions": [
+    {
+      "decision_id": "mode_decision",
+      "action": "determine_autonomy_mode",
+      "result": "MINIMAL",
+      "reason": "Trust score 8.0 → mode MINIMAL",
+      "timestamp": "2026-04-22T12:08:11.015Z"
+    }
+  ]
+}

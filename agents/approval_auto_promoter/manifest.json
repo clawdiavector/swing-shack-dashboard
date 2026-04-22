@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "approval_auto_promoter",
+  "layer": 7,
+  "role": "Auto-promotes low-risk approved items to publish-ready — excludes price/promo/event/legal",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_approval_auto_promoter.js"],
+  "inputs": {
+    "data/autonomy-rules.json": "Rules",
+    "data/approval-queue.json": "Approval queue",
+    "data/brand-guard-report.json": "Brand pass status"
+  },
+  "outputs": {
+    "data/auto-approval-actions.json": "Promotion actions log"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "live_nudge_dispatcher",
+  "layer": 7,
+  "role": "Takes dry-run nudges live — Discord ops channel only, high severity, inside send window",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_live_nudge_dispatcher.js"],
+  "inputs": {
+    "data/autonomy-rules.json": "Rules engine output",
+    "data/nudge-queue.json": "Pending nudges",
+    "data/discord-deliveries.json": "Delivery history"
+  },
+  "outputs": {
+    "data/live-nudge-log.json": "Dispatched nudges log"
+  }
+}

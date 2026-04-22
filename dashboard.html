@@ -390,6 +390,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .pb-log-used { font-size: 0.7rem; text-align: center; }
 .pb-used-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; }
 
+/* AUTONOMY CONTROL */
+.ac-header { display: flex; gap: 16px; margin-bottom: 8px; }
+.ac-mode { font-size: 0.75rem; font-weight: 700; color: var(--text); }
+.ac-trust { font-size: 0.72rem; color: var(--muted); }
+.ac-summary { font-size: 0.68rem; color: var(--muted); margin-bottom: 8px; }
+.ac-table { font-size: 0.65rem; }
+.ac-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 8px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ac-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 8px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.ac-id { color: var(--text); font-weight: 600; }
+.ac-risk { text-transform: uppercase; font-size: 0.58rem; }
+.ac-rule { color: var(--muted); font-size: 0.62rem; }
+
+/* AUTONOMY SAFETY LOG */
+.sl-summary { font-size: 0.68rem; color: var(--muted); margin-bottom: 8px; }
+.sl-table { font-size: 0.65rem; }
+.sl-head { display: grid; grid-template-columns: 24px 2fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.sl-row { display: grid; grid-template-columns: 24px 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.sl-icon { font-size: 0.7rem; }
+.sl-text { font-size: 0.65rem; }
+.sl-type { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; }
+
 /* WEEK IN REVIEW */
 .wr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin-bottom: 4px; }
 .wr-cell { display: flex; flex-direction: column; background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; }
@@ -476,7 +497,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/22, 12:34:07 SAST</span>
+    <span class="summary-value">2026/04/22, 14:11:25 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>

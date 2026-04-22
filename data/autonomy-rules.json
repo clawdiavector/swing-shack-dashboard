@@ -1,0 +1,133 @@
+{
+  "schema": "https://clawdia.io/agents/autonomy-rules-engine/v1",
+  "generated": "2026-04-22T12:08:11.015Z",
+  "trust_score": 8,
+  "autonomy_mode": "MINIMAL",
+  "health_ok": true,
+  "rules": [
+    {
+      "id": "discord_nudge",
+      "action": "discord_nudge",
+      "allowed": true,
+      "risk": "LOW",
+      "channels": [
+        "ops",
+        "planning"
+      ],
+      "require_approval": false,
+      "max_per_day": 20
+    },
+    {
+      "id": "fallback_swap",
+      "action": "fallback_swap",
+      "allowed": false,
+      "risk": "LOW",
+      "conditions": [
+        "qa_passed",
+        "brand_passed",
+        "format_match",
+        "no_campaign_conflict"
+      ],
+      "max_per_day": 5
+    },
+    {
+      "id": "reschedule_blocked",
+      "action": "reschedule_blocked",
+      "allowed": false,
+      "risk": "LOW",
+      "conditions": [
+        "already_scheduled",
+        "slot_available"
+      ],
+      "max_per_day": 3
+    },
+    {
+      "id": "approval_promote",
+      "action": "approval_promote",
+      "allowed": false,
+      "risk": "LOW",
+      "conditions": [
+        "qa_passed",
+        "brand_passed",
+        "asset_approved",
+        "unchanged_since_approval",
+        "low_risk_content"
+      ],
+      "exclusions": [
+        "price",
+        "promo_code",
+        "event_promise",
+        "legal"
+      ],
+      "max_per_day": 10
+    },
+    {
+      "id": "story_post",
+      "action": "story_post",
+      "allowed": false,
+      "risk": "MEDIUM",
+      "reason": "Not yet enabled"
+    },
+    {
+      "id": "evergreen_reminder",
+      "action": "evergreen_reminder",
+      "allowed": false,
+      "risk": "LOW",
+      "conditions": [
+        "evergreen_content",
+        "no_pricing",
+        "no_promo"
+      ],
+      "max_per_day": 3
+    },
+    {
+      "id": "approved_repost",
+      "action": "approved_repost",
+      "allowed": false,
+      "risk": "MEDIUM",
+      "reason": "Requires manual review first"
+    },
+    {
+      "id": "high_stakes_promo",
+      "action": "high_stakes_promo",
+      "allowed": false,
+      "risk": "HIGH",
+      "reason": "Requires human review"
+    },
+    {
+      "id": "reddit_post",
+      "action": "reddit_post",
+      "allowed": false,
+      "risk": "HIGH",
+      "reason": "Requires manual review"
+    },
+    {
+      "id": "blog_publish",
+      "action": "blog_publish",
+      "allowed": false,
+      "risk": "HIGH",
+      "reason": "Requires QA pass + brand pass + manual approval"
+    },
+    {
+      "id": "ad_budget_change",
+      "action": "ad_budget_change",
+      "allowed": false,
+      "risk": "CRITICAL",
+      "reason": "Never autonomous"
+    },
+    {
+      "id": "gmb_reply",
+      "action": "gmb_reply",
+      "allowed": false,
+      "risk": "HIGH",
+      "reason": "Requires manual review"
+    },
+    {
+      "id": "price_promo",
+      "action": "price_promo",
+      "allowed": false,
+      "risk": "HIGH",
+      "reason": "Never autonomous — pricing risk"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "autonomy_rules_engine",
+  "layer": 7,
+  "role": "Brain for what system can do without asking — trust thresholds, allowed actions, autonomy mode",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_autonomy_rules_engine.js"],
+  "inputs": {
+    "data/agent-scorecards.json": "Trust score",
+    "data/system-health.json": "System health"
+  },
+  "outputs": {
+    "data/autonomy-rules.json": "All rules with allowed/blocked status",
+    "data/autonomy-decisions.json": "Current autonomy decisions"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "https://clawdia.io/agents/low-risk-publisher/v1",
+  "generated": "2026-04-22T12:08:30.682Z",
+  "kill_switch": true,
+  "mode": "DRY_RUN",
+  "autonomy_mode": "MINIMAL",
+  "rule": "evergreen_reminder",
+  "low_risk_candidates": 0,
+  "published": 0,
+  "dry_run": 0,
+  "log": []
+}

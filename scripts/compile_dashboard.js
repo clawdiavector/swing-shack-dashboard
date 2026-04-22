@@ -133,6 +133,11 @@ const toStop     = readJson('what-to-stop.json')          || null;
 const ownerPf    = readJson('owner-performance.json')    || null;
 const execBrief  = readJson('executive-brief.json')        || null;
 const trendDelta = readJson('trend-delta.json')          || null;
+const autonomyRules = readJson('autonomy-rules.json')     || null;
+const autoSwaps    = readJson('auto-swaps.json')         || null;
+const autoApprov   = readJson('auto-approval-actions.json') || null;
+const liveNudges   = readJson('live-nudge-log.json')     || null;
+const autopub      = readJson('autopublished-items.json') || null;
 const today = new Date().toISOString().split('T')[0];
 let todayLearn = null;
 try { todayLearn = JSON.parse(fs.readFileSync(path.join(DATA_DIR, '..', 'memory', 'daily', today + '.json'), 'utf8')); } catch {}
@@ -271,6 +276,29 @@ if (todayLearn) {
 var learnSection = buildSection('&#129504 TODAY\'S LEARNING', freshnessBadge(todayLearn && todayLearn.date), learnContent);
 
 // AGENT RUNS TODAY
+// ── AUTONOMY CONTROL ───────────────────────────────────────────
+var autoMode = (autonomyRules && autonomyRules.autonomy_mode) ? autonomyRules.autonomy_mode : 'OFF';
+var modeColor = {'LIMITED':'pub-ok','MINIMAL':'pub-wait','ALERTS_ONLY':'pub-warn','OFF':'pub-blocked'}[autoMode] || 'pub-blocked';
+var trustScore = autonomyRules ? autonomyRules.trust_score : 0;
+var allowedCount = (autonomyRules && autonomyRules.rules) ? autonomyRules.rules.filter(function(r){ return r.allowed; }).length : 0;
+var blockedCount = (autonomyRules && autonomyRules.rules) ? autonomyRules.rules.filter(function(r){ return !r.allowed; }).length : 0;
+var allowedRows = (autonomyRules && autonomyRules.rules) ? autonomyRules.rules.filter(function(r){ return r.allowed; }).slice(0,8).map(function(r){
+  return '<div class="ac-row"><div class="ac-id">' + escHtml(r.id||'') + '</div><div class="ac-risk">' + r.risk + '</div><div class="ac-rule">' + (r.max_per_day ? 'max:'+r.max_per_day : 'unlimited') + '</div></div>';
+}).join('') : '';
+var autoControlContent = '<div class="ac-header"><div class="ac-mode">Mode: <span class="' + modeColor + '">' + autoMode + '</span></div><div class="ac-trust">Trust: ' + trustScore + '/10</div></div><div class="ac-summary">Allowed: ' + allowedCount + ' | Blocked: ' + blockedCount + '</div><div class="ac-table"><div class="ac-head"><span>Action</span><span>Risk</span><span>Limit</span></div>' + allowedRows + '</div>';
+var autoControlSection = buildSection('&#129302 AUTONOMY CONTROL', freshnessBadge(autonomyRules && autonomyRules.generated), autoControlContent);
+
+// ── AUTONOMY SAFETY LOG ──────────────────────────────────────────
+var safetyEntries = [];
+if (autoSwaps && autoSwaps.log) safetyEntries = safetyEntries.concat(autoSwaps.log.map(function(e){ return { type: 'swap', icon: '&#8635;', text: (e.original_hook||e.original_item_id||'slot') + ' swapped with ' + (e.fallback_hook||e.fallback_item_id||'fallback'), status: 'ok', id: e.swap_id }; }));
+if (autoApprov && autoApprov.log) safetyEntries = safetyEntries.concat(autoApprov.log.map(function(e){ return { type: 'promote', icon: '&#9654;', text: e.item_id + ': ' + e.previous_status + ' → ' + e.new_status, status: 'ok', id: e.action_id }; }));
+if (liveNudges && liveNudges.log) safetyEntries = safetyEntries.concat(liveNudges.log.map(function(e){ return { type: 'nudge', icon: '&#128172', text: (e.message_preview||e.nudge_type||'nudge').substring(0,60), status: e.status==='queued_live'?'ok':'warn', id: e.log_id }; }));
+if (autopub && autopub.log) safetyEntries = safetyEntries.concat(autopub.log.map(function(e){ return { type: 'autopub', icon: '&#128640', text: (e.item_id||e.item_type||'item') + ' (' + e.status + ')', status: e.status==='dry_run'?'warn':'ok', id: e.autopublish_id }; }));
+var safetyRows = safetyEntries.slice(0,12).map(function(e){ var sc = e.status==='ok' ? 'pub-ok' : 'pub-warn'; return '<div class="sl-row"><span class="sl-icon">' + e.icon + '</span><span class="sl-text ' + sc + '">' + escHtml(e.text) + '</span><span class="sl-type">' + e.type + '</span></div>'; }).join('');
+var blockedActions = (autoSwaps ? autoSwaps.swaps_performed||0 : 0) + (autoApprov ? autoApprov.promoted||0 : 0);
+var safetyContent = '<div class="sl-summary">Total auto-actions: ' + safetyEntries.length + ' | Swaps: ' + (autoSwaps&&autoSwaps.swaps_performed||0) + ' | Promotes: ' + (autoApprov&&autoApprov.promoted||0) + ' | Nudges: ' + (liveNudges&&liveNudges.dispatched||0) + '</div><div class="sl-table"><div class="sl-head"><span></span><span>Action</span><span>Type</span></div>' + safetyRows + '</div>';
+var safetySection = buildSection('&#128737 AUTONOMY SAFETY LOG', freshnessBadge(autonomyRules && autonomyRules.generated), safetyContent);
+
 // ── WEEK IN REVIEW ──────────────────────────────────────────────
 var weekReviewContent = '<p class="empty">Run weekly_reporter.</p>';
 if (weeklyRep) {
@@ -1664,6 +1692,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .pb-log-plat { font-size: 0.65rem; color: var(--muted); }
 .pb-log-used { font-size: 0.7rem; text-align: center; }
 .pb-used-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; }
+
+/* AUTONOMY CONTROL */
+.ac-header { display: flex; gap: 16px; margin-bottom: 8px; }
+.ac-mode { font-size: 0.75rem; font-weight: 700; color: var(--text); }
+.ac-trust { font-size: 0.72rem; color: var(--muted); }
+.ac-summary { font-size: 0.68rem; color: var(--muted); margin-bottom: 8px; }
+.ac-table { font-size: 0.65rem; }
+.ac-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 8px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ac-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 8px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.ac-id { color: var(--text); font-weight: 600; }
+.ac-risk { text-transform: uppercase; font-size: 0.58rem; }
+.ac-rule { color: var(--muted); font-size: 0.62rem; }
+
+/* AUTONOMY SAFETY LOG */
+.sl-summary { font-size: 0.68rem; color: var(--muted); margin-bottom: 8px; }
+.sl-table { font-size: 0.65rem; }
+.sl-head { display: grid; grid-template-columns: 24px 2fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.sl-row { display: grid; grid-template-columns: 24px 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.sl-icon { font-size: 0.7rem; }
+.sl-text { font-size: 0.65rem; }
+.sl-type { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; }
 
 /* WEEK IN REVIEW */
 .wr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin-bottom: 4px; }

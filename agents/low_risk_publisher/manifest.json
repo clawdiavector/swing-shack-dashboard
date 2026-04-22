@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "low_risk_publisher",
+  "layer": 7,
+  "role": "First live autopublish gate — KILL SWITCH enabled, evergreen/reminder posts only",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_low_risk_publisher.js"],
+  "inputs": {
+    "data/autonomy-rules.json": "Rules",
+    "data/ready-for-approval.json": "QA-cleared items",
+    "data/schedule-board.json": "Schedule board"
+  },
+  "outputs": {
+    "data/autopublished-items.json": "Autopublish log"
+  }
+}
