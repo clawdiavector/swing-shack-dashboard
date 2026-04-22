@@ -1258,6 +1258,104 @@
       "score": 85,
       "suggested_comment": "Lessons plus data - we provide both to beginners.",
       "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-22-6",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "SA Simulator Build Budget",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1nl8ov2/seeking_advice_building_a_golf_simulator_in_south/",
+      "content_preview": "$1500-$2000 budget build in SA - launch monitors, mats, software",
+      "location_tag": "South Africa",
+      "problem_type": "simulator-build",
+      "engagement_level": "high",
+      "score": 95,
+      "suggested_comment": "Try before you buy - visit an indoor facility first.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-22-7",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "How to Practice on Simulator",
+      "url": "https://www.reddit.com/r/golf/comments/1je4vg4/how_do_you_practice_on_a_golf_simulator/",
+      "content_preview": "Improved swing with metrics - confidence in distances improved",
+      "location_tag": "Global",
+      "problem_type": "practice-improvement",
+      "engagement_level": "high",
+      "score": 80,
+      "suggested_comment": "Data shows what practice actually works - book a session.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-22-8",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Sim Installed How to Practice",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/15pk8d5/sim_installed_now_how_to_practice/",
+      "content_preview": "20 HCP looking for practice programs - what to use?",
+      "location_tag": "Global",
+      "problem_type": "practice-programs",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Structured practice with data beats random hitting.",
+      "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-22-9",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Simulator to Course Translation",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1njsf2f/how_well_does_practicing_in_a_simulator_translate/",
+      "content_preview": "Time practicing improved game - club and ball data helpful",
+      "location_tag": "Global",
+      "problem_type": "practice-improvement",
+      "engagement_level": "medium",
+      "score": 80,
+      "suggested_comment": "Data shows what needs work - indoor practice supplements course play.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-22-10",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Simulator to Fix Slice",
+      "url": "https://www.reddit.com/r/golf/comments/108ahly/advice_on_best_use_of_a_simulator_for_practice/",
+      "content_preview": "Coach gave targets - turned hard slice into little fade",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Launch data shows face and path - slice causes.",
+      "comment_tone": "direct"
+    },
+    {
+      "id": "mp-2026-04-22-11",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Former Slicers - How to Cure",
+      "url": "https://www.reddit.com/r/golf/comments/1e37m8j/former_slicers_of_rgolf_what_drills_and_process/",
+      "content_preview": "One change at a time - grip, ball position, feel - slowed down",
+      "location_tag": "Global",
+      "problem_type": "slice-fix",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Launch data shows exactly what changed - not guesswork.",
+      "comment_tone": "informative"
+    },
+    {
+      "id": "mp-2026-04-22-12",
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Simulator for Beginner",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/wzzf6f/any_golf_simulators_worth_it_for_a_very_beginner/",
+      "content_preview": "Beginners improve faster with feedback - simulator worth it",
+      "location_tag": "Global",
+      "problem_type": "beginner-simulator",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Data accelerates improvement - book a session.",
+      "comment_tone": "direct"
     }
   ],
   "summary": {
@@ -1269,7 +1367,7 @@
     ]
   },
   "scan_date": "2026-04-22",
-  "scan_time": "07:04 SAST",
-  "next_scan": "2026-04-22T12:00 SAST",
-  "total_opportunities": 90
+  "scan_time": "12:08 SAST",
+  "next_scan": "2026-04-22T18:00 SAST",
+  "total_opportunities": 97
 }
