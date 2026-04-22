@@ -1,0 +1,21 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "learning_summariser",
+  "layer": 6,
+  "role": "What to repeat vs what to stop — learns from outcomes, anomalies, missed opps",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": ["run_learning_summariser.js"],
+  "inputs": {
+    "data/recommendation-outcomes.json": "Outcome data",
+    "data/anomaly-alerts.json":          "Alert data",
+    "data/missed-opportunities.json":    "Missed opps",
+    "data/postback-log.json":            "Postback events",
+    "data/agent-runs.json":             "Agent performance"
+  },
+  "outputs": {
+    "data/weekly-learnings.json":   "All learnings",
+    "data/what-to-repeat.json":     "Repeat actions",
+    "data/what-to-stop.json":       "Stop actions"
+  }
+}

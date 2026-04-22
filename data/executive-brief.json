@@ -1,0 +1,47 @@
+{
+  "schema": "https://clawdia.io/agents/executive-brief-builder/v1",
+  "generated": "2026-04-22T10:33:26.848Z",
+  "period": {
+    "from": "2026-04-15",
+    "to": "2026-04-22"
+  },
+  "headline": {
+    "published": 0,
+    "win_rate": "0%",
+    "alerts": 0,
+    "owners_overload": 0
+  },
+  "bullets": [
+    {
+      "priority": 1,
+      "type": "win",
+      "text": "0 items published this week"
+    },
+    {
+      "priority": 2,
+      "type": "problem",
+      "text": "No critical problems this week"
+    },
+    {
+      "priority": 3,
+      "type": "priority",
+      "text": "Execute top recommendation from scoring"
+    },
+    {
+      "priority": 4,
+      "type": "risk",
+      "text": "Alert: "
+    },
+    {
+      "priority": 5,
+      "type": "action",
+      "text": "Continue normal execution — all gates green"
+    }
+  ],
+  "evidence": {
+    "top_hook": null,
+    "top_cta": null,
+    "top_service": null,
+    "biggest_leak": null
+  }
+}

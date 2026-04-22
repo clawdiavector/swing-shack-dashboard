@@ -1,0 +1,20 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "executive_brief_builder",
+  "layer": 6,
+  "role": "5-bullet executive brief — biggest win, biggest problem, week's priority, risk to watch, action to take",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": ["run_executive_brief_builder.js"],
+  "inputs": {
+    "data/weekly-report.json":          "Weekly stats",
+    "data/anomaly-alerts.json":        "Alerts",
+    "data/recommendation-outcomes.json":"Outcomes",
+    "data/owner-performance.json":    "Owner data",
+    "data/recommendation-scores.json": "Top recs",
+    "data/missed-opportunities.json":  "Missed opps"
+  },
+  "outputs": {
+    "data/executive-brief.json": "5-bullet brief"
+  }
+}

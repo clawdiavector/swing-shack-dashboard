@@ -1,0 +1,19 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "owner_performance_reporter",
+  "layer": 6,
+  "role": "Owner workload — output count, publish count, blocked tasks, approval delays, overload risk",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": ["run_owner_performance_reporter.js"],
+  "inputs": {
+    "data/agent-runs.json":              "Agent runs",
+    "data/published-posts.json":         "Published posts",
+    "data/approval-actions.json":       "Approval actions",
+    "data/daily-task-cards.json":       "Task cards",
+    "data/recommendation-outcomes.json": "Attribution"
+  },
+  "outputs": {
+    "data/owner-performance.json": "Owner stats by owner"
+  }
+}

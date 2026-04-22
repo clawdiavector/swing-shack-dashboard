@@ -1,0 +1,23 @@
+{
+  "schema": "https://clawdia.io/agents/learning-summariser/v1",
+  "generated": "2026-04-22T10:33:26.807Z",
+  "period_from": "2026-04-15",
+  "period_to": "2026-04-22",
+  "summary": {
+    "total_published": 0,
+    "used_items_marked": 0,
+    "critical_alerts": 0,
+    "slow_agent_runs": 0
+  },
+  "what_worked": {
+    "hooks": [],
+    "signals": []
+  },
+  "what_didnt_work": {
+    "cold_hooks": [],
+    "critical_failures": []
+  },
+  "anomalies": [],
+  "missed_opportunities": [],
+  "performance_notes": []
+}

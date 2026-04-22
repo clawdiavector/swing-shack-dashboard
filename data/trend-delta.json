@@ -1,0 +1,40 @@
+{
+  "schema": "https://clawdia.io/agents/trend-delta-reporter/v1",
+  "generated": "2026-04-22T10:33:26.929Z",
+  "period_from": "2026-04-15",
+  "period_to": "2026-04-22",
+  "summary": {
+    "hook_patterns_rising": [],
+    "cta_pattern_rising": null,
+    "services_gaining": [],
+    "services_losing": []
+  },
+  "hook_trends": [],
+  "cta_trends": [],
+  "service_trends": {
+    "gaining": [],
+    "losing": []
+  },
+  "platform_metrics": {
+    "instagram": {
+      "avg_engagement": 0,
+      "engagement_delta_pct": 0,
+      "posts_this_week": 0,
+      "posts_delta_pct": 0,
+      "booking_intent_pct": 0
+    }
+  },
+  "content_format_shift": [],
+  "reddit_trends": {
+    "active_topics": [],
+    "total_this_week": 0,
+    "total_prev_week": 0
+  },
+  "blog_seo_trends": {
+    "top_queries": []
+  },
+  "week_over_week": {
+    "published_delta": "0%",
+    "engagement_delta": "0%"
+  }
+}

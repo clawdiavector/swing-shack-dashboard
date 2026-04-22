@@ -1,0 +1,36 @@
+{
+  "schema": "https://clawdia.io/agents/weekly-reporter/v1",
+  "generated": "2026-04-22T10:33:46.065Z",
+  "period": {
+    "from": "2026-04-15",
+    "to": "2026-04-22"
+  },
+  "summary": {
+    "total_recommendations": 0,
+    "published_count": 0,
+    "publish_success_rate": "0%",
+    "publish_failures": 0,
+    "used_items_marked": 0,
+    "agent_runs": 38,
+    "agent_pass_rate": "76%",
+    "critical_alerts": 0,
+    "missed_opportunities": 0,
+    "overload_owners": []
+  },
+  "wins": {
+    "top_hook": null,
+    "top_cta": null,
+    "top_service": null
+  },
+  "leaks": {
+    "biggest_funnel_leak": null,
+    "publish_failures": 0,
+    "critical_alerts": 0
+  },
+  "week_over_week": {
+    "published_change": "+100%",
+    "recommendation_change": "+100%"
+  },
+  "owners": {},
+  "alerts": []
+}

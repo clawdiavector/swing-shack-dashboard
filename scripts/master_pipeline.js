@@ -155,6 +155,19 @@ const STAGES = [
     ]
   },
   {
+    name: 'Reporting',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['weekly-report.json', 'weekly-report.md', 'weekly-learnings.json', 'what-to-repeat.json', 'what-to-stop.json', 'executive-brief.json', 'owner-performance.json', 'trend-delta.json'],
+    steps: [
+      { name: 'weekly_reporter',              script: `node ${BASE}/scripts/run_weekly_reporter.js`,             critical: false },
+      { name: 'learning_summariser',         script: `node ${BASE}/scripts/run_learning_summariser.js`,        critical: false },
+      { name: 'executive_brief_builder',     script: `node ${BASE}/scripts/run_executive_brief_builder.js`,    critical: false },
+      { name: 'owner_performance_reporter',  script: `node ${BASE}/scripts/run_owner_performance_reporter.js`, critical: false },
+      { name: 'trend_delta_reporter',        script: `node ${BASE}/scripts/run_trend_delta_reporter.js`,        critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

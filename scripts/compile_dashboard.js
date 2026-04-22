@@ -127,6 +127,12 @@ const schedItems= readJson('scheduled-items.json')       || null;
 const pubFail   = readJson('publish-failures.json')      || null;
 const schedBoard= readJson('schedule-board.json')        || null;
 const postbackLog=readJson('postback-log.json')         || null;
+const weeklyRep  = readJson('weekly-report.json')          || null;
+const toRepeat   = readJson('what-to-repeat.json')        || null;
+const toStop     = readJson('what-to-stop.json')          || null;
+const ownerPf    = readJson('owner-performance.json')    || null;
+const execBrief  = readJson('executive-brief.json')        || null;
+const trendDelta = readJson('trend-delta.json')          || null;
 const today = new Date().toISOString().split('T')[0];
 let todayLearn = null;
 try { todayLearn = JSON.parse(fs.readFileSync(path.join(DATA_DIR, '..', 'memory', 'daily', today + '.json'), 'utf8')); } catch {}
@@ -265,6 +271,45 @@ if (todayLearn) {
 var learnSection = buildSection('&#129504 TODAY\'S LEARNING', freshnessBadge(todayLearn && todayLearn.date), learnContent);
 
 // AGENT RUNS TODAY
+// ── WEEK IN REVIEW ──────────────────────────────────────────────
+var weekReviewContent = '<p class="empty">Run weekly_reporter.</p>';
+if (weeklyRep) {
+  var wSum = weeklyRep.summary || {};
+  var wWins = weeklyRep.wins || {};
+  var wLeaks = weeklyRep.leaks || {};
+  var wrRows = '';
+  if (wWins.top_hook) wrRows += '<div class="wr-cell"><span class="wr-label">Top hook</span><span class="wr-val">' + escHtml(String(wWins.top_hook.hook_id||'')).substring(0,25) + ' (' + (wWins.top_hook.publish_count||0) + 'x)</span></div>';
+  if (wWins.top_cta) wrRows += '<div class="wr-cell"><span class="wr-label">Top CTA</span><span class="wr-val">' + escHtml(String(wWins.top_cta||'')) + '</span></div>';
+  if (wLeaks.biggest_funnel_leak) wrRows += '<div class="wr-cell wr-warn"><span class="wr-label">Funnel leak</span><span class="wr-val">' + escHtml(String(wLeaks.biggest_funnel_leak)).substring(0,40) + '</span></div>';
+  weekReviewContent = wrRows || '<div class="wr-cell"><span class="wr-label">Published</span><span class="wr-val">' + (wSum.published_count||0) + ' (' + (wSum.publish_success_rate||'0%') + ')</span></div>';
+}
+var weekReviewSection = buildSection('&#128200 WEEK IN REVIEW', freshnessBadge(weeklyRep && weeklyRep.generated), weekReviewContent);
+
+// ── LEARNINGS TO KEEP ─────────────────────────────────────────────
+var learnKeepContent = '<p class="empty">Run learning_summariser.</p>';
+if (toRepeat && toRepeat.items && toRepeat.items.length > 0) {
+  var repeatHTML = toRepeat.items.slice(0,4).map(function(r){ return '<div class="lk-row lk-ok">&#9654; ' + escHtml(String(r.hook_id||r.action||'')).substring(0,35) + '</div>'; }).join('');
+  var stopHTML = '';
+  if (toStop && toStop.items && toStop.items.length > 0) {
+    stopHTML = '<div class="lk-heading">&#128325 STOP</div>' + toStop.items.slice(0,3).map(function(s){ return '<div class="lk-row lk-warn">&#9632; ' + escHtml(String(s.hook_id||s.action||s.message||'')).substring(0,35) + '</div>'; }).join('');
+  }
+  learnKeepContent = '<div class="lk-repeat-list">' + repeatHTML + '</div>' + stopHTML;
+}
+var learnKeepSection = buildSection('&#129504 LEARNINGS TO KEEP', freshnessBadge(toRepeat && toRepeat.generated), learnKeepContent);
+
+// ── OWNER PERFORMANCE ─────────────────────────────────────────────
+var ownerContent = '<p class="empty">Run owner_performance_reporter.</p>';
+if (ownerPf && ownerPf.by_owner && ownerPf.by_owner.length > 0) {
+  var owRows = ownerPf.by_owner.slice(0,6).map(function(o){
+    var ovl = o.is_overload ? '<span class="pub-blocked">OVERLOAD</span>' : '<span class="pub-ok">ok</span>';
+    return '<div class="ow-row"><div class="ow-owner">' + escHtml(String(o.owner||'')) + '</div><div class="ow-count">' + o.published + 'pub</div><div class="ow-fail">' + o.failed + 'fail</div><div class="ow-wins">' + o.wins + 'wins</div><div class="ow-ovl">' + ovl + '</div></div>';
+  }).join('');
+  var owRisks = (ownerPf.risk_flags||[]).slice(0,2).map(function(r){ return '<span class="pub-blocked">&#9888; ' + escHtml(String((r.owner||r.type||'') + ' ' + (r.message||''))).substring(0,50) + '</span>'; }).join(' ');
+  ownerContent = '<div class="ow-sum">' + ownerPf.summary.total_owners + ' owners | ' + ownerPf.summary.total_published + ' published | <span class="pub-blocked">' + ownerPf.summary.overloaded_owners.length + ' overloaded</span></div><div class="ow-table"><div class="ow-head"><span>Owner</span><span>Pub</span><span>Fail</span><span>Wins</span><span>Load</span></div>' + owRows + '</div>' + (owRisks ? '<div class="ow-risks">' + owRisks + '</div>' : '');
+}
+var ownerSection = buildSection('&#129309 OWNER PERFORMANCE', freshnessBadge(ownerPf && ownerPf.generated), ownerContent);
+
+
 var runContent = '<p class="empty">No agent runs recorded yet.</p>';
 if (agentRuns && agentRuns.agents) {
   var runToday = new Date().toISOString().split('T')[0];
@@ -1620,6 +1665,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .pb-log-used { font-size: 0.7rem; text-align: center; }
 .pb-used-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; }
 
+/* WEEK IN REVIEW */
+.wr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin-bottom: 4px; }
+.wr-cell { display: flex; flex-direction: column; background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; }
+.wr-label { font-size: 0.58rem; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.wr-val { font-size: 0.68rem; color: var(--text); font-weight: 600; }
+.wr-warn .wr-val { color: #f0a500; }
+
+/* LEARNINGS TO KEEP */
+.lk-repeat-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+.lk-heading { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin: 6px 0 4px; letter-spacing: 0.05em; }
+.lk-row { font-size: 0.68rem; padding: 4px 6px; border-radius: 4px; color: var(--text); }
+.lk-ok { background: rgba(0,255,136,0.08); color: #00ff88; }
+.lk-warn { background: rgba(255,100,0,0.08); color: #ff6444; }
+
+/* OWNER PERFORMANCE */
+.ow-sum { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.ow-head { display: grid; grid-template-columns: 1.5fr 0.7fr 0.7fr 0.7fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ow-row { display: grid; grid-template-columns: 1.5fr 0.7fr 0.7fr 0.7fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.ow-owner { font-weight: 600; color: var(--text); }
+.ow-count, .ow-fail, .ow-wins { color: var(--muted); font-size: 0.62rem; }
+.ow-ovl { font-size: 0.62rem; }
+.ow-risks { font-size: 0.62rem; margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -1691,6 +1759,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${makeSection}
   ${readySection}
   ${fixSection}
+  ${weekReviewSection}
+  ${learnKeepSection}
+  ${ownerSection}
   ${boardSection}
   ${postSection}
   ${runSection}

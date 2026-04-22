@@ -1,0 +1,19 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "trend_delta_reporter",
+  "layer": 6,
+  "role": "Week-on-week shifts — hook patterns, CTA patterns, service gains/losses, Reddit/SEO/booking intent changes",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": ["run_trend_delta_reporter.js"],
+  "inputs": {
+    "data/recommendation-scores.json": "Hook/CTA patterns",
+    "data/reddit-trends.json":         "Reddit trends",
+    "data/blog-trends.json":          "Blog/SEO trends",
+    "data/ig-analytics.json":         "IG metrics",
+    "data/published-posts.json":      "Published posts"
+  },
+  "outputs": {
+    "data/trend-delta.json": "Week-on-week delta"
+  }
+}

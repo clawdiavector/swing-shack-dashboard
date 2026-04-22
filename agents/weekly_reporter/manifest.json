@@ -1,0 +1,22 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "weekly_reporter",
+  "layer": 6,
+  "role": "Weekly report — top hook, CTA, service, funnel leak, win rate, owner workload, week-on-week change",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": ["run_weekly_reporter.js"],
+  "inputs": {
+    "data/recommendation-outcomes.json":  "Attribution outcomes",
+    "data/published-posts.json":         "Publish history",
+    "data/postback-log.json":            "Postback events",
+    "data/agent-runs.json":              "Agent run stats",
+    "data/recommendation-scores.json":   "Top recommendations",
+    "data/anomaly-alerts.json":          "Critical alerts",
+    "data/missed-opportunities.json":     "Missed opps by category"
+  },
+  "outputs": {
+    "data/weekly-report.json": "Full weekly stats",
+    "data/weekly-report.md":   "Markdown summary"
+  }
+}

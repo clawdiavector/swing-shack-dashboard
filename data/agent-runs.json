@@ -1247,7 +1247,24 @@
         "passed": 1,
         "failed": 0
       }
+    ],
+    "weekly_reporter": [
+      {
+        "agent_id": "weekly_reporter",
+        "run_at": "2026-04-22T10:33:46.072Z",
+        "duration_ms": 45,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_weekly_reporter.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "passed": 1,
+        "failed": 0
+      }
     ]
   },
-  "updated": "2026-04-22T09:41:05.280Z"
+  "updated": "2026-04-22T10:33:46.073Z"
 }
