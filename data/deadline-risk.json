@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-22T06:23:07.546Z",
+  "updated": "2026-04-22T06:31:15.069Z",
   "generated": "generate_deadline_risk.js",
   "summary": {
     "total_risks": 4,
@@ -10,7 +10,7 @@
   },
   "risks": [
     {
-      "risk_id": "risk_mo9o21aymgd3",
+      "risk_id": "risk_mo9ochh9zuz6",
       "type": "owner_overload",
       "title": "Coach Cat has 10 tasks this week",
       "owner": "Coach Cat",
@@ -22,7 +22,7 @@
       "source": "owner_workload"
     },
     {
-      "risk_id": "risk_mo9o21ay6be6",
+      "risk_id": "risk_mo9ochh9ahrm",
       "type": "service_no_content",
       "title": "Club Fitting is priority #1 but has no scheduled content",
       "owner": "Divan",
@@ -36,7 +36,7 @@
       "source": "sales_priority"
     },
     {
-      "risk_id": "risk_mo9o21aykdkr",
+      "risk_id": "risk_mo9ochh99qrj",
       "type": "missed_opportunity_ignored",
       "title": "Rework the \"driver\" hook into a follow-up Reel this week — I",
       "owner": "Coach Cat",
@@ -48,7 +48,7 @@
       "source": "missed_opportunities"
     },
     {
-      "risk_id": "risk_mo9o21aywvab",
+      "risk_id": "risk_mo9ochh9pdp6",
       "type": "missed_opportunity_ignored",
       "title": "Rework the \"lessons\" hook into a follow-up Reel this week — ",
       "owner": "Coach Cat",

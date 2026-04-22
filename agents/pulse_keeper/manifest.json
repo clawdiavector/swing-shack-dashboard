@@ -1,0 +1,30 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "pulse_keeper",
+  "layer": 1,
+  "role": "System health, pipeline reliability, dashboard uptime",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "generate_pulse_keeper.js",
+    "generate_agent_scorecards.js",
+    "store_daily_learnings.js"
+  ],
+  "inputs": {
+    "logs/daily-run.log":         "Pipeline execution log",
+    "data/build-meta.json":        "Build metadata",
+    "data/dashboard-summary.json": "Dashboard summary",
+    "data/system-health.json":     "Prior health state"
+  },
+  "outputs": {
+    "data/system-health.json":  "System health report",
+    "data/agent-scorecards.json":"Agent scorecards",
+    "memory/daily/YYYY-MM-DD.json":"Daily learning log"
+  },
+  "validates": [
+    "data/system-health.json schema",
+    "data/agent-scorecards.json schema"
+  ],
+  "runs_on": ["daily_pipeline", "manual_trigger"],
+  "next_agent": null
+}

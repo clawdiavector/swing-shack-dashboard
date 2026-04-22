@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-22T06:23:07.637Z",
+  "updated": "2026-04-22T06:31:15.152Z",
   "generated": "generate_capacity_shift.js",
   "summary": {
     "total_shifts": 9,
@@ -15,12 +15,12 @@
   },
   "shifts": [
     {
-      "shift_id": "shift_mo9o21dhq5hm",
+      "shift_id": "shift_mo9ochjkfep2",
       "action": "reassign",
       "from_owner": "Coach Cat",
       "to_owner": "Swing Shack page",
       "task_title": "A/B Test: youtube_angle_to_ig",
-      "task_id": "task_mo9o218g5z7t",
+      "task_id": "task_mo9ochersw1o",
       "reason": "Coach Cat has 10 tasks — move low-urgency item to balance",
       "new_status": "ready",
       "urgency_before": "this_week",
@@ -28,7 +28,7 @@
       "severity": "high"
     },
     {
-      "shift_id": "shift_mo9o21dhx2ny",
+      "shift_id": "shift_mo9ochjkjb3q",
       "action": "delay",
       "owner": "Divan",
       "asset": "🖼 High-quality static image",
@@ -38,7 +38,7 @@
       "severity": "low"
     },
     {
-      "shift_id": "shift_mo9o21dhfsxr",
+      "shift_id": "shift_mo9ochjky1ih",
       "action": "delay",
       "owner": "Swing Shack page",
       "asset": "🖼 High-quality static image",
@@ -48,7 +48,7 @@
       "severity": "low"
     },
     {
-      "shift_id": "shift_mo9o21dhgq41",
+      "shift_id": "shift_mo9ochjkw2ed",
       "action": "delay",
       "owner": "Coach Cat",
       "asset": "📝 Text graphic / booking CTA image",
@@ -58,10 +58,10 @@
       "severity": "low"
     },
     {
-      "shift_id": "shift_mo9o21dhrir2",
+      "shift_id": "shift_mo9ochjkwk7z",
       "action": "fallback_replace",
       "blocked_task": "That slice costing you yards off the tee? TrackMan found it ",
-      "blocked_id": "task_mo9o218gtmiu",
+      "blocked_id": "task_mo9ocherxagq",
       "owner": "Coach Cat / Divan",
       "replacement": null,
       "replacement_id": null,
@@ -70,10 +70,10 @@
       "severity": "high"
     },
     {
-      "shift_id": "shift_mo9o21dhhs4u",
+      "shift_id": "shift_mo9ochjk2mrq",
       "action": "fallback_replace",
       "blocked_task": "Need some help with your putting? Coach Cat explains what ma",
-      "blocked_id": "task_mo9o218g014i",
+      "blocked_id": "task_mo9ocheragua",
       "owner": "Coach Cat",
       "replacement": null,
       "replacement_id": null,
@@ -82,10 +82,10 @@
       "severity": "high"
     },
     {
-      "shift_id": "shift_mo9o21dhsmtj",
+      "shift_id": "shift_mo9ochjk1bnw",
       "action": "fallback_replace",
       "blocked_task": "Need to relax and find your golf swing tempo? Join Coach Cat",
-      "blocked_id": "task_mo9o218gabfd",
+      "blocked_id": "task_mo9ocherlabf",
       "owner": "Coach Cat",
       "replacement": null,
       "replacement_id": null,
@@ -94,24 +94,24 @@
       "severity": "medium"
     },
     {
-      "shift_id": "shift_mo9o21dh1aa6",
+      "shift_id": "shift_mo9ochjkqyb8",
       "action": "reassign_to_page",
       "from_owner": "Coach Cat",
       "to_owner": "Swing Shack page",
       "task_title": "A/B Test: youtube_angle_to_ig",
-      "task_id": "task_mo9o218g5z7t",
+      "task_id": "task_mo9ochersw1o",
       "reason": "Coach Cat is the highest-loaded specialist — move low-priority non-lesson tasks to page",
       "new_status": "ready",
       "urgency_before": "this_week",
       "severity": "medium"
     },
     {
-      "shift_id": "shift_mo9o21dhhv90",
+      "shift_id": "shift_mo9ochjkaxi8",
       "action": "reassign_to_page",
       "from_owner": "Coach Cat",
       "to_owner": "Swing Shack page",
       "task_title": "Book your session with Coach Cat @swingshack ⛳️",
-      "task_id": "task_mo9o218gobfv",
+      "task_id": "task_mo9ocherudcc",
       "reason": "Coach Cat is the highest-loaded specialist — move low-priority non-lesson tasks to page",
       "new_status": "ready",
       "urgency_before": "flexible",

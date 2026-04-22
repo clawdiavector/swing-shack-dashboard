@@ -1,0 +1,28 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "memory_keeper",
+  "layer": 1,
+  "role": "Permanent memory — all campaigns, wins, losses, bugs, patterns",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "store_daily_learnings.js"
+  ],
+  "inputs": {
+    "data/system-health.json":           "System health",
+    "data/agent-scorecards.json":       "Agent scores",
+    "data/recommendation-scores.json":   "Rec scores",
+    "data/recommendation-outcomes.json": "Rec outcomes",
+    "memory/index.json":                "Prior memory index"
+  },
+  "outputs": {
+    "memory/daily/YYYY-MM-DD.json": "Daily learning log",
+    "memory/index.json":             "Updated memory index",
+    "memory/wins/YYYY-MM-DD.json":   "Win records",
+    "memory/losses/YYYY-MM-DD.json": "Loss records",
+    "memory/bugs/YYYY-MM-DD.json":   "Bug records"
+  },
+  "validates": ["memory/daily/YYYY-MM-DD.json created"],
+  "runs_on": ["daily_pipeline", "manual_trigger"],
+  "memory_dir": "memory/"
+}

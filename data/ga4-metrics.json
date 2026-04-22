@@ -1,9 +1,9 @@
 {
-  "updated": "2026-04-22T06:22:56.007Z",
-  "fetched_at": "2026-04-22T06:22:56.007Z",
+  "updated": "2026-04-22T06:31:02.569Z",
+  "fetched_at": "2026-04-22T06:31:02.569Z",
   "property_id": "427380680",
   "data_window": "2026-04-15 to 2026-04-22",
-  "total_sessions": 1064,
+  "total_sessions": 1071,
   "pages": [
     {
       "path": "/",
@@ -63,7 +63,7 @@
     },
     {
       "source": "(direct)",
-      "sessions": 218
+      "sessions": 225
     },
     {
       "source": "c.yoco.com",

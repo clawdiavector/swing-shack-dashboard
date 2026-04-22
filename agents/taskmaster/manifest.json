@@ -1,0 +1,38 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "taskmaster",
+  "layer": 1,
+  "role": "Turn insights into executable task cards with clear owners",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "generate_post_plan.js","generate_sales_priority.js","generate_daily_task_cards.js",
+    "generate_approval_queue.js","generate_deadline_risk.js","generate_blockers.js",
+    "generate_capacity_shift.js","generate_follow_up_queue.js",
+    "generate_experiment_queue.js","generate_scaling_recommendations.js",
+    "generate_kill_list.js","generate_asset_needs.js","generate_owner_workload.js"
+  ],
+  "inputs": {
+    "data/post-plan.json":                   "Post plan",
+    "data/missed-opportunities.json":        "Opportunities",
+    "data/retargeting-recommendations.json": "Retargeting recs",
+    "data/experiment-queue.json":             "Experiments",
+    "data/hook-bank.json":                   "Hook bank"
+  },
+  "outputs": {
+    "data/post-plan.json":                  "Post plan",
+    "data/sales-priority.json":             "Sales priority",
+    "data/daily-task-cards.json":          "Task cards",
+    "data/approval-queue.json":             "Approval queue",
+    "data/deadline-risk.json":             "Deadline risks",
+    "data/blockers.json":                  "Blockers",
+    "data/capacity-shift.json":            "Capacity shifts",
+    "data/asset-needs.json":               "Asset needs",
+    "data/owner-workload.json":            "Owner workload",
+    "data/experiment-queue.json":          "Experiments",
+    "data/scaling-recommendations.json":   "Scale recommendations",
+    "data/kill-list.json":                "Kill list"
+  },
+  "validates": ["data/daily-task-cards.json has entries"],
+  "runs_on": ["daily_pipeline"]
+}

@@ -1,0 +1,38 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "insight_analyst",
+  "layer": 1,
+  "role": "Turn raw data into decisions — anomalies, wins, leaks, opportunities",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "analyse_hooks.js",
+    "extract_youtube_signals.js",
+    "generate_anomaly_alerts.js",
+    "detect_missed_opportunities.js",
+    "generate_funnel_leaks.js",
+    "generate_conversion_attribution.js",
+    "generate_retargeting_recommendations.js",
+    "generate_recommendation_scores.js",
+    "generate_recommendation_outcomes.js"
+  ],
+  "inputs": {
+    "data/ig-analytics.json":         "IG posts and engagement",
+    "data/ga4-report.json":           "Web traffic data",
+    "data/seo-rankings.json":          "SEO rankings",
+    "data/hook-bank.json":            "Hook performance history",
+    "data/recommendation-scores.json": "Prior recommendation scores"
+  },
+  "outputs": {
+    "data/hook-bank.json":                  "Updated hook bank",
+    "data/anomaly-alerts.json":             "Anomaly detections",
+    "data/missed-opportunities.json":        "Missed opportunities",
+    "data/funnel-leaks.json":               "Funnel leak analysis",
+    "data/conversion-attribution.json":    "Conversion attribution",
+    "data/retargeting-recommendations.json":"Retargeting recs",
+    "data/recommendation-scores.json":      "Recommendation scores",
+    "data/recommendation-outcomes.json":    "Recommendation outcomes"
+  },
+  "validates": ["data/recommendation-scores.json schema"],
+  "runs_on": ["daily_pipeline"]
+}

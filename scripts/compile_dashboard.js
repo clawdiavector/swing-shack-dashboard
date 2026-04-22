@@ -98,6 +98,7 @@ const autoMsg   = readJson('auto-messages.json')           || null;
 const supprRul  = readJson('suppression-rules.json')        || null;
 const delAudit = readJson('delivery-audit.json')           || null;
 const sysHealth = readJson('system-health.json')          || null;
+const agentRuns = readJson('agent-runs.json')              || null;
 const today = new Date().toISOString().split('T')[0];
 let todayLearn = null;
 try { todayLearn = JSON.parse(fs.readFileSync(path.join(DATA_DIR, '..', 'memory', 'daily', today + '.json'), 'utf8')); } catch {}
@@ -234,6 +235,31 @@ if (todayLearn) {
   (agents.length ? '<div class="lr-agents">Agent scores: ' + agents.map(a => a.name + ' <b>' + a.score?.toFixed(1) + '</b>').join(' | ') + '</div>' : '');
 }
 var learnSection = buildSection('&#129504 TODAY\'S LEARNING', freshnessBadge(todayLearn && todayLearn.date), learnContent);
+
+// AGENT RUNS TODAY
+var runContent = '<p class="empty">No agent runs recorded yet.</p>';
+if (agentRuns && agentRuns.agents) {
+  var runToday = new Date().toISOString().split('T')[0];
+  var todayRuns = [];
+  Object.entries(agentRuns.agents).forEach(function([agentId, runs]) {
+    var last = runs[runs.length - 1];
+    if (last && last.run_at && last.run_at.split('T')[0] === runToday) {
+      todayRuns.push({ agent_id: agentId, ...last });
+    }
+  });
+  if (todayRuns.length > 0) {
+    var runRows = todayRuns.slice(0, 8).map(function(r) {
+      var badge = r.status === 'PASS' ? '<span class="run-ok">PASS</span>' : r.status === 'PARTIAL' ? '<span class="run-partial">PARTIAL</span>' : '<span class="run-fail">FAIL</span>';
+      var dur = r.duration_ms ? '<span class="run-dur">' + Math.round(r.duration_ms/1000) + 's</span>' : '';
+      var scripts = r.scripts ? r.scripts.map(function(s){ return '<span class="run-script ' + (s.status === 'PASS' ? 'run-script-ok' : 'run-script-fail') + '">' + s.script.replace('.js','') + '</span>'; }).join(' ') : '';
+      return '<div class="run-row"><div class="run-agent">' + (r.name || r.agent_id) + '</div><div class="run-status">' + badge + '</div><div class="run-dur">' + dur + '</div><div class="run-scripts">' + scripts + '</div></div>';
+    }).join('');
+    runContent = '<div class="run-summary">' + todayRuns.length + ' agent(s) ran today</div><div class="run-list">' + runRows + '</div>';
+  } else {
+    runContent = '<p class="empty">No agent runs today. Run <code>node run_agent.js --all</code> to execute.</p>';
+  }
+}
+var runSection = buildSection('&#129512 AGENT RUNS TODAY', freshnessBadge(agentRuns && agentRuns.updated), runContent);
 
 // ── THIS WEEK STRIP ───────────────────────────────────────────────
 let thisWeekStrip = '';
@@ -1382,6 +1408,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .lr-stop { font-size: 0.75rem; color: #ff4757; margin-bottom: 4px; }
 .lr-agents { font-size: 0.68rem; color: var(--muted); margin-top: 6px; }
 
+/* AGENT RUNS TODAY */
+.run-summary { font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; }
+.run-list { display: flex; flex-direction: column; gap: 6px; }
+.run-row { display: grid; grid-template-columns: 1.5fr 0.8fr 0.6fr 3fr; gap: 8px; align-items: center; padding: 7px 10px; background: rgba(255,255,255,0.04); border-radius: 7px; font-size: 0.72rem; }
+.run-agent { font-weight: 700; color: var(--text); }
+.run-status { }
+.run-ok { background: rgba(0,200,83,0.2); color: #00c853; font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+.run-partial { background: rgba(255,165,0,0.2); color: #ffa502; font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+.run-fail { background: rgba(255,71,87,0.2); color: #ff4757; font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+.run-dur { color: var(--muted); font-size: 0.65rem; }
+.run-scripts { display: flex; flex-wrap: wrap; gap: 3px; }
+.run-script { font-size: 0.6rem; padding: 1px 5px; border-radius: 3px; }
+.run-script-ok { background: rgba(0,200,83,0.12); color: #00c853; }
+.run-script-fail { background: rgba(255,71,87,0.12); color: #ff4757; }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -1450,6 +1491,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${rtwSection}
   ${sysSection}
   ${learnSection}
+  ${runSection}
   ${igSection}
   ${hookSection}
   ${watchedSection}

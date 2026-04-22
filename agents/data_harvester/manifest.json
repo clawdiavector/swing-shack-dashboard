@@ -1,0 +1,37 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "data_harvester",
+  "layer": 1,
+  "role": "Pull all external data sources on schedule",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "sync_ig_analytics.js",
+    "fetch_golf_news.js",
+    "fetch_reddit_trends.js",
+    "fetch_seo_rankings.js",
+    "fetch_ga4.js",
+    "fetch_youtube_trends.js",
+    "fetch_website_insights.js",
+    "run_seo_audit.js",
+    "run_geo_audit.js"
+  ],
+  "inputs": {
+    "credentials/instagram-api-token.json": "Instagram API token",
+    "credentials/gcp-service-account.json":   "GA4/GSC service account"
+  },
+  "outputs": {
+    "data/ig-analytics.json":    "Instagram analytics",
+    "data/ga4-report.json":      "GA4 web analytics",
+    "data/seo-rankings.json":   "SEO rankings",
+    "data/reddit-trends.json":   "Reddit trends",
+    "data/golf-news.json":       "Golf news",
+    "data/youtube-trends.json":  "YouTube trends",
+    "data/website-insights.json":"Website insights",
+    "data/seo-audit.json":      "SEO audit",
+    "data/geo-audit.json":       "Geo audit"
+  },
+  "validates": [],
+  "runs_on": ["daily_pipeline"],
+  "ga4_risk": true
+}

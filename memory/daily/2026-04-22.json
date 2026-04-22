@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/memory/castle/v1",
-  "memory_id": "mem_daily_20260422_svug",
+  "memory_id": "mem_daily_20260422_n5xs",
   "date": "2026-04-22",
   "type": "daily_log",
   "source_agent": "memory_keeper",
@@ -43,68 +43,68 @@
       {
         "agent_id": "pulse_keeper",
         "name": "Pulse Keeper",
-        "score": 6.2,
-        "trend": "improving"
+        "score": 7.1,
+        "trend": "stable"
       },
       {
         "agent_id": "data_harvester",
         "name": "Data Harvester",
-        "score": 6.1,
-        "trend": "improving"
+        "score": 7.5,
+        "trend": "stable"
       },
       {
         "agent_id": "insight_analyst",
         "name": "Insight Analyst",
-        "score": 6.5,
-        "trend": "improving"
+        "score": 8.2,
+        "trend": "stable"
       },
       {
         "agent_id": "hook_smith",
         "name": "Hook Smith",
-        "score": 7.6,
-        "trend": "improving"
+        "score": 8.2,
+        "trend": "stable"
       },
       {
         "agent_id": "taskmaster",
         "name": "Taskmaster",
-        "score": 6.2,
-        "trend": "improving"
+        "score": 8.2,
+        "trend": "stable"
       },
       {
         "agent_id": "nudge_bot",
         "name": "Nudge Bot",
-        "score": 6.3,
-        "trend": "improving"
+        "score": 8.2,
+        "trend": "stable"
       },
       {
         "agent_id": "idea_generator",
         "name": "Idea Generator",
-        "score": 6.9,
-        "trend": "improving"
+        "score": 8.2,
+        "trend": "stable"
       },
       {
         "agent_id": "cta_analyst",
         "name": "CTA Analyst",
-        "score": 6.9,
-        "trend": "improving"
+        "score": 8.2,
+        "trend": "stable"
       },
       {
         "agent_id": "content_architect",
         "name": "Content Architect",
-        "score": 6.9,
-        "trend": "improving"
+        "score": 8.2,
+        "trend": "stable"
       },
       {
         "agent_id": "memory_keeper",
         "name": "Memory Castle Keeper",
-        "score": 4.6,
+        "score": 5.2,
         "trend": "stable"
       },
       {
         "agent_id": "route_task",
         "name": "Task Router",
-        "score": 6.9,
-        "trend": "improving"
+        "score": 7.4,
+        "trend": "stable"
       }
     ],
     "avg_agent_score": null,

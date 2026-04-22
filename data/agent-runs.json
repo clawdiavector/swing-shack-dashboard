@@ -1,0 +1,472 @@
+{
+  "agents": {
+    "pulse_keeper": [
+      {
+        "agent_id": "pulse_keeper",
+        "run_at": "2026-04-22T06:26:55.470Z",
+        "duration_ms": 135,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "generate_pulse_keeper.js",
+            "status": "PASS",
+            "duration_ms": 45,
+            "out": "✅ Pulse Keeper: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/system-health.json\n   Status: PARTIAL | Risk: HIGH\n   Sources: 14 fresh / 0 stale / 1 missing\n   Pipeline: 4m ago\n   Top risk: 19 blocked tasks\n   Fix: Unblock tasks in RUN THE WEEK section"
+          },
+          {
+            "script": "generate_agent_scorecards.js",
+            "status": "PASS",
+            "duration_ms": 47,
+            "out": "✅ Scorecards: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/agent-scorecards.json\n   Agents: 11 | Avg: 7.4/10 | Top: Insight Analyst(7.9)\n   ⚠️  1 need attention\n   Pulse Keeper           6.9 | rel:8.3 fre:6.7 use:5.0 | stable | 1/14 days\n   Data Harvester         7.2 | rel:8.3 fre:8.0 use:5.0 | stable | 1/14 days\n   Insight Analyst        7.9 | rel:8.3 fre:10.0 use:5.0 | stable | 1/14 days\n   Hook Smith             7.9 | rel:8.3 fre:10.0 use:5.0 | stable | 1/14 days\n   Taskmaster             7.9 | rel:8.3 fre:10.0 use:5.0 | stable | 1/14 days\n   Nudge Bot              7.9 | rel:8.3 fre:10.0 use:5.0 | stable | 1/14 days\n   Idea Generator         7.9 | rel:8.3 fre:10.0 use:5.0 | stable | 1/14 days\n   CTA Analyst            7.9 | rel:8.3 fre:10.0 use:5.0 | stable | 1/14 days\n   Content Architect      7.9 | rel:8.3 fre:10.0 use:5.0 | stable | 1/14 days\n   Memory Castle Keeper   4.9 | rel:8.3 fre:0.0 use:5.0 | stable | 1/14 days\n   Task Router            7.1 | rel:8.3 fre:10.0 use:5.0 | stable | 1/14 days"
+          },
+          {
+            "script": "store_daily_learnings.js",
+            "status": "PASS",
+            "duration_ms": 43,
+            "out": "✅ Daily learnings stored: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/memory/daily/2026-04-22.json\n   Trust: 10/10 | Top hook: \"Unknown\"\n   Repeat: 1 | Stop: 2\n   Index updated: 4 total entries"
+          }
+        ],
+        "outputs_validated": {
+          "system-health.json": {
+            "valid": true,
+            "keys": 19
+          },
+          "agent-scorecards.json": {
+            "valid": true,
+            "keys": 14
+          },
+          "memory/daily/2026-04-22.json": {
+            "valid": false,
+            "reason": "ENOENT: no such file or directory, open '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/memory/daily/2026-04-22.json'"
+          }
+        },
+        "outputs_produced": [
+          "data/system-health.json",
+          "data/agent-scorecards.json",
+          "memory/daily/2026-04-22.json"
+        ],
+        "total_scripts": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "agent_id": "pulse_keeper",
+        "run_at": "2026-04-22T06:27:12.962Z",
+        "duration_ms": 139,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "generate_pulse_keeper.js",
+            "status": "PASS",
+            "duration_ms": 49,
+            "out": "✅ Pulse Keeper: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/system-health.json\n   Status: PARTIAL | Risk: HIGH\n   Sources: 14 fresh / 0 stale / 1 missing\n   Pipeline: 4m ago\n   Top risk: 19 blocked tasks\n   Fix: Unblock tasks in RUN THE WEEK section"
+          },
+          {
+            "script": "generate_agent_scorecards.js",
+            "status": "PASS",
+            "duration_ms": 47,
+            "out": "✅ Scorecards: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/agent-scorecards.json\n   Agents: 11 | Avg: 7.5/10 | Top: Insight Analyst(8)\n   ⚠️  1 need attention\n   Pulse Keeper           7.0 | rel:8.6 fre:6.7 use:5.0 | stable | 1/14 days\n   Data Harvester         7.3 | rel:8.6 fre:8.0 use:5.0 | stable | 1/14 days\n   Insight Analyst        8.0 | rel:8.6 fre:10.0 use:5.0 | stable | 1/14 days\n   Hook Smith             8.0 | rel:8.6 fre:10.0 use:5.0 | stable | 1/14 days\n   Taskmaster             8.0 | rel:8.6 fre:10.0 use:5.0 | stable | 1/14 days\n   Nudge Bot              8.0 | rel:8.6 fre:10.0 use:5.0 | stable | 1/14 days\n   Idea Generator         8.0 | rel:8.6 fre:10.0 use:5.0 | stable | 1/14 days\n   CTA Analyst            8.0 | rel:8.6 fre:10.0 use:5.0 | stable | 1/14 days\n   Content Architect      8.0 | rel:8.6 fre:10.0 use:5.0 | stable | 1/14 days\n   Memory Castle Keeper   5.0 | rel:8.6 fre:0.0 use:5.0 | stable | 1/14 days\n   Task Router            7.2 | rel:8.6 fre:10.0 use:5.0 | stable | 1/14 days"
+          },
+          {
+            "script": "store_daily_learnings.js",
+            "status": "PASS",
+            "duration_ms": 43,
+            "out": "✅ Daily learnings stored: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/memory/daily/2026-04-22.json\n   Trust: 10/10 | Top hook: \"Unknown\"\n   Repeat: 1 | Stop: 2\n   Index updated: 5 total entries"
+          }
+        ],
+        "outputs_validated": {
+          "system-health.json": {
+            "valid": true,
+            "keys": 19
+          },
+          "agent-scorecards.json": {
+            "valid": true,
+            "keys": 14
+          },
+          "memory/daily/2026-04-22.json": {
+            "valid": false,
+            "reason": "ENOENT: no such file or directory, open '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/memory/daily/2026-04-22.json'"
+          }
+        },
+        "outputs_produced": [
+          "data/system-health.json",
+          "data/agent-scorecards.json",
+          "memory/daily/2026-04-22.json"
+        ],
+        "total_scripts": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "agent_id": "pulse_keeper",
+        "run_at": "2026-04-22T06:27:41.910Z",
+        "duration_ms": 136,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "generate_pulse_keeper.js",
+            "status": "PASS",
+            "duration_ms": 47,
+            "out": "✅ Pulse Keeper: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/system-health.json\n   Status: PARTIAL | Risk: HIGH\n   Sources: 14 fresh / 0 stale / 1 missing\n   Pipeline: 5m ago\n   Top risk: 19 blocked tasks\n   Fix: Unblock tasks in RUN THE WEEK section"
+          },
+          {
+            "script": "generate_agent_scorecards.js",
+            "status": "PASS",
+            "duration_ms": 45,
+            "out": "✅ Scorecards: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/agent-scorecards.json\n   Agents: 11 | Avg: 7.6/10 | Top: Insight Analyst(8.1)\n   ⚠️  1 need attention\n   Pulse Keeper           7.0 | rel:8.8 fre:6.7 use:5.0 | stable | 1/14 days\n   Data Harvester         7.4 | rel:8.8 fre:8.0 use:5.0 | stable | 1/14 days\n   Insight Analyst        8.1 | rel:8.8 fre:10.0 use:5.0 | stable | 1/14 days\n   Hook Smith             8.1 | rel:8.8 fre:10.0 use:5.0 | stable | 1/14 days\n   Taskmaster             8.1 | rel:8.8 fre:10.0 use:5.0 | stable | 1/14 days\n   Nudge Bot              8.1 | rel:8.8 fre:10.0 use:5.0 | stable | 1/14 days\n   Idea Generator         8.1 | rel:8.8 fre:10.0 use:5.0 | stable | 1/14 days\n   CTA Analyst            8.1 | rel:8.8 fre:10.0 use:5.0 | stable | 1/14 days\n   Content Architect      8.1 | rel:8.8 fre:10.0 use:5.0 | stable | 1/14 days\n   Memory Castle Keeper   5.1 | rel:8.8 fre:0.0 use:5.0 | stable | 1/14 days\n   Task Router            7.3 | rel:8.8 fre:10.0 use:5.0 | stable | 1/14 days"
+          },
+          {
+            "script": "store_daily_learnings.js",
+            "status": "PASS",
+            "duration_ms": 43,
+            "out": "✅ Daily learnings stored: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/memory/daily/2026-04-22.json\n   Trust: 10/10 | Top hook: \"Unknown\"\n   Repeat: 1 | Stop: 2\n   Index updated: 6 total entries"
+          }
+        ],
+        "outputs_validated": {
+          "data/system-health.json": {
+            "valid": true,
+            "keys": 19
+          },
+          "data/agent-scorecards.json": {
+            "valid": true,
+            "keys": 14
+          },
+          "memory/daily/2026-04-22.json": {
+            "valid": false,
+            "reason": "ENOENT"
+          }
+        },
+        "outputs_produced": [
+          "data/system-health.json",
+          "data/agent-scorecards.json",
+          "memory/daily/2026-04-22.json"
+        ],
+        "total_scripts": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "agent_id": "pulse_keeper",
+        "run_at": "2026-04-22T06:28:26.692Z",
+        "duration_ms": 140,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_pulse_keeper.js",
+            "status": "PASS",
+            "duration_ms": 48,
+            "out": "✅ Pulse Keeper: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/system-health.json\n   Status: PARTIAL | Risk: HIGH\n   Sources: 14 fresh / 0 stale / 1 missing\n   Pipeline: 5m ago\n   Top risk: 19 blocked tasks\n   Fix: Unblock tasks in RUN THE WEEK section"
+          },
+          {
+            "script": "generate_agent_scorecards.js",
+            "status": "PASS",
+            "duration_ms": 47,
+            "out": "✅ Scorecards: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/agent-scorecards.json\n   Agents: 11 | Avg: 7.6/10 | Top: Insight Analyst(8.1)\n   ⚠️  1 need attention\n   Pulse Keeper           7.1 | rel:8.9 fre:6.7 use:5.0 | stable | 1/14 days\n   Data Harvester         7.4 | rel:8.9 fre:8.0 use:5.0 | stable | 1/14 days\n   Insight Analyst        8.1 | rel:8.9 fre:10.0 use:5.0 | stable | 1/14 days\n   Hook Smith             8.1 | rel:8.9 fre:10.0 use:5.0 | stable | 1/14 days\n   Taskmaster             8.1 | rel:8.9 fre:10.0 use:5.0 | stable | 1/14 days\n   Nudge Bot              8.1 | rel:8.9 fre:10.0 use:5.0 | stable | 1/14 days\n   Idea Generator         8.1 | rel:8.9 fre:10.0 use:5.0 | stable | 1/14 days\n   CTA Analyst            8.1 | rel:8.9 fre:10.0 use:5.0 | stable | 1/14 days\n   Content Architect      8.1 | rel:8.9 fre:10.0 use:5.0 | stable | 1/14 days\n   Memory Castle Keeper   5.1 | rel:8.9 fre:0.0 use:5.0 | stable | 1/14 days\n   Task Router            7.4 | rel:8.9 fre:10.0 use:5.0 | stable | 1/14 days"
+          },
+          {
+            "script": "store_daily_learnings.js",
+            "status": "PASS",
+            "duration_ms": 44,
+            "out": "✅ Daily learnings stored: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/memory/daily/2026-04-22.json\n   Trust: 10/10 | Top hook: \"Unknown\"\n   Repeat: 1 | Stop: 2\n   Index updated: 7 total entries"
+          }
+        ],
+        "outputs_validated": {
+          "data/system-health.json": {
+            "valid": true,
+            "keys": 19
+          },
+          "data/agent-scorecards.json": {
+            "valid": true,
+            "keys": 14
+          },
+          "memory/daily/2026-04-22.json": {
+            "valid": true,
+            "keys": 12
+          }
+        },
+        "outputs_produced": [
+          "data/system-health.json",
+          "data/agent-scorecards.json",
+          "memory/daily/2026-04-22.json"
+        ],
+        "total_scripts": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "agent_id": "pulse_keeper",
+        "run_at": "2026-04-22T06:28:58.459Z",
+        "duration_ms": 133,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_pulse_keeper.js",
+            "status": "PASS",
+            "duration_ms": 44,
+            "out": "✅ Pulse Keeper: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/system-health.json\n   Status: PARTIAL | Risk: HIGH\n   Sources: 14 fresh / 0 stale / 1 missing\n   Pipeline: 6m ago\n   Top risk: 19 blocked tasks\n   Fix: Unblock tasks in RUN THE WEEK section"
+          },
+          {
+            "script": "generate_agent_scorecards.js",
+            "status": "PASS",
+            "duration_ms": 46,
+            "out": "✅ Scorecards: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/agent-scorecards.json\n   Agents: 11 | Avg: 7.7/10 | Top: Insight Analyst(8.2)\n   ⚠️  1 need attention\n   Pulse Keeper           7.1 | rel:9.0 fre:6.7 use:5.0 | stable | 1/14 days\n   Data Harvester         7.5 | rel:9.0 fre:8.0 use:5.0 | stable | 1/14 days\n   Insight Analyst        8.2 | rel:9.0 fre:10.0 use:5.0 | stable | 1/14 days\n   Hook Smith             8.2 | rel:9.0 fre:10.0 use:5.0 | stable | 1/14 days\n   Taskmaster             8.2 | rel:9.0 fre:10.0 use:5.0 | stable | 1/14 days\n   Nudge Bot              8.2 | rel:9.0 fre:10.0 use:5.0 | stable | 1/14 days\n   Idea Generator         8.2 | rel:9.0 fre:10.0 use:5.0 | stable | 1/14 days\n   CTA Analyst            8.2 | rel:9.0 fre:10.0 use:5.0 | stable | 1/14 days\n   Content Architect      8.2 | rel:9.0 fre:10.0 use:5.0 | stable | 1/14 days\n   Memory Castle Keeper   5.2 | rel:9.0 fre:0.0 use:5.0 | stable | 1/14 days\n   Task Router            7.4 | rel:9.0 fre:10.0 use:5.0 | stable | 1/14 days"
+          },
+          {
+            "script": "store_daily_learnings.js",
+            "status": "PASS",
+            "duration_ms": 43,
+            "out": "✅ Daily learnings stored: /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/memory/daily/2026-04-22.json\n   Trust: 10/10 | Top hook: \"Unknown\"\n   Repeat: 1 | Stop: 2\n   Index updated: 9 total entries"
+          }
+        ],
+        "outputs_validated": {
+          "data/system-health.json": {
+            "valid": true,
+            "keys": 19
+          },
+          "data/agent-scorecards.json": {
+            "valid": true,
+            "keys": 14
+          },
+          "memory/daily/2026-04-22.json": {
+            "valid": true,
+            "keys": 12
+          }
+        },
+        "outputs_produced": [
+          "data/system-health.json",
+          "data/agent-scorecards.json",
+          "memory/daily/2026-04-22.json"
+        ],
+        "total_scripts": 3,
+        "passed": 3,
+        "failed": 0
+      }
+    ],
+    "data_harvester": [
+      {
+        "agent_id": "data_harvester",
+        "run_at": "2026-04-22T06:28:57.739Z",
+        "duration_ms": 24791,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "sync_ig_analytics.js",
+            "status": "PASS",
+            "duration_ms": 43,
+            "out": "✅ Synced 69 IG posts to dashboard data"
+          },
+          {
+            "script": "fetch_golf_news.js",
+            "status": "PASS",
+            "duration_ms": 271,
+            "out": "✅ Golf news: 0 articles"
+          },
+          {
+            "script": "fetch_reddit_trends.js",
+            "status": "PASS",
+            "duration_ms": 873,
+            "out": "✅ Reddit: 0 trends, 0 hot pain points"
+          },
+          {
+            "script": "fetch_seo_rankings.js",
+            "status": "PASS",
+            "duration_ms": 9040,
+            "out": "🔍 Fetching SEO rankings...\n✅ SEO Rankings: 0/10 keywords found"
+          },
+          {
+            "script": "fetch_ga4.js",
+            "status": "PASS",
+            "duration_ms": 2053,
+            "out": "✅ GA4: 1067 sessions, 10 pages, 2 insights"
+          },
+          {
+            "script": "fetch_youtube_trends.js",
+            "status": "PASS",
+            "duration_ms": 3752,
+            "out": "YouTube Trends: 19 trending videos from YouTube API\nYouTube Trends: 19 articles, 14 hooks, top theme: trackman (youtube_api_v3)"
+          },
+          {
+            "script": "fetch_website_insights.js",
+            "status": "PASS",
+            "duration_ms": 76,
+            "out": "Website Insights: 1067 sessions, recs=3 (HIGH=2 MED=1)\n  Health: NEEDS_ATTENTION | Top: High-traffic pages with weak CTA"
+          },
+          {
+            "script": "run_seo_audit.js",
+            "status": "PASS",
+            "duration_ms": 3634,
+            "out": "🔍 Running SEO audit on swingshack.co.za...\n  Auditing: Homepage\n  Auditing: Membership\n  Auditing: Coaching\n  Auditing: Club Fitting\n✅ SEO Audit: 16 findings (8 high, 4 medium)"
+          },
+          {
+            "script": "run_geo_audit.js",
+            "status": "PASS",
+            "duration_ms": 5046,
+            "out": "🌍 Running GEO audit...\n✅ GEO Audit: GOOD - 8 findings, 12 positive signals"
+          }
+        ],
+        "outputs_produced": 9,
+        "passed": 9,
+        "failed": 0,
+        "ga4_status": "PASS",
+        "ga4_risk_visible": false
+      }
+    ],
+    "insight_analyst": [
+      {
+        "agent_id": "insight_analyst",
+        "run_at": "2026-04-22T06:28:58.198Z",
+        "duration_ms": 383,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "analyse_hooks.js",
+            "status": "PASS",
+            "duration_ms": 45
+          },
+          {
+            "script": "extract_youtube_signals.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_anomaly_alerts.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "detect_missed_opportunities.js",
+            "status": "PASS",
+            "duration_ms": 44
+          },
+          {
+            "script": "generate_funnel_leaks.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_conversion_attribution.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_retargeting_recommendations.js",
+            "status": "PASS",
+            "duration_ms": 43
+          },
+          {
+            "script": "generate_recommendation_scores.js",
+            "status": "PASS",
+            "duration_ms": 41
+          },
+          {
+            "script": "generate_recommendation_outcomes.js",
+            "status": "PASS",
+            "duration_ms": 41
+          }
+        ],
+        "passed": 9,
+        "failed": 0
+      }
+    ],
+    "memory_keeper": [
+      {
+        "agent_id": "memory_keeper",
+        "run_at": "2026-04-22T06:28:58.284Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "store_daily_learnings.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "daily_log_written": true,
+          "index_updated": true
+        }
+      }
+    ],
+    "taskmaster": [
+      {
+        "agent_id": "taskmaster",
+        "run_at": "2026-04-22T06:28:59.082Z",
+        "duration_ms": 583,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_post_plan.js",
+            "status": "PASS",
+            "duration_ms": 53
+          },
+          {
+            "script": "generate_sales_priority.js",
+            "status": "PASS",
+            "duration_ms": 51
+          },
+          {
+            "script": "generate_daily_task_cards.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_approval_queue.js",
+            "status": "PASS",
+            "duration_ms": 47
+          },
+          {
+            "script": "generate_deadline_risk.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_blockers.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_capacity_shift.js",
+            "status": "PASS",
+            "duration_ms": 43
+          },
+          {
+            "script": "generate_follow_up_queue.js",
+            "status": "PASS",
+            "duration_ms": 43
+          },
+          {
+            "script": "generate_experiment_queue.js",
+            "status": "PASS",
+            "duration_ms": 43
+          },
+          {
+            "script": "generate_scaling_recommendations.js",
+            "status": "PASS",
+            "duration_ms": 44
+          },
+          {
+            "script": "generate_kill_list.js",
+            "status": "PASS",
+            "duration_ms": 42
+          },
+          {
+            "script": "generate_asset_needs.js",
+            "status": "PASS",
+            "duration_ms": 48
+          },
+          {
+            "script": "generate_owner_workload.js",
+            "status": "PASS",
+            "duration_ms": 42
+          }
+        ],
+        "passed": 13,
+        "failed": 0,
+        "outputs": {
+          "task_cards_produced": 18
+        }
+      }
+    ]
+  },
+  "updated": "2026-04-22T06:28:59.083Z"
+}
