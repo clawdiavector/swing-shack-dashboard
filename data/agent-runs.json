@@ -1005,7 +1005,128 @@
         "passed": 1,
         "failed": 0
       }
+    ],
+    "qa_inspector": [
+      {
+        "agent_id": "qa_inspector",
+        "run_at": "2026-04-22T09:10:32.936Z",
+        "duration_ms": 51,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "run_qa_inspector.js",
+            "status": "FAIL",
+            "err": "Command failed: node /Users/fivefriday/.openclaw-instance2/workspace/swing-shack"
+          }
+        ],
+        "outputs": {
+          "data/qa-report.json": {
+            "valid": false
+          },
+          "data/qa-failures.json": {
+            "valid": true,
+            "failures": null
+          },
+          "data/ready-for-approval.json": {
+            "valid": true
+          }
+        },
+        "passed": 0,
+        "failed": 1
+      },
+      {
+        "agent_id": "qa_inspector",
+        "run_at": "2026-04-22T09:10:48.374Z",
+        "duration_ms": 48,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_qa_inspector.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/qa-report.json": {
+            "valid": true,
+            "total": 88,
+            "pass": 85,
+            "fix": 0,
+            "reject": 3
+          },
+          "data/qa-failures.json": {
+            "valid": true,
+            "failures": 3
+          },
+          "data/ready-for-approval.json": {
+            "valid": true,
+            "ready": 85
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "approval_captain": [
+      {
+        "agent_id": "approval_captain",
+        "run_at": "2026-04-22T09:10:48.456Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_approval_captain.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/approval-queue.json": {
+            "valid": true,
+            "total": 88,
+            "waiting_copy": 48,
+            "waiting_creative": 37,
+            "blocked": 3,
+            "high": 3
+          },
+          "data/approval-summary.json": {
+            "valid": true
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "brand_guard": [
+      {
+        "agent_id": "brand_guard",
+        "run_at": "2026-04-22T09:10:48.540Z",
+        "duration_ms": 45,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_brand_guard.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/brand-guard-report.json": {
+            "valid": true,
+            "score": 99,
+            "pass": 28,
+            "warn": 0,
+            "fail": 0
+          },
+          "data/tone-violations.json": {
+            "valid": true,
+            "violations": 1
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
     ]
   },
-  "updated": "2026-04-22T08:51:13.983Z"
+  "updated": "2026-04-22T09:10:48.541Z"
 }

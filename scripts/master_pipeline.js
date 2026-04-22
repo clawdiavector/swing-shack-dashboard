@@ -82,7 +82,7 @@ const STAGES = [
     name: 'Plan',
     critical: false,
     requiredOutputs: [],
-    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json', 'daily-task-cards.json', 'approval-queue.json', 'deadline-risk.json', 'blockers.json', 'capacity-shift.json', 'nudge-queue.json', 'fallback-queue.json', 'next-day-queue.json', 'auto-messages.json', 'suppression-rules.json', 'discord-deliveries.json', 'delivery-audit.json', 'system-health.json', 'route-log.json', 'routing-log.json', 'agent-scorecards.json', 'content-blueprints.json', 'hook-variants.json', 'hook-recommendations.json', 'cta-recommendations.json', 'captions.json', 'caption-variants.json', 'visual-briefs.json', 'image-prompts.json', 'thumbnail-briefs.json', 'blog-briefs.json', 'blog-drafts.json', 'faq-opportunities.json', 'reddit-replies.json', 'reddit-opportunities.json', 'forum-opportunities.json'],
+    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json', 'daily-task-cards.json', 'approval-queue.json', 'deadline-risk.json', 'blockers.json', 'capacity-shift.json', 'nudge-queue.json', 'fallback-queue.json', 'next-day-queue.json', 'auto-messages.json', 'suppression-rules.json', 'discord-deliveries.json', 'delivery-audit.json', 'system-health.json', 'route-log.json', 'routing-log.json', 'agent-scorecards.json', 'content-blueprints.json', 'hook-variants.json', 'hook-recommendations.json', 'cta-recommendations.json', 'captions.json', 'caption-variants.json', 'visual-briefs.json', 'image-prompts.json', 'thumbnail-briefs.json', 'blog-briefs.json', 'blog-drafts.json', 'faq-opportunities.json', 'reddit-replies.json', 'reddit-opportunities.json', 'forum-opportunities.json', 'qa-report.json', 'qa-failures.json', 'ready-for-approval.json', 'approval-queue.json', 'approval-summary.json', 'brand-guard-report.json', 'tone-violations.json'],
     steps: [
       { name: 'generate_post_plan',          script: `node ${BASE}/scripts/generate_post_plan.js`,          critical: false },
       { name: 'generate_sales_priority',     script: `node ${BASE}/scripts/generate_sales_priority.js`,     critical: false },
@@ -129,6 +129,17 @@ const STAGES = [
       { name: 'visual_forge',    script: `node ${BASE}/agents/visual_forge/run.js`,    critical: false },
       { name: 'blog_beast',      script: `node ${BASE}/agents/blog_beast/run.js`,      critical: false },
       { name: 'reddit_ghost',    script: `node ${BASE}/agents/reddit_ghost/run.js`,    critical: false },
+    ]
+  },
+  {
+    name: 'QA',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['qa-report.json', 'qa-failures.json', 'ready-for-approval.json', 'approval-queue.json', 'approval-summary.json', 'brand-guard-report.json', 'tone-violations.json'],
+    steps: [
+      { name: 'qa_inspector',       script: `node ${BASE}/agents/qa_inspector/run.js`,      critical: false },
+      { name: 'approval_captain',    script: `node ${BASE}/agents/approval_captain/run.js`, critical: false },
+      { name: 'brand_guard',         script: `node ${BASE}/agents/brand_guard/run.js`,       critical: false },
     ]
   },
   {

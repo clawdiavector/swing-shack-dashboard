@@ -1,0 +1,23 @@
+{
+  "schema": "https://clawdia.io/agents/brand-guard/v1",
+  "generated": "2026-04-22T09:10:48.533Z",
+  "total_violations": 1,
+  "by_type": {
+    "generic_ai": 0,
+    "salesy_sludge": 0,
+    "too_american": 1,
+    "weak_cta": 0,
+    "overclaim": 0,
+    "no_proof": 0
+  },
+  "violations": [
+    {
+      "type": "too_american",
+      "severity": "low",
+      "phrase": "lit",
+      "msg": "\"lit\" — American slang, use SA alternatives",
+      "replacement_suggestion": "SA-friendly: \"really\", \"very good\", \"great\""
+    }
+  ],
+  "worst_offenders": []
+}

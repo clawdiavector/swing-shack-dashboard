@@ -1,0 +1,11 @@
+{
+  "schema": "https://clawdia.io/agents/approval-captain/v1",
+  "generated": "2026-04-22T09:10:48.449Z",
+  "total_items": 88,
+  "actionable": 85,
+  "blocked": 3,
+  "approved_and_ready": 0,
+  "high_priority": 3,
+  "top_blocked_issue": "No layout specified in visual brief",
+  "message": "3 item(s) blocked by QA failures — fix before approval"
+}

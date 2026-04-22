@@ -1,0 +1,54 @@
+{
+  "schema": "https://clawdia.io/agents/qa-inspector/v1",
+  "generated": "2026-04-22T09:10:48.366Z",
+  "failures": [
+    {
+      "item_id": "vb-xk7vo8ym",
+      "item_type": "visual_brief",
+      "linked_blueprint_id": "bp-2026-04-22-003",
+      "verdict": "reject",
+      "issues": [
+        {
+          "type": "missing_layout",
+          "severity": "high",
+          "msg": "No layout specified in visual brief"
+        }
+      ],
+      "passed_checks": 1,
+      "total_checks": 2
+    },
+    {
+      "item_id": "vb-a5o9p23z",
+      "item_type": "visual_brief",
+      "linked_blueprint_id": "bp-2026-04-22-013",
+      "verdict": "reject",
+      "issues": [
+        {
+          "type": "missing_layout",
+          "severity": "high",
+          "msg": "No layout specified in visual brief"
+        }
+      ],
+      "passed_checks": 1,
+      "total_checks": 2
+    },
+    {
+      "item_id": "vb-d3ocn1da",
+      "item_type": "visual_brief",
+      "linked_blueprint_id": "bp-2026-04-22-018",
+      "verdict": "reject",
+      "issues": [
+        {
+          "type": "missing_layout",
+          "severity": "high",
+          "msg": "No layout specified in visual brief"
+        }
+      ],
+      "passed_checks": 1,
+      "total_checks": 2
+    }
+  ],
+  "fix_count": 0,
+  "reject_count": 3,
+  "critical_issues": 3
+}

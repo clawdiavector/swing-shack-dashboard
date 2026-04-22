@@ -1,0 +1,21 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "approval_captain",
+  "layer": 4,
+  "role": "Approval queue, signoff order, what needs review, approved and ready",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_approval_captain.js"],
+  "inputs": {
+    "data/ready-for-approval.json":   "Items that passed QA",
+    "data/qa-failures.json":           "Items that failed QA",
+    "data/post-plan.json":            "Post plan for scheduled items",
+    "data/content-blueprints.json":  "Blueprints for context",
+    "data/captions.json":             "Caption data"
+  },
+  "outputs": {
+    "data/approval-queue.json":       "Full approval queue with categories",
+    "data/approval-summary.json":    "Summary stats"
+  },
+  "rules": "Separate by: waiting_copy | waiting_creative | waiting_pricing | approved_ready | blocked"
+}

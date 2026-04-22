@@ -1,0 +1,28 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "brand_guard",
+  "layer": 4,
+  "role": "Tone compliance, forbidden phrases, AI-sounding language, off-brand wording, overclaims",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_brand_guard.js"],
+  "inputs": {
+    "data/captions.json":            "Captions for tone check",
+    "data/caption-variants.json":    "CTA variants for tone check",
+    "data/blog-drafts.json":        "Blog drafts for brand check",
+    "data/reddit-replies.json":    "Reddit replies for soft-brand check"
+  },
+  "outputs": {
+    "data/brand-guard-report.json": "Full brand compliance report",
+    "data/tone-violations.json":   "All tone violations found"
+  },
+  "flag_rules": {
+    "generic_ai": "generic AI-sounding marketing language",
+    "salesy_sludge": "salesy corporate phrasing",
+    "too_american": "Americanisms — SA market context preferred",
+    "off_tone": "off-brand phrasing or tone",
+    "weak_cta": "weak CTA language",
+    "overused_line": "overused lines from multiple posts",
+    "no_proof": "claim without TrackMan/data proof"
+  }
+}

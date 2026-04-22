@@ -1,0 +1,26 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "qa_inspector",
+  "layer": 4,
+  "role": "Quality gate — grammar, tone, CTA presence, broken links, duplicates, brand safety",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_qa_inspector.js"],
+  "inputs": {
+    "data/captions.json":             "Captions to QA",
+    "data/caption-variants.json":     "CTA variants to QA",
+    "data/visual-briefs.json":       "Visual briefs to QA",
+    "data/image-prompts.json":       "Image prompts to sanity-check",
+    "data/blog-drafts.json":         "Blog drafts for factual checks",
+    "data/reddit-replies.json":      "Reddit replies for anti-spam checks",
+    "data/post-plan.json":           "Post plan for duplicate checks",
+    "data/hook-bank.json":          "Hook bank for duplicate hook checks",
+    "data/used-items.json":          "Used items for suppression checks"
+  },
+  "outputs": {
+    "data/qa-report.json":            "Full QA report per item",
+    "data/qa-failures.json":          "Failed items requiring fix",
+    "data/ready-for-approval.json":  "Items that passed QA"
+  },
+  "verdict_rule": "Every item gets: pass | fix | reject"
+}

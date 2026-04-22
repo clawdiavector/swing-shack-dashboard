@@ -115,6 +115,12 @@ const blogBriefs= readJson('blog-briefs.json')             || null;
 const blogDrafts= readJson('blog-drafts.json')             || null;
 const faqOpps   = readJson('faq-opportunities.json')       || null;
 const redditRepl = readJson('reddit-replies.json')         || null;
+const qaReport  = readJson('qa-report.json')              || null;
+const qaFail   = readJson('qa-failures.json')            || null;
+const readyAppr = readJson('ready-for-approval.json')   || null;
+const apprSumm  = readJson('approval-summary.json')       || null;
+const brandRep  = readJson('brand-guard-report.json')   || null;
+const toneViol  = readJson('tone-violations.json')         || null;
 const today = new Date().toISOString().split('T')[0];
 let todayLearn = null;
 try { todayLearn = JSON.parse(fs.readFileSync(path.join(DATA_DIR, '..', 'memory', 'daily', today + '.json'), 'utf8')); } catch {}
@@ -309,6 +315,53 @@ if (captions || vbBriefs || blogBriefs || redditRepl) {
   }
 }
 var makeSection = buildSection('&#128736 MAKE THE CONTENT', freshnessBadge(captions && captions.generated), makeContent);
+
+// ── READY TO PUBLISH ──────────────────────────────────────────────
+var readyContent = '<p class="empty">Run QA + approval pipeline to see ready items.</p>';
+if (qaReport) {
+  var rp = qaReport;
+  var readyCount = readyAppr && readyAppr.count ? readyAppr.count : (rp.pass || 0);
+  var apprCount = (apprQueue && apprQueue.categories) ? apprQueue.categories.waiting_copy + apprQueue.categories.waiting_creative : 0;
+  var blockedCount = (qaFail && qaFail.failures) ? qaFail.failures.length : 0;
+  var brandScore = brandRep ? brandRep.brand_score : null;
+  var readyItems = [];
+  if (readyCount > 0) readyItems.push('<span class="pub-ok">' + readyCount + ' passed QA</span>');
+  if (apprCount > 0) readyItems.push('<span class="pub-wait">' + apprCount + ' awaiting approval</span>');
+  if (blockedCount > 0) readyItems.push('<span class="pub-blocked">' + blockedCount + ' blocked</span>');
+  if (brandScore !== null) readyItems.push('<span class="pub-brand">Brand: ' + brandScore + '/100</span>');
+  var pubStrip = readyItems.length > 0 ? '<div class="pub-strip">' + readyItems.join(' <span class="hl-opsep">|</span> ') + '</div>' : '';
+  var apprCats = '';
+  if (apprQueue && apprQueue.categories) {
+    var cats = apprQueue.categories;
+    apprCats = '<div class="pub-cats">';
+    if (cats.waiting_copy) apprCats += '<div class="pub-cat"><div class="pub-cat-head">&#9997 Awaiting copy</div><div class="pub-cat-count">' + cats.waiting_copy + '</div></div>';
+    if (cats.waiting_creative) apprCats += '<div class="pub-cat"><div class="pub-cat-head">&#127916 Awaiting creative</div><div class="pub-cat-count">' + cats.waiting_creative + '</div></div>';
+    if (cats.approved_ready) apprCats += '<div class="pub-cat"><div class="pub-cat-head">&#9989 Approved</div><div class="pub-cat-count">' + cats.approved_ready + '</div></div>';
+    if (cats.blocked) apprCats += '<div class="pub-cat"><div class="pub-cat-head">&#128308 Blocked</div><div class="pub-cat-count">' + cats.blocked + '</div></div>';
+    apprCats += '</div>';
+  }
+  readyContent = pubStrip + apprCats + (brandScore !== null ? '<div class="pub-brand-bar"><span>Brand score: ' + brandScore + '/100</span><div class="pub-brand-fill" style="width:' + brandScore + '%"></div></div>' : '');
+}
+var readySection = buildSection('&#9989 READY TO PUBLISH', freshnessBadge(apprQueue && apprQueue.generated), readyContent);
+
+// ── FIX BEFORE LIVE ───────────────────────────────────────────────
+var fixContent = '<p class="empty">No QA failures. Content is clean.</p>';
+if (qaFail && qaFail.failures && qaFail.failures.length > 0) {
+  var topFail = qaFail.failures.filter(function(f){ return f.verdict === 'reject'; }).slice(0, 3);
+  var topFix = qaFail.failures.filter(function(f){ return f.verdict === 'fix'; }).slice(0, 3);
+  var fixItems = [];
+  if (topFail.length > 0) fixItems.push('<div class="fix-group fix-group-rej"><div class="fix-head">&#128308 QA Rejects</div>' + topFail.map(function(f){ return '<div class="fix-item"><span class="fix-type">' + f.item_type + '</span>: ' + (f.issues && f.issues[0] ? f.issues[0].msg : 'QA failed').substring(0, 80) + '</div>'; }).join('') + '</div>');
+  if (topFix.length > 0) fixItems.push('<div class="fix-group fix-group-warn"><div class="fix-head">&#128993 Needs Fix</div>' + topFix.map(function(f){ return '<div class="fix-item"><span class="fix-type">' + f.item_type + '</span>: ' + (f.issues && f.issues[0] ? f.issues[0].msg : 'QA warning').substring(0, 80) + '</div>'; }).join('') + '</div>');
+  var toneIssues = (toneViol && toneViol.violations) ? toneViol.violations.filter(function(v){ return v.severity === 'high'; }).slice(0, 3) : [];
+  if (toneIssues.length > 0) fixItems.push('<div class="fix-group fix-group-tone"><div class="fix-head">&#1278 Brand/Tone</div>' + toneIssues.map(function(v){ return '<div class="fix-item">"' + (v.phrase || v.type) + '": ' + v.msg.substring(0, 70) + '</div>'; }).join('') + '</div>');
+  fixContent = '<div class="fix-total">' + qaFail.failures.length + ' issue(s) total &middot; ' + qaFail.reject_count + ' rejects &middot; ' + qaFail.fix_count + ' fixes needed</div><div class="fix-list">' + fixItems.join('') + '</div>';
+} else if (brandRep && brandRep.fail !== undefined && brandRep.fail > 0) {
+  var topBrandFail = (brandRep.reports || []).filter(function(r){ return r.verdict === 'fail'; }).slice(0, 3);
+  if (topBrandFail.length > 0) {
+    fixContent = '<div class="fix-total">Brand check: ' + brandRep.fail + ' tone violation(s)</div><div class="fix-list"><div class="fix-group fix-group-tone">' + topBrandFail.map(function(r){ return '<div class="fix-item">' + r.item_type + ': ' + (r.violations[0] ? r.violations[0].msg : 'tone violation').substring(0, 80) + '</div>'; }).join('') + '</div></div>';
+  }
+}
+var fixSection = buildSection('&#128465 FIX BEFORE LIVE', freshnessBadge(qaFail && qaFail.generated), fixContent);
 
 // ── THIS WEEK STRIP ───────────────────────────────────────────────
 let thisWeekStrip = '';
@@ -1486,6 +1539,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .mc-draft { color: var(--muted); }
 .mc-legend { font-size: 0.65rem; color: var(--muted); margin-top: 6px; }
 
+/* READY TO PUBLISH */
+.pub-strip { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.75rem; margin-bottom: 10px; }
+.pub-ok { color: #00c853; font-weight: 700; }
+.pub-wait { color: #ffa502; }
+.pub-blocked { color: #ff4757; }
+.pub-brand { color: var(--muted); }
+.pub-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.pub-cat { padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 6px; border-left: 3px solid var(--border,#333); flex: 1; min-width: 100px; }
+.pub-cat-head { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.pub-cat-count { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.pub-brand-bar { font-size: 0.65rem; color: var(--muted); margin-top: 6px; }
+.pub-brand-fill { height: 4px; background: linear-gradient(90deg, #ff4757 var(--fill), #ffa502 50%, #00c853 80%); border-radius: 2px; margin-top: 2px; }
+
+/* FIX BEFORE LIVE */
+.fix-total { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.fix-list { display: flex; flex-direction: column; gap: 6px; }
+.fix-group { padding: 8px 10px; border-radius: 6px; border-left: 3px solid; }
+.fix-group-rej { background: rgba(255,71,87,0.08); border-left-color: #ff4757; }
+.fix-group-warn { background: rgba(255,165,0,0.08); border-left-color: #ffa502; }
+.fix-group-tone { background: rgba(98,0,255,0.08); border-left-color: #6600ff; }
+.fix-head { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; color: var(--muted); }
+.fix-item { font-size: 0.68rem; color: var(--text); padding: 2px 0; }
+.fix-type { font-weight: 700; color: var(--muted); font-size: 0.62rem; text-transform: uppercase; margin-right: 4px; }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -1555,6 +1632,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${sysSection}
   ${learnSection}
   ${makeSection}
+  ${readySection}
+  ${fixSection}
   ${runSection}
   ${igSection}
   ${hookSection}
