@@ -1,0 +1,23 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "approval_runner",
+  "layer": 5,
+  "role": "Approval expiry, stale detection, promoting approved items to publish-ready",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_approval_runner.js"],
+  "inputs": {
+    "data/approval-queue.json":     "Full approval queue",
+    "data/ready-for-approval.json": "QA-cleared items",
+    "data/captions.json":         "For copy-change detection"
+  },
+  "outputs": {
+    "data/approval-actions.json":  "Actions taken",
+    "data/approval-expiry.json":  "Expired approvals"
+  },
+  "rules": {
+    "ttl_hours": 72,
+    "reset_on_copy_change": "If caption changes after approval, reset approval",
+    "promote_on_valid": "If approved and not expired, promote to ready_to_publish"
+  }
+}

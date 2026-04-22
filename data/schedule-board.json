@@ -1,0 +1,39 @@
+{
+  "schema": "https://clawdia.io/agents/schedule-captain/v1",
+  "generated": "2026-04-22T09:37:27.923Z",
+  "date": "2026-04-22",
+  "total_slots": 1,
+  "filled_slots": 1,
+  "open_slots": 0,
+  "balance": {
+    "service": {
+      "Practice": 1
+    },
+    "format": {
+      "static": 1
+    }
+  },
+  "balance_issues": [
+    "Club Fitting: no items scheduled today",
+    "Coaching: no items scheduled today",
+    "Social Play: no items scheduled today"
+  ],
+  "schedule": [
+    {
+      "slot_id": "slot-ep7uujvu",
+      "schema": "https://clawdia.io/agents/schedule-captain/v1",
+      "generated": "2026-04-22T09:37:27.923Z",
+      "scheduled_date": "2026-04-22",
+      "time": "09:00",
+      "slot_label": "Morning — high reach",
+      "item_id": "that-slice-costing-you-yards-off-the-tee--trackman",
+      "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "platform": "instagram",
+      "format": "static",
+      "service": "Practice",
+      "status": "planned",
+      "cta": "Link in bio · Book your session",
+      "objective": "reach"
+    }
+  ]
+}

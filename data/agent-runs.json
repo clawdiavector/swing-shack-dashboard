@@ -1126,7 +1126,128 @@
         "passed": 1,
         "failed": 0
       }
+    ],
+    "publisher": [
+      {
+        "agent_id": "publisher",
+        "run_at": "2026-04-22T09:37:27.758Z",
+        "duration_ms": 50,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_publisher.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/publish-queue.json": {
+            "valid": true,
+            "queued": 0,
+            "failures": 0,
+            "mode": "DRY_RUN"
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "publisher",
+        "run_at": "2026-04-22T09:41:05.280Z",
+        "duration_ms": 47,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_publisher.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/publish-queue.json": {
+            "valid": true,
+            "queued": 57,
+            "failures": 0,
+            "mode": "DRY_RUN"
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "postback_logger": [
+      {
+        "agent_id": "postback_logger",
+        "run_at": "2026-04-22T09:37:27.844Z",
+        "duration_ms": 46,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_postback_logger.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/postback-log.json": {
+            "valid": true,
+            "entries": 0,
+            "used_marked": 0
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "schedule_captain": [
+      {
+        "agent_id": "schedule_captain",
+        "run_at": "2026-04-22T09:37:27.929Z",
+        "duration_ms": 46,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_schedule_captain.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/schedule-board.json": {
+            "valid": true,
+            "slots": 1,
+            "filled": 1,
+            "balance_issues": 3
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "approval_runner": [
+      {
+        "agent_id": "approval_runner",
+        "run_at": "2026-04-22T09:37:28.013Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_approval_runner.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/approval-actions.json": {
+            "valid": true,
+            "actions": 0,
+            "expired": 0
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
     ]
   },
-  "updated": "2026-04-22T09:10:48.541Z"
+  "updated": "2026-04-22T09:41:05.280Z"
 }

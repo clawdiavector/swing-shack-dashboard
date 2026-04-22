@@ -1,0 +1,26 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "schedule_captain",
+  "layer": 5,
+  "role": "Posting calendar — slot assignment, owner load balancing, same-day reshuffles, fallback substitution",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_schedule_captain.js"],
+  "inputs": {
+    "data/post-plan.json":             "Post plan for planned items",
+    "data/ready-for-approval.json":   "Approved items",
+    "data/daily-task-cards.json":     "Task cards",
+    "data/fallback-queue.json":      "Fallback items when approved missing",
+    "data/capacity-shift.json":      "Capacity for load balancing"
+  },
+  "outputs": {
+    "data/schedule-board.json":      "Today's schedule",
+    "data/tomorrow-slots.json":      "Tomorrow's open slots",
+    "data/reschedule-log.json":      "Reschedule/fallback log"
+  },
+  "rules": {
+    "only_executable": "Only schedule items with full approval",
+    "balance": "Hook types, service pushes, content formats",
+    "fallback_on_block": "Swap blocked item for fallback"
+  }
+}

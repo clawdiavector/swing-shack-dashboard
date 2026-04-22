@@ -1,6 +1,6 @@
 {
-  "updated": "2026-04-22T06:31:14.766Z",
-  "generated": "generate_recommendation_outcomes.js",
+  "updated": "2026-04-22T09:37:27.836Z",
+  "generated": "2026-04-22T09:37:27.836Z",
   "summary": {
     "total_recommended": 12,
     "executed": 0,
@@ -363,5 +363,6 @@
       "matched_post_id": null,
       "match_confidence": 0
     }
-  ]
+  ],
+  "schema": "https://clawdia.io/recommendations/outcomes/v1"
 }

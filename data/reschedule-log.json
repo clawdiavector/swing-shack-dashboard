@@ -1,0 +1,19 @@
+{
+  "schema": "https://clawdia.io/agents/schedule-captain/v1",
+  "generated": "2026-04-22T09:37:27.923Z",
+  "total_reschedules": 2,
+  "reschedules": [
+    {
+      "original_item_id": null,
+      "fallback_item_id": null,
+      "reason": "no_approved_item",
+      "timestamp": "2026-04-22T09:37:27.923Z"
+    },
+    {
+      "original_item_id": null,
+      "fallback_item_id": null,
+      "reason": "no_approved_item",
+      "timestamp": "2026-04-22T09:37:27.923Z"
+    }
+  ]
+}

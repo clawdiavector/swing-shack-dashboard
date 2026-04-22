@@ -1,0 +1,28 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "publisher",
+  "layer": 5,
+  "role": "Final send to Postiz — assembles platform-safe payloads, publishes or schedules approved content",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_publisher.js"],
+  "inputs": {
+    "data/ready-for-approval.json":   "Items cleared by QA and brand",
+    "data/approval-queue.json":      "Approval status",
+    "data/captions.json":             "Caption data with CTA",
+    "data/visual-briefs.json":       "Visual briefs",
+    "data/content-blueprints.json":  "Blueprints for context",
+    "data/post-plan.json":           "Post plan for scheduled items"
+  },
+  "outputs": {
+    "data/publish-queue.json":       "Items queued for publish today",
+    "data/published-items.json":     "Items actually published",
+    "data/scheduled-items.json":     "Items scheduled via Postiz",
+    "data/publish-failures.json":   "Failed publish attempts with reason"
+  },
+  "rules": {
+    "publish_only_passed": "Only items with QA pass + Brand pass + Approval pass",
+    "requires": ["caption", "platform", "owner", "hook_id"],
+    "write_back": ["post_id", "scheduled_id", "publish_timestamp"]
+  }
+}

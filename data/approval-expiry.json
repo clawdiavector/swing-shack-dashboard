@@ -1,0 +1,7 @@
+{
+  "schema": "https://clawdia.io/agents/approval-runner/v1",
+  "generated": "2026-04-22T09:37:28.007Z",
+  "total_expired": 0,
+  "ttl_hours": 72,
+  "expired_items": []
+}

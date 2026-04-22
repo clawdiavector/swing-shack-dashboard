@@ -1,0 +1,38 @@
+{
+  "schema": "https://clawdia.io/agents/schedule-captain/v1",
+  "generated": "2026-04-22T09:37:27.923Z",
+  "date": "2026-04-23",
+  "total_slots": 3,
+  "slots": [
+    {
+      "slot_id": "slot-tomorrow-cx4g6j1h",
+      "schema": "https://clawdia.io/agents/schedule-captain/v1",
+      "generated": "2026-04-22T09:37:27.923Z",
+      "scheduled_date": "2026-04-23",
+      "time": "09:00",
+      "slot_label": "Morning — high reach",
+      "status": "open",
+      "fallback_pool": []
+    },
+    {
+      "slot_id": "slot-tomorrow-sb942eia",
+      "schema": "https://clawdia.io/agents/schedule-captain/v1",
+      "generated": "2026-04-22T09:37:27.923Z",
+      "scheduled_date": "2026-04-23",
+      "time": "12:00",
+      "slot_label": "Lunch — engagement",
+      "status": "open",
+      "fallback_pool": []
+    },
+    {
+      "slot_id": "slot-tomorrow-j5o0br3j",
+      "schema": "https://clawdia.io/agents/schedule-captain/v1",
+      "generated": "2026-04-22T09:37:27.923Z",
+      "scheduled_date": "2026-04-23",
+      "time": "18:00",
+      "slot_label": "Evening — conversions",
+      "status": "open",
+      "fallback_pool": []
+    }
+  ]
+}

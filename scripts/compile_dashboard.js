@@ -121,6 +121,12 @@ const readyAppr = readJson('ready-for-approval.json')   || null;
 const apprSumm  = readJson('approval-summary.json')       || null;
 const brandRep  = readJson('brand-guard-report.json')   || null;
 const toneViol  = readJson('tone-violations.json')         || null;
+const pubQueue  = readJson('publish-queue.json')         || null;
+const pubItems  = readJson('published-items.json')      || null;
+const schedItems= readJson('scheduled-items.json')       || null;
+const pubFail   = readJson('publish-failures.json')      || null;
+const schedBoard= readJson('schedule-board.json')        || null;
+const postbackLog=readJson('postback-log.json')         || null;
 const today = new Date().toISOString().split('T')[0];
 let todayLearn = null;
 try { todayLearn = JSON.parse(fs.readFileSync(path.join(DATA_DIR, '..', 'memory', 'daily', today + '.json'), 'utf8')); } catch {}
@@ -362,6 +368,37 @@ if (qaFail && qaFail.failures && qaFail.failures.length > 0) {
   }
 }
 var fixSection = buildSection('&#128465 FIX BEFORE LIVE', freshnessBadge(qaFail && qaFail.generated), fixContent);
+
+// ── PUBLISHING BOARD ─────────────────────────────────────────────
+var boardContent = '<p class="empty">Run publisher + schedule_captain to populate the board.</p>';
+if (schedBoard) {
+  var boardSlots = schedBoard.schedule || [];
+  var filledSlots = boardSlots.filter(function(s){ return s.status !== 'open'; }).length;
+  var openSlots = boardSlots.filter(function(s){ return s.status === 'open'; }).length;
+  var boardRows = boardSlots.slice(0, 6).map(function(s){
+    var statusColor = {'planned':'pub-ok','approved_fill':'pub-wait','open':'pub-blocked','scheduled':'pub-brand'}[s.status] || 'pub-brand';
+    return '<div class="pb-row"><div class="pb-time">' + (s.time || '—') + '</div><div class="pb-slot-label">' + escHtml((s.slot_label || '').substring(0,25)) + '</div><div class="pb-hook">' + escHtml((s.hook_text || '—').substring(0,35)) + '</div><div class="pb-format">' + (s.format || '—') + '</div><div class="pb-svc">' + (s.service || '—') + '</div><div class="pb-status"><span class="' + statusColor + '">' + s.status + '</span></div></div>';
+  }).join('');
+  var balIssues = (schedBoard.balance_issues || []).length;
+  boardContent = '<div class="pb-summary">' + boardSlots.length + ' slots &middot; <span class="pub-ok">' + filledSlots + ' filled</span> &middot; <span class="pub-blocked">' + openSlots + ' open</span>' + (balIssues > 0 ? ' &middot; <span class="pub-wait">' + balIssues + ' balance gaps</span>' : '') + '</div><div class="pb-table"><div class="pb-head"><span>Time</span><span>Slot</span><span>Hook</span><span>Format</span><span>Service</span><span>Status</span></div>' + boardRows + '</div>';
+}
+var boardSection = buildSection('&#128640 PUBLISHING BOARD', freshnessBadge(schedBoard && schedBoard.generated), boardContent);
+
+// ── POSTBACK CONFIRMED ────────────────────────────────────────────
+var postContent = '<p class="empty">Run postback_logger to see what went live.</p>';
+if (postbackLog) {
+  var pbEvents = postbackLog.entries || [];
+  var pubCount = pbEvents.filter(function(e){ return e.event === 'published'; }).length;
+  var schedCount = pbEvents.filter(function(e){ return e.event === 'scheduled'; }).length;
+  var failCount = pbEvents.filter(function(e){ return e.event === 'failed'; }).length;
+  var usedMarked = pbEvents.filter(function(e){ return e.used_items_marked; }).length;
+  var pbRows = pbEvents.slice(0, 8).map(function(e){
+    var evtColor = {'published':'pub-ok','scheduled':'pub-wait','failed':'pub-blocked'}[e.event] || 'pub-brand';
+    return '<div class="pb-log-row"><div class="pb-evt"><span class="' + evtColor + '">' + e.event + '</span></div><div class="pb-log-hook">' + escHtml((e.linked_hook_id || e.item_id || '—').substring(0,30)) + '</div><div class="pb-log-plat">' + (e.platform || '—') + '</div><div class="pb-log-used">' + (e.used_items_marked ? '&#9989' : '&#8212;') + '</div></div>';
+  }).join('');
+  postContent = '<div class="pb-log-summary">' + pbEvents.length + ' events &middot; <span class="pub-ok">' + pubCount + ' published</span> &middot; <span class="pub-wait">' + schedCount + ' scheduled</span> &middot; <span class="pub-blocked">' + failCount + ' failed</span></div><div class="pb-log-table"><div class="pb-head"><span>Event</span><span>Hook/Item</span><span>Platform</span><span>Used marked</span></div>' + pbRows + '</div><div class="pb-used-note">Used items marked: ' + usedMarked + ' of ' + pbEvents.length + '</div>';
+}
+var postSection = buildSection('&#128240 POSTBACK CONFIRMED', freshnessBadge(postbackLog && postbackLog.generated), postContent);
 
 // ── THIS WEEK STRIP ───────────────────────────────────────────────
 let thisWeekStrip = '';
@@ -1563,6 +1600,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fix-item { font-size: 0.68rem; color: var(--text); padding: 2px 0; }
 .fix-type { font-weight: 700; color: var(--muted); font-size: 0.62rem; text-transform: uppercase; margin-right: 4px; }
 
+/* PUBLISHING BOARD */
+.pb-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.pb-table { font-size: 0.68rem; }
+.pb-head { display: grid; grid-template-columns: 0.8fr 1.5fr 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.6rem; text-transform: uppercase; margin-bottom: 4px; }
+.pb-row { display: grid; grid-template-columns: 0.8fr 1.5fr 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.pb-time { font-weight: 700; color: var(--text); font-size: 0.7rem; }
+.pb-slot-label { color: var(--muted); font-size: 0.65rem; }
+.pb-hook { color: var(--text); font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-format { color: var(--muted); font-size: 0.65rem; }
+.pb-svc { color: var(--muted); font-size: 0.65rem; }
+.pb-status { font-size: 0.65rem; }
+.pb-log-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.pb-log-table { font-size: 0.68rem; }
+.pb-log-row { display: grid; grid-template-columns: 1fr 2fr 1fr 0.8fr; gap: 8px; padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.pb-evt { font-size: 0.65rem; font-weight: 700; }
+.pb-log-hook { font-size: 0.68rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-log-plat { font-size: 0.65rem; color: var(--muted); }
+.pb-log-used { font-size: 0.7rem; text-align: center; }
+.pb-used-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -1634,6 +1691,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${makeSection}
   ${readySection}
   ${fixSection}
+  ${boardSection}
+  ${postSection}
   ${runSection}
   ${igSection}
   ${hookSection}

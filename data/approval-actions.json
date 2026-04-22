@@ -1,0 +1,10 @@
+{
+  "schema": "https://clawdia.io/agents/approval-runner/v1",
+  "generated": "2026-04-22T09:37:28.007Z",
+  "total_actions": 0,
+  "by_action": {
+    "reset_approval": 0,
+    "promote_to_publish": 0
+  },
+  "actions": []
+}

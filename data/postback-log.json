@@ -1,0 +1,12 @@
+{
+  "schema": "https://clawdia.io/agents/postback-logger/v1",
+  "generated": "2026-04-22T09:37:27.836Z",
+  "total_entries": 0,
+  "by_event": {
+    "published": 0,
+    "scheduled": 0,
+    "failed": 0
+  },
+  "used_items_marked_count": 0,
+  "entries": []
+}

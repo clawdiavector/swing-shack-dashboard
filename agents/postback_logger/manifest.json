@@ -1,0 +1,25 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "postback_logger",
+  "layer": 5,
+  "role": "Log what actually got posted, mark used items immediately, update attribution",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["run_postback_logger.js"],
+  "inputs": {
+    "data/published-items.json":     "What was published",
+    "data/scheduled-items.json":   "What was scheduled",
+    "data/publish-failures.json":   "What failed",
+    "data/used-items.json":         "Current suppress list",
+    "data/recommendation-outcomes.json": "For attribution"
+  },
+  "outputs": {
+    "data/postback-log.json":           "All postback events",
+    "data/used-items.json":             "Updated suppress list",
+    "data/published-posts.json":       "Published history"
+  },
+  "rules": {
+    "mark_used_on_publish": "Hook and idea marked used at moment of publish confirmation",
+    "write_back": "post_id, publish_timestamp, attribution"
+  }
+}
