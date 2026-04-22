@@ -396,9 +396,45 @@
       "datePosted": "2026-04-21",
       "comment": "'Photometric launch monitors on a high quality mat are by far the most accurate indoors. Trackman indoors can struggle with spin and shot shape on off centered strikes but is never going to get ball speed wrong.' Community discussion on accuracy. We're running TrackMan 4 + iO — premium setup. This is our differentiator.",
       "tags": ["simulator", "accuracy", "trackman", "photometric", "launch-monitor", "indoor"]
+    },
+    {
+      "id": "reddit-2026-04-22-10",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1ss2qis/new_to_golf/",
+      "title": "New to Golf - Looking to buy first set",
+      "subreddit": "r/GolfGear",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-22",
+      "datePosted": "2026-04-22",
+      "comment": "Has a coach, tried various clubs with instructor, now ready to buy. Classic conversion — book their fitting.",
+      "tags": ["new-golfer", "first-clubs", "coach", "conversion"]
+    },
+    {
+      "id": "reddit-2026-04-22-11",
+      "url": "https://www.reddit.com/r/golf/comments/1srp4v2/ladies_golf_club_fitting/",
+      "title": "Ladies Golf club fitting!",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-22",
+      "datePosted": "2026-04-22",
+      "comment": "Female golfer seeking ladies-specific fitting. TrackMan i/o measures swing speed + launch angle + spin for women specifically.",
+      "tags": ["ladies", "female", "fitting", "trackman", "conversion"]
+    },
+    {
+      "id": "reddit-2026-04-22-12",
+      "url": "https://www.reddit.com/r/golf/comments/1srr0j0/club_switch/",
+      "title": "Club switch - Need advice",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-22",
+      "datePosted": "2026-04-22",
+      "comment": "'Not long enough in journey to spend big bucks' — needs proper fitting, not expensive clubs. Our sweet spot.",
+      "tags": ["club-switch", "upgrade", "budget", "fitting"]
     }
   ],
   "last_updated": "2026-04-22",
-  "scan_time": "2026-04-22T04:00Z",
-  "scan_note": "April 22 2026 - 6AM SAST scan. Rate limited early on Brave API (throttled across instance). Worked around with targeted queries. Found good slice/fitting opportunities, plus SA competitor landscape. 9 new opportunities added (IDs reddit-2026-04-22-1 through -9). All saved. Push to GitHub."
+  "scan_time": "2026-04-22T10:00Z",
+  "scan_note": "April 22 2026 - 10AM SAST scan. Added 4 fresh opportunities (IDs -10 through -12). Push to GitHub."
 }
