@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "lead_recovery_engine",
+  "layer": 7,
+  "role": "Detect booking-intent visitors who did not convert. Map lost demand by page/service/CTA gap.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_lead_recovery_engine.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "lead-recovery.json": "lead-recovery.json"
+  }
+}

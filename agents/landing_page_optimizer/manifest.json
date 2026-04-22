@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "landing_page_optimizer",
+  "layer": 7,
+  "role": "Tie GA4 + funnel leak data to page fixes. Rank by revenue impact.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_landing_page_optimizer.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "landing-page-fixes.json": "landing-page-fixes.json"
+  }
+}

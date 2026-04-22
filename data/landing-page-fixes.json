@@ -1,0 +1,117 @@
+{
+  "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
+  "generated": "2026-04-22T12:24:48.897Z",
+  "summary": {
+    "total_fixes": 8,
+    "high_severity": 4,
+    "top_page": "/membership",
+    "top_fix": "Add clear pricing table with value context — \"from R250/session\"",
+    "expected_lift": "+12% booking intent"
+  },
+  "fixes": [
+    {
+      "fix_id": "fpf-tgjipbbe",
+      "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
+      "generated": "2026-04-22T12:24:48.897Z",
+      "page": "/membership",
+      "issue": "pricing_clarity",
+      "evidence": "best_practice",
+      "severity": "high",
+      "fix": "Add clear pricing table with value context — \"from R250/session\"",
+      "expected_outcome": "+12% booking intent",
+      "revenue_impact": "high",
+      "priority": 1
+    },
+    {
+      "fix_id": "fpf-2ldotbbk",
+      "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
+      "generated": "2026-04-22T12:24:48.897Z",
+      "page": "/membership",
+      "issue": "cta_weak",
+      "evidence": "best_practice",
+      "severity": "high",
+      "fix": "Replace \"Learn More\" with \"Book Your First Session\" on pricing section",
+      "expected_outcome": "+8% click-through",
+      "revenue_impact": "high",
+      "priority": 1
+    },
+    {
+      "fix_id": "fpf-0m56x794",
+      "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
+      "generated": "2026-04-22T12:24:48.897Z",
+      "page": "/club-fitting",
+      "issue": "intent_mismatch",
+      "evidence": "best_practice",
+      "severity": "high",
+      "fix": "Add booking urgency — limited slots, fitting demand spike",
+      "expected_outcome": "+20% conversion",
+      "revenue_impact": "high",
+      "priority": 1
+    },
+    {
+      "fix_id": "fpf-5vsjw0b0",
+      "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
+      "generated": "2026-04-22T12:24:48.897Z",
+      "page": "/book",
+      "issue": "friction",
+      "evidence": "best_practice",
+      "severity": "high",
+      "fix": "Reduce booking form to 3 fields — name, email, preferred time only",
+      "expected_outcome": "+25% form completion",
+      "revenue_impact": "high",
+      "priority": 1
+    },
+    {
+      "fix_id": "fpf-v59c77vc",
+      "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
+      "generated": "2026-04-22T12:24:48.897Z",
+      "page": "/coaching",
+      "issue": "trust_gap",
+      "evidence": "best_practice",
+      "severity": "medium",
+      "fix": "Add instructor credentials + TrackMan certification badges",
+      "expected_outcome": "+15% inquiry form completion",
+      "revenue_impact": "medium",
+      "priority": 2
+    },
+    {
+      "fix_id": "fpf-458h3tgo",
+      "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
+      "generated": "2026-04-22T12:24:48.897Z",
+      "page": "/coaching",
+      "issue": "faq_missing",
+      "evidence": "best_practice",
+      "severity": "medium",
+      "fix": "Add FAQ section covering \"what to expect in first session\"",
+      "expected_outcome": "+10% reduce bounce",
+      "revenue_impact": "medium",
+      "priority": 2
+    },
+    {
+      "fix_id": "fpf-sod2w418",
+      "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
+      "generated": "2026-04-22T12:24:48.897Z",
+      "page": "/",
+      "issue": "hero_message",
+      "evidence": "best_practice",
+      "severity": "medium",
+      "fix": "Update hero to lead with TrackMan stats hook — \"Your game in numbers\"",
+      "expected_outcome": "+10% session bookings",
+      "revenue_impact": "medium",
+      "priority": 2
+    },
+    {
+      "fix_id": "fpf-o1ylc74r",
+      "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
+      "generated": "2026-04-22T12:24:48.897Z",
+      "page": "/practice",
+      "issue": "awareness_gap",
+      "evidence": "best_practice",
+      "severity": "low",
+      "fix": "Add social proof — sessions completed counter, member testimonials",
+      "expected_outcome": "+6% engagement",
+      "revenue_impact": "low",
+      "priority": 3
+    }
+  ]
+}

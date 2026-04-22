@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "offer_engine",
+  "layer": 7,
+  "role": "Suggest safe offers and bundles only where demand signals justify. No discount sludge.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_offer_engine.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "offer-opportunities.json": "offer-opportunities.json"
+  }
+}

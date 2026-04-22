@@ -1,0 +1,47 @@
+{
+  "schema": "https://clawdia.io/agents/retargeting-campaign-builder/v1",
+  "generated": "2026-04-22T12:24:55.185Z",
+  "summary": {
+    "total_campaigns": 2,
+    "high_priority": 0,
+    "medium_priority": 0
+  },
+  "campaigns": [
+    {
+      "campaign_id": "rtc-vjakiv31",
+      "schema": "https://clawdia.io/agents/retargeting-campaign-builder/v1",
+      "generated": "2026-04-22T12:24:55.185Z",
+      "name": "Service Demand Recovery: Club Fitting",
+      "objective": "recover_service_intent",
+      "audience": "visitors_interested_in_club_fitting",
+      "hook_type": "service_proof",
+      "hook": "{\"type\":\"booking_traffic_no_retargeting\",\"page\":\"/bookings/\"",
+      "caption": "The gap between where your game is and where it could be starts with one session. Club Fitting from R250.",
+      "cta": "Book Your Session",
+      "landing_page": "swingshack.co.za/club-fitting",
+      "platform": "instagram",
+      "format": "static",
+      "service": "Club Fitting",
+      "priority": "low",
+      "reason": "Service intent leak — N visitors lost"
+    },
+    {
+      "campaign_id": "rtc-c349qinu",
+      "schema": "https://clawdia.io/agents/retargeting-campaign-builder/v1",
+      "generated": "2026-04-22T12:24:55.185Z",
+      "name": "Evergreen Awareness — Social Proof",
+      "objective": "build_awareness_and_trust",
+      "audience": "lookalike_engaged_users",
+      "hook_type": "social_proof",
+      "hook": "Pros trust TrackMan. Now so can you.",
+      "caption": "TrackMan is the gold standard in golf improvement. Swing Shack brings that same technology to every session. From R250.",
+      "cta": "Book Your Session",
+      "landing_page": "swingshack.co.za",
+      "platform": "instagram",
+      "format": "static",
+      "service": "Practice",
+      "priority": "low",
+      "reason": "Evergreen — always running to maintain awareness pipeline"
+    }
+  ]
+}

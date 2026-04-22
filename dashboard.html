@@ -390,6 +390,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .pb-log-used { font-size: 0.7rem; text-align: center; }
 .pb-used-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; }
 
+/* RECOVER REVENUE */
+.rv-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.rv-table { font-size: 0.65rem; }
+.rv-head { display: grid; grid-template-columns: 1.5fr 1.5fr 1.5fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.rv-row { display: grid; grid-template-columns: 1.5fr 1.5fr 1.5fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.rv-service { font-weight: 700; color: var(--text); }
+.rv-action, .rv-type, .rv-urg { font-size: 0.62rem; }
+
+/* NURTURE NEXT */
+.nr-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.nr-table { font-size: 0.65rem; }
+.nr-head { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr 1.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.nr-row { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr 1.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.nr-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.nr-obj, .nr-emails, .nr-aud { font-size: 0.62rem; }
+
+/* FIX THIS PAGE FIRST */
+.fp-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.fp-table { font-size: 0.65rem; }
+.fp-head { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.fp-row { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
+
 /* AUTONOMY CONTROL */
 .ac-header { display: flex; gap: 16px; margin-bottom: 8px; }
 .ac-mode { font-size: 0.75rem; font-weight: 700; color: var(--text); }
@@ -497,7 +521,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/22, 14:15:56 SAST</span>
+    <span class="summary-value">2026/04/22, 14:24:16 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -628,6 +652,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
       <span class="badge fresh">✅ fresh</span>
     </div>
     <div class="fix-total">3 issue(s) total &middot; 3 rejects &middot; 0 fixes needed</div><div class="fix-list"><div class="fix-group fix-group-rej"><div class="fix-head">&#128308 QA Rejects</div><div class="fix-item"><span class="fix-type">visual_brief</span>: No layout specified in visual brief</div><div class="fix-item"><span class="fix-type">visual_brief</span>: No layout specified in visual brief</div><div class="fix-item"><span class="fix-type">visual_brief</span>: No layout specified in visual brief</div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128176 RECOVER REVENUE</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="rv-summary">5 recovery items &middot; <span class="pub-blocked">0 high urgency</span></div><div class="rv-table"><div class="rv-head"><span>Service</span><span>Action</span><span>Leak</span><span>Urgency</span></div><div class="rv-row"><div class="rv-service">Club Fitting</div><div class="rv-action">investigate</div><div class="rv-type">booking traffic no r</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Coaching</div><div class="rv-action">investigate</div><div class="rv-type">hook winner no follo</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Practice</div><div class="rv-action">investigate</div><div class="rv-type">hook winner no follo</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Social Play</div><div class="rv-action">investigate</div><div class="rv-type">hook winner no follo</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Club Fitting</div><div class="rv-action">investigate</div><div class="rv-type">service page no ig</div><div class="rv-urg"><span class="pub-ok">low</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128236 NURTURE NEXT</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="nr-summary">3 sequences &middot; 9 emails total</div><div class="nr-table"><div class="nr-head"><span>Sequence</span><span>Objective</span><span>Emails</span><span>Audience</span></div><div class="nr-row"><div class="nr-name">Booking Recovery Sequence</div><div class="nr-obj">recover_abandoned_bo</div><div class="nr-emails">3 emails</div><div class="nr-aud">visited pricing did </div></div><div class="nr-row"><div class="nr-name">Service Discovery — Club Fitti</div><div class="nr-obj">introduce_club_fitti</div><div class="nr-emails">3 emails</div><div class="nr-aud">engaged blog or soci</div></div><div class="nr-row"><div class="nr-name">Coaching Discovery</div><div class="nr-obj">convert_interested_l</div><div class="nr-emails">3 emails</div><div class="nr-aud">visited coaching pag</div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128736 FIX THIS PAGE FIRST</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="fp-summary">8 fixes &middot; <span class="pub-blocked">4 high severity</span></div><div class="fp-table"><div class="fp-head"><span>Page</span><span>Issue</span><span>Fix</span><span>Severity</span></div><div class="fp-row"><div class="fp-page">/membership</div><div class="fp-issue">pricing clarity</div><div class="fp-fix">Add clear pricing table with value conte</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/membership</div><div class="fp-issue">cta weak</div><div class="fp-fix">Replace &quot;Learn More&quot; with &quot;Book Your Fir</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/club-fitting</div><div class="fp-issue">intent mismatch</div><div class="fp-fix">Add booking urgency — limited slots, fit</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/book</div><div class="fp-issue">friction</div><div class="fp-fix">Reduce booking form to 3 fields — name, </div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/coaching</div><div class="fp-issue">trust gap</div><div class="fp-fix">Add instructor credentials + TrackMan ce</div><div class="fp-sev"><span class="pub-wait">medium</span></div></div><div class="fp-row"><div class="fp-page">/coaching</div><div class="fp-issue">faq missing</div><div class="fp-fix">Add FAQ section covering &quot;what to expect</div><div class="fp-sev"><span class="pub-wait">medium</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">

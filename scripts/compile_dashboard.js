@@ -133,6 +133,11 @@ const toStop     = readJson('what-to-stop.json')          || null;
 const ownerPf    = readJson('owner-performance.json')    || null;
 const execBrief  = readJson('executive-brief.json')        || null;
 const trendDelta = readJson('trend-delta.json')          || null;
+const leadRecovery   = readJson('lead-recovery.json')           || null;
+const lpoFixes       = readJson('landing-page-fixes.json')      || null;
+const rtCampaigns    = readJson('retargeting-campaigns.json')   || null;
+const emailNurtures  = readJson('email-nurtures.json')           || null;
+const offerOpps      = readJson('offer-opportunities.json')     || null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -276,6 +281,42 @@ if (todayLearn) {
 var learnSection = buildSection('&#129504 TODAY\'S LEARNING', freshnessBadge(todayLearn && todayLearn.date), learnContent);
 
 // AGENT RUNS TODAY
+// ── RECOVER REVENUE ─────────────────────────────────────────
+var recRevContent = '<p class="empty">Run lead_recovery_engine to see revenue recovery items.</p>';
+if (leadRecovery && leadRecovery.recoveries && leadRecovery.recoveries.length > 0) {
+  var recSum = leadRecovery.summary || {};
+  var topRec = leadRecovery.recoveries[0] || {};
+  var highUrgency = leadRecovery.recoveries.filter(function(r){ return r.urgency === 'high'; }).length;
+  var recRows = leadRecovery.recoveries.slice(0,5).map(function(r){
+    var urg = {'high':'pub-blocked','medium':'pub-wait','low':'pub-ok'}[r.urgency] || 'pub-brand';
+    return '<div class="rv-row"><div class="rv-service">' + escHtml(r.service||'') + '</div><div class="rv-action">' + escHtml(r.recovery_action||'').substring(0,25) + '</div><div class="rv-type">' + escHtml((r.leak_type||'').replace(/_/g,' ')).substring(0,20) + '</div><div class="rv-urg"><span class="' + urg + '">' + r.urgency + '</span></div></div>';
+  }).join('');
+  recRevContent = '<div class="rv-summary">' + leadRecovery.recoveries.length + ' recovery items &middot; <span class="pub-blocked">' + highUrgency + ' high urgency</span></div><div class="rv-table"><div class="rv-head"><span>Service</span><span>Action</span><span>Leak</span><span>Urgency</span></div>' + recRows + '</div>';
+}
+var recRevSection = buildSection('&#128176 RECOVER REVENUE', freshnessBadge(leadRecovery && leadRecovery.generated), recRevContent);
+
+// ── NURTURE NEXT ──────────────────────────────────────────────
+var nurtureContent = '<p class="empty">Run email_nurture_builder to see nurture sequences.</p>';
+if (emailNurtures && emailNurtures.sequences && emailNurtures.sequences.length > 0) {
+  var seq = emailNurtures.sequences[0] || {};
+  var seqRows = emailNurtures.sequences.slice(0,3).map(function(s){
+    return '<div class="nr-row"><div class="nr-name">' + escHtml(s.name||'').substring(0,30) + '</div><div class="nr-obj">' + escHtml(s.objective||'').substring(0,20) + '</div><div class="nr-emails">' + (s.emails||[]).length + ' emails</div><div class="nr-aud">' + escHtml((s.target_audience||'').replace(/_/g,' ')).substring(0,20) + '</div></div>';
+  }).join('');
+  nurtureContent = '<div class="nr-summary">' + emailNurtures.sequences.length + ' sequences &middot; ' + emailNurtures.summary.total_emails + ' emails total</div><div class="nr-table"><div class="nr-head"><span>Sequence</span><span>Objective</span><span>Emails</span><span>Audience</span></div>' + seqRows + '</div>';
+}
+var nurtureSection = buildSection('&#128236 NURTURE NEXT', freshnessBadge(emailNurtures && emailNurtures.generated), nurtureContent);
+
+// ── FIX THIS PAGE FIRST ────────────────────────────────────────
+var pageFixContent = '<p class="empty">Run landing_page_optimizer to see page fixes.</p>';
+if (lpoFixes && lpoFixes.fixes && lpoFixes.fixes.length > 0) {
+  var fixRows = lpoFixes.fixes.slice(0,6).map(function(f){
+    var sev = {'high':'pub-blocked','medium':'pub-wait','low':'pub-ok'}[f.severity] || 'pub-brand';
+    return '<div class="fp-row"><div class="fp-page">' + escHtml(f.page||'') + '</div><div class="fp-issue">' + escHtml((f.issue||'').replace(/_/g,' ')).substring(0,18) + '</div><div class="fp-fix">' + escHtml((f.fix||'').substring(0,40)) + '</div><div class="fp-sev"><span class="' + sev + '">' + f.severity + '</span></div></div>';
+  }).join('');
+  pageFixContent = '<div class="fp-summary">' + lpoFixes.fixes.length + ' fixes &middot; <span class="pub-blocked">' + (lpoFixes.summary.high_severity||0) + ' high severity</span></div><div class="fp-table"><div class="fp-head"><span>Page</span><span>Issue</span><span>Fix</span><span>Severity</span></div>' + fixRows + '</div>';
+}
+var pageFixSection = buildSection('&#128736 FIX THIS PAGE FIRST', freshnessBadge(lpoFixes && lpoFixes.generated), pageFixContent);
+
 // ── AUTONOMY CONTROL ───────────────────────────────────────────
 var autoMode = (autonomyRules && autonomyRules.autonomy_mode) ? autonomyRules.autonomy_mode : 'OFF';
 var modeColor = {'LIMITED':'pub-ok','MINIMAL':'pub-wait','ALERTS_ONLY':'pub-warn','OFF':'pub-blocked'}[autoMode] || 'pub-blocked';
@@ -1693,6 +1734,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .pb-log-used { font-size: 0.7rem; text-align: center; }
 .pb-used-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; }
 
+/* RECOVER REVENUE */
+.rv-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.rv-table { font-size: 0.65rem; }
+.rv-head { display: grid; grid-template-columns: 1.5fr 1.5fr 1.5fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.rv-row { display: grid; grid-template-columns: 1.5fr 1.5fr 1.5fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.rv-service { font-weight: 700; color: var(--text); }
+.rv-action, .rv-type, .rv-urg { font-size: 0.62rem; }
+
+/* NURTURE NEXT */
+.nr-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.nr-table { font-size: 0.65rem; }
+.nr-head { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr 1.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.nr-row { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr 1.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.nr-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.nr-obj, .nr-emails, .nr-aud { font-size: 0.62rem; }
+
+/* FIX THIS PAGE FIRST */
+.fp-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.fp-table { font-size: 0.65rem; }
+.fp-head { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.fp-row { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
+
 /* AUTONOMY CONTROL */
 .ac-header { display: flex; gap: 16px; margin-bottom: 8px; }
 .ac-mode { font-size: 0.75rem; font-weight: 700; color: var(--text); }
@@ -1808,6 +1873,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${makeSection}
   ${readySection}
   ${fixSection}
+  ${recRevSection}
+  ${nurtureSection}
+  ${pageFixSection}
   ${autoControlSection}
   ${safetySection}
   ${weekReviewSection}

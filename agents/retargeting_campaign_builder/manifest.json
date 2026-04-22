@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "retargeting_campaign_builder",
+  "layer": 7,
+  "role": "Package recovery actions into campaign-ready briefs \u2014 social retargeting, reminder posts, booking nudges.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_retargeting_campaign_builder.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "retargeting-campaigns.json": "retargeting-campaigns.json"
+  }
+}

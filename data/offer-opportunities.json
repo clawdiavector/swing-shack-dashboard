@@ -1,0 +1,79 @@
+{
+  "schema": "https://clawdia.io/agents/offer-engine/v1",
+  "generated": "2026-04-22T12:24:55.266Z",
+  "demand_signals_present": true,
+  "summary": {
+    "total_offers": 3,
+    "low_risk": 2,
+    "medium_risk": 1,
+    "blocked": 0
+  },
+  "offers": [
+    {
+      "offer_id": "off-hun0q9hg",
+      "schema": "https://clawdia.io/agents/offer-engine/v1",
+      "generated": "2026-04-22T12:24:55.266Z",
+      "concept": "Practice Pack — 5 Sessions",
+      "service": "Practice",
+      "bundle": "5 Practice Sessions",
+      "original_price": "R1,250 (5x R250)",
+      "offer_price": "R1,000",
+      "saving": "R250 (20% — volume incentive, not desperation)",
+      "rationale": "Practice sessions are a volume purchase. A 5-pack commitment should carry a modest incentive. Members who practice regularly upgrade to coaching.",
+      "why_now": "Practice sessions have highest engagement volume — convert frequent users to committed pack buyers",
+      "risk": "LOW",
+      "risk_note": "Volume-based discount. No \"sale\" framing. Natural commitment ladder.",
+      "confidence": "medium",
+      "evidence": [
+        "practice_high_volume",
+        "repeat_visit_pattern"
+      ],
+      "cta": "Get Practice Pack",
+      "landing_page": "swingshack.co.za/practice"
+    },
+    {
+      "offer_id": "off-eyy63jar",
+      "schema": "https://clawdia.io/agents/offer-engine/v1",
+      "generated": "2026-04-22T12:24:55.266Z",
+      "concept": "Comprehensive Fitting Day",
+      "service": "Club Fitting",
+      "bundle": "Full Bag Fitting + Loft & Lie (usually R2,600)",
+      "original_price": "R2,600",
+      "offer_price": "R2,200",
+      "saving": "R400 (15%)",
+      "rationale": "Full bag fitting is a high-ticket, high-commitment decision. Offering a combined assessment as a single day experience reduces friction for serious golfers.",
+      "why_now": "Club fitting page has high intent traffic — combine into a day experience to capture now",
+      "risk": "MEDIUM",
+      "risk_note": "Medium risk — only activate if fitting page traffic is confirmed high. Monitor for profit impact.",
+      "confidence": "medium",
+      "evidence": [
+        "fitting_page_intent",
+        "high_value_segment"
+      ],
+      "cta": "Book Fitting Day",
+      "landing_page": "swingshack.co.za/club-fitting"
+    },
+    {
+      "offer_id": "off-dd0ak8pk",
+      "schema": "https://clawdia.io/agents/offer-engine/v1",
+      "generated": "2026-04-22T12:24:55.266Z",
+      "concept": "Coaching Intro — Assessment + 1 Lesson",
+      "service": "Coaching",
+      "bundle": "TPI Assessment + 1 Lesson (usually R2,100)",
+      "original_price": "R2,100",
+      "offer_price": "R1,900",
+      "saving": "R200 — and you get the lesson free if you upgrade to 3-lesson package",
+      "rationale": "Coaching should never look cheap. This offer adds the lesson free if they upgrade — creates an upgrade incentive rather than discounting the core product.",
+      "why_now": "Serious leads interested in coaching — reduce assessment-to-lesson conversion friction",
+      "risk": "LOW",
+      "risk_note": "Value-add framing, not discount framing. Doesn't undercut coaching credibility.",
+      "confidence": "medium",
+      "evidence": [
+        "coaching_interest_detected",
+        "tpi_assessment_popular"
+      ],
+      "cta": "Start With Assessment",
+      "landing_page": "swingshack.co.za/coaching"
+    }
+  ]
+}

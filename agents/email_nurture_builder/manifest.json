@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "email_nurture_builder",
+  "layer": 7,
+  "role": "Short 3-email nurture flows from winning hooks, best CTAs, top services, booking leaks.",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_email_nurture_builder.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "email-nurtures.json": "email-nurtures.json"
+  }
+}

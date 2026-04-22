@@ -181,6 +181,19 @@ const STAGES = [
     ]
   },
   {
+    name: 'RevenueRecovery',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['lead-recovery.json', 'landing-page-fixes.json', 'retargeting-campaigns.json', 'email-nurtures.json', 'offer-opportunities.json'],
+    steps: [
+      { name: 'lead_recovery_engine',           script: `node ${BASE}/scripts/run_lead_recovery_engine.js`,           critical: false },
+      { name: 'landing_page_optimizer',         script: `node ${BASE}/scripts/run_landing_page_optimizer.js`,         critical: false },
+      { name: 'retargeting_campaign_builder',    script: `node ${BASE}/scripts/run_retargeting_campaign_builder.js`,    critical: false },
+      { name: 'email_nurture_builder',           script: `node ${BASE}/scripts/run_email_nurture_builder.js`,           critical: false },
+      { name: 'offer_engine',                    script: `node ${BASE}/scripts/run_offer_engine.js`,                   critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],
