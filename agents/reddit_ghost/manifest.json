@@ -1,0 +1,25 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "reddit_ghost",
+  "layer": 3,
+  "role": "Reddit answer drafts, thread opportunities, soft-brand mentions, backlink bait",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": ["generate_reddit_ghost.js"],
+  "inputs": {
+    "data/reddit-trends.json":       "Reddit hot pain points and trends",
+    "data/content-ideas.json":       "Content ideas for angle",
+    "data/website-insights.json":    "Website insights for backlink bait",
+    "memory/daily/":                "Recent learnings"
+  },
+  "outputs": {
+    "data/reddit-replies.json":        "Draft replies to Reddit threads",
+    "data/reddit-opportunities.json":  "Thread participation opportunities",
+    "data/forum-opportunities.json":   "Forum backlink opportunities"
+  },
+  "validates": [
+    "reddit-replies.json has replies array",
+    "Each reply has: question_context, reply_draft, sentiment, ready_for_qa"
+  ],
+  "rule": "No spam. Only useful, native-feeling answers. No hard selling."
+}

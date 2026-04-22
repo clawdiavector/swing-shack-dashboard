@@ -1,0 +1,342 @@
+{
+  "schema": "https://clawdia.io/agents/blog-beast/v1",
+  "generated": "2026-04-22T08:51:13.892Z",
+  "total": 8,
+  "by_intent": {
+    "informational": 8,
+    "transactional": 0
+  },
+  "by_priority": {
+    "quick_win": 3,
+    "rising": 0,
+    "baseline": 5
+  },
+  "ready_for_qa": 8,
+  "briefs": [
+    {
+      "brief_id": "bb-75leqlr9",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.891Z",
+      "cluster": {
+        "cluster": "TrackMan Golf Technology",
+        "keywords": [
+          "trackman golf",
+          "trackman indoor golf",
+          "golf launch monitor",
+          "trackman johannesburg",
+          "indoor golf tech"
+        ],
+        "angle": "TrackMan is the gold standard for golf improvement. Show what it measures, why it matters, who it's for."
+      },
+      "target_keyword": "trackman golf",
+      "secondary_keywords": [
+        "trackman indoor golf",
+        "golf launch monitor",
+        "trackman johannesburg"
+      ],
+      "search_intent": "informational",
+      "word_count_target": 1800,
+      "tone": "knowledgeable, South African, data-driven, not salesy",
+      "structure": [
+        "HOOK (stat or question)",
+        "PROBLEM (what golfers get wrong)",
+        "SOLUTION (TrackMan/data)",
+        "HOW IT WORKS (Swing Shack specifics)",
+        "FAQ (5 questions)",
+        "CTA (book session)"
+      ],
+      "h1_suggestion": "What TrackMan Golf Technology Means for Your Game",
+      "seo_notes": "Target: trackman golf. Intent: informational. Include TrackMan is the gold standard for golf improvement.",
+      "conversion_goal": "email_signup",
+      "status": "draft",
+      "confidence": 90,
+      "owner": "blog_beast",
+      "ready_for_qa": true,
+      "next_action": "Write draft, QA for SEO + brand, publish"
+    },
+    {
+      "brief_id": "bb-0d5zg46o",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": {
+        "cluster": "TrackMan Golf Technology",
+        "keywords": [
+          "trackman golf",
+          "trackman indoor golf",
+          "golf launch monitor",
+          "trackman johannesburg",
+          "indoor golf tech"
+        ],
+        "angle": "TrackMan is the gold standard for golf improvement. Show what it measures, why it matters, who it's for."
+      },
+      "target_keyword": "trackman golf",
+      "secondary_keywords": [
+        "trackman indoor golf",
+        "golf launch monitor",
+        "trackman johannesburg"
+      ],
+      "search_intent": "informational",
+      "word_count_target": 1800,
+      "tone": "knowledgeable, South African, data-driven, not salesy",
+      "structure": [
+        "HOOK (stat or question)",
+        "PROBLEM (what golfers get wrong)",
+        "SOLUTION (TrackMan/data)",
+        "HOW IT WORKS (Swing Shack specifics)",
+        "FAQ (5 questions)",
+        "CTA (book session)"
+      ],
+      "h1_suggestion": "What TrackMan Golf Technology Means for Your Game",
+      "seo_notes": "Target: trackman golf. Intent: informational. Include TrackMan is the gold standard for golf improvement.",
+      "conversion_goal": "email_signup",
+      "status": "draft",
+      "confidence": 90,
+      "owner": "blog_beast",
+      "ready_for_qa": true,
+      "next_action": "Write draft, QA for SEO + brand, publish"
+    },
+    {
+      "brief_id": "bb-7vwhe7h8",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": {
+        "cluster": "TrackMan Golf Technology",
+        "keywords": [
+          "trackman golf",
+          "trackman indoor golf",
+          "golf launch monitor",
+          "trackman johannesburg",
+          "indoor golf tech"
+        ],
+        "angle": "TrackMan is the gold standard for golf improvement. Show what it measures, why it matters, who it's for."
+      },
+      "target_keyword": "trackman golf",
+      "secondary_keywords": [
+        "trackman indoor golf",
+        "golf launch monitor",
+        "trackman johannesburg"
+      ],
+      "search_intent": "informational",
+      "word_count_target": 1800,
+      "tone": "knowledgeable, South African, data-driven, not salesy",
+      "structure": [
+        "HOOK (stat or question)",
+        "PROBLEM (what golfers get wrong)",
+        "SOLUTION (TrackMan/data)",
+        "HOW IT WORKS (Swing Shack specifics)",
+        "FAQ (5 questions)",
+        "CTA (book session)"
+      ],
+      "h1_suggestion": "What TrackMan Golf Technology Means for Your Game",
+      "seo_notes": "Target: trackman golf. Intent: informational. Include TrackMan is the gold standard for golf improvement.",
+      "conversion_goal": "email_signup",
+      "status": "draft",
+      "confidence": 90,
+      "owner": "blog_beast",
+      "ready_for_qa": true,
+      "next_action": "Write draft, QA for SEO + brand, publish"
+    },
+    {
+      "brief_id": "bb-hk625w1y",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": {
+        "cluster": "Golf Club Fitting",
+        "keywords": [
+          "club fitting johannesburg",
+          "trackman fitting",
+          "driver fitting",
+          "iron fitting",
+          "custom golf clubs"
+        ],
+        "angle": "Trust + data. How TrackMan fitting works, what it costs, what you get, why it beats guesswork."
+      },
+      "target_keyword": "/checkout/",
+      "secondary_keywords": [
+        "club fitting johannesburg",
+        "trackman fitting",
+        "driver fitting"
+      ],
+      "search_intent": "informational",
+      "word_count_target": 1800,
+      "tone": "knowledgeable, South African, data-driven, not salesy",
+      "structure": [
+        "HOOK (stat or question)",
+        "PROBLEM (what golfers get wrong)",
+        "SOLUTION (TrackMan/data)",
+        "HOW IT WORKS (Swing Shack specifics)",
+        "FAQ (5 questions)",
+        "CTA (book session)"
+      ],
+      "h1_suggestion": "/checkout/: What You Need to Know",
+      "seo_notes": "Target: /checkout/. Intent: informational. Include Trust + data. How TrackMan fitting works, what it .",
+      "conversion_goal": "email_signup",
+      "status": "draft",
+      "confidence": 70,
+      "owner": "blog_beast",
+      "ready_for_qa": true,
+      "next_action": "Write draft, QA for SEO + brand, publish"
+    },
+    {
+      "brief_id": "bb-1elshrwz",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": {
+        "cluster": "Practice & Warm-up",
+        "keywords": [
+          "golf practice indoor",
+          "golf warm up simulator",
+          "indoor range",
+          "golf bucket"
+        ],
+        "angle": "Convenience + preparation. How indoor practice fits into a real golf improvement program."
+      },
+      "target_keyword": "/club-fitting/",
+      "secondary_keywords": [
+        "golf practice indoor",
+        "golf warm up simulator",
+        "indoor range"
+      ],
+      "search_intent": "informational",
+      "word_count_target": 1800,
+      "tone": "knowledgeable, South African, data-driven, not salesy",
+      "structure": [
+        "HOOK (stat or question)",
+        "PROBLEM (what golfers get wrong)",
+        "SOLUTION (TrackMan/data)",
+        "HOW IT WORKS (Swing Shack specifics)",
+        "FAQ (5 questions)",
+        "CTA (book session)"
+      ],
+      "h1_suggestion": "Club Fitting in Johannesburg: What to Expect",
+      "seo_notes": "Target: /club-fitting/. Intent: informational. Include Convenience + preparation. How indoor practice fit.",
+      "conversion_goal": "email_signup",
+      "status": "draft",
+      "confidence": 70,
+      "owner": "blog_beast",
+      "ready_for_qa": true,
+      "next_action": "Write draft, QA for SEO + brand, publish"
+    },
+    {
+      "brief_id": "bb-u5ohmiah",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": {
+        "cluster": "Golf Coaching & Lessons",
+        "keywords": [
+          "golf lessons johannesburg",
+          "golf coach sandton",
+          "tpi assessment",
+          "golf improvement"
+        ],
+        "angle": "Transformation story. Before/after numbers, certified coaches, real feedback."
+      },
+      "target_keyword": "/",
+      "secondary_keywords": [
+        "golf lessons johannesburg",
+        "golf coach sandton",
+        "tpi assessment"
+      ],
+      "search_intent": "informational",
+      "word_count_target": 1800,
+      "tone": "knowledgeable, South African, data-driven, not salesy",
+      "structure": [
+        "HOOK (stat or question)",
+        "PROBLEM (what golfers get wrong)",
+        "SOLUTION (TrackMan/data)",
+        "HOW IT WORKS (Swing Shack specifics)",
+        "FAQ (5 questions)",
+        "CTA (book session)"
+      ],
+      "h1_suggestion": "/: What You Need to Know",
+      "seo_notes": "Target: /. Intent: informational. Include Transformation story. Before/after numbers, certif.",
+      "conversion_goal": "email_signup",
+      "status": "draft",
+      "confidence": 70,
+      "owner": "blog_beast",
+      "ready_for_qa": true,
+      "next_action": "Write draft, QA for SEO + brand, publish"
+    },
+    {
+      "brief_id": "bb-peomtcwe",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": {
+        "cluster": "TrackMan Golf Technology",
+        "keywords": [
+          "trackman golf",
+          "trackman indoor golf",
+          "golf launch monitor",
+          "trackman johannesburg",
+          "indoor golf tech"
+        ],
+        "angle": "TrackMan is the gold standard for golf improvement. Show what it measures, why it matters, who it's for."
+      },
+      "target_keyword": "trackman golf",
+      "secondary_keywords": [
+        "trackman indoor golf",
+        "golf launch monitor",
+        "trackman johannesburg"
+      ],
+      "search_intent": "informational",
+      "word_count_target": 1800,
+      "tone": "knowledgeable, South African, data-driven, not salesy",
+      "structure": [
+        "HOOK (stat or question)",
+        "PROBLEM (what golfers get wrong)",
+        "SOLUTION (TrackMan/data)",
+        "HOW IT WORKS (Swing Shack specifics)",
+        "FAQ (5 questions)",
+        "CTA (book session)"
+      ],
+      "h1_suggestion": "What TrackMan Golf Technology Means for Your Game",
+      "seo_notes": "Target: trackman golf. Intent: informational. Include TrackMan is the gold standard for golf improvement.",
+      "conversion_goal": "email_signup",
+      "status": "draft",
+      "confidence": 70,
+      "owner": "blog_beast",
+      "ready_for_qa": true,
+      "next_action": "Write draft, QA for SEO + brand, publish"
+    },
+    {
+      "brief_id": "bb-1szohh06",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": {
+        "cluster": "Indoor Golf Johannesburg",
+        "keywords": [
+          "indoor golf johannesburg",
+          "indoor golf sandton",
+          "golf simulator johannesburg",
+          "golf near me indoor"
+        ],
+        "angle": "Location-first intent. Clear directions, what to expect, pricing context, booking ease."
+      },
+      "target_keyword": "indoor golf johannesburg",
+      "secondary_keywords": [
+        "indoor golf sandton",
+        "golf simulator johannesburg",
+        "golf near me indoor"
+      ],
+      "search_intent": "informational",
+      "word_count_target": 1800,
+      "tone": "knowledgeable, South African, data-driven, not salesy",
+      "structure": [
+        "HOOK (stat or question)",
+        "PROBLEM (what golfers get wrong)",
+        "SOLUTION (TrackMan/data)",
+        "HOW IT WORKS (Swing Shack specifics)",
+        "FAQ (5 questions)",
+        "CTA (book session)"
+      ],
+      "h1_suggestion": "Indoor Golf in Johannesburg: The Complete Guide",
+      "seo_notes": "Target: indoor golf johannesburg. Intent: informational. Include Location-first intent. Clear directions, what to e.",
+      "conversion_goal": "email_signup",
+      "status": "draft",
+      "confidence": 70,
+      "owner": "blog_beast",
+      "ready_for_qa": true,
+      "next_action": "Write draft, QA for SEO + brand, publish"
+    }
+  ]
+}

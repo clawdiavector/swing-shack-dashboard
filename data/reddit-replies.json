@@ -1,0 +1,139 @@
+{
+  "schema": "https://clawdia.io/agents/reddit-ghost/v1",
+  "generated": "2026-04-22T08:51:13.975Z",
+  "total": 5,
+  "by_sentiment": {
+    "high_trust": 0,
+    "medium_trust": 5,
+    "low_trust": 0
+  },
+  "ready_for_qa": 5,
+  "replies": [
+    {
+      "reply_id": "rr-d9k47bim",
+      "schema": "https://clawdia.io/agents/reddit-ghost/v1",
+      "generated": "2026-04-22T08:51:13.975Z",
+      "question_context": "How do I stop slicing?",
+      "sentiment": "medium_trust",
+      "angle": "TrackMan numbers are the fastest path to understanding your golf game.",
+      "reply_draft": "TrackMan is the standard in professional golf for a reason.\n\nIt measures everything: ball speed, launch angle, spin rates, carry, total distance, smash factor. Every number tells you something true about your swing.\n\nMost golfers are surprised by at least one number when they get on a TrackMan for the first time.\n\nFrom about R250 at most indoor golf places with launch monitors in Johannesburg. Worth every rand if you're trying to improve.",
+      "soft_brand_mention": "TrackMan indoor golf — numbers that help.",
+      "subreddit": "r/golf",
+      "upvotes": 47,
+      "engagement_signal": "high",
+      "safety_check": {
+        "no_direct_link": true,
+        "no_salesy_language": true,
+        "adds_value_first": true,
+        "native_tone": true
+      },
+      "status": "draft",
+      "confidence": 80,
+      "owner": "reddit_ghost",
+      "source_trend_id": null,
+      "ready_for_qa": true,
+      "next_action": "QA: check tone, brand safety, timing. Post manually."
+    },
+    {
+      "reply_id": "rr-m4pdjmee",
+      "schema": "https://clawdia.io/agents/reddit-ghost/v1",
+      "generated": "2026-04-22T08:51:13.975Z",
+      "question_context": "Is indoor golf worth it for improvement?",
+      "sentiment": "medium_trust",
+      "angle": "Indoor golf with TrackMan gives you better data than most outdoor ranges.",
+      "reply_draft": "Indoor golf gets a bad rep but it's actually superior for data-driven practice.\n\nWith a proper launch monitor, you get:\n- Consistent conditions (no wind, no rain)\n- Ball flight data — not just feel\n- Session tracking — see your numbers improve over time\n- Instant feedback on every shot\n\nI practice at an indoor place in Johannesburg that uses TrackMan. The data is the same tech PGA Tour guys use. Biggest difference from the range: I actually know if I'm getting better after each session.\n\nWorth looking for somewhere with TrackMan if you're serious about improving.",
+      "soft_brand_mention": "Indoor with TrackMan — conditions are better than outdoor.",
+      "subreddit": "r/golf",
+      "upvotes": 31,
+      "engagement_signal": "high",
+      "safety_check": {
+        "no_direct_link": true,
+        "no_salesy_language": true,
+        "adds_value_first": true,
+        "native_tone": true
+      },
+      "status": "draft",
+      "confidence": 80,
+      "owner": "reddit_ghost",
+      "source_trend_id": null,
+      "ready_for_qa": true,
+      "next_action": "QA: check tone, brand safety, timing. Post manually."
+    },
+    {
+      "reply_id": "rr-gfgkp4ry",
+      "schema": "https://clawdia.io/agents/reddit-ghost/v1",
+      "generated": "2026-04-22T08:51:13.975Z",
+      "question_context": "Should I get fitted before buying new clubs?",
+      "sentiment": "medium_trust",
+      "angle": "Get fitted before buying new clubs — TrackMan fitting shows you what you actually need.",
+      "reply_draft": "Getting fitted before buying clubs is the move.\n\nYou might think you need a stiff shaft but your swing speed says regular. Or you might be hitting a loft that's too strong for your attack angle.\n\nTrackMan fitting shows you the numbers — what loft, shaft, head design actually fits your swing. Some places in Johannesburg do it from R900.\n\nThen you buy with confidence instead of guessing.",
+      "soft_brand_mention": "TrackMan fitting — data before equipment decisions.",
+      "subreddit": "r/golf",
+      "upvotes": 28,
+      "engagement_signal": "high",
+      "safety_check": {
+        "no_direct_link": true,
+        "no_salesy_language": true,
+        "adds_value_first": true,
+        "native_tone": true
+      },
+      "status": "draft",
+      "confidence": 80,
+      "owner": "reddit_ghost",
+      "source_trend_id": null,
+      "ready_for_qa": true,
+      "next_action": "QA: check tone, brand safety, timing. Post manually."
+    },
+    {
+      "reply_id": "rr-vbvjhpbr",
+      "schema": "https://clawdia.io/agents/reddit-ghost/v1",
+      "generated": "2026-04-22T08:51:13.975Z",
+      "question_context": "TPI assessment — worth it?",
+      "sentiment": "medium_trust",
+      "angle": "TrackMan numbers are the fastest path to understanding your golf game.",
+      "reply_draft": "TrackMan is the standard in professional golf for a reason.\n\nIt measures everything: ball speed, launch angle, spin rates, carry, total distance, smash factor. Every number tells you something true about your swing.\n\nMost golfers are surprised by at least one number when they get on a TrackMan for the first time.\n\nFrom about R250 at most indoor golf places with launch monitors in Johannesburg. Worth every rand if you're trying to improve.",
+      "soft_brand_mention": "TrackMan indoor golf — numbers that help.",
+      "subreddit": "r/golftips",
+      "upvotes": 19,
+      "engagement_signal": "medium",
+      "safety_check": {
+        "no_direct_link": true,
+        "no_salesy_language": true,
+        "adds_value_first": true,
+        "native_tone": true
+      },
+      "status": "draft",
+      "confidence": 65,
+      "owner": "reddit_ghost",
+      "source_trend_id": null,
+      "ready_for_qa": true,
+      "next_action": "QA: check tone, brand safety, timing. Post manually."
+    },
+    {
+      "reply_id": "rr-xvf4xkfl",
+      "schema": "https://clawdia.io/agents/reddit-ghost/v1",
+      "generated": "2026-04-22T08:51:13.975Z",
+      "question_context": "Indoor golf in Johannesburg — any recommendations?",
+      "sentiment": "medium_trust",
+      "angle": "Indoor golf with TrackMan gives you better data than most outdoor ranges.",
+      "reply_draft": "Indoor golf gets a bad rep but it's actually superior for data-driven practice.\n\nWith a proper launch monitor, you get:\n- Consistent conditions (no wind, no rain)\n- Ball flight data — not just feel\n- Session tracking — see your numbers improve over time\n- Instant feedback on every shot\n\nI practice at an indoor place in Johannesburg that uses TrackMan. The data is the same tech PGA Tour guys use. Biggest difference from the range: I actually know if I'm getting better after each session.\n\nWorth looking for somewhere with TrackMan if you're serious about improving.",
+      "soft_brand_mention": "Indoor with TrackMan — conditions are better than outdoor.",
+      "subreddit": "r/Johannesburg",
+      "upvotes": 14,
+      "engagement_signal": "medium",
+      "safety_check": {
+        "no_direct_link": true,
+        "no_salesy_language": true,
+        "adds_value_first": true,
+        "native_tone": true
+      },
+      "status": "draft",
+      "confidence": 65,
+      "owner": "reddit_ghost",
+      "source_trend_id": null,
+      "ready_for_qa": true,
+      "next_action": "QA: check tone, brand safety, timing. Post manually."
+    }
+  ],
+  "data_source": "fallback_topics"
+}

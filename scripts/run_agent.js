@@ -62,7 +62,7 @@ if (args.length === 0 || args[0] === '--help') {
   console.log('Usage:');
   console.log('  node run_agent.js <agent_id>   Run one agent');
   console.log('  node run_agent.js --list      List agents');
-  console.log('  node run_agent.js --all [layer]  Run all agents (optionally: --all 2 for layer 2 only)');
+  console.log('  node run_agent.js --all [layer]  Run all agents (optionally: --all 2 for layer 2, --all 3 for layer 3)');
   console.log('\nAgents:');
   for (const d of fs.readdirSync(AGENTS)) {
     const m = getManifest(d);

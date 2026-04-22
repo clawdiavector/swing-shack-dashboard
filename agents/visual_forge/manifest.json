@@ -1,0 +1,24 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "visual_forge",
+  "layer": 3,
+  "role": "Generate visual briefs, image prompts, carousel panel briefs, thumbnail briefs from blueprints",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["generate_visual_briefs.js"],
+  "inputs": {
+    "data/content-blueprints.json":  "Primary briefing — blueprints for visual briefs",
+    "data/hook-bank.json":         "Hook bank for overlay text",
+    "data/post-plan.json":        "Post plan"
+  },
+  "outputs": {
+    "data/visual-briefs.json":    "Full visual briefs per blueprint",
+    "data/image-prompts.json":    "AI image generation prompts",
+    "data/thumbnail-briefs.json": "YouTube/shorts thumbnail briefs"
+  },
+  "validates": [
+    "visual-briefs.json has briefs array with 5+ entries",
+    "Each brief has: linked_blueprint_id, visual_type, prompt_text, ready_for_qa"
+  ],
+  "rule": "Prompts only — do not generate finished images. Briefs for human/image AI to execute."
+}

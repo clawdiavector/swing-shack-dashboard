@@ -108,6 +108,13 @@ const supprRul  = readJson('suppression-rules.json')        || null;
 const delAudit = readJson('delivery-audit.json')           || null;
 const sysHealth = readJson('system-health.json')          || null;
 const agentRuns = readJson('agent-runs.json')              || null;
+const captions  = readJson('captions.json')                || null;
+const vbBriefs  = readJson('visual-briefs.json')           || null;
+const imgPrompts= readJson('image-prompts.json')           || null;
+const blogBriefs= readJson('blog-briefs.json')             || null;
+const blogDrafts= readJson('blog-drafts.json')             || null;
+const faqOpps   = readJson('faq-opportunities.json')       || null;
+const redditRepl = readJson('reddit-replies.json')         || null;
 const today = new Date().toISOString().split('T')[0];
 let todayLearn = null;
 try { todayLearn = JSON.parse(fs.readFileSync(path.join(DATA_DIR, '..', 'memory', 'daily', today + '.json'), 'utf8')); } catch {}
@@ -269,6 +276,39 @@ if (agentRuns && agentRuns.agents) {
   }
 }
 var runSection = buildSection('&#129512 AGENT RUNS TODAY', freshnessBadge(agentRuns && agentRuns.updated), runContent);
+
+// ── MAKE THE CONTENT ────────────────────────────────────────────────
+var makeContent = '<p class="empty">No production content yet. Run Phase 2C agents.</p>';
+if (captions || vbBriefs || blogBriefs || redditRepl) {
+  var capItems = [];
+  if (captions && captions.captions) {
+    var readyCap = captions.captions.filter(function(c){ return c.ready_for_qa; }).length;
+    var draftCap = captions.captions.length - readyCap;
+    capItems.push('<div class="mc-cell mc-cell-captions"><div class="mc-cell-head">&#9997 CAPTIONS</div><div class="mc-cell-body">' + captions.captions.length + ' total &middot; <span class="mc-ready">' + readyCap + ' ready for QA</span>' + (draftCap > 0 ? ' &middot; <span class="mc-draft">' + draftCap + ' draft</span>' : '') + '</div></div>');
+  }
+  if (vbBriefs && vbBriefs.briefs) {
+    var readyVb = vbBriefs.briefs.filter(function(b){ return b.ready_for_qa; }).length;
+    var draftVb = vbBriefs.briefs.length - readyVb;
+    capItems.push('<div class="mc-cell mc-cell-visuals"><div class="mc-cell-head">&#127916 VISUALS</div><div class="mc-cell-body">' + vbBriefs.briefs.length + ' briefs &middot; <span class="mc-ready">' + readyVb + ' ready</span>' + (draftVb > 0 ? ' &middot; <span class="mc-draft">' + draftVb + ' draft</span>' : '') + '</div></div>');
+  }
+  if (imgPrompts && imgPrompts.prompts) {
+    capItems.push('<div class="mc-cell mc-cell-prompts"><div class="mc-cell-head">&#128172 IMAGE PROMPTS</div><div class="mc-cell-body">' + imgPrompts.prompts.length + ' prompts &middot; ' + (imgPrompts.prompts[0] ? 'Top: &quot;' + imgPrompts.prompts[0].prompt_text.substring(0,40) + '&quot;' : '') + '</div></div>');
+  }
+  if ((blogBriefs && blogBriefs.briefs) || (blogDrafts && blogDrafts.drafts)) {
+    var bCount = (blogBriefs && blogBriefs.briefs ? blogBriefs.briefs.length : 0);
+    var dCount = (blogDrafts && blogDrafts.drafts ? blogDrafts.drafts.length : 0);
+    var fCount = (faqOpps && faqOpps.faqs ? faqOpps.faqs.length : 0);
+    capItems.push('<div class="mc-cell mc-cell-blogs"><div class="mc-cell-head">&#128221 BLOGS</div><div class="mc-cell-body">' + bCount + ' briefs &middot; ' + dCount + ' drafts &middot; ' + fCount + ' FAQ clusters</div></div>');
+  }
+  if (redditRepl && redditRepl.replies) {
+    var hiRed = redditRepl.replies.filter(function(r){ return r.engagement_signal === 'high'; }).length;
+    capItems.push('<div class="mc-cell mc-cell-reddit"><div class="mc-cell-head">&#129313 REDDIT MOVES</div><div class="mc-cell-body">' + redditRepl.replies.length + ' replies &middot; <span class="mc-ready">' + hiRed + ' high signal</span></div></div>');
+  }
+  if (capItems.length > 0) {
+    makeContent = '<div class="mc-grid">' + capItems.join('') + '</div><div class="mc-legend">&#9888&#65039; All outputs are <b>draft</b> &mdash; QA review required before publishing</div>';
+  }
+}
+var makeSection = buildSection('&#128736 MAKE THE CONTENT', freshnessBadge(captions && captions.generated), makeContent);
 
 // ── THIS WEEK STRIP ───────────────────────────────────────────────
 let thisWeekStrip = '';
@@ -1432,6 +1472,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .run-script-ok { background: rgba(0,200,83,0.12); color: #00c853; }
 .run-script-fail { background: rgba(255,71,87,0.12); color: #ff4757; }
 
+/* MAKE THE CONTENT */
+.mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.mc-cell { padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 8px; border-left: 3px solid var(--border, #333); }
+.mc-cell-head { font-size: 0.68rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+.mc-cell-body { font-size: 0.75rem; color: var(--text); line-height: 1.4; }
+.mc-cell-captions { border-left-color: #00c853; }
+.mc-cell-visuals { border-left-color: #ffa502; }
+.mc-cell-prompts { border-left-color: #ff6b81; }
+.mc-cell-blogs { border-left-color: #1e90ff; }
+.mc-cell-reddit { border-left-color: #ff4757; }
+.mc-ready { color: #00c853; font-weight: 700; }
+.mc-draft { color: var(--muted); }
+.mc-legend { font-size: 0.65rem; color: var(--muted); margin-top: 6px; }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -1500,6 +1554,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   ${rtwSection}
   ${sysSection}
   ${learnSection}
+  ${makeSection}
   ${runSection}
   ${igSection}
   ${hookSection}

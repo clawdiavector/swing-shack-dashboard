@@ -332,6 +332,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .run-script-ok { background: rgba(0,200,83,0.12); color: #00c853; }
 .run-script-fail { background: rgba(255,71,87,0.12); color: #ff4757; }
 
+/* MAKE THE CONTENT */
+.mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.mc-cell { padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 8px; border-left: 3px solid var(--border, #333); }
+.mc-cell-head { font-size: 0.68rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+.mc-cell-body { font-size: 0.75rem; color: var(--text); line-height: 1.4; }
+.mc-cell-captions { border-left-color: #00c853; }
+.mc-cell-visuals { border-left-color: #ffa502; }
+.mc-cell-prompts { border-left-color: #ff6b81; }
+.mc-cell-blogs { border-left-color: #1e90ff; }
+.mc-cell-reddit { border-left-color: #ff4757; }
+.mc-ready { color: #00c853; font-weight: 700; }
+.mc-draft { color: var(--muted); }
+.mc-legend { font-size: 0.65rem; color: var(--muted); margin-top: 6px; }
+
 /* SENT TODAY */
 .sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
 .sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
@@ -395,7 +409,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/22, 08:31:15 SAST</span>
+    <span class="summary-value">2026/04/22, 10:51:19 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -508,10 +522,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   </div>
   <div class="section">
     <div class="section-header">
+      <h2>&#128736 MAKE THE CONTENT</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="mc-grid"><div class="mc-cell mc-cell-captions"><div class="mc-cell-head">&#9997 CAPTIONS</div><div class="mc-cell-body">20 total &middot; <span class="mc-ready">20 ready for QA</span></div></div><div class="mc-cell mc-cell-visuals"><div class="mc-cell-head">&#127916 VISUALS</div><div class="mc-cell-body">20 briefs &middot; <span class="mc-ready">20 ready</span></div></div><div class="mc-cell mc-cell-prompts"><div class="mc-cell-head">&#128172 IMAGE PROMPTS</div><div class="mc-cell-body">20 prompts &middot; Top: &quot;Golf social media post, professional gol&quot;</div></div><div class="mc-cell mc-cell-blogs"><div class="mc-cell-head">&#128221 BLOGS</div><div class="mc-cell-body">8 briefs &middot; 3 drafts &middot; 8 FAQ clusters</div></div><div class="mc-cell mc-cell-reddit"><div class="mc-cell-head">&#129313 REDDIT MOVES</div><div class="mc-cell-body">5 replies &middot; <span class="mc-ready">3 high signal</span></div></div></div><div class="mc-legend">&#9888&#65039; All outputs are <b>draft</b> &mdash; QA review required before publishing</div>
+  </div>
+  <div class="section">
+    <div class="section-header">
       <h2>&#129512 AGENT RUNS TODAY</h2>
       <span class="badge fresh">✅ fresh</span>
     </div>
-    <div class="run-summary">5 agent(s) ran today</div><div class="run-list"><div class="run-row"><div class="run-agent">pulse_keeper</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">generate_pulse_keeper</span> <span class="run-script run-script-ok">generate_agent_scorecards</span> <span class="run-script run-script-ok">store_daily_learnings</span></div></div><div class="run-row"><div class="run-agent">data_harvester</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">25s</span></div><div class="run-scripts"><span class="run-script run-script-ok">sync_ig_analytics</span> <span class="run-script run-script-ok">fetch_golf_news</span> <span class="run-script run-script-ok">fetch_reddit_trends</span> <span class="run-script run-script-ok">fetch_seo_rankings</span> <span class="run-script run-script-ok">fetch_ga4</span> <span class="run-script run-script-ok">fetch_youtube_trends</span> <span class="run-script run-script-ok">fetch_website_insights</span> <span class="run-script run-script-ok">run_seo_audit</span> <span class="run-script run-script-ok">run_geo_audit</span></div></div><div class="run-row"><div class="run-agent">insight_analyst</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">analyse_hooks</span> <span class="run-script run-script-ok">extract_youtube_signals</span> <span class="run-script run-script-ok">generate_anomaly_alerts</span> <span class="run-script run-script-ok">detect_missed_opportunities</span> <span class="run-script run-script-ok">generate_funnel_leaks</span> <span class="run-script run-script-ok">generate_conversion_attribution</span> <span class="run-script run-script-ok">generate_retargeting_recommendations</span> <span class="run-script run-script-ok">generate_recommendation_scores</span> <span class="run-script run-script-ok">generate_recommendation_outcomes</span></div></div><div class="run-row"><div class="run-agent">memory_keeper</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">store_daily_learnings</span></div></div><div class="run-row"><div class="run-agent">taskmaster</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">1s</span></div><div class="run-scripts"><span class="run-script run-script-ok">generate_post_plan</span> <span class="run-script run-script-ok">generate_sales_priority</span> <span class="run-script run-script-ok">generate_daily_task_cards</span> <span class="run-script run-script-ok">generate_approval_queue</span> <span class="run-script run-script-ok">generate_deadline_risk</span> <span class="run-script run-script-ok">generate_blockers</span> <span class="run-script run-script-ok">generate_capacity_shift</span> <span class="run-script run-script-ok">generate_follow_up_queue</span> <span class="run-script run-script-ok">generate_experiment_queue</span> <span class="run-script run-script-ok">generate_scaling_recommendations</span> <span class="run-script run-script-ok">generate_kill_list</span> <span class="run-script run-script-ok">generate_asset_needs</span> <span class="run-script run-script-ok">generate_owner_workload</span></div></div></div>
+    <div class="run-summary">14 agent(s) ran today</div><div class="run-list"><div class="run-row"><div class="run-agent">pulse_keeper</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">generate_pulse_keeper</span> <span class="run-script run-script-ok">generate_agent_scorecards</span> <span class="run-script run-script-ok">store_daily_learnings</span></div></div><div class="run-row"><div class="run-agent">data_harvester</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">25s</span></div><div class="run-scripts"><span class="run-script run-script-ok">sync_ig_analytics</span> <span class="run-script run-script-ok">fetch_golf_news</span> <span class="run-script run-script-ok">fetch_reddit_trends</span> <span class="run-script run-script-ok">fetch_seo_rankings</span> <span class="run-script run-script-ok">fetch_ga4</span> <span class="run-script run-script-ok">fetch_youtube_trends</span> <span class="run-script run-script-ok">fetch_website_insights</span> <span class="run-script run-script-ok">run_seo_audit</span> <span class="run-script run-script-ok">run_geo_audit</span></div></div><div class="run-row"><div class="run-agent">insight_analyst</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">analyse_hooks</span> <span class="run-script run-script-ok">extract_youtube_signals</span> <span class="run-script run-script-ok">generate_anomaly_alerts</span> <span class="run-script run-script-ok">detect_missed_opportunities</span> <span class="run-script run-script-ok">generate_funnel_leaks</span> <span class="run-script run-script-ok">generate_conversion_attribution</span> <span class="run-script run-script-ok">generate_retargeting_recommendations</span> <span class="run-script run-script-ok">generate_recommendation_scores</span> <span class="run-script run-script-ok">generate_recommendation_outcomes</span></div></div><div class="run-row"><div class="run-agent">memory_keeper</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">store_daily_learnings</span></div></div><div class="run-row"><div class="run-agent">taskmaster</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">1s</span></div><div class="run-scripts"><span class="run-script run-script-ok">generate_post_plan</span> <span class="run-script run-script-ok">generate_sales_priority</span> <span class="run-script run-script-ok">generate_daily_task_cards</span> <span class="run-script run-script-ok">generate_approval_queue</span> <span class="run-script run-script-ok">generate_deadline_risk</span> <span class="run-script run-script-ok">generate_blockers</span> <span class="run-script run-script-ok">generate_capacity_shift</span> <span class="run-script run-script-ok">generate_follow_up_queue</span> <span class="run-script run-script-ok">generate_experiment_queue</span> <span class="run-script run-script-ok">generate_scaling_recommendations</span> <span class="run-script run-script-ok">generate_kill_list</span> <span class="run-script run-script-ok">generate_asset_needs</span> <span class="run-script run-script-ok">generate_owner_workload</span></div></div><div class="run-row"><div class="run-agent">content_architect</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">generate_content_blueprints</span></div></div><div class="run-row"><div class="run-agent">cta_analyst</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">generate_cta_performance</span></div></div><div class="run-row"><div class="run-agent">hook_smith</div><div class="run-status"><span class="run-partial">PARTIAL</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">analyse_hooks</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
@@ -619,7 +640,69 @@ Too much spin killing your...</span>
       <h2>🪝 Hook Bank</h2>
       <span class="badge fresh">✅ fresh</span>
     </div>
-    <p class="empty">No hook data yet. Run analyse_hooks.py.</p>
+    
+  <div class="hook-group">
+    <h3>🔥 Top Performing Hooks</h3>
+    <div class="hook-list">
+      
+      <div class="hook-card">
+        <div class="hook-text">That slice costing you yards off the tee? TrackMan found it ...</div>
+        <div class="hook-meta">
+          <span class="hook-score">4.84%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Need to relax and find your golf swing tempo? Join Coach Cat...</div>
+        <div class="hook-meta">
+          <span class="hook-score">3.10%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Need some help with your putting? Coach Cat explains what ma...</div>
+        <div class="hook-meta">
+          <span class="hook-score">3.41%</span>
+          <span class="hook-topic">equipment</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Lowest net score wins a *new custom fitted driver!*</div>
+        <div class="hook-meta">
+          <span class="hook-score">1.59%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Book your session with Coach Cat @swingshack ⛳️</div>
+        <div class="hook-meta">
+          <span class="hook-score">1.79%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">It never rains in doors… Book your slot now before your tee ...</div>
+        <div class="hook-meta">
+          <span class="hook-score">2.37%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Coach Cat takes us through a simple process on getting into ...</div>
+        <div class="hook-meta">
+          <span class="hook-score">1.46%</span>
+          <span class="hook-topic">coaching</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Small, simple changes can start your journey to hitting long...</div>
+        <div class="hook-meta">
+          <span class="hook-score">0.93%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+    </div>
+  </div>
   </div>
   <div class="section">
     <div class="section-header">

@@ -744,7 +744,268 @@
         "passed": 6,
         "failed": 0
       }
+    ],
+    "caption_closer": [
+      {
+        "agent_id": "caption_closer",
+        "run_at": "2026-04-22T08:49:17.368Z",
+        "duration_ms": 51,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_captions.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/captions.json": {
+            "valid": true,
+            "count": 20
+          },
+          "data/caption-variants.json": {
+            "valid": true,
+            "count": 20
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "caption_closer",
+        "run_at": "2026-04-22T08:51:13.731Z",
+        "duration_ms": 47,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_captions.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/captions.json": {
+            "valid": true,
+            "count": 20
+          },
+          "data/caption-variants.json": {
+            "valid": true,
+            "count": 20
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "visual_forge": [
+      {
+        "agent_id": "visual_forge",
+        "run_at": "2026-04-22T08:49:17.451Z",
+        "duration_ms": 45,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_visual_briefs.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/visual-briefs.json": {
+            "valid": true,
+            "count": 20
+          },
+          "data/image-prompts.json": {
+            "valid": true,
+            "count": 20
+          },
+          "data/thumbnail-briefs.json": {
+            "valid": true,
+            "count": 20
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "visual_forge",
+        "run_at": "2026-04-22T08:51:13.815Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_visual_briefs.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/visual-briefs.json": {
+            "valid": true,
+            "count": 20
+          },
+          "data/image-prompts.json": {
+            "valid": true,
+            "count": 20
+          },
+          "data/thumbnail-briefs.json": {
+            "valid": true,
+            "count": 20
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "blog_beast": [
+      {
+        "agent_id": "blog_beast",
+        "run_at": "2026-04-22T08:49:17.534Z",
+        "duration_ms": 42,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "generate_blog_drafts.js",
+            "status": "FAIL",
+            "err": "Command failed: node /Users/fivefriday/.openclaw-instance2/workspace/swing-shack"
+          }
+        ],
+        "outputs": {
+          "data/blog-briefs.json": {
+            "valid": false,
+            "count": 0
+          },
+          "data/blog-drafts.json": {
+            "valid": false,
+            "count": 0
+          },
+          "data/faq-opportunities.json": {
+            "valid": false,
+            "count": 0
+          }
+        },
+        "passed": 0,
+        "failed": 1
+      },
+      {
+        "agent_id": "blog_beast",
+        "run_at": "2026-04-22T08:49:48.946Z",
+        "duration_ms": 48,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_blog_drafts.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/blog-briefs.json": {
+            "valid": true,
+            "count": 8
+          },
+          "data/blog-drafts.json": {
+            "valid": true,
+            "count": 3
+          },
+          "data/faq-opportunities.json": {
+            "valid": true,
+            "count": 8
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "blog_beast",
+        "run_at": "2026-04-22T08:51:13.899Z",
+        "duration_ms": 45,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_blog_drafts.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/blog-briefs.json": {
+            "valid": true,
+            "count": 8
+          },
+          "data/blog-drafts.json": {
+            "valid": true,
+            "count": 3
+          },
+          "data/faq-opportunities.json": {
+            "valid": true,
+            "count": 8
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "reddit_ghost": [
+      {
+        "agent_id": "reddit_ghost",
+        "run_at": "2026-04-22T08:49:53.041Z",
+        "duration_ms": 46,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "generate_reddit_ghost.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/reddit-replies.json": {
+            "valid": false,
+            "count": 0
+          },
+          "data/reddit-opportunities.json": {
+            "valid": false,
+            "count": 0
+          },
+          "data/forum-opportunities.json": {
+            "valid": true,
+            "count": 2
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "reddit_ghost",
+        "run_at": "2026-04-22T08:51:13.982Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_reddit_ghost.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/reddit-replies.json": {
+            "valid": true,
+            "count": 5
+          },
+          "data/reddit-opportunities.json": {
+            "valid": true,
+            "count": 5
+          },
+          "data/forum-opportunities.json": {
+            "valid": true,
+            "count": 2
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      }
     ]
   },
-  "updated": "2026-04-22T07:06:10.559Z"
+  "updated": "2026-04-22T08:51:13.983Z"
 }

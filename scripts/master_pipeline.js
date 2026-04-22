@@ -82,7 +82,7 @@ const STAGES = [
     name: 'Plan',
     critical: false,
     requiredOutputs: [],
-    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json', 'daily-task-cards.json', 'approval-queue.json', 'deadline-risk.json', 'blockers.json', 'capacity-shift.json', 'nudge-queue.json', 'fallback-queue.json', 'next-day-queue.json', 'auto-messages.json', 'suppression-rules.json', 'discord-deliveries.json', 'delivery-audit.json', 'system-health.json', 'route-log.json', 'routing-log.json', 'agent-scorecards.json', 'content-blueprints.json', 'hook-variants.json', 'hook-recommendations.json', 'cta-recommendations.json'],
+    optionalOutputs: ['post-plan.json', 'sales-priority.json', 'missed-opportunities.json', 'follow-up-queue.json', 'asset-needs.json', 'owner-workload.json', 'conversion-attribution.json', 'funnel-leaks.json', 'cta-performance.json', 'retargeting-recommendations.json', 'recommendation-scores.json', 'recommendation-outcomes.json', 'experiment-queue.json', 'scaling-recommendations.json', 'kill-list.json', 'anomaly-alerts.json', 'daily-task-cards.json', 'approval-queue.json', 'deadline-risk.json', 'blockers.json', 'capacity-shift.json', 'nudge-queue.json', 'fallback-queue.json', 'next-day-queue.json', 'auto-messages.json', 'suppression-rules.json', 'discord-deliveries.json', 'delivery-audit.json', 'system-health.json', 'route-log.json', 'routing-log.json', 'agent-scorecards.json', 'content-blueprints.json', 'hook-variants.json', 'hook-recommendations.json', 'cta-recommendations.json', 'captions.json', 'caption-variants.json', 'visual-briefs.json', 'image-prompts.json', 'thumbnail-briefs.json', 'blog-briefs.json', 'blog-drafts.json', 'faq-opportunities.json', 'reddit-replies.json', 'reddit-opportunities.json', 'forum-opportunities.json'],
     steps: [
       { name: 'generate_post_plan',          script: `node ${BASE}/scripts/generate_post_plan.js`,          critical: false },
       { name: 'generate_sales_priority',     script: `node ${BASE}/scripts/generate_sales_priority.js`,     critical: false },
@@ -117,6 +117,18 @@ const STAGES = [
       { name: 'generate_content_blueprints',   script: `node ${BASE}/scripts/generate_content_blueprints.js`,   critical: false },
       { name: 'store_daily_learnings',        script: `node ${BASE}/scripts/store_daily_learnings.js`,        critical: false },
       { name: 'generate_agent_scorecards',    script: `node ${BASE}/scripts/generate_agent_scorecards.js`,    critical: false },
+    ]
+  },
+  {
+    name: 'Production',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['captions.json', 'caption-variants.json', 'visual-briefs.json', 'image-prompts.json', 'thumbnail-briefs.json', 'blog-briefs.json', 'blog-drafts.json', 'faq-opportunities.json', 'reddit-replies.json', 'reddit-opportunities.json', 'forum-opportunities.json'],
+    steps: [
+      { name: 'caption_closer',  script: `node ${BASE}/agents/caption_closer/run.js`,  critical: false },
+      { name: 'visual_forge',    script: `node ${BASE}/agents/visual_forge/run.js`,    critical: false },
+      { name: 'blog_beast',      script: `node ${BASE}/agents/blog_beast/run.js`,      critical: false },
+      { name: 'reddit_ghost',    script: `node ${BASE}/agents/reddit_ghost/run.js`,    critical: false },
     ]
   },
   {

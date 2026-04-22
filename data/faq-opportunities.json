@@ -1,0 +1,144 @@
+{
+  "schema": "https://clawdia.io/agents/blog-beast/v1",
+  "generated": "2026-04-22T08:51:13.892Z",
+  "total": 8,
+  "ready_for_qa": 8,
+  "faqs": [
+    {
+      "faq_id": "faq-ut3lxl0a",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": "TrackMan Golf Technology",
+      "target_keyword": "trackman golf",
+      "questions": [
+        "What is trackman golf?",
+        "How much does trackman golf cost in Johannesburg?",
+        "Is trackman golf worth it?",
+        "What's the best trackman golf in Johannesburg?"
+      ],
+      "source": "informational_intent",
+      "status": "draft",
+      "owner": "blog_beast",
+      "ready_for_qa": true
+    },
+    {
+      "faq_id": "faq-2k6omdnf",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": "TrackMan Golf Technology",
+      "target_keyword": "trackman golf",
+      "questions": [
+        "What is trackman golf?",
+        "How much does trackman golf cost in Johannesburg?",
+        "Is trackman golf worth it?",
+        "What's the best trackman golf in Johannesburg?"
+      ],
+      "source": "informational_intent",
+      "status": "draft",
+      "owner": "blog_beast",
+      "ready_for_qa": true
+    },
+    {
+      "faq_id": "faq-nr9nuh3c",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": "TrackMan Golf Technology",
+      "target_keyword": "trackman golf",
+      "questions": [
+        "What is trackman golf?",
+        "How much does trackman golf cost in Johannesburg?",
+        "Is trackman golf worth it?",
+        "What's the best trackman golf in Johannesburg?"
+      ],
+      "source": "informational_intent",
+      "status": "draft",
+      "owner": "blog_beast",
+      "ready_for_qa": true
+    },
+    {
+      "faq_id": "faq-2g197tht",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": "Golf Club Fitting",
+      "target_keyword": "/checkout/",
+      "questions": [
+        "What is /checkout/?",
+        "How much does /checkout/ cost in Johannesburg?",
+        "Is /checkout/ worth it?",
+        "What's the best /checkout/ in Johannesburg?"
+      ],
+      "source": "informational_intent",
+      "status": "draft",
+      "owner": "blog_beast",
+      "ready_for_qa": true
+    },
+    {
+      "faq_id": "faq-3qiykh63",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": "Practice & Warm-up",
+      "target_keyword": "/club-fitting/",
+      "questions": [
+        "What is /club-fitting/?",
+        "How much does /club-fitting/ cost in Johannesburg?",
+        "Is /club-fitting/ worth it?",
+        "What's the best /club-fitting/ in Johannesburg?"
+      ],
+      "source": "informational_intent",
+      "status": "draft",
+      "owner": "blog_beast",
+      "ready_for_qa": true
+    },
+    {
+      "faq_id": "faq-mh4nfxxz",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": "Golf Coaching & Lessons",
+      "target_keyword": "/",
+      "questions": [
+        "What is /?",
+        "How much does / cost in Johannesburg?",
+        "Is / worth it?",
+        "What's the best / in Johannesburg?"
+      ],
+      "source": "informational_intent",
+      "status": "draft",
+      "owner": "blog_beast",
+      "ready_for_qa": true
+    },
+    {
+      "faq_id": "faq-sebnmb0t",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": "TrackMan Golf Technology",
+      "target_keyword": "trackman golf",
+      "questions": [
+        "What is trackman golf?",
+        "How much does trackman golf cost in Johannesburg?",
+        "Is trackman golf worth it?",
+        "What's the best trackman golf in Johannesburg?"
+      ],
+      "source": "informational_intent",
+      "status": "draft",
+      "owner": "blog_beast",
+      "ready_for_qa": true
+    },
+    {
+      "faq_id": "faq-cbo1itvn",
+      "schema": "https://clawdia.io/agents/blog-beast/v1",
+      "generated": "2026-04-22T08:51:13.892Z",
+      "cluster": "Indoor Golf Johannesburg",
+      "target_keyword": "indoor golf johannesburg",
+      "questions": [
+        "What is indoor golf johannesburg?",
+        "How much does indoor golf johannesburg cost in Johannesburg?",
+        "Is indoor golf johannesburg worth it?",
+        "What's the best indoor golf johannesburg in Johannesburg?"
+      ],
+      "source": "informational_intent",
+      "status": "draft",
+      "owner": "blog_beast",
+      "ready_for_qa": true
+    }
+  ]
+}

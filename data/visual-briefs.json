@@ -1,0 +1,634 @@
+{
+  "schema": "https://clawdia.io/agents/visual-forge/v1",
+  "generated": "2026-04-22T08:51:13.808Z",
+  "total": 20,
+  "ready_for_qa": 20,
+  "briefs": [
+    {
+      "brief_id": "vb-r06049s8",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.807Z",
+      "linked_blueprint_id": "bp-2026-04-22-001",
+      "linked_hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
+      "format_type": "static",
+      "visual_type": "data-card",
+      "service": "Club Fitting",
+      "hook_text": "That slice costing you yards off the tee? TrackMan found it ",
+      "brief": {
+        "layout": "data-card-dark",
+        "bg": "#0a0f1a",
+        "headline": "That slice costing you yards off the tee? TrackMan found it ",
+        "subhead": "Club Fitting · TrackMan Technology",
+        "stats": [
+          {
+            "label": "YOUR SWING SPEED",
+            "value": "83 MPH",
+            "benchmark": "PGA Avg: 112"
+          },
+          {
+            "label": "CARRY DISTANCE",
+            "value": "217 M",
+            "benchmark": "PGA Avg: 264"
+          }
+        ],
+        "cta": "Book your TrackMan session · swingshack.co.za",
+        "mood": "data-driven, premium, serious",
+        "fonts": "Space Grotesk or DM Sans bold"
+      },
+      "status": "draft",
+      "confidence": 100,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-p5yzosgg",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-002",
+      "linked_hook_id": "need-to-relax-and-find-your-golf-swing-tempo--join",
+      "format_type": "carousel",
+      "visual_type": "carousel",
+      "service": "Coaching",
+      "hook_text": "Need to relax and find your golf swing tempo? Join Coach Cat",
+      "brief": {
+        "layout": "10-slide-carousel",
+        "slide_1": {
+          "type": "hook",
+          "text": "Need to relax and find your golf swing tempo? Join Coach Cat",
+          "style": "bold stat overlay on dark bg"
+        },
+        "slide_2_9": {
+          "type": "proof",
+          "format": "TrackMan data card with number + bar chart"
+        },
+        "slide_10": {
+          "type": "cta",
+          "text": "Coaching · Book at swingshack.co.za",
+          "style": "full-width dark card"
+        },
+        "mood": "educational, data-driven, professional",
+        "color_palette": [
+          "#0a0f1a",
+          "#00c853",
+          "#ffffff",
+          "#ffa502"
+        ]
+      },
+      "status": "draft",
+      "confidence": 100,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-l2cqab8m",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-010",
+      "linked_hook_id": "go-to-your-coaching-sessions--your-ball-deserves-b",
+      "format_type": "short_script",
+      "visual_type": "blog-image",
+      "service": "Coaching",
+      "hook_text": "Go to your coaching sessions. Your ball deserves better 🫂",
+      "brief": {
+        "layout": "thumbnail-ready",
+        "concept": "stat reveal",
+        "style": "bold text + data visual"
+      },
+      "status": "draft",
+      "confidence": 100,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-ztole3m5",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-011",
+      "linked_hook_id": "improve-your-game-with-the-coaches-tip-of-the-day-",
+      "format_type": "static",
+      "visual_type": "data-card",
+      "service": "Coaching",
+      "hook_text": "Improve your game with the coaches tip of the day 🙌",
+      "brief": {
+        "layout": "data-card-dark",
+        "bg": "#0a0f1a",
+        "headline": "Improve your game with the coaches tip of the day 🙌",
+        "subhead": "Coaching · TrackMan Technology",
+        "stats": [
+          {
+            "label": "YOUR SWING SPEED",
+            "value": "83 MPH",
+            "benchmark": "PGA Avg: 112"
+          },
+          {
+            "label": "CARRY DISTANCE",
+            "value": "217 M",
+            "benchmark": "PGA Avg: 264"
+          }
+        ],
+        "cta": "Book your TrackMan session · swingshack.co.za",
+        "mood": "data-driven, premium, serious",
+        "fonts": "Space Grotesk or DM Sans bold"
+      },
+      "status": "draft",
+      "confidence": 100,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-x8vhtsj4",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-012",
+      "linked_hook_id": "swingshack-merch-coming-in-hot---",
+      "format_type": "carousel",
+      "visual_type": "carousel",
+      "service": "Coaching",
+      "hook_text": "SwingShack merch coming in hot 🔥",
+      "brief": {
+        "layout": "10-slide-carousel",
+        "slide_1": {
+          "type": "hook",
+          "text": "SwingShack merch coming in hot 🔥",
+          "style": "bold stat overlay on dark bg"
+        },
+        "slide_2_9": {
+          "type": "proof",
+          "format": "TrackMan data card with number + bar chart"
+        },
+        "slide_10": {
+          "type": "cta",
+          "text": "Coaching · Book at swingshack.co.za",
+          "style": "full-width dark card"
+        },
+        "mood": "educational, data-driven, professional",
+        "color_palette": [
+          "#0a0f1a",
+          "#00c853",
+          "#ffffff",
+          "#ffa502"
+        ]
+      },
+      "status": "draft",
+      "confidence": 100,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-v1q4owu1",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-016",
+      "linked_hook_id": "sometimes-u-just-need-a-bit-of-tough-love-----",
+      "format_type": "static",
+      "visual_type": "data-card",
+      "service": "Coaching",
+      "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
+      "brief": {
+        "layout": "data-card-dark",
+        "bg": "#0a0f1a",
+        "headline": "Sometimes u just need a bit of tough love 😅🤣",
+        "subhead": "Coaching · TrackMan Technology",
+        "stats": [
+          {
+            "label": "YOUR SWING SPEED",
+            "value": "83 MPH",
+            "benchmark": "PGA Avg: 112"
+          },
+          {
+            "label": "CARRY DISTANCE",
+            "value": "217 M",
+            "benchmark": "PGA Avg: 264"
+          }
+        ],
+        "cta": "Book your TrackMan session · swingshack.co.za",
+        "mood": "data-driven, premium, serious",
+        "fonts": "Space Grotesk or DM Sans bold"
+      },
+      "status": "draft",
+      "confidence": 100,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-c5slfcb9",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-017",
+      "linked_hook_id": "new-callaway-quantum-range-in--store--come-give-th",
+      "format_type": "carousel",
+      "visual_type": "carousel",
+      "service": "Coaching",
+      "hook_text": "New Callaway Quantum range in- store. Come give them a go 🏌",
+      "brief": {
+        "layout": "10-slide-carousel",
+        "slide_1": {
+          "type": "hook",
+          "text": "New Callaway Quantum range in- store. Come give them a go 🏌",
+          "style": "bold stat overlay on dark bg"
+        },
+        "slide_2_9": {
+          "type": "proof",
+          "format": "TrackMan data card with number + bar chart"
+        },
+        "slide_10": {
+          "type": "cta",
+          "text": "Coaching · Book at swingshack.co.za",
+          "style": "full-width dark card"
+        },
+        "mood": "educational, data-driven, professional",
+        "color_palette": [
+          "#0a0f1a",
+          "#00c853",
+          "#ffffff",
+          "#ffa502"
+        ]
+      },
+      "status": "draft",
+      "confidence": 100,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-r54i1oe8",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-019",
+      "linked_hook_id": "here-s-to-a-new-year-and-good-golf------",
+      "format_type": "blog",
+      "visual_type": "blog-image",
+      "service": "Coaching",
+      "hook_text": "Here’s to a New Year and Good Golf! 🥂😉",
+      "brief": {
+        "layout": "blog-hero",
+        "mood": "educational, clean, authoritative",
+        "style": "photo with overlay text"
+      },
+      "status": "draft",
+      "confidence": 100,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-xk7vo8ym",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-003",
+      "linked_hook_id": "need-some-help-with-your-putting--coach-cat-explai",
+      "format_type": "reel",
+      "visual_type": "reel-concept",
+      "service": "Coaching",
+      "hook_text": "Need some help with your putting? Coach Cat explains what ma",
+      "brief": {
+        "concept": "POV: you at TrackMan, first session",
+        "hook_frame": "First 3 seconds: Need some help with your putting? Coach Cat explains what ma — bold text overlay, dark background, impact font",
+        "transition": "Zoom in on TrackMan screen showing club head speed / carry distance",
+        "body_frames": "3-8s data reveal, 8-15s comparison to PGA average, 15-25s booking CTA",
+        "ending_frame": "Book your session · swingshack.co.za",
+        "trending_audio_suggestion": "trending golf/sports audio or lo-fi beats",
+        "caption_text": "Need some help with your putting? Coach Cat explains what ma",
+        "hashtags": "#indoorgolf #trackman #golftok #golfsa",
+        "mood": "fast-paced, curious, premium"
+      },
+      "status": "draft",
+      "confidence": 98,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-a5o9p23z",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-013",
+      "linked_hook_id": "catch-your-flow--swingshack-",
+      "format_type": "reel",
+      "visual_type": "reel-concept",
+      "service": "Coaching",
+      "hook_text": "Catch your flow @swingshack ",
+      "brief": {
+        "concept": "POV: you at TrackMan, first session",
+        "hook_frame": "First 3 seconds: Catch your flow @swingshack  — bold text overlay, dark background, impact font",
+        "transition": "Zoom in on TrackMan screen showing club head speed / carry distance",
+        "body_frames": "3-8s data reveal, 8-15s comparison to PGA average, 15-25s booking CTA",
+        "ending_frame": "Book your session · swingshack.co.za",
+        "trending_audio_suggestion": "trending golf/sports audio or lo-fi beats",
+        "caption_text": "Catch your flow @swingshack ",
+        "hashtags": "#indoorgolf #trackman #golftok #golfsa",
+        "mood": "fast-paced, curious, premium"
+      },
+      "status": "draft",
+      "confidence": 98,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-mgigaatv",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-014",
+      "linked_hook_id": "want-to-win-a-fully-custom-built-driver---",
+      "format_type": "blog",
+      "visual_type": "blog-image",
+      "service": "Club Fitting",
+      "hook_text": "Want to win a fully custom built driver?👀",
+      "brief": {
+        "layout": "blog-hero",
+        "mood": "educational, clean, authoritative",
+        "style": "photo with overlay text"
+      },
+      "status": "draft",
+      "confidence": 95,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-xgue2dxv",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-015",
+      "linked_hook_id": "your-balls-are-important-too----learn-the-key-diff",
+      "format_type": "short_script",
+      "visual_type": "blog-image",
+      "service": "Coaching",
+      "hook_text": "Your balls are important too 👀 Learn the key differences be",
+      "brief": {
+        "layout": "thumbnail-ready",
+        "concept": "stat reveal",
+        "style": "bold text + data visual"
+      },
+      "status": "draft",
+      "confidence": 95,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-mf7lvm2z",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-004",
+      "linked_hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
+      "format_type": "blog",
+      "visual_type": "blog-image",
+      "service": "Club Fitting",
+      "hook_text": "Lowest net score wins a *new custom fitted driver!*",
+      "brief": {
+        "layout": "blog-hero",
+        "mood": "educational, clean, authoritative",
+        "style": "photo with overlay text"
+      },
+      "status": "draft",
+      "confidence": 93,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-m2t9o25k",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-005",
+      "linked_hook_id": "book-your-session-with-coach-cat--swingshack---",
+      "format_type": "short_script",
+      "visual_type": "blog-image",
+      "service": "Coaching",
+      "hook_text": "Book your session with Coach Cat @swingshack ⛳️",
+      "brief": {
+        "layout": "thumbnail-ready",
+        "concept": "stat reveal",
+        "style": "bold text + data visual"
+      },
+      "status": "draft",
+      "confidence": 91,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-d3ocn1da",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-018",
+      "linked_hook_id": "editing-our-swingshack-members-social-like-a-reali",
+      "format_type": "reel",
+      "visual_type": "reel-concept",
+      "service": "Coaching",
+      "hook_text": "Editing our SwingShack Members Social like a reality TV show",
+      "brief": {
+        "concept": "POV: you at TrackMan, first session",
+        "hook_frame": "First 3 seconds: Editing our SwingShack Members Social like a reality TV show — bold text overlay, dark background, impact font",
+        "transition": "Zoom in on TrackMan screen showing club head speed / carry distance",
+        "body_frames": "3-8s data reveal, 8-15s comparison to PGA average, 15-25s booking CTA",
+        "ending_frame": "Book your session · swingshack.co.za",
+        "trending_audio_suggestion": "trending golf/sports audio or lo-fi beats",
+        "caption_text": "Editing our SwingShack Members Social like a reality TV show",
+        "hashtags": "#indoorgolf #trackman #golftok #golfsa",
+        "mood": "fast-paced, curious, premium"
+      },
+      "status": "draft",
+      "confidence": 90,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-3d252rau",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-006",
+      "linked_hook_id": "it-never-rains-in-doors--book-your-slot-now-before",
+      "format_type": "static",
+      "visual_type": "data-card",
+      "service": "Coaching",
+      "hook_text": "It never rains in doors… Book your slot now before your tee ",
+      "brief": {
+        "layout": "data-card-dark",
+        "bg": "#0a0f1a",
+        "headline": "It never rains in doors… Book your slot now before your tee ",
+        "subhead": "Coaching · TrackMan Technology",
+        "stats": [
+          {
+            "label": "YOUR SWING SPEED",
+            "value": "83 MPH",
+            "benchmark": "PGA Avg: 112"
+          },
+          {
+            "label": "CARRY DISTANCE",
+            "value": "217 M",
+            "benchmark": "PGA Avg: 264"
+          }
+        ],
+        "cta": "Book your TrackMan session · swingshack.co.za",
+        "mood": "data-driven, premium, serious",
+        "fonts": "Space Grotesk or DM Sans bold"
+      },
+      "status": "draft",
+      "confidence": 77,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-mf9tdkuh",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-2026-04-22-007",
+      "linked_hook_id": "coach-cat-takes-us-through-a-simple-process-on-get",
+      "format_type": "carousel",
+      "visual_type": "carousel",
+      "service": "Coaching",
+      "hook_text": "Coach Cat takes us through a simple process on getting into ",
+      "brief": {
+        "layout": "10-slide-carousel",
+        "slide_1": {
+          "type": "hook",
+          "text": "Coach Cat takes us through a simple process on getting into ",
+          "style": "bold stat overlay on dark bg"
+        },
+        "slide_2_9": {
+          "type": "proof",
+          "format": "TrackMan data card with number + bar chart"
+        },
+        "slide_10": {
+          "type": "cta",
+          "text": "Coaching · Book at swingshack.co.za",
+          "style": "full-width dark card"
+        },
+        "mood": "educational, data-driven, professional",
+        "color_palette": [
+          "#0a0f1a",
+          "#00c853",
+          "#ffffff",
+          "#ffa502"
+        ]
+      },
+      "status": "draft",
+      "confidence": 74,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-ldmqy2oz",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-plan-2026-04-22-001",
+      "linked_hook_id": null,
+      "format_type": "static",
+      "visual_type": "data-card",
+      "service": "Practice",
+      "hook_text": "That slice costing you yards off the tee? TrackMan found it ",
+      "brief": {
+        "layout": "data-card-dark",
+        "bg": "#0a0f1a",
+        "headline": "That slice costing you yards off the tee? TrackMan found it ",
+        "subhead": "Practice · TrackMan Technology",
+        "stats": [
+          {
+            "label": "YOUR SWING SPEED",
+            "value": "83 MPH",
+            "benchmark": "PGA Avg: 112"
+          },
+          {
+            "label": "CARRY DISTANCE",
+            "value": "217 M",
+            "benchmark": "PGA Avg: 264"
+          }
+        ],
+        "cta": "Book your TrackMan session · swingshack.co.za",
+        "mood": "data-driven, premium, serious",
+        "fonts": "Space Grotesk or DM Sans bold"
+      },
+      "status": "draft",
+      "confidence": 70,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-opr3fc5m",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-plan-2026-04-22-002",
+      "linked_hook_id": null,
+      "format_type": "static",
+      "visual_type": "data-card",
+      "service": "Practice",
+      "hook_text": "Need some help with your putting? Coach Cat explains what ma",
+      "brief": {
+        "layout": "data-card-dark",
+        "bg": "#0a0f1a",
+        "headline": "Need some help with your putting? Coach Cat explains what ma",
+        "subhead": "Practice · TrackMan Technology",
+        "stats": [
+          {
+            "label": "YOUR SWING SPEED",
+            "value": "83 MPH",
+            "benchmark": "PGA Avg: 112"
+          },
+          {
+            "label": "CARRY DISTANCE",
+            "value": "217 M",
+            "benchmark": "PGA Avg: 264"
+          }
+        ],
+        "cta": "Book your TrackMan session · swingshack.co.za",
+        "mood": "data-driven, premium, serious",
+        "fonts": "Space Grotesk or DM Sans bold"
+      },
+      "status": "draft",
+      "confidence": 70,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    },
+    {
+      "brief_id": "vb-w3gz40da",
+      "schema": "https://clawdia.io/agents/visual-forge/v1",
+      "generated": "2026-04-22T08:51:13.808Z",
+      "linked_blueprint_id": "bp-plan-2026-04-22-003",
+      "linked_hook_id": null,
+      "format_type": "static",
+      "visual_type": "data-card",
+      "service": "Practice",
+      "hook_text": "Book your session with Coach Cat @swingshack ⛳️",
+      "brief": {
+        "layout": "data-card-dark",
+        "bg": "#0a0f1a",
+        "headline": "Book your session with Coach Cat @swingshack ⛳️",
+        "subhead": "Practice · TrackMan Technology",
+        "stats": [
+          {
+            "label": "YOUR SWING SPEED",
+            "value": "83 MPH",
+            "benchmark": "PGA Avg: 112"
+          },
+          {
+            "label": "CARRY DISTANCE",
+            "value": "217 M",
+            "benchmark": "PGA Avg: 264"
+          }
+        ],
+        "cta": "Book your TrackMan session · swingshack.co.za",
+        "mood": "data-driven, premium, serious",
+        "fonts": "Space Grotesk or DM Sans bold"
+      },
+      "status": "draft",
+      "confidence": 70,
+      "owner": "visual_forge",
+      "ready_for_qa": true,
+      "next_action": "Execute prompt via image AI, QA output"
+    }
+  ]
+}

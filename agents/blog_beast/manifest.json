@@ -1,0 +1,26 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "blog_beast",
+  "layer": 3,
+  "role": "SEO blog drafts, GEO pages, FAQ clusters, landing page outlines, authority articles",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["generate_blog_drafts.js"],
+  "inputs": {
+    "data/seo-audit.json":            "SEO audit findings",
+    "data/seo-rankings.json":         "SEO keyword rankings",
+    "data/website-insights.json":      "Website performance data",
+    "data/content-ideas.json":        "Content ideas",
+    "memory/daily/":                 "Recent learnings and wins"
+  },
+  "outputs": {
+    "data/blog-briefs.json":       "Blog briefs with SEO targets",
+    "data/blog-drafts.json":       "Actual blog article drafts",
+    "data/faq-opportunities.json":  "FAQ clusters from SEO gaps"
+  },
+  "validates": [
+    "blog-briefs.json has briefs array",
+    "Each brief has: target_keyword, headline, search_intent, ready_for_qa"
+  ],
+  "rule": "Write for search, AI answerability, and real conversion intent — not fluff."
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "caption_closer",
+  "layer": 3,
+  "role": "Convert blueprints into platform-ready captions with CTA variants for every channel",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": ["generate_captions.js"],
+  "inputs": {
+    "data/content-blueprints.json":      "Primary briefing — blueprints to turn into captions",
+    "data/hook-bank.json":             "Hook bank for original hook text",
+    "data/cta-performance.json":        "CTA performance for ranking",
+    "data/post-plan.json":            "Post plan for planned items"
+  },
+  "outputs": {
+    "data/captions.json":            "Short + medium captions per blueprint",
+    "data/caption-variants.json":    "CTA variants, channel adaptations"
+  },
+  "validates": [
+    "captions.json has captions array with 10+ entries",
+    "Each entry has: short_caption, medium_caption, linked_blueprint_id, platform, ready_for_qa"
+  ],
+  "qa_rule": "All outputs marked draft=true until qa_inspector exists"
+}
