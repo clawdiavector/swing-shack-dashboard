@@ -1,6 +1,6 @@
 {
-  "updated": "2026-04-21T14:27:13.806Z",
-  "total_hooks": 67,
+  "updated": "2026-04-22T05:06:45.289Z",
+  "total_hooks": 69,
   "cross_signal_sources": {
     "ig_weight": "60%",
     "youtube_weight": "20%",
@@ -29,10 +29,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "5.00",
+        "engagementRate": "4.84",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 60,
+        "reach": 62,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "question",
@@ -228,7 +228,7 @@
       {
         "hook_text": "TrackMan doesn't lie. Your swing data from your last session told a story. Now f",
         "hook_id": "trackman-doesn-t-lie--your-swing-data-from-your-la",
-        "ig_proof_score": 4.32,
+        "ig_proof_score": 4.3100000000000005,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 3.8,
@@ -241,10 +241,10 @@
           "4 Simple Steps For The Perfect Golf Drive",
           "5 Powerful Tips to Unleash Your Senior Driver Swing"
         ],
-        "engagementRate": "1.49",
+        "engagementRate": "1.48",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 134,
+        "reach": 135,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -413,10 +413,10 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "3.40",
+        "engagementRate": "3.50",
         "saveRate": "0.00",
-        "shareRate": "0.31",
-        "reach": 647,
+        "shareRate": "0.30",
+        "reach": 657,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -569,7 +569,28 @@
         "post_id": "18028233410743325"
       }
     ],
-    "retire": []
+    "retire": [
+      {
+        "hook_text": "Built to preform. ",
+        "hook_id": "built-to-preform--",
+        "ig_proof_score": 0.23,
+        "youtube_alignment_score": 0,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 0.1,
+        "youtube_topic_match": [],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [],
+        "engagementRate": "0.00",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 23,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "retire",
+        "post_id": "18119221723645535"
+      }
+    ]
   },
   "watched_and_worked": [
     {
@@ -591,10 +612,10 @@
         "Possibly The BEST DRIVER Tip Ever In GOLF",
         "4 Simple Steps For The Perfect Golf Drive"
       ],
-      "engagementRate": "5.00",
+      "engagementRate": "4.84",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 60,
+      "reach": 62,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "question",
@@ -715,15 +736,15 @@
     },
     {
       "formula": "stat-demand",
-      "count": 23,
+      "count": 24,
       "best_example": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
-      "avg_cross_score": "5.0"
+      "avg_cross_score": "4.8"
     },
     {
       "formula": "general",
-      "count": 36,
+      "count": 37,
       "best_example": "Lowest net score wins a *new custom fitted driver!*",
-      "avg_cross_score": "4.3"
+      "avg_cross_score": "4.2"
     }
   ],
   "ab_winners": [
