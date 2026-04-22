@@ -1188,6 +1188,76 @@
       "score": 75,
       "suggested_comment": "Indoor golf is great for practice before the course.",
       "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-22-1",
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Golf Lessons JHB",
+      "url": "https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/",
+      "content_preview": "Beginner looking for lessons - clubs and academies in JHB area",
+      "location_tag": "Johannesburg",
+      "problem_type": "beginner-lessons",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Indoor facilities have launch data - great for beginners to see exactly what to fix.",
+      "comment_tone": "helpful-local"
+    },
+    {
+      "id": "mp-2026-04-22-2",
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Johannesburg Golf Courses",
+      "url": "https://www.reddit.com/r/johannesburg/comments/10ohhmb/johannesburg_golf/",
+      "content_preview": "Best courses in JHB - Steyn City, Blair Atholl, Copperleaf, Royal Johannesburg",
+      "location_tag": "Johannesburg",
+      "problem_type": "course-recommendations",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Indoor practice helps before tackling premium courses.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-22-3",
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Best Golf Clubs Northern Suburbs",
+      "url": "https://www.reddit.com/r/johannesburg/comments/10iiakm/best_golf_clubs_in_northern_suburbs/",
+      "content_preview": "Looking for affordability, value, course quality, social scene",
+      "location_tag": "Johannesburg",
+      "problem_type": "membership",
+      "engagement_level": "medium",
+      "score": 75,
+      "suggested_comment": "Indoor practice facilities are great for beginners - all weather.",
+      "comment_tone": "helpful"
+    },
+    {
+      "id": "mp-2026-04-22-4",
+      "platform": "reddit",
+      "subreddit": "r/capetown",
+      "post_title": "Golf Club Memberships Cape Town",
+      "url": "https://www.reddit.com/r/capetown/comments/1mtpv8r/best_golf_club_memberships_in_cape_town_northern/",
+      "content_preview": "Beginner couple looking for club with lessons, practice areas",
+      "location_tag": "Cape Town",
+      "problem_type": "beginner-membership",
+      "engagement_level": "high",
+      "score": 90,
+      "suggested_comment": "Indoor practice areas are great for beginners - all-weather.",
+      "comment_tone": "practical"
+    },
+    {
+      "id": "mp-2026-04-22-5",
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Club Fitting for Beginner",
+      "url": "https://www.reddit.com/r/golf/comments/1qdvms2/club_fitting_for_beginner/",
+      "content_preview": "Spend money on lesson and practice, not fitting - beginner advice",
+      "location_tag": "Global",
+      "problem_type": "beginner-fitting",
+      "engagement_level": "high",
+      "score": 85,
+      "suggested_comment": "Lessons plus data - we provide both to beginners.",
+      "comment_tone": "direct"
     }
   ],
   "summary": {
@@ -1198,8 +1268,8 @@
       "Launch Monitor interest - general SA interest in data-driven golf improvement"
     ]
   },
-  "scan_date": "2026-04-21",
-  "scan_time": "18:09 SAST",
-  "next_scan": "2026-04-21T22:00 SAST",
-  "total_opportunities": 85
+  "scan_date": "2026-04-22",
+  "scan_time": "07:04 SAST",
+  "next_scan": "2026-04-22T12:00 SAST",
+  "total_opportunities": 90
 }
