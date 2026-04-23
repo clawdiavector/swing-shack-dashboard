@@ -172,6 +172,11 @@ const modeElig    = readJson('mode-eligibility.json')         || null;
 const rollbackTests = readJson('rollback-tests.json')         || null;
 const failPatterns = readJson('failure-patterns.json')       || null;
 const selfHeal    = readJson('self-heal-actions.json')         || null;
+const actionAudit = readJson('live-action-audit.json')        || null;
+const autonomyPerf= readJson('autonomy-performance.json')      || null;
+const modeGuardian= readJson('mode-guardian.json')            || null;
+const rollbackReh = readJson('rollback-rehearsals.json')        || null;
+const liveScorecard= readJson('live-mode-scorecard.json')      || null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -292,6 +297,52 @@ if (sysHealth) {
 
   sysContent = healthBar + riskLine + (agentCells ? '<div class="hl-agents">' + agentCells + '</div>' : '') + opStrip;
 }
+
+// ── LIVE MODE HEALTH ─────────────────────────────────────
+var liveHealthContent = '<p class="empty">Run Phase 8A agents for LIVE mode health.</p>';
+if (liveScorecard && liveScorecard.mode) {
+  var lsc = liveScorecard;
+  var mg = modeGuardian || {};
+  var modeColors = {'OFF':'pub-blocked','MINIMAL':'pub-warn','LIMITED':'pub-wait','LIVE':'pub-ok','LIVE_PLUS':'pub-green'};
+  var mc = modeColors[lsc.mode] || 'pub-brand';
+  var safeStreak = (mg.recovery && mg.recovery.streak_days) ? mg.recovery.streak_days : 0;
+  var verdictColors = {'ALL_HEALTHY':'pub-ok','WATCH':'pub-warn','DOWNGRADE_RECOMMENDED':'pub-blocked','CAPABILITIES_FROZEN':'pub-warn'};
+  var vcolor = verdictColors[mg.summary && mg.summary.verdict] || 'pub-brand';
+  var actionsToday = actionAudit && actionAudit.summary ? actionAudit.summary.total_actions : 0;
+  var drillInfo = rollbackReh && rollbackReh.summary ? rollbackReh.summary.passed+'/'+rollbackReh.summary.total+' drills' : 'n/a';
+  liveHealthContent = '<div class="lmh-mode-row"><div class="lmh-mode"><span class="'+mc+'">'+lsc.mode+'</span></div><div class="lmh-trust">Trust: <strong>'+(lsc.trust||'?')+'</strong></div><div class="lmh-streak">Streak: <strong>'+safeStreak+'d</strong></div></div><div class="lmh-verdict"><span class="'+vcolor+'">'+escHtml((mg.summary && mg.summary.verdict)||'RUNNING')+'</span> &middot; Actions: '+actionsToday+' &middot; Drills: '+drillInfo+'</div>';
+}
+var liveHealthSection = buildSection('&#127968 LIVE MODE HEALTH', freshnessBadge(liveScorecard && liveScorecard.generated), liveHealthContent);
+
+// ── AUTONOMY AUDIT ─────────────────────────────────────────
+var auditContent = '<p class="empty">Run live_action_auditor.</p>';
+if (actionAudit && actionAudit.summary) {
+  var aa = actionAudit;
+  var verdictColors2 = {'CLEAN':'pub-ok','WATCH':'pub-warn','REVIEW_REQUIRED':'pub-blocked'};
+  var vc2 = verdictColors2[aa.summary.verdict] || 'pub-brand';
+  var actRows = Object.entries(aa.by_type||{}).slice(0,6).map(function(e){
+    var t=e[0],v=e[1];
+    return '<div class="aa-row"><div class="aa-type">'+escHtml(String(t).replace(/_/g,' '))+'</div><div class="aa-total">'+v.total+'</div><div class="aa-detail"><span class="pub-ok">'+v.good+'</span>/<span class="pub-warn">'+v.questionable+'</span>/<span class="pub-blocked">'+v.bad+'</span></div></div>';
+  }).join('');
+  auditContent = '<div class="aa-summary"><span class="'+vc2+'">'+aa.summary.verdict+'</span> &middot; Total: '+aa.summary.total_actions+' &middot; Good: <span class="pub-ok">'+aa.summary.good+'</span> &middot; Q: <span class="pub-warn">'+aa.summary.questionable+'</span> &middot; Bad: <span class="pub-blocked">'+aa.summary.bad+'</span></div><div class="aa-table"><div class="aa-head"><span>Action</span><span>Total</span><span>G/Q/B</span></div>'+actRows+'</div>';
+}
+var auditSection = buildSection('&#128203 AUTONOMY AUDIT', freshnessBadge(actionAudit && actionAudit.generated), auditContent);
+
+// ── CAPABILITY CONTROLS ───────────────────────────────────
+var capCtrlContent = '<p class="empty">Run live_mode_scorecard.</p>';
+if (liveScorecard && liveScorecard.capabilities) {
+  var caps = liveScorecard.capabilities;
+  var pausedCount = caps.filter(function(c){return c.verdict==='paused'||c.verdict==='pause_until_proven';}).length;
+  var capRows = caps.map(function(c){
+    var colors={'keep':'pub-ok','keep_with_watch':'pub-wait','pause_until_proven':'pub-blocked','paused':'pub-blocked','expand':'pub-green'};
+    var cls=colors[c.verdict]||'pub-brand';
+    var paused=c.paused_by?' <span class="pub-blocked">PAUSED</span>':'';
+    return '<div class="cc-row"><div class="cc-name">'+escHtml(c.name||'')+'</div><div class="cc-verdict"><span class="'+cls+'">'+escHtml(String(c.verdict).replace(/_/g,' '))+'</span></div><div class="cc-pause">'+paused+'</div></div>';
+  }).join('');
+  capCtrlContent = '<div class="cc-summary">Keep: <span class="pub-ok">'+(liveScorecard.summary&&liveScorecard.summary.keep||0)+'</span> &middot; Pause: <span class="pub-blocked">'+pausedCount+'</span> &middot; Expand: <span class="pub-green">'+(liveScorecard.summary&&liveScorecard.summary.expand||0)+'</span></div><div class="cc-table"><div class="cc-head"><span>Capability</span><span>Verdict</span><span>Status</span></div>'+capRows+'</div>';
+}
+var capCtrlSection = buildSection('&#128736 CAPABILITY CONTROLS', freshnessBadge(liveScorecard && liveScorecard.generated), capCtrlContent);
+
 var sysSection = buildSection('&#129504 SYSTEM HEALTH', freshnessBadge(sysHealth && sysHealth.generated), sysContent);
 
 // TODAY'S LEARNING
@@ -2323,6 +2374,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .ww-ct-badge--cta    { background: rgba(0,210,106,0.15); color: #00d26a; }
 .ww-ct-badge--promo { background: rgba(255,107,53,0.15); color: #ff6b35; }
 .ww-ct-badge--product { background: rgba(255,165,0,0.15); color: var(--warning); }
+
+/* LIVE MODE HEALTH */
+.lmh-mode-row { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+.lmh-mode { font-size: 1.1rem; font-weight: 900; }
+.lmh-trust, .lmh-streak { font-size: 0.72rem; color: var(--muted); }
+.lmh-verdict { font-size: 0.72rem; color: var(--muted); }
+/* AUTONOMY AUDIT */
+.aa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.aa-table { font-size: 0.65rem; }
+.aa-head { display: grid; grid-template-columns: 2fr 0.8fr 1.2fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.aa-row { display: grid; grid-template-columns: 2fr 0.8fr 1.2fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.aa-type { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.aa-total, .aa-detail { font-size: 0.62rem; }
+/* CAPABILITY CONTROLS */
+.cc-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cc-table { font-size: 0.65rem; }
+.cc-head { display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cc-row { display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cc-name { font-weight: 700; color: var(--text); }
+.cc-verdict, .cc-pause { font-size: 0.62rem; text-transform: capitalize; }
 </style>
 </head>
 <body>
@@ -2333,6 +2404,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   </div>
 
   ${summaryBar}
+  ${liveHealthSection}
+  ${auditSection}
+  ${capCtrlSection}
+
   ${thisWeekStrip}
   ${execSummarySection}
   ${doFirstSection}

@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "rollback_rehearsal_engine",
+  "layer": 9,
+  "role": "Weekly fire drills \u2014 8 scenarios, identify HIGH severity gaps. Output: rollback-rehearsals.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_rollback_rehearsal_engine.js"
+  ],
+  "inputs": {
+    "live-mode.json": "mode and trust",
+    "live-action-audit.json": "action log"
+  },
+  "outputs": {
+    "rollback-rehearsals.json": "rollback-rehearsals.json"
+  }
+}

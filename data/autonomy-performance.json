@@ -1,0 +1,77 @@
+{
+  "schema": "https://clawdia.io/agents/autonomy-performance-reporter/v1",
+  "generated": "2026-04-23T10:05:09.142Z",
+  "mode": "LIVE",
+  "capabilities": [
+    {
+      "id": "discord_nudge",
+      "name": "Discord Nudges",
+      "sent": 1,
+      "acted_on": 0,
+      "prevented_miss": 0,
+      "value": "unknown",
+      "useful": null,
+      "notes": "Webhook feedback not connected - cannot measure acted_on rate yet"
+    },
+    {
+      "id": "fallback_swap",
+      "name": "Fallback Swaps",
+      "used": 0,
+      "prevented_miss": 0,
+      "value": "unknown",
+      "useful": null,
+      "notes": "No A/B winner tracking yet - swap effectiveness unknown"
+    },
+    {
+      "id": "low_risk_publish",
+      "name": "Low-Risk Publishing",
+      "published": 0,
+      "reach": 0,
+      "engagement": 0,
+      "value": "unknown",
+      "useful": null,
+      "notes": "Postiz integration not connected - cannot measure reach/engagement yet"
+    },
+    {
+      "id": "lead_routing",
+      "name": "Lead Routing",
+      "routed": 0,
+      "hot": 0,
+      "converted": 0,
+      "sla_met": 0,
+      "sla_missed": 0,
+      "value": "unknown",
+      "useful": null,
+      "notes": "WhatsApp Business API not connected - routing is simulated, no real leads yet"
+    },
+    {
+      "id": "tiny_ad_shift",
+      "name": "Budget Shifts",
+      "shifts": 0,
+      "amount_r": 0,
+      "roas_change": 0,
+      "value": "unknown",
+      "useful": null,
+      "notes": "Meta Ads API not connected - budget shifts are placeholder"
+    },
+    {
+      "id": "review_thank_you",
+      "name": "Review Thank-Yous",
+      "posted": 0,
+      "drafted": 0,
+      "value": "medium",
+      "useful": true,
+      "notes": "Google Business API not connected - posting is simulated. Safe to expand manually."
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "with_data": 1,
+    "active": 1,
+    "proven_useful": 0,
+    "no_data": 0,
+    "verdict": "Autonomy is RUNNING but not MEASURED yet - connect real APIs to prove value"
+  },
+  "recommendations": [],
+  "honest_note": "All value metrics are unknown until Postiz, Meta Ads, WhatsApp Business, and Google Business APIs are connected."
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "live_mode_scorecard",
+  "layer": 9,
+  "role": "Score each LIVE capability \u2014 keep/pause/expand per capability. Output: live-mode-scorecard.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_live_mode_scorecard.js"
+  ],
+  "inputs": {
+    "live-mode.json": "mode and trust",
+    "live-action-audit.json": "action log"
+  },
+  "outputs": {
+    "live-mode-scorecard.json": "live-mode-scorecard.json"
+  }
+}

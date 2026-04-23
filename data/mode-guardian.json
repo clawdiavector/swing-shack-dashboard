@@ -1,0 +1,70 @@
+{
+  "schema": "https://clawdia.io/agents/mode-guardian/v1",
+  "generated": "2026-04-23T10:05:09.204Z",
+  "current_mode": "LIVE",
+  "trust": 9.4,
+  "mode_action": null,
+  "capability_controls": {
+    "discord_nudge": {
+      "status": "active",
+      "paused_by": null,
+      "failures": 0,
+      "last_fail": null
+    },
+    "fallback_swap": {
+      "status": "active",
+      "paused_by": null,
+      "failures": 0,
+      "last_fail": null
+    },
+    "story_scheduling": {
+      "status": "active",
+      "paused_by": null,
+      "failures": 0,
+      "last_fail": null
+    },
+    "evergreen_repost": {
+      "status": "active",
+      "paused_by": null,
+      "failures": 0,
+      "last_fail": null
+    },
+    "approval_auto_promote": {
+      "status": "active",
+      "paused_by": null,
+      "failures": 0,
+      "last_fail": null
+    },
+    "low_risk_publish": {
+      "status": "active",
+      "paused_by": null,
+      "failures": 0,
+      "last_fail": null
+    },
+    "lead_routing": {
+      "status": "active",
+      "paused_by": null,
+      "failures": 0,
+      "last_fail": null
+    },
+    "tiny_ad_shift": {
+      "status": "paused",
+      "paused_by": "guardian",
+      "reason": "Meta Ads API not connected",
+      "last_fail": null
+    }
+  },
+  "active_capabilities": 7,
+  "frozen_capabilities": 1,
+  "freeze_actions_this_run": [],
+  "recovery": {
+    "streak_days": 0,
+    "eligible": false,
+    "eligible_after_days": 7
+  },
+  "summary": {
+    "mode_healthy": true,
+    "capabilities_healthy": true,
+    "verdict": "ALL_HEALTHY"
+  }
+}

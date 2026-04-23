@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "live_action_auditor",
+  "layer": 9,
+  "role": "Audit every LIVE mode action \u2014 good/questionable/bad, rollback needed, confidence honesty. Output: live-action-audit.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_live_action_auditor.js"
+  ],
+  "inputs": {
+    "live-mode.json": "mode and trust",
+    "live-action-audit.json": "action log"
+  },
+  "outputs": {
+    "live-action-audit.json": "live-action-audit.json"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "autonomy_performance_reporter",
+  "layer": 9,
+  "role": "Measure whether LIVE actions improve outcomes \u2014 nudges/lead/budget/publish. Output: autonomy-performance.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_autonomy_performance_reporter.js"
+  ],
+  "inputs": {
+    "live-mode.json": "mode and trust",
+    "live-action-audit.json": "action log"
+  },
+  "outputs": {
+    "autonomy-performance.json": "autonomy-performance.json"
+  }
+}

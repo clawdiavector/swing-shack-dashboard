@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "mode_guardian",
+  "layer": 9,
+  "role": "Protect LIVE mode \u2014 auto-demote on trust drop, freeze individual capabilities. Output: mode-guardian.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_mode_guardian.js"
+  ],
+  "inputs": {
+    "live-mode.json": "mode and trust",
+    "live-action-audit.json": "action log"
+  },
+  "outputs": {
+    "mode-guardian.json": "mode-guardian.json"
+  }
+}

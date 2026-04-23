@@ -1,0 +1,167 @@
+{
+  "schema": "https://clawdia.io/agents/rollback-rehearsal-engine/v1",
+  "generated": "2026-04-23T10:05:09.267Z",
+  "summary": {
+    "total": 8,
+    "passed": 6,
+    "partial": 2,
+    "failed": 0,
+    "urgent_high_severity_gaps": 0,
+    "verdict": "WATCH"
+  },
+  "scenarios": [
+    {
+      "id": "bad_autopublish",
+      "name": "Bad Auto-Publish",
+      "trigger": "autonomous_publisher_live posts content with banned word or wrong pricing",
+      "severity": "HIGH",
+      "expected": "content filter catches before post → action blocked → audit log updated",
+      "actual_test": "PASS",
+      "steps": [
+        "Check banned word list in post content",
+        "Check pricing matches pricing rules",
+        "If fail: mark as blocked, notify Discord",
+        "Log to live-action-audit.json"
+      ],
+      "can_rollback": true,
+      "rollback_time": "minutes",
+      "notes": "Content filter pre-check is first line of defence — must be implemented before LIVE publishing"
+    },
+    {
+      "id": "wrong_nudge",
+      "name": "Wrong Discord Nudge",
+      "trigger": "Nudge sent to wrong agent or wrong topic at wrong time",
+      "severity": "MEDIUM",
+      "expected": "Nudge recalled if wrong, correct nudge sent, audit log updated",
+      "actual_test": "PASS",
+      "steps": [
+        "Log nudge destination and content before send",
+        "If wrong: send correction nudge",
+        "Update nudge audit trail",
+        "Review why wrong was selected"
+      ],
+      "can_rollback": true,
+      "rollback_time": "seconds",
+      "notes": "Nudges are low-risk — correction nudge is usually sufficient"
+    },
+    {
+      "id": "stale_feed_action",
+      "name": "Stale Feed → Wrong Action",
+      "trigger": "GA4 or Reddit data is >7 days stale. System recommends based on old data.",
+      "severity": "MEDIUM",
+      "expected": "trust_optimizer flags stale data → action blocked → manual review triggered",
+      "actual_test": "PARTIAL",
+      "steps": [
+        "Check data age in trust_optimizer",
+        "If stale >7 days: flag and block dependent actions",
+        "Notify via dashboard",
+        "Use last known good data as fallback"
+      ],
+      "can_rollback": true,
+      "rollback_time": "hours",
+      "notes": "Stale feed detection works, but dependent action blocking needs integration"
+    },
+    {
+      "id": "duplicate_publish",
+      "name": "Duplicate Publish Attempt",
+      "trigger": "Same content posted twice due to retry logic or race condition",
+      "severity": "LOW",
+      "expected": "Post ID tracked → duplicate detection → second attempt blocked",
+      "actual_test": "PARTIAL",
+      "steps": [
+        "Track post IDs in live-publish-log",
+        "Before publish: check if ID already posted",
+        "If duplicate: block second attempt, log as blocked"
+      ],
+      "can_rollback": true,
+      "rollback_time": "N/A (prevented)",
+      "notes": "Duplicate prevention logic not yet implemented in publisher — needs idempotency key"
+    },
+    {
+      "id": "bad_lead_route",
+      "name": "Bad Lead Route",
+      "trigger": "Hot lead routed to cold nurture OR cold lead sent WhatsApp blast",
+      "severity": "HIGH",
+      "expected": "Lead score validated before routing → routing blocked if score inconsistent → manual review",
+      "actual_test": "PASS",
+      "steps": [
+        "Validate lead score against threshold",
+        "If mismatch: block routing, flag for review",
+        "Send to manual queue",
+        "Log routing error"
+      ],
+      "can_rollback": false,
+      "rollback_time": "IMPOSSIBLE (message sent)",
+      "notes": "Routing is NON-REVERSIBLE. Manual review gate is only protection. Never route without score validation."
+    },
+    {
+      "id": "cascade_trust_drop",
+      "name": "Cascade Trust Drop",
+      "trigger": "Multiple capabilities fail in same day, trust drops from 9.4 to 6.5",
+      "severity": "CRITICAL",
+      "expected": "mode_guardian detects → auto-demote → freeze all capabilities → require 7-day clean streak",
+      "actual_test": "PASS",
+      "steps": [
+        "mode_guardian checks trust score every run",
+        "If trust<7: demote to MINIMAL",
+        "If trust<6: force OFF",
+        "Frozen capabilities require 7-day streak to re-enable"
+      ],
+      "can_rollback": true,
+      "rollback_time": "N/A (prevention only)",
+      "notes": "Trust downgrade is automatic. Recovery is slow by design — this is correct."
+    },
+    {
+      "id": "budget_api_fail",
+      "name": "Budget API Silent Fail",
+      "trigger": "auto_budget_shifter calls Meta API, gets 500 error, silently retries",
+      "severity": "MEDIUM",
+      "expected": "API error detected → action marked failed → trust unaffected (<3 fails) → manual review",
+      "actual_test": "PASS",
+      "steps": [
+        "Catch API errors",
+        "Log error type and response",
+        "Mark action as failed",
+        "If fails>=3 in 1h: trigger anomaly"
+      ],
+      "can_rollback": true,
+      "rollback_time": "hours (budget already moved)",
+      "notes": "Small budget limit (R100/day) limits blast radius. Budget reversal via Meta dashboard."
+    },
+    {
+      "id": "negative_review_auto_post",
+      "name": "Negative Review Auto-Post",
+      "trigger": "reputation_responder tries to post response to 2-star review",
+      "severity": "CRITICAL",
+      "expected": "Hard rule blocks negative review responses → never posted → manual override required",
+      "actual_test": "PASS",
+      "steps": [
+        "Check review rating before drafting",
+        "If rating<4: hard block, log as blocked",
+        "Never auto-post to negative reviews",
+        "Flag for manual response"
+      ],
+      "can_rollback": true,
+      "rollback_time": "IMPOSSIBLE (would require post deletion)",
+      "notes": "Hard rule is correctly implemented. No rollback needed — blocked before posting."
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": 1,
+      "scenario": "stale_feed_action",
+      "name": "Stale Feed → Wrong Action",
+      "action": "Implement missing: Check data age in trust_optimizer, If stale >7 days: flag and block dependent actions, Notify via dashboard, Use last known good data as fallback",
+      "why": "PARTIAL means scenario detected but not fully prevented"
+    },
+    {
+      "priority": 1,
+      "scenario": "duplicate_publish",
+      "name": "Duplicate Publish Attempt",
+      "action": "Implement missing: Track post IDs in live-publish-log, Before publish: check if ID already posted, If duplicate: block second attempt, log as blocked",
+      "why": "PARTIAL means scenario detected but not fully prevented"
+    }
+  ],
+  "next_drill": "2026-04-30",
+  "drill_count": 1
+}

@@ -692,6 +692,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .ww-ct-badge--cta    { background: rgba(0,210,106,0.15); color: #00d26a; }
 .ww-ct-badge--promo { background: rgba(255,107,53,0.15); color: #ff6b35; }
 .ww-ct-badge--product { background: rgba(255,165,0,0.15); color: var(--warning); }
+
+/* LIVE MODE HEALTH */
+.lmh-mode-row { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+.lmh-mode { font-size: 1.1rem; font-weight: 900; }
+.lmh-trust, .lmh-streak { font-size: 0.72rem; color: var(--muted); }
+.lmh-verdict { font-size: 0.72rem; color: var(--muted); }
+/* AUTONOMY AUDIT */
+.aa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.aa-table { font-size: 0.65rem; }
+.aa-head { display: grid; grid-template-columns: 2fr 0.8fr 1.2fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.aa-row { display: grid; grid-template-columns: 2fr 0.8fr 1.2fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.aa-type { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.aa-total, .aa-detail { font-size: 0.62rem; }
+/* CAPABILITY CONTROLS */
+.cc-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cc-table { font-size: 0.65rem; }
+.cc-head { display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cc-row { display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cc-name { font-weight: 700; color: var(--text); }
+.cc-verdict, .cc-pause { font-size: 0.62rem; text-transform: capitalize; }
 </style>
 </head>
 <body>
@@ -705,7 +725,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/23, 11:45:31 SAST</span>
+    <span class="summary-value">2026/04/23, 12:09:13 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -716,6 +736,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
     <span class="summary-value">Fujimoto available at Swing Shack. </span>
   </div>
 </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#127968 LIVE MODE HEALTH</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="lmh-mode-row"><div class="lmh-mode"><span class="pub-ok">LIVE</span></div><div class="lmh-trust">Trust: <strong>9.4</strong></div><div class="lmh-streak">Streak: <strong>0d</strong></div></div><div class="lmh-verdict"><span class="pub-ok">ALL_HEALTHY</span> &middot; Actions: 13 &middot; Drills: 6/8 drills</div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128203 AUTONOMY AUDIT</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="aa-summary"><span class="pub-ok">CLEAN</span> &middot; Total: 13 &middot; Good: <span class="pub-ok">3</span> &middot; Q: <span class="pub-warn">0</span> &middot; Bad: <span class="pub-blocked">0</span></div><div class="aa-table"><div class="aa-head"><span>Action</span><span>Total</span><span>G/Q/B</span></div><div class="aa-row"><div class="aa-type">discord nudge</div><div class="aa-total">1</div><div class="aa-detail"><span class="pub-ok">1</span>/<span class="pub-warn">0</span>/<span class="pub-blocked">0</span></div></div><div class="aa-row"><div class="aa-type">blocked</div><div class="aa-total">7</div><div class="aa-detail"><span class="pub-ok">0</span>/<span class="pub-warn">0</span>/<span class="pub-blocked">0</span></div></div><div class="aa-row"><div class="aa-type">draft only</div><div class="aa-total">3</div><div class="aa-detail"><span class="pub-ok">3</span>/<span class="pub-warn">0</span>/<span class="pub-blocked">0</span></div></div><div class="aa-row"><div class="aa-type">manual only</div><div class="aa-total">2</div><div class="aa-detail"><span class="pub-ok">0</span>/<span class="pub-warn">0</span>/<span class="pub-blocked">0</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128736 CAPABILITY CONTROLS</h2>
+      <span class="badge fresh">✅ fresh</span>
+    </div>
+    <div class="cc-summary">Keep: <span class="pub-ok">6</span> &middot; Pause: <span class="pub-blocked">2</span> &middot; Expand: <span class="pub-green">0</span></div><div class="cc-table"><div class="cc-head"><span>Capability</span><span>Verdict</span><span>Status</span></div><div class="cc-row"><div class="cc-name">Discord Nudges</div><div class="cc-verdict"><span class="pub-ok">keep</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Fallback Swaps</div><div class="cc-verdict"><span class="pub-ok">keep</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Story Scheduling</div><div class="cc-verdict"><span class="pub-ok">keep</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Evergreen Reposts</div><div class="cc-verdict"><span class="pub-ok">keep</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Auto-Promote Approved</div><div class="cc-verdict"><span class="pub-wait">keep with watch</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Low-Risk Publishing</div><div class="cc-verdict"><span class="pub-wait">keep with watch</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Lead Routing</div><div class="cc-verdict"><span class="pub-blocked">pause until proven</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Budget Shifts</div><div class="cc-verdict"><span class="pub-blocked">paused</span></div><div class="cc-pause"> <span class="pub-blocked">PAUSED</span></div></div></div>
+  </div>
+
   <div class="tw-strip">
     <div class="tw-item tw-item--post">
       <div class="tw-label">🎯 Post this first</div>
