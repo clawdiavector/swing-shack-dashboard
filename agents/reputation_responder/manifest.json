@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "reputation_responder",
+  "layer": 9,
+  "role": "5\u2605 thank-yous (LIVE), 4\u2605 drafts (manual), negative reviews \u2192 manual only. Output: review-actions.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_reputation_responder.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust_score and mode permissions"
+  },
+  "outputs": {
+    "review-actions.json": "review-actions.json"
+  }
+}

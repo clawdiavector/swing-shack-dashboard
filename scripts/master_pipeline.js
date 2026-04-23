@@ -233,6 +233,20 @@ const STAGES = [
     ]
   },
   {
+    name: 'SelectiveAutonomy',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['live-mode.json', 'live-publish-log.json', 'budget-actions.json', 'lead-routing-log.json', 'review-actions.json', 'rollback-log.json'],
+    steps: [
+      { name: 'live_mode_controller',       script: `node ${BASE}/scripts/run_live_mode_controller.js`,       critical: false },
+      { name: 'rollback_guard',             script: `node ${BASE}/scripts/run_rollback_guard.js`,             critical: false },
+      { name: 'autonomous_publisher_live',  script: `node ${BASE}/scripts/run_autonomous_publisher_live.js`,  critical: false },
+      { name: 'auto_budget_shifter',         script: `node ${BASE}/scripts/run_auto_budget_shifter.js`,         critical: false },
+      { name: 'lead_router_live',            script: `node ${BASE}/scripts/run_lead_router_live.js`,            critical: false },
+      { name: 'reputation_responder',         script: `node ${BASE}/scripts/run_reputation_responder.js`,         critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

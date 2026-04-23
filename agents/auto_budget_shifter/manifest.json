@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "auto_budget_shifter",
+  "layer": 9,
+  "role": "Tiny budget moves (R100/day max). Pause losers, small boosts to winners. Output: budget-actions.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_auto_budget_shifter.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust_score and mode permissions"
+  },
+  "outputs": {
+    "budget-actions.json": "budget-actions.json"
+  }
+}

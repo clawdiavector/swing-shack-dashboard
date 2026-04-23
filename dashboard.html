@@ -414,6 +414,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
 
+/* LIVE MODE CONTROL */
+.lm-mode-row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px; }
+.lm-current-mode { font-size: 1.2rem; font-weight: 900; }
+.lm-trust { text-align: center; }
+.lm-trust-label { font-size: 0.55rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.1em; }
+.lm-trust-score { font-size: 1.4rem; font-weight: 900; color: #ffd700; line-height: 1; }
+.lm-rules { display: flex; flex-direction: column; gap: 2px; font-size: 0.6rem; }
+.lm-rule-item { }
+.lm-kills { font-size: 0.7rem; margin-top: 6px; }
+.lm-perms { font-size: 0.62rem; color: var(--muted); margin-top: 4px; }
+.lm-perms-label { color: var(--text); font-weight: 600; }
+.lm-off { font-size: 0.8rem; }
+
+/* AUTONOMOUS ACTIONS TODAY */
+.aa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.aa-table { font-size: 0.65rem; }
+.aa-head { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.aa-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.aa-type { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.aa-src { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); }
+.aa-st { font-size: 0.62rem; }
+
+/* ROLLBACK & SAFETY */
+.rb-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.rb-table { font-size: 0.65rem; margin-bottom: 8px; }
+.rb-head { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.rb-row { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.rb-type { font-weight: 700; color: var(--text); }
+.rb-action, .rb-st { font-size: 0.62rem; }
+.rb-safe-list { display: flex; flex-direction: column; gap: 4px; }
+.rb-safe { font-size: 0.7rem; }
+
 /* WHAT TO SELL NOW */
 .sn-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
 .sn-table { font-size: 0.65rem; }
@@ -607,7 +639,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/23, 11:08:26 SAST</span>
+    <span class="summary-value">2026/04/23, 11:22:52 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>

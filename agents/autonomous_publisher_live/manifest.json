@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "autonomous_publisher_live",
+  "layer": 9,
+  "role": "Real controlled publishing. Evergreen, approved posts, Stories, fallbacks. Output: live-publish-log.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_autonomous_publisher_live.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust_score and mode permissions"
+  },
+  "outputs": {
+    "live-publish-log.json": "live-publish-log.json"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "schema": "https://clawdia.io/agents/lead-router-live/v1",
+  "generated": "2026-04-23T09:20:46.770Z",
+  "mode": "MINIMAL",
+  "thresholds": {
+    "hot": 80,
+    "warm": 55,
+    "cold": 15
+  },
+  "routing": {
+    "hot": "WhatsApp immediate",
+    "warm": "Callback 4h",
+    "cold": "Nurture sequence"
+  },
+  "actions": [
+    {
+      "action_id": "rte-mob9ucojgd4e",
+      "lead_id": "lead-2026-03-19-6",
+      "type": "blocked",
+      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
+      "status": "blocked"
+    },
+    {
+      "action_id": "rte-mob9ucojfvvm",
+      "lead_id": "lead-2026-03-19-1",
+      "type": "blocked",
+      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
+      "status": "blocked"
+    },
+    {
+      "action_id": "rte-mob9ucoj91ra",
+      "lead_id": "lead-2026-03-19-5",
+      "type": "blocked",
+      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
+      "status": "blocked"
+    },
+    {
+      "action_id": "rte-mob9ucojgaek",
+      "lead_id": "lead-2026-03-19-2",
+      "type": "blocked",
+      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
+      "status": "blocked"
+    },
+    {
+      "action_id": "rte-mob9ucoj2en5",
+      "lead_id": "lead-2026-03-19-3",
+      "type": "blocked",
+      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
+      "status": "blocked"
+    },
+    {
+      "action_id": "rte-mob9ucoj66oh",
+      "lead_id": "lead-2026-03-19-4",
+      "type": "blocked",
+      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
+      "status": "blocked"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "hot": 0,
+    "warm": 0,
+    "cold": 0,
+    "blocked": 6,
+    "note": "No live CRM/WhatsApp Business API connected. Placeholder routing — connects when Christelle enables WhatsAppflows."
+  }
+}

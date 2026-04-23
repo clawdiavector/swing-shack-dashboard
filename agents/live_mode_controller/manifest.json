@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "live_mode_controller",
+  "layer": 9,
+  "role": "Master governor. OFF/MINIMAL/LIMITED/LIVE/LIVE_PLUS modes. Trust score. Kill switches. Output: live-mode.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_live_mode_controller.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust_score and mode permissions"
+  },
+  "outputs": {
+    "live-mode.json": "live-mode.json"
+  }
+}

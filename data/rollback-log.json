@@ -1,0 +1,20 @@
+{
+  "schema": "https://clawdia.io/agents/rollback-guard/v1",
+  "generated": "2026-04-23T09:20:46.849Z",
+  "trust_score": 10,
+  "anomalies": [],
+  "safety_actions": [],
+  "recent_rollbacks": [],
+  "rollback_capability": {
+    "can_undo": true,
+    "can_freeze": true,
+    "can_restore_config": true,
+    "reversible_actions": 0,
+    "irreversible_actions": 1
+  },
+  "summary": {
+    "anomalies_active": 0,
+    "safety_freezes": 0,
+    "rollbacks_today": 0
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "rollback_guard",
+  "layer": 9,
+  "role": "Anomaly detection, freeze autonomy, undo actions, restore configs. Output: rollback-log.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_rollback_guard.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust_score and mode permissions"
+  },
+  "outputs": {
+    "rollback-log.json": "rollback-log.json"
+  }
+}

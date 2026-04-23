@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "lead_router_live",
+  "layer": 9,
+  "role": "Hot leads \u2192 WhatsApp, warm \u2192 callback, cold \u2192 nurture. SLA enforcement. Output: lead-routing-log.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_lead_router_live.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust_score and mode permissions"
+  },
+  "outputs": {
+    "lead-routing-log.json": "lead-routing-log.json"
+  }
+}

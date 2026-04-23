@@ -1,0 +1,56 @@
+{
+  "schema": "https://clawdia.io/agents/auto-budget-shifter/v1",
+  "generated": "2026-04-23T09:20:46.731Z",
+  "mode": "MINIMAL",
+  "rules": {
+    "max_daily_r": 100,
+    "max_pct_per_campaign": 0.1
+  },
+  "campaigns": [
+    {
+      "id": "camp-1",
+      "name": "Booking Intent — IG",
+      "budget": 500,
+      "spent": 230,
+      "roas": 3.2,
+      "status": "performing",
+      "shift": 0
+    },
+    {
+      "id": "camp-2",
+      "name": "Brand Awareness",
+      "budget": 300,
+      "spent": 180,
+      "roas": 1.4,
+      "status": "paused",
+      "shift": 0
+    },
+    {
+      "id": "camp-3",
+      "name": "Retargeting — Visitors",
+      "budget": 200,
+      "spent": 90,
+      "roas": 2.1,
+      "status": "learning",
+      "shift": 0
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "bud-mob9ucngwmlq",
+      "type": "blocked",
+      "detail": "tiny_ad_shift",
+      "why": "Mode=MINIMAL. Need LIVE mode for ad budget shifts.",
+      "rule": "mode_restriction",
+      "status": "blocked"
+    }
+  ],
+  "summary": {
+    "total_actions": 1,
+    "recommended": 0,
+    "blocked": 1,
+    "total_budget_r": 1000,
+    "shift_capacity_r": 100
+  },
+  "note": "No live Meta/Google Ads API connected. Placeholder — connects when Christelle enables ad accounts."
+}

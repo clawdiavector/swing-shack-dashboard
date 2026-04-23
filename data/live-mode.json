@@ -1,0 +1,91 @@
+{
+  "schema": "https://clawdia.io/agents/live-mode-controller/v1",
+  "generated": "2026-04-23T09:20:17.679Z",
+  "modes": {
+    "available": [
+      "OFF",
+      "MINIMAL",
+      "LIMITED",
+      "LIVE",
+      "LIVE_PLUS"
+    ],
+    "current": "MINIMAL",
+    "trust_score": 7.2
+  },
+  "kill_switches": {
+    "pricing": false,
+    "legal": false,
+    "sensitive": false,
+    "budget_over_r100": false,
+    "negative_reviews": false
+  },
+  "overrides": {
+    "manual_override": false,
+    "kill_switch_triggered": false
+  },
+  "permissions_by_mode": {
+    "OFF": [
+      "reporting",
+      "dashboard",
+      "alerts"
+    ],
+    "MINIMAL": [
+      "reporting",
+      "dashboard",
+      "alerts",
+      "discord_nudge",
+      "fallback_swap"
+    ],
+    "LIMITED": [
+      "reporting",
+      "dashboard",
+      "alerts",
+      "discord_nudge",
+      "fallback_swap",
+      "story_scheduling",
+      "evergreen_repost",
+      "approval_auto_promote"
+    ],
+    "LIVE": [
+      "reporting",
+      "dashboard",
+      "alerts",
+      "discord_nudge",
+      "fallback_swap",
+      "story_scheduling",
+      "evergreen_repost",
+      "approval_auto_promote",
+      "low_risk_publish",
+      "lead_routing",
+      "tiny_ad_shift"
+    ],
+    "LIVE_PLUS": [
+      "reporting",
+      "dashboard",
+      "alerts",
+      "discord_nudge",
+      "fallback_swap",
+      "story_scheduling",
+      "evergreen_repost",
+      "approval_auto_promote",
+      "low_risk_publish",
+      "lead_routing",
+      "tiny_ad_shift",
+      "review_thank_you",
+      "experiment"
+    ]
+  },
+  "trust_rules": {
+    "6": "OFF forced",
+    "7": "MINIMAL max",
+    "8": "LIMITED max",
+    "9": "LIVE allowed"
+  },
+  "summary": {
+    "mode": "MINIMAL",
+    "trust_score": 7.2,
+    "off_switches": 0,
+    "run_success_rate": "85%",
+    "total_runs": 39
+  }
+}

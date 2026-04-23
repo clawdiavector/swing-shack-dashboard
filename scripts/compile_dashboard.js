@@ -159,6 +159,12 @@ const upsellOps    = readJson('upsell-opportunities.json')         || null;
 const merchBoard   = readJson('merchandising-board.json')         || null;
 const invSignals   = readJson('inventory-signals.json')           || null;
 const marginGuard  = readJson('offer-margin-checks.json')          || null;
+const liveMode    = readJson('live-mode.json')              || null;
+const pubLog      = readJson('live-publish-log.json')       || null;
+const budgetAct   = readJson('budget-actions.json')          || null;
+const leadLog     = readJson('lead-routing-log.json')        || null;
+const reviewAct   = readJson('review-actions.json')          || null;
+const rollbackLog = readJson('rollback-log.json')            || null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -420,6 +426,62 @@ var blockedRows = (marginGuard && marginGuard.blocked_offers) ? marginGuard.bloc
 }).join('') : '';
 stockContent = '<div class="st-section"><div class="st-section-label">&#128280 INVENTORY SIGNALS</div>' + (stockItems.length ? '<div class="st-table"><div class="st-head"><span>Item</span><span>Type</span><span>Urgency</span></div>' + stockItems.join('') + '</div>' : '<div class="empty">No live inventory data</div>') + '</div><div class="st-section"><div class="st-section-label">&#128230 SAFE OFFERS</div><div class="st-table">' + safeRows + '</div></div><div class="st-section"><div class="st-section-label">&#128293 BLOCKED BAD PROMOS</div><div class="st-table">' + blockedRows + '</div></div>';
 var stockSection = buildSection('&#128230 STOCK & OFFERS', freshnessBadge((invSignals||marginGuard) && (invSignals||{}).generated || (marginGuard||{}).generated), stockContent);
+
+// ── LIVE MODE CONTROL ──────────────────────────────────────
+var liveModeContent = '<p class="empty">Run live_mode_controller to see autonomy mode.</p>';
+if (liveMode && liveMode.modes) {
+  var lm = liveMode;
+  var modeColors = {'OFF':'pub-blocked','MINIMAL':'pub-warn','LIMITED':'pub-wait','LIVE':'pub-ok','LIVE_PLUS':'pub-green'};
+  var modeColor = modeColors[lm.modes.current] || 'pub-brand';
+  var killsList = Object.entries(lm.kill_switches||{}).filter(function(k){return k[1];}).map(function(k){return k[0];}).join(', ') || 'none';
+  var permList = (lm.permissions_by_mode||{})[lm.modes.current]||[];
+  liveModeContent = '<div class="lm-mode-row"><div class="lm-current-mode"><span class="'+modeColor+'">'+(lm.modes.current||'OFF')+'</span></div><div class="lm-trust"><div class="lm-trust-label">TRUST</div><div class="lm-trust-score">'+(lm.trust_score||0)+'</div></div><div class="lm-rules"><div class="lm-rule-item"><span class="pub-blocked">&lt;6 OFF</span></div><div class="lm-rule-item"><span class="pub-warn">&lt;7 MINIMAL</span></div><div class="lm-rule-item"><span class="pub-wait">&lt;8 LIMITED</span></div><div class="lm-rule-item"><span class="pub-ok">&ge;9 LIVE</span></div></div></div><div class="lm-kills"><span class="pub-blocked">KILLS: </span>'+(killsList||'none active')+'</div><div class="lm-perms"><span class="lm-perms-label">Allowed:</span> '+permList.slice(0,5).join(', ')+(permList.length>5?'...':'')+'</div>';
+} else {
+  liveModeContent = '<div class="lm-off"><span class="pub-blocked">&#9679; AUTONOMY OFF</span> — system in reporting-only mode</div>';
+}
+var liveModeSection = buildSection('&#127968 LIVE MODE CONTROL', freshnessBadge(liveMode && liveMode.generated), liveModeContent);
+
+// ── AUTONOMOUS ACTIONS TODAY ───────────────────────────────
+var autoActionsContent = '<p class="empty">Run autonomy agents to see live actions.</p>';
+var actionSummary = [];
+if (pubLog && pubLog.actions) {
+  pubLog.actions.forEach(function(a){actionSummary.push({type:a.type,status:a.status,source:'publisher'});});
+}
+if (budgetAct && budgetAct.actions) {
+  budgetAct.actions.forEach(function(a){actionSummary.push({type:a.type,status:a.status,source:'budget'});});
+}
+if (leadLog && leadLog.actions) {
+  leadLog.actions.forEach(function(a){actionSummary.push({type:a.type,status:a.status,source:'lead'});});
+}
+if (reviewAct && reviewAct.actions) {
+  reviewAct.actions.forEach(function(a){actionSummary.push({type:a.type,status:a.status,source:'review'});});
+}
+if (actionSummary.length > 0) {
+  var posted = actionSummary.filter(function(a){return a.status==='posted'||a.status==='sent'||a.status==='sent';}).length;
+  var queued = actionSummary.filter(function(a){return a.status==='queued'||a.status==='recommended';}).length;
+  var blocked = actionSummary.filter(function(a){return a.status==='blocked'||a.status==='draft'||a.status==='drafted';}).length;
+  var actRows = actionSummary.slice(0,8).map(function(a){
+    var sc={'posted':'pub-ok','sent':'pub-ok','queued':'pub-wait','recommended':'pub-wait','blocked':'pub-blocked','draft':'pub-warn','drafted':'pub-warn'}[a.status]||'pub-brand';
+    return '<div class="aa-row"><div class="aa-type">'+escHtml(a.type||'').replace(/_/g,' ')+'</div><div class="aa-src">'+a.source+'</div><div class="aa-st"><span class="'+sc+'">'+a.status+'</span></div></div>';
+  }).join('');
+  autoActionsContent = '<div class="aa-summary">'+actionSummary.length+' total &middot; <span class="pub-ok">'+posted+' posted</span> &middot; <span class="pub-wait">'+queued+' queued</span> &middot; <span class="pub-blocked">'+blocked+' blocked</span></div><div class="aa-table"><div class="aa-head"><span>Action</span><span>Source</span><span>Status</span></div>'+actRows+'</div>';
+}
+var autoActionsSection = buildSection('&#9889 AUTONOMOUS ACTIONS TODAY', freshnessBadge(pubLog && pubLog.generated), autoActionsContent);
+
+// ── ROLLBACK & SAFETY ──────────────────────────────────────
+var safetyContent = '<p class="empty">Run rollback_guard to see safety status.</p>';
+if (rollbackLog) {
+  var rb = rollbackLog;
+  var anomRows = (rb.anomalies||[]).slice(0,4).map(function(a){
+    var sc={'triggered':'pub-blocked','active':'pub-warn'}[a.status]||'pub-brand';
+    return '<div class="rb-row"><div class="rb-type">'+escHtml(a.type||'')+'</div><div class="rb-action">'+escHtml(a.action||'')+'</div><div class="rb-st"><span class="'+sc+'">'+a.status+'</span></div></div>';
+  }).join('');
+  var safeRows = (rb.safety_actions||[]).slice(0,3).map(function(a){
+    return '<div class="rb-safe"><span class="pub-blocked">&#9632; '+escHtml(a.type||'')+'</span> — '+escHtml(a.why||'')+'</div>';
+  }).join('');
+  safetyContent = '<div class="rb-summary">Trust: <strong>'+(rb.trust_score||'?')+'</strong> &middot; Anomalies: <span class="'+(rb.summary.anomalies_active>0?'pub-blocked':'pub-ok')+'">'+rb.summary.anomalies_active+'</span> &middot; Freezes: <span class="'+(rb.summary.safety_freezes>0?'pub-blocked':'pub-ok')+'">'+rb.summary.safety_freezes+'</span> &middot; Reversible: '+(rb.rollback_capability?.reversible_actions||0)+'</div>'+(anomRows?'<div class="rb-table"><div class="rb-head"><span>Anomaly</span><span>Action</span><span>Status</span></div>'+anomRows+'</div>':'')+'<div class="rb-safe-list">'+safeRows+'</div>';
+}
+var safetySection = buildSection('&#128655 ROLLBACK & SAFETY', freshnessBadge(rollbackLog && rollbackLog.generated), safetyContent);
 
 // ── CAPTURE MORE LEADS ────────────────────────────────────────
 var capLeadsContent = '<p class="empty">Run lead_capture_optimizer to see lead capture fixes.</p>';
@@ -1894,6 +1956,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-row { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
+
+/* LIVE MODE CONTROL */
+.lm-mode-row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px; }
+.lm-current-mode { font-size: 1.2rem; font-weight: 900; }
+.lm-trust { text-align: center; }
+.lm-trust-label { font-size: 0.55rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.1em; }
+.lm-trust-score { font-size: 1.4rem; font-weight: 900; color: #ffd700; line-height: 1; }
+.lm-rules { display: flex; flex-direction: column; gap: 2px; font-size: 0.6rem; }
+.lm-rule-item { }
+.lm-kills { font-size: 0.7rem; margin-top: 6px; }
+.lm-perms { font-size: 0.62rem; color: var(--muted); margin-top: 4px; }
+.lm-perms-label { color: var(--text); font-weight: 600; }
+.lm-off { font-size: 0.8rem; }
+
+/* AUTONOMOUS ACTIONS TODAY */
+.aa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.aa-table { font-size: 0.65rem; }
+.aa-head { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.aa-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.aa-type { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.aa-src { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); }
+.aa-st { font-size: 0.62rem; }
+
+/* ROLLBACK & SAFETY */
+.rb-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.rb-table { font-size: 0.65rem; margin-bottom: 8px; }
+.rb-head { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.rb-row { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.rb-type { font-weight: 700; color: var(--text); }
+.rb-action, .rb-st { font-size: 0.62rem; }
+.rb-safe-list { display: flex; flex-direction: column; gap: 4px; }
+.rb-safe { font-size: 0.7rem; }
 
 /* WHAT TO SELL NOW */
 .sn-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
