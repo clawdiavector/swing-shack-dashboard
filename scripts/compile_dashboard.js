@@ -187,6 +187,11 @@ const bookClosure=readJson("booking-closure.json")||null;
 const waRouting=readJson("whatsapp-routing-ready.json")||null;
 const metaAuth=readJson("meta-auth-health.json")||null;
 const roiTruth=readJson("roi-truth.json")||null;
+const bookingEvents=readJson("booking-events.json")||null;
+const utmGov=readJson("utm-governance.json")||null;
+const convTruth=readJson("conversion-truth.json")||null;
+const bookValue=readJson("booking-value-model.json")||null;
+const decConf=readJson("decision-confidence.json")||null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -443,6 +448,67 @@ if (roiTruth && roiTruth.sources) {
   roiTruthContent = '<div class="rt-summary">'+rt.sources.length+' sources &middot; <span class="pub-ok">'+byBand.DIRECT.length+' DIRECT</span> &middot; <span class="pub-blocked">'+byBand.UNMEASURABLE.length+' UNMEASURABLE</span></div>'+bands;
 }
 var roiTruthSection = buildSection('&#128203 ROI TRUTH', freshnessBadge(roiTruth && roiTruth.generated), roiTruthContent);
+
+var revTruthContent = '<p class="empty">Run booking_event_mapper + conversion_truth_engine.</p>';
+if (bookValue && bookValue.summary) {
+  var bv = bookValue;
+  var vr = (convTruth && convTruth.reclassified) ? convTruth.reclassified.filter(function(r){return r.new_band==='VERIFIED_REVENUE';}) : [];
+  var vl = (convTruth && convTruth.reclassified) ? convTruth.reclassified.filter(function(r){return r.new_band==='VERIFIED_LEAD';}) : [];
+  var sp = (convTruth && convTruth.reclassified) ? convTruth.reclassified.filter(function(r){return r.new_band==='STRONG_PROXY';}) : [];
+  var wp = (convTruth && convTruth.reclassified) ? convTruth.reclassified.filter(function(r){return r.new_band==='WEAK_PROXY';}) : [];
+  var uk = (convTruth && convTruth.reclassified) ? convTruth.reclassified.filter(function(r){return r.new_band==='UNKNOWN';}) : [];
+  var modRev = bv.summary.total_modelled_revenue || 0;
+  var modBooks = bv.summary.total_modelled_bookings || 0;
+  var igReach = bv.summary.ig_total_reach || 0;
+  var revBands = '<div class="rtv-bands">';
+  if(vr.length>0) revBands+='<span class="pub-green">'+vr.length+' VERIFIED_REVENUE</span>';
+  if(vl.length>0) revBands+='<span class="pub-ok">'+vl.length+' VERIFIED_LEAD</span>';
+  if(sp.length>0) revBands+='<span class="pub-warn">'+sp.length+' STRONG_PROXY</span>';
+  if(wp.length>0) revBands+='<span class="pub-blocked">'+wp.length+' WEAK_PROXY</span>';
+  if(uk.length>0) revBands+='<span class="pub-grey">'+uk.length+' UNKNOWN</span>';
+  revBands += '</div>';
+  revTruthContent = '<div class="rtv-summary"><span class="rtv-modelled">MODELLED: R'+modRev+' est. ('+modBooks+' bookings from '+igReach+' reach)</span></div>'+revBands+'<div class="rtv-note">Revenue is modelled, not verified. Connect booking system for truth.</div>';
+} else {
+  revTruthContent = '<p class="empty">Run booking_event_mapper + conversion_truth_engine.</p>';
+}
+var revTruthSection = buildSection('&#128176 REVENUE TRUTH', freshnessBadge(bookValue && bookValue.generated), revTruthContent);
+
+var trackCovContent = '<p class="empty">Run utm_governor.</p>';
+if (utmGov && utmGov.summary) {
+  var ug = utmGov;
+  var rate = ug.summary.compliance_rate || '0%';
+  var rateNum = parseInt(rate) || 0;
+  var rateCls = rateNum >= 80 ? 'pub-ok' : rateNum >= 50 ? 'pub-warn' : 'pub-blocked';
+  var needsTag = ug.summary.needs_tagging || 0;
+  var posts = ug.summary.total_posts || 0;
+  var brokenChains = ug.posts_needing_utm ? ug.posts_needing_utm.length : 0;
+  trackCovContent = '<div class="tc-row"><div class="tc-rate"><span class="'+rateCls+'">'+rate+' UTM COMPLIANT</span></div><div class="tc-stats">'+posts+' posts &middot; <span class="pub-blocked">'+needsTag+' need tagging</span></div></div><div class="tc-chains">Breaks: <span class="pub-blocked">'+brokenChains+' chains</span> (missing hook_id in UTM)</div><div class="tc-note">Every untagged link breaks the attribution chain.</div>';
+} else {
+  trackCovContent = '<p class="empty">Run utm_governor.</p>';
+}
+var trackCovSection = buildSection('&#128279 TRACKING COVERAGE', freshnessBadge(utmGov && utmGov.generated), trackCovContent);
+
+var decConfContent = '<p class="empty">Run decision_confidence_engine.</p>';
+if (decConf && decConf.recommendations) {
+  var dc = decConf;
+  var high = dc.recommendations.filter(function(r){return r.confidence==='HIGH';});
+  var medium = dc.recommendations.filter(function(r){return r.confidence==='MEDIUM';});
+  var low = dc.recommendations.filter(function(r){return r.confidence==='LOW';});
+  var allowed = dc.recommendations.filter(function(r){return r.automation_allowed;});
+  var mode = dc.current_mode || 'OFF';
+  var modeCls = mode==='LIVE'?'pub-green':mode==='LIMITED'?'pub-ok':mode==='MINIMAL'?'pub-warn':'pub-blocked';
+  var confRows = dc.recommendations.slice(0,8).map(function(r){
+    var cls = r.confidence==='HIGH'?'pub-green':r.confidence==='MEDIUM'?'pub-warn':'pub-blocked';
+    var auto = r.automation_allowed ? '<span class="pub-ok">AUTO</span>' : '<span class="pub-blocked">MAN</span>';
+    return '<div class="dc-row"><div class="dc-area">'+escHtml(r.area)+'</div><div class="dc-conf"><span class="'+cls+'">'+r.confidence+'</span></div><div class="dc-auto">'+auto+'</div></div>';
+  }).join('');
+  decConfContent = '<div class="dc-mode"><span class="'+modeCls+'">MODE: '+mode+'</span> &middot; '+allowed.length+'/'+dc.recommendations.length+' auto-able &middot; Score: '+dc.system_confidence.overall_score+' verified</div><div class="dc-table"><div class="dc-head"><span>Area</span><span>Conf</span><span>Auto</span></div>'+confRows+'</div>';
+} else {
+  decConfContent = '<p class="empty">Run decision_confidence_engine.</p>';
+}
+var decConfSection = buildSection('&#127919 DECISION CONFIDENCE', freshnessBadge(decConf && decConf.generated), decConfContent);
+
+
 
 var roiSection = buildSection('&#128176 ROI COVERAGE', freshnessBadge(roiCover && roiCover.generated), roiContent);
 
@@ -2552,6 +2618,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .rt-band-label { font-size: 0.65rem; font-weight: 700; margin-bottom: 4px; }
 .rt-items { display: flex; flex-wrap: wrap; gap: 4px; }
 .rt-item { font-size: 0.62rem; background: rgba(255,255,255,0.08); border-radius: 3px; padding: 2px 6px; }
+
+/* REVENUE TRUTH */
+.rtv-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.rtv-modelled { color: var(--warning); font-weight: 700; font-size: 0.8rem; }
+.rtv-bands { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.rtv-bands span { font-size: 0.62rem; padding: 2px 6px; border-radius: 3px; }
+.rtv-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; font-style: italic; }
+
+/* TRACKING COVERAGE */
+.tc-row { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+.tc-rate { font-size: 0.8rem; font-weight: 700; }
+.tc-stats { font-size: 0.72rem; color: var(--muted); }
+.tc-chains { font-size: 0.68rem; color: var(--text); margin: 6px 0; }
+.tc-note { font-size: 0.62rem; color: var(--muted); font-style: italic; }
+
+/* DECISION CONFIDENCE */
+.dc-mode { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.dc-table { font-size: 0.62rem; }
+.dc-head { display: grid; grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.dc-row { display: grid; grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.dc-area { font-weight: 700; color: var(--text); }
+.dc-conf { font-size: 0.62rem; }
+.dc-auto { font-size: 0.62rem; }
 </style>
 </head>
 <body>

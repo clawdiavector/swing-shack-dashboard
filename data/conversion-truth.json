@@ -1,0 +1,106 @@
+{
+  "schema": "https://clawdia.io/agents/conversion-truth-engine/v1",
+  "generated": "2026-04-23T11:35:20.964Z",
+  "summary": {
+    "total": 8,
+    "verified_revenue": 1,
+    "verified_lead": 0,
+    "strong_proxy": 3,
+    "weak_proxy": 2,
+    "unknown": 2,
+    "allowed_automation": 1,
+    "blocked_automation": 4,
+    "honest_note": "VERIFIED_REVENUE requires booking_completed event in GA4. VERIFIED_LEAD requires service_selected. Currently zero of either."
+  },
+  "reclassified": [
+    {
+      "source": "low_risk_publish",
+      "name": "Low-Risk Publishing",
+      "old_band": "STRONG_PROXY",
+      "new_band": "STRONG_PROXY",
+      "confidence": 55,
+      "reason": "UTM chain exists but no booking confirmation event",
+      "automation_rights": "REVIEW_NEEDED"
+    },
+    {
+      "source": "gmb_posting",
+      "name": "GMB Posts",
+      "old_band": "STRONG_PROXY",
+      "new_band": "STRONG_PROXY",
+      "confidence": 55,
+      "reason": "UTM chain exists but no booking confirmation event",
+      "automation_rights": "REVIEW_NEEDED"
+    },
+    {
+      "source": "review_thank_you",
+      "name": "Review Thank-Yous",
+      "old_band": "WEAK_PROXY",
+      "new_band": "WEAK_PROXY",
+      "confidence": 30,
+      "reason": "Indirect correlation only — no booking event",
+      "automation_rights": "BLOCKED"
+    },
+    {
+      "source": "evergreen_repost",
+      "name": "Evergreen Reposts",
+      "old_band": "STRONG_PROXY",
+      "new_band": "STRONG_PROXY",
+      "confidence": 55,
+      "reason": "UTM chain exists but no booking confirmation event",
+      "automation_rights": "REVIEW_NEEDED"
+    },
+    {
+      "source": "fallback_swap",
+      "name": "Fallback Swaps",
+      "old_band": "WEAK_PROXY",
+      "new_band": "WEAK_PROXY",
+      "confidence": 30,
+      "reason": "Indirect correlation only — no booking event",
+      "automation_rights": "BLOCKED"
+    },
+    {
+      "source": "lead_routing",
+      "name": "Lead Routing",
+      "old_band": "UNMEASURABLE",
+      "new_band": "UNKNOWN",
+      "confidence": 10,
+      "reason": "WhatsApp API not connected",
+      "automation_rights": "BLOCKED"
+    },
+    {
+      "source": "tiny_ad_shift",
+      "name": "Budget Shifts",
+      "old_band": "UNMEASURABLE",
+      "new_band": "UNKNOWN",
+      "confidence": 10,
+      "reason": "Meta Ads not connected",
+      "automation_rights": "BLOCKED"
+    },
+    {
+      "source": "approval_auto_promote",
+      "name": "Auto-Promote Approved",
+      "old_band": "DIRECT",
+      "new_band": "VERIFIED_REVENUE",
+      "confidence": 95,
+      "reason": "Booking confirmation connected to GA4",
+      "automation_rights": "ALLOWED"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Add booking_completed GA4 event — upgrades all STRONG_PROXY to VERIFIED_REVENUE",
+      "why": "One event change upgrades multiple channels from guess to fact"
+    },
+    {
+      "priority": 2,
+      "action": "Add service_selected event — upgrades WEAK_PROXY to VERIFIED_LEAD",
+      "why": "Trackable service intent is better than nothing"
+    },
+    {
+      "priority": 3,
+      "action": "Connect WhatsApp API — upgrades lead_routing from UNKNOWN to VERIFIED_LEAD",
+      "why": "Currently 0% automation rights on lead routing"
+    }
+  ]
+}

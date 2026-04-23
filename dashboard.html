@@ -765,6 +765,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .rt-band-label { font-size: 0.65rem; font-weight: 700; margin-bottom: 4px; }
 .rt-items { display: flex; flex-wrap: wrap; gap: 4px; }
 .rt-item { font-size: 0.62rem; background: rgba(255,255,255,0.08); border-radius: 3px; padding: 2px 6px; }
+
+/* REVENUE TRUTH */
+.rtv-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.rtv-modelled { color: var(--warning); font-weight: 700; font-size: 0.8rem; }
+.rtv-bands { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.rtv-bands span { font-size: 0.62rem; padding: 2px 6px; border-radius: 3px; }
+.rtv-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; font-style: italic; }
+
+/* TRACKING COVERAGE */
+.tc-row { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+.tc-rate { font-size: 0.8rem; font-weight: 700; }
+.tc-stats { font-size: 0.72rem; color: var(--muted); }
+.tc-chains { font-size: 0.68rem; color: var(--text); margin: 6px 0; }
+.tc-note { font-size: 0.62rem; color: var(--muted); font-style: italic; }
+
+/* DECISION CONFIDENCE */
+.dc-mode { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.dc-table { font-size: 0.62rem; }
+.dc-head { display: grid; grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.dc-row { display: grid; grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.dc-area { font-weight: 700; color: var(--text); }
+.dc-conf { font-size: 0.62rem; }
+.dc-auto { font-size: 0.62rem; }
 </style>
 </head>
 <body>
@@ -778,7 +801,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/23, 12:59:35 SAST</span>
+    <span class="summary-value">2026/04/23, 13:37:43 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -879,7 +902,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   <div class="section">
     <div class="section-header">
       <h2>📊 WHAT ACTUALLY WORKED</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="waws-stats"><div class="waws-stat"><div class="waws-stat-val" style="color:#2ed573">0%</div><div class="waws-stat-lbl">Exec rate</div></div><div class="waws-stat"><div class="waws-stat-val" style="color:#ffa502">0%</div><div class="waws-stat-lbl">Win rate</div></div><div class="waws-stat"><div class="waws-stat-val">12</div><div class="waws-stat-lbl">Recs tracked</div></div><div class="waws-stat"><div class="waws-stat-val">0</div><div class="waws-stat-lbl">Executed</div></div></div><div class="waws-wr-section"><div class="waws-wr-title">Win rate by type</div><div class="waws-wr-grid"></div></div><div class="waws-sub"><div class="waws-sub-title">Ignored (no matching post found)</div><div class="waws-ignored-row">↳ That slice costing you yards off the tee? TrackMan foun...</div><div class="waws-ignored-row">↳ Need some help with your putting? Coach Cat explains wh...</div><div class="waws-ignored-row">↳ Book your session with Coach Cat @swingshack ⛳️</div></div>
   </div>
@@ -921,7 +944,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   <div class="section">
     <div class="section-header">
       <h2>&#9989 READY TO PUBLISH</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="pub-strip"><span class="pub-ok">85 passed QA</span> <span class="hl-opsep">|</span> <span class="pub-wait">85 awaiting approval</span> <span class="hl-opsep">|</span> <span class="pub-blocked">3 blocked</span> <span class="hl-opsep">|</span> <span class="pub-brand">Brand: 99/100</span></div><div class="pub-cats"><div class="pub-cat"><div class="pub-cat-head">&#9997 Awaiting copy</div><div class="pub-cat-count">48</div></div><div class="pub-cat"><div class="pub-cat-head">&#127916 Awaiting creative</div><div class="pub-cat-count">37</div></div><div class="pub-cat"><div class="pub-cat-head">&#128308 Blocked</div><div class="pub-cat-count">3</div></div></div><div class="pub-brand-bar"><span>Brand score: 99/100</span><div class="pub-brand-fill" style="width:99%"></div></div>
   </div>
@@ -1012,14 +1035,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   <div class="section">
     <div class="section-header">
       <h2>&#128640 PUBLISHING BOARD</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="pb-summary">1 slots &middot; <span class="pub-ok">1 filled</span> &middot; <span class="pub-blocked">0 open</span> &middot; <span class="pub-wait">3 balance gaps</span></div><div class="pb-table"><div class="pb-head"><span>Time</span><span>Slot</span><span>Hook</span><span>Format</span><span>Service</span><span>Status</span></div><div class="pb-row"><div class="pb-time">09:00</div><div class="pb-slot-label">Morning — high reach</div><div class="pb-hook">That slice costing you yards off th</div><div class="pb-format">static</div><div class="pb-svc">Practice</div><div class="pb-status"><span class="pub-ok">planned</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>&#128240 POSTBACK CONFIRMED</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="pb-log-summary">0 events &middot; <span class="pub-ok">0 published</span> &middot; <span class="pub-wait">0 scheduled</span> &middot; <span class="pub-blocked">0 failed</span></div><div class="pb-log-table"><div class="pb-head"><span>Event</span><span>Hook/Item</span><span>Platform</span><span>Used marked</span></div></div><div class="pb-used-note">Used items marked: 0 of 0</div>
   </div>
@@ -1686,7 +1709,7 @@ Too much spin killing your...</span>
   <div class="section">
     <div class="section-header">
       <h2>🔄 Used Items On Cooldown</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <p class="empty">Nothing on cooldown.</p>
   </div>

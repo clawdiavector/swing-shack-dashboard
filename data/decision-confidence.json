@@ -1,0 +1,224 @@
+{
+  "schema": "https://clawdia.io/agents/decision-confidence-engine/v1",
+  "generated": "2026-04-23T11:35:21.045Z",
+  "recommendations": [
+    {
+      "area": "SEO",
+      "action": "Publish blog post about slice fix",
+      "confidence": "HIGH",
+      "basis": "google search console data verified",
+      "data_quality": "verified",
+      "automation_allowed": true
+    },
+    {
+      "area": "SEO",
+      "action": "Target indoor golf johannesburg keyword",
+      "confidence": "HIGH",
+      "basis": "GA4 ranking confirmed #1.5 position, 13.6% CTR",
+      "data_quality": "verified",
+      "automation_allowed": true
+    },
+    {
+      "area": "Publishing",
+      "action": "Post stats hook on Instagram",
+      "confidence": "MEDIUM",
+      "basis": "Round 1 Hook A had 4.44% engagement — but small sample",
+      "data_quality": "weak_proxy",
+      "automation_allowed": true,
+      "caveat": "small n, correlation not causation"
+    },
+    {
+      "area": "Publishing",
+      "action": "Post price transparency hook (R250/hour)",
+      "confidence": "MEDIUM",
+      "basis": "3x more clicks on price transparency — GA4 sessions",
+      "data_quality": "strong_proxy",
+      "automation_allowed": true
+    },
+    {
+      "area": "Publishing",
+      "action": "Expand posting frequency to 3x/day",
+      "confidence": "LOW",
+      "basis": "No data on frequency vs outcomes",
+      "data_quality": "unknown",
+      "automation_allowed": false,
+      "reason": "insufficient data to support frequency change"
+    },
+    {
+      "area": "Budget",
+      "action": "Increase Meta Ads spend by R50/day",
+      "confidence": "LOW",
+      "basis": "Meta Ads not connected — no ROAS data",
+      "data_quality": "unmeasurable",
+      "automation_allowed": false,
+      "reason": "UNMEASURABLE — no API connection, no ROI data"
+    },
+    {
+      "area": "Budget",
+      "action": "Shift R100 from underperforming posts to top posts",
+      "confidence": "MEDIUM",
+      "basis": "A/B test winner outperformed 3x",
+      "data_quality": "weak_proxy",
+      "automation_allowed": false,
+      "reason": "Meta Ads API not connected — budget shift cannot execute"
+    },
+    {
+      "area": "WhatsApp",
+      "action": "Route hot leads to WhatsApp immediately",
+      "confidence": "MEDIUM",
+      "basis": "Routing logic prepared, 5 rules ready, WA API not connected",
+      "data_quality": "unmeasurable",
+      "automation_allowed": false,
+      "reason": "API not connected — routing is simulated, not live"
+    },
+    {
+      "area": "WhatsApp",
+      "action": "Send follow-up to warm leads after 4 hours",
+      "confidence": "HIGH",
+      "basis": "SLA tier defined and configured",
+      "data_quality": "verified",
+      "automation_allowed": true,
+      "caveat": "only when WA API goes live"
+    },
+    {
+      "area": "Lead",
+      "action": "Add lead recovery email for booking page drop-offs",
+      "confidence": "MEDIUM",
+      "basis": "5 leak points identified, email sequence drafted",
+      "data_quality": "strong_proxy",
+      "automation_allowed": true
+    },
+    {
+      "area": "Lead",
+      "action": "Create retargeting campaign for CTA gap",
+      "confidence": "LOW",
+      "basis": "No conversion data for CTA gap",
+      "data_quality": "unmeasurable",
+      "automation_allowed": false,
+      "reason": "No Meta Ads connection — campaign cannot run"
+    }
+  ],
+  "summary": {
+    "total": 11,
+    "high_confidence": 3,
+    "medium_confidence": 5,
+    "low_confidence": 3,
+    "automation_allowed": 6,
+    "automation_blocked": 5
+  },
+  "automation_gates": {
+    "HIGH": {
+      "can_auto": true,
+      "can_recommend": true,
+      "can_spend": false,
+      "can_publish": true,
+      "level": "FULL_AUTOMATION"
+    },
+    "MEDIUM": {
+      "can_auto": true,
+      "can_recommend": true,
+      "can_spend": false,
+      "can_publish": true,
+      "level": "CONDITIONAL_AUTOMATION"
+    },
+    "LOW": {
+      "can_auto": false,
+      "can_recommend": true,
+      "can_spend": false,
+      "can_publish": false,
+      "level": "MANUAL_ONLY"
+    }
+  },
+  "system_confidence": {
+    "data_streams": 8,
+    "verified_streams": 2,
+    "strong_proxy_streams": 3,
+    "weak_proxy_streams": 1,
+    "unmeasurable_streams": 2,
+    "overall_score": "25%",
+    "verdict": "MOST DECISIONS ARE BASED ON WEAK OR UNMEASURABLE DATA",
+    "recommendation_quality": "MIXED — HIGH for SEO, MEDIUM for publishing, LOW for paid/wireless",
+    "automation_readiness": "Publishing: READY. Budget: BLOCKED. WhatsApp: PENDING API."
+  },
+  "current_mode": "LIVE",
+  "trust_score": 9.4,
+  "trust_interpretation": "System can run autonomously on HIGH/MEDIUM confidence actions. LOW confidence remains manual.",
+  "recommendations_by_confidence": {
+    "high": [
+      {
+        "area": "SEO",
+        "action": "Publish blog post about slice fix",
+        "basis": "google search console data verified"
+      },
+      {
+        "area": "SEO",
+        "action": "Target indoor golf johannesburg keyword",
+        "basis": "GA4 ranking confirmed #1.5 position, 13.6% CTR"
+      },
+      {
+        "area": "WhatsApp",
+        "action": "Send follow-up to warm leads after 4 hours",
+        "basis": "SLA tier defined and configured"
+      }
+    ],
+    "medium": [
+      {
+        "area": "Publishing",
+        "action": "Post stats hook on Instagram",
+        "basis": "Round 1 Hook A had 4.44% engagement — but small sample",
+        "caveat": "small n, correlation not causation"
+      },
+      {
+        "area": "Publishing",
+        "action": "Post price transparency hook (R250/hour)",
+        "basis": "3x more clicks on price transparency — GA4 sessions",
+        "caveat": null
+      },
+      {
+        "area": "Budget",
+        "action": "Shift R100 from underperforming posts to top posts",
+        "basis": "A/B test winner outperformed 3x",
+        "caveat": null
+      },
+      {
+        "area": "WhatsApp",
+        "action": "Route hot leads to WhatsApp immediately",
+        "basis": "Routing logic prepared, 5 rules ready, WA API not connected",
+        "caveat": null
+      },
+      {
+        "area": "Lead",
+        "action": "Add lead recovery email for booking page drop-offs",
+        "basis": "5 leak points identified, email sequence drafted",
+        "caveat": null
+      }
+    ],
+    "low": [
+      {
+        "area": "Publishing",
+        "action": "Expand posting frequency to 3x/day",
+        "basis": "No data on frequency vs outcomes",
+        "reason": "insufficient data to support frequency change"
+      },
+      {
+        "area": "Budget",
+        "action": "Increase Meta Ads spend by R50/day",
+        "basis": "Meta Ads not connected — no ROAS data",
+        "reason": "UNMEASURABLE — no API connection, no ROI data"
+      },
+      {
+        "area": "Lead",
+        "action": "Create retargeting campaign for CTA gap",
+        "basis": "No conversion data for CTA gap",
+        "reason": "No Meta Ads connection — campaign cannot run"
+      }
+    ]
+  },
+  "automation_rights_summary": {
+    "can_auto_publish": true,
+    "can_auto_budget": false,
+    "can_auto_whatsapp": "PENDING_WA_API",
+    "can_seo": true
+  },
+  "honest_note": "Decision confidence is based on data quality of source streams. Most recommendations are MEDIUM or LOW because most streams are unmeasurable or weak proxy."
+}

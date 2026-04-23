@@ -295,6 +295,19 @@ const STAGES = [
       { name: 'roi_truth_engine',               script: \`node \${BASE}/scripts/run_roi_truth_engine.js\`,               critical: false },
     ]
   },
+  {
+    name: 'RevenueTruth',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['booking-events.json', 'utm-governance.json', 'conversion-truth.json', 'booking-value-model.json', 'decision-confidence.json'],
+    steps: [
+      { name: 'booking_event_mapper',          script: \`node \${BASE}/scripts/run_booking_event_mapper.js\`,          critical: false },
+      { name: 'utm_governor',                 script: \`node \${BASE}/scripts/run_utm_governor.js\`,                 critical: false },
+      { name: 'conversion_truth_engine',       script: \`node \${BASE}/scripts/run_conversion_truth_engine.js\`,       critical: false },
+      { name: 'booking_value_modeler',         script: \`node \${BASE}/scripts/run_booking_value_modeler.js\`,         critical: false },
+      { name: 'decision_confidence_engine',   script: \`node \${BASE}/scripts/run_decision_confidence_engine.js\`,   critical: false },
+    ]
+  },
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

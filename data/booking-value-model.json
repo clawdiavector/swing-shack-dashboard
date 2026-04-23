@@ -1,0 +1,207 @@
+{
+  "schema": "https://clawdia.io/agents/booking-value-modeler/v1",
+  "generated": "2026-04-23T11:35:21.006Z",
+  "service_values": {
+    "Full Bag Fitting": {
+      "price": 1800,
+      "frequency": "one-time",
+      "category": "fitting",
+      "avg_basket": 1800,
+      "confidence": "HIGH"
+    },
+    "Iron Fitting": {
+      "price": 900,
+      "frequency": "one-time",
+      "category": "fitting",
+      "avg_basket": 900,
+      "confidence": "HIGH"
+    },
+    "Driver Fitting": {
+      "price": 900,
+      "frequency": "one-time",
+      "category": "fitting",
+      "avg_basket": 900,
+      "confidence": "HIGH"
+    },
+    "Putter Fitting": {
+      "price": 900,
+      "frequency": "one-time",
+      "category": "fitting",
+      "avg_basket": 900,
+      "confidence": "HIGH"
+    },
+    "Wedge Fitting": {
+      "price": 900,
+      "frequency": "one-time",
+      "category": "fitting",
+      "avg_basket": 900,
+      "confidence": "HIGH"
+    },
+    "TPI Assessment": {
+      "price": 1250,
+      "frequency": "one-time",
+      "category": "coaching",
+      "avg_basket": 1250,
+      "confidence": "HIGH"
+    },
+    "Coaching": {
+      "price": 850,
+      "frequency": "per-session",
+      "category": "coaching",
+      "avg_basket": 850,
+      "confidence": "MEDIUM"
+    },
+    "Birdie Hunter": {
+      "price": 2300,
+      "frequency": "package",
+      "category": "coaching",
+      "avg_basket": 2300,
+      "confidence": "HIGH"
+    },
+    "I Am Golf": {
+      "price": 2850,
+      "frequency": "weekly",
+      "category": "coaching",
+      "avg_basket": 2850,
+      "confidence": "HIGH"
+    },
+    "Practice Session": {
+      "price": 250,
+      "frequency": "per-session",
+      "category": "simulator",
+      "avg_basket": 250,
+      "confidence": "HIGH"
+    },
+    "Social Play": {
+      "price": 250,
+      "frequency": "per-session",
+      "category": "simulator",
+      "avg_basket": 250,
+      "confidence": "HIGH"
+    },
+    "Social Play - 2 Players": {
+      "price": 340,
+      "frequency": "per-session",
+      "category": "simulator",
+      "avg_basket": 340,
+      "confidence": "HIGH"
+    },
+    "Social Play - 3-4 Players": {
+      "price": 450,
+      "frequency": "per-session",
+      "category": "simulator",
+      "avg_basket": 450,
+      "confidence": "HIGH"
+    },
+    "Membership": {
+      "price": 250,
+      "frequency": "monthly",
+      "category": "membership",
+      "avg_basket": 250,
+      "confidence": "MEDIUM"
+    }
+  },
+  "membership_ltv": {
+    "months": 12,
+    "monthly_price": 250,
+    "total_ltv": 4200,
+    "free_sessions_month": 4,
+    "session_value": 250,
+    "free_session_value_month": 1000,
+    "effective_monthly_value": 350,
+    "confidence": "MEDIUM",
+    "note": "LTV modelled on 12-month commitment. Actual churn may be lower."
+  },
+  "modelled_revenue": {
+    "google": {
+      "sessions": 638,
+      "modelled_bookings": 6,
+      "conversion_rate": 0.01,
+      "avg_basket": 850,
+      "modelled_revenue": 5100,
+      "confidence": "WEAK_PROXY",
+      "note": "sessions × 1% × R850. This is a guess, not real revenue."
+    },
+    "(direct)": {
+      "sessions": 225,
+      "modelled_bookings": 2,
+      "conversion_rate": 0.01,
+      "avg_basket": 850,
+      "modelled_revenue": 1700,
+      "confidence": "WEAK_PROXY",
+      "note": "sessions × 1% × R850. This is a guess, not real revenue."
+    },
+    "c.yoco.com": {
+      "sessions": 98,
+      "modelled_bookings": 1,
+      "conversion_rate": 0.01,
+      "avg_basket": 850,
+      "modelled_revenue": 850,
+      "confidence": "WEAK_PROXY",
+      "note": "sessions × 1% × R850. This is a guess, not real revenue."
+    },
+    "(not set)": {
+      "sessions": 53,
+      "modelled_bookings": 1,
+      "conversion_rate": 0.01,
+      "avg_basket": 850,
+      "modelled_revenue": 850,
+      "confidence": "WEAK_PROXY",
+      "note": "sessions × 1% × R850. This is a guess, not real revenue."
+    },
+    "bing": {
+      "sessions": 29,
+      "modelled_bookings": 0,
+      "conversion_rate": 0.01,
+      "avg_basket": 850,
+      "modelled_revenue": 0,
+      "confidence": "WEAK_PROXY",
+      "note": "sessions × 1% × R850. This is a guess, not real revenue."
+    }
+  },
+  "by_service": {
+    "Coaching": {
+      "sessions": 638,
+      "modelled_bookings": 6,
+      "modelled_revenue": 5423
+    },
+    "Practice Session": {
+      "sessions": 405,
+      "modelled_bookings": 4,
+      "modelled_revenue": 1014
+    }
+  },
+  "conversion_rate_model": {
+    "rate": 0.01,
+    "basis": "conservative industry average for service businesses",
+    "confidence": "WEAK",
+    "note": "1% conversion from session to booking. Real rate unknown without booking system data."
+  },
+  "avg_basket_model": {
+    "basket": 850,
+    "basis": "average of confirmed service prices from swingshack.co.za/membership",
+    "confidence": "MEDIUM"
+  },
+  "summary": {
+    "total_modelled_sessions": 1043,
+    "total_modelled_bookings": 10,
+    "total_modelled_revenue": 8500,
+    "ig_total_reach": 21731,
+    "ig_posts": 69,
+    "conversion_rate_used": 0.01,
+    "honest_note": "ALL REVENUE HERE IS MODELED. Not real bookings. Modelled = sessions × 1% × avg basket. Real revenue requires booking system → GA4 integration.",
+    "labelled": "MODELLED — not verified revenue"
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Connect booking system to GA4 — replaces modelled revenue with verified revenue",
+      "why": "Every R in the dashboard now is a guess"
+    },
+    {
+      "priority": 2,
+      "action": "Use actual conversion rate once booking data is available",
+      "why": "1% is a conservative guess — real rate could be 3x or 10x or 0.1x"
+    }
+  ]
+}

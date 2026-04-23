@@ -1,0 +1,136 @@
+{
+  "schema": "https://clawdia.io/agents/utm-governor/v1",
+  "generated": "2026-04-23T11:35:20.923Z",
+  "summary": {
+    "total_posts": 20,
+    "currently_compliant": 0,
+    "needs_tagging": 10,
+    "compliance_rate": "0%",
+    "honest_note": "All posts lack hook_id and recommendation_id in UTM. utm_content is present but not the hook_id."
+  },
+  "utm_template": {
+    "required": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_content"
+    ],
+    "recommended": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_content",
+      "hook_id",
+      "recommendation_id",
+      "service"
+    ]
+  },
+  "campaign_map": {
+    "Full Bag Fitting": {
+      "campaign": "fitting-full-bag",
+      "medium": "social"
+    },
+    "Iron Fitting": {
+      "campaign": "fitting-iron",
+      "medium": "social"
+    },
+    "Coaching": {
+      "campaign": "coaching-lessons",
+      "medium": "social"
+    },
+    "TPI Assessment": {
+      "campaign": "coaching-tpi",
+      "medium": "social"
+    },
+    "Practice Session": {
+      "campaign": "practice-session",
+      "medium": "social"
+    },
+    "Social Play": {
+      "campaign": "social-play",
+      "medium": "social"
+    },
+    "Membership": {
+      "campaign": "membership",
+      "medium": "social"
+    },
+    "Birdie Hunter": {
+      "campaign": "coaching-birdie-hunter",
+      "medium": "social"
+    }
+  },
+  "posts_needing_utm": [
+    {
+      "post_id": "18084979034373300",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    },
+    {
+      "post_id": "18119221723645535",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    },
+    {
+      "post_id": "18083236283620848",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    },
+    {
+      "post_id": "18004103141731768",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    },
+    {
+      "post_id": "18089100032462336",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    },
+    {
+      "post_id": "18078655349442093",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    },
+    {
+      "post_id": "17973083486868104",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    },
+    {
+      "post_id": "18073928609224626",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    },
+    {
+      "post_id": "17959293114110307",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    },
+    {
+      "post_id": "18110075536631986",
+      "hook": "",
+      "service": "unknown",
+      "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Retroactively add hook_id to utm_content for all existing posts",
+      "why": "Without hook_id in UTM, post-to-session chain is broken"
+    },
+    {
+      "priority": 2,
+      "action": "Wire recommendation_id into UTM for all future Postiz posts",
+      "why": "Closes attribution chain at first hop"
+    }
+  ]
+}
