@@ -177,6 +177,11 @@ const autonomyPerf= readJson('autonomy-performance.json')      || null;
 const modeGuardian= readJson('mode-guardian.json')            || null;
 const rollbackReh = readJson('rollback-rehearsals.json')        || null;
 const liveScorecard= readJson('live-mode-scorecard.json')      || null;
+const apiConn=readJson("api-connections.json")||null;
+const apiHealth=readJson("integration-health.json")||null;
+const capUnlocks=readJson("capability-unlocks.json")||null;
+const roiCover=readJson("roi-coverage.json")||null;
+const apiGap=readJson("api-gap-priority.json")||null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -341,6 +346,51 @@ if (liveScorecard && liveScorecard.capabilities) {
   }).join('');
   capCtrlContent = '<div class="cc-summary">Keep: <span class="pub-ok">'+(liveScorecard.summary&&liveScorecard.summary.keep||0)+'</span> &middot; Pause: <span class="pub-blocked">'+pausedCount+'</span> &middot; Expand: <span class="pub-green">'+(liveScorecard.summary&&liveScorecard.summary.expand||0)+'</span></div><div class="cc-table"><div class="cc-head"><span>Capability</span><span>Verdict</span><span>Status</span></div>'+capRows+'</div>';
 }
+
+// ── INTEGRATION HEALTH ────────────────────────────────────
+var apiHealthContent = '<p class="empty">Run api_connection_registry + integration_health_monitor.</p>';
+if (apiConn && apiConn.apis) {
+  var apis = apiConn.apis;
+  var apiRows = apis.map(function(a){
+    var stColor = {'connected':'pub-ok','degraded':'pub-warn','offline':'pub-blocked','stale':'pub-wait'}[a.status] || 'pub-brand';
+    var safeIcon = a.live_safe ? '<span class="pub-ok">&#10003;</span>' : '<span class="pub-blocked">&#10007;</span>';
+    return '<div class="api-row"><div class="api-name">'+escHtml(a.name||'')+'</div><div class="api-status"><span class="'+stColor+'">'+a.status+'</span></div><div class="api-safe">'+safeIcon+'</div></div>';
+  }).join('');
+  apiHealthContent = '<div class="api-summary"><span class="pub-ok">'+apis.filter(function(a){return a.connected&&a.live_safe;}).length+' live_safe</span> &middot; <span class="pub-warn">'+apis.filter(function(a){return a.connected&&!a.live_safe;}).length+' degraded</span> &middot; <span class="pub-blocked">'+apis.filter(function(a){return !a.connected;}).length+' offline</span></div><div class="api-table"><div class="api-head"><span>API</span><span>Status</span><span>Safe</span></div>'+apiRows+'</div>';
+}
+var apiHealthSection = buildSection('&#128268 INTEGRATION HEALTH', freshnessBadge(apiConn && apiConn.generated), apiHealthContent);
+
+// ── CAPABILITY UNLOCKS ──────────────────────────────────
+var capUnlockContent = '<p class="empty">Run capability_unlock_engine.</p>';
+if (capUnlocks && capUnlocks.capabilities) {
+  var caps = capUnlocks.capabilities;
+  var liveCaps = caps.filter(function(c){return c.current_status==='live';});
+  var pausedCaps = caps.filter(function(c){return c.current_status==='paused';});
+  var capRows = caps.map(function(c){
+    var stColor = c.current_status==='live'?'pub-ok':c.current_status==='paused'?'pub-blocked':'pub-warn';
+    var blockers = (c.required_connections||[]).filter(function(rid){var a=apis.find(function(x){return x.id===rid;});return a&&!a.connected;}).join(', ');
+    return '<div class="cu-row"><div class="cu-name">'+escHtml(c.name||'')+'</div><div class="cu-st"><span class="'+stColor+'">'+c.current_status+'</span></div><div class="cu-blocker">'+(blockers?'<span class="pub-blocked">'+escHtml(blockers)+'</span>':'<span class="pub-ok">—</span>')+'</div></div>';
+  }).join('');
+  capUnlockContent = '<div class="cu-summary"><span class="pub-ok">'+liveCaps.length+' live</span> &middot; <span class="pub-blocked">'+pausedCaps.length+' paused</span></div><div class="cu-table"><div class="cu-head"><span>Capability</span><span>Status</span><span>Blocker</span></div>'+capRows+'</div>';
+}
+var capUnlockSection = buildSection('&#128737 CAPABILITY UNLOCKS', freshnessBadge(capUnlocks && capUnlocks.generated), capUnlockContent);
+
+// ── ROI COVERAGE ─────────────────────────────────────────
+var roiContent = '<p class="empty">Run roi_measurement_connector.</p>';
+if (roiCover && roiCover.roi_map) {
+  var roi = roiCover;
+  var meas = roi.measurable||[];
+  var unmeas = roi.unmeasurable||[];
+  var measRows = meas.map(function(m){
+    return '<div class="roi-row"><div class="roi-name">'+escHtml(m.name||'')+'</div><div class="roi-signal"><span class="pub-ok">'+m.roi_signal+'</span></div></div>';
+  }).join('');
+  var unmeasRows = unmeas.map(function(m){
+    return '<div class="roi-row"><div class="roi-name">'+escHtml(m.name||'')+'</div><div class="roi-signal"><span class="pub-blocked">unmeasurable</span></div></div>';
+  }).join('');
+  roiContent = '<div class="roi-summary">'+meas.length+' measurable &middot; <span class="pub-blocked">'+unmeas.length+' unmeasurable</span></div><div class="roi-section-label">MEASURABLE</div><div class="roi-table">'+measRows+'</div><div class="roi-section-label">UNMEASURABLE</div><div class="roi-table">'+unmeasRows+'</div>';
+}
+var roiSection = buildSection('&#128176 ROI COVERAGE', freshnessBadge(roiCover && roiCover.generated), roiContent);
+
 var capCtrlSection = buildSection('&#128736 CAPABILITY CONTROLS', freshnessBadge(liveScorecard && liveScorecard.generated), capCtrlContent);
 
 var sysSection = buildSection('&#129504 SYSTEM HEALTH', freshnessBadge(sysHealth && sysHealth.generated), sysContent);
@@ -2394,6 +2444,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .cc-row { display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
 .cc-name { font-weight: 700; color: var(--text); }
 .cc-verdict, .cc-pause { font-size: 0.62rem; text-transform: capitalize; }
+
+/* INTEGRATION HEALTH */
+.api-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.api-table { font-size: 0.65rem; }
+.api-head { display: grid; grid-template-columns: 2fr 1fr 0.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.api-row { display: grid; grid-template-columns: 2fr 1fr 0.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.api-name { font-weight: 700; color: var(--text); }
+.api-status { font-size: 0.62rem; text-transform: capitalize; }
+.api-safe { font-size: 0.7rem; text-align: center; }
+
+/* CAPABILITY UNLOCKS */
+.cu-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cu-table { font-size: 0.65rem; }
+.cu-head { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cu-row { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cu-name { font-weight: 700; color: var(--text); }
+.cu-st { font-size: 0.62rem; text-transform: capitalize; }
+.cu-blocker { font-size: 0.58rem; }
+
+/* ROI COVERAGE */
+.roi-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.roi-section-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin: 8px 0 4px; letter-spacing: 0.05em; }
+.roi-table { font-size: 0.65rem; }
+.roi-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.roi-name { font-weight: 700; color: var(--text); }
+.roi-signal { font-size: 0.62rem; text-transform: capitalize; }
 </style>
 </head>
 <body>

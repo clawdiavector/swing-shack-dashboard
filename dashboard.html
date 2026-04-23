@@ -712,6 +712,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .cc-row { display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
 .cc-name { font-weight: 700; color: var(--text); }
 .cc-verdict, .cc-pause { font-size: 0.62rem; text-transform: capitalize; }
+
+/* INTEGRATION HEALTH */
+.api-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.api-table { font-size: 0.65rem; }
+.api-head { display: grid; grid-template-columns: 2fr 1fr 0.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.api-row { display: grid; grid-template-columns: 2fr 1fr 0.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.api-name { font-weight: 700; color: var(--text); }
+.api-status { font-size: 0.62rem; text-transform: capitalize; }
+.api-safe { font-size: 0.7rem; text-align: center; }
+
+/* CAPABILITY UNLOCKS */
+.cu-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cu-table { font-size: 0.65rem; }
+.cu-head { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cu-row { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cu-name { font-weight: 700; color: var(--text); }
+.cu-st { font-size: 0.62rem; text-transform: capitalize; }
+.cu-blocker { font-size: 0.58rem; }
+
+/* ROI COVERAGE */
+.roi-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.roi-section-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin: 8px 0 4px; letter-spacing: 0.05em; }
+.roi-table { font-size: 0.65rem; }
+.roi-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.roi-name { font-weight: 700; color: var(--text); }
+.roi-signal { font-size: 0.62rem; text-transform: capitalize; }
 </style>
 </head>
 <body>
@@ -725,7 +751,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/23, 12:09:13 SAST</span>
+    <span class="summary-value">2026/04/23, 12:36:48 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -973,9 +999,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   <div class="section">
     <div class="section-header">
       <h2>&#129512 AGENT RUNS TODAY</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge fresh">✅ fresh</span>
     </div>
-    <p class="empty">No agent runs today. Run <code>node run_agent.js --all</code> to execute.</p>
+    <div class="run-summary">1 agent(s) ran today</div><div class="run-list"><div class="run-row"><div class="run-agent">live_action_auditor</div><div class="run-status"><span class="run-ok">PASS</span></div><div class="run-dur"><span class="run-dur">0s</span></div><div class="run-scripts"><span class="run-script run-script-ok">run_live_action_auditor</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">

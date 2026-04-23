@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "api_gap_prioritiser",
+  "layer": 9,
+  "role": "Rank which API connection is worth doing next by ROI unlock \u00d7 feasibility. Output: api-gap-priority.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_api_gap_prioritiser.js"
+  ],
+  "inputs": {
+    "api-connections.json": "all API statuses",
+    "integration-health.json": "health per API"
+  },
+  "outputs": {
+    "api-gap-priority.json": "api-gap-priority.json"
+  }
+}

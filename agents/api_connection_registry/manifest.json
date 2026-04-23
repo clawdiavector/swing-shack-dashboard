@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "api_connection_registry",
+  "layer": 9,
+  "role": "One source of truth for all external integrations. Track Postiz, Meta Ads, GA4, WhatsApp, GMB, YouTube, Reddit, Search Console. Output: api-connections.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_api_connection_registry.js"
+  ],
+  "inputs": {
+    "api-connections.json": "all API statuses",
+    "integration-health.json": "health per API"
+  },
+  "outputs": {
+    "api-connections.json": "api-connections.json"
+  }
+}

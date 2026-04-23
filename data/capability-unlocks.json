@@ -1,0 +1,306 @@
+{
+  "schema": "https://clawdia.io/agents/capability-unlock-engine/v1",
+  "generated": "2026-04-23T10:34:41.668Z",
+  "mode": "LIVE",
+  "trust": 9.4,
+  "summary": {
+    "total": 10,
+    "live": 8,
+    "paused": 2,
+    "locked": 0
+  },
+  "capabilities": [
+    {
+      "id": "discord_nudge",
+      "name": "Discord Nudges",
+      "required_apis": [
+        "discord"
+      ],
+      "required_connections": [],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "discord_nudge_sent_log",
+      "reason": "Discord bot connected via OpenClaw. No external API needed."
+    },
+    {
+      "id": "fallback_swap",
+      "name": "Fallback Swaps",
+      "required_apis": [
+        "postiz"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "ab_winner_confirmed + hook_swap_log",
+      "reason": "Uses existing IG analytics data. No additional API needed."
+    },
+    {
+      "id": "story_scheduling",
+      "name": "Story Scheduling",
+      "required_apis": [
+        "postiz"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "story_views + story_completions",
+      "reason": "Postiz handles story scheduling. IG Business API needed for insights."
+    },
+    {
+      "id": "evergreen_repost",
+      "name": "Evergreen Reposts",
+      "required_apis": [
+        "postiz"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "post_engagement_on_reposts",
+      "reason": "Same as story scheduling. Reusing approved content."
+    },
+    {
+      "id": "approval_auto_promote",
+      "name": "Auto-Promote Approved",
+      "required_apis": [
+        "postiz"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "approved_to_published_time",
+      "reason": "Postiz handles promotion. Already wired in."
+    },
+    {
+      "id": "low_risk_publish",
+      "name": "Low-Risk Publishing",
+      "required_apis": [
+        "postiz",
+        "instagram_content"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "post_reach + engagement_rate + booking_conversions_via_utms",
+      "reason": "Postiz publishes. IG analytics shows reach. UTMs track conversions."
+    },
+    {
+      "id": "lead_routing",
+      "name": "Lead Routing",
+      "required_apis": [
+        "whatsapp_business"
+      ],
+      "required_connections": [
+        "whatsapp_business"
+      ],
+      "current_status": "paused",
+      "api_status": "not_connected",
+      "measurement": "lead_response_time + conversion_rate + sla_met_pct",
+      "reason": "WhatsApp Business API required. Current: simulated only."
+    },
+    {
+      "id": "tiny_ad_shift",
+      "name": "Budget Shifts",
+      "required_apis": [
+        "meta_ads"
+      ],
+      "required_connections": [
+        "meta_ads"
+      ],
+      "current_status": "paused",
+      "api_status": "degraded",
+      "measurement": "roas_change + cost_per_booking",
+      "reason": "Meta Ads API required. Token unstable — needs server-side OAuth."
+    },
+    {
+      "id": "review_thank_you",
+      "name": "Review Thank-Yous",
+      "required_apis": [
+        "google_business"
+      ],
+      "required_connections": [
+        "google_business"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "review_rating_delta + review_response_rate",
+      "reason": "Google Business Profile API required. GMB is connected via Postiz."
+    },
+    {
+      "id": "gmb_posting",
+      "name": "GMB Posts",
+      "required_apis": [
+        "google_business"
+      ],
+      "required_connections": [
+        "google_business"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "gmb_post_impressions + profile_visits",
+      "reason": "GMB automation running weekly. Postiz handles scheduling."
+    }
+  ],
+  "live": [
+    {
+      "id": "discord_nudge",
+      "name": "Discord Nudges",
+      "required_apis": [
+        "discord"
+      ],
+      "required_connections": [],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "discord_nudge_sent_log",
+      "reason": "Discord bot connected via OpenClaw. No external API needed."
+    },
+    {
+      "id": "fallback_swap",
+      "name": "Fallback Swaps",
+      "required_apis": [
+        "postiz"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "ab_winner_confirmed + hook_swap_log",
+      "reason": "Uses existing IG analytics data. No additional API needed."
+    },
+    {
+      "id": "story_scheduling",
+      "name": "Story Scheduling",
+      "required_apis": [
+        "postiz"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "story_views + story_completions",
+      "reason": "Postiz handles story scheduling. IG Business API needed for insights."
+    },
+    {
+      "id": "evergreen_repost",
+      "name": "Evergreen Reposts",
+      "required_apis": [
+        "postiz"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "post_engagement_on_reposts",
+      "reason": "Same as story scheduling. Reusing approved content."
+    },
+    {
+      "id": "approval_auto_promote",
+      "name": "Auto-Promote Approved",
+      "required_apis": [
+        "postiz"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "approved_to_published_time",
+      "reason": "Postiz handles promotion. Already wired in."
+    },
+    {
+      "id": "low_risk_publish",
+      "name": "Low-Risk Publishing",
+      "required_apis": [
+        "postiz",
+        "instagram_content"
+      ],
+      "required_connections": [
+        "postiz"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "post_reach + engagement_rate + booking_conversions_via_utms",
+      "reason": "Postiz publishes. IG analytics shows reach. UTMs track conversions."
+    },
+    {
+      "id": "review_thank_you",
+      "name": "Review Thank-Yous",
+      "required_apis": [
+        "google_business"
+      ],
+      "required_connections": [
+        "google_business"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "review_rating_delta + review_response_rate",
+      "reason": "Google Business Profile API required. GMB is connected via Postiz."
+    },
+    {
+      "id": "gmb_posting",
+      "name": "GMB Posts",
+      "required_apis": [
+        "google_business"
+      ],
+      "required_connections": [
+        "google_business"
+      ],
+      "current_status": "live",
+      "api_status": "connected",
+      "measurement": "gmb_post_impressions + profile_visits",
+      "reason": "GMB automation running weekly. Postiz handles scheduling."
+    }
+  ],
+  "paused": [
+    {
+      "id": "lead_routing",
+      "name": "Lead Routing",
+      "required_apis": [
+        "whatsapp_business"
+      ],
+      "required_connections": [
+        "whatsapp_business"
+      ],
+      "current_status": "paused",
+      "api_status": "not_connected",
+      "measurement": "lead_response_time + conversion_rate + sla_met_pct",
+      "reason": "WhatsApp Business API required. Current: simulated only."
+    },
+    {
+      "id": "tiny_ad_shift",
+      "name": "Budget Shifts",
+      "required_apis": [
+        "meta_ads"
+      ],
+      "required_connections": [
+        "meta_ads"
+      ],
+      "current_status": "paused",
+      "api_status": "degraded",
+      "measurement": "roas_change + cost_per_booking",
+      "reason": "Meta Ads API required. Token unstable — needs server-side OAuth."
+    }
+  ],
+  "recommendations": [
+    {
+      "capability": "lead_routing",
+      "name": "Lead Routing",
+      "missing_apis": [
+        "whatsapp_business"
+      ],
+      "priority": 1
+    }
+  ]
+}

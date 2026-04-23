@@ -1264,7 +1264,24 @@
         "passed": 1,
         "failed": 0
       }
+    ],
+    "live_action_auditor": [
+      {
+        "agent_id": "live_action_auditor",
+        "run_at": "2026-04-23T10:28:04.701Z",
+        "duration_ms": 45,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_live_action_auditor.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "passed": 1,
+        "failed": 0
+      }
     ]
   },
-  "updated": "2026-04-22T10:33:46.073Z"
+  "updated": "2026-04-23T10:28:04.702Z"
 }

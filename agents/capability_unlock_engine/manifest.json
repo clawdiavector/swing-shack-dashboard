@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "capability_unlock_engine",
+  "layer": 9,
+  "role": "Map APIs to autonomy capabilities. Which capabilities are live vs paused vs locked. Output: capability-unlocks.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_capability_unlock_engine.js"
+  ],
+  "inputs": {
+    "api-connections.json": "all API statuses",
+    "integration-health.json": "health per API"
+  },
+  "outputs": {
+    "capability-unlocks.json": "capability-unlocks.json"
+  }
+}

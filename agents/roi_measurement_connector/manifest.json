@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "roi_measurement_connector",
+  "layer": 9,
+  "role": "Track which autonomy actions can be measured \u2014 measurable vs unmeasurable vs indirect. Output: roi-coverage.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_roi_measurement_connector.js"
+  ],
+  "inputs": {
+    "api-connections.json": "all API statuses",
+    "integration-health.json": "health per API"
+  },
+  "outputs": {
+    "roi-coverage.json": "roi-coverage.json"
+  }
+}

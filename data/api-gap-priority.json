@@ -1,0 +1,175 @@
+{
+  "schema": "https://clawdia.io/agents/api-gap-prioritiser/v1",
+  "generated": "2026-04-23T10:34:41.790Z",
+  "summary": {
+    "total_gaps": 6,
+    "immediate_priority": "WhatsApp Business API",
+    "roi_impact": "HIGH, MEDIUM, LOW",
+    "next_step": "Connect WhatsApp Business API — Get WhatsApp Business API access (Facebook Business app)"
+  },
+  "gaps": [
+    {
+      "api_id": "whatsapp_business",
+      "api_name": "WhatsApp Business API",
+      "status": "disconnected",
+      "capabilities_blocked": [
+        "lead_routing"
+      ],
+      "roi_unlock": "HIGH",
+      "effort": "medium",
+      "feasibility": "medium",
+      "steps": [
+        "Get WhatsApp Business API access (Facebook Business app)",
+        "Configure webhook for incoming messages",
+        "Connect to Postiz or direct MCPorter",
+        "Test with one real hot lead"
+      ],
+      "blockers": [
+        "WhatsApp Business requires Facebook Business Verification",
+        "Premium tier needed for full API",
+        "Setup complexity: medium"
+      ],
+      "why_first": "lead_router_live is the highest-value paused capability. WhatsApp is how you close the loop from social → booking. No other integration unlocks this.",
+      "rank": 1
+    },
+    {
+      "api_id": "meta_ads",
+      "api_name": "Meta Ads Manager",
+      "status": "partial",
+      "capabilities_blocked": [
+        "tiny_ad_shift"
+      ],
+      "roi_unlock": "MEDIUM",
+      "effort": "high",
+      "feasibility": "medium",
+      "steps": [
+        "Set up Meta OAuth server (long-lived token)",
+        "Replace Basic Display with proper Page Access Token",
+        "Connect to Postiz or direct Meta API",
+        "Enable server-side refresh cron"
+      ],
+      "blockers": [
+        "Token expires same-day. Root cause: Basic Display tokens.",
+        "Needs OAuth server infrastructure.",
+        "Effort is HIGH — not a quick win."
+      ],
+      "why_first": "High effort. Worth doing but not first.",
+      "rank": 2
+    },
+    {
+      "api_id": "postiz",
+      "api_name": "Postiz Booking Attribution",
+      "status": "connected",
+      "capabilities_blocked": [
+        "low_risk_publish_roi"
+      ],
+      "roi_unlock": "HIGH",
+      "effort": "low",
+      "feasibility": "high",
+      "steps": [
+        "Enable Postiz analytics API (if available)",
+        "Add UTM builder to all Postiz posts",
+        "Set up GA4 → Postiz data link",
+        "Track: post → click → booking confirmation"
+      ],
+      "blockers": [
+        "Postiz may not expose booking attribution API",
+        "UTM pass-through to booking system needs server config",
+        "Swing Shack booking system integration needed"
+      ],
+      "why_first": "Already connected. Only adds data layer, not new integration.",
+      "rank": 3
+    },
+    {
+      "api_id": "search_console",
+      "api_name": "Google Search Console",
+      "status": "disconnected",
+      "capabilities_blocked": [
+        "seo_performance_tracking"
+      ],
+      "roi_unlock": "MEDIUM",
+      "effort": "medium",
+      "feasibility": "medium",
+      "steps": [
+        "Verify site ownership in GSC",
+        "Set up service account access",
+        "Connect to GA4 dashboard",
+        "Enable: queries → clicks → conversions"
+      ],
+      "blockers": [
+        "No credentials in credentials/",
+        "GSC is read-only — low risk integration",
+        "SEO data helps blog content decisions"
+      ],
+      "why_first": "Medium value, medium effort. Good for content intelligence.",
+      "rank": 4
+    },
+    {
+      "api_id": "youtube",
+      "api_name": "YouTube Data API",
+      "status": "disconnected",
+      "capabilities_blocked": [
+        "hook_smith_youtube_signals"
+      ],
+      "roi_unlock": "LOW",
+      "effort": "low",
+      "feasibility": "high",
+      "steps": [
+        "Get YouTube Data API v3 key from Google Cloud",
+        "Add to credentials/",
+        "hook_smith already uses scraper — API would improve signal"
+      ],
+      "blockers": [
+        "hook_smith works with scraper already. API would be enhancement not requirement."
+      ],
+      "why_first": "Nice to have. hook_smith is functional without it.",
+      "rank": 5
+    },
+    {
+      "api_id": "google_business",
+      "api_name": "Google Business Profile API",
+      "status": "connected",
+      "capabilities_blocked": [
+        "review_response_posting"
+      ],
+      "roi_unlock": "MEDIUM",
+      "effort": "medium",
+      "feasibility": "medium",
+      "steps": [
+        "Verify GMB API access in Google Cloud Console",
+        "Enable read-write scopes",
+        "Connect to reputation_responder for auto-posting"
+      ],
+      "blockers": [
+        "Google restricts GMB API — only允许 businesses with verified locations",
+        "reputation_responder already drafts well. Full posting needs extra setup."
+      ],
+      "why_first": "Already connected for posting. Review posting needs verified access.",
+      "rank": 6
+    }
+  ],
+  "immediate_action": {
+    "api_id": "whatsapp_business",
+    "api_name": "WhatsApp Business API",
+    "status": "disconnected",
+    "capabilities_blocked": [
+      "lead_routing"
+    ],
+    "roi_unlock": "HIGH",
+    "effort": "medium",
+    "feasibility": "medium",
+    "steps": [
+      "Get WhatsApp Business API access (Facebook Business app)",
+      "Configure webhook for incoming messages",
+      "Connect to Postiz or direct MCPorter",
+      "Test with one real hot lead"
+    ],
+    "blockers": [
+      "WhatsApp Business requires Facebook Business Verification",
+      "Premium tier needed for full API",
+      "Setup complexity: medium"
+    ],
+    "why_first": "lead_router_live is the highest-value paused capability. WhatsApp is how you close the loop from social → booking. No other integration unlocks this.",
+    "rank": 1
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "integration_health_monitor",
+  "layer": 9,
+  "role": "Check all APIs daily \u2014 connected/degraded/offline, auth expiry risk, missing permissions. Output: integration-health.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_integration_health_monitor.js"
+  ],
+  "inputs": {
+    "api-connections.json": "all API statuses",
+    "integration-health.json": "health per API"
+  },
+  "outputs": {
+    "integration-health.json": "integration-health.json"
+  }
+}

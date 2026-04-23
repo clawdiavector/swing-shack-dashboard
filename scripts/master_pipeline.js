@@ -270,6 +270,19 @@ const STAGES = [
     ]
   },
   {
+  {
+    name: 'APIConnections',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['api-connections.json', 'integration-health.json', 'capability-unlocks.json', 'roi-coverage.json', 'api-gap-priority.json'],
+    steps: [
+      { name: 'api_connection_registry',         script: `node ${BASE}/scripts/run_api_connection_registry.js`,         critical: false },
+      { name: 'integration_health_monitor',   script: `node ${BASE}/scripts/run_integration_health_monitor.js`,   critical: false },
+      { name: 'capability_unlock_engine',     script: `node ${BASE}/scripts/run_capability_unlock_engine.js`,     critical: false },
+      { name: 'roi_measurement_connector',    script: `node ${BASE}/scripts/run_roi_measurement_connector.js`,    critical: false },
+      { name: 'api_gap_prioritiser',          script: `node ${BASE}/scripts/run_api_gap_prioritiser.js`,          critical: false },
+    ]
+  },
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],
