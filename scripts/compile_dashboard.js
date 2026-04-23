@@ -192,6 +192,11 @@ const utmGov=readJson("utm-governance.json")||null;
 const convTruth=readJson("conversion-truth.json")||null;
 const bookValue=readJson("booking-value-model.json")||null;
 const decConf=readJson("decision-confidence.json")||null;
+const trackImpl=readJson("tracking-implementation-checklist.json")||null;
+const utmBackfill=readJson("utm-backfill.json")||null;
+const eventVal=readJson("event-validation.json")||null;
+const trackBreaks=readJson("tracking-breaks.json")||null;
+const verPromo=readJson("verification-promotions.json")||null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -507,6 +512,68 @@ if (decConf && decConf.recommendations) {
   decConfContent = '<p class="empty">Run decision_confidence_engine.</p>';
 }
 var decConfSection = buildSection('&#127919 DECISION CONFIDENCE', freshnessBadge(decConf && decConf.generated), decConfContent);
+
+var trackFixContent = '<p class="empty">Run tracking_implementation_checklist + tracking_break_detector.</p>';
+if (trackBreaks && trackBreaks.summary) {
+  var tb = trackBreaks;
+  var topB = tb.summary.top_blocker || 'NONE';
+  var critB = tb.summary.critical || 0;
+  var highB = tb.summary.high || 0;
+  var autoFix = tb.summary.automated_fixable || 0;
+  var humanFix = tb.summary.needs_human_action || 0;
+  var critCls = critB > 0 ? 'pub-blocked' : highB > 0 ? 'pub-warn' : 'pub-ok';
+  var breakRows = (tb.breaks || []).slice(0, 6).map(function(b) {
+    var sevCls = b.severity === 'CRITICAL' ? 'pub-blocked' : b.severity === 'HIGH' ? 'pub-warn' : 'pub-ok';
+    var autoTag = b.automated_fix_possible ? '<span class="pub-ok">AUTO</span>' : '<span class="pub-grey">HUMAN</span>';
+    return '<div class="tf-row"><div class="tf-type">' + escHtml(b.type.replace(/_/g, ' ')) + '</div><div class="tf-sev"><span class="' + sevCls + '">' + b.severity + '</span></div><div class="tf-auto">' + autoTag + '</div></div>';
+  }).join('');
+  trackFixContent = '<div class="tf-summary"><span class="' + critCls + '">' + critB + ' CRITICAL</span> &middot; <span class="pub-warn">' + highB + ' HIGH</span> &middot; ' + autoFix + ' auto-fixable &middot; ' + humanFix + ' human</div><div class="tf-top"><span class="pub-blocked">TOP BLOCKER:</span> ' + escHtml(topB.substring(0, 80)) + '</div><div class="tf-table"><div class="tf-head"><span>Break</span><span>Severity</span><span>Auto</span></div>' + breakRows + '</div>';
+} else {
+  trackFixContent = '<p class="empty">Run tracking_break_detector.</p>';
+}
+var trackFixSection = buildSection('&#9989 TRACKING FIX NOW', freshnessBadge(trackBreaks && trackBreaks.generated), trackFixContent);
+
+var eventValContent = '<p class="empty">Run event_validation_monitor.</p>';
+if (eventVal && eventVal.checks) {
+  var ev = eventVal;
+  var firing = ev.checks.filter(function(c) { return c.status === 'FIRING'; }).length;
+  var notCfg = ev.checks.filter(function(c) { return c.status === 'NOT_CONFIGURED' || c.status === 'NOT_PRESENT'; }).length;
+  var paramsOk = (ev.summary && ev.summary.params_arriving || '0/7').split('/')[0];
+  var paramsTotal = (ev.summary && ev.summary.params_arriving || '0/7').split('/')[1] || 7;
+  var paramsCls = parseInt(paramsOk) >= 5 ? 'pub-ok' : parseInt(paramsOk) >= 3 ? 'pub-warn' : 'pub-blocked';
+  var statusOverall = notCfg === 0 ? 'GREEN' : notCfg <= 1 ? 'AMBER' : 'RED';
+  var statusCls = statusOverall === 'GREEN' ? 'pub-ok' : statusOverall === 'AMBER' ? 'pub-warn' : 'pub-blocked';
+  var checkRows = (ev.checks || []).map(function(c) {
+    var stCls = c.status === 'FIRING' ? 'pub-ok' : c.status === 'NOT_CONFIGURED' || c.status === 'NOT_PRESENT' ? 'pub-blocked' : 'pub-warn';
+    return '<div class="ev-row"><div class="ev-name">' + escHtml(c.name) + '</div><div class="ev-status"><span class="' + stCls + '">' + c.status + '</span></div></div>';
+  }).join('');
+  eventValContent = '<div class="ev-status-row"><span class="' + statusCls + '">STATUS: ' + statusOverall + '</span> &middot; ' + paramsOk + '/' + paramsTotal + ' params arriving</div><div class="ev-table"><div class="ev-head"><span>Check</span><span>Status</span></div>' + checkRows + '</div><div class="ev-note">booking_confirmation not firing — needs dev to implement GA4 event on /book/confirmed</div>';
+} else {
+  eventValContent = '<p class="empty">Run event_validation_monitor.</p>';
+}
+var eventValSection = buildSection('&#129514 EVENT VALIDATION', freshnessBadge(eventVal && eventVal.generated), eventValContent);
+
+var backfillContent = '<p class="empty">Run utm_backfill_builder.</p>';
+if (utmBackfill && utmBackfill.summary) {
+  var ub = utmBackfill;
+  var total = ub.summary.total_posts || 0;
+  var good = ub.summary.good_quality || 0;
+  var partial = ub.summary.partial_quality || 0;
+  var rec = ub.summary.recoverable || 0;
+  var needsTag = ub.summary.needs_tagging || 0;
+  var reach = ub.summary.total_reach_affected || 0;
+  var postRows = (ub.backfill_map || []).slice(0, 8).map(function(p) {
+    var qlCls = p.backfill_quality === 'GOOD' ? 'pub-ok' : p.backfill_quality === 'PARTIAL' ? 'pub-warn' : 'pub-blocked';
+    var effortCls = p.effort === 'LOW' ? 'pub-ok' : p.effort === 'MEDIUM' ? 'pub-warn' : 'pub-blocked';
+    return '<div class="ub-row"><div class="ub-hook">' + escHtml((p.hook || p.post_id || '').substring(0, 25)) + '</div><div class="ub-ql"><span class="' + qlCls + '">' + p.backfill_quality + '</span></div><div class="ub-effort"><span class="' + effortCls + '">' + p.effort + '</span></div></div>';
+  }).join('');
+  backfillContent = '<div class="ub-summary">' + total + ' posts &middot; <span class="pub-ok">' + good + ' good</span> &middot; <span class="pub-warn">' + partial + ' partial</span> &middot; <span class="pub-blocked">' + rec + ' recoverable</span></div><div class="ub-needs">' + needsTag + ' posts need UTM tagging &middot; ' + reach + ' reach affected</div><div class="ub-table"><div class="ub-head"><span>Post</span><span>Quality</span><span>Effort</span></div>' + postRows + '</div>';
+} else {
+  backfillContent = '<p class="empty">Run utm_backfill_builder.</p>';
+}
+var backfillSection = buildSection('&#128991 UTM BACKFILL', freshnessBadge(utmBackfill && utmBackfill.generated), backfillContent);
+
+
 
 
 
@@ -2641,6 +2708,35 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .dc-area { font-weight: 700; color: var(--text); }
 .dc-conf { font-size: 0.62rem; }
 .dc-auto { font-size: 0.62rem; }
+
+/* TRACKING FIX NOW */
+.tf-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; }
+.tf-top { font-size: 0.68rem; color: var(--text); margin: 6px 0; padding: 4px 8px; background: rgba(255,255,255,0.04); border-radius: 4px; }
+.tf-table { font-size: 0.62rem; }
+.tf-head { display: grid; grid-template-columns: 2fr 1fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.tf-row { display: grid; grid-template-columns: 2fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.tf-type { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.tf-sev { font-size: 0.62rem; }
+.tf-auto { font-size: 0.62rem; }
+
+/* EVENT VALIDATION */
+.ev-status-row { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.ev-table { font-size: 0.62rem; margin-bottom: 6px; }
+.ev-head { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ev-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.ev-name { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.ev-status { font-size: 0.62rem; }
+.ev-note { font-size: 0.62rem; color: var(--muted); font-style: italic; }
+
+/* UTM BACKFILL */
+.ub-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+.ub-needs { font-size: 0.68rem; color: var(--warning); margin-bottom: 8px; }
+.ub-table { font-size: 0.62rem; }
+.ub-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ub-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.ub-hook { font-weight: 700; color: var(--text); }
+.ub-ql { font-size: 0.62rem; }
+.ub-effort { font-size: 0.62rem; }
 </style>
 </head>
 <body>

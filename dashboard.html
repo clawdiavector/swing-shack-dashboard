@@ -788,6 +788,35 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .dc-area { font-weight: 700; color: var(--text); }
 .dc-conf { font-size: 0.62rem; }
 .dc-auto { font-size: 0.62rem; }
+
+/* TRACKING FIX NOW */
+.tf-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; }
+.tf-top { font-size: 0.68rem; color: var(--text); margin: 6px 0; padding: 4px 8px; background: rgba(255,255,255,0.04); border-radius: 4px; }
+.tf-table { font-size: 0.62rem; }
+.tf-head { display: grid; grid-template-columns: 2fr 1fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.tf-row { display: grid; grid-template-columns: 2fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.tf-type { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.tf-sev { font-size: 0.62rem; }
+.tf-auto { font-size: 0.62rem; }
+
+/* EVENT VALIDATION */
+.ev-status-row { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.ev-table { font-size: 0.62rem; margin-bottom: 6px; }
+.ev-head { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ev-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.ev-name { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.ev-status { font-size: 0.62rem; }
+.ev-note { font-size: 0.62rem; color: var(--muted); font-style: italic; }
+
+/* UTM BACKFILL */
+.ub-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+.ub-needs { font-size: 0.68rem; color: var(--warning); margin-bottom: 8px; }
+.ub-table { font-size: 0.62rem; }
+.ub-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ub-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.ub-hook { font-weight: 700; color: var(--text); }
+.ub-ql { font-size: 0.62rem; }
+.ub-effort { font-size: 0.62rem; }
 </style>
 </head>
 <body>
@@ -801,7 +830,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/23, 13:37:43 SAST</span>
+    <span class="summary-value">2026/04/23, 14:05:57 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>

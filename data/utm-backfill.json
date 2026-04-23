@@ -1,0 +1,934 @@
+{
+  "schema": "https://clawdia.io/agents/utm-backfill-builder/v1",
+  "generated": "2026-04-23T12:02:54.282Z",
+  "backfill_map": [
+    {
+      "post_id": "18078655349442093",
+      "hook": "",
+      "hook_id": "sometimes-",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "sometimes-"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=sometimes-",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-16T07:16:37+0000",
+      "reach": 664,
+      "engagement": "3.77"
+    },
+    {
+      "post_id": "17931577092198704",
+      "hook": "",
+      "hook_id": "we-love-se",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "we-love-se"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=we-love-se",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-02-28T13:41:15+0000",
+      "reach": 527,
+      "engagement": "2.28"
+    },
+    {
+      "post_id": "17881014690500366",
+      "hook": "",
+      "hook_id": "make-it-a-",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "make-it-a-"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=make-it-a-",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-19T13:38:19+0000",
+      "reach": 486,
+      "engagement": "2.88"
+    },
+    {
+      "post_id": "18381028009094142",
+      "hook": "",
+      "hook_id": "book-your-",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "book-your-"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=book-your-",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-10T08:34:46+0000",
+      "reach": 392,
+      "engagement": "1.79"
+    },
+    {
+      "post_id": "18101162930499434",
+      "hook": "",
+      "hook_id": "your-balls",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "your-balls"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=your-balls",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-03T08:53:02+0000",
+      "reach": 385,
+      "engagement": "2.60"
+    },
+    {
+      "post_id": "18072089732557218",
+      "hook": "",
+      "hook_id": "another-aw",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "another-aw"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=another-aw",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-27T18:07:37+0000",
+      "reach": 372,
+      "engagement": "2.69"
+    },
+    {
+      "post_id": "18055889312462062",
+      "hook": "",
+      "hook_id": "want-to-wi",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "want-to-wi"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=want-to-wi",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-12T18:21:15+0000",
+      "reach": 371,
+      "engagement": "3.23"
+    },
+    {
+      "post_id": "17959293114110307",
+      "hook": "",
+      "hook_id": "coach-cat-",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "coach-cat-"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=coach-cat-",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-08T09:17:46+0000",
+      "reach": 343,
+      "engagement": "1.46"
+    },
+    {
+      "post_id": "17906009436202876",
+      "hook": "",
+      "hook_id": "it-never-r",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "it-never-r"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=it-never-r",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-14T16:37:16+0000",
+      "reach": 338,
+      "engagement": "2.37"
+    },
+    {
+      "post_id": "17973083486868104",
+      "hook": "",
+      "hook_id": "clubs-are-",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "clubs-are-"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=clubs-are-",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-15T11:29:56+0000",
+      "reach": 321,
+      "engagement": "1.25"
+    },
+    {
+      "post_id": "18123551317562570",
+      "hook": "",
+      "hook_id": "la-golf-",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "la-golf-"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=la-golf-",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-02-18T08:15:04+0000",
+      "reach": 316,
+      "engagement": "1.27"
+    },
+    {
+      "post_id": "18094335746089574",
+      "hook": "",
+      "hook_id": "lowest-net",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "lowest-net"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=lowest-net",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-08T08:34:54+0000",
+      "reach": 315,
+      "engagement": "1.59"
+    },
+    {
+      "post_id": "17975349971991689",
+      "hook": "",
+      "hook_id": "everything",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "everything"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=everything",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-31T13:16:26+0000",
+      "reach": 283,
+      "engagement": "1.41"
+    },
+    {
+      "post_id": "17957470542082414",
+      "hook": "",
+      "hook_id": "building-a",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "building-a"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=building-a",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-15T08:54:54+0000",
+      "reach": 249,
+      "engagement": "1.61"
+    },
+    {
+      "post_id": "17900476056243537",
+      "hook": "",
+      "hook_id": "new-callaw",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "new-callaw"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=new-callaw",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-12T09:10:36+0000",
+      "reach": 217,
+      "engagement": "3.23"
+    },
+    {
+      "post_id": "17979040532985391",
+      "hook": "",
+      "hook_id": "demo-day-a",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "demo-day-a"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=demo-day-a",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-02-16T13:41:43+0000",
+      "reach": 188,
+      "engagement": "1.60"
+    },
+    {
+      "post_id": "18104160178728798",
+      "hook": "",
+      "hook_id": "rain-or-sh",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "rain-or-sh"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=rain-or-sh",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-30T18:05:22+0000",
+      "reach": 170,
+      "engagement": "2.35"
+    },
+    {
+      "post_id": "18102096479066264",
+      "hook": "",
+      "hook_id": "your-drive",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "your-drive"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=your-drive",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-01T09:00:49+0000",
+      "reach": 164,
+      "engagement": "1.83"
+    },
+    {
+      "post_id": "18073928609224626",
+      "hook": "",
+      "hook_id": "backspin-3",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "backspin-3"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=backspin-3",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-14T06:38:36+0000",
+      "reach": 157,
+      "engagement": "1.91"
+    },
+    {
+      "post_id": "17873711610581469",
+      "hook": "",
+      "hook_id": "trackman-d",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "trackman-d"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=trackman-d",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-07T12:42:05+0000",
+      "reach": 135,
+      "engagement": "1.48"
+    },
+    {
+      "post_id": "18051071432708752",
+      "hook": "",
+      "hook_id": "swing-spee",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "swing-spee"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=swing-spee",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-01T08:57:53+0000",
+      "reach": 126,
+      "engagement": "2.38"
+    },
+    {
+      "post_id": "18109714780828192",
+      "hook": "",
+      "hook_id": "your-golf-",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "your-golf-"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=your-golf-",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-30T18:04:35+0000",
+      "reach": 126,
+      "engagement": "3.97"
+    },
+    {
+      "post_id": "18089100032462336",
+      "hook": "",
+      "hook_id": "avoda-now-",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "avoda-now-"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=avoda-now-",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-20T15:00:00+0000",
+      "reach": 117,
+      "engagement": "0.85"
+    },
+    {
+      "post_id": "18014455163832669",
+      "hook": "",
+      "hook_id": "from-confu",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "from-confu"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=from-confu",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-03-30T18:04:59+0000",
+      "reach": 97,
+      "engagement": "2.06"
+    },
+    {
+      "post_id": "17932643088055601",
+      "hook": "",
+      "hook_id": "your-numbe",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "your-numbe"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=your-numbe",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-01T08:58:05+0000",
+      "reach": 94,
+      "engagement": "2.13"
+    },
+    {
+      "post_id": "18004103141731768",
+      "hook": "",
+      "hook_id": "if-you-kno",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "if-you-kno"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=if-you-kno",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-20T16:00:00+0000",
+      "reach": 77,
+      "engagement": "2.60"
+    },
+    {
+      "post_id": "18110075536631986",
+      "hook": "",
+      "hook_id": "that-slice",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "that-slice"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=that-slice",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-07T12:42:06+0000",
+      "reach": 62,
+      "engagement": "4.84"
+    },
+    {
+      "post_id": "18084979034373300",
+      "hook": "",
+      "hook_id": "your-curre",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "your-curre"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=your-curre",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-22T03:30:00+0000",
+      "reach": 33,
+      "engagement": "3.03"
+    },
+    {
+      "post_id": "18119221723645535",
+      "hook": "",
+      "hook_id": "built-to-p",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "built-to-p"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=built-to-p",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-21T05:30:00+0000",
+      "reach": 31,
+      "engagement": "3.23"
+    },
+    {
+      "post_id": "18083236283620848",
+      "hook": "",
+      "hook_id": "fujimoto-a",
+      "recommendation_id": "unknown",
+      "service": "Practice Session",
+      "current_utm": {
+        "source": "missing",
+        "medium": "missing",
+        "campaign": "missing",
+        "content": "missing"
+      },
+      "corrected_utm": {
+        "source": "instagram",
+        "medium": "social",
+        "campaign": "practice-session",
+        "content": "fujimoto-a"
+      },
+      "corrected_url": "https://swingshack.co.za/?service=Practice%20Session&utm_source=instagram&utm_medium=social&utm_campaign=practice-session&utm_content=fujimoto-a",
+      "backfill_quality": "RECOVERABLE",
+      "fixes_needed": [
+        "ADD_UTMS",
+        "ADD_HOOK_ID",
+        "ADD_RECOMMENDATION_ID"
+      ],
+      "effort": "HIGH",
+      "timestamp": "2026-04-21T03:30:00+0000",
+      "reach": 31,
+      "engagement": "6.45"
+    }
+  ],
+  "summary": {
+    "total_posts": 30,
+    "good_quality": 0,
+    "partial_quality": 0,
+    "recoverable": 30,
+    "needs_tagging": 30,
+    "with_hook_id": 0,
+    "without_hook_id": 30,
+    "total_reach_affected": 7187,
+    "honest_note": "Backfill quality is PARTIAL or RECOVERABLE for most posts — hook_id and recommendation_id are best-guessed from post metadata, not from actual tracking."
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Tag 30 posts with corrected UTMs — add hook_id to utm_content",
+      "why": "Starts building attribution history now while GA4 event is being built"
+    },
+    {
+      "priority": 2,
+      "action": "Add recommendation_id where identifiable from post content",
+      "why": "Closes the chain further — recommendation links posts to specific marketing decision"
+    },
+    {
+      "priority": 3,
+      "action": "Prioritise high-reach posts for backfill — 2454 reach in top 5 posts",
+      "why": "Most impact on overall attribution quality"
+    }
+  ]
+}

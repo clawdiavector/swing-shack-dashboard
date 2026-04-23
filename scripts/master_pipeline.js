@@ -308,6 +308,19 @@ const STAGES = [
       { name: 'decision_confidence_engine',   script: \`node \${BASE}/scripts/run_decision_confidence_engine.js\`,   critical: false },
     ]
   },
+  {
+    name: 'TrackingImplementation',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['tracking-implementation-checklist.json', 'utm-backfill.json', 'event-validation.json', 'tracking-breaks.json', 'verification-promotions.json'],
+    steps: [
+      { name: 'tracking_implementation_checklist', script: \`node \${BASE}/scripts/run_tracking_implementation_checklist.js\`, script: \`node \${BASE}/scripts/run_tracking_implementation_checklist.js\`, critical: false },
+      { name: 'utm_backfill_builder',             script: \`node \${BASE}/scripts/run_utm_backfill_builder.js\`,             critical: false },
+      { name: 'event_validation_monitor',         script: \`node \${BASE}/scripts/run_event_validation_monitor.js\`,         critical: false },
+      { name: 'tracking_break_detector',          script: \`node \${BASE}/scripts/run_tracking_break_detector.js\`,          critical: false },
+      { name: 'verification_promotion_engine',    script: \`node \${BASE}/scripts/run_verification_promotion_engine.js\`,    critical: false },
+    ]
+  },
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

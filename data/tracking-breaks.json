@@ -1,0 +1,109 @@
+{
+  "schema": "https://clawdia.io/agents/tracking-break-detector/v1",
+  "generated": "2026-04-23T12:02:54.364Z",
+  "breaks": [
+    {
+      "type": "MISSING_UTM",
+      "severity": "HIGH",
+      "count": 69,
+      "example": "",
+      "impact": "Post-to-session chain is broken. Sessions from these posts are untrackable.",
+      "fix": "Add UTM parameters with hook_id to all posts. Retro-tag existing posts.",
+      "automated_fix_possible": true
+    },
+    {
+      "type": "MISSING_HOOK_ID",
+      "severity": "HIGH",
+      "count": 69,
+      "example": "",
+      "impact": "Cannot link post to session. A/B testing impossible without hook-level attribution.",
+      "fix": "Add hook_id to utm_content param in all post links.",
+      "automated_fix_possible": true
+    },
+    {
+      "type": "MISSING_RECOMMENDATION_ID",
+      "severity": "MEDIUM",
+      "count": 69,
+      "example": "",
+      "impact": "Cannot link post to marketing decision. Recommendation quality cannot be measured.",
+      "fix": "Add recommendation_id to post metadata in Postiz.",
+      "automated_fix_possible": true
+    },
+    {
+      "type": "BOOKING_EVENT_NOT_FIRING",
+      "severity": "CRITICAL",
+      "count": 1,
+      "example": "/book/confirmed page has no GA4 event",
+      "impact": "All revenue is untrackable. STRONG_PROXY cannot become VERIFIED_REVENUE.",
+      "fix": "Install booking_confirmation event on /book/confirmed by Swing Shack dev.",
+      "automated_fix_possible": false,
+      "owner": "Swing Shack dev"
+    },
+    {
+      "type": "BROKEN_SOURCE_CHAIN",
+      "severity": "MEDIUM",
+      "count": 1,
+      "example": "53 sessions with no source",
+      "impact": "Sessions come from somewhere but cannot be attributed. Unknown traffic = wasted budget.",
+      "fix": "Ensure all traffic sources are properly tagged with UTM parameters.",
+      "automated_fix_possible": false
+    },
+    {
+      "type": "WHATSAPP_NOT_CONNECTED",
+      "severity": "HIGH",
+      "count": 1,
+      "example": "WhatsApp Business API not connected",
+      "impact": "Lead routing is simulated, not live. Hot leads are not reaching WhatsApp.",
+      "fix": "Connect WhatsApp Business API — this unblocks lead routing automation.",
+      "automated_fix_possible": false,
+      "owner": "Christelle"
+    },
+    {
+      "type": "META_TOKEN_EXPIRED",
+      "severity": "HIGH",
+      "count": 1,
+      "example": "Meta token 649h old — likely invalid",
+      "impact": "Meta Ads API calls will fail. Budget shifts cannot execute.",
+      "fix": "Reconnect Meta OAuth — generate new token via Meta Developer Console.",
+      "automated_fix_possible": false,
+      "owner": "Christelle"
+    },
+    {
+      "type": "NO_SERVICE_PARAM",
+      "severity": "MEDIUM",
+      "count": 1,
+      "example": "GA4 has no service dimension — booking value cannot be modelled by service",
+      "impact": "Value modelling is crude (avg basket). Service-specific ROI is invisible.",
+      "fix": "Add service_selected GA4 event + pass ?service=X in confirmation URL.",
+      "automated_fix_possible": false,
+      "owner": "Swing Shack dev"
+    }
+  ],
+  "summary": {
+    "total_breaks": 8,
+    "critical": 1,
+    "high": 4,
+    "medium": 3,
+    "automated_fixable": 3,
+    "needs_human_action": 5,
+    "top_blocker": "BOOKING_EVENT_NOT_FIRING — All revenue is untrackable. STRONG_PROXY cannot become VERIF",
+    "honest_note": "Tracking chain has 8 breaks. 3 can be fixed by agent. 5 require human action (dev access or API reconnection)."
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Fix: BOOKING_EVENT_NOT_FIRING",
+      "why": "This is the single biggest blocker to revenue truth"
+    },
+    {
+      "priority": 2,
+      "action": "Agent: Fix 3 automated-fixable breaks now",
+      "why": "Agent can fix UTM compliance without requiring dev access"
+    },
+    {
+      "priority": 3,
+      "action": "Christelle: Escalate 5 human-required breaks to respective owners",
+      "why": "These require dev access, API reconnection, or admin action"
+    }
+  ]
+}

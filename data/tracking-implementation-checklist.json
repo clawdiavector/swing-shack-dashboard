@@ -1,0 +1,208 @@
+{
+  "schema": "https://clawdia.io/agents/tracking-implementation-checklist/v1",
+  "generated": "2026-04-23T12:02:54.237Z",
+  "site_changes": [
+    {
+      "id": "SITE-001",
+      "priority": "P1",
+      "action": "Add booking_confirmation GA4 event on /book/confirmed page",
+      "params": [
+        "service",
+        "booking_value_proxy",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "hook_id",
+        "recommendation_id"
+      ],
+      "owner": "Swing Shack dev",
+      "effort": "low",
+      "blocks": [
+        "VERIFIED_REVENUE",
+        "VERIFIED_LEAD"
+      ],
+      "status": "NOT_STARTED",
+      "how": "gtag(\"event\",\"booking_confirmation\",{service,value,utm_source,utm_medium,utm_campaign,hook_id,recommendation_id})"
+    },
+    {
+      "id": "SITE-002",
+      "priority": "P1",
+      "action": "Pass service type through confirmation URL — add ?service=Full+Bag+Fitting to /book/confirmed",
+      "params": [
+        "service"
+      ],
+      "owner": "Swing Shack dev",
+      "effort": "low",
+      "blocks": [
+        "service_selected event",
+        "booking_value_proxy"
+      ],
+      "status": "NOT_STARTED",
+      "how": "Confirmation URL should include ?service=X from booking form selection"
+    },
+    {
+      "id": "SITE-003",
+      "priority": "P2",
+      "action": "Add GA4 event: service_selected — fire when user selects service type in booking form",
+      "params": [
+        "service",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign"
+      ],
+      "owner": "Swing Shack dev",
+      "effort": "medium",
+      "blocks": [
+        "VERIFIED_LEAD"
+      ],
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "SITE-004",
+      "priority": "P2",
+      "action": "Add hook_id to UTM content param in Postiz — needs Postiz custom field support",
+      "params": [
+        "hook_id",
+        "recommendation_id"
+      ],
+      "owner": "Postiz config",
+      "effort": "medium",
+      "blocks": [
+        "attribution_chain"
+      ],
+      "status": "NOT_STARTED"
+    }
+  ],
+  "link_changes": [
+    {
+      "id": "LINK-001",
+      "priority": "P1",
+      "action": "Retro-tag 20 existing IG posts with hook_id in utm_content",
+      "owner": "Agent",
+      "effort": "medium",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "LINK-002",
+      "priority": "P1",
+      "action": "Enforce UTM on all new Postiz posts — source+medium+campaign+content mandatory",
+      "owner": "Agent",
+      "effort": "low",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "LINK-003",
+      "priority": "P1",
+      "action": "Tag all Story links with UTM parameters",
+      "owner": "Agent",
+      "effort": "low",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "LINK-004",
+      "priority": "P2",
+      "action": "Tag retargeting links with UTM",
+      "owner": "Agent",
+      "effort": "low",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "LINK-005",
+      "priority": "P2",
+      "action": "Tag nurture/email links with UTM",
+      "owner": "Agent",
+      "effort": "medium",
+      "status": "NOT_STARTED"
+    }
+  ],
+  "blocked": [
+    {
+      "id": "BLOCK-001",
+      "blocker": "WhatsApp Business API",
+      "action": "WhatsApp lead routing",
+      "waiting_since": "Phase 8B",
+      "days_waiting": 0,
+      "priority": "P1"
+    },
+    {
+      "id": "BLOCK-002",
+      "blocker": "Meta OAuth server",
+      "action": "Meta Ads token refresh",
+      "waiting_since": "Phase 8B",
+      "days_waiting": 0,
+      "priority": "P1"
+    },
+    {
+      "id": "BLOCK-003",
+      "blocker": "Swing Shack dev",
+      "action": "GA4 booking event implementation",
+      "waiting_since": "Phase 8D",
+      "days_waiting": 0,
+      "priority": "P1"
+    }
+  ],
+  "roadmap": [
+    {
+      "step": 1,
+      "duration": "1 day",
+      "action": "Install GA4 tag on /book/confirmed page",
+      "owner": "Swing Shack dev",
+      "deliverable": "booking_confirmation event fires"
+    },
+    {
+      "step": 2,
+      "duration": "2 hours",
+      "action": "Retro-tag 20 existing posts with hook_id",
+      "owner": "Agent",
+      "deliverable": "utm-governance compliance improves from 0%"
+    },
+    {
+      "step": 3,
+      "duration": "1 day",
+      "action": "Pass service param through confirmation URL",
+      "owner": "Swing Shack dev",
+      "deliverable": "booking_value_proxy populated"
+    },
+    {
+      "step": 4,
+      "duration": "1 week",
+      "action": "Postiz — add hook_id to UTM content field",
+      "owner": "Postiz config",
+      "deliverable": "All future posts carry hook_id"
+    },
+    {
+      "step": 5,
+      "duration": "2 hours",
+      "action": "Validate full chain end-to-end",
+      "owner": "Agent",
+      "deliverable": "verification_promotion_engine upgrades sources"
+    }
+  ],
+  "summary": {
+    "site_changes": 4,
+    "link_changes": 5,
+    "blocked": 3,
+    "p1_critical": 5,
+    "site_done": 0,
+    "link_done": 0,
+    "status": "WAITING ON SITE DEVELOPER",
+    "honest_note": "Agent can retro-tag posts and enforce future UTMs. GA4 event installation requires Swing Shack dev access."
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Christelle: Get GA4 event installed on /book/confirmed page by Swing Shack dev — this is the single highest-value action",
+      "why": "Without this event, all revenue remains MODELLED. With it, STRONG_PROXY → VERIFIED_REVENUE."
+    },
+    {
+      "priority": 2,
+      "action": "Agent: Retro-tag 20 existing posts — begin immediately",
+      "why": "Starts building historical attribution while site changes are being built"
+    },
+    {
+      "priority": 3,
+      "action": "Christelle: Ask Swing Shack to pass service param through confirmation URL",
+      "why": "Enables value modelling by service type"
+    }
+  ]
+}

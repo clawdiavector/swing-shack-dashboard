@@ -1,0 +1,148 @@
+{
+  "schema": "https://clawdia.io/agents/verification-promotion-engine/v1",
+  "generated": "2026-04-23T12:02:54.405Z",
+  "sources": [
+    {
+      "source": "low_risk_publish",
+      "name": "Low-Risk Publishing",
+      "old_band": "STRONG_PROXY",
+      "new_band": "STRONG_PROXY",
+      "promoted": false,
+      "promotion_reason": "No change",
+      "promotion_action": "",
+      "confidence": 55,
+      "automation_rights": "CONDITIONAL"
+    },
+    {
+      "source": "gmb_posting",
+      "name": "GMB Posts",
+      "old_band": "STRONG_PROXY",
+      "new_band": "STRONG_PROXY",
+      "promoted": false,
+      "promotion_reason": "No change",
+      "promotion_action": "",
+      "confidence": 55,
+      "automation_rights": "CONDITIONAL"
+    },
+    {
+      "source": "review_thank_you",
+      "name": "Review Thank-Yous",
+      "old_band": "WEAK_PROXY",
+      "new_band": "WEAK_PROXY",
+      "promoted": false,
+      "promotion_reason": "No change",
+      "promotion_action": "",
+      "confidence": 30,
+      "automation_rights": "MANUAL_ONLY"
+    },
+    {
+      "source": "evergreen_repost",
+      "name": "Evergreen Reposts",
+      "old_band": "STRONG_PROXY",
+      "new_band": "STRONG_PROXY",
+      "promoted": false,
+      "promotion_reason": "No change",
+      "promotion_action": "",
+      "confidence": 55,
+      "automation_rights": "CONDITIONAL"
+    },
+    {
+      "source": "fallback_swap",
+      "name": "Fallback Swaps",
+      "old_band": "WEAK_PROXY",
+      "new_band": "WEAK_PROXY",
+      "promoted": false,
+      "promotion_reason": "No change",
+      "promotion_action": "",
+      "confidence": 30,
+      "automation_rights": "MANUAL_ONLY"
+    },
+    {
+      "source": "lead_routing",
+      "name": "Lead Routing",
+      "old_band": "UNKNOWN",
+      "new_band": "WEAK_PROXY",
+      "promoted": true,
+      "promotion_reason": "WhatsApp not connected but UTM chain exists",
+      "promotion_action": "Connect WhatsApp API to upgrade to VERIFIED_LEAD",
+      "confidence": 10,
+      "automation_rights": "MANUAL_ONLY"
+    },
+    {
+      "source": "tiny_ad_shift",
+      "name": "Budget Shifts",
+      "old_band": "UNKNOWN",
+      "new_band": "UNKNOWN",
+      "promoted": false,
+      "promotion_reason": "No change",
+      "promotion_action": "",
+      "confidence": 10,
+      "automation_rights": "MANUAL_ONLY"
+    },
+    {
+      "source": "approval_auto_promote",
+      "name": "Auto-Promote Approved",
+      "old_band": "VERIFIED_REVENUE",
+      "new_band": "VERIFIED_REVENUE",
+      "promoted": false,
+      "promotion_reason": "No change",
+      "promotion_action": "",
+      "confidence": 95,
+      "automation_rights": "ALLOWED"
+    }
+  ],
+  "implementation_status": {
+    "booking_event_firing": false,
+    "utm_compliance_rate": "0%",
+    "hook_id_in_utm": false,
+    "whatsapp_connected": false,
+    "meta_connected": false
+  },
+  "summary": {
+    "total": 8,
+    "verified_revenue": 1,
+    "verified_lead": 0,
+    "strong_proxy": 3,
+    "weak_proxy": 3,
+    "unknown": 1,
+    "newly_promoted": 1,
+    "honest_note": "Promotion requires actual tracking implementation — not just agent logic. booking_event_firing=false means no promotion to VERIFIED_REVENUE is possible yet."
+  },
+  "next_promotions": [
+    {
+      "trigger": "booking_confirmation event fires",
+      "current": "STRONG_PROXY",
+      "upgrades_to": "VERIFIED_REVENUE",
+      "sources_affected": 3
+    },
+    {
+      "trigger": "WhatsApp API connects",
+      "current": "UNKNOWN (lead_routing)",
+      "upgrades_to": "VERIFIED_LEAD",
+      "sources_affected": 1
+    },
+    {
+      "trigger": "UTM compliance reaches 80%+",
+      "current": "WEAK_PROXY",
+      "upgrades_to": "STRONG_PROXY",
+      "sources_affected": 3
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Get booking_confirmation event firing → upgrades STRONG_PROXY → VERIFIED_REVENUE",
+      "why": "This is the single promotion that changes the whole dashboard from MODELLED to VERIFIED"
+    },
+    {
+      "priority": 2,
+      "action": "Connect WhatsApp API → upgrades lead_routing UNKNOWN → VERIFIED_LEAD",
+      "why": "Completes the social → booking loop for high-intent leads"
+    },
+    {
+      "priority": 3,
+      "action": "Retrogate posts to 80%+ UTM compliance → upgrades WEAK_PROXY → STRONG_PROXY",
+      "why": "Hook-level attribution improves measurement quality for all channels"
+    }
+  ]
+}
