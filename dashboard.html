@@ -817,6 +817,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .ub-hook { font-weight: 700; color: var(--text); }
 .ub-ql { font-size: 0.62rem; }
 .ub-effort { font-size: 0.62rem; }
+
+/* TRACKING LAUNCH CHECKLIST */
+.lc-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.lc-table { font-size: 0.62rem; }
+.lc-head { display: grid; grid-template-columns: 2fr 1fr 1.5fr 0.6fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.lc-row { display: grid; grid-template-columns: 2fr 1fr 1.5fr 0.6fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.lc-label { font-weight: 700; color: var(--text); }
+.lc-status { font-size: 0.62rem; }
+.lc-owner { font-size: 0.6rem; color: var(--muted); }
+.lc-blk { font-size: 0.6rem; }
 </style>
 </head>
 <body>
@@ -830,7 +840,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/23, 14:05:57 SAST</span>
+    <span class="summary-value">2026/04/23, 14:14:21 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>

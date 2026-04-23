@@ -197,6 +197,8 @@ const utmBackfill=readJson("utm-backfill.json")||null;
 const eventVal=readJson("event-validation.json")||null;
 const trackBreaks=readJson("tracking-breaks.json")||null;
 const verPromo=readJson("verification-promotions.json")||null;
+const trackLaunch=readJson("tracking-launch-checklist.json")||null;
+const utmEnforce=readJson("utm-enforcement-live.json")||null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -552,6 +554,27 @@ if (eventVal && eventVal.checks) {
   eventValContent = '<p class="empty">Run event_validation_monitor.</p>';
 }
 var eventValSection = buildSection('&#129514 EVENT VALIDATION', freshnessBadge(eventVal && eventVal.generated), eventValContent);
+var launchContent = '<p class="empty">Run tracking_implementation_checklist.</p>';
+if (trackLaunch && trackLaunch.checklist) {
+  var tl = trackLaunch;
+  var items = Object.values(tl.checklist);
+  var total = items.length;
+  var done = items.filter(function(i){return i.status==='DONE';}).length;
+  var inProgress = items.filter(function(i){return i.status==='IN_PROGRESS';}).length;
+  var notStarted = items.filter(function(i){return i.status==='NOT_STARTED';}).length;
+  var blocking = items.filter(function(i){return i.blocking&&i.status!=='DONE';}).length;
+  var launchRows = items.map(function(item){
+    var stCls = item.status==='DONE'?'pub-ok':item.status==='IN_PROGRESS'?'pub-warn':'pub-blocked';
+    var blkTag = item.blocking ? '<span class="pub-blocked">BLOCK</span>' : '';
+    return '<div class="lc-row"><div class="lc-label">'+escHtml(item.label)+'</div><div class="lc-status"><span class="'+stCls+'">'+item.status+'</span></div><div class="lc-owner">'+escHtml(item.owner||'')+'</div><div class="lc-blk">'+blkTag+'</div></div>';
+  }).join('');
+  launchContent = '<div class="lc-summary">'+done+'/'+total+' complete &middot; '+blocking+' blocking events remaining</div><div class="lc-table"><div class="lc-head"><span>Check</span><span>Status</span><span>Owner</span><span>Block</span></div>'+launchRows+'</div>';
+} else {
+  launchContent = '<p class="empty">tracking-launch-checklist.json not found.</p>';
+}
+var launchSection = buildSection('&#9989 TRACKING LAUNCH CHECKLIST', freshnessBadge(trackLaunch && trackLaunch.generated), launchContent);
+
+
 
 var backfillContent = '<p class="empty">Run utm_backfill_builder.</p>';
 if (utmBackfill && utmBackfill.summary) {
@@ -2737,6 +2760,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .ub-hook { font-weight: 700; color: var(--text); }
 .ub-ql { font-size: 0.62rem; }
 .ub-effort { font-size: 0.62rem; }
+
+/* TRACKING LAUNCH CHECKLIST */
+.lc-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.lc-table { font-size: 0.62rem; }
+.lc-head { display: grid; grid-template-columns: 2fr 1fr 1.5fr 0.6fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.lc-row { display: grid; grid-template-columns: 2fr 1fr 1.5fr 0.6fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.lc-label { font-weight: 700; color: var(--text); }
+.lc-status { font-size: 0.62rem; }
+.lc-owner { font-size: 0.6rem; color: var(--muted); }
+.lc-blk { font-size: 0.6rem; }
 </style>
 </head>
 <body>

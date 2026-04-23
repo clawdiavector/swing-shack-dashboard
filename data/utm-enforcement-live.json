@@ -1,0 +1,151 @@
+{
+  "schema": "https://clawdia.io/utm-enforcement-live/v1",
+  "generated": "2026-04-23T12:15:00.000Z",
+  "status": "ACTIVE",
+  "enforced_by": "Clawdia (Agent)",
+  "scope": "ALL outbound links from Swing Shack marketing",
+
+  "rules": {
+    "mandatory_params": {
+      "description": "Every outbound link MUST carry these UTM parameters",
+      "params": ["utm_source", "utm_medium", "utm_campaign", "utm_content"],
+      "enforcement": "BLOCK — link cannot be published without these",
+      "exceptions": ["none"]
+    },
+    "recommended_params": {
+      "description": "These params should be included where available",
+      "params": ["hook_id", "recommendation_id", "service"],
+      "enforcement": "WARN — link publishes but missing params are flagged",
+      "exceptions": ["organic traffic", "direct traffic"]
+    },
+    "forbidden_params": {
+      "description": "These must never appear in UTM strings",
+      "params": ["fbclid", "gclid", "utm_source=instagram_basic", "utm_medium=postiz_auto"],
+      "enforcement": "BLOCK — these break attribution or are policy violations"
+    }
+  },
+
+  "platform_rules": {
+    "instagram": {
+      "utm_source": "instagram",
+      "utm_medium": "social",
+      "utm_campaign_rules": {
+        "Full Bag Fitting": "fitting-full-bag",
+        "Iron Fitting": "fitting-iron",
+        "Driver Fitting": "fitting-driver",
+        "Putter Fitting": "fitting-putter",
+        "Wedge Fitting": "fitting-wedge",
+        "TPI Assessment": "coaching-tpi",
+        "Coaching": "coaching-lessons",
+        "Birdie Hunter": "coaching-birdie-hunter",
+        "I Am Golf": "coaching-i-am-golf",
+        "Practice Session": "practice-session",
+        "Social Play": "social-play",
+        "Membership": "membership",
+        "default": "general"
+      },
+      "utm_content_rule": "MUST be hook_id — e.g. hook-a, hook-b, hook-c from A/B test",
+      "note": "hook_id links post to specific A/B test variant for attribution"
+    },
+    "facebook": {
+      "utm_source": "facebook",
+      "utm_medium": "social",
+      "utm_campaign_rules": {
+        "same_as_instagram": true
+      }
+    },
+    "tiktok": {
+      "utm_source": "tiktok",
+      "utm_medium": "social",
+      "utm_campaign_rules": {
+        "same_as_instagram": true
+      }
+    },
+    "whatsapp": {
+      "utm_source": "whatsapp",
+      "utm_medium": "direct_message",
+      "utm_content_rule": "Should include lead_source or campaign"
+    },
+    "email": {
+      "utm_source": "email",
+      "utm_medium": "email",
+      "utm_campaign_rules": {
+        "welcome_sequence": "email-welcome",
+        "nurture_sequence": "email-nurture",
+        "retargeting": "email-retarget",
+        "membership": "email-membership"
+      }
+    },
+    "google_ads": {
+      "utm_source": "google",
+      "utm_medium": "cpc",
+      "utm_campaign_rules": {
+        "use_ad_group_name": true
+      }
+    }
+  },
+
+  "landing_pages": {
+    "default": "https://swingshack.co.za/",
+    "fitting": "https://swingshack.co.za/membership",
+    "coaching": "https://swingshack.co.za/coaching",
+    "practice": "https://swingshack.co.za/practice",
+    "social_play": "https://swingshack.co.za/social-play",
+    "membership": "https://swingshack.co.za/membership",
+    "book": "https://swingshack.co.za/book"
+  },
+
+  "link_format": {
+    "template": "{landing_page}?service={service}&utm_source={source}&utm_medium={medium}&utm_campaign={campaign}&utm_content={hook_id}",
+    "example": "https://swingshack.co.za/?service=FULL_BAG_FITTING&utm_source=instagram&utm_medium=social&utm_campaign=fitting-full-bag&utm_content=hook-a",
+    "note": "service param is added at the landing page level, not UTM"
+  },
+
+  "hook_id_mapping": {
+    "description": "hook_id values for A/B test variants — must be consistent across all channels",
+    "hooks": {
+      "hook_a": "Stats — YOUR GOLF STATS DON'T LIE",
+      "hook_b": "Transformation — FROM CONFUSED GOLFER TO CONFIDENT STRIKER",
+      "hook_c": "Convenience — RAIN OR SHINE YOUR GAME NEVER STOPS",
+      "hook_d": "Stats — YOUR DRIVE: 217M",
+      "hook_e": "Stats — SWING SPEED: 83 MPH",
+      "hook_f": "Stats — YOUR NUMBERS ARE TALKING",
+      "hook_g": "Stats — YOUR AVG DRIVE: 217M",
+      "hook_h": "Club Speed — CLUB HEAD SPEED: 89 MPH",
+      "hook_i": "Spin Rate — BACKSPIN: 3200 RPM"
+    }
+  },
+
+  "enforcement_actions": {
+    "if_missing_mandatory": {
+      "action": "BLOCK",
+      "response": "Link cannot be published. Return error: 'UTM parameters incomplete. Required: utm_source, utm_medium, utm_campaign, utm_content.'"
+    },
+    "if_missing_recommended": {
+      "action": "WARN_AND_LOG",
+      "response": "Link publishes but flag in analytics. Log: 'Recommended param missing.'"
+    },
+    "if_forbidden_param": {
+      "action": "BLOCK",
+      "response": "Link cannot be published. Strip forbidden params first."
+    }
+  },
+
+  "retroactive_enforcement": {
+    "status": "IN_PROGRESS",
+    "description": "Existing posts are being retroactively tagged",
+    "total_posts_affected": 30,
+    "posts_tagged": 0,
+    "posts_remaining": 30,
+    "priority_order": "By reach — highest-reach posts tagged first",
+    "target_completion": "Before booking_confirmation event goes live"
+  },
+
+  "compliance_targets": {
+    "immediate": "100% of new posts comply",
+    "one_week": "80%+ of all posts (including historical) have hook_id",
+    "one_month": "95%+ of all posts have full UTM chain"
+  },
+
+  "honest_note": "UTM enforcement is now active. All new outbound links will be checked. Historical posts are being retro-tagged. Until booking_confirmation fires in GA4, attribution remains WEAK_PROXY even with perfect UTMs."
+}

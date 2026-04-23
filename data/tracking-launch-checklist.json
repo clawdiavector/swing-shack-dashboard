@@ -1,0 +1,165 @@
+{
+  "schema": "https://clawdia.io/tracking-launch-checklist/v1",
+  "generated": "2026-04-23T12:15:00.000Z",
+  "owner": "Christelle + Swing Shack Dev",
+  "priority": "CRITICAL",
+
+  "checklist": {
+    "event_installation": {
+      "label": "Event Installed",
+      "description": "booking_confirmation GA4 event installed on /book/confirmed page",
+      "owner": "Swing Shack Dev",
+      "status": "NOT_STARTED",
+      "evidence_required": "Event visible in GA4 DebugView on test booking",
+      "blocking": true
+    },
+    "event_firing": {
+      "label": "Event Firing",
+      "description": "booking_confirmation fires on every booking confirmation page view",
+      "owner": "Swing Shack Dev",
+      "status": "NOT_STARTED",
+      "evidence_required": "Event count > 0 in GA4 Realtime dashboard",
+      "blocking": true
+    },
+    "service_param_populated": {
+      "label": "Service Parameter",
+      "description": "service parameter is populated (not blank) in every event",
+      "owner": "Swing Shack Dev",
+      "status": "NOT_STARTED",
+      "evidence_required": "service field shows valid values: FULL_BAG_FITTING, COACHING, etc.",
+      "blocking": true
+    },
+    "value_param_populated": {
+      "label": "Value Parameter",
+      "description": "booking_value_proxy is populated with a real number (not 0 or blank)",
+      "owner": "Swing Shack Dev",
+      "status": "NOT_STARTED",
+      "evidence_required": "booking_value_proxy > 0 in GA4 event explorer",
+      "blocking": true
+    },
+    "utm_source_arriving": {
+      "label": "UTM Source Arriving",
+      "description": "utm_source parameter is captured in the event",
+      "owner": "Swing Shack Dev",
+      "status": "NOT_STARTED",
+      "evidence_required": "utm_source field shows 'instagram', 'google', etc. in event data",
+      "blocking": false
+    },
+    "utm_medium_arriving": {
+      "label": "UTM Medium Arriving",
+      "description": "utm_medium parameter is captured in the event",
+      "owner": "Swing Shack Dev",
+      "status": "NOT_STARTED",
+      "evidence_required": "utm_medium field shows 'social', 'organic', etc.",
+      "blocking": false
+    },
+    "hook_id_tracking": {
+      "label": "Hook ID Tracking",
+      "description": "hook_id is present in UTM chain and arriving in events",
+      "owner": "Agent (Postiz config)",
+      "status": "NOT_STARTED",
+      "evidence_required": "hook_id appears in utm_content field for IG-sourced bookings",
+      "blocking": false
+    },
+    "recommendation_id_tracking": {
+      "label": "Recommendation ID Tracking",
+      "description": "recommendation_id is linked to UTM and arriving in events",
+      "owner": "Agent (Postiz config)",
+      "status": "NOT_STARTED",
+      "evidence_required": "recommendation_id field populated for bookings from tracked campaigns",
+      "blocking": false
+    },
+    "ga4_reports_visible": {
+      "label": "GA4 Reports Updated",
+      "description": "booking_confirmation appears in GA4 Reports → Engagement → Events",
+      "owner": "GA4 (automatic)",
+      "status": "NOT_STARTED",
+      "evidence_required": "Event visible in GA4 standard reports within 24-48h",
+      "blocking": false
+    },
+    "dashboard_upgrade": {
+      "label": "Dashboard Upgraded",
+      "description": "Marketing dashboard upgrades sources from STRONG_PROXY to VERIFIED_REVENUE",
+      "owner": "Agent (Clawdia)",
+      "status": "NOT_STARTED",
+      "evidence_required": "REVENUE TRUTH zone shows VERIFIED_REVENUE > 0",
+      "blocking": false
+    }
+  },
+
+  "launch_sequence": [
+    {
+      "step": 1,
+      "action": "Swing Shack Dev installs booking_confirmation event",
+      "owner": "Swing Shack Dev",
+      "duration": "1 day",
+      "blocking": false,
+      "note": "Dev handoff pack at: docs/dev-handoff-booking-event.md"
+    },
+    {
+      "step": 2,
+      "action": "Test event in GA4 DebugView",
+      "owner": "Swing Shack Dev + Christelle",
+      "duration": "1 hour",
+      "blocking": true,
+      "note": "Must see event fire before live"
+    },
+    {
+      "step": 3,
+      "action": "Verify service + value params populated",
+      "owner": "Swing Shack Dev",
+      "duration": "1 hour",
+      "blocking": true,
+      "note": "Blank params mean tracking is incomplete"
+    },
+    {
+      "step": 4,
+      "action": "Confirm event appears in GA4 Realtime",
+      "owner": "Christelle",
+      "duration": "Real-time",
+      "blocking": false,
+      "note": "Watch Realtime dashboard during live booking"
+    },
+    {
+      "step": 5,
+      "action": "Agent detects event firing, upgrades sources",
+      "owner": "Agent (Clawdia)",
+      "duration": "Next cron run",
+      "blocking": false,
+      "note": "verification_promotion_engine upgrades sources automatically"
+    },
+    {
+      "step": 6,
+      "action": "Christelle verifies dashboard shows VERIFIED_REVENUE",
+      "owner": "Christelle",
+      "duration": "5 minutes",
+      "blocking": false,
+      "note": "REVENUE TRUTH zone should show verified revenue > 0"
+    }
+  ],
+
+  "success_criteria": {
+    "minimum_viable": [
+      "booking_confirmation event fires in GA4",
+      "service parameter is populated",
+      "booking_value_proxy is populated with real values"
+    ],
+    "full_attribution": [
+      "All minimum viable criteria met",
+      "utm_source and utm_medium are captured",
+      "hook_id is linked via UTM chain",
+      "recommendation_id is linked where applicable",
+      "VERIFIED_REVENUE > 0 in dashboard"
+    ]
+  },
+
+  "if_event_is_not_firing": {
+    "check_1": "Is the /book/confirmed page URL correct? (check GA4 debug view)",
+    "check_2": "Is the gtag script present and loading on the page?",
+    "check_3": "Are there JavaScript errors in the console?",
+    "check_4": "Has GA4 property ID been confirmed correct?",
+    "check_5": "Is the confirmation page URL passing UTM params through?"
+  },
+
+  "honest_note": "Until booking_confirmation fires with real data, all revenue remains MODELLED. The dashboard will show STRONG_PROXY until this event is live. Do not claim VERIFIED_REVENUE until the event is confirmed firing."
+}
