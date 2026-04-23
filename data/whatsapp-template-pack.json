@@ -1,0 +1,89 @@
+{
+  "schema": "https://clawdia.io/agents/whatsapp-template-pack/v1",
+  "generated": "2026-04-23T10:54:50.063Z",
+  "templates": {
+    "greeting": "Hi {{name}}, thanks for reaching out to Swing Shack! How can we help?",
+    "fitting_interest": "That's great — our Full Bag Fitting with TrackMan is a brilliant place to start. Want to book a session this week?",
+    "coaching_interest": "Awesome. Catherine and Dave are our certified instructors — what would you most like to work on?",
+    "membership_info": "Swing Shack membership gives you 4 free practice sessions/month, 15% off coaching and 25% off fittings. Want to know more?",
+    "booking_confirmed": "Perfect — you're booked in. See you at Swing Shack! ⛳",
+    "follow_up_24h": "Hi {{name}}, just checking in — did you want to book that session? We have availability this week.",
+    "closing": "Thanks for chatting with Swing Shack! Come see us soon. ⛳"
+  },
+  "routing_rules": [
+    {
+      "rule_id": "hot-lead-fitting",
+      "name": "Hot Lead — Club Fitting",
+      "trigger": {
+        "source": "instagram",
+        "service": "Full Bag Fitting",
+        "intent_score": 80
+      },
+      "action": "route_whatsapp",
+      "sla_minutes": 60,
+      "message_template": "Hi {{name}}! Great to hear about your interest in our Full Bag Fitting. Can we call you in the next hour? — The Swing Shack team",
+      "escalation": "call_booking_team",
+      "status": "ready",
+      "missing": []
+    },
+    {
+      "rule_id": "hot-lead-coaching",
+      "name": "Hot Lead — Coaching",
+      "trigger": {
+        "source": "instagram",
+        "service": "Coaching",
+        "intent_score": 80
+      },
+      "action": "route_whatsapp",
+      "sla_minutes": 60,
+      "message_template": "Hi {{name}}! Awesome that you're interested in coaching. Our instructors Catherine and Dave have limited slots — want to book a call this week? — The Swing Shack team",
+      "escalation": "call_booking_team",
+      "status": "ready",
+      "missing": []
+    },
+    {
+      "rule_id": "warm-lead-fitting",
+      "name": "Warm Lead — Any Service",
+      "trigger": {
+        "source": "website",
+        "intent_score": 55
+      },
+      "action": "route_callback",
+      "sla_minutes": 240,
+      "message_template": "Hi {{name}}, thanks for reaching out to Swing Shack! We'll call you within 4 hours.",
+      "escalation": "email_followup_4h",
+      "status": "ready",
+      "missing": []
+    },
+    {
+      "rule_id": "cold-lead-nurture",
+      "name": "Cold Lead — Practice/Social",
+      "trigger": {
+        "source": "organic",
+        "intent_score": 15
+      },
+      "action": "route_nurture",
+      "sla_minutes": 1440,
+      "sequence": "cold_nurture_v1",
+      "message_template": "Hi {{name}}, thanks for your interest in Swing Shack! Here's what's popular right now:",
+      "escalation": "email_weekly",
+      "status": "ready",
+      "missing": []
+    },
+    {
+      "rule_id": "membership-enquiry",
+      "name": "Membership Enquiry",
+      "trigger": {
+        "source": "any",
+        "service": "Membership",
+        "intent_score": 60
+      },
+      "action": "route_whatsapp_priority",
+      "sla_minutes": 120,
+      "message_template": "Hi {{name}}, great question about Swing Shack membership! Here's what members get: 4 free practice sessions/month, 15% off coaching, 25% off fittings. Want to chat about which membership fits you?",
+      "escalation": "call_booking_team",
+      "status": "ready",
+      "missing": []
+    }
+  ]
+}

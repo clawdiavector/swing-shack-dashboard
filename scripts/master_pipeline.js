@@ -270,7 +270,6 @@ const STAGES = [
     ]
   },
   {
-  {
     name: 'APIConnections',
     critical: false,
     requiredOutputs: [],
@@ -281,6 +280,19 @@ const STAGES = [
       { name: 'capability_unlock_engine',     script: `node ${BASE}/scripts/run_capability_unlock_engine.js`,     critical: false },
       { name: 'roi_measurement_connector',    script: `node ${BASE}/scripts/run_roi_measurement_connector.js`,    critical: false },
       { name: 'api_gap_prioritiser',          script: `node ${BASE}/scripts/run_api_gap_prioritiser.js`,          critical: false },
+    ]
+  },
+  {
+    name: 'AttributionClosure',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['post-attribution.json', 'booking-closure.json', 'whatsapp-routing-ready.json', 'whatsapp-template-pack.json', 'meta-auth-health.json', 'roi-truth.json'],
+    steps: [
+      { name: 'postiz_attribution_layer',        script: \`node \${BASE}/scripts/run_postiz_attribution_layer.js\`,        critical: false },
+      { name: 'booking_closure_mapper',        script: \`node \${BASE}/scripts/run_booking_closure_mapper.js\`,        critical: false },
+      { name: 'whatsapp_readiness_builder',    script: \`node \${BASE}/scripts/run_whatsapp_readiness_builder.js\`,    critical: false },
+      { name: 'meta_oauth_watchdog',             script: \`node \${BASE}/scripts/run_meta_oauth_watchdog.js\`,             critical: false },
+      { name: 'roi_truth_engine',               script: \`node \${BASE}/scripts/run_roi_truth_engine.js\`,               critical: false },
     ]
   },
     name: 'Compile',

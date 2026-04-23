@@ -738,6 +738,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .roi-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
 .roi-name { font-weight: 700; color: var(--text); }
 .roi-signal { font-size: 0.62rem; text-transform: capitalize; }
+
+/* ATTRIBUTION CHAIN */
+.att-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.att-table { font-size: 0.65rem; }
+.att-head { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.att-row { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.att-hook { font-weight: 700; color: var(--text); }
+.att-svc { color: var(--muted); font-size: 0.6rem; }
+.att-conf { font-size: 0.6rem; }
+
+/* WHATSAPP READY */
+.wa-status-row { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+.wa-api { font-size: 0.8rem; font-weight: 700; }
+.wa-counts { font-size: 0.72rem; color: var(--muted); }
+.wa-table { font-size: 0.65rem; }
+.wa-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.wa-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.wa-name { font-weight: 700; color: var(--text); }
+.wa-tier { font-size: 0.62rem; }
+.wa-sla { font-size: 0.6rem; color: var(--muted); }
+
+/* ROI TRUTH */
+.rt-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; }
+.rt-band { margin-bottom: 10px; }
+.rt-band-label { font-size: 0.65rem; font-weight: 700; margin-bottom: 4px; }
+.rt-items { display: flex; flex-wrap: wrap; gap: 4px; }
+.rt-item { font-size: 0.62rem; background: rgba(255,255,255,0.08); border-radius: 3px; padding: 2px 6px; }
 </style>
 </head>
 <body>
@@ -751,7 +778,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/23, 12:36:48 SAST</span>
+    <span class="summary-value">2026/04/23, 12:59:35 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
@@ -887,7 +914,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   <div class="section">
     <div class="section-header">
       <h2>&#128736 MAKE THE CONTENT</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="mc-grid"><div class="mc-cell mc-cell-captions"><div class="mc-cell-head">&#9997 CAPTIONS</div><div class="mc-cell-body">20 total &middot; <span class="mc-ready">20 ready for QA</span></div></div><div class="mc-cell mc-cell-visuals"><div class="mc-cell-head">&#127916 VISUALS</div><div class="mc-cell-body">20 briefs &middot; <span class="mc-ready">20 ready</span></div></div><div class="mc-cell mc-cell-prompts"><div class="mc-cell-head">&#128172 IMAGE PROMPTS</div><div class="mc-cell-body">20 prompts &middot; Top: &quot;Golf social media post, professional gol&quot;</div></div><div class="mc-cell mc-cell-blogs"><div class="mc-cell-head">&#128221 BLOGS</div><div class="mc-cell-body">8 briefs &middot; 3 drafts &middot; 8 FAQ clusters</div></div><div class="mc-cell mc-cell-reddit"><div class="mc-cell-head">&#129313 REDDIT MOVES</div><div class="mc-cell-body">5 replies &middot; <span class="mc-ready">3 high signal</span></div></div></div><div class="mc-legend">&#9888&#65039; All outputs are <b>draft</b> &mdash; QA review required before publishing</div>
   </div>

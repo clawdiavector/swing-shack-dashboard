@@ -182,6 +182,11 @@ const apiHealth=readJson("integration-health.json")||null;
 const capUnlocks=readJson("capability-unlocks.json")||null;
 const roiCover=readJson("roi-coverage.json")||null;
 const apiGap=readJson("api-gap-priority.json")||null;
+const postAttr=readJson("post-attribution.json")||null;
+const bookClosure=readJson("booking-closure.json")||null;
+const waRouting=readJson("whatsapp-routing-ready.json")||null;
+const metaAuth=readJson("meta-auth-health.json")||null;
+const roiTruth=readJson("roi-truth.json")||null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -389,6 +394,56 @@ if (roiCover && roiCover.roi_map) {
   }).join('');
   roiContent = '<div class="roi-summary">'+meas.length+' measurable &middot; <span class="pub-blocked">'+unmeas.length+' unmeasurable</span></div><div class="roi-section-label">MEASURABLE</div><div class="roi-table">'+measRows+'</div><div class="roi-section-label">UNMEASURABLE</div><div class="roi-table">'+unmeasRows+'</div>';
 }
+
+var attrContent = '<p class="empty">Run postiz_attribution_layer + booking_closure_mapper.</p>';
+if (postAttr && postAttr.summary) {
+  var pa = postAttr;
+  var bc = bookClosure||{};
+  var strongAttr=pa.summary.strong_proxy||0;
+  var totalReach=pa.summary.total_ig_reach||0;
+  var totalSessions=(bc.summary&&bc.summary.total_sessions)||0;
+  var estRevenue=(bc.summary&&bc.summary.estimated_revenue_proxy)||0;
+  var attRows=(pa.utm_map||[]).slice(0,6).map(function(u){
+    var cls=u.attribution_confidence==='STRONG_PROXY'?'pub-ok':u.attribution_confidence==='WEAK_PROXY'?'pub-warn':'pub-blocked';
+    return '<div class="att-row"><div class="att-hook">'+escHtml((u.hook_text||u.post_id||'').substring(0,25))+'</div><div class="att-svc">'+escHtml(u.service||'')+'</div><div class="att-conf"><span class="'+cls+'">'+u.attribution_confidence.replace(/_/g,' ')+'</span></div></div>';
+  }).join('');
+  attrContent = '<div class="att-summary"><span class="pub-ok">'+strongAttr+' STRONG_PROXY</span> posts &middot; '+totalReach+' reach &middot; '+totalSessions+' sessions &middot; R'+estRevenue+' est.</div><div class="att-table"><div class="att-head"><span>Hook</span><span>Service</span><span>Confidence</span></div>'+attRows+'</div>';
+}
+var attrSection = buildSection('&#127919 ATTRIBUTION CHAIN', freshnessBadge(postAttr && postAttr.generated), attrContent);
+
+var waContent = '<p class="empty">Run whatsapp_readiness_builder.</p>';
+if (waRouting) {
+  var wa = waRouting;
+  var readyCount=(wa.routing_rules||[]).filter(function(r){return r.status==='ready';}).length;
+  var tplCount=Object.keys(wa.message_templates||{}).length;
+  var apiOk=wa.readiness&&wa.readiness.api_connected?'CONNECTED':'MISSING';
+  var apiCls=apiOk==='CONNECTED'?'pub-ok':'pub-blocked';
+  var ruleRows=(wa.routing_rules||[]).slice(0,5).map(function(r){
+    var sla=Math.round((r.sla_minutes||0)/60);
+    var tier=r.sla_minutes<=60?'hot':r.sla_minutes<=240?'warm':'cold';
+    var tierCls=tier==='hot'?'pub-blocked':tier==='warm'?'pub-warn':'pub-ok';
+    return '<div class="wa-row"><div class="wa-name">'+escHtml(r.name||'')+'</div><div class="wa-tier"><span class="'+tierCls+'">'+tier.toUpperCase()+'</span></div><div class="wa-sla">'+sla+'h SLA</div></div>';
+  }).join('');
+  waContent = '<div class="wa-status-row"><div class="wa-api"><span class="'+apiCls+'">WA API: '+apiOk+'</span></div><div class="wa-counts">Routes: <span class="pub-ok">'+readyCount+' ready</span> &middot; Templates: <span class="pub-ok">'+tplCount+'</span></div></div><div class="wa-table"><div class="wa-head"><span>Route</span><span>Tier</span><span>SLA</span></div>'+ruleRows+'</div>';
+} else {
+  waContent = '<p class="empty">Run whatsapp_readiness_builder to prepare routing.</p>';
+}
+var waReadySection = buildSection('&#128241 WHATSAPP READY', freshnessBadge(waRouting && waRouting.generated), waContent);
+
+var roiTruthContent = '<p class="empty">Run roi_truth_engine.</p>';
+if (roiTruth && roiTruth.sources) {
+  var rt = roiTruth;
+  var byBand={DIRECT:[],STRONG_PROXY:[],WEAK_PROXY:[],UNMEASURABLE:[]};
+  (rt.sources||[]).forEach(function(s){if(byBand[s.can_measure])byBand[s.can_measure].push(s);});
+  var bands=Object.entries(byBand).filter(function(e){return e[1].length>0;}).map(function(e){
+    var band=e[0],items=e[1];
+    var bandCls=band==='DIRECT'?'pub-green':band==='STRONG_PROXY'?'pub-ok':band==='WEAK_PROXY'?'pub-warn':'pub-blocked';
+    return '<div class="rt-band"><div class="rt-band-label"><span class="'+bandCls+'">'+band.replace(/_/g,' ')+'</span></div><div class="rt-items">'+items.map(function(i){return'<div class="rt-item">'+escHtml(i.name||'')+'</div>';}).join('')+'</div></div>';
+  }).join('');
+  roiTruthContent = '<div class="rt-summary">'+rt.sources.length+' sources &middot; <span class="pub-ok">'+byBand.DIRECT.length+' DIRECT</span> &middot; <span class="pub-blocked">'+byBand.UNMEASURABLE.length+' UNMEASURABLE</span></div>'+bands;
+}
+var roiTruthSection = buildSection('&#128203 ROI TRUTH', freshnessBadge(roiTruth && roiTruth.generated), roiTruthContent);
+
 var roiSection = buildSection('&#128176 ROI COVERAGE', freshnessBadge(roiCover && roiCover.generated), roiContent);
 
 var capCtrlSection = buildSection('&#128736 CAPABILITY CONTROLS', freshnessBadge(liveScorecard && liveScorecard.generated), capCtrlContent);
@@ -2470,6 +2525,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .roi-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
 .roi-name { font-weight: 700; color: var(--text); }
 .roi-signal { font-size: 0.62rem; text-transform: capitalize; }
+
+/* ATTRIBUTION CHAIN */
+.att-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.att-table { font-size: 0.65rem; }
+.att-head { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.att-row { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.att-hook { font-weight: 700; color: var(--text); }
+.att-svc { color: var(--muted); font-size: 0.6rem; }
+.att-conf { font-size: 0.6rem; }
+
+/* WHATSAPP READY */
+.wa-status-row { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+.wa-api { font-size: 0.8rem; font-weight: 700; }
+.wa-counts { font-size: 0.72rem; color: var(--muted); }
+.wa-table { font-size: 0.65rem; }
+.wa-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.wa-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.wa-name { font-weight: 700; color: var(--text); }
+.wa-tier { font-size: 0.62rem; }
+.wa-sla { font-size: 0.6rem; color: var(--muted); }
+
+/* ROI TRUTH */
+.rt-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; }
+.rt-band { margin-bottom: 10px; }
+.rt-band-label { font-size: 0.65rem; font-weight: 700; margin-bottom: 4px; }
+.rt-items { display: flex; flex-wrap: wrap; gap: 4px; }
+.rt-item { font-size: 0.62rem; background: rgba(255,255,255,0.08); border-radius: 3px; padding: 2px 6px; }
 </style>
 </head>
 <body>

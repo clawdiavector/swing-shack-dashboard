@@ -1,0 +1,151 @@
+{
+  "schema": "https://clawdia.io/agents/roi-truth-engine/v1",
+  "generated": "2026-04-23T10:54:50.186Z",
+  "sources": [
+    {
+      "source": "low_risk_publish",
+      "name": "Low-Risk Publishing",
+      "path": "post → Postiz → IG → reach → UTM → GA4 session → booking page → service",
+      "can_measure": "STRONG_PROXY",
+      "current_state": "indirect_only",
+      "gap": "GA4 sessions linked to UTM params, but not to actual bookings. No booking system → GA4 integration.",
+      "needs": "GA4 event on booking confirmation page + UTM source → booking_value mapping",
+      "priority": 2
+    },
+    {
+      "source": "gmb_posting",
+      "name": "GMB Posts",
+      "path": "GMB post → profile visit → direction click → website → booking",
+      "can_measure": "STRONG_PROXY",
+      "current_state": "manual_correlation",
+      "gap": "GMB insights are visible in dashboard. Direction clicks trackable via GA4.",
+      "needs": "GMB API read access + GA4 goal on /contact/booking page",
+      "priority": 3
+    },
+    {
+      "source": "review_thank_you",
+      "name": "Review Thank-Yous",
+      "path": "5★ thank-you → review rating improves → trust → organic discovery → booking",
+      "can_measure": "WEAK_PROXY",
+      "current_state": "not_measured",
+      "gap": "Review rating visible publicly. No causal link to bookings. Long-term brand effect.",
+      "needs": "Google Business Profile API for review analytics + GA4 referral tracking",
+      "priority": 3
+    },
+    {
+      "source": "evergreen_repost",
+      "name": "Evergreen Reposts",
+      "path": "Approved post → scheduled repost → reach → UTM → GA4 → booking",
+      "can_measure": "STRONG_PROXY",
+      "current_state": "same_as_publish",
+      "gap": "Uses same UTM chain as low_risk_publish. Cannot distinguish repost from new post without Postiz analytics.",
+      "needs": "Postiz post-level analytics distinguishing repost vs new",
+      "priority": 3
+    },
+    {
+      "source": "fallback_swap",
+      "name": "Fallback Swaps",
+      "path": "A/B winner hook used → swap applied → same measurement as low_risk_publish",
+      "can_measure": "WEAK_PROXY",
+      "current_state": "weak",
+      "gap": "Fallback swaps are infrequent. A/B winner is confirmed but swap effect is isolated.",
+      "needs": "Hook-level analytics in Postiz — which hook drove which session",
+      "priority": 2
+    },
+    {
+      "source": "lead_routing",
+      "name": "Lead Routing",
+      "path": "WhatsApp message → lead response → booking → revenue",
+      "can_measure": "UNMEASURABLE",
+      "current_state": "not_connected",
+      "gap": "WhatsApp API not connected. lead_router_live is 100% simulated.",
+      "needs": "WhatsApp Business API + CRM → booking system integration",
+      "priority": 1
+    },
+    {
+      "source": "tiny_ad_shift",
+      "name": "Budget Shifts",
+      "path": "Meta Ads spend → reach → click → GA4 → booking",
+      "can_measure": "UNMEASURABLE",
+      "current_state": "not_connected",
+      "gap": "Meta Ads API not connected. Budget shifts are placeholder.",
+      "needs": "Meta Ads API + GA4 goal tracking + ROAS calculation",
+      "priority": 1
+    },
+    {
+      "source": "approval_auto_promote",
+      "name": "Auto-Promote Approved",
+      "path": "Approved → scheduled → published → same as low_risk_publish",
+      "can_measure": "DIRECT",
+      "current_state": "indirect",
+      "gap": "Time from approval to publish is measurable. Publishing quality is same as low_risk_publish.",
+      "needs": "Approval timestamp in Postiz → publish timestamp tracking",
+      "priority": 3
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "direct": 1,
+    "strong_proxy": 3,
+    "weak_proxy": 2,
+    "unmeasurable": 2,
+    "verdict": "Publishing ROI is STRONG_PROXY. Lead and ad ROI is UNMEASURABLE. Only DIRECT comes when GA4 → booking system integrates."
+  },
+  "blockers": {
+    "review_thank_you": "Google Business Profile API for review analytics + GA4 referral tracking",
+    "fallback_swap": "Hook-level analytics in Postiz — which hook drove which session",
+    "lead_routing": "WhatsApp Business API + CRM → booking system integration",
+    "tiny_ad_shift": "Meta Ads API + GA4 goal tracking + ROAS calculation"
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "source": "lead_routing",
+      "name": "Lead Routing",
+      "action": "WhatsApp Business API + CRM → booking system integration",
+      "why": "Cannot prove ROI without this integration"
+    },
+    {
+      "priority": 1,
+      "source": "tiny_ad_shift",
+      "name": "Budget Shifts",
+      "action": "Meta Ads API + GA4 goal tracking + ROAS calculation",
+      "why": "Cannot prove ROI without this integration"
+    },
+    {
+      "priority": 2,
+      "source": "review_thank_you",
+      "name": "Review Thank-Yous",
+      "action": "Google Business Profile API for review analytics + GA4 referral tracking",
+      "why": "Current proxy is weak — improve confidence"
+    },
+    {
+      "priority": 2,
+      "source": "fallback_swap",
+      "name": "Fallback Swaps",
+      "action": "Hook-level analytics in Postiz — which hook drove which session",
+      "why": "Current proxy is weak — improve confidence"
+    },
+    {
+      "priority": 3,
+      "source": "low_risk_publish",
+      "name": "Low-Risk Publishing",
+      "action": "Connect GA4 booking confirmation event",
+      "why": "Would upgrade STRONG_PROXY to DIRECT"
+    },
+    {
+      "priority": 3,
+      "source": "gmb_posting",
+      "name": "GMB Posts",
+      "action": "Connect GA4 booking confirmation event",
+      "why": "Would upgrade STRONG_PROXY to DIRECT"
+    },
+    {
+      "priority": 3,
+      "source": "evergreen_repost",
+      "name": "Evergreen Reposts",
+      "action": "Connect GA4 booking confirmation event",
+      "why": "Would upgrade STRONG_PROXY to DIRECT"
+    }
+  ]
+}

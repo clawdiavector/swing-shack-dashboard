@@ -1,0 +1,104 @@
+{
+  "schema": "https://clawdia.io/agents/booking-closure-mapper/v1",
+  "generated": "2026-04-23T10:54:56.882Z",
+  "summary": {
+    "total_sources": 5,
+    "strong_proxy": 0,
+    "weak_proxy": 0,
+    "unmeasurable": 5,
+    "total_sessions": 1043,
+    "estimated_revenue_proxy": 6437,
+    "honest_note": "Estimated revenue is SESSIONS × 1% conversion × service price. This is a guess. Real booking data requires GA4 → booking system integration."
+  },
+  "closure_map": [
+    {
+      "source": "google",
+      "sessions": 638,
+      "service": "Coaching",
+      "service_intent": "HIGH",
+      "landing_page": "/coaching",
+      "price": 850,
+      "hook_ids": [],
+      "recommendation_ids": [],
+      "attribution_confidence": "UNMEASURABLE",
+      "estimated_booking_proxy": 5423
+    },
+    {
+      "source": "(direct)",
+      "sessions": 225,
+      "service": "Practice Session",
+      "service_intent": "MEDIUM",
+      "landing_page": "/",
+      "price": 250,
+      "hook_ids": [],
+      "recommendation_ids": [],
+      "attribution_confidence": "UNMEASURABLE",
+      "estimated_booking_proxy": 563
+    },
+    {
+      "source": "c.yoco.com",
+      "sessions": 98,
+      "service": "Practice Session",
+      "service_intent": "MEDIUM",
+      "landing_page": "/book",
+      "price": 250,
+      "hook_ids": [],
+      "recommendation_ids": [],
+      "attribution_confidence": "UNMEASURABLE",
+      "estimated_booking_proxy": 245
+    },
+    {
+      "source": "(not set)",
+      "sessions": 53,
+      "service": "Practice Session",
+      "service_intent": "MEDIUM",
+      "landing_page": "/book",
+      "price": 250,
+      "hook_ids": [],
+      "recommendation_ids": [],
+      "attribution_confidence": "UNMEASURABLE",
+      "estimated_booking_proxy": 133
+    },
+    {
+      "source": "bing",
+      "sessions": 29,
+      "service": "Practice Session",
+      "service_intent": "MEDIUM",
+      "landing_page": "/book",
+      "price": 250,
+      "hook_ids": [],
+      "recommendation_ids": [],
+      "attribution_confidence": "UNMEASURABLE",
+      "estimated_booking_proxy": 73
+    }
+  ],
+  "top_posts": [
+    {
+      "reach": 1177,
+      "engagement": "0.93",
+      "hook": ""
+    },
+    {
+      "reach": 786,
+      "engagement": "3.05",
+      "hook": ""
+    },
+    {
+      "reach": 743,
+      "engagement": "3.10",
+      "hook": ""
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Add UTM tracking to all Postiz posts — link to GA4 sessions",
+      "why": "Most sessions are unattributed. Need hook_id in UTM content param."
+    },
+    {
+      "priority": 2,
+      "action": "Connect GA4 → Postiz attribution — link posts to sessions via UTM",
+      "why": "No STRONG_PROXY chain exists. All attribution is WEAK_PROXY or UNMEASURABLE."
+    }
+  ]
+}

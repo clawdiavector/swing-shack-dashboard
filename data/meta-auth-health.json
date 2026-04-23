@@ -1,0 +1,84 @@
+{
+  "schema": "https://clawdia.io/agents/meta-oauth-watchdog/v1",
+  "generated": "2026-04-23T10:54:50.122Z",
+  "mode": "DEGRADED",
+  "tokens": {
+    "meta": {
+      "present": true,
+      "age_hours": 649,
+      "status": "CRITICAL",
+      "api_ok": false,
+      "expires_estimate": "2026-03-28T10:08:00.000Z"
+    },
+    "instagram": {
+      "present": true,
+      "age_hours": 388,
+      "status": "CRITICAL",
+      "api_ok": false,
+      "expires_estimate": "2026-04-08T07:01:00.000Z"
+    }
+  },
+  "alerts": [
+    {
+      "type": "CRITICAL",
+      "api": "Meta Ads",
+      "message": "Token 649h old — expired or near expiry. Budget shifts frozen."
+    },
+    {
+      "type": "CRITICAL",
+      "api": "Instagram",
+      "message": "IG token 388h old — posting may fail."
+    }
+  ],
+  "reconnect_checklist": [
+    {
+      "step": 1,
+      "task": "Generate new User Access Token via Meta Developer Console",
+      "priority": "CRITICAL",
+      "status": "manual"
+    },
+    {
+      "step": 2,
+      "task": "Exchange for Long-Lived Access Token via /oauth/access_token",
+      "priority": "CRITICAL",
+      "status": "manual"
+    },
+    {
+      "step": 3,
+      "task": "Set up server-side OAuth cron to refresh before expiry",
+      "priority": "CRITICAL",
+      "status": "not_started"
+    },
+    {
+      "step": 4,
+      "task": "Replace Basic Display API with Page Access Token for posting",
+      "priority": "HIGH",
+      "status": "not_started"
+    },
+    {
+      "step": 5,
+      "task": "Test auto-refresh via cron",
+      "priority": "HIGH",
+      "status": "not_started"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Set up server-side OAuth with long-lived Page Access Token",
+      "why": "Basic Display tokens expire same day. Need Page Access Token + server refresh cron."
+    },
+    {
+      "priority": 2,
+      "action": "Add daily token health check to morning cron",
+      "why": "Prevents silent decay. Alert if token <24h old."
+    }
+  ],
+  "summary": {
+    "mode": "DEGRADED",
+    "alerts": 2,
+    "critical_alerts": 2,
+    "action_required": "YES",
+    "note": "Token expiry is the root cause of Meta Ads instability. This watchdog monitors but cannot fix the root cause."
+  }
+}

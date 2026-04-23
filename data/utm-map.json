@@ -1,0 +1,16 @@
+{
+  "schema": "https://clawdia.io/agents/utm-map/v1",
+  "generated": "2026-04-23T10:54:49.940Z",
+  "summary": {
+    "total_posts": 20,
+    "posts_with_full_attribution": 0,
+    "posts_with_proxy_attribution": 20
+  },
+  "services": [
+    {
+      "service": "unknown",
+      "count": 20,
+      "reach": 3889
+    }
+  ]
+}
