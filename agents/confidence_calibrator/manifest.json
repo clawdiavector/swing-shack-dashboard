@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "confidence_calibrator",
+  "layer": 9,
+  "role": "Recommendation vs outcome tracking, honest confidence bands. Output: confidence-calibration.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_confidence_calibrator.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust score and mode",
+    "agent-runs.json": "run history"
+  },
+  "outputs": {
+    "confidence-calibration.json": "confidence-calibration.json"
+  }
+}

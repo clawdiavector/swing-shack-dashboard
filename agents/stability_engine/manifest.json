@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "stability_engine",
+  "layer": 9,
+  "role": "7-day reliability streaks, flaky agent detection, milestone tracking. Output: stability-report.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_stability_engine.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust score and mode",
+    "agent-runs.json": "run history"
+  },
+  "outputs": {
+    "stability-report.json": "stability-report.json"
+  }
+}

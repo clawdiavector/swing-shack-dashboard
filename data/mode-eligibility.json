@@ -1,0 +1,98 @@
+{
+  "schema": "https://clawdia.io/agents/mode-promotion-manager/v1",
+  "generated": "2026-04-23T09:29:24.948Z",
+  "current": {
+    "mode": "MINIMAL",
+    "trust": 7.2
+  },
+  "limited_criteria": [
+    {
+      "criterion": "Trust > 8.0",
+      "current": 7.2,
+      "threshold": 8,
+      "met": false,
+      "evidence": "Trust is 7.2"
+    },
+    {
+      "criterion": "Zero critical failures for 7 days",
+      "current": -20559,
+      "threshold": 7,
+      "met": false,
+      "evidence": "0 day streak"
+    },
+    {
+      "criterion": "Postback logging stable",
+      "current": 1,
+      "threshold": 1,
+      "met": true,
+      "evidence": "agent-runs.json logging active"
+    },
+    {
+      "criterion": "QA pass >95%",
+      "current": "77%",
+      "threshold": "95%",
+      "met": false,
+      "evidence": "77% pass rate"
+    },
+    {
+      "criterion": "Trust > 8 for 5 consecutive days",
+      "current": 0,
+      "threshold": 5,
+      "met": false,
+      "evidence": "Days above 8: 0 (needs 5)"
+    }
+  ],
+  "limited_eligible": false,
+  "live_criteria": [
+    {
+      "criterion": "Trust > 9.0",
+      "current": 7.2,
+      "threshold": 9,
+      "met": false,
+      "evidence": "Trust is 7.2"
+    },
+    {
+      "criterion": "Trust > 9 for 10 consecutive days",
+      "current": 0,
+      "threshold": 10,
+      "met": false,
+      "evidence": "Days above 9: 0 (needs 10)"
+    },
+    {
+      "criterion": "Autonomous nudges successful",
+      "current": 1,
+      "threshold": 5,
+      "met": false,
+      "evidence": "1 successful actions"
+    },
+    {
+      "criterion": "Zero rollback incidents",
+      "current": 0,
+      "threshold": 0,
+      "met": true,
+      "evidence": "0 rollbacks today"
+    },
+    {
+      "criterion": "Confidence calibration honest",
+      "current": 1,
+      "threshold": 1,
+      "met": true,
+      "evidence": "confidence_calibrator running"
+    },
+    {
+      "criterion": "Stability milestone history",
+      "current": 0,
+      "threshold": 3,
+      "met": false,
+      "evidence": "0 milestones"
+    }
+  ],
+  "live_eligible": false,
+  "days_in_current_mode": 1,
+  "recommendation": "HOLD — 1/5 LIMITED criteria met. Focus: Trust > 8.0, Zero critical failures for 7 days, QA pass >95%",
+  "summary": {
+    "limited_progress": "1/5",
+    "live_progress": "2/6",
+    "recommendation": "HOLD — 1/5 LIMITED criteria met. Focus: Trust > 8.0, Zero critical failures for 7 days, QA pass >95%"
+  }
+}

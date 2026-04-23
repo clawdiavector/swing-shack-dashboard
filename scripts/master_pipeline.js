@@ -245,6 +245,19 @@ const STAGES = [
       { name: 'lead_router_live',            script: `node ${BASE}/scripts/run_lead_router_live.js`,            critical: false },
       { name: 'reputation_responder',         script: `node ${BASE}/scripts/run_reputation_responder.js`,         critical: false },
     ]
+  {
+    name: 'TrustAcceleration',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['trust-gaps.json', 'stability-report.json', 'confidence-calibration.json', 'mode-eligibility.json', 'rollback-tests.json'],
+    steps: [
+      { name: 'trust_optimizer',            script: `node ${BASE}/scripts/run_trust_optimizer.js`,            critical: false },
+      { name: 'stability_engine',           script: `node ${BASE}/scripts/run_stability_engine.js`,           critical: false },
+      { name: 'confidence_calibrator',     script: `node ${BASE}/scripts/run_confidence_calibrator.js`,     critical: false },
+      { name: 'mode_promotion_manager',     script: `node ${BASE}/scripts/run_mode_promotion_manager.js`,     critical: false },
+      { name: 'rollback_simulator',         script: `node ${BASE}/scripts/run_rollback_simulator.js`,         critical: false },
+    ]
+  },
   },
   {
     name: 'Compile',

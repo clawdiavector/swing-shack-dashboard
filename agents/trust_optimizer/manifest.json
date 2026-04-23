@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "trust_optimizer",
+  "layer": 9,
+  "role": "Identify trust score drags and quickest path to LIMITED/LIVE. Output: trust-gaps.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_trust_optimizer.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust score and mode",
+    "agent-runs.json": "run history"
+  },
+  "outputs": {
+    "trust-gaps.json": "trust-gaps.json"
+  }
+}

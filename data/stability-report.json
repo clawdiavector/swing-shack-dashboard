@@ -1,0 +1,278 @@
+{
+  "schema": "https://clawdia.io/agents/stability-engine/v1",
+  "generated": "2026-04-23T09:28:42.479Z",
+  "summary": {
+    "total_runs": 39,
+    "pass_rate_7d": "77%",
+    "streak_days": 0,
+    "flaky_agents": 3,
+    "stable_agents": 19
+  },
+  "milestones": {},
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Fix flaky agents: pulse_keeper, hook_smith, blog_beast",
+      "why": "Trust drag from intermittent failures"
+    },
+    {
+      "priority": 1,
+      "action": "Improve overall pass rate below 90%",
+      "why": "Critical for mode promotion"
+    },
+    {
+      "priority": 2,
+      "action": "Maintain 7 more clean days for 7-day streak",
+      "why": "Required for LIMITED promotion"
+    },
+    {
+      "priority": 3,
+      "action": "Build milestone history",
+      "why": "Required for LIVE promotion"
+    }
+  ],
+  "per_agent": [
+    {
+      "name": "data_harvester",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "insight_analyst",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "memory_keeper",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "taskmaster",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "content_architect",
+      "passes": 2,
+      "total": 2,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 2,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "cta_analyst",
+      "passes": 2,
+      "total": 2,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 2,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "idea_generator",
+      "passes": 2,
+      "total": 2,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 2,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "nudge_bot",
+      "passes": 2,
+      "total": 2,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 2,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "caption_closer",
+      "passes": 2,
+      "total": 2,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 2,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "visual_forge",
+      "passes": 2,
+      "total": 2,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 2,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "approval_captain",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "brand_guard",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "publisher",
+      "passes": 2,
+      "total": 2,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 2,
+      "last_24h": 2,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "postback_logger",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 1,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "schedule_captain",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 1,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "approval_runner",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 1,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "weekly_reporter",
+      "passes": 1,
+      "total": 1,
+      "fail_rate": 0,
+      "streak_days": 0,
+      "last_48h": 1,
+      "last_24h": 1,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "blog_beast",
+      "passes": 2,
+      "total": 3,
+      "fail_rate": 33,
+      "streak_days": 0,
+      "last_48h": 3,
+      "last_24h": 0,
+      "flaky": true,
+      "status": "flaky"
+    },
+    {
+      "name": "reddit_ghost",
+      "passes": 1,
+      "total": 2,
+      "fail_rate": 50,
+      "streak_days": 0,
+      "last_48h": 2,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "qa_inspector",
+      "passes": 1,
+      "total": 2,
+      "fail_rate": 50,
+      "streak_days": 0,
+      "last_48h": 2,
+      "last_24h": 0,
+      "flaky": false,
+      "status": "stable"
+    },
+    {
+      "name": "pulse_keeper",
+      "passes": 2,
+      "total": 5,
+      "fail_rate": 60,
+      "streak_days": 0,
+      "last_48h": 5,
+      "last_24h": 0,
+      "flaky": true,
+      "status": "flaky"
+    },
+    {
+      "name": "hook_smith",
+      "passes": 0,
+      "total": 3,
+      "fail_rate": 100,
+      "streak_days": 0,
+      "last_48h": 3,
+      "last_24h": 0,
+      "flaky": true,
+      "status": "flaky"
+    }
+  ]
+}

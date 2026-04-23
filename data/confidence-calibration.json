@@ -1,0 +1,71 @@
+{
+  "schema": "https://clawdia.io/agents/confidence-calibrator/v1",
+  "generated": "2026-04-23T09:28:42.521Z",
+  "summary": {
+    "overall_honest": "MEDIUM — some stated confidence too high, needs more outcome data",
+    "slow_scripts": null,
+    "autonomous_success_rate": "8%"
+  },
+  "honest_confidence_bands": [
+    {
+      "category": "hook_performance",
+      "stated": "85%",
+      "actual": "65-75% (low n)",
+      "honest": "70% ±10%",
+      "ok": true
+    },
+    {
+      "category": "fitting_demand",
+      "stated": "high",
+      "actual": "confirmed (IG bookings)",
+      "honest": "HIGH (confirmed)",
+      "ok": true
+    },
+    {
+      "category": "reddit_trending",
+      "stated": "accurate",
+      "actual": "70% match rate",
+      "honest": "MEDIUM (manual check needed)",
+      "ok": false
+    },
+    {
+      "category": "autonomous_actions",
+      "stated": "safe",
+      "actual": "1 of 13 succeeded",
+      "honest": "8% success rate",
+      "ok": false
+    }
+  ],
+  "recommendations_calibration": [
+    {
+      "item": "Full Bag Fitting — push now",
+      "reason": "margin×demand×trend",
+      "calibration": "Accurate — fitting season confirmed",
+      "reliability": "HIGH"
+    },
+    {
+      "item": "Practice Pack upsell",
+      "reason": "40% take rate observed",
+      "calibration": "Needs more data — early signal",
+      "reliability": "MEDIUM"
+    },
+    {
+      "item": "5-star review thank-you",
+      "reason": "confidence 0.95",
+      "calibration": "Appropriate — clear positive",
+      "reliability": "HIGH"
+    },
+    {
+      "item": "Negative reviews blocked",
+      "reason": "hard rule",
+      "calibration": "Correct — never auto-post",
+      "reliability": "HIGH"
+    }
+  ],
+  "outcome_tracking": {
+    "success": 1,
+    "blocked": 9,
+    "failure": 0,
+    "unknown": 3
+  }
+}

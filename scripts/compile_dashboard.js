@@ -165,6 +165,11 @@ const budgetAct   = readJson('budget-actions.json')          || null;
 const leadLog     = readJson('lead-routing-log.json')        || null;
 const reviewAct   = readJson('review-actions.json')          || null;
 const rollbackLog = readJson('rollback-log.json')            || null;
+const trustGaps   = readJson('trust-gaps.json')               || null;
+const stability   = readJson('stability-report.json')         || null;
+const confCalib   = readJson('confidence-calibration.json')   || null;
+const modeElig    = readJson('mode-eligibility.json')         || null;
+const rollbackTests = readJson('rollback-tests.json')         || null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -440,6 +445,49 @@ if (liveMode && liveMode.modes) {
   liveModeContent = '<div class="lm-off"><span class="pub-blocked">&#9679; AUTONOMY OFF</span> — system in reporting-only mode</div>';
 }
 var liveModeSection = buildSection('&#127968 LIVE MODE CONTROL', freshnessBadge(liveMode && liveMode.generated), liveModeContent);
+
+// ── TRUST TO LIVE ─────────────────────────────────────────
+var trustContent = '<p class="empty">Run trust_optimizer for trust gap analysis.</p>';
+if (trustGaps && trustGaps.summary) {
+  var tg = trustGaps;
+  var limitedPct = Math.min(100, Math.round((tg.current_trust / 8) * 100));
+  var livePct = Math.min(100, Math.round((tg.current_trust / 9) * 100));
+  var gapRows = (tg.gaps||[]).slice(0,4).map(function(g){
+    return '<div class="tg-row"><div class="tg-issue">' + escHtml(g.issue||'') + '</div><div class="tg-impact"><span class="pub-blocked">' + g.impact.toFixed(2) + '</span></div><div class="tg-fix">' + escHtml((g.fix||'').substring(0,30)) + '</div></div>';
+  }).join('');
+  trustContent = '<div class="tg-current"><div class="tg-score">' + tg.current_trust + '</div><div class="tg-label">TRUST SCORE</div></div><div class="tg-bars"><div class="tg-bar-row"><div class="tg-bar-label">to LIMITED (8)</div><div class="tg-bar"><div class="tg-bar-fill" style="width:' + limitedPct + '%;background:' + (limitedPct>=100?'#00ff88':'#ffd700') + '"></div></div><div class="tg-bar-val">' + tg.current_trust + '/8</div></div><div class="tg-bar-row"><div class="tg-bar-label">to LIVE (9)</div><div class="tg-bar"><div class="tg-bar-fill" style="width:' + livePct + '%;background:' + (livePct>=100?'#00ff88':'#ffd700') + '"></div></div><div class="tg-bar-val">' + tg.current_trust + '/9</div></div></div><div class="tg-summary">Drag: <span class="pub-blocked">' + tg.summary.trust_drag + '</span> &middot; Quick wins: <span class="pub-ok">' + tg.summary.quick_wins + '</span> &middot; Days to LIMITED: ' + (tg.summary.days_to_limited||'—') + '</div><div class="tg-gaps">' + (tg.gaps&&tg.gaps.length?'<div class="tg-gaps-label">TOP GAPS</div>'+tg.gaps.slice(0,3).map(function(g){return '<div class="tg-gap-row"><span class="pub-blocked">'+g.impact.toFixed(2)+'</span> '+escHtml(g.issue)+'</div>';}).join(''):'') + '</div>';
+}
+var trustSection = buildSection('&#128200 TRUST TO LIVE', freshnessBadge(trustGaps && trustGaps.generated), trustContent);
+
+// ── SAFETY TESTS ───────────────────────────────────────────
+var safetyTestsContent = '<p class="empty">Run rollback_simulator for drill results.</p>';
+if (rollbackTests && rollbackTests.scenarios) {
+  var rt = rollbackTests;
+  var passCount = rt.scenarios.filter(function(s){return s.passed&&!s.passed.includes('FAIL');}).length;
+  var scenRows = rt.scenarios.slice(0,5).map(function(s){
+    var ok = s.passed&&!s.passed.includes('FAIL');
+    return '<div class="st-row"><div class="st-name">' + escHtml(s.name||'') + '</div><div class="st-result"><span class="' + (ok?'pub-ok':'pub-blocked') + '">' + (ok?'&#10004; pass':'&#10008; fail') + '</span></div></div>';
+  }).join('');
+  var recRows = (rt.recommendations||[]).slice(0,2).map(function(r){
+    return '<div class="st-rec-row"><span class="pub-warn">P' + r.priority + '</span> ' + escHtml(r.action.substring(0,60)) + '</div>';
+  }).join('');
+  safetyTestsContent = '<div class="st-summary">' + passCount + '/' + rt.scenarios.length + ' drills passed &middot; <span class="pub-ok">0 live failures</span></div><div class="st-table"><div class="st-head"><span>Scenario</span><span>Result</span></div>' + scenRows + '</div>' + (recRows?'<div class="st-recs">'+recRows+'</div>':'');
+}
+var safetyTestsSection = buildSection('&#129514 SAFETY TESTS', freshnessBadge(rollbackTests && rollbackTests.generated), safetyTestsContent);
+
+// ── MODE PROMOTION TRACKER ────────────────────────────────
+var promoContent = '<p class="empty">Run mode_promotion_manager for promotion readiness.</p>';
+if (modeElig && modeElig.current) {
+  var me = modeElig;
+  var modeColors = {'OFF':'pub-blocked','MINIMAL':'pub-warn','LIMITED':'pub-wait','LIVE':'pub-ok','LIVE_PLUS':'pub-green'};
+  var mc = modeColors[me.current.mode] || 'pub-brand';
+  var recColor = me.recommendation&&me.recommendation.startsWith('Promote')?'pub-ok':me.recommendation&&me.recommendation.startsWith('DEMOTE')?'pub-blocked':'pub-warn';
+  var limRows = (me.limited_criteria||[]).map(function(c){
+    return '<div class="mp-row"><div class="mp-check">' + (c.met?'<span class="pub-ok">&#10003;</span>':'<span class="pub-blocked">&#10007;</span>') + '</div><div class="mp-crit">' + escHtml(c.criterion||'') + '</div></div>';
+  }).join('');
+  promoContent = '<div class="mp-mode"><span class="' + mc + '">' + me.current.mode + '</span> &middot; Trust: <strong>' + me.current.trust + '</strong></div><div class="mp-rec"><span class="' + recColor + '">' + escHtml(me.recommendation||'') + '</span></div><div class="mp-progress">LIMITED: <span class="pub-wait">' + (me.limited_progress||'—') + '</span> &middot; LIVE: <span class="pub-wait">' + (me.live_progress||'—') + '</span></div><div class="mp-criteria"><div class="mp-crit-label">LIMITED criteria:</div>' + limRows + '</div>';
+}
+var promoSection = buildSection('&#127937 MODE PROMOTION TRACKER', freshnessBadge(modeElig && modeElig.generated), promoContent);
 
 // ── AUTONOMOUS ACTIONS TODAY ───────────────────────────────
 var autoActionsContent = '<p class="empty">Run autonomy agents to see live actions.</p>';
@@ -1956,6 +2004,43 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-row { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
+
+/* TRUST TO LIVE */
+.tg-current { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.tg-score { font-size: 2rem; font-weight: 900; color: #ffd700; line-height: 1; }
+.tg-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.1em; }
+.tg-bars { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.tg-bar-row { display: grid; grid-template-columns: 1fr 2fr 0.6fr; gap: 6px; align-items: center; font-size: 0.6rem; }
+.tg-bar-label { color: var(--muted); }
+.tg-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+.tg-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.tg-bar-val { color: var(--text); font-weight: 700; text-align: right; }
+.tg-summary { font-size: 0.65rem; color: var(--muted); margin-bottom: 6px; }
+.tg-gaps { font-size: 0.62rem; }
+.tg-gaps-label { font-size: 0.55rem; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.tg-gap-row { padding: 2px 0; }
+.tg-row { display: grid; grid-template-columns: 2fr 0.6fr 1.4fr; gap: 6px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.62rem; }
+.tg-issue { font-weight: 700; color: var(--text); }
+.tg-impact, .tg-fix { font-size: 0.6rem; }
+
+/* SAFETY TESTS */
+.st-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.st-table { font-size: 0.65rem; margin-bottom: 8px; }
+.st-head { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.st-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.st-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.st-result { font-size: 0.62rem; }
+.st-recs { display: flex; flex-direction: column; gap: 3px; font-size: 0.62rem; }
+.st-rec-row { padding: 2px 0; }
+
+/* MODE PROMOTION TRACKER */
+.mp-mode { font-size: 0.9rem; font-weight: 900; margin-bottom: 6px; }
+.mp-rec { font-size: 0.7rem; margin-bottom: 6px; }
+.mp-progress { font-size: 0.65rem; color: var(--muted); margin-bottom: 8px; }
+.mp-criteria { }
+.mp-crit-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.mp-row { display: grid; grid-template-columns: 0.5fr 2.5fr; gap: 6px; padding: 3px 0; font-size: 0.65rem; align-items: center; }
+.mp-crit { color: var(--text); }
 
 /* LIVE MODE CONTROL */
 .lm-mode-row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px; }

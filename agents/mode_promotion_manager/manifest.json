@@ -1,0 +1,18 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "mode_promotion_manager",
+  "layer": 9,
+  "role": "Evaluate LIMITED/LIVE promotion readiness. Output: mode-eligibility.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_mode_promotion_manager.js"
+  ],
+  "inputs": {
+    "live-mode.json": "trust score and mode",
+    "agent-runs.json": "run history"
+  },
+  "outputs": {
+    "mode-eligibility.json": "mode-eligibility.json"
+  }
+}

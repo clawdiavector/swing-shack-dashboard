@@ -414,6 +414,43 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
 
+/* TRUST TO LIVE */
+.tg-current { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.tg-score { font-size: 2rem; font-weight: 900; color: #ffd700; line-height: 1; }
+.tg-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.1em; }
+.tg-bars { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.tg-bar-row { display: grid; grid-template-columns: 1fr 2fr 0.6fr; gap: 6px; align-items: center; font-size: 0.6rem; }
+.tg-bar-label { color: var(--muted); }
+.tg-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+.tg-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.tg-bar-val { color: var(--text); font-weight: 700; text-align: right; }
+.tg-summary { font-size: 0.65rem; color: var(--muted); margin-bottom: 6px; }
+.tg-gaps { font-size: 0.62rem; }
+.tg-gaps-label { font-size: 0.55rem; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.tg-gap-row { padding: 2px 0; }
+.tg-row { display: grid; grid-template-columns: 2fr 0.6fr 1.4fr; gap: 6px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.62rem; }
+.tg-issue { font-weight: 700; color: var(--text); }
+.tg-impact, .tg-fix { font-size: 0.6rem; }
+
+/* SAFETY TESTS */
+.st-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.st-table { font-size: 0.65rem; margin-bottom: 8px; }
+.st-head { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.st-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.st-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.st-result { font-size: 0.62rem; }
+.st-recs { display: flex; flex-direction: column; gap: 3px; font-size: 0.62rem; }
+.st-rec-row { padding: 2px 0; }
+
+/* MODE PROMOTION TRACKER */
+.mp-mode { font-size: 0.9rem; font-weight: 900; margin-bottom: 6px; }
+.mp-rec { font-size: 0.7rem; margin-bottom: 6px; }
+.mp-progress { font-size: 0.65rem; color: var(--muted); margin-bottom: 8px; }
+.mp-criteria { }
+.mp-crit-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.mp-row { display: grid; grid-template-columns: 0.5fr 2.5fr; gap: 6px; padding: 3px 0; font-size: 0.65rem; align-items: center; }
+.mp-crit { color: var(--text); }
+
 /* LIVE MODE CONTROL */
 .lm-mode-row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px; }
 .lm-current-mode { font-size: 1.2rem; font-weight: 900; }
@@ -639,7 +676,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/23, 11:22:52 SAST</span>
+    <span class="summary-value">2026/04/23, 11:31:12 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
