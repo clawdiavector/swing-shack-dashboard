@@ -1356,6 +1356,28 @@
       "score": 85,
       "suggested_comment": "Data accelerates improvement - book a session.",
       "comment_tone": "direct"
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Launch Monitors",
+      "url": "https://www.reddit.com/r/golf/comments/1k0vgij/launch_monitors/",
+      "content_preview": "Bought launch monitor, regret not buying sooner - improvement in 3 uses",
+      "location_signal": "global",
+      "opportunity_type": "launch_monitor",
+      "score": 75,
+      "comment_suggestion": "Data accelerates improvement - book a session to try."
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Best Indoor LM for Game Improvement",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1h2be2i/best_indoor_launch_monitor_for_game_improvement/",
+      "content_preview": "Budgeted for garage simulator - 75% improvement vs 25% recreation",
+      "location_signal": "global",
+      "opportunity_type": "simulator_improvement",
+      "score": 80,
+      "comment_suggestion": "Indoor practice with data accelerates improvement."
     }
   ],
   "summary": {
@@ -1366,8 +1388,8 @@
       "Launch Monitor interest - general SA interest in data-driven golf improvement"
     ]
   },
-  "scan_date": "2026-04-22",
-  "scan_time": "12:08 SAST",
-  "next_scan": "2026-04-22T18:00 SAST",
-  "total_opportunities": 97
+  "scan_date": "2026-04-23",
+  "scan_time": "06:09 SAST",
+  "next_scan": "2026-04-23T12:00 SAST",
+  "total_opportunities": 99
 }
