@@ -493,7 +493,67 @@
       "tags": ["club-switch", "upgrade", "budget", "fitting"]
     }
   ],
+    {
+      "id": "reddit-2026-04-23-1",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1sswtpt/putting_launch_monitor_solutions_reverse/",
+      "title": "Putting Launch Monitor Solutions & Reverse Engineering the Vertex Golf sensor",
+      "subreddit": "r/Golfsimulator",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-23",
+      "datePosted": "2026-04-23",
+      "comment": "'GCQuad always gave questionable numbers with putting data so after some research I bought the Vertex Golf putting sensor.' - Community validating what we already know: TrackMan iO handles putting better. That's our differentiator.",
+      "tags": ["putting", "launch-monitor", "GCQuad", "vertex", "trackman", "data", "simulator"]
+    },
+    {
+      "id": "reddit-2026-04-23-2",
+      "url": "https://www.reddit.com/r/golftips/comments/1st2v5d/how_does_one_actually_get_better_at_golf/",
+      "title": "How does one actually get better at golf?",
+      "subreddit": "r/golftips",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-23",
+      "datePosted": "2026-04-23",
+      "comment": "'You don't just hit balls, I've seen guys who play other sports and transfer over and beat guys who are taking lesson.' - Practice with intention beats mindless reps. We do this with data. Book a session.",
+      "tags": ["practice", "improvement", "intention", "lessons", "data", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-23-3",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1sslq1n/bad_golf_club_or_comes_down_to_personalized/",
+      "title": "Bad golf club? or comes down to personalized performance and feel?",
+      "subreddit": "r/GolfGear",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-23",
+      "datePosted": "2026-04-22",
+      "comment": "'There's this trend on golf subs of telling people the clubs won't make them better, lessons will. That is only half true.' - Exactly the debate we leverage. Clubs matter, but fitting is the missing link. Book them in.",
+      "tags": ["equipment", "fitting", "lessons", "improvement", "debate"]
+    },
+    {
+      "id": "reddit-2026-04-23-4",
+      "url": "https://www.reddit.com/r/golf/comments/1ssvjrk/do_you_think_a_short_hitter_can_be_top_5_on_pga/",
+      "title": "Do you think a short hitter can be top 5 on PGA Tour and legit major contender?",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-23",
+      "datePosted": "2026-04-22",
+      "comment": "Distance conversation hot again. 'Consistency beats distance' - we've been saying this. Data proves it. Book a TrackMan session and show them what's actually happening.",
+      "tags": ["distance", "PGA", "consistency", "tour", "data", "trackman"]
+    },
+    {
+      "id": "reddit-2026-04-23-5",
+      "url": "https://www.reddit.com/r/golftips/comments/1ssepew/new_golfer_tall_should_i_invest_in_fitted_clubs/",
+      "title": "New golfer (tall) — should I invest in fitted clubs before I even know if I like it?",
+      "subreddit": "r/golftips",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-23",
+      "datePosted": "2026-04-22",
+      "comment": "Tall beginner asking the right question. 'Ideally used, for cost efficiency. That's all you need. Just focus on a repeatable swing.' - Good advice but missing: we can fit them NOW and they don't have to buy clubs. Book the session.",
+      "tags": ["tall", "beginner", "fitting", "new-golfer", "invest", "conversion"]
+    }
+  ],
   "last_updated": "2026-04-23",
-  "scan_time": "2026-04-23T04:00Z",
-  "scan_note": "April 23 2026 - 6AM SAST scan. Added 5 new opportunities. Push to GitHub."
-}
+  "scan_time": "2026-04-23T10:00Z",
+  "scan_note": "April 23 2026 - 12PM SAST scan. Reddit blocked by Cloudflare - used web search to find recent posts. Found 5 fresh opportunities from search results."}
