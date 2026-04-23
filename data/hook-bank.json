@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-22T07:06:10.082Z",
+  "updated": "2026-04-23T05:08:19.591Z",
   "total_hooks": 69,
   "cross_signal_sources": {
     "ig_weight": "60%",
@@ -254,6 +254,31 @@
     ],
     "proven_only": [
       {
+        "hook_text": "Fujimoto available at Swing Shack. ",
+        "hook_id": "fujimoto-available-at-swing-shack--",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.6,
+        "youtube_topic_match": [
+          "swing"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "5 Powerful Tips to Unleash Your Senior Driver Swing",
+          "4 Simple Steps For The Perfect Golf Drive"
+        ],
+        "engagementRate": "6.45",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 31,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_only",
+        "post_id": "18083236283620848"
+      },
+      {
         "hook_text": "Go to your coaching sessions. Your ball deserves better 🫂",
         "hook_id": "go-to-your-coaching-sessions--your-ball-deserves-b",
         "ig_proof_score": 10,
@@ -413,10 +438,10 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "3.50",
+        "engagementRate": "3.77",
         "saveRate": "0.00",
         "shareRate": "0.30",
-        "reach": 657,
+        "reach": 664,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -467,26 +492,6 @@
         "formula_type": "general",
         "signal_bucket": "proven_only",
         "post_id": "18098296201915090"
-      },
-      {
-        "hook_text": "Here’s to a New Year and Good Golf! 🥂😉",
-        "hook_id": "here-s-to-a-new-year-and-good-golf------",
-        "ig_proof_score": 10,
-        "youtube_alignment_score": 0,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 6,
-        "youtube_topic_match": [],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [],
-        "engagementRate": "3.26",
-        "saveRate": "0.00",
-        "shareRate": "0.38",
-        "reach": 522,
-        "topic_cluster": "coaching",
-        "format_type": "static",
-        "formula_type": "general",
-        "signal_bucket": "proven_only",
-        "post_id": "18067732487399015"
       }
     ],
     "trending_to_test": [
@@ -569,28 +574,7 @@
         "post_id": "18028233410743325"
       }
     ],
-    "retire": [
-      {
-        "hook_text": "Built to preform. ",
-        "hook_id": "built-to-preform--",
-        "ig_proof_score": 0.23,
-        "youtube_alignment_score": 0,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 0.1,
-        "youtube_topic_match": [],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [],
-        "engagementRate": "0.00",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 23,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "general",
-        "signal_bucket": "retire",
-        "post_id": "18119221723645535"
-      }
-    ]
+    "retire": []
   },
   "watched_and_worked": [
     {
@@ -738,13 +722,13 @@
       "formula": "stat-demand",
       "count": 24,
       "best_example": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
-      "avg_cross_score": "4.8"
+      "avg_cross_score": "4.9"
     },
     {
       "formula": "general",
       "count": 37,
       "best_example": "Lowest net score wins a *new custom fitted driver!*",
-      "avg_cross_score": "4.2"
+      "avg_cross_score": "4.4"
     }
   ],
   "ab_winners": [
