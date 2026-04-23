@@ -1389,7 +1389,7 @@
     ]
   },
   "scan_date": "2026-04-23",
-  "scan_time": "07:06 SAST",
-  "next_scan": "2026-04-23T12:00 SAST",
+  "scan_time": "12:05 SAST",
+  "next_scan": "2026-04-23T18:00 SAST",
   "total_opportunities": 99
 }
