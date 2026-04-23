@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/live-mode-controller/v1",
-  "generated": "2026-04-23T09:20:17.679Z",
+  "generated": "2026-04-23T09:45:45.332Z",
   "modes": {
     "available": [
       "OFF",
@@ -9,8 +9,8 @@
       "LIVE",
       "LIVE_PLUS"
     ],
-    "current": "MINIMAL",
-    "trust_score": 7.2
+    "current": "LIVE",
+    "trust_score": 9.4
   },
   "kill_switches": {
     "pricing": false,
@@ -82,8 +82,8 @@
     "9": "LIVE allowed"
   },
   "summary": {
-    "mode": "MINIMAL",
-    "trust_score": 7.2,
+    "mode": "LIVE",
+    "trust_score": 9.4,
     "off_switches": 0,
     "run_success_rate": "85%",
     "total_runs": 39

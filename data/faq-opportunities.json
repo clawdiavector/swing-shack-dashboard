@@ -1,13 +1,13 @@
 {
   "schema": "https://clawdia.io/agents/blog-beast/v1",
-  "generated": "2026-04-22T08:51:13.892Z",
+  "generated": "2026-04-23T09:37:27.915Z",
   "total": 8,
   "ready_for_qa": 8,
   "faqs": [
     {
-      "faq_id": "faq-ut3lxl0a",
+      "faq_id": "faq-u2q6m4lz",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": "TrackMan Golf Technology",
       "target_keyword": "trackman golf",
       "questions": [
@@ -22,9 +22,9 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-2k6omdnf",
+      "faq_id": "faq-35vnmba8",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": "TrackMan Golf Technology",
       "target_keyword": "trackman golf",
       "questions": [
@@ -39,9 +39,9 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-nr9nuh3c",
+      "faq_id": "faq-c84pguwg",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": "TrackMan Golf Technology",
       "target_keyword": "trackman golf",
       "questions": [
@@ -56,10 +56,10 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-2g197tht",
+      "faq_id": "faq-2rzwu1bi",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
-      "cluster": "Golf Club Fitting",
+      "generated": "2026-04-23T09:37:27.915Z",
+      "cluster": "Golf Coaching & Lessons",
       "target_keyword": "/checkout/",
       "questions": [
         "What is /checkout/?",
@@ -73,9 +73,9 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-3qiykh63",
+      "faq_id": "faq-6p9ucxwk",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": "Practice & Warm-up",
       "target_keyword": "/club-fitting/",
       "questions": [
@@ -90,10 +90,10 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-mh4nfxxz",
+      "faq_id": "faq-cllkpvdb",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
-      "cluster": "Golf Coaching & Lessons",
+      "generated": "2026-04-23T09:37:27.915Z",
+      "cluster": "Practice & Warm-up",
       "target_keyword": "/",
       "questions": [
         "What is /?",
@@ -107,9 +107,9 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-sebnmb0t",
+      "faq_id": "faq-bw0h9l79",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": "TrackMan Golf Technology",
       "target_keyword": "trackman golf",
       "questions": [
@@ -124,9 +124,9 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-cbo1itvn",
+      "faq_id": "faq-hmeof3o2",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": "Indoor Golf Johannesburg",
       "target_keyword": "indoor golf johannesburg",
       "questions": [

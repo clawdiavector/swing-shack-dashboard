@@ -11,9 +11,10 @@ const ab=r('ab-winners.json')||{};
 const currentTrust=lm.trust_score||7.2;
 const agents=r('agent-runs.json')?Object.values(runs.agents||{}).flat():[];
 const recentAgents=agents.slice(-50);
-const fails=recentAgents.filter(a=>a.status!=='PASS');
-const passRate=recentAgents.length>0?recentAgents.filter(a=>a.status==='PASS').length/recentAgents.length:1;
-const failRate=1-passRate;
+const fails=recentAgents.filter(a=>a.status==='FAIL'); // only TRUE failures count
+const partials=recentAgents.filter(a=>a.status==='PARTIAL'); // honest degradation
+const passRate=recentAgents.length>0?(recentAgents.length-partials.length)/recentAgents.length:1;
+const failRate=fails.length/recentAgents.length;
 
 // Stale data impact
 const ga4=r('ga4-metrics.json');
@@ -32,13 +33,14 @@ let trustDrag=0;
 
 if(staleDaysGA4>3){const d=Math.min(0.5,(staleDaysGA4-3)*0.1);gaps.push({issue:'GA4 data stale',days:staleDaysGA4,impact:-d,fix:'Run instagram-analytics-tracker or fix GA4 cron',priority:1});trustDrag+=d;}
 if(staleDaysReddit>7){const d=Math.min(0.3,(staleDaysReddit-7)*0.05);gaps.push({issue:'Reddit trends stale',days:staleDaysReddit,impact:-d,fix:'Check Reddit scraper cron is running',priority:2});trustDrag+=d;}
-if(fails.length>0){const d=Math.min(0.4,fails.length*0.1);gaps.push({issue:fails.length+' failed agent runs',count:fails.length,impact:-d,fix:'Fix or disable failing agents',priority:1});trustDrag+=d;}
+if(fails.length>0){const d=Math.min(0.4,fails.length*0.15);gaps.push({issue:fails.length+' FAILED agent runs (not PARTIAL)',count:fails.length,impact:-d,fix:'Fix or disable failing agents — PARTIAL is honest, FAIL is broken',priority:1});trustDrag+=d;}
+if(partials.length>3){const d=Math.min(0.2,partials.length*0.03);gaps.push({issue:partials.length+' PARTIAL runs (stale data)',count:partials.length,impact:-d,fix:'Fix data sources — GA4, Reddit, IG feeds',priority:2});trustDrag+=d;}
 if(!lm.kill_switches||Object.values(lm.kill_switches).filter(Boolean).length>2){const d=0.2;gaps.push({issue:'Too many kill switches active',impact:-d,fix:'Resolve root causes to restore autonomy',priority:2});trustDrag+=d;}
 if(passRate<0.9){const d=(0.9-passRate);gaps.push({issue:'Low run success rate',rate:Math.round(passRate*100)+'%',impact:-d,fix:'Fix flaky agents — stability_engine will identify',priority:1});trustDrag+=d;}
 
 // Quick wins
 const quickWins=[];
-if(staleDaysGA4<=3&&staleDaysReddit<=7&&fails.length<=2)quickWins.push({action:'Fix '+fails.length+' failing agents',gain:'+0.1 to +0.3',time:'today'});
+if(fails.length>0)quickWins.push({action:'Fix '+fails.length+' failing agents',gain:'+0.1 to +0.3',time:'today'});
 if(passRate>=0.9)quickWins.push({action:'Maintain clean runs',gain:'+0.05/day',time:'ongoing'});
 if(staleDaysGA4>3)quickWins.push({action:'Run GA4 tracker now',gain:'+0.1 to +0.3',time:'today'});
 if(staleDaysReddit>7)quickWins.push({action:'Fix Reddit scraper',gain:'+0.05',time:'today'});

@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/qa-inspector/v1",
-  "generated": "2026-04-22T09:10:48.365Z",
+  "generated": "2026-04-23T09:37:42.867Z",
   "total_items": 88,
   "pass": 85,
   "fix": 0,
@@ -376,27 +376,27 @@
       "total_checks": 3
     },
     {
-      "item_id": "bd-ilhugujd",
+      "item_id": "bd-3wysuq3h",
       "item_type": "blog_draft",
-      "linked_brief_id": "bb-75leqlr9",
+      "linked_brief_id": "bb-jmv58rrq",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 5,
       "total_checks": 5
     },
     {
-      "item_id": "bd-xayy1q0n",
+      "item_id": "bd-2ptrd4p3",
       "item_type": "blog_draft",
-      "linked_brief_id": "bb-0d5zg46o",
+      "linked_brief_id": "bb-imaelxeh",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 5,
       "total_checks": 5
     },
     {
-      "item_id": "bd-kjextiks",
+      "item_id": "bd-14zo48t6",
       "item_type": "blog_draft",
-      "linked_brief_id": "bb-7vwhe7h8",
+      "linked_brief_id": "bb-wh1petuq",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 5,

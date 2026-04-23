@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "failure_pattern_detector",
+  "layer": 9,
+  "role": "Detect failure patterns from last 30 runs \u2014 time-of-day, repeat failures, error types. Output: failure-patterns.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_failure_pattern_detector.js"
+  ],
+  "inputs": {
+    "agent-runs.json": "run history"
+  },
+  "outputs": {
+    "failure-patterns.json": "failure-patterns.json"
+  }
+}

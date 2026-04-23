@@ -1,0 +1,17 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "self_heal_engine",
+  "layer": 9,
+  "role": "Safe auto-recovery actions \u2014 retry transients, rebuild missing files, use last known good. Never hide failures. Output: self-heal-actions.json",
+  "criticality": "HIGH",
+  "owner": "clawdia",
+  "scripts": [
+    "run_self_heal_engine.js"
+  ],
+  "inputs": {
+    "agent-runs.json": "run history"
+  },
+  "outputs": {
+    "self-heal-actions.json": "self-heal-actions.json"
+  }
+}

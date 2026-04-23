@@ -1,0 +1,164 @@
+{
+  "schema": "https://clawdia.io/agents/failure-pattern-detector/v1",
+  "generated": "2026-04-23T09:45:45.495Z",
+  "summary": {
+    "total_runs": 39,
+    "fails": 0,
+    "partials": 9,
+    "repeat_fail_agents": [],
+    "worst_time_window": {
+      "window": "afternoon",
+      "fail_rate": "0%"
+    }
+  },
+  "patterns": {
+    "by_time": {
+      "afternoon": {
+        "total": 1,
+        "fails": 0,
+        "partials": 0
+      },
+      "morning": {
+        "total": 38,
+        "fails": 0,
+        "partials": 9
+      }
+    },
+    "by_agent_fail": {},
+    "by_agent_partial": {
+      "qa_inspector": 1,
+      "reddit_ghost": 1,
+      "blog_beast": 1,
+      "hook_smith": 3,
+      "pulse_keeper": 3
+    },
+    "error_types": {
+      "partial": 9
+    },
+    "sequences": {
+      "weekly_reporter → publisher": {
+        "count": 1,
+        "fails": 0
+      },
+      "publisher → approval_runner": {
+        "count": 1,
+        "fails": 0
+      },
+      "approval_runner → schedule_captain": {
+        "count": 1,
+        "fails": 0
+      },
+      "schedule_captain → postback_logger": {
+        "count": 1,
+        "fails": 0
+      },
+      "postback_logger → publisher": {
+        "count": 1,
+        "fails": 0
+      },
+      "publisher → brand_guard": {
+        "count": 1,
+        "fails": 0
+      },
+      "brand_guard → approval_captain": {
+        "count": 1,
+        "fails": 0
+      },
+      "approval_captain → qa_inspector": {
+        "count": 1,
+        "fails": 0
+      },
+      "qa_inspector → qa_inspector": {
+        "count": 1,
+        "fails": 0
+      },
+      "qa_inspector → reddit_ghost": {
+        "count": 1,
+        "fails": 0
+      },
+      "reddit_ghost → blog_beast": {
+        "count": 2,
+        "fails": 0
+      },
+      "blog_beast → visual_forge": {
+        "count": 2,
+        "fails": 0
+      },
+      "visual_forge → caption_closer": {
+        "count": 2,
+        "fails": 0
+      },
+      "caption_closer → reddit_ghost": {
+        "count": 1,
+        "fails": 0
+      },
+      "blog_beast → blog_beast": {
+        "count": 1,
+        "fails": 0
+      },
+      "caption_closer → nudge_bot": {
+        "count": 1,
+        "fails": 0
+      },
+      "nudge_bot → idea_generator": {
+        "count": 2,
+        "fails": 0
+      },
+      "idea_generator → hook_smith": {
+        "count": 2,
+        "fails": 0
+      },
+      "hook_smith → cta_analyst": {
+        "count": 2,
+        "fails": 0
+      },
+      "cta_analyst → content_architect": {
+        "count": 2,
+        "fails": 0
+      },
+      "content_architect → hook_smith": {
+        "count": 1,
+        "fails": 0
+      },
+      "hook_smith → nudge_bot": {
+        "count": 1,
+        "fails": 0
+      },
+      "content_architect → taskmaster": {
+        "count": 1,
+        "fails": 0
+      },
+      "taskmaster → pulse_keeper": {
+        "count": 1,
+        "fails": 0
+      },
+      "pulse_keeper → memory_keeper": {
+        "count": 1,
+        "fails": 0
+      },
+      "memory_keeper → insight_analyst": {
+        "count": 1,
+        "fails": 0
+      },
+      "insight_analyst → data_harvester": {
+        "count": 1,
+        "fails": 0
+      },
+      "data_harvester → pulse_keeper": {
+        "count": 1,
+        "fails": 0
+      },
+      "pulse_keeper → pulse_keeper": {
+        "count": 3,
+        "fails": 0
+      }
+    }
+  },
+  "recommendations": [
+    {
+      "priority": 2,
+      "action": "Improve data source freshness — 9 PARTIAL from stale feeds",
+      "why": "Stale feeds cause honest PARTIAL, not FAIL"
+    }
+  ]
+}

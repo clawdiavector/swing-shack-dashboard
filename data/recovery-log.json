@@ -1,0 +1,28 @@
+{
+  "heals": [
+    {
+      "id": "heal-mobam7p8coib",
+      "agent": "reddit_ghost",
+      "type": "use_last_known",
+      "what": "Retain previous good output for reddit_ghost — current is degraded",
+      "status": "applied",
+      "timestamp": "2026-04-23T09:42:26.683Z",
+      "rule": "PARTIAL on non-critical agent = keep last known good"
+    },
+    {
+      "id": "heal-mobaqh4w3sfe",
+      "agent": "reddit_ghost",
+      "type": "use_last_known",
+      "what": "Retain previous good output for reddit_ghost — current is degraded",
+      "status": "applied",
+      "timestamp": "2026-04-23T09:45:45.536Z",
+      "rule": "PARTIAL on non-critical agent = keep last known good"
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "applied": 2,
+    "blocked": 0
+  },
+  "updated": "2026-04-23T09:45:45.536Z"
+}

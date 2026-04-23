@@ -1,13 +1,13 @@
 {
   "schema": "https://clawdia.io/agents/output-schema/v1",
   "agent_id": "pulse_keeper",
-  "generated": "2026-04-22T06:33:04.499Z",
+  "generated": "2026-04-23T09:37:15.392Z",
   "status": "PARTIAL",
   "data_status": "FRESH",
   "confidence": 8,
   "priority": "HIGH",
   "owner": "pulse_keeper",
-  "next_action": "Investigate: Memory Castle Keeper(5.5)",
+  "next_action": "Investigate: Data Harvester(5.5), Insight Analyst(5.7), Taskmaster(5.3), Nudge Bot(5.2), CTA Analyst(5.8), Content Architect(5.8), Memory Castle Keeper(5.5), Task Router(5.8)",
   "notes": [],
   "qa_warnings": [],
   "scoring_rule": "No agent scores 10 until 14+ days history + no critical failures. Max 9.5 for agents with <14 days.",
@@ -16,208 +16,225 @@
       "agent_id": "pulse_keeper",
       "name": "Pulse Keeper",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
-      "freshness_score": 6.7,
+      "freshness_score": 3.3,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
-      "contribution_score": 7.5,
-      "overall_score": 7.5,
-      "trend": "stable",
+      "bug_rate_score": 6.7,
+      "contribution_score": 5,
+      "overall_score": 6.4,
+      "trend": "declining",
       "notes": [
-        "1/14 days"
+        "1/14 days",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "data_harvester",
       "name": "Data Harvester",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
-      "freshness_score": 8,
+      "freshness_score": 2,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
-      "contribution_score": 8.2,
-      "overall_score": 7.8,
-      "trend": "stable",
+      "bug_rate_score": 6.7,
+      "contribution_score": 0.9,
+      "overall_score": 5.5,
+      "trend": "declining",
       "notes": [
         "1/14 days",
-        "GA4 risk — SYSTEM HEALTH"
+        "GA4 risk — SYSTEM HEALTH",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "insight_analyst",
       "name": "Insight Analyst",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
-      "freshness_score": 10,
+      "freshness_score": 2.5,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
-      "contribution_score": 10,
-      "overall_score": 8.5,
-      "trend": "stable",
+      "bug_rate_score": 6.7,
+      "contribution_score": 1.1,
+      "overall_score": 5.7,
+      "trend": "declining",
       "notes": [
-        "1/14 days"
+        "1/14 days",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "hook_smith",
       "name": "Hook Smith",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 10,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
-      "contribution_score": 10,
-      "overall_score": 8.5,
-      "trend": "stable",
+      "bug_rate_score": 6.7,
+      "contribution_score": 5,
+      "overall_score": 7.8,
+      "trend": "declining",
       "notes": [
-        "1/14 days"
+        "1/14 days",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "taskmaster",
       "name": "Taskmaster",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
-      "freshness_score": 10,
+      "freshness_score": 0.8,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
-      "contribution_score": 10,
-      "overall_score": 8.5,
-      "trend": "stable",
+      "bug_rate_score": 6.7,
+      "contribution_score": 0.8,
+      "overall_score": 5.3,
+      "trend": "declining",
       "notes": [
-        "1/14 days"
+        "1/14 days",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "nudge_bot",
       "name": "Nudge Bot",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
-      "freshness_score": 10,
+      "freshness_score": 0,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
-      "contribution_score": 10,
-      "overall_score": 8.5,
-      "trend": "stable",
+      "bug_rate_score": 6.7,
+      "contribution_score": 1.4,
+      "overall_score": 5.2,
+      "trend": "declining",
       "notes": [
-        "1/14 days"
+        "1/14 days",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "idea_generator",
       "name": "Idea Generator",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
-      "freshness_score": 10,
+      "freshness_score": 6.7,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
-      "contribution_score": 10,
-      "overall_score": 8.5,
-      "trend": "stable",
+      "bug_rate_score": 6.7,
+      "contribution_score": 2.5,
+      "overall_score": 6.7,
+      "trend": "declining",
       "notes": [
-        "1/14 days"
+        "1/14 days",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "cta_analyst",
       "name": "CTA Analyst",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
-      "freshness_score": 10,
+      "freshness_score": 0,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
-      "contribution_score": 10,
-      "overall_score": 8.5,
-      "trend": "stable",
+      "bug_rate_score": 6.7,
+      "contribution_score": 5,
+      "overall_score": 5.8,
+      "trend": "declining",
       "notes": [
-        "1/14 days"
+        "1/14 days",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "content_architect",
       "name": "Content Architect",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
-      "freshness_score": 10,
+      "freshness_score": 0,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
-      "contribution_score": 10,
-      "overall_score": 8.5,
-      "trend": "stable",
+      "bug_rate_score": 6.7,
+      "contribution_score": 5,
+      "overall_score": 5.8,
+      "trend": "declining",
       "notes": [
-        "1/14 days"
+        "1/14 days",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "memory_keeper",
       "name": "Memory Castle Keeper",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
       "freshness_score": 0,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
+      "bug_rate_score": 6.7,
       "contribution_score": 3.3,
       "overall_score": 5.5,
       "trend": "stable",
       "notes": [
         "1/14 days"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     },
     {
       "agent_id": "route_task",
       "name": "Task Router",
       "first_seen": "2026-04-22",
-      "runs": 12,
+      "runs": 13,
       "days_history": 1,
       "reliability_score": 10,
-      "freshness_score": 10,
+      "freshness_score": 0,
       "usefulness_score": 5,
-      "bug_rate_score": 6.6,
+      "bug_rate_score": 6.7,
       "contribution_score": 5,
-      "overall_score": 7.7,
-      "trend": "stable",
+      "overall_score": 5.8,
+      "trend": "declining",
       "notes": [
-        "1/14 days"
+        "1/14 days",
+        "Trending down"
       ],
-      "last_updated": "2026-04-22"
+      "last_updated": "2026-04-23"
     }
   ],
   "summary": {
     "total_agents": 11,
-    "avg_score": 8,
-    "top_performer": "insight_analyst",
+    "avg_score": 6,
+    "top_performer": "hook_smith",
     "needs_attention": [
-      "memory_keeper"
+      "data_harvester",
+      "insight_analyst",
+      "taskmaster",
+      "nudge_bot",
+      "cta_analyst",
+      "content_architect",
+      "memory_keeper",
+      "route_task"
     ],
     "new_agents": [
       "pulse_keeper",

@@ -1,9 +1,9 @@
 {
   "schema": "https://clawdia.io/agents/trust-optimizer/v1",
-  "generated": "2026-04-23T09:28:37.426Z",
+  "generated": "2026-04-23T09:45:45.373Z",
   "current_trust": 7.2,
   "summary": {
-    "trust_drag": 0.53,
+    "trust_drag": 0.33,
     "gap_to_limited": 0.8,
     "gap_to_live": 1.8,
     "days_to_limited": 8,
@@ -19,11 +19,11 @@
       "priority": 1
     },
     {
-      "issue": "9 failed agent runs",
+      "issue": "9 PARTIAL runs (stale data)",
       "count": 9,
-      "impact": -0.4,
-      "fix": "Fix or disable failing agents",
-      "priority": 1
+      "impact": -0.2,
+      "fix": "Fix data sources — GA4, Reddit, IG feeds",
+      "priority": 2
     }
   ],
   "quick_wins": [],

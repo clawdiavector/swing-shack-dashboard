@@ -170,6 +170,8 @@ const stability   = readJson('stability-report.json')         || null;
 const confCalib   = readJson('confidence-calibration.json')   || null;
 const modeElig    = readJson('mode-eligibility.json')         || null;
 const rollbackTests = readJson('rollback-tests.json')         || null;
+const failPatterns = readJson('failure-patterns.json')       || null;
+const selfHeal    = readJson('self-heal-actions.json')         || null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -488,6 +490,44 @@ if (modeElig && modeElig.current) {
   promoContent = '<div class="mp-mode"><span class="' + mc + '">' + me.current.mode + '</span> &middot; Trust: <strong>' + me.current.trust + '</strong></div><div class="mp-rec"><span class="' + recColor + '">' + escHtml(me.recommendation||'') + '</span></div><div class="mp-progress">LIMITED: <span class="pub-wait">' + (me.limited_progress||'—') + '</span> &middot; LIVE: <span class="pub-wait">' + (me.live_progress||'—') + '</span></div><div class="mp-criteria"><div class="mp-crit-label">LIMITED criteria:</div>' + limRows + '</div>';
 }
 var promoSection = buildSection('&#127937 MODE PROMOTION TRACKER', freshnessBadge(modeElig && modeElig.generated), promoContent);
+
+// ── FIX TRUST NOW ──────────────────────────────────────────
+var fixTrustContent = '<p class="empty">Run trust_optimizer + stability_engine.</p>';
+if (trustGaps && stability) {
+  var tg = trustGaps;
+  var st = stability;
+  var recoverable = tg.gaps ? tg.gaps.slice(0,3).map(function(g){
+    return '<div class="ft-row"><div class="ft-issue">' + escHtml(g.issue||'') + '</div><div class="ft-imp"><span class="pub-blocked">' + g.impact.toFixed(2) + '</span></div></div>';
+  }).join('') : '';
+  fixTrustContent = '<div class="ft-summary">Trust: <strong>' + (tg.current_trust||'?') + '</strong> &middot; Drag: <span class="pub-blocked">' + (tg.summary?.trust_drag||0) + '</span> &middot; <span class="pub-ok">' + (st.summary?.pass_rate_7d||'100%') + ' pass rate</span></div>' + (st.summary?.flaky_agents>0?'<div class="ft-flaky"><span class="pub-blocked">&#9888; '+st.summary.flaky_agents+' flaky agents</span></div>':'') + '<div class="ft-gaps">' + recoverable + '</div>';
+}
+var fixTrustSection = buildSection('&#128736 FIX TRUST NOW', freshnessBadge(trustGaps && trustGaps.generated), fixTrustContent);
+
+// ── FAILURE PATTERNS ─────────────────────────────────────
+var failPatContent = '<p class="empty">Run failure_pattern_detector.</p>';
+if (failPatterns && failPatterns.patterns) {
+  var fp = failPatterns;
+  var etRows = Object.entries(fp.patterns.error_types||{}).slice(0,5).map(function(e){
+    return '<div class="fp-row"><div class="fp-type">' + escHtml(e[0]) + '</div><div class="fp-count">' + e[1] + '</div></div>';
+  }).join('');
+  var worstTime = fp.summary.worst_time_window ? fp.summary.worst_time_window.window + ' (' + fp.summary.worst_time_window.fail_rate + ')' : 'none';
+  failPatContent = '<div class="fp-summary">' + fp.summary.total_runs + ' runs &middot; <span class="pub-blocked">' + fp.summary.fails + ' fails</span> &middot; <span class="pub-warn">' + fp.summary.partials + ' partial</span></div><div class="fp-section-label">Error types:</div><div class="fp-table"><div class="fp-head"><span>Type</span><span>Count</span></div>' + etRows + '</div><div class="fp-worst">Worst window: <strong>' + worstTime + '</strong></div>';
+}
+var failPatSection = buildSection('&#128293 FAILURE PATTERNS', freshnessBadge(failPatterns && failPatterns.generated), failPatContent);
+
+// ── SELF-HEAL ACTIONS ────────────────────────────────────
+var selfHealContent = '<p class="empty">Run self_heal_engine.</p>';
+if (selfHeal) {
+  var sh = selfHeal;
+  var allowedList = (sh.allowed_actions||[]).map(function(a){return '<span class="fp-tag">'+escHtml(a)+'</span>';}).join(' ');
+  var healRows = (sh.this_run||[]).slice(0,5).map(function(h){
+    var icon = h.status==='applied'?'&#10003;':'&#10007;';
+    var cls = h.status==='applied'?'pub-ok':'pub-blocked';
+    return '<div class="sh-row"><div class="sh-icon"><span class="'+cls+'">'+icon+'</span></div><div class="sh-type">' + escHtml(h.type||'') + '</div><div class="sh-agent">' + escHtml(h.agent||'') + '</div></div>';
+  }).join('');
+  selfHealContent = '<div class="sh-summary"><span class="pub-ok">' + (sh.heals_applied||0) + ' applied</span> &middot; <span class="pub-blocked">' + (sh.heals_blocked||0) + ' blocked</span> &middot; Recovery rate: ' + (sh.summary?.recovery_rate||'n/a') + '</div><div class="sh-allowed"><div class="sh-label">Allowed heal types:</div>' + allowedList + '</div><div class="sh-table"><div class="sh-head"><span></span><span>Type</span><span>Agent</span></div>' + healRows + '</div>';
+}
+var selfHealSection = buildSection('&#129504 SELF-HEAL ACTIONS', freshnessBadge(selfHeal && selfHeal.generated), selfHealContent);
 
 // ── AUTONOMOUS ACTIONS TODAY ───────────────────────────────
 var autoActionsContent = '<p class="empty">Run autonomy agents to see live actions.</p>';
@@ -2054,6 +2094,35 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .lm-perms { font-size: 0.62rem; color: var(--muted); margin-top: 4px; }
 .lm-perms-label { color: var(--text); font-weight: 600; }
 .lm-off { font-size: 0.8rem; }
+
+/* FIX TRUST NOW */
+.ft-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.ft-flaky { font-size: 0.7rem; margin-bottom: 6px; }
+.ft-gaps { font-size: 0.65rem; }
+.ft-row { display: grid; grid-template-columns: 2fr 0.6fr; gap: 6px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.ft-issue { font-weight: 700; color: var(--text); }
+.ft-imp { font-size: 0.62rem; }
+
+/* FAILURE PATTERNS */
+.fp-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.fp-section-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.fp-table { font-size: 0.65rem; margin-bottom: 8px; }
+.fp-head { display: grid; grid-template-columns: 2fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.fp-row { display: grid; grid-template-columns: 2fr 0.8fr; gap: 6px; padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.65rem; }
+.fp-type { text-transform: capitalize; color: var(--text); }
+.fp-count { font-weight: 700; }
+.fp-worst { font-size: 0.65rem; color: var(--muted); }
+.fp-tag { display: inline-block; font-size: 0.6rem; background: rgba(255,255,255,0.08); border-radius: 3px; padding: 1px 5px; margin: 1px; }
+
+/* SELF-HEAL ACTIONS */
+.sh-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.sh-allowed { margin-bottom: 8px; }
+.sh-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.sh-table { font-size: 0.65rem; }
+.sh-head { display: grid; grid-template-columns: 0.5fr 1.5fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.sh-row { display: grid; grid-template-columns: 0.5fr 1.5fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.sh-type, .sh-agent { font-size: 0.62rem; }
+.sh-agent { color: var(--muted); }
 
 /* AUTONOMOUS ACTIONS TODAY */
 .aa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }

@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/blog-beast/v1",
-  "generated": "2026-04-22T08:51:13.892Z",
+  "generated": "2026-04-23T09:37:27.915Z",
   "total": 8,
   "by_intent": {
     "informational": 8,
@@ -14,9 +14,9 @@
   "ready_for_qa": 8,
   "briefs": [
     {
-      "brief_id": "bb-75leqlr9",
+      "brief_id": "bb-jmv58rrq",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.891Z",
+      "generated": "2026-04-23T09:37:27.914Z",
       "cluster": {
         "cluster": "TrackMan Golf Technology",
         "keywords": [
@@ -55,9 +55,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-0d5zg46o",
+      "brief_id": "bb-imaelxeh",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": {
         "cluster": "TrackMan Golf Technology",
         "keywords": [
@@ -96,9 +96,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-7vwhe7h8",
+      "brief_id": "bb-wh1petuq",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": {
         "cluster": "TrackMan Golf Technology",
         "keywords": [
@@ -137,25 +137,24 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-hk625w1y",
+      "brief_id": "bb-cr0b6rq4",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": {
-        "cluster": "Golf Club Fitting",
+        "cluster": "Golf Coaching & Lessons",
         "keywords": [
-          "club fitting johannesburg",
-          "trackman fitting",
-          "driver fitting",
-          "iron fitting",
-          "custom golf clubs"
+          "golf lessons johannesburg",
+          "golf coach sandton",
+          "tpi assessment",
+          "golf improvement"
         ],
-        "angle": "Trust + data. How TrackMan fitting works, what it costs, what you get, why it beats guesswork."
+        "angle": "Transformation story. Before/after numbers, certified coaches, real feedback."
       },
       "target_keyword": "/checkout/",
       "secondary_keywords": [
-        "club fitting johannesburg",
-        "trackman fitting",
-        "driver fitting"
+        "golf lessons johannesburg",
+        "golf coach sandton",
+        "tpi assessment"
       ],
       "search_intent": "informational",
       "word_count_target": 1800,
@@ -169,7 +168,7 @@
         "CTA (book session)"
       ],
       "h1_suggestion": "/checkout/: What You Need to Know",
-      "seo_notes": "Target: /checkout/. Intent: informational. Include Trust + data. How TrackMan fitting works, what it .",
+      "seo_notes": "Target: /checkout/. Intent: informational. Include Transformation story. Before/after numbers, certif.",
       "conversion_goal": "email_signup",
       "status": "draft",
       "confidence": 70,
@@ -178,9 +177,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-1elshrwz",
+      "brief_id": "bb-al5840ri",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": {
         "cluster": "Practice & Warm-up",
         "keywords": [
@@ -218,24 +217,24 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-u5ohmiah",
+      "brief_id": "bb-8h1v853p",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": {
-        "cluster": "Golf Coaching & Lessons",
+        "cluster": "Practice & Warm-up",
         "keywords": [
-          "golf lessons johannesburg",
-          "golf coach sandton",
-          "tpi assessment",
-          "golf improvement"
+          "golf practice indoor",
+          "golf warm up simulator",
+          "indoor range",
+          "golf bucket"
         ],
-        "angle": "Transformation story. Before/after numbers, certified coaches, real feedback."
+        "angle": "Convenience + preparation. How indoor practice fits into a real golf improvement program."
       },
       "target_keyword": "/",
       "secondary_keywords": [
-        "golf lessons johannesburg",
-        "golf coach sandton",
-        "tpi assessment"
+        "golf practice indoor",
+        "golf warm up simulator",
+        "indoor range"
       ],
       "search_intent": "informational",
       "word_count_target": 1800,
@@ -249,7 +248,7 @@
         "CTA (book session)"
       ],
       "h1_suggestion": "/: What You Need to Know",
-      "seo_notes": "Target: /. Intent: informational. Include Transformation story. Before/after numbers, certif.",
+      "seo_notes": "Target: /. Intent: informational. Include Convenience + preparation. How indoor practice fit.",
       "conversion_goal": "email_signup",
       "status": "draft",
       "confidence": 70,
@@ -258,9 +257,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-peomtcwe",
+      "brief_id": "bb-82ddty83",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": {
         "cluster": "TrackMan Golf Technology",
         "keywords": [
@@ -299,9 +298,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-1szohh06",
+      "brief_id": "bb-vfg48mvh",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-22T08:51:13.892Z",
+      "generated": "2026-04-23T09:37:27.915Z",
       "cluster": {
         "cluster": "Indoor Golf Johannesburg",
         "keywords": [

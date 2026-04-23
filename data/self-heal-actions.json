@@ -1,0 +1,100 @@
+{
+  "schema": "https://clawdia.io/agents/self-heal-engine/v1",
+  "generated": "2026-04-23T09:45:45.536Z",
+  "allowed_actions": [
+    "retry_transient",
+    "rebuild_missing",
+    "use_last_known",
+    "clear_temp",
+    "log_and_continue"
+  ],
+  "blocked_actions": [
+    "hide_failure",
+    "delete_critical",
+    "skip_validation",
+    "force_success"
+  ],
+  "heals_this_run": 5,
+  "heals_applied": 1,
+  "heals_blocked": 4,
+  "this_run": [
+    {
+      "id": "heal-mobaqh4w3sfe",
+      "agent": "reddit_ghost",
+      "type": "use_last_known",
+      "what": "Retain previous good output for reddit_ghost — current is degraded",
+      "status": "applied",
+      "timestamp": "2026-04-23T09:45:45.536Z",
+      "rule": "PARTIAL on non-critical agent = keep last known good"
+    },
+    {
+      "id": "heal-mobaqh4wahgv",
+      "agent": "system",
+      "type": "hide_failure",
+      "what": "BLOCKED — hide_failure",
+      "status": "blocked",
+      "reason": "Never allowed. Would hide real failures.",
+      "timestamp": "2026-04-23T09:45:45.536Z"
+    },
+    {
+      "id": "heal-mobaqh4w7qvx",
+      "agent": "system",
+      "type": "delete_critical",
+      "what": "BLOCKED — delete_critical",
+      "status": "blocked",
+      "reason": "Never allowed. Would hide real failures.",
+      "timestamp": "2026-04-23T09:45:45.536Z"
+    },
+    {
+      "id": "heal-mobaqh4w5tht",
+      "agent": "system",
+      "type": "skip_validation",
+      "what": "BLOCKED — skip_validation",
+      "status": "blocked",
+      "reason": "Never allowed. Would hide real failures.",
+      "timestamp": "2026-04-23T09:45:45.536Z"
+    },
+    {
+      "id": "heal-mobaqh4w1j9k",
+      "agent": "system",
+      "type": "force_success",
+      "what": "BLOCKED — force_success",
+      "status": "blocked",
+      "reason": "Never allowed. Would hide real failures.",
+      "timestamp": "2026-04-23T09:45:45.536Z"
+    }
+  ],
+  "recovery_log": {
+    "heals": [
+      {
+        "id": "heal-mobam7p8coib",
+        "agent": "reddit_ghost",
+        "type": "use_last_known",
+        "what": "Retain previous good output for reddit_ghost — current is degraded",
+        "status": "applied",
+        "timestamp": "2026-04-23T09:42:26.683Z",
+        "rule": "PARTIAL on non-critical agent = keep last known good"
+      },
+      {
+        "id": "heal-mobaqh4w3sfe",
+        "agent": "reddit_ghost",
+        "type": "use_last_known",
+        "what": "Retain previous good output for reddit_ghost — current is degraded",
+        "status": "applied",
+        "timestamp": "2026-04-23T09:45:45.536Z",
+        "rule": "PARTIAL on non-critical agent = keep last known good"
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "applied": 2,
+      "blocked": 0
+    },
+    "updated": "2026-04-23T09:45:45.536Z"
+  },
+  "summary": {
+    "total_heals_ever": 2,
+    "recovery_rate": "100%",
+    "no_hidden_failures": true
+  }
+}

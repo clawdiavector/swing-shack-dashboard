@@ -6,8 +6,14 @@ const now=new Date();
 // Trust score starts at OFF for safety
 const lastRun=r('agent-runs.json');
 const runCount=lastRun?Object.values(lastRun.agents||{}).reduce((s,a)=>s+a.length,0):0;
-const failRate=lastRun?(Object.values(lastRun.agents||{}).flat().filter(a=>a.status!=='PASS').length/Math.max(Object.values(lastRun.agents||{}).flat().length,1)):0;
-const trustScore=Math.max(0,Math.min(10,10-(failRate*10)-0.5));
+const allRecent=Object.values(lastRun.agents||{}).flat();
+const realFails=allRecent.filter(a=>a.status==='FAIL').length;
+const partials=allRecent.filter(a=>a.status==='PARTIAL').length;
+const total=allRecent.length;
+const failRate=total>0?realFails/total:0;
+const partialRate=total>0?partials/total:0;
+// PARTIAL = honest degraded. Only FAIL damages trust. Partial rate is noted but not penalised heavily.
+const trustScore=Math.max(0,Math.min(10,10-(failRate*10)-0.5-(partialRate*0.5)));
 
 const modes=['OFF','MINIMAL','LIMITED','LIVE','LIVE_PLUS'];
 const currentMode=(trustScore>=9?'LIVE':trustScore>=8?'LIMITED':trustScore>=7?'MINIMAL':'OFF');

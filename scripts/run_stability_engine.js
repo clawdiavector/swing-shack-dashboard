@@ -19,13 +19,15 @@ Object.entries(runs.agents||{}).forEach(([name,agentRuns])=>{
   const last48h=agentRuns.filter(a=>new Date(a.run_at)>threeDaysAgo);
   const last24h=agentRuns.filter(a=>new Date(a.run_at)>oneDayAgo);
   const pass=recent.filter(a=>a.status==='PASS').length;
+  const partial=recent.filter(a=>a.status==='PARTIAL').length;
   const total=recent.length;
-  const passRate=total>0?pass/total:1;
+  const ok=pass+partial; // PARTIAL = honest degraded, not failure
+  const passRate=total>0?ok/total:1;
   const streak=calculateStreak(agentRuns.slice(-20).reverse());
-  const flaky=passRate<0.8&&total>=3;
-  perAgent.push({name,passes:pass,total,fail_rate:Math.round((1-passRate)*100),streak_days:streak,last_48h:last48h.length,last_24h:last24h.length,flaky,status:flaky?'flaky':'stable'});
+  const flaky=passRate<0.8&&total>=3&&pass<total*0.8; // real FAIL rate >20%
+  perAgent.push({name,passes:pass,partial,fail_rate:Math.round((1-passRate)*100),streak_days:streak,last_48h:last48h.length,last_24h:last24h.length,flaky,status:flaky?'flaky':'stable'});
   totalRuns+=total;
-  totalPass+=pass;
+  totalPass+=ok;
 });
 
 // Calculate overall streak

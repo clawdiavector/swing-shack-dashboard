@@ -260,6 +260,16 @@ const STAGES = [
   },
   },
   {
+    name: 'ReliabilityStrike',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['failure-patterns.json', 'self-heal-actions.json'],
+    steps: [
+      { name: 'failure_pattern_detector',  script: `node ${BASE}/scripts/run_failure_pattern_detector.js`,  critical: false },
+      { name: 'self_heal_engine',           script: `node ${BASE}/scripts/run_self_heal_engine.js`,           critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],
