@@ -220,6 +220,19 @@ const STAGES = [
     ]
   },
   {
+    name: 'ProductCommerce',
+    critical: false,
+    requiredOutputs: [],
+    optionalOutputs: ['product-priority.json', 'upsell-opportunities.json', 'merchandising-board.json', 'inventory-signals.json', 'offer-margin-checks.json'],
+    steps: [
+      { name: 'product_priority_engine',    script: `node ${BASE}/scripts/run_product_priority_engine.js`,    critical: false },
+      { name: 'upsell_builder',            script: `node ${BASE}/scripts/run_upsell_builder.js`,            critical: false },
+      { name: 'merchandising_engine',      script: `node ${BASE}/scripts/run_merchandising_engine.js`,      critical: false },
+      { name: 'inventory_signal_engine',    script: `node ${BASE}/scripts/run_inventory_signal_engine.js`,    critical: false },
+      { name: 'offer_margin_guard',         script: `node ${BASE}/scripts/run_offer_margin_guard.js`,         critical: false },
+    ]
+  },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

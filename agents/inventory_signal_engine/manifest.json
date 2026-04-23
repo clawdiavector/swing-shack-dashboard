@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "inventory_signal_engine",
+  "layer": 8,
+  "role": "Low stock, dead stock, high demand signals. Manual/placeholder mode. Output: inventory-signals.json",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_inventory_signal_engine.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "inventory-signals.json": "inventory-signals.json"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "merchandising_engine",
+  "layer": 8,
+  "role": "Product placement logic across hero/counter/stories/email. Output: merchandising-board.json",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_merchandising_engine.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "merchandising-board.json": "merchandising-board.json"
+  }
+}

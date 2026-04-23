@@ -1,0 +1,94 @@
+{
+  "schema": "https://clawdia.io/agents/offer-margin-guard/v1",
+  "generated": "2026-04-23T09:05:42.994Z",
+  "rules": {
+    "min_margin_percent": 45,
+    "principle": "value_add_over_discounting"
+  },
+  "blocked_offers": [
+    {
+      "offer": "30% off fittings",
+      "reason": "Desperation pricing. fittings are high-trust purchases. Discount signals low quality.",
+      "alternatives": [
+        "Free sleeve of fitting balls",
+        "Priority fitting slot",
+        "Loft & lie check free with booking"
+      ]
+    },
+    {
+      "offer": "50% off coaching",
+      "reason": "Coaching margin supports instructors. Halving price devalues the product and staff.",
+      "alternatives": [
+        "Free TPI assessment with 3-lesson package",
+        "Add a friend free (2-for-1 study)"
+      ]
+    },
+    {
+      "offer": "Buy 1 get 1 free",
+      "reason": "Two-for-one on simulator time is operationally loss-making. Not viable.",
+      "alternatives": [
+        "Practice Pack: 5 sessions for price of 4",
+        "Bring a friend — their session free, yours at normal price"
+      ]
+    },
+    {
+      "offer": "First session free",
+      "reason": "Free sessions train bad behaviour. Members who pay full price show up and value the coaching more.",
+      "alternatives": [
+        "R250 first session — add a R250 Practice Pack credit",
+        "Intro offer: TPI assessment R1,000 instead of R1,250 — first-timer only"
+      ]
+    },
+    {
+      "offer": "Seasonal sale / Black Friday",
+      "reason": "Golf services are not fashion. Discounting signals urgency desperation. SA market reads through it.",
+      "alternatives": [
+        "Mid-year membership drive — \"Commit to the season\"",
+        "End-of-year function packages for corporates"
+      ]
+    }
+  ],
+  "safe_offers": [
+    {
+      "offer": "Practice Pack (5 for price of 4)",
+      "saving": "R250 (20%)",
+      "margin_remaining": 0.6,
+      "approved": true,
+      "type": "volume_incentive",
+      "reason": "Members who practice more get better results. 5-pack builds habit without discounting the single session price."
+    },
+    {
+      "offer": "Fitting + Lesson bundle",
+      "saving": "R350 (11%)",
+      "margin_remaining": 0.7,
+      "approved": true,
+      "type": "value_add",
+      "reason": "Natural pairing. Fitting data makes lessons immediately actionable. Both margin-healthy."
+    },
+    {
+      "offer": "Free fitting ball sleeve with first booking",
+      "saving": "R80 value",
+      "margin_remaining": 0.75,
+      "approved": true,
+      "type": "value_add",
+      "reason": "Cost to Swing Shack ~R80 wholesale. Perceived value high. Converts hesitant first-timers."
+    },
+    {
+      "offer": "Junior bundle (3 lessons + practice)",
+      "saving": "R250 (11%)",
+      "margin_remaining": 0.58,
+      "approved": true,
+      "type": "volume_incentive",
+      "reason": "Parents respond to structured offers. Margin still healthy at 58%. Seasonal only."
+    }
+  ],
+  "margin_check": {
+    "approved": true,
+    "reason": "Margin 55% — above floor. Approved."
+  },
+  "summary": {
+    "blocked": 5,
+    "safe_approved": 4,
+    "principle": "Never discount margin below 45%. Always prefer value-add over price cuts."
+  }
+}

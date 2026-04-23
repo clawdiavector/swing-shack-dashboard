@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "product_priority_engine",
+  "layer": 8,
+  "role": "Score services/products by margin\u00d7demand\u00d7seasonality\u00d7trend. Output: product-priority.json",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_product_priority_engine.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "product-priority.json": "product-priority.json"
+  }
+}

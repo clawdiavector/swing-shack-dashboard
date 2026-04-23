@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "offer_margin_guard",
+  "layer": 8,
+  "role": "Block stupid promos. Margin-aware offer checks. Value-add alternatives. Output: offer-margin-checks.json",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_offer_margin_guard.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "offer-margin-checks.json": "offer-margin-checks.json"
+  }
+}

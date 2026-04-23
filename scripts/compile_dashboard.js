@@ -154,6 +154,11 @@ const marketGaps   = readJson('market-gaps.json')              || null;
 const sovEngine    = readJson('share-of-voice.json')           || null;
 const counterMoves = readJson('counter-moves.json')             || null;
 const reviewDom    = readJson('review-domination.json')          || null;
+const prodPriority = readJson('product-priority.json')            || null;
+const upsellOps    = readJson('upsell-opportunities.json')         || null;
+const merchBoard   = readJson('merchandising-board.json')         || null;
+const invSignals   = readJson('inventory-signals.json')           || null;
+const marginGuard  = readJson('offer-margin-checks.json')          || null;
 const autonomyRules = readJson('autonomy-rules.json')     || null;
 const autoSwaps    = readJson('auto-swaps.json')         || null;
 const autoApprov   = readJson('auto-approval-actions.json') || null;
@@ -367,6 +372,54 @@ if (reviewDom && reviewDom.summary) {
   reviewContent = '<div class="rb-ours"><div class="rb-our-label">OURS</div><div class="rb-our-score">' + rd.summary.our_score + ' &#9733;</div><div class="rb-our-reviews">' + rd.summary.our_review_count + ' reviews</div><div class="rb-our-adv">' + ourAdv.map(function(a){return '<div class="rb-adv-item">'+escHtml(a)+'</div>';}).join('') + '</div></div><div class="rb-comp-table"><div class="rb-head"><span>Competitor</span><span>Score</span><span>Reviews</span><span>Response</span></div>' + compRows + '</div>';
 }
 var reviewSection = buildSection('&#11088 REVIEW BATTLEFIELD', freshnessBadge(reviewDom && reviewDom.generated), reviewContent);
+
+// ── WHAT TO SELL NOW ────────────────────────────────────────
+var sellNowContent = '<p class="empty">Run product_priority_engine to see this week\'s priority products.</p>';
+if (prodPriority && prodPriority.products && prodPriority.products.length > 0) {
+  var prodRows = prodPriority.products.slice(0,5).map(function(p){
+    var conf = {'high':'pub-ok','medium':'pub-wait','low':'pub-warn'}[p.confidence] || 'pub-brand';
+    return '<div class="sn-row"><div class="sn-name">' + escHtml(p.name||'') + '</div><div class="sn-score">' + p.score + '</div><div class="sn-push">' + escHtml(p.push||'') + '</div><div class="sn-conf"><span class="' + conf + '">' + p.confidence + '</span></div></div>';
+  }).join('');
+  sellNowContent = '<div class="sn-summary">Top: <strong>' + escHtml(prodPriority.summary.top_product||'') + '</strong> [' + prodPriority.summary.top_score + '] &middot; <span class="pub-ok">' + (prodPriority.summary.high_confidence||0) + ' high confidence</span></div><div class="sn-table"><div class="sn-head"><span>Product</span><span>Score</span><span>Push</span><span>Confidence</span></div>' + prodRows + '</div>';
+}
+var sellNowSection = buildSection('&#128722 WHAT TO SELL NOW', freshnessBadge(prodPriority && prodPriority.generated), sellNowContent);
+
+// ── EASY UPSELLS ────────────────────────────────────────────
+var upsellContent = '<p class="empty">Run upsell_builder to see upsell opportunities.</p>';
+if (upsellOps && upsellOps.upsells && upsellOps.upsells.length > 0) {
+  var upRows = upsellOps.upsells.slice(0,5).map(function(u){
+    var topA = u.addons.sort(function(a,b){return b.take_rate-a.take_rate;})[0];
+    return '<div class="up-row"><div class="up-trigger">' + escHtml(u.trigger||'') + '</div><div class="up-primary">' + escHtml(u.primary||'') + '</div><div class="up-addon">' + escHtml((topA?topA.name+' ('+Math.round(topA.take_rate*100)+'%)':''),true) + '</div></div>';
+  }).join('');
+  upsellContent = '<div class="up-summary">' + upsellOps.upsells.length + ' triggers &middot; ' + upsellOps.upsells.reduce(function(s,u){return s+u.addons.length;},0) + ' add-ons</div><div class="up-table"><div class="up-head"><span>Trigger</span><span>Primary</span><span>Top Add-on</span></div>' + upRows + '</div>';
+}
+var upsellSection = buildSection('&#8679; EASY UPSELLS', freshnessBadge(upsellOps && upsellOps.generated), upsellContent);
+
+// ── STOCK & OFFERS ─────────────────────────────────────────
+var stockContent = '<p class="empty">Run inventory_signal_engine + offer_margin_guard.</p>';
+var allGood = true;
+var stockItems = [];
+var offerItems = [];
+if (invSignals && invSignals.signals) {
+  invSignals.signals.forEach(function(s){
+    var urg = {'high':'pub-blocked','medium':'pub-warn','low':'pub-ok'}[s.urgency] || 'pub-brand';
+    stockItems.push('<div class="st-row"><div class="st-item">' + escHtml(s.item||'') + '</div><div class="st-type">' + escHtml(s.type||'').replace(/_/g,' ') + '</div><div class="st-urg"><span class="' + urg + '">' + s.urgency + '</span></div></div>');
+  });
+}
+if (marginGuard && marginGuard.blocked_offers) {
+  marginGuard.blocked_offers.forEach(function(o){
+    allGood = false;
+  });
+}
+var safeOffers = (marginGuard && marginGuard.safe_offers) ? marginGuard.safe_offers.slice(0,3) : [];
+var safeRows = safeOffers.map(function(o){
+  return '<div class="st-safe-row"><div class="st-safe-name">' + escHtml(o.offer||'') + '</div><div class="st-safe-margin">' + o.margin_remaining*100 + '% margin</div></div>';
+}).join('');
+var blockedRows = (marginGuard && marginGuard.blocked_offers) ? marginGuard.blocked_offers.slice(0,3).map(function(o){
+  return '<div class="st-blocked-row"><div class="st-blocked-name">' + escHtml(o.offer||'') + '</div><div class="st-blocked-reason">' + escHtml((o.reason||'').substring(0,50)) + '</div></div>';
+}).join('') : '';
+stockContent = '<div class="st-section"><div class="st-section-label">&#128280 INVENTORY SIGNALS</div>' + (stockItems.length ? '<div class="st-table"><div class="st-head"><span>Item</span><span>Type</span><span>Urgency</span></div>' + stockItems.join('') + '</div>' : '<div class="empty">No live inventory data</div>') + '</div><div class="st-section"><div class="st-section-label">&#128230 SAFE OFFERS</div><div class="st-table">' + safeRows + '</div></div><div class="st-section"><div class="st-section-label">&#128293 BLOCKED BAD PROMOS</div><div class="st-table">' + blockedRows + '</div></div>';
+var stockSection = buildSection('&#128230 STOCK & OFFERS', freshnessBadge((invSignals||marginGuard) && (invSignals||{}).generated || (marginGuard||{}).generated), stockContent);
 
 // ── CAPTURE MORE LEADS ────────────────────────────────────────
 var capLeadsContent = '<p class="empty">Run lead_capture_optimizer to see lead capture fixes.</p>';
@@ -1841,6 +1894,37 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-row { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
+
+/* WHAT TO SELL NOW */
+.sn-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.sn-table { font-size: 0.65rem; }
+.sn-head { display: grid; grid-template-columns: 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.sn-row { display: grid; grid-template-columns: 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.sn-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.sn-score { font-weight: 900; color: #ffd700; font-size: 0.7rem; }
+.sn-push, .sn-conf { font-size: 0.62rem; }
+
+/* EASY UPSELLS */
+.up-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.up-table { font-size: 0.65rem; }
+.up-head { display: grid; grid-template-columns: 2fr 2fr 2fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.up-row { display: grid; grid-template-columns: 2fr 2fr 2fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.up-trigger, .up-primary, .up-addon { font-size: 0.62rem; }
+.up-trigger { font-weight: 600; color: var(--text); }
+
+/* STOCK & OFFERS */
+.st-section { margin-bottom: 10px; }
+.st-section-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 4px; }
+.st-table { font-size: 0.65rem; margin-bottom: 8px; }
+.st-head { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.st-row { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.st-item { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.st-type, .st-urg { font-size: 0.62rem; }
+.st-safe-row, .st-blocked-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.62rem; }
+.st-safe-name { color: #00ff88; font-weight: 600; }
+.st-safe-margin { color: var(--muted); }
+.st-blocked-name { color: #ff4444; }
+.st-blocked-reason { color: var(--muted); font-size: 0.58rem; }
 
 /* COMPETITOR WATCH */
 .cw-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }

@@ -1,0 +1,15 @@
+{
+  "schema": "https://clawdia.io/agents/manifest/v1",
+  "agent_id": "upsell_builder",
+  "layer": 8,
+  "role": "Build upsell paths from one booking to larger basket. Output: upsell-opportunities.json",
+  "criticality": "MEDIUM",
+  "owner": "clawdia",
+  "scripts": [
+    "run_upsell_builder.js"
+  ],
+  "inputs": {},
+  "outputs": {
+    "upsell-opportunities.json": "upsell-opportunities.json"
+  }
+}

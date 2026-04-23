@@ -414,6 +414,37 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 .fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
 .fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
 
+/* WHAT TO SELL NOW */
+.sn-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.sn-table { font-size: 0.65rem; }
+.sn-head { display: grid; grid-template-columns: 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.sn-row { display: grid; grid-template-columns: 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.sn-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.sn-score { font-weight: 900; color: #ffd700; font-size: 0.7rem; }
+.sn-push, .sn-conf { font-size: 0.62rem; }
+
+/* EASY UPSELLS */
+.up-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.up-table { font-size: 0.65rem; }
+.up-head { display: grid; grid-template-columns: 2fr 2fr 2fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.up-row { display: grid; grid-template-columns: 2fr 2fr 2fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.up-trigger, .up-primary, .up-addon { font-size: 0.62rem; }
+.up-trigger { font-weight: 600; color: var(--text); }
+
+/* STOCK & OFFERS */
+.st-section { margin-bottom: 10px; }
+.st-section-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 4px; }
+.st-table { font-size: 0.65rem; margin-bottom: 8px; }
+.st-head { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.st-row { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.st-item { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.st-type, .st-urg { font-size: 0.62rem; }
+.st-safe-row, .st-blocked-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.62rem; }
+.st-safe-name { color: #00ff88; font-weight: 600; }
+.st-safe-margin { color: var(--muted); }
+.st-blocked-name { color: #ff4444; }
+.st-blocked-reason { color: var(--muted); font-size: 0.58rem; }
+
 /* COMPETITOR WATCH */
 .cw-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
 .cw-table { font-size: 0.65rem; }
@@ -576,11 +607,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
 <div class="summary-bar">
   <div class="summary-item">
     <span class="summary-label">Last Build</span>
-    <span class="summary-value">2026/04/23, 07:08:19 SAST</span>
+    <span class="summary-value">2026/04/23, 11:08:26 SAST</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Stale Sources</span>
-    <span class="summary-value ok">none</span>
+    <span class="summary-value warn">GA4, Reddit, SEO Rankings, SEO Audit</span>
   </div>
   <div class="summary-item">
     <span class="summary-label">Today's Top Idea</span>
@@ -648,7 +679,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   <div class="section">
     <div class="section-header">
       <h2>💪 DO THIS FIRST</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="dtf-summary">Overall priority: <b style="color:#ffa502">9.6/10</b> &middot; 4 actions queued</div><div class="dtf-grid"><div class="dtf-card"><div class="dtf-emoji">🎯</div><div class="dtf-body"><div class="dtf-label">Post this first</div><div class="dtf-title">That slice costing you yards off the tee? TrackMan foun...</div><div class="dtf-meta">Freshness 7/10</div></div><div class="dtf-score" style="color:#ffa502">7</div></div><div class="dtf-card"><div class="dtf-emoji">💰</div><div class="dtf-body"><div class="dtf-label">Push this service</div><div class="dtf-title">Club Fitting</div><div class="dtf-meta">7.4/10</div></div><div class="dtf-score" style="color:#ffa502">7.4</div></div><div class="dtf-card"><div class="dtf-emoji">🔁</div><div class="dtf-body"><div class="dtf-label">Retarget this first</div><div class="dtf-title">Your clubs are waiting. Your handicap won't fix itself....</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">15</div></div><div class="dtf-card"><div class="dtf-emoji">⚠️</div><div class="dtf-body"><div class="dtf-label">Fix this leak</div><div class="dtf-title">—</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">8.95</div></div></div>
   </div>
@@ -662,21 +693,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   <div class="section">
     <div class="section-header">
       <h2>🔬 TEST / SCALE / KILL</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="tsk-alert-bar">⚠️ 1 high-urgency anomaly alert(s) need action today</div><div class="tsk-grid"><div class="tsk-col"><div class="tsk-col-title tsk-test-title">🔬 TEST NEXT</div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "lesson</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Coach Cat</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "short_</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "driver</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div></div><div class="tsk-col"><div class="tsk-col-title tsk-scale-title">⬆️ SCALE NOW</div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Need to relax and find your golf swing tempo? Join Coach Cat</div><div class="tsk-meta">IG 10 + cross-signal 7.4 — proven on multiple channels</div><span class="tsk-owner">👤 Coach Cat</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Need some help with your putting? Coach Cat explains what ma</div><div class="tsk-meta">IG 9.82 + cross-signal 7.1 — proven on multiple channels</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Scale Soft / Engagement CTA across all posts</div><div class="tsk-meta"></div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-this_week">THIS_WEEK</span></div></div></div><div class="tsk-col"><div class="tsk-col-title tsk-kill-title">🕳️ KILL / PAUSE</div><div class="tsk-card" style="border-left-color:#ff4757"><div class="tsk-icon">🕳️</div><div class="tsk-body"><div class="tsk-title">Stop actively pushing Events & Competitions</div><div class="tsk-meta">Move Events & Competitions to bottom of priority list — weak dema</div></div></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>🔧 RUN THE WEEK</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="rtw-summary"><span class="rtw-sum-item"><b>18</b> tasks</span><span class="rtw-sum-item"><b>7</b> blocked</span><span class="rtw-sum-item"><b>1</b> risks high</span><span class="rtw-sum-item"><b>19</b> blockers</span><span class="rtw-sum-item"><b>0</b> need approval</span></div><div class="rtw-grid"><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ff4757">📅 TODAY'S TASKS</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">A/B Test: hook_angle</div><span class="rtw-owner">👤 Coach Cat</span></div><div class="rtw-row"><div class="rtw-row-title">A/B Test: hook_angle</div><span class="rtw-owner">👤 Swing Shack page</span></div><div class="rtw-row"><div class="rtw-row-title">A/B Test: hook_angle</div><span class="rtw-owner">👤 Swing Shack page</span></div><div class="rtw-row"><div class="rtw-row-title">That slice costing you yards off the tee? TrackMan foun</div><span class="rtw-owner">👤 Coach Cat / Divan</span></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ffa502">⏳ WAITING APPROVAL</div><div class="rtw-empty">None</div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ff6b35">⚠️ AT RISK THIS WEEK</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">Coach Cat has 10 tasks this week</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Move 7 tasks to Swing Shack page or delay low-urgency i</div></div><div class="rtw-row"><div class="rtw-row-title">Club Fitting is priority #1 but has no scheduled conten</div><span class="rtw-owner">👤 Divan</span><span class="rtw-sev rtw-sev-medium">MEDIUM</span><div class="rtw-fix">→ Schedule at least 1 post for Club Fitting this week — s</div></div><div class="rtw-row"><div class="rtw-row-title">Rework the "driver" hook into a follow-up Reel this wee</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-medium">MEDIUM</span><div class="rtw-fix">→ Rework the "driver" hook into a follow-up Reel this wee</div></div><div class="rtw-row"><div class="rtw-row-title">Rework the "lessons" hook into a follow-up Reel this we</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-medium">MEDIUM</span><div class="rtw-fix">→ Rework the "lessons" hook into a follow-up Reel this we</div></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ff4757">🔨 BLOCKING EXECUTION</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">Asset needed today</div><span class="rtw-owner">👤 Coach Cat / Divan</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Source TrackMan screenshot or data graphic — 1 post(s) </div></div><div class="rtw-row"><div class="rtw-row-title">Asset needed today</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Source Swing clip or lesson photo — 4 post(s) need this</div></div><div class="rtw-row"><div class="rtw-row-title">Booking link missing</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Add swingshack.co.za/bookings or swingshack.co.za/membe</div></div><div class="rtw-row"><div class="rtw-row-title">Missing: TrackMan screenshot or data graphic</div><span class="rtw-owner">👤 Coach Cat / Divan</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Source or create TrackMan screenshot or data graphic — </div></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#00b4d8">⇄ REBALANCE WEEK</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">A/B Test: youtube_angle_to_ig</div><span class="rtw-sev rtw-sev-high">HIGH</span></div><div class="rtw-row"><div class="rtw-row-title">delay</div><span class="rtw-owner">👤 Divan</span><span class="rtw-sev rtw-sev-low">LOW</span></div><div class="rtw-row"><div class="rtw-row-title">delay</div><span class="rtw-owner">👤 Swing Shack page</span><span class="rtw-sev rtw-sev-low">LOW</span></div></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>&#129504 SYSTEM HEALTH</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="hl-bar"><span class="hl-pipeline">&#128444; 0m ago</span><span class="hl-sep">|</span><span class="hl-sources">&#128173; 14/15 sources fresh</span></div><div class="hl-risk" style="border-left:3px solid #ffa502"><div class="hl-risk-head">&#9888&#65039; <b>TOP RISK:</b> <span style="color:#ffa502">19 blocked tasks</span></div><div class="hl-risk-fix">&#8594; Unblock tasks in RUN THE WEEK section</div></div><div class="hl-opstrip">&#128280 19 blocked <span class="hl-opsep">|</span> &#9888&#65039 1 high risk <span class="hl-opsep">|</span> &#9203 7 awaiting approval</div>
   </div>
@@ -711,56 +742,56 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: v
   <div class="section">
     <div class="section-header">
       <h2>&#128176 RECOVER REVENUE</h2>
-      <span class="badge fresh">✅ fresh</span>
+      <span class="badge warn">🕐 aging</span>
     </div>
     <div class="rv-summary">5 recovery items &middot; <span class="pub-blocked">0 high urgency</span></div><div class="rv-table"><div class="rv-head"><span>Service</span><span>Action</span><span>Leak</span><span>Urgency</span></div><div class="rv-row"><div class="rv-service">Club Fitting</div><div class="rv-action">investigate</div><div class="rv-type">booking traffic no r</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Coaching</div><div class="rv-action">investigate</div><div class="rv-type">hook winner no follo</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Practice</div><div class="rv-action">investigate</div><div class="rv-type">hook winner no follo</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Social Play</div><div class="rv-action">investigate</div><div class="rv-type">hook winner no follo</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Club Fitting</div><div class="rv-action">investigate</div><div class="rv-type">service page no ig</div><div class="rv-urg"><span class="pub-ok">low</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>&#128236 NURTURE NEXT</h2>
-      <span class="badge fresh">✅ fresh</span>
+      <span class="badge warn">🕐 aging</span>
     </div>
     <div class="nr-summary">3 sequences &middot; 9 emails total</div><div class="nr-table"><div class="nr-head"><span>Sequence</span><span>Objective</span><span>Emails</span><span>Audience</span></div><div class="nr-row"><div class="nr-name">Booking Recovery Sequence</div><div class="nr-obj">recover_abandoned_bo</div><div class="nr-emails">3 emails</div><div class="nr-aud">visited pricing did </div></div><div class="nr-row"><div class="nr-name">Service Discovery — Club Fitti</div><div class="nr-obj">introduce_club_fitti</div><div class="nr-emails">3 emails</div><div class="nr-aud">engaged blog or soci</div></div><div class="nr-row"><div class="nr-name">Coaching Discovery</div><div class="nr-obj">convert_interested_l</div><div class="nr-emails">3 emails</div><div class="nr-aud">visited coaching pag</div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>&#128736 FIX THIS PAGE FIRST</h2>
-      <span class="badge fresh">✅ fresh</span>
+      <span class="badge warn">🕐 aging</span>
     </div>
     <div class="fp-summary">8 fixes &middot; <span class="pub-blocked">4 high severity</span></div><div class="fp-table"><div class="fp-head"><span>Page</span><span>Issue</span><span>Fix</span><span>Severity</span></div><div class="fp-row"><div class="fp-page">/membership</div><div class="fp-issue">pricing clarity</div><div class="fp-fix">Add clear pricing table with value conte</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/membership</div><div class="fp-issue">cta weak</div><div class="fp-fix">Replace &quot;Learn More&quot; with &quot;Book Your Fir</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/club-fitting</div><div class="fp-issue">intent mismatch</div><div class="fp-fix">Add booking urgency — limited slots, fit</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/book</div><div class="fp-issue">friction</div><div class="fp-fix">Reduce booking form to 3 fields — name, </div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/coaching</div><div class="fp-issue">trust gap</div><div class="fp-fix">Add instructor credentials + TrackMan ce</div><div class="fp-sev"><span class="pub-wait">medium</span></div></div><div class="fp-row"><div class="fp-page">/coaching</div><div class="fp-issue">faq missing</div><div class="fp-fix">Add FAQ section covering &quot;what to expect</div><div class="fp-sev"><span class="pub-wait">medium</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>&#129720 CAPTURE MORE LEADS</h2>
-      <span class="badge fresh">✅ fresh</span>
+      <span class="badge warn">🕐 aging</span>
     </div>
     <div class="cl-summary">8 fixes &middot; <span class="pub-blocked">3 high impact</span> &middot; fastest: lcf-1</div><div class="cl-table"><div class="cl-head"><span>Page</span><span>Friction</span><span>Fix</span><span>Impact</span></div><div class="cl-row"><div class="cl-location">/book</div><div class="cl-friction">booking form too lon</div><div class="cl-fix">Reduce /book form to 3 fields: name, email, p</div><div class="cl-imp"><span class="pub-blocked">high</span></div></div><div class="cl-row"><div class="cl-location">/membership</div><div class="cl-friction">cta not mobile respo</div><div class="cl-fix">Make &quot;Book Your Session&quot; CTA button sticky on</div><div class="cl-imp"><span class="pub-blocked">high</span></div></div><div class="cl-row"><div class="cl-location">/book</div><div class="cl-friction">no whatsapp booking </div><div class="cl-fix">Add WhatsApp click-to-chat: &quot;Or book via What</div><div class="cl-imp"><span class="pub-blocked">high</span></div></div><div class="cl-row"><div class="cl-location">/coaching</div><div class="cl-friction">pricing not on servi</div><div class="cl-fix">Add pricing from R850 on /coaching — &quot;from R8</div><div class="cl-imp"><span class="pub-wait">medium</span></div></div><div class="cl-row"><div class="cl-location">/contact</div><div class="cl-friction">contact form frictio</div><div class="cl-fix">Replace contact form with WhatsApp pre-fill: </div><div class="cl-imp"><span class="pub-wait">medium</span></div></div><div class="cl-row"><div class="cl-location">/book</div><div class="cl-friction">no booking reminder</div><div class="cl-fix">After form submit: trigger WhatsApp confirmat</div><div class="cl-imp"><span class="pub-wait">medium</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>&#128241 WHATSAPP MONEY</h2>
-      <span class="badge fresh">✅ fresh</span>
+      <span class="badge warn">🕐 aging</span>
     </div>
     <div class="wa-summary">4 flows &middot; <span class="pub-blocked">3 high priority</span></div><div class="wa-table"><div class="wa-head"><span>Flow</span><span>Type</span><span>Steps</span><span>Priority</span></div><div class="wa-row"><div class="wa-name">Booking Quick-Start</div><div class="wa-type">booking_assistance</div><div class="wa-msgs">6 msgs</div><div class="wa-pri"><span class="pub-blocked">high</span></div></div><div class="wa-row"><div class="wa-name">Which Service Suits Me?</div><div class="wa-type">qualification</div><div class="wa-msgs">4 msgs</div><div class="wa-pri"><span class="pub-blocked">high</span></div></div><div class="wa-row"><div class="wa-name">Pricing FAQ Automation</div><div class="wa-type">pricing</div><div class="wa-msgs">1 msgs</div><div class="wa-pri"><span class="pub-blocked">high</span></div></div><div class="wa-row"><div class="wa-name">Abandoned Booking Recovery</div><div class="wa-type">recovery</div><div class="wa-msgs">3 msgs</div><div class="wa-pri"><span class="pub-wait">medium</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>&#128230 BUNDLES TO PUSH</h2>
-      <span class="badge fresh">✅ fresh</span>
+      <span class="badge warn">🕐 aging</span>
     </div>
     <div class="bn-summary">5 bundles &middot; <span class="pub-ok">3 high confidence</span></div><div class="bn-table"><div class="bn-head"><span>Bundle</span><span>Price</span><span>Saving</span><span>Confidence</span></div><div class="bn-row"><div class="bn-name">Fitting Starter Pack</div><div class="bn-price">R1,100</div><div class="bn-saving">R150 (12%)</div><div class="bn-conf"><span class="pub-ok">high</span></div></div><div class="bn-row"><div class="bn-name">Junior Golf Development Bund</div><div class="bn-price">R2,100</div><div class="bn-saving">R250 (11%)</div><div class="bn-conf"><span class="pub-wait">medium</span></div></div><div class="bn-row"><div class="bn-name">Social Golf Experience (x4)</div><div class="bn-price">R920</div><div class="bn-saving">R100 (10%)</div><div class="bn-conf"><span class="pub-ok">high</span></div></div><div class="bn-row"><div class="bn-name">Precision Practice Pack (10 </div><div class="bn-price">R2,000</div><div class="bn-saving">R500 (20%)</div><div class="bn-conf"><span class="pub-ok">high</span></div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>&#129302 AUTONOMY CONTROL</h2>
-      <span class="badge fresh">✅ fresh</span>
+      <span class="badge warn">🕐 aging</span>
     </div>
     <div class="ac-header"><div class="ac-mode">Mode: <span class="pub-wait">MINIMAL</span></div><div class="ac-trust">Trust: 8/10</div></div><div class="ac-summary">Allowed: 1 | Blocked: 12</div><div class="ac-table"><div class="ac-head"><span>Action</span><span>Risk</span><span>Limit</span></div><div class="ac-row"><div class="ac-id">discord_nudge</div><div class="ac-risk">LOW</div><div class="ac-rule">max:20</div></div></div>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>&#128737 AUTONOMY SAFETY LOG</h2>
-      <span class="badge fresh">✅ fresh</span>
+      <span class="badge warn">🕐 aging</span>
     </div>
     <div class="sl-summary">Total auto-actions: 4 | Swaps: 0 | Promotes: 0 | Nudges: 4</div><div class="sl-table"><div class="sl-head"><span></span><span>Action</span><span>Type</span></div><div class="sl-row"><span class="sl-icon">&#128172</span><span class="sl-text pub-ok">deadline_warning</span><span class="sl-type">nudge</span></div><div class="sl-row"><span class="sl-icon">&#128172</span><span class="sl-text pub-ok">asset_reminder</span><span class="sl-type">nudge</span></div><div class="sl-row"><span class="sl-icon">&#128172</span><span class="sl-text pub-ok">asset_reminder</span><span class="sl-type">nudge</span></div><div class="sl-row"><span class="sl-icon">&#128172</span><span class="sl-text pub-ok">owner_overload_warning</span><span class="sl-type">nudge</span></div></div>
   </div>
@@ -1092,7 +1123,7 @@ Too much spin killing your...</span>
   <div class="section">
     <div class="section-header">
       <h2>🔄 FOLLOW UP NEXT</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <p class="fu-summary">
     3 topics need follow-up ·
@@ -1145,7 +1176,7 @@ Too much spin killing your...</span>
   <div class="section">
     <div class="section-header">
       <h2>📦 ASSET NEEDS THIS WEEK</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <div class="an-summary">6 asset needs across 4 owners · 2 needed today</div><div class="an-grid">
     <div class="an-card">
@@ -1245,7 +1276,7 @@ Too much spin killing your...</span>
   <div class="section">
     <div class="section-header">
       <h2>👥 OWNER WORKLOAD</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     
   <div class="ow-header-row">
@@ -1319,7 +1350,7 @@ Too much spin killing your...</span>
   <div class="section">
     <div class="section-header">
       <h2>🔁 RETARGET THIS WEEK</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <p class="rt-summary">2 retargeting actions · <b>undefined today</b> · <b>undefined this week</b></p><div class="rt-grid"><div class="rt-card"><div class="rt-header"><span class="rt-icon">💸</span><span class="rt-action">Push booking CTA — traffic is hot</span><span class="rt-owner">👤 Swing Shack page</span><span class="rt-urg" style="background:#00b4d822;color:#00b4d8">flex</span></div><div class="rt-hook">Your clubs are waiting. Your handicap won't fix itself. ⛳</div><div class="rt-why">→ Booking page traffic hot with no retargeting</div><div class="rt-cta">CTA: Book a session · swingshack.co.za/bookings · From R250</div></div><div class="rt-card"><div class="rt-header"><span class="rt-icon">🎯</span><span class="rt-action">Publish service reminder post</span><span class="rt-owner">👤 Divan</span><span class="rt-urg" style="background:#ffa50022;color:#ffa500">THIS WEEK</span></div><div class="rt-hook">Off-the-rack clubs are costing you yards. Here's what TrackMan found.</div><div class="rt-why">→ 61 sessions with no social conversion path</div><div class="rt-cta">CTA: Get your clubs custom fitted · swingshack.co.za/members...</div></div></div>
   </div>
@@ -1375,14 +1406,14 @@ Too much spin killing your...</span>
   <div class="section">
     <div class="section-header">
       <h2>🔴 Reddit Pain Points</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     <p class="empty">No Reddit trends yet.</p>
   </div>
   <div class="section">
     <div class="section-header">
       <h2>🔍 SEO Rankings</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     
   <div class="seo-summary">
@@ -1449,7 +1480,7 @@ Too much spin killing your...</span>
   <div class="section">
     <div class="section-header">
       <h2>🌐 Website Performance</h2>
-      <span class="badge warn">🕐 aging</span>
+      <span class="badge stale">⚠️ stale</span>
     </div>
     
     <div class="ga4-pages">
