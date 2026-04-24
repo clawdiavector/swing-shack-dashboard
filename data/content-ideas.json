@@ -1,13 +1,13 @@
 {
-  "updated": "2026-04-23T05:08:19.546Z",
+  "updated": "2026-04-24T05:07:01.877Z",
   "total": 18,
   "ideas": [
     {
-      "idea_id": "ig-hook-2026-04-23-1",
+      "idea_id": "ig-hook-2026-04-24-1",
       "title": "Fujimoto available at Swing Shack. ",
       "hook": "Fujimoto available at Swing Shack. ",
       "format": "static",
-      "source_reason": "Hook generated 6.45% eng, 31 reach",
+      "source_reason": "Hook generated 6.06% eng, 33 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 9,
       "difficulty": "easy",
@@ -16,11 +16,37 @@
       "priority": "today"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-2",
+      "idea_id": "ig-hook-2026-04-24-2",
+      "title": "Built to preform. ",
+      "hook": "Built to preform. ",
+      "format": "static",
+      "source_reason": "Hook generated 5.88% eng, 34 reach",
+      "best_cta": "Link in bio · Book your session",
+      "freshness_score": 9,
+      "difficulty": "easy",
+      "topic_cluster": "technique",
+      "used": false,
+      "priority": "today"
+    },
+    {
+      "idea_id": "ig-hook-2026-04-24-3",
+      "title": "Your current iron nervous? ",
+      "hook": "Your current iron nervous? ",
+      "format": "static",
+      "source_reason": "Hook generated 5.41% eng, 37 reach",
+      "best_cta": "Link in bio · Book your session",
+      "freshness_score": 9,
+      "difficulty": "easy",
+      "topic_cluster": "technique",
+      "used": false,
+      "priority": "today"
+    },
+    {
+      "idea_id": "ig-hook-2026-04-24-4",
       "title": "Go to your coaching sessions. Your ball deserves better 🫂",
       "hook": "Go to your coaching sessions. Your ball deserves better 🫂",
       "format": "static",
-      "source_reason": "Hook generated 4.99% eng, 381 reach",
+      "source_reason": "Hook generated 4.96% eng, 383 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 9,
       "difficulty": "easy",
@@ -29,7 +55,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-3",
+      "idea_id": "ig-hook-2026-04-24-5",
       "title": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "format": "static",
@@ -42,7 +68,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-4",
+      "idea_id": "ig-hook-2026-04-24-6",
       "title": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
       "hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
       "format": "static",
@@ -55,7 +81,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "slice-fix-2026-04-23-a",
+      "idea_id": "slice-fix-2026-04-24-a",
       "title": "THAT SLICE COSTING YOU YARDS?",
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
       "format": "static",
@@ -68,7 +94,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "reel-2026-04-23-14",
+      "idea_id": "reel-2026-04-24-14",
       "title": "POV: First time at Swing Shack",
       "format": "reel",
       "freshness_score": 9,
@@ -81,7 +107,7 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "coaching-2026-04-23-a",
+      "idea_id": "coaching-2026-04-24-a",
       "title": "YOUR GOLF NEEDS A MENTOR",
       "hook": "Your golf doesn't need more practice. It needs smarter practice.",
       "format": "static",
@@ -94,7 +120,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "reel-2026-04-23-12",
+      "idea_id": "reel-2026-04-24-12",
       "title": "Coach Catherine explains a common swing flaw",
       "format": "reel",
       "freshness_score": 8,
@@ -107,11 +133,11 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-5",
+      "idea_id": "ig-hook-2026-04-24-7",
       "title": "YOUR GOLF STATS DON'T LIE.",
       "hook": "YOUR GOLF STATS DON'T LIE.",
       "format": "static",
-      "source_reason": "Hook generated 3.97% eng, 126 reach",
+      "source_reason": "Hook generated 3.94% eng, 127 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 7,
       "difficulty": "easy",
@@ -120,7 +146,20 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-6",
+      "idea_id": "ig-hook-2026-04-24-8",
+      "title": "Sometimes u just need a bit of tough love 😅🤣",
+      "hook": "Sometimes u just need a bit of tough love 😅🤣",
+      "format": "static",
+      "source_reason": "Hook generated 3.87% eng, 672 reach",
+      "best_cta": "Link in bio · Book your session",
+      "freshness_score": 7,
+      "difficulty": "easy",
+      "topic_cluster": "coaching",
+      "used": false,
+      "priority": "this-week"
+    },
+    {
+      "idea_id": "ig-hook-2026-04-24-9",
       "title": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 202",
       "hook": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 202",
       "format": "static",
@@ -133,59 +172,20 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-7",
-      "title": "Sometimes u just need a bit of tough love 😅🤣",
-      "hook": "Sometimes u just need a bit of tough love 😅🤣",
+      "idea_id": "ig-hook-2026-04-24-10",
+      "title": "If you know, you know. ",
+      "hook": "If you know, you know. ",
       "format": "static",
-      "source_reason": "Hook generated 3.77% eng, 664 reach",
+      "source_reason": "Hook generated 3.61% eng, 83 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 7,
       "difficulty": "easy",
-      "topic_cluster": "coaching",
+      "topic_cluster": "equipment",
       "used": false,
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-8",
-      "title": "SwingShack merch coming in hot 🔥",
-      "hook": "SwingShack merch coming in hot 🔥",
-      "format": "static",
-      "source_reason": "Hook generated 3.61% eng, 527 reach",
-      "best_cta": "Link in bio · Book your session",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "technique",
-      "used": false,
-      "priority": "this-week"
-    },
-    {
-      "idea_id": "ig-hook-2026-04-23-9",
-      "title": "Improve your game with the coaches tip of the day 🙌",
-      "hook": "Improve your game with the coaches tip of the day 🙌",
-      "format": "static",
-      "source_reason": "Hook generated 3.58% eng, 279 reach",
-      "best_cta": "Link in bio · Book your session",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "technique",
-      "used": false,
-      "priority": "this-week"
-    },
-    {
-      "idea_id": "ig-hook-2026-04-23-10",
-      "title": "Santa’s off days",
-      "hook": "Santa’s off days",
-      "format": "static",
-      "source_reason": "Hook generated 3.49% eng, 401 reach",
-      "best_cta": "Link in bio · Book your session",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "technique",
-      "used": false,
-      "priority": "this-week"
-    },
-    {
-      "idea_id": "fitting-2026-04-23-a",
+      "idea_id": "fitting-2026-04-24-a",
       "title": "YOUR CLUBS ARE HOLDING YOU BACK",
       "hook": "Off-the-rack clubs are built for average swings. Your swing isn't average.",
       "format": "static",
@@ -200,11 +200,11 @@
   ],
   "post_today": [
     {
-      "idea_id": "ig-hook-2026-04-23-1",
+      "idea_id": "ig-hook-2026-04-24-1",
       "title": "Fujimoto available at Swing Shack. ",
       "hook": "Fujimoto available at Swing Shack. ",
       "format": "static",
-      "source_reason": "Hook generated 6.45% eng, 31 reach",
+      "source_reason": "Hook generated 6.06% eng, 33 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 9,
       "difficulty": "easy",
@@ -213,11 +213,37 @@
       "priority": "today"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-2",
+      "idea_id": "ig-hook-2026-04-24-2",
+      "title": "Built to preform. ",
+      "hook": "Built to preform. ",
+      "format": "static",
+      "source_reason": "Hook generated 5.88% eng, 34 reach",
+      "best_cta": "Link in bio · Book your session",
+      "freshness_score": 9,
+      "difficulty": "easy",
+      "topic_cluster": "technique",
+      "used": false,
+      "priority": "today"
+    },
+    {
+      "idea_id": "ig-hook-2026-04-24-3",
+      "title": "Your current iron nervous? ",
+      "hook": "Your current iron nervous? ",
+      "format": "static",
+      "source_reason": "Hook generated 5.41% eng, 37 reach",
+      "best_cta": "Link in bio · Book your session",
+      "freshness_score": 9,
+      "difficulty": "easy",
+      "topic_cluster": "technique",
+      "used": false,
+      "priority": "today"
+    },
+    {
+      "idea_id": "ig-hook-2026-04-24-4",
       "title": "Go to your coaching sessions. Your ball deserves better 🫂",
       "hook": "Go to your coaching sessions. Your ball deserves better 🫂",
       "format": "static",
-      "source_reason": "Hook generated 4.99% eng, 381 reach",
+      "source_reason": "Hook generated 4.96% eng, 383 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 9,
       "difficulty": "easy",
@@ -226,7 +252,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-3",
+      "idea_id": "ig-hook-2026-04-24-5",
       "title": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "format": "static",
@@ -237,37 +263,11 @@
       "topic_cluster": "technique",
       "used": false,
       "priority": "today"
-    },
-    {
-      "idea_id": "ig-hook-2026-04-23-4",
-      "title": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
-      "hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
-      "format": "static",
-      "source_reason": "Hook generated 4.35% eng, 161 reach",
-      "best_cta": "Link in bio · Book your session",
-      "freshness_score": 9,
-      "difficulty": "easy",
-      "topic_cluster": "equipment",
-      "used": false,
-      "priority": "today"
-    },
-    {
-      "idea_id": "slice-fix-2026-04-23-a",
-      "title": "THAT SLICE COSTING YOU YARDS?",
-      "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
-      "format": "static",
-      "source_reason": "All-time winning hook formula - 5.77% engagement",
-      "best_cta": "TrackMan your swing · Book from R250",
-      "freshness_score": 9,
-      "difficulty": "easy",
-      "topic_cluster": "technique",
-      "used": false,
-      "priority": "today"
     }
   ],
   "this_week": [
     {
-      "idea_id": "reel-2026-04-23-14",
+      "idea_id": "reel-2026-04-24-14",
       "title": "POV: First time at Swing Shack",
       "format": "reel",
       "freshness_score": 9,
@@ -280,7 +280,7 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "reel-2026-04-23-12",
+      "idea_id": "reel-2026-04-24-12",
       "title": "Coach Catherine explains a common swing flaw",
       "format": "reel",
       "freshness_score": 8,
@@ -293,11 +293,11 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-5",
+      "idea_id": "ig-hook-2026-04-24-7",
       "title": "YOUR GOLF STATS DON'T LIE.",
       "hook": "YOUR GOLF STATS DON'T LIE.",
       "format": "static",
-      "source_reason": "Hook generated 3.97% eng, 126 reach",
+      "source_reason": "Hook generated 3.94% eng, 127 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 7,
       "difficulty": "easy",
@@ -306,7 +306,20 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-6",
+      "idea_id": "ig-hook-2026-04-24-8",
+      "title": "Sometimes u just need a bit of tough love 😅🤣",
+      "hook": "Sometimes u just need a bit of tough love 😅🤣",
+      "format": "static",
+      "source_reason": "Hook generated 3.87% eng, 672 reach",
+      "best_cta": "Link in bio · Book your session",
+      "freshness_score": 7,
+      "difficulty": "easy",
+      "topic_cluster": "coaching",
+      "used": false,
+      "priority": "this-week"
+    },
+    {
+      "idea_id": "ig-hook-2026-04-24-9",
       "title": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 202",
       "hook": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 202",
       "format": "static",
@@ -319,61 +332,48 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-7",
-      "title": "Sometimes u just need a bit of tough love 😅🤣",
-      "hook": "Sometimes u just need a bit of tough love 😅🤣",
+      "idea_id": "ig-hook-2026-04-24-10",
+      "title": "If you know, you know. ",
+      "hook": "If you know, you know. ",
       "format": "static",
-      "source_reason": "Hook generated 3.77% eng, 664 reach",
+      "source_reason": "Hook generated 3.61% eng, 83 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 7,
       "difficulty": "easy",
-      "topic_cluster": "coaching",
+      "topic_cluster": "equipment",
       "used": false,
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-8",
-      "title": "SwingShack merch coming in hot 🔥",
-      "hook": "SwingShack merch coming in hot 🔥",
+      "idea_id": "fitting-2026-04-24-a",
+      "title": "YOUR CLUBS ARE HOLDING YOU BACK",
+      "hook": "Off-the-rack clubs are built for average swings. Your swing isn't average.",
       "format": "static",
-      "source_reason": "Hook generated 3.61% eng, 527 reach",
-      "best_cta": "Link in bio · Book your session",
+      "source_reason": "Custom fitting consistently 4%+-engagement - high-intent buyers",
+      "best_cta": "TrackMan Fitting · from R900",
       "freshness_score": 7,
       "difficulty": "easy",
-      "topic_cluster": "technique",
+      "topic_cluster": "equipment",
       "used": false,
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-9",
-      "title": "Improve your game with the coaches tip of the day 🙌",
-      "hook": "Improve your game with the coaches tip of the day 🙌",
-      "format": "static",
-      "source_reason": "Hook generated 3.58% eng, 279 reach",
-      "best_cta": "Link in bio · Book your session",
+      "idea_id": "reel-2026-04-24-11",
+      "title": "Show TrackMan data overlay - before/after swing",
+      "format": "reel",
       "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "technique",
-      "used": false,
-      "priority": "this-week"
-    },
-    {
-      "idea_id": "ig-hook-2026-04-23-10",
-      "title": "Santa’s off days",
-      "hook": "Santa’s off days",
-      "format": "static",
-      "source_reason": "Hook generated 3.49% eng, 401 reach",
-      "best_cta": "Link in bio · Book your session",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "technique",
+      "hook": "Show TrackMan data overlay - before/after swing",
+      "source_reason": "Reel format outperforms static for golf content",
+      "best_cta": "Save this · Share with a golfer",
+      "difficulty": "medium",
+      "topic_cluster": "general",
       "used": false,
       "priority": "this-week"
     }
   ],
   "reels": [
     {
-      "idea_id": "reel-2026-04-23-14",
+      "idea_id": "reel-2026-04-24-14",
       "title": "POV: First time at Swing Shack",
       "format": "reel",
       "freshness_score": 9,
@@ -386,7 +386,7 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "reel-2026-04-23-12",
+      "idea_id": "reel-2026-04-24-12",
       "title": "Coach Catherine explains a common swing flaw",
       "format": "reel",
       "freshness_score": 8,
@@ -399,7 +399,7 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "reel-2026-04-23-11",
+      "idea_id": "reel-2026-04-24-11",
       "title": "Show TrackMan data overlay - before/after swing",
       "format": "reel",
       "freshness_score": 7,
@@ -412,7 +412,7 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "reel-2026-04-23-13",
+      "idea_id": "reel-2026-04-24-13",
       "title": "Time-lapse of a full fitting session",
       "format": "reel",
       "freshness_score": 7,
@@ -425,7 +425,7 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "reel-2026-04-23-15",
+      "idea_id": "reel-2026-04-24-15",
       "title": "Quick tip: How to read your launch monitor data",
       "format": "reel",
       "freshness_score": 7,
@@ -440,11 +440,11 @@
   ],
   "statics": [
     {
-      "idea_id": "ig-hook-2026-04-23-1",
+      "idea_id": "ig-hook-2026-04-24-1",
       "title": "Fujimoto available at Swing Shack. ",
       "hook": "Fujimoto available at Swing Shack. ",
       "format": "static",
-      "source_reason": "Hook generated 6.45% eng, 31 reach",
+      "source_reason": "Hook generated 6.06% eng, 33 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 9,
       "difficulty": "easy",
@@ -453,11 +453,37 @@
       "priority": "today"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-2",
+      "idea_id": "ig-hook-2026-04-24-2",
+      "title": "Built to preform. ",
+      "hook": "Built to preform. ",
+      "format": "static",
+      "source_reason": "Hook generated 5.88% eng, 34 reach",
+      "best_cta": "Link in bio · Book your session",
+      "freshness_score": 9,
+      "difficulty": "easy",
+      "topic_cluster": "technique",
+      "used": false,
+      "priority": "today"
+    },
+    {
+      "idea_id": "ig-hook-2026-04-24-3",
+      "title": "Your current iron nervous? ",
+      "hook": "Your current iron nervous? ",
+      "format": "static",
+      "source_reason": "Hook generated 5.41% eng, 37 reach",
+      "best_cta": "Link in bio · Book your session",
+      "freshness_score": 9,
+      "difficulty": "easy",
+      "topic_cluster": "technique",
+      "used": false,
+      "priority": "today"
+    },
+    {
+      "idea_id": "ig-hook-2026-04-24-4",
       "title": "Go to your coaching sessions. Your ball deserves better 🫂",
       "hook": "Go to your coaching sessions. Your ball deserves better 🫂",
       "format": "static",
-      "source_reason": "Hook generated 4.99% eng, 381 reach",
+      "source_reason": "Hook generated 4.96% eng, 383 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 9,
       "difficulty": "easy",
@@ -466,7 +492,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-3",
+      "idea_id": "ig-hook-2026-04-24-5",
       "title": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "format": "static",
@@ -479,7 +505,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-4",
+      "idea_id": "ig-hook-2026-04-24-6",
       "title": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
       "hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
       "format": "static",
@@ -492,7 +518,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "slice-fix-2026-04-23-a",
+      "idea_id": "slice-fix-2026-04-24-a",
       "title": "THAT SLICE COSTING YOU YARDS?",
       "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
       "format": "static",
@@ -505,7 +531,7 @@
       "priority": "today"
     },
     {
-      "idea_id": "coaching-2026-04-23-a",
+      "idea_id": "coaching-2026-04-24-a",
       "title": "YOUR GOLF NEEDS A MENTOR",
       "hook": "Your golf doesn't need more practice. It needs smarter practice.",
       "format": "static",
@@ -518,11 +544,11 @@
       "priority": "today"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-5",
+      "idea_id": "ig-hook-2026-04-24-7",
       "title": "YOUR GOLF STATS DON'T LIE.",
       "hook": "YOUR GOLF STATS DON'T LIE.",
       "format": "static",
-      "source_reason": "Hook generated 3.97% eng, 126 reach",
+      "source_reason": "Hook generated 3.94% eng, 127 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 7,
       "difficulty": "easy",
@@ -531,7 +557,20 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-6",
+      "idea_id": "ig-hook-2026-04-24-8",
+      "title": "Sometimes u just need a bit of tough love 😅🤣",
+      "hook": "Sometimes u just need a bit of tough love 😅🤣",
+      "format": "static",
+      "source_reason": "Hook generated 3.87% eng, 672 reach",
+      "best_cta": "Link in bio · Book your session",
+      "freshness_score": 7,
+      "difficulty": "easy",
+      "topic_cluster": "coaching",
+      "used": false,
+      "priority": "this-week"
+    },
+    {
+      "idea_id": "ig-hook-2026-04-24-9",
       "title": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 202",
       "hook": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 202",
       "format": "static",
@@ -544,59 +583,20 @@
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-7",
-      "title": "Sometimes u just need a bit of tough love 😅🤣",
-      "hook": "Sometimes u just need a bit of tough love 😅🤣",
+      "idea_id": "ig-hook-2026-04-24-10",
+      "title": "If you know, you know. ",
+      "hook": "If you know, you know. ",
       "format": "static",
-      "source_reason": "Hook generated 3.77% eng, 664 reach",
+      "source_reason": "Hook generated 3.61% eng, 83 reach",
       "best_cta": "Link in bio · Book your session",
       "freshness_score": 7,
       "difficulty": "easy",
-      "topic_cluster": "coaching",
+      "topic_cluster": "equipment",
       "used": false,
       "priority": "this-week"
     },
     {
-      "idea_id": "ig-hook-2026-04-23-8",
-      "title": "SwingShack merch coming in hot 🔥",
-      "hook": "SwingShack merch coming in hot 🔥",
-      "format": "static",
-      "source_reason": "Hook generated 3.61% eng, 527 reach",
-      "best_cta": "Link in bio · Book your session",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "technique",
-      "used": false,
-      "priority": "this-week"
-    },
-    {
-      "idea_id": "ig-hook-2026-04-23-9",
-      "title": "Improve your game with the coaches tip of the day 🙌",
-      "hook": "Improve your game with the coaches tip of the day 🙌",
-      "format": "static",
-      "source_reason": "Hook generated 3.58% eng, 279 reach",
-      "best_cta": "Link in bio · Book your session",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "technique",
-      "used": false,
-      "priority": "this-week"
-    },
-    {
-      "idea_id": "ig-hook-2026-04-23-10",
-      "title": "Santa’s off days",
-      "hook": "Santa’s off days",
-      "format": "static",
-      "source_reason": "Hook generated 3.49% eng, 401 reach",
-      "best_cta": "Link in bio · Book your session",
-      "freshness_score": 7,
-      "difficulty": "easy",
-      "topic_cluster": "technique",
-      "used": false,
-      "priority": "this-week"
-    },
-    {
-      "idea_id": "fitting-2026-04-23-a",
+      "idea_id": "fitting-2026-04-24-a",
       "title": "YOUR CLUBS ARE HOLDING YOU BACK",
       "hook": "Off-the-rack clubs are built for average swings. Your swing isn't average.",
       "format": "static",
