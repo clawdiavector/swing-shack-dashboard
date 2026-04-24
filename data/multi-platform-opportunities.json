@@ -1378,6 +1378,28 @@
       "opportunity_type": "simulator_improvement",
       "score": 80,
       "comment_suggestion": "Indoor practice with data accelerates improvement."
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Lessons or Fitting First",
+      "url": "https://www.reddit.com/r/golf/comments/erfxbi/golf_lessons_or_club_fitting_first/",
+      "content_preview": "Lessons first - massive improvement. Fitting is refinement.",
+      "location_signal": "global",
+      "opportunity_type": "lessons_vs_fitting",
+      "score": 80,
+      "comment_suggestion": "Both matter - start with lessons to build fundamentals."
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Best Way to Practice",
+      "url": "https://www.reddit.com/r/golf/comments/sgppbe/whats_the_best_way_to_practiceget_better/",
+      "content_preview": "Work on what you suck at. Get a lesson. Play more often.",
+      "location_signal": "global",
+      "opportunity_type": "practice_improvement",
+      "score": 75,
+      "comment_suggestion": "Data-driven practice beats random reps."
     }
   ],
   "summary": {
@@ -1388,8 +1410,8 @@
       "Launch Monitor interest - general SA interest in data-driven golf improvement"
     ]
   },
-  "scan_date": "2026-04-23",
-  "scan_time": "18:05 SAST",
-  "next_scan": "2026-04-23T22:00 SAST",
-  "total_opportunities": 99
+  "scan_date": "2026-04-24",
+  "scan_time": "12:07 SAST",
+  "next_scan": "2026-04-24T18:00 SAST",
+  "total_opportunities": 101
 }
