@@ -395,8 +395,46 @@
         "intention"
       ]
     }
+{
+  "opportunities": [
+    {
+      "id": "reddit-2026-04-25-1",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1su84pt/first_set_for_a_beginner_i_have_2_options_and/",
+      "title": "First set for a beginner, i have 2 options and need advice",
+      "subreddit": "r/GolfGear",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-25",
+      "datePosted": "2026-04-24",
+      "comment": "Beginner comparing sets. Should get fitted first, not just pick what's in budget. Book a session - we dial in specs before they commit.",
+      "tags": ["beginner", "first-clubs", "equipment", "fitting", "picking-clubs"]
+    },
+    {
+      "id": "reddit-2026-04-25-2",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1suqsas/golf_bag_recommendations_help/",
+      "title": "Golf Bag Recommendations / Help",
+      "subreddit": "r/GolfGear",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-25",
+      "datePosted": "2026-04-25",
+      "comment": "New golfer asking about gear. First round this week - classic new golfer. Perfect timing for a fitting pitch.",
+      "tags": ["new-golfer", "first-round", "gear", "beginner", "conversion"]
+    },
+    {
+      "id": "reddit-2026-04-25-3",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1suie4n/any_tips_typical_miss_is_a_pull_left_like_this_one/",
+      "title": "Any tips? Typical miss is a pull left like this one",
+      "subreddit": "r/GolfSwing",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-25",
+      "datePosted": "2026-04-25",
+      "comment": "Pulling left = club path issue. TrackMan shows exactly where the swing goes wrong. Book a session - get the data.",
+      "tags": ["pull", "slice-alternative", "swing-path", "miss", "trackman", "data"]
+    }
   ],
-  "last_updated": "2026-04-24",
-  "scan_time": "2026-04-24T16:00Z",
-  "scan_note": "April 24 2026 - 6PM SAST scan. Reddit blocked by Cloudflare - used web search to find recent posts. Found 5 fresh opportunities."
+  "last_updated": "2026-04-25",
+  "scan_time": "2026-04-25T10:00Z",
+  "scan_note": "April 25 2026 - 12PM SAST scan. Reddit Cloudflare-blocked most direct access. Found 3 opportunities via web search."
 }
