@@ -1,57 +1,15 @@
 {
-  "research_date": "2026-04-24",
+  "research_date": "2026-04-25",
   "platforms_searched": [
-    "reddit",
-    "web",
-    "youtube",
-    "quora"
+    "reddit"
   ],
   "search_queries_executed": [
-    "golf improvement johannesburg south africa slice fix reddit",
-    "site:reddit.com south africa golf lessons indoor johannesburg",
-    "indoor golf simulator johannesburg south africa prices reddit",
-    "\"golf\" \"Johannesburg\" \"lessons\" South Africa OR Pretoria OR Cape Town"
+    "golf improvement south africa",
+    "slice fix johannesburg",
+    "launch monitor indoor",
+    "golf lessons prices"
   ],
   "opportunities": [
-    {
-      "platform": "reddit",
-      "subreddit": "r/johannesburg",
-      "post_title": "Golf Lessons",
-      "url": "https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/",
-      "content_preview": "I want to take up golf, can you please recommend a reliable and affordable place I can consider around Johannesburg area.",
-      "engagement": 29,
-      "posted": "2023-04-26",
-      "location_signal": "johannesburg",
-      "opportunity_type": "golf_lessons",
-      "score": 85,
-      "comment_suggestion": "Depending on your budget, there are a few options. If you're serious about getting into it, look into swing analysis at places with launch monitors - gives you data-driven feedback rather than just guessing. Otherwise, local municipal courses often have decent group lessons at good prices."
-    },
-    {
-      "platform": "event",
-      "source": "LIV Golf South Africa",
-      "post_title": "LIV Golf South Africa - Free Golf Lessons & Practice Access",
-      "url": "https://www.livgolf.com/news/liv-golf-south-africa-delivers-lasting-community-and-sustainability-impact",
-      "content_preview": "In partnership with World of Golf, LIV Golf South Africa offered free access to golf lessons, practice facilities from March 19-22.",
-      "engagement": "high",
-      "posted": "2026-04-17",
-      "location_signal": "south africa",
-      "opportunity_type": "golf_lessons_free",
-      "score": 50,
-      "comment_suggestion": "Event passed but useful for awareness - local events like this drive interest"
-    },
-    {
-      "platform": "reddit",
-      "subreddit": "r/golftips",
-      "post_title": "How does one actually get better at golf?",
-      "url": "https://www.reddit.com/r/golftips/comments/1st2v5d/how_does_one_actually_get_better_at_golf/",
-      "content_preview": "Lessons and reps. I have played for a long time and was never great and never had any instruction, just a lot of bad habits. I have an indoor SIM I built for my son...",
-      "engagement": 100,
-      "posted": "2026-04-24",
-      "location_signal": "general (indoor sim mention)",
-      "opportunity_type": "indoor_golf",
-      "score": 40,
-      "comment_suggestion": "Indoor sims are great for consistent practice - weather independent and you can work on specific clubs/shots without hunting balls."
-    },
     {
       "platform": "reddit",
       "subreddit": "r/Golfsimulator",
@@ -60,8 +18,17 @@
       "content_preview": "Recommend lesson with pro that has Launch Monitor",
       "location_signal": "global",
       "opportunity_type": "launch_monitor_lessons",
-      "score": 85,
-      "comment_suggestion": "Book a TrackMan session for data-driven improvement."
+      "score": 85
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/johannesburg",
+      "post_title": "Golf Lessons JHB",
+      "url": "https://www.reddit.com/r/johannesburg/comments/13005mx/golf_lessons/",
+      "content_preview": "Reliable affordable place around Johannesburg",
+      "location_signal": "johannesburg",
+      "opportunity_type": "beginner_lessons",
+      "score": 90
     },
     {
       "platform": "reddit",
@@ -71,30 +38,52 @@
       "content_preview": "Push/slice - need data to fix",
       "location_signal": "global",
       "opportunity_type": "slice_fix",
-      "score": 80,
-      "comment_suggestion": "TrackMan shows exactly why you slice."
+      "score": 80
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Best Indoor LM for Game Improvement",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1h2be2i/best_indoor_launch_monitor_for_game_improvement/",
+      "content_preview": "Uneekor Eye XO2, GC Quad, Trackman 4",
+      "location_signal": "global",
+      "opportunity_type": "launch_monitor_purchase",
+      "score": 75
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "Remote Lessons with LM",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/16taw0j/remote_lessons_w_launch_monitor/",
+      "content_preview": "Mid-80s with remote lessons + launch monitor",
+      "location_signal": "global",
+      "opportunity_type": "remote_coaching",
+      "score": 85
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/golftips",
+      "post_title": "Best Outdoor LM",
+      "url": "https://www.reddit.com/r/golftips/comments/1jrr6o8/best_outdoor_golf_launch_monitor/",
+      "content_preview": "View app gives serious practice software",
+      "location_signal": "global",
+      "opportunity_type": "practice_aids",
+      "score": 70
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Training Aids for Driver",
+      "url": "https://www.reddit.com/r/golf/comments/130f4n0/training_aids_for_driver/",
+      "content_preview": "Wicked slice on drives - getting lessons",
+      "location_signal": "global",
+      "opportunity_type": "slice_fix",
+      "score": 85
     }
   ],
-  "summary": {
-    "total_opportunities": 3,
-    "high_quality_sa_leads": 1,
-    "gaps_identified": [
-      "Limited active SA-specific r/golf posts in search results",
-      "No recent Johannesburg/Cape Town golf lesson price questions found",
-      "LIV Golf SA event just passed - may have sparked new interest"
-    ],
-    "recommendations": [
-      "Consider engaging with r/johannesburg golf lessons post - still relevant for new golfers",
-      "Monitor for post-LIV Golf interest spikes in SA golf",
-      "Expand search to Quora and forums"
-    ]
-  },
-  "next_steps": [
-    "Check for new posts in r/johannesburg weekly",
-    "Set up Google Alerts for 'golf lessons johannesburg'",
-    "Monitor golf forum \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c"
-  ],
-  "total_opportunities": 5,
+  "summary": "7 opportunities from Reddit - launch monitors, slice fix, lessons",
+  "next_steps": "Continue scanning at 12pm and 6pm",
+  "total_opportunities": 7,
   "scan_date": "2026-04-25",
   "scan_time": "06:08 SAST",
   "next_scan": "2026-04-25T12:00 SAST"
