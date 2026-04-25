@@ -79,12 +79,67 @@
       "location_signal": "global",
       "opportunity_type": "slice_fix",
       "score": 85
+    },
+    {
+      "platform": "forum",
+      "subreddit": "capetowngolfstudios.co.za",
+      "post_title": "Cape Town Golf Performance Studios",
+      "url": "https://capetowngolfstudios.co.za/",
+      "content_preview": "Swing Studio for lessons, FS Golf Simulator for fitting",
+      "location_signal": "cape town",
+      "opportunity_type": "competitor",
+      "score": 70,
+      "comment_suggestion": "TrackMan 4 - first in SA for proper fitting."
+    },
+    {
+      "platform": "forum",
+      "subreddit": "hometee.co.za",
+      "post_title": "HomeTee Premium Simulators",
+      "url": "https://hometee.co.za/",
+      "content_preview": "Home simulator solutions - entertainment + improvement",
+      "location_signal": "south africa",
+      "opportunity_type": "home_simulator",
+      "score": 75,
+      "comment_suggestion": "Practice at home or visit us for proper coaching."
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "Golf Pro Cape Town",
+      "url": "https://www.reddit.com/r/golf/comments/liw3gn/recommend_a_golf_pro_for_lessons_cape_town/",
+      "content_preview": "Recommend good pro in Cape Town - inconsistent shots",
+      "location_signal": "cape town",
+      "opportunity_type": "lessons",
+      "score": 90,
+      "comment_suggestion": "Indoor coaching with data - see exactly what is wrong."
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/capetown",
+      "post_title": "Golf Club Memberships",
+      "url": "https://www.reddit.com/r/capetown/comments/1mtpv8r/best_golf_club_memberships_in_cape_town_northern/",
+      "content_preview": "Beginner needs lessons - looking for club with coaching",
+      "location_signal": "cape town",
+      "opportunity_type": "membership",
+      "score": 85,
+      "comment_suggestion": "Indoor facility - all weather coaching available."
+    },
+    {
+      "platform": "forum",
+      "subreddit": "golfsimcentre.co.za",
+      "post_title": "Golf Simulation Centre Cape Town",
+      "url": "https://golfsimcentre.co.za/",
+      "content_preview": "R150/hour - 127 courses - Westlake",
+      "location_signal": "cape town",
+      "opportunity_type": "competitor",
+      "score": 65,
+      "comment_suggestion": "Come try us - better tech and coaching."
     }
   ],
   "summary": "7 opportunities from Reddit - launch monitors, slice fix, lessons",
   "next_steps": "Continue scanning at 12pm and 6pm",
-  "total_opportunities": 7,
+  "total_opportunities": 12,
   "scan_date": "2026-04-25",
-  "scan_time": "06:08 SAST",
+  "scan_time": "07:05 SAST",
   "next_scan": "2026-04-25T12:00 SAST"
 }
