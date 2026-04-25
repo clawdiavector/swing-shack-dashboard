@@ -134,12 +134,34 @@
       "opportunity_type": "competitor",
       "score": 65,
       "comment_suggestion": "Come try us - better tech and coaching."
+    },
+    {
+      "platform": "forum",
+      "subreddit": "golftec.co.za",
+      "post_title": "GOLFTEC Johannesburg",
+      "url": "https://www.golftec.co.za/golf-lessons/johannesburg",
+      "content_preview": "State-of-the-art Training Center in World of Golf",
+      "location_signal": "johannesburg",
+      "opportunity_type": "competitor",
+      "score": 75,
+      "comment_suggestion": "We have TrackMan 4 - first in SA. Come compare."
+    },
+    {
+      "platform": "forum",
+      "subreddit": "eogagolfacademy.com",
+      "post_title": "EOGA Golf Academy Cape Town",
+      "url": "https://www.eogagolfacademy.com/pages/golf-coaching-metropolitan",
+      "content_preview": "FlightScope analysis - 2 sim bays - lessons",
+      "location_signal": "cape town",
+      "opportunity_type": "competitor",
+      "score": 70,
+      "comment_suggestion": "We use TrackMan 4 for proper fitting and coaching."
     }
   ],
   "summary": "7 opportunities from Reddit - launch monitors, slice fix, lessons",
   "next_steps": "Continue scanning at 12pm and 6pm",
-  "total_opportunities": 12,
+  "total_opportunities": 14,
   "scan_date": "2026-04-25",
-  "scan_time": "07:05 SAST",
-  "next_scan": "2026-04-25T12:00 SAST"
+  "scan_time": "12:07 SAST",
+  "next_scan": "2026-04-25T18:00 SAST"
 }
