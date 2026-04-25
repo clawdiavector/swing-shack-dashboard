@@ -156,12 +156,34 @@
       "opportunity_type": "competitor",
       "score": 70,
       "comment_suggestion": "We use TrackMan 4 for proper fitting and coaching."
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/Golfsimulator",
+      "post_title": "LM for Beginner",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/15ngq9w/launch_monitor_for_a_beginner_golfer/",
+      "content_preview": "Slice - need monitor for angles of attack and path",
+      "location_signal": "global",
+      "opportunity_type": "slice_fix",
+      "score": 80,
+      "comment_suggestion": "TrackMan shows exactly why you slice."
+    },
+    {
+      "platform": "reddit",
+      "subreddit": "r/golf",
+      "post_title": "LM for Lessons",
+      "url": "https://www.reddit.com/r/golf/comments/ndpxv6/getting_lessons_should_i_use_someone_with_a/",
+      "content_preview": "Need LM for measurements and benchmarking",
+      "location_signal": "global",
+      "opportunity_type": "coaching",
+      "score": 80,
+      "comment_suggestion": "Book a session with TrackMan data."
     }
   ],
   "summary": "7 opportunities from Reddit - launch monitors, slice fix, lessons",
   "next_steps": "Continue scanning at 12pm and 6pm",
-  "total_opportunities": 14,
+  "total_opportunities": 16,
   "scan_date": "2026-04-25",
-  "scan_time": "12:07 SAST",
-  "next_scan": "2026-04-25T18:00 SAST"
+  "scan_time": "18:05 SAST",
+  "next_scan": "2026-04-26T06:00 SAST"
 }
