@@ -9,14 +9,8 @@
       "locationTag": "global",
       "dateFound": "2026-04-20",
       "datePosted": "2026-04-20",
-      "comment": "Got a 25-30 yard gap between 43 PW and 50 wedge. Classic gapping conversation \u2014 we can measure their actual distances.",
-      "tags": [
-        "wedges",
-        "gapping",
-        "fitting",
-        "distance",
-        "equipment"
-      ]
+      "comment": "Got a 25-30 yard gap between 43 PW and 50 wedge. Classic gapping conversation — we can measure their actual distances.",
+      "tags": ["wedges", "gapping", "fitting", "distance", "equipment"]
     },
     {
       "id": "reddit-2026-04-20-1",
@@ -28,14 +22,7 @@
       "dateFound": "2026-04-20",
       "datePosted": "2026-04-13",
       "comment": "First-time fitter with all the classic questions. Book them in, show them TrackMan.",
-      "tags": [
-        "first-fitting",
-        "beginner",
-        "questions",
-        "cost",
-        "what-to-expect",
-        "nervous"
-      ]
+      "tags": ["first-fitting", "beginner", "questions", "cost", "what-to-expect", "nervous"]
     },
     {
       "id": "reddit-2026-04-20-3",
@@ -47,15 +34,7 @@
       "dateFound": "2026-04-20",
       "datePosted": "2026-04-12",
       "comment": "Classic case: club face decent but over-the-top. TrackMan shows exactly what's happening at impact.",
-      "tags": [
-        "slice",
-        "driver",
-        "hacking",
-        "fix",
-        "swing-path",
-        "over-the-top",
-        "drills"
-      ]
+      "tags": ["slice", "driver", "hacking", "fix", "swing-path", "over-the-top", "drills"]
     },
     {
       "id": "reddit-2026-04-21-1",
@@ -67,14 +46,7 @@
       "dateFound": "2026-04-21",
       "datePosted": "2022-04-10",
       "comment": "Which launch monitors detect slicing accurately indoors? GC3 and Bushnell Launch Pro recommended. These are golfers wanting data on their slice.",
-      "tags": [
-        "launch-monitor",
-        "slice",
-        "accuracy",
-        "GC3",
-        "bushnell",
-        "trackman"
-      ]
+      "tags": ["launch-monitor", "slice", "accuracy", "GC3", "bushnell", "trackman"]
     },
     {
       "id": "reddit-2026-04-21-9",
@@ -85,14 +57,8 @@
       "locationTag": "global",
       "dateFound": "2026-04-21",
       "datePosted": "2023-07-17",
-      "comment": "Scores going UP after lessons and practice = plateau. Come in for a TrackMan session \u2014 we show you exactly what's changing.",
-      "tags": [
-        "frustration",
-        "practice-plateau",
-        "improvement",
-        "data",
-        "lessons"
-      ]
+      "comment": "Scores going UP after lessons and practice = plateau. Come in for a TrackMan session — we show you exactly what's changing.",
+      "tags": ["frustration", "practice-plateau", "improvement", "data", "lessons"]
     },
     {
       "id": "reddit-2026-04-22-1",
@@ -103,15 +69,8 @@
       "locationTag": "global",
       "dateFound": "2026-04-22",
       "datePosted": "2025-04-23",
-      "comment": "Classic over-correction \u2014 went too far the other way. TrackMan shows exactly where the path went wrong.",
-      "tags": [
-        "slice",
-        "hook",
-        "over-correction",
-        "swing-path",
-        "backswing",
-        "trackman"
-      ]
+      "comment": "Classic over-correction — went too far the other way. TrackMan shows exactly where the path went wrong.",
+      "tags": ["slice", "hook", "over-correction", "swing-path", "backswing", "trackman"]
     },
     {
       "id": "reddit-2026-04-22-2",
@@ -123,15 +82,7 @@
       "dateFound": "2026-04-22",
       "datePosted": "2026-03-04",
       "comment": "Fresh first-timer asking exactly what they want to know. This is a conversion post. Book them in.",
-      "tags": [
-        "first-fitting",
-        "beginner",
-        "swing-speed",
-        "shaft",
-        "what-to-expect",
-        "nervous",
-        "conversion"
-      ]
+      "tags": ["first-fitting", "beginner", "swing-speed", "shaft", "what-to-expect", "nervous", "conversion"]
     },
     {
       "id": "reddit-2026-04-22-5",
@@ -143,15 +94,7 @@
       "dateFound": "2026-04-22",
       "datePosted": "2024-06-11",
       "comment": "You don't have to buy one. Come use ours. The data TrackMan gives you is the same data the pros use.",
-      "tags": [
-        "trackman",
-        "launch-monitor",
-        "cost",
-        "session",
-        "pros",
-        "data",
-        "argument"
-      ]
+      "tags": ["trackman", "launch-monitor", "cost", "session", "pros", "data", "argument"]
     },
     {
       "id": "reddit-2026-04-22-9",
@@ -162,15 +105,8 @@
       "locationTag": "global",
       "dateFound": "2026-04-22",
       "datePosted": "2026-04-21",
-      "comment": "Community discussion on accuracy. We're running TrackMan 4 + iO \u2014 premium setup. This is our differentiator.",
-      "tags": [
-        "simulator",
-        "accuracy",
-        "trackman",
-        "photometric",
-        "launch-monitor",
-        "indoor"
-      ]
+      "comment": "Community discussion on accuracy. We're running TrackMan 4 + iO — premium setup. This is our differentiator.",
+      "tags": ["simulator", "accuracy", "trackman", "photometric", "launch-monitor", "indoor"]
     },
     {
       "id": "reddit-2026-04-22-10",
@@ -181,13 +117,8 @@
       "locationTag": "global",
       "dateFound": "2026-04-22",
       "datePosted": "2026-04-22",
-      "comment": "Has a coach, tried various clubs with instructor, now ready to buy. Classic conversion \u2014 book their fitting.",
-      "tags": [
-        "new-golfer",
-        "first-clubs",
-        "coach",
-        "conversion"
-      ]
+      "comment": "Has a coach, tried various clubs with instructor, now ready to buy. Classic conversion — book their fitting.",
+      "tags": ["new-golfer", "first-clubs", "coach", "conversion"]
     },
     {
       "id": "reddit-2026-04-22-11",
@@ -199,13 +130,7 @@
       "dateFound": "2026-04-22",
       "datePosted": "2026-04-22",
       "comment": "Female golfer seeking ladies-specific fitting. TrackMan i/o measures swing speed + launch angle + spin for women specifically.",
-      "tags": [
-        "ladies",
-        "female",
-        "fitting",
-        "trackman",
-        "conversion"
-      ]
+      "tags": ["ladies", "female", "fitting", "trackman", "conversion"]
     },
     {
       "id": "reddit-2026-04-23-1",
@@ -217,15 +142,7 @@
       "dateFound": "2026-04-23",
       "datePosted": "2026-04-23",
       "comment": "Community validating what we already know: TrackMan iO handles putting better. That's our differentiator.",
-      "tags": [
-        "putting",
-        "launch-monitor",
-        "GCQuad",
-        "vertex",
-        "trackman",
-        "data",
-        "simulator"
-      ]
+      "tags": ["putting", "launch-monitor", "GCQuad", "vertex", "trackman", "data", "simulator"]
     },
     {
       "id": "reddit-2026-04-23-2",
@@ -237,14 +154,7 @@
       "dateFound": "2026-04-23",
       "datePosted": "2026-04-23",
       "comment": "Practice with intention beats mindless reps. We do this with data. Book a session.",
-      "tags": [
-        "practice",
-        "improvement",
-        "intention",
-        "lessons",
-        "data",
-        "trackman"
-      ]
+      "tags": ["practice", "improvement", "intention", "lessons", "data", "trackman"]
     },
     {
       "id": "reddit-2026-04-23-3",
@@ -256,13 +166,7 @@
       "dateFound": "2026-04-23",
       "datePosted": "2026-04-22",
       "comment": "Clubs matter, but fitting is the missing link. Book them in.",
-      "tags": [
-        "equipment",
-        "fitting",
-        "lessons",
-        "improvement",
-        "debate"
-      ]
+      "tags": ["equipment", "fitting", "lessons", "improvement", "debate"]
     },
     {
       "id": "reddit-2026-04-23-4",
@@ -274,33 +178,19 @@
       "dateFound": "2026-04-23",
       "datePosted": "2026-04-22",
       "comment": "Distance conversation hot again. Consistency beats distance. Book a TrackMan session.",
-      "tags": [
-        "distance",
-        "PGA",
-        "consistency",
-        "tour",
-        "data",
-        "trackman"
-      ]
+      "tags": ["distance", "PGA", "consistency", "tour", "data", "trackman"]
     },
     {
       "id": "reddit-2026-04-23-5",
       "url": "https://www.reddit.com/r/golftips/comments/1ssepew/new_golfer_tall_should_i_invest_in_fitted_clubs/",
-      "title": "New golfer (tall) \u2014 should I invest in fitted clubs?",
+      "title": "New golfer (tall) — should I invest in fitted clubs?",
       "subreddit": "r/golftips",
       "status": "open",
       "locationTag": "global",
       "dateFound": "2026-04-23",
       "datePosted": "2026-04-22",
       "comment": "Tall beginner asking the right question. We can fit them NOW. Book the session.",
-      "tags": [
-        "tall",
-        "beginner",
-        "fitting",
-        "new-golfer",
-        "invest",
-        "conversion"
-      ]
+      "tags": ["tall", "beginner", "fitting", "new-golfer", "invest", "conversion"]
     },
     {
       "id": "reddit-2026-04-24-1",
@@ -312,14 +202,7 @@
       "dateFound": "2026-04-24",
       "datePosted": "2026-04-24",
       "comment": "Clubs for slicers - Callaway Paradym X recommended. Those help, but you still need to know WHY you're slicing. Book a TrackMan session - we show you the actual numbers.",
-      "tags": [
-        "slice",
-        "golf-clubs",
-        "fitting",
-        "slicer",
-        "callaway",
-        "trackman"
-      ]
+      "tags": ["slice", "golf-clubs", "fitting", "slicer", "callaway", "trackman"]
     },
     {
       "id": "reddit-2026-04-24-2",
@@ -331,14 +214,7 @@
       "dateFound": "2026-04-24",
       "datePosted": "2026-04-22",
       "comment": "New golfer asking where to go. Swing Shack runs TrackMan 4 - first in SA. We test properly, not just slap you in whatever's in stock.",
-      "tags": [
-        "fitting",
-        "golftec",
-        "club-champion",
-        "pga-superstore",
-        "trackman",
-        "beginner"
-      ]
+      "tags": ["fitting", "golftec", "club-champion", "pga-superstore", "trackman", "beginner"]
     },
     {
       "id": "reddit-2026-04-24-3",
@@ -350,13 +226,7 @@
       "dateFound": "2026-04-24",
       "datePosted": "2026-04-22",
       "comment": "Community asking what actually works. Training aids give cues. TrackMan gives data. See exactly what's happening - book a session.",
-      "tags": [
-        "training-aids",
-        "practice",
-        "data",
-        "trackman",
-        "improvement"
-      ]
+      "tags": ["training-aids", "practice", "data", "trackman", "improvement"]
     },
     {
       "id": "reddit-2026-04-24-4",
@@ -368,14 +238,7 @@
       "dateFound": "2026-04-24",
       "datePosted": "2026-04-22",
       "comment": "Distance vs consistency debate. We've been saying this. Data proves it. Book a TrackMan session and see what's actually happening.",
-      "tags": [
-        "distance",
-        "pga-tour",
-        "consistency",
-        "debate",
-        "trackman",
-        "data"
-      ]
+      "tags": ["distance", "pga-tour", "consistency", "debate", "trackman", "data"]
     },
     {
       "id": "reddit-2026-04-24-5",
@@ -387,16 +250,8 @@
       "dateFound": "2026-04-24",
       "datePosted": "2026-04-23",
       "comment": "Practice with intention beats mindless reps. You don't just hit balls. We do this with data - real numbers, real progress.",
-      "tags": [
-        "practice",
-        "improvement",
-        "data",
-        "trackman",
-        "intention"
-      ]
-    }
-{
-  "opportunities": [
+      "tags": ["practice", "improvement", "data", "trackman", "intention"]
+    },
     {
       "id": "reddit-2026-04-25-1",
       "url": "https://www.reddit.com/r/GolfGear/comments/1su84pt/first_set_for_a_beginner_i_have_2_options_and/",
@@ -432,9 +287,21 @@
       "datePosted": "2026-04-25",
       "comment": "Pulling left = club path issue. TrackMan shows exactly where the swing goes wrong. Book a session - get the data.",
       "tags": ["pull", "slice-alternative", "swing-path", "miss", "trackman", "data"]
+    },
+    {
+      "id": "reddit-2026-04-25-4",
+      "url": "https://www.reddit.com/r/golf/comments/1sukwdc/do_golf_shoes_make_a_difference/",
+      "title": "Do golf shoes make a difference?",
+      "subreddit": "r/golf",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-04-25",
+      "datePosted": "2026-04-24",
+      "comment": "Equipment question - standard conversation. Not directly in our niche but equipment-adjacent. Could mention fitting if they ask about clubs later.",
+      "tags": ["golf-shoes", "equipment", "beginner", "gear"]
     }
   ],
   "last_updated": "2026-04-25",
-  "scan_time": "2026-04-25T10:00Z",
-  "scan_note": "April 25 2026 - 12PM SAST scan. Reddit Cloudflare-blocked most direct access. Found 3 opportunities via web search."
+  "scan_time": "2026-04-25T18:00Z",
+  "scan_note": "April 25 2026 - 6PM SAST scan. Rate limited on Brave API. Found 1 new opportunity from evening scan."
 }
