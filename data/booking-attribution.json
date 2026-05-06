@@ -1,0 +1,5 @@
+{
+  "status": "NOT_READY",
+  "reason": "No processed GA4 booking data yet",
+  "bookings": []
+}
