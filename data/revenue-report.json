@@ -1,0 +1,43 @@
+{
+  "period": "7daysAgo to today",
+  "total_sessions": 3938,
+  "total_purchases": 17,
+  "conversion_rate": "0.43%",
+  "top_sources": [
+    {
+      "source": "google / organic",
+      "purchases": 10
+    },
+    {
+      "source": "(direct) / (none)",
+      "purchases": 4
+    },
+    {
+      "source": "c.yoco.com / referral",
+      "purchases": 2
+    },
+    {
+      "source": "(not set)",
+      "purchases": 1
+    }
+  ],
+  "top_campaigns": [
+    {
+      "campaign": "(organic)",
+      "purchases": 10
+    },
+    {
+      "campaign": "(direct)",
+      "purchases": 4
+    },
+    {
+      "campaign": "(referral)",
+      "purchases": 2
+    },
+    {
+      "campaign": "(not set)",
+      "purchases": 1
+    }
+  ],
+  "generated_at": "2026-05-06T08:59:10.242Z"
+}
