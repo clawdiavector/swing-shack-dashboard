@@ -1,0 +1,27 @@
+{
+  "test_config": {
+    "service": "Club Fitting",
+    "utm_campaign": "fitting",
+    "conversion_event": "purchase",
+    "platform": "instagram"
+  },
+  "hooks": ["hook-fitting-a", "hook-fitting-b", "hook-fitting-c"],
+  "active_test": {
+    "service": "fitting",
+    "active_hooks": ["hook-fitting-a"],
+    "test_phase": "DAY_1",
+    "started": "2026-05-06",
+    "status": "RUNNING"
+  },
+  "data": [
+    {
+      "date": "2026-05-06",
+      "service": "fitting",
+      "hook_id": "hook-fitting-a",
+      "sessions": 0,
+      "purchases": 0,
+      "conversion_rate": 0,
+      "note": "Day 1 - tracking started"
+    }
+  ]
+}
