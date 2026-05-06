@@ -1,5 +1,49 @@
 {
-  "status": "NOT_READY",
-  "reason": "No bookings available for A/B analysis",
-  "results": []
+  "status": "READY",
+  "reason": null,
+  "results": [
+    {
+      "source": "google / organic",
+      "campaign": "(organic)",
+      "bookings": 86
+    },
+    {
+      "source": "(direct) / (none)",
+      "campaign": "(direct)",
+      "bookings": 11
+    },
+    {
+      "source": "c.yoco.com / referral",
+      "campaign": "(referral)",
+      "bookings": 10
+    },
+    {
+      "source": "bing / organic",
+      "campaign": "(organic)",
+      "bookings": 2
+    },
+    {
+      "source": "(not set)",
+      "campaign": "(not set)",
+      "bookings": 1
+    },
+    {
+      "source": "avodagolf.com / referral",
+      "campaign": "(referral)",
+      "bookings": 1
+    },
+    {
+      "source": "oldparks.co.za / referral",
+      "campaign": "(referral)",
+      "bookings": 1
+    },
+    {
+      "source": "uk.search.yahoo.com / referral",
+      "campaign": "(referral)",
+      "bookings": 1
+    }
+  ],
+  "abHooks": [],
+  "total": 113,
+  "generatedAt": "2026-05-06T08:36:58.126Z"
 }

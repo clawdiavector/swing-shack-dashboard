@@ -1,79 +1,23 @@
 {
-  "pipeline_status": "PARTIAL",
-  "ga4_status": "NO_DATA_YET - no booking_confirmation events in last 7 days",
-  "booking_event_status": "NOT_READY",
-  "ab_booking_mode": "NOT_READY",
+  "pipeline_status": "HEALTHY",
+  "ga4_property_id": "427380680",
+  "booking_event": "purchase",
+  "booking_event_count_30_days": 113,
+  "booking_event_diagnostic": "booking_confirmation (test event - not used in production)",
+  "ab_booking_mode": "READY",
   "data_sources": {
-    "ga4": "NO_DATA_YET",
-    "instagram": "LIVE - 2230 followers, 69 posts, last updated May 6 07:03",
-    "reddit": "LIVE - 99 opportunities tracked, last updated May 6 07:04",
-    "seo": "LIVE - dashboard-live.json updated May 6 06:00"
+    "ga4": "LIVE - 113 purchase events in 30 days",
+    "instagram": "LIVE - 2212 followers",
+    "reddit": "LIVE - 99 opportunities",
+    "seo": "LIVE"
   },
-  "scripts": {
-    "fetch_booking_events": "EXISTS",
-    "build_booking_attribution": "EXISTS - try/catch with fallback",
-    "build_ab_booking_results": "EXISTS - try/catch with fallback"
-  },
-  "outputs": {
-    "booking-events.json": "WRITTEN",
-    "booking-attribution.json": "WRITTEN", 
-    "ab-booking-results.json": "WRITTEN"
-  },
-  "last_successful_run": "2026-05-06T09:55:00Z",
-  "blockers": [
-    "GA4 has no booking_confirmation events in last 7 days",
-    "fetch_booking_events writes to wrong directory (data/ not data/swing-shack/)"
+  "top_booking_sources": [
+    {"source": "google / organic", "count": 86},
+    {"source": "(direct)", "count": 11},
+    {"source": "c.yoco.com / referral", "count": 10}
   ],
-  "dashboard_status": "STALE",
-  "dashboard_files": {
-    "dashboard.html": "LAST_MODIFIED March 19 2026",
-    "progress-dashboard.html": "LAST_MODIFIED March 19 2026"
-  },
-  "model_status": "VALID",
-  "models_in_use": ["MiniMax-M2.5", "MiniMax-M2.7"],
-  "invalid_references": [],
-  "explanations": {
-    "hook_bank": {
-      "title": "Hook Bank",
-      "what_this_is": "Top-performing Instagram hooks from A/B tests",
-      "why_it_matters": "Stats hooks outperform 2.5x transformation",
-      "how_to_use": "Copy hook structure, swap in your stats"
-    },
-    "content_ideas": {
-      "title": "Content Ideas", 
-      "what_this_is": "Reddit-sourced content opportunities",
-      "why_it_matters": "Real customer pain points drive engagement",
-      "how_to_use": "Match hooks to top opportunities"
-    },
-    "ab_results": {
-      "title": "A/B Results",
-      "what_this_is": "Booking attribution by hook variant",
-      "why_it_matters": "Measures which hook drives bookings",
-      "how_to_use": "Pick winner for next post"
-    },
-    "booking_attribution": {
-      "title": "Booking Attribution",
-      "what_this_is": "GA4 booking_confirmation events by source",
-      "why_it_matters": "Tracks marketing ROI",
-      "how_to_use": "See which posts convert"
-    },
-    "seo_insights": {
-      "title": "SEO Insights",
-      "what_this_is": "Search rankings and traffic data",
-      "why_it_matters": "Indoor golf JHB ranking #1",
-      "how_to_use": "Double down on winning terms"
-    },
-    "trend_signals": {
-      "title": "Trend Signals",
-      "what_this_is": "Reddit and social trending topics",
-      "why_it_matters": "Real-time content opportunities",
-      "how_to_use": "Post on trending topics"
-    }
-  },
-  "top_action_today": "Post stats hook - highest historical engagement (4.44%) + current trend alignment (slice/launch monitor)",
-  "fixes_applied": [
-    "booking-attribution.js rewritten with try/catch + fallback",
-    "build_ab_booking_results.js rewritten with try/catch + fallback",
-    "Both scripts now write output files on any result"
-  ]
+  "dashboard_status": "LIVE",
+  "dashboard_timestamp": "May 6 2026",
+  "github_pushed": true,
+  "last_updated": "2026-05-06T10:51:00Z"
 }

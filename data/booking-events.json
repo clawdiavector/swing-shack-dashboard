@@ -1,7 +1,56 @@
 {
-  "status": "NO_DATA_YET",
-  "event_name": "booking_confirmation",
-  "event_count": 0,
-  "events": [],
-  "fetched_at": "2026-05-04T11:25:03.022Z"
+  "status": "SUCCESS",
+  "event_name": "purchase",
+  "event_count": 113,
+  "events": [
+    {
+      "eventName": "purchase",
+      "sourceMedium": "google / organic",
+      "campaign": "(organic)",
+      "count": 86
+    },
+    {
+      "eventName": "purchase",
+      "sourceMedium": "(direct) / (none)",
+      "campaign": "(direct)",
+      "count": 11
+    },
+    {
+      "eventName": "purchase",
+      "sourceMedium": "c.yoco.com / referral",
+      "campaign": "(referral)",
+      "count": 10
+    },
+    {
+      "eventName": "purchase",
+      "sourceMedium": "bing / organic",
+      "campaign": "(organic)",
+      "count": 2
+    },
+    {
+      "eventName": "purchase",
+      "sourceMedium": "(not set)",
+      "campaign": "(not set)",
+      "count": 1
+    },
+    {
+      "eventName": "purchase",
+      "sourceMedium": "avodagolf.com / referral",
+      "campaign": "(referral)",
+      "count": 1
+    },
+    {
+      "eventName": "purchase",
+      "sourceMedium": "oldparks.co.za / referral",
+      "campaign": "(referral)",
+      "count": 1
+    },
+    {
+      "eventName": "purchase",
+      "sourceMedium": "uk.search.yahoo.com / referral",
+      "campaign": "(referral)",
+      "count": 1
+    }
+  ],
+  "fetched_at": "2026-05-06T08:36:11.197Z"
 }

@@ -1,5 +1,48 @@
 {
-  "status": "NOT_READY",
-  "reason": "No processed GA4 booking data yet",
-  "bookings": []
+  "status": "READY",
+  "reason": null,
+  "bookings": [
+    {
+      "source": "google / organic",
+      "campaign": "(organic)",
+      "count": 86
+    },
+    {
+      "source": "(direct) / (none)",
+      "campaign": "(direct)",
+      "count": 11
+    },
+    {
+      "source": "c.yoco.com / referral",
+      "campaign": "(referral)",
+      "count": 10
+    },
+    {
+      "source": "bing / organic",
+      "campaign": "(organic)",
+      "count": 2
+    },
+    {
+      "source": "(not set)",
+      "campaign": "(not set)",
+      "count": 1
+    },
+    {
+      "source": "avodagolf.com / referral",
+      "campaign": "(referral)",
+      "count": 1
+    },
+    {
+      "source": "oldparks.co.za / referral",
+      "campaign": "(referral)",
+      "count": 1
+    },
+    {
+      "source": "uk.search.yahoo.com / referral",
+      "campaign": "(referral)",
+      "count": 1
+    }
+  ],
+  "total": 113,
+  "generatedAt": "2026-05-06T08:36:58.087Z"
 }
