@@ -1,21 +1,48 @@
 {
   "test_id": "fitting-hook-test-001",
-  "test_name": "Club Fitting Hook Test",
+  "test_name": "Club Fitting Hook Test 001",
   "test_type": "hook_image_test",
   "service": "Club Fitting",
   "variable_being_tested": "hook_angle",
+  "format": "4:5",
+  "size": "1080x1350",
+  "placement": "feed_static",
   "created": "2026-05-06",
-  "status": "IMAGE_GENERATED",
+  "last_updated": "2026-05-06T14:32:00Z",
+  "status": "READY_FOR_APPROVAL",
+  
+  "test_constants": {
+    "format": "4:5 (1080x1350)",
+    "CTA": "Link in bio. Start with 'Book a Fitting'.",
+    "destination": "https://swingshack.co.za/bookings",
+    "service": "Club Fitting",
+    "visual_style": "dark TrackMan data aesthetic"
+  },
+  
+  "all_hooks_generated": [
+    {"hook_text": "YOUR STATS DON'T LIE", "score": 9, "selected": true, "reason": "clean, data-led, no false promise"},
+    {"hook_text": "YOUR CLUBS ARE LYING TO YOU", "score": 6, "selected": false, "reason": "feels gimmicky, overpromises"},
+    {"hook_text": "FIND YOUR MISSING 30 METERS", "score": 5, "selected": false, "reason": "overpromises 30m gain"},
+    {"hook_text": "TRACKMAN DOESN'T LIE", "score": 8, "selected": true, "reason": "clean, data-led, relevant"},
+    {"hook_text": "YOUR NUMBERS ARE TALKING", "score": 7, "selected": false, "reason": "weak hook, lacks edge"},
+    {"hook_text": "THE DATA DIDN'T LIE", "score": 7, "selected": true, "reason": "clean, credible, no gimmick"},
+    {"hook_text": "WHAT'S YOUR SPIN RATE?", "score": 4, "selected": false, "reason": "too technical, no booking intent"},
+    {"hook_text": "12 METERS BEHIND THE PROS", "score": 3, "selected": false, "reason": "makes golfer feel broken, negative framing"}
+  ],
+  
   "variants": [
     {
       "hook_id": "hook-fitting-a",
-      "creative_id": "hook-fitting-a",
       "hook_text": "YOUR STATS DON'T LIE",
-      "image_path": "media/generated/hook-fitting-a.png",
-      "html_template": "media/overlaid/hook-fitting-a.html",
-      "overlay_text": "YOUR STATS\\nDON'T LIE\\n\\nTRACKMAN",
-      "caption": "Your golf stats are telling you something. Are you listening?\n\nTrackMan data shows exactly what's happening in your swing — club path, face angle, attack angle.\n\nThe data doesn't lie. Book a TrackMan fitting from R250 and find out the truth about your game.\n\n#indoorgolf #trackman #golfjhb #golfsa",
-      "cta": "Book Fitting",
+      "hook_score": 9,
+      "reason_selected": "clean, data-led, no false promise, strong booking intent",
+      "rejected_alternatives": ["FIND YOUR MISSING 30 METERS", "YOUR CLUBS ARE LYING TO YOU"],
+      "format": "4:5",
+      "size": "1080x1350",
+      "image_prompt": "Dark TrackMan launch monitor screen with bold cyan data numbers. Professional Johannesburg indoor golf facility. Premium data visualization. No golfers in frame.",
+      "overlay_text": "YOUR STATS\\nDON'T LIE",
+      "caption": "Your golf stats are telling you something. Are you listening?\n\nTrackMan shows exactly what's happening in your swing — club path, face angle, attack angle.\n\nBook a Fitting. Link in bio.\n\n#indoorgolf #trackman #golfjhb",
+      "CTA": "Link in bio. Book a Fitting.",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-a",
       "status": "READY_FOR_APPROVAL",
       "sessions": 0,
@@ -24,12 +51,16 @@
     },
     {
       "hook_id": "hook-fitting-b",
-      "creative_id": null,
-      "hook_text": "YOUR CLUBS ARE LYING TO YOU",
-      "image_path": null,
-      "overlay_text": "YOUR CLUBS\\nARE LYING\\nTO YOU\\n\\n-15% DISTANCE",
-      "caption": "Your clubs might be costing you 15%+ in distance and accuracy.\n\nA proper fitting finds the truth — launch angle, spin rate, ball speed.\n\nCustom fitted clubs could add meters to your driver. Book a fitting from R900.\n#clubfitting #customclubs #golfsa #trackman",
-      "cta": "Book Fitting",
+      "hook_text": "TRACKMAN DOESN'T LIE",
+      "hook_score": 8,
+      "reason_selected": "clean, data-led, relevant brand mention",
+      "rejected_alternatives": ["WHAT'S YOUR SPIN RATE?", "12 METERS BEHIND THE PROS"],
+      "format": "4:5",
+      "size": "1080x1350",
+      "image_prompt": "Dark TrackMan launch monitor screen with bold cyan data numbers. Professional Johannesburg indoor golf facility. Premium data visualization. No golfers in frame.",
+      "overlay_text": "TRACKMAN\\nDOESN'T LIE",
+      "caption": "TrackMan doesn't lie. Your swing doesn't either.\n\nLaunch angle. Spin rate. Club path. The numbers tell the truth.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfsa #fitting",
+      "CTA": "Link in bio. Book a Fitting.",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-b",
       "status": "DRAFT",
       "sessions": 0,
@@ -38,12 +69,16 @@
     },
     {
       "hook_id": "hook-fitting-c",
-      "creative_id": null,
-      "hook_text": "FIND YOUR MISSING 30 METERS",
-      "image_path": null,
-      "overlay_text": "FIND YOUR\\nMISSING\\n30 METERS",
-      "caption": "30 meters sounds like a lot. It is.\n\nTrackMan finds exactly where you're losing it — and a club change could add serious distance.\n\nMost golfers gain 10-30 meters with the right clubs. Book a fitting to find out what you're missing.\n#golfdistance #trackman #golfjhb #fitting",
-      "cta": "Book Fitting",
+      "hook_text": "THE DATA DIDN'T LIE",
+      "hook_score": 7,
+      "reason_selected": "credible, slightly cheeky, no gimmick",
+      "rejected_alternatives": ["YOUR NUMBERS ARE TALKING"],
+      "format": "4:5",
+      "size": "1080x1350",
+      "image_prompt": "Dark TrackMan launch monitor screen with bold cyan data numbers. Professional Johannesburg indoor golf facility. Premium data visualization. No golfers in frame.",
+      "overlay_text": "THE DATA\\nDIDN'T LIE",
+      "caption": "The data didn't lie. It never does.\n\nBook a Fitting and find out what your numbers are actually saying.\n\nLink in bio.\n\n#golfjhb #trackman #indoorgolf",
+      "CTA": "Link in bio. Book a Fitting.",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-c",
       "status": "DRAFT",
       "sessions": 0,
@@ -51,7 +86,8 @@
       "conversion_rate": 0
     }
   ],
-  "postiz_connection": "CHECKING",
+  
+  "postiz_connection": "BLOCKED",
   "winner": null,
-  "notes": "variant A image generated (reusing existing hook-a-data). B/C require new images."
+  "notes": "This test only changes the hook. Format, CTA, service and destination stay fixed."
 }

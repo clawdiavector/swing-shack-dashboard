@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "created": "2026-05-06",
+  "last_updated": "2026-05-06T14:32:00Z",
+  
+  "instagram_posts": {
+    "feed_static": {
+      "description": "Single image posts to Instagram feed",
+      "format": "4:5",
+      "size": "1080x1350",
+      "aspect_ratio": "vertical",
+      "recommended": true
+    },
+    "reels": {
+      "description": "Video content up to 90 seconds",
+      "format": "9:16",
+      "size": "1080x1920",
+      "aspect_ratio": "vertical"
+    },
+    "stories": {
+      "description": "24 hour ephemeral content",
+      "format": "9:16",
+      "size": "1080x1920",
+      "aspect_ratio": "vertical"
+    },
+    "carousel": {
+      "description": "Multi-image sliding posts",
+      "format": "1:1",
+      "size": "1080x1080",
+      "aspect_ratio": "square"
+    }
+  },
+  
+  "posting_rules": {
+    "caption_format": "short_direct_sharp",
+    "cta_standard": "Link in bio. Start with 'Book a Fitting'.",
+    "hashtags": "max 5 relevant",
+    "tag_location": "end of caption or first comment"
+  },
+  
+  "current_campaign": {
+    "service": "Club Fitting",
+    "utm_campaign": "fitting",
+    "destination": "https://swingshack.co.za/bookings",
+    "testing": "hook variations only"
+  }
+}

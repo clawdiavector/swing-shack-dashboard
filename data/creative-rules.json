@@ -1,0 +1,85 @@
+{
+  "version": "1.0",
+  "created": "2026-05-06",
+  "last_updated": "2026-05-06T14:32:00Z",
+  
+  "creative_format_rules": {
+    "instagram": {
+      "feed_static": {
+        "preferred_aspect_ratio": "4:5",
+        "pixel_size": "1080x1350",
+        "fallback_aspect_ratio": "1:1",
+        "fallback_size": "1080x1080"
+      },
+      "reels_stories": {
+        "preferred_aspect_ratio": "9:16",
+        "pixel_size": "1080x1920"
+      },
+      "carousel": {
+        "preferred_aspect_ratio": "1:1",
+        "pixel_size": "1080x1080"
+      }
+    }
+  },
+  
+  "swing_shack_creative_code": {
+    "tone": [
+      "sharp",
+      "confident", 
+      "cheeky but not silly",
+      "data-led",
+      "South African, not American",
+      "helpful, not preachy"
+    ],
+    "avoid": [
+      "elevate",
+      "unleash",
+      "transform your game",
+      "take your game to the next level",
+      "unlock your potential",
+      "generic AI golf sludge",
+      "fake claims",
+      "overhyped promises",
+      "busy Canva-style layouts",
+      "stock-photo energy",
+      "fantasy AI golfers"
+    ],
+    "feel": [
+      "clean",
+      "premium",
+      "indoor golf / TrackMan intelligent",
+      "slightly cheeky",
+      "useful",
+      "commercially sharp"
+    ],
+    "never": [
+      "make the golfer feel broken"
+    ]
+  },
+  
+  "testing_discipline": {
+    "one_variable_per_test": true,
+    "variables_to_keep_constant": [
+      "format",
+      "aspect_ratio",
+      "CTA",
+      "offer",
+      "destination",
+      "visual_style",
+      "service"
+    ],
+    "what_can_vary": [
+      "hook_text"
+    ]
+  },
+  
+  "hook_quality_criteria": {
+    "clarity": true,
+    "curiosity": true,
+    "service_relevance": true,
+    "booking_intent": true,
+    "swing_shack_voice": true,
+    "test_purity": true,
+    "no_false_promise": true
+  }
+}
