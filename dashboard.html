@@ -47,6 +47,52 @@
             -webkit-text-fill-color: transparent;
         }
         
+        /* HOW TO USE THIS DASHBOARD */
+        .how-to-use {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d3d2e 100%);
+            border: 1px solid var(--success);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .how-to-use-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--success);
+            margin-bottom: 10px;
+        }
+        
+        .how-to-use p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        /* Section explanation blocks */
+        .section-explanation {
+            background: rgba(0,0,0,0.3);
+            border-left: 3px solid var(--info);
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .section-explanation h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--info);
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        
+        .section-explanation p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.5;
+        }
+        
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -427,6 +473,20 @@
         <p>Single source of truth for all tasks</p>
         <p><a href="tasks.html">📋 Task Board</a></p>
     </div>
+
+    <!-- HOW TO USE THIS DASHBOARD -->
+    <div class="how-to-use">
+        <div class="how-to-use-title">📖 HOW TO USE THIS DASHBOARD</div>
+        <p>This dashboard shows what content is working, what is not, and what to do next.</p>
+        <p><strong>Focus on Top Action Today</strong> (below), then use Hook Bank and A/B Results to guide posting.</p>
+        <p>Ignore vanity metrics — optimise for bookings and real actions.</p>
+    </div>
+
+    <!-- TOP ACTION TODAY -->
+    <div class="needed-section" style="border-color: var(--success); margin-bottom: 30px;">
+        <div class="needed-title" style="color: var(--success);">🎯 TOP ACTION TODAY</div>
+        <p style="color: var(--text-secondary); padding: 10px 0;">Post stats hook - highest historical engagement (4.44%) + current trend alignment (slice/launch monitor)</p>
+    </div>
     
     <div class="container">
         <!-- Status Bar -->
@@ -506,6 +566,14 @@
                 <div class="reddit-title">💬 Reddit Outreach</div>
                 <div style="color: var(--text-secondary);">Updated daily at 6am</div>
             </div>
+            <div class="section-explanation">
+                <h4>WHAT THIS IS</h4>
+                <p>Real customer pain points beingdiscussed on Reddit</p>
+                <h4>WHY IT MATTERS</h4>
+                <p>Organic engagement builds trust and drives bookings</p>
+                <h4>HOW TO USE</h4>
+                <p>Copy pain points into hooks. Reply with value, not sales.</p>
+            </div>
             <div class="reddit-stats">
                 <div class="reddit-stat">
                     <div class="reddit-stat-number">5</div>
@@ -547,6 +615,14 @@
                 <div class="reddit-title" style="color: #e1306c;">📸 Instagram @swingshack</div>
                 <div style="color: var(--text-secondary);">Active</div>
             </div>
+            <div class="section-explanation">
+                <h4>WHAT THIS IS</h4>
+                <p>Follower count and engagement metrics</p>
+                <h4>WHY IT MATTERS</h4>
+                <p>Tracks reach and community growth</p>
+                <h4>HOW TO USE</h4>
+                <p>Check engagement rate per post, not followers.</p>
+            </div>
             <div class="reddit-stats">
                 <div class="reddit-stat">
                     <div class="reddit-stat-number" style="color: #e1306c;">2,212</div>
@@ -575,6 +651,14 @@
             <div class="reddit-header">
                 <div class="reddit-title" style="color: #ff0000;">🔥 WHAT'S TRENDING</div>
                 <div style="color: var(--text-secondary);">March 2026</div>
+            </div>
+            <div class="section-explanation">
+                <h4>WHAT THIS IS</h4>
+                <p>Current trending topics on TikTok and social</p>
+                <h4>WHY IT MATTERS</h4>
+                <p>Hot content = viral potential</p>
+                <h4>HOW TO USE</h4>
+                <p>Adapt trends to golf. Don't copy — make it relevant.</p>
             </div>
             
             <!-- Trend 1 -->
