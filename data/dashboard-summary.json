@@ -1,9 +1,9 @@
 {
-  "updated": "2026-04-24T05:07:02.009Z",
+  "updated": "2026-05-06T05:07:19.451Z",
   "sources": [
     {
       "name": "IG Analytics",
-      "updated": "2026-04-24T05:04:05.882Z"
+      "updated": "2026-05-06T05:03:49.957Z"
     },
     {
       "name": "GA4",
@@ -15,7 +15,7 @@
     },
     {
       "name": "Golf News",
-      "updated": "2026-04-24T05:07:01.815Z"
+      "updated": "2026-05-06T05:07:19.299Z"
     },
     {
       "name": "SEO Rankings",
@@ -27,16 +27,16 @@
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-04-24T05:07:01.921Z"
+      "updated": "2026-05-06T05:07:19.400Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-04-24T05:07:01.877Z"
+      "updated": "2026-05-06T05:07:19.355Z"
     }
   ],
   "stale_count": 4,
-  "top_recommendation": "Fujimoto available at Swing Shack. ",
-  "total_posts": 69,
+  "top_recommendation": "Built to preform. ",
+  "total_posts": 73,
   "total_ideas": 15,
   "hooks_tracked": 22
 }
