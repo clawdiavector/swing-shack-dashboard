@@ -301,7 +301,104 @@
       "tags": ["golf-shoes", "equipment", "beginner", "gear"]
     }
   ],
-  "last_updated": "2026-04-25",
-  "scan_time": "2026-04-25T18:00Z",
-  "scan_note": "April 25 2026 - 6PM SAST scan. Rate limited on Brave API. Found 1 new opportunity from evening scan."
+    {
+      "id": "reddit-2026-05-06-1",
+      "url": "https://www.reddit.com/r/golf/comments/1dd8ht0/trackman_launch_monitor_experience/",
+      "title": "Trackman Launch Monitor experience?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-06",
+      "datePosted": "2024-06-11",
+      "comment": "Asking about TrackMan experience - classic try-before-buy. We have TrackMan 4 + iO. Come try it.",
+      "tags": ["trackman", "experience", "launch-monitor", "try-before-buy"]
+    },
+    {
+      "id": "reddit-2026-05-06-2",
+      "url": "https://www.reddit.com/r/golf/comments/1smqpil/trackman_4_launch_monitor_2022_model_just_curious/",
+      "title": "Trackman 4 launch monitor 2022 model, just curious what it's going for nowadays.",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-06",
+      "datePosted": "2026-04-15",
+      "comment": "Price checking on a used TrackMan 4. We can show them what actual TrackMan sessions cost - way less than buying.",
+      "tags": ["trackman-4", "price", "used", "cost", "session"]
+    },
+    {
+      "id": "reddit-2026-05-06-3",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1lyb7bx/the_absolute_best_launch_monitor_that_money_can/",
+      "title": "The absolute BEST launch monitor that money can buy for fittings?",
+      "subreddit": "r/Golfsimulator",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-06",
+      "datePosted": "2025-07-12",
+      "comment": "GCQuad vs TrackMan debate. Community says TrackMan ecosystem is more polished. TrackMan 4 + iO - premium setup.",
+      "tags": ["GCQuad", "trackman", "comparison", "fittings", "premium", "ecosystem"]
+    },
+    {
+      "id": "reddit-2026-05-06-4",
+      "url": "https://www.reddit.com/r/golf/comments/1l80jna/best_way_to_use_constant_trackman_access_to/",
+      "title": "Best way to use constant Trackman access to rapidly improve as a beginner?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-06",
+      "datePosted": "2025-06-10",
+      "comment": "Beginner asking how to use TrackMan effectively. Improving contact is key - we can help with that.",
+      "tags": ["beginner", "trackman", "improvement", "practice"]
+    },
+    {
+      "id": "reddit-2026-05-06-5",
+      "url": "https://www.reddit.com/r/golf/comments/ucuxbs/are_golf_lessons_good_for_total_beginners/",
+      "title": "Are golf lessons good for total beginners?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-06",
+      "datePosted": "2022-04-28",
+      "comment": "Eternal question: worth it for newbies? Answer: Yes, pro instructors teach Day 1 beginners.",
+      "tags": ["lessons", "beginner", "worth-it", "total-beginner"]
+    },
+    {
+      "id": "reddit-2026-05-06-6",
+      "url": "https://www.reddit.com/r/golf/comments/xax3t8/two_years_of_lessons_with_little_to_no/",
+      "title": "Two years of lessons with little to no improvement...defeated.",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-06",
+      "datePosted": "2022-09-10",
+      "comment": "Frustrated after 2 years lessons = plateau. Need data, not just verbal cues. TrackMan shows what's actually happening.",
+      "tags": ["frustration", "plateau", "lessons-not-working", "trackman-data"]
+    },
+    {
+      "id": "reddit-2026-05-06-7",
+      "url": "https://www.reddit.com/r/golf/comments/1ctev01/complete_beginner_looking_to_get_some_lessons_how/",
+      "title": "Complete beginner looking to get some lessons. How many should I start with? any advice?",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-06",
+      "datePosted": "2024-05-16",
+      "comment": "Fresh beginner asking how many lessons. Great conversion opportunity - book them in.",
+      "tags": ["beginner", "lessons", "how-many", "conversion"]
+    },
+    {
+      "id": "reddit-2026-05-06-8",
+      "url": "https://www.reddit.com/r/GolfSwing/comments/1i7ghcz/are_golf_lessons_overratedtrying_to_improve_on_a/",
+      "title": "Are Golf Lessons Overrated...Trying to Improve on a Budget",
+      "subreddit": "r/GolfSwing",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-06",
+      "datePosted": "2025-01-22",
+      "comment": "Budget-conscious questioning lessons value. Individual TrackMan sessions show real data - worth it.",
+      "tags": ["budget", "lessons", "value", "group-lessons"]
+    }
+  ],
+  "last_updated": "2026-05-06",
+  "scan_time": "2026-05-06T04:00Z",
+  "scan_note": "May 6 2026 - 6AM SAST scan. Found 8 opportunities from Brave search results."
 }
