@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "created": "2026-05-06",
-  "last_updated": "2026-05-06T14:32:00Z",
+  "last_updated": "2026-05-06T14:35:00Z",
   
   "creative_format_rules": {
     "instagram": {
@@ -23,63 +23,43 @@
   },
   
   "swing_shack_creative_code": {
-    "tone": [
-      "sharp",
-      "confident", 
-      "cheeky but not silly",
-      "data-led",
-      "South African, not American",
-      "helpful, not preachy"
-    ],
-    "avoid": [
-      "elevate",
-      "unleash",
-      "transform your game",
-      "take your game to the next level",
-      "unlock your potential",
-      "generic AI golf sludge",
-      "fake claims",
-      "overhyped promises",
-      "busy Canva-style layouts",
-      "stock-photo energy",
-      "fantasy AI golfers"
-    ],
-    "feel": [
-      "clean",
-      "premium",
-      "indoor golf / TrackMan intelligent",
-      "slightly cheeky",
-      "useful",
-      "commercially sharp"
-    ],
-    "never": [
-      "make the golfer feel broken"
-    ]
+    "tone": ["sharp", "confident", "cheeky but not silly", "data-led", "South African, not American", "helpful, not preachy"],
+    "avoid": ["elevate", "unleash", "transform your game", "take your game to the next level", "unlock your potential", "generic AI golf sludge", "fake claims", "overhyped promises"],
+    "feel": ["clean", "premium", "indoor golf / TrackMan intelligent", "slightly cheeky", "useful", "commercially sharp"]
+  },
+  
+  "content_performance_score": {
+    "description": "Weighted multi-signal scoring for content optimization",
+    "version": "1.0",
+    "revenue_weight": 40,
+    "sessions_weight": 20,
+    "link_clicks_weight": 15,
+    "saves_weight": 10,
+    "shares_weight": 10,
+    "views_reach_weight": 5,
+    "engagement_total_weight": 25,
+    "intent_total_weight": 35,
+    "revenue_total_weight": 40,
+    "calculation": "sum of (signal × weight) / total possible"
+  },
+  
+  "signals_tracked": {
+    "top_funnel": ["reach", "views", "watch_time", "hook_hold_rate"],
+    "engagement": ["likes", "saves", "shares", "comments", "profile_visits"],
+    "intent": ["link_clicks", "CTR", "sessions"],
+    "revenue": ["purchases", "conversion_rate"]
+  },
+  
+  "learning_system": {
+    "enabled": true,
+    "goal": "Generate better future content using previous performance",
+    "tracked_patterns": ["hook_style", "visual_style", "wording_pattern", "CTA_pattern", "service", "format"],
+    "patterns_to_identify": ["recurring_winners", "recurring_losers", "patterns_across_winners"]
   },
   
   "testing_discipline": {
     "one_variable_per_test": true,
-    "variables_to_keep_constant": [
-      "format",
-      "aspect_ratio",
-      "CTA",
-      "offer",
-      "destination",
-      "visual_style",
-      "service"
-    ],
-    "what_can_vary": [
-      "hook_text"
-    ]
-  },
-  
-  "hook_quality_criteria": {
-    "clarity": true,
-    "curiosity": true,
-    "service_relevance": true,
-    "booking_intent": true,
-    "swing_shack_voice": true,
-    "test_purity": true,
-    "no_false_promise": true
+    "variables_to_keep_constant": ["format", "CTA", "offer", "destination", "visual_style", "service"],
+    "what_can_vary": ["hook_text"]
   }
 }
