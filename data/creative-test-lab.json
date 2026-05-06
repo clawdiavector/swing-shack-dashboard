@@ -1,16 +1,19 @@
 {
+  "test_id": "fitting-hook-test-001",
   "test_name": "Club Fitting Hook Test",
   "test_type": "hook_image_test",
   "service": "Club Fitting",
+  "variable_being_tested": "hook_angle",
   "created": "2026-05-06",
-  "status": "IMAGE_PROMPT_READY",
+  "status": "IMAGE_GENERATED",
   "variants": [
     {
       "hook_id": "hook-fitting-a",
+      "creative_id": "hook-fitting-a",
       "hook_text": "YOUR STATS DON'T LIE",
-      "image_concept": "Dark TrackMan data screen with bold stats overlay",
-      "image_prompt": "Dark background, TrackMan launch monitor display showing club head speed and ball speed numbers, professional golf simulator aesthetic, Johannesburg indoor golf facility vibe, high contrast data visualization",
-      "overlay_text": "YOUR STATS\nDON'T LIE\n\nTRACKMAN\nTELLS THE TRUTH",
+      "image_path": "media/generated/hook-fitting-a.png",
+      "html_template": "media/overlaid/hook-fitting-a.html",
+      "overlay_text": "YOUR STATS\\nDON'T LIE\\n\\nTRACKMAN",
       "caption": "Your golf stats are telling you something. Are you listening?\n\nTrackMan data shows exactly what's happening in your swing — club path, face angle, attack angle.\n\nThe data doesn't lie. Book a TrackMan fitting from R250 and find out the truth about your game.\n\n#indoorgolf #trackman #golfjhb #golfsa",
       "cta": "Book Fitting",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-a",
@@ -21,10 +24,10 @@
     },
     {
       "hook_id": "hook-fitting-b",
+      "creative_id": null,
       "hook_text": "YOUR CLUBS ARE LYING TO YOU",
-      "image_concept": "Club face with mis-strikes visualization",
-      "image_prompt": "Golf club face showing sweet spot and common miss patterns, impact location heat map, professional club fitting imagery, clean modern design",
-      "overlay_text": "YOUR CLUBS\nARE LYING\nTO YOU\n\n-15% DISTANCE\nLOST",
+      "image_path": null,
+      "overlay_text": "YOUR CLUBS\\nARE LYING\\nTO YOU\\n\\n-15% DISTANCE",
       "caption": "Your clubs might be costing you 15%+ in distance and accuracy.\n\nA proper fitting finds the truth — launch angle, spin rate, ball speed.\n\nCustom fitted clubs could add meters to your driver. Book a fitting from R900.\n#clubfitting #customclubs #golfsa #trackman",
       "cta": "Book Fitting",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-b",
@@ -35,10 +38,10 @@
     },
     {
       "hook_id": "hook-fitting-c",
+      "creative_id": null,
       "hook_text": "FIND YOUR MISSING 30 METERS",
-      "image_concept": "Distance comparison visualization",
-      "image_prompt": "Golfer swing motion blur with distance trajectory, TrackMan showing yardage numbers, professional fitting session capture, Johannesburg golf facility",
-      "overlay_text": "FIND YOUR\nMISSING\n30 METERS\n\nA FITTING\nSHOWS HOW",
+      "image_path": null,
+      "overlay_text": "FIND YOUR\\nMISSING\\n30 METERS",
       "caption": "30 meters sounds like a lot. It is.\n\nTrackMan finds exactly where you're losing it — and a club change could add serious distance.\n\nMost golfers gain 10-30 meters with the right clubs. Book a fitting to find out what you're missing.\n#golfdistance #trackman #golfjhb #fitting",
       "cta": "Book Fitting",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-c",
@@ -48,6 +51,7 @@
       "conversion_rate": 0
     }
   ],
+  "postiz_connection": "CHECKING",
   "winner": null,
-  "notes": "Image generation blocked - no OpenAI API key configured"
+  "notes": "variant A image generated (reusing existing hook-a-data). B/C require new images."
 }
