@@ -8,43 +8,40 @@
   "size": "1080x1350",
   "placement": "feed_static",
   "created": "2026-05-06",
-  "last_updated": "2026-05-06T14:32:00Z",
-  "status": "READY_FOR_APPROVAL",
+  "last_updated": "2026-05-06T15:03:00Z",
+  "status": "SCHEDULED_AS_DRAFT",
+  
+  "postiz_config": {
+    "postiz_skill": "INSTALLED",
+    "auth": "PASS",
+    "instagram_integration_id": "cmnfoum2703e6ql0yiajgcg21",
+    "tiktok_integration_id": "cmmdgfz3b00s1o20ykrwau2o2"
+  },
   
   "test_constants": {
     "format": "4:5 (1080x1350)",
-    "CTA": "Link in bio. Start with 'Book a Fitting'.",
+    "CTA": "Link in bio. Book a Fitting.",
     "destination": "https://swingshack.co.za/bookings",
     "service": "Club Fitting",
-    "visual_style": "dark TrackMan data aesthetic"
+    "utm_campaign": "fitting"
   },
-  
-  "all_hooks_generated": [
-    {"hook_text": "YOUR STATS DON'T LIE", "score": 9, "selected": true, "reason": "clean, data-led, no false promise"},
-    {"hook_text": "YOUR CLUBS ARE LYING TO YOU", "score": 6, "selected": false, "reason": "feels gimmicky, overpromises"},
-    {"hook_text": "FIND YOUR MISSING 30 METERS", "score": 5, "selected": false, "reason": "overpromises 30m gain"},
-    {"hook_text": "TRACKMAN DOESN'T LIE", "score": 8, "selected": true, "reason": "clean, data-led, relevant"},
-    {"hook_text": "YOUR NUMBERS ARE TALKING", "score": 7, "selected": false, "reason": "weak hook, lacks edge"},
-    {"hook_text": "THE DATA DIDN'T LIE", "score": 7, "selected": true, "reason": "clean, credible, no gimmick"},
-    {"hook_text": "WHAT'S YOUR SPIN RATE?", "score": 4, "selected": false, "reason": "too technical, no booking intent"},
-    {"hook_text": "12 METERS BEHIND THE PROS", "score": 3, "selected": false, "reason": "makes golfer feel broken, negative framing"}
-  ],
   
   "variants": [
     {
       "hook_id": "hook-fitting-a",
       "hook_text": "YOUR STATS DON'T LIE",
       "hook_score": 9,
-      "reason_selected": "clean, data-led, no false promise, strong booking intent",
-      "rejected_alternatives": ["FIND YOUR MISSING 30 METERS", "YOUR CLUBS ARE LYING TO YOU"],
-      "format": "4:5",
-      "size": "1080x1350",
-      "image_prompt": "Dark TrackMan launch monitor screen with bold cyan data numbers. Professional Johannesburg indoor golf facility. Premium data visualization. No golfers in frame.",
+      "reason_selected": "clean, data-led, no false promise",
+      "image_path": "media/generated/hook-fitting-a.png",
+      "uploaded_url": "https://uploads.postiz.com/ZOwWhFnLBG.png",
       "overlay_text": "YOUR STATS\\nDON'T LIE",
-      "caption": "Your golf stats are telling you something. Are you listening?\n\nTrackMan shows exactly what's happening in your swing — club path, face angle, attack angle.\n\nBook a Fitting. Link in bio.\n\n#indoorgolf #trackman #golfjhb",
+      "caption": "YOUR STATS DON'T LIE\n\nTrackMan shows exactly what's happening in your swing — club path, face angle, attack angle.\n\nBook a Fitting. Link in bio.\n\n#indoorgolf #trackman #golfjhb",
       "CTA": "Link in bio. Book a Fitting.",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-a",
-      "status": "READY_FOR_APPROVAL",
+      "postiz_post_id": "cmou2ez8b02f7ns0yw75ixnsp",
+      "postiz_status": "DRAFT",
+      "scheduled_time": "2026-05-07T10:00:00.000Z",
+      "status": "POSTIZ_DRAFT_READY",
       "sessions": 0,
       "purchases": 0,
       "conversion_rate": 0
@@ -53,15 +50,14 @@
       "hook_id": "hook-fitting-b",
       "hook_text": "TRACKMAN DOESN'T LIE",
       "hook_score": 8,
-      "reason_selected": "clean, data-led, relevant brand mention",
-      "rejected_alternatives": ["WHAT'S YOUR SPIN RATE?", "12 METERS BEHIND THE PROS"],
-      "format": "4:5",
-      "size": "1080x1350",
-      "image_prompt": "Dark TrackMan launch monitor screen with bold cyan data numbers. Professional Johannesburg indoor golf facility. Premium data visualization. No golfers in frame.",
+      "reason_selected": "clean, data-led, relevant",
+      "image_path": null,
       "overlay_text": "TRACKMAN\\nDOESN'T LIE",
       "caption": "TrackMan doesn't lie. Your swing doesn't either.\n\nLaunch angle. Spin rate. Club path. The numbers tell the truth.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfsa #fitting",
       "CTA": "Link in bio. Book a Fitting.",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-b",
+      "postiz_post_id": null,
+      "postiz_status": "NOT_CREATED",
       "status": "DRAFT",
       "sessions": 0,
       "purchases": 0,
@@ -71,15 +67,14 @@
       "hook_id": "hook-fitting-c",
       "hook_text": "THE DATA DIDN'T LIE",
       "hook_score": 7,
-      "reason_selected": "credible, slightly cheeky, no gimmick",
-      "rejected_alternatives": ["YOUR NUMBERS ARE TALKING"],
-      "format": "4:5",
-      "size": "1080x1350",
-      "image_prompt": "Dark TrackMan launch monitor screen with bold cyan data numbers. Professional Johannesburg indoor golf facility. Premium data visualization. No golfers in frame.",
+      "reason_selected": "credible, cheeky, no gimmick",
+      "image_path": null,
       "overlay_text": "THE DATA\\nDIDN'T LIE",
       "caption": "The data didn't lie. It never does.\n\nBook a Fitting and find out what your numbers are actually saying.\n\nLink in bio.\n\n#golfjhb #trackman #indoorgolf",
       "CTA": "Link in bio. Book a Fitting.",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-c",
+      "postiz_post_id": null,
+      "postiz_status": "NOT_CREATED",
       "status": "DRAFT",
       "sessions": 0,
       "purchases": 0,
@@ -87,7 +82,15 @@
     }
   ],
   
-  "postiz_connection": "BLOCKED",
+  "tracking": {
+    "hook_id_to_postiz": {
+      "hook-fitting-a": "cmou2ez8b02f7ns0yw75ixnsp"
+    },
+    "postiz_to_hook": {
+      "cmou2ez8b02f7ns0yw75ixnsp": "hook-fitting-a"
+    }
+  },
+  
   "winner": null,
-  "notes": "This test only changes the hook. Format, CTA, service and destination stay fixed."
+  "notes": "Variant A in Postiz as draft. Approve in Postiz dashboard to go live. B/C need images generated first."
 }
