@@ -1,81 +1,65 @@
 {
   "test_id": "fitting-hook-test-001",
   "test_name": "Club Fitting Hook Test 001",
+  "test_version": "v3",
   "test_type": "hook_image_test",
   "service": "Club Fitting",
   "variable_being_tested": "hook_angle",
   "format": "4:5",
-  "size": "1080x1350",
+  "size": "1024x1024",
   "placement": "feed_static",
-  "created": "2026-05-06",
-  "last_updated": "2026-05-06T15:03:00Z",
-  "status": "SCHEDULED_AS_DRAFT",
+  "created": "2026-05-07",
+  "last_updated": "2026-05-07T14:25:00Z",
+  "status": "AWAITING_QA",
   
-  "postiz_config": {
-    "postiz_skill": "INSTALLED",
-    "auth": "PASS",
-    "instagram_integration_id": "cmnfoum2703e6ql0yiajgcg21",
-    "tiktok_integration_id": "cmmdgfz3b00s1o20ykrwau2o2"
+  "v2_rejected": {
+    "reason": "CREATIVE_DIRECTION_FAILURE",
+    "issue": "too much data/text, generic AI golf aesthetic, cyber/blue-glow, not premium",
+    "drafts_removed": true,
+    "postiz_ids": ["cmovaq8d007t5ns0ym8xz6wg6", "cmovaqclm07xml70y6eiid02b", "cmovaqgil07xnl70yemxe1a8x"]
   },
   
-  "test_constants": {
-    "format": "4:5 (1080x1350)",
-    "CTA": "Link in bio. Book a Fitting.",
-    "destination": "https://swingshack.co.za/bookings",
-    "service": "Club Fitting",
-    "utm_campaign": "fitting"
+  "visual_rules_v3": {
+    "preferred_composition": "minimal - ONE stat only + golfer silhouette",
+    "background": "dark indoor bay, realistic lighting, premium",
+    "foreground": "single stat, clean typography",
+    "avoid": ["dashboard aesthetic", "floating UI panels", "giant glowing data boards"],
+    "typography": "minimal, modern, clean, restrained spacing"
   },
   
   "variants": [
     {
-      "hook_id": "hook-fitting-a",
+      "hook_id": "hook-fitting-a-v3",
       "hook_text": "YOUR STATS DON'T LIE",
-      "hook_score": 9,
-      "reason_selected": "clean, data-led, no false promise",
-      "image_path": "media/generated/hook-fitting-a.png",
-      "uploaded_url": "https://uploads.postiz.com/ZOwWhFnLBG.png",
-      "overlay_text": "YOUR STATS\\nDON'T LIE",
-      "caption": "YOUR STATS DON'T LIE\n\nTrackMan shows exactly what's happening in your swing — club path, face angle, attack angle.\n\nBook a Fitting. Link in bio.\n\n#indoorgolf #trackman #golfjhb",
+      "image_path": "media/generated/hook-fitting-a-v3.png",
+      "caption": "Your stats are telling you something.\n\nBook a Fitting. Link in bio.\n\n#indoorgolf #trackman #golfjhb",
       "CTA": "Link in bio. Book a Fitting.",
-      "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-a",
-      "postiz_post_id": "cmou2ez8b02f7ns0yw75ixnsp",
-      "postiz_status": "DRAFT",
-      "scheduled_time": "2026-05-07T10:00:00.000Z",
-      "status": "POSTIZ_DRAFT_READY",
+      "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-a-v3",
+      "status": "AWAITING_QA",
       "sessions": 0,
       "purchases": 0,
       "conversion_rate": 0
     },
     {
-      "hook_id": "hook-fitting-b",
-      "hook_text": "TRACKMAN DOESN'T LIE",
-      "hook_score": 8,
-      "reason_selected": "clean, data-led, relevant",
-      "image_path": null,
-      "overlay_text": "TRACKMAN\\nDOESN'T LIE",
-      "caption": "TrackMan doesn't lie. Your swing doesn't either.\n\nLaunch angle. Spin rate. Club path. The numbers tell the truth.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfsa #fitting",
+      "hook_id": "hook-fitting-b-v3",
+      "hook_text": "CLUB SPEED",
+      "image_path": "media/generated/hook-fitting-b-v3.png",
+      "caption": "Club speed tells the truth.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfsa #fitting",
       "CTA": "Link in bio. Book a Fitting.",
-      "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-b",
-      "postiz_post_id": null,
-      "postiz_status": "NOT_CREATED",
-      "status": "DRAFT",
+      "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-b-v3",
+      "status": "AWAITING_QA",
       "sessions": 0,
       "purchases": 0,
       "conversion_rate": 0
     },
     {
-      "hook_id": "hook-fitting-c",
-      "hook_text": "THE DATA DIDN'T LIE",
-      "hook_score": 7,
-      "reason_selected": "credible, cheeky, no gimmick",
-      "image_path": null,
-      "overlay_text": "THE DATA\\nDIDN'T LIE",
-      "caption": "The data didn't lie. It never does.\n\nBook a Fitting and find out what your numbers are actually saying.\n\nLink in bio.\n\n#golfjhb #trackman #indoorgolf",
+      "hook_id": "hook-fitting-c-v3",
+      "hook_text": "YOUR STATS",
+      "image_path": "media/generated/hook-fitting-c-v3.png",
+      "caption": "Find out what your stats are actually saying.\n\nBook a Fitting. Link in bio.\n\n#golfjhb #trackman #indoorgolf",
       "CTA": "Link in bio. Book a Fitting.",
-      "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-c",
-      "postiz_post_id": null,
-      "postiz_status": "NOT_CREATED",
-      "status": "DRAFT",
+      "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-c-v3",
+      "status": "AWAITING_QA",
       "sessions": 0,
       "purchases": 0,
       "conversion_rate": 0
@@ -83,14 +67,15 @@
   ],
   
   "tracking": {
-    "hook_id_to_postiz": {
-      "hook-fitting-a": "cmou2ez8b02f7ns0yw75ixnsp"
-    },
-    "postiz_to_hook": {
-      "cmou2ez8b02f7ns0yw75ixnsp": "hook-fitting-a"
-    }
+    "hook_id_to_postiz": {},
+    "postiz_to_hook": {}
   },
   
+  "system_rules": [
+    "Rejected creative must never remain in live publishing queue",
+    "Visual QA required before Postiz draft creation"
+  ],
+  
   "winner": null,
-  "notes": "Variant A in Postiz as draft. Approve in Postiz dashboard to go live. B/C need images generated first."
+  "notes": "v3 generated with minimal premium aesthetic. Awaiting visual QA."
 }
