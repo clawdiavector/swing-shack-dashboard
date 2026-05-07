@@ -433,9 +433,45 @@
         "age",
         "conversion"
       ]
+    },
+    {
+      "id": "reddit-2026-05-07-1",
+      "url": "https://www.reddit.com/r/golftips/comments/1t5ydak/driver_fitting/",
+      "title": "Driver Fitting",
+      "subreddit": "r/golftips",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-05-07",
+      "datePosted": "2026-05-07",
+      "comment": "Had a BAD fitting experience - fitter just pushed expensive clubs with no data. That's exactly who we beat. We give TrackMan numbers and real feedback.",
+      "tags": ["fitting", "bad-experience", "driver", "trackman", "data", "conversion"]
+    },
+    {
+      "id": "reddit-2026-05-07-2",
+      "url": "https://www.reddit.com/r/GolfGear/comments/1t5z9uc/rate_my_setup/",
+      "title": "Rate my setup",
+      "subreddit": "r/GolfGear",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-05-07",
+      "datePosted": "2026-05-07",
+      "comment": "Broke 90, shooting 85 - now asking about upgrades. Perfect timing for fitting.",
+      "tags": ["upgrade", "fitting", "improvement", "equipment", "conversion"]
+    },
+    {
+      "id": "reddit-2026-05-07-3",
+      "url": "https://www.reddit.com/r/Golfsimulator/comments/1t5x67h/fringe/",
+      "title": "Fringe",
+      "subreddit": "r/Golfsimulator",
+      "status": "open",
+      "locationTag": "global",
+      "dateFound": "2026-05-07",
+      "datePosted": "2026-05-07",
+      "comment": "Building indoor sim, asking about turf/fringe transition.",
+      "tags": ["simulator", "indoor", "build", "fringe", "turf"]
     }
   ],
-  "last_updated": "2026-05-06",
-  "scan_time": "2026-05-06T04:00Z",
-  "scan_note": "May 6 2026 - 6AM SAST scan. Found 8 opportunities from Brave search results."
+  "last_updated": "2026-05-07",
+  "scan_time": "2026-05-07T04:00Z",
+  "scan_note": "May 7 2026 - 6AM SAST scan."
 }
