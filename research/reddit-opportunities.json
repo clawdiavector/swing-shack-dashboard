@@ -469,9 +469,45 @@
       "datePosted": "2026-05-07",
       "comment": "Building indoor sim, asking about turf/fringe transition.",
       "tags": ["simulator", "indoor", "build", "fringe", "turf"]
+    },
+    {
+      "id": "reddit-2026-05-08-1",
+      "url": "https://www.reddit.com/r/golf/comments/1t6wuq3/4th_time_ever_on_the_driving_range/",
+      "title": "4th time ever on the driving range",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-08",
+      "datePosted": "2026-05-08",
+      "comment": "Brand new golfer asking for swing tips. First-time session opportunity - book them in before bad habits form.",
+      "tags": ["beginner", "first-time", "driving-range", "tips", "conversion"]
+    },
+    {
+      "id": "reddit-2026-05-08-2",
+      "url": "https://www.reddit.com/r/golf/comments/1t6rtfu/consistently_top_the_ball/",
+      "title": "consistently top the ball",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-08",
+      "datePosted": "2026-05-08",
+      "comment": "Left-handed, topping with long irons. Strong grip, brain tells them to kill it. TrackMan shows attack angle + path - this is data, not feel.",
+      "tags": ["topping", "left-handed", "long-irons", "contact", "attack-angle", "trackman"]
+    },
+    {
+      "id": "reddit-2026-05-08-3",
+      "url": "https://www.reddit.com/r/golf/comments/1t55a0z/ive_had_a_yardage_matrix_in_google_sheets_for_years_and/",
+      "title": "I've had a yardage matrix in google sheets for years",
+      "subreddit": "r/golf",
+      "status": "saved",
+      "locationTag": "global",
+      "dateFound": "2026-05-08",
+      "datePosted": "2026-05-07",
+      "comment": "Built spreadsheet for club distances with elevation. TrackMan does this automatically - no spreadsheet needed.",
+      "tags": ["yardage", "distance", "elevation", "spreadsheet", "trackman", "data"]
     }
   ],
-  "last_updated": "2026-05-07",
-  "scan_time": "2026-05-07T04:00Z",
-  "scan_note": "May 7 2026 - 6AM SAST scan."
+  "last_updated": "2026-05-08",
+  "scan_time": "2026-05-08T04:00Z",
+  "scan_note": "May 8 2026 - 6AM SAST scan."
 }
