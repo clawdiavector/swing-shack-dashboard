@@ -1,9 +1,9 @@
 {
-  "updated": "2026-05-07T05:05:55.816Z",
+  "updated": "2026-05-08T05:07:02.065Z",
   "sources": [
     {
       "name": "IG Analytics",
-      "updated": "2026-05-07T05:03:31.855Z"
+      "updated": "2026-05-08T05:04:04.425Z"
     },
     {
       "name": "GA4",
@@ -15,7 +15,7 @@
     },
     {
       "name": "Golf News",
-      "updated": "2026-05-07T05:05:55.645Z"
+      "updated": "2026-05-08T05:07:01.846Z"
     },
     {
       "name": "SEO Rankings",
@@ -27,11 +27,11 @@
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-05-07T05:05:55.766Z"
+      "updated": "2026-05-08T05:07:01.977Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-05-07T05:05:55.721Z"
+      "updated": "2026-05-08T05:07:01.928Z"
     }
   ],
   "stale_count": 4,
