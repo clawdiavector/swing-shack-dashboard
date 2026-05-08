@@ -9,22 +9,27 @@
   "size": "1024x1024",
   "placement": "feed_static",
   "created": "2026-05-07",
-  "last_updated": "2026-05-07T14:25:00Z",
-  "status": "AWAITING_QA",
+  "last_updated": "2026-05-08T08:21:00Z",
+  "status": "PHASE_1_LIVE",
+  
+  "publish_strategy": {
+    "phase": 1,
+    "variant": "hook-fitting-b-v3",
+    "reason": "highest visual QA score - strong feed presence",
+    "learning_window": "24-48 hours minimum",
+    "hypothesis": "Visual dominance may currently outweigh wording quality"
+  },
   
   "v2_rejected": {
     "reason": "CREATIVE_DIRECTION_FAILURE",
-    "issue": "too much data/text, generic AI golf aesthetic, cyber/blue-glow, not premium",
-    "drafts_removed": true,
-    "postiz_ids": ["cmovaq8d007t5ns0ym8xz6wg6", "cmovaqclm07xml70y6eiid02b", "cmovaqgil07xnl70yemxe1a8x"]
+    "issue": "too much data/text, generic AI golf aesthetic",
+    "drafts_removed": true
   },
   
   "visual_rules_v3": {
     "preferred_composition": "minimal - ONE stat only + golfer silhouette",
     "background": "dark indoor bay, realistic lighting, premium",
-    "foreground": "single stat, clean typography",
-    "avoid": ["dashboard aesthetic", "floating UI panels", "giant glowing data boards"],
-    "typography": "minimal, modern, clean, restrained spacing"
+    "avoid": ["dashboard aesthetic", "floating UI panels"]
   },
   
   "variants": [
@@ -35,10 +40,11 @@
       "caption": "Your stats are telling you something.\n\nBook a Fitting. Link in bio.\n\n#indoorgolf #trackman #golfjhb",
       "CTA": "Link in bio. Book a Fitting.",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-a-v3",
-      "status": "AWAITING_QA",
+      "status": "APPROVED_NOT_SCHEDULED",
+      "qa_score": "premium modern authentic",
+      "rank": 3,
       "sessions": 0,
-      "purchases": 0,
-      "conversion_rate": 0
+      "purchases": 0
     },
     {
       "hook_id": "hook-fitting-b-v3",
@@ -47,10 +53,13 @@
       "caption": "Club speed tells the truth.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfsa #fitting",
       "CTA": "Link in bio. Book a Fitting.",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-b-v3",
-      "status": "AWAITING_QA",
+      "status": "PUBLISHED", "postiz_live_id": "cmowxiqtl00d9pr0yuojndpdq", "published_at": "2026-05-08T13:06:00Z"
+      "postiz_draft_id": "cmowj3f29032hns0yqiwsdpn5",
+      "scheduled_time": "2026-05-09T10:00:00.000Z",
+      "qa_score": "strong dramatic premium",
+      "rank": 1,
       "sessions": 0,
-      "purchases": 0,
-      "conversion_rate": 0
+      "purchases": 0
     },
     {
       "hook_id": "hook-fitting-c-v3",
@@ -59,23 +68,34 @@
       "caption": "Find out what your stats are actually saying.\n\nBook a Fitting. Link in bio.\n\n#golfjhb #trackman #indoorgolf",
       "CTA": "Link in bio. Book a Fitting.",
       "utm_link": "https://swingshack.co.za/bookings?utm_source=instagram&utm_medium=bio&utm_campaign=fitting&utm_content=hook-fitting-c-v3",
-      "status": "AWAITING_QA",
+      "status": "APPROVED_NOT_SCHEDULED",
+      "qa_score": "premium modern restrained",
+      "rank": 2,
       "sessions": 0,
-      "purchases": 0,
-      "conversion_rate": 0
+      "purchases": 0
     }
   ],
   
   "tracking": {
-    "hook_id_to_postiz": {},
-    "postiz_to_hook": {}
+    "hook_id_to_postiz": {
+      "hook-fitting-b-v3": "cmowj3f29032hns0yqiwsdpn5"
+    },
+    "postiz_to_hook": {
+      "cmowj3f29032hns0yqiwsdpn5": "hook-fitting-b-v3"
+    }
   },
+  
+  "learning_notes": [
+    "Visual dominance may currently outweigh wording quality",
+    "B ranked highest due to feed presence, not hook strength alone"
+  ],
   
   "system_rules": [
     "Rejected creative must never remain in live publishing queue",
-    "Visual QA required before Postiz draft creation"
+    "Visual QA required before Postiz draft creation",
+    "24-48 hour learning window before next variant"
   ],
   
-  "winner": null,
-  "notes": "v3 generated with minimal premium aesthetic. Awaiting visual QA."
+  "winner": "hook-fitting-b-v3",
+  "notes": "Phase 1 live. Learning window: 24-48 hours."
 }
