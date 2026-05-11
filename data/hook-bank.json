@@ -1,6 +1,6 @@
 {
-  "updated": "2026-05-08T05:07:01.977Z",
-  "total_hooks": 74,
+  "updated": "2026-05-11T05:07:55.334Z",
+  "total_hooks": 75,
   "cross_signal_sources": {
     "ig_weight": "60%",
     "youtube_weight": "20%",
@@ -117,7 +117,7 @@
       {
         "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
         "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
-        "ig_proof_score": 6.8,
+        "ig_proof_score": 6.77,
         "youtube_alignment_score": 10,
         "reddit_relevance_score": 0,
         "cross_signal_score": 6.1,
@@ -133,10 +133,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "5 Powerful Tips to Unleash Your Senior Driver Swing"
         ],
-        "engagementRate": "2.88",
+        "engagementRate": "2.86",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 104,
+        "reach": 105,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "question",
@@ -228,7 +228,7 @@
       {
         "hook_text": "TrackMan doesn't lie. Your swing data from your last session told a story. Now f",
         "hook_id": "trackman-doesn-t-lie--your-swing-data-from-your-la",
-        "ig_proof_score": 4.27,
+        "ig_proof_score": 4.26,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 3.8,
@@ -241,10 +241,10 @@
           "5 Powerful Tips to Unleash Your Senior Driver Swing",
           "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "1.44",
+        "engagementRate": "1.43",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 139,
+        "reach": 140,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -354,31 +354,6 @@
         "post_id": "18015056354814143"
       },
       {
-        "hook_text": "Your balls are important too 👀 Learn the key differences between one of the mos",
-        "hook_id": "your-balls-are-important-too----learn-the-key-diff",
-        "ig_proof_score": 9.42,
-        "youtube_alignment_score": 3,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 6.3,
-        "youtube_topic_match": [
-          "beginner"
-        ],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [
-          "5 Powerful Tips to Unleash Your Senior Driver Swing",
-          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
-        ],
-        "engagementRate": "2.56",
-        "saveRate": "0.00",
-        "shareRate": "0.26",
-        "reach": 391,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "signal_bucket": "proven_only",
-        "post_id": "18101162930499434"
-      },
-      {
         "hook_text": "Want to win a fully custom built driver?👀",
         "hook_id": "want-to-win-a-fully-custom-built-driver---",
         "ig_proof_score": 9.36,
@@ -404,6 +379,31 @@
         "post_id": "18055889312462062"
       },
       {
+        "hook_text": "Your balls are important too 👀 Learn the key differences between one of the mos",
+        "hook_id": "your-balls-are-important-too----learn-the-key-diff",
+        "ig_proof_score": 9.399999999999999,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.2,
+        "youtube_topic_match": [
+          "beginner"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "5 Powerful Tips to Unleash Your Senior Driver Swing",
+          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
+        ],
+        "engagementRate": "2.55",
+        "saveRate": "0.00",
+        "shareRate": "0.26",
+        "reach": 392,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "stat-demand",
+        "signal_bucket": "proven_only",
+        "post_id": "18101162930499434"
+      },
+      {
         "hook_text": "Built to preform. ",
         "hook_id": "built-to-preform--",
         "ig_proof_score": 10,
@@ -413,10 +413,10 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "5.66",
+        "engagementRate": "5.56",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 53,
+        "reach": 54,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "general",
@@ -433,10 +433,10 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "4.11",
+        "engagementRate": "4.08",
         "saveRate": "0.00",
         "shareRate": "0.28",
-        "reach": 706,
+        "reach": 710,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -568,7 +568,7 @@
       {
         "hook_text": "Book your fitting now and use code FITTING15😎🔥",
         "hook_id": "book-your-fitting-now-and-use-code-fitting15----",
-        "ig_proof_score": 1.36,
+        "ig_proof_score": 1.4,
         "youtube_alignment_score": 0,
         "reddit_relevance_score": 0,
         "cross_signal_score": 0.8,
@@ -578,7 +578,7 @@
         "engagementRate": "0.00",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 136,
+        "reach": 140,
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -695,7 +695,7 @@
     {
       "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
       "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
-      "ig_proof_score": 6.8,
+      "ig_proof_score": 6.77,
       "youtube_alignment_score": 10,
       "reddit_relevance_score": 0,
       "cross_signal_score": 6.1,
@@ -711,10 +711,10 @@
         "Possibly The BEST DRIVER Tip Ever In GOLF",
         "5 Powerful Tips to Unleash Your Senior Driver Swing"
       ],
-      "engagementRate": "2.88",
+      "engagementRate": "2.86",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 104,
+      "reach": 105,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "question",
@@ -740,6 +740,12 @@
       "count": 8,
       "best_example": "Want to win a fully custom built driver?👀",
       "avg_cross_score": "4.3"
+    },
+    {
+      "formula": "reveal",
+      "count": 1,
+      "best_example": "CLUB SPEED tells the truth.",
+      "avg_cross_score": "2.6"
     }
   ],
   "ab_winners": [
