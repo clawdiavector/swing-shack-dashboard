@@ -1,5 +1,5 @@
 {
-  "updated": "2026-05-12T05:06:01.764Z",
+  "updated": "2026-05-13T05:09:45.966Z",
   "total_hooks": 77,
   "cross_signal_sources": {
     "ig_weight": "60%",
@@ -588,7 +588,7 @@
       {
         "hook_text": "BACKSPIN: 3,200 RPM",
         "hook_id": "backspin--3-200-rpm",
-        "ig_proof_score": 0.43,
+        "ig_proof_score": 0.54,
         "youtube_alignment_score": 0,
         "reddit_relevance_score": 0,
         "cross_signal_score": 0.3,
@@ -598,7 +598,7 @@
         "engagementRate": "0.00",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 43,
+        "reach": 54,
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "general",
@@ -608,17 +608,17 @@
       {
         "hook_text": "BACKSPIN: 3,200 RPM",
         "hook_id": "backspin--3-200-rpm",
-        "ig_proof_score": 0.4,
+        "ig_proof_score": 0.54,
         "youtube_alignment_score": 0,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 0.2,
+        "cross_signal_score": 0.3,
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
         "engagementRate": "0.00",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 40,
+        "reach": 54,
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "general",
@@ -785,7 +785,7 @@
       "formula": "reveal",
       "count": 1,
       "best_example": "CLUB SPEED tells the truth.",
-      "avg_cross_score": "2.5"
+      "avg_cross_score": "2.4"
     }
   ],
   "ab_winners": [
