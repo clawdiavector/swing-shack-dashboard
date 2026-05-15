@@ -1,9 +1,9 @@
 {
-  "updated": "2026-05-14T05:05:23.163Z",
+  "updated": "2026-05-15T05:05:43.667Z",
   "sources": [
     {
       "name": "IG Analytics",
-      "updated": "2026-05-14T05:03:30.849Z"
+      "updated": "2026-05-15T05:03:37.561Z"
     },
     {
       "name": "GA4",
@@ -15,7 +15,7 @@
     },
     {
       "name": "Golf News",
-      "updated": "2026-05-14T05:05:22.979Z"
+      "updated": "2026-05-15T05:05:43.464Z"
     },
     {
       "name": "SEO Rankings",
@@ -27,16 +27,16 @@
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-05-14T05:05:23.079Z"
+      "updated": "2026-05-15T05:05:43.583Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-05-14T05:05:23.035Z"
+      "updated": "2026-05-15T05:05:43.537Z"
     }
   ],
   "stale_count": 4,
   "top_recommendation": "Go to your coaching sessions. Your ball deserves better 🫂",
-  "total_posts": 77,
+  "total_posts": 78,
   "total_ideas": 15,
   "hooks_tracked": 22
 }

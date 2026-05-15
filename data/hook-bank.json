@@ -1,6 +1,6 @@
 {
-  "updated": "2026-05-14T05:05:23.079Z",
-  "total_hooks": 77,
+  "updated": "2026-05-15T05:05:43.583Z",
+  "total_hooks": 78,
   "cross_signal_sources": {
     "ig_weight": "60%",
     "youtube_weight": "20%",
@@ -416,7 +416,7 @@
         "engagementRate": "4.08",
         "saveRate": "0.00",
         "shareRate": "0.28",
-        "reach": 710,
+        "reach": 711,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -453,10 +453,10 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "3.24",
+        "engagementRate": "3.23",
         "saveRate": "0.00",
         "shareRate": "0.38",
-        "reach": 525,
+        "reach": 526,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -473,10 +473,10 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "4.32",
+        "engagementRate": "4.29",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 162,
+        "reach": 163,
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "question",
@@ -771,9 +771,9 @@
     },
     {
       "formula": "general",
-      "count": 42,
+      "count": 43,
       "best_example": "Lowest net score wins a *new custom fitted driver!*",
-      "avg_cross_score": "4.1"
+      "avg_cross_score": "4.0"
     },
     {
       "formula": "question",
@@ -785,7 +785,7 @@
       "formula": "reveal",
       "count": 1,
       "best_example": "CLUB SPEED tells the truth.",
-      "avg_cross_score": "4.2"
+      "avg_cross_score": "2.9"
     }
   ],
   "ab_winners": [
