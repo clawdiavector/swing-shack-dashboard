@@ -1,0 +1,329 @@
+{
+  "campaigns": [
+    {
+      "id": "trackman",
+      "name": "TrackMan Intelligence",
+      "status": "scheduled",
+      "priority": "hero",
+      "tagline": "Position Swing Shack as the place that understands what TrackMan data actually means",
+      "health": "healthy",
+      "momentum": "up",
+      "lastUpdated": "2026-05-21T10:00:00Z",
+      "nextAction": "Post reel at 12:00",
+      "visual": "gradient-orange",
+      "assets": [
+        {
+          "id": "ti-reel-001",
+          "type": "reel",
+          "title": "Spin Doesn't Lie",
+          "hook": "Your driver says 220. But TrackMan sees spin killing 15m at impact.",
+          "caption": "Your driver says 220. But TrackMan sees spin killing 15m at impact.\n\nSpin doesn't care about swing speed.\n\nTrackMan shows what other methods miss.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "scheduled",
+          "stage": "SCHEDULED",
+          "label": "GENERATED",
+          "scheduledTime": "2026-05-21T12:00:00+02:00",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-21"
+        },
+        {
+          "id": "ti-reel-002",
+          "type": "reel",
+          "title": "Smash Factor",
+          "hook": "Sweet spot is tiny. TrackMan shows exactly where you're hitting the face.",
+          "caption": "Sweet spot is tiny. TrackMan shows exactly where you're hitting the face.\n\nMost golfers are surprised.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "ready",
+          "stage": "READY",
+          "label": "GENERATED",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-22"
+        },
+        {
+          "id": "ti-carousel-001",
+          "type": "carousel",
+          "title": "5 Things TrackMan Reveals",
+          "hook": "5 Things TrackMan Reveals: 1. Spin 2. Launch 3. Face 4. Strike 5. Dispersion",
+          "caption": "5 things your pro wishes you knew before your next fitting.\n\nTrackMan makes the invisible visible.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "ready",
+          "stage": "READY",
+          "label": "GENERATED",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-23"
+        },
+        {
+          "id": "ti-reel-003",
+          "type": "reel",
+          "title": "Ball Speed Secrets",
+          "hook": "Ball speed is the real metric. TrackMan proves it every session.",
+          "caption": "Ball speed is the real metric.\n\nSwing speed is vanity.\n\nTrackMan shows what actually matters.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "planning",
+          "stage": "PLANNING",
+          "label": "HYBRID",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-26"
+        },
+        {
+          "id": "ti-reel-004",
+          "type": "reel",
+          "title": "Driver SS Reel A",
+          "hook": "220 yards. Sound good? TrackMan shows why you're short.",
+          "caption": "220 yards. Sound good?\n\nTrackMan shows why you're short.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "shooting",
+          "stage": "SHOOTING",
+          "label": "REAL",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-27"
+        },
+        {
+          "id": "ti-reel-005",
+          "type": "reel",
+          "title": "Iron Carry Data",
+          "hook": "Your irons carry less than you think. TrackMan proves it.",
+          "caption": "Your irons carry less than you think.\n\nTrackMan proves it with numbers.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "shooting",
+          "stage": "SHOOTING",
+          "label": "REAL",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-27"
+        },
+        {
+          "id": "ti-story-001",
+          "type": "story",
+          "title": "Week 4 Hook",
+          "hook": "Week 4: The data that changed everything.",
+          "caption": "Week 4: The data that changed everything.\n\n#trackman #golfjhb #fitting",
+          "status": "shooting",
+          "stage": "SHOOTING",
+          "label": "HYBRID",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-28"
+        },
+        {
+          "id": "ti-reel-006",
+          "type": "reel",
+          "title": "Apex Speed Loop",
+          "hook": "Peak speed at the wrong point costs you 20 yards.",
+          "caption": "Peak speed at the wrong point costs you 20 yards.\n\nTrackMan shows exactly where.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "editing",
+          "stage": "EDITING",
+          "label": "REAL",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-29"
+        },
+        {
+          "id": "ti-carousel-002",
+          "type": "carousel",
+          "title": "Launch Monitor Set",
+          "hook": "7 things TrackMan reveals about your swing.",
+          "caption": "7 things TrackMan reveals about your swing.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "editing",
+          "stage": "EDITING",
+          "label": "GENERATED",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-30"
+        },
+        {
+          "id": "ti-reel-007",
+          "type": "reel",
+          "title": "Club Path Drill",
+          "hook": "Inside-to-square-to-in. TrackMan shows if you're doing it.",
+          "caption": "Inside-to-square-to-in.\n\nTrackMan shows if you're doing it.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "scheduled",
+          "stage": "SCHEDULED",
+          "label": "REAL",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-28"
+        },
+        {
+          "id": "ti-story-002",
+          "type": "story",
+          "title": "Face Impact Series",
+          "hook": "Where on the face are you hitting it?",
+          "caption": "Where on the face are you hitting it?\n\n#trackman #golfjhb #fitting",
+          "status": "scheduled",
+          "stage": "SCHEDULED",
+          "label": "HYBRID",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-28"
+        },
+        {
+          "id": "ti-reel-008",
+          "type": "reel",
+          "title": "TrackMan Monday Teaser",
+          "hook": "Mondays at Swing Shack. Data meets golf.",
+          "caption": "Mondays at Swing Shack.\n\nData meets golf.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "live",
+          "stage": "LIVE",
+          "label": "REAL",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-19"
+        }
+      ],
+      "pipelineOrder": ["PLANNING","SHOOTING","EDITING","READY","SCHEDULED","LIVE","LEARNING"],
+      "pipelineAssets": {
+        "PLANNING": ["ti-reel-003"],
+        "SHOOTING": ["ti-reel-004","ti-reel-005","ti-story-001"],
+        "EDITING": ["ti-reel-006","ti-carousel-002"],
+        "READY": ["ti-reel-002","ti-carousel-001"],
+        "SCHEDULED": ["ti-reel-001","ti-reel-007","ti-story-002"],
+        "LIVE": ["ti-reel-008"],
+        "LEARNING": []
+      }
+    },
+    {
+      "id": "fit-facts",
+      "name": "Fit Facts",
+      "status": "planning",
+      "priority": "protected",
+      "tagline": "Educational content that compounds over time",
+      "health": "attention",
+      "momentum": "stable",
+      "lastUpdated": "2026-05-21T08:00:00Z",
+      "nextAction": "Complete asset plan",
+      "visual": "gradient-blue",
+      "assets": [
+        {
+          "id": "ff-reel-001",
+          "type": "reel",
+          "title": "Loft vs Distance",
+          "hook": "More loft = more distance. TrackMan proves it every session.",
+          "caption": "More loft doesn't kill your distance. It optimises it.\n\nTrackMan data doesn't lie.\n\nBook a Fitting. Link in bio.\n\n#trackman #golfjhb #fitting",
+          "status": "planning",
+          "stage": "PLANNING",
+          "label": "HYBRID",
+          "platform": "instagram",
+          "scheduledDate": "2026-05-26"
+        }
+      ],
+      "pipelineAssets": {
+        "PLANNING": ["ff-reel-001"],
+        "SHOOTING": [],
+        "EDITING": [],
+        "READY": [],
+        "SCHEDULED": [],
+        "LIVE": [],
+        "LEARNING": []
+      }
+    },
+    {
+      "id": "winter-golf",
+      "name": "Winter Golf",
+      "status": "planning",
+      "priority": "seasonal",
+      "tagline": "Off-season engagement campaign",
+      "health": "attention",
+      "momentum": "down",
+      "lastUpdated": "2026-05-20T14:00:00Z",
+      "nextAction": "Schedule shoot day",
+      "visual": "gradient-cold",
+      "assets": [],
+      "pipelineAssets": {
+        "PLANNING": [],
+        "SHOOTING": [],
+        "EDITING": [],
+        "READY": [],
+        "SCHEDULED": [],
+        "LIVE": [],
+        "LEARNING": []
+      }
+    },
+    {
+      "id": "major-swing",
+      "name": "Major Swing Service",
+      "status": "planning",
+      "priority": "event",
+      "tagline": "Tournament-aligned content bursts",
+      "health": "attention",
+      "momentum": "stable",
+      "lastUpdated": "2026-05-18T09:00:00Z",
+      "nextAction": "Begin production",
+      "visual": "gradient-green",
+      "assets": [],
+      "pipelineAssets": {
+        "PLANNING": [],
+        "SHOOTING": [],
+        "EDITING": [],
+        "READY": [],
+        "SCHEDULED": [],
+        "LIVE": [],
+        "LEARNING": []
+      }
+    },
+    {
+      "id": "free-assessments",
+      "name": "Free Assessments",
+      "status": "conversion",
+      "priority": "conversion-only",
+      "tagline": "Lead capture — not a content campaign",
+      "health": "healthy",
+      "momentum": "up",
+      "lastUpdated": "2026-05-21T07:00:00Z",
+      "nextAction": "Link in bio only — no content cadence",
+      "visual": "gradient-purple",
+      "assets": [],
+      "pipelineAssets": {
+        "PLANNING": [],
+        "SHOOTING": [],
+        "EDITING": [],
+        "READY": [],
+        "SCHEDULED": [],
+        "LIVE": [],
+        "LEARNING": []
+      }
+    }
+  ],
+  "approvals": [
+    {
+      "id": "apr-001",
+      "campaign": "trackman",
+      "assetId": "ti-reel-002",
+      "title": "Smash Factor",
+      "type": "reel",
+      "submittedAt": "2026-05-21T06:00:00Z",
+      "thumbnail": "../../media/generated/ti-smash-factor.png"
+    },
+    {
+      "id": "apr-002",
+      "campaign": "trackman",
+      "assetId": "ti-carousel-001",
+      "title": "5 Things TrackMan Reveals",
+      "type": "carousel",
+      "submittedAt": "2026-05-21T06:30:00Z",
+      "thumbnail": "../../media/generated/ti-5-things.png"
+    }
+  ],
+  "shoots": [
+    {
+      "id": "shoot-001",
+      "date": "2026-05-24",
+      "campaign": "TrackMan Intelligence",
+      "type": "TrackMan session filming",
+      "resources": "1 videographer, 1 editor",
+      "countdown": 3
+    },
+    {
+      "id": "shoot-002",
+      "date": "2026-05-31",
+      "campaign": "Fit Facts",
+      "type": "Club fitting B-roll",
+      "resources": "1 videographer",
+      "countdown": 10
+    }
+  ],
+  "stats": {
+    "totalReach": 284700,
+    "activePosts": 24,
+    "engagementRate": 6.8,
+    "bookings": 147,
+    "reachDelta": 12,
+    "postsDelta": 3,
+    "engagementDelta": -0.4,
+    "bookingsDelta": 8
+  },
+  "activity": [
+    { "id": "act-001", "type": "approved", "message": "Spin Doesn't Lie reel approved", "time": "2026-05-21T09:30:00Z" },
+    { "id": "act-002", "type": "scheduled", "message": "Fit Facts content plan completed", "time": "2026-05-21T08:15:00Z" },
+    { "id": "act-003", "type": "created", "message": "Smash Factor reel moved to Ready", "time": "2026-05-21T07:45:00Z" },
+    { "id": "act-004", "type": "paused", "message": "Free Assessments — content cadence killed, CTA only", "time": "2026-05-21T07:00:00Z" },
+    { "id": "act-005", "type": "learning", "message": "A/B Hook D outperforming Hook E by 15%", "time": "2026-05-20T16:00:00Z" }
+  ]
+}

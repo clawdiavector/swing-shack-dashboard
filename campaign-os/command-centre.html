@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Swing Shack — Campaign OS</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="app.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -156,6 +157,22 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);colo
 .gradient-3{background:linear-gradient(135deg,#1a2a1a 0%,#0d1a0d 50%,#0a150a 100%)}
 .gradient-4{background:linear-gradient(135deg,#2a2a1a 0%,#1a1a0d 50%,#15150a 100%)}
 .gradient-5{background:linear-gradient(135deg,#2a1a1a 0%,#1a0d0d 50%,#150a0a 100%)}
+
+/* ASSET MODAL */
+.asset-modal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85)}
+.modal-content{position:relative;background:var(--bg-card);border-radius:16px;padding:32px;max-width:560px;width:90%;border:1px solid var(--border)}
+.modal-badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:11px;text-transform:uppercase;font-weight:700}
+.badge-real,.badge-real{background:#22C55E33;color:#22C55E}
+.badge-generated,.badge-generate{background:#6496FF33;color:#6496FF}
+.badge-hybrid,.badge-hybridd{background:#FFD23D33;color:#FFD23D}
+.modal-actions{display:flex;gap:12px;margin-top:24px}
+.modal-actions button{padding:10px 20px;border-radius:8px;border:none;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.modal-actions button:first-child{background:var(--accent);color:#fff}
+.modal-actions button:nth-child(2){background:var(--bg-elevated);color:var(--text)}
+.modal-actions button:nth-child(3){background:var(--bg-elevated);color:var(--text-dim)}
+.modal-hook{font-size:15px;color:var(--accent);margin:16px 0;line-height:1.5}
+.modal-caption{font-size:13px;color:var(--text-mid);line-height:1.7}
 </style>
 </head>
 <body>
@@ -195,7 +212,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);colo
       <div class="section-label">Active Campaigns</div>
       <div class="campaign-grid">
 
-        <div class="campaign-card">
+        <div class="campaign-card" data-campaign-id="trackman">
           <div class="card-visual gradient-1">
             <div class="card-visual-overlay"></div>
             <div class="card-status-badge healthy">
@@ -223,7 +240,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);colo
           </div>
         </div>
 
-        <div class="campaign-card">
+        <div class="campaign-card" data-campaign-id="fit-facts">
           <div class="card-visual gradient-2">
             <div class="card-visual-overlay"></div>
             <div class="card-status-badge attention">
@@ -251,7 +268,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);colo
           </div>
         </div>
 
-        <div class="campaign-card">
+        <div class="campaign-card" data-campaign-id="winter-golf">
           <div class="card-visual gradient-3">
             <div class="card-visual-overlay"></div>
             <div class="card-status-badge healthy">
@@ -279,7 +296,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);colo
           </div>
         </div>
 
-        <div class="campaign-card">
+        <div class="campaign-card" data-campaign-id="major-swing">
           <div class="card-visual gradient-4">
             <div class="card-visual-overlay"></div>
             <div class="card-status-badge healthy">
@@ -307,7 +324,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);colo
           </div>
         </div>
 
-        <div class="campaign-card">
+        <div class="campaign-card" data-campaign-id="free-assessments">
           <div class="card-visual gradient-5">
             <div class="card-visual-overlay"></div>
             <div class="card-status-badge blocked">
@@ -533,6 +550,42 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);colo
 
 <script>
 // SAST Clock
+function updateClock(){
+  var now = new Date();
+  var sa = new Date(now.toLocaleString('en-US', {timeZone:'Africa/Johannesburg'}));
+  var h = sa.getHours().toString().padStart(2,'0');
+  var m = sa.getMinutes().toString().padStart(2,'0');
+  var el = document.getElementById('clock');
+  if(el) el.textContent = h+':'+m+' SAST';
+}
+
+// Init CampaignOS then load dynamic content
+CampaignOS.init().then(function() {
+  updateClock();
+  CampaignOS.renderCommandCentre();
+
+  // Campaign card clicks → workspace
+  document.querySelectorAll('.campaign-card[data-campaign-id]').forEach(function(card) {
+    var id = card.getAttribute('data-campaign-id');
+    if (!id) return;
+    // Only attach if not already handled by render (safety)
+    card.addEventListener('click', function() { CampaignOS.openCampaign(id); });
+    card.style.cursor = 'pointer';
+  });
+
+  // Approval item clicks → campaign workspace
+  document.querySelectorAll('.approval-item[data-approval-id]').forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      if (e.target.tagName === 'BUTTON') return;
+      var id = item.getAttribute('data-approval-id');
+      var approval = CampaignOS.getApprovals().find(function(a) { return a.id === id; });
+      if (approval) CampaignOS.openCampaign(approval.campaign);
+    });
+  });
+});
+
+setInterval(updateClock, 10000);
+</script>
 function updateClock(){
   var now = new Date();
   var sa = new Date(now.toLocaleString('en-US', {timeZone:'Africa/Johannesburg'}));

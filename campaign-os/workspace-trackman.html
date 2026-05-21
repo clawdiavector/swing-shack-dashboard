@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TrackMan Intelligence — Campaign OS</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="app.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -178,6 +179,22 @@ a{color:inherit;text-decoration:none}
 .grad-c{background:linear-gradient(135deg,#2a2a1a,#1a1a0d,#15150a)}
 .grad-d{background:linear-gradient(135deg,#2a1a2a,#1a0d1a,#150a15)}
 .grad-e{background:linear-gradient(135deg,#1a2a3a,#0f1f2a,#0a1520)}
+
+/* ASSET MODAL */
+.asset-modal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85)}
+.modal-content{position:relative;background:var(--bg-card);border-radius:16px;padding:32px;max-width:560px;width:90%;border:1px solid var(--border)}
+.modal-badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:11px;text-transform:uppercase;font-weight:700}
+.badge-real{background:#22C55E33;color:#22C55E}
+.badge-generated{background:#6496FF33;color:#6496FF}
+.badge-hybrid{background:#FFD23D33;color:#FFD23D}
+.modal-actions{display:flex;gap:12px;margin-top:24px}
+.modal-actions button{padding:10px 20px;border-radius:8px;border:none;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.modal-actions button:first-child{background:var(--accent);color:#fff}
+.modal-actions button:nth-child(2){background:var(--bg-elevated);color:var(--text)}
+.modal-actions button:nth-child(3){background:var(--bg-elevated);color:var(--text-dim)}
+.modal-hook{font-size:15px;color:var(--accent);margin:16px 0;line-height:1.5}
+.modal-caption{font-size:13px;color:var(--text-mid);line-height:1.7;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -642,6 +659,33 @@ function copyText(btn){
     btn.textContent = 'Copy';
   }
 }
+
+// Init CampaignOS
+CampaignOS.init().then(function() {
+  var campaignId = CampaignOS.getCampaignFromURL() || 'trackman';
+  CampaignOS.renderWorkspace(campaignId);
+
+  // Pipeline chip clicks → asset detail modal
+  document.querySelectorAll('.pipeline-stages').forEach(function(stages) {
+    stages.addEventListener('click', function(e) {
+      var chip = e.target.closest('.asset-chip');
+      if (!chip) return;
+      var assetId = chip.getAttribute('data-asset-id');
+      var cid = chip.getAttribute('data-campaign-id');
+      if (assetId && cid) showAssetDetail(cid, assetId);
+    });
+  });
+
+  // Gallery card clicks → asset detail
+  document.querySelectorAll('.gallery-grid').forEach(function(grid) {
+    grid.addEventListener('click', function(e) {
+      var card = e.target.closest('.collateral-card');
+      if (!card) return;
+      var assetId = card.getAttribute('data-asset-id');
+      if (assetId) showAssetDetail(campaignId, assetId);
+    });
+  });
+});
 </script>
 </body>
 </html>
