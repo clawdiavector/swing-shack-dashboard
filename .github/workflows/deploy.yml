@@ -27,6 +27,8 @@ jobs:
             assets/
             images/
             tiktok-marketing/
+            campaign-os/
+            media/
           sparse-checkout-cone-mode: false
 
       - name: Setup Pages

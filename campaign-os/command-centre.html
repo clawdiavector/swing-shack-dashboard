@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swing Shack — Campaign OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-dark:#0D0D0D;--bg-card:#1A1A1A;--bg-elevated:#242424;--bg-hover:#2A2A2A;
+  --accent:#FF6B35;--accent-glow:rgba(255,107,53,.25);--accent-glow-strong:rgba(255,107,53,.5);
+  --green:#3DFF8F;--green-glow:rgba(61,255,143,.25);
+  --yellow:#FFD23D;--yellow-glow:rgba(255,210,61,.25);
+  --red:#FF4D4D;--red-glow:rgba(255,77,77,.25);
+  --text:#FFFFFF;--text-dim:#888888;--text-mid:#AAAAAA;
+  --border:rgba(255,255,255,.07);
+  --radius-sm:8px;--radius-md:12px;--radius-lg:18px;
+}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* HEADER */
+.top-header{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;background:rgba(13,13,13,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header-logo{display:flex;align-items:baseline;gap:10px}
+.header-logo .brand{font-size:16px;font-weight:900;letter-spacing:.15em;color:var(--text)}
+.header-logo .product{font-size:13px;font-weight:600;letter-spacing:.12em;color:var(--accent)}
+.live-status{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--green);text-transform:uppercase}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green),0 0 16px var(--green-glow);animation:pulse-green 2s ease-in-out infinite}
+@keyframes pulse-green{0%,100%{opacity:1;box-shadow:0 0 8px var(--green),0 0 16px var(--green-glow)}50%{opacity:.7;box-shadow:0 0 4px var(--green),0 0 8px var(--green-glow)}}
+.header-right{display:flex;align-items:center;gap:24px}
+.sast-clock{font-size:13px;font-weight:500;color:var(--text-dim);font-variant-numeric:tabular-nums}
+.weather-placeholder{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);background:var(--bg-card);padding:6px 12px;border-radius:20px;border:1px solid var(--border)}
+
+/* HEALTH ROW */
+.health-row{display:flex;align-items:center;gap:10px;padding:16px 32px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);background:rgba(13,13,13,.7)}
+.health-row::-webkit-scrollbar{display:none}
+.health-pill{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:50px;background:var(--bg-card);border:1px solid var(--border);font-size:12px;font-weight:600;white-space:nowrap;transition:all .25s ease;cursor:default;flex-shrink:0}
+.health-pill:hover{background:var(--bg-elevated);border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.health-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.health-dot.green{background:var(--green);box-shadow:0 0 6px var(--green-glow);animation:pulse-dot 3s ease-in-out infinite}
+.health-dot.yellow{background:var(--yellow);box-shadow:0 0 6px var(--yellow-glow);animation:pulse-dot-yellow 2.5s ease-in-out infinite}
+.health-dot.red{background:var(--red);box-shadow:0 0 6px var(--red-glow);animation:pulse-dot-red 1.5s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes pulse-dot-yellow{0%,100%{opacity:1}50%{opacity:.6}}
+@keyframes pulse-dot-red{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* MAIN LAYOUT */
+.main-layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 64px - 57px)}
+.left-col{padding:28px 32px;display:flex;flex-direction:column;gap:28px}
+.right-col{border-left:1px solid var(--border);padding:28px 20px;display:flex;flex-direction:column;gap:24px;background:rgba(26,26,26,.4)}
+
+/* SECTION LABEL */
+.section-label{font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--text-dim);text-transform:uppercase;margin-bottom:14px}
+
+/* CAMPAIGN GRID */
+.campaign-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.campaign-card{border-radius:var(--radius-lg);background:var(--bg-card);border:1px solid var(--border);overflow:hidden;transition:all .3s ease;cursor:default;position:relative}
+.campaign-card:hover{transform:translateY(-4px);border-color:rgba(255,107,53,.3);box-shadow:0 8px 40px rgba(0,0,0,.4),0 0 20px var(--accent-glow)}
+.card-visual{height:200px;position:relative;overflow:hidden}
+.card-visual img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease}
+.campaign-card:hover .card-visual img{transform:scale(1.04)}
+.card-visual-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(13,13,13,.7) 100%)}
+.card-status-badge{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:50px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;backdrop-filter:blur(10px)}
+.card-status-badge.healthy{background:rgba(61,255,143,.15);border:1px solid rgba(61,255,143,.4);color:var(--green);box-shadow:0 0 12px var(--green-glow)}
+.card-status-badge.attention{background:rgba(255,210,61,.15);border:1px solid rgba(255,210,61,.4);color:var(--yellow);box-shadow:0 0 12px var(--yellow-glow)}
+.card-status-badge.blocked{background:rgba(255,77,77,.15);border:1px solid rgba(255,77,77,.4);color:var(--red);box-shadow:0 0 12px var(--red-glow)}
+.card-health-dots{position:absolute;top:14px;right:14px;display:flex;gap:5px;padding:5px 10px;background:rgba(13,13,13,.6);backdrop-filter:blur(10px);border-radius:50px}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot.lit-green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot.lit-yellow{background:var(--yellow);box-shadow:0 0 6px var(--yellow)}
+.dot.lit-red{background:var(--red);box-shadow:0 0 6px var(--red)}
+.dot.off{background:rgba(255,255,255,.15)}
+.card-body{padding:18px 20px 20px}
+.card-name{font-size:17px;font-weight:700;margin-bottom:6px;letter-spacing:-.01em}
+.card-meta{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--text-dim);margin-bottom:14px}
+.card-meta span{display:flex;align-items:center;gap:4px}
+.card-next-action{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.next-action-label{font-size:10px;color:var(--text-dim);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.next-action-text{font-size:12px;font-weight:600;color:var(--text-mid)}
+.btn-cta{padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:50px;font-size:11px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:all .2s ease;box-shadow:0 0 16px var(--accent-glow);white-space:nowrap}
+.btn-cta:hover{background:#ff7d4a;box-shadow:0 0 24px var(--accent-glow-strong);transform:scale(1.04)}
+.card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border)}
+.card-updated{font-size:10px;color:var(--text-dim)}
+.momentum{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700}
+.momentum.up{color:var(--green)}.momentum.down{color:var(--red)}.momentum.neutral{color:var(--text-dim)}
+.momentum-arrow{display:inline-block;animation:bounce-arrow 1.5s ease-in-out infinite}
+@keyframes bounce-arrow{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+
+/* UPCOMING SHOOTS */
+.shoots-list{display:flex;flex-direction:column;gap:10px}
+.shoot-card{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);transition:all .25s ease}
+.shoot-card:hover{border-color:rgba(255,107,53,.25);background:var(--bg-elevated)}
+.shoot-date-block{display:flex;flex-direction:column;align-items:center;justify-content:center;width:48px;height:48px;background:var(--bg-elevated);border-radius:10px;border:1px solid var(--border);flex-shrink:0}
+.shoot-date-day{font-size:18px;font-weight:800;line-height:1;color:var(--accent)}
+.shoot-date-mon{font-size:9px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em}
+.shoot-info{flex:1}
+.shoot-name{font-size:13px;font-weight:700;margin-bottom:3px}
+.shoot-meta{font-size:10px;color:var(--text-dim);display:flex;align-items:center;gap:8px}
+.shoot-countdown{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.countdown-num{font-size:18px;font-weight:800;color:var(--text);line-height:1}
+.countdown-label{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+
+/* APPROVALS QUEUE */
+.approvals-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.approvals-title{font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--text-dim);text-transform:uppercase}
+.count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:var(--accent);color:#fff;border-radius:50px;font-size:10px;font-weight:800;box-shadow:0 0 10px var(--accent-glow)}
+.approval-item{display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:8px;transition:all .2s ease}
+.approval-item:hover{border-color:rgba(255,107,53,.2);background:var(--bg-elevated)}
+.approval-thumb{width:52px;height:52px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#2a2a2a,#1a1a1a);overflow:hidden;flex-shrink:0}
+.approval-thumb img{width:100%;height:100%;object-fit:cover}
+.approval-info{flex:1;min-width:0}
+.approval-campaign{font-size:11px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.approval-type{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim)}
+.type-chip{padding:2px 7px;border-radius:50px;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.06em}
+.type-chip.reel{background:rgba(255,107,53,.2);color:var(--accent)}
+.type-chip.carousel{background:rgba(61,255,143,.15);color:var(--green)}
+.type-chip.story{background:rgba(170,100,255,.15);color:#AA64FF}
+.approval-time{font-size:9px;color:var(--text-dim);margin-top:3px}
+.btn-approve{padding:5px 10px;background:rgba(61,255,143,.1);border:1px solid rgba(61,255,143,.3);color:var(--green);border-radius:50px;font-size:10px;font-weight:700;cursor:pointer;transition:all .2s ease;white-space:nowrap}
+.btn-approve:hover{background:rgba(61,255,143,.2);box-shadow:0 0 10px var(--green-glow)}
+
+/* PERFORMANCE PULSE */
+.performance-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-card{padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);position:relative;overflow:hidden;transition:all .3s ease}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;transition:opacity .3s ease}
+.stat-card:hover::before{opacity:1}
+.stat-card:hover{border-color:rgba(255,107,53,.2);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px}
+.stat-value{font-size:32px;font-weight:900;letter-spacing:-.03em;line-height:1;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.stat-delta{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700}
+.stat-delta.up{color:var(--green)}.stat-delta.down{color:var(--red)}
+
+/* ACTIVITY FEED */
+.activity-feed{display:flex;flex-direction:column;gap:0}
+.activity-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);animation:fade-in-up .4s ease forwards;opacity:0}
+.activity-item:last-child{border-bottom:none}
+.activity-item:nth-child(1){animation-delay:.05s}
+.activity-item:nth-child(2){animation-delay:.1s}
+.activity-item:nth-child(3){animation-delay:.15s}
+.activity-item:nth-child(4){animation-delay:.2s}
+.activity-item:nth-child(5){animation-delay:.25s}
+@keyframes fade-in-up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.activity-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.activity-icon.approved{background:rgba(61,255,143,.15);color:var(--green)}
+.activity-icon.scheduled{background:rgba(255,107,53,.15);color:var(--accent)}
+.activity-icon.paused{background:rgba(255,210,61,.15);color:var(--yellow)}
+.activity-icon.created{background:rgba(100,150,255,.15);color:#6496FF}
+.activity-icon.failed{background:rgba(255,77,77,.15);color:var(--red)}
+.activity-text{flex:1;min-width:0}
+.activity-main{font-size:12px;font-weight:600;margin-bottom:2px;line-height:1.3}
+.activity-time{font-size:10px;color:var(--text-dim)}
+
+/* GRADIENT BACKGROUNDS */
+.gradient-1{background:linear-gradient(135deg,#1a2a3a 0%,#0d1a26 50%,#0a1520 100%)}
+.gradient-2{background:linear-gradient(135deg,#2a1a2a 0%,#1a0d1a 50%,#150a15 100%)}
+.gradient-3{background:linear-gradient(135deg,#1a2a1a 0%,#0d1a0d 50%,#0a150a 100%)}
+.gradient-4{background:linear-gradient(135deg,#2a2a1a 0%,#1a1a0d 50%,#15150a 100%)}
+.gradient-5{background:linear-gradient(135deg,#2a1a1a 0%,#1a0d0d 50%,#150a0a 100%)}
+</style>
+</head>
+<body>
+
+<header class="top-header">
+  <div class="header-logo">
+    <span class="brand">SWING SHACK</span>
+    <span class="product">CAMPAIGN OS</span>
+  </div>
+  <div class="live-status">
+    <div class="live-dot"></div>
+    LIVE OPERATIONS
+  </div>
+  <div class="header-right">
+    <div class="sast-clock" id="clock">--:-- SAST</div>
+    <div class="weather-placeholder">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      22°C · Johannesburg
+    </div>
+  </div>
+</header>
+
+<div class="health-row">
+  <div class="health-pill"><div class="health-dot green"></div>TrackMan Intelligence</div>
+  <div class="health-pill"><div class="health-dot yellow"></div>Fit Facts</div>
+  <div class="health-pill"><div class="health-dot green"></div>Winter Golf</div>
+  <div class="health-pill"><div class="health-dot green"></div>Major Swing</div>
+  <div class="health-pill"><div class="health-dot red"></div>Free Assessments</div>
+  <div class="health-pill"><div class="health-dot green"></div>Summer Series</div>
+  <div class="health-pill"><div class="health-dot yellow"></div>Corporate Events</div>
+</div>
+
+<div class="main-layout">
+  <div class="left-col">
+
+    <div>
+      <div class="section-label">Active Campaigns</div>
+      <div class="campaign-grid">
+
+        <div class="campaign-card">
+          <div class="card-visual gradient-1">
+            <div class="card-visual-overlay"></div>
+            <div class="card-status-badge healthy">
+              <div class="health-dot green" style="width:5px;height:5px"></div>
+              HEALTHY
+            </div>
+            <div class="card-health-dots">
+              <div class="dot lit-green"></div><div class="dot lit-yellow"></div><div class="dot off"></div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-name">TrackMan Intelligence</div>
+            <div class="card-meta"><span>📷 12 Assets</span><span>🎯 3 Live Posts</span></div>
+            <div class="card-next-action">
+              <div>
+                <div class="next-action-label">Next Action</div>
+                <div class="next-action-text">Review reel edits</div>
+              </div>
+              <button class="btn-cta">REVIEW</button>
+            </div>
+            <div class="card-footer">
+              <div class="card-updated">Updated 4m ago</div>
+              <div class="momentum up"><span class="momentum-arrow">↑</span> +18%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="campaign-card">
+          <div class="card-visual gradient-2">
+            <div class="card-visual-overlay"></div>
+            <div class="card-status-badge attention">
+              <div class="health-dot yellow" style="width:5px;height:5px"></div>
+              ATTENTION
+            </div>
+            <div class="card-health-dots">
+              <div class="dot lit-green"></div><div class="dot lit-yellow"></div><div class="dot off"></div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-name">Fit Facts</div>
+            <div class="card-meta"><span>📷 8 Assets</span><span>🎯 1 Live Post</span></div>
+            <div class="card-next-action">
+              <div>
+                <div class="next-action-label">Next Action</div>
+                <div class="next-action-text">Approve carousel set</div>
+              </div>
+              <button class="btn-cta">APPROVE</button>
+            </div>
+            <div class="card-footer">
+              <div class="card-updated">Updated 22m ago</div>
+              <div class="momentum down"><span class="momentum-arrow">↓</span> -4%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="campaign-card">
+          <div class="card-visual gradient-3">
+            <div class="card-visual-overlay"></div>
+            <div class="card-status-badge healthy">
+              <div class="health-dot green" style="width:5px;height:5px"></div>
+              HEALTHY
+            </div>
+            <div class="card-health-dots">
+              <div class="dot lit-green"></div><div class="dot lit-green"></div><div class="dot off"></div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-name">Winter Golf</div>
+            <div class="card-meta"><span>📷 20 Assets</span><span>🎯 7 Live Posts</span></div>
+            <div class="card-next-action">
+              <div>
+                <div class="next-action-label">Next Action</div>
+                <div class="next-action-text">Schedule week 3 posts</div>
+              </div>
+              <button class="btn-cta">SCHEDULE</button>
+            </div>
+            <div class="card-footer">
+              <div class="card-updated">Updated 1h ago</div>
+              <div class="momentum up"><span class="momentum-arrow">↑</span> +31%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="campaign-card">
+          <div class="card-visual gradient-4">
+            <div class="card-visual-overlay"></div>
+            <div class="card-status-badge healthy">
+              <div class="health-dot green" style="width:5px;height:5px"></div>
+              HEALTHY
+            </div>
+            <div class="card-health-dots">
+              <div class="dot lit-green"></div><div class="dot lit-yellow"></div><div class="dot lit-red"></div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-name">Major Swing</div>
+            <div class="card-meta"><span>📷 6 Assets</span><span>🎯 2 Live Posts</span></div>
+            <div class="card-next-action">
+              <div>
+                <div class="next-action-label">Next Action</div>
+                <div class="next-action-text">Write captions for reel</div>
+              </div>
+              <button class="btn-cta">WRITE</button>
+            </div>
+            <div class="card-footer">
+              <div class="card-updated">Updated 2h ago</div>
+              <div class="momentum up"><span class="momentum-arrow">↑</span> +9%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="campaign-card">
+          <div class="card-visual gradient-5">
+            <div class="card-visual-overlay"></div>
+            <div class="card-status-badge blocked">
+              <div class="health-dot red" style="width:5px;height:5px"></div>
+              BLOCKED
+            </div>
+            <div class="card-health-dots">
+              <div class="dot off"></div><div class="dot off"></div><div class="dot lit-red"></div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-name">Free Assessments</div>
+            <div class="card-meta"><span>📷 3 Assets</span><span>🎯 0 Live Posts</span></div>
+            <div class="card-next-action">
+              <div>
+                <div class="next-action-label">Next Action</div>
+                <div class="next-action-text">Resolve creative block</div>
+              </div>
+              <button class="btn-cta" style="background:var(--red);box-shadow:0 0 16px var(--red-glow)">UNBLOCK</button>
+            </div>
+            <div class="card-footer">
+              <div class="card-updated">Updated 3h ago</div>
+              <div class="momentum down"><span class="momentum-arrow">↓</span> -22%</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Live Performance Pulse</div>
+      <div class="performance-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Reach</div>
+          <div class="stat-value" data-target="284700">0</div>
+          <div class="stat-delta up">↑ +12% this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Posts</div>
+          <div class="stat-value" data-target="24">0</div>
+          <div class="stat-delta up">↑ +3 new today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Engagement Rate</div>
+          <div class="stat-value" data-target="6.8" data-suffix="%">0</div>
+          <div class="stat-delta up">↑ +0.4% vs last wk</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Bookings</div>
+          <div class="stat-value" data-target="147">0</div>
+          <div class="stat-delta up">↑ +11 this week</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Upcoming Shoots</div>
+      <div class="shoots-list">
+        <div class="shoot-card">
+          <div class="shoot-date-block">
+            <div class="shoot-date-day">24</div>
+            <div class="shoot-date-mon">May</div>
+          </div>
+          <div class="shoot-info">
+            <div class="shoot-name">TrackMan Intelligence — Reel Set</div>
+            <div class="shoot-meta">
+              <span>🎬 Reels × 4</span><span>·</span><span>📍 Indoor Bay 1</span><span>·</span><span>👤 Luca M.</span>
+            </div>
+          </div>
+          <div class="shoot-countdown">
+            <div class="countdown-num">3</div>
+            <div class="countdown-label">days</div>
+          </div>
+        </div>
+        <div class="shoot-card">
+          <div class="shoot-date-block">
+            <div class="shoot-date-day">27</div>
+            <div class="shoot-date-mon">May</div>
+          </div>
+          <div class="shoot-info">
+            <div class="shoot-name">Fit Facts — Carousel Set</div>
+            <div class="shoot-meta">
+              <span>📱 Carousel × 6</span><span>·</span><span>📍 Studio B</span><span>·</span><span>👤 Christelle</span>
+            </div>
+          </div>
+          <div class="shoot-countdown">
+            <div class="countdown-num">6</div>
+            <div class="countdown-label">days</div>
+          </div>
+        </div>
+        <div class="shoot-card">
+          <div class="shoot-date-block">
+            <div class="shoot-date-day">01</div>
+            <div class="shoot-date-mon">Jun</div>
+          </div>
+          <div class="shoot-info">
+            <div class="shoot-name">Winter Golf — Story Series</div>
+            <div class="shoot-meta">
+              <span>📲 Stories × 8</span><span>·</span><span>📍 Indoor Bay 2</span><span>·</span><span>👤 Luca M.</span>
+            </div>
+          </div>
+          <div class="shoot-countdown">
+            <div class="countdown-num">11</div>
+            <div class="countdown-label">days</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="right-col">
+
+    <div>
+      <div class="approvals-header">
+        <div class="approvals-title">Pending Approvals</div>
+        <div class="count-badge">5</div>
+      </div>
+      <div class="approval-item">
+        <div class="approval-thumb" style="background:linear-gradient(135deg,#1a2a3a,#0d1a26)"></div>
+        <div class="approval-info">
+          <div class="approval-campaign">TrackMan Intelligence</div>
+          <div class="approval-type">
+            <span class="type-chip reel">Reel</span>
+            2 clips pending review
+          </div>
+          <div class="approval-time">18m ago</div>
+        </div>
+        <button class="btn-approve">✓</button>
+      </div>
+      <div class="approval-item">
+        <div class="approval-thumb" style="background:linear-gradient(135deg,#2a1a2a,#1a0d1a)"></div>
+        <div class="approval-info">
+          <div class="approval-campaign">Fit Facts</div>
+          <div class="approval-type">
+            <span class="type-chip carousel">Carousel</span>
+            6-slide set ready
+          </div>
+          <div class="approval-time">1h ago</div>
+        </div>
+        <button class="btn-approve">✓</button>
+      </div>
+      <div class="approval-item">
+        <div class="approval-thumb" style="background:linear-gradient(135deg,#2a2a1a,#1a1a0d)"></div>
+        <div class="approval-info">
+          <div class="approval-campaign">Major Swing</div>
+          <div class="approval-type">
+            <span class="type-chip story">Story</span>
+            Hook video draft
+          </div>
+          <div class="approval-time">3h ago</div>
+        </div>
+        <button class="btn-approve">✓</button>
+      </div>
+      <div class="approval-item">
+        <div class="approval-thumb" style="background:linear-gradient(135deg,#1a2a1a,#0d1a0d)"></div>
+        <div class="approval-info">
+          <div class="approval-campaign">Winter Golf</div>
+          <div class="approval-type">
+            <span class="type-chip reel">Reel</span>
+            Caption revision v2
+          </div>
+          <div class="approval-time">5h ago</div>
+        </div>
+        <button class="btn-approve">✓</button>
+      </div>
+      <div class="approval-item">
+        <div class="approval-thumb" style="background:linear-gradient(135deg,#2a1a1a,#1a0d0d)"></div>
+        <div class="approval-info">
+          <div class="approval-campaign">Free Assessments</div>
+          <div class="approval-type">
+            <span class="type-chip story">Story</span>
+            Static image set
+          </div>
+          <div class="approval-time">1d ago</div>
+        </div>
+        <button class="btn-approve">✓</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Activity Feed</div>
+      <div class="activity-feed">
+        <div class="activity-item">
+          <div class="activity-icon approved">✓</div>
+          <div class="activity-text">
+            <div class="activity-main">TrackMan Intelligence reel approved</div>
+            <div class="activity-time">4m ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon scheduled">⏱</div>
+          <div class="activity-text">
+            <div class="activity-main">Fit Facts carousel scheduled for May 27</div>
+            <div class="activity-time">22m ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon created">✦</div>
+          <div class="activity-text">
+            <div class="activity-main">Winter Golf — Week 3 hooks generated</div>
+            <div class="activity-time">1h ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon paused">⏸</div>
+          <div class="activity-text">
+            <div class="activity-main">Free Assessments paused — awaiting brief</div>
+            <div class="activity-time">3h ago</div>
+          </div>
+               </div>
+        <div class="activity-item">
+          <div class="activity-icon created">✦</div>
+          <div class="activity-text">
+            <div class="activity-main">Major Swing campaign created</div>
+            <div class="activity-time">2d ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// SAST Clock
+function updateClock(){
+  var now = new Date();
+  var sa = new Date(now.toLocaleString('en-US', {timeZone:'Africa/Johannesburg'}));
+  var h = sa.getHours().toString().padStart(2,'0');
+  var m = sa.getMinutes().toString().padStart(2,'0');
+  document.getElementById('clock').textContent = h+':'+m+' SAST';
+}
+updateClock();
+setInterval(updateClock,10000);
+
+// Count-up animation
+function countUp(el){
+  var target = parseFloat(el.dataset.target);
+  var suffix = el.dataset.suffix || '';
+  var duration = 1400;
+  var start = performance.now();
+  var isFloat = target % 1 !== 0;
+  function step(now){
+    var p = Math.min((now-start)/duration,1);
+    var eased = 1-Math.pow(1-p,3);
+    var val = target*eased;
+    el.textContent = (isFloat ? val.toFixed(1) : Math.floor(val).toLocaleString()) + suffix;
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+document.querySelectorAll('.stat-value[data-target]').forEach(function(el){
+  countUp(el);
+});
+
+// Stagger activity items
+document.querySelectorAll('.activity-item').forEach(function(item){
+  item.style.opacity = '';
+});
+</script>
+</body>
+</html>
