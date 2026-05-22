@@ -1,6 +1,6 @@
 {
-  "updated": "2026-05-21T07:46:51.598Z",
-  "total_hooks": 81,
+  "updated": "2026-05-22T05:06:33.632Z",
+  "total_hooks": 82,
   "cross_signal_sources": {
     "ig_weight": "60%",
     "youtube_weight": "20%",
@@ -65,7 +65,7 @@
       {
         "hook_text": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
         "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
-        "ig_proof_score": 9.719999999999999,
+        "ig_proof_score": 9.68,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 7,
@@ -78,10 +78,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "How to hit irons Consistently (Simple Golf Tips)"
         ],
-        "engagementRate": "3.36",
+        "engagementRate": "3.34",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 357,
+        "reach": 359,
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -228,7 +228,7 @@
       {
         "hook_text": "TrackMan doesn't lie. Your swing data from your last session told a story. Now f",
         "hook_id": "trackman-doesn-t-lie--your-swing-data-from-your-la",
-        "ig_proof_score": 4.2,
+        "ig_proof_score": 4.19,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 3.7,
@@ -241,10 +241,10 @@
           "5 Powerful Tips to Unleash Your Senior Driver Swing",
           "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "1.37",
+        "engagementRate": "1.36",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 146,
+        "reach": 147,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -253,6 +253,30 @@
       }
     ],
     "proven_only": [
+      {
+        "hook_text": "5 THINGS TRACKMAN REVEALS",
+        "hook_id": "5-things-trackman-reveals",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.6,
+        "youtube_topic_match": [
+          "simulator"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Avoid These Golf Simulator Mistakes at All Costs!"
+        ],
+        "engagementRate": "5.88",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 34,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_only",
+        "post_id": "18579963919017827"
+      },
       {
         "hook_text": "Go to your coaching sessions. Your ball deserves better 🫂",
         "hook_id": "go-to-your-coaching-sessions--your-ball-deserves-b",
@@ -268,10 +292,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "How to hit irons Consistently (Simple Golf Tips)"
         ],
-        "engagementRate": "4.85",
+        "engagementRate": "4.83",
         "saveRate": "0.00",
         "shareRate": "0.51",
-        "reach": 392,
+        "reach": 393,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -293,10 +317,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "How to hit irons Consistently (Simple Golf Tips)"
         ],
-        "engagementRate": "3.47",
+        "engagementRate": "3.45",
         "saveRate": "0.00",
-        "shareRate": "0.35",
-        "reach": 288,
+        "shareRate": "0.34",
+        "reach": 290,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -413,10 +437,10 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "3.99",
+        "engagementRate": "3.98",
         "saveRate": "0.00",
-        "shareRate": "0.28",
-        "reach": 727,
+        "shareRate": "0.27",
+        "reach": 728,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -462,26 +486,6 @@
         "formula_type": "general",
         "signal_bucket": "proven_only",
         "post_id": "18067732487399015"
-      },
-      {
-        "hook_text": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
-        "hook_id": "have-you-ever-been-for-an-elite-level-custom-fitti",
-        "ig_proof_score": 10,
-        "youtube_alignment_score": 0,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 6,
-        "youtube_topic_match": [],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [],
-        "engagementRate": "4.29",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 163,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "question",
-        "signal_bucket": "proven_only",
-        "post_id": "17860872804563714"
       }
     ],
     "trending_to_test": [
@@ -568,7 +572,7 @@
       {
         "hook_text": "Book your fitting now and use code FITTING15😎🔥",
         "hook_id": "book-your-fitting-now-and-use-code-fitting15----",
-        "ig_proof_score": 1.64,
+        "ig_proof_score": 1.67,
         "youtube_alignment_score": 0,
         "reddit_relevance_score": 0,
         "cross_signal_score": 1,
@@ -578,12 +582,32 @@
         "engagementRate": "0.00",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 164,
+        "reach": 167,
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "stat-demand",
         "signal_bucket": "retire",
         "post_id": "18070451255658695"
+      },
+      {
+        "hook_text": "SWEET SPOT IS TINY.",
+        "hook_id": "sweet-spot-is-tiny-",
+        "ig_proof_score": 0.6,
+        "youtube_alignment_score": 0,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 0.4,
+        "youtube_topic_match": [],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [],
+        "engagementRate": "0.00",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 60,
+        "topic_cluster": "equipment",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "retire",
+        "post_id": "18142177312512187"
       },
       {
         "hook_text": "BACKSPIN: 3,200 RPM",
@@ -624,26 +648,6 @@
         "formula_type": "general",
         "signal_bucket": "retire",
         "post_id": "18194902993362005"
-      },
-      {
-        "hook_text": "SWEET SPOT IS TINY.",
-        "hook_id": "sweet-spot-is-tiny-",
-        "ig_proof_score": 0.23,
-        "youtube_alignment_score": 0,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 0.1,
-        "youtube_topic_match": [],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [],
-        "engagementRate": "0.00",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 23,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "general",
-        "signal_bucket": "retire",
-        "post_id": "18142177312512187"
       }
     ]
   },
@@ -703,7 +707,7 @@
     {
       "hook_text": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
       "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
-      "ig_proof_score": 9.719999999999999,
+      "ig_proof_score": 9.68,
       "youtube_alignment_score": 6,
       "reddit_relevance_score": 0,
       "cross_signal_score": 7,
@@ -716,10 +720,10 @@
         "Possibly The BEST DRIVER Tip Ever In GOLF",
         "How to hit irons Consistently (Simple Golf Tips)"
       ],
-      "engagementRate": "3.36",
+      "engagementRate": "3.34",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 357,
+      "reach": 359,
       "topic_cluster": "equipment",
       "format_type": "static",
       "formula_type": "stat-demand",
@@ -791,9 +795,9 @@
     },
     {
       "formula": "general",
-      "count": 46,
+      "count": 47,
       "best_example": "Lowest net score wins a *new custom fitted driver!*",
-      "avg_cross_score": "4.0"
+      "avg_cross_score": "4.1"
     },
     {
       "formula": "question",
