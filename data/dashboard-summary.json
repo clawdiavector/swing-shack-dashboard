@@ -1,9 +1,9 @@
 {
-  "updated": "2026-05-22T05:06:33.683Z",
+  "updated": "2026-05-25T05:04:39.911Z",
   "sources": [
     {
       "name": "IG Analytics",
-      "updated": "2026-05-22T05:04:06.968Z"
+      "updated": "2026-05-25T05:03:26.625Z"
     },
     {
       "name": "GA4",
@@ -15,7 +15,7 @@
     },
     {
       "name": "Golf News",
-      "updated": "2026-05-22T05:06:33.502Z"
+      "updated": "2026-05-25T05:04:39.710Z"
     },
     {
       "name": "SEO Rankings",
@@ -27,15 +27,15 @@
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-05-22T05:06:33.632Z"
+      "updated": "2026-05-25T05:04:39.826Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-05-22T05:06:33.584Z"
+      "updated": "2026-05-25T05:04:39.781Z"
     }
   ],
   "stale_count": 4,
-  "top_recommendation": "5 THINGS TRACKMAN REVEALS",
+  "top_recommendation": "Go to your coaching sessions. Your ball deserves better 🫂",
   "total_posts": 82,
   "total_ideas": 15,
   "hooks_tracked": 22
