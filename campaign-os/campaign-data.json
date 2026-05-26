@@ -11,6 +11,25 @@
       "lastUpdated": "2026-05-21T10:00:00Z",
       "nextAction": "Post reel at 12:00",
       "visual": "gradient-orange",
+      "identity": {
+        "name": "TrackMan Intelligence",
+        "purpose": "Position Swing Shack as the authority on TrackMan-powered golf fitting and training",
+        "target": "Handicap 5-18 golfers who want scientific precision in their game",
+        "coreMessage": "TrackMan shows what your gut misses",
+        "mainOffer": "TrackMan Fitting from R900",
+        "phase": "Scale",
+        "successMetrics": "Fittings booked, fitting revenue, re-book rate"
+      },
+      "creativeDirection": {
+        "primaryColor": "#FF6B35",
+        "accentColor": "#0A84FF",
+        "mood": "Data-driven, elite, scientific",
+        "visualRules": "Dark backgrounds, TrackMan data overlays, numbers prominently displayed, clean sans-serif type",
+        "bannedVisuals": "Sunset/golden hour aesthetic, generic golf stock photos, bright green golf course imagery",
+        "copyDirection": "Direct, data-first, no fluff. Stats > stories. Contrast PGA Tour numbers vs the viewer's numbers",
+        "hatedWords": "game improvement, better golfer, unlock your potential",
+        "realFootage": "Prefer real TrackMan sessions. Generated B-roll acceptable for carousels only"
+      },
       "assets": [
         {
           "id": "ti-reel-001",
@@ -180,6 +199,25 @@
       "lastUpdated": "2026-05-21T08:00:00Z",
       "nextAction": "Complete asset plan",
       "visual": "gradient-blue",
+      "identity": {
+        "name": "Fit Facts",
+        "purpose": "Build authority and compound value over time through educational golf content",
+        "target": "Handicap 10-28 golfers who want to understand the 'why' behind good technique",
+        "coreMessage": "Learn once, benefit forever",
+        "mainOffer": "Book a Fitting to get personalised data",
+        "phase": "Grow",
+        "successMetrics": "Reach, saves/share rate, bio link clicks"
+      },
+      "creativeDirection": {
+        "primaryColor": "#3B82F6",
+        "accentColor": "#F59E0B",
+        "mood": "Educational, clear, trustworthy",
+        "visualRules": "Clean layouts, high contrast text, numbered lists, comparison graphics",
+        "bannedVisuals": "Emotional/inspirational imagery, dramatic lighting, clickbait thumbnails",
+        "copyDirection": "Clear, factual, educational tone. 'Did you know' framing. No hype",
+        "hatedWords": "mind-blowing, game-changer, secret",
+        "realFootage": "Real swing footage preferred. Generated graphics fine for diagrams"
+      },
       "assets": [
         {
           "id": "ff-reel-001",
@@ -215,6 +253,25 @@
       "lastUpdated": "2026-05-20T14:00:00Z",
       "nextAction": "Schedule shoot day",
       "visual": "gradient-cold",
+      "identity": {
+        "name": "Winter Golf",
+        "purpose": "Maintain Swing Shack engagement during the off-season",
+        "target": "Existing members and warm leads in JHB metro area",
+        "coreMessage": "Your game doesn't hibernate",
+        "mainOffer": "Keep practicing through winter — book a session",
+        "phase": "Nurture",
+        "successMetrics": "Session bookings during winter months, member re-activation"
+      },
+      "creativeDirection": {
+        "primaryColor": "#60A5FA",
+        "accentColor": "#A78BFA",
+        "mood": "Cosy, motivating, warm despite the cold",
+        "visualRules": "Warm indoor lighting, cold outdoor contrast shots, winter apparel cues",
+        "bannedVisuals": "Summer golf imagery, beach/pool adjacent content",
+        "copyDirection": "Tone: 'perfect day to practice indoors.' Contrast cold outside vs warm inside",
+        "hatedWords": "snow golf, freezing, excuses",
+        "realFootage": "Real indoor simulator footage, warm lighting shots"
+      },
       "assets": [],
       "pipelineAssets": {
         "PLANNING": [],
@@ -237,6 +294,25 @@
       "lastUpdated": "2026-05-18T09:00:00Z",
       "nextAction": "Begin production",
       "visual": "gradient-green",
+      "identity": {
+        "name": "Major Swing Service",
+        "purpose": "Capture tournament-aligned attention bursts and convert golf fans",
+        "target": "Golf-curious to handicap 20, following professional tournaments",
+        "coreMessage": "Watch the pros, book your session",
+        "mainOffer": "Book a fitting or lesson during tournament week",
+        "phase": "Pulse",
+        "successMetrics": "Campaign reach, booking spike during tournaments"
+      },
+      "creativeDirection": {
+        "primaryColor": "#22C55E",
+        "accentColor": "#FBBF24",
+        "mood": "Celebratory, timely, exciting",
+        "visualRules": "Tournament graphics overlay, leaderboard aesthetics, countdown to major events",
+        "bannedVisuals": "Non-golf sports imagery, political content, outdated tournament references",
+        "copyDirection": "Urgent but not desperate. 'The players are here — you can be too.' Tournament energy",
+        "hatedWords": "epic, insane, unreal",
+        "realFootage": "Tournament B-roll where available. TrackMan data overlays with tournament context"
+      },
       "assets": [],
       "pipelineAssets": {
         "PLANNING": [],
@@ -259,6 +335,25 @@
       "lastUpdated": "2026-05-21T07:00:00Z",
       "nextAction": "Link in bio only — no content cadence",
       "visual": "gradient-purple",
+      "identity": {
+        "name": "Free Assessments",
+        "purpose": "Lead capture — drive CTA link clicks, not content engagement",
+        "target": "Golfers considering booking but not yet committed",
+        "coreMessage": "Know before you go",
+        "mainOffer": "Book via bio link — no content cadence",
+        "phase": "Convert",
+        "successMetrics": "Bio link CTR, booking form submissions"
+      },
+      "creativeDirection": {
+        "primaryColor": "#8B5CF6",
+        "accentColor": "#EC4899",
+        "mood": "Direct, clear, low-friction",
+        "visualRules": "Minimal design, clear CTA, no distractions",
+        "bannedVisuals": "Carousels, reels, heavy content — this is CTA-only",
+        "copyDirection": "Ultra direct. 'Book now.' No storytelling, no education",
+        "hatedWords": "discover, explore, learn more",
+        "realFootage": "N/A — no content posts for this campaign"
+      },
       "assets": [],
       "pipelineAssets": {
         "PLANNING": [],

@@ -34,6 +34,39 @@ a{color:inherit;text-decoration:none}
 @keyframes pulse-accent{0%,100%{opacity:1}50%{opacity:.5}}
 .tagline{font-size:12px;color:var(--text-dim);margin-top:3px}
 
+/* STORAGE WARNING BANNER */
+.storage-warning-banner{background:rgba(255,210,61,.08);border-bottom:1px solid rgba(255,210,61,.25);color:#FFD23D;font-size:11px;padding:8px 32px;text-align:center;letter-spacing:.03em}
+
+/* CAMPAIGN IDENTITY HEADER */
+.campaign-identity-section{padding:24px 32px;border-bottom:1px solid var(--border)}
+.campaign-identity-header{padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md)}
+.id-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.id-item{ }
+.id-label{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px}
+.id-value{font-size:13px;color:var(--text);line-height:1.5}
+.id-value.accent{color:var(--accent);font-weight:600}
+.phase-badge{padding:3px 8px;border-radius:50px;font-size:9px;font-weight:700;letter-spacing:.08em}
+.phase-scale{background:rgba(61,255,143,.15);color:var(--green)}
+.phase-grow{background:rgba(100,150,255,.15);color:var(--blue)}
+.phase-nurture{background:rgba(168,139,250,.15);color:#A78BFA}
+.phase-pulse{background:rgba(255,107,53,.15);color:var(--accent)}
+.phase-convert{background:rgba(236,72,153,.15);color:#EC4899}
+
+/* CREATIVE DIRECTION PANEL */
+.creative-direction-section{padding:0 32px 24px;border-bottom:1px solid var(--border)}
+.creative-direction-toggle{padding:16px 0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border:none;background:none;color:var(--text);width:100%;text-align:left}
+.creative-direction-toggle:hover{opacity:.8}
+.toggle-cd-btn{font-size:12px;font-weight:600;color:var(--text-dim);background:none;border:none;cursor:pointer;padding:0}
+.creative-direction-panel{display:none;padding-bottom:8px}
+.creative-direction-panel.open{display:block}
+.cd-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md)}
+.cd-row{display:flex;flex-direction:column;gap:4px}
+.cd-label{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim)}
+.cd-value{font-size:12px;color:var(--text-mid);line-height:1.5}
+.cd-swatches{display:flex;gap:6px;margin-top:2px}
+.swatch{width:20px;height:20px;border-radius:4px;border:1px solid rgba(255,255,255,.15)}
+.mood-tag{display:inline-block;padding:2px 8px;background:rgba(255,107,53,.15);color:var(--accent);border-radius:50px;font-size:10px;font-weight:600}
+
 /* PIPELINE */
 .pipeline-section{padding:28px 32px;border-bottom:1px solid var(--border)}
 .pipeline-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
@@ -195,22 +228,129 @@ a{color:inherit;text-decoration:none}
 .modal-actions button:nth-child(3){background:var(--bg-elevated);color:var(--text-dim)}
 .modal-hook{font-size:15px;color:var(--accent);margin:16px 0;line-height:1.5}
 .modal-caption{font-size:13px;color:var(--text-mid);line-height:1.7;white-space:pre-wrap}
+
+/* LARGE MODAL */
+.modal-content-large{max-width:680px}
+
+/* MODAL TABS */
+.modal-tab-bar{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px}
+.modal-tab{padding:8px 16px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:var(--bg-elevated);color:var(--text-dim);transition:all .2s}
+.modal-tab.active{background:var(--accent);color:#fff}
+
+/* MODAL TAB CONTENT */
+.modal-tab-content{display:flex;gap:24px;min-height:200px}
+.modal-tab-view{display:flex;gap:24px}
+.modal-tab-edit{display:flex;flex-direction:column}
+
+/* PREVIEW AREA */
+.modal-preview{flex:1;min-width:200px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;min-height:180px}
+.modal-preview-placeholder{text-align:center}
+.modal-preview-placeholder .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+
+/* META PANEL */
+.modal-meta{flex:1}
+
+/* EDIT FORM */
+.modal-edit-form{display:flex;flex-direction:column;gap:14px;width:100%}
+.edit-field{display:flex;flex-direction:column;gap:5px}
+.edit-field label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+.edit-field textarea,.edit-field select{width:100%;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:8px;font-size:13px;font-family:inherit;line-height:1.5}
+
+/* PLATFORM BADGE */
+.modal-platform-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(255,107,53,.15);color:var(--accent);letter-spacing:.06em}
+.modal-platform-badge.instagram{background:rgba(224,49,97,.15);color:#E03163}
+.modal-platform-badge.tiktok{background:rgba(255,255,255,.1);color:#fff}
 </style>
 </head>
 <body>
 
 <header class="top-header">
-  <div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <button onclick="CampaignOS.openCampaign('')" style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px">← Back</button>
+    <div style="display:flex;flex-direction:column">
     <div class="breadcrumb">
-      Swing Shack <span>/</span> Campaigns <span>/</span> <span class="current">TrackMan Intelligence</span>
+      Swing Shack <span>/</span> <span id="breadcrumb-campaign">Campaigns</span> <span>/</span> <span class="current" id="breadcrumb-current">TrackMan Intelligence</span>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-      <div class="badge scheduled"><div class="dot"></div> Scheduled</div>
-      <div class="badge healthy"><div class="dot"></div> Healthy</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+      <div class="badge scheduled" id="header-status-badge"><div class="dot"></div> Scheduled</div>
+      <div class="badge healthy" id="header-health-badge"><div class="dot"></div> Healthy</div>
     </div>
-    <div class="tagline">Data-driven swing insights for serious golfers — powered by TrackMan radar technology</div>
+    <div class="tagline" id="header-tagline">Data-driven swing insights for serious golfers — powered by TrackMan radar technology</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <select id="campaign-switcher" onchange="if(this.value) CampaignOS.openCampaign(this.value)" style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">
+      <option value="">Switch Campaign...</option>
+      <option value="trackman">TrackMan Intelligence</option>
+      <option value="fit-facts">Fit Facts</option>
+      <option value="winter-golf">Winter Golf</option>
+      <option value="major-swing">Major Swing Service</option>
+      <option value="free-assessments">Free Assessments</option>
+    </select>
   </div>
 </header>
+
+<!-- STORAGE WARNING BANNER -->
+<div class="storage-warning-banner">
+  ⚠️ Single-user prototype — data is stored locally in this browser only. Use Command Centre for team visibility.
+</div>
+
+<!-- CAMPAIGN IDENTITY HEADER -->
+<div class="campaign-identity-section">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--text-dim);text-transform:uppercase">Campaign Identity</div>
+    <div style="font-size:10px;color:var(--text-dim)">Live from campaign-data.json</div>
+  </div>
+  <div class="campaign-identity-header" id="campaign-identity-header">
+    <div class="id-grid">
+      <div class="id-item"><div class="id-label">Purpose</div><div class="id-value">Loading...</div></div>
+      <div class="id-item"><div class="id-label">Target</div><div class="id-value">Loading...</div></div>
+      <div class="id-item"><div class="id-label">Core Message</div><div class="id-value accent">Loading...</div></div>
+      <div class="id-item"><div class="id-label">Main Offer</div><div class="id-value">Loading...</div></div>
+      <div class="id-item"><div class="id-label">Phase</div><div class="id-value">Loading...</div></div>
+      <div class="id-item"><div class="id-label">Success Metrics</div><div class="id-value">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CREATIVE DIRECTION PANEL -->
+<div class="creative-direction-section">
+  <button class="creative-direction-toggle" onclick="CampaignOS.toggleCreativePanel()">
+    <span class="toggle-cd-btn" id="cd-toggle-label">Creative Direction ▼</span>
+  </button>
+  <div class="creative-direction-panel" id="creative-direction-panel">
+    <div class="cd-grid">
+      <div class="cd-row">
+        <div class="cd-label">Mood</div>
+        <div class="cd-swatches" id="cd-mood"></div>
+      </div>
+      <div class="cd-row">
+        <div class="cd-label">Primary / Accent</div>
+        <div class="cd-swatches" id="cd-swatches"></div>
+      </div>
+      <div class="cd-row">
+        <div class="cd-label">Visual Rules</div>
+        <div class="cd-value cd-visual-rules">—</div>
+      </div>
+      <div class="cd-row">
+        <div class="cd-label">Banned Visuals</div>
+        <div class="cd-value cd-banned-visuals">—</div>
+      </div>
+      <div class="cd-row">
+        <div class="cd-label">Copy Direction</div>
+        <div class="cd-value cd-copy-direction">—</div>
+      </div>
+      <div class="cd-row">
+        <div class="cd-label">Hated Words</div>
+        <div class="cd-value cd-loved-words">—</div>
+      </div>
+      <div class="cd-row">
+        <div class="cd-label">Real Footage</div>
+        <div class="cd-value cd-footage">—</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- PIPELINE -->
 <div class="pipeline-section">

@@ -21,6 +21,8 @@
 body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 
 /* HEADER */
+.storage-warning-banner{background:rgba(255,210,61,.08);border-bottom:1px solid rgba(255,210,61,.25);color:#FFD23D;font-size:11px;padding:8px 32px;text-align:center;letter-spacing:.03em}
+
 .top-header{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;background:rgba(13,13,13,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
 .header-logo{display:flex;align-items:baseline;gap:10px}
 .header-logo .brand{font-size:16px;font-weight:900;letter-spacing:.15em;color:var(--text)}
@@ -176,6 +178,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-dark);colo
 </style>
 </head>
 <body>
+
+<!-- STORAGE WARNING BANNER -->
+<div class="storage-warning-banner">
+  ⚠️ Single-user prototype — data is stored locally in this browser only.
+</div>
 
 <header class="top-header">
   <div class="header-logo">

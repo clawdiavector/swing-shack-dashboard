@@ -1,5 +1,5 @@
 /**
- * CampaignOS — Swing Shack Campaign Operating System
+ * CampaignOS - Swing Shack Campaign Operating System
  * Client-side only. State lives in localStorage, seeded from campaign-data.json
  */
 (function() {
@@ -342,7 +342,7 @@
               '<div class="card-next-action">' +
                 '<div>' +
                   '<div class="next-action-label">Next Action</div>' +
-                  '<div class="next-action-text">' + (c.nextAction || '—') + '</div>' +
+                  '<div class="next-action-text">' + (c.nextAction || '-') + '</div>' +
                 '</div>' +
                 '<button class="btn-cta">' + btnLabel + '</button>' +
               '</div>' +
@@ -384,7 +384,7 @@
               '<div class="shoot-date-mon">' + mon + '</div>' +
             '</div>' +
             '<div class="shoot-info">' +
-              '<div class="shoot-name">' + s.campaign + ' — ' + s.type + '</div>' +
+              '<div class="shoot-name">' + s.campaign + ' - ' + s.type + '</div>' +
               '<div class="shoot-meta"><span>' + s.resources + '</span></div>' +
             '</div>' +
             '<div class="shoot-countdown">' +
@@ -493,27 +493,120 @@
     var self = this;
 
     // Update breadcrumb
-    var breadcrumb = document.querySelector('.breadcrumb .current');
-    if (breadcrumb) breadcrumb.textContent = campaign.name;
+    var breadcrumbCurrent = document.getElementById('breadcrumb-current');
+    if (breadcrumbCurrent) breadcrumbCurrent.textContent = campaign.name;
+    var breadcrumbCampaign = document.getElementById('breadcrumb-campaign');
+    if (breadcrumbCampaign) breadcrumbCampaign.textContent = 'Campaigns';
 
-    // Update badges
-    var statusBadge = document.querySelector('.badge.scheduled, .badge.healthy, .badge.planning');
+    // Update header badges
+    var statusBadge = document.getElementById('header-status-badge');
     if (statusBadge) {
       var cls = campaign.status === 'healthy' || campaign.status === 'conversion' ? 'healthy' : campaign.status === 'planning' ? 'planning' : 'scheduled';
       statusBadge.className = 'badge ' + cls;
       statusBadge.innerHTML = '<div class="dot"></div> ' + campaign.status.toUpperCase();
     }
-    var tagline = document.querySelector('.tagline');
+    var healthBadge = document.getElementById('header-health-badge');
+    if (healthBadge && campaign.health) {
+      healthBadge.className = 'badge ' + campaign.health;
+      healthBadge.innerHTML = '<div class="dot"></div> ' + (campaign.health.charAt(0).toUpperCase() + campaign.health.slice(1));
+    }
+
+    // Update tagline
+    var tagline = document.getElementById('header-tagline');
     if (tagline) tagline.textContent = campaign.tagline;
+
+    // Update campaign switcher
+    var switcher = document.getElementById('campaign-switcher');
+    if (switcher) switcher.value = campaign.id;
 
     // Update pipeline
     this.renderPipeline(campaignId);
+
+    // Update campaign identity header
+    this.renderCampaignIdentity(campaignId);
+
+    // Update creative direction panel
+    this.renderCreativeDirection(campaignId);
 
     // Update collateral gallery
     this.renderCollateral(campaignId);
   };
 
-  CampaignOS.renderPipeline = function(campaignId) {
+  // ─── CAMPAIGN IDENTITY ───────────────────────────────────────────────
+
+  CampaignOS.renderCampaignIdentity = function(campaignId) {
+    var state = this.getState();
+    var campaign = state.campaigns.find(function(c) { return c.id === campaignId; });
+    if (!campaign) return;
+    var id = campaign.identity || {};
+
+    var el = document.querySelector('.campaign-identity-header');
+    if (!el) return;
+
+    el.innerHTML = (
+      '<div class="id-grid">' +
+        '<div class="id-item"><div class="id-label">Purpose</div><div class="id-value">' + (id.purpose || '-') + '</div></div>' +
+        '<div class="id-item"><div class="id-label">Target</div><div class="id-value">' + (id.target || '-') + '</div></div>' +
+        '<div class="id-item"><div class="id-label">Core Message</div><div class="id-value accent">' + (id.coreMessage || '-') + '</div></div>' +
+        '<div class="id-item"><div class="id-label">Main Offer</div><div class="id-value">' + (id.mainOffer || '-') + '</div></div>' +
+        '<div class="id-item"><div class="id-label">Phase</div><div class="id-value"><span class="phase-badge phase-' + (id.phase || 'unknown').toLowerCase() + '">' + (id.phase || '-') + '</span></div></div>' +
+        '<div class="id-item"><div class="id-label">Success Metrics</div><div class="id-value">' + (id.successMetrics || '-') + '</div></div>' +
+      '</div>'
+    );
+  };
+
+  // ─── CREATIVE DIRECTION ─────────────────────────────────────────────
+
+  CampaignOS.renderCreativeDirection = function(campaignId) {
+    var state = this.getState();
+    var campaign = state.campaigns.find(function(c) { return c.id === campaignId; });
+    if (!campaign) return;
+    var cd = campaign.creativeDirection || {};
+
+    var panel = document.querySelector('.creative-direction-panel');
+    if (!panel) return;
+
+    // Color swatches
+    var swatchHtml = '';
+    if (cd.primaryColor) swatchHtml += '<div class="swatch" style="background:' + cd.primaryColor + '" title="Primary: ' + cd.primaryColor + '"></div>';
+    if (cd.accentColor) swatchHtml += '<div class="swatch" style="background:' + cd.accentColor + '" title="Accent: ' + cd.accentColor + '"></div>';
+    if (cd.mood) swatchHtml = '<div class="mood-tag">' + cd.mood + '</div>';
+
+    // Visual rules
+    var rulesEl = panel.querySelector('.cd-visual-rules');
+    if (rulesEl) rulesEl.textContent = cd.visualRules || '-';
+
+    // Banned visuals
+    var bannedEl = panel.querySelector('.cd-banned-visuals');
+    if (bannedEl) bannedEl.textContent = cd.bannedVisuals || '-';
+
+    // Copy direction
+    var copyEl = panel.querySelector('.cd-copy-direction');
+    if (copyEl) copyEl.textContent = cd.copyDirection || '-';
+
+    // Hated words
+    var hatedEl = panel.querySelector('.cd-loved-words');
+    if (hatedEl) hatedEl.textContent = cd.hatedWords || '-';
+
+    // Real footage tag
+    var footageEl = panel.querySelector('.cd-footage');
+    if (footageEl) footageEl.textContent = cd.realFootage || '-';
+
+    // Color swatches container
+    var swatchContainer = panel.querySelector('.cd-swatches');
+    if (swatchContainer) swatchContainer.innerHTML = swatchHtml;
+  };
+
+  CampaignOS.toggleCreativePanel = function() {
+    var panel = document.querySelector('.creative-direction-panel');
+    if (!panel) return;
+    var isOpen = panel.classList.contains('open');
+    panel.classList.toggle('open');
+    var btn = document.querySelector('.toggle-cd-btn');
+    if (btn) btn.textContent = isOpen ? 'Creative Direction ▼' : 'Creative Direction ▲';
+  };
+
+  CampaignOS.refreshUI = function() {
     var state = this.getState();
     var campaign = state.campaigns.find(function(c) { return c.id === campaignId; });
     if (!campaign) return;
@@ -670,7 +763,7 @@
   // ─── UTILS ───────────────────────────────────────────────────────────
 
   CampaignOS._timeAgo = function(isoString) {
-    if (!isoString) return '—';
+    if (!isoString) return '-';
     var now = new Date();
     var then = new Date(isoString);
     var diff = Math.floor((now - then) / 1000);
@@ -693,31 +786,108 @@
     if (existing) existing.remove();
 
     var labelLower = asset.label ? asset.label.toLowerCase() : 'generated';
+    var platformBadge = asset.platform ? '<div class="modal-platform-badge ' + asset.platform + '">' + (asset.platform === 'instagram' ? 'IG' : asset.platform.toUpperCase()) + '</div>' : '';
+    var typeLabel = asset.type ? asset.type.charAt(0).toUpperCase() + asset.type.slice(1) : 'Asset';
+
     var modal = document.createElement('div');
     modal.className = 'asset-modal';
-    modal.innerHTML =
+    modal.innerHTML = 
       '<div class="modal-overlay" onclick="this.parentElement.remove()"></div>' +
-      '<div class="modal-content">' +
+      '<div class="modal-content modal-content-large">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
-          '<h2 style="font-size:22px;margin:0">' + asset.title + '</h2>' +
-          '<div class="modal-badge badge-' + labelLower + '">' + (asset.label || 'GENERATED') + '</div>' +
+          '<div style="display:flex;align-items:center;gap:10px">' +
+            '<h2 style="font-size:20px;margin:0;font-weight:700">' + asset.title + '</h2>' +
+            platformBadge +
+            '<div class="modal-badge badge-' + labelLower + '">' + (asset.label || 'GENERATED') + '</div>' +
+          '</div>' +
+          '<button onclick="this.closest(\'.asset-modal\').remove()" style="background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;padding:4px;line-height:1">✕</button>' +
         '</div>' +
-        '<div style="display:flex;gap:8px;margin-bottom:16px">' +
-          '<span class="tag ' + asset.type + '">' + (asset.type ? asset.type.charAt(0).toUpperCase() + asset.type.slice(1) : 'Asset') + '</span>' +
-          '<span style="font-size:12px;color:var(--text-dim)">' + asset.stage + '</span>' +
+        '<div class="modal-tab-bar">' +
+          '<button class="modal-tab active" onclick="switchModalTab(this,\'view\')">View</button>' +
+          '<button class="modal-tab" onclick="switchModalTab(this,\'edit\')">Edit</button>' +
         '</div>' +
-        '<p class="modal-hook">' + asset.hook + '</p>' +
-        '<p class="modal-caption" style="white-space:pre-wrap">' + asset.caption + '</p>' +
-        '<div style="margin-top:16px;font-size:12px;color:var(--text-dim)">' +
-          (asset.scheduledDate ? '📅 Scheduled: ' + asset.scheduledDate + (asset.scheduledTime ? ' at ' + asset.scheduledTime.split('T')[1].slice(0,5) : '') : '📅 Not scheduled') +
+        '<div class="modal-tab-content modal-tab-view" id="modal-tab-view">' +
+          '<div class="modal-preview">' +
+            '<div class="modal-preview-placeholder">' +
+              '<div style="font-size:40px;margin-bottom:8px">' + (asset.type === 'reel' ? '▶' : asset.type === 'carousel' ? '◉' : asset.type === 'story' ? '✦' : '■') + '</div>' +
+              '<div style="font-size:12px;color:var(--text-dim)">' + typeLabel + ' Preview</div>' +
+              '<div style="font-size:11px;color:var(--text-dim);margin-top:4px">' + (asset.thumbnail || 'No preview available') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="modal-meta">' +
+            '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+              '<span class="tag ' + asset.type + '">' + typeLabel + '</span>' +
+              '<span style="font-size:12px;color:var(--text-dim);padding:4px 8px;background:var(--bg-elevated);border-radius:4px">' + asset.stage + '</span>' +
+            '</div>' +
+            '<p class="modal-hook">' + asset.hook + '</p>' +
+            '<p class="modal-caption">' + (asset.caption || '—') + '</p>' +
+            '<div style="margin-top:16px;font-size:12px;color:var(--text-dim);padding-top:12px;border-top:1px solid var(--border)">' +
+              (asset.scheduledDate ? '📅 Scheduled: ' + asset.scheduledDate + (asset.scheduledTime ? ' at ' + asset.scheduledTime.split('T')[1].slice(0,5) : '') : '📅 Not scheduled') +
+            '</div>' +
+          '</div>' +
         '</div>' +
-        '<div class="modal-actions">' +
+        '<div class="modal-tab-content modal-tab-edit" id="modal-tab-edit" style="display:none">' +
+          '<div class="modal-edit-form">' +
+            '<div class="edit-field"><label>Hook</label><textarea id="edit-hook" rows="2" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical">' + (asset.hook || '') + '</textarea></div>' +
+            '<div class="edit-field"><label>Caption</label><textarea id="edit-caption" rows="4" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;white-space:pre-wrap">' + (asset.caption || '') + '</textarea></div>' +
+            '<div style="display:flex;gap:12px">' +
+              '<div class="edit-field" style="flex:1"><label>Stage</label><select id="edit-stage" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:inherit">' +
+                '<option value="PLANNING">Planning</option><option value="SHOOTING">Shooting</option><option value="EDITING">Editing</option>' +
+                '<option value="READY">Ready</option><option value="SCHEDULED">Scheduled</option><option value="LIVE">Live</option><option value="LEARNING">Learning</option>' +
+              '</select></div>' +
+              '<div class="edit-field" style="flex:1"><label>Status</label><select id="edit-status" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:inherit">' +
+                '<option value="planning">Planning</option><option value="shooting">Shooting</option><option value="editing">Editing</option>' +
+                '<option value="ready">Ready</option><option value="scheduled">Scheduled</option><option value="live">Live</option><option value="archived">Archived</option>' +
+              '</select></div>' +
+            '</div>' +
+            '<div style="margin-top:16px;display:flex;gap:8px">' +
+              '<button onclick="saveAssetEdits(\'' + campaignId + '\\',\'' + assetId + '\')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">Save Changes</button>' +
+              '<button onclick="document.querySelector(\'.asset-modal\').remove()" style="background:var(--bg-elevated);color:var(--text);border:none;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="modal-actions" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">' +
           '<button onclick="CampaignOS.approveAsset(\'' + campaignId + '\',\'' + assetId + '\');document.querySelector(\'.asset-modal\').remove()">Approve</button>' +
           '<button onclick="CampaignOS.publishAsset(\'' + campaignId + '\',\'' + assetId + '\');document.querySelector(\'.asset-modal\').remove()">Publish</button>' +
           '<button onclick="CampaignOS.archiveAsset(\'' + campaignId + '\',\'' + assetId + '\');document.querySelector(\'.asset-modal\').remove()">Archive</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(modal);
+
+    // Set current values in edit form
+    var sel = modal.querySelector('#edit-stage');
+    if (sel) sel.value = asset.stage || 'PLANNING';
+    var sel2 = modal.querySelector('#edit-status');
+    if (sel2) sel2.value = asset.status || 'planning';
+  };
+
+  window.switchModalTab = function(btn, tab) {
+    var modal = btn.closest('.modal-content');
+    modal.querySelectorAll('.modal-tab').forEach(function(t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+    modal.querySelectorAll('.modal-tab-content').forEach(function(p) { p.style.display = 'none'; });
+    var panel = modal.querySelector('.modal-tab-' + tab);
+    if (panel) panel.style.display = 'flex';
+  };
+
+  window.saveAssetEdits = function(campaignId, assetId) {
+    var hook = document.getElementById('edit-hook').value;
+    var caption = document.getElementById('edit-caption').value;
+    var stage = document.getElementById('edit-stage').value;
+    var status = document.getElementById('edit-status').value;
+    CampaignOS._mutate(function(state) {
+      var campaign = state.campaigns.find(function(c) { return c.id === campaignId; });
+      if (!campaign) return;
+      var asset = campaign.assets.find(function(a) { return a.id === assetId; });
+      if (!asset) return;
+      asset.hook = hook;
+      asset.caption = caption;
+      asset.stage = stage;
+      asset.status = status;
+    });
+    CampaignOS.refreshUI();
+    var modal = document.querySelector('.asset-modal');
+    if (modal) modal.remove();
   };
 
 })();
