@@ -11,6 +11,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: https://clawdiavector.github.io/swing-shack-dashboard
     permissions:
       contents: read
       pages: write
