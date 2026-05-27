@@ -1,9 +1,9 @@
 {
-  "updated": "2026-05-26T05:06:31.526Z",
+  "updated": "2026-05-27T05:06:13.735Z",
   "sources": [
     {
       "name": "IG Analytics",
-      "updated": "2026-05-26T05:05:07.366Z"
+      "updated": "2026-05-27T05:03:53.869Z"
     },
     {
       "name": "GA4",
@@ -15,7 +15,7 @@
     },
     {
       "name": "Golf News",
-      "updated": "2026-05-26T05:06:31.341Z"
+      "updated": "2026-05-27T05:06:13.546Z"
     },
     {
       "name": "SEO Rankings",
@@ -27,16 +27,16 @@
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-05-26T05:06:31.440Z"
+      "updated": "2026-05-27T05:06:13.658Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-05-26T05:06:31.396Z"
+      "updated": "2026-05-27T05:06:13.612Z"
     }
   ],
   "stale_count": 4,
-  "top_recommendation": "Go to your coaching sessions. Your ball deserves better 🫂",
-  "total_posts": 82,
+  "top_recommendation": "TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL",
+  "total_posts": 85,
   "total_ideas": 15,
-  "hooks_tracked": 22
+  "hooks_tracked": 24
 }
