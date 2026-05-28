@@ -1,6 +1,6 @@
 {
-  "updated": "2026-05-27T05:06:13.658Z",
-  "total_hooks": 85,
+  "updated": "2026-05-28T05:04:51.465Z",
+  "total_hooks": 87,
   "cross_signal_sources": {
     "ig_weight": "60%",
     "youtube_weight": "20%",
@@ -107,7 +107,7 @@
         "engagementRate": "1.79",
         "saveRate": "0.00",
         "shareRate": "0.60",
-        "reach": 335,
+        "reach": 336,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "general",
@@ -139,6 +139,32 @@
         "formula_type": "stat-demand",
         "signal_bucket": "proven_and_trending",
         "post_id": "18381028009094142"
+      },
+      {
+        "hook_text": "Not quite a driver. Not quite a fairway wood.",
+        "hook_id": "not-quite-a-driver--not-quite-a-fairway-wood-",
+        "ig_proof_score": 8.82,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.5,
+        "youtube_topic_match": [
+          "driver",
+          "irons"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Possibly The BEST DRIVER Tip Ever In GOLF",
+          "How to hit irons Consistently (Simple Golf Tips)"
+        ],
+        "engagementRate": "4.17",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 48,
+        "topic_cluster": "equipment",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_and_trending",
+        "post_id": "18092939147601455"
       },
       {
         "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
@@ -250,32 +276,6 @@
         "formula_type": "stat-demand",
         "signal_bucket": "proven_and_trending",
         "post_id": "18096090964662082"
-      },
-      {
-        "hook_text": "TrackMan doesn't lie. Your swing data from your last session told a story. Now f",
-        "hook_id": "trackman-doesn-t-lie--your-swing-data-from-your-la",
-        "ig_proof_score": 4.17,
-        "youtube_alignment_score": 6,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 3.7,
-        "youtube_topic_match": [
-          "simulator",
-          "swing"
-        ],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [
-          "5 Powerful Tips to Unleash Your Senior Driver Swing",
-          "4 Simple Steps For The Perfect Golf Drive"
-        ],
-        "engagementRate": "1.34",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 149,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "signal_bucket": "proven_and_trending",
-        "post_id": "17873711610581469"
       }
     ],
     "proven_only": [
@@ -588,75 +588,9 @@
         "formula_type": "general",
         "signal_bucket": "trending_to_test",
         "post_id": "18028233410743325"
-      },
-      {
-        "hook_text": "Not quite a driver. Not quite a fairway wood.",
-        "hook_id": "not-quite-a-driver--not-quite-a-fairway-wood-",
-        "ig_proof_score": 0.13,
-        "youtube_alignment_score": 6,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 1.3,
-        "youtube_topic_match": [
-          "driver",
-          "irons"
-        ],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [
-          "Possibly The BEST DRIVER Tip Ever In GOLF",
-          "How to hit irons Consistently (Simple Golf Tips)"
-        ],
-        "engagementRate": "0.00",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 13,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "general",
-        "signal_bucket": "trending_to_test",
-        "post_id": "18092939147601455"
       }
     ],
     "retire": [
-      {
-        "hook_text": "Book your fitting now and use code FITTING15😎🔥",
-        "hook_id": "book-your-fitting-now-and-use-code-fitting15----",
-        "ig_proof_score": 1.8,
-        "youtube_alignment_score": 0,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 1.1,
-        "youtube_topic_match": [],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [],
-        "engagementRate": "0.00",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 180,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "stat-demand",
-        "signal_bucket": "retire",
-        "post_id": "18070451255658695"
-      },
-      {
-        "hook_text": "SWEET SPOT IS TINY.",
-        "hook_id": "sweet-spot-is-tiny-",
-        "ig_proof_score": 0.9,
-        "youtube_alignment_score": 0,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 0.5,
-        "youtube_topic_match": [],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [],
-        "engagementRate": "0.00",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 90,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "general",
-        "signal_bucket": "retire",
-        "post_id": "18142177312512187"
-      },
       {
         "hook_text": "BACKSPIN: 3,200 RPM",
         "hook_id": "backspin--3-200-rpm",
@@ -696,6 +630,26 @@
         "formula_type": "general",
         "signal_bucket": "retire",
         "post_id": "18194902993362005"
+      },
+      {
+        "hook_text": "The number. The map. The plan.",
+        "hook_id": "the-number--the-map--the-plan-",
+        "ig_proof_score": 0,
+        "youtube_alignment_score": 0,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 0,
+        "youtube_topic_match": [],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [],
+        "engagementRate": "0.00",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 0,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "retire",
+        "post_id": "18084123494386104"
       }
     ]
   },
@@ -797,7 +751,7 @@
       "engagementRate": "1.79",
       "saveRate": "0.00",
       "shareRate": "0.60",
-      "reach": 335,
+      "reach": 336,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "general",
@@ -834,15 +788,15 @@
   "hook_formulas": [
     {
       "formula": "stat-demand",
-      "count": 27,
+      "count": 28,
       "best_example": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
-      "avg_cross_score": "4.7"
+      "avg_cross_score": "4.6"
     },
     {
       "formula": "general",
-      "count": 49,
+      "count": 50,
       "best_example": "Lowest net score wins a *new custom fitted driver!*",
-      "avg_cross_score": "3.9"
+      "avg_cross_score": "4.1"
     },
     {
       "formula": "question",
@@ -854,7 +808,7 @@
       "formula": "reveal",
       "count": 1,
       "best_example": "CLUB SPEED tells the truth.",
-      "avg_cross_score": "2.6"
+      "avg_cross_score": "3.5"
     }
   ],
   "ab_winners": [

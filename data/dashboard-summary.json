@@ -1,9 +1,9 @@
 {
-  "updated": "2026-05-27T05:06:13.735Z",
+  "updated": "2026-05-28T05:04:51.549Z",
   "sources": [
     {
       "name": "IG Analytics",
-      "updated": "2026-05-27T05:03:53.869Z"
+      "updated": "2026-05-28T05:03:21.852Z"
     },
     {
       "name": "GA4",
@@ -15,7 +15,7 @@
     },
     {
       "name": "Golf News",
-      "updated": "2026-05-27T05:06:13.546Z"
+      "updated": "2026-05-28T05:04:51.358Z"
     },
     {
       "name": "SEO Rankings",
@@ -27,16 +27,16 @@
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-05-27T05:06:13.658Z"
+      "updated": "2026-05-28T05:04:51.465Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-05-27T05:06:13.612Z"
+      "updated": "2026-05-28T05:04:51.416Z"
     }
   ],
   "stale_count": 4,
   "top_recommendation": "TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL",
-  "total_posts": 85,
+  "total_posts": 87,
   "total_ideas": 15,
-  "hooks_tracked": 24
+  "hooks_tracked": 23
 }
