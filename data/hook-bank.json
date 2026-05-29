@@ -1,6 +1,6 @@
 {
-  "updated": "2026-05-28T05:04:51.465Z",
-  "total_hooks": 87,
+  "updated": "2026-05-29T05:07:27.743Z",
+  "total_hooks": 88,
   "cross_signal_sources": {
     "ig_weight": "60%",
     "youtube_weight": "20%",
@@ -37,6 +37,32 @@
         "post_id": "17977984817792608"
       },
       {
+        "hook_text": "Not quite a driver. Not quite a fairway wood.",
+        "hook_id": "not-quite-a-driver--not-quite-a-fairway-wood-",
+        "ig_proof_score": 10,
+        "youtube_alignment_score": 6,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 7.2,
+        "youtube_topic_match": [
+          "driver",
+          "irons"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Possibly The BEST DRIVER Tip Ever In GOLF",
+          "How to hit irons Consistently (Simple Golf Tips)"
+        ],
+        "engagementRate": "5.36",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 56,
+        "topic_cluster": "equipment",
+        "format_type": "static",
+        "formula_type": "general",
+        "signal_bucket": "proven_and_trending",
+        "post_id": "18092939147601455"
+      },
+      {
         "hook_text": "TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL",
         "hook_id": "trackman-shows-what-your-swing-cant-feel",
         "ig_proof_score": 10,
@@ -65,7 +91,7 @@
       {
         "hook_text": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
         "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
-        "ig_proof_score": 9.64,
+        "ig_proof_score": 9.620000000000001,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 7,
@@ -78,10 +104,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "How to hit irons Consistently (Simple Golf Tips)"
         ],
-        "engagementRate": "3.32",
+        "engagementRate": "3.31",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 361,
+        "reach": 362,
         "topic_cluster": "equipment",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -91,7 +117,7 @@
       {
         "hook_text": "Lowest net score wins a *new custom fitted driver!*",
         "hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
-        "ig_proof_score": 9.58,
+        "ig_proof_score": 9.51,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 6.9,
@@ -104,10 +130,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "5 Powerful Tips to Unleash Your Senior Driver Swing"
         ],
-        "engagementRate": "1.79",
+        "engagementRate": "1.78",
         "saveRate": "0.00",
-        "shareRate": "0.60",
-        "reach": 336,
+        "shareRate": "0.59",
+        "reach": 337,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "general",
@@ -117,7 +143,7 @@
       {
         "hook_text": "Book your session with Coach Cat @swingshack ⛳️",
         "hook_id": "book-your-session-with-coach-cat--swingshack---",
-        "ig_proof_score": 9,
+        "ig_proof_score": 8.98,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 6.6,
@@ -130,10 +156,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "How to hit irons Consistently (Simple Golf Tips)"
         ],
-        "engagementRate": "1.75",
+        "engagementRate": "1.74",
         "saveRate": "0.00",
         "shareRate": "0.50",
-        "reach": 401,
+        "reach": 402,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -141,38 +167,12 @@
         "post_id": "18381028009094142"
       },
       {
-        "hook_text": "Not quite a driver. Not quite a fairway wood.",
-        "hook_id": "not-quite-a-driver--not-quite-a-fairway-wood-",
-        "ig_proof_score": 8.82,
-        "youtube_alignment_score": 6,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 6.5,
-        "youtube_topic_match": [
-          "driver",
-          "irons"
-        ],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [
-          "Possibly The BEST DRIVER Tip Ever In GOLF",
-          "How to hit irons Consistently (Simple Golf Tips)"
-        ],
-        "engagementRate": "4.17",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 48,
-        "topic_cluster": "equipment",
-        "format_type": "static",
-        "formula_type": "general",
-        "signal_bucket": "proven_and_trending",
-        "post_id": "18092939147601455"
-      },
-      {
         "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
         "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
-        "ig_proof_score": 6.43,
+        "ig_proof_score": 6.3999999999999995,
         "youtube_alignment_score": 10,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 5.9,
+        "cross_signal_score": 5.8,
         "youtube_topic_match": [
           "driver",
           "slice_fix",
@@ -185,10 +185,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "5 Powerful Tips to Unleash Your Senior Driver Swing"
         ],
-        "engagementRate": "2.65",
+        "engagementRate": "2.63",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 113,
+        "reach": 114,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "question",
@@ -198,7 +198,7 @@
       {
         "hook_text": "It never rains in doors… Book your slot now before your tee time rains out🏌🏻‍♀",
         "hook_id": "it-never-rains-in-doors--book-your-slot-now-before",
-        "ig_proof_score": 7.5,
+        "ig_proof_score": 7.48,
         "youtube_alignment_score": 6,
         "reddit_relevance_score": 0,
         "cross_signal_score": 5.7,
@@ -211,10 +211,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "5 Powerful Tips to Unleash Your Senior Driver Swing"
         ],
-        "engagementRate": "2.25",
+        "engagementRate": "2.24",
         "saveRate": "0.00",
         "shareRate": "0.00",
-        "reach": 356,
+        "reach": 357,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
@@ -224,7 +224,7 @@
       {
         "hook_text": "Coach Cat takes us through a simple process on getting into one of the more chal",
         "hook_id": "coach-cat-takes-us-through-a-simple-process-on-get",
-        "ig_proof_score": 7.01,
+        "ig_proof_score": 6.94,
         "youtube_alignment_score": 5,
         "reddit_relevance_score": 0,
         "cross_signal_score": 5.2,
@@ -238,10 +238,10 @@
           "Possibly The BEST DRIVER Tip Ever In GOLF",
           "How to hit irons Consistently (Simple Golf Tips)"
         ],
-        "engagementRate": "1.33",
+        "engagementRate": "1.32",
         "saveRate": "0.00",
-        "shareRate": "0.27",
-        "reach": 377,
+        "shareRate": "0.26",
+        "reach": 378,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -380,34 +380,9 @@
         "post_id": "18015056354814143"
       },
       {
-        "hook_text": "Want to win a fully custom built driver?👀",
-        "hook_id": "want-to-win-a-fully-custom-built-driver---",
-        "ig_proof_score": 9.26,
-        "youtube_alignment_score": 3,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 6.2,
-        "youtube_topic_match": [
-          "driver"
-        ],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [
-          "Possibly The BEST DRIVER Tip Ever In GOLF",
-          "5 Powerful Tips to Unleash Your Senior Driver Swing"
-        ],
-        "engagementRate": "3.13",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 384,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "question",
-        "signal_bucket": "proven_only",
-        "post_id": "18055889312462062"
-      },
-      {
         "hook_text": "Your balls are important too 👀 Learn the key differences between one of the mos",
         "hook_id": "your-balls-are-important-too----learn-the-key-diff",
-        "ig_proof_score": 9.27,
+        "ig_proof_score": 9.25,
         "youtube_alignment_score": 3,
         "reddit_relevance_score": 0,
         "cross_signal_score": 6.2,
@@ -419,15 +394,40 @@
           "5 Powerful Tips to Unleash Your Senior Driver Swing",
           "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
         ],
-        "engagementRate": "2.51",
+        "engagementRate": "2.50",
         "saveRate": "0.00",
         "shareRate": "0.25",
-        "reach": 398,
+        "reach": 400,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "stat-demand",
         "signal_bucket": "proven_only",
         "post_id": "18101162930499434"
+      },
+      {
+        "hook_text": "Want to win a fully custom built driver?👀",
+        "hook_id": "want-to-win-a-fully-custom-built-driver---",
+        "ig_proof_score": 9.24,
+        "youtube_alignment_score": 3,
+        "reddit_relevance_score": 0,
+        "cross_signal_score": 6.1,
+        "youtube_topic_match": [
+          "driver"
+        ],
+        "youtube_format_match": [],
+        "youtube_evidence_titles": [
+          "Possibly The BEST DRIVER Tip Ever In GOLF",
+          "5 Powerful Tips to Unleash Your Senior Driver Swing"
+        ],
+        "engagementRate": "3.12",
+        "saveRate": "0.00",
+        "shareRate": "0.00",
+        "reach": 385,
+        "topic_cluster": "technique",
+        "format_type": "static",
+        "formula_type": "question",
+        "signal_bucket": "proven_only",
+        "post_id": "18055889312462062"
       },
       {
         "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
@@ -442,7 +442,7 @@
         "engagementRate": "3.97",
         "saveRate": "0.00",
         "shareRate": "0.27",
-        "reach": 730,
+        "reach": 731,
         "topic_cluster": "coaching",
         "format_type": "static",
         "formula_type": "general",
@@ -459,10 +459,10 @@
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "3.40",
+        "engagementRate": "3.39",
         "saveRate": "0.00",
-        "shareRate": "0.43",
-        "reach": 235,
+        "shareRate": "0.42",
+        "reach": 236,
         "topic_cluster": "technique",
         "format_type": "static",
         "formula_type": "general",
@@ -630,26 +630,6 @@
         "formula_type": "general",
         "signal_bucket": "retire",
         "post_id": "18194902993362005"
-      },
-      {
-        "hook_text": "The number. The map. The plan.",
-        "hook_id": "the-number--the-map--the-plan-",
-        "ig_proof_score": 0,
-        "youtube_alignment_score": 0,
-        "reddit_relevance_score": 0,
-        "cross_signal_score": 0,
-        "youtube_topic_match": [],
-        "youtube_format_match": [],
-        "youtube_evidence_titles": [],
-        "engagementRate": "0.00",
-        "saveRate": "0.00",
-        "shareRate": "0.00",
-        "reach": 0,
-        "topic_cluster": "technique",
-        "format_type": "static",
-        "formula_type": "general",
-        "signal_bucket": "retire",
-        "post_id": "18084123494386104"
       }
     ]
   },
@@ -681,6 +661,32 @@
       "post_id": "17977984817792608"
     },
     {
+      "hook_text": "Not quite a driver. Not quite a fairway wood.",
+      "hook_id": "not-quite-a-driver--not-quite-a-fairway-wood-",
+      "ig_proof_score": 10,
+      "youtube_alignment_score": 6,
+      "reddit_relevance_score": 0,
+      "cross_signal_score": 7.2,
+      "youtube_topic_match": [
+        "driver",
+        "irons"
+      ],
+      "youtube_format_match": [],
+      "youtube_evidence_titles": [
+        "Possibly The BEST DRIVER Tip Ever In GOLF",
+        "How to hit irons Consistently (Simple Golf Tips)"
+      ],
+      "engagementRate": "5.36",
+      "saveRate": "0.00",
+      "shareRate": "0.00",
+      "reach": 56,
+      "topic_cluster": "equipment",
+      "format_type": "static",
+      "formula_type": "general",
+      "signal_bucket": "proven_and_trending",
+      "post_id": "18092939147601455"
+    },
+    {
       "hook_text": "TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL",
       "hook_id": "trackman-shows-what-your-swing-cant-feel",
       "ig_proof_score": 10,
@@ -709,7 +715,7 @@
     {
       "hook_text": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
       "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
-      "ig_proof_score": 9.64,
+      "ig_proof_score": 9.620000000000001,
       "youtube_alignment_score": 6,
       "reddit_relevance_score": 0,
       "cross_signal_score": 7,
@@ -722,10 +728,10 @@
         "Possibly The BEST DRIVER Tip Ever In GOLF",
         "How to hit irons Consistently (Simple Golf Tips)"
       ],
-      "engagementRate": "3.32",
+      "engagementRate": "3.31",
       "saveRate": "0.00",
       "shareRate": "0.00",
-      "reach": 361,
+      "reach": 362,
       "topic_cluster": "equipment",
       "format_type": "static",
       "formula_type": "stat-demand",
@@ -735,7 +741,7 @@
     {
       "hook_text": "Lowest net score wins a *new custom fitted driver!*",
       "hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
-      "ig_proof_score": 9.58,
+      "ig_proof_score": 9.51,
       "youtube_alignment_score": 6,
       "reddit_relevance_score": 0,
       "cross_signal_score": 6.9,
@@ -748,41 +754,15 @@
         "Possibly The BEST DRIVER Tip Ever In GOLF",
         "5 Powerful Tips to Unleash Your Senior Driver Swing"
       ],
-      "engagementRate": "1.79",
+      "engagementRate": "1.78",
       "saveRate": "0.00",
-      "shareRate": "0.60",
-      "reach": 336,
+      "shareRate": "0.59",
+      "reach": 337,
       "topic_cluster": "technique",
       "format_type": "static",
       "formula_type": "general",
       "signal_bucket": "proven_and_trending",
       "post_id": "18094335746089574"
-    },
-    {
-      "hook_text": "Book your session with Coach Cat @swingshack ⛳️",
-      "hook_id": "book-your-session-with-coach-cat--swingshack---",
-      "ig_proof_score": 9,
-      "youtube_alignment_score": 6,
-      "reddit_relevance_score": 0,
-      "cross_signal_score": 6.6,
-      "youtube_topic_match": [
-        "lessons",
-        "swing"
-      ],
-      "youtube_format_match": [],
-      "youtube_evidence_titles": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "How to hit irons Consistently (Simple Golf Tips)"
-      ],
-      "engagementRate": "1.75",
-      "saveRate": "0.00",
-      "shareRate": "0.50",
-      "reach": 401,
-      "topic_cluster": "technique",
-      "format_type": "static",
-      "formula_type": "stat-demand",
-      "signal_bucket": "proven_and_trending",
-      "post_id": "18381028009094142"
     }
   ],
   "hook_formulas": [
@@ -790,19 +770,19 @@
       "formula": "stat-demand",
       "count": 28,
       "best_example": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
-      "avg_cross_score": "4.6"
+      "avg_cross_score": "4.7"
     },
     {
       "formula": "general",
-      "count": 50,
-      "best_example": "Lowest net score wins a *new custom fitted driver!*",
-      "avg_cross_score": "4.1"
+      "count": 51,
+      "best_example": "Not quite a driver. Not quite a fairway wood.",
+      "avg_cross_score": "4.2"
     },
     {
       "formula": "question",
       "count": 8,
       "best_example": "Want to win a fully custom built driver?👀",
-      "avg_cross_score": "4.3"
+      "avg_cross_score": "4.2"
     },
     {
       "formula": "reveal",
