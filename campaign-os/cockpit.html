@@ -1061,6 +1061,88 @@
   .mix-status { width: 100px; font-size: 10px; font-weight: 600; text-align: right; }
   .hidden { display: none !important; }
 
+
+  .mothership-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 20px; }
+  .mothership-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .mothership-subtitle { font-size: 13px; color: var(--muted); }
+  .launch-badge { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+  .launch-badge.ready { background: rgba(0,204,119,0.12); border: 2px solid var(--green); color: var(--green); }
+  .launch-badge.missing { background: rgba(255,170,0,0.12); border: 2px solid var(--amber); color: var(--amber); }
+  .launch-badge.blocked { background: rgba(255,68,85,0.12); border: 2px solid var(--red); color: var(--red); }
+  .launch-badge-num { font-size: 24px; font-weight: 700; }
+  .mothership-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .mothership-tab { padding: 8px 16px; font-size: 12px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+  .mothership-tab:hover { color: var(--text); }
+  .mothership-tab.active { color: var(--green); border-bottom-color: var(--green); }
+  .mothership-panel { display: none; }
+  .mothership-panel.active { display: block; }
+  .ws-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ws-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+  .ws-strategy-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .ws-strategy-item:last-child { border-bottom: none; }
+  .ws-strategy-label { font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+  .ws-strategy-value { font-size: 12px; color: var(--text); }
+  .pillar-mini { display: flex; gap: 8px; margin-top: 8px; }
+  .pillar-mini-chip { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+  .pillar-mini-chip.p1 { background: rgba(0,204,119,0.15); color: var(--green); }
+  .pillar-mini-chip.p2 { background: rgba(68,136,255,0.15); color: var(--blue); }
+  .pillar-mini-chip.p3 { background: rgba(153,102,255,0.15); color: var(--purple); }
+  .completion-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .completion-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+  .completion-card .cc-num { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
+  .completion-card .cc-num.green { color: var(--green); }
+  .completion-card .cc-num.amber { color: var(--amber); }
+  .completion-card .cc-num.red { color: var(--red); }
+  .completion-card .cc-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .completion-card .cc-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+  .gap-analysis { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .gap-col { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .gap-col-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .gap-col-title.done { color: var(--green); }
+  .gap-col-title.missing { color: var(--amber); }
+  .gap-col-title.blocked { color: var(--red); }
+  .gap-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+  .gap-item:last-child { border-bottom: none; }
+  .gap-item-icon { font-size: 12px; width: 16px; text-align: center; }
+  .gap-item-name { flex: 1; color: var(--text); }
+  .gap-item-owner { color: var(--muted); font-size: 10px; }
+  .queue-gen-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+  .queue-gen-item:hover { border-color: var(--green); }
+  .qgi-thumb { width: 48px; height: 48px; border-radius: 6px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted); flex-shrink: 0; overflow: hidden; }
+  .qgi-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .qgi-info { flex: 1; }
+  .qgi-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .qgi-meta { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .qgi-next { font-size: 10px; color: var(--amber); font-weight: 600; }
+  .qgi-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .prod-item { display: flex; gap: 16px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; }
+  .prod-item:hover { border-color: var(--green); }
+  .prod-thumb { width: 120px; height: 120px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--surface2); }
+  .prod-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .prod-info { flex: 1; }
+  .prod-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .prod-type { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .prod-caption { font-size: 12px; color: var(--text); line-height: 1.5; margin-bottom: 8px; }
+  .prod-caption strong { color: var(--green); }
+  .prod-meta { display: flex; gap: 12px; font-size: 10px; color: var(--muted); margin-bottom: 10px; }
+  .prod-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .prod-status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-bottom: 8px; }
+  .prod-status-badge.approved { background: rgba(0,204,119,0.15); color: var(--green); }
+  .prod-status-badge.review { background: rgba(255,170,0,0.15); color: var(--amber); }
+  .prod-status-badge.draft { background: rgba(107,107,128,0.15); color: var(--muted); }
+  .prod-status-badge.published { background: rgba(68,136,255,0.15); color: var(--blue); }
+  .launch-readiness-bar { display: flex; gap: 3px; margin-bottom: 16px; }
+  .lr-segment { height: 6px; border-radius: 3px; }
+  .lr-segment.green { background: var(--green); }
+  .lr-segment.amber { background: var(--amber); }
+  .lr-segment.red { background: var(--red); }
+  .lr-segment.empty { background: var(--surface2); }
+  .lr-legend { display: flex; gap: 16px; font-size: 10px; color: var(--muted); margin-top: 6px; }
+  .lr-legend span { display: flex; align-items: center; gap: 4px; }
+  .lr-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .generate-btn { background: rgba(0,204,119,0.1); border: 1px solid var(--green); color: var(--green); padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+  .generate-btn:hover { background: rgba(0,204,119,0.2); }
+
 </style>
 </head>
 <body>
@@ -1085,6 +1167,7 @@
       <li onclick="showView('waiting-fleet')">🤖 Waiting on Fleet <span class="badge">4</span></li>
       <li onclick="showView('health')">💡 Health</li>
       <li onclick="showView('factory')">🏭 Campaign Factory</li>
+      <li onclick="showView('mothership')">🚀 Campaign Mothership</li>
       <li onclick="showView('calendar2')">🗓️ Visual Calendar</li>
       <li onclick="showView('regen')">↻ Regeneration</li>
       <li onclick="showView('mix')">📊 Content Mix</li>
@@ -1758,6 +1841,14 @@
     }, 2000);
     document.getElementById('regen-reason').value = '';
     document.getElementById('regen-context').value = '';
+  }
+
+
+  function showMothershipTab(name) {
+    document.querySelectorAll('.mothership-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.mothership-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('mp-' + name).classList.add('active');
+    event.target.classList.add('active');
   }
 
 </script>
