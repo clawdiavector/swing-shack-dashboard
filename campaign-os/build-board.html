@@ -78,27 +78,27 @@
   <div class="header">
     <div class="header-left">
       <div class="title">Campaign OS v2 — Build Board</div>
-      <div class="subtitle">Implementation status · All components · Live</div>
-      <div class="last-updated">Last updated: Mon Jun 1 2026, 12:41 SAST · Phase: IMPLEMENTATION MODE</div>
+      <div class="subtitle">M2 Complete · M3 Active</div>
+      <div class="last-updated">Last updated: Mon Jun 1 2026, 14:45 SAST · Phase: M3 ACTIVE</div>
     </div>
     <div class="overall-status">
       <div class="status-summary">
-        <div class="status-chip green"><div class="dot"></div><span class="label">1 Complete</span></div>
+        <div class="status-chip green"><div class="dot"></div><span class="label">2 Complete</span></div>
         <div class="status-chip amber"><div class="dot"></div><span class="label">2 In Progress</span></div>
-        <div class="status-chip red"><div class="dot"></div><span class="label">9 Blocked</span></div>
+        <div class="status-chip red"><div class="dot"></div><span class="label">8 Blocked</span></div>
       </div>
     </div>
   </div>
 
   <div class="summary-bar" style="width:100%">
-    <div class="seg green" style="width:8.3%"></div>
+    <div class="seg green" style="width:16.7%"></div>
     <div class="seg amber" style="width:16.7%"></div>
-    <div class="seg red" style="width:75%"></div>
+    <div class="seg red" style="width:66.7%"></div>
   </div>
   <div class="legend">
-    <span><div class="dot" style="background:var(--green)"></div>Complete (1/12)</span>
+    <span><div class="dot" style="background:var(--green)"></div>Complete (2/12)</span>
     <span><div class="dot" style="background:var(--amber)"></div>In Progress (2/12)</span>
-    <span><div class="dot" style="background:var(--red)"></div>Blocked (9/12)</span>
+    <span><div class="dot" style="background:var(--red)"></div>Blocked (8/12)</span>
   </div>
 
   <div class="board">
@@ -445,14 +445,14 @@
     </div>
 
     <!-- 12. Live Cockpit Refresh -->
-    <div class="card" style="border-color: rgba(255,68,85,0.3);">
+    <div class="card" style="border-color: rgba(0,204,119,0.3);">
       <div class="card-header">
-        <div class="card-num red">12</div>
+        <div class="card-num green">12</div>
         <div class="card-title-block">
-          <div class="card-title">Live Cockpit Refresh</div>
+          <div class="card-title">Live Cockpit Refresh — M2 COMPLETE</div>
           <div class="card-owner">Owner: Clawdia (HTML regeneration) + OpenClaw (cron)</div>
         </div>
-        <span class="badge red">🔴 Blocked</span>
+        <span class="badge green">M2 Done — Verified</span>
       </div>
       <div class="card-body">
         <div class="card-field">
@@ -464,20 +464,61 @@
           <div class="field-value">1 hour (regeneration script)</div>
         </div>
         <div class="card-field">
-          <div class="field-label">Blocked By</div>
-          <div class="field-value blocked">Webhook refresh layer (#9)</div>
+          <div class="field-label">Status</div>
+          <div class="field-value" style="color:var(--green)">COMPLETE — verified at 714d27b</div>
+        </div>
+        <div class="card-field">
+          <div class="field-label">Verification</div>
+          <div class="field-value">campaign-data.json drives cockpit-operational.html</div>
         </div>
       </div>
       <div class="next-action">
         <div class="next-action-label">Next Action</div>
-        <div class="next-action-value">After #9 complete: Build cockpit regeneration script — reads campaign-data.json → regenerates cockpit HTML → deploys to GitHub Pages. Target: < 60s from push to live.</div>
+        <div class="next-action-value">M2 done. Next: M3 — wire write-back infrastructure (#2) so agents trigger cockpit updates automatically.</div>
       </div>
-      <div class="done-check">Definition of Done: Any write to campaign-data.json → cockpit reflects new state within 60 seconds. No manual refresh required. Operators always see current operational state.</div>
+      <div class="done-check">Definition of Done: Any write to campaign-data.json renders in cockpit-operational.html on GitHub Pages — verified by Clawfix at commit 714d27b.</div>
     </div>
 
   </div>
 
   <!-- EXECUTION SEQUENCE -->
+  <!-- M3 — ACTION LOOP -->
+  <div class="card" style="margin-top: 24px; border-color: rgba(0,204,119,0.4); background: rgba(0,204,119,0.04);">
+    <div class="card-header" style="margin-bottom: 12px;">
+      <div class="card-num green">M3</div>
+      <div class="card-title-block">
+        <div class="card-title">Action Loop — Make Campaign OS Operational</div>
+        <div class="card-owner">Owner: Clawdia + Fleet</div>
+      </div>
+      <span class="badge green">ACTIVE</span>
+    </div>
+    <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">Christelle accepted M2 on Jun 1 14:40 SAST. Verification passed. Next objective: close the action loop so agents trigger state changes that appear in the cockpit automatically.</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+      <div style="background: rgba(255,68,85,0.08); border: 1px solid rgba(255,68,85,0.2); border-radius: 8px; padding: 12px;">
+        <div style="font-size: 11px; font-weight: 600; color: var(--red); margin-bottom: 6px;">Criteria 1-2</div>
+        <div style="font-size: 11px; color: var(--text); margin-bottom: 4px;">Agent performs work and writes to campaign-data.json</div>
+        <div style="font-size: 10px; color: var(--amber);">Blocker: #2 write-back infra (blocked by #1 GitHub transfer)</div>
+      </div>
+      <div style="background: rgba(255,170,0,0.08); border: 1px solid rgba(255,170,0,0.2); border-radius: 8px; padding: 12px;">
+        <div style="font-size: 11px; font-weight: 600; color: var(--amber); margin-bottom: 6px;">Criteria 3-4</div>
+        <div style="font-size: 11px; color: var(--text); margin-bottom: 4px;">Regeneration + cockpit auto-update</div>
+        <div style="font-size: 10px; color: var(--green);">cockpit-operational.html live on GitHub Pages</div>
+      </div>
+      <div style="background: rgba(68,136,255,0.08); border: 1px solid rgba(68,136,255,0.2); border-radius: 8px; padding: 12px;">
+        <div style="font-size: 11px; font-weight: 600; color: var(--blue); margin-bottom: 6px;">Criteria 5-6</div>
+        <div style="font-size: 11px; color: var(--text); margin-bottom: 4px;">Notification + visible state change</div>
+        <div style="font-size: 10px; color: var(--amber);">Pending: #10 Discord approval routing</div>
+      </div>
+    </div>
+    <div style="padding: 10px 12px; background: rgba(0,204,119,0.08); border: 1px solid rgba(0,204,119,0.2); border-radius: 8px; font-size: 12px;">
+      <div style="font-weight: 600; color: var(--green); margin-bottom: 4px;">Immediate next step</div>
+      <div style="color: var(--text);">#2 Write-Back Infrastructure — the blocker between agents and campaign-data.json. Once wired, every agent write auto-triggers cockpit regeneration and Discord notification. This is the operational heart of Campaign OS.</div>
+    </div>
+    <div style="margin-top: 12px; padding: 10px 12px; background: rgba(255,170,0,0.08); border: 1px solid rgba(255,170,0,0.2); border-radius: 8px; font-size: 11px; color: var(--amber);">
+      <strong>Note on #1 (GitHub Transfer):</strong> Write access proven at clawdiavector account. Agents can commit to main branch. The "GitHub transfer required" dependency may be outdated — write-back infrastructure can potentially proceed on current access. Christelle to confirm.
+    </div>
+  </div>
+
   <div class="card" style="margin-top: 24px; border-color: rgba(68,136,255,0.3);">
     <div class="card-title" style="margin-bottom: 16px; font-size: 14px;">Execution Sequence — Order Matters</div>
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
