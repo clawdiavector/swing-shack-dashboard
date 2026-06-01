@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrackMan Intelligence - Campaign Mothership</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#111118;--surface2:#18181f;--border:rgba(255,255,255,0.08);--text:#e8e8ed;--muted:#6e6e82;--green:#00cc77;--amber:#ffaa00;--red:#ff4455;--blue:#4488ff;--purple:#9966ff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ring{position:relative;width:70px;height:70px}
+.ring svg{transform:rotate(-90deg);display:block}
+.ring-bg{fill:none;stroke:var(--surface2);stroke-width:6}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-number{font-size:18px;font-weight:700}
+.ring-label{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+.flex{display:flex;align-items:center;gap:14px}
+.metric{text-align:center;padding:12px}
+.metric-num{font-size:24px;font-weight:700;margin-bottom:4px}
+.metric-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+.diagnostic-box{background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.2);border-radius:8px;padding:10px 12px;margin-top:10px}
+.diagnostic-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--amber);margin-bottom:4px}
+.diagnostic-text{font-size:11px;line-height:1.6}
+.launch-badge{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;flex-shrink:0}
+.launch-badge.ready{background:rgba(0,204,119,0.12);border:2px solid var(--green);color:var(--green)}
+.launch-badge.missing{background:rgba(255,170,0,0.12);border:2px solid var(--amber);color:var(--amber)}
+.launch-badge.blocked{background:rgba(255,68,85,0.12);border:2px solid var(--red);color:var(--red)}
+.launch-badge-num{font-size:22px;font-weight:700}
+.headerBAR{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:20px}
+.title-xl{font-size:20px;font-weight:700;margin-bottom:4px}
+.subtitle{font-size:12px;color:var(--muted)}
+.section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px}
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px}
+.nav{display:flex;gap:2px;margin-bottom:20px;padding:8px;background:var(--surface);border-radius:10px;overflow-x:auto}
+.nav li{list-style:none;padding:6px 14px;font-size:12px;color:var(--muted);cursor:pointer;border-radius:6px;white-space:nowrap}
+.nav li:hover{color:var(--text)}
+.nav li.active{background:rgba(0,204,119,0.1);color:var(--green)}
+.panel{display:none}
+.panel.active{display:block}
+.completion-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.cc-num{font-size:28px;font-weight:700;margin-bottom:4px}
+.cc-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+.priority-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px}
+.priority-item:last-child{border-bottom:none}
+.waiting-content{flex:1}
+.waiting-title{font-weight:600;margin-bottom:2px}
+.waiting-sub{color:var(--muted);font-size:10px}
+.action-btn{background:rgba(0,204,119,0.1);border:1px solid var(--green);color:var(--green);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.footer{text-align:center;font-size:10px;color:var(--muted);padding:20px 0;border-top:1px solid var(--border);margin-top:16px}
+.footer a{color:var(--green);text-decoration:none}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}
+a{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="headerBAR">
+  <div>
+    <div class="title-xl">TrackMan Intelligence - Campaign Mothership</div>
+    <div class="subtitle">Drive fitting bookings and coaching sessions &middot; Updated 01 Jun 2026 14:00 SAST</div>
+    <div style="font-size:11px;color:var(--amber);margin-top:4px">WARNING: Conversion degraded: last published hook 14 days ago. Hook A best performer never re-published. GMB lapsed 7 days.</div>
+  </div>
+  <div class="launch-badge missing">
+    <div class="launch-badge-num">12 missing</div>
+    <div><div>Missing Assets</div><div style="font-size:10px;opacity:0.7">0/12 complete</div></div>
+  </div>
+</div>
+
+<div style="display:flex;gap:3px;margin-bottom:8px"><div style="flex:1;height:6px;background:#00cc77;border-radius:3px;min-width:0"></div><div style="flex:1;height:6px;background:#ffaa00;border-radius:3px;min-width:0"></div><div style="flex:1;height:6px;background:#ff4455;border-radius:3px;min-width:0"></div><div style="flex:100;height:6px;background:#18181f;border-radius:3px;min-width:0"></div></div><div style="display:flex;gap:14px;font-size:10px;color:#6e6e82"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#00cc77"></span> Complete (1%)</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffaa00"></span> In Progress (1%)</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff4455"></span> Blocked (1%)</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#18181f"></span> Not Started (100%)</span></div>
+
+<ul class="nav">
+  <li class="active" onclick="showTab('overview')">Overview</li>
+  <li onclick="showTab('queue')">Asset Queue (0)</li>
+  <li onclick="showTab('production')">Production (0)</li>
+  <li onclick="showTab('completion')">Completion</li>
+  <li onclick="showTab('gaps')">Gap Analysis</li>
+</ul>
+
+<div class="panel active" id="panel-overview">
+<div class="grid-2">
+  <div>
+    <div class="card">
+      <div class="card-title">Campaign Health</div>
+      <div class="flex">
+        <div class="ring">
+          <svg width="70" height="70" viewBox="0 0 70 70">
+            <circle class="ring-bg" cx="35" cy="35" r="30"/>
+            <circle cx="35" cy="35" r="30" stroke-dasharray="188.50 188.50" stroke-dashoffset="%.2f" style="stroke:#ffaa00;fill:none;stroke-width:6;stroke-linecap:round"/>
+          </svg>
+          <div class="ring-center"><div class="ring-number" style="color:#ffaa00">68</div><div class="ring-label">Degraded</div></div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:#ffaa00;margin-bottom:4px;text-transform:capitalize">degraded - 68/100</div>
+          <div style="font-size:10px;color:var(--muted)">Refreshed: 01 Jun 2026 14:00 SAST</div>
+          <div class="diagnostic-box">
+            <div class="diagnostic-label">Diagnostic</div>
+            <div class="diagnostic-text">Conversion degraded: last published hook 14 days ago. Hook A best performer never re-published. GMB lapsed 7 days.</div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-12">
+        <div class="section-title">Health Breakdown</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px"><div style="width:100px;color:#6e6e82">Assetpipeline</div><div style="flex:1;height:4px;background:#18181f;border-radius:2px"><div style="width:40%;height:100%;background:#ffaa00;border-radius:2px"></div></div><div style="width:30px;text-align:right;color:#ffaa00;font-weight:600;font-size:10px">40</div></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px"><div style="width:100px;color:#6e6e82">Approvalvelocity</div><div style="flex:1;height:4px;background:#18181f;border-radius:2px"><div style="width:55%;height:100%;background:#ffaa00;border-radius:2px"></div></div><div style="width:30px;text-align:right;color:#ffaa00;font-weight:600;font-size:10px">55</div></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px"><div style="width:100px;color:#6e6e82">Publishcadence</div><div style="flex:1;height:4px;background:#18181f;border-radius:2px"><div style="width:30%;height:100%;background:#ff4455;border-radius:2px"></div></div><div style="width:30px;text-align:right;color:#ff4455;font-weight:600;font-size:10px">30</div></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px"><div style="width:100px;color:#6e6e82">Engagementtrend</div><div style="flex:1;height:4px;background:#18181f;border-radius:2px"><div style="width:80%;height:100%;background:#00cc77;border-radius:2px"></div></div><div style="width:30px;text-align:right;color:#00cc77;font-weight:600;font-size:10px">80</div></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px"><div style="width:100px;color:#6e6e82">Conversionrate</div><div style="flex:1;height:4px;background:#18181f;border-radius:2px"><div style="width:75%;height:100%;background:#00cc77;border-radius:2px"></div></div><div style="width:30px;text-align:right;color:#00cc77;font-weight:600;font-size:10px">75</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">This Week</div>
+      <div class="priority-item"><div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;background:#ff4455"></div><div class="waiting-content"><div class="waiting-title">Re-publish Hook A (best performer, unpublished 14 days)</div><div class="waiting-sub">High leverage &middot; @image-gen needs brief</div></div><button class="action-btn">Assign Brief</button></div><div class="priority-item"><div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;background:#ffaa00"></div><div class="waiting-content"><div class="waiting-title">Publish Hook G (approved 14 days, no visual)</div><div class="waiting-sub">High leverage &middot; @image-gen assigned</div></div><button class="action-btn">Generate Visual</button></div><div class="priority-item"><div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;background:#6e6e82"></div><div class="waiting-content"><div class="waiting-title">Resume GMB rotation (7 days lapsed)</div><div class="waiting-sub">Weekly cadence &middot; @publisher</div></div><button class="action-btn">Resume</button></div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-title">Marketing Metrics</div>
+      <div class="grid-3">
+        <div class="metric"><div class="metric-num" style="color:var(--blue)">1247</div><div class="metric-label">Reach</div></div>
+        <div class="metric"><div class="metric-num" style="color:var(--green)">38</div><div class="metric-label">Engagement</div></div>
+        <div class="metric"><div class="metric-num" style="color:var(--purple)">4</div><div class="metric-label">Conversions</div></div>
+      </div>
+      <div style="text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:20px;font-weight:700;color:var(--green)">R 4200</div>
+        <div class="metric-label">Revenue</div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">Strategy</div><div style="margin-bottom:10px"><div class="section-label">Positioning</div><div style="font-size:12px">For SA golfers who suspect their swing has more potential than their scores show. Data beats guesswork.</div></div><div style="margin-bottom:10px"><div class="section-label">Target</div><div style="font-size:12px">Jozi golfers, 25-50, mid-high handicap, data-aware. Already tracking fitness — they want to track golf too.</div></div><div><div class="section-label">Primary Offer</div><div style="font-size:12px;color:#00cc77;font-weight:600">TrackMan Assessment from R900. First session R250. Bundle R1,400 (save R250)</div></div></div>
+    <div class="card"><div class="card-title">Pillars</div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px"><div style="width:28px;height:28px;border-radius:6px;background:#00cc7722;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#00cc77">p1</div><div><div style="font-weight:600;font-size:12px;margin-bottom:2px">Stats</div><div style="font-size:11px;color:#6e6e82">Data-driven insights that reveal improvement opportunity</div></div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px"><div style="width:28px;height:28px;border-radius:6px;background:#4488ff22;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4488ff">p2</div><div><div style="font-weight:600;font-size:12px;margin-bottom:2px">Assessment</div><div style="font-size:11px;color:#6e6e82">TrackMan technology for precise swing analysis</div></div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px"><div style="width:28px;height:28px;border-radius:6px;background:#9966ff22;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#9966ff">p3</div><div><div style="font-weight:600;font-size:12px;margin-bottom:2px">Improvement</div><div style="font-size:11px;color:#6e6e82">Clear path from data to better scores</div></div></div></div>
+  </div>
+</div>
+</div>
+
+<div class="panel" id="panel-queue">
+  <div class="card-title" style="padding-bottom:12px">Asset Generation Queue - 0 items</div>
+  <div style="text-align:center;padding:50px;color:#6e6e82;font-size:13px">No queued assets. Generate via Campaign Factory.</div>
+</div>
+
+<div class="panel" id="panel-production">
+  <div class="card-title" style="padding-bottom:12px">Production View - 0 assets</div>
+  <div style="text-align:center;padding:60px"><div style="font-size:36px;margin-bottom:12px">[IMG]</div><div style="font-size:14px;color:#6e6e82">No assets yet.</div><div style="font-size:12px;color:#6e6e82;margin-top:8px">Use Campaign Factory to generate first hooks and visuals.</div></div>
+</div>
+
+<div class="panel" id="panel-completion">
+  <div class="grid-3" style="margin-bottom:16px"><div class="completion-card"><div class="cc-num" style="color:#00cc77">0</div><div class="cc-label">Complete</div></div><div class="completion-card"><div class="cc-num" style="color:#ffaa00">0</div><div class="cc-label">In Progress</div></div><div class="completion-card"><div class="cc-num" style="color:#ff4455">0</div><div class="cc-label">Blocked</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px"><div style="background:#111118;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;color:#00cc77">Complete (1)</div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">---</div></div></div><div style="background:#111118;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;color:#ffaa00">In Progress (1)</div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">---</div></div></div><div style="background:#111118;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;color:#ff4455">Blocked (1)</div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">---</div></div></div></div>
+</div>
+
+<div class="panel" id="panel-gaps">
+  <div class="card-title" style="padding-bottom:12px">Gap Analysis - What Is Preventing Launch</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px"><div style="background:#111118;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;color:#00cc77">Complete (3)</div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hook A copy (published)</div><div style="font-size:10px;color:#6e6e82;flex-shrink:0">Live</div></div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hook E copy (published)</div><div style="font-size:10px;color:#6e6e82;flex-shrink:0">Live</div></div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hook G copy (approved)</div><div style="font-size:10px;color:#6e6e82;flex-shrink:0">Christelle</div></div></div><div style="background:#111118;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;color:#ffaa00">Missing (3)</div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hook G carousel visual</div><div style="font-size:10px;color:#6e6e82;flex-shrink:0">@image-gen</div></div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hook G hero visual</div><div style="font-size:10px;color:#6e6e82;flex-shrink:0">Brief needed</div></div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hook A hero visual</div><div style="font-size:10px;color:#6e6e82;flex-shrink:0">Brief needed</div></div></div><div style="background:#111118;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;color:#ff4455">Critical Blockers (3)</div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hook A re-publish: no visual assigned</div><div style="font-size:10px;color:#6e6e82;flex-shrink:0">Critical</div></div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hook G publish: no visual</div><div style="font-size:10px;color:#6e6e82;flex-shrink:0">Critical</div></div><div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.08)"><div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">GMB rotation lapsed 7 days</div><div style="font-size:10px;color:#6e6e82;flex-shrink:0">High</div></div></div></div><div class="card" style="margin-top:16px"><div class="card-title">Launch Readiness Assessment</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px"><div style="text-align:center;padding:16px;background:rgba(255,68,85,0.08);border:1px solid rgba(255,68,85,0.2);border-radius:8px"><div style="font-size:28px;font-weight:700;color:#ff4455;margin-bottom:4px">0</div><div style="font-size:11px;color:#ff4455">Critical Blockers</div></div><div style="text-align:center;padding:16px;background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.2);border-radius:8px"><div style="font-size:28px;font-weight:700;color:#ffaa00;margin-bottom:4px">12</div><div style="font-size:11px;color:#ffaa00">Missing Assets</div></div><div style="text-align:center;padding:16px;background:rgba(0,204,119,0.08);border:1px solid rgba(0,204,119,0.2);border-radius:8px"><div style="font-size:28px;font-weight:700;color:#00cc77;margin-bottom:4px">0</div><div style="font-size:11px;color:#00cc77">Approved Assets</div></div></div><div class="diagnostic-box"><div class="diagnostic-label">Path to Launch</div><div class="diagnostic-text">1. @image-gen generates Hook A hero visual &rarr; today<br>2. @image-gen generates Hook G hero visual &rarr; today<br>3. Christelle approves Hook G carousel &rarr; today<br>4. @publisher publishes Hook A + Hook G &rarr; tomorrow<br><br><span style="background:rgba(0,204,119,0.15);color:#00cc77;padding:1px 4px;border-radius:3px">the campaign transitions to Ready to Launch</span></div></div></div>
+</div>
+
+<div class="footer">
+  Campaign OS v2 &middot; Operational State &middot; Last updated: 01 Jun 2026 14:00 SAST &middot;
+  Source: campaign-data.json &middot;
+  <a href="https://clawdiavector.github.io/swing-shack-dashboard/campaign-os/build-board.html">Build Board</a> &middot;
+  <a href="https://clawdiavector.github.io/swing-shack-dashboard/campaign-os/release-plan.html">Release Plan</a>
+</div>
+</div>
+<script>
+function showTab(name){
+  document.querySelectorAll(".panel").forEach(function(p){p.classList.remove("active")});
+  document.querySelectorAll(".nav li").forEach(function(t){t.classList.remove("active")});
+  document.getElementById("panel-"+name).classList.add("active");
+  var tabs=document.querySelectorAll(".nav li");
+  var map={overview:0,queue:1,production:2,completion:3,gaps:4};
+  if(map[name]!==undefined&&tabs[map[name]])tabs[map[name]].classList.add("active");
+}
+</script>
+</body>
+</html>
