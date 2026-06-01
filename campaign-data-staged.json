@@ -1,0 +1,52 @@
+{
+  "campaign": {
+    "campaignId": "trackman-intelligence",
+    "name": "TrackMan Intelligence",
+    "goal": "Drive fitting bookings and coaching sessions",
+    "status": "active",
+    "healthScore": 68,
+    "healthState": "degraded",
+    "diagnostic": "Conversion degraded: last published hook 14 days ago. Hook A best performer never re-published. GMB lapsed 7 days.",
+    "healthBreakdown": {
+      "assetPipeline": 40,
+      "approvalVelocity": 55,
+      "publishCadence": 30,
+      "engagementTrend": 80,
+      "conversionRate": 75
+    },
+    "marketingMetrics": {
+      "reach": 1247,
+      "engagement": 38,
+      "conversions": 4,
+      "revenue": 4200
+    },
+    "targetAssets": 12,
+    "updatedAt": "2026-06-01T14:00:00+02:00"
+  },
+  "assets": [],
+  "analytics": {},
+  "strategy": {
+    "positioningStatement": "TrackMan Intelligence at Swing Shack is the performance benchmark for South African golfers — the only indoor facility with certified TrackMan technology delivering real-time biomechanical data and personalised club fitting.",
+    "targetAudience": "South African golfers aged 25-55 who are serious about improving their game — from intermediates to low handicappers. They track stats, follow pro golf, and are willing to invest in their game.",
+    "primaryOffer": "Free 30-min TrackMan session — experience the technology that pros use. Convert via club fitting + coaching.",
+    "pillars": [
+      {
+        "id": "TMI",
+        "name": "TrackMan Intelligence",
+        "description": "Certified TrackMan radar + launch monitor technology. Real biomechanical data, not marketing."
+      },
+      {
+        "id": "COA",
+        "name": "Certified Outcomes",
+        "description": "TPI-certified coaches + TrackMan data = measurable improvement in swing, distance, accuracy."
+      },
+      {
+        "id": "PPA",
+        "name": "Performance + Pleasure",
+        "description": "Indoor golf is accessible, convenient and social — rain or shine, day or night."
+      }
+    ]
+  },
+  "updatedAt": "2026-06-01T14:00:00+02:00",
+  "notes": "campaign-data-staged.json is the atomic write target. Write-back pipeline: agent writes staged → commit → push → GitHub Actions regenerates cockpit. See scripts/write-campaign.js and scripts/write-back.js."
+}
