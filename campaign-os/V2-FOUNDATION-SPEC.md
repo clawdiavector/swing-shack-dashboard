@@ -409,11 +409,34 @@ Campaign OS campaign objects should increasingly behave like a competent marketi
       "why": "Passed QC — clear stat angle, specific numbers"
     }
   ],
+   "leverageSignal": "approved_unpublished",
+  "leverageReason": "Best-performing hook variant (1.72% engagement), approved 14 days, never published",
   "dependencies": [],
   "blockedBy": [],
   "tags": ["trackman", "stats", "swing-speed"]
 }
 ```
+
+
+
+### Copy Leverage Surfacing (First-Class Signal)
+
+Copy assets that are high-performing but unpublished or stalled must be surfaced as a distinct leverage signal — not buried only in health diagnostics.
+
+**`leverageSignal` values:**
+
+| Value | Meaning | Action |
+|-------|---------|--------|
+| `approved_unpublished` | Approved copy asset, not published in 72+ hours | Surface as leverage flag in campaign workspace |
+| `best_variant_unpublished` | Highest-performing A/B variant, never published | Flag in campaign workspace — this is lost compounding value |
+| `blocked_by_dependency` | Approved copy blocked by missing visual or approval | Surface in blockedBy[] with severity high |
+| `high_tension_no_visual` | High-tension hook with no visual assigned | Flag as visual dependency gap |
+| `null` | No leverage signal — status is normal | No flag |
+
+**Why this matters:**
+The highest-leverage copy asset is not always the one driving campaign health. Sometimes it is the approved hook that never got a visual and never shipped. That must be visible as a copy-layer signal, not only a campaign-level diagnostic.
+
+**Rule:** Copy assets with `status: approved` and `published: false` for more than 72 hours must carry a `leverageSignal` field. The `leverageReason` field explains why it qualifies as high-value.
 
 ### Visual Asset Extension
 
@@ -662,10 +685,63 @@ Owner: Publisher
 - Publish proof recorded (post ID captured, timestamp recorded)
 - Reconciliation completed (asset linked to post record)
 
+**`publishState` enum — formally defined:**
+
+| Value | Meaning |
+|-------|---------|
+| `pending` | Asset approved, awaiting submission to Postiz |
+| `submitted` | Sent to Postiz API, awaiting response |
+| `scheduled` | Postiz accepted, scheduled for future publish |
+| `live` | Confirmed published on platform |
+| `failed` | Postiz returned an error — see `publishError` field |
+
+Every publish action must set `publishState` explicitly. Silent failures are not allowed — `failed` must be accompanied by a `publishError` string.
+
 **Valid outcomes:**
 - `passed` — asset successfully published
 - `failed` — publish action failed. Asset returned to pending_review with error notes.
 - `skipped` — distribution not applicable (e.g., internal asset)
+
+### Distribution Domain Extension
+
+Every asset that passes Gate 3 gains a distribution record. This formally defines the publish layer fields:
+
+```json
+{
+  "id": "dist-trackman-hook-e-001",
+  "type": "distribution",
+  "assetId": "hook-trackman-speed-001",
+  "campaignId": "trackman",
+  "owner": "publisher",
+  "publishState": "live",
+  "postizDraftId": "string — Postiz draft ID for reconciliation",
+  "postizPlatformId": "string — platform integration ID (TikTok/IG/GMB)",
+  "platform": "instagram",
+  "publishedAt": "ISO8601",
+  "publishError": "string|null — Postiz API error if failed",
+  "reconciliationState": "pending|matched|mismatch",
+  "reconciliationNotes": "string|null",
+  "history": [
+    {
+      "timestamp": "ISO8601",
+      "action": "published",
+      "owner": "publisher",
+      "what": "Asset published via Postiz",
+      "why": "Gate 3 passed — approved for distribution",
+      "evidence": "postiz-draft-id: abc123, post-id: cmpnuw1yx0379ql0ywyup8ynm"
+    }
+  ],
+  "blockedBy": [],
+  "tags": []
+}
+```
+
+**`reconciliationState` values:**
+- `pending` — Postiz draft created, awaiting publish confirmation
+- `matched` — Postiz confirms post live, post ID matches
+- `mismatch` — Postiz post ID does not match what was expected. Requires investigation.
+
+**Rule:** `postizDraftId` is required for all distribution records. Without it, reconciliation is impossible.
 
 ### Gate State Persistence
 
@@ -758,6 +834,10 @@ Campaign OS should surface blockers AGGRESSIVELY. Specifically:
 | "Copy hook blocked by missing visual brief" | `dependency` | ImageGen provides visual direction |
 | "Visual blocked by missing campaign direction" | `dependency` | Clawdia provides creative direction |
 | "Publish blocked by missing approval" | `approval` | Specialist approves asset |
+| `approval_not_received` | Christelle has not approved the asset | Christelle reviews and approves |
+| `copy_blocked_by_visual` | Copywriter waiting on ImageGen dependency | ImageGen generates visual |
+| `postiz_api_failure` | Postiz API returned an error | Publisher retries or escalates |
+| `reconciliation_mismatch` | Postiz draft ID does not match published post | Publisher investigates and reconciles |
 | "Health score blocked by stale analytics" | `dependency` | TruthCollector refreshes data |
 | "Research blocked by missing source validation" | `external` | Scout validates source |
 | "Hook variant blocked by parent not published" | `asset` | Parent asset published first |
@@ -878,6 +958,138 @@ Agents are referenced by their canonical agent ID (Discord snowflake). This ensu
 
 ---
 
+
+
+## 10B. Operational Command Centre Model
+
+### What This Is
+
+Campaign OS is the operational command centre for all agent work. It is not a content calendar, not a reporting dashboard, and not a passive state viewer.
+
+The command centre model means: Campaign OS actively coordinates agent work by generating explicit assignments, surfacing blockers, tracking ownership, and driving campaigns from idea to published state — with full visibility at every step.
+
+### Core Principle: No Silent Assignment
+
+Campaign OS must never silently assign work. Every task generated by Campaign OS must have:
+- An explicit owner (agent or human)
+- A clear brief (what, why, blocked by what)
+- A Discord @mention to the assigned agent
+
+**Silent assignment is an anti-pattern.** If Campaign OS detects missing work and does not explicitly notify the responsible agent, the system has failed its coordination role.
+
+### Campaign Object — Extended Ownership Fields
+
+Every campaign object must track the full ownership chain:
+
+```json
+{
+  "id": "trackman",
+  "owner": "Clawdia",
+  "currentAgent": "truth-collector",
+  "nextAgent": "image-generation",
+  "currentState": "active",
+  "nextAction": "Generate hero visual for Week 2 campaign",
+  "nextActionOwner": "image-generation",
+  "nextActionDue": "ISO8601|null",
+  "status": "active"
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `owner` | Human owner (Christelle) — final accountability |
+| `currentAgent` | Agent currently responsible for active work |
+| `nextAgent` | Agent who takes over after current step |
+| `currentState` | Current operational state |
+| `nextAction` | Plain-language description of what happens next |
+| `nextActionOwner` | Agent who owns the next action |
+| `nextActionDue` | Deadline (if applicable) |
+
+### Command Message Generation
+
+When Campaign OS detects missing work, it generates an explicit assignment message to the responsible agent via Discord @mention.
+
+**Example — Missing visual asset:**
+
+> @image-generation
+> Generate TrackMan hero visual for Week 2 campaign.
+> Campaign: TrackMan Intelligence
+> Asset: ti-carousel-004 (copy approved, visual missing)
+> Blocking: This asset is blocking the Week 2 carousel from being scheduled.
+> Due: 2026-06-03T12:00:00Z
+
+**Example — Missing research:**
+
+> @the-scout
+> Research competitor positioning for indoor golf fitting.
+> Required for: TrackMan Intelligence campaign.
+> Why: Campaign strategy review scheduled for Week 3.
+> Due: 2026-06-02T18:00:00Z
+
+**Example — Missing approval:**
+
+> @Christelle
+> Review and approve:
+> Asset: ti-reel-007 (TrackMan Intelligence — Week 2 hook)
+> Link: [Postiz draft]
+> Why: Approved assets queue is clear — this is the last blocker before publishing.
+> Due: 2026-06-01T17:00:00Z
+
+**Rule:** Every command message must include: @mention, what, why, what it unblocks, and deadline (if applicable).
+
+### Operational Views
+
+Campaign OS generates these views for operational command:
+
+| View | What It Shows |
+|------|--------------|
+| **Campaign Overview** | All campaigns, health scores, current agents, next actions |
+| **Timeline View** | Campaign milestones, asset deadlines, publish schedule |
+| **Calendar View** | Scheduled publish dates, approval deadlines, campaign launches |
+| **Asset Board** | All assets by campaign, filterable by type/status/owner |
+| **Approval Queue** | Assets pending approval, requester, deadline, approver |
+| **Blocked Work Queue** | All blocked assets/tasks, blocker description, severity, resolution |
+| **Agent Assignment Queue** | All open assignments by agent, brief, deadline, priority |
+
+### Campaign Factory Model (Future State)
+
+The target state: a campaign is creatable from a single prompt.
+
+**Flow:**
+
+```
+Campaign Idea (one sentence brief)
+        ↓
+Campaign Strategy (auto-generated by Lab)
+        ↓
+Campaign Pillars (auto-generated — target audience, positioning, key messages)
+        ↓
+Content Calendar (auto-generated by Copywriter — hooks, formats, cadence)
+        ↓
+Generated Assets (copy + visuals by Copywriter + ImageGen)
+        ↓
+Approval Queue (automatic routing to Christelle)
+        ↓
+Publishing Queue (automatic routing to Publisher)
+        ↓
+Published (confirmed live)
+```
+
+**The goal is:**
+> Idea → Approved Campaign → Ready To Publish
+
+With full visibility of: content, assets, blockers, approvals, ownership, next actions.
+
+**This is the campaign mothership model.** Campaign OS owns the entire lifecycle, not just a piece of it.
+
+### Explicit Work Generation Rules
+
+1. **Every task has an owner.** No orphan tasks.
+2. **Every assignment is a Discord @mention.** No silent queue buildup.
+3. **Every blocker generates a command message.** Blocked work is assigned, not just flagged.
+4. **Every approval request names the approver and the deadline.**
+5. **Every campaign has a next action.** If there is no next action, the campaign is complete or archived.
+
 ## 11. Health Diagnostic Architecture
 
 ### What Health Score Is NOT
@@ -951,6 +1163,12 @@ The diagnostic should:
 - Reference specific assets or gaps
 - Provide a actionable recommendation
 - Be written for a human operator, not a machine
+
+**Data freshness requirement:**
+Health scores are only computable from `VERIFIED` status data. If stale or unverified analytics feed the conversion/engagement signals, the health score outputs `STALE_DATA` with the diagnostic: *"Health computed from STALE DATA — decisions unreliable until TruthCollector refreshes."* A numeric score is never produced from unverified inputs.
+
+**Momentum signal and new campaigns:**
+The momentum signal (trend direction over 14 days) returns `NO_DATA` for campaigns with fewer than 14 days of history. This is honest — it is not a campaign failure. The diagnostic for new campaigns reads: *"Campaign is [N] days old — momentum signal requires 14 days of history."* Operators must not interpret `NO_DATA` on momentum as a degraded state for new campaigns.
 
 ### Self-Diagnosing Campaigns (Future State)
 
