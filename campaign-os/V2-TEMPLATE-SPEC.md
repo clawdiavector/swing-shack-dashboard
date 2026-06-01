@@ -116,7 +116,8 @@ Each template defines:
   "visualAssets": {
     "heroVisual": {
       "type": "product-hero",
-      "description": "TrackMan screen showing real golfer data overlaid on club/equipment image. Dark background. Premium feel.",
+      "description": "TrackMan screen showing real golfer data overlaid on club/equipment image. Background: #0D0D0D to #1A1A1A. Data overlay: real TrackMan metrics (carry, club speed, spin). Product must match campaign product. Dark background. Premium feel.",
+      "visualQualityTier": "hero",
       "examples": ["TrackMan screenshot with swing data", "Club head speed + ball flight overlay"]
     },
     "comparisonGraphics": {
@@ -131,8 +132,9 @@ Each template defines:
     },
     "ctaVisuals": {
       "type": "conversion-cta",
-      "description": "Offer-focused visuals with clear pricing. R900 fitting assessment. Bundle deal.",
-      "examples": ["R900 fromfitting assessment", "Save R250 on bundle"]
+      "description": "Offer-focused visuals with clear pricing. R900 fitting assessment. Bundle deal. Price must be prominent visual element - R900 fitting assessment, bundle pricing. Dark background with high-contrast price.",
+      "visualQualityTier": "supporting",
+      "examples": ["R900 fitting assessment", "Save R250 on bundle"]
     },
     "platformFormats": {
       "instagram": ["hero-visual (1080x1080)", "carousel (1080x1080x5)", "story (1080x1920)", "reel (1080x1920)"],
@@ -196,6 +198,8 @@ Each template defines:
     "heroVisual": {
       "type": "instructor-hero",
       "description": "Certified instructor with TrackMan data overlay. Professional, trustworthy. Show instructor + data.",
+      "requiresRealPhotography": true,
+      "realPhotographyNote": "Instructor must be real Swing Shack staff - face must be real photograph, not AI-generated. Frame and data overlay can be generated; the instructor face cannot.",
       "examples": ["Catherine/dave swing screenshot", "Instructor with student data"]
     },
     "techniqueVisuals": {
@@ -206,6 +210,7 @@ Each template defines:
     "transformationCards": {
       "type": "transformation",
       "description": "Golfer transformation story. Score improvement or distance gain. Testimonial style.",
+      "photoSource": "real golfer testimonials where available; AI-generated only as fallback",
       "examples": ["Handicap improvement story", "Distance gain testimonial"]
     },
     "platformFormats": {
@@ -267,11 +272,16 @@ Each template defines:
     "teasers": {
       "type": "countdown-format",
       "description": "Pre-event countdown. 7 days / 3 days / 1 day. Building urgency.",
+      "preEventOnly": true,
+      "note": "Countdown/teaser assets are pre-event only. Live event needs real photography.",
       "examples": ["7 days to go", "Tomorrow!", "Today!"]
     },
     "leaderboardGraphics": {
       "type": "live-results",
       "description": "Real-time leaderboard visuals during event. Rankings + scores. Live feel.",
+      "requiresRealPhotography": true,
+      "realPhotographyNote": "Live leaderboard scores come from real event photography - generate the leaderboard FORMAT/FRAME only, not the content. Scores and golfer names must be real data inserted after event.",
+      "preEventOnly": false,
       "examples": ["Top 10 leaderboard", "Closest to pin winner"]
     },
     "platformFormats": {
