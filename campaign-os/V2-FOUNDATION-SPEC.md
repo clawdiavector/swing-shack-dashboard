@@ -147,6 +147,349 @@ If the answer is no, the field should not exist.
 
 ---
 
+
+
+## 1B. Campaign Creation Flow — End-to-End Walkthrough
+
+This section shows the complete Campaign OS workflow using a real example: the **Winter Golf** campaign.
+
+The goal is to make the abstract concrete — to show exactly what happens at every step from a one-sentence idea to a live published campaign.
+
+---
+
+### Step 1 — What the User Enters
+
+Christelle creates a campaign by providing a brief. The minimal viable brief is:
+
+```
+Campaign: Winter Golf
+Target: Johannesburg golfers who go off-form in winter
+Goal: Drive trial bookings for indoor golf, May–August
+Offer: First session R250, bundle with fitting assessment
+Start date: 2026-05-01
+```
+
+Campaign OS accepts this brief and begins the campaign creation process.
+
+---
+
+### Step 2 — What Campaign OS Generates
+
+Campaign OS auto-generates the campaign object and kicks off the agent pipeline:
+
+**`campaign-data.json` — campaign object created:**
+
+```json
+{
+  "id": "winter-golf",
+  "name": "Winter Golf",
+  "status": "planning",
+  "owner": "Christelle",
+  "currentAgent": "lab",
+  "nextAgent": "scout",
+  "currentState": "planning",
+  "nextAction": "Lab generates campaign strategy from brief",
+  "nextActionOwner": "lab",
+  "nextActionDue": "2026-05-01T12:00:00Z",
+  "createdAt": "2026-05-01T09:00:00Z",
+  "updatedAt": "2026-05-01T09:00:00Z",
+  "verificationState": "VERIFIED",
+  "healthScore": {
+    "value": null,
+    "status": "NO_DATA",
+    "diagnostic": "Campaign is in planning phase — health score not yet computable",
+    "verifiedAt": "2026-05-01T09:00:00Z",
+    "source": "campaign-os"
+  },
+  "assets": {},
+  "blockedBy": [],
+  "dependencies": [],
+  "history": [
+    {
+      "timestamp": "2026-05-01T09:00:00Z",
+      "action": "campaign_created",
+      "owner": "Clawdia",
+      "source": "user_input",
+      "what": "Campaign winter-golf created from brief",
+      "why": "Christelle provided campaign brief via Discord"
+    }
+  ],
+  "tags": ["indoor-golf", "winter", "jozi", "trial"]
+}
+```
+
+**Task registry entries auto-generated:**
+
+```json
+{
+  "task-winter-golf-strategy-001": {
+    "id": "task-winter-golf-strategy-001",
+    "campaignId": "winter-golf",
+    "type": "strategy",
+    "description": "Generate campaign strategy for Winter Golf — positioning, pillars, target audience insight",
+    "owner": "lab",
+    "status": "backlog",
+    "priority": "high",
+    "createdAt": "2026-05-01T09:00:00Z",
+    "updatedAt": "2026-05-01T09:00:00Z",
+    "history": []
+  },
+  "task-winter-golf-research-001": {
+    "id": "task-winter-golf-research-001",
+    "campaignId": "winter-golf",
+    "type": "research",
+    "description": "Research winter golf behavior in Johannesburg — pain points, seasonal patterns, indoor vs outdoor",
+    "owner": "scout",
+    "status": "backlog",
+    "priority": "high",
+    "blockedBy": ["task-winter-golf-strategy-001"],
+    "createdAt": "2026-05-01T09:00:00Z",
+    "updatedAt": "2026-05-01T09:00:00Z",
+    "history": []
+  }
+}
+```
+
+**Campaign OS generates command message to Lab:**
+
+> @lab
+> Generate campaign strategy for Winter Golf.
+> Campaign: winter-golf
+> Brief: Johannesburg golfers who go off-form in winter. Drive trial bookings, May–August. R250 intro offer.
+> Due: 2026-05-01T12:00:00Z
+
+---
+
+### Step 3 — What Agents Get Assigned
+
+The campaign moves through a staged agent pipeline. Each agent is explicitly assigned via Discord @mention.
+
+**Pipeline stages:**
+
+```
+[Christelle brief]
+        ↓
+Lab — generates strategy
+        ↓
+Scout — research winter golf behavior
+        ↓
+Copywriter — generates hooks + captions
+        ↓
+ImageGen — generates visuals
+        ↓
+TruthCollector — sets up analytics tracking
+        ↓
+Publisher — publishes to platforms
+```
+
+**Each agent assignment follows this pattern:**
+
+> @[agent]
+> [Task description]
+> Campaign: [campaign-id]
+> Asset: [asset-id if applicable]
+> Why: [what this unlocks]
+> Due: [deadline or null]
+
+**Example — Copywriter assignment:**
+
+> @copywriter
+> Generate 5 hook variants for Winter Golf campaign.
+> Campaign: winter-golf
+> Angle: cold weather + indoor golf advantage
+> Test: A/B test 3 variants in first week
+> Strategy ref: task-winter-golf-strategy-001 (Lab's output)
+> Due: 2026-05-03T18:00:00Z
+
+**Example — ImageGen assignment:**
+
+> @image-generation
+> Generate hero visual for Winter Golf campaign.
+> Campaign: winter-golf
+> Asset: visual-winter-golf-hero-001
+> Brief: Dark moody winter scene. Golf simulator glow. "Your game doesn't hibernate" headline.
+> Hook ref: hook-winter-golf-001 (Copywriter's approved output)
+> Due: 2026-05-04T18:00:00Z
+
+---
+
+### Step 4 — What the Approval Process Looks Like
+
+Assets move through the three-gate pipeline. Each gate produces a clear outcome.
+
+**Example: Hook variant Hook-B passes through all3 gates**
+
+**Gate 1 — Verification (Clawfix):**
+```
+Clawfix checks:
+- File exists: ✅ campaign-data.json
+- Schema valid: ✅ id, type, owner, status, headline, subtext present
+- Timestamps: ✅ createdAt, updatedAt
+- Owner assigned: ✅ copywriter
+- Commit exists: ✅ 2cf3e25
+Result: verificationState = "VERIFIED"
+```
+
+**Gate 2 — Specialist Quality (Copywriter self-check + Clawdia review):**
+```
+Quality checks:
+- Hook clarity: ✅ — "Your swing doesn't freeze" clear and compelling
+- CTA present: ✅ — "Book your first session from R250"
+- Pricing accurate: ✅ — R250 confirmed at swingshack.co.za/membership
+- Brand voice: ✅ — direct, slightly provocative, South African
+- Platform compliance: ✅ — no phone numbers, no policy-violating claims
+QC notes: "Passed. Strong seasonal angle. Test with Hook A (convenience) and Hook C (transformation)."
+Result: qualityGateState = "passed", approvalState = "approved"
+```
+
+**Gate 3 — Distribution (Publisher):**
+```
+Distribution checks:
+- Approval cleared: ✅ Gate 2 passed
+- Platform-ready: ✅ Image attached, caption compliant
+- Postiz draft created: ✅ draft-id: abc123winter
+- Publish proof recorded: ✅
+Reconciliation: pending
+Result: publishState = "live", postId: "cmpwinter001"
+```
+
+**History entry written:**
+
+```json
+{
+  "timestamp": "2026-05-04T14:30:00Z",
+  "action": "published",
+  "owner": "publisher",
+  "source": "postiz_api",
+  "what": "Hook-B published to Instagram via Postiz",
+  "why": "Gate 3 passed — all checks complete",
+  "evidence": "postiz-draft-id: abc123winter, post-id: cmpwinter001, ig-channel: cmnfoum2703e6ql0yiajgcg21"
+}
+```
+
+---
+
+### Step 5 — What the Final Publish Process Looks Like
+
+Once assets are approved and queued, Publisher executes the publish sequence.
+
+**Publish sequence for Winter Golf Week 1:**
+
+```
+1. Publisher reads approval-queue.json for winter-golf
+2. Finds approved assets: hook-a, hook-b, visual-hero-winter
+3. Creates Postiz drafts for each
+4. Schedules:
+   - Hook A + visual: 2026-05-05T11:00:00Z
+   - Hook B + visual: 2026-05-06T11:00:00Z
+   - Hook C:2026-05-07T11:00:00Z
+5. Sets publishState: "scheduled" on each asset
+6. Writes distribution records to campaign-data.json
+7. Commits to git
+8. Posts confirmation to Discord:
+```
+
+> **Winter Golf — Week 1 Publish Queue**
+> ✅ Hook A + hero visual — scheduled 2026-05-05 11:00 SAST — IG + TikTok
+> ✅ Hook B + hero visual — scheduled 2026-05-06 11:00 SAST — IG + TikTok
+> ✅ Hook C — scheduled 2026-05-07 11:00 SAST — IG only
+> 📊 Analytics tracking active for all three posts
+> 🔗 UTM params: `utm_campaign=winter-golf&utm_content=hook-[a|b|c]`
+
+**Post-publish reconciliation:**
+
+After each post goes live, TruthCollector pulls analytics and updates the asset records:
+
+```json
+{
+  "id": "hook-winter-golf-b",
+  "type": "hook",
+  "status": "published",
+  "publishState": "live",
+  "postId": "cmpwinter001",
+  "performance": {
+    "reach": { "value": 94, "status": "fresh", "source": "meta-api", "verified": true },
+    "engagement": { "value": 2.1, "status": "fresh", "source": "calculated" },
+    "conversions": { "value": 1, "status": "fresh", "source": "ga4" }
+  },
+  "reconciliationState": "matched"
+}
+```
+
+---
+
+### The Complete Flow — Summary View
+
+```
+Christelle brief
+        ↓
+[campaign object created — status: planning]
+        ↓
+Lab → strategy (owner: lab)
+        ↓
+Scout → research (owner: scout, blocked by strategy)
+        ↓
+Copywriter → 5 hook variants (owner: copywriter)
+        ↓
+  ├── Gate 1: Clawfix verification
+  ├── Gate 2: Quality review
+  └── Gate 3: Christelle approval
+        ↓
+ImageGen → hero visual (owner: imagegen, blocked by approved hook)
+        ↓
+  ├── Gate 1: Clawfix verification
+  ├── Gate 2: Visual QC
+  └── Gate 3: Christelle approval
+        ↓
+Publisher → Postiz drafts → scheduled publish
+        ↓
+TruthCollector → analytics pulled post-publish
+        ↓
+Lab → health score calculated
+        ↓
+[campaign status: active — live assets generating data]
+        ↓
+Campaign OS surfaces:
+  - Next action: publish Hook C tomorrow
+  - Blocked: Hook D waiting on visual
+  - Health: 68 — degraded (conversion slow Week 1)
+  - Diagnostic: "Only 1 conversion from 3 posts. Hook A performing best. Consider re-publishing Hook A with fresh visual."
+```
+
+---
+
+### Command Centre Visibility at Each Step
+
+**Planning phase — Campaign Overview shows:**
+```
+Winter Golf 🟡 planning
+Owner: Christelle | Current: lab | Next: scout
+Next action: Strategy generation — due 2026-05-01 12:00
+Blocked: research waiting on strategy
+```
+
+**Production phase — Asset Board shows:**
+```
+Winter Golf 🟡 active
+[hook] hook-a — approved — pending publish
+[hook] hook-b — approved — scheduled 2026-05-06
+[hook] hook-c — review — blocked by visual
+[visual] hero-winter — concept — blocked by hook-a approval
+[analytics] tracking-setup — pending — unowned
+```
+
+**Live phase — Campaign Overview shows:**
+```
+Winter Golf 🟢 active
+Owner: Christelle | Current: truth-collector | Next: lab
+Health: 68 (degraded) | 3 live posts | 1 conversion
+Next action: Re-publish Hook A with fresh visual
+Leverage flag: Hook A (best performer, 2.3% eng) — scheduled post ended, not re-published
+Blocked: Hook D — no visual assigned
+```
+
+---
+
 ## 2. Core Data Model
 
 ### Source of Truth
