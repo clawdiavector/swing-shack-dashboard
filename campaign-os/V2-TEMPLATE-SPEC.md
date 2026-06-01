@@ -337,11 +337,13 @@ Each template defines:
     "heroVisual": {
       "type": "product-shot",
       "description": "Clean product photography. Takomo clubs on TrackMan screen. Premium dark background.",
+      "visualQualityTier": "hero",
       "examples": ["Takomo 101T on simulator", "Iron set detail shot"]
     },
     "featureGraphics": {
       "type": "spec-callout",
       "description": "Single feature per post. Technical spec with visual. Tour-quality materials.",
+      "visualQualityTier": "supporting",
       "examples": ["Forged blade construction", "Custom shaft options"]
     },
     "comparisonGraphics": {
@@ -402,11 +404,13 @@ Each template defines:
     "heroVisual": {
       "type": "membership-cta",
       "description": "Bold membership offer visual. Benefits summary. Clear pricing. Dark premium background.",
+      "visualQualityTier": "hero",
       "examples": ["Membership from R500/month", "4 free sessions included"]
     },
     "benefitsVisuals": {
       "type": "benefit-card",
       "description": "Single benefit highlighted. Icon + value prop. Clean layout.",
+      "visualQualityTier": "supporting",
       "examples": ["4 free practice sessions/month", "15% off all coaching", "25% off fittings"]
     },
     "tierComparison": {
