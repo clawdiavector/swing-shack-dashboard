@@ -1,0 +1,250 @@
+<div class="view-panel" id="view-factory">
+ <div class="factory-container">
+    <div class="factory-header">
+      <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px">Campaign Factory</div>
+      <div style="font-size:13px;color:var(--muted)">Enter a campaign idea. Watch it become a campaign.</div>
+    </div>
+    <div class="factory-steps">
+      <div class="factory-step active" id="fstep-1"><div class="fstep-num">1</div><div class="fstep-label">Idea</div></div>
+      <div class="fstep-arrow">-></div>
+      <div class="factory-step" id="fstep-2"><div class="fstep-num">2</div><div class="fstep-label">Strategy</div></div>
+      <div class="fstep-arrow">-></div>
+      <div class="factory-step" id="fstep-3"><div class="fstep-num">3</div><div class="fstep-label">Pillars</div></div>
+      <div class="fstep-arrow">-></div>
+      <div class="factory-step" id="fstep-4"><div class="fstep-num">4</div><div class="fstep-label">Calendar</div></div>
+      <div class="fstep-arrow">-></div>
+      <div class="factory-step" id="fstep-5"><div class="fstep-num">5</div><div class="fstep-label">Assets</div></div>
+      <div class="fstep-arrow">-></div>
+      <div class="factory-step" id="fstep-6"><div class="fstep-num">6</div><div class="fstep-label">Queue</div></div>
+    </div>
+
+    <div class="factory-panel" id="fpanel-1">
+      <div class="fpanel-label">Campaign Idea</div>
+      <textarea class="factory-textarea" id="factory-idea">TrackMan Intelligence - Johannesburg golfers who want to know their actual numbers. Drive fitting + trial bookings. All year, SA market.</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <div style="font-size:11px;color:var(--muted)">Brief should be 1-3 sentences. Campaign OS extracts strategy from this.</div>
+        <button class="btn btn-approve" onclick="runFactory()">Generate Campaign -></button>
+      </div>
+    </div>
+
+    <div class="factory-panel hidden" id="fpanel-2">
+      <div class="fpanel-label">Generated Strategy</div>
+      <div class="factory-output">
+        <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:12px">TrackMan Intelligence - Strategy</div>
+        <div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);margin-bottom:3px">POSITIONING</div><div style="font-size:12px;color:var(--text)">For SA golfers who suspect their swing has more potential than their scores show. Data beats guesswork.</div></div>
+        <div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);margin-bottom:3px">TARGET</div><div style="font-size:12px;color:var(--text)">Jozi golfers, 25-50, mid-high handicap, data-aware. Already tracking fitness - they want to track golf too.</div></div>
+        <div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);margin-bottom:3px">OFFER</div><div style="font-size:12px;color:var(--text)">TrackMan Assessment from R900. First session R250. Bundle R1,400 (save R250)</div></div>
+        <div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);margin-bottom:3px">KEY MESSAGES</div><div style="font-size:12px;color:var(--text)">1. Your numbers do not lie. 2. Pros use TrackMan. 3. The gap is measurable.</div></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-approve" onclick="acceptFactoryStep(2)">Accept -></button>
+          <button class="btn btn-reject" onclick="regenerateFactory(2)">Regenerate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="factory-panel hidden" id="fpanel-3">
+      <div class="fpanel-label">Campaign Pillars</div>
+      <div class="factory-output">
+        <div class="pillar-grid">
+          <div class="pillar-card"><div class="pillar-num">P1</div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">Stats and Benchmarks</div><div style="font-size:11px;color:var(--muted);line-height:1.5">Specific numbers create credibility. "Your drive: 217m" beats "hit it further."</div><div style="margin-top:8px;font-size:10px;color:var(--green)">Angle: stats comparison</div></div>
+          <div class="pillar-card"><div class="pillar-num">P2</div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">The Honest Assessment</div><div style="font-size:11px;color:var(--muted);line-height:1.5">Free or low-cost assessment removes the fear of knowing. "Find out what TrackMan knows."</div><div style="margin-top:8px;font-size:10px;color:var(--green)">Angle: risk removal</div></div>
+          <div class="pillar-card"><div class="pillar-num">P3</div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">Data-Driven Improvement</div><div style="font-size:11px;color:var(--muted);line-height:1.5">TrackMan shows you what to fix. "Your backspin is killing your distance. Here is how."</div><div style="margin-top:8px;font-size:10px;color:var(--green)">Angle: problem + solution</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-approve" onclick="acceptFactoryStep(3)">Accept -></button>
+          <button class="btn btn-reject" onclick="regenerateFactory(3)">Regenerate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="factory-panel hidden" id="fpanel-4">
+      <div class="fpanel-label">Auto-Generated Content Calendar - Week 1</div>
+      <div class="factory-output">
+        <div class="cal-preview-grid">
+          <div class="cal-preview-day"><div class="cpd-header">Mon</div><div class="cpd-assets"><div class="cpd-asset ig"><img src="https://i.imgur.com/9QxMq7r.png" alt=""><div class="cpd-type">IG Carousel</div><div class="cpd-hook">Stats angle</div></div></div></div>
+          <div class="cal-preview-day"><div class="cpd-header">Tue</div><div class="cpd-assets"><div class="cpd-asset tiktok"><div style="padding:8px;font-size:10px;color:#fff;font-weight:700;text-align:center">TikTok</div><div class="cpd-type">TikTok</div><div class="cpd-hook">POV swing</div></div></div></div>
+          <div class="cal-preview-day"><div class="cpd-header">Wed</div><div class="cpd-assets"><div class="cpd-asset gmb"><div style="padding:8px;font-size:10px;color:#fff;font-weight:700;text-align:center">GMB</div><div class="cpd-type">Google</div><div class="cpd-hook">Fitting offer</div></div></div></div>
+          <div class="cal-preview-day"><div class="cpd-header">Thu</div><div class="cpd-assets"><div class="cpd-asset ig"><img src="https://i.imgur.com/J8dQk9m.png" alt=""><div class="cpd-type">IG Reel</div><div class="cpd-hook">Swing speed</div></div></div></div>
+          <div class="cal-preview-day"><div class="cpd-header">Fri</div><div class="cpd-assets"><div class="cpd-asset ig"><div style="padding:8px;font-size:10px;color:#fff;font-weight:700;text-align:center">Story</div><div class="cpd-type">IG Story</div><div class="cpd-hook">Social proof</div></div></div></div>
+          <div class="cal-preview-day"><div class="cpd-header">Sat</div><div class="cpd-assets"><div class="cpd-asset tiktok"><div style="padding:8px;font-size:10px;color:#fff;font-weight:700;text-align:center">TikTok</div><div class="cpd-type">TikTok</div><div class="cpd-hook">Golf fails</div></div></div></div>
+          <div class="cal-preview-day"><div class="cpd-header">Sun</div><div class="cpd-assets"><div class="cpd-asset" style="background:var(--surface2);border:1px dashed var(--border)"><div style="padding:8px;font-size:10px;color:var(--muted);text-align:center">Rest</div></div></div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-approve" onclick="acceptFactoryStep(4)">Accept -></button>
+          <button class="btn btn-reject" onclick="regenerateFactory(4)">Regenerate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="factory-panel hidden" id="fpanel-5">
+      <div class="fpanel-label">Generated Assets - Ready for Review</div>
+      <div class="factory-output">
+        <div class="asset-gen-list">
+          <div class="asset-gen-item"><div class="agi-thumb"><img src="https://i.imgur.com/9QxMq7r.png" alt=""></div><div class="agi-info"><div class="agi-name">Hook A - Stats Comparison</div><div class="agi-type">IG Carousel - 5 slides - P1</div><div class="agi-preview">"YOUR DRIVE: 217M" / "Pros avg 264m" / CTA: Book from R250</div></div><div class="agi-status ready">Generated</div></div>
+          <div class="asset-gen-item"><div class="agi-thumb" style="background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;text-align:center;padding:4px">Hook B</div><div class="agi-info"><div class="agi-name">Hook B - Honest Assessment</div><div class="agi-type">IG Reel - P2</div><div class="agi-preview">"Find out what TrackMan knows about your swing." / Free assessment CTA</div></div><div class="agi-status ready">Generated</div></div>
+          <div class="asset-gen-item"><div class="agi-thumb" style="background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;text-align:center;padding:4px">Hook C</div><div class="agi-info"><div class="agi-name">Hook C - TikTok POV</div><div class="agi-type">TikTok Reel - P3</div><div class="agi-preview">POV: TrackMan reading your swing for the first time. "217m. Hmm."</div></div><div class="agi-status generating">Generating...</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-approve" onclick="acceptFactoryStep(5)">Send to Approval Queue -></button>
+          <button class="btn btn-reject" onclick="regenerateFactory(5)">Regenerate All</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="factory-panel hidden" id="fpanel-6">
+      <div class="fpanel-label">Approval Queue - 3 items submitted</div>
+      <div class="factory-output">
+        <div class="queue-item"><div class="qi-thumb"><img src="https://i.imgur.com/9QxMq7r.png" alt=""></div><div class="qi-info"><div class="qi-name">Hook A - Stats Comparison (IG Carousel)</div><div class="qi-meta">Submitted by: Clawdia - Pillar 1 - 3 assets in set</div></div><div class="qi-actions"><button class="btn btn-approve">Approve</button><button class="btn btn-reject" onclick="openRegenModal(this)">Reject</button></div></div>
+        <div class="queue-item"><div class="qi-thumb" style="background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px">Hook B</div><div class="qi-info"><div class="qi-name">Hook B - Honest Assessment (IG Reel)</div><div class="qi-meta">Submitted by: Clawdia - Pillar 2</div></div><div class="qi-actions"><button class="btn btn-approve">Approve</button><button class="btn btn-reject" onclick="openRegenModal(this)">Reject</button></div></div>
+        <div class="queue-item"><div class="qi-thumb" style="background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px">Hook C</div><div class="qi-info"><div class="qi-name">Hook C - TikTok POV (TikTok Reel)</div><div class="qi-meta">Submitted by: Clawdia - Pillar 3</div></div><div class="qi-actions"><button class="btn btn-approve">Approve</button><button class="btn btn-reject" onclick="openRegenModal(this)">Reject</button></div></div>
+        <div style="margin-top:14px;padding:12px;background:rgba(0,204,119,0.08);border:1px solid rgba(0,204,119,0.2);border-radius:8px;font-size:12px;color:var(--green)">Campaign "TrackMan Intelligence" created and queued. Assets auto-schedule once approved.</div>
+      </div>
+    </div>
+  </div>
+  <div class="regen-modal" id="regen-modal">
+    <div class="regen-modal-content">
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">Reject Asset - Reason Required</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Campaign OS regenerates based on your specific feedback, not random variation.</div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Rejection reason *</div>
+        <select class="regen-select" id="regen-reason">
+          <option value="">Select a reason...</option>
+          <option value="angle">Angle does not match pillar</option>
+          <option value="numbers">Numbers are wrong or outdated</option>
+          <option value="tone">Tone is off brand</option>
+          <option value="cta">CTA is missing or weak</option>
+          <option value="visual">Visual direction wrong</option>
+          <option value="format">Format does not fit platform</option>
+          <option value="other">Other (specify below)</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Additional context (optional)</div>
+        <textarea class="factory-textarea" id="regen-context" style="height:60px" placeholder="eg. The tone is too formal. Needs to sound like a golfer talking to a friend."></textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-approve" onclick="submitRegen()">Regenerate</button>
+        <button class="btn btn-reject" onclick="closeRegenModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view-panel" id="view-calendar2">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header">
+      <div class="card-title">June 2026 - Visual Calendar</div>
+      <div style="display:flex;gap:16px;font-size:11px;color:var(--muted)"><span><- May</span><span style="color:var(--text);font-weight:600">June 2026</span><span>July -></span></div>
+    </div>
+    <div class="vcal-grid">
+      <div class="vcal-day vcal-header">Mon 2</div>
+      <div class="vcal-day vcal-header">Tue 3</div>
+      <div class="vcal-day vcal-header">Wed 4</div>
+      <div class="vcal-day vcal-header">Thu 5</div>
+      <div class="vcal-day vcal-header">Fri 6</div>
+      <div class="vcal-day vcal-header">Sat 7</div>
+      <div class="vcal-day vcal-header">Sun 8</div>
+      <div class="vcal-day"><div class="vcal-asset"><img src="https://i.imgur.com/9QxMq7r.png" alt=""><div class="vcal-overlay"><div class="vcal-platform ig">IG</div><div class="vcal-hook">Stats hook - 2.3%</div></div></div></div>
+      <div class="vcal-day"><div class="vcal-asset"><div class="vcal-placeholder tiktok"><div style="font-size:10px;font-weight:700;color:#fff">TikTok</div><div style="font-size:9px;color:rgba(255,255,255,0.7)">POV swing</div></div><div class="vcal-overlay"><div class="vcal-platform tiktok">TT</div><div class="vcal-hook">POV format</div></div></div></div>
+      <div class="vcal-day"><div class="vcal-asset"><div class="vcal-placeholder gmb"><div style="font-size:10px;font-weight:700;color:#fff">GMB</div><div style="font-size:9px;color:rgba(255,255,255,0.7)">Fitting offer</div></div><div class="vcal-overlay"><div class="vcal-platform gmb">GMB</div><div class="vcal-hook">Local SEO</div></div></div></div>
+      <div class="vcal-day"><div class="vcal-asset"><img src="https://i.imgur.com/J8dQk9m.png" alt=""><div class="vcal-overlay"><div class="vcal-platform ig">IG</div><div class="vcal-hook">Swing speed - 1.7%</div></div></div></div>
+      <div class="vcal-day"><div class="vcal-asset"><div class="vcal-placeholder story"><div style="font-size:10px;font-weight:700;color:#fff">Story</div><div style="font-size:9px;color:rgba(255,255,255,0.7)">Social proof</div></div><div class="vcal-overlay"><div class="vcal-platform story">ST</div><div class="vcal-hook">Testimonial</div></div></div></div>
+      <div class="vcal-day"><div class="vcal-asset"><div class="vcal-placeholder tiktok"><div style="font-size:10px;font-weight:700;color:#fff">TikTok</div><div style="font-size:9px;color:rgba(255,255,255,0.7)">Golf fails</div></div><div class="vcal-overlay"><div class="vcal-platform tiktok">TT</div><div class="vcal-hook">Entertainment</div></div></div></div>
+      <div class="vcal-day" style="background:rgba(255,255,255,0.02)"><div style="font-size:10px;color:var(--muted);text-align:center;padding:8px">Rest</div></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">Upcoming This Week</div>
+      <div class="upcoming-item"><div class="upcoming-thumb"><img src="https://i.imgur.com/9QxMq7r.png" alt=""></div><div class="upcoming-info"><div class="upcoming-name">Stats Carousel - IG</div><div class="upcoming-meta">Jun 2 - 11:00 SAST - @publisher</div></div><div style="font-size:10px;color:var(--green)">Confirmed</div></div>
+      <div class="upcoming-item"><div class="upcoming-thumb" style="background:var(--surface2);display:flex;align-items:center;justify-content:center"><div style="font-size:9px;color:var(--muted)">TikTok</div></div><div class="upcoming-info"><div class="upcoming-name">POV Swing - TikTok</div><div class="upcoming-meta">Jun 3 - 11:00 SAST - Draft</div></div><div style="font-size:10px;color:var(--amber)">Draft</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">Draft Queue</div>
+      <div class="overview-row"><span class="overview-row-label">Jun 9</span><span class="overview-row-value">Hook K - Stats angle</span></div>
+      <div class="overview-row"><span class="overview-row-label">Jun 11</span><span class="overview-row-value">Hook L - Conversion</span></div>
+      <div class="overview-row"><span class="overview-row-label">Jun 13</span><span class="overview-row-value">GMB - Fitting offer</span></div>
+      <div class="overview-row"><span class="overview-row-label">Jun 16</span><span class="overview-row-value">Hook M - Education</span></div>
+      <div style="margin-top:12px"><button class="btn" style="background:rgba(68,136,255,0.15);color:var(--blue);border:1px solid var(--blue)">+ Add to Calendar</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="view-panel" id="view-regen">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title" style="color:var(--red)">Regeneration Workflow</div>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">Rejecting an asset requires a reason. Campaign OS uses the reason to regenerate a targeted revision - not a random new version.</div>
+    <div class="regen-flow">
+      <div class="rf-step"><div class="rf-num">1</div><div class="rf-content"><div class="rf-title">Asset reviewed</div><div class="rf-desc">You open an asset in the approval queue</div></div></div>
+      <div class="rf-arrow">-></div>
+      <div class="rf-step"><div class="rf-num">2</div><div class="rf-content"><div class="rf-title">Reject with reason</div><div class="rf-desc">Select from reason categories or write custom context</div></div></div>
+      <div class="rf-arrow">-></div>
+      <div class="rf-step"><div class="rf-num">3</div><div class="rf-content"><div class="rf-title">Campaign OS regenerates</div><div class="rf-desc">Revision targeted to the specific reason</div></div></div>
+      <div class="rf-arrow">-></div>
+      <div class="rf-step"><div class="rf-num">4</div><div class="rf-content"><div class="rf-title">Revised asset returned</div><div class="rf-desc">New version surfaces in approval queue</div></div></div>
+    </div>
+    <div style="margin-top:24px">
+      <div class="card-title" style="margin-bottom:12px">Recent Rejections</div>
+      <div class="regen-history-item"><div class="rhi-thumb"><img src="https://i.imgur.com/J8dQk9m.png" alt=""></div><div class="rhi-info"><div class="rhi-name">Hook E - Original version</div><div class="rhi-reason">Reason: <span style="color:var(--red)">Tone too corporate</span></div><div class="rhi-context">"Sounded like a brochure. Needed to sound like a golfer."</div></div><div class="rhi-result"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Regenerated -></div><div style="font-size:11px;color:var(--green)">Hook E v2 approved</div></div></div>
+      <div class="regen-history-item"><div class="rhi-thumb" style="background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px">Hook G</div><div class="rhi-info"><div class="rhi-name">Hook G - Carousel copy</div><div class="rhi-reason">Reason: <span style="color:var(--red)">CTA was missing</span></div><div class="rhi-context">"Added 'Book from R250 - link in bio' to all slides."</div></div><div class="rhi-result"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Regenerated -></div><div style="font-size:11px;color:var(--amber)">v2 in review</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="view-panel" id="view-mix">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Content Mix - TrackMan Intelligence</div>
+      <div class="card-action" style="color:var(--amber)">Imbalance detected</div>
+    </div>
+    <div class="mix-bars">
+      <div class="mix-row">
+        <div class="mix-label">Conversion</div>
+        <div class="mix-bar-bg"><div class="mix-bar-fill" style="width:50%;background:var(--green)"></div></div>
+        <div class="mix-pct">50%</div>
+        <div class="mix-target">target: 30%</div>
+        <div class="mix-status" style="color:var(--green)">Over-target</div>
+      </div>
+      <div class="mix-row">
+        <div class="mix-label">Educational</div>
+        <div class="mix-bar-bg"><div class="mix-bar-fill" style="width:28%;background:var(--blue)"></div></div>
+        <div class="mix-pct">28%</div>
+        <div class="mix-target">target: 25%</div>
+        <div class="mix-status" style="color:var(--green)">On target</div>
+      </div>
+      <div class="mix-row">
+        <div class="mix-label">Entertainment</div>
+        <div class="mix-bar-bg"><div class="mix-bar-fill" style="width:14%;background:var(--purple)"></div></div>
+        <div class="mix-pct">14%</div>
+        <div class="mix-target">target: 20%</div>
+        <div class="mix-status" style="color:var(--amber)">Under-target</div>
+      </div>
+      <div class="mix-row">
+        <div class="mix-label">Testimonial</div>
+        <div class="mix-bar-bg"><div class="mix-bar-fill" style="width:5%;background:var(--amber)"></div></div>
+        <div class="mix-pct">5%</div>
+        <div class="mix-target">target: 15%</div>
+        <div class="mix-status" style="color:var(--red)">Critical gap</div>
+      </div>
+      <div class="mix-row">
+        <div class="mix-label">Product</div>
+        <div class="mix-bar-bg"><div class="mix-bar-fill" style="width:3%;background:var(--muted)"></div></div>
+        <div class="mix-pct">3%</div>
+        <div class="mix-target">target: 10%</div>
+        <div class="mix-status" style="color:var(--red)">Critical gap</div>
+      </div>
+    </div>
+    <div class="diagnostic-box" style="margin-top:16px">
+      <div class="diagnostic-label">Content Mix Imbalance</div>
+      <div class="diagnostic-text">Campaign is <span class="highlight">conversion-heavy and entertainment-light</span>. Testimonial and product content are critically underrepresented. Add2 testimonial posts and 1 product showcase post to balance the mix. Currently: Conversion 50% (target30%), Testimonial 5% (target 15%), Product 3% (target 10%).</div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="card-title" style="margin-bottom:12px">Recommended Actions</div>
+      <div class="leverage-item"><div class="leverage-rank">1</div><div class="leverage-content"><div class="leverage-title">Add testimonial content - 2 posts</div><div class="leverage-reason">Testimonial is at 5% vs15% target. Customer success stories and before/after TrackMan data build trust and social proof.</div><div class="leverage-impact">Target: customer-wins story angle</div></div></div>
+      <div class="leverage-item"><div class="leverage-rank amber">2</div><div class="leverage-content"><div class="leverage-title">Add product showcase - 1 post</div><div class="leverage-reason">Product content at 3% vs 10% target. Show the TrackMan screen, the Bay, the setup. People book what they can visualise.</div><div class="leverage-impact">Target: facility tour or equipment angle</div></div></div>
+      <div class="leverage-item"><div class="leverage-rank amber">3</div><div class="leverage-content"><div class="leverage-title">Reduce conversion ratio</div><div class="leverage-reason">Conversion content is 20% over target. Pillar 1 and2 are strong enough - add variety from P3 (improvement) and entertainment to prevent audience fatigue.</div><div class="leverage-impact">Balance toward sustainable engagement</div></div></div>
+    </div>
+  </div>
+</div>
