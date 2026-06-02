@@ -17,10 +17,11 @@ else:
     assets_dict = assets
 assets = list(assets_dict.values())
 complete = sum(1 for a in assets if a.get('status') in ('published','approved'))
-progress = sum(1 for a in assets if a.get('status') in ('generated','pending'))
+progress = sum(1 for a in assets if a.get('status') in ('generated','pending','review','rejected'))
 blocked = sum(1 for a in assets if a.get('status') == 'blocked')
+rejected = sum(1 for a in assets if a.get('status') == 'rejected')
 target = c.get('targetAssets', 12)
-not_started = max(0, target - complete - progress - blocked)
+not_started = max(0, target - complete - progress - blocked - rejected)
 total = complete + progress + blocked + not_started or 12
 
 def pct(n):
