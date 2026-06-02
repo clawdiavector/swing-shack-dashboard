@@ -57,10 +57,10 @@ H = H.replace(
   '<div class="mothership-panel" id="mp-production">\n  ' + prodItems + '\n  <div style="margin-top:12px;padding:10px;background:#111118;border-radius:8px;font-size:11px;color:#6e6e82">' + complete + ' complete &middot; ' + progress + ' in progress &middot; ' + blocked + ' blocked</div>\n</div>\n<div class="mothership-panel" id="mp-completion">'
 );
 
-// Update completion counts
-H = H.replace(/(<div class="cc-num" style="color:#00cc77">)(\d+)(<\/div><div class="cc-label">Complete)/, '$1' + complete + '$3');
-H = H.replace(/(<div class="cc-num" style="color:#ffaa00">)(\d+)(<\/div><div class="cc-label">In Progress)/, '$1' + progress + '$3');
-H = H.replace(/(<div class="cc-num" style="color:#ff4455">)(\d+)(<\/div><div class="cc-label">Blocked)/, '$1' + blocked + '$3');
+// Update completion counts (cc-num green/amber/red)
+H = H.replace(/(<div class="cc-num green">)(\d+)/, '$1' + String(complete));
+H = H.replace(/(<div class="cc-num amber">)(\d+)/, '$1' + String(progress));
+H = H.replace(/(<div class="cc-num red">)(\d+)/, '$1' + String(blocked));
 
 // Patch queue
 let queueHtml = '';

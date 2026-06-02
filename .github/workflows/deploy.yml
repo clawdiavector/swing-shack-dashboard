@@ -39,6 +39,10 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Patch cockpit with campaign assets
+        run: |
+          node scripts/patch-cockpit.js campaign-os/cockpit-operational.html campaign-os/campaign-data.json
+
       - name: Regenerate cockpit from campaign-data.json
         run: |
           python3 scripts/regenerate-cockpit.py
