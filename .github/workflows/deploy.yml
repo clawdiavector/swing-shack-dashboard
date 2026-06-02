@@ -37,6 +37,8 @@ jobs:
             _config.yml
             .github/
           sparse-checkout-cone-mode: false
+          # Need full history for commit detection
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -50,9 +52,12 @@ jobs:
       - name: Verify cockpit has correct data
         run: |
           echo "=== Cockpit Verification ==="
-          echo "cc-num green: $(grep -o 'cc-num green\">[0-9]*' campaign-os/cockpit-operational.html | head -1 | grep -o '[0-9]*')"
-          echo "cc-num amber: $(grep -o 'cc-num amber\">[0-9]*' campaign-os/cockpit-operational.html | head -1 | grep -o '[0-9]*')"
-          echo "cc-num red: $(grep -o 'cc-num red\">[0-9]*' campaign-os/cockpit-operational.html | head -1 | grep -o '[0-9]*')"
+          GREEN=$(grep -o 'cc-num green\">[0-9]*' campaign-os/cockpit-operational.html | head -1 | grep -o '[0-9]*')
+          AMBER=$(grep -o 'cc-num amber\">[0-9]*' campaign-os/cockpit-operational.html | head -1 | grep -o '[0-9]*')
+          RED=$(grep -o 'cc-num red\">[0-9]*' campaign-os/cockpit-operational.html | head -1 | grep -o '[0-9]*')
+          echo "cc-num green: $GREEN"
+          echo "cc-num amber: $AMBER"
+          echo "cc-num red: $RED"
           if grep -q "Takomo 101T — Product Research" campaign-os/cockpit-operational.html; then
             echo "Takomo Research: FOUND"
           fi
@@ -67,7 +72,20 @@ jobs:
           fi
           echo "File size: $(wc -c < campaign-os/cockpit-operational.html) bytes"
 
-      - name: Upload artifact
+      - name: Commit patched cockpit directly to repo
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add campaign-os/cockpit-operational.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit — cockpit already patched"
+          else
+            git commit -m "ci: patch cockpit with latest campaign data [skip ci]"
+            git push origin main
+            echo "Patched cockpit committed to repo"
+          fi
+
+      - name: Upload artifact for Pages deployment
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
@@ -80,18 +98,4 @@ jobs:
         run: |
           echo "Deployment ID: ${{ steps.deployment.outputs.page_url }}"
           echo "Deployed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-
-      - name: Trigger rebuild to override Jekyll's stale version
-        run: |
-          echo "Triggering rebuild to ensure patched cockpit is served..."
-          sleep 3
-          curl -s -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ github.repository }}/pages/builds" \
-            -d '{"build_type":"workflow"}' || echo "Rebuild API call completed"
-          echo "Rebuild triggered. Waiting 60s for rebuild to complete..."
-          sleep 60
-          echo "Rebuild should be complete. Final verification:"
           echo "Live URL: https://clawdiavector.github.io/swing-shack-dashboard/campaign-os/cockpit-operational.html"
