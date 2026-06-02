@@ -7,6 +7,8 @@ on:
       - 'campaign-os/**'
       - 'scripts/**'
       - 'campaign-data-staged.json'
+      - '_config.yml'
+      - '.github/workflows/**'
   schedule:
     # Run at 6am, 12pm, 6pm, 9pm SAST (UTC+2 = 4am, 10am, 4pm, 7pm UTC)
     - cron: '0 4,10,16,19 * * *'
@@ -32,6 +34,8 @@ jobs:
             scripts/
             campaign-data-staged.json
             campaign-os/campaign-data.json
+            _config.yml
+            .github/
           sparse-checkout-cone-mode: false
 
       - name: Set up Node.js
