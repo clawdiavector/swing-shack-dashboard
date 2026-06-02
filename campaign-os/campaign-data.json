@@ -135,14 +135,16 @@
       "assetType": "hero-visual",
       "status": "generated",
       "platform": "instagram",
+      "filePath": "assets/campaigns/trackman/takomo-101t-hero-a.png",
       "description": "Dark background hero shot. Takomo 101T iron head in chrome against black. Bold headline overlay. Price callout. TrackMan data aesthetic.",
       "owner": "image-gen",
       "createdAt": "2026-06-02T06:36:56.450780Z",
-      "updatedAt": "2026-06-02T06:36:56.450780Z",
+      "updatedAt": "2026-06-02T08:37:00Z",
       "qualityGateState": "pending",
       "visualQualityTier": "hero",
-      "nextAction": "ImageGen generates final hero visual with Takomo 101T branding",
+      "nextAction": "Christelle reviews hero visual for approval",
       "generationNotes": "Use dark palette. Chrome iron head as hero. TrackMan numbers overlay. Price callout: under $600.",
+      "discordMessageId": null,
       "history": [
         {
           "action": "brief-created",
@@ -153,14 +155,22 @@
         {
           "action": "generated",
           "by": "image-gen",
-          "at": "2026-06-02T06:36:56.450780Z",
-          "reason": "Hero visual skeleton created \u2014 awaiting chrome iron head asset"
+          "at": "2026-06-02T08:37:00Z",
+          "reason": "Hero visual generated via image-gen: Takomo 101T chrome iron on dark background, headline overlay, price callout. File: assets/campaigns/trackman/takomo-101t-hero-a.png"
+        },
+        {
+          "action": "delivered",
+          "by": "image-gen",
+          "at": "2026-06-02T08:37:00Z",
+          "result": "image-generated",
+          "filePath": "assets/campaigns/trackman/takomo-101t-hero-a.png"
         }
       ],
       "tags": [
         "takomo",
         "hero-visual",
-        "pending"
+        "pending",
+        "image-gen"
       ]
     },
     "takomo-101t-production": {
