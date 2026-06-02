@@ -7,7 +7,11 @@
     "owner": "christelle",
     "createdAt": "2026-03-15T00:00:00Z",
     "updatedAt": "2026-06-01T14:00:00Z",
-    "platforms": ["instagram", "tiktok", "gmb"],
+    "platforms": [
+      "instagram",
+      "tiktok",
+      "gmb"
+    ],
     "healthScore": 68,
     "healthState": "degraded",
     "healthBreakdown": {
@@ -28,12 +32,24 @@
   },
   "strategy": {
     "positioningStatement": "For SA golfers who suspect their swing has more potential than their scores show. Data beats guesswork.",
-    "targetAudience": "Jozi golfers, 25-50, mid-high handicap, data-aware. Already tracking fitness — they want to track golf too.",
+    "targetAudience": "Jozi golfers, 25-50, mid-high handicap, data-aware. Already tracking fitness \u2014 they want to track golf too.",
     "primaryOffer": "TrackMan Assessment from R900. First session R250. Bundle R1,400 (save R250)",
     "pillars": [
-      { "id": "p1", "name": "Stats", "description": "Data-driven insights that reveal improvement opportunity" },
-      { "id": "p2", "name": "Assessment", "description": "TrackMan technology for precise swing analysis" },
-      { "id": "p3", "name": "Improvement", "description": "Clear path from data to better scores" }
+      {
+        "id": "p1",
+        "name": "Stats",
+        "description": "Data-driven insights that reveal improvement opportunity"
+      },
+      {
+        "id": "p2",
+        "name": "Assessment",
+        "description": "TrackMan technology for precise swing analysis"
+      },
+      {
+        "id": "p3",
+        "name": "Improvement",
+        "description": "Clear path from data to better scores"
+      }
     ]
   },
   "assets": [],
