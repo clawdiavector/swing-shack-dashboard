@@ -10,7 +10,12 @@ with open(SRC) as f:
 
 c = D['campaign']
 metrics = c.get('marketingMetrics', {})
-assets = D.get('assets', [])
+assets = D.get('assets', {})
+if isinstance(assets, list):
+    assets_dict = {a.get('assetId', 'asset-' + str(i)): a for i, a in enumerate(assets)}
+else:
+    assets_dict = assets
+assets = list(assets_dict.values())
 complete = sum(1 for a in assets if a.get('status') in ('published','approved'))
 progress = sum(1 for a in assets if a.get('status') in ('generated','pending'))
 blocked = sum(1 for a in assets if a.get('status') == 'blocked')
