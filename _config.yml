@@ -1,0 +1,25 @@
+include:
+  - campaign-os/**
+  - agents/**
+  - data/**
+  - docs/**
+  - outreach/**
+  - research/**
+  - scripts/**
+  - tiktok-marketing/**
+  - "*.html"
+  - "*.json"
+  - "*.md"
+  - "*.txt"
+  - "assets/**"
+  - "images/**"
+
+exclude:
+  - "**/_site/**"
+  - "**/.*"
+  - "Gemfile*"
+  - "package*.json"
+  - "node_modules/**"
+  - "vendor/**"
+  - "scripts/*.js"
+  - "scripts/*.py"
