@@ -34,19 +34,23 @@ jobs:
             campaign-os/campaign-data.json
           sparse-checkout-cone-mode: false
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.x'
-
-      - name: Regenerate cockpit from campaign-data.json
-        run: |
-          python3 scripts/regenerate-cockpit.py
-          echo "Cockpit regenerated"
+          node-version: '20'
 
       - name: Patch cockpit with real assets from campaign-data.json
         run: |
           node scripts/patch-cockpit.js campaign-os/cockpit-operational.html campaign-os/campaign-data.json
+
+      - name: Verify cockpit has correct data
+        run: |
+          if grep -q "Takomo" campaign-os/cockpit-operational.html; then
+            echo "Takomo assets verified in production tab"
+          else
+            echo "ERROR: Takomo assets not found"
+            exit 1
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
