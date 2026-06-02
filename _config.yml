@@ -24,3 +24,7 @@ exclude:
   - "package*.json"
   - "node_modules/**"
   - "vendor/**"
+
+# Preserve the dynamically-patched cockpit — Jekyll shouldn't touch it
+keepfiles:
+  - "campaign-os/cockpit-operational.html"
