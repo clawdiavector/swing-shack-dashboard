@@ -24,6 +24,7 @@ campaign-data.json
     └── [campaignId]
         ├── identity (name, goal, owner, status, platforms, healthScore)
         ├── visualDirection (palette, mood, imageReferences)
+        ├── brief (purpose, audience, bigIdea, successMetric, whatGoodLooksLike, whatBadLooksLike)
         ├── dna (tone, contentMix, ctaPhilosophy, platformStrategy, examples)
         ├── memory (bestHooks, bestVisuals, failedContent, lessonsLearned)
         ├── strategy (positioning, audience, pillars)
@@ -78,6 +79,14 @@ campaign-data.json
         "typography": "string (e.g. 'bold condensed for headlines, clean sans for body')",
         "layoutStyle": "string (e.g. 'dark background, data overlay, half-screen split')",
         "contentExamples": ["examples of what good content looks like for this campaign"]
+      },
+      "brief": {
+        "purpose": "string — why this campaign exists in one sentence",
+        "audience": "string — who this is for, their mindset and context",
+        "bigIdea": "string — the single central idea all content orbits around",
+        "successMetric": "string — how success is measured (specific and measurable)",
+        "whatGoodLooksLike": "string — 2-3 sentences describing great content for this campaign",
+        "whatBadLooksLike": "string — 2-3 sentences describing content to avoid for this campaign"
       },
       "dna": {
         "tone": "string — how this campaign speaks (e.g. 'clinical, data-precise' vs 'casual, insider, witty' vs 'premium, aspirational')",
@@ -143,6 +152,7 @@ campaign-data.json
 | Campaign switching | Not supported | `activeCampaignId` + portfolio view |
 | Visual direction | Only on TrackMan (implied) | Per-campaign, explicit |
 | Campaign DNA | None | Per-campaign embedded — tone, cta, platform strategy, examples |
+| Campaign Brief | None | Per-campaign — 30-second human-readable campaign summary |
 | Campaign Memory | None | Per-campaign embedded — best hooks/visuals, failed content, lessons |
 | Write-back path | `assets[assetId]` | `campaigns[campaignId].assets[assetId]` |
 | Takomo assets | Nested in TrackMan assets | Each campaign has its own assets |
@@ -294,7 +304,19 @@ The visual direction is the brief. Every image, every design decision, every cap
 }
 ```
 
-**Assets currently in system:** (migrated from V1 `assets` that have `campaignId: trackman-intelligence`)
+**Campaign Brief — TrackMan Intelligence:**
+```json
+{
+  "purpose": "Drive fitting bookings and coaching sessions by proving Swing Shack's TrackMan technology gives golfers data-driven insight their game has been missing.",
+  "audience": "Jozi golfers, 25-50, mid-high handicap. They track their fitness — they want to track their golf. Data-aware, skeptical of voodoo tips, willing to pay for evidence-based improvement.",
+  "bigIdea": "Your swing has a number. TrackMan measures it. That number is the shortcut to better scores.",
+  "successMetric": "Fitting sessions booked. Secondary: GMB posts live weekly. Tertiary: engagement rate on stat-hook content above 2.5%.",
+  "whatGoodLooksLike": "A hook that stops the scroll with a specific number. A visual that shows TrackMan data overlaid on a club or swing. A caption that earns the click by expanding the data story. Booking link front and centre.",
+  "whatBadLooksLike": "Vague transformation claims ('From confused golfer to confident striker'). Busy backgrounds without contrast. Price-led content without data justification. Anything that looks like generic golf marketing."
+}
+```
+
+**Assets currently in system:**
 
 **Campaign DNA — TrackMan Intelligence:**
 ```json
@@ -383,6 +405,18 @@ The visual direction is the brief. Every image, every design decision, every cap
     "Chrome hollow-body iron. Sub-$600. PGA Tour feel.",
     "Takomo 101T — the iron that divides serious golfers"
   ]
+}
+```
+
+**Campaign Brief — Takomo 101T:**
+```json
+{
+  "purpose": "Establish Takomo 101T as the smart golfer's iron of choice in SA — premium hollow-body technology at a price that challenges the big brands.",
+  "audience": "Serious golfers, 25-50, mid-to-low handicap. They do their research. They want Tour-level performance without Tour-level prices. They read reviews, compare specs, and buy based on data not branding.",
+  "bigIdea": "Takomo 101T: the iron that gets serious golfers arguing — and fitting sessions that settle the argument.",
+  "successMetric": "Takomo fitting sessions booked. Secondary: engagement on Takomo content above TrackMan benchmark. Tertiary: Takomo mentions in bio link clicks.",
+  "whatGoodLooksLike": "A real Takomo iron head on pure black — no AI, no stock photos. A price callout in gold that creates urgency without discounting. A hook that poses a question serious golfers want answered. Copy that respects the reader's intelligence.",
+  "whatBadLooksLike": "AI-generated club heads that look fake. Broken/garbled text. Price claims without the 'under $600' anchor. Generic golf content that could be any iron. Anything that talks down to the audience."
 }
 ```
 
@@ -488,6 +522,18 @@ The visual direction is the brief. Every image, every design decision, every cap
   },
   "exampleHighPerforming": [],
   "exampleLowPerforming": []
+}
+```
+
+**Campaign Brief — Winter Golf:**
+```json
+{
+  "purpose": "Keep Swing Shack bookings steady through SA winter by positioning indoor golf as the obvious choice when outdoor courses go cold.",
+  "audience": "Regular Jo'burg golfers who stop playing in winter because their home course gets cold or they travel less. They already have clubs — they just need a reason to keep playing.",
+  "bigIdea": "Winter doesn't exist in here. (It's always 22°C, there's food and drinks, and the simulator never closes.)",
+  "successMetric": "Winter session bookings vs prior year. Secondary: winter package upsells. Tertiary: social engagement on contrast-style content.",
+  "whatGoodLooksLike": "A visual that makes you want to be inside — warm lights, green fairways on screen, something cold and grey outside the window. A hook that names the weather or the day. Content that feels like a friend saying 'actually, this is good.'",
+  "whatBadLooksLike": "Clinical data overlays. Golf swing technique photos. Anything that makes indoor golf sound like a chore or a substitute. Content that positions winter as a problem rather than Swing Shack as the answer."
 }
 ```
 
