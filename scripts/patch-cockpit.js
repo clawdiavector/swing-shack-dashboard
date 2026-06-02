@@ -10,6 +10,7 @@ let H = fs.readFileSync(htmlPath, 'utf8');
 const assets = D.assets || {};
 const assetKeys = Object.keys(assets);
 
+// Count statuses
 const complete = assetKeys.filter(k => ['published','approved'].includes(assets[k].status)).length;
 const progress = assetKeys.filter(k => ['generated','pending','review','rejected'].includes(assets[k].status)).length;
 const blocked = assetKeys.filter(k => assets[k].status === 'blocked').length;
@@ -26,6 +27,7 @@ function statusBadge(status) {
 const icons = {research:'&#128269;', hook:'&#128227;', 'hero-visual':'&#127912;', carousel:'&#127912;', video:'&#127916;', copy:'&#9998;'};
 function assetIcon(t) { return icons[t] || '&#128196;'; }
 
+// Build Production tab items
 let prodItems = '';
 for (const k of assetKeys) {
   const a = assets[k];
@@ -33,11 +35,12 @@ for (const k of assetKeys) {
   const atype = a.assetType || 'unknown';
   const status = a.status || 'unknown';
   const owner = a.owner || '';
-  const caption = (a.caption || a.description || '').slice(0, 100);
+  const caption = (a.caption || a.description || '').slice(0, 120);
   const blockedBy = a.blockedBy || [];
   const blockedStr = blockedBy.length
     ? '<div style="margin-top:6px;padding:6px 8px;background:rgba(255,68,85,0.1);border-radius:6px;font-size:10px;color:#ff4455">Blocked by: ' + blockedBy.join(', ') + '</div>'
     : '';
+  const thumbLetter = (name[0] || '?').toUpperCase();
 
   prodItems += '<div style="display:flex;gap:14px;padding:12px;background:#18181f;border-radius:8px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.08)">' +
     '<div style="width:56px;height:56px;border-radius:6px;background:#111118;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">' + assetIcon(atype) + '</div>' +
@@ -51,29 +54,39 @@ for (const k of assetKeys) {
     '</div></div>';
 }
 
-// Patch mp-production
-H = H.replace(
-  /<div class="mothership-panel" id="mp-production">[\s\S]*?<\/div>\s*<div class="mothership-panel" id="mp-completion">/,
-  '<div class="mothership-panel" id="mp-production">\n  ' + prodItems + '\n  <div style="margin-top:12px;padding:10px;background:#111118;border-radius:8px;font-size:11px;color:#6e6e82">' + complete + ' complete &middot; ' + progress + ' in progress &middot; ' + blocked + ' blocked</div>\n</div>\n<div class="mothership-panel" id="mp-completion">'
-);
-
-// Update completion counts (cc-num green/amber/red)
-H = H.replace(/(<div class="cc-num green">)(\d+)/, '$1' + String(complete));
-H = H.replace(/(<div class="cc-num amber">)(\d+)/, '$1' + String(progress));
-H = H.replace(/(<div class="cc-num red">)(\d+)/, '$1' + String(blocked));
-
-// Patch queue
-let queueHtml = '';
+// Build Queue tab items
+let queueItems = '';
 for (const k of assetKeys.filter(k => !['published','approved','blocked'].includes(assets[k].status))) {
   const a = assets[k];
-  queueHtml += '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:12px"><strong>' + (a.name||k) + '</strong> <span style="color:#6e6e82">@' + (a.owner||'') + '</span> <span style="color:#ffaa00">(' + (a.status||'') + ')</span></div>';
+  const status = a.status || '';
+  const statusIcon = {generated:'[GEN]',review:'[REV]',rejected:'[NO]',pending:'[...]',draft:'[DRF]'}[status] || '[...]';
+  queueItems += '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#111118;border:1px solid rgba(255,255,255,0.08);border-radius:8px;margin-bottom:6px">' +
+    '<div style="width:40px;height:40px;border-radius:6px;background:#18181f;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#6e6e82;flex-shrink:0;font-family:monospace">' + statusIcon + '</div>' +
+    '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;margin-bottom:2px">' + (a.name||k) + '</div>' +
+    '<div style="font-size:10px;color:#6e6e82">' + (a.owner?'@'+a.owner:'') + '</div></div>' +
+    '<div style="font-size:10px;color:#ffaa00;font-weight:600">' + status + '</div></div>';
 }
+
+// Patch panel-production (Production tab)
 H = H.replace(
-  /<div class="mothership-panel" id="mp-queue">[\s\S]*?<\/div>\s*<div class="mothership-panel" id="mp-production">/,
-  '<div class="mothership-panel" id="mp-queue">\n  ' + (queueHtml || '<div style="text-align:center;padding:24px;color:#6e6e82;font-size:12px">No queued assets</div>') + '\n</div>\n<div class="mothership-panel" id="mp-production">'
+  /(<div class="panel" id="panel-production">\s*<div class="card-title"[^>]*>)[^<]*<\/div>\s*(<div style="text-align:center[^>]*>[^<]*<\/div>\s*)?(<div style="font-size:36px[^>]*>[^<]*<\/div>)?/,
+  '$1' + 'Production View - ' + assetKeys.length + ' assets</div>\n  ' + prodItems
 );
 
-// Inject campaignData
+// Patch cc-num in panel-completion (Completion counts in completion-tab style)
+H = H.replace(/(<div class="cc-num" style="color:#00cc77">)(\d+)/, '$1' + String(complete));
+H = H.replace(/(<div class="cc-num" style="color:#ffaa00">)(\d+)/, '$1' + String(progress));
+H = H.replace(/(<div class="cc-num" style="color:#ff4455">)(\d+)/, '$1' + String(blocked));
+
+// Patch panel-queue (Asset Queue tab)
+if (queueItems) {
+  H = H.replace(
+    /<div class="panel" id="panel-queue">\s*<div class="card-title"[^>]*>[^<]*<\/div>\s*<div style="text-align:center;padding:50px;color:#6e6e82;font-size:13px">No queued assets\. Generate via Campaign Factory\.<\/div>/,
+    '<div class="panel" id="panel-queue">\n  <div class="card-title" style="padding-bottom:12px">Asset Queue - ' + q_assets + ' items</div>\n  ' + queueItems + '\n</div>'
+  );
+}
+
+// Inject window.campaignData
 const campaignStr = JSON.stringify(D);
 H = H.replace(
   /window\.campaignData\s*=\s*\{[^;]*\};/,
@@ -81,5 +94,6 @@ H = H.replace(
 );
 
 fs.writeFileSync(htmlPath, H);
-console.log('Patched OK - complete=' + complete + ' progress=' + progress + ' blocked=' + blocked + ' queue=' + q_assets);
-console.log('Assets:', assetKeys.join(', '));
+console.log('Patched OK');
+console.log('  complete=' + complete + ' progress=' + progress + ' blocked=' + blocked + ' queue=' + q_assets);
+console.log('  Assets (' + assetKeys.length + '):', assetKeys.join(', '));
