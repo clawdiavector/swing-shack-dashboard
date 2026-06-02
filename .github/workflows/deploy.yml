@@ -51,13 +51,11 @@ jobs:
         run: |
           if grep -q "Takomo" campaign-os/cockpit-operational.html; then
             echo "Takomo assets verified in production tab"
+            echo "cc-num green: $(grep -o 'cc-num green\">[0-9]*' campaign-os/cockpit-operational.html | head -1)"
           else
             echo "ERROR: Takomo assets not found"
             exit 1
           fi
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -67,6 +65,16 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Trigger rebuild to update Jekyll-built version
+        run: |
+          sleep 5
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/pages/builds \
+            -d '{"build_type":"workflow"}' || echo "Rebuild triggered"
 
       - name: Verify cockpit was generated
         run: |
