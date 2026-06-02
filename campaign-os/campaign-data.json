@@ -133,18 +133,17 @@
       "campaignId": "trackman-intelligence",
       "name": "Takomo 101T \u2014 Hero Visual A",
       "assetType": "hero-visual",
-      "status": "generated",
+      "status": "rejected",
       "platform": "instagram",
       "filePath": "assets/campaigns/trackman/takomo-101t-hero-a.png",
       "description": "Dark background hero shot. Takomo 101T iron head in chrome against black. Bold headline overlay. Price callout. TrackMan data aesthetic.",
       "owner": "image-gen",
       "createdAt": "2026-06-02T06:36:56.450780Z",
-      "updatedAt": "2026-06-02T08:37:00Z",
-      "qualityGateState": "pending",
+      "updatedAt": "2026-06-02T09:03:00Z",
+      "qualityGateState": "gate2-failed",
       "visualQualityTier": "hero",
-      "nextAction": "Christelle reviews hero visual for approval",
+      "nextAction": "Regenerate using real Takomo 101T product photography or real product cutout. AI for background/lighting/layout only. No AI product invented.",
       "generationNotes": "Use dark palette. Chrome iron head as hero. TrackMan numbers overlay. Price callout: under $600.",
-      "discordMessageId": null,
       "history": [
         {
           "action": "brief-created",
@@ -164,6 +163,13 @@
           "at": "2026-06-02T08:37:00Z",
           "result": "image-generated",
           "filePath": "assets/campaigns/trackman/takomo-101t-hero-a.png"
+        },
+        {
+          "action": "rejected",
+          "by": "christelle",
+          "at": "2026-06-02T09:03:00Z",
+          "reason": "Club does not look real enough. Text is broken/garbled. Pricing text wrong/unreadable. Product credibility too low. For golf clubs, fake-looking product visuals damage trust.",
+          "productImageryRule": "Product campaigns require real product photography. AI-generated product is NOT acceptable for specific golf clubs unless indistinguishable from real photography."
         }
       ],
       "tags": [
@@ -171,6 +177,13 @@
         "hero-visual",
         "pending",
         "image-gen"
+      ],
+      "rejectedAt": "2026-06-02T09:03:00Z",
+      "rejectedBy": "christelle",
+      "rejectionReason": "Club does not look real enough. Text is broken/garbled. Pricing text wrong/unreadable. Product credibility too low. For golf clubs, fake-looking product visuals damage trust.",
+      "blockedBy": [
+        "product-looks-fake",
+        "ai-product-not-credible"
       ]
     },
     "takomo-101t-production": {
