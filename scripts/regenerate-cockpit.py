@@ -2,8 +2,8 @@
 """Regenerate cockpit from campaign-data.json"""
 import json, math, datetime, pathlib
 
-SRC = pathlib.Path('/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/campaign-os/campaign-data.json')
-DST = pathlib.Path('/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/campaign-os/cockpit-operational.html')
+SRC = pathlib.Path(__file__).parent.parent / 'campaign-os' / 'campaign-data.json'
+DST = pathlib.Path(__file__).parent.parent / 'campaign-os' / 'cockpit-operational.html'
 
 with open(SRC) as f:
     D = json.load(f)
