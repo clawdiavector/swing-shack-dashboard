@@ -31,6 +31,7 @@ jobs:
             campaign-os/
             scripts/
             campaign-data-staged.json
+            campaign-os/campaign-data.json
           sparse-checkout-cone-mode: false
 
       - name: Set up Python

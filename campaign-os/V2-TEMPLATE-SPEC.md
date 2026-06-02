@@ -118,6 +118,8 @@ Each template defines:
       "type": "product-hero",
       "description": "TrackMan screen showing real golfer data overlaid on club/equipment image. Background: #0D0D0D to #1A1A1A. Data overlay: real TrackMan metrics (carry, club speed, spin). Product must match campaign product. Dark background. Premium feel.",
       "visualQualityTier": "hero",
+      "requiresRealProductImage": true,
+      "productImageryRule": "For golf clubs and specific physical products, AI-generated product imagery is NOT acceptable unless it looks indistinguishable from real product photography. Preferred order: (1) Real product photography, (2) Official product imagery if permitted, (3) Real in-store product photos, (4) AI-generated background using real product cutout, (5) Fully AI-generated as fallback only with strict realism QC. AI may be used for: background, lighting, layout, text treatment, design frame. AI should NOT invent the club head.",
       "examples": ["TrackMan screenshot with swing data", "Club head speed + ball flight overlay"]
     },
     "comparisonGraphics": {
@@ -338,6 +340,8 @@ Each template defines:
       "type": "product-shot",
       "description": "Clean product photography. Takomo clubs on TrackMan screen. Premium dark background.",
       "visualQualityTier": "hero",
+      "requiresRealProductImage": true,
+      "productImageryRule": "For golf clubs and specific physical products, AI-generated product imagery is NOT acceptable unless it looks indistinguishable from real product photography. Preferred order: (1) Real product photography, (2) Official product imagery if permitted, (3) Real in-store product photos, (4) AI-generated background/layout using real product cutout, (5) Fully AI-generated product image as fallback only with strict realism QC. AI may be used for: background, lighting, layout, text treatment, design frame. AI should NOT invent the club head.",
       "examples": ["Takomo 101T on simulator", "Iron set detail shot"]
     },
     "featureGraphics": {
