@@ -73,10 +73,10 @@ H = H.replace(
   '$1' + 'Production View - ' + assetKeys.length + ' assets</div>\n  ' + prodItems
 );
 
-// Patch cc-num in panel-completion (Completion counts in completion-tab style)
-H = H.replace(/(<div class="cc-num" style="color:#00cc77">)(\d+)/, '$1' + String(complete));
-H = H.replace(/(<div class="cc-num" style="color:#ffaa00">)(\d+)/, '$1' + String(progress));
-H = H.replace(/(<div class="cc-num" style="color:#ff4455">)(\d+)/, '$1' + String(blocked));
+// Patch cc-num green/amber/red in completion section
+H = H.replace(/(<div class="cc-num green">)(\d+)/, '$1' + String(complete));
+H = H.replace(/(<div class="cc-num amber">)(\d+)/, '$1' + String(progress));
+H = H.replace(/(<div class="cc-num red">)(\d+)/, '$1' + String(blocked));
 
 // Patch panel-queue (Asset Queue tab)
 if (queueItems) {
