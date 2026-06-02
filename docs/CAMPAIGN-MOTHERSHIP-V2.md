@@ -24,6 +24,9 @@ campaign-data.json
     └── [campaignId]
         ├── identity (name, goal, owner, status, platforms, healthScore)
         ├── visualDirection (palette, mood, imageReferences)
+        ├── dna (tone, contentMix, ctaPhilosophy, platformStrategy, examples)
+        ├── memory (bestHooks, bestVisuals, failedContent, lessonsLearned)
+        ├── strategy (positioning, audience, pillars)
         ├── assets (dict of assets specific to this campaign)
 ```
 
@@ -76,6 +79,28 @@ campaign-data.json
         "layoutStyle": "string (e.g. 'dark background, data overlay, half-screen split')",
         "contentExamples": ["examples of what good content looks like for this campaign"]
       },
+      "dna": {
+        "tone": "string — how this campaign speaks (e.g. 'clinical, data-precise' vs 'casual, insider, witty' vs 'premium, aspirational')",
+        "contentMix": "string — ratio/approach e.g. '60% educational / 30% promotional / 10% social proof'",
+        "requiredContentTypes": ["array — e.g. ['hook', 'hero-visual', 'carousel'] — mandatory content types per campaign cycle"],
+        "preferredVisualStyles": ["array — visual styles ImageGen should bias toward for this campaign"],
+        "forbiddenVisualStyles": ["array — what ImageGen must NEVER generate for this campaign"],
+        "ctaPhilosophy": "string — how CTAs behave, e.g. 'direct price-led: always show R-amount' or 'soft intro: build desire before CTA' or 'urgency: limited slots, book now'"",
+        "platformStrategy": {
+          "instagram": "string — how this campaign approaches IG specifically",
+          "tiktok": "string — how this campaign approaches TikTok",
+          "gmb": "string — how this campaign approaches GMB"
+        },
+        "exampleHighPerforming": [{"assetId": "string", "whyItWorked": "string"}],
+        "exampleLowPerforming": [{"assetId": "string", "whyItFailed": "string"}]
+      },
+      "memory": {
+        "bestHooks": [{"assetId": "string", "platform": "string", "performance": {"reach": 0, "likes": 0, "engagementRate": 0}, "notes": "string"}],
+        "bestVisuals": [{"assetId": "string", "platform": "string", "performance": {"reach": 0, "likes": 0, "engagementRate": 0}, "notes": "string"}],
+        "bestContentTypes": ["array — winning format per platform"],
+        "failedContent": [{"assetId": "string", "reason": "string", "lesson": "string"}],
+        "lessonsLearned": ["string — causal insights, not just raw data"]
+      },
       "strategy": {
         "positioningStatement": "string",
         "targetAudience": "string",
@@ -117,6 +142,8 @@ campaign-data.json
 | Asset grouping | All assets in one flat `assets` dict | Assets nested inside each campaign |
 | Campaign switching | Not supported | `activeCampaignId` + portfolio view |
 | Visual direction | Only on TrackMan (implied) | Per-campaign, explicit |
+| Campaign DNA | None | Per-campaign embedded — tone, cta, platform strategy, examples |
+| Campaign Memory | None | Per-campaign embedded — best hooks/visuals, failed content, lessons |
 | Write-back path | `assets[assetId]` | `campaigns[campaignId].assets[assetId]` |
 | Takomo assets | Nested in TrackMan assets | Each campaign has its own assets |
 
@@ -269,6 +296,51 @@ The visual direction is the brief. Every image, every design decision, every cap
 
 **Assets currently in system:** (migrated from V1 `assets` that have `campaignId: trackman-intelligence`)
 
+**Campaign DNA — TrackMan Intelligence:**
+```json
+{
+  "tone": "Clinical authority. Data speaks, we just translate it. No hype, no fluff — numbers are the argument. Authoritative but not cold. Expert without being gatekeeping.",
+  "contentMix": "70% educational (data insights, stats explainers) / 20% promotional (session offers, fitting deals) / 10% social proof (client results, before/after)",
+  "requiredContentTypes": ["hook-stats", "hero-visual", "gmb-post"],
+  "preferredVisualStyles": ["data overlay on dark background", "chrome equipment photography", "stat comparison graphics", "launch monitor screenshots"],
+  "forbiddenVisualStyles": ["bright neon backgrounds", "cartoon/golf mascot imagery", "heavily filtered/polarized photo edits", "text over busy backgrounds without contrast layer"],
+  "ctaPhilosophy": "Direct price-led with anchoring: show the value first (TrackMan data), then introduce the offer. Always include R-amount. 'From R250' works because the data has already justified the price.",
+  "platformStrategy": {
+    "instagram": "Stat-first hook stops the scroll. Data overlay on image tells the story. Caption expands with context. Link in bio drives booking.",
+    "tiktok": "Hook is the number/stat itself. 'Your drive: 199m' as text overlay. 3-second hook, then explain the data. Fast-cut, punchy.",
+    "gmb": "Trust + proof + convenience. Service highlight with one key stat. Clean, professional, no gimmicks. Call to action is always 'book now' or 'call us'."
+  },
+  "exampleHighPerforming": [
+    {"assetId": "hook-a-round1", "whyItWorked": "'Your golf stats don't lie' — specific, implies measurement, triggers curiosity about what the stats reveal. Stats hooks 2.5x better than transformation hooks."}
+  ],
+  "exampleLowPerforming": [
+    {"assetId": "hook-b-round1", "whyItFailed": "'FROM CONFUSED GOLFER TO CONFIDENT STRIKER' — vague, no data anchor. Transformation claims without proof feel empty."}
+  ]
+}
+```
+
+**Campaign Memory — TrackMan Intelligence:**
+```json
+{
+  "bestHooks": [
+    {"assetId": "hook-a-round1", "platform": "instagram", "performance": {"reach": 90, "likes": 4, "engagementRate": 4.44}, "notes": "Stats angle consistently outperforms transformation. 'Your [metric]' format is the winner."}
+  ],
+  "bestVisuals": [],
+  "bestContentTypes": ["hook-stats", "gmb-service-post"],
+  "failedContent": [
+    {"assetId": "hook-b-round1", "reason": "Vague transformation claim, no data anchor", "lesson": "Always lead with a number or specific stat. 'Your [X]' outperforms 'FROM [state] TO [state]'"},
+    {"assetId": "hook-c-round1", "reason": "Convenience angle too generic", "lesson": "Weather/indoor convenience is table stakes, not a hook. Stats create urgency."}
+  ],
+  "lessonsLearned": [
+    "Stats hooks consistently outperform all other angles — lead with numbers always",
+    "Meters > Yards for SA market — confirmed April 2026",
+    "Dark background with data overlay looks premium with TrackMan theme",
+    "Caption ≠ Overlay Text — supplementary copy drives click-through, not the hook itself",
+    "Hook A best performer (Round 1) was never re-published — opportunity cost"
+  ]
+}
+```
+
 ---
 
 ### Takomo 101T
@@ -310,6 +382,45 @@ The visual direction is the brief. Every image, every design decision, every cap
     "Takomo 101T: Less than $600 for a full set. We put it on TrackMan.",
     "Chrome hollow-body iron. Sub-$600. PGA Tour feel.",
     "Takomo 101T — the iron that divides serious golfers"
+  ]
+}
+```
+
+**Campaign DNA — Takomo 101T:**
+```json
+{
+  "tone": "Confident, curious, slightly provocative. The kind of content that makes serious golfers stop and think — then book a fitting to settle the argument. Sharp without being aggressive.",
+  "contentMix": "50% product education (what makes Takomo different) / 30% controversy/question angle / 20% value proof (price-to-performance)",
+  "requiredContentTypes": ["hero-visual", "hook-question", "gmb-service-post"],
+  "preferredVisualStyles": ["real product photography of Takomo iron head on black", "clean product cutout on dark background", "gold price callout overlaid on chrome", "sleek blade-like aesthetic shots"],
+  "forbiddenVisualStyles": ["AI-generated club/product heads (Christelle rule) — real product photography only", "busy backgrounds with text overlay without contrast layer", "stock golf photos without product context", "any image with broken/garbled text"],
+  "ctaPhilosophy": "Price transparency as hook: lead with 'less than $600' or 'from R250' because the value is the argument. CTAs are always 'Book Takomo Fitting' with R-amount anchored.",
+  "platformStrategy": {
+    "instagram": "Product-first: the iron head IS the hero. Price callout in gold. Caption earns the click with the controversy/question angle. Link to booking.",
+    "tiktok": "Hook is the price question: 'Is Takomo 101T worth it? We put it on TrackMan.' Product visual first, data second.",
+    "gmb": "Takomo fitting service highlight. Price-led. Trust signal: 'Swing Shack is authorized Takomo fitter.'"
+  },
+  "exampleHighPerforming": [],
+  "exampleLowPerforming": [
+    {"assetId": "takomo-101t-visual-a", "whyItFailed": "AI-generated club head looked fake. Text broken/garbled. Pricing callout wrong. Product credibility too low. Real product photography required per Christelle gate rule."}
+  ]
+}
+```
+
+**Campaign Memory — Takomo 101T:**
+```json
+{
+  "bestHooks": [],
+  "bestVisuals": [],
+  "bestContentTypes": ["hook-question", "hero-visual-product"],
+  "failedContent": [
+    {"assetId": "takomo-101t-visual-a", "reason": "AI product imagery looks fake. Broken text. Wrong pricing. Product credibility too low.", "lesson": "Golf club/physical product campaigns require real product photography. AI may only do background/layout/text treatment. No AI product heads."}
+  ],
+  "lessonsLearned": [
+    "For golf clubs and physical products: requiresRealProductImage = true always",
+    "AI-generated club heads fail Gate 2 by default",
+    "Text must be added as separate design layer — never embedded in generated image",
+    "Broken text = automatic quality gate failure"
   ]
 }
 ```
@@ -361,7 +472,37 @@ The visual direction is the brief. Every image, every design decision, every cap
 }
 ```
 
-**No assets yet — placeholder only. Created as empty campaign container.**
+**Campaign DNA — Winter Golf:**
+```json
+{
+  "tone": "Warm, inviting, slightly cheeky. The tone of a friend who knows the best spot in Jo'burg. Not trying to be premium or clinical — just genuinely fun. Think: 'you know what this weather needs? A round.'",
+  "contentMix": "40% social proof (look how good it is inside) / 30% contrast/humor (cold vs warm) / 20% practical (sessions available, deals) / 10% lifestyle (food, drinks, atmosphere)",
+  "requiredContentTypes": ["hook-contrast", "lifestyle-visual", "gmb-event-post"],
+  "preferredVisualStyles": ["warm indoor lighting on simulator", "cozy bar/food setup at Swing Shack", "contrast: grey sky outside vs green simulator inside", "smiling golfers, social atmosphere"],
+  "forbiddenVisualStyles": ["clinical/data-heavy graphics", "golf swing technique photos", "cold blue colour grading on indoor content", "anything that makes indoor golf look like a chore"],
+  "ctaPhilosophy": "Casual and low-friction: 'Book a session' not 'Book now — limited slots.' Make it feel like a no-brainer, not a sales push.",
+  "platformStrategy": {
+    "instagram": "Lifestyle-first: food, drinks, simulators, social vibe. Contrast hooks work well. Carousels showing 'inside vs outside' perform.",
+    "tiktok": "'It's [X]°C outside. This is what we did instead.' Fast, relatable, shareable. Show the vibe, not the data.",
+    "gmb": "Seasonal/event posts. 'Winter sessions available.' Warm imagery, social proof. 'Book your winter round.'"
+  },
+  "exampleHighPerforming": [],
+  "exampleLowPerforming": []
+}
+```
+
+**Campaign Memory — Winter Golf:**
+```json
+{
+  "bestHooks": [],
+  "bestVisuals": [],
+  "bestContentTypes": [],
+  "failedContent": [],
+  "lessonsLearned": []
+}
+```
+
+**No assets yet — placeholder only.**
 
 ---
 
@@ -442,7 +583,7 @@ After migration, Clawfix verifies:
 - [ ] `portfolioMetadata` exists at root
 - [ ] `activeCampaignId` exists at root
 - [ ] `campaigns` is a dict (not an array)
-- [ ] Each campaign entry has: `identity`, `visualDirection`, `assets`, `strategy`
+- [ ] Each campaign entry has: `identity`, `visualDirection`, `dna`, `memory`, `assets`, `strategy`
 - [ ] No orphaned assets outside `campaigns[id].assets`
 
 ### Asset Migration
@@ -457,6 +598,19 @@ After migration, Clawfix verifies:
 - [ ] Takomo 101T has `visualDirection.palette` with all 5 colours
 - [ ] Winter Golf has `visualDirection.mood` and `creativeDirection`
 - [ ] All three campaigns have `imageReferences` populated
+
+### Campaign DNA
+- [ ] TrackMan Intelligence has `dna.tone`, `dna.contentMix`, `dna.requiredContentTypes`, `dna.ctaPhilosophy`, `dna.platformStrategy`
+- [ ] Takomo 101T has full `dna` object (including `forbiddenVisualStyles` with real-product-only rule)
+- [ ] Winter Golf has full `dna` object
+- [ ] All `platformStrategy` entries have Instagram, TikTok, GMB defined
+- [ ] Takomo DNA `forbiddenVisualStyles` includes AI product imagery rule
+
+### Campaign Memory
+- [ ] TrackMan Intelligence has populated `memory.lessonsLearned` from Round 1-2 A/B tests
+- [ ] Takomo 101T has `memory.failedContent` entry for visual-a rejection
+- [ ] Winter Golf has empty `memory` object (placeholder, no content yet)
+- [ ] Memory entries include `whyItWorked` / `whyItFailed` / `lesson` fields
 
 ### Write-Back Paths
 - [ ] Scout writes to `campaigns[campaignId].assets[assetId]`
@@ -485,6 +639,8 @@ After migration, Clawfix verifies:
 ### Campaign Detail View
 - [ ] Shows campaign identity (name, type, owner, status, health)
 - [ ] Visual Direction panel is prominent — palette swatches + mood visible
+- [ ] Campaign DNA panel is visible — tone, ctaPhilosophy, platformStrategy shown
+- [ ] Campaign Memory panel is visible — lessons learned, failed content shown
 - [ ] Strategy section (positioning, audience, offer, pillars)
 - [ ] All 5 tabs (Overview, Asset Queue, Production, Completion, Gap Analysis) filtered to selected campaign
 - [ ] "Back to Portfolio" link at top
