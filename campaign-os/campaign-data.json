@@ -3,7 +3,7 @@
     "name": "Swing Shack Campaign Portfolio",
     "description": "All active and planned marketing campaigns",
     "owner": "christelle",
-    "lastUpdated": "2026-06-02T13:24:44.888Z",
+    "lastUpdated": "2026-06-03T13:19:02.978Z",
     "version": 2
   },
   "activeCampaignId": "trackman-intelligence",
@@ -26,7 +26,14 @@
         "healthScore": 68,
         "healthState": "degraded",
         "campaignType": "evergreen",
-        "priority": "high"
+        "priority": "high",
+        "primaryGoal": "Bookings",
+        "campaignSource": {
+          "type": "Manual",
+          "reference": "Manual creation",
+          "createdBy": "christelle"
+        },
+        "duration": "12 months (evergreen)"
       },
       "visualDirection": {
         "palette": {
@@ -136,7 +143,8 @@
           "Dark background with data overlay looks premium with TrackMan theme",
           "Caption ≠ Overlay Text — supplementary copy drives click-through, not the hook itself",
           "Hook A best performer (Round 1) was never re-published — opportunity cost"
-        ]
+        ],
+        "notes": []
       },
       "strategy": {
         "positioningStatement": "For SA golfers who suspect their swing has more potential than their scores show. Data beats guesswork.",
@@ -179,7 +187,14 @@
         "healthScore": 50,
         "healthState": "degraded",
         "campaignType": "product-launch",
-        "priority": "high"
+        "priority": "high",
+        "primaryGoal": "Bookings",
+        "campaignSource": {
+          "type": "Product Launch",
+          "reference": "Takomo 101T product launch",
+          "createdBy": "christelle"
+        },
+        "duration": "3 months"
       },
       "visualDirection": {
         "palette": {
@@ -266,7 +281,8 @@
           "AI-generated club heads fail Gate 2 by default",
           "Text must be added as separate design layer — never embedded in generated image",
           "Broken text = automatic quality gate failure"
-        ]
+        ],
+        "notes": []
       },
       "strategy": {
         "positioningStatement": "For SA golfers who want Tour-level iron performance without Tour-level pricing. Takomo 101T is the research-backed upgrade.",
@@ -463,7 +479,7 @@
         "name": "Winter Golf",
         "shortName": "Winter Golf",
         "goal": "Drive indoor golf sessions during SA winter season",
-        "status": "planned",
+        "status": "draft",
         "owner": "christelle",
         "platforms": [
           "instagram",
@@ -475,7 +491,14 @@
         "healthScore": 0,
         "healthState": "healthy",
         "campaignType": "seasonal",
-        "priority": "medium"
+        "priority": "medium",
+        "primaryGoal": "Bookings",
+        "campaignSource": {
+          "type": "Manual",
+          "reference": "Manual creation",
+          "createdBy": "christelle"
+        },
+        "duration": "4 months (Jun–Sep 2026)"
       },
       "visualDirection": {
         "palette": {
@@ -544,7 +567,8 @@
         "bestVisuals": [],
         "bestContentTypes": [],
         "failedContent": [],
-        "lessonsLearned": []
+        "lessonsLearned": [],
+        "notes": []
       },
       "strategy": {
         "positioningStatement": "When the courses go cold, the simulator doesn't.",
