@@ -71,7 +71,7 @@ jobs:
           UNDEF=$(grep -o '"'"'undefined'"'"' campaign-os/cockpit-operational.html | wc -l)
           echo "undefined count: $UNDEF"
 
-          for check in renderPortfolio selectCampaign Updated; do
+          for check in showView selectCampaign Updated; do
             if grep -q "$check" campaign-os/cockpit-operational.html; then
               echo "$check: FOUND"
             fi
