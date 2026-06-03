@@ -38,7 +38,7 @@ for cid, c in campaigns.items():
     )
 
 try:
-    up_raw = D.get('updatedAt', D.get('portfolioMetadata', {}).get('updatedAt', '---'))
+    up_raw = D.get('portfolioMetadata', {}).get('lastUpdated', '---')
     if up_raw and up_raw != '---':
         d = datetime.datetime.fromisoformat(up_raw.replace('Z', '+00:00'))
         up_str = d.strftime('%d %b %Y %H:%M SAST')
