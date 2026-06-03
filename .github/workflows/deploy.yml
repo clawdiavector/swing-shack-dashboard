@@ -55,7 +55,7 @@ jobs:
           FILE_SIZE=$(wc -c < campaign-os/cockpit-operational.html)
           echo "File size: $FILE_SIZE bytes"
 
-          if grep -q '"'"'campaigns'"'"': {'"'"' campaign-os/cockpit-operational.html; then
+          if grep -q '"'"'campaigns'"'"':{'"'"' campaign-os/cockpit-operational.html; then
             echo "V2 schema (campaigns dict): FOUND"
           else
             echo "V2 schema: MISSING"
