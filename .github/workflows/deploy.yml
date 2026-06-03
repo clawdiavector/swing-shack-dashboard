@@ -49,28 +49,40 @@ jobs:
         run: |
           node scripts/patch-cockpit.js campaign-os/cockpit-operational.html campaign-os/campaign-data.json
 
-      - name: Verify cockpit has correct data
+      - name: Verify cockpit has correct data (V2 schema)
         run: |
-          echo "=== Cockpit Verification ==="
-          GREEN=$(grep -o 'cc-num green\">[0-9]*' campaign-os/cockpit-operational.html | head -1 | grep -o '[0-9]*')
-          AMBER=$(grep -o 'cc-num amber\">[0-9]*' campaign-os/cockpit-operational.html | head -1 | grep -o '[0-9]*')
-          RED=$(grep -o 'cc-num red\">[0-9]*' campaign-os/cockpit-operational.html | head -1 | grep -o '[0-9]*')
-          echo "cc-num green: $GREEN"
-          echo "cc-num amber: $AMBER"
-          echo "cc-num red: $RED"
-          if grep -q "Takomo 101T — Product Research" campaign-os/cockpit-operational.html; then
-            echo "Takomo Research: FOUND"
+          echo "=== Cockpit Verification (V2) ==="
+          FILE_SIZE=$(wc -c < campaign-os/cockpit-operational.html)
+          echo "File size: $FILE_SIZE bytes"
+
+          if grep -q '"'"'campaigns'"'"': {'"'"' campaign-os/cockpit-operational.html; then
+            echo "V2 schema (campaigns dict): FOUND"
+          else
+            echo "V2 schema: MISSING"
+            exit 1
           fi
-          if grep -q "Takomo 101T — Hook A" campaign-os/cockpit-operational.html; then
-            echo "Takomo Hook A: FOUND"
+
+          for camp in trackman-intelligence takomo-101t winter-golf; do
+            if grep -q "$camp" campaign-os/cockpit-operational.html; then
+              echo "$camp: FOUND"
+            fi
+          done
+
+          UNDEF=$(grep -o '"'"'undefined'"'"' campaign-os/cockpit-operational.html | wc -l)
+          echo "undefined count: $UNDEF"
+
+          for check in renderPortfolio selectCampaign Updated; do
+            if grep -q "$check" campaign-os/cockpit-operational.html; then
+              echo "$check: FOUND"
+            fi
+          done
+
+          if [ "$FILE_SIZE" -lt 35000 ]; then
+            echo "File too small — incomplete generation"
+            exit 1
           fi
-          if grep -q "Takomo 101T — Hero Visual" campaign-os/cockpit-operational.html; then
-            echo "Takomo Hero Visual: FOUND"
-          fi
-          if grep -q "Takomo 101T — Full Production Package" campaign-os/cockpit-operational.html; then
-            echo "Takomo Production Package: FOUND"
-          fi
-          echo "File size: $(wc -c < campaign-os/cockpit-operational.html) bytes"
+
+          echo "All checks passed"
 
       - name: Commit patched cockpit directly to repo
         run: |
