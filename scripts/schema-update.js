@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs');
-const DASH = '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard';
+const path = require('path');
+const DASH = path.join(__dirname, '..');
 const data = JSON.parse(fs.readFileSync(DASH + '/campaign-os/campaign-data.json','utf8'));
 const now = new Date().toISOString();
 
