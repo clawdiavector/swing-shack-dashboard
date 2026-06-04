@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const DASH = path.join(__dirname, '..');
-const data = JSON.parse(fs.readFileSync(DASH + '/campaign-os/campaign-data.json','utf8'));
+const data = JSON.parse(fs.readFileSync(path.join(DASH, 'campaign-os', 'campaign-data.json'),'utf8'));
 const now = new Date().toISOString();
 
 for (const cid of Object.keys(data.campaigns)) {
@@ -24,7 +24,7 @@ for (const cid of Object.keys(data.campaigns)) {
 }
 
 data.portfolioMetadata.lastUpdated = now;
-fs.writeFileSync(DASH + '/campaign-os/campaign-data.json', JSON.stringify(data, null, 2));
+fs.writeFileSync(path.join(DASH, 'campaign-os', 'campaign-data.json'), JSON.stringify(data, null, 2));
 console.log('Schema update complete');
 for (const cid of Object.keys(data.campaigns)) {
   const id = data.campaigns[cid].identity;
