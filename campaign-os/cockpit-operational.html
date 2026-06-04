@@ -78,6 +78,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div class="header-subtitle" id="header-subtitle">Portfolio Overview</div>
 </div>
 <div style="display:flex;align-items:center;gap:16px">
+<button class="create-btn" id="btn-create" onclick="openCreateModal()">+ Create Campaign</button>
 <div class="view-toggle">
 <button class="view-btn active" id="btn-portfolio" onclick="showView('portfolio')">Portfolio</button>
 <button class="view-btn" id="btn-detail" onclick="showView('detail')">Campaign</button>
@@ -152,6 +153,145 @@ window.renderFns = {};
 window.renderFns["trackman-intelligence"] = function(c) { return '<div class="brief-card" style="background:linear-gradient(135deg,#0d2b1a 0%,#0a1f15 100%);border:1px solid #00cc7733;border-radius:12px;padding:20px;margin-bottom:20px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:#00cc77;text-transform:uppercase">Campaign Brief</div><div style="display:flex;gap:8px"><span style="font-size:10px;padding:3px 10px;border-radius:20px;background:#00cc7722;color:#00cc77;font-weight:600">High</span><span style="font-size:10px;padding:3px 10px;border-radius:20px;background:#4488ff22;color:#4488ff;font-weight:600">evergreen</span></div></div><div style="font-size:18px;font-weight:700;margin-bottom:10px">TrackMan Intelligence</div><div style="font-size:12px;color:#6e6e82;margin-bottom:16px;line-height:1.5">Drive fitting bookings and coaching sessions by proving Swing Shack\'s TrackMan technology gives golfers data-driven insight their game has been missing.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Goal</div><div style="font-size:13px;font-weight:600;color:#00cc77">Custom</div></div><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Success Target</div><div style="font-size:13px;font-weight:600">---</div></div><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Audience</div><div style="font-size:12px">Jozi golfers, 25-50, mid-high handicap. They track their fit</div></div><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Platforms</div><div style="font-size:12px">instagram, tiktok, gmb</div></div></div><div style="margin-top:12px;font-size:11px;color:#6e6e82">Primary Offer: <span style="color:#e8e8ed">TrackMan Assessment from R900. First session R250. Bundle R1,400 (save R250)</span></div></div><div class="card"><div class="card-title">TrackMan Intelligence — Campaign Detail</div><div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Campaign Health</div><div class="health-ring"><div class="ring" style="display:inline-block"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="var(--surface2)" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="#ffaa00" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="64" stroke-linecap="round" transform="rotate(-90 40 40)"/></svg><div class="ring-center"><div class="ring-number" style="color:#ffaa00">68</div><div class="ring-label">degraded</div></div></div><div><div style="font-size:14px;font-weight:700;text-transform:capitalize;color:#ffaa00">degraded</div><div style="font-size:12px;color:var(--col-muted);margin-top:4px">Drive fitting bookings and coaching sessions</div><div style="font-size:11px;color:var(--col-muted);margin-top:4px">Updated 2026-06-02T13:24:44.888Z</div></div></div><div class="grid-3" style="margin-top:12px"><div class="stat-card"><div class="stat-value green">0</div><div class="stat-label" style="color:#00cc77">Published</div></div><div class="stat-card"><div class="stat-value" style="color:#ffaa00">0</div><div class="stat-label" style="color:#ffaa00">In Progress</div></div><div class="stat-card"><div class="stat-value" style="color:#ff4455">0</div><div class="stat-label" style="color:#ff4455">Blocked</div></div></div></div><div class="card"><div class="card-title">Production Assets — 0 total</div><div style="text-align:center;padding:48px;color:#6e6e82">No assets in production</div></div><div class="dna-panel"><div class="dna-title">Campaign DNA</div><div class="dna-row"><div class="dna-key">Type</div><div class="dna-value">evergreen</div></div><div class="dna-row"><div class="dna-key">Priority</div><div class="dna-value">high</div></div><div class="dna-row"><div class="dna-key">Owner</div><div class="dna-value">christelle</div></div><div class="dna-row"><div class="dna-key">Status</div><div class="dna-value">active</div></div><div class="dna-row"><div class="dna-key">Mood</div><div class="dna-value">Clinical precision. Data权威. TrackMan blue dominance.</div></div></div><div class="dna-panel"><div class="dna-title">Visual Direction</div><div class="dna-row"><div class="dna-key">Mood</div><div class="dna-value">Clinical precision. Data权威. TrackMan blue dominance.</div></div><div class="dna-row" style="display:block"><div class="dna-key" style="width:auto;margin-bottom:4px">Creative Direction</div><div class="dna-value" style="font-size:11px">TrackMan data is the hero. Numbers, charts, launch monitor visuals. Chrome golf clubs on dark backgrounds. PGA Tour stat comparisons. Clean, scientific, premium. Think golf analytics lab meets luxury sports brand.</div></div></div><div class="memory-panel"><div class="memory-title">Campaign Memory</div><div class="memory-lesson">Stats hooks consistently outperform all other angles — lead with numbers always</div><div class="memory-lesson">Meters > Yards for SA market — confirmed April 2026</div><div class="memory-lesson">Dark background with data overlay looks premium with TrackMan theme</div><div class="memory-lesson">Caption ≠ Overlay Text — supplementary copy drives click-through, not the hook itself</div><div class="memory-lesson">Hook A best performer (Round 1) was never re-published — opportunity cost</div></div><div id="campaign-brief-section" class="brief-panel"><div class="brief-title">Campaign Brief</div><div class="brief-row"><div class="brief-key">Purpose</div><div class="brief-value">Drive fitting bookings and coaching sessions by proving Swing Shack\'s TrackMan technology gives golfers data-driven insight their game has been missing.</div></div><div class="brief-row"><div class="brief-key">Audience</div><div class="brief-value">Jozi golfers, 25-50, mid-high handicap. They track their fitness — they want to track their golf. Data-aware, skeptical of voodoo tips, willing to pay for evidence-based improvement.</div></div><div class="brief-row"><div class="brief-key">Big Idea</div><div class="brief-value">Your swing has a number. TrackMan measures it. That number is the shortcut to better scores.</div></div><div class="brief-row"><div class="brief-key">Success Metric</div><div class="brief-value">Fitting sessions booked. Secondary: GMB posts live weekly. Tertiary: engagement rate on stat-hook content above 2.5%.</div></div></div>'; }; window.renderFns["takomo-101t"] = function(c) { return '<div class="brief-card" style="background:linear-gradient(135deg,#0d2b1a 0%,#0a1f15 100%);border:1px solid #00cc7733;border-radius:12px;padding:20px;margin-bottom:20px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:#00cc77;text-transform:uppercase">Campaign Brief</div><div style="display:flex;gap:8px"><span style="font-size:10px;padding:3px 10px;border-radius:20px;background:#00cc7722;color:#00cc77;font-weight:600">High</span><span style="font-size:10px;padding:3px 10px;border-radius:20px;background:#4488ff22;color:#4488ff;font-weight:600">product-launch</span></div></div><div style="font-size:18px;font-weight:700;margin-bottom:10px">Takomo 101T</div><div style="font-size:12px;color:#6e6e82;margin-bottom:16px;line-height:1.5">Establish Takomo 101T as the smart golfer\'s iron of choice in SA — premium hollow-body technology at a price that challenges the big brands.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Goal</div><div style="font-size:13px;font-weight:600;color:#00cc77">Custom</div></div><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Success Target</div><div style="font-size:13px;font-weight:600">---</div></div><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Audience</div><div style="font-size:12px">Serious golfers, 25-50, mid-to-low handicap. They do their r</div></div><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Platforms</div><div style="font-size:12px">instagram, tiktok</div></div></div><div style="margin-top:12px;font-size:11px;color:#6e6e82">Primary Offer: <span style="color:#e8e8ed">Takomo 101T Fitting — from R900 (full bag). First session R250.</span></div></div><div class="card"><div class="card-title">Takomo 101T — Campaign Detail</div><div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Campaign Health</div><div class="health-ring"><div class="ring" style="display:inline-block"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="var(--surface2)" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="#ffaa00" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="100" stroke-linecap="round" transform="rotate(-90 40 40)"/></svg><div class="ring-center"><div class="ring-number" style="color:#ffaa00">50</div><div class="ring-label">degraded</div></div></div><div><div style="font-size:14px;font-weight:700;text-transform:capitalize;color:#ffaa00">degraded</div><div style="font-size:12px;color:var(--col-muted);margin-top:4px">Drive Takomo 101T iron fittings and showcase value proposition</div><div style="font-size:11px;color:var(--col-muted);margin-top:4px">Updated 2026-06-02T13:24:44.882Z</div></div></div><div class="grid-3" style="margin-top:12px"><div class="stat-card"><div class="stat-value green">1</div><div class="stat-label" style="color:#00cc77">Published</div></div><div class="stat-card"><div class="stat-value" style="color:#ffaa00">3</div><div class="stat-label" style="color:#ffaa00">In Progress</div></div><div class="stat-card"><div class="stat-value" style="color:#ff4455">0</div><div class="stat-label" style="color:#ff4455">Blocked</div></div></div></div><div class="card"><div class="card-title">Production Assets — 4 total</div><div class="prod-item"><div class="prod-thumb"><span style="font-size:20px;color:#6e6e82">T</span></div><div class="prod-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:#4488ff22;color:#4488ff">Published</span><span style="font-size:10px;color:#6e6e82">research</span></div><div class="prod-name">Takomo 101T — Product Research</div><div class="prod-meta">@ <span>scout</span></div></div></div><div class="prod-item"><div class="prod-thumb"><span style="font-size:20px;color:#6e6e82">T</span></div><div class="prod-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:#ffaa0022;color:#ffaa00">Review</span><span style="font-size:10px;color:#6e6e82">hook</span></div><div class="prod-name">Takomo 101T — Hook A (Worth the Hype?)</div><div class="prod-meta">@ <span>copywriter</span></div></div></div><div class="prod-item"><div class="prod-thumb"><span style="font-size:20px;color:#6e6e82">T</span></div><div class="prod-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:#ff445522;color:#ff4455">Rejected</span><span style="font-size:10px;color:#6e6e82">hero-visual</span></div><div class="prod-name">Takomo 101T — Hero Visual A</div><div class="prod-meta">@ <span>image-gen</span></div></div></div><div class="prod-item"><div class="prod-thumb"><span style="font-size:20px;color:#6e6e82">T</span></div><div class="prod-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:#ffaa0022;color:#ffaa00">Generated</span><span style="font-size:10px;color:#6e6e82">hook</span></div><div class="prod-name">Takomo 101T — Full Production Package</div><div class="prod-meta">@ <span>publisher</span></div></div></div></div><div class="dna-panel"><div class="dna-title">Campaign DNA</div><div class="dna-row"><div class="dna-key">Type</div><div class="dna-value">product-launch</div></div><div class="dna-row"><div class="dna-key">Priority</div><div class="dna-value">high</div></div><div class="dna-row"><div class="dna-key">Owner</div><div class="dna-value">christelle</div></div><div class="dna-row"><div class="dna-key">Status</div><div class="dna-value">active</div></div><div class="dna-row"><div class="dna-key">Mood</div><div class="dna-value">Premium hollow-body iron. Chrome silver. Understated power. Value-driven but not cheap.</div></div></div><div class="dna-panel"><div class="dna-title">Visual Direction</div><div class="dna-row"><div class="dna-key">Mood</div><div class="dna-value">Premium hollow-body iron. Chrome silver. Understated power. Value-driven but not cheap.</div></div><div class="dna-row" style="display:block"><div class="dna-key" style="width:auto;margin-bottom:4px">Creative Direction</div><div class="dna-value" style="font-size:11px">Takomo 101T chrome iron on dark backgrounds. Price transparency is a hook — show the value. Sleek, blade-like aesthetics. Target: serious golfers who do research before buying. Clean product shots with minimal data. The iron should look desirable on its own merits, not needing TrackMan to sell it.</div></div></div><div class="memory-panel"><div class="memory-title">Campaign Memory</div><div class="memory-lesson">For golf clubs and physical products: requiresRealProductImage = true always</div><div class="memory-lesson">AI-generated club heads fail Gate 2 by default</div><div class="memory-lesson">Text must be added as separate design layer — never embedded in generated image</div><div class="memory-lesson">Broken text = automatic quality gate failure</div></div><div id="campaign-brief-section" class="brief-panel"><div class="brief-title">Campaign Brief</div><div class="brief-row"><div class="brief-key">Purpose</div><div class="brief-value">Establish Takomo 101T as the smart golfer\'s iron of choice in SA — premium hollow-body technology at a price that challenges the big brands.</div></div><div class="brief-row"><div class="brief-key">Audience</div><div class="brief-value">Serious golfers, 25-50, mid-to-low handicap. They do their research. They want Tour-level performance without Tour-level prices. They read reviews, compare specs, and buy based on data not branding.</div></div><div class="brief-row"><div class="brief-key">Big Idea</div><div class="brief-value">Takomo 101T: the iron that gets serious golfers arguing — and fitting sessions that settle the argument.</div></div><div class="brief-row"><div class="brief-key">Success Metric</div><div class="brief-value">Takomo fitting sessions booked. Secondary: engagement on Takomo content above TrackMan benchmark. Tertiary: Takomo mentions in bio link clicks.</div></div></div>'; }; window.renderFns["winter-golf"] = function(c) { return '<div class="brief-card" style="background:linear-gradient(135deg,#0d2b1a 0%,#0a1f15 100%);border:1px solid #00cc7733;border-radius:12px;padding:20px;margin-bottom:20px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:#00cc77;text-transform:uppercase">Campaign Brief</div><div style="display:flex;gap:8px"><span style="font-size:10px;padding:3px 10px;border-radius:20px;background:#00cc7722;color:#00cc77;font-weight:600">Medium</span><span style="font-size:10px;padding:3px 10px;border-radius:20px;background:#4488ff22;color:#4488ff;font-weight:600">seasonal</span></div></div><div style="font-size:18px;font-weight:700;margin-bottom:10px">Winter Golf</div><div style="font-size:12px;color:#6e6e82;margin-bottom:16px;line-height:1.5">Keep Swing Shack bookings steady through SA winter by positioning indoor golf as the obvious choice when outdoor courses go cold.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Goal</div><div style="font-size:13px;font-weight:600;color:#00cc77">Custom</div></div><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Success Target</div><div style="font-size:13px;font-weight:600">---</div></div><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Audience</div><div style="font-size:12px">Regular Jo\'burg golfers who stop playing in winter because t</div></div><div><div style="font-size:10px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Platforms</div><div style="font-size:12px">instagram, tiktok, gmb</div></div></div><div style="margin-top:12px;font-size:11px;color:#6e6e82">Primary Offer: <span style="color:#e8e8ed">Winter sessions from R250. Winter package deals available.</span></div></div><div class="card"><div class="card-title">Winter Golf — Campaign Detail</div><div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Campaign Health</div><div class="health-ring"><div class="ring" style="display:inline-block"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="var(--surface2)" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="#00cc77" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="201" stroke-linecap="round" transform="rotate(-90 40 40)"/></svg><div class="ring-center"><div class="ring-number" style="color:#00cc77">0</div><div class="ring-label">healthy</div></div></div><div><div style="font-size:14px;font-weight:700;text-transform:capitalize;color:#00cc77">healthy</div><div style="font-size:12px;color:var(--col-muted);margin-top:4px">Drive indoor golf sessions during SA winter season</div><div style="font-size:11px;color:var(--col-muted);margin-top:4px">Updated 2026-06-02T13:24:44.882Z</div></div></div><div class="grid-3" style="margin-top:12px"><div class="stat-card"><div class="stat-value green">0</div><div class="stat-label" style="color:#00cc77">Published</div></div><div class="stat-card"><div class="stat-value" style="color:#ffaa00">0</div><div class="stat-label" style="color:#ffaa00">In Progress</div></div><div class="stat-card"><div class="stat-value" style="color:#ff4455">0</div><div class="stat-label" style="color:#ff4455">Blocked</div></div></div></div><div class="card"><div class="card-title">Production Assets — 0 total</div><div style="text-align:center;padding:48px;color:#6e6e82">No assets in production</div></div><div class="dna-panel"><div class="dna-title">Campaign DNA</div><div class="dna-row"><div class="dna-key">Type</div><div class="dna-value">seasonal</div></div><div class="dna-row"><div class="dna-key">Priority</div><div class="dna-value">medium</div></div><div class="dna-row"><div class="dna-key">Owner</div><div class="dna-value">christelle</div></div><div class="dna-row"><div class="dna-key">Status</div><div class="dna-value">planned</div></div><div class="dna-row"><div class="dna-key">Mood</div><div class="dna-value">Cozy indoor warmth vs cold outside. Jozi winter contrast. Indoor golf paradise.</div></div></div><div class="dna-panel"><div class="dna-title">Visual Direction</div><div class="dna-row"><div class="dna-key">Mood</div><div class="dna-value">Cozy indoor warmth vs cold outside. Jozi winter contrast. Indoor golf paradise.</div></div><div class="dna-row" style="display:block"><div class="dna-key" style="width:auto;margin-bottom:4px">Creative Direction</div><div class="dna-value" style="font-size:11px">Cold outside, warm inside. The contrast between grey Jo\'burg winter and the warmth, green satisfaction of indoor golf. Pizzas, beers, premium simulators. Social golf atmosphere. NOT about technique or data — about the experience and enjoyment. Think: pub golf meets luxury simulator.</div></div></div><div class="memory-panel"><div class="memory-title">Campaign Memory</div><div style="font-size:12px;color:#6e6e82;padding:6px 0">No lessons recorded yet.</div></div><div id="campaign-brief-section" class="brief-panel"><div class="brief-title">Campaign Brief</div><div class="brief-row"><div class="brief-key">Purpose</div><div class="brief-value">Keep Swing Shack bookings steady through SA winter by positioning indoor golf as the obvious choice when outdoor courses go cold.</div></div><div class="brief-row"><div class="brief-key">Audience</div><div class="brief-value">Regular Jo\'burg golfers who stop playing in winter because their home course gets cold or they travel less. They already have clubs — they just need a reason to keep playing.</div></div><div class="brief-row"><div class="brief-key">Big Idea</div><div class="brief-value">Winter doesn\'t exist in here. (It\'s always 22°C, there\'s food and drinks, and the simulator never closes.)</div></div><div class="brief-row"><div class="brief-key">Success Metric</div><div class="brief-value">Winter session bookings vs prior year. Secondary: winter package upsells. Tertiary: social engagement on contrast-style content.</div></div></div>'; }; 
 document.addEventListener('DOMContentLoaded', initSelector);
 
+
+function openCreateModal() {
+    document.getElementById('createModal').classList.add('active');
+    document.getElementById('f-name').focus();
+}
+function closeCreateModal() {
+    document.getElementById('createModal').classList.remove('active');
+    document.getElementById('createForm').reset();
+    document.getElementById('form-error').style.display = 'none';
+}
+function handleFormSubmit(e) {
+    e.preventDefault();
+    var name = document.getElementById('f-name').value.trim();
+    var ctype = document.getElementById('f-type').value;
+    var goal = document.getElementById('f-goal').value;
+    var stype = document.getElementById('f-source-type').value;
+    if (!name || !ctype || !goal || !stype) {
+        var err = document.getElementById('form-error');
+        if (err) { err.style.display = 'block'; err.textContent = 'Please fill in all required fields (*)'; }
+        return;
+    }
+    // Gate 2: no data writes, no pipeline calls
+    // Show success and close
+    var btn = document.getElementById('btn-submit');
+    btn.textContent = 'Saved (Gate 2 — no write)';
+    btn.style.background = '#4488ff';
+    setTimeout(function() {
+        closeCreateModal();
+        btn.textContent = 'Create Campaign';
+        btn.style.background = '';
+    }, 1500);
+}
+
 </script>
+
+<div class="modal-overlay" id="createModal">
+<div class="modal">
+<div class="modal-title">Create Campaign</div><div id="form-error" style="display:none;color:#ff4455;font-size:12px;margin-bottom:12px;padding:8px;background:rgba(255,68,85,0.1);border-radius:6px"></div>
+<form id="createForm" onsubmit="handleFormSubmit(event)">
+<div class="form-group">
+<label class="form-label">Campaign Name *</label>
+<input type="text" class="form-input" id="f-name" placeholder="e.g. Winter Golf Promotions 2026" required>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">Campaign Type *</label>
+<select class="form-select" id="f-type" required>
+<option value="">Select type...</option>
+<option value="evergreen">Evergreen</option>
+<option value="seasonal">Seasonal</option>
+<option value="product-launch">Product Launch</option>
+<option value="event">Event</option>
+<option value="promo">Promo</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">Campaign Source Type *</label>
+<select class="form-select" id="f-source-type" required>
+<option value="">Select source...</option>
+<option value="Manual">Manual</option>
+<option value="Research Opportunity">Research Opportunity</option>
+<option value="Trend">Trend</option>
+<option value="Seasonal">Seasonal</option>
+<option value="Product Launch">Product Launch</option>
+<option value="Competitor Response">Competitor Response</option>
+<option value="Customer Request">Customer Request</option>
+</select>
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">Campaign Source Reference</label>
+<input type="text" class="form-input" id="f-source-ref" placeholder="e.g. Reddit thread, competitor site, trend report...">
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">Primary Goal *</label>
+<select class="form-select" id="f-goal" required>
+<option value="">Select goal...</option>
+<option value="Bookings">Bookings</option>
+<option value="Leads">Leads</option>
+<option value="Sales">Sales</option>
+<option value="Awareness">Awareness</option>
+<option value="Event Registrations">Event Registrations</option>
+<option value="Memberships">Memberships</option>
+<option value="Reviews">Reviews</option>
+<option value="Website Traffic">Website Traffic</option>
+<option value="Custom">Custom</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">Campaign Priority</label>
+<select class="form-select" id="f-priority">
+<option value="high">High</option>
+<option value="medium" selected>Medium</option>
+<option value="low">Low</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">Platforms</label>
+<select class="form-select" id="f-platforms" multiple style="min-height:80px">
+<option value="instagram" selected>Instagram</option>
+<option value="tiktok">TikTok</option>
+<option value="gmb">Google Business</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">Success Target</label>
+<input type="text" class="form-input" id="f-target" placeholder="e.g. 10 bookings/week">
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">Campaign Duration</label>
+<input type="text" class="form-input" id="f-duration" placeholder="e.g. 8 weeks, 3 months, ongoing">
+</div>
+<div class="form-group">
+<label class="form-label">Target Audience</label>
+<input type="text" class="form-input" id="f-audience" placeholder="e.g. Beginner to intermediate golfers, 25-55, Johannesburg">
+</div>
+<div class="form-group">
+<label class="form-label">Primary Offer / CTA</label>
+<input type="text" class="form-input" id="f-offer" placeholder="e.g. TrackMan Assessment from R900. First session R250.">
+</div>
+<div class="form-group">
+<label class="form-label">Goal Notes</label>
+<textarea class="form-textarea" id="f-notes" placeholder="Refine or expand on the primary goal..."></textarea>
+</div>
+<div class="form-group">
+<label class="form-label">Notes / Context</label>
+<textarea class="form-textarea" id="f-notes-context" placeholder="Any additional context, references, or notes for the campaign..."></textarea>
+</div>
+<div class="form-actions">
+<button type="button" class="btn-secondary" onclick="closeCreateModal()">Cancel</button>
+<button type="submit" class="btn-primary" id="btn-submit">Create Campaign</button>
+</div>
+</form>
+</div>
+</div>
+
 </body>
 </html>
