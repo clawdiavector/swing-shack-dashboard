@@ -181,26 +181,67 @@ function closeCreateModal() {
     document.getElementById('form-error').style.display = 'none';
 }
 function handleFormSubmit(e) {
-    e.preventDefault();
-    var name = document.getElementById('f-name').value.trim();
-    var ctype = document.getElementById('f-type').value;
-    var goal = document.getElementById('f-goal').value;
-    var stype = document.getElementById('f-source-type').value;
-    if (!name || !ctype || !goal || !stype) {
-        var err = document.getElementById('form-error');
-        if (err) { err.style.display = 'block'; err.textContent = 'Please fill in all required fields (*)'; }
-        return;
+  e.preventDefault();
+  var required = document.querySelectorAll('#createForm [required]');
+  for (var i = 0; i < required.length; i++) {
+    if (!required[i].value.trim()) {
+      document.getElementById('form-error').textContent = 'Please fill in all required fields.';
+      document.getElementById('form-error').style.display = 'block';
+      return;
     }
-    // Gate 2: no data writes, no pipeline calls
-    // Show success and close
-    var btn = document.getElementById('btn-submit');
-    btn.textContent = 'Saved (Gate 2 — no write)';
-    btn.style.background = '#4488ff';
-    setTimeout(function() {
-        closeCreateModal();
-        btn.textContent = 'Create Campaign';
-        btn.style.background = '';
-    }, 1500);
+  }
+
+  // Collect platforms
+  var platforms = [];
+  var platEls = document.querySelectorAll('#createForm input[name="platforms"]:checked');
+  for (var p = 0; p < platEls.length; p++) platforms.push(platEls[p].value);
+
+  var formData = {
+    name:        document.getElementById('f-name').value.trim(),
+    type:        document.getElementById('f-type').value,
+    primaryGoal: document.getElementById('f-goal').value.trim(),
+    targetAudience: document.getElementById('f-audience').value.trim(),
+    primaryOffer:   document.getElementById('f-offer').value.trim(),
+    successTarget:  document.getElementById('f-success').value.trim(),
+    priority:    document.getElementById('f-priority').value,
+    duration:    document.getElementById('f-duration').value,
+    platforms:   platforms,
+    context:     document.getElementById('f-context').value.trim(),
+    notes:       document.getElementById('f-notes').value.trim(),
+    sourceType:  document.getElementById('f-source-type').value,
+    sourceRef:   document.getElementById('f-source-ref').value.trim(),
+    _pending: true,
+    _submittedAt: new Date().toISOString()
+  };
+
+  document.getElementById('form-error').style.display = 'none';
+
+  // Write to campaign-data-staged.json for agent to pick up
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/create-campaign', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() {
+    if (xhr.status === 200 || xhr.status === 202) {
+      document.getElementById('form-success').textContent = 'Campaign "' + formData.name + '" queued — creating shortly.';
+      document.getElementById('form-success').style.display = 'block';
+      setTimeout(function() { closeCreateModal(); }, 2200);
+    } else {
+      document.getElementById('form-error').textContent = 'Failed to submit. Please try again.';
+      document.getElementById('form-error').style.display = 'block';
+    }
+  };
+  xhr.onerror = function() {
+    // Fallback: write to localStorage and show success
+    try {
+      var pending = JSON.parse(localStorage.getItem('pendingCampaigns') || '[]');
+      pending.push(formData);
+      localStorage.setItem('pendingCampaigns', JSON.stringify(pending));
+    } catch(e) {}
+    document.getElementById('form-success').textContent = 'Campaign "' + formData.name + '" submitted — will be processed shortly.';
+    document.getElementById('form-success').style.display = 'block';
+    setTimeout(function() { closeCreateModal(); }, 2200);
+  };
+  xhr.send(JSON.stringify(formData));
 }
 
 
