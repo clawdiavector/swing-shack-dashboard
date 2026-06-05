@@ -96,7 +96,8 @@ function main() {
     : 'For ' + (brief.audience || 'target golfers') + '.';
 
   strategy.targetAudience = brief.audience || '';
-  strategy.primaryOffer = brief.primaryOffer || '';
+  // primaryOffer is set by create-campaign.js from formData.primaryOffer (f-offer field).
+  // Preserve it here — do not overwrite.
 
   if (!strategy.pillars || strategy.pillars.length === 0) {
     strategy.pillars = [
@@ -116,9 +117,9 @@ function main() {
     detail: 'Campaign blueprint generated from form inputs. DNA, visualDirection, strategy, and memory initialised.'
   });
 
-  // ── Update campaign ─────────────────────────────────────────────────────
-  campaign.identity.dna = dna;
-  campaign.identity.visualDirection = visualDirection;
+  // ── Update campaign — V2 schema paths ────────────────────────────────
+  campaign.dna = dna;
+  campaign.visualDirection = visualDirection;
   campaign.strategy = strategy;
   campaign.memory = memory;
 
