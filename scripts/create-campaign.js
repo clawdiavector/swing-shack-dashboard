@@ -62,7 +62,8 @@ function main() {
     brief: {
       audience:      formData.targetAudience || '',
       goalNotes:     formData.notes          || '',
-      successTarget: formData.successTarget  || ''
+      successTarget: formData.successTarget  || '',
+      context:       formData.context        || ''
     },
     strategy: {
       primaryOffer:  formData.primaryOffer   || ''
