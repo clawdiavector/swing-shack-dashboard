@@ -706,7 +706,7 @@
         "campaignId": "takomo-winter-iron-upgrade-mq0usgfq",
         "name": "Takomo Winter Iron Upgrade",
         "campaignType": "product-launch",
-        "status": "draft",
+        "status": "generatingBlueprint",
         "primaryGoal": "Bookings",
         "healthScore": null,
         "healthState": "unknown",
@@ -730,21 +730,84 @@
         "successTarget": "20 club fitting bookings"
       },
       "strategy": {
-        "primaryOffer": "Book a Free Assessment"
+        "primaryOffer": "Book a Free Assessment",
+        "positioningStatement": "For Johannesburg golfers considering new irons or questioning whether their current irons still fit their swing. who want to Bookings.",
+        "targetAudience": "Johannesburg golfers considering new irons or questioning whether their current irons still fit their swing.",
+        "pillars": [
+          {
+            "id": "p1",
+            "name": "Value",
+            "description": "What makes this offer compelling"
+          },
+          {
+            "id": "p2",
+            "name": "Proof",
+            "description": "Why Swing Shack is the right choice"
+          },
+          {
+            "id": "p3",
+            "name": "Urgency",
+            "description": "Why act now"
+          }
+        ]
       },
       "assets": {},
-      "dna": {},
-      "visualDirection": {},
+      "dna": {
+        "tone": "Authentic, informative, and persuasive. Matches the voice appropriate for instagram, facebook, gmb audiences.",
+        "contentMix": "40% educational / 30% proof / 20% promotional / 10% social",
+        "requiredContentTypes": [
+          "hook-stats",
+          "hero-visual"
+        ],
+        "preferredVisualStyles": [
+          "data overlay on dark background",
+          "premium equipment photography"
+        ],
+        "ctaPhilosophy": "Lead with value, anchor with price. Include R-amount in every CTA.",
+        "platformStrategy": {
+          "instagram": "Stat-first hook stops the scroll. Visual tells the story. Caption earns the click.",
+          "gmb": "Trust + proof + convenience. Clean, professional, no gimmicks."
+        },
+        "exampleHighPerforming": [],
+        "exampleLowPerforming": [],
+        "forbiddenVisualStyles": [
+          "bright neon backgrounds",
+          "cartoon imagery",
+          "heavily filtered photos"
+        ]
+      },
+      "visualDirection": {
+        "palette": {
+          "primary": "#0066CC",
+          "secondary": "#111118",
+          "accent": "#00CC77",
+          "background": "#0A0A14",
+          "text": "#E8E8F0"
+        },
+        "mood": "Premium, focused, performance-driven.",
+        "creativeDirection": "Content must communicate: Bookings",
+        "imageReferences": [],
+        "colorUsage": "Use primary brand colour as dominant. Accent for CTAs and positive metrics. Keep dark backgrounds.",
+        "typography": "Roboto Condensed Bold for numbers. Inter for body.",
+        "layoutStyle": "Split screen where relevant. Dark backgrounds throughout. Numbers dominate visual hierarchy.",
+        "contentExamples": []
+      },
       "memory": {
-        "notes": []
+        "notes": [
+          {
+            "type": "blueprint-generated",
+            "timestamp": "2026-06-05T11:41:15.655Z",
+            "detail": "Campaign blueprint generated from form inputs. DNA, visualDirection, strategy, and memory initialised."
+          }
+        ]
       },
       "pipeline": {
         "status": "generatingBlueprint",
-        "currentStep": 0,
+        "currentStep": 1,
         "totalSteps": 4,
-        "currentAgent": null
+        "currentAgent": "Scout"
       }
     }
   },
-  "updatedAt": "2026-06-05T11:41:06.999Z"
+  "updatedAt": "2026-06-05T11:41:15.656Z"
 }
