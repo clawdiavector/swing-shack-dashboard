@@ -691,6 +691,11 @@
             "type": "blueprint-generated",
             "timestamp": "2026-06-05T11:31:04.631Z",
             "detail": "Campaign blueprint generated from form inputs. DNA, visualDirection, strategy, and memory initialised."
+          },
+          {
+            "type": "blueprint-generated",
+            "timestamp": "2026-06-05T11:54:18.653Z",
+            "detail": "Campaign blueprint generated from form inputs. DNA, visualDirection, strategy, and memory initialised."
           }
         ]
       },
@@ -854,5 +859,5 @@
       }
     }
   },
-  "updatedAt": "2026-06-05T11:54:16.671Z"
+  "updatedAt": "2026-06-05T11:54:18.653Z"
 }
