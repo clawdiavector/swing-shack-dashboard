@@ -3,7 +3,7 @@
     "name": "Swing Shack Campaign Portfolio",
     "description": "All active and planned marketing campaigns",
     "owner": "christelle",
-    "lastUpdated": "2026-06-03T13:19:02.978Z",
+    "lastUpdated": "2026-06-04T07:26:25.041Z",
     "version": 2
   },
   "activeCampaignId": "trackman-intelligence",
@@ -593,6 +593,51 @@
         ]
       },
       "assets": {}
+    },
+    "takomo-winter-iron-upgrade-mq0udo38": {
+      "identity": {
+        "campaignId": "takomo-winter-iron-upgrade-mq0udo38",
+        "name": "Takomo Winter Iron Upgrade",
+        "campaignType": "product-launch",
+        "status": "draft",
+        "primaryGoal": "Bookings",
+        "healthScore": null,
+        "healthState": "unknown",
+        "priority": "high",
+        "duration": "30 days",
+        "owner": "Christelle",
+        "platforms": [
+          "instagram",
+          "facebook",
+          "gmb"
+        ],
+        "campaignSource": {
+          "type": "Manual",
+          "reference": "takomo-winter-iron-upgrade-mq0udo38",
+          "createdBy": "Christelle"
+        }
+      },
+      "brief": {
+        "audience": "Golfers considering new irons",
+        "goalNotes": "",
+        "successTarget": "20 club fitting bookings"
+      },
+      "strategy": {
+        "primaryOffer": "Free Assessment"
+      },
+      "assets": {},
+      "dna": {},
+      "visualDirection": {},
+      "memory": {
+        "notes": []
+      },
+      "pipeline": {
+        "status": "generatingBlueprint",
+        "currentStep": 0,
+        "totalSteps": 4,
+        "currentAgent": null
+      }
     }
-  }
+  },
+  "updatedAt": "2026-06-05T11:29:37.076Z"
 }
