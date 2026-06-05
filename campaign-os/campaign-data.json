@@ -43,7 +43,7 @@
           "background": "#0A0A14",
           "text": "#E8E8F0"
         },
-        "mood": "Clinical precision. Data权威. TrackMan blue dominance.",
+        "mood": "Clinical precision. Data\u6743\u5a01. TrackMan blue dominance.",
         "creativeDirection": "TrackMan data is the hero. Numbers, charts, launch monitor visuals. Chrome golf clubs on dark backgrounds. PGA Tour stat comparisons. Clean, scientific, premium. Think golf analytics lab meets luxury sports brand.",
         "imageReferences": [
           "TrackMan launch monitor screen with ball flight data",
@@ -51,7 +51,7 @@
           "Golfer swing capture with split-screen stat comparison",
           "Dark background, premium equipment photography"
         ],
-        "colorUsage": "Use TrackMan blue (#0066CC) as dominant brand colour. Green (#00CC77) for positive metrics and CTAs. Gold for pricing. Never use for backgrounds — text only. Keep dark backgrounds consistent.",
+        "colorUsage": "Use TrackMan blue (#0066CC) as dominant brand colour. Green (#00CC77) for positive metrics and CTAs. Gold for pricing. Never use for backgrounds \u2014 text only. Keep dark backgrounds consistent.",
         "typography": "Roboto Condensed Bold for numbers and headlines. Inter for body. Monospace for data labels.",
         "layoutStyle": "Split screen: product/club on left, TrackMan data overlay on right. Dark backgrounds throughout. Numbers should dominate the visual hierarchy.",
         "contentExamples": [
@@ -62,14 +62,14 @@
       },
       "brief": {
         "purpose": "Drive fitting bookings and coaching sessions by proving Swing Shack's TrackMan technology gives golfers data-driven insight their game has been missing.",
-        "audience": "Jozi golfers, 25-50, mid-high handicap. They track their fitness — they want to track their golf. Data-aware, skeptical of voodoo tips, willing to pay for evidence-based improvement.",
+        "audience": "Jozi golfers, 25-50, mid-high handicap. They track their fitness \u2014 they want to track their golf. Data-aware, skeptical of voodoo tips, willing to pay for evidence-based improvement.",
         "bigIdea": "Your swing has a number. TrackMan measures it. That number is the shortcut to better scores.",
         "successMetric": "Fitting sessions booked. Secondary: GMB posts live weekly. Tertiary: engagement rate on stat-hook content above 2.5%.",
         "whatGoodLooksLike": "A hook that stops the scroll with a specific number. A visual that shows TrackMan data overlaid on a club or swing. A caption that earns the click by expanding the data story. Booking link front and centre.",
         "whatBadLooksLike": "Vague transformation claims ('From confused golfer to confident striker'). Busy backgrounds without contrast. Price-led content without data justification. Anything that looks like generic golf marketing."
       },
       "dna": {
-        "tone": "Clinical authority. Data speaks, we just translate it. No hype, no fluff — numbers are the argument. Authoritative but not cold. Expert without being gatekeeping.",
+        "tone": "Clinical authority. Data speaks, we just translate it. No hype, no fluff \u2014 numbers are the argument. Authoritative but not cold. Expert without being gatekeeping.",
         "contentMix": "70% educational (data insights, stats explainers) / 20% promotional (session offers, fitting deals) / 10% social proof (client results, before/after)",
         "requiredContentTypes": [
           "hook-stats",
@@ -97,13 +97,13 @@
         "exampleHighPerforming": [
           {
             "assetId": "hook-a-round1",
-            "whyItWorked": "'Your golf stats don't lie' — specific, implies measurement, triggers curiosity about what the stats reveal. Stats hooks 2.5x better than transformation hooks."
+            "whyItWorked": "'Your golf stats don't lie' \u2014 specific, implies measurement, triggers curiosity about what the stats reveal. Stats hooks 2.5x better than transformation hooks."
           }
         ],
         "exampleLowPerforming": [
           {
             "assetId": "hook-b-round1",
-            "whyItFailed": "'FROM CONFUSED GOLFER TO CONFIDENT STRIKER' — vague, no data anchor. Transformation claims without proof feel empty."
+            "whyItFailed": "'FROM CONFUSED GOLFER TO CONFIDENT STRIKER' \u2014 vague, no data anchor. Transformation claims without proof feel empty."
           }
         ]
       },
@@ -138,17 +138,17 @@
           }
         ],
         "lessonsLearned": [
-          "Stats hooks consistently outperform all other angles — lead with numbers always",
-          "Meters > Yards for SA market — confirmed April 2026",
+          "Stats hooks consistently outperform all other angles \u2014 lead with numbers always",
+          "Meters > Yards for SA market \u2014 confirmed April 2026",
           "Dark background with data overlay looks premium with TrackMan theme",
-          "Caption ≠ Overlay Text — supplementary copy drives click-through, not the hook itself",
-          "Hook A best performer (Round 1) was never re-published — opportunity cost"
+          "Caption \u2260 Overlay Text \u2014 supplementary copy drives click-through, not the hook itself",
+          "Hook A best performer (Round 1) was never re-published \u2014 opportunity cost"
         ],
         "notes": []
       },
       "strategy": {
         "positioningStatement": "For SA golfers who suspect their swing has more potential than their scores show. Data beats guesswork.",
-        "targetAudience": "Jozi golfers, 25-50, mid-high handicap, data-aware. Already tracking fitness — they want to track golf too.",
+        "targetAudience": "Jozi golfers, 25-50, mid-high handicap, data-aware. Already tracking fitness \u2014 they want to track golf too.",
         "primaryOffer": "TrackMan Assessment from R900. First session R250. Bundle R1,400 (save R250)",
         "pillars": [
           {
@@ -205,31 +205,31 @@
           "text": "#F5F5F5"
         },
         "mood": "Premium hollow-body iron. Chrome silver. Understated power. Value-driven but not cheap.",
-        "creativeDirection": "Takomo 101T chrome iron on dark backgrounds. Price transparency is a hook — show the value. Sleek, blade-like aesthetics. Target: serious golfers who do research before buying. Clean product shots with minimal data. The iron should look desirable on its own merits, not needing TrackMan to sell it.",
+        "creativeDirection": "Takomo 101T chrome iron on dark backgrounds. Price transparency is a hook \u2014 show the value. Sleek, blade-like aesthetics. Target: serious golfers who do research before buying. Clean product shots with minimal data. The iron should look desirable on its own merits, not needing TrackMan to sell it.",
         "imageReferences": [
-          "Real Takomo 101T iron head — chrome/silver against black background (real product photography)",
-          "Irons laid out in bag — clean product photography",
+          "Real Takomo 101T iron head \u2014 chrome/silver against black background (real product photography)",
+          "Irons laid out in bag \u2014 clean product photography",
           "Swing Shack fitting session with Takomo irons (real photo)"
         ],
-        "colorUsage": "Chrome/silver primary (#C0C0C0) — the product itself. Gold accent (#FFD700) for price callouts and value messaging only. Black backgrounds (#0D0D0F) for product shots. White text for contrast on dark.",
+        "colorUsage": "Chrome/silver primary (#C0C0C0) \u2014 the product itself. Gold accent (#FFD700) for price callouts and value messaging only. Black backgrounds (#0D0D0F) for product shots. White text for contrast on dark.",
         "typography": "Helvetica Neue Bold for headlines. Clean sans for body. Price callouts in gold, bold.",
-        "layoutStyle": "Product hero: full iron head on pure black. Price callout overlaid in gold. Tagline below. No TrackMan data on product shots — keep it pure product photography.",
+        "layoutStyle": "Product hero: full iron head on pure black. Price callout overlaid in gold. Tagline below. No TrackMan data on product shots \u2014 keep it pure product photography.",
         "contentExamples": [
           "Takomo 101T: Less than $600 for a full set. We put it on TrackMan.",
           "Chrome hollow-body iron. Sub-$600. PGA Tour feel.",
-          "Takomo 101T — the iron that divides serious golfers"
+          "Takomo 101T \u2014 the iron that divides serious golfers"
         ]
       },
       "brief": {
-        "purpose": "Establish Takomo 101T as the smart golfer's iron of choice in SA — premium hollow-body technology at a price that challenges the big brands.",
+        "purpose": "Establish Takomo 101T as the smart golfer's iron of choice in SA \u2014 premium hollow-body technology at a price that challenges the big brands.",
         "audience": "Serious golfers, 25-50, mid-to-low handicap. They do their research. They want Tour-level performance without Tour-level prices. They read reviews, compare specs, and buy based on data not branding.",
-        "bigIdea": "Takomo 101T: the iron that gets serious golfers arguing — and fitting sessions that settle the argument.",
+        "bigIdea": "Takomo 101T: the iron that gets serious golfers arguing \u2014 and fitting sessions that settle the argument.",
         "successMetric": "Takomo fitting sessions booked. Secondary: engagement on Takomo content above TrackMan benchmark. Tertiary: Takomo mentions in bio link clicks.",
-        "whatGoodLooksLike": "A real Takomo iron head on pure black — no AI, no stock photos. A price callout in gold that creates urgency without discounting. A hook that poses a question serious golfers want answered. Copy that respects the reader's intelligence.",
+        "whatGoodLooksLike": "A real Takomo iron head on pure black \u2014 no AI, no stock photos. A price callout in gold that creates urgency without discounting. A hook that poses a question serious golfers want answered. Copy that respects the reader's intelligence.",
         "whatBadLooksLike": "AI-generated club heads that look fake. Broken/garbled text. Price claims without the 'under $600' anchor. Generic golf content that could be any iron. Anything that talks down to the audience."
       },
       "dna": {
-        "tone": "Confident, curious, slightly provocative. The kind of content that makes serious golfers stop and think — then book a fitting to settle the argument. Sharp without being aggressive.",
+        "tone": "Confident, curious, slightly provocative. The kind of content that makes serious golfers stop and think \u2014 then book a fitting to settle the argument. Sharp without being aggressive.",
         "contentMix": "50% product education (what makes Takomo different) / 30% controversy/question angle / 20% value proof (price-to-performance)",
         "requiredContentTypes": [
           "hero-visual",
@@ -243,7 +243,7 @@
           "sleek blade-like aesthetic shots"
         ],
         "forbiddenVisualStyles": [
-          "AI-generated club/product heads (Christelle rule) — real product photography only",
+          "AI-generated club/product heads (Christelle rule) \u2014 real product photography only",
           "busy backgrounds with text overlay without contrast layer",
           "stock golf photos without product context",
           "any image with broken/garbled text"
@@ -279,7 +279,7 @@
         "lessonsLearned": [
           "For golf clubs and physical products: requiresRealProductImage = true always",
           "AI-generated club heads fail Gate 2 by default",
-          "Text must be added as separate design layer — never embedded in generated image",
+          "Text must be added as separate design layer \u2014 never embedded in generated image",
           "Broken text = automatic quality gate failure"
         ],
         "notes": []
@@ -287,12 +287,12 @@
       "strategy": {
         "positioningStatement": "For SA golfers who want Tour-level iron performance without Tour-level pricing. Takomo 101T is the research-backed upgrade.",
         "targetAudience": "Mid-to-low handicap golfers, 25-50, who compare specs before buying. They read Plugged In Golf, Golfalot, Pitchmarks. They want evidence, not marketing.",
-        "primaryOffer": "Takomo 101T Fitting — from R900 (full bag). First session R250.",
+        "primaryOffer": "Takomo 101T Fitting \u2014 from R900 (full bag). First session R250.",
         "pillars": [
           {
             "id": "t1",
             "name": "Value",
-            "description": "Sub-$600 for full set — exceptional price-to-performance"
+            "description": "Sub-$600 for full set \u2014 exceptional price-to-performance"
           },
           {
             "id": "t2",
@@ -310,7 +310,7 @@
         "takomo-101t-research": {
           "assetId": "takomo-101t-research",
           "campaignId": "takomo-101t",
-          "name": "Takomo 101T — Product Research",
+          "name": "Takomo 101T \u2014 Product Research",
           "assetType": "research",
           "status": "published",
           "platform": "instagram,tiktok",
@@ -323,9 +323,9 @@
           "keyFindings": [
             "Premium hollow-body players distance iron",
             "Thinner topline than 101, less offset, narrower sole",
-            "Sleeker chrome heads — blade appearance in bag",
+            "Sleeker chrome heads \u2014 blade appearance in bag",
             "Better sound than predecessor 101",
-            "Sub-$600 full set 4-PW — exceptional value",
+            "Sub-$600 full set 4-PW \u2014 exceptional value",
             "Target: mid-to-scratch golfers seeking distance + forgiveness"
           ],
           "competitivePosition": "Direct comparison: Taylormade P790 vs P770 refinement level. At R250 fitting session, Takomo 101T is the value play that out-performs its price point.",
@@ -334,13 +334,13 @@
               "action": "created",
               "by": "scout",
               "at": "2026-06-02T06:36:56.450780Z",
-              "reason": "Takomo 101T campaign research — sourced from Plugged In Golf, Golfalot, Pitchmarks"
+              "reason": "Takomo 101T campaign research \u2014 sourced from Plugged In Golf, Golfalot, Pitchmarks"
             },
             {
               "action": "published",
               "by": "scout",
               "at": "2026-06-02T06:36:56.450780Z",
-              "reason": "Research complete — key findings extracted and competitive position defined"
+              "reason": "Research complete \u2014 key findings extracted and competitive position defined"
             }
           ],
           "tags": [
@@ -354,14 +354,14 @@
         "takomo-101t-hook-a": {
           "assetId": "takomo-101t-hook-a",
           "campaignId": "takomo-101t",
-          "name": "Takomo 101T — Hook A (Worth the Hype?)",
+          "name": "Takomo 101T \u2014 Hook A (Worth the Hype?)",
           "assetType": "hook",
           "status": "review",
           "platform": "instagram",
           "headline": "TAKOMO 101T: WORTH THE HYPE OR OVERHYPED?",
           "subtext": "Less than $600 for a full set. Hollow-body. 360 unsupported face. We tested it on TrackMan. Here is what we found.",
-          "caption": "Takomo 101T — the iron that gets serious golfers arguing at the 19th hole. Premium hollow-body construction, sleek chrome heads, and a price that makes you question every impulse buy before it. We put it on TrackMan. Book your fitting session at Swing Shack. From R250. Limited assessment slots available. #takomogolf #golfjnb #trackman #clubfitting",
-          "cta": "Book Takomo Fitting — From R250",
+          "caption": "Takomo 101T \u2014 the iron that gets serious golfers arguing at the 19th hole. Premium hollow-body construction, sleek chrome heads, and a price that makes you question every impulse buy before it. We put it on TrackMan. Book your fitting session at Swing Shack. From R250. Limited assessment slots available. #takomogolf #golfjnb #trackman #clubfitting",
+          "cta": "Book Takomo Fitting \u2014 From R250",
           "owner": "copywriter",
           "createdAt": "2026-06-02T06:36:56.450780Z",
           "updatedAt": "2026-06-02T13:24:44.888Z",
@@ -372,7 +372,7 @@
               "action": "generated",
               "by": "copywriter",
               "at": "2026-06-02T06:36:56.450780Z",
-              "reason": "Hook A for Takomo 101T — controversy angle, price transparency hook"
+              "reason": "Hook A for Takomo 101T \u2014 controversy angle, price transparency hook"
             }
           ],
           "tags": [
@@ -385,7 +385,7 @@
         "takomo-101t-visual-a": {
           "assetId": "takomo-101t-visual-a",
           "campaignId": "takomo-101t",
-          "name": "Takomo 101T — Hero Visual A",
+          "name": "Takomo 101T \u2014 Hero Visual A",
           "assetType": "hero-visual",
           "status": "rejected",
           "platform": "instagram",
@@ -403,7 +403,7 @@
               "action": "brief-created",
               "by": "copywriter",
               "at": "2026-06-02T06:36:56.450780Z",
-              "reason": "Visual brief for Takomo 101T hero — dark theme, chrome iron, price transparency"
+              "reason": "Visual brief for Takomo 101T hero \u2014 dark theme, chrome iron, price transparency"
             },
             {
               "action": "generated",
@@ -443,11 +443,11 @@
         "takomo-101t-production": {
           "assetId": "takomo-101t-production",
           "campaignId": "takomo-101t",
-          "name": "Takomo 101T — Full Production Package",
+          "name": "Takomo 101T \u2014 Full Production Package",
           "assetType": "hook",
           "status": "generated",
           "platform": "instagram,tiktok",
-          "caption": "Takomo 101T — the iron that gets serious golfers arguing at the 19th hole. Premium hollow-body construction, sleek chrome heads, and a price that makes you question every impulse buy before it. We put it on TrackMan. Book your fitting session at Swing Shack. From R250. #takomogolf #golfjnb #trackman #clubfitting #jozi",
+          "caption": "Takomo 101T \u2014 the iron that gets serious golfers arguing at the 19th hole. Premium hollow-body construction, sleek chrome heads, and a price that makes you question every impulse buy before it. We put it on TrackMan. Book your fitting session at Swing Shack. From R250. #takomogolf #golfjnb #trackman #clubfitting #jozi",
           "owner": "publisher",
           "createdAt": "2026-06-02T06:36:56.450780Z",
           "updatedAt": "2026-06-02T13:24:44.888Z",
@@ -462,7 +462,7 @@
               "action": "created",
               "by": "publisher",
               "at": "2026-06-02T06:36:56.450780Z",
-              "reason": "Production item created for Takomo 101T full campaign — awaiting visual asset"
+              "reason": "Production item created for Takomo 101T full campaign \u2014 awaiting visual asset"
             }
           ],
           "tags": [
@@ -498,7 +498,7 @@
           "reference": "Manual creation",
           "createdBy": "christelle"
         },
-        "duration": "4 months (Jun–Sep 2026)"
+        "duration": "4 months (Jun\u2013Sep 2026)"
       },
       "visualDirection": {
         "palette": {
@@ -509,32 +509,32 @@
           "text": "#E0F0FF"
         },
         "mood": "Cozy indoor warmth vs cold outside. Jozi winter contrast. Indoor golf paradise.",
-        "creativeDirection": "Cold outside, warm inside. The contrast between grey Jo'burg winter and the warmth, green satisfaction of indoor golf. Pizzas, beers, premium simulators. Social golf atmosphere. NOT about technique or data — about the experience and enjoyment. Think: pub golf meets luxury simulator.",
+        "creativeDirection": "Cold outside, warm inside. The contrast between grey Jo'burg winter and the warmth, green satisfaction of indoor golf. Pizzas, beers, premium simulators. Social golf atmosphere. NOT about technique or data \u2014 about the experience and enjoyment. Think: pub golf meets luxury simulator.",
         "imageReferences": [
           "Simulator screen showing lush course in winter grey context",
           "Cozy indoor setup with warm lighting",
           "Post-round drinks at Swing Shack bar",
           "Rain on window outside, golfer smiling inside"
         ],
-        "colorUsage": "Cool blues for winter theme (#4A90D9). Warm accent for indoor coziness (#D4A574 or warm amber). Never clinical — keep it inviting and social.",
+        "colorUsage": "Cool blues for winter theme (#4A90D9). Warm accent for indoor coziness (#D4A574 or warm amber). Never clinical \u2014 keep it inviting and social.",
         "typography": "Warm, approachable. Bold for contrast headlines. Friendly sans-serif.",
         "layoutStyle": "Split mood: grey/cold outside vs warm/green inside. Social proof. Food and beverage welcome. Not data-heavy.",
         "contentExamples": [
-          "It's 8°C outside. 22°C inside. Your game never stops.",
+          "It's 8\u00b0C outside. 22\u00b0C inside. Your game never stops.",
           "Rain check? How about a round.",
           "Winter doesn't exist in here."
         ]
       },
       "brief": {
         "purpose": "Keep Swing Shack bookings steady through SA winter by positioning indoor golf as the obvious choice when outdoor courses go cold.",
-        "audience": "Regular Jo'burg golfers who stop playing in winter because their home course gets cold or they travel less. They already have clubs — they just need a reason to keep playing.",
-        "bigIdea": "Winter doesn't exist in here. (It's always 22°C, there's food and drinks, and the simulator never closes.)",
+        "audience": "Regular Jo'burg golfers who stop playing in winter because their home course gets cold or they travel less. They already have clubs \u2014 they just need a reason to keep playing.",
+        "bigIdea": "Winter doesn't exist in here. (It's always 22\u00b0C, there's food and drinks, and the simulator never closes.)",
         "successMetric": "Winter session bookings vs prior year. Secondary: winter package upsells. Tertiary: social engagement on contrast-style content.",
-        "whatGoodLooksLike": "A visual that makes you want to be inside — warm lights, green fairways on screen, something cold and grey outside the window. A hook that names the weather or the day. Content that feels like a friend saying 'actually, this is good.'",
+        "whatGoodLooksLike": "A visual that makes you want to be inside \u2014 warm lights, green fairways on screen, something cold and grey outside the window. A hook that names the weather or the day. Content that feels like a friend saying 'actually, this is good.'",
         "whatBadLooksLike": "Clinical data overlays. Golf swing technique photos. Anything that makes indoor golf sound like a chore or a substitute. Content that positions winter as a problem rather than Swing Shack as the answer."
       },
       "dna": {
-        "tone": "Warm, inviting, slightly cheeky. The tone of a friend who knows the best spot in Jo'burg. Not trying to be premium or clinical — just genuinely fun. Think: 'you know what this weather needs? A round.'",
+        "tone": "Warm, inviting, slightly cheeky. The tone of a friend who knows the best spot in Jo'burg. Not trying to be premium or clinical \u2014 just genuinely fun. Think: 'you know what this weather needs? A round.'",
         "contentMix": "40% social proof (look how good it is inside) / 30% contrast/humor (cold vs warm) / 20% practical (sessions available, deals) / 10% lifestyle (food, drinks, atmosphere)",
         "requiredContentTypes": [
           "hook-contrast",
@@ -553,10 +553,10 @@
           "cold blue colour grading on indoor content",
           "anything that makes indoor golf look like a chore"
         ],
-        "ctaPhilosophy": "Casual and low-friction: 'Book a session' not 'Book now — limited slots.' Make it feel like a no-brainer, not a sales push.",
+        "ctaPhilosophy": "Casual and low-friction: 'Book a session' not 'Book now \u2014 limited slots.' Make it feel like a no-brainer, not a sales push.",
         "platformStrategy": {
           "instagram": "Lifestyle-first: food, drinks, simulators, social vibe. Contrast hooks work well. Carousels showing 'inside vs outside' perform.",
-          "tiktok": "'It's [X]°C outside. This is what we did instead.' Fast, relatable, shareable. Show the vibe, not the data.",
+          "tiktok": "'It's [X]\u00b0C outside. This is what we did instead.' Fast, relatable, shareable. Show the vibe, not the data.",
           "gmb": "Seasonal/event posts. 'Winter sessions available.' Warm imagery, social proof. 'Book your winter round.'"
         },
         "exampleHighPerforming": [],
@@ -578,7 +578,7 @@
           {
             "id": "w1",
             "name": "Warmth",
-            "description": "22°C inside, always"
+            "description": "22\u00b0C inside, always"
           },
           {
             "id": "w2",
@@ -588,7 +588,7 @@
           {
             "id": "w3",
             "name": "Social",
-            "description": "Food, drinks, company — make it a round"
+            "description": "Food, drinks, company \u2014 make it a round"
           }
         ]
       },
@@ -727,7 +727,8 @@
       "brief": {
         "audience": "Johannesburg golfers considering new irons or questioning whether their current irons still fit their swing.",
         "goalNotes": "Use Takomo 101T interest to drive winter club fitting bookings.",
-        "successTarget": "20 club fitting bookings"
+        "successTarget": "20 club fitting bookings",
+        "context": "Product-specific campaign. Must use real Takomo imagery or real product photography. No AI-generated club heads."
       },
       "strategy": {
         "primaryOffer": "Book a Free Assessment",
@@ -809,5 +810,5 @@
       }
     }
   },
-  "updatedAt": "2026-06-05T11:41:15.656Z"
+  "updatedAt": "2026-06-05T11:43:00.000Z"
 }
