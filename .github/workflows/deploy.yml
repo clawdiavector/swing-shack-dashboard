@@ -34,6 +34,7 @@ jobs:
             scripts/
             campaign-data-staged.json
             campaign-os/campaign-data.json
+            campaign-os/cockpit-operational.html
             _config.yml
             .github/
           sparse-checkout-cone-mode: false
@@ -55,7 +56,7 @@ jobs:
           FILE_SIZE=$(wc -c < campaign-os/cockpit-operational.html)
           echo "File size: $FILE_SIZE bytes"
 
-          # Check V2 schema - campaigns dict at root
+          # Check V2 schema — campaigns dict at root (double quotes in HTML)
           if grep -q '"campaigns":{' campaign-os/cockpit-operational.html; then
             echo "V2 schema: FOUND"
           else
@@ -63,10 +64,14 @@ jobs:
             exit 1
           fi
 
-          # Check 3 campaigns
+          # Check all campaigns present
           for camp in trackman-intelligence takomo-101t winter-golf; do
             echo -n "$camp: "
-            if grep -q "$camp" campaign-os/cockpit-operational.html; then echo "FOUND"; else echo "MISSING"; fi
+            if grep -q "$camp" campaign-os/cockpit-operational.html; then
+              echo "FOUND"
+            else
+              echo "MISSING"
+            fi
           done
 
           # No undefined values
@@ -76,44 +81,14 @@ jobs:
           # Portfolio JS functions
           for check in showView selectCampaign Updated; do
             echo -n "$check: "
-            if grep -q "$check" campaign-os/cockpit-operational.html; then echo "FOUND"; else echo "MISSING"; fi
+            if grep -q "$check" campaign-os/cockpit-operational.html; then
+              echo "FOUND"
+            else
+              echo "MISSING"
+            fi
           done
 
           # Size check
-          if [ "$FILE_SIZE" -lt 35000 ]; then
-            echo "File too small"
-            exit 1
-          fi
-
-          echo "All checks passed"
-      - name: Verify cockpit has correct data (V2 schema)
-        run: |
-          echo "=== Cockpit Verification (V2) ==="
-          FILE_SIZE=$(wc -c < campaign-os/cockpit-operational.html)
-          echo "File size: $FILE_SIZE bytes"
-
-          if grep -q '"'"'campaigns'"'"':{'"'"' campaign-os/cockpit-operational.html; then
-            echo "V2 schema (campaigns dict): FOUND"
-          else
-            echo "V2 schema: MISSING"
-            exit 1
-          fi
-
-          for camp in trackman-intelligence takomo-101t winter-golf; do
-            if grep -q "$camp" campaign-os/cockpit-operational.html; then
-              echo "$camp: FOUND"
-            fi
-          done
-
-          UNDEF=$(grep -o '"'"'undefined'"'"' campaign-os/cockpit-operational.html | wc -l)
-          echo "undefined count: $UNDEF"
-
-          for check in showView selectCampaign Updated; do
-            if grep -q "$check" campaign-os/cockpit-operational.html; then
-              echo "$check: FOUND"
-            fi
-          done
-
           if [ "$FILE_SIZE" -lt 35000 ]; then
             echo "File too small — incomplete generation"
             exit 1
