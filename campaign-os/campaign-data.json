@@ -700,7 +700,51 @@
         "totalSteps": 4,
         "currentAgent": "Scout"
       }
+    },
+    "takomo-winter-iron-upgrade-mq0usgfq": {
+      "identity": {
+        "campaignId": "takomo-winter-iron-upgrade-mq0usgfq",
+        "name": "Takomo Winter Iron Upgrade",
+        "campaignType": "product-launch",
+        "status": "draft",
+        "primaryGoal": "Bookings",
+        "healthScore": null,
+        "healthState": "unknown",
+        "priority": "high",
+        "duration": "30 days",
+        "owner": "Christelle",
+        "platforms": [
+          "instagram",
+          "facebook",
+          "gmb"
+        ],
+        "campaignSource": {
+          "type": "Manual",
+          "reference": "takomo-winter-iron-upgrade-mq0usgfq",
+          "createdBy": "Christelle"
+        }
+      },
+      "brief": {
+        "audience": "Johannesburg golfers considering new irons or questioning whether their current irons still fit their swing.",
+        "goalNotes": "Use Takomo 101T interest to drive winter club fitting bookings.",
+        "successTarget": "20 club fitting bookings"
+      },
+      "strategy": {
+        "primaryOffer": "Book a Free Assessment"
+      },
+      "assets": {},
+      "dna": {},
+      "visualDirection": {},
+      "memory": {
+        "notes": []
+      },
+      "pipeline": {
+        "status": "generatingBlueprint",
+        "currentStep": 0,
+        "totalSteps": 4,
+        "currentAgent": null
+      }
     }
   },
-  "updatedAt": "2026-06-05T11:31:04.631Z"
+  "updatedAt": "2026-06-05T11:41:06.999Z"
 }
