@@ -30,7 +30,7 @@ function main() {
     return;
   }
 
-  const formData = staged;
+  const formData = staged.formData || staged;
 
   // ── Generate campaignId ──────────────────────────────────────────────────
   const id = formData.name
