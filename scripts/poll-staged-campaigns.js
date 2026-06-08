@@ -127,11 +127,15 @@ function poll() {
 
   if (!createResult.success) {
     log(`create-campaign.js FAILED for "${campaignName}": ${createResult.error}`);
-    staged._ledger.history.unshift({ ...processingEntry, status: 'failed-create' });
-    staged._ledger.lastRun  = { ...processingEntry, status: 'failed-create' };
+    staged._ledger.history.unshift({ ...processingEntry, status: 'failed-create', error: createResult.error });
+    staged._ledger.lastRun  = { ...processingEntry, status: 'failed-create', error: createResult.error };
     staged._pending         = false;
     staged._processing      = false;
     writeStaged(staged);
+    // Surface duplicate/id errors clearly so Christelle knows to change the campaign name
+    if (createResult.error && createResult.error.includes('campaign-id-exists')) {
+      log('ERROR: Campaign name already exists. Christelle should use a different name.');
+    }
     return;
   }
 

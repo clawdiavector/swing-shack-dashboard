@@ -105,6 +105,12 @@ function main() {
     process.exit(1);
   }
 
+  // ── Safety: reject duplicate campaignId ──────────────────────────────
+  if (data.campaigns && data.campaigns[id]) {
+    output({ success: false, error: 'campaign-id-exists: ' + id });
+    process.exit(1);
+  }
+
   if (!data.campaigns) data.campaigns = {};
   data.campaigns[id] = campaign;
   data.updatedAt = new Date().toISOString();
