@@ -96,19 +96,6 @@ jobs:
 
           echo "All checks passed"
 
-      - name: Commit patched cockpit directly to repo
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add campaign-os/cockpit-operational.html
-          if git diff --cached --quiet; then
-            echo "No changes to commit — cockpit already patched"
-          else
-            git commit -m "ci: patch cockpit with latest campaign data [skip ci]"
-            git push origin main
-            echo "Patched cockpit committed to repo"
-          fi
-
       - name: Upload artifact for Pages deployment
         uses: actions/upload-pages-artifact@v3
         with:
