@@ -920,7 +920,51 @@
         "totalSteps": 4,
         "currentAgent": "Scout"
       }
+    },
+    "test-bridge-campaign-mq4tegd4": {
+      "identity": {
+        "campaignId": "test-bridge-campaign-mq4tegd4",
+        "name": "Test Bridge Campaign",
+        "campaignType": "seasonal",
+        "status": "draft",
+        "primaryGoal": "Test bridge functionality",
+        "healthScore": null,
+        "healthState": "unknown",
+        "priority": "medium",
+        "duration": "7 days",
+        "owner": "Christelle",
+        "platforms": [
+          "instagram",
+          "gmb"
+        ],
+        "campaignSource": {
+          "type": "Manual",
+          "reference": "bridge-test",
+          "createdBy": "Christelle"
+        }
+      },
+      "brief": {
+        "audience": "Testing the OpenClaw Agent Bridge",
+        "goalNotes": "Testing the polling bridge",
+        "successTarget": "10 test bookings",
+        "context": "Bridge test — can be deleted"
+      },
+      "strategy": {
+        "primaryOffer": "Test Offer"
+      },
+      "assets": {},
+      "dna": {},
+      "visualDirection": {},
+      "memory": {
+        "notes": []
+      },
+      "pipeline": {
+        "status": "generatingBlueprint",
+        "currentStep": 0,
+        "totalSteps": 4,
+        "currentAgent": null
+      }
     }
   },
-  "updatedAt": "2026-06-05T11:54:28.470Z"
+  "updatedAt": "2026-06-08T06:13:18.809Z"
 }
