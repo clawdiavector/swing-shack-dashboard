@@ -135,16 +135,16 @@ function poll() {
     return;
   }
 
-  const campaignId = createResult.campaignId || (() => {
-    // Fallback: extract from campaign-data.json
-    try {
-      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      const ids  = Object.keys(data.campaigns || {});
-      ids.sort((a, b) => new Date((data.campaigns[b].identity || {}).createdAt || 0)
-                        - new Date((data.campaigns[a].identity || {}).createdAt || 0));
-      return ids[0] || null;
-    } catch { return null; }
-  })();
+  const campaignId = createResult.campaignId;
+  if (!campaignId) {
+    log('FAIL: create-campaign.js returned no campaignId — cannot proceed');
+    staged._ledger.history.unshift({ ...processingEntry, status: 'failed-no-id' });
+    staged._ledger.lastRun  = { ...processingEntry, status: 'failed-no-id' };
+    staged._pending         = false;
+    staged._processing      = false;
+    writeStaged(staged);
+    return;
+  }
 
   processingEntry.campaignId = campaignId;
   log(`Campaign ID: ${campaignId}`);
