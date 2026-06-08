@@ -1,51 +1,36 @@
 {
-  "_pending": false,
-  "_submittedAt": "2026-06-08T06:12:00.000Z",
-  "_ledger": {
-    "history": [
-      {
-        "at": "2026-06-08T06:13:18.767Z",
-        "status": "ok",
-        "campaignName": "Test Bridge Campaign",
-        "submittedAt": "2026-06-08T06:12:00.000Z",
-        "error": null,
-        "scriptOutput": {
-          "createCampaign": "ok",
-          "generateBlueprint": "ok"
-        },
-        "campaignId": "takomo-101t"
-      }
-    ],
-    "lastRun": {
-      "at": "2026-06-08T06:13:18.767Z",
-      "status": "ok",
-      "campaignName": "Test Bridge Campaign",
-      "submittedAt": "2026-06-08T06:12:00.000Z",
-      "error": null,
-      "scriptOutput": {
-        "createCampaign": "ok",
-        "generateBlueprint": "ok"
-      },
-      "campaignId": "takomo-101t"
-    }
-  },
+  "_pending": true,
+  "_submittedAt": "2026-06-08T19:12:00.000Z",
   "formData": {
-    "name": "Test Bridge Campaign",
-    "type": "seasonal",
-    "primaryGoal": "Test bridge functionality",
-    "targetAudience": "Testing the OpenClaw Agent Bridge",
-    "primaryOffer": "Test Offer",
-    "successTarget": "10 test bookings",
-    "priority": "medium",
-    "duration": "7 days",
+    "name": "Use the Right Equipment",
+    "type": "Awareness",
+    "primaryGoal": "Bookings",
+    "targetAudience": "Johannesburg golfers who are using ill-suited clubs, struggling with consistency, or looking to improve their game through better equipment choices.",
+    "primaryOffer": "Book a Practice Session",
+    "successTarget": "30 practice bookings",
+    "priority": "High",
+    "duration": "30 days",
     "platforms": [
       "instagram",
       "gmb"
     ],
-    "context": "Bridge test — can be deleted",
-    "notes": "Testing the polling bridge",
+    "context": "Campaign theme: \"You wouldn't dig a hole with a pool noodle. You wouldn't run a marathon in flip-flops. So why play golf with the wrong clubs?\" Visual direction should compare obviously incorrect tools or equipment with golfers using unsuitable clubs. Focus on education, performance improvement, and the value of proper club selection and fitting.",
+    "notes": "Drive practice session and fitting bookings by educating golfers on the importance of using the correct clubs for their swing, skill level, and playing style. Reinforce that the right equipment leads to better performance, consistency, and enjoyment on the course.",
     "sourceType": "Manual",
-    "sourceRef": "bridge-test"
+    "sourceRef": "Discord operator test"
   },
-  "_processing": false
+  "_processing": true,
+  "_ledger": {
+    "history": [],
+    "lastRun": {
+      "at": "2026-06-08T19:12:53.921Z",
+      "status": "processing",
+      "campaignName": "Use the Right Equipment",
+      "submittedAt": "2026-06-08T19:12:00.000Z",
+      "error": null,
+      "createResult": null,
+      "bpResult": null,
+      "campaignId": null
+    }
+  }
 }
