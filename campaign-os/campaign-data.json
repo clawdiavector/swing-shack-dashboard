@@ -621,58 +621,55 @@
         "pillars": [
           {
             "id": "p1",
-            "name": "The Absurdity Parallel \u2014 obvious wrong tools make wrong clubs undeniable",
-            "description": "Owns the initial hook that grabs attention through humor and recognition. Uses obviously ridiculous equipment comparisons to create cognitive dissonance \u2014 if it's absurd to use the wrong tool there, why accept wrong clubs here? This pillar creates shareability and initial awareness."
+            "name": "The Absurd Mirror \u2014 See Yourself in the Wrong Tool",
+            "description": "Owns the cognitive dissonance moment. Uses absurd comparisons (pool noodle for digging, flip-flops for marathon) to make golfers laugh, then wince, because they recognize their own equipment struggles. This pillar creates the 'aha' that the problem might be the tool, not the golfer."
           },
           {
             "id": "p2",
-            "name": "The Silent Struggle \u2014 how wrong equipment manifests in your game",
-            "description": "Owns connecting abstract equipment concepts to tangible player pain. Shows how wrong clubs show up as inconsistent contact, lost distance, wayward accuracy \u2014 the frustrations every golfer experiences but may not attribute to equipment. This pillar makes the problem personal and relatable."
+            "name": "The Hidden Struggle \u2014 What Wrong Clubs Actually Cost You",
+            "description": "Owns the emotional pain point. Shows specific consequences of ill-suited equipment: topped shots, slice that won't quit, distance loss, round after round of frustration. Validates the golfer's experience before offering solutions. Makes them feel seen, not judged."
           },
           {
             "id": "p3",
-            "name": "The Science of Fit \u2014 why equipment matters for YOUR swing",
-            "description": "Owns the educational moment \u2014 explaining shaft flex, clubhead speed matching, loft considerations, and grip size in accessible terms. Positions fitting as the solution to the problem established in pillars 1-2. Makes the complex feel approachable and the investment feel justified."
+            "name": "The Science of Fit \u2014 Why Equipment Matching Actually Works",
+            "description": "Owns the education layer. Breaks down shaft flex, clubhead speed, loft matching, grip size \u2014 in digestible content. Positions fitting as a science, not a luxury. Builds credibility and removes 'is this worth it?' objections from Johannesburg golfers."
           },
           {
             "id": "p4",
-            "name": "The Johannesburg Proof \u2014 local transformation stories and results",
-            "description": "Owns credibility through local social proof. Features Johannesburg golfers' before/after journeys, specific improvements in their games, and authentic testimonials about how proper fitting changed their relationship with golf. Makes the solution feel achievable and locally relevant."
+            "name": "Local Proof \u2014 Joburg Golfers Who Fixed It",
+            "description": "Owns social proof and trust. Features real Johannesburg golfers (or recognizable local courses) sharing their transformation after proper fitting. Real names, real scores, real quotes. Makes the solution feel achievable and local, not some distant pro-level service."
           },
           {
             "id": "p5",
-            "name": "The Right Now Action \u2014 practice sessions and fitting booking",
-            "description": "Owns the conversion moment. Directly connects awareness and education to the primary offer: booking a practice session that includes equipment assessment. Makes booking feel like the obvious, natural conclusion to everything the golfer has just learned and recognized."
+            "name": "The Invitation \u2014 Book Your Practice Session",
+            "description": "Owns the conversion moment. Every piece of content in pillars 1-4 leads here. CTAs feel like relief, not pressure. Frames practice sessions and fittings as the obvious next step for anyone who's watched pillars 1-4. The booking CTA is the exhale after the tension."
           }
         ]
       },
       "assets": {},
       "dna": {
-        "tone": "Friendly confrontational \u2014 it gently shames you into awareness with undeniable common sense, then offers the obvious solution like a knowledgeable friend who cares",
-        "contentMix": "35% absurd comparison content / 30% educational awareness / 20% solution revelation / 15% social proof and CTA",
+        "tone": "A knowing mate tapping you on the shoulder mid-round, saying 'bro, is that club even yours?' \u2014 sharp, slightly uncomfortable, then immediately helpful and empowering.",
+        "contentMix": "35% Absurd Comparison Reels / 30% Swing Truth Educational / 20% Transformation Proof / 15% Booking CTAs",
         "requiredContentTypes": [
-          "comparison visual",
-          "educational carousel",
-          "transformation story",
-          "fitting showcase"
+          "side-by-side comparison video",
+          "before-after swing analysis",
+          "fitting testimonials"
         ],
         "preferredVisualStyles": [
-          "split-screen contrast",
-          "before-after dynamic",
-          "dramatic lighting on equipment",
-          "humor-tinged realism"
+          "cinematic golf course drone shots",
+          "studio macro club details",
+          "real golfer candid moments"
         ],
         "forbiddenVisualStyles": [
-          "generic stock golf imagery",
-          "muted pastel palettes",
-          "overly polished commercial aesthetics",
-          "serious clinical documentation"
+          "generic stock golf photos",
+          "cartoon illustrations",
+          "low-light blurry phone footage"
         ],
-        "ctaPhilosophy": "The CTA should feel like the natural, inevitable next step after recognizing the problem \u2014 not pushy but obvious. 'Get Your Clubs Matched' rather than 'Book Now.'",
+        "ctaPhilosophy": "CTAs feel like an invitation to stop suffering, not a hard sell. 'Fix This. Book Your Fitting' \u2014 urgent but empathetic, acknowledging they've been struggling.",
         "platformStrategy": {
-          "instagram": "Use Reels for absurd comparison hook, Carousels for educational depth, Stories for behind-the-scenes fitting moments. Lead with the visual tension, resolve with expertise.",
-          "tiktok": "N/A for this campaign",
-          "gmb": "Feature fitting services prominently, use posts to educate on equipment importance, highlight customer transformations and service expertise in updates"
+          "instagram": "Carousel posts showing absurd comparisons on feed, Reels with split-screen demos, Stories with polling 'Which club would YOU use?' to drive DMs for fitting inquiries.",
+          "tiktok": "Hook with the absurd comparison in first 0.5s, show the wrong equipment causing bad shots, reveal the right equipment fitting as the solution, end with booking CTA overlay.",
+          "gmb": "Service post highlighting club fitting as the solution to consistency struggles, pinned testimonial from local Johannesburg golfer about distance improvement post-fitting."
         },
         "exampleHighPerforming": [],
         "exampleLowPerforming": []
@@ -680,25 +677,25 @@
       "visualDirection": {
         "palette": {
           "primary": "#FF6B35",
-          "secondary": "#1A1A1D",
-          "accent": "#D4AF37",
+          "secondary": "#D4AF37",
+          "accent": "#FF6B35",
           "background": "#0D0D0F",
           "text": "#FFFFFF"
         },
-        "mood": "Provocative clarity \u2014 the moment of recognition when something obviously wrong suddenly makes perfect sense",
-        "creativeDirection": "Visuals should juxtapose outrageously unsuitable equipment situations (person trying to hammer a nail with a tennis racket, golfer using a pool skimmer as a putter) against relatable golf scenarios where wrong clubs are quietly sabotaging performance. The contrast between the obviously absurd and the quietly accepted creates cognitive tension. Dark, focused backgrounds make the orange urgency and gold solution moments land with impact. Equipment should be shown with dramatic side-lighting that reveals their characteristics \u2014 loft, lie, shaft flex \u2014 as if they're characters in the story.",
+        "mood": "Midnight revelation meets early morning driving range clarity \u2014 dramatic then enlightening.",
+        "creativeDirection": "Open on a golfer trying to chip out of a bunker with a putter. Cut to a construction worker using a tennis racket to hammer nails. The contrast is absurd, familiar, and uncomfortable \u2014 because golfers KNOW this feeling when their 7-iron goes left. Then shift: same golfer, properly fitted clubs, clean contact, gold light breaking through. The dark background makes the orange urgency pop, while gold accents mark the 'now you see it' moment of clarity. Every frame asks: 'Is your equipment actually yours?'",
         "imageReferences": [
-          "split-screen: person running marathon in high heels vs golfer with clubs 3 degrees too upright",
-          "dramatic product shot: wrong flex shaft dramatically bending on impact vs correct shaft through the ball",
-          "lifestyle contrast: frustrated golfer shanking into trees with visual tension lines vs same golfer flush-striking with properly fitted clubs"
+          "side-by-side: golfer hitting fat shots with wrong-shaft driver beside chef trying to stir soup with a tennis racquet",
+          "studio macro: grip pressure on mismatched club vs perfectly fitted grip, hands only, high contrast",
+          "transformation: Johannesburg golfer mid-swing at Royal Johannesburg, golden hour light, correctly fitted clubs in focus"
         ],
-        "colorUsage": "The dark background #0D0D0F creates a theatrical stage where the absurdity plays out \u2014 it's serious enough to make you think but dramatic enough to be shareable. The warm orange #FF6B35 functions as visual urgency and the 'alarm' that says 'this is wrong' \u2014 it's the colour of the problem. Gold #D4AF37 appears ONLY when revealing the solution or showing properly fitted equipment in its moment of glory \u2014 it's the reward colour that signals 'this is right, this is what you need.' White text ensures maximum readability on dark backgrounds while maintaining the premium, confident tone.",
-        "typography": "Bold, confident sans-serif for headlines that state the obvious absurdities \u2014 punchy and declarative. Clean, readable body copy in lighter weights for educational content. The contrast between bold statement headlines and accessible explanation copy mirrors the campaign's logic: obvious problem, nuanced solution.",
-        "layoutStyle": "Split-screen compositions for comparisons work best \u2014 they force the viewer to confront the parallel. Carousel layouts should build argumentatively: Absurd hook on slide 1, relatable struggle on slide 2, education on slide 3, solution reveal on slide 4. Leave breathing room \u2014 the darkness is part of the design, not empty space.",
+        "colorUsage": "The dark #0D0D0F background creates theatre \u2014 it's where the problem lives, where the golfer feels stuck. Warm orange #FF6B35 isn't just brand colour; it signals 'this is urgent, your game is on fire.' Gold #D4AF37 only appears at the solution moment \u2014 when fitted clubs appear, when shots connect clean. The palette itself tells the story: darkness to urgency to gold. Using gold anywhere else dilutes the payoff.",
+        "typography": "Bold, condensed sans-serif for headlines \u2014 feels like a coach's direct instruction. Body text should be clean and readable, not playful. The contrast between punchy headlines and calm supporting copy mirrors the campaign's tension: problem is loud, solution is clear.",
+        "layoutStyle": "Split-screen dominates. Left side: the problem (wrong equipment, bad shots, frustration). Right side: the answer (right equipment, clean contact, relief). Always 50/50 visual weight until the final frame, where gold bleeds across to signal the shift. Vertical video native on Reels and TikTok, square carousels for feed. GMB uses single strong image with text overlay, no splits.",
         "contentExamples": [
-          "Reel: 'You wouldn't shovel snow with a pitchfork...' transitioning to golfer struggling with wrong flex shaft",
-          "Carousel: '5 signs your clubs are holding you back' \u2014 educational awareness pillar",
-          "Post: Before/after swing analysis showing improvement after fitting \u2014 transformation proof"
+          "Reel: 'You brought a spoon to a knife fight. That's what using a stiff-shaft driver with a 75mph swing feels like. Book fitting link in bio.'",
+          "Carousel: Slide 1 \u2014 Golfer shanking with wrong clubs. Slide 2 \u2014 Golfer celebrating clean iron strike. Slide 3 \u2014 'Same golfer. Right equipment. Book your session.'",
+          "GMB Post: 'Still topping your 7-iron? Your swing isn't the problem \u2014 your clubs might be. We fit Johannesburg golfers to equipment that matches their actual game.'"
         ]
       },
       "memory": {
@@ -1086,9 +1083,9 @@
           },
           {
             "type": "blueprint-generated",
-            "timestamp": "2026-06-08T22:22:57.784264+00:00",
+            "timestamp": "2026-06-08T22:23:01.040622+00:00",
             "version": 61,
-            "detail": "Blueprint v61 generated via MiniMax-M2.7. 5 pillars. Tone: Friendly confrontational \u2014 it gently sha | Pillars: The Absurdity Parallel / The Silent Struggle / The Science of Fit"
+            "detail": "Blueprint v61 generated via MiniMax-M2.7. 5 pillars. Tone: A knowing mate tapping you on the should | Pillars: The Absurd Mirror / The Hidden Struggle / The Science of Fit"
           }
         ],
         "blueprintHistory": [
@@ -6638,35 +6635,32 @@
       },
       "blueprint": {
         "blueprintVersion": 61,
-        "generatedAt": "2026-06-08T22:22:57.784264+00:00",
+        "generatedAt": "2026-06-08T22:23:01.040622+00:00",
         "modelUsed": "MiniMax-M2.7",
         "active": true,
         "dna": {
-          "tone": "Friendly confrontational \u2014 it gently shames you into awareness with undeniable common sense, then offers the obvious solution like a knowledgeable friend who cares",
-          "contentMix": "35% absurd comparison content / 30% educational awareness / 20% solution revelation / 15% social proof and CTA",
+          "tone": "A knowing mate tapping you on the shoulder mid-round, saying 'bro, is that club even yours?' \u2014 sharp, slightly uncomfortable, then immediately helpful and empowering.",
+          "contentMix": "35% Absurd Comparison Reels / 30% Swing Truth Educational / 20% Transformation Proof / 15% Booking CTAs",
           "requiredContentTypes": [
-            "comparison visual",
-            "educational carousel",
-            "transformation story",
-            "fitting showcase"
+            "side-by-side comparison video",
+            "before-after swing analysis",
+            "fitting testimonials"
           ],
           "preferredVisualStyles": [
-            "split-screen contrast",
-            "before-after dynamic",
-            "dramatic lighting on equipment",
-            "humor-tinged realism"
+            "cinematic golf course drone shots",
+            "studio macro club details",
+            "real golfer candid moments"
           ],
           "forbiddenVisualStyles": [
-            "generic stock golf imagery",
-            "muted pastel palettes",
-            "overly polished commercial aesthetics",
-            "serious clinical documentation"
+            "generic stock golf photos",
+            "cartoon illustrations",
+            "low-light blurry phone footage"
           ],
-          "ctaPhilosophy": "The CTA should feel like the natural, inevitable next step after recognizing the problem \u2014 not pushy but obvious. 'Get Your Clubs Matched' rather than 'Book Now.'",
+          "ctaPhilosophy": "CTAs feel like an invitation to stop suffering, not a hard sell. 'Fix This. Book Your Fitting' \u2014 urgent but empathetic, acknowledging they've been struggling.",
           "platformStrategy": {
-            "instagram": "Use Reels for absurd comparison hook, Carousels for educational depth, Stories for behind-the-scenes fitting moments. Lead with the visual tension, resolve with expertise.",
-            "tiktok": "N/A for this campaign",
-            "gmb": "Feature fitting services prominently, use posts to educate on equipment importance, highlight customer transformations and service expertise in updates"
+            "instagram": "Carousel posts showing absurd comparisons on feed, Reels with split-screen demos, Stories with polling 'Which club would YOU use?' to drive DMs for fitting inquiries.",
+            "tiktok": "Hook with the absurd comparison in first 0.5s, show the wrong equipment causing bad shots, reveal the right equipment fitting as the solution, end with booking CTA overlay.",
+            "gmb": "Service post highlighting club fitting as the solution to consistency struggles, pinned testimonial from local Johannesburg golfer about distance improvement post-fitting."
           },
           "exampleHighPerforming": [],
           "exampleLowPerforming": []
@@ -6674,60 +6668,60 @@
         "visualDirection": {
           "palette": {
             "primary": "#FF6B35",
-            "secondary": "#1A1A1D",
-            "accent": "#D4AF37",
+            "secondary": "#D4AF37",
+            "accent": "#FF6B35",
             "background": "#0D0D0F",
             "text": "#FFFFFF"
           },
-          "mood": "Provocative clarity \u2014 the moment of recognition when something obviously wrong suddenly makes perfect sense",
-          "creativeDirection": "Visuals should juxtapose outrageously unsuitable equipment situations (person trying to hammer a nail with a tennis racket, golfer using a pool skimmer as a putter) against relatable golf scenarios where wrong clubs are quietly sabotaging performance. The contrast between the obviously absurd and the quietly accepted creates cognitive tension. Dark, focused backgrounds make the orange urgency and gold solution moments land with impact. Equipment should be shown with dramatic side-lighting that reveals their characteristics \u2014 loft, lie, shaft flex \u2014 as if they're characters in the story.",
+          "mood": "Midnight revelation meets early morning driving range clarity \u2014 dramatic then enlightening.",
+          "creativeDirection": "Open on a golfer trying to chip out of a bunker with a putter. Cut to a construction worker using a tennis racket to hammer nails. The contrast is absurd, familiar, and uncomfortable \u2014 because golfers KNOW this feeling when their 7-iron goes left. Then shift: same golfer, properly fitted clubs, clean contact, gold light breaking through. The dark background makes the orange urgency pop, while gold accents mark the 'now you see it' moment of clarity. Every frame asks: 'Is your equipment actually yours?'",
           "imageReferences": [
-            "split-screen: person running marathon in high heels vs golfer with clubs 3 degrees too upright",
-            "dramatic product shot: wrong flex shaft dramatically bending on impact vs correct shaft through the ball",
-            "lifestyle contrast: frustrated golfer shanking into trees with visual tension lines vs same golfer flush-striking with properly fitted clubs"
+            "side-by-side: golfer hitting fat shots with wrong-shaft driver beside chef trying to stir soup with a tennis racquet",
+            "studio macro: grip pressure on mismatched club vs perfectly fitted grip, hands only, high contrast",
+            "transformation: Johannesburg golfer mid-swing at Royal Johannesburg, golden hour light, correctly fitted clubs in focus"
           ],
-          "colorUsage": "The dark background #0D0D0F creates a theatrical stage where the absurdity plays out \u2014 it's serious enough to make you think but dramatic enough to be shareable. The warm orange #FF6B35 functions as visual urgency and the 'alarm' that says 'this is wrong' \u2014 it's the colour of the problem. Gold #D4AF37 appears ONLY when revealing the solution or showing properly fitted equipment in its moment of glory \u2014 it's the reward colour that signals 'this is right, this is what you need.' White text ensures maximum readability on dark backgrounds while maintaining the premium, confident tone.",
-          "typography": "Bold, confident sans-serif for headlines that state the obvious absurdities \u2014 punchy and declarative. Clean, readable body copy in lighter weights for educational content. The contrast between bold statement headlines and accessible explanation copy mirrors the campaign's logic: obvious problem, nuanced solution.",
-          "layoutStyle": "Split-screen compositions for comparisons work best \u2014 they force the viewer to confront the parallel. Carousel layouts should build argumentatively: Absurd hook on slide 1, relatable struggle on slide 2, education on slide 3, solution reveal on slide 4. Leave breathing room \u2014 the darkness is part of the design, not empty space.",
+          "colorUsage": "The dark #0D0D0F background creates theatre \u2014 it's where the problem lives, where the golfer feels stuck. Warm orange #FF6B35 isn't just brand colour; it signals 'this is urgent, your game is on fire.' Gold #D4AF37 only appears at the solution moment \u2014 when fitted clubs appear, when shots connect clean. The palette itself tells the story: darkness to urgency to gold. Using gold anywhere else dilutes the payoff.",
+          "typography": "Bold, condensed sans-serif for headlines \u2014 feels like a coach's direct instruction. Body text should be clean and readable, not playful. The contrast between punchy headlines and calm supporting copy mirrors the campaign's tension: problem is loud, solution is clear.",
+          "layoutStyle": "Split-screen dominates. Left side: the problem (wrong equipment, bad shots, frustration). Right side: the answer (right equipment, clean contact, relief). Always 50/50 visual weight until the final frame, where gold bleeds across to signal the shift. Vertical video native on Reels and TikTok, square carousels for feed. GMB uses single strong image with text overlay, no splits.",
           "contentExamples": [
-            "Reel: 'You wouldn't shovel snow with a pitchfork...' transitioning to golfer struggling with wrong flex shaft",
-            "Carousel: '5 signs your clubs are holding you back' \u2014 educational awareness pillar",
-            "Post: Before/after swing analysis showing improvement after fitting \u2014 transformation proof"
+            "Reel: 'You brought a spoon to a knife fight. That's what using a stiff-shaft driver with a 75mph swing feels like. Book fitting link in bio.'",
+            "Carousel: Slide 1 \u2014 Golfer shanking with wrong clubs. Slide 2 \u2014 Golfer celebrating clean iron strike. Slide 3 \u2014 'Same golfer. Right equipment. Book your session.'",
+            "GMB Post: 'Still topping your 7-iron? Your swing isn't the problem \u2014 your clubs might be. We fit Johannesburg golfers to equipment that matches their actual game.'"
           ]
         },
         "pillars": [
           {
             "id": "p1",
-            "name": "The Absurdity Parallel \u2014 obvious wrong tools make wrong clubs undeniable",
-            "description": "Owns the initial hook that grabs attention through humor and recognition. Uses obviously ridiculous equipment comparisons to create cognitive dissonance \u2014 if it's absurd to use the wrong tool there, why accept wrong clubs here? This pillar creates shareability and initial awareness."
+            "name": "The Absurd Mirror \u2014 See Yourself in the Wrong Tool",
+            "description": "Owns the cognitive dissonance moment. Uses absurd comparisons (pool noodle for digging, flip-flops for marathon) to make golfers laugh, then wince, because they recognize their own equipment struggles. This pillar creates the 'aha' that the problem might be the tool, not the golfer."
           },
           {
             "id": "p2",
-            "name": "The Silent Struggle \u2014 how wrong equipment manifests in your game",
-            "description": "Owns connecting abstract equipment concepts to tangible player pain. Shows how wrong clubs show up as inconsistent contact, lost distance, wayward accuracy \u2014 the frustrations every golfer experiences but may not attribute to equipment. This pillar makes the problem personal and relatable."
+            "name": "The Hidden Struggle \u2014 What Wrong Clubs Actually Cost You",
+            "description": "Owns the emotional pain point. Shows specific consequences of ill-suited equipment: topped shots, slice that won't quit, distance loss, round after round of frustration. Validates the golfer's experience before offering solutions. Makes them feel seen, not judged."
           },
           {
             "id": "p3",
-            "name": "The Science of Fit \u2014 why equipment matters for YOUR swing",
-            "description": "Owns the educational moment \u2014 explaining shaft flex, clubhead speed matching, loft considerations, and grip size in accessible terms. Positions fitting as the solution to the problem established in pillars 1-2. Makes the complex feel approachable and the investment feel justified."
+            "name": "The Science of Fit \u2014 Why Equipment Matching Actually Works",
+            "description": "Owns the education layer. Breaks down shaft flex, clubhead speed, loft matching, grip size \u2014 in digestible content. Positions fitting as a science, not a luxury. Builds credibility and removes 'is this worth it?' objections from Johannesburg golfers."
           },
           {
             "id": "p4",
-            "name": "The Johannesburg Proof \u2014 local transformation stories and results",
-            "description": "Owns credibility through local social proof. Features Johannesburg golfers' before/after journeys, specific improvements in their games, and authentic testimonials about how proper fitting changed their relationship with golf. Makes the solution feel achievable and locally relevant."
+            "name": "Local Proof \u2014 Joburg Golfers Who Fixed It",
+            "description": "Owns social proof and trust. Features real Johannesburg golfers (or recognizable local courses) sharing their transformation after proper fitting. Real names, real scores, real quotes. Makes the solution feel achievable and local, not some distant pro-level service."
           },
           {
             "id": "p5",
-            "name": "The Right Now Action \u2014 practice sessions and fitting booking",
-            "description": "Owns the conversion moment. Directly connects awareness and education to the primary offer: booking a practice session that includes equipment assessment. Makes booking feel like the obvious, natural conclusion to everything the golfer has just learned and recognized."
+            "name": "The Invitation \u2014 Book Your Practice Session",
+            "description": "Owns the conversion moment. Every piece of content in pillars 1-4 leads here. CTAs feel like relief, not pressure. Frames practice sessions and fittings as the obvious next step for anyone who's watched pillars 1-4. The booking CTA is the exhale after the tension."
           }
         ],
-        "diffSummary": "Tone: Friendly confrontational \u2014 it gently sha | Pillars: The Absurdity Parallel / The Silent Struggle / The Science of Fit"
+        "diffSummary": "Tone: A knowing mate tapping you on the should | Pillars: The Absurd Mirror / The Hidden Struggle / The Science of Fit"
       },
       "blueprintVersion": 61,
-      "generatedAt": "2026-06-08T22:22:57.784264+00:00",
+      "generatedAt": "2026-06-08T22:23:01.040622+00:00",
       "modelUsed": "MiniMax-M2.7"
     }
   },
-  "updatedAt": "2026-06-08T22:22:57.784264+00:00"
+  "updatedAt": "2026-06-08T22:23:01.040622+00:00"
 }
