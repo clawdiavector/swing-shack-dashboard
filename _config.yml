@@ -24,8 +24,7 @@ exclude:
   - "package*.json"
   - "node_modules/**"
   - "vendor/**"
-  - "campaign-os/cockpit-operational.html"
 
-# Preserve the dynamically-patched cockpit — Jekyll shouldn't touch it
+# Preserve the patched cockpit — Jekyll processes it but output goes to _site
 keepfiles:
   - "campaign-os/cockpit-operational.html"

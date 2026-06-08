@@ -12,8 +12,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_FILE = path.join(process.cwd(), 'campaign-os/campaign-data.json');
-const BACKUP_FILE = path.join(process.cwd(), 'campaign-os/campaign-data.v1.backup.json');
+const DATA_FILE = '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/campaign-os/campaign-data.json';
+const BACKUP_FILE = '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/campaign-os/campaign-data.v1.backup.json';
 
 // ─── CAMPAIGN DNA + MEMORY + BRIEF TEMPLATES ───────────────────────────────────
 

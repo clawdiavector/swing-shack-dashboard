@@ -1,1 +1,51 @@
-{}
+{
+  "_pending": false,
+  "_submittedAt": "2026-06-08T06:12:00.000Z",
+  "_ledger": {
+    "history": [
+      {
+        "at": "2026-06-08T06:13:18.767Z",
+        "status": "ok",
+        "campaignName": "Test Bridge Campaign",
+        "submittedAt": "2026-06-08T06:12:00.000Z",
+        "error": null,
+        "scriptOutput": {
+          "createCampaign": "ok",
+          "generateBlueprint": "ok"
+        },
+        "campaignId": "takomo-101t"
+      }
+    ],
+    "lastRun": {
+      "at": "2026-06-08T06:13:18.767Z",
+      "status": "ok",
+      "campaignName": "Test Bridge Campaign",
+      "submittedAt": "2026-06-08T06:12:00.000Z",
+      "error": null,
+      "scriptOutput": {
+        "createCampaign": "ok",
+        "generateBlueprint": "ok"
+      },
+      "campaignId": "takomo-101t"
+    }
+  },
+  "formData": {
+    "name": "Test Bridge Campaign",
+    "type": "seasonal",
+    "primaryGoal": "Test bridge functionality",
+    "targetAudience": "Testing the OpenClaw Agent Bridge",
+    "primaryOffer": "Test Offer",
+    "successTarget": "10 test bookings",
+    "priority": "medium",
+    "duration": "7 days",
+    "platforms": [
+      "instagram",
+      "gmb"
+    ],
+    "context": "Bridge test — can be deleted",
+    "notes": "Testing the polling bridge",
+    "sourceType": "Manual",
+    "sourceRef": "bridge-test"
+  },
+  "_processing": false
+}
