@@ -2,14 +2,11 @@
  * CampaignOS Blueprint API Server
  * Handles Accept/Regenerate actions for the cockpit UI.
  * 
- * Runs on port 3456. Call from cockpit (browser) via fetch().
- * 
- * POST /api/bp-accept      { campaignId }
- * POST /api/bp-regenerate  { campaignId }
- * GET  /api/bp-status/:id
+ * Usage: node server.js
+ * Runs on http://localhost:3456
  */
 const http = require('http');
-const { execSync, spawn } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
 
 const PORT = 3456;
@@ -34,16 +31,19 @@ function runBlueprint(scriptArgs) {
   return new Promise((resolve, reject) => {
     const pid = spawn('python3', [SCRIPT, ...scriptArgs], {
       cwd: REPO,
-      env: { ...process.env, PYTHONIOENCODING: 'utf8' }
+      stdio: ['ignore', 'pipe', 'pipe']
     });
     let stdout = '';
     let stderr = '';
-    pid.stdout.on('data', d => stdout += d);
-    pid.stderr.on('data', d => stderr += d);
+    pid.stdout.on('data', d => { stdout += d.toString(); });
+    pid.stderr.on('data', d => { stderr += d.toString(); });
+    pid.on('error', e => reject(e));
     pid.on('close', code => {
       if (code === 0) resolve(stdout.trim());
-      else reject(new Error(stderr || `exit code ${code}: ${stdout}`));
+      else reject(new Error(stderr.trim() || `exit code ${code}`));
     });
+    // Timeout after 120 seconds
+    setTimeout(() => { try { pid.kill(); } catch(e){} reject(new Error('timeout')); }, 120000);
   });
 }
 
@@ -133,6 +133,7 @@ const server = http.createServer(async (req, res) => {
   res.end('Not found');
 });
 
+server.on('error', e => console.error('Server error:', e));
 server.listen(PORT, () => {
   console.log(`Blueprint API server running on http://localhost:${PORT}`);
 });
