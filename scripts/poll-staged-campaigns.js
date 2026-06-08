@@ -10,20 +10,19 @@
  * Safety properties:
  * - One active job at a time (ledger.status = 'processing')
  * - Fail closed: if ledger write fails, don't process
- * - Staged file cleared only after successful completion
+ * - Staged file cleared only after successful completion (create-campaign.js handles this)
  * - Crash recovery: on restart, detects _processing: true and retries
  * - Full audit trail in ledger.history
  *
  * Usage: node scripts/poll-staged-campaigns.js
  */
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const REPO_ROOT = path.join(__dirname, '..');
-const STAGED    = path.join(REPO_ROOT, 'campaign-os', 'campaign-data-staged.json');
-const DATA_FILE = path.join(REPO_ROOT, 'campaign-os', 'campaign-data.json');
-const LOCK_FILE = path.join(REPO_ROOT, 'campaign-os', '.staged-processing-lock');
+const REPO_ROOT   = path.join(__dirname, '..');
+const STAGED      = path.join(REPO_ROOT, 'campaign-os', 'campaign-data-staged.json');
+const DATA_FILE   = path.join(REPO_ROOT, 'campaign-os', 'campaign-data.json');
 
 function log(msg) {
   console.log(`[${new Date().toISOString()}] ${msg}`);
@@ -31,78 +30,55 @@ function log(msg) {
 
 function now() { return new Date().toISOString(); }
 
-// ── Read staged file ──────────────────────────────────────────────────────────
+// ── Read staged file ────────────────────────────────────────────────────────
 function readStaged() {
   try {
     const raw = fs.readFileSync(STAGED, 'utf8').trim();
-    if (!raw) return null;
+    if (!raw || raw === '{}') return null;
     return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-// ── Write staged file ─────────────────────────────────────────────────────────
+// ── Write staged file ────────────────────────────────────────────────────────
 function writeStaged(data) {
   fs.writeFileSync(STAGED, JSON.stringify(data, null, 2) + '\n');
 }
 
-// ── Run a script and return {success, error} ──────────────────────────────────
+// ── Run a script and return {success, error, stdout, campaignId} ──────────────
 function runScript(label, cmd) {
   try {
-    execSync(cmd, { cwd: REPO_ROOT, stdio: 'pipe' });
-    log(`${label}: OK`);
-    return { success: true, error: null };
+    const stdout = execSync(cmd, { cwd: REPO_ROOT, timeout: 90000, encoding: 'utf8' });
+    log(`${label}: OK — ${stdout.trim().slice(0, 100)}`);
+
+    // Try to parse JSON output for campaignId
+    let campaignId = null;
+    try {
+      const parsed = JSON.parse(stdout.trim());
+      campaignId = parsed.campaignId || null;
+    } catch { /* non-JSON output — that's fine */ }
+
+    return { success: true, error: null, stdout: stdout.trim(), campaignId };
   } catch (err) {
+    const stdout = err.stdout ? err.stdout.toString().trim() : '';
     const stderr = err.stderr ? err.stderr.toString().trim() : err.message;
     log(`${label}: FAIL — ${stderr.slice(0, 200)}`);
-    return { success: false, error: stderr.slice(0, 500) };
+    return { success: false, error: stderr.slice(0, 500), stdout, campaignId: null };
   }
 }
 
-// ── Main poll ─────────────────────────────────────────────────────────────────
+// ── Main poll ────────────────────────────────────────────────────────────────
 function poll() {
   log('Polling...');
   const staged = readStaged();
 
-  // No staged file or empty → nothing to do
-  if (!staged) {
-    log('No staged file — sleeping');
+  if (!staged || !staged._pending) {
+    log('No pending campaigns — sleeping');
     return;
   }
 
-  // Not pending → check localStorage fallback
-  if (!staged || !staged._pending) {
-    try {
-      var localPending = JSON.parse(localStorage.getItem('pendingCampaigns') || '[]');
-      if (localPending.length > 0) {
-        log('Found ' + localPending.length + ' pending campaign(s) in localStorage — processing first');
-        var pending = localPending.shift();
-        pending._pending = true;
-        pending._submittedAt = pending._submittedAt || now();
-        pending._ledger = pending._ledger || { history: [], lastRun: null };
-        writeStaged(pending);
-        localStorage.setItem('pendingCampaigns', JSON.stringify(localPending));
-        staged = readStaged();
-      } else {
-        log('No pending campaigns — sleeping');
-        return;
-      }
-    } catch(e) {
-      log('localStorage check failed: ' + e.message);
-      log('No pending campaigns — sleeping');
-      return;
-    }
-  }
-
-  // Check for crash recovery: if _processing was left true from a previous run
+  // Check for crash recovery
   if (staged._processing && staged._ledger && staged._ledger.lastRun) {
-    const last = staged._ledger.lastRun;
-    if (last.status === 'processing') {
-      log('CRASH RECOVERY: detected stale processing state — retrying');
-      // Reset to retry
-    } else {
-      // Processing flag left but last run is complete — clear it
+    if (staged._ledger.lastRun.status !== 'processing') {
       staged._processing = false;
       writeStaged(staged);
       log('Cleared stale _processing flag from previous run');
@@ -111,79 +87,81 @@ function poll() {
   }
 
   // Check for already-active job
-  if (staged._ledger && staged._ledger.lastRun && staged._ledger.lastRun.status === 'processing') {
+  if (staged._ledger && staged._ledger.lastRun &&
+      staged._ledger.lastRun.status === 'processing') {
     log('Another job already processing — skipping');
     return;
   }
 
-  const formData   = staged.formData || staged;
-  const submittedAt = staged._submittedAt || now();
+  const formData     = staged.formData || staged;
+  const submittedAt  = staged._submittedAt || now();
   const campaignName = formData.name || 'unknown';
 
   log(`Processing campaign: ${campaignName}`);
 
-  // ── Fail closed: write 'processing' entry to ledger before doing anything ──
+  // ── Write 'processing' ledger entry (fail closed) ─────────────────────────
   const processingEntry = {
-    at:          now(),
-    status:      'processing',
+    at:           now(),
+    status:       'processing',
     campaignName,
     submittedAt,
-    error:       null,
-    scriptOutput: {}
+    error:        null,
+    createResult: null,
+    bpResult:     null,
+    campaignId:   null
   };
 
   try {
-    staged._ledger = staged._ledger || { history: [] };
+    staged._ledger        = staged._ledger || { history: [] };
     staged._ledger.lastRun = processingEntry;
-    staged._processing = true;
+    staged._processing    = true;
     writeStaged(staged);
   } catch (err) {
     log(`FAIL CLOSED: cannot write processing entry to ledger — ${err.message}`);
-    return; // Don't process — fail closed
+    return;
   }
 
   // ── Run create-campaign.js ─────────────────────────────────────────────────
   const createResult = runScript('create-campaign.js', 'node scripts/create-campaign.js');
-
-  // Extract campaignId from campaign-data.json
-  let campaignId = null;
-  if (createResult.success) {
-    try {
-      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      // Find the newest campaign (by createdAt)
-      const campaigns = Object.values(data.campaigns || {});
-      campaigns.sort((a, b) => new Date(b.identity.createdAt) - new Date(a.identity.createdAt));
-      campaignId = campaigns[0] ? campaigns[0].identity.campaignId : null;
-    } catch {
-      campaignId = '(could not determine)';
-    }
-  }
-
-  processingEntry.scriptOutput.createCampaign = createResult.success ? 'ok' : createResult.error;
+  processingEntry.createResult = createResult.success ? 'ok' : createResult.error;
 
   if (!createResult.success) {
-    // create-campaign.js failed — mark failed, clear staged
     log(`create-campaign.js FAILED for "${campaignName}": ${createResult.error}`);
-    staged._ledger.history.unshift({ ...processingEntry, status: 'failed-create', error: createResult.error });
-    staged._ledger.lastRun = { ...processingEntry, status: 'failed-create', error: createResult.error };
-    staged._pending = false;
-    staged._processing = false;
+    staged._ledger.history.unshift({ ...processingEntry, status: 'failed-create' });
+    staged._ledger.lastRun  = { ...processingEntry, status: 'failed-create' };
+    staged._pending         = false;
+    staged._processing      = false;
     writeStaged(staged);
     return;
   }
 
-  // ── Run generate-blueprint.js ──────────────────────────────────────────────
-  const bpResult = runScript('generate-blueprint.js', `node scripts/generate-blueprint.js ${campaignId}`);
+  const campaignId = createResult.campaignId || (() => {
+    // Fallback: extract from campaign-data.json
+    try {
+      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      const ids  = Object.keys(data.campaigns || {});
+      ids.sort((a, b) => new Date((data.campaigns[b].identity || {}).createdAt || 0)
+                        - new Date((data.campaigns[a].identity || {}).createdAt || 0));
+      return ids[0] || null;
+    } catch { return null; }
+  })();
 
-  processingEntry.scriptOutput.generateBlueprint = bpResult.success ? 'ok' : bpResult.error;
+  processingEntry.campaignId = campaignId;
+  log(`Campaign ID: ${campaignId}`);
+
+  // ── Run generate-blueprint.js ──────────────────────────────────────────────
+  const bpCmd = campaignId
+    ? `node scripts/generate-blueprint.js ${campaignId}`
+    : 'node scripts/generate-blueprint.js';
+  const bpResult = runScript('generate-blueprint.js', bpCmd);
+  processingEntry.bpResult = bpResult.success ? 'ok' : bpResult.error;
 
   if (!bpResult.success) {
-    // Blueprint failed — campaign exists but incomplete
     log(`generate-blueprint.js FAILED for campaign ${campaignId}: ${bpResult.error}`);
-    staged._ledger.history.unshift({ ...processingEntry, status: 'failed-blueprint', campaignId, error: bpResult.error });
-    staged._ledger.lastRun = { ...processingEntry, status: 'failed-blueprint', campaignId, error: bpResult.error };
-    staged._pending = false;
-    staged._processing = false;
+    staged._ledger.history.unshift({ ...processingEntry, status: 'failed-blueprint' });
+    staged._ledger.lastRun  = { ...processingEntry, status: 'failed-blueprint' };
+    staged._pending         = false;
+    staged._processing     = false;
     writeStaged(staged);
     return;
   }
@@ -191,12 +169,11 @@ function poll() {
   // ── All success ────────────────────────────────────────────────────────────
   log(`Campaign "${campaignName}" (${campaignId}) created and blueprint generated successfully`);
   staged._ledger.history.unshift({ ...processingEntry, status: 'ok', campaignId });
-  staged._ledger.lastRun = { ...processingEntry, status: 'ok', campaignId };
-  staged._pending = false;
-  staged._processing = false;
+  staged._ledger.lastRun  = { ...processingEntry, status: 'ok', campaignId };
+  staged._pending         = false;
+  staged._processing     = false;
   writeStaged(staged);
-  log('Staged file cleared — campaign ready in cockpit on next deploy');
+  log('Bridge processing complete — cockpit will update on next GitHub Actions deploy');
 }
 
-// Run once per invocation
 poll();
