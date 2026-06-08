@@ -270,7 +270,8 @@ def accept_blueprint(campaign):
 if __name__ == '__main__':
     args = sys.argv[1:]
     if not args or len(args) < 1:
-        print("Usage: python3 generate-blueprint.py <campaignId> [--new|--accept|--regenerate]")
+        print("Usage: python3 generate-blueprint.py <campaignId> [--new|--accept|--regenerate|--status]")
+        print("  --status     : output current blueprint status as JSON")
         print("  --accept     : mark current blueprint version as accepted")
         print("  --regenerate : archive current, generate v+1 (new version)")
         print("  --new        : alias for --regenerate")
@@ -289,6 +290,24 @@ if __name__ == '__main__':
         sys.exit(1)
 
     saved_primary_offer = campaign.get('strategy', {}).get('primaryOffer', '')
+
+    if '--status' in args:
+        # Output current blueprint status as JSON (for API server)
+        bp = campaign.get('blueprint') or {}
+        history = (campaign.get('memory') or {}).get('blueprintHistory') or []
+        result = {
+            'found': True,
+            'campaignId': campaign_id,
+            'currentVersion': bp.get('blueprintVersion'),
+            'status': bp.get('status'),
+            'generatedAt': bp.get('generatedAt'),
+            'modelUsed': bp.get('modelUsed'),
+            'diffSummary': bp.get('diffSummary'),
+            'historyLength': len(history),
+            'history': [{'version': h.get('blueprintVersion'), 'generatedAt': h.get('generatedAt'), 'status': h.get('status'), 'diffSummary': h.get('diffSummary')} for h in history]
+        }
+        print(json.dumps(result, indent=2))
+        sys.exit(0)
 
     if is_accept:
         accept_blueprint(campaign)
