@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 """
-Campaign-Specific Blueprint Generator (M5)
+Campaign-Specific Blueprint Generator (M5) — with Blueprint Versioning
 
-Calls MiniMax-M2.7 to reason about the campaign's specific brief,
-context, and theme — then generates truly campaign-specific:
-  - DNA (tone, contentMix, ctaPhilosophy, platformStrategy)
-  - Pillar names and descriptions
-  - Visual direction (mood, creativeDirection, imageReferences, contentExamples)
-  - Content mix specific to this campaign's conversion path
+Every run creates a NEW version, preserving all previous versions in
+campaign.memory.blueprintHistory. Active blueprint fields are kept in sync
+with the latest version's data.
 
-Quality gates:
-  - Rejects generic pillar names (Value, Proof, Urgency, etc.)
-  - Validates JSON parse, retries once on failure
-  - Verifies schema presence before writing
-  - Preserves strategy.primaryOffer across generation
+Schema:
+  campaign.blueprint              — current active version
+  campaign.memory.blueprintHistory — all previous versions (newest first)
 
-No generic templates. No campaign-type assumptions.
-Every field should reflect this campaign and no other.
+Usage:
+  python3 generate-blueprint.py <campaignId>           # create version 1 if none exists
+  python3 generate-blueprint.py <campaignId> --new    # force new version
 """
 import json, sys, os, re, urllib.request
 from datetime import datetime, timezone
@@ -25,12 +21,13 @@ REPO_ROOT = '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboa
 DATA_FILE = os.path.join(REPO_ROOT, 'campaign-os', 'campaign-data.json')
 CONFIG    = '/Users/fivefriday/.openclaw-instance2/openclaw.json'
 
-# Generic pillar names that indicate template thinking — reject these
 GENERIC_PILLAR_REJECT = [
     'value', 'proof', 'urgency', 'benefits', 'features',
     'awareness', 'consideration', 'conversion', 'social proof',
     'education', 'engagement', 'brand', 'visibility', 'reach'
 ]
+
+MODEL = 'MiniMax-M2.7'
 
 def get_credentials():
     with open(CONFIG) as f:
@@ -38,9 +35,9 @@ def get_credentials():
     v = cfg['models']['providers']['minimax-portal']
     return ''.join(v['apiKey']), v['baseUrl']
 
-def call_model(messages, model='MiniMax-M2.7'):
+def call_model(messages):
     api_key, base_url = get_credentials()
-    url = f"{base_url}/v1/messages?model={model}"
+    url = f"{base_url}/v1/messages?model={MODEL}"
     body = json.dumps({
         "messages": messages,
         "max_tokens": 4000,
@@ -63,20 +60,16 @@ def strip_markdown(text):
     text = text.strip()
     if text.startswith('```'):
         lines = text.split('\n')
-        text = '\n'.join(lines[1:])  # drop ```json
+        text = '\n'.join(lines[1:])
         text = text.strip()
         if text.endswith('```'):
             text = text[:-3].strip()
-    # Remove any stray markdown elsewhere
     text = re.sub(r'```[a-z]*', '', text).strip()
     return text
 
 def parse_json_with_retry(response_text, max_retries=2):
-    """Parse JSON with retry. Strip fences on first try."""
     for attempt in range(max_retries):
         cleaned = strip_markdown(response_text) if attempt == 0 else response_text
-        # Also try stripping any trailing non-JSON
-        # Find the last valid closing brace
         last_brace = cleaned.rfind('}')
         if last_brace > 0:
             cleaned = cleaned[:last_brace+1]
@@ -90,43 +83,31 @@ def parse_json_with_retry(response_text, max_retries=2):
     return None
 
 def validate_blueprint(blueprint):
-    """Quality gate: reject blueprints with generic/non-specific content."""
     errors = []
-
-    # Check pillars for generic names
     for i, pillar in enumerate(blueprint.get('pillars', [])):
         name_lower = pillar.get('name', '').lower()
-        # Check if any generic term appears as the pillar name (not just substring)
         for generic in GENERIC_PILLAR_REJECT:
             if name_lower == generic or name_lower.startswith(generic + ' '):
-                errors.append(f'Pillar {i+1} has generic name: "{pillar["name"]}"')
-        # Pillar name must be descriptive, not just a category
+                errors.append(f'Pillar {i+1} generic name: "{pillar["name"]}"')
         if len(pillar.get('name', '')) < 10:
-            errors.append(f'Pillar {i+1} name too short: "{pillar["name"]}"')
+            errors.append(f'Pillar {i+1} name too short')
         if len(pillar.get('description', '')) < 30:
             errors.append(f'Pillar {i+1} description too short')
-
-    # Check tone for generic phrases
     tone = blueprint.get('dna', {}).get('tone', '').lower()
-    generic_tones = ['authentic, informative, and persuasive', 'professional and friendly',
-                     'friendly and informative', 'educational and engaging']
-    for gt in generic_tones:
+    for gt in ['authentic, informative, and persuasive', 'professional and friendly',
+               'friendly and informative', 'educational and engaging']:
         if gt in tone:
             errors.append(f'Tone is generic: "{blueprint["dna"]["tone"]}"')
-
-    # Check palette is not all placeholders
     palette = blueprint.get('visualDirection', {}).get('palette', {})
-    placeholder_count = sum(1 for v in palette.values() if '#XXXXXX' in v or v == '#XXXXXX')
+    placeholder_count = sum(1 for v in palette.values() if '#XXXXXX' in v)
     if placeholder_count > 0:
         errors.append(f'Palette has {placeholder_count} placeholder values')
-
     return errors
 
-def generate_blueprint(campaign):
+def build_prompt(campaign, is_retry=False, prior_errors=None):
     brief    = campaign.get('brief', {})
     ident    = campaign.get('identity', {})
     strat    = campaign.get('strategy', {})
-
     name          = ident.get('name', 'Untitled Campaign')
     goal_notes    = brief.get('goalNotes', '')
     context       = brief.get('context', '')
@@ -136,63 +117,45 @@ def generate_blueprint(campaign):
     platform_str  = ', '.join(platforms) if platforms else 'instagram'
     campaign_type = ident.get('campaignType', 'Awareness')
 
-    # Campaign-type palette guidance — base colours to use as anchor, model adjusts
     type_palette_guidance = {
-        'Awareness': (
-            'Palette should feel thought-provoking and slightly uncomfortable — '
-            'the "wrong tool" metaphor demands high contrast and clear contrast. '
-            'Suggested anchor: bold primary (#FF6B35 or similar warm orange for urgency), '
-            'dark background (#0D0D0F), white text, gold or green accent for the "solution" moment.'
-        ),
-        'product-launch': (
-            'Palette should feel premium and credible. Suggested anchor: '
-            'chrome/silver tones with dark backgrounds, gold accent for price/quality signals. '
-            'Think: what colours communicate "this is the right equipment".'
-        ),
-        'evergreen': (
-            'Palette should feel trustworthy and consistent. Suggested anchor: '
-            'deep blue primary with warm accent. Think: what colours communicate ongoing value.'
-        ),
-        'seasonal': (
-            'Palette should feel timely and relevant. Anchor colours should reflect the season\'s mood '
-            'while maintaining Swing Shack brand identity.'
-        ),
-        'promo': (
-            'Palette should feel urgent and action-driving. Suggested anchor: '
-            'high-contrast with a dominant urgency colour (red/orange) and clear CTAs.'
-        ),
-        'event': (
-            'Palette should feel event-worthy and social. Suggested anchor: '
-            'vibrant colours that stand out in feed, with clear brand anchor.'
-        )
+        'Awareness': 'Palette should feel thought-provoking with high contrast. Suggested anchor: bold primary (#FF6B35 warm orange for urgency), dark background (#0D0D0F), white text, gold accent (#D4AF37) for the solution moment.',
+        'product-launch': 'Palette should feel premium and credible. Suggested anchor: chrome/silver tones with dark backgrounds, gold accent for price/quality signals.',
+        'evergreen': 'Palette should feel trustworthy and consistent. Deep blue primary with warm accent.',
+        'seasonal': 'Palette should feel timely and relevant, reflecting the season\'s mood while maintaining Swing Shack brand identity.',
+        'promo': 'Palette should feel urgent and action-driving. High-contrast with dominant urgency colour, clear CTAs.',
+        'event': 'Palette should feel event-worthy and social. Vibrant colours that stand out in feed.',
     }
     palette_guidance = type_palette_guidance.get(
         campaign_type,
-        'Palette should feel appropriate for the campaign goal and audience. Use the campaign type, goal notes, and context to determine colours.'
+        'Use the campaign type, goal notes, and context to determine appropriate colours.'
     )
 
-    prompt = f"""You are a strategic campaign architect. Generate a complete campaign blueprint for:
+    retry_note = ''
+    if is_retry and prior_errors:
+        retry_note = f'\n\nIMPORTANT: Your previous output was rejected. Errors: {"; ".join(prior_errors)}. Generate completely fresh, specific output. No generic labels.'
+
+    return f"""You are a strategic campaign architect. Generate a complete campaign blueprint for:
 
 Campaign: {name}
 Platforms: {platform_str}
 Campaign Type: {campaign_type}
 Primary Offer: {primary_offer}
 
-Goal Notes (what the campaign must achieve):
+Goal Notes:
 {goal_notes}
 
-Campaign Theme & Context (specific creative direction):
+Campaign Theme & Context:
 {context}
 
 Target Audience:
 {audience}
 
 Palette Guidance:
-{palette_guidance}
+{palette_guidance}{retry_note}
 
-Your task: Think deeply about what makes THIS campaign unique. What is the specific argument it makes? What tension does it exploit? What does a golfer feel when they see this content? What should they think after? What colours match this campaign's emotional register?
+Think deeply about what makes THIS campaign unique. What is the specific argument it makes? What tension does it exploit? What does a golfer feel? What should they think after? What colours match this campaign's emotional register?
 
-Then generate a complete, campaign-specific blueprint in this exact JSON format — no markdown, no explanation, just the JSON:
+Generate a complete, campaign-specific blueprint in this exact JSON format — no markdown, no explanation, just the JSON:
 
 {{
   "dna": {{
@@ -202,10 +165,10 @@ Then generate a complete, campaign-specific blueprint in this exact JSON format 
     "preferredVisualStyles": ["style-a", "style-b", "style-c"],
     "forbiddenVisualStyles": ["style-to-avoid-a", "style-to-avoid-b"],
     "ctaPhilosophy": "How the CTA should feel and what it should say. 1-2 sentences. Campaign-specific.",
-    "platformStrategy: {{
-      "instagram": "Specific platform guidance for this campaign. 1-2 sentences.",
-      "tiktok": "Specific platform guidance for this campaign. 1-2 sentences.",
-      "gmb": "Specific platform guidance for this campaign. 1-2 sentences."
+    "platformStrategy": {{
+      "instagram": "Specific guidance for this campaign on Instagram. 1-2 sentences.",
+      "tiktok": "Specific guidance for this campaign on TikTok. 1-2 sentences.",
+      "gmb": "Specific guidance for this campaign on GMB. 1-2 sentences."
     }},
     "exampleHighPerforming": [],
     "exampleLowPerforming": []
@@ -218,8 +181,8 @@ Then generate a complete, campaign-specific blueprint in this exact JSON format 
       "background": "#XXXXXX",
       "text": "#XXXXXX"
     }},
-    "mood": "A vivid, campaign-specific mood. 5-12 words. Think: what feeling does a golfer get looking at this content?",
-    "creativeDirection": "A vivid description of exactly what the visuals should show, referencing the campaign theme. 3-5 sentences. Be specific — this is not generic.",
+    "mood": "A vivid, campaign-specific mood. 5-12 words.",
+    "creativeDirection": "A vivid description of exactly what the visuals should show, referencing the campaign theme. 3-5 sentences. Be specific.",
     "imageReferences": ["specific image reference a", "specific image reference b", "specific image reference c"],
     "colorUsage": "How to use the palette specifically for this campaign. 2-3 sentences. Why these colours for THIS campaign.",
     "typography": "Typeface guidance specific to this campaign. 1-2 sentences.",
@@ -235,86 +198,156 @@ Then generate a complete, campaign-specific blueprint in this exact JSON format 
   ]
 }}
 
-Rules — these will be validated programmatically:
-- Tone must be specific to this campaign — NOT "authentic, informative, and persuasive"
-- Pillars must emerge from the campaign theme — NOT "Value, Proof, Urgency" (those will be rejected)
-- Pillar names must be descriptive and specific — NOT just single words or generic categories
+Rules — these will be validated:
+- Tone must be specific — NOT "authentic, informative, and persuasive"
+- Pillars must emerge from the campaign theme — NOT "Value, Proof, Urgency" (rejected)
+- Pillar names must be descriptive — NOT single generic words
 - creativeDirection must reference the specific campaign theme
 - imageReferences must be specific to this campaign's angle
 - colorUsage must explain WHY these colours for THIS campaign
 - Palette must use real hex values — not #XXXXXX placeholders
 - Answer ONLY with valid JSON. No markdown fences. No preamble."""
 
+def generate_blueprint(campaign, is_retry=False, prior_errors=None):
+    prompt = build_prompt(campaign, is_retry, prior_errors)
     messages = [{"role": "user", "content": prompt}]
-
-    print(f"  Calling MiniMax-M2.7 for campaign: {name}")
+    print(f"  Calling {MODEL}...")
     response = call_model(messages)
-    print(f"  Response length: {len(response)} chars")
-
+    print(f"  Response: {len(response)} chars")
     blueprint = parse_json_with_retry(response)
-
-    # Quality gate — reject generic pillars
     errors = validate_blueprint(blueprint)
     if errors:
-        print(f"  QUALITY GATE FAILED: {errors}")
-        # Retry once with stricter prompt
-        print("  Retrying with stricter quality guidance...")
-        retry_prompt = prompt + "\n\nIMPORTANT: Your previous output contained generic content. " \
-                          "The following were rejected: " + "; ".join(errors) + ". " \
-                          "Ensure pillars are specific arguments, not generic labels. " \
-                          "Use real hex palette values. Generate fresh, specific output."
-        messages = [{"role": "user", "content": retry_prompt}]
-        response = call_model(messages)
-        blueprint = parse_json_with_retry(response)
-        errors = validate_blueprint(blueprint)
-        if errors:
-            raise ValueError(f"Blueprint quality gate failed after retry: {errors}")
-
+        print(f"  Quality gate failed: {errors}")
+        if not is_retry:
+            return generate_blueprint(campaign, is_retry=True, prior_errors=errors)
+        raise ValueError(f"Blueprint quality gate failed after retry: {errors}")
     return blueprint
 
+def diff_summary(blueprint):
+    """One-line summary of what makes this blueprint different."""
+    tone = blueprint.get('dna', {}).get('tone', '')[:40]
+    pillars = ' / '.join(p['name'].split(' — ')[0] for p in blueprint.get('pillars', [])[:3])
+    return f"Tone: {tone} | Pillars: {pillars}"
+
+def current_blueprint_version(campaign):
+    return campaign.get('blueprint', {}).get('blueprintVersion', 0)
+
+def archive_blueprint(campaign):
+    current = campaign.get('blueprint')
+    if not current:
+        return
+    v = current.get('blueprintVersion', 0)
+    history = campaign.setdefault('memory', {}).setdefault('blueprintHistory', [])
+    archived = dict(current)
+    archived['active'] = False
+    history.insert(0, archived)
+    print(f"  Archived v{v} to blueprintHistory")
+
+def accept_blueprint(campaign):
+    current = campaign.get('blueprint')
+    if not current:
+        print("No active blueprint to accept.")
+        return
+    v = current.get('blueprintVersion', 0)
+    now = datetime.now(timezone.utc).isoformat()
+    current['status'] = 'accepted'
+    current['acceptedAt'] = now
+    history = campaign.setdefault('memory', {}).setdefault('blueprintHistory', [])
+    for h in history:
+        if h.get('blueprintVersion') == v:
+            h['status'] = 'accepted'
+            h['acceptedAt'] = now
+            break
+    memory = campaign.setdefault('memory', {'notes': []})
+    memory['notes'].append({
+        'type': 'blueprint-accepted',
+        'timestamp': now,
+        'version': v,
+        'detail': f'Blueprint v{v} accepted by operator.'
+    })
+    print(f"Blueprint v{v} accepted.")
+
 if __name__ == '__main__':
-    campaign_id = sys.argv[1] if len(sys.argv) > 1 else None
-    if not campaign_id:
-        print("Usage: python3 generate-blueprint.py <campaignId>")
+    args = sys.argv[1:]
+    if not args or len(args) < 1:
+        print("Usage: python3 generate-blueprint.py <campaignId> [--new|--accept|--regenerate]")
+        print("  --accept     : mark current blueprint version as accepted")
+        print("  --regenerate : archive current, generate v+1 (new version)")
+        print("  --new        : alias for --regenerate")
+        print("  (no flag)    : first run — create v1 (overwrite if exists)")
         sys.exit(1)
+
+    campaign_id = args[0]
+    is_accept   = '--accept' in args
+    is_regen    = '--regenerate' in args or '--new' in args
 
     with open(DATA_FILE) as f:
         data = json.load(f)
-
     campaign = data['campaigns'].get(campaign_id)
     if not campaign:
         print(f"Campaign not found: {campaign_id}")
         sys.exit(1)
 
-    # Fix 1: Preserve strategy.primaryOffer before any write
     saved_primary_offer = campaign.get('strategy', {}).get('primaryOffer', '')
 
-    print(f"Generating campaign-specific blueprint for: {campaign_id}")
+    if is_accept:
+        accept_blueprint(campaign)
+        if saved_primary_offer:
+            campaign['strategy']['primaryOffer'] = saved_primary_offer
+        data['updatedAt'] = datetime.now(timezone.utc).isoformat()
+        with open(DATA_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
+            f.write('\n')
+        sys.exit(0)
+
+    current_v = current_blueprint_version(campaign)
+    if is_regen and current_v > 0:
+        next_v = current_v + 1
+    elif current_v > 0:
+        next_v = current_v
+    else:
+        next_v = 1
+
+    print(f"Generating blueprint v{next_v} for: {campaign_id}"
+          + (" (regenerate)" if is_regen and current_v > 0 else ""))
+
+    if current_v > 0:
+        archive_blueprint(campaign)
+
     blueprint = generate_blueprint(campaign)
+    now = datetime.now(timezone.utc).isoformat()
+    versioned = {
+        'blueprintVersion': next_v,
+        'generatedAt': now,
+        'modelUsed': MODEL,
+        'active': True,
+        'dna': blueprint['dna'],
+        'visualDirection': blueprint['visualDirection'],
+        'pillars': blueprint['pillars'],
+        'diffSummary': diff_summary(blueprint)
+    }
 
-    # Apply blueprint — only write the fields that come from the model
-    campaign['dna']              = blueprint['dna']
-    campaign['visualDirection'] = blueprint['visualDirection']
-    campaign['strategy']['pillars'] = blueprint['pillars']
+    campaign['blueprint'] = versioned
+    campaign['dna']                  = blueprint['dna']
+    campaign['visualDirection']      = blueprint['visualDirection']
+    campaign['strategy']['pillars']  = blueprint['pillars']
+    campaign['blueprintVersion']      = next_v
+    campaign['generatedAt']          = now
+    campaign['modelUsed']            = MODEL
 
-    # Fix 1 (restored): Restore primaryOffer that was set by create-campaign.js
     if saved_primary_offer:
         campaign['strategy']['primaryOffer'] = saved_primary_offer
         print(f"  primaryOffer preserved: {saved_primary_offer}")
 
-    # Memory note
-    now = datetime.now(timezone.utc).isoformat()
-    memory = campaign.get('memory', {'notes': []})
-    memory.setdefault('notes', []).append({
+    memory = campaign.setdefault('memory', {'notes': [], 'blueprintHistory': []})
+    memory['notes'].append({
         'type': 'blueprint-generated',
         'timestamp': now,
-        'detail': f'Campaign-specific blueprint generated via MiniMax-M2.7 reasoning. '
-                  f'{len(blueprint["pillars"])} pillars, campaign-specific DNA and visualDirection. '
-                  f'primaryOffer preserved.'
+        'version': next_v,
+        'detail': f'Blueprint v{next_v} generated via {MODEL}. {len(blueprint["pillars"])} pillars. {diff_summary(blueprint)}'
     })
     campaign['memory'] = memory
 
-    # Pipeline
     campaign['pipeline'] = {
         'status': 'generatingBlueprint',
         'currentStep': 1,
@@ -323,14 +356,13 @@ if __name__ == '__main__':
     }
     campaign['identity']['status'] = 'generatingBlueprint'
 
-    data['updatedAt'] = datetime.now(timezone.utc).isoformat()
+    data['updatedAt'] = now
 
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=2)
         f.write('\n')
 
-    print(f"Blueprint written for: {campaign_id}")
+    print(f"Blueprint v{next_v} written for: {campaign_id}")
     print(f"  Pillars: {[p['name'] for p in blueprint['pillars']]}")
     print(f"  Tone: {blueprint['dna']['tone'][:60]}")
-    print(f"  Palette: primary={blueprint['visualDirection']['palette']['primary']}, "
-          f"accent={blueprint['visualDirection']['palette']['accent']}")
+    print(f"  Palette: {blueprint['visualDirection']['palette']}")

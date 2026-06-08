@@ -71,6 +71,46 @@ function poll() {
   log('Polling...');
   const staged = readStaged();
 
+  // No staged data — nothing to do
+  if (!staged) {
+    log('No staged campaign data');
+    return;
+  }
+
+  // Check for action-based triggers (regenerate, accept)
+  if (staged._action) {
+    log(`Action: ${staged._action}`);
+    if (staged._action === 'regenerate-blueprint') {
+      const campaignId = staged._campaignId;
+      if (!campaignId) {
+        log('ERROR: regenerate action but no _campaignId');
+        writeStaged({});
+        return;
+      }
+      // Run generate-blueprint.js with --new flag
+      const bpResult = runScript('generate-blueprint.js --new',
+        `node scripts/generate-blueprint.js ${campaignId} --new`);
+      staged._ledger = staged._ledger || { history: [] };
+      staged._ledger.history.unshift({
+        at: now(),
+        status: bpResult.success ? 'ok' : 'failed-regenerate',
+        action: 'regenerate-blueprint',
+        campaignId,
+        error: bpResult.error
+      });
+      staged._ledger.lastRun = staged._ledger.history[0];
+      staged._pending = false;
+      staged._processing = false;
+      writeStaged(staged);
+      log(`Regenerate ${bpResult.success ? 'OK' : 'FAILED'} for ${campaignId}`);
+      return;
+    }
+    // Unknown action — clear
+    log('Unknown action:', staged._action);
+    writeStaged({});
+    return;
+  }
+
   if (!staged || !staged._pending) {
     log('No pending campaigns — sleeping');
     return;
