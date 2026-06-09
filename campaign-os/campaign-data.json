@@ -660,7 +660,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -707,7 +707,30 @@
             "sf-6",
             "sf-7"
           ],
-          "visualBrief": "Split-screen: top half shows absurd equipment joke (pool noodle clubs, flip-flops on the range). Bottom half transitions to a serious golfer about to hit with clearly wrong clubs. Dark background. Bold typography. The joke lands because the contrast is real.",
+          "visualBrief": {
+            "concept": "Golfer at address with pool noodle as driver \u2014 deadpan, not mocking. The absurdity of wrong equipment made visible.",
+            "composition": "Single golfer, full-body, at address on driving range. Pool noodle held parallel to ground like driver. Golf bag with real clubs in background. Dark moody BG.",
+            "realPhotography": [
+              "Golfer (real person, real face, real body)",
+              "Real golf bag with real clubs",
+              "Real golf attire",
+              "Real turf/teeing ground"
+            ],
+            "aiAllowed": [
+              "Dark moody background replacement",
+              "Neon green TrackMan data overlays",
+              "Typography and hook text overlay"
+            ],
+            "avoid": [
+              "AI-generated golfer face or body",
+              "AI club heads",
+              "Making golfer look stupid \u2014 deadpan tone",
+              "Text that explains the joke"
+            ],
+            "photographerBrief": "Driving range tee, 85mm lens, golden hour. Bright orange pool noodle prop. Full golf attire. Capture: full-body at address, face in profile. RAW + high-res JPG, minimum 4000px wide.",
+            "textOverlay": "Headline top third, bold sans-serif white. Subline lower third, TrackMan neon green.",
+            "colorPalette": "BG: #0D0D0D to #1A1A1A. Accent: neon green #39FF14. Golfer: white polo, navy trousers."
+          },
           "aiAllowedFor": [
             "background",
             "lighting mood",
@@ -727,7 +750,41 @@
           "captionTone": "conversational, edge-of-fairway wit",
           "copyRequirement": "Address: The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. | You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?. Goal: Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "captionDraft": {
+            "variantA": {
+              "caption": "You wouldn't run a marathon in flip-flops. So why are you playing with clubs that don't fit? That 'inconsistent swing' you've been working on? Might be your equipment talking. Let's find out. Book Your Fitting at Swing Shack.",
+              "hook": "Your clubs might be the punchline.",
+              "charCount": 198,
+              "anglesUsed": [
+                "sa-6",
+                "sa-7",
+                "sf-6"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#shaftflex",
+                "#clubfitting",
+                "#golftech"
+              ]
+            },
+            "variantB": {
+              "caption": "Is it your swing, or is it your clubs? Wrong shaft flex is the #1 misfit in over 1,500 fittings. That slice you've been fighting? Your clubs might be the problem \u2014 not your technique. Book Your Fitting and find out.",
+              "hook": "Is it your swing, or your clubs?",
+              "charCount": 211,
+              "anglesUsed": [
+                "sa-7",
+                "sa-1",
+                "sf-7"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#shaftflex",
+                "#clubfitting",
+                "#golfperformance"
+              ]
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-feed-post-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-02",
@@ -1402,7 +1459,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1436,7 +1493,78 @@
             "sf-2",
             "sf-7"
           ],
-          "visualBrief": "Clean studio feel. Text-driven slides with equipment names appearing as typography \u2014 no product photos. Blurred silhouette background. Dark palette. The visual restraint mirrors the 'something's wrong but I can't name it' experience. Slide 3 shows a gap/arrow graphic \u2014 equipment on left, performance on right.",
+          "visualBrief": {
+            "slides": [
+              {
+                "slide": 1,
+                "concept": "Extreme close-up golf ball at moment of impact, bold typographic statement",
+                "realPhotography": [
+                  "Real golf ball",
+                  "Real club head"
+                ],
+                "aiAllowed": [
+                  "Dark BG",
+                  "Neon green trajectory overlay",
+                  "Bold text"
+                ],
+                "headline": "Your swing isn't the problem."
+              },
+              {
+                "slide": 2,
+                "concept": "Slice/top/thin dispersion grid \u2014 the 3-way miss named and shown",
+                "realPhotography": [
+                  "Real golfer silhouette",
+                  "Real turf"
+                ],
+                "aiAllowed": [
+                  "Neon dispersion grid",
+                  "Trajectory arc lines",
+                  "Miss labels"
+                ],
+                "headline": "Slice. Top. Thin."
+              },
+              {
+                "slide": 3,
+                "concept": "Two shafts side by side showing flex mismatch \u2014 data as design",
+                "realPhotography": [
+                  "Real golf shafts",
+                  "Real grip/hands"
+                ],
+                "aiAllowed": [
+                  "Flex chart overlay",
+                  "Swing speed graph"
+                ],
+                "headline": "Wrong flex = leaked energy."
+              },
+              {
+                "slide": 4,
+                "concept": "BEFORE/AFTER dispersion tightening \u2014 hope visualized",
+                "realPhotography": [
+                  "Real ball marks on turf",
+                  "Real TrackMan data"
+                ],
+                "aiAllowed": [
+                  "Data overlay",
+                  "+23 yards callout",
+                  "Before/after labels"
+                ],
+                "headline": "Same swing. Different equipment."
+              },
+              {
+                "slide": 5,
+                "concept": "Clean CTA \u2014 get fitted. Professional, trustworthy, not salesy",
+                "realPhotography": [
+                  "Real fitting session or branded bay"
+                ],
+                "aiAllowed": [
+                  "All typography",
+                  "QR code",
+                  "Dark BG"
+                ],
+                "headline": "Book Your Fit."
+              }
+            ]
+          },
           "aiAllowedFor": [
             "background",
             "typography",
@@ -1457,7 +1585,45 @@
           "captionTone": "provocative, pattern interrupts",
           "copyRequirement": "Address: Your slice has a name. It also has a cause \u2014 and it's not your swing. | Every top, every slice, every thin shot is your equipment sending you a message.. Goal: Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build auth",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "captionDraft": {
+            "variantA": {
+              "caption": "Your slice has a name. And it's not 'bad swing.' It's your clubs trying to tell you something. Every top, every fat shot, every inconsistent strike \u2014 that's your equipment sending a message you've been missing. Wrong shaft flex is the #1 misfit in 1,500+ fittings. The fix? A proper fitting. Swing Shack shows you exactly what's costing you strokes \u2014 and how to fix it. Book Your Fitting. Link in bio.",
+              "hook": "YOUR SLICE HAS A NAME",
+              "charCount": 338,
+              "anglesUsed": [
+                "sa-7",
+                "sa-2",
+                "sf-7",
+                "sf-2"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#shaftflex",
+                "#clubfitting",
+                "#golftech"
+              ],
+              "slides": 5
+            },
+            "variantB": {
+              "caption": "Every flex point mismatch costs you strokes. Wrong shaft flex is the #1 fitting misfit we see \u2014 and it shows up as slices, tops, thins. Shots that make you practice more, blame your swing, and still not improve. The problem isn't your technique. It's your equipment. Swing Shack fitting reveals exactly what's costing you \u2014 and what to do about it. Book Your Fitting. Link in bio.",
+              "hook": "YOUR SLICE HAS A NAME",
+              "charCount": 318,
+              "anglesUsed": [
+                "sa-2",
+                "sa-7",
+                "sf-2",
+                "sf-7"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#shaftflex",
+                "#golfperformance",
+                "#golftech"
+              ],
+              "slides": 5
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-carousel-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-03",
@@ -2182,7 +2348,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "gmb",
@@ -2211,7 +2377,30 @@
           "findingIds": [
             "sf-3"
           ],
-          "visualBrief": "Real TrackMan screen capture showing carry distance + dispersion before fitting vs after. Real equipment photograph \u2014 actual clubs used in the fitting session. No AI club heads. Data-forward layout: 'BEFORE FITTING: [numbers]' / 'AFTER FITTING: [numbers]'. Clean white or dark background. GMB post format.",
+          "visualBrief": {
+            "concept": "Split-screen: current stats vs potential with right equipment. Data-forward, clean, compelling.",
+            "composition": "Left: current suboptimal stats (red/warm tones). Right: optimal stats with right equipment (neon green). Dark professional BG.",
+            "realPhotography": [
+              "Golfer with launch monitor",
+              "Real fitting session"
+            ],
+            "aiAllowed": [
+              "BG",
+              "Data overlay graphics",
+              "Typography",
+              "Split-screen layout"
+            ],
+            "dataPoints": [
+              "23 yards",
+              "Launch angle 4 degrees off"
+            ],
+            "avoid": [
+              "Flashy gimmicks",
+              "Overly busy layout",
+              "Non-data visual elements"
+            ],
+            "gmbConstraints": "Clean, professional, trustworthy. TrackMan data aesthetic. No clinical diagram look."
+          },
           "aiAllowedFor": [
             "background frame",
             "typography treatment",
@@ -2234,7 +2423,35 @@
           "caption": "23 yards. Every shot. That's what wrong clubs cost you.\n\nWrong shaft flex is the leading cause \u2014 and it's fixable. A fitting with TrackMan technology shows you exactly what's been lost and how to get it back.\n\nSwing Shack uses launch monitor data to diagnose your specific equipment gap. No guesswork. No hard sell.\n\nBook your Johannesburg fitting and find out what you've been leaving on the course.",
           "status": "review",
           "approvalState": "pending",
-          "gmbCompliance": true
+          "gmbCompliance": true,
+          "captionDraft": {
+            "variantA": {
+              "caption": "Wrong clubs cost you 23 yards off the tee. Every shot. Wrong shaft flex is the leading cause \u2014 and a fitting reveals exactly what's costing you and how to fix it. Book Your Fitting at Swing Shack to find out more.",
+              "hook": "23 YARDS LOST. EVERY SHOT.",
+              "charCount": 191,
+              "anglesUsed": [
+                "sa-3",
+                "sf-3",
+                "sf-2"
+              ],
+              "platform": "gmb",
+              "gmbCompliant": true,
+              "localContext": "Johannesburg"
+            },
+            "variantB": {
+              "caption": "You know you're not hitting the distances you should. Your launch angle might be 4 degrees off optimal \u2014 that's the gap between fairway and trees. A Swing Shack fitting shows you exactly what's causing it, and exactly how to close it. Book Your Fitting or find out more.",
+              "hook": "THE GAP IS MEASURABLE. THE FIX IS HERE.",
+              "charCount": 198,
+              "anglesUsed": [
+                "sa-3",
+                "sf-3",
+                "sf-2"
+              ],
+              "platform": "gmb",
+              "gmbCompliant": true,
+              "localContext": "Johannesburg"
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-04",
