@@ -1635,7 +1635,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1701,7 +1701,43 @@
           ],
           "realPhotoBrief": "Real golfer at Swing Shack range \u2014 reviewing swing/fitting data on tablet, expression of dawning realisation. Candid. Natural range light. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "caption": "Your slice has a name. And the cause is not your swing. S300 shaft in a regular swing speed. Stiff flex forcing toe contact on every swing. That is not a technique problem. That is an equipment problem. Name the frustration. Name the cause. A fitting tells you which one you have.",
+              "hook": "Your slice has a name. It is your clubs.",
+              "charCount": 269,
+              "anglesUsed": [
+                "sa-2",
+                "sa-7",
+                "sf-2",
+                "sf-7"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#shaftflex",
+                "#clubfitting",
+                "#golfperformance"
+              ]
+            },
+            "variantB": {
+              "caption": "Every top. Every slice. Every thin shot. Your clubs have been sending you a message. Wrong shaft flex is the #1 misfit in over 1,500 fittings. That consistency problem you have blamed on your swing? It might be your clubs. Book Your Fitting and find out.",
+              "hook": "Every slice. Every top. Your clubs talking.",
+              "charCount": 267,
+              "anglesUsed": [
+                "sa-2",
+                "sa-7",
+                "sf-2",
+                "sf-7"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#shaftflex",
+                "#golftech",
+                "#indoorgolf"
+              ]
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-feed-post-13": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-13",
@@ -1716,7 +1752,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1776,7 +1812,39 @@
           ],
           "realPhotoBrief": "Real clubs from Takomo or Swing Shack inventory \u2014 same model family, wrong spec vs right spec. Studio or clean fitting bay background. Photographer: Swing Shack staff or approved supplier.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "caption": "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot. Your launch angle is 4 degrees off optimal. Ball speed down. Distance gone. The equipment gap between you and your potential is measurable in strokes per round. TrackMan tells you exactly where they are hiding.",
+              "hook": "23 yards. Every shot. Fixable.",
+              "charCount": 268,
+              "anglesUsed": [
+                "sa-3",
+                "sf-3"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#trackman",
+                "#golfdata",
+                "#golfperformance"
+              ]
+            },
+            "variantB": {
+              "caption": "The equipment gap between you and your potential is measurable. Launch angle 4 degrees off optimal. Ball speed down. Distance gone. Wrong shaft flex, wrong launch angle, wrong everything \u2014 quantified. A fitting shows exactly where the strokes are hiding. Book Your Fitting at Swing Shack.",
+              "hook": "Your potential has a number. Find it.",
+              "charCount": 287,
+              "anglesUsed": [
+                "sa-3",
+                "sf-3"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#trackman",
+                "#clubfitting",
+                "#golfjhb"
+              ]
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-carousel-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-01",
@@ -2103,7 +2171,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -2165,7 +2233,44 @@
           ],
           "realPhotoBrief": "Real clubs + real TrackMan fitting data for carousel. Fitting bay environment. Clean studio or fitting bay background. Photographer: Swing Shack staff. All 5 slides must use consistent real photography style.",
           "visualQualityTier": "hero",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "slides": [
+                {
+                  "slide": 1,
+                  "caption": "The fitting reveal is the moment everything changes. Data shows what your eye cannot see \u2014 and that moment is the content.",
+                  "hook": "The fitting reveal is the content."
+                },
+                {
+                  "slide": 2,
+                  "caption": "Your launch angle is 4 degrees off optimal. Ball speed down. Distance gone. Every shot, every round.",
+                  "hook": "4 degrees off. Ball speed down."
+                },
+                {
+                  "slide": 3,
+                  "caption": "Wrong shaft flex is the #1 misfit in over 1,500 fittings. Measurable. Fixable. Not your swing \u2014 your clubs.",
+                  "hook": "Wrong flex. The #1 misfit."
+                },
+                {
+                  "slide": 4,
+                  "caption": "The right equipment changes the numbers. Launch angle correct. Ball speed up. Distance back. Strokes off your round.",
+                  "hook": "Right clubs. Right numbers."
+                },
+                {
+                  "slide": 5,
+                  "caption": "Book Your Fitting. Link in bio.",
+                  "hook": "Book Your Fitting."
+                }
+              ],
+              "charCount": "248/298/287/276/38",
+              "anglesUsed": [
+                "sa-3",
+                "sf-3"
+              ],
+              "platform": "instagram"
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-carousel-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-04",
@@ -2740,7 +2845,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "gmb",
@@ -2810,7 +2915,21 @@
           ],
           "realPhotoBrief": "Real Swing Shack golfer \u2014 holding obviously wrong club or absurd equipment comparison. Candid. Fitting bay or range environment. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "caption": "You would not run a marathon in borrowed running shoes. So why are you playing golf with clubs that were never built for your swing? Wrong equipment masquerades as bad technique. The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. Swing Shack measures what your clubs are actually doing for your game. Book Your Fitting or find out more.",
+              "hook": null,
+              "charCount": 398,
+              "anglesUsed": [
+                "sa-1",
+                "sa-6",
+                "sf-1",
+                "sf-6"
+              ],
+              "platform": "gmb"
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-02",
@@ -2825,7 +2944,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "gmb",
@@ -2889,7 +3008,21 @@
           ],
           "realPhotoBrief": "Real golfer at Swing Shack range \u2014 mid-swing, motion blur on impact. Real clubs. Candid. Natural range light. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "caption": "Your slice has a name. And the cause is not your swing. Wrong shaft flex is the #1 misfit in over 1,500 fittings. S300 in a regular swing speed means toe contact on every swing. Every top, every slice, every thin shot \u2014 your clubs have been sending you a message. A fitting reveals whether it is your swing or your clubs. Book Your Fitting or find out more at Swing Shack.",
+              "hook": null,
+              "charCount": 432,
+              "anglesUsed": [
+                "sa-2",
+                "sa-7",
+                "sf-2",
+                "sf-7"
+              ],
+              "platform": "gmb"
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-03",
@@ -3022,7 +3155,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "gmb",
@@ -3086,7 +3219,21 @@
           ],
           "realPhotoBrief": "Real Swing Shack fitting session \u2014 fitter pointing at TrackMan screen, golfer engaged and listening. Candid. Fitting bay environment. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "caption": "A Johannesburg golfer came in with a18 handicap, blaming his swing. After a full fitting \u2014 launch angle, ball speed, shaft flex \u2014 we found the real problem: his clubs. Six months later, he is a 14. Same swing type. Different outcome. This is what a proper fitting produces. Your numbers before and after a proper fitting tell the story. If you have had a fitting before and nothing changed, that fitting was not thorough enough. Book Your Fitting or find out more.",
+              "hook": null,
+              "charCount": 498,
+              "anglesUsed": [
+                "sa-4",
+                "sa-3",
+                "sf-4",
+                "sf-3"
+              ],
+              "platform": "gmb"
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-05": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-05",
@@ -3187,7 +3334,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "gmb",
@@ -3256,7 +3403,23 @@
           ],
           "realPhotoBrief": "Real Swing Shack golfer \u2014 wrong clubs, expression of golfing frustration. Candid. Range environment. Natural light. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "caption": "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. Most golfers have blamed their swing for years. Wrong shaft flex is the #1 misfit in over 1,500 fittings. Your consistency problem might not be your technique \u2014 it might be your clubs. Swing Shack measures what your clubs are actually doing for your game. Book Your Fitting or find out more.",
+              "hook": null,
+              "charCount": 426,
+              "anglesUsed": [
+                "sa-1",
+                "sa-6",
+                "sa-7",
+                "sf-1",
+                "sf-6",
+                "sf-7"
+              ],
+              "platform": "gmb"
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-07": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-07",
@@ -3271,7 +3434,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "gmb",
@@ -3336,7 +3499,21 @@
           ],
           "realPhotoBrief": "Real Swing Shack golfer \u2014 reviewing scorecard or fitting data on phone/tablet, expression of inconsistency recognition. Candid. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "caption": "Every top, every slice, every thin shot \u2014 your clubs have been sending you a message. Wrong shaft flex is the #1 misfit in over 1,500 fittings. That is not a technique problem. That is an equipment problem. A fitting reveals exactly what your clubs are doing to your swing. Book Your Fitting or find out more at Swing Shack.",
+              "hook": null,
+              "charCount": 375,
+              "anglesUsed": [
+                "sa-2",
+                "sa-7",
+                "sf-2",
+                "sf-7"
+              ],
+              "platform": "gmb"
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-08": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-08",
@@ -3351,7 +3528,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "gmb",
@@ -3413,7 +3590,19 @@
           ],
           "realPhotoBrief": "Real TrackMan fitting screen \u2014 actual golfer before/after data numbers. Real clubs from fitting session. Fitting bay. Photographer: Swing Shack staff.",
           "visualQualityTier": "hero",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "caption": "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot. Your launch angle is 4 degrees off optimal. Ball speed down. Distance gone. The equipment gap between you and your potential is measurable in strokes per round. TrackMan at Swing Shack shows exactly where the strokes are hiding. Book Your Fitting or find out more.",
+              "hook": null,
+              "charCount": 372,
+              "anglesUsed": [
+                "sa-3",
+                "sf-3"
+              ],
+              "platform": "gmb"
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-09": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-09",
@@ -3428,7 +3617,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "gmb",
@@ -3492,7 +3681,21 @@
           ],
           "realPhotoBrief": "Real Swing Shack golfer \u2014 leaving fitting bay with new clubs, confident posture. Candid. Natural exterior light. Environment: Swing Shack parking or entrance. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:19:00Z",
+          "captionDraft": {
+            "variantA": {
+              "caption": "The difference between a 18 and 14 handicap is not more practice \u2014 it is knowing whether your clubs fit. A proper fitting covers launch angle, ball speed, and shaft flex. In over 1,500 fittings, the #1 issue is wrong shaft flex for the swing speed. After fitting, four strokes better. Same swing. If you have had a fitting before with no change, it was not thorough enough. Book Your Fitting or find out more at Swing Shack.",
+              "hook": null,
+              "charCount": 487,
+              "anglesUsed": [
+                "sa-4",
+                "sa-3",
+                "sf-4",
+                "sf-3"
+              ],
+              "platform": "gmb"
+            }
+          }
         }
       },
       "dna": {
