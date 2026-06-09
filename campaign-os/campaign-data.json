@@ -659,7 +659,7 @@
           "realImageNeeded": false,
           "aiImageAllowed": true,
           "captionStatus": "pending",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -671,6 +671,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043686+00:00"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T10:46:00Z",
+              "note": "Visual brief written for M6 pilot. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -705,7 +711,22 @@
             "sf-1",
             "sf-6",
             "sf-7"
-          ]
+          ],
+          "visualBrief": "Split-screen: top half shows absurd equipment joke (pool noodle clubs, flip-flops on the range). Bottom half transitions to a serious golfer about to hit with clearly wrong clubs. Dark background. Bold typography. The joke lands because the contrast is real.",
+          "aiAllowedFor": [
+            "background",
+            "lighting mood",
+            "typography treatment",
+            "layout frame"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "real equipment",
+            "swing motion"
+          ],
+          "realPhotoBrief": "Left panel: photograph absurd comparison props (pool noodles, wrong clubs, comedy elements). Right panel: real golfer in fitting stance \u2014 no AI equipment.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T10:46:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-02",
@@ -1340,7 +1361,7 @@
           "realImageNeeded": false,
           "aiImageAllowed": true,
           "captionStatus": "pending",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -1352,6 +1373,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043982+00:00"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T10:46:00Z",
+              "note": "Visual brief written for M6 pilot. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -1373,7 +1400,23 @@
           "findingIds": [
             "sf-2",
             "sf-7"
-          ]
+          ],
+          "visualBrief": "Clean studio feel. Text-driven slides with equipment names appearing as typography \u2014 no product photos. Blurred silhouette background. Dark palette. The visual restraint mirrors the 'something's wrong but I can't name it' experience. Slide 3 shows a gap/arrow graphic \u2014 equipment on left, performance on right.",
+          "aiAllowedFor": [
+            "background",
+            "typography",
+            "layout",
+            "mood lighting",
+            "text treatment"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion"
+          ],
+          "realPhotoBrief": "No real photography required for this asset. AI-generated mood backgrounds acceptable.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T10:46:00Z"
         },
         "use-the-right-equipment-mq5l90bk-carousel-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-03",
@@ -2052,10 +2095,10 @@
           "pillarName": "The Performance Gap \u2014 quantifying what wrong clubs cost the golfer",
           "objective": "Wrong equipment costs measurable distance, accuracy, and strokes \u2014 the math doesn't lie.",
           "requiredVisual": "Split-screen visualization showing a golfer's current stats versus their potential with proper equipment. Data overlays appear like a sports analytics broadcast \u2014 swing speed meters, launch angle graphs, accuracy percentages. The mood is stark and eye-opening, with cool blue data visualizations on one side and warm gold projected improvement on the other. Numbers should feel concrete and undeniable, not vague promises.",
-          "realImageNeeded": false,
-          "aiImageAllowed": true,
+          "realImageNeeded": true,
+          "aiImageAllowed": false,
           "captionStatus": "pending",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -2067,6 +2110,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044052+00:00"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T10:46:00Z",
+              "note": "Visual brief written for M6 pilot. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=hero"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -2083,7 +2132,24 @@
           ],
           "findingIds": [
             "sf-3"
-          ]
+          ],
+          "visualBrief": "Real TrackMan screen capture showing carry distance + dispersion before fitting vs after. Real equipment photograph \u2014 actual clubs used in the fitting session. No AI club heads. Data-forward layout: 'BEFORE FITTING: [numbers]' / 'AFTER FITTING: [numbers]'. Clean white or dark background. GMB post format.",
+          "aiAllowedFor": [
+            "background frame",
+            "typography treatment",
+            "layout",
+            "data graphic styling"
+          ],
+          "aiForbiddenFor": [
+            "club heads",
+            "equipment on-face",
+            "golfer likeness",
+            "swing motion",
+            "TrackMan data fabrication"
+          ],
+          "realPhotoBrief": "Real TrackMan fitting screen with actual golfer data numbers. Real golf clubs from the fitting bay. No staged studio \u2014 real fitting environment preferred. Photographer: Swing Shack staff or Takomo approved imagery.",
+          "visualQualityTier": "hero",
+          "visualBriefGeneratedAt": "2026-06-09T10:46:00Z"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-04",
