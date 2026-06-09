@@ -2521,6 +2521,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044006+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:57:00Z",
+              "note": "M6 Batch 4 \u2014 reel-02 caption written"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -2544,8 +2550,8 @@
             "sf-7"
           ],
           "copyRequirement": "Address: Your slice has a name. It also has a cause \u2014 and it's not your swing. | Every top, every slice, every thin shot is your equipment sending you a message.. Goal: Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build auth",
-          "captionLength": "80-120 chars (hook-first)",
-          "captionTone": "urgent hook, pattern interrupt",
+          "captionLength": "330 chars",
+          "captionTone": "educational revelation",
           "captionDraft": {
             "variantA": {
               "caption": "Your slice has a name. And the cause is not your swing. Wrong shaft flex is the #1 misfit in over 1,500 fittings. Every top, every slice, every thin shot \u2014 your clubs have been sending you a message. Book Your Fitting at Swing Shack and find out what your equipment is actually doing for your game.",
@@ -2603,7 +2609,10 @@
               "style": "conversational authority, golf buddy noticing what you are missing",
               "firstLineHook": "Your slice has a name. And the cause is not your swing."
             }
-          }
+          },
+          "caption": "Your slice has a name. And it's not 'bad swing.'\n\nIt's your clubs trying to tell you something. Every top, every fat shot, every inconsistent strike \u2014 that's your equipment sending a message you've been missing.\n\nWrong shaft flex is the leading cause. The fix isn't more practice. It's knowing what's actually wrong.\n\nSwing Shack fitting. Book your session.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-story-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-01",
