@@ -18,6 +18,7 @@
 const http = require('http');
 const { spawn } = require('child_process');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const PORT = process.argv[2] || 3456;
 const AUTH_USER = process.argv[3] || 'admin';
@@ -25,6 +26,17 @@ const AUTH_PASS = process.argv[4] || 'swing-shack-bp-2026';
 const REPO = '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard';
 const SCRIPT = path.join(REPO, 'scripts', 'generate-blueprint.py');
 const DATA_FILE = path.join(REPO, 'campaign-os', 'campaign-data.json');
+
+// Fetch GH_TOKEN at startup so git push works from background process
+function getGhToken() {
+  try {
+    return execSync('gh auth token', { encoding: 'utf8', timeout: 10000 }).trim();
+  } catch(e) {
+    return null;
+  }
+}
+const GH_TOKEN = process.env.GH_TOKEN || getGhToken();
+const HAS_TOKEN = !!(GH_TOKEN && GH_TOKEN.startsWith('gho_'));
 
 function corsHeaders() {
   return {
@@ -219,6 +231,58 @@ const server = http.createServer(async (req, res) => {
         const pushed = await doPush();
         const status = getStatus(campaignId);
         jsonResponse(res, 200, { ok: true, message: 'Blueprint regenerated and pushed', pushed: !!pushed, blueprint: status });
+      } catch(e) {
+        jsonResponse(res, 500, { ok: false, error: e.message });
+      }
+    });
+    return;
+  }
+
+  // POST /api/pp-generate — generate production plan for campaign
+  if (req.method === 'POST' && pathUrl === '/api/pp-generate') {
+    if (!checkAuth(req, res)) return;
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { campaignId } = JSON.parse(body);
+        if (!campaignId) { jsonResponse(res, 400, { ok: false, error: 'campaignId required' }); return; }
+        const result = spawnSync('python3', [SCRIPT.replace('generate-blueprint.py','generate-production-plan.py'), campaignId], {
+          cwd: REPO, timeout: 300, stdio: ['pipe','pipe','pipe']
+        });
+        if (result.status !== 0) {
+          const err = result.stderr ? result.stderr.toString() : 'generation failed';
+          jsonResponse(res, 500, { ok: false, error: err });
+          return;
+        }
+        const pushed = await doPush();
+        jsonResponse(res, 200, { ok: true, message: 'Production plan generated', pushed: !!pushed });
+      } catch(e) {
+        jsonResponse(res, 500, { ok: false, error: e.message });
+      }
+    });
+    return;
+  }
+
+  // POST /api/pp-approve — approve production plan for campaign
+  if (req.method === 'POST' && pathUrl === '/api/pp-approve') {
+    if (!checkAuth(req, res)) return;
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { campaignId } = JSON.parse(body);
+        if (!campaignId) { jsonResponse(res, 400, { ok: false, error: 'campaignId required' }); return; }
+        const result = spawnSync('python3', [SCRIPT.replace('generate-blueprint.py','generate-production-plan.py'), campaignId, '--approve'], {
+          cwd: REPO, timeout: 60, stdio: ['pipe','pipe','pipe']
+        });
+        if (result.status !== 0) {
+          const err = result.stderr ? result.stderr.toString() : 'approval failed';
+          jsonResponse(res, 500, { ok: false, error: err });
+          return;
+        }
+        const pushed = await doPush();
+        jsonResponse(res, 200, { ok: true, message: 'Production plan approved', pushed: !!pushed });
       } catch(e) {
         jsonResponse(res, 500, { ok: false, error: e.message });
       }
