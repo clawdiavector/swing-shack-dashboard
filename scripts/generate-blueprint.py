@@ -51,7 +51,7 @@ def call_model(messages):
     })
     with urllib.request.urlopen(req, timeout=90) as resp:
         result = json.loads(resp.read())
-    text_blocks = [c for c in result['content'] if c.get('type') == 'text']
+    text_blocks = [c for c in result['content'] if c.get('type') == 'text' and c.get('text')]
     if not text_blocks:
         raise ValueError(f'No text block in response: {result["content"]}')
     return text_blocks[0]['text']

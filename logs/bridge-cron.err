@@ -1,2 +1,1725 @@
 /bin/sh: node: command not found
 /bin/sh: node: command not found
+/bin/sh: node: command not found
+/bin/sh: node: command not found
+/bin/sh: node: command not found
+/bin/sh: node: command not found
+/bin/sh: node: command not found
+/bin/sh: node: command not found
+/bin/sh: node: command not found
+/bin/sh: node: command not found
+/bin/sh: node: command not found
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5864 (char 5863)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5864 (char 5863)
+
+Generating blueprint v20 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v19 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 7969 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 5864 (char 5863)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 5864 (char 5863)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5182 (char 5181)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5182 (char 5181)
+
+Generating blueprint v32 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v31 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6399 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 5182 (char 5181)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 5182 (char 5181)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5228 (char 5227)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5228 (char 5227)
+
+Generating blueprint v47 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v46 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6936 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 5228 (char 5227)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 5228 (char 5227)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 343, in <module>
+    'dna': blueprint['dna'],
+           ~~~~~~~~~^^^^^^^
+KeyError: 'dna'
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 343, in <module>
+    'dna': blueprint['dna'],
+           ~~~~~~~~~^^^^^^^
+KeyError: 'dna'
+
+Generating blueprint v49 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v48 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6056 chars
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 1202 (char 1201)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 1202 (char 1201)
+
+Generating blueprint v53 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v52 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6260 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 1202 (char 1201)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 1202 (char 1201)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5821 (char 5820)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5821 (char 5820)
+
+Generating blueprint v65 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v64 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6942 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 5821 (char 5820)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 5821 (char 5820)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6174 (char 6173)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6174 (char 6173)
+
+Generating blueprint v68 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v67 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6174 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 6174 (char 6173)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 6174 (char 6173)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6019 (char 6018)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6019 (char 6018)
+
+Generating blueprint v70 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v69 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6018 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 6019 (char 6018)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 6019 (char 6018)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5271 (char 5270)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5271 (char 5270)
+
+Generating blueprint v84 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v83 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 7275 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 5271 (char 5270)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 5271 (char 5270)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Invalid \escape: line 1 column 2939 (char 2938)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Invalid \escape: line 1 column 2939 (char 2938)
+
+Generating blueprint v85 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v84 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 8140 chars
+  JSON parse attempt 1 failed: Invalid \escape: line 1 column 2939 (char 2938)
+  JSON parse attempt 2 failed: Invalid \escape: line 1 column 2939 (char 2938)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4929 (char 4928)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4929 (char 4928)
+
+Generating blueprint v88 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v87 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6668 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 4929 (char 4928)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 4929 (char 4928)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Illegal trailing comma before end of object: line 12 column 223 (char 1521)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Illegal trailing comma before end of object: line 12 column 223 (char 1521)
+
+Generating blueprint v89 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v88 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 7021 chars
+  JSON parse attempt 1 failed: Illegal trailing comma before end of object: line 12 column 223 (char 1521)
+  JSON parse attempt 2 failed: Illegal trailing comma before end of object: line 12 column 223 (char 1521)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5013 (char 5012)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5013 (char 5012)
+
+Generating blueprint v90 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v89 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6683 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 5013 (char 5012)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 5013 (char 5012)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4185 (char 4184)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4185 (char 4184)
+
+Generating blueprint v101 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v100 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6472 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 4185 (char 4184)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 4185 (char 4184)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4545 (char 4544)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4545 (char 4544)
+
+Generating blueprint v107 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v106 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6155 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 4545 (char 4544)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 4545 (char 4544)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Invalid \escape: line 1 column 1281 (char 1280)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Invalid \escape: line 1 column 1281 (char 1280)
+
+Generating blueprint v115 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v114 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6165 chars
+  JSON parse attempt 1 failed: Invalid \escape: line 1 column 1281 (char 1280)
+  JSON parse attempt 2 failed: Invalid \escape: line 1 column 1281 (char 1280)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4770 (char 4769)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4770 (char 4769)
+
+Generating blueprint v124 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v123 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6263 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 4770 (char 4769)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 4770 (char 4769)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 215, in generate_blueprint
+    response = call_model(messages)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 52, in call_model
+    with urllib.request.urlopen(req, timeout=90) as resp:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 529: Unknown Status Code
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 215, in generate_blueprint
+    response = call_model(messages)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 52, in call_model
+    with urllib.request.urlopen(req, timeout=90) as resp:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 529: Unknown Status Code
+
+Generating blueprint v128 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v127 to blueprintHistory
+  Calling MiniMax-M2.7...
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 215, in generate_blueprint
+    response = call_model(messages)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 52, in call_model
+    with urllib.request.urlopen(req, timeout=90) as resp:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 529: Unknown Status Code
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 215, in generate_blueprint
+    response = call_model(messages)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 52, in call_model
+    with urllib.request.urlopen(req, timeout=90) as resp:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 529: Unknown Status Code
+
+Generating blueprint v128 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v127 to blueprintHistory
+  Calling MiniMax-M2.7...
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 222, in generate_blueprint
+    return generate_blueprint(campaign, is_retry=True, prior_errors=errors)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 215, in generate_blueprint
+    response = call_model(messages)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 52, in call_model
+    with urllib.request.urlopen(req, timeout=90) as resp:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 529: Unknown Status Code
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 222, in generate_blueprint
+    return generate_blueprint(campaign, is_retry=True, prior_errors=errors)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 215, in generate_blueprint
+    response = call_model(messages)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 52, in call_model
+    with urllib.request.urlopen(req, timeout=90) as resp:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 529: Unknown Status Code
+
+Generating blueprint v128 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v127 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6110 chars
+  Quality gate failed: ['Pillar 4 generic name: "Proof It Works — Real Golfer Transformations"']
+  Calling MiniMax-M2.7...
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 345, in <module>
+    'pillars': blueprint['pillars'],
+               ~~~~~~~~~^^^^^^^^^^^
+KeyError: 'pillars'
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 345, in <module>
+    'pillars': blueprint['pillars'],
+               ~~~~~~~~~^^^^^^^^^^^
+KeyError: 'pillars'
+
+Generating blueprint v139 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v138 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 7268 chars
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 348, in decode
+    raise JSONDecodeError("Extra data", s, end)
+json.decoder.JSONDecodeError: Extra data: line 1 column 5381 (char 5380)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 348, in decode
+    raise JSONDecodeError("Extra data", s, end)
+json.decoder.JSONDecodeError: Extra data: line 1 column 5381 (char 5380)
+
+Generating blueprint v147 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v146 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 7143 chars
+  JSON parse attempt 1 failed: Extra data: line 1 column 5381 (char 5380)
+  JSON parse attempt 2 failed: Extra data: line 1 column 5381 (char 5380)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4359 (char 4358)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4359 (char 4358)
+
+Generating blueprint v158 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v157 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 8990 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 4359 (char 4358)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 4359 (char 4358)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 4 column 136 (char 392)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 4 column 136 (char 392)
+
+Generating blueprint v158 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v157 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6631 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 4 column 136 (char 392)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 4 column 136 (char 392)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6951 (char 6950)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6951 (char 6950)
+
+Generating blueprint v183 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v182 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6952 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 6951 (char 6950)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 6951 (char 6950)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6536 (char 6535)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6536 (char 6535)
+
+Generating blueprint v196 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v195 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 8443 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 6536 (char 6535)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 6536 (char 6535)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6103 (char 6102)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6103 (char 6102)
+
+Generating blueprint v211 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v210 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6103 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 6103 (char 6102)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 6103 (char 6102)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5665 (char 5664)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5665 (char 5664)
+
+Generating blueprint v218 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v217 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 8003 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 5665 (char 5664)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 5665 (char 5664)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 343, in <module>
+    'dna': blueprint['dna'],
+           ~~~~~~~~~^^^^^^^
+KeyError: 'dna'
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 343, in <module>
+    'dna': blueprint['dna'],
+           ~~~~~~~~~^^^^^^^
+KeyError: 'dna'
+
+Generating blueprint v223 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v222 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 5829 chars
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 343, in <module>
+    'dna': blueprint['dna'],
+           ~~~~~~~~~^^^^^^^
+KeyError: 'dna'
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 343, in <module>
+    'dna': blueprint['dna'],
+           ~~~~~~~~~^^^^^^^
+KeyError: 'dna'
+
+Generating blueprint v223 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v222 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6830 chars
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 1481 (char 1480)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 1481 (char 1480)
+
+Generating blueprint v225 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v224 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 5951 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 1481 (char 1480)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 1481 (char 1480)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6031 (char 6030)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6031 (char 6030)
+
+Generating blueprint v226 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v225 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6030 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 6031 (char 6030)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 6031 (char 6030)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 8 column 131 (char 875)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 8 column 131 (char 875)
+
+Generating blueprint v236 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v235 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 7384 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 8 column 131 (char 875)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 8 column 131 (char 875)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4943 (char 4942)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4943 (char 4942)
+
+Generating blueprint v240 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v239 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 5848 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 4943 (char 4942)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 4943 (char 4942)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5693 (char 5692)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5693 (char 5692)
+
+Generating blueprint v249 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v248 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 5692 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 5693 (char 5692)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 5693 (char 5692)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 8782 (char 8781)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 8782 (char 8781)
+
+Generating blueprint v250 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v249 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 8781 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 8782 (char 8781)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 8782 (char 8781)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Invalid \escape: line 1 column 3920 (char 3919)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Invalid \escape: line 1 column 3920 (char 3919)
+
+Generating blueprint v253 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v252 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6140 chars
+  JSON parse attempt 1 failed: Invalid \escape: line 1 column 3920 (char 3919)
+  JSON parse attempt 2 failed: Invalid \escape: line 1 column 3920 (char 3919)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5450 (char 5449)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 5450 (char 5449)
+
+Generating blueprint v256 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v255 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 6992 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 5450 (char 5449)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 5450 (char 5449)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6188 (char 6187)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 6188 (char 6187)
+
+Generating blueprint v264 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v263 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 7797 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 6188 (char 6187)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 6188 (char 6187)
+
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 3726 (char 3725)
+Blueprint script error: Command failed: /opt/homebrew/bin/python3 scripts/generate-blueprint.py use-the-right-equipment-mq5l90bk --regenerate
+Traceback (most recent call last):
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 336, in <module>
+    blueprint = generate_blueprint(campaign)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 217, in generate_blueprint
+    blueprint = parse_json_with_retry(response)
+  File "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/scripts/generate-blueprint.py", line 77, in parse_json_with_retry
+    return json.loads(cleaned)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 3726 (char 3725)
+
+Generating blueprint v277 for: use-the-right-equipment-mq5l90bk (regenerate)
+  Archived v276 to blueprintHistory
+  Calling MiniMax-M2.7...
+  Response: 7747 chars
+  JSON parse attempt 1 failed: Expecting ',' delimiter: line 1 column 3726 (char 3725)
+  JSON parse attempt 2 failed: Expecting ',' delimiter: line 1 column 3726 (char 3725)
+
