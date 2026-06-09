@@ -799,7 +799,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -879,7 +879,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -955,7 +955,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1035,7 +1035,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1119,7 +1119,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1204,7 +1204,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1283,7 +1283,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1356,7 +1356,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1434,7 +1434,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1517,7 +1517,7 @@
           "aiImageAllowed": false,
           "captionStatus": "draft",
           "visualStatus": "brief-written",
-          "approvalStatus": "pending",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1586,7 +1586,41 @@
           "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
           "caption": "You wouldn't run a marathon in flip-flops. So why are you playing with clubs that don't fit?\n\n\"I'm just inconsistent\" \u2014 that's not your swing. That's your equipment.\n\nThe pool noodle test: if it looks this ridiculous, your clubs might be wrong too.\n\nFind out what's actually going on.\n\nSwing Shack. Book your fitting.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "captionDraft": {
+            "variantA": {
+              "caption": "You wouldn't run a marathon in flip-flops. So why are you playing with clubs that don't fit? That 'inconsistent swing' you've been working on? Might be your equipment talking. Let's find out. Book Your Fitting at Swing Shack.",
+              "hook": "Your clubs might be the punchline.",
+              "charCount": 198,
+              "anglesUsed": [
+                "sa-6",
+                "sa-7",
+                "sf-6"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#shaftflex",
+                "#clubfitting",
+                "#golftech"
+              ]
+            },
+            "variantB": {
+              "caption": "Is it your swing, or is it your clubs? Wrong shaft flex is the #1 misfit in over 1,500 fittings. That slice you've been fighting? Your clubs might be the problem \u2014 not your technique. Book Your Fitting and find out.",
+              "hook": "Is it your swing, or your clubs?",
+              "charCount": 211,
+              "anglesUsed": [
+                "sa-7",
+                "sa-1",
+                "sf-7"
+              ],
+              "platform": "instagram",
+              "hashtags": [
+                "#shaftflex",
+                "#clubfitting",
+                "#golfperformance"
+              ]
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-feed-post-12": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-12",
@@ -1695,8 +1729,8 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
-          "approvalStatus": "pending",
+          "visualStatus": "brief-written",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -1745,7 +1779,76 @@
           "captionTone": "provocative sardonic",
           "caption": "Would you run a marathon in flip-flops?\n\nThen why are you playing with clubs that don't match your swing?\n\nThe pool noodle test: if it looks this ridiculous, your clubs might be wrong too.\n\n\"I'm just inconsistent\" \u2014 that's not your swing. That's your equipment.\n\nFind out what's actually going on.\n\nSwing Shack. Book your fitting.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": {
+            "slides": [
+              {
+                "slide": 1,
+                "concept": "Absurdity hook \u2014 pool noodle driver or flip-flops on the course",
+                "realPhotography": [
+                  "Real golfer",
+                  "Real pool noodle prop"
+                ],
+                "aiAllowed": [
+                  "Dark BG",
+                  "Neon data overlay",
+                  "Bold text"
+                ],
+                "headline": "Wrong equipment masquerades as bad swing."
+              },
+              {
+                "slide": 2,
+                "concept": "Name the false belief \u2014 \"I'm just inconsistent\"",
+                "realPhotography": [
+                  "Real golfer silhouette"
+                ],
+                "aiAllowed": [
+                  "Neon grid",
+                  "Text overlay"
+                ],
+                "headline": "The Absurdity Mirror."
+              },
+              {
+                "slide": 3,
+                "concept": "The equipment cause revealed \u2014 wrong shaft flex, wrong swing speed",
+                "realPhotography": [
+                  "Real shafts",
+                  "Real grip"
+                ],
+                "aiAllowed": [
+                  "Flex chart",
+                  "Data overlay"
+                ],
+                "headline": "Wrong flex = the problem."
+              },
+              {
+                "slide": 4,
+                "concept": "The reveal \u2014 with right equipment, the same swing produces better results",
+                "realPhotography": [
+                  "Real ball marks on turf",
+                  "Real fitting session"
+                ],
+                "aiAllowed": [
+                  "Before/after data",
+                  "+distance callout"
+                ],
+                "headline": "Same swing. Different clubs."
+              },
+              {
+                "slide": 5,
+                "concept": "CTA \u2014 Book Your Fitting",
+                "realPhotography": [
+                  "Swing Shack branded bay"
+                ],
+                "aiAllowed": [
+                  "All typography",
+                  "QR code",
+                  "Dark BG"
+                ],
+                "headline": "Book Your Fit."
+              }
+            ]
+          }
         },
         "use-the-right-equipment-mq5l90bk-carousel-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-02",
@@ -2816,8 +2919,8 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
-          "approvalStatus": "pending",
+          "visualStatus": "brief-written",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "gmb",
@@ -2861,7 +2964,34 @@
           "captionTone": "informative, trust-building",
           "copyRequirement": "Address: Your first swing with the right clubs will make you wonder what you've been playing all these years. | Fifteen minutes of fitting. A lifetime of better shots. Book now.. Goal: Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. ",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": {
+            "concept": "Practice session as diagnostic \u2014 welcoming, not intimidating. The low-cost entry point.",
+            "composition": "Swing Shack practice bay with golfer engaged in session. Launch monitor visible. Warm but professional atmosphere.",
+            "realPhotography": [
+              "Real practice bay at Swing Shack",
+              "Real golfer in session",
+              "Real launch monitor screen visible"
+            ],
+            "aiAllowed": [
+              "Background mood lighting",
+              "Data overlay graphics",
+              "Typography",
+              "Booking QR code"
+            ],
+            "dataPoints": [
+              "Practice session from R250",
+              "Diagnostic not sales",
+              "Swing Shack TrackMan"
+            ],
+            "avoid": [
+              "Clinical/medical diagram look",
+              "Hard-sell imagery",
+              "Intimidating atmosphere"
+            ],
+            "gmbConstraints": "Clean, professional, trustworthy. Welcoming Johannesburg golfer to the practice bay. No flashy gimmicks.",
+            "textOverlay": "Headline: \"R250 gets you answers.\" Subline: \"Swing Shack. TrackMan-powered fitting.\""
+          }
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-06": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-06",
