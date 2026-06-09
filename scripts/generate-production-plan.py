@@ -404,7 +404,9 @@ def build_calendar_python(assets, pillars, start_date):
 def build_asset_shells_python(campaign_id, requirements, pillars, campaign):
     """Generate asset shells in Python (source of truth for counts/ids)."""
     campaign_type = campaign.get('identity', {}).get('campaignType', '')
-    is_equipment = campaign_type in ('equipment', 'fitting', 'club-fitting', 'product', 'equipment-fitting', 'product-launch')
+    # Primary signal: memory flag. Fallback: campaignType keyword match
+    is_equipment = campaign.get('memory', {}).get('requiresRealProductImage', False) or \
+                  campaign_type in ('equipment', 'fitting', 'club-fitting', 'product', 'equipment-fitting', 'product-launch')
     idx = {'feed-post': 1, 'carousel': 1, 'reel': 1, 'story': 1, 'gmb-post': 1}
     shells = []
 
@@ -463,7 +465,9 @@ def generate_production_plan(campaign):
 
     # Step 4: Call AI for per-pillar creative guidance only
     campaign_type = campaign.get('identity', {}).get('campaignType', '')
-    is_equipment = campaign_type in ('equipment', 'fitting', 'club-fitting', 'product', 'equipment-fitting', 'product-launch')
+    # Primary signal: memory flag. Fallback: campaignType keyword match
+    is_equipment = campaign.get('memory', {}).get('requiresRealProductImage', False) or \
+                  campaign_type in ('equipment', 'fitting', 'club-fitting', 'product', 'equipment-fitting', 'product-launch')
 
     pillar_txt = '\n'.join(f'  - {p["id"]}: {p["name"]} — {p.get("description","")[:100]}' for p in pillars)
     tone = campaign.get('blueprint', {}).get('dna', {}).get('tone', '—')
@@ -516,7 +520,23 @@ Answer ONLY with valid JSON. No markdown fences, no explanation."""
             shell['copyDirection'] = pc.get('copyDirection', '')
             shell['captionAngles'] = pc.get('captionAngles', [])
             if not shell.get('name') and pc.get('hook'):
-                shell['name'] = f"{shell.get('contentType','').replace('-',' ').title()} — {pc['hook'][:30]}"
+                shell['name'] = f"{shell.get('contentType','').replace('-',' ').title()} -- {pc['hook'][:30]}"
+
+            # Copy briefing fields (deterministic, not AI)
+            LENGTH_MAP = {'feed-post': '150-220 chars', 'carousel': '100-150 chars per slide',
+                          'reel': '80-120 chars (hook-first)', 'story': '150-200 chars',
+                          'gmb-post': '200-350 chars (local SEO optimized)'}
+            TONE_MAP = {'feed-post': 'conversational, edge-of-fairway wit',
+                         'carousel': 'provocative, pattern interrupts',
+                         'reel': 'urgent hook, pattern interrupt',
+                         'story': 'off-the-cuff, authentic',
+                         'gmb-post': 'informative, trust-building'}
+            ct = shell.get('contentType', 'feed-post')
+            caption_angles = shell.get('captionAngles', [])
+            angle_str = ' | '.join(caption_angles[:2]) if caption_angles else shell.get('pillarName', '')
+            shell['copyRequirement'] = f"Address: {angle_str}. Goal: {shell.get('copyDirection','')[:100]}"
+            shell['captionLength'] = LENGTH_MAP.get(ct, '150-200 chars')
+            shell['captionTone'] = TONE_MAP.get(ct, 'conversational')
 
     # Step 6: Assemble final production plan
     pp = {
