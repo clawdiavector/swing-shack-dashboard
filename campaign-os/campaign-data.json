@@ -2527,6 +2527,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:57:00Z",
               "note": "M6 Batch 4 \u2014 reel-02 caption written"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:57:00Z",
+              "note": "Batch 4 visual brief complete. realImageNeeded=true, aiImageAllowed=false, visualQualityTier=hero. Equipment campaign reel \u2014 no AI club heads, no AI golfer likeness."
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -2612,7 +2618,16 @@
           },
           "caption": "Your slice has a name. And it's not 'bad swing.'\n\nIt's your clubs trying to tell you something. Every top, every fat shot, every inconsistent strike \u2014 that's your equipment sending a message you've been missing.\n\nWrong shaft flex is the leading cause. The fix isn't more practice. It's knowing what's actually wrong.\n\nSwing Shack fitting. Book your session.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiForbiddenFor": [
+            "golfer likeness fabrication",
+            "swing motion fabrication",
+            "club head fabrication",
+            "stock footage"
+          ],
+          "realPhotoBrief": "Real ball flight marks showing slice/top/thin patterns. Real shaft flex comparison. Real fitting session at Swing Shack. Real golfer swing footage \u2014 no AI swing motion.",
+          "visualQualityTier": "hero",
+          "visualBriefGeneratedAt": "2026-06-09T12:57:00Z"
         },
         "use-the-right-equipment-mq5l90bk-story-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-01",
