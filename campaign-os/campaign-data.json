@@ -2296,6 +2296,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043993+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014 not a luxury but a revelation. Bridge the gap between the problems named in P2 and this clear solution. Make booking feel like the natural next step.",
@@ -2319,8 +2325,8 @@
             "sf-3"
           ],
           "copyRequirement": "Address: Your swing has been asking for these clubs. A fitting finally let them answer. | This isn't about expensive equipment. It's about equipment that's expensive-for-you.. Goal: Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014",
-          "captionLength": "100-150 chars per slide",
-          "captionTone": "provocative, pattern interrupts",
+          "captionLength": "340 chars",
+          "captionTone": "solution-oriented reassuring",
           "captionDraft": {
             "variantA": {
               "slides": [
@@ -2428,7 +2434,10 @@
                 "headline": "Book Your Fitting."
               }
             ]
-          }
+          },
+          "caption": "Your swing has been asking for these clubs. A fitting finally let them answer.\n\nThis isn't about expensive equipment. It's about equipment that's right for you \u2014 clubs that match your swing speed, your flex, your game.\n\nThe moment everything clicks? That's what a proper fitting delivers.\n\nSwing Shack. Book your fitting.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-reel-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-reel-01",
@@ -2454,6 +2463,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043998+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -2482,8 +2497,8 @@
             "sf-7"
           ],
           "copyRequirement": "Address: The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. | You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?. Goal: Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid.",
-          "captionLength": "80-120 chars (hook-first)",
-          "captionTone": "urgent hook, pattern interrupt",
+          "captionLength": "300 chars",
+          "captionTone": "provocative absurdity",
           "captionDraft": {
             "variantA": {
               "caption": "Your slice has a name. And the cause is not your swing. Wrong shaft flex is the #1 misfit in over 1,500 fittings. That consistency problem you have blamed on your technique? It might be your clubs. Book Your Fitting at Swing Shack.",
@@ -2537,7 +2552,10 @@
               "Fake swing action"
             ],
             "textOverlay": "Headline: \"Wrong clubs wear a bad-swing mask.\" Subline: \"TrackMan tells you which one.\""
-          }
+          },
+          "caption": "You wouldn't run a marathon in flip-flops. So why are you playing with clubs that don't fit?\n\n\"I'm just inconsistent\" \u2014 that's not your swing. That's your equipment.\n\nThe pool noodle test: if it looks this ridiculous, your clubs might be wrong too.\n\nSwing Shack. Book your fitting.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-reel-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-reel-02",
@@ -2613,6 +2631,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044011+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -2641,8 +2665,8 @@
             "sf-7"
           ],
           "copyRequirement": "Address: The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. | You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?. Goal: Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid.",
-          "captionLength": "150-200 chars",
-          "captionTone": "off-the-cuff, authentic",
+          "captionLength": "100 chars",
+          "captionTone": "provocative short",
           "captionDraft": {
             "variantA": {
               "frames": [
@@ -2697,7 +2721,10 @@
               "Fake swing motion"
             ],
             "textOverlay": "Frame 1: \"Wrong clubs look like this.\" Frame 2: \"Is it your swing?\" Frame 3: \"Book Your Fitting.\""
-          }
+          },
+          "caption": "Would you run a marathon in flip-flops? Then why are you playing with clubs that don't fit?\n\nBook your fitting at Swing Shack.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-story-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-02",
@@ -2723,6 +2750,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044015+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -2746,8 +2779,8 @@
             "sf-7"
           ],
           "copyRequirement": "Address: Your slice has a name. It also has a cause \u2014 and it's not your swing. | Every top, every slice, every thin shot is your equipment sending you a message.. Goal: Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build auth",
-          "captionLength": "150-200 chars",
-          "captionTone": "off-the-cuff, authentic",
+          "captionLength": "95 chars",
+          "captionTone": "educational revelation short",
           "captionDraft": {
             "variantA": {
               "frames": [
@@ -2800,7 +2833,10 @@
               "Fake swing motion"
             ],
             "textOverlay": "Frame 1: \"Every slice. Your clubs talking.\" Frame 2: \"Wrong flex.\" Frame 3: \"Book Your Fitting.\""
-          }
+          },
+          "caption": "Your slice has a name. And it's not your swing.\n\nSwing Shack fitting shows you what's been costing you strokes.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-story-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-03",
@@ -2826,6 +2862,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044018+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -2844,8 +2886,8 @@
             "sf-3"
           ],
           "copyRequirement": "Address: Wrong clubs cost you 23 yards off the tee. Every. Single. Shot. | Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.. Goal: Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract pro",
-          "captionLength": "150-200 chars",
-          "captionTone": "off-the-cuff, authentic",
+          "captionLength": "100 chars",
+          "captionTone": "data-driven clinical short",
           "captionDraft": {
             "variantA": {
               "frames": [
@@ -2896,7 +2938,10 @@
               "Fake swing motion"
             ],
             "textOverlay": "Frame 1: \"Data shows what your eye cannot see.\" Frame 2: \"4 degrees off.\" Frame 3: \"Book Your Fitting.\""
-          }
+          },
+          "caption": "Wrong clubs cost you 23 yards off the tee. Every shot.\n\nTrackMan fitting at Swing Shack shows you what's been lost.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-story-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-04",
@@ -2922,6 +2967,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044022+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014 not a luxury but a revelation. Bridge the gap between the problems named in P2 and this clear solution. Make booking feel like the natural next step.",
@@ -2945,8 +2996,8 @@
             "sf-3"
           ],
           "copyRequirement": "Address: Your swing has been asking for these clubs. A fitting finally let them answer. | This isn't about expensive equipment. It's about equipment that's expensive-for-you.. Goal: Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014",
-          "captionLength": "150-200 chars",
-          "captionTone": "off-the-cuff, authentic",
+          "captionLength": "90 chars",
+          "captionTone": "solution-oriented short",
           "captionDraft": {
             "variantA": {
               "frames": [
@@ -2999,7 +3050,10 @@
               "Fake swing motion"
             ],
             "textOverlay": "Frame 1: \"18-handicap. Blamed the swing.\" Frame 2: \"The reveal.\" Frame 3: \"14-handicap. Same swing.\""
-          }
+          },
+          "caption": "Your swing has been asking for these clubs. A fitting finally let them answer.\n\nSwing Shack. Book yours.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-story-05": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-05",
@@ -3025,6 +3079,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044029+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. Use urgency without pressure, enthusiasm without hype. The tone is your trusted buddy saying 'trust me, do this' with genuine excitement about what's waiting for them.",
@@ -3053,8 +3113,8 @@
             "sf-7"
           ],
           "copyRequirement": "Address: Your first swing with the right clubs will make you wonder what you've been playing all these years. | Fifteen minutes of fitting. A lifetime of better shots. Book now.. Goal: Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. ",
-          "captionLength": "150-200 chars",
-          "captionTone": "off-the-cuff, authentic",
+          "captionLength": "100 chars",
+          "captionTone": "low-friction conversion short",
           "captionDraft": {
             "variantA": {
               "frames": [
@@ -3109,7 +3169,10 @@
               "Fake swing motion"
             ],
             "textOverlay": "Frame 1: \"R250 gets you answers.\" Frame 2: \"Swing or clubs?\" Frame 3: \"Book Your Session.\""
-          }
+          },
+          "caption": "Fifteen minutes of fitting. A lifetime of better shots.\n\nR250 gets you a full diagnostic. Book at Swing Shack.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-story-06": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-06",
@@ -3135,6 +3198,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044033+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -3163,8 +3232,8 @@
             "sf-7"
           ],
           "copyRequirement": "Address: The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. | You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?. Goal: Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid.",
-          "captionLength": "150-200 chars",
-          "captionTone": "off-the-cuff, authentic",
+          "captionLength": "130 chars",
+          "captionTone": "provocative short",
           "captionDraft": {
             "variantA": {
               "frames": [
@@ -3219,7 +3288,10 @@
               "Fake swing motion"
             ],
             "textOverlay": "Frame 1: \"Borrowed clubs. Wrong fit.\" Frame 2: \"Bad technique. Or bad clubs.\" Frame 3: \"Book Your Fitting.\""
-          }
+          },
+          "caption": "You wouldn't play a full round with a pool noodle. So why are you playing with clubs that don't fit?\n\nSwing Shack. Book your fitting.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-story-07": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-07",
@@ -3245,6 +3317,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044036+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -3268,8 +3346,8 @@
             "sf-7"
           ],
           "copyRequirement": "Address: Your slice has a name. It also has a cause \u2014 and it's not your swing. | Every top, every slice, every thin shot is your equipment sending you a message.. Goal: Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build auth",
-          "captionLength": "150-200 chars",
-          "captionTone": "off-the-cuff, authentic",
+          "captionLength": "130 chars",
+          "captionTone": "educational revelation short",
           "captionDraft": {
             "variantA": {
               "frames": [
@@ -3322,7 +3400,10 @@
               "Fake swing motion"
             ],
             "textOverlay": "Frame 1: \"Every top. Your clubs talking.\" Frame 2: \"Wrong flex.\" Frame 3: \"Book Your Fitting.\""
-          }
+          },
+          "caption": "Every top, every slice, every thin shot \u2014 your equipment has been sending you a message.\n\nSwing Shack. Book your fitting.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-story-08": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-08",
@@ -3348,6 +3429,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.044040+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "M6 Batch 3 caption written \u2014 locked manifest"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -3366,8 +3453,8 @@
             "sf-3"
           ],
           "copyRequirement": "Address: Wrong clubs cost you 23 yards off the tee. Every. Single. Shot. | Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.. Goal: Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract pro",
-          "captionLength": "150-200 chars",
-          "captionTone": "off-the-cuff, authentic",
+          "captionLength": "90 chars",
+          "captionTone": "data-driven clinical short",
           "captionDraft": {
             "variantA": {
               "frames": [
@@ -3418,7 +3505,10 @@
               "Fake swing motion"
             ],
             "textOverlay": "Frame 1: \"23 yards. Every shot.\" Frame 2: \"4 degrees off.\" Frame 3: \"Book Your Fitting.\""
-          }
+          },
+          "caption": "Your launch angle is 4 degrees off optimal. Every shot.\n\nSwing Shack. Book your TrackMan fitting.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-01",
