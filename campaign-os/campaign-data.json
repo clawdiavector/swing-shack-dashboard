@@ -2508,9 +2508,9 @@
           "requiredVisual": "A golfer mid-swing frozen at the moment of impact, with subtle visual overlays showing trajectory lines and spin patterns. The mood is investigative \u2014 like a sports science documentary reveal. Cooler tones dominate (blues, grays) representing confusion and struggle, with small moments of gold highlighting the 'aha' understanding dawning. The golfer's expression should convey that they've always suspected but never had words.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
-          "visualStatus": "pending",
-          "approvalStatus": "pending",
+          "captionStatus": "draft",
+          "visualStatus": "brief-written",
+          "approvalStatus": "review",
           "publishStatus": "planned",
           "owner": "copywriter",
           "platform": "instagram",
@@ -2545,7 +2545,65 @@
           ],
           "copyRequirement": "Address: Your slice has a name. It also has a cause \u2014 and it's not your swing. | Every top, every slice, every thin shot is your equipment sending you a message.. Goal: Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build auth",
           "captionLength": "80-120 chars (hook-first)",
-          "captionTone": "urgent hook, pattern interrupt"
+          "captionTone": "urgent hook, pattern interrupt",
+          "captionDraft": {
+            "variantA": {
+              "caption": "Your slice has a name. And the cause is not your swing. Wrong shaft flex is the #1 misfit in over 1,500 fittings. Every top, every slice, every thin shot \u2014 your clubs have been sending you a message. Book Your Fitting at Swing Shack and find out what your equipment is actually doing for your game.",
+              "hook": "Your slice has a name. It is your clubs.",
+              "charCount": 298,
+              "anglesUsed": [
+                "sa-2",
+                "sa-7",
+                "sf-2",
+                "sf-7"
+              ],
+              "platform": "instagram"
+            },
+            "variantB": {
+              "caption": "Is it your swing, or is it your clubs? Wrong shaft flex is the #1 misfit in over 1,500 fittings. That consistency problem you have blamed on your technique? It might be your clubs. A fitting tells you which one you have. Book at Swing Shack.",
+              "hook": "Is it your swing, or your clubs?",
+              "charCount": 267,
+              "anglesUsed": [
+                "sa-2",
+                "sa-7",
+                "sf-2",
+                "sf-7"
+              ],
+              "platform": "instagram"
+            }
+          },
+          "visualBrief": {
+            "concept": "Educational revelation format \u2014 slice/top/thin shot visualization with equipment cause reveal. Golfers see their own game and realize it might be the clubs.",
+            "composition": "Fast-cut short-form reel. Hook: naming the shot problems. Middle: equipment cause reveal (shaft flex mismatch data). End: CTA to book fitting.",
+            "realPhotography": [
+              "Real ball flight marks showing slice/top/thin patterns",
+              "Real shaft flex comparison",
+              "Real fitting session at Swing Shack"
+            ],
+            "aiAllowed": [
+              "Background mood lighting",
+              "Bold typography",
+              "Data callout animations",
+              "Reel transitions"
+            ],
+            "dataPoints": [
+              "Wrong shaft flex #1 misfit in 1,500+ fittings",
+              "S300 in regular swing speed = toe contact"
+            ],
+            "avoid": [
+              "Fake club heads",
+              "AI golfer likeness",
+              "Fake swing motion",
+              "Stock footage"
+            ],
+            "textOverlay": "Headline: \"Your slice has a name.\" Subline: \"And the cause is not your swing.\" CTA: \"Book Your Fitting.\"",
+            "reelFormat": {
+              "structure": "hook -> problem naming -> equipment cause -> CTA",
+              "duration": "15-30 seconds",
+              "style": "conversational authority, golf buddy noticing what you are missing",
+              "firstLineHook": "Your slice has a name. And the cause is not your swing."
+            }
+          }
         },
         "use-the-right-equipment-mq5l90bk-story-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-01",
