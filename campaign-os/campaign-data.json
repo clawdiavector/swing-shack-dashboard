@@ -686,6 +686,25 @@
             "Local JHB proof required \u2014 international testimonials don't convert for this audience",
             "Price objection ('too expensive') addressed by practice session framing \u2014 low-cost entry point",
             "Real club photography required \u2014 AI cannot generate believable club heads for equipment campaign"
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-1",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-6",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-1",
+            "sf-6",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-02": {
@@ -719,6 +738,20 @@
             "Your slice has a name. It also has a cause \u2014 and it's not your swing.",
             "Every top, every slice, every thin shot is your equipment sending you a message.",
             "The consistency problem you've blamed on your swing? It's been your clubs the whole time."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-2",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-2",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-03": {
@@ -752,6 +785,15 @@
             "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot.",
             "Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.",
             "The equipment gap between you and your potential is measurable in strokes per round."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-3",
+              "relevance": "primary"
+            }
+          ],
+          "findingIds": [
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-04": {
@@ -785,6 +827,20 @@
             "Your swing has been asking for these clubs. A fitting finally let them answer.",
             "This isn't about expensive equipment. It's about equipment that's expensive-for-you.",
             "The fitting moment when everything suddenly makes sense."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-4",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-3",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-4",
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-05": {
@@ -818,6 +874,25 @@
             "Your first swing with the right clubs will make you wonder what you've been playing all these years.",
             "Fifteen minutes of fitting. A lifetime of better shots. Book now.",
             "The difference between the golfer you are and the golfer you could be? One booking away."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-5",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-1",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-5",
+            "sf-1",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-06": {
@@ -851,6 +926,25 @@
             "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too.",
             "You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?",
             "The equipment you're using might be the punchline nobody told you about."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-1",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-6",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-1",
+            "sf-6",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-07": {
@@ -884,6 +978,20 @@
             "Your slice has a name. It also has a cause \u2014 and it's not your swing.",
             "Every top, every slice, every thin shot is your equipment sending you a message.",
             "The consistency problem you've blamed on your swing? It's been your clubs the whole time."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-2",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-2",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-08": {
@@ -917,6 +1025,15 @@
             "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot.",
             "Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.",
             "The equipment gap between you and your potential is measurable in strokes per round."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-3",
+              "relevance": "primary"
+            }
+          ],
+          "findingIds": [
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-09": {
@@ -950,6 +1067,20 @@
             "Your swing has been asking for these clubs. A fitting finally let them answer.",
             "This isn't about expensive equipment. It's about equipment that's expensive-for-you.",
             "The fitting moment when everything suddenly makes sense."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-4",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-3",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-4",
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-10": {
@@ -983,6 +1114,25 @@
             "Your first swing with the right clubs will make you wonder what you've been playing all these years.",
             "Fifteen minutes of fitting. A lifetime of better shots. Book now.",
             "The difference between the golfer you are and the golfer you could be? One booking away."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-5",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-1",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-5",
+            "sf-1",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-11": {
@@ -1016,6 +1166,25 @@
             "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too.",
             "You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?",
             "The equipment you're using might be the punchline nobody told you about."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-1",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-6",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-1",
+            "sf-6",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-12": {
@@ -1049,6 +1218,20 @@
             "Your slice has a name. It also has a cause \u2014 and it's not your swing.",
             "Every top, every slice, every thin shot is your equipment sending you a message.",
             "The consistency problem you've blamed on your swing? It's been your clubs the whole time."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-2",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-2",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-13": {
@@ -1082,6 +1265,15 @@
             "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot.",
             "Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.",
             "The equipment gap between you and your potential is measurable in strokes per round."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-3",
+              "relevance": "primary"
+            }
+          ],
+          "findingIds": [
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-carousel-01": {
@@ -1115,6 +1307,25 @@
             "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too.",
             "You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?",
             "The equipment you're using might be the punchline nobody told you about."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-1",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-6",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-1",
+            "sf-6",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-carousel-02": {
@@ -1148,6 +1359,20 @@
             "Your slice has a name. It also has a cause \u2014 and it's not your swing.",
             "Every top, every slice, every thin shot is your equipment sending you a message.",
             "The consistency problem you've blamed on your swing? It's been your clubs the whole time."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-2",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-2",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-carousel-03": {
@@ -1181,6 +1406,15 @@
             "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot.",
             "Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.",
             "The equipment gap between you and your potential is measurable in strokes per round."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-3",
+              "relevance": "primary"
+            }
+          ],
+          "findingIds": [
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-carousel-04": {
@@ -1214,6 +1448,20 @@
             "Your swing has been asking for these clubs. A fitting finally let them answer.",
             "This isn't about expensive equipment. It's about equipment that's expensive-for-you.",
             "The fitting moment when everything suddenly makes sense."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-4",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-3",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-4",
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-reel-01": {
@@ -1247,6 +1495,25 @@
             "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too.",
             "You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?",
             "The equipment you're using might be the punchline nobody told you about."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-1",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-6",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-1",
+            "sf-6",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-reel-02": {
@@ -1280,6 +1547,20 @@
             "Your slice has a name. It also has a cause \u2014 and it's not your swing.",
             "Every top, every slice, every thin shot is your equipment sending you a message.",
             "The consistency problem you've blamed on your swing? It's been your clubs the whole time."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-2",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-2",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-story-01": {
@@ -1313,6 +1594,25 @@
             "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too.",
             "You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?",
             "The equipment you're using might be the punchline nobody told you about."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-1",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-6",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-1",
+            "sf-6",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-story-02": {
@@ -1346,6 +1646,20 @@
             "Your slice has a name. It also has a cause \u2014 and it's not your swing.",
             "Every top, every slice, every thin shot is your equipment sending you a message.",
             "The consistency problem you've blamed on your swing? It's been your clubs the whole time."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-2",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-2",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-story-03": {
@@ -1379,6 +1693,15 @@
             "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot.",
             "Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.",
             "The equipment gap between you and your potential is measurable in strokes per round."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-3",
+              "relevance": "primary"
+            }
+          ],
+          "findingIds": [
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-story-04": {
@@ -1412,6 +1735,20 @@
             "Your swing has been asking for these clubs. A fitting finally let them answer.",
             "This isn't about expensive equipment. It's about equipment that's expensive-for-you.",
             "The fitting moment when everything suddenly makes sense."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-4",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-3",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-4",
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-story-05": {
@@ -1445,6 +1782,25 @@
             "Your first swing with the right clubs will make you wonder what you've been playing all these years.",
             "Fifteen minutes of fitting. A lifetime of better shots. Book now.",
             "The difference between the golfer you are and the golfer you could be? One booking away."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-5",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-1",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-5",
+            "sf-1",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-story-06": {
@@ -1478,6 +1834,25 @@
             "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too.",
             "You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?",
             "The equipment you're using might be the punchline nobody told you about."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-1",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-6",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-1",
+            "sf-6",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-story-07": {
@@ -1511,6 +1886,20 @@
             "Your slice has a name. It also has a cause \u2014 and it's not your swing.",
             "Every top, every slice, every thin shot is your equipment sending you a message.",
             "The consistency problem you've blamed on your swing? It's been your clubs the whole time."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-2",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-2",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-story-08": {
@@ -1544,6 +1933,15 @@
             "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot.",
             "Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.",
             "The equipment gap between you and your potential is measurable in strokes per round."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-3",
+              "relevance": "primary"
+            }
+          ],
+          "findingIds": [
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-01": {
@@ -1577,6 +1975,25 @@
             "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too.",
             "You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?",
             "The equipment you're using might be the punchline nobody told you about."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-1",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-6",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-1",
+            "sf-6",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-02": {
@@ -1610,6 +2027,20 @@
             "Your slice has a name. It also has a cause \u2014 and it's not your swing.",
             "Every top, every slice, every thin shot is your equipment sending you a message.",
             "The consistency problem you've blamed on your swing? It's been your clubs the whole time."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-2",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-2",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-03": {
@@ -1643,6 +2074,15 @@
             "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot.",
             "Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.",
             "The equipment gap between you and your potential is measurable in strokes per round."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-3",
+              "relevance": "primary"
+            }
+          ],
+          "findingIds": [
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-04": {
@@ -1676,6 +2116,20 @@
             "Your swing has been asking for these clubs. A fitting finally let them answer.",
             "This isn't about expensive equipment. It's about equipment that's expensive-for-you.",
             "The fitting moment when everything suddenly makes sense."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-4",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-3",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-4",
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-05": {
@@ -1709,6 +2163,25 @@
             "Your first swing with the right clubs will make you wonder what you've been playing all these years.",
             "Fifteen minutes of fitting. A lifetime of better shots. Book now.",
             "The difference between the golfer you are and the golfer you could be? One booking away."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-5",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-1",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-5",
+            "sf-1",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-06": {
@@ -1742,6 +2215,25 @@
             "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too.",
             "You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?",
             "The equipment you're using might be the punchline nobody told you about."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-1",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-6",
+              "relevance": "supporting"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-1",
+            "sf-6",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-07": {
@@ -1775,6 +2267,20 @@
             "Your slice has a name. It also has a cause \u2014 and it's not your swing.",
             "Every top, every slice, every thin shot is your equipment sending you a message.",
             "The consistency problem you've blamed on your swing? It's been your clubs the whole time."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-2",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-7",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-2",
+            "sf-7"
           ]
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-08": {
@@ -1808,6 +2314,15 @@
             "Wrong clubs cost you 23 yards off the tee. Every. Single. Shot.",
             "Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.",
             "The equipment gap between you and your potential is measurable in strokes per round."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-3",
+              "relevance": "primary"
+            }
+          ],
+          "findingIds": [
+            "sf-3"
           ]
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-09": {
@@ -1841,6 +2356,20 @@
             "Your swing has been asking for these clubs. A fitting finally let them answer.",
             "This isn't about expensive equipment. It's about equipment that's expensive-for-you.",
             "The fitting moment when everything suddenly makes sense."
+          ],
+          "researchRefs": [
+            {
+              "angleId": "sa-4",
+              "relevance": "primary"
+            },
+            {
+              "angleId": "sa-3",
+              "relevance": "supporting"
+            }
+          ],
+          "findingIds": [
+            "sf-4",
+            "sf-3"
           ]
         }
       },
