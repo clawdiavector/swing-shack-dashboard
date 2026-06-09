@@ -102,20 +102,64 @@ function getStatus(campaignId) {
 
 function doPush() {
   return new Promise((resolve, reject) => {
-    const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
-    const pid = spawn('git', ['push'], {
-      cwd: REPO,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env,
-      detached: false
-    });
-    let out = '', err = '';
-    pid.stdout.on('data', d => out += d);
-    pid.stderr.on('data', d => err += d);
-    pid.on('close', code => {
-      if (code === 0) resolve(out.trim());
-      else reject(new Error(err.trim() || `push failed ${code}`));
-    });
+    const token = process.env.GH_TOKEN;
+    const remoteUrl = token
+      ? `https://${token}@github.com/clawdiavector/swing-shack-dashboard.git`
+      : null;
+
+    const doGitPush = (url) => {
+      const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+      const args = url ? ['remote', 'set-url', 'origin', url] : ['push'];
+      const cwd = url ? REPO : REPO;
+      const pid = spawn('git', args, {
+        cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env,
+        detached: false
+      });
+      let out = '', err = '';
+      pid.stdout.on('data', d => out += d);
+      pid.stderr.on('data', d => err += d);
+      pid.on('close', code => {
+        if (code === 0) resolve(out.trim());
+        else reject(new Error(err.trim() || `push failed ${code}`));
+      });
+    };
+
+    if (remoteUrl) {
+      // Set token URL, push, restore original
+      const setUrlPid = spawn('git', ['remote', 'set-url', 'origin', remoteUrl], {
+        cwd: REPO,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        detached: false
+      });
+      setUrlPid.on('close', (code) => {
+        if (code !== 0) { reject(new Error('failed to set remote URL')); return; }
+        const pushPid = spawn('git', ['push'], {
+          cwd: REPO,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          detached: false
+        });
+        let out = '', err = '';
+        pushPid.stdout.on('data', d => out += d);
+        pushPid.stderr.on('data', d => err += d);
+        pushPid.on('close', (pCode) => {
+          // Restore original HTTPS URL (no token)
+          const restorePid = spawn('git', ['remote', 'set-url', 'origin', 'https://github.com/clawdiavector/swing-shack-dashboard.git'], {
+            cwd: REPO,
+            stdio: ['pipe', 'pipe', 'pipe'],
+            detached: false
+          });
+          restorePid.on('close', () => {
+            if (pCode === 0) resolve(out.trim());
+            else reject(new Error(err.trim() || `push failed ${pCode}`));
+          });
+        });
+      });
+    } else {
+      // No token — try normal push (osxkeychain may work in same session)
+      doGitPush(null);
+    }
   });
 }
 
