@@ -321,8 +321,9 @@ window.bpAccept = function(campaignId) {
   var confirmed = confirm('Accept blueprint v' + (window.campaignData.campaigns[campaignId].blueprint && window.campaignData.campaigns[campaignId].blueprint.blueprintVersion || '?') + ' for this campaign? This cannot be undone.');
   if (!confirmed) return;
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'http://localhost:3456/api/bp-accept', true);
+  xhr.open('POST', 'https://academy-nissan-seq-hygiene.trycloudflare.com/api/bp-accept', true);
   xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Authorization', 'Basic YWRtaW46c3dpbmctc2hhY2stYnAtMjAyNg==');
   xhr.onload = function() {
     if (xhr.status === 200 || xhr.status === 202) {
       var resp = JSON.parse(xhr.responseText);
@@ -347,8 +348,9 @@ window.bpRegenerate = function(campaignId) {
   if (!confirmed) return;
   showNotification('Generating new blueprint version…', 'info');
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'http://localhost:3456/api/bp-regenerate', true);
+  xhr.open('POST', 'https://academy-nissan-seq-hygiene.trycloudflare.com/api/bp-regenerate', true);
   xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Authorization', 'Basic YWRtaW46c3dpbmctc2hhY2stYnAtMjAyNg==');
   xhr.onload = function() {
     if (xhr.status === 200 || xhr.status === 202) {
       var resp = JSON.parse(xhr.responseText);

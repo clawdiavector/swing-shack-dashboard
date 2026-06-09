@@ -24,6 +24,10 @@ const REPO_ROOT   = path.join(__dirname, '..');
 const STAGED      = path.join(REPO_ROOT, 'campaign-os', 'campaign-data-staged.json');
 const DATA_FILE   = path.join(REPO_ROOT, 'campaign-os', 'campaign-data.json');
 
+// Use absolute path to node (avoids PATH issues in exec contexts)
+const NODE_BIN     = process.execPath;
+const NODE_DIR     = path.dirname(NODE_BIN);
+
 function log(msg) {
   console.log(`[${new Date().toISOString()}] ${msg}`);
 }
@@ -89,7 +93,7 @@ function poll() {
       }
       // Run generate-blueprint.js with --new flag
       const bpResult = runScript('generate-blueprint.js --new',
-        `node scripts/generate-blueprint.js ${campaignId} --new`);
+        `${NODE_BIN} scripts/generate-blueprint.js ${campaignId} --new`);
       staged._ledger = staged._ledger || { history: [] };
       staged._ledger.history.unshift({
         at: now(),
@@ -99,6 +103,9 @@ function poll() {
         error: bpResult.error
       });
       staged._ledger.lastRun = staged._ledger.history[0];
+      // Clear action fields so next poll doesn't re-fire
+      delete staged._action;
+      delete staged._campaignId;
       staged._pending = false;
       staged._processing = false;
       writeStaged(staged);
@@ -162,7 +169,7 @@ function poll() {
   }
 
   // ── Run create-campaign.js ─────────────────────────────────────────────────
-  const createResult = runScript('create-campaign.js', 'node scripts/create-campaign.js');
+  const createResult = runScript('create-campaign.js', `${NODE_BIN} scripts/create-campaign.js`);
   processingEntry.createResult = createResult.success ? 'ok' : createResult.error;
 
   if (!createResult.success) {
@@ -195,8 +202,8 @@ function poll() {
 
   // ── Run generate-blueprint.js ──────────────────────────────────────────────
   const bpCmd = campaignId
-    ? `node scripts/generate-blueprint.js ${campaignId}`
-    : 'node scripts/generate-blueprint.js';
+    ? `${NODE_BIN} scripts/generate-blueprint.js ${campaignId}`
+    : `${NODE_BIN} scripts/generate-blueprint.js`;
   const bpResult = runScript('generate-blueprint.js', bpCmd);
   processingEntry.bpResult = bpResult.success ? 'ok' : bpResult.error;
 
