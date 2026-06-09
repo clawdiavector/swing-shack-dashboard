@@ -2302,6 +2302,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014 not a luxury but a revelation. Bridge the gap between the problems named in P2 and this clear solution. Make booking feel like the natural next step.",
@@ -2366,78 +2372,20 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "slides": [
-              {
-                "slide": 1,
-                "concept": "Before/after score reveal \u2014 18 to 14. Local Johannesburg golfer, relatable handicap context",
-                "realPhotography": [
-                  "Real Johannesburg golfer",
-                  "Real scorecard or fitting data screen"
-                ],
-                "aiAllowed": [
-                  "Dark BG",
-                  "Data overlay",
-                  "Bold typography"
-                ],
-                "headline": "18 to 14. Same swing."
-              },
-              {
-                "slide": 2,
-                "concept": "Prior bad experience \u2014 skepticism about fittings. Needs to feel common and understood",
-                "realPhotography": [
-                  "Real golfer expression of doubt"
-                ],
-                "aiAllowed": [
-                  "Split screen",
-                  "Text overlay"
-                ],
-                "headline": "Nothing changed before."
-              },
-              {
-                "slide": 3,
-                "concept": "What a proper fitting reveals \u2014 launch angle, ball speed, shaft flex data on screen",
-                "realPhotography": [
-                  "Real TrackMan screen with data",
-                  "Real fitting session"
-                ],
-                "aiAllowed": [
-                  "Data callouts",
-                  "Grid overlay"
-                ],
-                "headline": "What proper fitting reveals."
-              },
-              {
-                "slide": 4,
-                "concept": "The outcome \u2014 better numbers, lower score, same swing type",
-                "realPhotography": [
-                  "Real ball flight",
-                  "Real fitting result"
-                ],
-                "aiAllowed": [
-                  "Improved stats overlay",
-                  "Before/after comparison"
-                ],
-                "headline": "Same swing. Four strokes better."
-              },
-              {
-                "slide": 5,
-                "concept": "CTA \u2014 Book Your Fitting at Swing Shack",
-                "realPhotography": [
-                  "Swing Shack branded bay"
-                ],
-                "aiAllowed": [
-                  "All typography",
-                  "Booking QR code",
-                  "Dark BG"
-                ],
-                "headline": "Book Your Fitting."
-              }
-            ]
-          },
+          "visualBrief": "5-slide proof carousel. Slide 1: fitting appointment booked \u2014 phone or booking confirmation visual. Slide 2: fitter reviewing real golfer TrackMan data. Slide 3: before/after club comparison \u2014 real clubs. Slide 4: golfer hitting well-fitted shot \u2014 real moment. Slide 5: call to action \u2014 book your fitting. Real photography throughout. Dark palette. Clean text overlays.",
           "caption": "Your swing has been asking for these clubs. A fitting finally let them answer.\n\nThis isn't about expensive equipment. It's about equipment that's right for you \u2014 clubs that match your swing speed, your flex, your game.\n\nThe moment everything clicks? That's what a proper fitting delivers.\n\nSwing Shack. Book your fitting.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [],
+          "aiForbiddenFor": [
+            "club head fabrication",
+            "golfer likeness fabrication",
+            "swing motion fabrication",
+            "data fabrication"
+          ],
+          "realPhotoBrief": "Real fitting session moments \u2014 TrackMan screen, real clubs, golfer making contact. All 5 slides from real Swing Shack photography. Photographer: Swing Shack staff.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-reel-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-reel-01",
@@ -2469,6 +2417,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=hero"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -2529,33 +2483,19 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "concept": "Absurdity contrast \u2014 pool noodle driver or flip-flops on the course. Absurd visual that stops the scroll.",
-            "composition": "Split screen: absurd comparison (pool noodle/flip-flops) vs real golf equipment. Bold, high-contrast.",
-            "realPhotography": [
-              "Real pool noodle prop",
-              "Real golf club for comparison"
-            ],
-            "aiAllowed": [
-              "Background mood lighting",
-              "Bold typography",
-              "Data overlay",
-              "Split screen composition"
-            ],
-            "dataPoints": [
-              "Wrong shaft flex #1 misfit",
-              "1,500+ fittings data"
-            ],
-            "avoid": [
-              "Fake club heads",
-              "AI golfer likeness",
-              "Fake swing action"
-            ],
-            "textOverlay": "Headline: \"Wrong clubs wear a bad-swing mask.\" Subline: \"TrackMan tells you which one.\""
-          },
+          "visualBrief": "15-second reel. Hook: absurdity comparison (wrong equipment moment). Middle: real golfer at TrackMan. End: fitting reveal. Real swing footage only \u2014 no AI swing motion. Dark background. Text overlay: pillar hook. Captions required for sound-off viewing.",
           "caption": "You wouldn't run a marathon in flip-flops. So why are you playing with clubs that don't fit?\n\n\"I'm just inconsistent\" \u2014 that's not your swing. That's your equipment.\n\nThe pool noodle test: if it looks this ridiculous, your clubs might be wrong too.\n\nSwing Shack. Book your fitting.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [],
+          "aiForbiddenFor": [
+            "golfer likeness fabrication",
+            "swing motion fabrication",
+            "equipment fabrication"
+          ],
+          "realPhotoBrief": "Real golfer at Swing Shack \u2014 real swing footage, fitting bay. 15 seconds of authentic fitting content. Photographer: Swing Shack staff.",
+          "visualQualityTier": "hero",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-reel-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-reel-02",
@@ -2637,6 +2577,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=seasonal"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -2698,33 +2644,23 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "concept": "Absurdity hook \u2014 pool noodle as golf driver. Stops the scroll with obvious absurdity.",
-            "frameComposition": [
-              "Frame 1: Pool noodle prop styled as driver \u2014 absurd, memorable",
-              "Frame 2: Data reveal \u2014 shaft flex mismatch stats",
-              "Frame 3: CTA \u2014 Book Your Fitting"
-            ],
-            "realPhotography": [
-              "Real pool noodle prop",
-              "Real golf club for contrast"
-            ],
-            "aiAllowed": [
-              "Background mood lighting",
-              "Bold typography on frames",
-              "Data callouts",
-              "Frame transitions"
-            ],
-            "avoid": [
-              "AI golfer likeness",
-              "Fake club heads",
-              "Fake swing motion"
-            ],
-            "textOverlay": "Frame 1: \"Wrong clubs look like this.\" Frame 2: \"Is it your swing?\" Frame 3: \"Book Your Fitting.\""
-          },
+          "visualBrief": "Story format 1080x1920. P1 Absurdity Mirror \u2014 pool noodle or household object as golf club. Dark background. Bold text: \"Wrong clubs?\" AI allowed for background + typography treatment only. No AI golfer, no AI equipment.",
           "caption": "Would you run a marathon in flip-flops? Then why are you playing with clubs that don't fit?\n\nBook your fitting at Swing Shack.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "layout frame"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion"
+          ],
+          "realPhotoBrief": "No real photography required \u2014 AI mood background acceptable. Photographer: none needed.",
+          "visualQualityTier": "seasonal",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-story-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-02",
@@ -2756,6 +2692,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=seasonal"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -2810,33 +2752,23 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "concept": "Naming the frustration \u2014 slice/top/thin shot visualization. Golfers see their own game.",
-            "frameComposition": [
-              "Frame 1: Golf ball flight types \u2014 slice, top, thin",
-              "Frame 2: Equipment cause \u2014 shaft flex mismatch data",
-              "Frame 3: CTA \u2014 Book Your Fitting"
-            ],
-            "realPhotography": [
-              "Real ball flight marks",
-              "Real club face impact marks"
-            ],
-            "aiAllowed": [
-              "Background mood lighting",
-              "Bold typography",
-              "Data callouts",
-              "Flight path overlays"
-            ],
-            "avoid": [
-              "AI golfer likeness",
-              "Fake club heads",
-              "Fake swing motion"
-            ],
-            "textOverlay": "Frame 1: \"Every slice. Your clubs talking.\" Frame 2: \"Wrong flex.\" Frame 3: \"Book Your Fitting.\""
-          },
+          "visualBrief": "Story format 1080x1920. P2 Hidden Struggle \u2014 \"Something feels off\" text over dark moody background. Inquiry tone. AI allowed for background + typography. No AI golfer, no AI equipment.",
           "caption": "Your slice has a name. And it's not your swing.\n\nSwing Shack fitting shows you what's been costing you strokes.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "layout"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion"
+          ],
+          "realPhotoBrief": "No real photography required \u2014 AI mood background acceptable. Photographer: none needed.",
+          "visualQualityTier": "seasonal",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-story-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-03",
@@ -2868,6 +2800,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=seasonal"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -2915,33 +2853,24 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "concept": "Fitting reveal moment \u2014 data made visceral. The emotional peak of the diagnostic.",
-            "frameComposition": [
-              "Frame 1: The fitting reveal \u2014 TrackMan data on screen, moment of realization",
-              "Frame 2: The numbers \u2014 launch angle, ball speed, shaft flex wrong",
-              "Frame 3: CTA \u2014 Book Your Fitting"
-            ],
-            "realPhotography": [
-              "Real TrackMan fitting screen with data",
-              "Real fitting session at Swing Shack"
-            ],
-            "aiAllowed": [
-              "Background mood lighting",
-              "Bold typography",
-              "Data callout animations",
-              "Frame transitions"
-            ],
-            "avoid": [
-              "AI golfer likeness",
-              "Fake club heads",
-              "Fake swing motion"
-            ],
-            "textOverlay": "Frame 1: \"Data shows what your eye cannot see.\" Frame 2: \"4 degrees off.\" Frame 3: \"Book Your Fitting.\""
-          },
+          "visualBrief": "Story format 1080x1920. P3 Fitting Reveal \u2014 TrackMan screen graphic with data numbers. \"This is why\" text. Dark background, data-forward. AI allowed for background + typography. No AI equipment.",
           "caption": "Wrong clubs cost you 23 yards off the tee. Every shot.\n\nTrackMan fitting at Swing Shack shows you what's been lost.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "data graphic styling"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion",
+            "data fabrication"
+          ],
+          "realPhotoBrief": "AI-generated background acceptable. Real TrackMan data graphic styling. No real photography required.",
+          "visualQualityTier": "seasonal",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-story-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-04",
@@ -2973,6 +2902,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=seasonal"
             }
           ],
           "copyDirection": "Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014 not a luxury but a revelation. Bridge the gap between the problems named in P2 and this clear solution. Make booking feel like the natural next step.",
@@ -3027,33 +2962,23 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "concept": "Before/after fitting \u2014 score improvement visualized. Specific proof that transforms belief.",
-            "frameComposition": [
-              "Frame 1: Before fitting \u2014 18-handicap frustration, blamed swing",
-              "Frame 2: The fitting reveal \u2014 TrackMan data showing equipment cause",
-              "Frame 3: After fitting \u201414-handicap result, same swing"
-            ],
-            "realPhotography": [
-              "Real scorecard before/after",
-              "Real fitting data screen"
-            ],
-            "aiAllowed": [
-              "Background mood lighting",
-              "Bold typography",
-              "Before/after callouts",
-              "Frame transitions"
-            ],
-            "avoid": [
-              "AI golfer likeness",
-              "Fake club heads",
-              "Fake swing motion"
-            ],
-            "textOverlay": "Frame 1: \"18-handicap. Blamed the swing.\" Frame 2: \"The reveal.\" Frame 3: \"14-handicap. Same swing.\""
-          },
+          "visualBrief": "Story format 1080x1920. P4 Proof \u2014 real fitting moment visual. Before/after data split screen. Clean dark background. \"The difference is real\" text. AI allowed for background + typography. No AI equipment.",
           "caption": "Your swing has been asking for these clubs. A fitting finally let them answer.\n\nSwing Shack. Book yours.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "layout"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion"
+          ],
+          "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
+          "visualQualityTier": "seasonal",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-story-05": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-05",
@@ -3085,6 +3010,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=seasonal"
             }
           ],
           "copyDirection": "Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. Use urgency without pressure, enthusiasm without hype. The tone is your trusted buddy saying 'trust me, do this' with genuine excitement about what's waiting for them.",
@@ -3146,33 +3077,23 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "concept": "Practice session as diagnostic \u2014 welcoming, low-barrier entry point. Removes price objection.",
-            "frameComposition": [
-              "Frame 1: R250 value prop \u2014 practice bay with launch monitor visible",
-              "Frame 2: The diagnostic question \u2014 swing vs clubs",
-              "Frame 3: CTA \u2014 Book practice session"
-            ],
-            "realPhotography": [
-              "Real Swing Shack practice bay",
-              "Real launch monitor screen"
-            ],
-            "aiAllowed": [
-              "Background mood lighting",
-              "Bold typography",
-              "Data callouts",
-              "Frame transitions"
-            ],
-            "avoid": [
-              "AI golfer likeness",
-              "Fake club heads",
-              "Fake swing motion"
-            ],
-            "textOverlay": "Frame 1: \"R250 gets you answers.\" Frame 2: \"Swing or clubs?\" Frame 3: \"Book Your Session.\""
-          },
+          "visualBrief": "Story format 1080x1920. P5 First Swing \u2014 anticipation moment. New clubs. \"First swing with the right clubs\" text. Clean dark background. AI allowed for background + typography. No AI golfer, no AI clubs.",
           "caption": "Fifteen minutes of fitting. A lifetime of better shots.\n\nR250 gets you a full diagnostic. Book at Swing Shack.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "layout"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion"
+          ],
+          "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
+          "visualQualityTier": "seasonal",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-story-06": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-06",
@@ -3204,6 +3125,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=seasonal"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -3265,33 +3192,23 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "concept": "Absurdity comparison \u2014 flip-flops on the course. Absurd hook that stops the scroll.",
-            "frameComposition": [
-              "Frame 1: Flip-flops/golf absurdity comparison",
-              "Frame 2: Equipment as technique masker \u2014 data on shaft flex",
-              "Frame 3: CTA \u2014 Book Your Fitting"
-            ],
-            "realPhotography": [
-              "Real flip-flop prop",
-              "Real golf club for comparison"
-            ],
-            "aiAllowed": [
-              "Background mood lighting",
-              "Bold typography",
-              "Data callouts",
-              "Frame transitions"
-            ],
-            "avoid": [
-              "AI golfer likeness",
-              "Fake club heads",
-              "Fake swing motion"
-            ],
-            "textOverlay": "Frame 1: \"Borrowed clubs. Wrong fit.\" Frame 2: \"Bad technique. Or bad clubs.\" Frame 3: \"Book Your Fitting.\""
-          },
+          "visualBrief": "Story format 1080x1920. P1 Absurdity Mirror \u2014 second angle, different from story-01. Absurd equipment moment. Bold text. Dark background. AI allowed for background + typography. No AI golfer, no AI equipment.",
           "caption": "You wouldn't play a full round with a pool noodle. So why are you playing with clubs that don't fit?\n\nSwing Shack. Book your fitting.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "layout"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion"
+          ],
+          "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
+          "visualQualityTier": "seasonal",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-story-07": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-07",
@@ -3323,6 +3240,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=seasonal"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -3377,33 +3300,23 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "concept": "Naming the frustration \u2014 shot problems golfers recognize. Educational revelation format.",
-            "frameComposition": [
-              "Frame 1: Shot pattern problems \u2014 slice/top/thin",
-              "Frame 2: Equipment cause \u2014 shaft flex mismatch data",
-              "Frame 3: CTA \u2014 Book Your Fitting"
-            ],
-            "realPhotography": [
-              "Real ball flight marks",
-              "Real club face impact marks"
-            ],
-            "aiAllowed": [
-              "Background mood lighting",
-              "Bold typography",
-              "Data callouts",
-              "Frame transitions"
-            ],
-            "avoid": [
-              "AI golfer likeness",
-              "Fake club heads",
-              "Fake swing motion"
-            ],
-            "textOverlay": "Frame 1: \"Every top. Your clubs talking.\" Frame 2: \"Wrong flex.\" Frame 3: \"Book Your Fitting.\""
-          },
+          "visualBrief": "Story format 1080x1920. P2 Hidden Struggle \u2014 second angle. \"Why does it feel wrong?\" inquiry text. Dark moody background. AI allowed for background + typography. No AI golfer, no AI equipment.",
           "caption": "Every top, every slice, every thin shot \u2014 your equipment has been sending you a message.\n\nSwing Shack. Book your fitting.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "layout"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion"
+          ],
+          "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
+          "visualQualityTier": "seasonal",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-story-08": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-08",
@@ -3435,6 +3348,12 @@
               "by": "copywriter",
               "at": "2026-06-09T12:40:00Z",
               "note": "M6 Batch 3 caption written \u2014 locked manifest"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T12:40:00Z",
+              "note": "Batch 3 visual brief. realImageNeeded=False, aiImageAllowed=True, visualQualityTier=seasonal"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -3482,33 +3401,23 @@
               "platform": "instagram"
             }
           },
-          "visualBrief": {
-            "concept": "Quantified performance gap \u2014 23 yards, 4 degrees. Data that makes the abstract concrete.",
-            "frameComposition": [
-              "Frame 1: 23 yards lost \u2014 distance visualization",
-              "Frame 2: Launch angle 4 degrees off \u2014 data visualization",
-              "Frame 3: CTA \u2014 Book Your Fitting"
-            ],
-            "realPhotography": [
-              "Real ball flight data",
-              "Real TrackMan screen with numbers"
-            ],
-            "aiAllowed": [
-              "Background mood lighting",
-              "Bold typography",
-              "Data callouts",
-              "Distance overlay graphics"
-            ],
-            "avoid": [
-              "AI golfer likeness",
-              "Fake club heads",
-              "Fake swing motion"
-            ],
-            "textOverlay": "Frame 1: \"23 yards. Every shot.\" Frame 2: \"4 degrees off.\" Frame 3: \"Book Your Fitting.\""
-          },
+          "visualBrief": "Story format 1080x1920. P3 Fitting Reveal \u2014 second angle. Different fitting moment. \"Your clubs might be the problem\" text. Dark background. AI allowed for background + typography. No AI equipment.",
           "caption": "Your launch angle is 4 degrees off optimal. Every shot.\n\nSwing Shack. Book your TrackMan fitting.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "layout"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion"
+          ],
+          "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
+          "visualQualityTier": "seasonal",
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-01",
