@@ -798,7 +798,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -816,6 +816,12 @@
               "by": "copywriter",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -843,7 +849,22 @@
           "captionTone": "educational revelation",
           "caption": "Your slice has a name. And it's not 'bad swing.'\n\nIt's your clubs trying to tell you something.\n\nEvery top, every fat shot, every inconsistent strike \u2014 that's your equipment sending a message you've been missing. Wrong shaft flex is the leading cause.\n\nThe fix isn't more practice. It's knowing what's actually wrong.\n\nSwing Shack fitting. Book and find out.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": "Golfer mid-swing with club halfway through \u2014 silhouette only. Background: dark, minimal. Overlay text: \"INCONSISTENT SWING\". No equipment visible. The visual should feel like something the golfer recognises but cannot name. Mood: inquiry, not accusation.",
+          "aiAllowedFor": [
+            "typography treatment",
+            "background frame",
+            "layout"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "swing motion",
+            "equipment photography",
+            "club heads"
+          ],
+          "realPhotoBrief": "Real golfer mid-swing \u2014 silhouette or motion blur only. TrackMan fitting bay background preferred. No club heads visible. Photographer: Swing Shack staff.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-03",
@@ -857,7 +878,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -875,6 +896,12 @@
               "by": "copywriter",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=hero"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -897,7 +924,23 @@
           "captionTone": "data-driven clinical",
           "caption": "Wrong clubs cost you 23 yards off the tee. Every single shot.\n\nYour launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.\n\nThe equipment gap between you and your potential? It's measurable in strokes per round \u2014 and fixable.\n\nTrackMan fitting at Swing Shack shows you exactly what's been lost and how to get it back.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": "Split-screen data layout. Left: \"BEFORE FITTING\" \u2014 real TrackMan dispersion circle (scattered dots). Right: \"AFTER FITTING\" \u2014 tight cluster. Dark background. Numbers in bold. Clean equipment on the right side \u2014 real clubs, no AI.",
+          "aiAllowedFor": [
+            "typography",
+            "background frame",
+            "data graphic styling"
+          ],
+          "aiForbiddenFor": [
+            "club heads",
+            "equipment on-face",
+            "golfer likeness",
+            "TrackMan data fabrication",
+            "swing motion"
+          ],
+          "realPhotoBrief": "Real TrackMan screen capture \u2014 actual golfer dispersion data. Real golf clubs used in fitting. Fitting bay environment. No staged studio. Photographer: Swing Shack staff.",
+          "visualQualityTier": "hero",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-04",
@@ -911,7 +954,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -929,6 +972,12 @@
               "by": "copywriter",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014 not a luxury but a revelation. Bridge the gap between the problems named in P2 and this clear solution. Make booking feel like the natural next step.",
@@ -956,7 +1005,22 @@
           "captionTone": "solution-oriented reassuring",
           "caption": "Your swing has been asking for these clubs. A fitting finally let them answer.\n\nThis isn't about expensive equipment. It's about equipment that's right for you.\n\nThe moment everything clicks \u2014 when you finally hit the sweet spot \u2014 that's what a proper fitting delivers.\n\nSwing Shack. Book your moment.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": "Fitter and golfer at TrackMan screen \u2014 documentary style. Fitter pointing at data. Golfer reacting. Real fitting moment captured. Dark background, warm light on the screen. No posed shots \u2014 this is real.",
+          "aiAllowedFor": [
+            "background",
+            "lighting mood",
+            "frame"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "equipment photography",
+            "swing motion",
+            "club heads"
+          ],
+          "realPhotoBrief": "Real Swing Shack fitting session in progress. Fitter and golfer with TrackMan screen. Documentary photography \u2014 candid, not posed. Environment: fitting bay. Photographer: Swing Shack staff.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-05": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-05",
@@ -970,7 +1034,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -988,6 +1052,12 @@
               "by": "copywriter",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. Use urgency without pressure, enthusiasm without hype. The tone is your trusted buddy saying 'trust me, do this' with genuine excitement about what's waiting for them.",
@@ -1020,7 +1090,21 @@
           "captionTone": "low-friction conversion",
           "caption": "Fifteen minutes of fitting. A lifetime of better shots.\n\nYour first swing with the right clubs will make you wonder what you've been playing all these years.\n\nR250 gets you a full diagnostic \u2014 launch angle, ball speed, shaft flex. No commitment required. Just answers.\n\nBook at Swing Shack. Find out what's been waiting for you.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": "First swing moment \u2014 golfer about to hit with newly fitted clubs. Face shows anticipation. Clean background. New clubs visible. Caption reads \"First swing with the right clubs.\" Real photography only.",
+          "aiAllowedFor": [
+            "background",
+            "frame",
+            "lighting"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "club heads",
+            "swing motion fabrication"
+          ],
+          "realPhotoBrief": "Real golfer at Swing Shack \u2014 newly fitted clubs, about to make first swing. Candid. Environment: driving range or fitting bay. Photographer: Swing Shack staff.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-06": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-06",
@@ -1034,7 +1118,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -1052,6 +1136,12 @@
               "by": "copywriter",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -1084,7 +1174,22 @@
           "captionTone": "provocative absurdity",
           "caption": "Would you play a full round with a pool noodle? Then why are you playing with clubs that don't fit your swing?\n\nThe equipment you're using might be the punchline nobody told you about.\n\n\"I'm just inconsistent\" \u2014 that's not your swing talking. That's your clubs.\n\nSwing Shack. Find out what's actually going on.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": "Second absurdity iteration \u2014 different comparison from feed-post-01. Pool float/sponge golf clubs or household object as golf club. Clean split-screen. Dark background. Bold text. Absurdity landing through familiarity.",
+          "aiAllowedFor": [
+            "typography treatment",
+            "background",
+            "layout"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "real equipment",
+            "swing motion",
+            "equipment photography"
+          ],
+          "realPhotoBrief": "Props: household objects reframed as golf equipment (sponge clubs, pool float drivers, novelty items). Real golfer in background. Photographer: Swing Shack staff.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-07": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-07",
@@ -1098,7 +1203,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -1116,6 +1221,12 @@
               "by": "copywriter",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -1143,7 +1254,21 @@
           "captionTone": "educational revelation",
           "caption": "Every top, every slice, every thin shot \u2014 your equipment has been sending you a message.\n\nThe problem you've blamed on your swing? It's been your clubs the whole time.\n\nWrong shaft flex. Wrong flex profile. Wrong everything for your actual swing speed.\n\nSwing Shack shows you exactly what's been costing you strokes \u2014 and how to fix it.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": "Golfer reviewing TrackMan data on phone \u2014 confusion on face. Screen visible shows inconsistency pattern. Real moment of discovery. Documentary style. Dark background. Natural light.",
+          "aiAllowedFor": [
+            "background frame",
+            "lighting mood"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "swing motion",
+            "equipment photography",
+            "club heads"
+          ],
+          "realPhotoBrief": "Real golfer at Swing Shack \u2014 looking at TrackMan data on screen/tablet, expression of realisation. Candid. Fitting bay environment. Photographer: Swing Shack staff.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-08": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-08",
@@ -1157,7 +1282,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -1175,6 +1300,12 @@
               "by": "copywriter",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -1197,7 +1328,20 @@
           "captionTone": "data-driven clinical",
           "caption": "Your launch angle is 4\u00b0 off optimal. Every shot.\n\nThat's the difference between a fairway find and a tree clinic \u2014 from the same swing with the wrong equipment.\n\nThe equipment gap between you and your potential is measurable in strokes per round.\n\nSwing Shack fitting with TrackMan. Find out what's been lost.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": "Before/after club comparison \u2014 two clubs side by side, same model family. One clearly wrong for the golfer. Real product photography. Clean white or dark background. Text overlay: performance difference numbers.",
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "layout"
+          ],
+          "aiForbiddenFor": [
+            "fabricated equipment",
+            "club head AI generation"
+          ],
+          "realPhotoBrief": "Real Takomo or Swing Shack clubs \u2014 two clubs from same family, one wrong spec one right spec. Studio or clean fitting bay background. Photographer: Swing Shack staff or approved supplier imagery.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-09": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-09",
@@ -1211,7 +1355,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -1229,6 +1373,12 @@
               "by": "copywriter",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014 not a luxury but a revelation. Bridge the gap between the problems named in P2 and this clear solution. Make booking feel like the natural next step.",
@@ -1256,7 +1406,20 @@
           "captionTone": "solution-oriented reassuring",
           "caption": "The fitting moment when everything suddenly makes sense.\n\nYour swing has been asking for these clubs. The right fitting finally let them answer.\n\nThis isn't about expensive equipment. It's about equipment that's expensive-for-you \u2014 the clubs that actually match your swing speed, your flex, your game.\n\nBook your Johannesburg fitting at Swing Shack.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": "Golfer walking away from fitting bay with new clubs \u2014 confidence in posture. Real moment. Background: Swing Shack environment. Natural light. No staged setup.",
+          "aiAllowedFor": [
+            "background",
+            "frame"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness fabrication",
+            "swing motion",
+            "club heads"
+          ],
+          "realPhotoBrief": "Real golfer leaving Swing Shack fitting bay with clubs in hand. Candid. Natural light. Environment: Swing Shack exterior or parking area. Photographer: Swing Shack staff.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-10": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-10",
@@ -1270,7 +1433,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "draft",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -1288,6 +1451,12 @@
               "by": "copywriter",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. Use urgency without pressure, enthusiasm without hype. The tone is your trusted buddy saying 'trust me, do this' with genuine excitement about what's waiting for them.",
@@ -1320,7 +1489,20 @@
           "captionTone": "low-friction conversion",
           "caption": "The difference between the golfer you are and the golfer you could be?\n\nOne booking away.\n\nR250 gets you a full TrackMan diagnostic \u2014 no commitment, no hard sell, just answers about what's been holding you back.\n\nSwing Shack. Book your fitting and find out what's possible.",
           "status": "review",
-          "approvalState": "pending"
+          "approvalState": "pending",
+          "visualBrief": "Driving range scene \u2014 golfer hitting with fitted clubs, good contact. Face shows the moment it clicks. Real environment, not studio. Caption: \"The first time it felt right.\" Natural light.",
+          "aiAllowedFor": [
+            "background",
+            "frame"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "swing motion fabrication",
+            "club head fabrication"
+          ],
+          "realPhotoBrief": "Real golfer at driving range \u2014 good contact with newly fitted clubs. Candid. Natural range light. Photographer: Swing Shack staff.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-11": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-11",
@@ -1334,7 +1516,7 @@
           "realImageNeeded": true,
           "aiImageAllowed": false,
           "captionStatus": "pending",
-          "visualStatus": "pending",
+          "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
           "owner": "copywriter",
@@ -1346,6 +1528,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043964+00:00"
+            },
+            {
+              "action": "visual-brief-written",
+              "by": "image-gen",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -1375,7 +1563,21 @@
           ],
           "copyRequirement": "Address: The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. | You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?. Goal: Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid.",
           "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionTone": "conversational, edge-of-fairway wit",
+          "visualBrief": "Third absurdity angle \u2014 visual comparison between wrong equipment and right equipment without text. The contrast does the work. Clean, minimal. Dark background. Real photography only.",
+          "aiAllowedFor": [
+            "background",
+            "frame",
+            "typography treatment"
+          ],
+          "aiForbiddenFor": [
+            "golfer likeness",
+            "swing motion",
+            "equipment fabrication"
+          ],
+          "realPhotoBrief": "Real clubs \u2014 wrong spec and right spec side by side, no text overlay. Clean studio or fitting bay. Natural light. Photographer: Swing Shack staff or approved supplier.",
+          "visualQualityTier": "supporting",
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-12": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-12",
