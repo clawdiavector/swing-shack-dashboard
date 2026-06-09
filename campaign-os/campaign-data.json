@@ -797,7 +797,7 @@
           "requiredVisual": "A golfer mid-swing frozen at the moment of impact, with subtle visual overlays showing trajectory lines and spin patterns. The mood is investigative \u2014 like a sports science documentary reveal. Cooler tones dominate (blues, grays) representing confusion and struggle, with small moments of gold highlighting the 'aha' understanding dawning. The golfer's expression should convey that they've always suspected but never had words.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -810,6 +810,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043919+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -833,8 +839,11 @@
             "sf-7"
           ],
           "copyRequirement": "Address: Your slice has a name. It also has a cause \u2014 and it's not your swing. | Every top, every slice, every thin shot is your equipment sending you a message.. Goal: Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build auth",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionLength": "280 chars",
+          "captionTone": "educational revelation",
+          "caption": "Your slice has a name. And it's not 'bad swing.'\n\nIt's your clubs trying to tell you something.\n\nEvery top, every fat shot, every inconsistent strike \u2014 that's your equipment sending a message you've been missing. Wrong shaft flex is the leading cause.\n\nThe fix isn't more practice. It's knowing what's actually wrong.\n\nSwing Shack fitting. Book and find out.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-03",
@@ -847,7 +856,7 @@
           "requiredVisual": "Split-screen visualization showing a golfer's current stats versus their potential with proper equipment. Data overlays appear like a sports analytics broadcast \u2014 swing speed meters, launch angle graphs, accuracy percentages. The mood is stark and eye-opening, with cool blue data visualizations on one side and warm gold projected improvement on the other. Numbers should feel concrete and undeniable, not vague promises.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -860,6 +869,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043930+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -878,8 +893,11 @@
             "sf-3"
           ],
           "copyRequirement": "Address: Wrong clubs cost you 23 yards off the tee. Every. Single. Shot. | Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.. Goal: Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract pro",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionLength": "300 chars",
+          "captionTone": "data-driven clinical",
+          "caption": "Wrong clubs cost you 23 yards off the tee. Every single shot.\n\nYour launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.\n\nThe equipment gap between you and your potential? It's measurable in strokes per round \u2014 and fixable.\n\nTrackMan fitting at Swing Shack shows you exactly what's been lost and how to get it back.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-04",
@@ -892,7 +910,7 @@
           "requiredVisual": "A professional fitter working with a golfer in a fitting bay, bathed in warm golden studio lighting. The scene should feel like a revelation moment \u2014 the golfer watching launch monitor data update in real-time as properly fitted clubs transform their shots. Overhead lighting creates dramatic focus on the club-to-ball contact. The mood shifts from clinical analysis to warm satisfaction, with gold tones representing the 'salvation moment' of finally having the right equipment.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -905,6 +923,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043935+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014 not a luxury but a revelation. Bridge the gap between the problems named in P2 and this clear solution. Make booking feel like the natural next step.",
@@ -928,8 +952,11 @@
             "sf-3"
           ],
           "copyRequirement": "Address: Your swing has been asking for these clubs. A fitting finally let them answer. | This isn't about expensive equipment. It's about equipment that's expensive-for-you.. Goal: Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionLength": "280 chars",
+          "captionTone": "solution-oriented reassuring",
+          "caption": "Your swing has been asking for these clubs. A fitting finally let them answer.\n\nThis isn't about expensive equipment. It's about equipment that's right for you.\n\nThe moment everything clicks \u2014 when you finally hit the sweet spot \u2014 that's what a proper fitting delivers.\n\nSwing Shack. Book your moment.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-05": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-05",
@@ -942,7 +969,7 @@
           "requiredVisual": "A golfer experiencing their first perfect contact with properly fitted clubs \u2014 the moment of impact frozen mid-explosion, ball compressing the face. This is the conversion climax: warm golden particles and light rays emanating from the contact point. The background is softly blurred fitting bay, emphasizing the star moment. The golfer's expression is pure satisfaction and disbelief \u2014 'this is what it's supposed to feel like.' Clean, minimal composition that drives focus to the swing moment.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -955,6 +982,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043939+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. Use urgency without pressure, enthusiasm without hype. The tone is your trusted buddy saying 'trust me, do this' with genuine excitement about what's waiting for them.",
@@ -983,8 +1016,11 @@
             "sf-7"
           ],
           "copyRequirement": "Address: Your first swing with the right clubs will make you wonder what you've been playing all these years. | Fifteen minutes of fitting. A lifetime of better shots. Book now.. Goal: Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. ",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionLength": "300 chars",
+          "captionTone": "low-friction conversion",
+          "caption": "Fifteen minutes of fitting. A lifetime of better shots.\n\nYour first swing with the right clubs will make you wonder what you've been playing all these years.\n\nR250 gets you a full diagnostic \u2014 launch angle, ball speed, shaft flex. No commitment required. Just answers.\n\nBook at Swing Shack. Find out what's been waiting for you.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-06": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-06",
@@ -997,7 +1033,7 @@
           "requiredVisual": "Open on a golfer attempting to play a full 18 holes while carrying a pool noodle as their driver \u2014 the absurdity of the image stops the scroll. The scene is sun-drenched fairway with golden hour lighting, but the central figure is using hilariously wrong equipment. Cut to the same golfer with proper clubs, bathed in warm gold light, swinging confidently. Color palette shifts from harsh, contrasty absurdity to warm, inviting gold tones as the pivot point.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -1010,6 +1046,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043944+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -1038,8 +1080,11 @@
             "sf-7"
           ],
           "copyRequirement": "Address: The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. | You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?. Goal: Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid.",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionLength": "300 chars",
+          "captionTone": "provocative absurdity",
+          "caption": "Would you play a full round with a pool noodle? Then why are you playing with clubs that don't fit your swing?\n\nThe equipment you're using might be the punchline nobody told you about.\n\n\"I'm just inconsistent\" \u2014 that's not your swing talking. That's your clubs.\n\nSwing Shack. Find out what's actually going on.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-07": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-07",
@@ -1052,7 +1097,7 @@
           "requiredVisual": "A golfer mid-swing frozen at the moment of impact, with subtle visual overlays showing trajectory lines and spin patterns. The mood is investigative \u2014 like a sports science documentary reveal. Cooler tones dominate (blues, grays) representing confusion and struggle, with small moments of gold highlighting the 'aha' understanding dawning. The golfer's expression should convey that they've always suspected but never had words.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -1065,6 +1110,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043948+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build authority by connecting specific problems to specific equipment failures. Make them feel understood before showing them the solution.",
@@ -1088,8 +1139,11 @@
             "sf-7"
           ],
           "copyRequirement": "Address: Your slice has a name. It also has a cause \u2014 and it's not your swing. | Every top, every slice, every thin shot is your equipment sending you a message.. Goal: Educational revelation \u2014 name the frustrations golfers have felt but couldn't articulate. Build auth",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionLength": "330 chars",
+          "captionTone": "educational revelation",
+          "caption": "Every top, every slice, every thin shot \u2014 your equipment has been sending you a message.\n\nThe problem you've blamed on your swing? It's been your clubs the whole time.\n\nWrong shaft flex. Wrong flex profile. Wrong everything for your actual swing speed.\n\nSwing Shack shows you exactly what's been costing you strokes \u2014 and how to fix it.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-08": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-08",
@@ -1102,7 +1156,7 @@
           "requiredVisual": "Split-screen visualization showing a golfer's current stats versus their potential with proper equipment. Data overlays appear like a sports analytics broadcast \u2014 swing speed meters, launch angle graphs, accuracy percentages. The mood is stark and eye-opening, with cool blue data visualizations on one side and warm gold projected improvement on the other. Numbers should feel concrete and undeniable, not vague promises.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -1115,6 +1169,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043952+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -1133,8 +1193,11 @@
             "sf-3"
           ],
           "copyRequirement": "Address: Wrong clubs cost you 23 yards off the tee. Every. Single. Shot. | Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.. Goal: Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract pro",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionLength": "300 chars",
+          "captionTone": "data-driven clinical",
+          "caption": "Your launch angle is 4\u00b0 off optimal. Every shot.\n\nThat's the difference between a fairway find and a tree clinic \u2014 from the same swing with the wrong equipment.\n\nThe equipment gap between you and your potential is measurable in strokes per round.\n\nSwing Shack fitting with TrackMan. Find out what's been lost.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-09": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-09",
@@ -1147,7 +1210,7 @@
           "requiredVisual": "A professional fitter working with a golfer in a fitting bay, bathed in warm golden studio lighting. The scene should feel like a revelation moment \u2014 the golfer watching launch monitor data update in real-time as properly fitted clubs transform their shots. Overhead lighting creates dramatic focus on the club-to-ball contact. The mood shifts from clinical analysis to warm satisfaction, with gold tones representing the 'salvation moment' of finally having the right equipment.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -1160,6 +1223,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043956+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014 not a luxury but a revelation. Bridge the gap between the problems named in P2 and this clear solution. Make booking feel like the natural next step.",
@@ -1183,8 +1252,11 @@
             "sf-3"
           ],
           "copyRequirement": "Address: Your swing has been asking for these clubs. A fitting finally let them answer. | This isn't about expensive equipment. It's about equipment that's expensive-for-you.. Goal: Solution-oriented and reassuring. Position fitting as the obvious answer that was always available \u2014",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionLength": "320 chars",
+          "captionTone": "solution-oriented reassuring",
+          "caption": "The fitting moment when everything suddenly makes sense.\n\nYour swing has been asking for these clubs. The right fitting finally let them answer.\n\nThis isn't about expensive equipment. It's about equipment that's expensive-for-you \u2014 the clubs that actually match your swing speed, your flex, your game.\n\nBook your Johannesburg fitting at Swing Shack.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-10": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-10",
@@ -1197,7 +1269,7 @@
           "requiredVisual": "A golfer experiencing their first perfect contact with properly fitted clubs \u2014 the moment of impact frozen mid-explosion, ball compressing the face. This is the conversion climax: warm golden particles and light rays emanating from the contact point. The background is softly blurred fitting bay, emphasizing the star moment. The golfer's expression is pure satisfaction and disbelief \u2014 'this is what it's supposed to feel like.' Clean, minimal composition that drives focus to the swing moment.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -1210,6 +1282,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043960+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. Use urgency without pressure, enthusiasm without hype. The tone is your trusted buddy saying 'trust me, do this' with genuine excitement about what's waiting for them.",
@@ -1238,8 +1316,11 @@
             "sf-7"
           ],
           "copyRequirement": "Address: Your first swing with the right clubs will make you wonder what you've been playing all these years. | Fifteen minutes of fitting. A lifetime of better shots. Book now.. Goal: Low-friction conversion focus. Remove barriers and hesitation \u2014 this is the moment to drive action. ",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit"
+          "captionLength": "280 chars",
+          "captionTone": "low-friction conversion",
+          "caption": "The difference between the golfer you are and the golfer you could be?\n\nOne booking away.\n\nR250 gets you a full TrackMan diagnostic \u2014 no commitment, no hard sell, just answers about what's been holding you back.\n\nSwing Shack. Book your fitting and find out what's possible.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-11": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-11",
@@ -1402,7 +1483,7 @@
           "requiredVisual": "Open on a golfer attempting to play a full 18 holes while carrying a pool noodle as their driver \u2014 the absurdity of the image stops the scroll. The scene is sun-drenched fairway with golden hour lighting, but the central figure is using hilariously wrong equipment. Cut to the same golfer with proper clubs, bathed in warm gold light, swinging confidently. Color palette shifts from harsh, contrasty absurdity to warm, inviting gold tones as the pivot point.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "pending",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -1415,6 +1496,12 @@
               "action": "shell-created",
               "by": "M5-generator",
               "at": "2026-06-09T08:14:12.043978+00:00"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:15:00Z",
+              "note": "M6 Batch 1"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -1443,8 +1530,11 @@
             "sf-7"
           ],
           "copyRequirement": "Address: The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. | You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?. Goal: Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid.",
-          "captionLength": "100-150 chars per slide",
-          "captionTone": "provocative, pattern interrupts"
+          "captionLength": "280 chars",
+          "captionTone": "provocative sardonic",
+          "caption": "Would you run a marathon in flip-flops?\n\nThen why are you playing with clubs that don't match your swing?\n\nThe pool noodle test: if it looks this ridiculous, your clubs might be wrong too.\n\n\"I'm just inconsistent\" \u2014 that's not your swing. That's your equipment.\n\nFind out what's actually going on.\n\nSwing Shack. Book your fitting.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-carousel-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-02",
