@@ -1515,7 +1515,7 @@
           "requiredVisual": "Open on a golfer attempting to play a full 18 holes while carrying a pool noodle as their driver \u2014 the absurdity of the image stops the scroll. The scene is sun-drenched fairway with golden hour lighting, but the central figure is using hilariously wrong equipment. Cut to the same golfer with proper clubs, bathed in warm gold light, swinging confidently. Color palette shifts from harsh, contrasty absurdity to warm, inviting gold tones as the pivot point.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -1534,6 +1534,12 @@
               "by": "image-gen",
               "at": "2026-06-09T11:15:00Z",
               "note": "M6 Batch 1 visual brief written. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=supporting"
+            },
+            {
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T11:34:00Z",
+              "note": "M6 Batch 1 close \u2014 feed-post-11 caption written"
             }
           ],
           "copyDirection": "Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid. Use comparisons that make the viewer feel they've been caught in an obvious blind spot.",
@@ -1562,8 +1568,8 @@
             "sf-7"
           ],
           "copyRequirement": "Address: The pool noodle test: if it looks this ridiculous, your clubs might be wrong too. | You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?. Goal: Provocative and slightly sardonic \u2014 point out the obvious absurdity without making them feel stupid.",
-          "captionLength": "150-220 chars",
-          "captionTone": "conversational, edge-of-fairway wit",
+          "captionLength": "280 chars",
+          "captionTone": "provocative absurdity",
           "visualBrief": "Third absurdity angle \u2014 visual comparison between wrong equipment and right equipment without text. The contrast does the work. Clean, minimal. Dark background. Real photography only.",
           "aiAllowedFor": [
             "background",
@@ -1577,7 +1583,10 @@
           ],
           "realPhotoBrief": "Real clubs \u2014 wrong spec and right spec side by side, no text overlay. Clean studio or fitting bay. Natural light. Photographer: Swing Shack staff or approved supplier.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
+          "caption": "You wouldn't run a marathon in flip-flops. So why are you playing with clubs that don't fit?\n\n\"I'm just inconsistent\" \u2014 that's not your swing. That's your equipment.\n\nThe pool noodle test: if it looks this ridiculous, your clubs might be wrong too.\n\nFind out what's actually going on.\n\nSwing Shack. Book your fitting.",
+          "status": "review",
+          "approvalState": "pending"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-12": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-12",
