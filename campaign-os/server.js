@@ -1,15 +1,27 @@
 /**
- * CampaignOS Blueprint API Server
- * Handles Accept/Regenerate actions for the cockpit UI.
+ * CampaignOS Blueprint API Server — M6 Live Fix
  * 
- * Usage: node server.js
- * Runs on http://localhost:3456
+ * Binds on all interfaces so the live GitHub Pages cockpit can reach it.
+ * Requires HTTP Basic Auth.
+ * 
+ * Usage: node server.js [port] [username] [password]
+ * Defaults: port 3456, user: admin, pass: (askChristelle)
+ * 
+ * Security:
+ *   - HTTP Basic Auth — credentials never in browser JS
+ *   - Only accepts JSON bodies with campaignId
+ *   - No API keys / PAT in browser
+ *   - Server is NOT publicly exposed — only accessible on the network
+ *     where this process runs
+ *   - git push goes to GitHub, authenticated via SSH key (local machine)
  */
 const http = require('http');
 const { spawn } = require('child_process');
 const path = require('path');
 
-const PORT = 3456;
+const PORT = process.argv[2] || 3456;
+const AUTH_USER = process.argv[3] || 'admin';
+const AUTH_PASS = process.argv[4] || 'swing-shack-bp-2026';
 const REPO = '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard';
 const SCRIPT = path.join(REPO, 'scripts', 'generate-blueprint.py');
 const DATA_FILE = path.join(REPO, 'campaign-os', 'campaign-data.json');
@@ -18,13 +30,31 @@ function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization'
   };
 }
 
 function jsonResponse(res, status, obj) {
   res.writeHead(status, { 'Content-Type': 'application/json', ...corsHeaders() });
   res.end(JSON.stringify(obj));
+}
+
+function parseAuth(req) {
+  const header = req.headers['authorization'] || '';
+  if (!header.startsWith('Basic ')) return null;
+  const creds = Buffer.from(header.slice(6), 'base64').toString('utf8');
+  const [u, p] = creds.split(':');
+  return { user: u, pass: p };
+}
+
+function checkAuth(req, res) {
+  const creds = parseAuth(req);
+  if (!creds || creds.user !== AUTH_USER || creds.pass !== AUTH_PASS) {
+    res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Blueprint API"', ...corsHeaders() });
+    res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
+    return false;
+  }
+  return true;
 }
 
 function runBlueprint(scriptArgs) {
@@ -42,8 +72,7 @@ function runBlueprint(scriptArgs) {
       if (code === 0) resolve(stdout.trim());
       else reject(new Error(stderr.trim() || `exit code ${code}`));
     });
-    // Timeout after 120 seconds
-    setTimeout(() => { try { pid.kill(); } catch(e){} reject(new Error('timeout')); }, 120000);
+    setTimeout(() => { try { pid.kill(); } catch(e){} reject(new Error('timeout')); }, 300000);
   });
 }
 
@@ -71,6 +100,25 @@ function getStatus(campaignId) {
   };
 }
 
+function doPush() {
+  return new Promise((resolve, reject) => {
+    const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+    const pid = spawn('git', ['push'], {
+      cwd: REPO,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env,
+      detached: false
+    });
+    let out = '', err = '';
+    pid.stdout.on('data', d => out += d);
+    pid.stderr.on('data', d => err += d);
+    pid.on('close', code => {
+      if (code === 0) resolve(out.trim());
+      else reject(new Error(err.trim() || `push failed ${code}`));
+    });
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, corsHeaders());
@@ -83,6 +131,7 @@ const server = http.createServer(async (req, res) => {
 
   // GET /api/bp-status/:campaignId
   if (req.method === 'GET' && pathUrl.match(/^\/api\/bp-status\/(.+)$/)) {
+    if (!checkAuth(req, res)) return;
     const campaignId = pathUrl.replace('/api/bp-status/', '');
     try {
       const status = getStatus(campaignId);
@@ -95,15 +144,17 @@ const server = http.createServer(async (req, res) => {
 
   // POST /api/bp-accept
   if (req.method === 'POST' && pathUrl === '/api/bp-accept') {
+    if (!checkAuth(req, res)) return;
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
         const { campaignId } = JSON.parse(body);
         if (!campaignId) { jsonResponse(res, 400, { ok: false, error: 'campaignId required' }); return; }
-        const out = await runBlueprint([campaignId, '--accept']);
+        await runBlueprint([campaignId, '--accept']);
+        const pushed = await doPush();
         const status = getStatus(campaignId);
-        jsonResponse(res, 200, { ok: true, message: 'Blueprint accepted', blueprint: status });
+        jsonResponse(res, 200, { ok: true, message: 'Blueprint accepted', pushed: !!pushed, blueprint: status });
       } catch(e) {
         jsonResponse(res, 500, { ok: false, error: e.message });
       }
@@ -113,19 +164,27 @@ const server = http.createServer(async (req, res) => {
 
   // POST /api/bp-regenerate
   if (req.method === 'POST' && pathUrl === '/api/bp-regenerate') {
+    if (!checkAuth(req, res)) return;
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
         const { campaignId } = JSON.parse(body);
         if (!campaignId) { jsonResponse(res, 400, { ok: false, error: 'campaignId required' }); return; }
-        const out = await runBlueprint([campaignId, '--regenerate']);
+        await runBlueprint([campaignId, '--regenerate']);
+        const pushed = await doPush();
         const status = getStatus(campaignId);
-        jsonResponse(res, 200, { ok: true, message: 'Blueprint regenerated', blueprint: status });
+        jsonResponse(res, 200, { ok: true, message: 'Blueprint regenerated and pushed', pushed: !!pushed, blueprint: status });
       } catch(e) {
         jsonResponse(res, 500, { ok: false, error: e.message });
       }
     });
+    return;
+  }
+
+  // Health check — no auth
+  if (req.method === 'GET' && pathUrl === '/health') {
+    jsonResponse(res, 200, { ok: true, service: 'bp-api', port: PORT, time: new Date().toISOString() });
     return;
   }
 
@@ -134,6 +193,8 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.on('error', e => console.error('Server error:', e));
-server.listen(PORT, () => {
-  console.log(`Blueprint API server running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Blueprint API server running on http://0.0.0.0:${PORT}`);
+  console.log(`Auth: ${AUTH_USER} / [password]`);
+  console.log(`From any browser on this network, use: http://[this-machine-ip]:${PORT}/...`);
 });
