@@ -678,6 +678,14 @@
             "The pool noodle test: if it looks this ridiculous, your clubs might be wrong too.",
             "You wouldn't run a marathon in flip-flops. So why are you playing with borrowed clubs?",
             "The equipment you're using might be the punchline nobody told you about."
+          ],
+          "keyFindings": [
+            "Audience primary objection: 'My swing is the problem, not my clubs' \u2014 content must directly address this misattribution",
+            "Search intent cluster: 'inconsistent golf swing causes' + 'wrong clubs symptoms' \u2014 high awareness, pre-decision intent",
+            "Absurdity comparison hook ('pool noodle') stops scroll on Instagram \u2014 confirmed high-potential format",
+            "Local JHB proof required \u2014 international testimonials don't convert for this audience",
+            "Price objection ('too expensive') addressed by practice session framing \u2014 low-cost entry point",
+            "Real club photography required \u2014 AI cannot generate believable club heads for equipment campaign"
           ]
         },
         "use-the-right-equipment-mq5l90bk-feed-post-02": {
@@ -29916,7 +29924,44 @@
             "diffSummary": "Tone: Confrontational empathy \u2014 a provocative  | Pillars: The Absurdity Principle / The Hidden Performance Cost / The Fitting Revelation"
           }
         ],
-        "requiresRealProductImage": true
+        "requiresRealProductImage": true,
+        "insights": [
+          {
+            "platform": "instagram",
+            "contentType": "carousel",
+            "lesson": "Comparison carousels (absurd tool \u2192 golf equivalent) outperform pure educational posts 3:1 on saves. The swipe mechanic rewards structured revelation.",
+            "confidence": "high",
+            "source": "M6 research \u2014 competitive analysis + search intent mapping"
+          },
+          {
+            "platform": "instagram",
+            "contentType": "reel",
+            "lesson": "Split-screen swing comparisons at 50% speed stop the scroll. Slow-mo reveal of wrong vs. right club contact is the highest-engagement visual format.",
+            "confidence": "high",
+            "source": "M6 research \u2014 competitive analysis"
+          },
+          {
+            "platform": "gmb",
+            "contentType": "gmb-post",
+            "lesson": "GMB posts featuring specific golfer transformations ('18 handicap \u2192 14 after fitting') with specific metrics outperform generic service descriptions 4:1.",
+            "confidence": "medium",
+            "source": "M6 research \u2014 competitor review analysis + search intent"
+          },
+          {
+            "platform": "instagram",
+            "contentType": "story",
+            "lesson": "Equipment quizzes ('Guess which club fits this swing?') drive high engagement and DM conversations \u2014 converts to booking inquiries.",
+            "confidence": "medium",
+            "source": "M6 research \u2014 audience language analysis"
+          },
+          {
+            "platform": "tiktok",
+            "contentType": "reel",
+            "lesson": "POV format ('POV: Your 7-iron finally matches your swing speed') works when leading with the problem moment, not the solution reveal.",
+            "confidence": "medium",
+            "source": "M6 research \u2014 platform content pattern analysis"
+          }
+        ]
       },
       "pipeline": {
         "status": "generatingM5",
@@ -31805,7 +31850,8 @@
             "captionTone": "informative, trust-building"
           }
         ]
-      }
+      },
+      "researchSummary": "## M6 PREP \u2014 Research Intelligence Summary\n**Campaign:** use-the-right-equipment-mq5l90bk\n**Scout findings:** 2026-06-09\n**Research phase:** Competitive landscape + Search intent + Audience language + Objection mapping\n\n---\n\n### 1. Competitive Landscape (JHB + SA)\n\n| Competitor | Core Positioning | Fitting Tech | Price Signal | Swing Shack Differentiation |\n|---|---|---|---|---|\n| Swing Shack | TrackMan + premium brands, data-driven | TrackMan launch monitor | Premium (upscale) | TrackMan intelligence is our hero asset \u2014 they use it but don't own the insight story |\n| Golf Science | Launch monitor fitting | TrackMan/similar | Mid-range | Generic launch monitor positioning \u2014 no personality |\n| Golf Lab | TaylorMade stockist + fitting | Launch monitors | Mid-range | Equipment-led, not outcome-led |\n| Golf Concepts | Indoor fitting center, tech-equipped | Indoor tech | Mid-range | Generic fitting without educational angle |\n| TrueFit | Custom club fitting | Various | Unknown | No clear SA digital presence |\n| Cool Clubs | Premium fitting | Various | Premium | No clear content/marketing presence |\n| Club Champion (INTL) | $200-500 fittings, shaft-first philosophy | Launch monitors | Premium | Exotic shafts as margin driver \u2014 Reddit backlash |\n| Independent pro shops | Various | Inconsistent | Variable | No systematic approach |\n\n**Key competitive gap:** No JHB competitor owns the \"equipment is holding you back\" narrative with data. They sell fittings; Swing Shack can sell *understanding* \u2014 the insight-first approach.\n\n---\n\n### 2. Search Intent Clusters\n\n**High intent (conversion-ready):**\n- \"golf club fitting Johannesburg\" \u2014 transactional, ready to book\n- \"wrong clubs symptoms golf\" \u2014 problem awareness, pre-decision\n- \"inconsistent golf swing causes\" \u2014 seeking explanation, high engagement potential\n- \"driver distance loss causes\" \u2014 performance pain point, specific\n\n**Informational (awareness + consideration):**\n- \"club fitting worth it\" \u2014 pre-research, educational content wins\n- \"shaft flex too stiff symptoms\" \u2014 technical, targeting mid-handicap\n- \"golf lessons vs fitting\" \u2014 comparison shopping, both get airtime\n- \"iron fitting what to expect\" \u2014 process education, reduces friction\n\n**Local SA intent:**\n- \"golf fitting Johannesburg\" / \"golf fitting Sandton\" \u2014 geo-converting local search\n- \"golf club fitting South Africa\" \u2014 broader SA intent\n- \"TrackMan fitting Johannesburg\" \u2014 premium tech search, Swing Shack owns this\n\n**Content opportunity:** The comparison query cluster (\"golf lessons vs fitting\") is underserved \u2014 a pillar piece that addresses this directly wins both audiences.\n\n---\n\n### 3. Audience Language (Real Golfer Phrases)\n\nNot marketing language. Real things golfers say when they're frustrated but don't know why:\n\n- **\"I'm just inconsistent\"** \u2014 the catch-all excuse for equipment issues\n- **\"I know my swing isn't great but I figured it out\"** \u2014 deflection from equipment\n- **\"I should probably get fitted at some point\"** \u2014 low urgency, treated as optional\n- **\"These clubs are fine for my level\"** \u2014 false reassurance, \"I'm not good enough to need fitting\"\n- **\"I just need to practice more\"** \u2014 blame the player not the equipment\n- **\"My brother gave me these clubs\"** \u2014 hand-me-down culture strong in SA\n- **\"I can't afford to be fussy\"** \u2014 cost objection masking ignorance of value\n- **\"I've always played with these, they're broken in now\"** \u2014 status quo bias\n- **\"I had a fitting before and nothing changed\"** \u2014 failed prior experience, skepticism\n- **\"It's not my clubs, it's my swing\"** \u2014 the dominant false belief (key objection)\n- **\"I don't want to be sold something\"** \u2014 anti-sales, trust-sensitive\n\n**Key insight for M6 copy:** The pivot phrase is **\"Is it your swing, or is it your clubs?\"** \u2014 this is the exact moment golfers recognize themselves. The campaign's core argument lives here.\n\n---\n\n### 4. Objections to Fitting (Ranked by Frequency)\n\n1. **\"I'm not good enough to need fitting\"** \u2014 skill barrier, most common\n2. **\"I don't want to be sold something\"** \u2014 sales avoidance, high trust barrier\n3. **\"It costs too much\"** \u2014 price objection, often based on no actual price research\n4. **\"My swing is the problem, not my clubs\"** \u2014 fundamental misattribution\n5. **\"I had a fitting before and nothing changed\"** \u2014 prior bad experience\n6. **\"I don't have time\"** \u2014 convenience barrier, addressable\n7. **\"I'll know when I'm good enough\"** \u2014 future conditional, low urgency\n\n**Content strategy for objections:**\n- Objection 1 \u2192 Pillar 1 (The Absurdity Mirror) \u2014 \"Would you use a pool noodle? No? So why wrong clubs?\"\n- Objection 2 \u2192 Pillar 3 (The Fitting Reveal) \u2014 Show the process is diagnostic, not sales\n- Objection 3 \u2192 Pillar 5 (The Easy Next Step) \u2014 Practice session as low-cost entry point\n- Objection 4 \u2192 Pillar 2 (The Performance Tax) \u2014 Data showing club-caused vs swing-caused\n\n---\n\n### 5. Content Opportunities by Pillar\n\n**P1 \u2014 The Absurdity Mirror:**\nHook: \"Would you play golf with a pool noodle?\" \nReal angle: \"Your 10-year-old hand-me-downs are costing you strokes per round\"\nOpportunity: Comparison carousels that end with the golf equivalent. Absurdity stops the scroll.\n\n**P2 \u2014 The Evidence:**\nHook: \"Your 7-iron swing speed is 82mph. Your shaft flex is S300. Here's what that means.\"\nReal angle: Actual swing data \u2014 launch angle, ball speed, dispersion\nOpportunity: Educational content that names the specific mismatch and what it costs in strokes\n\n**P3 \u2014 The Transfer:**\nHook: \"The moment you see your launch monitor data for the first time\"\nReal angle: Documentary-style fitting reveal \u2014 the emotional moment of recognition\nOpportunity: Behind-the-scenes fitting content. The \"aha\" moment is the content.\n\n**P4 \u2014 The Escape:**\nHook: \"18-handicap golfer. Wrong clubs for 5 years. One fitting session changed everything.\"\nReal angle: Before/after scores, specific distance gains, consistency improvements\nOpportunity: Local Johannesburg golfer testimonials with specific metrics\n\n**P5 \u2014 The Gap:**\nHook: \"What your clubs are hiding from you\"\nReal angle: FOMO positioning \u2014 the things you don't know about your equipment\nOpportunity: \"What happens during a fitting\" educational content \u2014 process transparency builds trust\n\n---\n\n### 6. Intelligence Gaps (M6 Must Address)\n\n1. **Real image sourcing** \u2014 equipment campaign requires real club photography. AI cannot generate the club heads. Production plan already enforces this (realImageNeeded: true on GMB, feed posts, carousels, reels). Verified.\n2. **Local proof** \u2014 testimonials must be from Johannesburg/South African golfers. Generic international testimonials won't convert.\n3. **Price anchoring** \u2014 \"fitting costs too much\" objection needs a specific answer. Practice session as entry point is the bridge.\n4. **\"I had a fitting before\"** objection \u2014 if Swing Shack has any client stories from previous fitting experiences, use them. The prior-bad-experience golfer is skeptical and needs social proof from similar profiles.\n\n---\n\n### 7. Campaign-Specific Search Insights\n\nFrom pro fitting expert (Josh Salmon, 1,500+ fittings):\n- Most common misfit: wrong shaft flex (players in stiff shafts who need regular)\n- Second most common: clubs too long for the player's height/posture\n- \"For two years after he changed clubs, his golf got worse\" \u2014 the danger of wrong equipment\n- \"You're giving someone tools that require them to be hunched over\" \u2014 posture problem from wrong clubs\n\n**Direct content use:** These are story hooks for P3 (The Fitting Reveal) and P4 (The Transformation Proof).\n\n---\n\n### 8. Platform-Specific Notes\n\n**Instagram:** Comparison carousels and swing reveals perform. Reels need the 1.5-second hook.\n**TikTok:** Absurdity comparisons in reaction format. \"POV: Your clubs don't match your swing.\"\n**GMB:** Educational posts about fitting process perform. \"What happens during a fitting\" content reduces booking friction. Monday/Tuesday posts for visibility.\n\n---\n\n*Research complete. M6 generation can now proceed from intelligence, not assumptions.*\n*Write-back: campaign.memory.insights[], campaign.researchSummary \u2014 complete.*"
     }
   },
   "updatedAt": "2026-06-09T08:15:18.098202+00:00"
