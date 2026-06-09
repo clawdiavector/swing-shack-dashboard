@@ -20,6 +20,47 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .view-btn.active { background: rgba(0,204,119,0.15); color: var(--col-green); }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
 .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--col-muted); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+/* M5: Campaign tabs */
+.campaign-tabs { display: flex; gap: 2px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
+.campaign-tab { padding: 6px 14px; font-size: 11px; font-weight: 600; color: var(--col-muted); cursor: pointer; border-radius: 6px; border: none; background: transparent; transition: all 0.15s; }
+.campaign-tab:hover { color: var(--text); }
+.campaign-tab.active { background: rgba(68,136,255,0.15); color: var(--col-blue); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* M5: Production Plan styles */
+.pp-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.pp-badge { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; }
+.pp-badge .pp-count { font-size: 18px; font-weight: 700; color: var(--col-blue); }
+.pp-badge .pp-label { color: var(--col-muted); }
+.pp-badge.real .pp-count { color: var(--col-amber); }
+.pp-badge.ai .pp-count { color: var(--col-green); }
+.pp-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px; }
+.pp-cal-day { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 10px; min-height: 56px; }
+.pp-cal-day.has-content { border-color: var(--col-blue); background: rgba(68,136,255,0.08); }
+.pp-cal-day .pp-day-label { color: var(--col-muted); text-transform: uppercase; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 2px; }
+.pp-cal-day .pp-content { font-size: 10px; color: var(--text); margin-top: 2px; }
+.pp-cal-day .pp-type { font-size: 9px; color: var(--col-blue); font-weight: 600; }
+.pp-asset-list { max-height: 240px; overflow-y: auto; }
+.pp-asset { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.pp-asset:last-child { border-bottom: none; }
+.pp-asset-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pp-asset-status.pending { background: var(--col-muted); }
+.pp-asset-status.draft { background: var(--col-amber); }
+.pp-asset-status.generated { background: var(--col-blue); }
+.pp-asset-status.approved { background: var(--col-green); }
+.pp-asset-info { flex: 1; }
+.pp-asset-name { font-size: 12px; font-weight: 600; }
+.pp-asset-meta { font-size: 10px; color: var(--col-muted); margin-top: 2px; }
+.pp-missing { padding: 10px 14px; background: rgba(255,68,85,0.1); border: 1px solid rgba(255,68,85,0.3); border-radius: 6px; margin-top: 8px; }
+.pp-missing-title { font-size: 11px; font-weight: 700; color: var(--col-red); margin-bottom: 6px; }
+.pp-missing-item { font-size: 11px; color: var(--col-muted); padding: 2px 0; }
+.pp-gen-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--col-blue); color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+.pp-gen-btn:hover { opacity: 0.85; }
+.pp-gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pp-empty { text-align: center; padding: 32px; color: var(--col-muted); font-size: 13px; }
+.pp-empty-sub { font-size: 11px; margin-top: 6px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
 .stat-card .stat-label { font-size: 11px; color: var(--col-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
 .stat-card .stat-value { font-size: 28px; font-weight: 700; }
@@ -262,19 +303,203 @@ window.renderFns = {};
 
 function renderCampaignDynamic(c) {
   var name = (c.identity && c.identity.name) || c.identity && c.identity.campaignId || 'Unknown';
+  var cid = (c.identity && c.identity.campaignId) || 'unknown';
   var type = (c.identity && c.identity.campaignType) || '—';
   var status = (c.identity && c.identity.status) || '—';
   var owner = (c.identity && c.identity.owner) || '—';
   var health = (c.identity && c.identity.healthScore);
   var healthState = (c.identity && c.identity.healthState) || 'unknown';
-  var goal = (c.identity && c.identity.goal) || (c.brief && c.brief.goalNotes) || '—';
   var primaryOffer = (c.strategy && c.strategy.primaryOffer) || '—';
   var healthColor = healthState === 'healthy' ? '#00cc77' : healthState === 'degraded' ? '#ffaa00' : '#6e6e82';
   var healthRing = health != null
     ? '<div style="display:inline-block"><svg width="60" height="60" viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="var(--surface2)" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="' + healthColor + '" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="' + (201 - Math.round(health * 2.01)) + '" stroke-linecap="round" transform="rotate(-90 40 40)"/></svg></div><div style="font-size:24px;font-weight:700;color:' + healthColor + '">' + health + '</div>'
     : '<div style="font-size:14px;color:#6e6e82">No health data</div>';
-  return '<div class="card"><div class="card-title">' + name + ' — Campaign Detail</div><div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Campaign Health</div>' + healthRing + '</div><div class="dna-panel"><div class="dna-title">Campaign DNA</div><div class="dna-row"><div class="dna-key">Type</div><div class="dna-value">' + type + '</div></div><div class="dna-row"><div class="dna-key">Owner</div><div class="dna-value">' + owner + '</div></div><div class="dna-row"><div class="dna-key">Status</div><div class="dna-value">' + status + '</div></div></div><div style="margin-top:12px;font-size:11px;color:#6e6e82">Primary Offer: <span style="color:#e8e8ed">' + primaryOffer + '</span></div></div>';
+
+  // Tab bar
+  var tabs = '<div class="campaign-tabs" id="campaign-tabs-' + cid + '">' +
+    '<button class="campaign-tab active" onclick="switchTab(\'' + cid + '\',\'overview\')">Overview</button>' +
+    '<button class="campaign-tab" onclick="switchTab(\'' + cid + '\',\'blueprint\')">Blueprint</button>' +
+    '<button class="campaign-tab" onclick="switchTab(\'' + cid + '\',\'production\')">Production Plan</button>' +
+    '</div>';
+
+  // Overview tab content
+  var overviewContent = '<div class="tab-panel active" id="tab-overview-' + cid + '">' +
+    '<div class="card"><div class="card-title">' + name + ' — Campaign Detail</div><div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Campaign Health</div>' + healthRing + '</div><div class="dna-panel"><div class="dna-title">Campaign DNA</div><div class="dna-row"><div class="dna-key">Type</div><div class="dna-value">' + type + '</div></div><div class="dna-row"><div class="dna-key">Owner</div><div class="dna-value">' + owner + '</div></div><div class="dna-row"><div class="dna-key">Status</div><div class="dna-value">' + status + '</div></div></div><div style="margin-top:12px;font-size:11px;color:#6e6e82">Primary Offer: <span style="color:#e8e8ed">' + primaryOffer + '</span></div></div>' +
+    '</div>';
+
+  // Blueprint tab content (placeholder — rendered separately)
+  var blueprintContent = '<div class="tab-panel" id="tab-blueprint-' + cid + '">' +
+    '<div class="card"><div class="card-title">Blueprint Versions</div>' + renderBlueprintVersions(c) + '</div>' +
+    '</div>';
+
+  // Production Plan tab content
+  var productionContent = '<div class="tab-panel" id="tab-production-' + cid + '">' +
+    renderProductionPlan(c) +
+    '</div>';
+
+  return tabs + overviewContent + blueprintContent + productionContent;
 }
+
+function switchTab(cid, tab) {
+  // Update tab buttons
+  var tabs = document.getElementById('campaign-tabs-' + cid);
+  if (tabs) {
+    tabs.querySelectorAll('.campaign-tab').forEach(function(btn) { btn.classList.remove('active'); });
+    var activeBtn = tabs.querySelector('[onclick="switchTab(\'' + cid + '\',\'' + tab + '\')"]');
+    if (activeBtn) activeBtn.classList.add('active');
+  }
+  // Show/hide panels
+  ['overview','blueprint','production'].forEach(function(t) {
+    var panel = document.getElementById('tab-' + t + '-' + cid);
+    if (panel) panel.classList.toggle('active', t === tab);
+  });
+}
+
+function renderProductionPlan(c) {
+  var cid = (c.identity && c.identity.campaignId) || 'unknown';
+  var pp = c.productionPlan;
+  var assets = c.assets || {};
+
+  if (!pp) {
+    var hasBlueprint = !!(c.blueprint && c.blueprint.blueprintVersion);
+    return '<div class="card"><div class="card-title">Production Plan</div>' +
+      '<div class="pp-empty">No production plan yet.' +
+      (hasBlueprint ? '<div class="pp-empty-sub">Blueprint is ready. Generate the production plan below.</div>' +
+        '<button class="pp-gen-btn" onclick="genProductionPlan(\'' + cid + '\')">Generate Production Plan</button>' :
+        '<div class="pp-empty-sub">Accept a blueprint first to unlock production planning.</div>') +
+      '</div></div>';
+  }
+
+  var req = pp.assetRequirements || {};
+  var total = req.total || 0;
+  var realImages = 0;
+  var aiImages = 0;
+  Object.values(assets).forEach(function(a) {
+    if (a.realImageNeeded) realImages++;
+    if (a.aiImageAllowed) aiImages++;
+  });
+
+  // Asset summary badges
+  var badges = '<div class="pp-summary">' +
+    '<div class="pp-badge"><span class="pp-count">' + total + '</span><span class="pp-label">Total Assets</span></div>' +
+    '<div class="pp-badge"><span class="pp-count">' + req['feed-post'] + '</span><span class="pp-label">Posts</span></div>' +
+    '<div class="pp-badge"><span class="pp-count">' + req['carousel'] + '</span><span class="pp-label">Carousels</span></div>' +
+    '<div class="pp-badge"><span class="pp-count">' + req['reel'] + '</span><span class="pp-label">Reels</span></div>' +
+    '<div class="pp-badge"><span class="pp-count">' + req['story'] + '</span><span class="pp-label">Stories</span></div>' +
+    '<div class="pp-badge"><span class="pp-count">' + req['gmb-post'] + '</span><span class="pp-label">GMB</span></div>' +
+    '<div class="pp-badge real"><span class="pp-count">' + realImages + '</span><span class="pp-label">Real Photos Needed</span></div>' +
+    '<div class="pp-badge ai"><span class="pp-count">' + aiImages + '</span><span class="pp-label">AI Allowed</span></div>' +
+    '</div>';
+
+  // Calendar (first 28 days, 4-week view)
+  var cal = pp.calendar || [];
+  var calHtml = '<div class="pp-calendar">';
+  var dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  // Header row
+  dayNames.forEach(function(d) {
+    calHtml += '<div class="pp-cal-day" style="background:transparent;border:none;text-align:center;font-size:9px;color:#6e6e82;text-transform:uppercase;letter-spacing:0.05em;min-height:auto;padding:4px 2px">' + d + '</div>';
+  });
+  // Content rows (first 28 days = 4 weeks)
+  var calDays = cal.slice(0, 28);
+  var startDow = calDays.length > 0 ? (new Date(calDays[0].date).getDay() + 6) % 7 : 0; // Monday-first offset
+  for (var w = 0; w < 4; w++) {
+    for (var d = 0; d < 7; d++) {
+      var idx = w * 7 + d;
+      var day = calDays[idx];
+      var dayLabel = day ? new Date(day.date).getDate() : '';
+      var hasContent = day && day.assetId;
+      var content = '';
+      if (day) {
+        content = '<div class="pp-type">' + (day.contentType || '') + '</div>' +
+          '<div class="pp-content">' + (day.pillarName ? day.pillarName.substring(0,12) : '') + '</div>';
+      }
+      calHtml += '<div class="pp-cal-day' + (hasContent ? ' has-content' : '') + '">' +
+        '<div class="pp-day-label">' + dayLabel + '</div>' + content + '</div>';
+    }
+  }
+  calHtml += '</div>';
+
+  // Missing assets
+  var missing = Object.values(assets).filter(function(a) {
+    return a.captionStatus === 'pending' && a.visualStatus === 'pending';
+  });
+  var missingHtml = '';
+  if (missing.length > 0) {
+    missingHtml = '<div class="pp-missing"><div class="pp-missing-title">Missing Assets (' + missing.length + ')</div>';
+    missing.slice(0, 5).forEach(function(a) {
+      missingHtml += '<div class="pp-missing-item">⚠️ ' + (a.title || a.assetId) + ' — ' + (a.platform || '') + ' ' + (a.contentType || '') + '</div>';
+    });
+    if (missing.length > 5) missingHtml += '<div class="pp-missing-item">…and ' + (missing.length - 5) + ' more</div>';
+    missingHtml += '</div>';
+  }
+
+  // Asset list
+  var assetList = Object.values(assets).sort(function(a,b) {
+    return (a.dueDate || '').localeCompare(b.dueDate || '');
+  });
+  var assetListHtml = '<div class="pp-asset-list">';
+  assetList.slice(0, 20).forEach(function(a) {
+    var captionColor = a.captionStatus === 'approved' ? '#00cc77' : a.captionStatus === 'draft' ? '#ffaa00' : '#6e6e82';
+    var visualColor = a.visualStatus === 'approved' ? '#00cc77' : a.visualStatus === 'generated' ? '#4488ff' : a.visualStatus === 'pending' ? '#6e6e82' : '#ffaa00';
+    assetListHtml += '<div class="pp-asset">' +
+      '<div class="pp-asset-status ' + (a.captionStatus === 'approved' || a.visualStatus === 'approved' ? 'approved' : a.captionStatus === 'draft' || a.visualStatus === 'generated' ? 'draft' : 'pending') + '"></div>' +
+      '<div class="pp-asset-info">' +
+        '<div class="pp-asset-name">' + (a.title || a.assetId) + '</div>' +
+        '<div class="pp-asset-meta">' + (a.platform || '') + ' · ' + (a.contentType || '') + ' · ' + (a.pillarName || '') + '</div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:' + captionColor + ';text-align:right">caption: ' + (a.captionStatus || '—') + '</div>' +
+      '<div style="font-size:10px;color:' + visualColor + ';text-align:right">visual: ' + (a.visualStatus || '—') + '</div>' +
+      '</div>';
+  });
+  assetListHtml += '</div>';
+
+  var planStatus = pp.planStatus || 'draft';
+  var statusColor = planStatus === 'approved' ? '#00cc77' : planStatus === 'in-progress' ? '#ffaa00' : '#4488ff';
+
+  return '<div class="card"><div class="card-title">Production Plan <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:' + statusColor + '22;color:' + statusColor + ';margin-left:8px">' + planStatus + '</span></div>' +
+    '<div style="font-size:11px;color:#6e6e82;margin-bottom:12px">Generated ' + (pp.generatedAt ? new Date(pp.generatedAt).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}) : '—') + ' · v' + (pp.planVersion || 1) + ' · ' + (pp.modelUsed || '—') + '</div>' +
+    badges +
+    '<div class="card-title" style="margin-top:16px">Calendar (30 days)</div>' + calHtml +
+    missingHtml +
+    '<div class="card-title" style="margin-top:16px">Asset Queue (' + Object.keys(assets).length + ')</div>' + assetListHtml +
+    (planStatus === 'draft' ? '<button class="pp-gen-btn" style="background:#00cc77" onclick="approveProductionPlan(\'' + cid + '\')">✓ Approve Plan → Unlock M6</button>' : '') +
+    '</div>';
+}
+
+window.genProductionPlan = function(cid) {
+  // Call the API server to generate production plan
+  var auth = btoa('admin:swing-shack-bp-2026');
+  fetch('http://192.168.0.3:3456/api/pp-generate', {
+    method: 'POST',
+    headers: { 'Authorization': 'Basic ' + auth, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ campaignId: cid })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.ok) {
+      window.showNotification('Production plan generated! Reloading…', 'success');
+      setTimeout(function() { location.reload(); }, 1200);
+    } else {
+      window.showNotification('Error: ' + (d.error || 'unknown'), 'error');
+    }
+  }).catch(function(e) {
+    window.showNotification('Server unreachable. Is the API server running?', 'error');
+  });
+};
+
+window.approveProductionPlan = function(cid) {
+  var auth = btoa('admin:swing-shack-bp-2026');
+  fetch('http://192.168.0.3:3456/api/pp-approve', {
+    method: 'POST',
+    headers: { 'Authorization': 'Basic ' + auth, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ campaignId: cid })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.ok) {
+      window.showNotification('Production plan approved! M6 unlocked.', 'success');
+      setTimeout(function() { location.reload(); }, 1000);
+    }
+  }).catch(function(e) {
+    window.showNotification('Server unreachable. Is the API server running?', 'error');
+  });
+};
 
 function renderBlueprintVersions(c) {
   var bp = c.blueprint;
