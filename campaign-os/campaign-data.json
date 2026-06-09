@@ -2180,7 +2180,7 @@
           "requiredVisual": "Split-screen visualization showing a golfer's current stats versus their potential with proper equipment. Data overlays appear like a sports analytics broadcast \u2014 swing speed meters, launch angle graphs, accuracy percentages. The mood is stark and eye-opening, with cool blue data visualizations on one side and warm gold projected improvement on the other. Numbers should feel concrete and undeniable, not vague promises.",
           "realImageNeeded": true,
           "aiImageAllowed": false,
-          "captionStatus": "pending",
+          "captionStatus": "draft",
           "visualStatus": "brief-written",
           "approvalStatus": "pending",
           "publishStatus": "planned",
@@ -2190,15 +2190,10 @@
           "qualityGateState": "pending",
           "history": [
             {
-              "action": "shell-created",
-              "by": "M5-generator",
-              "at": "2026-06-09T08:14:12.044052+00:00"
-            },
-            {
-              "action": "visual-brief-written",
-              "by": "image-gen",
-              "at": "2026-06-09T10:46:00Z",
-              "note": "Visual brief written for M6 pilot. realImageNeeded=True, aiImageAllowed=False, visualQualityTier=hero"
+              "action": "caption-draft",
+              "by": "copywriter",
+              "at": "2026-06-09T10:54:00Z",
+              "note": "M6 pilot - P3 Performance Gap - gmb-post-03 - Clawfix assignment"
             }
           ],
           "copyDirection": "Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract problems concrete. The tone is confident and slightly clinical \u2014 let the data do the heavy lifting while maintaining approachable language.",
@@ -2233,9 +2228,13 @@
           "realPhotoBrief": "Real TrackMan fitting screen with actual golfer data numbers. Real golf clubs from the fitting bay. No staged studio \u2014 real fitting environment preferred. Photographer: Swing Shack staff or Takomo approved imagery.",
           "visualQualityTier": "hero",
           "visualBriefGeneratedAt": "2026-06-09T10:46:00Z",
-          "copyRequirement": "Address: Wrong clubs cost you 23 yards off the tee. Every. Single. Shot. | Your launch angle is 4\u00b0 off optimal. That's the difference between fairway and trees.. Goal: Data-driven and proof-focused. Use specific numbers (mph, degrees, percentages) to make abstract pro",
-          "captionLength": "200-350 chars (local SEO optimized)",
-          "captionTone": "informative, trust-building"
+          "copyRequirement": "Number-first hook (23 yards). Educational \u2014 what the fitting reveals and what it fixes. Local Johannesburg context. No hard sell. Trust-building tone. GMB CTA.",
+          "captionLength": "280 chars",
+          "captionTone": "informative, trust-building, local SEO",
+          "caption": "23 yards. Every shot. That's what wrong clubs cost you.\n\nWrong shaft flex is the leading cause \u2014 and it's fixable. A fitting with TrackMan technology shows you exactly what's been lost and how to get it back.\n\nSwing Shack uses launch monitor data to diagnose your specific equipment gap. No guesswork. No hard sell.\n\nBook your Johannesburg fitting and find out what you've been leaving on the course.",
+          "status": "review",
+          "approvalState": "pending",
+          "gmbCompliance": true
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-04",
