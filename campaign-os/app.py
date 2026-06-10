@@ -1,0 +1,286 @@
+"""
+CampaignOS v0.1 — Railway Backend
+Flask app serving Campaign OS cockpit + campaign data API.
+Data lives on Railway disk. GitHub is backup/version history.
+"""
+import os
+import json
+import datetime
+import subprocess
+import shutil
+from flask import Flask, jsonify, request, send_from_directory, g
+from flask_cors import CORS
+
+app = Flask(__name__, static_folder='.')
+CORS(app)
+
+# Directory where we store campaign data (Railway persistent disk)
+DATA_DIR = os.environ.get('DATA_DIR', '/data')
+CAMPAIGN_FILE = os.path.join(DATA_DIR, 'campaign-data.json')
+REPO_DIR = os.path.join(DATA_DIR, 'repo')
+GIT_REMOTE = os.environ.get('GIT_REMOTE', 
+ 'https://x-access-token:${GITHUB_TOKEN}@github.com/clawdiavector/swing-shack-dashboard.git')
+BRANCH = 'main'
+
+# ─── HELPERS ────────────────────────────────────────────────────────────
+
+def load_data():
+    """Load campaign data, falling back to embedded default."""
+    if os.path.exists(CAMPAIGN_FILE):
+        with open(CAMPAIGN_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    # Return minimal structure if no data file exists
+    return {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
+
+def save_data(data):
+    """Save campaign data to Railway disk."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(CAMPAIGN_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def git_push(message):
+    """
+    Commit and push current campaign data to GitHub.
+    Returns (success: bool, message: str)
+    """
+    try:
+        subprocess.run(['git', 'config', '--global', 'user.email', 'agent@openclaw.ai'],
+                       cwd=REPO_DIR, check=True, capture_output=True)
+        subprocess.run(['git', 'config', '--global', 'user.name', 'Clawdia Agent'],
+                       cwd=REPO_DIR, check=True, capture_output=True)
+        subprocess.run(['git', 'add', 'campaign-os/campaign-data.json'],
+                       cwd=REPO_DIR, check=True, capture_output=True)
+        # Check if there are changes to commit
+        result = subprocess.run(['git', 'diff', '--cached', '--quiet'],
+                               cwd=REPO_DIR, check=False, capture_output=True)
+        if result.returncode == 0:
+            return True, "No changes to commit"
+        subprocess.run(['git', 'commit', '-m', message],
+                       cwd=REPO_DIR, check=True, capture_output=True)
+        env = {**os.environ}
+        token = os.environ.get('GITHUB_TOKEN', '')
+        remote = f'https://x-access-token:{token}@github.com/clawdiavector/swing-shack-dashboard.git'
+        subprocess.run(['git', 'push', remote, BRANCH],
+                       cwd=REPO_DIR, check=True, capture_output=True, env=env)
+        return True, "Committed and pushed to GitHub"
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode() if e.stderr else ''
+        return False, f"Git error: {stderr or str(e)}"
+    except Exception as e:
+        return False, f"Error: {str(e)}"
+
+def init_repo():
+    """
+    Clone GitHub repo to DATA_DIR on first run.
+    Uses GITHUB_TOKEN env var for authentication.
+    """
+    if os.path.exists(os.path.join(REPO_DIR, '.git')):
+        # Already cloned — just pull latest
+        try:
+            subprocess.run(['git', 'pull', 'origin', BRANCH],
+                           cwd=REPO_DIR, check=True, capture_output=True)
+            print(f"Git pull OK: {REPO_DIR}")
+        except Exception as e:
+            print(f"Git pull failed (non-fatal): {e}")
+        return
+
+    os.makedirs(DATA_DIR, exist_ok=True)
+    token = os.environ.get('GITHUB_TOKEN', '')
+    if not token:
+        print("WARNING: GITHUB_TOKEN not set — GitHub sync disabled")
+        return
+
+    remote_url = f'https://x-access-token:{token}@github.com/clawdiavector/swing-shack-dashboard.git'
+    try:
+        subprocess.run(['git', 'clone', '--depth=1', remote_url, REPO_DIR],
+                       cwd=DATA_DIR, check=True, capture_output=True)
+        print(f"Git clone OK: {REPO_DIR}")
+ except Exception as e:
+        print(f"Git clone failed (non-fatal): {e}")
+
+# ─── BOOTSTRAP ──────────────────────────────────────────────────────────
+
+@app.before_request
+def bootstrap():
+    """Run once at startup."""
+    if hasattr(g, '_booted'):
+        return
+    g._booted = True
+    init_repo()
+
+# ─── API ROUTES ─────────────────────────────────────────────────────────
+
+@app.route('/api/health')
+def health():
+    """Health check."""
+    return jsonify({
+        "status": "ok",
+        "ts": datetime.datetime.utcnow().isoformat() + 'Z',
+        "git_synced": os.path.exists(os.path.join(REPO_DIR, '.git'))
+    })
+
+@app.route('/api/campaigns', methods=['GET'])
+def list_campaigns():
+    """Return all campaigns."""
+    data = load_data()
+    return jsonify({
+        "campaigns": data.get("campaigns", {}),
+        "activeCampaignId": data.get("activeCampaignId"),
+        "portfolioMetadata": data.get("portfolioMetadata", {})
+    })
+
+@app.route('/api/campaigns/<campaign_id>', methods=['GET'])
+def get_campaign(campaign_id):
+    """Return single campaign with all assets."""
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if campaign_id not in campaigns:
+        return jsonify({"error": "Campaign not found"}), 404
+    return jsonify(campaigns[campaign_id])
+
+@app.route('/api/campaigns', methods=['POST'])
+def create_campaign():
+    """Create a new campaign."""
+    body = request.get_json()
+    if not body:
+        return jsonify({"error": "No JSON body"}), 400
+    name = body.get('name', '').strip()
+    if not name:
+        return jsonify({"error": "Campaign name required"}), 400
+
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+
+    # Generate ID
+    import re
+    campaign_id = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+    base_id = campaign_id
+    counter = 1
+    while campaign_id in campaigns:
+        campaign_id = f"{base_id}-{counter}"
+        counter += 1
+
+    now = datetime.datetime.utcnow().isoformat() + 'Z'
+    new_campaign = {
+        "identity": {
+            "campaignId": campaign_id,
+            "name": name,
+            "shortName": body.get('shortName', name),
+            "goal": body.get('primaryGoal', body.get('goal', '')),
+            "status": "active",
+            "owner": body.get('owner', 'christelle'),
+            "createdAt": now,
+            "updatedAt": now
+        },
+        "assets": {},
+        "productionPlan": None,
+        "blueprints": []
+    }
+
+    campaigns[campaign_id] = new_campaign
+    data["campaigns"] = campaigns
+    data["activeCampaignId"] = campaign_id
+    save_data(data)
+
+    # GitHub write-back (non-blocking on failure)
+    ok, msg = git_push(f"Campaign OS v0.1: Create campaign '{name}' ({campaign_id})")
+
+    response = {"ok": True, "campaignId": campaign_id, "campaign": new_campaign}
+    if not ok:
+        response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
+    return jsonify(response), 201
+
+@app.route('/api/review/<asset_id>', methods=['POST'])
+def review_asset(asset_id):
+    """
+    Save a review decision for an asset.
+    Body: { campaignId, approvalStatus, caption?, visualBrief?, rejectionReason?, revisionRequest?, assignedLane? }
+    """
+    body = request.get_json()
+    if not body:
+        return jsonify({"error": "No JSON body"}), 400
+    campaign_id = body.get('campaignId')
+    if not campaign_id:
+        return jsonify({"error": "campaignId required"}), 400
+
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if campaign_id not in campaigns:
+        return jsonify({"error": "Campaign not found"}), 404
+
+    campaign = campaigns[campaign_id]
+    assets = campaign.get("assets", {})
+    if asset_id not in assets:
+        return jsonify({"error": "Asset not found"}), 404
+
+    asset = assets[asset_id]
+    now = datetime.datetime.utcnow().isoformat() + 'Z'
+
+    if body.get('approvalStatus'):
+        asset['approvalStatus'] = body['approvalStatus']
+    if 'caption' in body:
+        asset['caption'] = body['caption']
+    if 'visualBrief' in body:
+        asset['visualBrief'] = body['visualBrief']
+    if 'rejectionReason' in body:
+        asset['rejectionReason'] = body['rejectionReason']
+    if 'revisionRequest' in body:
+        asset['revisionRequest'] = body['revisionRequest']
+    if 'assignedLane' in body:
+        asset['assignedLane'] = body['assignedLane']
+
+    asset['updatedAt'] = now
+    asset['reviewTs'] = now
+    campaign['updatedAt'] = now
+    save_data(data)
+
+    ok, msg = git_push(f"Campaign OS v0.1: Review '{asset_id}' — {body.get('approvalStatus')}")
+    response = {"ok": True, "assetId": asset_id, "asset": asset}
+    if not ok:
+        response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
+    return jsonify(response)
+
+@app.route('/api/export/<campaign_id>', methods=['GET'])
+def export_review(campaign_id):
+    """Export all review decisions for a campaign."""
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if campaign_id not in campaigns:
+        return jsonify({"error": "Campaign not found"}), 404
+
+    campaign = campaigns[campaign_id]
+    decisions = {}
+    for aid, asset in campaign.get("assets", {}).items():
+        if asset.get('approvalStatus') in ('approved', 'rejected', 'revisionRequested'):
+            decisions[aid] = {
+                "approvalStatus": asset.get('approvalStatus'),
+                "caption": asset.get('caption'),
+                "visualBrief": asset.get('visualBrief'),
+                "rejectionReason": asset.get('rejectionReason'),
+                "revisionRequest": asset.get('revisionRequest'),
+                "assignedLane": asset.get('assignedLane'),
+                "reviewTs": asset.get('reviewTs'),
+                "updatedAt": asset.get('updatedAt')
+            }
+
+    return jsonify({
+        "campaignId": campaign_id,
+        "exportedAt": datetime.datetime.utcnow().isoformat() + 'Z',
+        "reviewDecisions": decisions
+    })
+
+# ─── STATIC FILES ─────────────────────────────────────────────────────
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'cockpit-operational.html')
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    return send_from_directory('.', filename)
+
+# ─── STARTUP ────────────────────────────────────────────────────────────
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host='0.0.0.0', port=port)

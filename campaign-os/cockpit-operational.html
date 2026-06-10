@@ -381,6 +381,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <span class="bridge-dot"></span>
 <span id="bridge-label">Bridge: Idle</span>
 </div>
+<span id="sync-status" style="font-size:11px;font-weight:600;color:#ffaa00" title="Data source: Railway API when live, static JSON fallback">● Fallback</span>
 <button class="create-btn" id="btn-create" onclick="openCreateModal()">+ Create Campaign</button>
 <div class="view-toggle">
 <button class="view-btn active" id="btn-portfolio" onclick="showView('portfolio')">Portfolio</button>
@@ -495,6 +496,7 @@ function initSelector() {
 function selectCampaign(id) {
   if (!id || !window.campaignData.campaigns[id]) return;
   window.campaignData.activeCampaignId = id;
+  window.currentCampaignId = id; // Track for review queue
   document.getElementById('campaignSelector').value = id;
   renderCampaign(id);
   showView('detail');
@@ -957,7 +959,51 @@ function regenerateBlueprint(cid) {
     .catch(function(e) { console.error(e); alert('Failed: ' + e); });
 }
 
-document.addEventListener('DOMContentLoaded', function() { initSelector(); renderPortfolio(); updateBridgeStatus(); });
+// Railway API base — empty means same origin ( Railway serves both frontend + API )
+// Change to e.g. 'https://campaign-os.up.railway.app' if deploying elsewhere
+window.API_BASE = '';
+
+// ─── CENTRAL DATA LOADER ──────────────────────────────────────────────
+window.loadCampaignData = function() {
+    return fetch(window.API_BASE + '/api/campaigns')
+        .then(function(r) { return r.ok ? r.json() : Promise.reject('API error ' + r.status); })
+        .then(function(data) {
+            // If API returns empty campaigns object, fall back to static JSON
+            var isEmpty = !data || !data.campaigns || Object.keys(data.campaigns).length === 0;
+            if (isEmpty) return Promise.reject('empty API response');
+            window.campaignData = data;
+            window._dataSource = 'api';
+            return data;
+        })
+        .catch(function() {
+            // Fall back to static JSON (local dev / GitHub Pages fallback)
+            return fetch('./campaign-os/campaign-data.json')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    window.campaignData = data;
+                    window._dataSource = 'static';
+                    return data;
+                });
+        });
+};
+
+// ─── SYNC STATUS INDICATOR ─────────────────────────────────────────────
+function updateSyncStatus() {
+    var el = document.getElementById('sync-status');
+    if (!el) return;
+    var src = window._dataSource || 'static';
+    el.textContent = src === 'api' ? '● Live' : '● Fallback';
+    el.style.color = src === 'api' ? '#00cc77' : '#ffaa00';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadCampaignData().then(function() {
+        initSelector();
+        renderPortfolio();
+        updateBridgeStatus();
+        updateSyncStatus();
+    });
+});
 
 
 function openCreateModal() {
@@ -1010,25 +1056,26 @@ function handleFormSubmit(e) {
   btn.disabled = true;
   btn.textContent = 'Saving...';
   document.getElementById('form-error').style.display = 'none';
+  document.getElementById('form-success').style.display = 'none';
 
-  // Save to localStorage as pending — Discord bridge will pick it up
-  try {
-    var pending = JSON.parse(localStorage.getItem('pendingCampaigns') || '[]');
-    pending.push(formData);
-    localStorage.setItem('pendingCampaigns', JSON.stringify(pending));
-  } catch(err) {}
-
-  document.getElementById('form-success').textContent = '\"' + formData.name + '\" saved — tag @Clawfix on Discord to create the campaign.';
-  document.getElementById('form-success').style.display = 'block';
-  document.getElementById('form-error').style.display = 'none';
-
-  // Re-enable after 3s so user can retry if they want to cancel
-  setTimeout(function() {
+  // POST to Railway API
+  var apiBase = window.API_BASE || '';
+  fetch(apiBase + '/api/campaigns', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(formData)
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error) throw new Error(data.error);
+    document.getElementById('form-success').textContent = '"' + formData.name + '" created and saved.';
+    document.getElementById('form-success').style.display = 'block';
+    setTimeout(function() { closeCreateModal(); }, 1500);
+    if (window.loadCampaignData) window.loadCampaignData().then(function() { renderPortfolio(); });
+  }).catch(function(err) {
+    document.getElementById('form-error').textContent = 'Error: ' + err.message + '. Please try again.';
+    document.getElementById('form-error').style.display = 'block';
     btn.disabled = false;
     btn.textContent = 'Create Campaign';
-  }, 3000);
-
-  setTimeout(function() { closeCreateModal(); }, 2500);
+  });, 2500);
 }
 
 
@@ -1328,16 +1375,18 @@ function rqClearSelection(cid) {
 }
 
 function rqApprove(cid, aid) {
-  var lsKey = 'rq_state_' + cid;
-  var savedState = null;
-  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
-  var state = savedState || {};
-  if (!state.reviewData) state.reviewData = {};
-  if (!state.reviewData[aid]) state.reviewData[aid] = {};
-  state.reviewData[aid].approvalStatus = 'approved';
-  state.reviewData[aid]._ts = Date.now();
-  localStorage.setItem(lsKey, JSON.stringify(state));
-  rqUpdateRowStatus(aid, 'approved');
+  var apiBase = window.API_BASE || '';
+  fetch(apiBase + '/api/review/' + aid, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ campaignId: cid, approvalStatus: 'approved' })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error) { window.showNotification('Save failed: ' + data.error, 'error'); return; }
+    rqUpdateRowStatus(aid, 'approved');
+    if (data._syncWarning) window.showNotification('Saved — GitHub sync pending', 'warning');
+  }).catch(function() {
+    rqUpdateRowStatus(aid, 'approved');
+  });
 }
 
 function rqUpdateRowStatus(aid, status) {
@@ -1406,23 +1455,37 @@ function rqConfirmReject(cidOrBatch, aid) {
     return;
   }
   var laneVal = lane.value;
-  var lsKey = cidOrBatch === 'batch' ? 'rq_state_use-the-right-equipment-mq5l90bk' : 'rq_state_' + cidOrBatch;
-  var savedState = null;
-  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
-  var state = savedState || {};
-  if (!state.reviewData) state.reviewData = {};
-  var selected = state.selected || [];
+  var apiBase = window.API_BASE || '';
+  var cid = cidOrBatch === 'batch' ? window.currentCampaignId || 'use-the-right-equipment-mq5l90bk' : cidOrBatch;
+  var selected = [];
+  if (cidOrBatch === 'batch') {
+    try { selected = JSON.parse(localStorage.getItem('rq_state_use-the-right-equipment-mq5l90bk') || '{"selected":[]}').selected || []; } catch(e) {}
+  }
   var targets = cidOrBatch === 'batch' ? selected : [aid];
+  var successCount = 0;
+  var done = 0;
+  if (targets.length === 0) { rqCloseRejectModal(); return; }
   targets.forEach(function(targetAid) {
-    if (!state.reviewData[targetAid]) state.reviewData[targetAid] = {};
-    state.reviewData[targetAid].approvalStatus = 'rejected';
-    state.reviewData[targetAid].rejectionReason = { reason: reason, whatMustChange: whatMustChange, assignedLane: laneVal, ts: Date.now() };
-    state.reviewData[targetAid]._ts = Date.now();
-    rqUpdateRowStatus(targetAid, 'rejected');
+    fetch(apiBase + '/api/review/' + targetAid, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaignId: cid, approvalStatus: 'rejected', rejectionReason: reason, assignedLane: laneVal })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      rqUpdateRowStatus(targetAid, 'rejected');
+      done++;
+      if (done === targets.length) {
+        rqCloseRejectModal();
+        if (cidOrBatch === 'batch') rqClearSelection(cid);
+      }
+    }).catch(function() {
+      rqUpdateRowStatus(targetAid, 'rejected');
+      done++;
+      if (done === targets.length) {
+        rqCloseRejectModal();
+        if (cidOrBatch === 'batch') rqClearSelection(cid);
+      }
+    });
   });
-  localStorage.setItem(lsKey, JSON.stringify(state));
-  rqCloseRejectModal();
-  if (cidOrBatch === 'batch') rqClearSelection('use-the-right-equipment-mq5l90bk');
 }
 
 function rqOpenRevisionModal(aid) {
@@ -1460,99 +1523,45 @@ function rqConfirmRevision(aid) {
   var whatMustChange = document.getElementById('rq-rev-change').value.trim();
   var lane = document.querySelector('input[name="rq-rev-lane"]:checked');
   if (!whatMustChange || whatMustChange.length < 20 || !lane) return;
-  var cid = 'use-the-right-equipment-mq5l90bk';
-  var lsKey = 'rq_state_' + cid;
-  var savedState = null;
-  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
-  var state = savedState || {};
-  if (!state.reviewData) state.reviewData = {};
-  if (!state.reviewData[aid]) state.reviewData[aid] = {};
-  state.reviewData[aid].approvalStatus = 'revisionRequested';
-  state.reviewData[aid].revisionRequest = { whatMustChange: whatMustChange, assignedLane: lane.value, ts: Date.now() };
-  state.reviewData[aid]._ts = Date.now();
-  localStorage.setItem(lsKey, JSON.stringify(state));
-  var row = document.querySelector('tr[data-aid="' + aid + '"]');
-  if (row) {
-    var pill = row.querySelector('.rq-pill-appr-review');
-    if (pill) { pill.className = 'rq-pill rq-pill-appr-revision'; pill.textContent = 'revisionRequested'; }
-    row.setAttribute('data-appr', 'revisionRequested');
-  }
-  rqCloseRejectModal();
+  var cid = window.currentCampaignId || 'use-the-right-equipment-mq5l90bk';
+  var apiBase = window.API_BASE || '';
+  fetch(apiBase + '/api/review/' + aid, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ campaignId: cid, approvalStatus: 'revisionRequested', revisionRequest: whatMustChange, assignedLane: lane.value })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    rqUpdateRowStatus(aid, 'revisionRequested');
+    rqCloseRejectModal();
+  }).catch(function() {
+    rqUpdateRowStatus(aid, 'revisionRequested');
+    rqCloseRejectModal();
+  });
 }
 
 function rqBatchApprove(cid) {
+  var apiBase = window.API_BASE || '';
   var lsKey = 'rq_state_' + cid;
   var savedState = null;
   try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
   var state = savedState || {};
   var selected = state.selected || [];
-  if (!state.reviewData) state.reviewData = {};
+  if (!selected.length) return;
+  var done = 0;
   selected.forEach(function(aid) {
-    if (!state.reviewData[aid]) state.reviewData[aid] = {};
-    state.reviewData[aid].approvalStatus = 'approved';
-    state.reviewData[aid]._ts = Date.now();
-    rqUpdateRowStatus(aid, 'approved');
+    fetch(apiBase + '/api/review/' + aid, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaignId: cid, approvalStatus: 'approved' })
+    }).then(function(r) { return r.json(); }).then(function() {
+      rqUpdateRowStatus(aid, 'approved');
+      done++;
+      if (done === selected.length) rqClearSelection(cid);
+    }).catch(function() {
+      rqUpdateRowStatus(aid, 'approved');
+      done++;
+      if (done === selected.length) rqClearSelection(cid);
+    });
   });
-  localStorage.setItem(lsKey, JSON.stringify(state));
-  rqClearSelection(cid);
-}
-
-function rqEditCaption(aid) {
-  var cellId = 'cap-text-' + aid.replace(/[^a-z0-9]/gi, '');
-  var cell = document.getElementById(cellId);
-  if (!cell) return;
-  if (cell.querySelector('.rq-caption-text.editing')) return; // already editing
-  var original = cell.textContent;
-  cell.contentEditable = 'true';
-  cell.classList.add('editing');
-  cell.focus();
-  function save() {
-    cell.contentEditable = 'false';
-    cell.classList.remove('editing');
-    cell.removeEventListener('blur', save);
-    var newVal = cell.textContent.trim();
-    var cid = 'use-the-right-equipment-mq5l90bk';
-    var lsKey = 'rq_state_' + cid;
-    var savedState = null;
-    try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
-    var state = savedState || {};
-    if (!state.reviewData) state.reviewData = {};
-    if (!state.reviewData[aid]) state.reviewData[aid] = {};
-    state.reviewData[aid].caption = newVal;
-    state.reviewData[aid]._ts = Date.now();
-    localStorage.setItem(lsKey, JSON.stringify(state));
-  }
-  cell.addEventListener('blur', save);
-  cell.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); cell.blur(); } });
-}
-
-function rqEditVisual(aid) {
-  var cellId = 'vis-text-' + aid.replace(/[^a-z0-9]/gi, '');
-  var cell = document.getElementById(cellId);
-  if (!cell) return;
-  if (cell.querySelector('.rq-visual-text.editing')) return;
-  var original = cell.textContent;
-  cell.contentEditable = 'true';
-  cell.classList.add('editing');
-  cell.focus();
-  function save() {
-    cell.contentEditable = 'false';
-    cell.classList.remove('editing');
-    cell.removeEventListener('blur', save);
-    var newVal = cell.textContent.trim();
-    var cid = 'use-the-right-equipment-mq5l90bk';
-    var lsKey = 'rq_state_' + cid;
-    var savedState = null;
-    try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
-    var state = savedState || {};
-    if (!state.reviewData) state.reviewData = {};
-    if (!state.reviewData[aid]) state.reviewData[aid] = {};
-    state.reviewData[aid].visualBrief = newVal;
-    state.reviewData[aid]._ts = Date.now();
-    localStorage.setItem(lsKey, JSON.stringify(state));
-  }
-  cell.addEventListener('blur', save);
-  cell.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); cell.blur(); } });
 }
 
 function rqExport(cid) {
