@@ -136,6 +136,15 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .btn-primary:hover { opacity: 0.85; }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-secondary { padding: 10px 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; cursor: pointer; }
+
+/* Create Campaign form elements */
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-size: 11px; color: var(--col-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; font-weight: 600; }
+.form-input, .form-select, .form-textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 9px 12px; color: var(--text); font-size: 13px; box-sizing: border-box; transition: border-color 0.15s; outline: none; font-family: inherit; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--col-blue); }
+.form-input::placeholder, .form-textarea::placeholder { color: var(--col-muted); opacity: 0.7; }
+.form-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236e6e82' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+.form-textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
 .review-modal-submit.danger { background: var(--col-red); }
 .review-modal-submit.success { background: var(--col-green); }
 .review-modal-submit.warning { background: var(--col-amber); color: #111; }
@@ -454,6 +463,14 @@ function showView(name) {
   document.getElementById('btn-review').classList.toggle('active', name === 'review');
   document.getElementById('campaignSelectorWrap').style.display = (name === 'detail' || name === 'review') ? 'flex' : 'none';
   if (name === 'portfolio') { document.getElementById('header-subtitle').textContent = 'Portfolio Overview'; renderPortfolio(); }
+  if (name === 'detail') {
+    var sel = document.getElementById('campaignSelector').value;
+    if (!sel || !window.campaignData.campaigns[sel]) {
+      showView('portfolio');
+      return;
+    }
+    selectCampaign(sel);
+  }
   if (name === 'review') {
     document.getElementById('header-subtitle').textContent = 'Review Queue';
     var selectedCampaignId = document.getElementById('campaignSelector').value;
