@@ -123,6 +123,19 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .review-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 .review-modal-cancel { padding: 8px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer; }
 .review-modal-submit { padding: 8px 16px; background: var(--col-blue); border: none; border-radius: 6px; color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+/* Create Campaign Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.modal-overlay.active { opacity: 1; pointer-events: all; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
+.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 20px; color: var(--text); }
+.form-notice { background: rgba(255,170,0,0.1); border: 1px solid rgba(255,170,0,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--col-amber); margin-bottom: 16px; line-height: 1.5; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.btn-primary { padding: 10px 20px; background: var(--col-blue); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary { padding: 10px 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; cursor: pointer; }
 .review-modal-submit.danger { background: var(--col-red); }
 .review-modal-submit.success { background: var(--col-green); }
 .review-modal-submit.warning { background: var(--col-amber); color: #111; }
@@ -362,7 +375,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <button class="create-btn" id="btn-create" onclick="openCreateModal()">+ Create Campaign</button>
 <div class="view-toggle">
 <button class="view-btn active" id="btn-portfolio" onclick="showView('portfolio')">Portfolio</button>
-<button class="view-btn" id="btn-detail" onclick="showView('detail')">Campaign</button>
+<button class="view-btn" id="btn-detail" onclick="var sel=document.getElementById('campaignSelector').value;if(sel&&window.campaignData.campaigns[sel]){selectCampaign(sel)}else{showView('portfolio')}">Campaign</button>
 <button class="view-btn" id="btn-review" onclick="showView('review')">Review Queue</button>
 </div>
 <div class="campaign-selector-wrap" id="campaignSelectorWrap" style="display:none">
@@ -938,6 +951,7 @@ function closeCreateModal() {
     document.getElementById('createModal').classList.remove('active');
     document.getElementById('createForm').reset();
     document.getElementById('form-error').style.display = 'none';
+    document.getElementById('form-success').style.display = 'none';
 }
 function handleFormSubmit(e) {
   e.preventDefault();
@@ -946,6 +960,7 @@ function handleFormSubmit(e) {
     if (!required[i].value.trim()) {
       document.getElementById('form-error').textContent = 'Please fill in all required fields.';
       document.getElementById('form-error').style.display = 'block';
+      document.getElementById('form-success').style.display = 'none';
       return;
     }
   }
@@ -956,51 +971,47 @@ function handleFormSubmit(e) {
   for (var p = 0; p < platEls.length; p++) platforms.push(platEls[p].value);
 
   var formData = {
-    name:        document.getElementById('f-name').value.trim(),
-    type:        document.getElementById('f-type').value,
-    primaryGoal: document.getElementById('f-goal').value.trim(),
-    targetAudience: document.getElementById('f-audience').value.trim(),
-    primaryOffer:   document.getElementById('f-offer').value.trim(),
-    successTarget:  document.getElementById('f-target').value.trim(),
-    priority:    document.getElementById('f-priority').value,
-    duration:    document.getElementById('f-duration').value,
-    platforms:   platforms,
-    context:     document.getElementById('f-notes-context').value.trim(),
-    notes:       document.getElementById('f-notes').value.trim(),
-    sourceType:  document.getElementById('f-source-type').value,
-    sourceRef:   document.getElementById('f-source-ref').value.trim(),
-    _pending: true,
-    _submittedAt: new Date().toISOString()
+    name:          document.getElementById('f-name').value.trim(),
+    type:          document.getElementById('f-type').value,
+    primaryGoal:   document.getElementById('f-goal').value.trim(),
+    targetAudience:document.getElementById('f-audience').value.trim(),
+    primaryOffer:  document.getElementById('f-offer').value.trim(),
+    successTarget: document.getElementById('f-target').value.trim(),
+    priority:      document.getElementById('f-priority').value,
+    duration:      document.getElementById('f-duration').value,
+    platforms:     platforms,
+    context:       document.getElementById('f-notes-context').value.trim(),
+    notes:         document.getElementById('f-notes').value.trim(),
+    sourceType:    document.getElementById('f-source-type').value,
+    sourceRef:     document.getElementById('f-source-ref').value.trim(),
+    _pending:      true,
+    _submittedAt:  new Date().toISOString()
   };
 
+  // Disable submit button to prevent double-submit
+  var btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
   document.getElementById('form-error').style.display = 'none';
 
-  // Write to campaign-data-staged.json for agent to pick up
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', '/api/create-campaign', true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.onload = function() {
-    if (xhr.status === 200 || xhr.status === 202) {
-      document.getElementById('form-success').textContent = 'Campaign "' + formData.name + '" queued — creating shortly.';
-      document.getElementById('form-success').style.display = 'block';
-      setTimeout(function() { closeCreateModal(); }, 2200);
-    } else {
-      document.getElementById('form-error').textContent = 'Failed to submit. Please try again.';
-      document.getElementById('form-error').style.display = 'block';
-    }
-  };
-  xhr.onerror = function() {
-    // Fallback: write to localStorage and show success
-    try {
-      var pending = JSON.parse(localStorage.getItem('pendingCampaigns') || '[]');
-      pending.push(formData);
-      localStorage.setItem('pendingCampaigns', JSON.stringify(pending));
-    } catch(e) {}
-    document.getElementById('form-success').textContent = 'Campaign "' + formData.name + '" submitted — will be processed shortly.';
-    document.getElementById('form-success').style.display = 'block';
-    setTimeout(function() { closeCreateModal(); }, 2200);
-  };
-  xhr.send(JSON.stringify(formData));
+  // Save to localStorage as pending — Discord bridge will pick it up
+  try {
+    var pending = JSON.parse(localStorage.getItem('pendingCampaigns') || '[]');
+    pending.push(formData);
+    localStorage.setItem('pendingCampaigns', JSON.stringify(pending));
+  } catch(err) {}
+
+  document.getElementById('form-success').textContent = '\"' + formData.name + '\" saved — tag @Clawfix on Discord to create the campaign.';
+  document.getElementById('form-success').style.display = 'block';
+  document.getElementById('form-error').style.display = 'none';
+
+  // Re-enable after 3s so user can retry if they want to cancel
+  setTimeout(function() {
+    btn.disabled = false;
+    btn.textContent = 'Create Campaign';
+  }, 3000);
+
+  setTimeout(function() { closeCreateModal(); }, 2500);
 }
 
 
@@ -1567,8 +1578,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="modal-overlay" id="createModal">
 <div class="modal">
 <div class="modal-title">Create Campaign</div>
-<div class="form-notice" id="form-notice">&#9888; Form submission is not live yet. Use <strong>@Clawfix</strong> on Discord to create a campaign. Send the brief details in Discord — the bridge processes it automatically.</div>
 <div id="form-error" style="display:none;color:#ff4455;font-size:12px;margin-bottom:12px;padding:8px;background:rgba(255,68,85,0.1);border-radius:6px"></div>
+<div id="form-success" style="display:none;color:#00cc77;font-size:12px;margin-bottom:12px;padding:8px;background:rgba(0,204,119,0.1);border-radius:6px"></div>
 <form id="createForm" onsubmit="handleFormSubmit(event)">
 <div class="form-group">
 <label class="form-label">Campaign Name *</label>
