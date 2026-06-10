@@ -441,7 +441,15 @@ function showView(name) {
   document.getElementById('btn-review').classList.toggle('active', name === 'review');
   document.getElementById('campaignSelectorWrap').style.display = (name === 'detail' || name === 'review') ? 'flex' : 'none';
   if (name === 'portfolio') { document.getElementById('header-subtitle').textContent = 'Portfolio Overview'; renderPortfolio(); }
-  if (name === 'review') { document.getElementById('header-subtitle').textContent = 'Review Queue'; renderReviewQueue(); }
+  if (name === 'review') {
+    document.getElementById('header-subtitle').textContent = 'Review Queue';
+    var selectedCampaignId = document.getElementById('campaignSelector').value;
+    if (selectedCampaignId && window.campaignData && window.campaignData.campaigns && window.campaignData.campaigns[selectedCampaignId]) {
+      selectCampaign(selectedCampaignId);
+    } else {
+      document.getElementById('review-content').innerHTML = '<div style="padding:40px;text-align:center;color:#6e6e82;font-size:14px">Select a campaign above to access its Review Queue.</div>';
+    }
+  }
 }
 function getCampaign(id) { return (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[id] : null; }
 function initSelector() {
