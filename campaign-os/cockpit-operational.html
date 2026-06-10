@@ -59,6 +59,75 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .pp-gen-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--col-blue); color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 12px; }
 .pp-gen-btn:hover { opacity: 0.85; }
 .pp-gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* M7: Review Queue styles */
+.review-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.review-filter-group { display: flex; align-items: center; gap: 6px; }
+.review-filter-label { font-size: 10px; color: var(--col-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.review-filter-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); font-size: 11px; cursor: pointer; }
+.review-count { font-size: 11px; color: var(--col-muted); margin-left: auto; }
+.review-count strong { color: var(--col-green); }
+.review-queue { display: flex; flex-direction: column; gap: 8px; }
+.review-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; transition: border-color 0.15s; }
+.review-item:hover { border-color: rgba(255,255,255,0.2); }
+.review-item-badge { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; padding-top: 2px; }
+.review-type-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 7px; border-radius: 6px; background: rgba(68,136,255,0.15); color: var(--col-blue); }
+.review-type-badge.platform-gmb { background: rgba(255,170,0,0.15); color: var(--col-amber); }
+.review-type-badge.platform-instagram { background: rgba(0,204,119,0.15); color: var(--col-green); }
+.review-type-badge.platform-tiktok { background: rgba(255,68,85,0.15); color: var(--col-red); }
+.review-item-body { flex: 1; min-width: 0; }
+.review-item-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.review-item-pillar { font-size: 10px; color: var(--col-muted); margin-bottom: 6px; }
+.review-item-states { display: flex; gap: 8px; flex-wrap: wrap; }
+.review-state { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 6px; }
+.review-state.cap-draft { background: rgba(255,170,0,0.15); color: var(--col-amber); }
+.review-state.cap-approved { background: rgba(0,204,119,0.15); color: var(--col-green); }
+.review-state.cap-pending { background: rgba(255,255,255,0.05); color: var(--col-muted); }
+.review-state.vis-brief-written { background: rgba(68,136,255,0.15); color: var(--col-blue); }
+.review-state.vis-approved { background: rgba(0,204,119,0.15); color: var(--col-green); }
+.review-state.vis-pending { background: rgba(255,255,255,0.05); color: var(--col-muted); }
+.review-state.appr-review { background: rgba(255,170,0,0.15); color: var(--col-amber); }
+.review-state.appr-approved { background: rgba(0,204,119,0.15); color: var(--col-green); }
+.review-state.appr-rejected { background: rgba(255,68,85,0.15); color: var(--col-red); }
+.review-state.appr-revision { background: rgba(255,68,85,0.15); color: var(--col-red); }
+.review-item-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.review-action-btn { padding: 6px 12px; font-size: 10px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; transition: opacity 0.15s; }
+.review-action-btn:hover { opacity: 0.8; }
+.review-action-btn.approve { background: rgba(0,204,119,0.2); color: var(--col-green); }
+.review-action-btn.reject { background: rgba(255,68,85,0.15); color: var(--col-red); }
+.review-action-btn.revise { background: rgba(255,170,0,0.15); color: var(--col-amber); }
+.review-action-btn.edit { background: rgba(68,136,255,0.15); color: var(--col-blue); }
+.review-empty { text-align: center; padding: 48px; color: var(--col-muted); font-size: 13px; }
+.review-gate-notice { font-size: 10px; color: var(--col-muted); text-align: center; padding: 8px; background: var(--surface2); border-radius: 6px; margin-bottom: 12px; }
+.review-export-bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; }
+.review-export-label { font-size: 11px; color: var(--col-muted); }
+.review-export-btn { padding: 7px 14px; background: var(--col-blue); color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.review-export-btn:hover { opacity: 0.85; }
+.review-export-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.review-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.review-stat { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; font-size: 11px; }
+.review-stat-count { font-size: 16px; font-weight: 700; }
+.review-stat-label { color: var(--col-muted); }
+.review-stat.green .review-stat-count { color: var(--col-green); }
+.review-stat.amber .review-stat-count { color: var(--col-amber); }
+.review-stat.red .review-stat-count { color: var(--col-red); }
+.review-stat.blue .review-stat-count { color: var(--col-blue); }
+.review-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.review-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+.review-modal-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+.review-modal-field { margin-bottom: 14px; }
+.review-modal-label { font-size: 10px; color: var(--col-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.review-modal-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 12px; box-sizing: border-box; }
+.review-modal-textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 12px; box-sizing: border-box; resize: vertical; min-height: 80px; font-family: inherit; }
+.review-modal-select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 12px; cursor: pointer; }
+.review-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.review-modal-cancel { padding: 8px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer; }
+.review-modal-submit { padding: 8px 16px; background: var(--col-blue); border: none; border-radius: 6px; color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
+.review-modal-submit.danger { background: var(--col-red); }
+.review-modal-submit.success { background: var(--col-green); }
+.review-modal-submit.warning { background: var(--col-amber); color: #111; }
+.review-item-caption { font-size: 11px; color: var(--col-muted); margin-top: 4px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.review-item-caption span { color: var(--text); }
 .pp-empty { text-align: center; padding: 32px; color: var(--col-muted); font-size: 13px; }
 .pp-empty-sub { font-size: 11px; margin-top: 6px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
@@ -177,6 +246,105 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .bp-notif-info { background: #4488ff; color: #fff; }
 .bp-notif-error { background: #ff4455; color: #fff; }
 
+/* M7: Review Queue styles */
+.rq-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+.rq-title { font-size: 16px; font-weight: 700; }
+.rq-meta { font-size: 11px; color: #6e6e82; margin-top: 2px; }
+.rq-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.rq-filter { background: #18181f; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 6px 12px; color: #e8e8ed; font-size: 11px; cursor: pointer; }
+.rq-filter:hover { border-color: rgba(255,255,255,0.2); }
+.rq-filter.active { border-color: #4488ff; color: #4488ff; }
+.rq-filter-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; background: rgba(68,136,255,0.2); color: #4488ff; font-size: 10px; font-weight: 700; margin-left: 6px; }
+.rq-batch-bar { display: none; align-items: center; gap: 8px; padding: 10px 14px; background: #18181f; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.rq-batch-bar.visible { display: flex; }
+.rq-batch-label { font-size: 12px; color: #6e6e82; margin-right: 4px; }
+.rq-btn { font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; transition: all 0.15s; }
+.rq-btn-approve { background: rgba(0,204,119,0.15); color: #00cc77; border: 1px solid rgba(0,204,119,0.3); }
+.rq-btn-approve:hover { background: rgba(0,204,119,0.25); }
+.rq-btn-reject { background: rgba(255,68,85,0.15); color: #ff4455; border: 1px solid rgba(255,68,85,0.3); }
+.rq-btn-reject:hover { background: rgba(255,68,85,0.25); }
+.rq-btn-clear { background: rgba(255,255,255,0.06); color: #a0a0b0; border: 1px solid rgba(255,255,255,0.1); }
+.rq-btn-clear:hover { background: rgba(255,255,255,0.1); color: #e8e8ed; }
+.rq-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.rq-table-wrap { overflow-x: auto; }
+.rq-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rq-table th { text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #6e6e82; border-bottom: 1px solid rgba(255,255,255,0.08); white-space: nowrap; }
+.rq-table td { padding: 10px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+.rq-table tr:hover td { background: rgba(255,255,255,0.03); }
+.rq-table tr.selected td { background: rgba(68,136,255,0.08); }
+.rq-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: #4488ff; }
+.rq-asset-name { font-weight: 600; color: #e8e8ed; }
+.rq-asset-meta { font-size: 10px; color: #6e6e82; margin-top: 2px; }
+.rq-type-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.rq-type-feed-post { background: rgba(68,136,255,0.15); color: #4488ff; }
+.rq-type-carousel { background: rgba(255,170,0,0.15); color: #ffaa00; }
+.rq-type-reel { background: rgba(0,204,119,0.15); color: #00cc77; }
+.rq-type-story { background: rgba(180,100,255,0.15); color: #b464ff; }
+.rq-type-gmb-post { background: rgba(255,100,50,0.15); color: #ff6432; }
+.rq-pillar { font-size: 11px; color: #6e6e82; }
+.rq-date { font-size: 11px; color: #6e6e82; }
+.rq-cell-caption { max-width: 220px; }
+.rq-caption-text { font-size: 11px; color: #a0a0b0; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.rq-caption-text.editing { background: #18181f; border: 1px solid #4488ff; border-radius: 4px; padding: 4px 8px; color: #e8e8ed; display: block; width: 100%; min-height: 40px; }
+.rq-visual-text { font-size: 11px; color: #6e6e82; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.rq-visual-text.editing { background: #18181f; border: 1px solid #4488ff; border-radius: 4px; padding: 4px 8px; color: #e8e8ed; display: block; width: 100%; min-height: 40px; font-family: monospace; font-size: 10px; }
+.rq-real-brief { font-size: 10px; color: #6e6e82; }
+.rq-real-needed { color: #ffaa00; font-weight: 600; }
+.rq-real-not { color: #00cc77; }
+.rq-image-rules { font-size: 10px; }
+.rq-ai-allowed { color: #00cc77; }
+.rq-ai-forbidden { color: #ff4455; }
+.rq-status-pills { display: flex; flex-direction: column; gap: 3px; }
+.rq-pill { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.rq-pill-cap-draft { background: rgba(255,170,0,0.15); color: #ffaa00; }
+.rq-pill-cap-approved { background: rgba(0,204,119,0.15); color: #00cc77; }
+.rq-pill-vis-pending { background: rgba(255,255,255,0.06); color: #6e6e82; }
+.rq-pill-vis-written { background: rgba(255,170,0,0.15); color: #ffaa00; }
+.rq-pill-vis-approved { background: rgba(0,204,119,0.15); color: #00cc77; }
+.rq-pill-appr-review { background: rgba(68,136,255,0.15); color: #4488ff; }
+.rq-pill-appr-approved { background: rgba(0,204,119,0.15); color: #00cc77; }
+.rq-pill-appr-revision { background: rgba(255,170,0,0.15); color: #ffaa00; }
+.rq-pill-appr-rejected { background: rgba(255,68,85,0.15); color: #ff4455; }
+.rq-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.rq-action-btn { font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.rq-action-btn-approve { background: rgba(0,204,119,0.15); color: #00cc77; }
+.rq-action-btn-approve:hover { background: rgba(0,204,119,0.3); }
+.rq-action-btn-reject { background: rgba(255,68,85,0.15); color: #ff4455; }
+.rq-action-btn-reject:hover { background: rgba(255,68,85,0.3); }
+.rq-action-btn-revision { background: rgba(255,170,0,0.15); color: #ffaa00; }
+.rq-action-btn-revision:hover { background: rgba(255,170,0,0.3); }
+.rq-action-btn-edit { background: rgba(68,136,255,0.15); color: #4488ff; }
+.rq-action-btn-edit:hover { background: rgba(68,136,255,0.3); }
+/* Modal overlay */
+.rq-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+.rq-modal-overlay.visible { display: flex; }
+.rq-modal { background: #111118; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 24px; max-width: 480px; width: 100%; }
+.rq-modal-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+.rq-modal-field { margin-bottom: 14px; }
+.rq-modal-label { font-size: 11px; font-weight: 600; color: #6e6e82; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.rq-modal-label .required { color: #ff4455; margin-left: 2px; }
+.rq-modal-input { width: 100%; background: #18181f; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px 12px; color: #e8e8ed; font-size: 12px; font-family: inherit; box-sizing: border-box; display: block; }
+.rq-modal-input:focus { outline: none; border-color: #4488ff; }
+.rq-modal-textarea { width: 100%; background: #18181f; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px 12px; color: #e8e8ed; font-size: 12px; font-family: inherit; resize: vertical; min-height: 80px; box-sizing: border-box; display: block; }
+.rq-modal-textarea:focus { outline: none; border-color: #4488ff; }
+.rq-modal-radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.rq-modal-radio { display: none; }
+.rq-modal-radio-label { padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); font-size: 11px; font-weight: 600; color: #6e6e82; cursor: pointer; transition: all 0.15s; }
+.rq-modal-radio:checked + .rq-modal-radio-label { border-color: #4488ff; color: #4488ff; background: rgba(68,136,255,0.1); }
+.rq-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.rq-modal-cancel { font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #6e6e82; cursor: pointer; }
+.rq-modal-cancel:hover { color: #e8e8ed; border-color: rgba(255,255,255,0.2); }
+.rq-modal-confirm { font-size: 12px; font-weight: 600; padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; transition: all 0.15s; }
+.rq-modal-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+.rq-modal-confirm-reject { background: #ff4455; color: white; }
+.rq-modal-confirm-revision { background: #ffaa00; color: #000; }
+.rq-modal-error { font-size: 11px; color: #ff4455; margin-top: 6px; min-height: 16px; }
+.rq-export-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #18181f; border: 1px solid rgba(0,204,119,0.2); border-radius: 8px; margin-bottom: 16px; }
+.rq-export-info { font-size: 12px; color: #6e6e82; }
+.rq-export-info strong { color: #00cc77; }
+.rq-btn-export { font-size: 11px; font-weight: 600; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; background: #00cc7722; color: #00cc77; border: 1px solid #00cc7744; transition: all 0.15s; }
+.rq-btn-export:hover { background: #00cc7733; }
+
 </style>
 </head>
 <body>
@@ -195,6 +363,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div class="view-toggle">
 <button class="view-btn active" id="btn-portfolio" onclick="showView('portfolio')">Portfolio</button>
 <button class="view-btn" id="btn-detail" onclick="showView('detail')">Campaign</button>
+<button class="view-btn" id="btn-review" onclick="showView('review')">Review Queue</button>
 </div>
 <div class="campaign-selector-wrap" id="campaignSelectorWrap" style="display:none">
 <span class="campaign-selector-label">Campaign:</span>
@@ -222,6 +391,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div id="view-detail" class="view-panel">
 <div class="detail-back" onclick="showView('portfolio')">&#8592; Back to Portfolio</div>
 <div id="detail-content"></div>
+</div>
+<div id="view-review" class="view-panel">
+<div class="detail-back" onclick="showView('portfolio')">&#8592; Back to Portfolio</div>
+<div id="review-content"></div>
 </div>
 </div>
 <div class="footer">Campaign OS v2 &middot; Portfolio &middot; Updated 02 Jun 2026 13:24 SAST &middot; Source: campaign-data.json</div>
@@ -262,10 +435,13 @@ function showView(name) {
   activeView = name;
   document.getElementById('view-portfolio').classList.toggle('active', name === 'portfolio');
   document.getElementById('view-detail').classList.toggle('active', name === 'detail');
+  document.getElementById('view-review').classList.toggle('active', name === 'review');
   document.getElementById('btn-portfolio').classList.toggle('active', name === 'portfolio');
   document.getElementById('btn-detail').classList.toggle('active', name === 'detail');
-  document.getElementById('campaignSelectorWrap').style.display = (name === 'detail') ? 'flex' : 'none';
+  document.getElementById('btn-review').classList.toggle('active', name === 'review');
+  document.getElementById('campaignSelectorWrap').style.display = (name === 'detail' || name === 'review') ? 'flex' : 'none';
   if (name === 'portfolio') { document.getElementById('header-subtitle').textContent = 'Portfolio Overview'; renderPortfolio(); }
+  if (name === 'review') { document.getElementById('header-subtitle').textContent = 'Review Queue'; renderReviewQueue(); }
 }
 function getCampaign(id) { return (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[id] : null; }
 function initSelector() {
@@ -319,6 +495,7 @@ function renderCampaignDynamic(c) {
     '<button class="campaign-tab active" onclick="switchTab(\'' + cid + '\',\'overview\')">Overview</button>' +
     '<button class="campaign-tab" onclick="switchTab(\'' + cid + '\',\'blueprint\')">Blueprint</button>' +
     '<button class="campaign-tab" onclick="switchTab(\'' + cid + '\',\'production\')">Production Plan</button>' +
+    '<button class="campaign-tab" onclick="switchTab(\'' + cid + '\',\'review\')">Review</button>' +
     '</div>';
 
   // Overview tab content
@@ -336,7 +513,12 @@ function renderCampaignDynamic(c) {
     renderProductionPlan(c) +
     '</div>';
 
-  return tabs + overviewContent + blueprintContent + productionContent;
+  // Review tab content
+  var reviewContent = '<div class="tab-panel" id="tab-review-' + cid + '">' +
+    renderReviewQueue(c) +
+    '</div>';
+
+  return tabs + overviewContent + blueprintContent + productionContent + reviewContent;
 }
 
 function switchTab(cid, tab) {
@@ -348,7 +530,7 @@ function switchTab(cid, tab) {
     if (activeBtn) activeBtn.classList.add('active');
   }
   // Show/hide panels
-  ['overview','blueprint','production'].forEach(function(t) {
+  ['overview','blueprint','production','review'].forEach(function(t) {
     var panel = document.getElementById('tab-' + t + '-' + cid);
     if (panel) panel.classList.toggle('active', t === tab);
   });
@@ -871,6 +1053,506 @@ function renderPipeline(pid) {
     return '';
 }
 function retryCampaign(cid) { alert('Retry: would restart pipeline for campaign ' + cid); }
+
+// M7: Review Queue
+function renderReviewQueue(c) {
+  var cid = (c.identity && c.identity.campaignId) || 'unknown';
+  var assets = c.assets || {};
+  var assetIds = Object.keys(assets);
+  var total = assetIds.length;
+
+  // Load review state from localStorage
+  var lsKey = 'rq_state_' + cid;
+  var savedState = null;
+  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+  var selected = savedState && savedState.selected ? savedState.selected : [];
+  var reviewData = savedState && savedState.reviewData ? savedState.reviewData : {};
+
+  // Filters
+  var platformFilter = 'all';
+  var typeFilter = 'all';
+  var pillarFilter = 'all';
+  var statusFilter = 'all';
+
+  var filterBar = '<div class="rq-filters">' +
+    '<select class="rq-filter" id="rq-platform-filter" onchange="rqFilterChange(\'' + cid + '\')">' +
+    '<option value="all">All Platforms</option>' +
+    '<option value="instagram">Instagram</option>' +
+    '<option value="google">Google Business</option>' +
+    '</select>' +
+    '<select class="rq-filter" id="rq-type-filter" onchange="rqFilterChange(\'' + cid + '\')">' +
+    '<option value="all">All Types</option>' +
+    '<option value="feed-post">Feed Post</option>' +
+    '<option value="carousel">Carousel</option>' +
+    '<option value="reel">Reel</option>' +
+    '<option value="story">Story</option>' +
+    '<option value="gmb-post">GMB Post</option>' +
+    '</select>' +
+    '<select class="rq-filter" id="rq-pillar-filter" onchange="rqFilterChange(\'' + cid + '\')">' +
+    '<option value="all">All Pillars</option>' +
+    '<option value="p1">P1 — Absurdity Mirror</option>' +
+    '<option value="p2">P2 — Performance Gap</option>' +
+    '<option value="p3">P3 — Swing Truth</option>' +
+    '<option value="p4">P4 — Fitting Solution</option>' +
+    '<option value="p5">P5 — Local Proof</option>' +
+    '</select>' +
+    '<select class="rq-filter" id="rq-status-filter" onchange="rqFilterChange(\'' + cid + '\')">' +
+    '<option value="all">All Statuses</option>' +
+    '<option value="review">Review</option>' +
+    '<option value="approved">Approved</option>' +
+    '<option value="revisionRequested">Revision Requested</option>' +
+    '<option value="rejected">Rejected</option>' +
+    '</select>' +
+    '<span id="rq-filter-count" style="font-size:11px;color:#6e6e82;margin-left:8px"></span>' +
+    '</div>';
+
+  // Batch action bar
+  var batchBar = '<div class="rq-batch-bar" id="rq-batch-bar-' + cid + '">' +
+    '<span class="rq-batch-label"><span id="rq-selected-count">0</span> selected</span>' +
+    '<button class="rq-btn rq-btn-approve" onclick="rqBatchApprove(\'' + cid + '\')">Approve Selected</button>' +
+    '<button class="rq-btn rq-btn-reject" onclick="rqOpenRejectModal(null, true)">Reject Selected</button>' +
+    '<button class="rq-btn rq-btn-clear" onclick="rqClearSelection(\'' + cid + '\')">Clear</button>' +
+    '</div>';
+
+  // Export bar
+  var exportBar = '<div class="rq-export-bar">' +
+    '<div class="rq-export-info">Review decisions saved to browser. <strong>Export JSON</strong> to hand off to the team for campaign-data.json write-back.</div>' +
+    '<button class="rq-btn-export" onclick="rqExport(\'' + cid + '\')">Export Review JSON</button>' +
+    '</div>';
+
+  // Table header
+  var headerRow = '<tr>' +
+    '<th><input type="checkbox" class="rq-checkbox" id="rq-select-all" onchange="rqToggleSelectAll(\'' + cid + '\')"></th>' +
+    '<th>Asset</th>' +
+    '<th>Type</th>' +
+    '<th>Pillar</th>' +
+    '<th>Planned</th>' +
+    '<th>Caption</th>' +
+    '<th>Visual Brief</th>' +
+    '<th>Real Photo</th>' +
+    '<th>Image Rules</th>' +
+    '<th>Status</th>' +
+    '<th>Actions</th>' +
+    '</tr>';
+
+  // Build all rows
+  var rows = '';
+  var visibleCount = 0;
+  assetIds.forEach(function(aid) {
+    var a = assets[aid];
+    var rd = reviewData[aid] || {};
+    var shortName = aid.split('-').slice(-2).join('-');
+    var assetType = a.assetType || '';
+    var pillar = a.pillar || '';
+    var platform = a.platform || '';
+    var plannedDate = a.plannedDate || a.publishDate || '—';
+    var caption = typeof a.caption === 'string' ? a.caption : '';
+    var visualBrief = typeof a.visualBrief === 'string' ? a.visualBrief : JSON.stringify(a.visualBrief || '');
+    var realImageNeeded = a.realImageNeeded ? 'Yes' : 'No';
+    var aiImageAllowed = a.aiImageAllowed;
+    var aiForbidden = a.aiForbiddenFor ? a.aiForbiddenFor.join(', ') : '';
+
+    var capStatus = rd.captionStatus || a.captionStatus || 'pending';
+    var visStatus = rd.visualStatus || a.visualStatus || 'pending';
+    var apprStatus = rd.approvalStatus || a.approvalStatus || 'review';
+
+    var isSelected = selected.indexOf(aid) !== -1;
+    var checkedAttr = isSelected ? ' checked' : '';
+
+    var typeBadgeClass = 'rq-type-' + assetType.replace('-', '');
+
+    var capPillClass = capStatus === 'draft' || capStatus === 'approved' ? (capStatus === 'draft' ? 'rq-pill-cap-draft' : 'rq-pill-cap-approved') : 'rq-pill-vis-pending';
+    var visPillClass = visStatus === 'brief-written' ? 'rq-pill-vis-written' : visStatus === 'approved' ? 'rq-pill-vis-approved' : 'rq-pill-vis-pending';
+    var apprPillClass = apprStatus === 'review' ? 'rq-pill-appr-review' : apprStatus === 'approved' ? 'rq-pill-appr-approved' : apprStatus === 'revisionRequested' ? 'rq-pill-appr-revision' : 'rq-pill-appr-rejected';
+
+    var rowClass = isSelected ? 'rq-table tr selected' : 'rq-table tr';
+
+    rows += '<tr class="' + rowClass + '" data-aid="' + aid + '" data-type="' + assetType + '" data-pillar="' + pillar + '" data-platform="' + platform + '" data-appr="' + apprStatus + '">' +
+    '<td><input type="checkbox" class="rq-checkbox rq-row-check" ' + checkedAttr + ' onchange="rqRowToggle(\'' + cid + '\',\'' + aid + '\')"></td>' +
+    '<td><div class="rq-asset-name">' + shortName + '</div><div class="rq-asset-meta">' + (platform === 'google' ? 'GMB' : platform) + '</div></td>' +
+    '<td><span class="rq-type-badge ' + typeBadgeClass + '">' + assetType + '</span></td>' +
+    '<td class="rq-pillar"><span style="font-size:10px;color:#6e6e82">' + pillar + '</span></td>' +
+    '<td class="rq-date">' + plannedDate + '</td>' +
+    '<td class="rq-cell-caption"><div class="rq-caption-text" id="cap-text-' + aid.replace(/[^a-z0-9]/gi,'') + '">' + escapeHtml(caption.slice(0, 120)) + (caption.length > 120 ? '...' : '') + '</div></td>' +
+    '<td><div class="rq-visual-text" id="vis-text-' + aid.replace(/[^a-z0-9]/gi,'') + '">' + escapeHtml(visualBrief.slice(0, 80)) + (visualBrief.length > 80 ? '...' : '') + '</div></td>' +
+    '<td><span class="rq-real-brief ' + (realImageNeeded === 'Yes' ? 'rq-real-needed' : 'rq-real-not') + '">' + realImageNeeded + '</span></td>' +
+    '<td class="rq-image-rules"><span class="' + (aiImageAllowed ? 'rq-ai-allowed' : 'rq-ai-forbidden') + '">' + (aiImageAllowed ? 'AI allowed' : 'AI forbidden') + '</span></td>' +
+    '<td><div class="rq-status-pills">' +
+    '<span class="rq-pill ' + capPillClass + '">cap:' + capStatus + '</span>' +
+    '<span class="rq-pill ' + visPillClass + '">vis:' + visStatus + '</span>' +
+    '<span class="rq-pill ' + apprPillClass + '">' + apprStatus + '</span>' +
+    '</div></td>' +
+    '<td><div class="rq-actions">' +
+    '<button class="rq-action-btn rq-action-btn-approve" onclick="rqApprove(\'' + cid + '\',\'' + aid + '\')">Approve</button>' +
+    '<button class="rq-action-btn rq-action-btn-reject" onclick="rqOpenRejectModal(\'' + aid + '\', false)">Reject</button>' +
+    '<button class="rq-action-btn rq-action-btn-revision" onclick="rqOpenRevisionModal(\'' + aid + '\')">Revision</button>' +
+    '<button class="rq-action-btn rq-action-btn-edit" onclick="rqEditCaption(\'' + aid + '\')">Edit Cap</button>' +
+    '<button class="rq-action-btn rq-action-btn-edit" onclick="rqEditVisual(\'' + aid + '\')">Edit Vis</button>' +
+    '</div></td>' +
+    '</tr>';
+    visibleCount++;
+  });
+
+  var table = '<div class="rq-table-wrap"><table class="rq-table"><thead>' + headerRow + '</thead><tbody id="rq-tbody-' + cid + '">' + rows + '</tbody></table></div>';
+
+  var headerInfo = '<div class="rq-header"><div><div class="rq-title">Review Queue</div><div class="rq-meta">' + visibleCount + ' assets &middot; Click any row to select, then batch approve or reject</div></div></div>';
+
+  return headerInfo + exportBar + filterBar + batchBar + table;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function rqFilterChange(cid) {
+  var pf = document.getElementById('rq-platform-filter').value;
+  var tf = document.getElementById('rq-type-filter').value;
+  var pif = document.getElementById('rq-pillar-filter').value;
+  var sf = document.getElementById('rq-status-filter').value;
+  var rows = document.querySelectorAll('#rq-tbody-' + cid + ' tr');
+  var visible = 0;
+  rows.forEach(function(row) {
+    var rowPlatform = row.getAttribute('data-platform') || '';
+    var rowType = row.getAttribute('data-type') || '';
+    var rowPillar = row.getAttribute('data-pillar') || '';
+    var rowAppr = row.getAttribute('data-appr') || '';
+    var show = (pf === 'all' || rowPlatform === pf || (pf === 'google' && rowPlatform === 'google')) &&
+               (tf === 'all' || rowType === tf) &&
+               (pif === 'all' || rowPillar === pif) &&
+               (sf === 'all' || rowAppr === sf);
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  var countEl = document.getElementById('rq-filter-count');
+  if (countEl) countEl.textContent = visible + ' shown';
+}
+
+function rqRowToggle(cid, aid) {
+  var lsKey = 'rq_state_' + cid;
+  var savedState = null;
+  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+  var selected = savedState && savedState.selected ? savedState.selected.slice() : [];
+  var idx = selected.indexOf(aid);
+  if (idx === -1) { selected.push(aid); } else { selected.splice(idx, 1); }
+  var newState = savedState || {};
+  newState.selected = selected;
+  localStorage.setItem(lsKey, JSON.stringify(newState));
+  var checkbox = document.querySelector('#rq-tbody-' + cid + ' tr[data-aid="' + aid + '"] .rq-row-check');
+  if (checkbox) document.getElementById('rq-select-all').checked = false;
+  rqUpdateBatchBar(cid, selected);
+  document.querySelector('#rq-tbody-' + cid + ' tr[data-aid="' + aid + '"]').classList.toggle('selected', idx === -1);
+}
+
+function rqToggleSelectAll(cid) {
+  var checked = document.getElementById('rq-select-all').checked;
+  var lsKey = 'rq_state_' + cid;
+  var savedState = null;
+  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+  var selected = savedState && savedState.selected ? savedState.selected.slice() : [];
+  if (checked) {
+    document.querySelectorAll('#rq-tbody-' + cid + ' tr').forEach(function(row) {
+      var aid = row.getAttribute('data-aid');
+      if (selected.indexOf(aid) === -1) selected.push(aid);
+      row.classList.add('selected');
+      var cb = row.querySelector('.rq-row-check');
+      if (cb) cb.checked = true;
+    });
+  } else {
+    selected = [];
+    document.querySelectorAll('#rq-tbody-' + cid + ' tr').forEach(function(row) {
+      row.classList.remove('selected');
+      var cb = row.querySelector('.rq-row-check');
+      if (cb) cb.checked = false;
+    });
+  }
+  var newState = savedState || {};
+  newState.selected = selected;
+  localStorage.setItem(lsKey, JSON.stringify(newState));
+  rqUpdateBatchBar(cid, selected);
+}
+
+function rqUpdateBatchBar(cid, selected) {
+  var bar = document.getElementById('rq-batch-bar-' + cid);
+  var countEl = document.getElementById('rq-selected-count');
+  if (bar) bar.classList.toggle('visible', selected.length > 0);
+  if (countEl) countEl.textContent = selected.length;
+}
+
+function rqClearSelection(cid) {
+  var lsKey = 'rq_state_' + cid;
+  localStorage.setItem(lsKey, JSON.stringify({ selected: [], reviewData: {} }));
+  document.querySelectorAll('#rq-tbody-' + cid + ' tr').forEach(function(row) {
+    row.classList.remove('selected');
+    var cb = row.querySelector('.rq-row-check');
+    if (cb) cb.checked = false;
+  });
+  document.getElementById('rq-select-all').checked = false;
+  rqUpdateBatchBar(cid, []);
+}
+
+function rqApprove(cid, aid) {
+  var lsKey = 'rq_state_' + cid;
+  var savedState = null;
+  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+  var state = savedState || {};
+  if (!state.reviewData) state.reviewData = {};
+  if (!state.reviewData[aid]) state.reviewData[aid] = {};
+  state.reviewData[aid].approvalStatus = 'approved';
+  state.reviewData[aid]._ts = Date.now();
+  localStorage.setItem(lsKey, JSON.stringify(state));
+  rqUpdateRowStatus(aid, 'approved');
+}
+
+function rqUpdateRowStatus(aid, status) {
+  var row = document.querySelector('tr[data-aid="' + aid + '"]');
+  if (!row) return;
+  var pill = row.querySelector('.rq-pill-appr-review');
+  if (pill) {
+    pill.className = 'rq-pill rq-pill-appr-approved';
+    pill.textContent = 'approved';
+  }
+  row.setAttribute('data-appr', status);
+}
+
+function rqOpenRejectModal(aid, batch) {
+  var batchCount = batch ? document.querySelectorAll('#rq-batch-bar.visible').length > 0 ? document.getElementById('rq-selected-count').textContent : 0 : 0;
+  var title = batch ? 'Reject Selected (' + batchCount + ')' : 'Reject Asset';
+  var overlay = document.getElementById('rq-reject-overlay');
+  var modal = document.getElementById('rq-reject-modal');
+  if (!overlay || !modal) return;
+  modal.innerHTML = '<div class="rq-modal-title">' + title + '</div>' +
+  '<div class="rq-modal-field"><div class="rq-modal-label">Reason <span class="required">*</span></div>' +
+  '<textarea class="rq-modal-textarea" id="rq-rej-reason" placeholder="Why is this being rejected? Be specific." minlength="20"></textarea></div>' +
+  '<div class="rq-modal-field"><div class="rq-modal-label">What must change <span class="required">*</span></div>' +
+  '<textarea class="rq-modal-textarea" id="rq-rej-change" placeholder="What specifically needs to change?" minlength="20"></textarea></div>' +
+  '<div class="rq-modal-field"><div class="rq-modal-label">Assign to <span class="required">*</span></div>' +
+  '<div class="rq-modal-radio-group">' +
+  '<input type="radio" name="rq-rej-lane" id="rq-lane-copywriter" value="copywriter" class="rq-modal-radio"><label for="rq-lane-copywriter" class="rq-modal-radio-label">Copywriter</label>' +
+  '<input type="radio" name="rq-rej-lane" id="rq-lane-image" value="image-generation" class="rq-modal-radio"><label for="rq-lane-image" class="rq-modal-radio-label">Image-gen</label>' +
+  '<input type="radio" name="rq-rej-lane" id="rq-lane-publisher" value="publisher" class="rq-modal-radio"><label for="rq-lane-publisher" class="rq-modal-radio-label">Publisher</label>' +
+  '<input type="radio" name="rq-rej-lane" id="rq-lane-scout" value="scout" class="rq-modal-radio"><label for="rq-lane-scout" class="rq-modal-radio-label">Scout</label>' +
+  '</div>' +
+  '<div class="rq-modal-error" id="rq-rej-error"></div>' +
+  '<div class="rq-modal-actions">' +
+  '<button class="rq-modal-cancel" onclick="rqCloseRejectModal()">Cancel</button>' +
+  '<button class="rq-modal-confirm rq-modal-confirm-reject" id="rq-rej-confirm" disabled onclick="rqConfirmReject(\'' + (batch ? 'batch' : cid) + '\',\'' + (aid || '') + '\')">Confirm Reject</button>' +
+  '</div>';
+  // Enable confirm when fields filled
+  var reasonInput = document.getElementById('rq-rej-reason');
+  var changeInput = document.getElementById('rq-rej-change');
+  var laneInputs = document.querySelectorAll('input[name="rq-rej-lane"]');
+  var confirmBtn = document.getElementById('rq-rej-confirm');
+  var errorEl = document.getElementById('rq-rej-error');
+  function checkRejectFields() {
+    var lane = document.querySelector('input[name="rq-rej-lane"]:checked');
+    var ready = reasonInput.value.trim().length >= 20 && changeInput.value.trim().length >= 20 && lane;
+    if (confirmBtn) confirmBtn.disabled = !ready;
+  }
+  reasonInput.addEventListener('input', checkRejectFields);
+  changeInput.addEventListener('input', checkRejectFields);
+  laneInputs.forEach(function(r) { r.addEventListener('change', checkRejectFields); });
+  overlay.classList.add('visible');
+}
+
+function rqCloseRejectModal() {
+  var overlay = document.getElementById('rq-reject-overlay');
+  if (overlay) overlay.classList.remove('visible');
+}
+
+function rqConfirmReject(cidOrBatch, aid) {
+  var reason = document.getElementById('rq-rej-reason').value.trim();
+  var whatMustChange = document.getElementById('rq-rej-change').value.trim();
+  var lane = document.querySelector('input[name="rq-rej-lane"]:checked');
+  if (!reason || reason.length < 20 || !whatMustChange || whatMustChange.length < 20 || !lane) {
+    var err = document.getElementById('rq-rej-error');
+    if (err) err.textContent = 'All fields are required (min 20 chars each).';
+    return;
+  }
+  var laneVal = lane.value;
+  var lsKey = cidOrBatch === 'batch' ? 'rq_state_use-the-right-equipment-mq5l90bk' : 'rq_state_' + cidOrBatch;
+  var savedState = null;
+  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+  var state = savedState || {};
+  if (!state.reviewData) state.reviewData = {};
+  var selected = state.selected || [];
+  var targets = cidOrBatch === 'batch' ? selected : [aid];
+  targets.forEach(function(targetAid) {
+    if (!state.reviewData[targetAid]) state.reviewData[targetAid] = {};
+    state.reviewData[targetAid].approvalStatus = 'rejected';
+    state.reviewData[targetAid].rejectionReason = { reason: reason, whatMustChange: whatMustChange, assignedLane: laneVal, ts: Date.now() };
+    state.reviewData[targetAid]._ts = Date.now();
+    rqUpdateRowStatus(targetAid, 'rejected');
+  });
+  localStorage.setItem(lsKey, JSON.stringify(state));
+  rqCloseRejectModal();
+  if (cidOrBatch === 'batch') rqClearSelection('use-the-right-equipment-mq5l90bk');
+}
+
+function rqOpenRevisionModal(aid) {
+  var overlay = document.getElementById('rq-reject-overlay');
+  var modal = document.getElementById('rq-reject-modal');
+  if (!overlay || !modal) return;
+  modal.innerHTML = '<div class="rq-modal-title">Request Revision — ' + aid.split('-').slice(-2).join('-') + '</div>' +
+  '<div class="rq-modal-field"><div class="rq-modal-label">What must change <span class="required">*</span></div>' +
+  '<textarea class="rq-modal-textarea" id="rq-rev-change" placeholder="Describe what needs to be revised and why." minlength="20"></textarea></div>' +
+  '<div class="rq-modal-field"><div class="rq-modal-label">Assign to <span class="required">*</span></div>' +
+  '<div class="rq-modal-radio-group">' +
+  '<input type="radio" name="rq-rev-lane" id="rq-rev-copywriter" value="copywriter" class="rq-modal-radio"><label for="rq-rev-copywriter" class="rq-modal-radio-label">Copywriter</label>' +
+  '<input type="radio" name="rq-rev-lane" id="rq-rev-image" value="image-generation" class="rq-modal-radio"><label for="rq-rev-image" class="rq-modal-radio-label">Image-gen</label>' +
+  '<input type="radio" name="rq-rev-lane" id="rq-rev-publisher" value="publisher" class="rq-modal-radio"><label for="rq-rev-publisher" class="rq-modal-radio-label">Publisher</label>' +
+  '<input type="radio" name="rq-rev-lane" id="rq-rev-scout" value="scout" class="rq-modal-radio"><label for="rq-rev-scout" class="rq-modal-radio-label">Scout</label>' +
+  '</div>' +
+  '<div class="rq-modal-error" id="rq-rej-error"></div>' +
+  '<div class="rq-modal-actions">' +
+  '<button class="rq-modal-cancel" onclick="rqCloseRejectModal()">Cancel</button>' +
+  '<button class="rq-modal-confirm rq-modal-confirm-revision" id="rq-rev-confirm" disabled onclick="rqConfirmRevision(\'' + aid + '\')">Request Revision</button>' +
+  '</div>';
+  var changeInput = document.getElementById('rq-rev-change');
+  var laneInputs = document.querySelectorAll('input[name="rq-rev-lane"]');
+  var confirmBtn = document.getElementById('rq-rev-confirm');
+  function checkRevFields() {
+    var lane = document.querySelector('input[name="rq-rev-lane"]:checked');
+    if (confirmBtn) confirmBtn.disabled = !(changeInput.value.trim().length >= 20 && lane);
+  }
+  changeInput.addEventListener('input', checkRevFields);
+  laneInputs.forEach(function(r) { r.addEventListener('change', checkRevFields); });
+  overlay.classList.add('visible');
+}
+
+function rqConfirmRevision(aid) {
+  var whatMustChange = document.getElementById('rq-rev-change').value.trim();
+  var lane = document.querySelector('input[name="rq-rev-lane"]:checked');
+  if (!whatMustChange || whatMustChange.length < 20 || !lane) return;
+  var cid = 'use-the-right-equipment-mq5l90bk';
+  var lsKey = 'rq_state_' + cid;
+  var savedState = null;
+  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+  var state = savedState || {};
+  if (!state.reviewData) state.reviewData = {};
+  if (!state.reviewData[aid]) state.reviewData[aid] = {};
+  state.reviewData[aid].approvalStatus = 'revisionRequested';
+  state.reviewData[aid].revisionRequest = { whatMustChange: whatMustChange, assignedLane: lane.value, ts: Date.now() };
+  state.reviewData[aid]._ts = Date.now();
+  localStorage.setItem(lsKey, JSON.stringify(state));
+  var row = document.querySelector('tr[data-aid="' + aid + '"]');
+  if (row) {
+    var pill = row.querySelector('.rq-pill-appr-review');
+    if (pill) { pill.className = 'rq-pill rq-pill-appr-revision'; pill.textContent = 'revisionRequested'; }
+    row.setAttribute('data-appr', 'revisionRequested');
+  }
+  rqCloseRejectModal();
+}
+
+function rqBatchApprove(cid) {
+  var lsKey = 'rq_state_' + cid;
+  var savedState = null;
+  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+  var state = savedState || {};
+  var selected = state.selected || [];
+  if (!state.reviewData) state.reviewData = {};
+  selected.forEach(function(aid) {
+    if (!state.reviewData[aid]) state.reviewData[aid] = {};
+    state.reviewData[aid].approvalStatus = 'approved';
+    state.reviewData[aid]._ts = Date.now();
+    rqUpdateRowStatus(aid, 'approved');
+  });
+  localStorage.setItem(lsKey, JSON.stringify(state));
+  rqClearSelection(cid);
+}
+
+function rqEditCaption(aid) {
+  var cellId = 'cap-text-' + aid.replace(/[^a-z0-9]/gi, '');
+  var cell = document.getElementById(cellId);
+  if (!cell) return;
+  if (cell.querySelector('.rq-caption-text.editing')) return; // already editing
+  var original = cell.textContent;
+  cell.contentEditable = 'true';
+  cell.classList.add('editing');
+  cell.focus();
+  function save() {
+    cell.contentEditable = 'false';
+    cell.classList.remove('editing');
+    cell.removeEventListener('blur', save);
+    var newVal = cell.textContent.trim();
+    var cid = 'use-the-right-equipment-mq5l90bk';
+    var lsKey = 'rq_state_' + cid;
+    var savedState = null;
+    try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+    var state = savedState || {};
+    if (!state.reviewData) state.reviewData = {};
+    if (!state.reviewData[aid]) state.reviewData[aid] = {};
+    state.reviewData[aid].caption = newVal;
+    state.reviewData[aid]._ts = Date.now();
+    localStorage.setItem(lsKey, JSON.stringify(state));
+  }
+  cell.addEventListener('blur', save);
+  cell.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); cell.blur(); } });
+}
+
+function rqEditVisual(aid) {
+  var cellId = 'vis-text-' + aid.replace(/[^a-z0-9]/gi, '');
+  var cell = document.getElementById(cellId);
+  if (!cell) return;
+  if (cell.querySelector('.rq-visual-text.editing')) return;
+  var original = cell.textContent;
+  cell.contentEditable = 'true';
+  cell.classList.add('editing');
+  cell.focus();
+  function save() {
+    cell.contentEditable = 'false';
+    cell.classList.remove('editing');
+    cell.removeEventListener('blur', save);
+    var newVal = cell.textContent.trim();
+    var cid = 'use-the-right-equipment-mq5l90bk';
+    var lsKey = 'rq_state_' + cid;
+    var savedState = null;
+    try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+    var state = savedState || {};
+    if (!state.reviewData) state.reviewData = {};
+    if (!state.reviewData[aid]) state.reviewData[aid] = {};
+    state.reviewData[aid].visualBrief = newVal;
+    state.reviewData[aid]._ts = Date.now();
+    localStorage.setItem(lsKey, JSON.stringify(state));
+  }
+  cell.addEventListener('blur', save);
+  cell.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); cell.blur(); } });
+}
+
+function rqExport(cid) {
+  var lsKey = 'rq_state_' + cid;
+  var savedState = null;
+  try { savedState = JSON.parse(localStorage.getItem(lsKey) || 'null'); } catch(e) {}
+  var state = savedState || {};
+  var reviewData = state.reviewData || {};
+  var assetIds = Object.keys(reviewData);
+  if (assetIds.length === 0) {
+    alert('No review decisions to export. Make some approvals, rejections, or revisions first.');
+    return;
+  }
+  var exportObj = {
+    campaignId: cid,
+    exportedAt: new Date().toISOString(),
+    reviewDecisions: reviewData
+  };
+  var blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'review-decisions-' + cid + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Modal HTML — add once to page
+document.addEventListener('DOMContentLoaded', function() {
+  if (!document.getElementById('rq-reject-overlay')) {
+    var modalHtml = '<div class="rq-modal-overlay" id="rq-reject-overlay" onclick="if(event.target===this)rqCloseRejectModal()">' +
+    '<div class="rq-modal" id="rq-reject-modal"></div>' +
+    '</div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+});
 
 </script>
 
