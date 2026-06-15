@@ -1,0 +1,30 @@
+{
+  "critic_status": "APPROVED_INTERIM",
+  "critic_model": "GPT-4O_INTERIM_PENDING_UPGRADE",
+  "approved_by": "Christelle",
+  "approval_date": "2026-06-15T09:56:00GMT+2",
+  "approval_scope": "SAFETY_GATE_ONLY",
+  "publishing_allowed": false,
+  "draft_creation_allowed_without_christelle": false,
+  "miniMax_fallback_allowed": false,
+  "required_report_fields": [
+    "raw_critic_verdict",
+    "brand_source_check", 
+    "final_enforced_verdict",
+    "score_out_of_100",
+    "would_christelle_likely_approve",
+    "top_3_flaws",
+    "top_3_required_updates",
+    "postiz_blocked",
+    "clawfix_verified"
+  ],
+  "draft_gate_conditions": [
+    "final_enforced_verdict = SHIP",
+    "Christelle approval recorded",
+    "brand_source_check = PASS",
+    "source image approved",
+    "manifest valid",
+    "no legal/IP flag",
+    "no fatal flaw"
+  ]
+}

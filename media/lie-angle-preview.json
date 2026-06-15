@@ -1,0 +1,20 @@
+{
+  "asset_file": "media/lie-angle-hook.png",
+  "asset_size": "587.8KB",
+  "dimensions": "1080x1350",
+  "format": "4:5 feed post",
+  "hook_id": "LIE_ANGLE",
+  "campaign_slug": "trackman_intelligence",
+  "concept_family": "equipment_setup",
+  "on_image_copy": {
+    "headline": "WHY DO YOUR GOOD SWINGS MISS LEFT?",
+    "support": "Sometimes the issue is not your swing. If lie angle is off...",
+    "micro": [
+      "Lie Angle",
+      "Start Line",
+      "Strike Pattern",
+      "Ball Flight"
+    ]
+  },
+  "caption": "You can make a good swing, strike it well, and still see the ball start left more than it should..."
+}

@@ -462,6 +462,54 @@
             "production",
             "full-campaign"
           ]
+        },
+        "takomo-101t-hero-b": {
+          "assetId": "takomo-101t-hero-b",
+          "campaignId": "takomo-101t",
+          "name": "Takomo 101T \u2014 Hero Visual B",
+          "assetType": "hero-visual",
+          "status": "generated",
+          "platform": "instagram",
+          "filePath": "assets/campaigns/trackman/takomo-101t-hero-b.png",
+          "description": "Chrome Takomo 101T iron head on black background. Data labels. Bold headline. Real product photography rules applied.",
+          "owner": "image-gen",
+          "createdAt": "2026-06-15T09:59:00Z",
+          "updatedAt": "2026-06-15T09:59:00Z",
+          "qualityGateState": "pending",
+          "visualQualityTier": "hero",
+          "requiresRealProductImage": true,
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "data label styling"
+          ],
+          "aiForbiddenFor": [
+            "club head",
+            "equipment fabrication"
+          ],
+          "realPhotoBrief": "Real Takomo 101T iron head \u2014 studio photography, black background, sharp left-side lighting. Club must look real and credible.",
+          "visualBrief": "Single Takomo 101T iron head in chrome/silver, black background, data labels floating around club, bold headline below",
+          "nextAction": "Retina QC review \u2014 does club head look real? Does data aesthetic work?",
+          "history": [
+            {
+              "action": "generated",
+              "by": "image-gen",
+              "at": "2026-06-15T09:59:00Z",
+              "reason": "Hero visual B for Takomo 101T \u2014 chrome iron, TrackMan data aesthetic, dark palette"
+            },
+            {
+              "action": "delivered",
+              "by": "image-gen",
+              "at": "2026-06-15T09:59:00Z",
+              "result": "image-generated",
+              "filePath": "assets/campaigns/trackman/takomo-101t-hero-b.png"
+            }
+          ],
+          "tags": [
+            "takomo",
+            "hero-visual",
+            "pending-qc"
+          ]
         }
       }
     },
