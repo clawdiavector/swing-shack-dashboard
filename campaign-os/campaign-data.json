@@ -510,6 +510,62 @@
             "hero-visual",
             "pending-qc"
           ]
+        },
+        "takomo-101t-hero-c": {
+          "assetId": "takomo-101t-hero-c",
+          "campaignId": "takomo-101t",
+          "name": "Takomo 101T \u2014 Hero Visual C (v2)",
+          "assetType": "hero-visual",
+          "status": "generated",
+          "platform": "instagram",
+          "filePath": "assets/campaigns/trackman/takomo-101t-hero-c.png",
+          "description": "Chrome Takomo 101T iron dominant in frame (~60%), black background, real launch monitor data labels (Carry/Ball Speed/Spin/Launch), Takomo wordmark visible, PRECISION NOT POWER tagline.",
+          "owner": "image-gen",
+          "createdAt": "2026-06-15T10:16:00Z",
+          "updatedAt": "2026-06-15T10:16:00Z",
+          "qualityGateState": "pending",
+          "visualQualityTier": "hero",
+          "requiresRealProductImage": true,
+          "aiAllowedFor": [
+            "background",
+            "typography treatment",
+            "data label styling"
+          ],
+          "aiForbiddenFor": [
+            "club head",
+            "equipment fabrication",
+            "data fabrication"
+          ],
+          "realPhotoBrief": "Real Takomo 101T iron head \u2014 studio photography, black background, Takomo wordmark visible, club fills 60% of frame.",
+          "visualBrief": "Takomo 101T iron dominant in frame, black background, real launch monitor data (Carry 167m, Ball Speed 118mph, Spin 5400rpm, Launch 15.2\u00b0), Takomo wordmark, PRECISION NOT POWER tagline",
+          "qcFailuresFromHeroB": [
+            "AI gibberish data labels",
+            "wrong data category (forge angles vs launch monitor)",
+            "iron too small in frame",
+            "no Takomo wordmark"
+          ],
+          "nextAction": "Retina QC \u2014 does iron look real? Are data labels credible? Is Takomo wordmark visible?",
+          "history": [
+            {
+              "action": "generated",
+              "by": "image-gen",
+              "at": "2026-06-15T10:16:00Z",
+              "reason": "v2 hero visual \u2014 fixes Retina's QC failures: real launch monitor data, iron dominant in frame, Takomo wordmark, no AI gibberish"
+            },
+            {
+              "action": "delivered",
+              "by": "image-gen",
+              "at": "2026-06-15T10:16:00Z",
+              "result": "image-generated",
+              "filePath": "assets/campaigns/trackman/takomo-101t-hero-c.png"
+            }
+          ],
+          "tags": [
+            "takomo",
+            "hero-visual",
+            "v2",
+            "pending-qc"
+          ]
         }
       }
     },
