@@ -131,7 +131,8 @@ def renderCampaign(id):
     n_progress = sum(1 for a in asset_list if a.get('status') in ('generated', 'pending', 'review', 'rejected'))
     n_blocked = sum(1 for a in asset_list if a.get('status') == 'blocked')
     
-    hs = i.get('healthScore', 50)
+    hs_raw = i.get('healthScore')
+    hs = 50 if hs_raw is None else hs_raw
     st = (i.get('healthState') or 'degraded').replace('unknown', 'degraded')
     hcol = '#00cc77' if st == 'healthy' else '#ff4455' if st == 'critical' else '#ffaa00'
     name = i.get('name', id)
