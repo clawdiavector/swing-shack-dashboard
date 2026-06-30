@@ -1,31 +1,35 @@
 {
-  "lastUpdated": "2026-06-30T10:00:05.215Z",
+  "lastUpdated": "2026-06-30T16:00:05.505Z",
   "source": "automated",
   "website": {
-    "activeUsers": 526,
-    "sessions": 726,
-    "pageViews": 1245,
-    "avgSessionSeconds": 141.66650346418734,
-    "bounceRate": 0.4490358126721763,
+    "activeUsers": 617,
+    "sessions": 852,
+    "pageViews": 1460,
+    "avgSessionSeconds": 146.63981990492957,
+    "bounceRate": 0.5258215962441315,
     "topPages": [
       {
         "path": "/",
-        "views": 465
+        "views": 501
       },
       {
         "path": "/customer-portal/",
-        "views": 329
+        "views": 451
       },
       {
         "path": "/bookings/",
-        "views": 242
+        "views": 286
       },
       {
         "path": "/club-fitting/",
-        "views": 57
+        "views": 59
       },
       {
         "path": "/checkout/",
+        "views": 28
+      },
+      {
+        "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
         "views": 28
       },
       {
@@ -33,42 +37,38 @@
         "views": 25
       },
       {
-        "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 25
+        "path": "/philosophy/",
+        "views": 13
       },
       {
-        "path": "/philosophy/",
-        "views": 12
+        "path": "/404.html",
+        "views": 9
       },
       {
         "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
         "views": 7
-      },
-      {
-        "path": "/membership/",
-        "views": 6
       }
     ],
     "topSources": [
       {
-        "source": "google",
-        "sessions": 328
-      },
-      {
         "source": "(direct)",
-        "sessions": 297
+        "sessions": 386
       },
       {
-        "source": "c.yoco.com",
-        "sessions": 24
+        "source": "google",
+        "sessions": 349
       },
       {
         "source": "(not set)",
-        "sessions": 15
+        "sessions": 47
+      },
+      {
+        "source": "c.yoco.com",
+        "sessions": 35
       },
       {
         "source": "instagram",
-        "sessions": 15
+        "sessions": 16
       },
       {
         "source": "paid_meta",
@@ -76,29 +76,29 @@
       },
       {
         "source": "bing",
+        "sessions": 8
+      },
+      {
+        "source": "(data not available)",
+        "sessions": 6
+      },
+      {
+        "source": "takomogolf.com",
         "sessions": 6
       },
       {
         "source": "dialedin.co.za",
         "sessions": 4
-      },
-      {
-        "source": "oldparks.co.za",
-        "sessions": 4
-      },
-      {
-        "source": "takomogolf.com",
-        "sessions": 4
       }
     ],
     "devices": [
       {
-        "device": "mobile",
-        "sessions": 391
+        "device": "desktop",
+        "sessions": 430
       },
       {
-        "device": "desktop",
-        "sessions": 334
+        "device": "mobile",
+        "sessions": 422
       }
     ]
   },
