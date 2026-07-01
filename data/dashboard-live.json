@@ -1,36 +1,36 @@
 {
-  "lastUpdated": "2026-07-01T10:00:03.985Z",
+  "lastUpdated": "2026-07-01T16:00:04.571Z",
   "source": "automated",
   "website": {
-    "activeUsers": 590,
-    "sessions": 819,
-    "pageViews": 1417,
-    "avgSessionSeconds": 142.41073036752135,
-    "bounceRate": 0.5787545787545788,
+    "activeUsers": 619,
+    "sessions": 866,
+    "pageViews": 1522,
+    "avgSessionSeconds": 136.09580988452655,
+    "bounceRate": 0.4907621247113164,
     "topPages": [
       {
         "path": "/",
-        "views": 464
+        "views": 490
       },
       {
         "path": "/customer-portal/",
-        "views": 455
+        "views": 481
       },
       {
         "path": "/bookings/",
-        "views": 288
+        "views": 323
       },
       {
         "path": "/club-fitting/",
-        "views": 54
+        "views": 62
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 30
+        "views": 34
       },
       {
         "path": "/checkout/",
-        "views": 26
+        "views": 27
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -38,11 +38,11 @@
       },
       {
         "path": "/philosophy/",
-        "views": 14
+        "views": 15
       },
       {
         "path": "/404.html",
-        "views": 8
+        "views": 10
       },
       {
         "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
@@ -52,35 +52,35 @@
     "topSources": [
       {
         "source": "(direct)",
-        "sessions": 377
+        "sessions": 399
       },
       {
         "source": "google",
-        "sessions": 319
-      },
-      {
-        "source": "(not set)",
-        "sessions": 72
+        "sessions": 343
       },
       {
         "source": "c.yoco.com",
-        "sessions": 32
+        "sessions": 34
       },
       {
-        "source": "(data not available)",
-        "sessions": 17
+        "source": "(not set)",
+        "sessions": 33
       },
       {
         "source": "paid_meta",
-        "sessions": 15
+        "sessions": 20
       },
       {
         "source": "instagram",
-        "sessions": 11
+        "sessions": 14
       },
       {
         "source": "bing",
-        "sessions": 7
+        "sessions": 8
+      },
+      {
+        "source": "m.facebook.com",
+        "sessions": 6
       },
       {
         "source": "takomogolf.com",
@@ -94,15 +94,15 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 414
+        "sessions": 435
       },
       {
         "device": "desktop",
-        "sessions": 404
+        "sessions": 429
       },
       {
         "device": "tablet",
-        "sessions": 1
+        "sessions": 2
       }
     ]
   },
