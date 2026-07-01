@@ -1,28 +1,28 @@
 {
-  "lastUpdated": "2026-07-01T04:00:07.622Z",
+  "lastUpdated": "2026-07-01T10:00:03.638Z",
   "source": "automated",
   "website": {
-    "activeUsers": 580,
-    "sessions": 797,
-    "pageViews": 1384,
-    "avgSessionSeconds": 141.81346637515682,
-    "bounceRate": 0.5671267252195734,
+    "activeUsers": 590,
+    "sessions": 819,
+    "pageViews": 1417,
+    "avgSessionSeconds": 142.41073036752135,
+    "bounceRate": 0.5787545787545788,
     "topPages": [
       {
         "path": "/",
-        "views": 454
+        "views": 464
       },
       {
         "path": "/customer-portal/",
-        "views": 449
+        "views": 455
       },
       {
         "path": "/bookings/",
-        "views": 274
+        "views": 288
       },
       {
         "path": "/club-fitting/",
-        "views": 53
+        "views": 54
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
@@ -34,11 +34,11 @@
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 20
+        "views": 21
       },
       {
         "path": "/philosophy/",
-        "views": 13
+        "views": 14
       },
       {
         "path": "/404.html",
@@ -52,15 +52,15 @@
     "topSources": [
       {
         "source": "(direct)",
-        "sessions": 370
+        "sessions": 377
       },
       {
         "source": "google",
-        "sessions": 310
+        "sessions": 319
       },
       {
         "source": "(not set)",
-        "sessions": 64
+        "sessions": 72
       },
       {
         "source": "c.yoco.com",
@@ -72,7 +72,7 @@
       },
       {
         "source": "paid_meta",
-        "sessions": 13
+        "sessions": 15
       },
       {
         "source": "instagram",
@@ -93,44 +93,48 @@
     ],
     "devices": [
       {
-        "device": "desktop",
-        "sessions": 399
+        "device": "mobile",
+        "sessions": 414
       },
       {
-        "device": "mobile",
-        "sessions": 399
+        "device": "desktop",
+        "sessions": 404
+      },
+      {
+        "device": "tablet",
+        "sessions": 1
       }
     ]
   },
   "searchConsole": [
     {
       "query": "swing shack",
-      "clicks": 255,
-      "impressions": 567,
+      "clicks": 268,
+      "impressions": 589,
       "position": "2.1"
     },
     {
       "query": "swingshack",
-      "clicks": 43,
-      "impressions": 97,
-      "position": "2.7"
+      "clicks": 44,
+      "impressions": 105,
+      "position": "3.0"
     },
     {
       "query": "takomo irons south africa",
-      "clicks": 32,
-      "impressions": 200,
+      "clicks": 33,
+      "impressions": 221,
       "position": "2.8"
     },
     {
       "query": "golf simulator",
-      "clicks": 28,
-      "impressions": 1206,
+      "clicks": 30,
+      "impressions": 1250,
       "position": "6.6"
     },
     {
       "query": "takomo south africa",
-      "clicks": 15,
-      "impressions": 58,
+      "clicks": 17,
+      "impressions": 63,
       "position": "3.2"
     },
     {
@@ -141,121 +145,28 @@
     },
     {
       "query": "golf simulator johannesburg",
-      "clicks": 11,
-      "impressions": 113,
-      "position": "2.4"
+      "clicks": 12,
+      "impressions": 115,
+      "position": "2.5"
     },
     {
       "query": "indoor golf",
       "clicks": 10,
-      "impressions": 222,
+      "impressions": 228,
       "position": "4.4"
     },
     {
       "query": "indoor golf johannesburg",
       "clicks": 10,
-      "impressions": 73,
+      "impressions": 74,
       "position": "1.7"
     },
     {
       "query": "takomo irons",
       "clicks": 8,
-      "impressions": 199,
-      "position": "5.7"
+      "impressions": 201,
+      "position": "5.8"
     }
   ],
-  "instagram": {
-    "followers": 2230,
-    "posts": 89,
-    "avgEngagement": "0.00",
-    "recentPosts": [],
-    "topPosts": [
-      {
-        "id": "17867815470546186",
-        "caption": "TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL\nBook a Fitting. Link in bio.",
-        "captionPreview": "TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL\nBook a Fitting. Link in bio.",
-        "timestamp": "2026-05-26T21:12:07+0000",
-        "permalink": "https://www.instagram.com/p/DY0QS1DmfFm/",
-        "mediaType": "IMAGE",
-        "likeCount": 2,
-        "commentsCount": 0,
-        "reach": 24,
-        "views": 40,
-        "shares": null,
-        "saved": null,
-        "engagementRate": "8.33",
-        "lastUpdated": "2026-05-27T05:03:24.520Z",
-        "trackedFirst": "2026-05-27T05:03:24.520Z"
-      },
-      {
-        "id": "18111373378629295",
-        "caption": "Go to your coaching sessions. Your ball deserves better 🫂\n#golf #golfinglife #coach #vibe",
-        "captionPreview": "Go to your coaching sessions. Your ball deserves better 🫂\n#golf #golfinglife #c",
-        "timestamp": "2026-01-27T09:33:27+0000",
-        "permalink": "https://www.instagram.com/reel/DUAlhNJjGT1/",
-        "mediaType": "VIDEO",
-        "likeCount": 19,
-        "commentsCount": 0,
-        "reach": 397,
-        "views": 853,
-        "shares": 2,
-        "saved": 2,
-        "engagementRate": "4.79",
-        "lastUpdated": "2026-05-28T05:03:21.851Z",
-        "trackedFirst": "2026-03-27T13:13:30.027Z"
-      },
-      {
-        "id": "17860872804563714",
-        "caption": "Have you ever been for an elite level Custom Fitting? Get the clubs that are built by professionals for your swing , not just based off your level of golf or clubhead speed. There are so many factors ",
-        "captionPreview": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
-        "timestamp": "2025-12-29T02:40:49+0000",
-        "permalink": "https://www.instagram.com/reel/DS1LQPVCPtk/",
-        "mediaType": "VIDEO",
-        "likeCount": 7,
-        "commentsCount": 0,
-        "reach": 163,
-        "views": 250,
-        "shares": null,
-        "saved": null,
-        "engagementRate": "4.29",
-        "lastUpdated": "2026-05-15T05:03:37.560Z",
-        "trackedFirst": "2026-03-27T13:13:42.531Z"
-      },
-      {
-        "id": "18078655349442093",
-        "caption": "Sometimes u just need a bit of tough love 😅🤣\n#golf #golflife #coach #student #coaching",
-        "captionPreview": "Sometimes u just need a bit of tough love 😅🤣\n#golf #golflife #coach #student #",
-        "timestamp": "2026-04-16T07:16:37+0000",
-        "permalink": "https://www.instagram.com/reel/DXLwYRmDH7W/",
-        "mediaType": "VIDEO",
-        "likeCount": 28,
-        "commentsCount": 1,
-        "reach": 737,
-        "views": 1421,
-        "shares": 2,
-        "saved": null,
-        "engagementRate": "3.93",
-        "lastUpdated": "2026-06-01T05:04:48.178Z",
-        "trackedFirst": "2026-04-16T09:39:11.567Z"
-      },
-      {
-        "id": "18082095485134677",
-        "caption": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 2025. Thank you for trusting us with your game. Let’s keep swinging. 🚀🏌️‍♂️",
-        "captionPreview": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 202",
-        "timestamp": "2025-12-23T06:10:00+0000",
-        "permalink": "https://www.instagram.com/reel/DSmG0QQjAOT/",
-        "mediaType": "VIDEO",
-        "likeCount": 10,
-        "commentsCount": 0,
-        "reach": 263,
-        "views": 374,
-        "shares": null,
-        "saved": null,
-        "engagementRate": "3.80",
-        "lastUpdated": "2026-05-14T05:03:30.847Z",
-        "trackedFirst": "2026-03-27T13:13:43.328Z"
-      }
-    ],
-    "lastUpdated": "2026-06-01T05:05:14.182Z"
-  }
+  "instagram": {}
 }
