@@ -417,9 +417,7 @@
                 });
                 
                 console.log('Loaded ' + data.leads.length + ' leads');
-            } catch (e) {
-                console.log('Could not load leads:', e.message);
-            }
+            } catch (e) {document.getElementById("leads-body").innerHTML=\'<tr><td colspan=5 style="color:var(--warning)">📋 Lead data pending — Connect Reddit API or import manually</td></tr>\';}
         }
         
         // Load on page load

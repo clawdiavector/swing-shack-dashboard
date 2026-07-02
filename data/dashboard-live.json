@@ -168,5 +168,10 @@
       "position": "5.8"
     }
   ],
-  "instagram": {}
+  "instagram": {
+    "followers": 2441,
+    "posts": 767,
+    "username": "swingshack",
+    "source": "meta-api-live"
+  }
 }
