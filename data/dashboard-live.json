@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-03T10:00:05.339Z",
+  "lastUpdated": "2026-07-03T16:00:06.138Z",
   "source": "automated",
   "website": {
-    "activeUsers": 616,
-    "sessions": 875,
-    "pageViews": 1551,
-    "avgSessionSeconds": 144.78557822285714,
-    "bounceRate": 0.4697142857142857,
+    "activeUsers": 631,
+    "sessions": 903,
+    "pageViews": 1622,
+    "avgSessionSeconds": 153.97186791915837,
+    "bounceRate": 0.48615725359911405,
     "topPages": [
       {
         "path": "/customer-portal/",
-        "views": 493
+        "views": 520
       },
       {
         "path": "/",
-        "views": 465
+        "views": 480
       },
       {
         "path": "/bookings/",
-        "views": 365
+        "views": 390
       },
       {
         "path": "/club-fitting/",
-        "views": 63
+        "views": 64
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 50
+        "views": 53
       },
       {
         "path": "/checkout/",
@@ -52,15 +52,19 @@
     "topSources": [
       {
         "source": "(direct)",
-        "sessions": 394
+        "sessions": 406
       },
       {
         "source": "google",
-        "sessions": 343
+        "sessions": 350
       },
       {
         "source": "c.yoco.com",
-        "sessions": 31
+        "sessions": 32
+      },
+      {
+        "source": "(not set)",
+        "sessions": 22
       },
       {
         "source": "instagram",
@@ -72,33 +76,29 @@
       },
       {
         "source": "clublab.app",
-        "sessions": 9
-      },
-      {
-        "source": "(not set)",
-        "sessions": 8
+        "sessions": 11
       },
       {
         "source": "bing",
-        "sessions": 8
+        "sessions": 9
+      },
+      {
+        "source": "(data not available)",
+        "sessions": 7
       },
       {
         "source": "golfscience.co.za",
-        "sessions": 6
-      },
-      {
-        "source": "m.facebook.com",
         "sessions": 6
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 450
+        "sessions": 466
       },
       {
         "device": "desktop",
-        "sessions": 423
+        "sessions": 435
       },
       {
         "device": "tablet",
