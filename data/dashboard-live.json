@@ -1,24 +1,24 @@
 {
-  "lastUpdated": "2026-07-04T10:00:05.846Z",
+  "lastUpdated": "2026-07-04T16:00:04.621Z",
   "source": "automated",
   "website": {
-    "activeUsers": 594,
-    "sessions": 864,
-    "pageViews": 1582,
-    "avgSessionSeconds": 155.0950525300926,
-    "bounceRate": 0.4664351851851852,
+    "activeUsers": 606,
+    "sessions": 884,
+    "pageViews": 1605,
+    "avgSessionSeconds": 152.57748323529412,
+    "bounceRate": 0.47850678733031676,
     "topPages": [
       {
         "path": "/customer-portal/",
-        "views": 516
+        "views": 520
       },
       {
         "path": "/",
-        "views": 452
+        "views": 461
       },
       {
         "path": "/bookings/",
-        "views": 391
+        "views": 395
       },
       {
         "path": "/club-fitting/",
@@ -26,11 +26,11 @@
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 52
+        "views": 55
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 18
+        "views": 19
       },
       {
         "path": "/philosophy/",
@@ -42,7 +42,7 @@
       },
       {
         "path": "/404.html",
-        "views": 8
+        "views": 9
       },
       {
         "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
@@ -52,15 +52,15 @@
     "topSources": [
       {
         "source": "(direct)",
-        "sessions": 384
+        "sessions": 392
       },
       {
         "source": "google",
-        "sessions": 336
+        "sessions": 341
       },
       {
         "source": "c.yoco.com",
-        "sessions": 36
+        "sessions": 37
       },
       {
         "source": "instagram",
@@ -80,7 +80,7 @@
       },
       {
         "source": "(not set)",
-        "sessions": 6
+        "sessions": 11
       },
       {
         "source": "golfscience.co.za",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 449
+        "sessions": 467
       },
       {
         "device": "desktop",
-        "sessions": 413
+        "sessions": 415
       },
       {
         "device": "tablet",
