@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-05T10:00:07.207Z",
+  "lastUpdated": "2026-07-05T16:00:04.915Z",
   "source": "automated",
   "website": {
-    "activeUsers": 577,
-    "sessions": 830,
-    "pageViews": 1499,
-    "avgSessionSeconds": 154.40473971084336,
-    "bounceRate": 0.4795180722891566,
+    "activeUsers": 586,
+    "sessions": 847,
+    "pageViews": 1524,
+    "avgSessionSeconds": 152.14213842266824,
+    "bounceRate": 0.4899645808736718,
     "topPages": [
       {
         "path": "/customer-portal/",
-        "views": 497
+        "views": 501
       },
       {
         "path": "/",
-        "views": 416
+        "views": 423
       },
       {
         "path": "/bookings/",
-        "views": 385
+        "views": 394
       },
       {
         "path": "/club-fitting/",
-        "views": 56
+        "views": 58
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 50
+        "views": 53
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -52,19 +52,23 @@
     "topSources": [
       {
         "source": "(direct)",
-        "sessions": 383
+        "sessions": 388
       },
       {
         "source": "google",
-        "sessions": 308
+        "sessions": 315
       },
       {
         "source": "c.yoco.com",
-        "sessions": 33
+        "sessions": 36
       },
       {
         "source": "instagram",
         "sessions": 17
+      },
+      {
+        "source": "(not set)",
+        "sessions": 16
       },
       {
         "source": "paid_meta",
@@ -76,11 +80,7 @@
       },
       {
         "source": "bing",
-        "sessions": 12
-      },
-      {
-        "source": "(not set)",
-        "sessions": 8
+        "sessions": 13
       },
       {
         "source": "golfscience.co.za",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 426
+        "sessions": 439
       },
       {
         "device": "desktop",
-        "sessions": 402
+        "sessions": 406
       },
       {
         "device": "tablet",
