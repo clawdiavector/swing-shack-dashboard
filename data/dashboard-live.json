@@ -1,36 +1,36 @@
 {
-  "lastUpdated": "2026-07-05T04:00:04.400Z",
+  "lastUpdated": "2026-07-05T10:00:04.836Z",
   "source": "automated",
   "website": {
-    "activeUsers": 565,
-    "sessions": 814,
-    "pageViews": 1471,
-    "avgSessionSeconds": 150.6067207886978,
-    "bounceRate": 0.4926289926289926,
+    "activeUsers": 577,
+    "sessions": 830,
+    "pageViews": 1499,
+    "avgSessionSeconds": 154.40473971084336,
+    "bounceRate": 0.4795180722891566,
     "topPages": [
       {
         "path": "/customer-portal/",
-        "views": 494
+        "views": 497
       },
       {
         "path": "/",
-        "views": 406
+        "views": 416
       },
       {
         "path": "/bookings/",
-        "views": 375
+        "views": 385
       },
       {
         "path": "/club-fitting/",
-        "views": 55
+        "views": 56
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 48
+        "views": 50
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 18
+        "views": 20
       },
       {
         "path": "/philosophy/",
@@ -52,53 +52,53 @@
     "topSources": [
       {
         "source": "(direct)",
-        "sessions": 374
+        "sessions": 383
       },
       {
         "source": "google",
-        "sessions": 298
+        "sessions": 308
       },
       {
         "source": "c.yoco.com",
-        "sessions": 32
+        "sessions": 33
       },
       {
         "source": "instagram",
-        "sessions": 16
+        "sessions": 17
       },
       {
         "source": "paid_meta",
         "sessions": 16
       },
       {
-        "source": "(not set)",
-        "sessions": 13
-      },
-      {
         "source": "clublab.app",
-        "sessions": 13
+        "sessions": 14
       },
       {
         "source": "bing",
         "sessions": 12
       },
       {
-        "source": "(data not available)",
-        "sessions": 7
+        "source": "(not set)",
+        "sessions": 8
       },
       {
         "source": "golfscience.co.za",
+        "sessions": 6
+      },
+      {
+        "source": "m.facebook.com",
         "sessions": 6
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 415
+        "sessions": 426
       },
       {
         "device": "desktop",
-        "sessions": 397
+        "sessions": 402
       },
       {
         "device": "tablet",
