@@ -1,24 +1,24 @@
 {
-  "lastUpdated": "2026-07-06T10:00:08.045Z",
+  "lastUpdated": "2026-07-06T16:00:04.540Z",
   "source": "automated",
   "website": {
-    "activeUsers": 572,
-    "sessions": 825,
-    "pageViews": 1446,
-    "avgSessionSeconds": 149.18806140848486,
-    "bounceRate": 0.5066666666666667,
+    "activeUsers": 599,
+    "sessions": 868,
+    "pageViews": 1509,
+    "avgSessionSeconds": 144.58373479032258,
+    "bounceRate": 0.5311059907834101,
     "topPages": [
       {
         "path": "/customer-portal/",
-        "views": 491
+        "views": 505
       },
       {
         "path": "/",
-        "views": 394
+        "views": 426
       },
       {
         "path": "/bookings/",
-        "views": 376
+        "views": 390
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
@@ -30,11 +30,11 @@
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 18
+        "views": 19
       },
       {
         "path": "/philosophy/",
-        "views": 14
+        "views": 15
       },
       {
         "path": "/404.html",
@@ -52,19 +52,23 @@
     "topSources": [
       {
         "source": "(direct)",
-        "sessions": 379
+        "sessions": 391
       },
       {
         "source": "google",
-        "sessions": 291
+        "sessions": 302
       },
       {
         "source": "c.yoco.com",
-        "sessions": 35
+        "sessions": 36
       },
       {
         "source": "instagram",
-        "sessions": 23
+        "sessions": 31
+      },
+      {
+        "source": "(not set)",
+        "sessions": 27
       },
       {
         "source": "bing",
@@ -75,7 +79,7 @@
         "sessions": 14
       },
       {
-        "source": "(not set)",
+        "source": "facebook",
         "sessions": 12
       },
       {
@@ -85,20 +89,16 @@
       {
         "source": "m.facebook.com",
         "sessions": 9
-      },
-      {
-        "source": "facebook",
-        "sessions": 6
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 423
+        "sessions": 451
       },
       {
         "device": "desktop",
-        "sessions": 400
+        "sessions": 415
       },
       {
         "device": "tablet",
