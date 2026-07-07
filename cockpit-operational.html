@@ -1016,6 +1016,138 @@ function closeCreateModal() {
     document.getElementById('form-error').style.display = 'none';
     document.getElementById('form-success').style.display = 'none';
 }
+// ─── Dev storage adapter (Phase 2) ────────────────────────────────────────
+// When the live API is not reachable (no Railway deploy, no local Flask
+// running), the cockpit writes new campaigns to localStorage and merges
+// them into window.campaignData. This is the "development storage adapter"
+// allowed by ARCHITECTURE.md §0 (parallel workstreams; temporary adapters
+// permitted in dev while Workstream A / Postgres is not yet ready).
+//
+// Key: "campaign-os:dev:campaigns" (an array of {campaignId, campaign}).
+// Refresh persistence: localStorage survives page reload.
+var DEV_STORE_KEY = 'campaign-os:dev:campaigns';
+
+function devStoreReadAll() {
+  try {
+    var raw = localStorage.getItem(DEV_STORE_KEY);
+    if (!raw) return [];
+    var arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    console.warn('devStoreReadAll: parse error', e);
+    return [];
+  }
+}
+
+function devStoreWriteAll(arr) {
+  try {
+    localStorage.setItem(DEV_STORE_KEY, JSON.stringify(arr));
+  } catch (e) {
+    console.error('devStoreWriteAll: write error', e);
+  }
+}
+
+function devStoreUpsert(record) {
+  var arr = devStoreReadAll();
+  var i = arr.findIndex(function(r) { return r.campaignId === record.campaignId; });
+  if (i >= 0) arr[i] = record; else arr.push(record);
+  devStoreWriteAll(arr);
+}
+
+function devStoreHydrate() {
+  if (!window.campaignData) return;
+  if (!window.campaignData.campaigns) window.campaignData.campaigns = {};
+  var arr = devStoreReadAll();
+  for (var i = 0; i < arr.length; i++) {
+    var r = arr[i];
+    if (r && r.campaignId && r.campaign && !window.campaignData.campaigns[r.campaignId]) {
+      window.campaignData.campaigns[r.campaignId] = r.campaign;
+    }
+  }
+}
+
+function slugifyId(name) {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'campaign';
+}
+
+function nextCampaignId(base) {
+  var existing = window.campaignData && window.campaignData.campaigns || {};
+  if (!existing[base]) return base;
+  for (var n = 1; n < 1000; n++) {
+    var candidate = base + '-' + n;
+    if (!existing[candidate]) return candidate;
+  }
+  return base + '-' + Date.now();
+}
+
+function buildCampaignFromForm(fd) {
+  var now = new Date().toISOString();
+  var baseId = slugifyId(fd.name);
+  var id = nextCampaignId(baseId);
+  var shortName = (fd.name || '').split(/\s+/).slice(0, 3).join(' ');
+  var history = [{
+    action: 'created',
+    by: 'christelle',
+    at: now,
+    note: 'Campaign created.'
+  }];
+  return {
+    identity: {
+      campaignId: id,
+      name: fd.name || id,
+      shortName: shortName || (fd.name || id),
+      type: fd.type || '',
+      goal: fd.primaryGoal || fd.goal || '',
+      primaryGoal: fd.primaryGoal || fd.goal || '',
+      targetAudience: fd.targetAudience || '',
+      primaryOffer: fd.primaryOffer || '',
+      successTarget: fd.successTarget || '',
+      duration: fd.duration || '',
+      priority: fd.priority || 'medium',
+      platforms: Array.isArray(fd.platforms) ? fd.platforms : [],
+      sourceType: fd.sourceType || '',
+      sourceRef: fd.sourceRef || '',
+      notes: fd.notes || '',
+      context: fd.context || '',
+      status: 'draft',
+      lifecycle: 'draft',
+      owner: 'christelle',
+      createdAt: now,
+      updatedAt: now
+    },
+    brief: {
+      purpose: fd.primaryGoal || fd.goal || '',
+      audience: fd.targetAudience || '',
+      offer: fd.primaryOffer || '',
+      successMetric: fd.successTarget || '',
+      duration: fd.duration || '',
+      notes: fd.notes || ''
+    },
+    strategy: { pillars: [] },
+    visualDirection: {},
+    dna: {},
+    memory: { lessonsLearned: [], notes: [] },
+    assets: {},
+    productionPlan: null,
+    blueprints: [],
+    pipeline: { status: 'idle', phases: [] },
+    healthScore: null,
+    healthState: 'unknown',
+    history: history
+  };
+}
+
+function persistCampaignToDevStore(campaign) {
+  devStoreUpsert({ campaignId: campaign.identity.campaignId, campaign: campaign, savedAt: new Date().toISOString() });
+  if (!window.campaignData) window.campaignData = { campaigns: {} };
+  if (!window.campaignData.campaigns) window.campaignData.campaigns = {};
+  window.campaignData.campaigns[campaign.identity.campaignId] = campaign;
+  if (typeof initSelector === 'function') {
+    try { initSelector(); } catch (e) { /* safe-fail: selector may not be in DOM */ }
+  }
+  if (typeof renderPortfolio === 'function') renderPortfolio();
+}
+
 function handleFormSubmit(e) {
   e.preventDefault();
   var required = document.querySelectorAll('#createForm [required]');
@@ -1052,31 +1184,75 @@ function handleFormSubmit(e) {
   };
 
   // Disable submit button to prevent double-submit
-  var btn = document.getElementById('btn-submit');
-  btn.disabled = true;
-  btn.textContent = 'Saving...';
-  document.getElementById('form-error').style.display = 'none';
-  document.getElementById('form-success').style.display = 'none';
+    var btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    document.getElementById('form-error').style.display = 'none';
+    document.getElementById('form-success').style.display = 'none';
 
-  // POST to Railway API
-  var apiBase = window.API_BASE || '';
-  fetch(apiBase + '/api/campaigns', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(formData)
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.error) throw new Error(data.error);
-    document.getElementById('form-success').textContent = '"' + formData.name + '" created and saved.';
-    document.getElementById('form-success').style.display = 'block';
-    setTimeout(function() { closeCreateModal(); }, 1500);
-    if (window.loadCampaignData) window.loadCampaignData().then(function() { renderPortfolio(); });
-  }).catch(function(err) {
-    document.getElementById('form-error').textContent = 'Error: ' + err.message + '. Please try again.';
-    document.getElementById('form-error').style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = 'Create Campaign';
-  });, 2500);
-}
+    // Strip internal markers before sending
+    delete formData._pending;
+    delete formData._submittedAt;
+
+    // Build the canonical campaign object (used by both live API path and dev store)
+    var campaign = buildCampaignFromForm(formData);
+    var campaignId = campaign.identity.campaignId;
+    var formSuccess = document.getElementById('form-success');
+    var formError = document.getElementById('form-error');
+
+    function showSuccess(msg) {
+      formSuccess.textContent = msg;
+      formSuccess.style.display = 'block';
+      formError.style.display = 'none';
+      setTimeout(function() { closeCreateModal(); }, 1500);
+      if (typeof renderPortfolio === 'function') renderPortfolio();
+      if (typeof initSelector === 'function') { try { initSelector(); } catch (e) {} }
+    }
+    function showError(msg) {
+      formError.textContent = msg;
+      formError.style.display = 'block';
+      formSuccess.style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = 'Create Campaign';
+    }
+
+    // Try the live API first
+    var apiBase = window.API_BASE || '';
+    fetch(apiBase + '/api/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    }).then(function(r) {
+      if (!r.ok) {
+        // Any non-2xx from the live API falls through to dev store
+        return { __devStore: true, status: r.status };
+      }
+      return r.json();
+    }).then(function(data) {
+      if (data && data.__devStore) {
+        // Live API not available (404, 500, etc.) — use the dev storage adapter
+        persistCampaignToDevStore(campaign);
+        showSuccess('"' + formData.name + '" created (draft) and saved to dev store.');
+        return;
+      }
+      if (data && data.error) throw new Error(data.error);
+      // Live API succeeded; merge the server-side record into the in-memory state
+      if (data && data.campaign) {
+        if (!window.campaignData) window.campaignData = { campaigns: {} };
+        if (!window.campaignData.campaigns) window.campaignData.campaigns = {};
+        window.campaignData.campaigns[data.campaign.identity.campaignId] = data.campaign;
+      }
+      showSuccess('"' + formData.name + '" created and saved.');
+    }).catch(function(err) {
+      // Network error (Railway not reachable, no local Flask, etc.) — dev store fallback
+      try {
+        persistCampaignToDevStore(campaign);
+        showSuccess('"' + formData.name + '" created (draft) and saved to dev store. (' + (err && err.message ? err.message : 'network') + ')');
+      } catch (e2) {
+        showError('Error: ' + (e2 && e2.message ? e2.message : (err && err.message ? err.message : 'unknown')) + '. Please try again.');
+      }
+    });
+  }
 
 
 function updateBridgeStatus() {
@@ -1536,7 +1712,12 @@ function rqConfirmRevision(aid) {
     rqUpdateRowStatus(aid, 'revisionRequested');
     rqCloseRejectModal();
   });
-}
+
+// ─── Page-load init (Phase 2 dev-store hydration) ────────────────────────
+// On every page load, hydrate window.campaignData.campaigns from the dev store
+// so campaigns created in a previous session are visible after refresh.
+// (Re-located to the end of the script block in the fix below.)
+</script>
 
 function rqBatchApprove(cid) {
   var apiBase = window.API_BASE || '';
@@ -1598,6 +1779,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   }
 });
+
+// ─── Page-load init (Phase 2 dev-store hydration) ────────────────────────
+// On every page load, hydrate window.campaignData.campaigns from the dev store
+// so campaigns created in a previous session are visible after refresh.
+(function() {
+  try {
+    if (typeof devStoreHydrate === 'function') devStoreHydrate();
+  } catch (e) {
+    console.warn('Dev-store hydration failed:', e);
+  }
+})();
 
 </script>
 
