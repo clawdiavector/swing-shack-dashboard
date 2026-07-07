@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-07T04:00:04.662Z",
+  "lastUpdated": "2026-07-07T10:00:04.340Z",
   "source": "automated",
   "website": {
-    "activeUsers": 501,
-    "sessions": 715,
-    "pageViews": 1226,
-    "avgSessionSeconds": 139.649489793007,
-    "bounceRate": 0.6055944055944056,
+    "activeUsers": 560,
+    "sessions": 791,
+    "pageViews": 1359,
+    "avgSessionSeconds": 136.3166843034134,
+    "bounceRate": 0.5638432364096081,
     "topPages": [
       {
         "path": "/",
-        "views": 380
+        "views": 453
       },
       {
         "path": "/customer-portal/",
-        "views": 350
+        "views": 372
       },
       {
         "path": "/bookings/",
-        "views": 336
+        "views": 364
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 54
+        "views": 57
       },
       {
         "path": "/club-fitting/",
-        "views": 45
+        "views": 51
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -51,20 +51,16 @@
     ],
     "topSources": [
       {
-        "source": "(direct)",
-        "sessions": 258
+        "source": "google",
+        "sessions": 286
       },
       {
-        "source": "google",
-        "sessions": 258
+        "source": "(direct)",
+        "sessions": 274
       },
       {
         "source": "instagram",
-        "sessions": 50
-      },
-      {
-        "source": "(not set)",
-        "sessions": 48
+        "sessions": 82
       },
       {
         "source": "c.yoco.com",
@@ -72,33 +68,37 @@
       },
       {
         "source": "facebook",
-        "sessions": 19
+        "sessions": 30
+      },
+      {
+        "source": "(not set)",
+        "sessions": 18
+      },
+      {
+        "source": "bing",
+        "sessions": 15
       },
       {
         "source": "clublab.app",
         "sessions": 15
       },
       {
-        "source": "bing",
-        "sessions": 14
+        "source": "m.facebook.com",
+        "sessions": 13
       },
       {
         "source": "paid_meta",
-        "sessions": 10
-      },
-      {
-        "source": "m.facebook.com",
-        "sessions": 9
+        "sessions": 11
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 416
+        "sessions": 470
       },
       {
         "device": "desktop",
-        "sessions": 297
+        "sessions": 319
       },
       {
         "device": "tablet",
