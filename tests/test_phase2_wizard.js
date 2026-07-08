@@ -1,0 +1,177 @@
+// Campaign OS Phase 2 — Wizard + API test suite
+// Verifies Steps 1-9 of the Campaign Builder against a live Flask backend
+// running on http://127.0.0.1:8765, with a localStorage-only fallback path.
+//
+// Run: node tests/test_phase2_wizard.js
+// Pre-req: Flask server must be running (DATA_DIR=/tmp/campaign-os-test PORT=8765 python3 app.py)
+
+'use strict';
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+const BASE = 'http://127.0.0.1:8765';
+const HTML_PATH = path.join(__dirname, '..', 'cockpit-operational.html');
+
+let passed = 0, failed = 0, total = 0;
+const results = [];
+
+function assert(name, cond, info) {
+  total++;
+  if (cond) {
+    passed++;
+    results.push(`  PASS  ${name}`);
+  } else {
+    failed++;
+    results.push(`  FAIL  ${name}${info ? ' — ' + JSON.stringify(info) : ''}`);
+  }
+}
+
+function section(title) {
+  results.push(`\n[${title}]`);
+}
+
+function httpJson(method, url, body) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const data = body ? JSON.stringify(body) : null;
+    const opts = {
+      method,
+      hostname: u.hostname,
+      port: u.port,
+      path: u.pathname,
+      headers: data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}
+    };
+    const req = http.request(opts, (res) => {
+      let chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf-8');
+        let json = null;
+        try { json = JSON.parse(text); } catch (e) {}
+        resolve({ status: res.statusCode, json, text });
+      });
+    });
+    req.on('error', reject);
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+// ── HTML structure assertions (Steps 1, 7, 8, 9) ─────────────────────
+section('HTML structure');
+const html = fs.readFileSync(HTML_PATH, 'utf-8');
+
+assert('header has + Create Campaign button', html.includes('+ Create Campaign'));
+assert('header has Clear Dev Data button', html.includes('Clear Dev Data'));
+assert('modal createModal exists', html.includes('id="createModal"'));
+assert('Stage 1 fields: name, type, brand, objective, priority', [
+  'id="f-name"', 'id="f-type"', 'id="f-brand"', 'id="f-objective"', 'id="f-priority"'
+].every(id => html.includes(id)));
+assert('Stage 2 fields: purpose, audience, bigidea, success, pillars', [
+  'id="f-purpose"', 'id="f-audience"', 'id="f-bigidea"', 'id="f-success"', 'id="f-pillars"'
+].every(id => html.includes(id)));
+assert('Stage 3 fields: shortname, duration, primarygoal, assetcount, assettype, cta', [
+  'id="f-shortname"', 'id="f-duration"', 'id="f-primarygoal"', 'id="f-assetcount"', 'id="f-assettype"', 'id="f-cta"'
+].every(id => html.includes(id)));
+assert('wizard functions defined', [
+  'function wizardStage1Valid', 'function wizardUpdateNextButton',
+  'function wizardShowStage', 'function wizardGoBack', 'function wizardGoBackTo2',
+  'function wizardReset'
+].every(fn => html.includes(fn)));
+assert('dev store functions defined', [
+  'function devStoreReadAll', 'function devStoreWriteAll',
+  'function devStoreAppend', 'function devStoreHydrate',
+  'function devApiCreate'
+].every(fn => html.includes(fn)));
+assert('renderNewCampaignCard defined', html.includes('function renderNewCampaignCard'));
+assert('renderGenericDetail defined', html.includes('function renderGenericDetail'));
+assert('transitionStatus defined (Step 5)', html.includes('function transitionStatus'));
+assert('submitForReview / approveCampaign / rejectCampaign defined', [
+  'function submitForReview', 'function approveCampaign', 'function rejectCampaign'
+].every(fn => html.includes(fn)));
+assert('renderReviewQueue defined (Step 5)', html.includes('function renderReviewQueue'));
+
+// ── Live API tests (Workstream A) ────────────────────────────────────
+section('Live API — wizard payload (new shape)');
+(async () => {
+  const newId = 'c-test-' + Date.now().toString(36);
+  const now = new Date().toISOString();
+  const payload = {
+    identity: {
+      campaignId: newId, name: 'Test Campaign ' + newId, shortName: 'TC',
+      goal: 'test', status: 'draft', owner: 'christelle', platforms: [],
+      createdAt: now, updatedAt: now, healthScore: null, healthState: 'unknown',
+      campaignType: 'evergreen', brand: 'swing-shack', priority: 'high',
+      primaryGoal: 'Bookings', duration: '30 days',
+      campaignSource: { type: 'Test', reference: 'phase2-suite', createdBy: 'christelle' }
+    },
+    plan: { purpose: 'p', audience: 'a', bigIdea: 'b', successMetric: 's',
+            pillars: [{ id: 'pdata', name: 'Data', description: 'd' }] },
+    brief: { assetCount: 3, assetType: 'video', cta: 'Test', assets: [] },
+    production: { items: [] },
+    approval: { status: 'draft', currentReviewer: null, decisions: [] },
+    status: 'draft', lifecycle: 'draft',
+    history: [{ action: 'created', by: 'christelle', at: now, note: 'Test.' }],
+    assets: [], productionItems: [], media: { hero: null, gallery: [] }
+  };
+
+  const r1 = await httpJson('POST', BASE + '/api/campaigns', payload);
+  assert('POST /api/campaigns returns 201', r1.status === 201, { status: r1.status });
+  assert('POST response has campaignId', r1.json && r1.json.campaignId === newId);
+  assert('POST response includes plan.pillars', r1.json && r1.json.campaign &&
+         r1.json.campaign.plan && r1.json.campaign.plan.pillars.length === 1);
+  assert('POST response includes brief.assetCount', r1.json && r1.json.campaign &&
+         r1.json.campaign.brief && r1.json.campaign.brief.assetCount === 3);
+  assert('POST response preserves identity.brand', r1.json && r1.json.campaign &&
+         r1.json.campaign.identity.brand === 'swing-shack');
+
+  const r2 = await httpJson('GET', BASE + '/api/campaigns/' + newId);
+  assert('GET /api/campaigns/<id> returns 200', r2.status === 200, { status: r2.status });
+  assert('GET round-trips identity.name', r2.json && r2.json.identity &&
+         r2.json.identity.name === payload.identity.name);
+  assert('GET round-trips plan.pillars', r2.json && r2.json.plan &&
+         r2.json.plan.pillars && r2.json.plan.pillars[0].id === 'pdata');
+  assert('GET round-trips brief.cta', r2.json && r2.json.brief &&
+         r2.json.brief.cta === 'Test');
+  assert('GET round-trips history count', r2.json && r2.json.history.length === 1);
+
+  // Duplicate id should 409
+  const r3 = await httpJson('POST', BASE + '/api/campaigns', payload);
+  assert('POST duplicate id returns 409', r3.status === 409, { status: r3.status });
+
+  section('Live API — legacy shape (backward compat)');
+  const r4 = await httpJson('POST', BASE + '/api/campaigns', {
+    name: 'Legacy Campaign', shortName: 'LC', primaryGoal: 'Awareness',
+    campaignType: 'awareness', brand: 'swing-shack'
+  });
+  assert('POST legacy returns 201', r4.status === 201, { status: r4.status });
+  assert('POST legacy builds plan object', r4.json && r4.json.campaign && r4.json.campaign.plan);
+  assert('POST legacy builds brief object', r4.json && r4.json.campaign && r4.json.campaign.brief);
+  assert('POST legacy sets status=draft', r4.json && r4.json.campaign.status === 'draft');
+  assert('POST legacy preserves brand', r4.json && r4.json.campaign.identity.brand === 'swing-shack');
+
+  section('Live API — error cases');
+  const r5 = await httpJson('POST', BASE + '/api/campaigns', { name: '' });
+  assert('POST empty name returns 400 (legacy)', r5.status === 400, { status: r5.status });
+
+  const r6 = await httpJson('POST', BASE + '/api/campaigns', { identity: {}, plan: {}, brief: {} });
+  assert('POST wizard payload without campaignId returns 400', r6.status === 400, { status: r6.status });
+
+  // ── Health ──────────────────────────────────────────────────────
+  section('Health endpoint');
+  const r7 = await httpJson('GET', BASE + '/api/health');
+  assert('GET /api/health returns 200', r7.status === 200, { status: r7.status });
+  assert('GET /api/health has status=ok', r7.json && r7.json.status === 'ok');
+
+  // ── Summary ────────────────────────────────────────────────────
+  results.push('');
+  results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
+  console.log(results.join('\n'));
+  process.exit(failed > 0 ? 1 : 0);
+})().catch(e => {
+  console.error('Suite error:', e);
+  console.log(results.join('\n'));
+  process.exit(1);
+});
