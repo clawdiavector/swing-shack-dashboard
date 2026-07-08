@@ -109,6 +109,40 @@ assert('submitForReview / approveCampaign / rejectCampaign defined', [
 ].every(fn => html.includes(fn)));
 assert('renderReviewQueue defined (Step 5)', html.includes('function renderReviewQueue'));
 
+// ── Step 11: Meme Lord — standalone workspace ───────────────────────
+section('Step 11: Meme Lord (HTML structure)');
+assert('header has Meme Lord view button', html.includes('id="btn-memes"') && html.includes("onclick=\"showView('memes')\""));
+assert('view-memes panel exists', html.includes('id="view-memes"'));
+assert('Meme Lord filter select exists', html.includes('id="memes-filter"'));
+assert('Meme Lord filter has All/Standalone/Attached/Shortlisted/Used/Rejected', [
+  'value="all"', 'value="standalone"', 'value="attached"',
+  'value="shortlisted"', 'value="used"', 'value="rejected"'
+].every(v => html.includes(v)) && /id="memes-filter"[\s\S]*?(?=id="[^"]*filter"|$)/.test(html));
+assert('New Meme modal exists', html.includes('id="memeModal"') && html.includes('id="memeForm"'));
+assert('meme functions defined', [
+  'function openMemeModal', 'function openEditMemeModal', 'function closeMemeModal',
+  'function handleMemeSubmit', 'function renderMemeLord', 'function renderMemeCard',
+  'function confirmDeleteMeme', 'function promptAttachMeme', 'function changeMemeStatus',
+  'function memeReadAll', 'function memeWriteAll', 'function memeAppend',
+  'function memeDelete', 'function nextMemeId', 'function memeModalPopulateOptions'
+].every(fn => html.includes(fn)));
+assert('Meme fields: line, format, status, sourcehook, brand, campaign, note', [
+  'id="m-line"', 'id="m-format"', 'id="m-status"', 'id="m-sourcehook"',
+  'id="m-brand"', 'id="m-campaign"', 'id="m-note"'
+].every(id => html.includes(id)));
+assert('Meme formats include image-meme/video/caption/carousel', [
+  'value="image-meme"', 'value="video"', 'value="caption"', 'value="carousel"'
+].every(v => html.includes(v)));
+assert('Meme statuses include idea/shortlisted/used/rejected', [
+  'value="idea"', 'value="shortlisted"', 'value="used"', 'value="rejected"'
+].every(v => html.includes(v)));
+assert('MEME_STORE_KEY defined (campaign-os:dev:memes)', html.includes("MEME_STORE_KEY = 'campaign-os:dev:memes'"));
+assert('mcard CSS classes exist', ['.mcard', '.mcard-line', '.mcard-tag', '.mcard-actions', '.mcard-status-row'].every(c => html.includes(c)));
+assert('Meme Lord filter wired to renderMemeLord', html.includes("memes-filter") && html.includes('renderMemeLord()'));
+assert('showView handles memes', html.includes("name === 'memes'") && html.includes('view-memes'));
+assert('clearDevData clears memes', html.includes('removeItem(MEME_STORE_KEY)'));
+assert('Meme source-hook select populated from hookReadAll', html.includes('m-sourcehook') && html.includes('hookReadAll()'));
+
 // ── Live API tests (Workstream A) ────────────────────────────────────
 section('Live API — wizard payload (new shape)');
 (async () => {
@@ -186,6 +220,13 @@ section('Live API — wizard payload (new shape)');
   // The 8 hook-specific HTML assertions above are part of the structural
   // block; we report how many new assertions Step 10 added here.
   results.push('  (8 new assertions for Step 10 — Hooks view, modal, fields, store, attach/detach, filter)');
+
+  // ── Step 11: Meme Lord — standalone workspace ──────────────────
+  section('Step 11: Meme Lord (HTML structure, 15 new assertions)');
+  // 15 new Step 11 assertions above cover: header button, panel, filter, modal,
+  // functions, fields, formats, statuses, store key, CSS classes, filter wire,
+  // showView, clearDevData, source-hook select, and the meme-attached history contract.
+  results.push('  (15 new assertions for Step 11 — Meme Lord view, modal, fields, store, attach/detach, status, hook integration)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
