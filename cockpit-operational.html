@@ -196,14 +196,45 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 </div>
 </div>
 </div>
-<!-- Stage 2: placeholder -->
+<!-- Stage 2: Plan / Brief -->
 <div id="wizard-stage-2" style="display:none">
-<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);margin-bottom:12px">Stage 2</div>
-<div style="padding:32px 16px;text-align:center;color:var(--col-muted);font-size:14px;border:1px dashed var(--border);border-radius:8px;margin-bottom:16px">
-Stage 2 coming next.
+<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);margin-bottom:12px">Stage 2 — Plan / Brief</div>
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Purpose</label>
+<textarea id="f-purpose" rows="2" placeholder="e.g. Drive fitting bookings and coaching sessions" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;resize:vertical"></textarea>
+</div>
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Audience</label>
+<textarea id="f-audience" rows="2" placeholder="e.g. Jozi golfers, 25-50, mid-high handicap" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;resize:vertical"></textarea>
+</div>
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Big Idea</label>
+<input type="text" id="f-bigidea" placeholder="e.g. Your swing has a number. TrackMan measures it." style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+</div>
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Success Metric</label>
+<input type="text" id="f-success" placeholder="e.g. 30 fitting sessions booked" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+</div>
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Pillars (one per line: name — short description)</label>
+<textarea id="f-pillars" rows="4" placeholder="Stats — Data-driven insights&#10;Assessment — TrackMan technology&#10;Improvement — Clear path from data to better scores" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;resize:vertical;font-family:ui-monospace,monospace"></textarea>
 </div>
 <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
 <button type="button" class="view-btn" id="wiz-back-2" style="background:var(--col-muted);color:#0a0a0f;font-weight:700" onclick="wizardGoBack()">← Back</button>
+<div style="display:flex;gap:8px">
+<button type="button" class="view-btn" onclick="closeCreateModal()">Cancel</button>
+<button type="submit" class="view-btn" id="wiz-next-2" style="background:var(--col-green);color:#0a0a0f;font-weight:700">Next →</button>
+</div>
+</div>
+</div>
+<!-- Stage 3: placeholder (Asset Brief — coming next) -->
+<div id="wizard-stage-3" style="display:none">
+<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);margin-bottom:12px">Stage 3 — Asset Brief</div>
+<div style="padding:32px 16px;text-align:center;color:var(--col-muted);font-size:14px;border:1px dashed var(--border);border-radius:8px;margin-bottom:16px">
+Stage 3 coming next.
+</div>
+<div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+<button type="button" class="view-btn" id="wiz-back-3" style="background:var(--col-muted);color:#0a0a0f;font-weight:700" onclick="wizardGoBackTo2()">← Back</button>
 <div style="display:flex;gap:8px">
 <button type="button" class="view-btn" onclick="closeCreateModal()">Cancel</button>
 </div>
@@ -465,21 +496,29 @@ function wizardShowStage(stage) {
   wizardStage = stage;
   var s1 = document.getElementById('wizard-stage-1');
   var s2 = document.getElementById('wizard-stage-2');
+  var s3 = document.getElementById('wizard-stage-3');
   if (s1) s1.style.display = (stage === 1) ? 'block' : 'none';
   if (s2) s2.style.display = (stage === 2) ? 'block' : 'none';
+  if (s3) s3.style.display = (stage === 3) ? 'block' : 'none';
 }
 function wizardGoBack() {
   // Stage 2 → Stage 1: no clearing; values live in the form fields.
   wizardShowStage(1);
+}
+function wizardGoBackTo2() {
+  // Stage 3 → Stage 2: no clearing; values live in the form fields.
+  wizardShowStage(2);
 }
 function wizardReset() {
   wizardStage = 1;
   wizardDraft = null;
   var s1 = document.getElementById('wizard-stage-1');
   var s2 = document.getElementById('wizard-stage-2');
+  var s3 = document.getElementById('wizard-stage-3');
   if (s1) s1.style.display = 'block';
   if (s2) s2.style.display = 'none';
-  ['f-name','f-type','f-brand','f-objective','f-priority'].forEach(function(id) {
+  if (s3) s3.style.display = 'none';
+  ['f-name','f-type','f-brand','f-objective','f-priority','f-purpose','f-audience','f-bigidea','f-success','f-pillars'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -684,24 +723,57 @@ function handleFormSubmit(e) {
     return false;
   }
 
-  // --- Create / Wizard Stage 1 → Stage 2 branch ---
-  // Validation: name (required) + type (required)
-  var typeVal = ((document.getElementById('f-type') || {}).value || '').trim();
-  if (!typeVal) {
-    if (errEl) { errEl.textContent = 'Campaign Type is required.'; errEl.style.display = 'block'; }
+  // --- Create / Wizard transitions ---
+  if (!currentEditingId) {
+    if (wizardStage === 1) {
+      // Stage 1 → Stage 2: validation: name (required) + type (required)
+      var typeVal = ((document.getElementById('f-type') || {}).value || '').trim();
+      if (!typeVal) {
+        if (errEl) { errEl.textContent = 'Campaign Type is required.'; errEl.style.display = 'block'; }
+        return false;
+      }
+      // Stash Stage 1 values. Stage 2 fields go in wizardDraft.stage2 only after Stage 2 Next.
+      wizardDraft = {
+        name: name,
+        type: typeVal,
+        brand: ((document.getElementById('f-brand') || {}).value || '').trim(),
+        objective: ((document.getElementById('f-objective') || {}).value || '').trim(),
+        priority: ((document.getElementById('f-priority') || {}).value || '').trim()
+      };
+      // Move to Stage 2 (Plan / Brief). Form fields stay populated, so Back restores everything.
+      if (errEl) errEl.style.display = 'none';
+      wizardShowStage(2);
+      return false;
+    }
+    if (wizardStage === 2) {
+      // Stage 2 → Stage 3: collect Plan / Brief fields. All optional (planner inputs).
+      // Pillars are freeform text (one per line: "name — description"); we parse into {id,name,description}[].
+      var pillarsRaw = ((document.getElementById('f-pillars') || {}).value || '');
+      var pillarsParsed = pillarsRaw.split('\n').map(function(line) {
+        var trimmed = line.trim();
+        if (!trimmed) return null;
+        var sep = trimmed.indexOf('—');
+        if (sep === -1) sep = trimmed.indexOf('-');
+        if (sep === -1) return { id: 'p', name: trimmed, description: '' };
+        var n = trimmed.substring(0, sep).trim();
+        var d = trimmed.substring(sep + 1).trim();
+        return { id: 'p' + n.toLowerCase().replace(/[^a-z0-9]+/g, ''), name: n, description: d };
+      }).filter(function(x) { return x !== null; });
+      wizardDraft = wizardDraft || {};
+      wizardDraft.stage2 = {
+        purpose: ((document.getElementById('f-purpose') || {}).value || '').trim(),
+        audience: ((document.getElementById('f-audience') || {}).value || '').trim(),
+        bigIdea: ((document.getElementById('f-bigidea') || {}).value || '').trim(),
+        successMetric: ((document.getElementById('f-success') || {}).value || '').trim(),
+        pillars: pillarsParsed
+      };
+      if (errEl) errEl.style.display = 'none';
+      wizardShowStage(3);
+      return false;
+    }
+    // Stage 3 (placeholder): do nothing on Next; Cancel closes the modal.
     return false;
   }
-  // Stash the draft. Do NOT create a campaign. Do NOT persist.
-  wizardDraft = {
-    name: name,
-    type: typeVal,
-    brand: ((document.getElementById('f-brand') || {}).value || '').trim(),
-    objective: ((document.getElementById('f-objective') || {}).value || '').trim(),
-    priority: ((document.getElementById('f-priority') || {}).value || '').trim()
-  };
-  // Move to Stage 2 (placeholder). Form fields stay populated, so Back restores everything.
-  wizardShowStage(2);
-  return false;
 }
 function renderNewCampaignCard(c) {
   return '<div class="ccard" onclick="selectCampaign(\'' + c.identity.campaignId + '\')" style="cursor:pointer">' +
