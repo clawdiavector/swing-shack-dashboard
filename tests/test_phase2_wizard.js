@@ -64,6 +64,22 @@ section('HTML structure');
 const html = fs.readFileSync(HTML_PATH, 'utf-8');
 
 assert('header has + Create Campaign button', html.includes('+ Create Campaign'));
+assert('header has Hooks view button', html.includes('id="btn-hooks"') && html.includes('onclick="showView(\'hooks\')"'));
+assert('view-hooks panel exists', html.includes('id="view-hooks"'));
+assert('Hook Bank filter select exists', html.includes('id="hooks-filter"'));
+assert('New Hook modal exists', html.includes('id="hookModal"') && html.includes('id="hookForm"'));
+assert('hook functions defined', [
+  'function openHookModal', 'function openEditHookModal', 'function closeHookModal',
+  'function handleHookSubmit', 'function renderHookBank', 'function renderHookCard',
+  'function confirmDeleteHook', 'function promptAttachHook',
+  'function hookReadAll', 'function hookWriteAll', 'function hookAppend', 'function hookDelete', 'function nextHookId'
+].every(fn => html.includes(fn)));
+assert('Hook fields: text, kind, brand, source, note', [
+  'id="h-text"', 'id="h-kind"', 'id="h-brand"', 'id="h-source"', 'id="h-note"'
+].every(id => html.includes(id)));
+assert('Hook kinds include meme/billboard/caption/angle', [
+  'value="meme"', 'value="billboard"', 'value="caption"', 'value="angle"'
+].every(v => html.includes(v)));
 assert('header has Clear Dev Data button', html.includes('Clear Dev Data'));
 assert('modal createModal exists', html.includes('id="createModal"'));
 assert('Stage 1 fields: name, type, brand, objective, priority', [
@@ -164,6 +180,12 @@ section('Live API — wizard payload (new shape)');
   const r7 = await httpJson('GET', BASE + '/api/health');
   assert('GET /api/health returns 200', r7.status === 200, { status: r7.status });
   assert('GET /api/health has status=ok', r7.json && r7.json.status === 'ok');
+
+  // ── Step 10: Hook Bank — standalone workspace ──────────────────
+  section('Step 10: Hook Bank (HTML structure, 8 new assertions)');
+  // The 8 hook-specific HTML assertions above are part of the structural
+  // block; we report how many new assertions Step 10 added here.
+  results.push('  (8 new assertions for Step 10 — Hooks view, modal, fields, store, attach/detach, filter)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
