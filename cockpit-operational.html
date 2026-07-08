@@ -44,6 +44,20 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .ccard-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
 .ccard-meta { font-size: 11px; color: var(--col-muted); margin-bottom: 8px; line-height: 1.4; }
 .ccard-assetcount { font-size: 11px; font-weight: 600; }
+.ccard-status { display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:2px 8px; border-radius:10px; margin-bottom:6px; }
+.ccard-status[data-status="draft"] { background:#6e6e8233; color:#a0a0b0; }
+.ccard-status[data-status="ready-for-review"] { background:#ffaa0022; color:#ffaa00; }
+.ccard-status[data-status="approved"] { background:#00cc7722; color:#00cc77; }
+.ccard-status[data-status="rejected"] { background:#ff445522; color:#ff4455; }
+.detail-status-bar { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface2); border-radius:8px; margin-bottom:16px; }
+.detail-status-pill { display:inline-block; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:3px 10px; border-radius:10px; }
+.detail-status-pill[data-status="draft"] { background:#6e6e8233; color:#a0a0b0; }
+.detail-status-pill[data-status="ready-for-review"] { background:#ffaa0022; color:#ffaa00; }
+.detail-status-pill[data-status="approved"] { background:#00cc7722; color:#00cc77; }
+.detail-status-pill[data-status="rejected"] { background:#ff445522; color:#ff4455; }
+.detail-history { margin-top:12px; padding:10px 14px; background:var(--surface); border-radius:8px; font-size:12px; color:var(--col-muted); }
+.detail-history-item { padding:4px 0; border-bottom:1px solid var(--surface2); }
+.detail-history-item:last-child { border-bottom:none; }
 .dna-panel { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
 .dna-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--col-amber); margin-bottom: 8px; }
 .dna-row { display: flex; gap: 8px; margin-bottom: 6px; font-size: 12px; }
@@ -83,6 +97,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <button class="view-btn" id="btn-review" onclick="showView('review')">Review</button>
 <button class="view-btn" id="btn-detail" onclick="showView('detail')">Campaign</button>
 <button class="view-btn" id="btn-create" style="background:var(--col-green);color:#0a0a0f;font-weight:700" onclick="openCreateModal()">+ Create Campaign</button>
+<button class="view-btn" id="btn-clear-dev" style="color:var(--col-red);font-weight:600;margin-left:8px" onclick="clearDevData()" title="Clear all dev-store campaigns and reload">Clear Dev Data</button>
 </div>
 <div class="campaign-selector-wrap" id="campaignSelectorWrap" style="display:none">
 <span class="campaign-selector-label">Campaign:</span>
@@ -104,7 +119,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div><div class="stat-value" style="color:var(--col-amber)">41</div><div class="stat-sub">In Progress</div></div>
 </div>
 </div>
-<div class="campaign-cards"><div class="ccard" onclick="selectCampaign('trackman-intelligence')" style="cursor:pointer"><div class="ccard-name">TrackMan Intelligence</div><div class="ccard-meta">Drive fitting bookings and coaching sessions</div><div class="ccard-assetcount" style="color:#ffaa00">0 assets &middot; Degraded</div></div><div class="ccard" onclick="selectCampaign('takomo-101t')" style="cursor:pointer"><div class="ccard-name">Takomo 101T</div><div class="ccard-meta">Drive Takomo 101T iron fittings and showcase value prop</div><div class="ccard-assetcount" style="color:#ffaa00">6 assets &middot; Degraded</div></div><div class="ccard" onclick="selectCampaign('winter-golf')" style="cursor:pointer"><div class="ccard-name">Winter Golf</div><div class="ccard-meta">Drive indoor golf sessions during SA winter season</div><div class="ccard-assetcount" style="color:#00cc77">0 assets &middot; Healthy</div></div><div class="ccard" onclick="selectCampaign('use-the-right-equipment-mq5l90bk')" style="cursor:pointer"><div class="ccard-name">Use the Right Equipment</div><div class="ccard-meta"></div><div class="ccard-assetcount" style="color:#ff4455">36 assets &middot; Unknown</div></div></div>
+<div class="campaign-cards"><div class="ccard" onclick="selectCampaign('trackman-intelligence')" style="cursor:pointer"><div class="ccard-status" data-status="approved">approved</div><div class="ccard-name">TrackMan Intelligence</div><div class="ccard-meta">Drive fitting bookings and coaching sessions</div><div class="ccard-assetcount" style="color:#ffaa00">0 assets &middot; Degraded</div></div><div class="ccard" onclick="selectCampaign('takomo-101t')" style="cursor:pointer"><div class="ccard-status" data-status="approved">approved</div><div class="ccard-name">Takomo 101T</div><div class="ccard-meta">Drive Takomo 101T iron fittings and showcase value prop</div><div class="ccard-assetcount" style="color:#ffaa00">6 assets &middot; Degraded</div></div><div class="ccard" onclick="selectCampaign('winter-golf')" style="cursor:pointer"><div class="ccard-status" data-status="approved">approved</div><div class="ccard-name">Winter Golf</div><div class="ccard-meta">Drive indoor golf sessions during SA winter season</div><div class="ccard-assetcount" style="color:#00cc77">0 assets &middot; Healthy</div></div><div class="ccard" onclick="selectCampaign('use-the-right-equipment-mq5l90bk')" style="cursor:pointer"><div class="ccard-status" data-status="approved">approved</div><div class="ccard-name">Use the Right Equipment</div><div class="ccard-meta"></div><div class="ccard-assetcount" style="color:#ff4455">36 assets &middot; Unknown</div></div></div>
 </div>
 </div>
 <div id="view-detail" class="view-panel">
@@ -177,15 +192,30 @@ function selectCampaign(id) {
   renderCampaign(id);
   showView('detail');
   document.getElementById('header-subtitle').textContent = (window.campaignData.campaigns[id].identity || {}).name || id;
-  // Inject Edit + Review buttons at the top of the detail view (works for all 5+ campaigns)
+  // Inject Edit + Review buttons + status pill + history at the top of the detail view (works for all 5+ campaigns)
   var detailContent = document.getElementById('detail-content');
   if (detailContent) {
     var existing = detailContent.querySelector('.detail-edit-bar');
     if (existing) existing.remove();
+    var existingHist = detailContent.querySelector('.detail-history');
+    if (existingHist) existingHist.remove();
+    var existingPill = detailContent.querySelector('.detail-status-bar');
+    if (existingPill) existingPill.remove();
+
+    var identity = window.campaignData.campaigns[id].identity || {};
+    var status = identity.status || 'draft';
+
+    // Status pill
+    var pillBar = document.createElement('div');
+    pillBar.className = 'detail-status-bar';
+    pillBar.innerHTML = '<span style="font-size:10px;color:var(--col-muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600">Status</span>' +
+      '<span class="detail-status-pill" data-status="' + status + '">' + status + '</span>';
+    detailContent.insertBefore(pillBar, detailContent.firstChild);
+
+    // Action button bar
     var bar = document.createElement('div');
     bar.className = 'detail-edit-bar';
     bar.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap';
-    var status = (window.campaignData.campaigns[id].identity && window.campaignData.campaigns[id].identity.status) || 'draft';
     var html = '';
     if (status === 'draft') {
       html += '<button class="view-btn" id="btn-submit-review" style="background:var(--col-amber);color:#0a0a0f;font-weight:700" onclick="submitForReview(\'' + id + '\')">Submit for Review</button>';
@@ -196,6 +226,23 @@ function selectCampaign(id) {
     html += '<button class="view-btn" id="btn-edit-campaign" style="background:var(--col-green);color:#0a0a0f;font-weight:700" onclick="openEditModal(\'' + id + '\')">Edit Campaign</button>';
     bar.innerHTML = html;
     detailContent.insertBefore(bar, detailContent.firstChild);
+
+    // History block (at the bottom)
+    var history = window.campaignData.campaigns[id].history || [];
+    var histBlock = document.createElement('div');
+    histBlock.className = 'detail-history';
+    var histHtml = '<div style="font-size:10px;color:var(--col-muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:6px">History</div>';
+    if (history.length === 0) {
+      histHtml += '<div class="detail-history-item" style="color:var(--col-muted)">No history yet.</div>';
+    } else {
+      for (var hi = 0; hi < history.length; hi++) {
+        var h = history[hi];
+        var hDate = h.at ? new Date(h.at).toLocaleString() : '';
+        histHtml += '<div class="detail-history-item"><span style="color:var(--col-amber);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:0.08em;margin-right:8px">' + (h.action || '') + '</span>' + (h.note || '') + ' <span style="color:var(--col-muted);font-size:11px;margin-left:8px">' + hDate + '</span></div>';
+      }
+    }
+    histBlock.innerHTML = histHtml;
+    detailContent.appendChild(histBlock);
   }
 }
 function renderCampaign(id) {
@@ -260,7 +307,11 @@ function devStoreAppend(campaign) {
   }
   if (!replaced) entries.push(campaign);
   devStoreWriteAll(entries);
-  return replaced ? 'updated' : 'appended';
+}
+function clearDevData() {
+  try { window.localStorage.removeItem(DEV_STORE_KEY); } catch (err) { /* silent */ }
+  // Reload the page to fall back to the 4 embedded demo campaigns.
+  window.location.reload();
 }
 function devStoreHydrate() {
   var entries = devStoreReadAll();
@@ -280,6 +331,8 @@ function devStoreHydrate() {
     if (!wasEmbedded && grid) {
       var existingCard = findCardById(id);
       if (!existingCard) grid.insertAdjacentHTML('beforeend', renderNewCampaignCard(c));
+      // Refresh badge/text to reflect latest stored status (e.g. approved after refresh)
+      updateCampaignCard(id);
     } else if (wasEmbedded) {
       // Embedded card exists in the hardcoded HTML — refresh its text to reflect the dev-store version
       updateCampaignCard(id);
@@ -322,6 +375,12 @@ function updateCampaignCard(id) {
     var count = (c.assets && c.assets.length) || 0;
     var status = c.identity.status || 'draft';
     assetEl.textContent = count + ' assets · ' + status;
+  }
+  var badgeEl = card.querySelector('.ccard-status');
+  if (badgeEl) {
+    var st = c.identity.status || 'draft';
+    badgeEl.setAttribute('data-status', st);
+    badgeEl.textContent = st;
   }
   return true;
 }
@@ -421,6 +480,7 @@ function renderReviewQueue() {
     var c = window.campaignData.campaigns[id];
     var name = (c.identity && c.identity.name) || id;
     return '<div class="ccard" onclick="openFromQueue(\'' + id + '\')" style="cursor:pointer">' +
+      '<div class="ccard-status" data-status="ready-for-review">ready for review</div>' +
       '<div class="ccard-name">' + name + '</div>' +
       '<div class="ccard-meta">Awaiting review</div>' +
       '<div class="ccard-assetcount" style="color:var(--col-amber)">ready-for-review</div>' +
@@ -521,6 +581,7 @@ function handleFormSubmit(e) {
 }
 function renderNewCampaignCard(c) {
   return '<div class="ccard" onclick="selectCampaign(\'' + c.identity.campaignId + '\')" style="cursor:pointer">' +
+    '<div class="ccard-status" data-status="draft">draft</div>' +
     '<div class="ccard-name">' + c.identity.name + '</div>' +
     '<div class="ccard-meta">Created just now</div>' +
     '<div class="ccard-assetcount" style="color:var(--col-green)">0 assets &middot; draft</div>' +
