@@ -79,7 +79,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 </div>
 <div style="display:flex;align-items:center;gap:16px">
 <div class="view-toggle">
-<button class="view-btn active" id="btn-portfolio" onclick="showView('portfolio')">Portfolio</button>
+<button class="view-btn" id="btn-portfolio" onclick="showView('portfolio')">Portfolio</button>
+<button class="view-btn" id="btn-review" onclick="showView('review')">Review</button>
 <button class="view-btn" id="btn-detail" onclick="showView('detail')">Campaign</button>
 <button class="view-btn" id="btn-create" style="background:var(--col-green);color:#0a0a0f;font-weight:700" onclick="openCreateModal()">+ Create Campaign</button>
 </div>
@@ -109,6 +110,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div id="view-detail" class="view-panel">
 <div class="detail-back" onclick="showView('portfolio')">&#8592; Back to Portfolio</div>
 <div id="detail-content"></div>
+</div>
+<div id="view-review" class="view-panel">
+<div class="card">
+<div class="card-title" id="review-header">Review Queue — 0 campaigns</div>
+<div id="review-list" class="campaign-cards"></div>
+<div id="review-empty" style="display:none;padding:48px;text-align:center;color:var(--col-muted)">No campaigns awaiting review.</div>
+</div>
 </div>
 </div>
 <div class="footer">Campaign OS v2 &middot; Portfolio &middot; Updated 04 Jun 2026 07:26 SAST &middot; Source: campaign-data.json</div>
@@ -142,10 +150,14 @@ function showView(name) {
   activeView = name;
   document.getElementById('view-portfolio').classList.toggle('active', name === 'portfolio');
   document.getElementById('view-detail').classList.toggle('active', name === 'detail');
+  document.getElementById('view-review').classList.toggle('active', name === 'review');
   document.getElementById('btn-portfolio').classList.toggle('active', name === 'portfolio');
   document.getElementById('btn-detail').classList.toggle('active', name === 'detail');
+  document.getElementById('btn-review').classList.toggle('active', name === 'review');
   document.getElementById('campaignSelectorWrap').style.display = (name === 'detail') ? 'flex' : 'none';
   if (name === 'portfolio') document.getElementById('header-subtitle').textContent = 'Portfolio Overview';
+  if (name === 'review') { renderReviewQueue(); document.getElementById('header-subtitle').textContent = 'Review Queue'; }
+  if (name === 'detail') document.getElementById('header-subtitle').textContent = 'Detail';
 }
 function getCampaign(id) { return (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[id] : null; }
 function initSelector() {
@@ -165,15 +177,24 @@ function selectCampaign(id) {
   renderCampaign(id);
   showView('detail');
   document.getElementById('header-subtitle').textContent = (window.campaignData.campaigns[id].identity || {}).name || id;
-  // Inject an Edit button at the top of the detail view (works for all 5+ campaigns)
+  // Inject Edit + Review buttons at the top of the detail view (works for all 5+ campaigns)
   var detailContent = document.getElementById('detail-content');
   if (detailContent) {
     var existing = detailContent.querySelector('.detail-edit-bar');
     if (existing) existing.remove();
     var bar = document.createElement('div');
     bar.className = 'detail-edit-bar';
-    bar.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:12px';
-    bar.innerHTML = '<button class="view-btn" id="btn-edit-campaign" style="background:var(--col-green);color:#0a0a0f;font-weight:700" onclick="openEditModal(\'' + id + '\')">Edit Campaign</button>';
+    bar.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap';
+    var status = (window.campaignData.campaigns[id].identity && window.campaignData.campaigns[id].identity.status) || 'draft';
+    var html = '';
+    if (status === 'draft') {
+      html += '<button class="view-btn" id="btn-submit-review" style="background:var(--col-amber);color:#0a0a0f;font-weight:700" onclick="submitForReview(\'' + id + '\')">Submit for Review</button>';
+    } else if (status === 'ready-for-review') {
+      html += '<button class="view-btn" id="btn-approve" style="background:var(--col-green);color:#0a0a0f;font-weight:700" onclick="approveCampaign(\'' + id + '\')">Approve</button>';
+      html += '<button class="view-btn" id="btn-reject" style="background:var(--col-red);color:#fff;font-weight:700" onclick="rejectCampaign(\'' + id + '\')">Reject</button>';
+    }
+    html += '<button class="view-btn" id="btn-edit-campaign" style="background:var(--col-green);color:#0a0a0f;font-weight:700" onclick="openEditModal(\'' + id + '\')">Edit Campaign</button>';
+    bar.innerHTML = html;
     detailContent.insertBefore(bar, detailContent.firstChild);
   }
 }
@@ -350,6 +371,64 @@ function closeCreateModal() {
   var okEl = document.getElementById('form-success');
   if (errEl) errEl.style.display = 'none';
   if (okEl) okEl.style.display = 'none';
+}
+
+// --- Step 5: Review Queue (status transitions) ---
+function transitionStatus(id, newStatus, action, note) {
+  var c = window.campaignData.campaigns[id];
+  if (!c) return false;
+  c.identity = c.identity || {};
+  c.identity.status = newStatus;
+  c.identity.updatedAt = new Date().toISOString();
+  if (!Array.isArray(c.history)) c.history = [];
+  c.history.push({ action: action, by: 'christelle', at: c.identity.updatedAt, note: note });
+  devStoreAppend(c);
+  updateCampaignCard(id);
+  return true;
+}
+function submitForReview(id) {
+  if (!transitionStatus(id, 'ready-for-review', 'submitted', 'Campaign submitted for review.')) return;
+  if (window.campaignData.activeCampaignId === id) {
+    renderCampaign(id);
+    selectCampaign(id); // re-inject buttons (status changed, so the bar layout changes)
+  }
+  if (activeView === 'review') renderReviewQueue();
+}
+function approveCampaign(id) {
+  if (!transitionStatus(id, 'approved', 'approved', 'Campaign approved.')) return;
+  if (window.campaignData.activeCampaignId === id) selectCampaign(id);
+  if (activeView === 'review') renderReviewQueue();
+}
+function rejectCampaign(id) {
+  if (!transitionStatus(id, 'rejected', 'rejected', 'Campaign rejected.')) return;
+  if (window.campaignData.activeCampaignId === id) selectCampaign(id);
+  if (activeView === 'review') renderReviewQueue();
+}
+function renderReviewQueue() {
+  var ids = Object.keys(window.campaignData.campaigns).filter(function(id) {
+    return window.campaignData.campaigns[id].identity && window.campaignData.campaigns[id].identity.status === 'ready-for-review';
+  });
+  document.getElementById('review-header').textContent = 'Review Queue — ' + ids.length + (ids.length === 1 ? ' campaign' : ' campaigns');
+  var list = document.getElementById('review-list');
+  var empty = document.getElementById('review-empty');
+  if (!ids.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = ids.map(function(id) {
+    var c = window.campaignData.campaigns[id];
+    var name = (c.identity && c.identity.name) || id;
+    return '<div class="ccard" onclick="openFromQueue(\'' + id + '\')" style="cursor:pointer">' +
+      '<div class="ccard-name">' + name + '</div>' +
+      '<div class="ccard-meta">Awaiting review</div>' +
+      '<div class="ccard-assetcount" style="color:var(--col-amber)">ready-for-review</div>' +
+    '</div>';
+  }).join('');
+}
+function openFromQueue(id) {
+  selectCampaign(id);
 }
 function handleFormSubmit(e) {
   e.preventDefault();
