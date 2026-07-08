@@ -191,8 +191,72 @@ function closeCreateModal() {
 }
 function handleFormSubmit(e) {
   e.preventDefault();
-  // Step 2 will build the campaign object here.
+  var nameEl = document.getElementById('f-name');
+  var errEl = document.getElementById('form-error');
+  var okEl = document.getElementById('form-success');
+  if (errEl) errEl.style.display = 'none';
+  if (okEl) okEl.style.display = 'none';
+  var name = (nameEl && nameEl.value || '').trim();
+  if (!name) {
+    if (errEl) { errEl.textContent = 'Campaign name is required.'; errEl.style.display = 'block'; }
+    return false;
+  }
+  // Build campaign object (memory only, no persistence yet)
+  var now = new Date().toISOString();
+  var baseId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  var campaignId = baseId || 'campaign';
+  var suffix = 1;
+  while (window.campaignData.campaigns[campaignId]) {
+    campaignId = baseId + '-' + (++suffix);
+  }
+  var campaign = {
+    identity: {
+      campaignId: campaignId,
+      name: name,
+      status: 'draft',
+      owner: 'christelle',
+      createdAt: now,
+      updatedAt: now
+    },
+    history: [
+      { action: 'created', by: 'christelle', at: now, note: 'Campaign created.' }
+    ]
+  };
+  window.campaignData.campaigns[campaignId] = campaign;
+  // Append a card to the existing hardcoded grid (do not refactor existing cards)
+  var grid = document.querySelector('.campaign-cards');
+  if (grid) grid.insertAdjacentHTML('beforeend', renderNewCampaignCard(campaign));
+  // Provide a default detail render so click-to-detail works
+  window.renderFns[campaignId] = renderGenericDetail;
+  // Update portfolio count
+  var total = Object.keys(window.campaignData.campaigns).length;
+  var titleEl = document.querySelector('.card-title');
+  if (titleEl) titleEl.textContent = 'Campaign Portfolio — ' + total + ' campaigns';
+  if (okEl) { okEl.textContent = 'Created "' + name + '" (draft).'; okEl.style.display = 'block'; }
+  if (nameEl) nameEl.value = '';
   return false;
+}
+function renderNewCampaignCard(c) {
+  return '<div class="ccard" onclick="selectCampaign(\'' + c.identity.campaignId + '\')" style="cursor:pointer">' +
+    '<div class="ccard-name">' + c.identity.name + '</div>' +
+    '<div class="ccard-meta">Created just now</div>' +
+    '<div class="ccard-assetcount" style="color:var(--col-green)">0 assets &middot; draft</div>' +
+  '</div>';
+}
+function renderGenericDetail(c) {
+  var id = c.identity || {};
+  return '<div class="brief-panel">' +
+    '<div class="brief-title">Campaign Detail</div>' +
+    '<div class="brief-row"><div class="brief-key">Name</div><div class="brief-value">' + (id.name || '—') + '</div></div>' +
+    '<div class="brief-row"><div class="brief-key">ID</div><div class="brief-value">' + (id.campaignId || '—') + '</div></div>' +
+    '<div class="brief-row"><div class="brief-key">Status</div><div class="brief-value">' + (id.status || '—') + '</div></div>' +
+    '<div class="brief-row"><div class="brief-key">Owner</div><div class="brief-value">' + (id.owner || '—') + '</div></div>' +
+    '<div class="brief-row"><div class="brief-key">Created</div><div class="brief-value">' + (id.createdAt || '—') + '</div></div>' +
+    '<div class="brief-row"><div class="brief-key">Updated</div><div class="brief-value">' + (id.updatedAt || '—') + '</div></div>' +
+    '<div class="brief-row"><div class="brief-key">History</div><div class="brief-value">' +
+      ((c.history || []).map(function(h) { return (h.action || '') + ' — ' + (h.note || ''); }).join('<br>')) +
+    '</div></div>' +
+  '</div>';
 }
 
 </script>
