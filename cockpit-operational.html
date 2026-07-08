@@ -136,7 +136,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 </div>
 <div class="footer">Campaign OS v2 &middot; Portfolio &middot; Updated 04 Jun 2026 07:26 SAST &middot; Source: campaign-data.json</div>
 
-<!-- Step 1: minimal create modal shell (form fields added in Step 2) -->
+<!-- Step 7: Campaign Wizard (Stage 1: Identity, Stage 2: placeholder) -->
 <div id="createModal" class="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center">
 <div class="modal-panel" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:560px;max-width:90vw;max-height:90vh;overflow:auto">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -146,13 +146,68 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div id="form-error" style="display:none;background:var(--col-red);color:#fff;padding:10px;border-radius:6px;margin-bottom:12px;font-size:12px"></div>
 <div id="form-success" style="display:none;background:var(--col-green);color:#0a0a0f;padding:10px;border-radius:6px;margin-bottom:12px;font-size:12px"></div>
 <form id="createForm" onsubmit="return handleFormSubmit(event)">
+<!-- Stage 1: Identity -->
+<div id="wizard-stage-1">
+<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);margin-bottom:12px">Stage 1 — Campaign Identity</div>
 <div style="margin-bottom:12px">
 <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Campaign Name *</label>
 <input type="text" id="f-name" required placeholder="e.g. Winter Golf Promotions 2026" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
 </div>
-<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Campaign Type *</label>
+<select id="f-type" required style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+<option value="">Select a type…</option>
+<option value="evergreen">Evergreen</option>
+<option value="product-launch">Product Launch</option>
+<option value="seasonal">Seasonal</option>
+<option value="awareness">Awareness</option>
+<option value="promotion">Promotion</option>
+<option value="event">Event</option>
+</select>
+</div>
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Brand</label>
+<select id="f-brand" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+<option value="">Select a brand…</option>
+<option value="swing-shack">Swing Shack</option>
+<option value="trackman">TrackMan</option>
+<option value="takomo">Takomo</option>
+<option value="other">Other</option>
+</select>
+</div>
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Objective</label>
+<input type="text" id="f-objective" placeholder="e.g. Drive fitting bookings" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+</div>
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Priority</label>
+<select id="f-priority" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+<option value="">Select a priority…</option>
+<option value="low">Low</option>
+<option value="medium">Medium</option>
+<option value="high">High</option>
+</select>
+</div>
+<div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+<button type="button" class="view-btn" id="wiz-back" disabled style="opacity:0.4;cursor:not-allowed">← Back</button>
+<div style="display:flex;gap:8px">
 <button type="button" class="view-btn" onclick="closeCreateModal()">Cancel</button>
-<button type="submit" class="view-btn" style="background:var(--col-green);color:#0a0a0f;font-weight:700">Create Campaign</button>
+<button type="submit" class="view-btn" id="wiz-next" style="background:var(--col-green);color:#0a0a0f;font-weight:700;opacity:0.4;cursor:not-allowed" disabled>Next →</button>
+</div>
+</div>
+</div>
+<!-- Stage 2: placeholder -->
+<div id="wizard-stage-2" style="display:none">
+<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);margin-bottom:12px">Stage 2</div>
+<div style="padding:32px 16px;text-align:center;color:var(--col-muted);font-size:14px;border:1px dashed var(--border);border-radius:8px;margin-bottom:16px">
+Stage 2 coming next.
+</div>
+<div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+<button type="button" class="view-btn" id="wiz-back-2" style="background:var(--col-muted);color:#0a0a0f;font-weight:700" onclick="wizardGoBack()">← Back</button>
+<div style="display:flex;gap:8px">
+<button type="button" class="view-btn" onclick="closeCreateModal()">Cancel</button>
+</div>
+</div>
 </div>
 </form>
 </div>
@@ -385,20 +440,91 @@ function updateCampaignCard(id) {
   return true;
 }
 
+// --- Step 7: Campaign Wizard (Stage 1: Identity, Stage 2: placeholder) ---
+var wizardStage = 1;
+var wizardDraft = null; // values entered in Stage 1 (no campaign created until final Save)
+function wizardStage1Valid() {
+  var name = ((document.getElementById('f-name') || {}).value || '').trim();
+  var type = ((document.getElementById('f-type') || {}).value || '').trim();
+  return name.length > 0 && type.length > 0;
+}
+function wizardUpdateNextButton() {
+  var btn = document.getElementById('wiz-next');
+  if (!btn) return;
+  var ok = wizardStage1Valid();
+  btn.disabled = !ok;
+  if (ok) {
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+  }
+}
+function wizardShowStage(stage) {
+  wizardStage = stage;
+  var s1 = document.getElementById('wizard-stage-1');
+  var s2 = document.getElementById('wizard-stage-2');
+  if (s1) s1.style.display = (stage === 1) ? 'block' : 'none';
+  if (s2) s2.style.display = (stage === 2) ? 'block' : 'none';
+}
+function wizardGoBack() {
+  // Stage 2 → Stage 1: no clearing; values live in the form fields.
+  wizardShowStage(1);
+}
+function wizardReset() {
+  wizardStage = 1;
+  wizardDraft = null;
+  var s1 = document.getElementById('wizard-stage-1');
+  var s2 = document.getElementById('wizard-stage-2');
+  if (s1) s1.style.display = 'block';
+  if (s2) s2.style.display = 'none';
+  ['f-name','f-type','f-brand','f-objective','f-priority'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  wizardUpdateNextButton();
+}
+
+// Live validation: enable/disable Next as the user types/selects.
+(function wireWizardValidation() {
+  function onChange() { wizardUpdateNextButton(); }
+  var n = document.getElementById('f-name');
+  var t = document.getElementById('f-type');
+  if (n) n.addEventListener('input', onChange);
+  if (t) t.addEventListener('change', onChange);
+})();
+
 // --- Step 4: edit mode (modal reused for editing) ---
 var currentEditingId = null;
 function openEditModal(id) {
   var c = window.campaignData.campaigns[id];
   if (!c) return false;
   currentEditingId = id;
+  wizardReset();
   var modal = document.getElementById('createModal');
   if (modal) modal.style.display = 'flex';
   var titleEl = modal && modal.querySelector('.modal-title');
   if (titleEl) titleEl.textContent = 'Edit Campaign';
-  var submitBtn = modal && modal.querySelector('button[type="submit"]');
-  if (submitBtn) submitBtn.textContent = 'Save Changes';
+  // Submit button acts as "Save Changes" in edit mode (not wizard Next)
+  var submitBtn = modal && modal.querySelector('#wiz-next');
+  if (submitBtn) {
+    submitBtn.textContent = 'Save Changes';
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.style.cursor = 'pointer';
+  }
   var nameEl = document.getElementById('f-name');
   if (nameEl) nameEl.value = c.identity.name || '';
+  // Pre-fill wizard fields from existing identity where possible
+  var typeEl = document.getElementById('f-type');
+  if (typeEl) typeEl.value = c.identity.campaignType || '';
+  var brandEl = document.getElementById('f-brand');
+  if (brandEl) brandEl.value = c.identity.brand || '';
+  var objEl = document.getElementById('f-objective');
+  if (objEl) objEl.value = c.identity.goal || c.identity.objective || '';
+  var priEl = document.getElementById('f-priority');
+  if (priEl) priEl.value = c.identity.priority || '';
   var errEl = document.getElementById('form-error');
   var okEl = document.getElementById('form-success');
   if (errEl) errEl.style.display = 'none';
@@ -409,14 +535,19 @@ function openEditModal(id) {
 // --- Phase 2: Create Campaign modal (Step 1: open/close) ---
 function openCreateModal() {
   currentEditingId = null;
+  wizardReset();
   var modal = document.getElementById('createModal');
   if (modal) modal.style.display = 'flex';
   var titleEl = modal && modal.querySelector('.modal-title');
   if (titleEl) titleEl.textContent = 'Create Campaign';
-  var submitBtn = modal && modal.querySelector('button[type="submit"]');
-  if (submitBtn) submitBtn.textContent = 'Create Campaign';
-  var nameEl = document.getElementById('f-name');
-  if (nameEl) nameEl.value = '';
+  // Submit button acts as wizard "Next →" in create mode
+  var submitBtn = modal && modal.querySelector('#wiz-next');
+  if (submitBtn) {
+    submitBtn.textContent = 'Next →';
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.4';
+    submitBtn.style.cursor = 'not-allowed';
+  }
   var errEl = document.getElementById('form-error');
   var okEl = document.getElementById('form-success');
   if (errEl) errEl.style.display = 'none';
@@ -426,6 +557,7 @@ function closeCreateModal() {
   currentEditingId = null;
   var modal = document.getElementById('createModal');
   if (modal) modal.style.display = 'none';
+  wizardReset();
   var errEl = document.getElementById('form-error');
   var okEl = document.getElementById('form-success');
   if (errEl) errEl.style.display = 'none';
@@ -514,6 +646,15 @@ function handleFormSubmit(e) {
     // Preserve: campaignId, createdAt, status, owner
     existing.identity = existing.identity || {};
     existing.identity.name = name;
+    // Pull the wizard fields into the identity if they were filled
+    var tEl = document.getElementById('f-type');
+    var bEl = document.getElementById('f-brand');
+    var oEl = document.getElementById('f-objective');
+    var pEl = document.getElementById('f-priority');
+    if (tEl && tEl.value) existing.identity.campaignType = tEl.value;
+    if (bEl && bEl.value) existing.identity.brand = bEl.value;
+    if (oEl && oEl.value) existing.identity.goal = oEl.value;
+    if (pEl && pEl.value) existing.identity.priority = pEl.value;
     existing.identity.updatedAt = now;
     if (!Array.isArray(existing.history)) existing.history = [];
     existing.history.push({ action: 'updated', by: 'christelle', at: now, note: 'Campaign updated.' });
@@ -543,40 +684,23 @@ function handleFormSubmit(e) {
     return false;
   }
 
-  // --- Create branch ---
-  var baseId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  var campaignId = baseId || 'campaign';
-  var suffix = 1;
-  while (window.campaignData.campaigns[campaignId]) {
-    campaignId = baseId + '-' + (++suffix);
+  // --- Create / Wizard Stage 1 → Stage 2 branch ---
+  // Validation: name (required) + type (required)
+  var typeVal = ((document.getElementById('f-type') || {}).value || '').trim();
+  if (!typeVal) {
+    if (errEl) { errEl.textContent = 'Campaign Type is required.'; errEl.style.display = 'block'; }
+    return false;
   }
-  var campaign = {
-    identity: {
-      campaignId: campaignId,
-      name: name,
-      status: 'draft',
-      owner: 'christelle',
-      createdAt: now,
-      updatedAt: now
-    },
-    history: [
-      { action: 'created', by: 'christelle', at: now, note: 'Campaign created.' }
-    ]
+  // Stash the draft. Do NOT create a campaign. Do NOT persist.
+  wizardDraft = {
+    name: name,
+    type: typeVal,
+    brand: ((document.getElementById('f-brand') || {}).value || '').trim(),
+    objective: ((document.getElementById('f-objective') || {}).value || '').trim(),
+    priority: ((document.getElementById('f-priority') || {}).value || '').trim()
   };
-  window.campaignData.campaigns[campaignId] = campaign;
-  // Persist to localStorage (dev store, no API yet)
-  devStoreAppend(campaign);
-  // Append a card to the existing hardcoded grid (do not refactor existing cards)
-  var grid = document.querySelector('.campaign-cards');
-  if (grid) grid.insertAdjacentHTML('beforeend', renderNewCampaignCard(campaign));
-  // Provide a default detail render so click-to-detail works
-  window.renderFns[campaignId] = renderGenericDetail;
-  // Update portfolio count
-  var total = Object.keys(window.campaignData.campaigns).length;
-  var titleEl = document.querySelector('.card-title');
-  if (titleEl) titleEl.textContent = 'Campaign Portfolio — ' + total + ' campaigns';
-  if (okEl) { okEl.textContent = 'Created "' + name + '" (draft).'; okEl.style.display = 'block'; }
-  if (nameEl) nameEl.value = '';
+  // Move to Stage 2 (placeholder). Form fields stay populated, so Back restores everything.
+  wizardShowStage(2);
   return false;
 }
 function renderNewCampaignCard(c) {
