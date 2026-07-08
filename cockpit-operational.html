@@ -431,6 +431,37 @@ function devStoreAppend(campaign) {
   if (!replaced) entries.push(campaign);
   devStoreWriteAll(entries);
 }
+// --- Step 9: try live API first, fall back to localStorage ---
+// Returns a promise that resolves to {ok: true, source: 'api'|'local', campaign}
+// Use this from the create flow so dev and prod share the same code path.
+function devApiCreate(campaign) {
+  return new Promise(function(resolve) {
+    // localStorage always succeeds as a fallback (dev adapter contract)
+    devStoreAppend(campaign);
+    // Try the live API in the background (fire-and-forget sync to Railway)
+    try {
+      if (typeof fetch !== 'function') {
+        resolve({ ok: true, source: 'local' });
+        return;
+      }
+      fetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(campaign)
+      }).then(function(r) {
+        if (r && r.ok) {
+          resolve({ ok: true, source: 'api' });
+        } else {
+          resolve({ ok: true, source: 'local' });
+        }
+      }).catch(function() {
+        resolve({ ok: true, source: 'local' });
+      });
+    } catch (e) {
+      resolve({ ok: true, source: 'local' });
+    }
+  });
+}
 function clearDevData() {
   try { window.localStorage.removeItem(DEV_STORE_KEY); } catch (err) { /* silent */ }
   // Reload the page to fall back to the 4 embedded demo campaigns.
@@ -882,8 +913,16 @@ function handleFormSubmit(e) {
       if (!window.campaignData) window.campaignData = { portfolioMetadata: {}, campaigns: {} };
       if (!window.campaignData.campaigns) window.campaignData.campaigns = {};
       window.campaignData.campaigns[campaignId] = newCampaign;
-      // Persist via dev store (or live API)
-      devStoreAppend(newCampaign);
+      // Persist: try live API, fall back to localStorage (dev adapter contract)
+      devApiCreate(newCampaign).then(function(result) {
+        try {
+          var sub = document.getElementById('header-subtitle');
+          if (sub && result && result.source) {
+            // Quietly annotate for the integrator (no UI noise on success)
+            window.__lastCreateSource = result.source;
+          }
+        } catch (e) {}
+      });
       // Render the new card in the portfolio grid (grid is the first .campaign-cards in DOM)
       try {
         var grid = document.querySelector('.campaign-cards');

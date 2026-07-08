@@ -140,42 +140,82 @@ def get_campaign(campaign_id):
 
 @app.route('/api/campaigns', methods=['POST'])
 def create_campaign():
-    """Create a new campaign."""
+    """Create a new campaign.
+
+    Accepts two shapes (contract-equivalent):
+      1. Wizard payload (Phase 2 Step 9+): { identity, plan, brief, status, lifecycle, history, ... }
+         The new full-shape is passed through verbatim. Server only validates and persists.
+      2. Legacy payload: { name, shortName?, primaryGoal?, goal?, owner? }
+         Server builds the new shape from legacy fields (kept for backward compat).
+    """
     body = request.get_json()
     if not body:
         return jsonify({"error": "No JSON body"}), 400
-    name = body.get('name', '').strip()
-    if not name:
-        return jsonify({"error": "Campaign name required"}), 400
 
     data = load_data()
     campaigns = data.get("campaigns", {})
 
-    # Generate ID
-    import re
-    campaign_id = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
-    base_id = campaign_id
-    counter = 1
-    while campaign_id in campaigns:
-        campaign_id = f"{base_id}-{counter}"
-        counter += 1
+    # If the request is already in the new wizard shape (has 'identity' + 'plan' + 'brief'),
+    # accept it as-is. The client is the source of truth for the new schema.
+    if isinstance(body.get("identity"), dict) and isinstance(body.get("plan"), dict) and isinstance(body.get("brief"), dict):
+        new_campaign = body
+        campaign_id = new_campaign["identity"].get("campaignId")
+        if not campaign_id:
+            return jsonify({"error": "identity.campaignId required for wizard payload"}), 400
+        if campaign_id in campaigns:
+            return jsonify({"error": f"campaign '{campaign_id}' already exists"}), 409
+        # Ensure status/lifecycle/history exist
+        new_campaign.setdefault("status", "draft")
+        new_campaign.setdefault("lifecycle", "draft")
+        if not isinstance(new_campaign.get("history"), list) or not new_campaign["history"]:
+            now = datetime.datetime.utcnow().isoformat() + 'Z'
+            new_campaign["history"] = [{"action": "created", "by": "christelle", "at": now, "note": "Campaign created via API."}]
+    else:
+        # Legacy shape: build the new structure from minimal fields
+        name = (body.get('name') or '').strip()
+        if not name:
+            return jsonify({"error": "Campaign name required"}), 400
 
-    now = datetime.datetime.utcnow().isoformat() + 'Z'
-    new_campaign = {
-        "identity": {
-            "campaignId": campaign_id,
-            "name": name,
-            "shortName": body.get('shortName', name),
-            "goal": body.get('primaryGoal', body.get('goal', '')),
-            "status": "active",
-            "owner": body.get('owner', 'christelle'),
-            "createdAt": now,
-            "updatedAt": now
-        },
-        "assets": {},
-        "productionPlan": None,
-        "blueprints": []
-    }
+        import re
+        campaign_id = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+        base_id = campaign_id
+        counter = 1
+        while campaign_id in campaigns:
+            campaign_id = f"{base_id}-{counter}"
+            counter += 1
+
+        now = datetime.datetime.utcnow().isoformat() + 'Z'
+        new_campaign = {
+            "identity": {
+                "campaignId": campaign_id,
+                "name": name,
+                "shortName": body.get('shortName', name),
+                "goal": body.get('primaryGoal', body.get('goal', '')),
+                "status": "draft",
+                "owner": body.get('owner', 'christelle'),
+                "platforms": [],
+                "createdAt": now,
+                "updatedAt": now,
+                "healthScore": None,
+                "healthState": "unknown",
+                "campaignType": body.get('campaignType', 'general'),
+                "brand": body.get('brand', ''),
+                "priority": body.get('priority', 'medium'),
+                "primaryGoal": body.get('primaryGoal', ''),
+                "duration": body.get('duration', ''),
+                "campaignSource": {"type": "API", "reference": "v0.1", "createdBy": "christelle"}
+            },
+            "plan": body.get("plan", {"purpose": "", "audience": "", "bigIdea": "", "successMetric": "", "pillars": []}),
+            "brief": body.get("brief", {"assetCount": 0, "assetType": "mixed", "cta": "", "assets": []}),
+            "production": {"items": []},
+            "approval": {"status": "draft", "currentReviewer": None, "decisions": []},
+            "status": "draft",
+            "lifecycle": "draft",
+            "history": [{"action": "created", "by": "christelle", "at": now, "note": "Campaign created via API."}],
+            "assets": [],
+            "productionItems": [],
+            "media": {"hero": None, "gallery": []}
+        }
 
     campaigns[campaign_id] = new_campaign
     data["campaigns"] = campaigns
@@ -183,7 +223,7 @@ def create_campaign():
     save_data(data)
 
     # GitHub write-back (non-blocking on failure)
-    ok, msg = git_push(f"Campaign OS v0.1: Create campaign '{name}' ({campaign_id})")
+    ok, msg = git_push(f"Campaign OS: Create campaign '{new_campaign['identity'].get('name', campaign_id)}' ({campaign_id})")
 
     response = {"ok": True, "campaignId": campaign_id, "campaign": new_campaign}
     if not ok:
