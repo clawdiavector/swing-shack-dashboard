@@ -227,16 +227,53 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 </div>
 </div>
 </div>
-<!-- Stage 3: placeholder (Asset Brief — coming next) -->
+<!-- Stage 3: Asset Brief (final stage — submit creates the campaign) -->
 <div id="wizard-stage-3" style="display:none">
 <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);margin-bottom:12px">Stage 3 — Asset Brief</div>
-<div style="padding:32px 16px;text-align:center;color:var(--col-muted);font-size:14px;border:1px dashed var(--border);border-radius:8px;margin-bottom:16px">
-Stage 3 coming next.
+
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Short Name (display label, optional)</label>
+<input id="f-shortname" type="text" placeholder="e.g. TrackMan" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
 </div>
+
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Duration (optional)</label>
+<input id="f-duration" type="text" placeholder="e.g. 12 weeks, 3 months, evergreen" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+</div>
+
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Primary Goal (optional)</label>
+<input id="f-primarygoal" type="text" placeholder="e.g. Bookings, Awareness, Leads" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+</div>
+
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Asset Count (how many assets to plan, optional)</label>
+<input id="f-assetcount" type="number" min="0" max="200" placeholder="e.g. 12" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+</div>
+
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Primary Asset Type (optional)</label>
+<select id="f-assettype" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+<option value="">— Select —</option>
+<option value="image">Image / Carousel</option>
+<option value="video">Video / Reel</option>
+<option value="meme">Meme</option>
+<option value="billboard">Billboard / Hero</option>
+<option value="caption">Caption / Copy</option>
+<option value="mixed">Mixed</option>
+</select>
+</div>
+
+<div style="margin-bottom:12px">
+<label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">Call to Action (optional)</label>
+<input id="f-cta" type="text" placeholder="e.g. Book a fitting, Get the wedge play" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+</div>
+
 <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
 <button type="button" class="view-btn" id="wiz-back-3" style="background:var(--col-muted);color:#0a0a0f;font-weight:700" onclick="wizardGoBackTo2()">← Back</button>
 <div style="display:flex;gap:8px">
 <button type="button" class="view-btn" onclick="closeCreateModal()">Cancel</button>
+<button type="submit" class="view-btn" id="wiz-next-3" style="background:var(--col-green);color:#0a0a0f;font-weight:700">Create Campaign</button>
 </div>
 </div>
 </div>
@@ -518,7 +555,7 @@ function wizardReset() {
   if (s1) s1.style.display = 'block';
   if (s2) s2.style.display = 'none';
   if (s3) s3.style.display = 'none';
-  ['f-name','f-type','f-brand','f-objective','f-priority','f-purpose','f-audience','f-bigidea','f-success','f-pillars'].forEach(function(id) {
+  ['f-name','f-type','f-brand','f-objective','f-priority','f-purpose','f-audience','f-bigidea','f-success','f-pillars','f-shortname','f-duration','f-primarygoal','f-assetcount','f-assettype','f-cta'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -771,8 +808,123 @@ function handleFormSubmit(e) {
       wizardShowStage(3);
       return false;
     }
-    // Stage 3 (placeholder): do nothing on Next; Cancel closes the modal.
-    return false;
+    if (wizardStage === 3) {
+      // Final stage: create the campaign from wizardDraft (Stage 1 + Stage 2 + Stage 3).
+      var s3 = {
+        shortName: ((document.getElementById('f-shortname') || {}).value || '').trim(),
+        duration: ((document.getElementById('f-duration') || {}).value || '').trim(),
+        primaryGoal: ((document.getElementById('f-primarygoal') || {}).value || '').trim(),
+        assetCount: ((document.getElementById('f-assetcount') || {}).value || '').trim(),
+        assetType: ((document.getElementById('f-assettype') || {}).value || '').trim(),
+        cta: ((document.getElementById('f-cta') || {}).value || '').trim()
+      };
+      // Derive slugified campaignId with -1/-2 dedup against existing keys.
+      var base = (wizardDraft && wizardDraft.name) || name;
+      var slug = 'c-' + base.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40);
+      if (!slug || slug === 'c-') slug = 'c-' + Date.now().toString(36);
+      var existingKeys = Object.keys((window.campaignData && window.campaignData.campaigns) || {});
+      var n = 1; var candidate = slug;
+      while (existingKeys.indexOf(candidate) !== -1) { n += 1; candidate = slug + '-' + n; }
+      var campaignId = candidate;
+      var identity = {
+        campaignId: campaignId,
+        name: base,
+        shortName: s3.shortName || base,
+        goal: (wizardDraft && wizardDraft.objective) || '',
+        status: 'draft',
+        owner: 'christelle',
+        platforms: [],
+        createdAt: now,
+        updatedAt: now,
+        healthScore: null,
+        healthState: 'unknown',
+        campaignType: (wizardDraft && wizardDraft.type) || 'general',
+        brand: (wizardDraft && wizardDraft.brand) || '',
+        priority: (wizardDraft && wizardDraft.priority) || 'medium',
+        primaryGoal: s3.primaryGoal || (wizardDraft && wizardDraft.objective) || '',
+        duration: s3.duration || '',
+        campaignSource: { type: 'Wizard', reference: 'campaign-os', createdBy: 'christelle' }
+      };
+      // Planner / brief side
+      var s2 = (wizardDraft && wizardDraft.stage2) || {};
+      var plan = {
+        purpose: s2.purpose || '',
+        audience: s2.audience || '',
+        bigIdea: s2.bigIdea || '',
+        successMetric: s2.successMetric || '',
+        pillars: Array.isArray(s2.pillars) ? s2.pillars : []
+      };
+      // Asset brief side
+      var assetCountNum = parseInt(s3.assetCount, 10);
+      if (!isFinite(assetCountNum) || assetCountNum < 0) assetCountNum = 0;
+      var brief = {
+        assetCount: assetCountNum,
+        assetType: s3.assetType || 'mixed',
+        cta: s3.cta || '',
+        assets: []  // populated later by Asset Planner (Step 10+)
+      };
+      var newCampaign = {
+        identity: identity,
+        plan: plan,
+        brief: brief,
+        production: { items: [] },
+        approval: { status: identity.status, currentReviewer: null, decisions: [] },
+        status: identity.status,
+        lifecycle: 'draft',
+        history: [
+          { action: 'created', by: 'christelle', at: now, note: 'Campaign created via wizard.' }
+        ],
+        assets: [],
+        productionItems: [],
+        media: { hero: null, gallery: [] }
+      };
+      // Add to in-memory data
+      if (!window.campaignData) window.campaignData = { portfolioMetadata: {}, campaigns: {} };
+      if (!window.campaignData.campaigns) window.campaignData.campaigns = {};
+      window.campaignData.campaigns[campaignId] = newCampaign;
+      // Persist via dev store (or live API)
+      devStoreAppend(newCampaign);
+      // Render the new card in the portfolio grid (grid is the first .campaign-cards in DOM)
+      try {
+        var grid = document.querySelector('.campaign-cards');
+        if (grid) {
+          var tmp = document.createElement('div');
+          tmp.innerHTML = renderNewCampaignCard(newCampaign);
+          var newCard = tmp.firstChild;
+          if (newCard) grid.appendChild(newCard);
+        }
+      } catch (renderErr) {
+        // fall back to full grid render
+        if (typeof renderCampaignGrid === 'function') renderCampaignGrid();
+      }
+      // Update header subtitle + portfolio count
+      try {
+        var sub = document.getElementById('header-subtitle');
+        if (sub) {
+          var total = Object.keys(window.campaignData.campaigns).length;
+          sub.textContent = total + ' campaign' + (total === 1 ? '' : 's') + ' in portfolio';
+        }
+      } catch (e) {}
+      // Update the campaign selector dropdown
+      try {
+        var sel = document.getElementById('campaignSelector');
+        if (sel) {
+          var opt = document.createElement('option');
+          opt.value = campaignId;
+          opt.text = base;
+          sel.appendChild(opt);
+        }
+      } catch (e) {}
+      // Register a render fn for the detail view (id-keyed generic renderer)
+      if (!window.renderFns) window.renderFns = {};
+      window.renderFns[campaignId] = function(c) { return renderGenericDetail(c); };
+      if (okEl) { okEl.textContent = 'Created "' + base + '" (draft).'; okEl.style.display = 'block'; }
+      // Reset wizard state for next time
+      wizardReset();
+      // Close modal after a short delay so the user sees the success message
+      setTimeout(function() { closeCreateModal(); }, 600);
+      return false;
+    }
   }
 }
 function renderNewCampaignCard(c) {
