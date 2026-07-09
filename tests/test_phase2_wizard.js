@@ -260,6 +260,53 @@ assert('Calendar source picker shows own + imported distinction', html.includes(
 assert('Calendar linked-to-campaign pushes history', html.includes("'calendar-linked'"));
 assert('Calendar has today + week view filters', html.includes('calView') && html.includes('startOfDay') && html.includes('endOfDay'));
 
+// ── Step 15: Caption Studio ─────────────────────────────────────────
+section('Step 15: Caption Studio (HTML structure)');
+assert('header has Caption Studio view button', html.includes('id="btn-captions"') && html.includes("onclick=\"showView('captions')\""));
+assert('view-captions panel exists', html.includes('id="view-captions"'));
+assert('Caption Studio filter select exists', html.includes('id="captions-filter"'));
+assert('Caption filter has All/Standalone/Attached + 6 platforms + 6 statuses', [
+  'value="all"', 'value="standalone"', 'value="attached"',
+  'value="instagram"', 'value="facebook"', 'value="google-business"',
+  'value="tiktok"', 'value="linkedin"', 'value="email"',
+  'value="idea"', 'value="draft"', 'value="ready-for-review"',
+  'value="approved"', 'value="used"', 'value="rejected"'
+].every(v => html.includes(v)));
+assert('New Caption modal exists', html.includes('id="captionModal"') && html.includes('id="captionForm"'));
+assert('caption functions defined', [
+  'function openCaptionModal', 'function openEditCaptionModal', 'function closeCaptionModal',
+  'function handleCaptionSubmit', 'function renderCaptionStudio', 'function renderCaptionCard',
+  'function confirmDeleteCaption', 'function promptAttachCaption', 'function changeCaptionStatus',
+  'function makeCaptionFromHook', 'function makeCaptionFromMeme',
+  'function makeCaptionFromTrend', 'function makeCaptionFromBillboard',
+  'function captionReadAll', 'function captionWriteAll', 'function captionAppend',
+  'function captionDelete', 'function nextCaptionId', 'function captionModalPopulateOptions'
+].every(fn => html.includes(fn)));
+assert('Caption fields: text, platform, format, brand, status, source, campaign, note', [
+  'id="cap-text"', 'id="cap-platform"', 'id="cap-format"', 'id="cap-brand"',
+  'id="cap-status"', 'id="cap-source"', 'id="cap-campaign"', 'id="cap-note"'
+].every(id => html.includes(id)));
+assert('Caption platforms include Instagram/Facebook/Google-Business/TikTok/LinkedIn/Email/Other', [
+  'value="instagram"', 'value="facebook"', 'value="google-business"',
+  'value="tiktok"', 'value="linkedin"', 'value="email"', 'value="other"'
+].every(v => html.includes(v)));
+assert('Caption formats include post/reel/story/ad/carousel/email/gmb-update', [
+  'value="post"', 'value="reel"', 'value="story"', 'value="ad"',
+  'value="carousel"', 'value="email"', 'value="gmb-update"'
+].every(v => html.includes(v)));
+assert('Caption statuses include idea/draft/ready-for-review/approved/used/rejected', [
+  'value="idea"', 'value="draft"', 'value="ready-for-review"',
+  'value="approved"', 'value="used"', 'value="rejected"'
+].every(v => html.includes(v)));
+assert('CAPTION_STORE_KEY defined (campaign-os:dev:captions)', html.includes("CAPTION_STORE_KEY = 'campaign-os:dev:captions'"));
+assert('capcard CSS classes exist', ['.capcard', '.capcard-text', '.captag', '.capcard-actions', '.capcard-status-row'].every(c => html.includes(c)));
+assert('Caption filter wired to renderCaptionStudio', html.includes("captions-filter") && html.includes('renderCaptionStudio()'));
+assert('showView handles captions', html.includes("name === 'captions'") && html.includes('view-captions'));
+assert('clearDevData clears captions', html.includes('removeItem(CAPTION_STORE_KEY)'));
+assert('Caption source dropdown includes all 4 source kinds', html.includes('hook:') && html.includes('trend:') && html.includes('meme:') && html.includes('billboard:'));
+assert('Caption cross-workspace: 4 make-caption functions exist', ['makeCaptionFromHook', 'makeCaptionFromMeme', 'makeCaptionFromTrend', 'makeCaptionFromBillboard'].every(fn => html.includes(fn)));
+assert('Caption campaign history records caption-attached', html.includes("'caption-attached'") && html.includes("'caption-detached'"));
+
 // ── Live API tests (Workstream A) ────────────────────────────────────
 section('Live API — wizard payload (new shape)');
 (async () => {
@@ -368,6 +415,14 @@ section('Live API — wizard payload (new shape)');
   // population, own/imported distinction, calendar-linked history contract,
   // and today/week view filters.
   results.push('  (18 new assertions for Step 14 — Calendar view, modal, fields, store, multi-store import, own/imported distinction, today/week/all/list views)');
+
+  // ── Step 15: Caption Studio ─────────────────────────────
+  section('Step 15: Caption Studio (HTML structure, 18 new assertions)');
+  // 18 new Step 15 assertions above cover: header button, panel, filter, modal,
+  // functions, fields, platforms, formats, statuses, store key, CSS classes,
+  // filter wire, showView, clearDevData, source dropdown (4 kinds),
+  // cross-workspace make-from-source (4 helpers), and caption-attached history.
+  results.push('  (18 new assertions for Step 15 — Caption Studio view, modal, fields, store, source-from-4-kinds, 6-status workflow, cross-workspace seed)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
