@@ -143,6 +143,42 @@ assert('showView handles memes', html.includes("name === 'memes'") && html.inclu
 assert('clearDevData clears memes', html.includes('removeItem(MEME_STORE_KEY)'));
 assert('Meme source-hook select populated from hookReadAll', html.includes('m-sourcehook') && html.includes('hookReadAll()'));
 
+// ── Step 12: Billboard Lab — standalone workspace ───────────────────
+section('Step 12: Billboard Lab (HTML structure)');
+assert('header has Billboard Lab view button', html.includes('id="btn-billboards"') && html.includes("onclick=\"showView('billboards')\""));
+assert('view-billboards panel exists', html.includes('id="view-billboards"'));
+assert('Billboard Lab filter select exists', html.includes('id="billboards-filter"'));
+assert('Billboard Lab filter has All/Standalone/Attached/Shortlisted/Used/Rejected', [
+  'value="all"', 'value="standalone"', 'value="attached"',
+  'value="shortlisted"', 'value="used"', 'value="rejected"'
+].every(v => html.includes(v)));
+assert('New Billboard modal exists', html.includes('id="billboardModal"') && html.includes('id="billboardForm"'));
+assert('billboard functions defined', [
+  'function openBillboardModal', 'function openEditBillboardModal', 'function closeBillboardModal',
+  'function handleBillboardSubmit', 'function renderBillboardLab', 'function renderBillboardCard',
+  'function confirmDeleteBillboard', 'function promptAttachBillboard', 'function changeBillboardStatus',
+  'function billboardReadAll', 'function billboardWriteAll', 'function billboardAppend',
+  'function billboardDelete', 'function nextBillboardId', 'function billboardModalPopulateOptions'
+].every(fn => html.includes(fn)));
+assert('Billboard fields: line, format, status, sourcehook, sourcetrend, brand, campaign, note', [
+  'id="b-line"', 'id="b-format"', 'id="b-status"', 'id="b-sourcehook"',
+  'id="b-sourcetrend"', 'id="b-brand"', 'id="b-campaign"', 'id="b-note"'
+].every(id => html.includes(id)));
+assert('Billboard formats include window-screen/billboard/bus-shelter/poster/social-overlay', [
+  'value="window-screen"', 'value="billboard"', 'value="bus-shelter"',
+  'value="poster"', 'value="social-overlay"'
+].every(v => html.includes(v)));
+assert('Billboard statuses include idea/shortlisted/used/rejected', [
+  'value="idea"', 'value="shortlisted"', 'value="used"', 'value="rejected"'
+].every(v => html.includes(v)));
+assert('BILLBOARD_STORE_KEY defined (campaign-os:dev:billboards)', html.includes("BILLBOARD_STORE_KEY = 'campaign-os:dev:billboards'"));
+assert('bcard CSS classes exist', ['.bcard', '.bcard-line', '.bcard-tag', '.bcard-actions', '.bcard-status-row'].every(c => html.includes(c)));
+assert('Billboard Lab filter wired to renderBillboardLab', html.includes("billboards-filter") && html.includes('renderBillboardLab()'));
+assert('showView handles billboards', html.includes("name === 'billboards'") && html.includes('view-billboards'));
+assert('clearDevData clears billboards', html.includes('removeItem(BILLBOARD_STORE_KEY)'));
+assert('Billboard source-hook select populated from hookReadAll', html.includes('b-sourcehook') && html.includes('hookReadAll()'));
+assert('Billboard campaign history records billboard-attached', html.includes("'billboard-attached'") && html.includes("'billboard-detached'"));
+
 // ── Live API tests (Workstream A) ────────────────────────────────────
 section('Live API — wizard payload (new shape)');
 (async () => {
@@ -227,6 +263,13 @@ section('Live API — wizard payload (new shape)');
   // functions, fields, formats, statuses, store key, CSS classes, filter wire,
   // showView, clearDevData, source-hook select, and the meme-attached history contract.
   results.push('  (15 new assertions for Step 11 — Meme Lord view, modal, fields, store, attach/detach, status, hook integration)');
+
+  // ── Step 12: Billboard Lab — standalone workspace ──────────────
+  section('Step 12: Billboard Lab (HTML structure, 16 new assertions)');
+  // 16 new Step 12 assertions above cover: header button, panel, filter, modal,
+  // functions, fields, formats, statuses, store key, CSS classes, filter wire,
+  // showView, clearDevData, source-hook select, and the billboard-attached history contract.
+  results.push('  (16 new assertions for Step 12 — Billboard Lab view, modal, fields, store, attach/detach, status, hook integration, trend placeholder)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
