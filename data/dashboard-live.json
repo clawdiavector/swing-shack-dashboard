@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-09T10:00:03.908Z",
+  "lastUpdated": "2026-07-09T16:00:04.270Z",
   "source": "automated",
   "website": {
-    "activeUsers": 575,
-    "sessions": 794,
-    "pageViews": 1322,
-    "avgSessionSeconds": 127.4579616020151,
-    "bounceRate": 0.6700251889168766,
+    "activeUsers": 614,
+    "sessions": 847,
+    "pageViews": 1431,
+    "avgSessionSeconds": 124.60398780991734,
+    "bounceRate": 0.6257378984651711,
     "topPages": [
       {
         "path": "/",
-        "views": 601
+        "views": 654
       },
       {
         "path": "/bookings/",
-        "views": 330
+        "views": 355
       },
       {
         "path": "/customer-portal/",
-        "views": 226
+        "views": 244
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 55
+        "views": 59
       },
       {
         "path": "/club-fitting/",
-        "views": 51
+        "views": 58
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -34,15 +34,15 @@
       },
       {
         "path": "/philosophy/",
-        "views": 15
+        "views": 16
+      },
+      {
+        "path": "/404.html",
+        "views": 6
       },
       {
         "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
         "views": 6
-      },
-      {
-        "path": "/404.html",
-        "views": 5
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
@@ -52,31 +52,27 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 266
+        "sessions": 313
       },
       {
         "source": "(direct)",
-        "sessions": 177
+        "sessions": 190
       },
       {
         "source": "instagram",
-        "sessions": 131
-      },
-      {
-        "source": "(data not available)",
-        "sessions": 57
+        "sessions": 162
       },
       {
         "source": "facebook",
-        "sessions": 55
+        "sessions": 69
       },
       {
         "source": "(not set)",
-        "sessions": 46
+        "sessions": 29
       },
       {
         "source": "clublab.app",
-        "sessions": 23
+        "sessions": 27
       },
       {
         "source": "bing",
@@ -89,16 +85,20 @@
       {
         "source": "m.facebook.com",
         "sessions": 10
+      },
+      {
+        "source": "(data not available)",
+        "sessions": 7
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 559
+        "sessions": 590
       },
       {
         "device": "desktop",
-        "sessions": 232
+        "sessions": 253
       },
       {
         "device": "tablet",
