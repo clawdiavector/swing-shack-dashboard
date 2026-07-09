@@ -224,6 +224,42 @@ assert('Trend confidence is a number 0-100 input', html.includes('id="t-confiden
 assert('Trend campaign history records trend-attached', html.includes("'trend-attached'") && html.includes("'trend-detached'"));
 assert('Cross-workspace: useTrendAsHookSeed opens hook modal', html.includes('useTrendAsHookSeed') && html.includes('openHookModal'));
 
+// ── Step 14: Calendar — the timeline ───────────────────────────────
+section('Step 14: Calendar (HTML structure)');
+assert('header has Calendar view button', html.includes('id="btn-calendar"') && html.includes("onclick=\"showView('calendar')\""));
+assert('view-calendar panel exists', html.includes('id="view-calendar"'));
+assert('Calendar tabs: List/Today/This Week/All', ['cal-tab-list', 'cal-tab-today', 'cal-tab-week', 'cal-tab-all'].every(id => html.includes('id="' + id + '"')));
+assert('New Calendar Item modal exists', html.includes('id="calModal"') && html.includes('id="calForm"'));
+assert('calendar functions defined', [
+  'function openCalModal', 'function openEditCalModal', 'function closeCalModal',
+  'function handleCalSubmit', 'function renderCalendar', 'function renderCalCard',
+  'function confirmDeleteCal', 'function changeCalStatus', 'function calSwitchView',
+  'function calReadAll', 'function calWriteAll', 'function calAppend',
+  'function calDelete', 'function nextCalId', 'function calModalPopulateSourceOptions',
+  'function buildCalendarTimeline', 'function calDateKey'
+].every(fn => html.includes(fn)));
+assert('Calendar fields: title, date, time, type, status, brand, channel, source, note', [
+  'id="c-title"', 'id="c-date"', 'id="c-time"', 'id="c-type"',
+  'id="c-status"', 'id="c-brand"', 'id="c-channel"', 'id="c-source"', 'id="c-note"'
+].every(id => html.includes(id)));
+assert('Calendar types include task/campaign/hook/meme/billboard/trend/review', [
+  'value="task"', 'value="campaign"', 'value="hook"', 'value="meme"',
+  'value="billboard"', 'value="trend"', 'value="review"'
+].every(v => html.includes(v)));
+assert('Calendar statuses include planned/in-progress/done/skipped', [
+  'value="planned"', 'value="in-progress"', 'value="done"', 'value="skipped"'
+].every(v => html.includes(v)));
+assert('CAL_STORE_KEY defined (campaign-os:dev:calendar)', html.includes("CAL_STORE_KEY = 'campaign-os:dev:calendar'"));
+assert('cal CSS classes exist', ['.cal-card', '.cal-tag', '.cal-grid', '.cal-day-header', '.cal-tabs'].every(c => html.includes(c)));
+assert('Calendar tabs wired to calSwitchView', html.includes('calSwitchView') && html.includes('cal-tab-today'));
+assert('showView handles calendar', html.includes("name === 'calendar'") && html.includes('view-calendar'));
+assert('clearDevData clears calendar', html.includes('removeItem(CAL_STORE_KEY)'));
+assert('Calendar imports from all 5 other stores', ['hookReadAll', 'memeReadAll', 'billboardReadAll', 'trendReadAll'].every(fn => html.includes(fn)) && html.includes('buildCalendarTimeline'));
+assert('Calendar source dropdown populated from all object kinds', html.includes('campaign:') && html.includes('hook:') && html.includes('meme:') && html.includes('billboard:') && html.includes('trend:'));
+assert('Calendar source picker shows own + imported distinction', html.includes('own') && html.includes('imported') && html.includes('Read-only'));
+assert('Calendar linked-to-campaign pushes history', html.includes("'calendar-linked'"));
+assert('Calendar has today + week view filters', html.includes('calView') && html.includes('startOfDay') && html.includes('endOfDay'));
+
 // ── Live API tests (Workstream A) ────────────────────────────────────
 section('Live API — wizard payload (new shape)');
 (async () => {
@@ -323,6 +359,15 @@ section('Live API — wizard payload (new shape)');
   // CSS classes, filter wire, showView, clearDevData, confidence input bounds,
   // trend-attached history contract, and the cross-workspace useTrendAsHookSeed.
   results.push('  (19 new assertions for Step 13 — Trend Catcher view, modal, fields, store, attach/detach, status, confidence, cross-workspace hook seed)');
+
+  // ── Step 14: Calendar — the timeline ────────────────────────
+  section('Step 14: Calendar (HTML structure, 18 new assertions)');
+  // 18 new Step 14 assertions above cover: header button, panel, tabs, modal,
+  // functions, fields, types, statuses, store key, CSS classes, filter wire,
+  // showView, clearDevData, multi-store import contract, source-picker
+  // population, own/imported distinction, calendar-linked history contract,
+  // and today/week view filters.
+  results.push('  (18 new assertions for Step 14 — Calendar view, modal, fields, store, multi-store import, own/imported distinction, today/week/all/list views)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
