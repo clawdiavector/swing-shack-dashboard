@@ -179,6 +179,51 @@ assert('clearDevData clears billboards', html.includes('removeItem(BILLBOARD_STO
 assert('Billboard source-hook select populated from hookReadAll', html.includes('b-sourcehook') && html.includes('hookReadAll()'));
 assert('Billboard campaign history records billboard-attached', html.includes("'billboard-attached'") && html.includes("'billboard-detached'"));
 
+// ── Step 13: Trend Catcher — the radar ─────────────────────────────
+section('Step 13: Trend Catcher (HTML structure)');
+assert('header has Trend Catcher view button', html.includes('id="btn-trends"') && html.includes("onclick=\"showView('trends')\""));
+assert('view-trends panel exists', html.includes('id="view-trends"'));
+assert('Trend Catcher filter select exists', html.includes('id="trends-filter"'));
+assert('Trend filter has All/Trend/Signal/Noise/Watching/Shortlisted/Used/Rejected', [
+  'value="all"', 'value="trend"', 'value="signal"', 'value="noise"',
+  'value="watching"', 'value="shortlisted"', 'value="used"', 'value="rejected"'
+].every(v => html.includes(v)));
+assert('New Trend modal exists', html.includes('id="trendModal"') && html.includes('id="trendForm"'));
+assert('trend functions defined', [
+  'function openTrendModal', 'function openEditTrendModal', 'function closeTrendModal',
+  'function handleTrendSubmit', 'function renderTrendCatcher', 'function renderTrendCard',
+  'function confirmDeleteTrend', 'function promptAttachTrend', 'function changeTrendStatus',
+  'function useTrendAsHookSeed',
+  'function trendReadAll', 'function trendWriteAll', 'function trendAppend',
+  'function trendDelete', 'function nextTrendId', 'function trendModalPopulateOptions'
+].every(fn => html.includes(fn)));
+assert('Trend fields: title, sourcetype, signaltype, source, timing, confidence, audience, evidence, opportunity, angle, status, campaign, note', [
+  'id="t-title"', 'id="t-sourcetype"', 'id="t-signaltype"', 'id="t-source"',
+  'id="t-timing"', 'id="t-confidence"', 'id="t-audience"', 'id="t-evidence"',
+  'id="t-opportunity"', 'id="t-angle"', 'id="t-status"', 'id="t-campaign"', 'id="t-note"'
+].every(id => html.includes(id)));
+assert('Trend source types include Reddit/TikTok/Instagram/YouTube/Google-Trends/Search-Console/GBP/News/Other', [
+  'value="reddit"', 'value="tiktok"', 'value="instagram"', 'value="youtube"',
+  'value="google-trends"', 'value="search-console"', 'value="gbp"', 'value="news"', 'value="other"'
+].every(v => html.includes(v)));
+assert('Trend signal types include trend/signal/noise', [
+  'value="trend"', 'value="signal"', 'value="noise"'
+].every(v => html.includes(v)));
+assert('Trend statuses include watching/shortlisted/used/rejected', [
+  'value="watching"', 'value="shortlisted"', 'value="used"', 'value="rejected"'
+].every(v => html.includes(v)));
+assert('Trend timings include now/this-week/seasonal/evergreen', [
+  'value="now"', 'value="this-week"', 'value="seasonal"', 'value="evergreen"'
+].every(v => html.includes(v)));
+assert('TREND_STORE_KEY defined (campaign-os:dev:trends)', html.includes("TREND_STORE_KEY = 'campaign-os:dev:trends'"));
+assert('tcard CSS classes exist', ['.tcard', '.tcard-title', '.tcard-tag', '.tcard-actions', '.tcard-status-row', '.tcard-confidence'].every(c => html.includes(c)));
+assert('Trend filter wired to renderTrendCatcher', html.includes("trends-filter") && html.includes('renderTrendCatcher()'));
+assert('showView handles trends', html.includes("name === 'trends'") && html.includes('view-trends'));
+assert('clearDevData clears trends', html.includes('removeItem(TREND_STORE_KEY)'));
+assert('Trend confidence is a number 0-100 input', html.includes('id="t-confidence"') && html.includes('type="number"') && html.includes('min="0"') && html.includes('max="100"'));
+assert('Trend campaign history records trend-attached', html.includes("'trend-attached'") && html.includes("'trend-detached'"));
+assert('Cross-workspace: useTrendAsHookSeed opens hook modal', html.includes('useTrendAsHookSeed') && html.includes('openHookModal'));
+
 // ── Live API tests (Workstream A) ────────────────────────────────────
 section('Live API — wizard payload (new shape)');
 (async () => {
@@ -270,6 +315,14 @@ section('Live API — wizard payload (new shape)');
   // functions, fields, formats, statuses, store key, CSS classes, filter wire,
   // showView, clearDevData, source-hook select, and the billboard-attached history contract.
   results.push('  (16 new assertions for Step 12 — Billboard Lab view, modal, fields, store, attach/detach, status, hook integration, trend placeholder)');
+
+  // ── Step 13: Trend Catcher — the radar ────────────────────────
+  section('Step 13: Trend Catcher (HTML structure, 19 new assertions)');
+  // 19 new Step 13 assertions above cover: header button, panel, filter, modal,
+  // functions, fields, source types, signal types, statuses, timings, store key,
+  // CSS classes, filter wire, showView, clearDevData, confidence input bounds,
+  // trend-attached history contract, and the cross-workspace useTrendAsHookSeed.
+  results.push('  (19 new assertions for Step 13 — Trend Catcher view, modal, fields, store, attach/detach, status, confidence, cross-workspace hook seed)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
