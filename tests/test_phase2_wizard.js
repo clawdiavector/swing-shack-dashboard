@@ -307,6 +307,55 @@ assert('Caption source dropdown includes all 4 source kinds', html.includes('hoo
 assert('Caption cross-workspace: 4 make-caption functions exist', ['makeCaptionFromHook', 'makeCaptionFromMeme', 'makeCaptionFromTrend', 'makeCaptionFromBillboard'].every(fn => html.includes(fn)));
 assert('Caption campaign history records caption-attached', html.includes("'caption-attached'") && html.includes("'caption-detached'"));
 
+// ── Step 16: Asset Planner ──────────────────────────────────────────
+section('Step 16: Asset Planner (HTML structure)');
+assert('header has Asset Planner view button', html.includes('id="btn-assets"') && html.includes("onclick=\"showView('assets')\""));
+assert('view-assets panel exists', html.includes('id="view-assets"'));
+assert('Asset Planner filter select exists', html.includes('id="assets-filter"'));
+assert('Asset filter has Unlinked/Linked + 6 statuses + 2 priorities', [
+  'value="all"', 'value="unlinked"', 'value="linked"',
+  'value="needed"', 'value="requested"', 'value="in-production"',
+  'value="ready"', 'value="used"', 'value="cancelled"',
+  'value="urgent"', 'value="high"'
+].every(v => html.includes(v)));
+assert('New Asset Request modal exists', html.includes('id="assetModal"') && html.includes('id="assetForm"'));
+assert('asset functions defined', [
+  'function openAssetModal', 'function openEditAssetModal', 'function closeAssetModal',
+  'function handleAssetSubmit', 'function renderAssetPlanner', 'function renderAssetCard',
+  'function confirmDeleteAsset', 'function promptAttachAsset', 'function changeAssetStatus',
+  'function requestAssetFromCampaign', 'function requestAssetFromCaption', 'function requestAssetFromMeme',
+  'function requestAssetFromBillboard', 'function requestAssetFromTrend', 'function requestAssetFromHook',
+  'function pushAssetRequestedToSource',
+  'function assetReadAll', 'function assetWriteAll', 'function assetAppend',
+  'function assetDelete', 'function nextAssetId', 'function assetModalPopulateOptions'
+].every(fn => html.includes(fn)));
+assert('Asset fields: title, assettype, brand, priority, status, requiredby, owner, source, campaign, notes', [
+  'id="a-title"', 'id="a-assettype"', 'id="a-brand"', 'id="a-priority"',
+  'id="a-status"', 'id="a-requiredby"', 'id="a-owner"', 'id="a-source"',
+  'id="a-campaign"', 'id="a-notes"'
+].every(id => html.includes(id)));
+assert('Asset types include photo/video/reel/story/graphic/window-screen/product-shot/staff-shot/other', [
+  'value="photo"', 'value="video"', 'value="reel"', 'value="story"',
+  'value="graphic"', 'value="window-screen"', 'value="product-shot"',
+  'value="staff-shot"', 'value="other"'
+].every(v => html.includes(v)));
+assert('Asset priorities include low/medium/high/urgent', [
+  'value="low"', 'value="medium"', 'value="high"', 'value="urgent"'
+].every(v => html.includes(v)));
+assert('Asset statuses include needed/requested/in-production/ready/used/cancelled', [
+  'value="needed"', 'value="requested"', 'value="in-production"',
+  'value="ready"', 'value="used"', 'value="cancelled"'
+].every(v => html.includes(v)));
+assert('ASSET_STORE_KEY defined (campaign-os:dev:asset_requests)', html.includes("ASSET_STORE_KEY = 'campaign-os:dev:asset_requests'"));
+assert('acard CSS classes exist', ['.acard', '.acard-title', '.atag', '.acard-actions', '.acard-status-row'].every(c => html.includes(c)));
+assert('Asset filter wired to renderAssetPlanner', html.includes("assets-filter") && html.includes('renderAssetPlanner()'));
+assert('showView handles assets', html.includes("name === 'assets'") && html.includes('view-assets'));
+assert('clearDevData clears asset_requests', html.includes('removeItem(ASSET_STORE_KEY)'));
+assert('Asset source dropdown includes all 6 source kinds', html.includes('campaign:') && html.includes('caption:') && html.includes('meme:') && html.includes('billboard:') && html.includes('trend:') && html.includes('hook:'));
+assert('Asset cross-workspace: 6 requestAssetFrom* functions', ['requestAssetFromCampaign', 'requestAssetFromCaption', 'requestAssetFromMeme', 'requestAssetFromBillboard', 'requestAssetFromTrend', 'requestAssetFromHook'].every(fn => html.includes(fn)));
+assert('Asset dual history contract: campaign + source both get asset-requested', html.includes("'asset-requested'") && html.includes('pushAssetRequestedToSource'));
+assert('Asset sorts by priority then requiredBy', html.includes('urgent: 0, high: 1') && html.includes('requiredBy'));
+
 // ── Live API tests (Workstream A) ────────────────────────────────────
 section('Live API — wizard payload (new shape)');
 (async () => {
@@ -423,6 +472,15 @@ section('Live API — wizard payload (new shape)');
   // filter wire, showView, clearDevData, source dropdown (4 kinds),
   // cross-workspace make-from-source (4 helpers), and caption-attached history.
   results.push('  (18 new assertions for Step 15 — Caption Studio view, modal, fields, store, source-from-4-kinds, 6-status workflow, cross-workspace seed)');
+
+  // ── Step 16: Asset Planner ───────────────────────────
+  section('Step 16: Asset Planner (HTML structure, 19 new assertions)');
+  // 19 new Step 16 assertions above cover: header button, panel, filter, modal,
+  // functions, fields, types, priorities, statuses, store key, CSS classes,
+  // filter wire, showView, clearDevData, 6-kind source dropdown, 6
+  // cross-workspace requestAssetFrom* helpers, dual history contract
+  // (asset-requested on both campaign + source), and priority+requiredBy sort.
+  results.push('  (19 new assertions for Step 16 — Asset Planner view, modal, fields, store, source-from-6-kinds, dual history contract, priority+date sort)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
