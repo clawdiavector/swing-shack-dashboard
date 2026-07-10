@@ -620,6 +620,42 @@ section('Live API — wizard payload (new shape)');
   assert('references reads campaign_attachments', html.includes('attachmentsForCampaign(campaignId)'));
   results.push('  (32 new assertions for Step 19 — Global Search (12 kinds) + Campaign References panel wired to campaign_attachments)');
 
+  // ── Step 20: Quick Attach modal — replaces 6 native prompt handlers, writes to campaign_attachments M2M ──
+  section('Step 20: Quick Attach (HTML structure + JS API surface)');
+  // 1. Quick Attach modal element + global functions
+  assert('openQuickAttach function',     html.includes('window.openQuickAttach = function'));
+  assert('closeQuickAttach function',    html.includes('window.closeQuickAttach = function'));
+  assert('quickAttachToggle function',   html.includes('window.quickAttachToggle = function'));
+  assert('quickAttachCreateAndAttach',  html.includes('window.quickAttachCreateAndAttach = function'));
+  assert('quick-attach-modal element',   html.includes('id="quick-attach-modal"') || /quick-attach-modal['"]/.test(html));
+  // 2. Old prompt functions are now one-line wrappers
+  assert('promptAttachHook routes to Quick Attach',  /promptAttachHook[\s\S]{0,200}openQuickAttach\('hook'/.test(html));
+  assert('promptAttachMeme routes to Quick Attach',  /promptAttachMeme[\s\S]{0,200}openQuickAttach\('meme'/.test(html));
+  assert('promptAttachBillboard routes',            /promptAttachBillboard[\s\S]{0,200}openQuickAttach\('billboard'/.test(html));
+  assert('promptAttachTrend routes',                /promptAttachTrend[\s\S]{0,200}openQuickAttach\('trend'/.test(html));
+  assert('promptAttachCaption routes',              /promptAttachCaption[\s\S]{0,200}openQuickAttach\('caption'/.test(html));
+  assert('promptAttachAsset routes',                /promptAttachAsset[\s\S]{0,200}openQuickAttach\('asset_request'/.test(html));
+  // 3. M2M table write path
+  assert('Quick Attach uses OS.attachments.attach',  /window\.quickAttachToggle = function[\s\S]{0,1500}attachToCampaign\(/.test(html));
+  assert('Quick Attach uses OS.attachments.detach',  /window\.quickAttachToggle = function[\s\S]{0,500}detachFromCampaign\(/.test(html));
+  assert('Quick Attach emits object.attached event', /attachToCampaign\(campaignId, kind, objectId, rationale\)/.test(html));
+  // 4. Create + attach in one click
+  assert('Quick Attach Create+attach',                /window\.quickAttachCreateAndAttach = function[\s\S]{0,1500}campaign\.created/.test(html));
+  assert('Create+attach calls attachToCampaign',      /attachToCampaign\(cid, kind, objectId, rationale\)/.test(html));
+  assert('Create+attach calls selectCampaign',        /selectCampaign\(cid\)/.test(html));
+  // 5. Refreshes the right workspace after toggle
+  assert('Refreshes Hook Bank after hook toggle',     /quickAttachRefreshWorkspace[\s\S]{0,500}renderHookBank/.test(html));
+  assert('Refreshes Meme Lord after meme toggle',     /quickAttachRefreshWorkspace[\s\S]{0,500}renderMemeLord/.test(html));
+  assert('Refreshes Trend Catcher after trend toggle',/quickAttachRefreshWorkspace[\s\S]{0,500}renderTrendCatcher/.test(html));
+  // 6. Refreshes Campaign References panel if the campaign is open
+  assert('Re-renders Campaign References if active',  /window\.quickAttachToggle = function[\s\S]{0,2500}renderCampaign\(campaignId\)/.test(html));
+  // 7. Rationale support
+  assert('qa-rationale input',                        html.includes('id="qa-rationale"'));
+  // 8. No more native prompt() in the old handlers (only the new modal flow)
+  assert('promptAttachHook no longer uses window.prompt', !/function promptAttachHook\([\s\S]{0,200}window\.prompt/.test(html));
+  assert('promptAttachMeme no longer uses window.prompt', !/function promptAttachMeme\([\s\S]{0,200}window\.prompt/.test(html));
+  results.push('  (20 new assertions for Step 20 — Quick Attach modal: replaces 6 native prompts, writes to campaign_attachments, supports create+attach)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);

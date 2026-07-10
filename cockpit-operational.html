@@ -1784,6 +1784,181 @@ function campaignFactoryCreate() {
   if (name) selectCampaign(cid);
 }
 
+/* =====================================================================
+   STEP 20 — Quick Attach modal
+   Replaces the 5 native-prompt attach handlers (promptAttachHook, etc).
+   Writes to the new campaign_attachments M2M table (the same one the
+   Campaign References panel reads from) and emits object.attached events.
+   Architecture frozen — no new tables, no new event types.
+   ===================================================================== */
+function quickAttachLabelOf(kind, obj) {
+  if (!obj) return 'untitled';
+  return obj.hookLine || obj.memeLine || obj.line || obj.text || obj.title || obj.name || 'untitled';
+}
+function quickAttachKindForId(kind, id) {
+  // Resolve the kind of a given object id by scanning all known stores.
+  // Used by the global search jump-to path.
+  if (!id) return null;
+  var KINDS = ['hook','meme','billboard','trend','caption','asset_request','calendar_item','recommendation','pattern','opportunity','combination','lesson'];
+  for (var i=0; i<KINDS.length; i++) {
+    var k = KINDS[i];
+    var arr = readStore(kindStoreKey(k));
+    for (var j=0; j<arr.length; j++) {
+      var o = arr[j];
+      if (o && (o.id === id || o.hookId === id || o.memeId === id || o.billboardId === id || o.trendId === id || o.captionId === id || o.assetRequestId === id)) {
+        return k;
+      }
+    }
+  }
+  return kind || null;
+}
+window.openQuickAttach = function(kind, id) {
+  // Coerce legacy id fields
+  if (kind === 'hook')            { id = id; }
+  if (!kind || !id) return;
+  // Resolve the actual object so we can show its label in the modal header
+  var obj = null;
+  var arr = readStore(kindStoreKey(kind));
+  obj = arr.filter(function(o){
+    return o && (o.id === id || o.hookId === id || o.memeId === id || o.billboardId === id || o.trendId === id || o.captionId === id || o.assetRequestId === id);
+  })[0];
+  var label = quickAttachLabelOf(kind, obj);
+  // List campaigns
+  var campaigns = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns : {};
+  var cids = Object.keys(campaigns);
+  var body;
+  if (!cids.length) {
+    body = '<div style="font-size:12px;color:var(--col-muted);padding:14px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:12px">No campaigns yet. Create one below and this object will attach automatically.</div>';
+  } else {
+    body = cids.map(function(cid){
+      var c = campaigns[cid];
+      if (!c) return '';
+      var name = (c.identity && c.identity.name) || cid;
+      var status = (c.identity && c.identity.status) || 'draft';
+      var isAttached = attachmentsForCampaign(cid).filter(function(a){ return a.objectKind === kind && a.objectId === id; }).length > 0;
+      // Also detect legacy c.hooks / c.memes / etc arrays (read-only display hint)
+      var legacy = (Array.isArray(c.hooks) && c.hooks.indexOf(id) !== -1) || (Array.isArray(c.memes) && c.memes.indexOf(id) !== -1) ||
+                   (Array.isArray(c.billboards) && c.billboards.indexOf(id) !== -1) || (Array.isArray(c.trends) && c.trends.indexOf(id) !== -1) ||
+                   (Array.isArray(c.captions) && c.captions.indexOf(id) !== -1) || (Array.isArray(c.assetRequests) && c.assetRequests.indexOf(id) !== -1);
+      return '<div class="qa-row" data-cid="' + cid + '" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:13px;font-weight:600">' + escapeSearchHtml(name) + '</div>' +
+          '<div style="font-size:10px;color:var(--col-muted)">' + escapeSearchHtml(status) + (legacy ? ' · legacy attach detected' : '') + '</div>' +
+        '</div>' +
+        '<div>' +
+          (isAttached
+            ? '<button class="view-btn" style="font-size:10px;padding:5px 10px;color:var(--col-red);border:1px solid var(--col-red)" onclick="quickAttachToggle(\'' + cid + '\', \'' + kind + '\', \'' + id + '\')">Detach</button>'
+            : '<button class="view-btn" style="font-size:10px;padding:5px 10px;background:var(--col-green);color:#0a0a0f" onclick="quickAttachToggle(\'' + cid + '\', \'' + kind + '\', \'' + id + '\')">Attach</button>') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+  var rationaleRow = '<div style="margin-top:8px"><label style="font-size:10px;color:var(--col-muted);display:block;margin-bottom:4px">Rationale (optional — saved with each new attach)</label>' +
+    '<input type="text" id="qa-rationale" placeholder="e.g. strongest stat hook for Q3" style="width:100%;padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:11px"></div>';
+  var createRow = '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">' +
+    '<label style="font-size:11px;color:var(--col-muted);display:block;margin-bottom:4px">Or create a new campaign from this object:</label>' +
+    '<div style="display:flex;gap:6px">' +
+      '<input type="text" id="qa-new-name" placeholder="Campaign name" style="flex:1;padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:11px">' +
+      '<button class="view-btn" style="background:var(--col-green);color:#0a0a0f;font-weight:700" onclick="quickAttachCreateAndAttach(\'' + kind + '\', \'' + id + '\')">Create &amp; attach</button>' +
+    '</div>' +
+  '</div>';
+  var modal = document.createElement('div');
+  modal.id = 'quick-attach-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:9999';
+  modal.innerHTML = '<div style="background:#0a0a14;border:1px solid var(--col-green);border-radius:10px;padding:20px;width:520px;max-width:92vw;max-height:82vh;overflow:auto">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+      '<div style="font-size:14px;font-weight:700">Quick attach</div>' +
+      '<button class="view-btn" onclick="closeQuickAttach()">×</button>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--col-muted);margin-bottom:14px">' +
+      '<span style="color:var(--text);font-weight:600">' + escapeSearchHtml(labelForKind(kind)) + '</span> · ' +
+      '<span style="color:var(--text)">' + escapeSearchHtml(label) + '</span>' +
+    '</div>' +
+    body +
+    rationaleRow +
+    createRow +
+  '</div>';
+  // Remove any existing modal
+  var existing = document.getElementById('quick-attach-modal');
+  if (existing) existing.remove();
+  document.body.appendChild(modal);
+  // Focus the new-name input on Enter inside rationale
+  var r = document.getElementById('qa-rationale');
+  if (r) r.addEventListener('keydown', function(e){ if (e.key === 'Enter') { var n = document.getElementById('qa-new-name'); if (n) n.focus(); }});
+};
+window.closeQuickAttach = function() {
+  var m = document.getElementById('quick-attach-modal');
+  if (m) m.remove();
+};
+window.quickAttachToggle = function(campaignId, kind, objectId) {
+  var rationale = ((document.getElementById('qa-rationale') || {}).value || '').trim();
+  // Check if already attached via the new M2M
+  var existing = attachmentsForCampaign(campaignId).filter(function(a){ return a.objectKind === kind && a.objectId === objectId; });
+  if (existing.length) {
+    detachFromCampaign(campaignId, kind, objectId);
+  } else {
+    // If legacy c.hooks array has the id, write a migration note in rationale
+    var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
+    if (c) {
+      var legacyKey = ({hook:'hooks',meme:'memes',billboard:'billboards',trend:'trends',caption:'captions',asset_request:'assetRequests'})[kind];
+      if (legacyKey && Array.isArray(c[legacyKey]) && c[legacyKey].indexOf(objectId) !== -1) {
+        // Remove from the legacy array to keep data consistent
+        c[legacyKey] = c[legacyKey].filter(function(x){ return x !== objectId; });
+        try { devStoreAppend(c); } catch (e) {}
+      }
+    }
+    attachToCampaign(campaignId, kind, objectId, rationale);
+  }
+  // Re-open the modal with fresh state so the row updates
+  try { openQuickAttach(kind, objectId); } catch (e) { closeQuickAttach(); }
+  // Refresh the workspace card so the attached-state indicator updates
+  try { quickAttachRefreshWorkspace(kind); } catch (e) {}
+  // Refresh the Operations Feed (so event count ticks)
+  try { renderOpsFeed(); } catch (e) {}
+  // If the campaign detail is open for this campaign, refresh the References panel
+  try {
+    if (typeof renderCampaign === 'function' && window.campaignData && window.campaignData.activeCampaignId === campaignId) {
+      renderCampaign(campaignId);
+    }
+  } catch (e) {}
+};
+window.quickAttachCreateAndAttach = function(kind, objectId) {
+  var name = ((document.getElementById('qa-new-name') || {}).value || '').trim();
+  var rationale = ((document.getElementById('qa-rationale') || {}).value || '').trim();
+  if (!name) { var n = document.getElementById('qa-new-name'); if (n) { n.focus(); n.style.borderColor = 'var(--col-red)'; } return; }
+  var cid = uid('camp');
+  if (!window.campaignData) window.campaignData = { campaigns: {} };
+  if (!window.campaignData.campaigns) window.campaignData.campaigns = {};
+  window.campaignData.campaigns[cid] = {
+    identity: { campaignId: cid, name: name, shortName: name, status: 'draft', createdAt: new Date().toISOString() }
+  };
+  applyEvent({ type: 'campaign.created', campaignId: cid, name: name, at: new Date().toISOString() });
+  // Attach the object to the new campaign
+  attachToCampaign(cid, kind, objectId, rationale);
+  closeQuickAttach();
+  // Re-render everything that might depend on campaign list
+  try { quickAttachRefreshWorkspace(kind); } catch (e) {}
+  try { renderOpsFeed(); } catch (e) {}
+  try { if (typeof initSelector === 'function') initSelector(); } catch (e) {}
+  // Open the new campaign's detail so the user sees the attach in context
+  try { selectCampaign(cid); } catch (e) {}
+};
+function quickAttachRefreshWorkspace(kind) {
+  // Re-render the workspace that owns this kind, so the attached-state
+  // pill on the card updates. Falls through silently if the renderer
+  // isn't defined (e.g. for object kinds without a workspace).
+  var map = {
+    hook:'renderHookBank', meme:'renderMemeLord', billboard:'renderBillboardLab',
+    trend:'renderTrendCatcher', caption:'renderCaptionStudio', asset_request:'renderAssetPlanner',
+    calendar_item:'renderCalendar', recommendation:'renderOpsFeed', pattern:'renderOpsFeed',
+    opportunity:'renderOpsFeed', combination:'renderOpsFeed', lesson:'renderOpsFeed'
+  };
+  var fn = map[kind];
+  if (fn && typeof window[fn] === 'function') {
+    try { window[fn](); } catch (e) {}
+  }
+}
+
 function initSelector() {
   var sel = document.getElementById('campaignSelector');
   var ids = Object.keys(window.campaignData.campaigns).sort();
@@ -2363,53 +2538,8 @@ function confirmDeleteHook(id) {
   renderHookBank();
 }
 function promptAttachHook(id) {
-  var h = hookReadAll().find(function(x) { return x.hookId === id; });
-  if (!h) return;
-  if (!window.campaignData || !window.campaignData.campaigns) { window.alert('No campaigns yet.'); return; }
-  var keys = Object.keys(window.campaignData.campaigns);
-  if (keys.length === 0) { window.alert('No campaigns yet. Create one in the Campaign Builder first.'); return; }
-  // Build a simple prompt-based picker. Keep inline (no extra modal needed for MVP).
-  var attached = [];
-  keys.forEach(function(cid) {
-    var c = window.campaignData.campaigns[cid];
-    if (c && Array.isArray(c.hooks) && c.hooks.indexOf(id) !== -1) attached.push(cid);
-  });
-  var lines = ['Attach hook to a campaign:', ''];
-  keys.forEach(function(cid, i) {
-    var c = window.campaignData.campaigns[cid];
-    var mark = attached.indexOf(cid) !== -1 ? '✓ ' : '  ';
-    var name = (c.identity && c.identity.name) || cid;
-    lines.push((i + 1) + ') ' + mark + name);
-  });
-  lines.push('');
-  lines.push('Enter number to toggle attachment, or 0 to cancel.');
-  var ans = window.prompt(lines.join('\n'));
-  if (!ans) return;
-  var n = parseInt(ans, 10);
-  if (isNaN(n) || n < 0 || n > keys.length) return;
-  if (n === 0) { renderHookBank(); return; }
-  var cid = keys[n - 1];
-  var c = window.campaignData.campaigns[cid];
-  if (!c) return;
-  if (!Array.isArray(c.hooks)) c.hooks = [];
-  if (!Array.isArray(c.history)) c.history = [];
-  var idx = c.hooks.indexOf(id);
-  if (idx === -1) {
-    c.hooks.push(id);
-    c.history = c.history || [];
-    c.history.push({ action: 'hook-attached', by: 'christelle', at: new Date().toISOString(), note: 'Hook "' + h.text.substring(0, 40) + '" attached.' });
-  } else {
-    c.hooks.splice(idx, 1);
-    c.history = c.history || [];
-    c.history.push({ action: 'hook-detached', by: 'christelle', at: new Date().toISOString(), note: 'Hook "' + h.text.substring(0, 40) + '" detached.' });
-  }
-  c.updatedAt = new Date().toISOString();
-  devStoreAppend(c);
-  renderHookBank();
-  if (typeof window.renderCampaign === 'function' && window.campaignData.activeCampaignId === cid) {
-    // Refresh detail if user is viewing that campaign
-    try { renderCampaign(cid); } catch (e) {}
-  }
+  // Step 20: routed to the Quick Attach modal (replaces native prompt)
+  try { openQuickAttach('hook', id); } catch (e) { /* swallow — workspace stays usable */ }
 }
 
 // --- Step 11: Meme Lord — second standalone workspace ---
@@ -2706,56 +2836,8 @@ function confirmDeleteMeme(id) {
   renderMemeLord();
 }
 function promptAttachMeme(id) {
-  var m = memeReadAll().find(function(x) { return x.memeId === id; });
-  if (!m) return;
-  if (!window.campaignData || !window.campaignData.campaigns) { window.alert('No campaigns yet.'); return; }
-  var keys = Object.keys(window.campaignData.campaigns);
-  if (keys.length === 0) { window.alert('No campaigns yet. Create one in the Campaign Builder first.'); return; }
-  var attached = [];
-  keys.forEach(function(cid) {
-    var c = window.campaignData.campaigns[cid];
-    if (c && Array.isArray(c.memes) && c.memes.indexOf(id) !== -1) attached.push(cid);
-  });
-  var lines = ['Attach meme to a campaign:', ''];
-  keys.forEach(function(cid, i) {
-    var c = window.campaignData.campaigns[cid];
-    var mark = attached.indexOf(cid) !== -1 ? '✓ ' : '  ';
-    var name = (c.identity && c.identity.name) || cid;
-    lines.push((i + 1) + ') ' + mark + name);
-  });
-  lines.push('');
-  lines.push('Enter number to toggle attachment, or 0 to cancel.');
-  var ans = window.prompt(lines.join('\n'));
-  if (!ans) return;
-  var n = parseInt(ans, 10);
-  if (isNaN(n) || n < 0 || n > keys.length) return;
-  if (n === 0) { renderMemeLord(); return; }
-  var cid = keys[n - 1];
-  var c = window.campaignData.campaigns[cid];
-  if (!c) return;
-  c.memes = Array.isArray(c.memes) ? c.memes : [];
-  c.history = Array.isArray(c.history) ? c.history : [];
-  var now = new Date().toISOString();
-  var idx = c.memes.indexOf(id);
-  if (idx === -1) {
-    c.memes.push(id);
-    c.history.push({ action: 'meme-attached', by: 'christelle', at: now, note: 'Meme "' + (m.line || '').substring(0, 40) + '" attached.' });
-  } else {
-    c.memes.splice(idx, 1);
-    c.history.push({ action: 'meme-detached', by: 'christelle', at: now, note: 'Meme "' + (m.line || '').substring(0, 40) + '" detached.' });
-  }
-  c.updatedAt = now;
-  devStoreAppend(c);
-  // Reflect the new attach state on the meme itself
-  m.campaignId = idx === -1 ? cid : null;
-  m.updatedAt = now;
-  m.history = Array.isArray(m.history) ? m.history : [];
-  m.history.push({ action: idx === -1 ? 'attached' : 'detached', by: 'christelle', at: now });
-  memeAppend(m);
-  renderMemeLord();
-  if (typeof window.renderCampaign === 'function' && window.campaignData.activeCampaignId === cid) {
-    try { renderCampaign(cid); } catch (e) {}
-  }
+  // Step 20: routed to the Quick Attach modal (replaces native prompt)
+  try { openQuickAttach('meme', id); } catch (e) { /* swallow — workspace stays usable */ }
 }
 
 // --- Step 12: Billboard Lab — third standalone workspace ---
@@ -3052,55 +3134,8 @@ function confirmDeleteBillboard(id) {
   renderBillboardLab();
 }
 function promptAttachBillboard(id) {
-  var b = billboardReadAll().find(function(x) { return x.billboardId === id; });
-  if (!b) return;
-  if (!window.campaignData || !window.campaignData.campaigns) { window.alert('No campaigns yet.'); return; }
-  var keys = Object.keys(window.campaignData.campaigns);
-  if (keys.length === 0) { window.alert('No campaigns yet. Create one in the Campaign Builder first.'); return; }
-  var attached = [];
-  keys.forEach(function(cid) {
-    var c = window.campaignData.campaigns[cid];
-    if (c && Array.isArray(c.billboards) && c.billboards.indexOf(id) !== -1) attached.push(cid);
-  });
-  var lines = ['Attach billboard to a campaign:', ''];
-  keys.forEach(function(cid, i) {
-    var c = window.campaignData.campaigns[cid];
-    var mark = attached.indexOf(cid) !== -1 ? '✓ ' : '  ';
-    var name = (c.identity && c.identity.name) || cid;
-    lines.push((i + 1) + ') ' + mark + name);
-  });
-  lines.push('');
-  lines.push('Enter number to toggle attachment, or 0 to cancel.');
-  var ans = window.prompt(lines.join('\n'));
-  if (!ans) return;
-  var n = parseInt(ans, 10);
-  if (isNaN(n) || n < 0 || n > keys.length) return;
-  if (n === 0) { renderBillboardLab(); return; }
-  var cid = keys[n - 1];
-  var c = window.campaignData.campaigns[cid];
-  if (!c) return;
-  c.billboards = Array.isArray(c.billboards) ? c.billboards : [];
-  c.history = Array.isArray(c.history) ? c.history : [];
-  var now = new Date().toISOString();
-  var idx = c.billboards.indexOf(id);
-  if (idx === -1) {
-    c.billboards.push(id);
-    c.history.push({ action: 'billboard-attached', by: 'christelle', at: now, note: 'Billboard "' + (b.line || '').substring(0, 40) + '" attached.' });
-  } else {
-    c.billboards.splice(idx, 1);
-    c.history.push({ action: 'billboard-detached', by: 'christelle', at: now, note: 'Billboard "' + (b.line || '').substring(0, 40) + '" detached.' });
-  }
-  c.updatedAt = now;
-  devStoreAppend(c);
-  b.campaignId = idx === -1 ? cid : null;
-  b.updatedAt = now;
-  b.history = Array.isArray(b.history) ? b.history : [];
-  b.history.push({ action: idx === -1 ? 'attached' : 'detached', by: 'christelle', at: now });
-  billboardAppend(b);
-  renderBillboardLab();
-  if (typeof window.renderCampaign === 'function' && window.campaignData.activeCampaignId === cid) {
-    try { renderCampaign(cid); } catch (e) {}
-  }
+  // Step 20: routed to the Quick Attach modal (replaces native prompt)
+  try { openQuickAttach('billboard', id); } catch (e) { /* swallow — workspace stays usable */ }
 }
 
 // --- Step 13: Trend Catcher — the radar. Standalone workspace that feeds Hook Bank / Meme Lord / Billboard Lab ---
@@ -3405,55 +3440,8 @@ function confirmDeleteTrend(id) {
   renderTrendCatcher();
 }
 function promptAttachTrend(id) {
-  var t = trendReadAll().find(function(x) { return x.trendId === id; });
-  if (!t) return;
-  if (!window.campaignData || !window.campaignData.campaigns) { window.alert('No campaigns yet.'); return; }
-  var keys = Object.keys(window.campaignData.campaigns);
-  if (keys.length === 0) { window.alert('No campaigns yet. Create one in the Campaign Builder first.'); return; }
-  var attached = [];
-  keys.forEach(function(cid) {
-    var c = window.campaignData.campaigns[cid];
-    if (c && Array.isArray(c.trends) && c.trends.indexOf(id) !== -1) attached.push(cid);
-  });
-  var lines = ['Attach trend to a campaign:', ''];
-  keys.forEach(function(cid, i) {
-    var c = window.campaignData.campaigns[cid];
-    var mark = attached.indexOf(cid) !== -1 ? '✓ ' : '  ';
-    var name = (c.identity && c.identity.name) || cid;
-    lines.push((i + 1) + ') ' + mark + name);
-  });
-  lines.push('');
-  lines.push('Enter number to toggle attachment, or 0 to cancel.');
-  var ans = window.prompt(lines.join('\n'));
-  if (!ans) return;
-  var n = parseInt(ans, 10);
-  if (isNaN(n) || n < 0 || n > keys.length) return;
-  if (n === 0) { renderTrendCatcher(); return; }
-  var cid = keys[n - 1];
-  var c = window.campaignData.campaigns[cid];
-  if (!c) return;
-  c.trends = Array.isArray(c.trends) ? c.trends : [];
-  c.history = Array.isArray(c.history) ? c.history : [];
-  var now = new Date().toISOString();
-  var idx = c.trends.indexOf(id);
-  if (idx === -1) {
-    c.trends.push(id);
-    c.history.push({ action: 'trend-attached', by: 'christelle', at: now, note: 'Trend "' + (t.title || '').substring(0, 40) + '" attached.' });
-  } else {
-    c.trends.splice(idx, 1);
-    c.history.push({ action: 'trend-detached', by: 'christelle', at: now, note: 'Trend "' + (t.title || '').substring(0, 40) + '" detached.' });
-  }
-  c.updatedAt = now;
-  devStoreAppend(c);
-  t.campaignId = idx === -1 ? cid : null;
-  t.updatedAt = now;
-  t.history = Array.isArray(t.history) ? t.history : [];
-  t.history.push({ action: idx === -1 ? 'attached' : 'detached', by: 'christelle', at: now });
-  trendAppend(t);
-  renderTrendCatcher();
-  if (typeof window.renderCampaign === 'function' && window.campaignData.activeCampaignId === cid) {
-    try { renderCampaign(cid); } catch (e) {}
-  }
+  // Step 20: routed to the Quick Attach modal (replaces native prompt)
+  try { openQuickAttach('trend', id); } catch (e) { /* swallow — workspace stays usable */ }
 }
 
 // --- Step 14: Calendar — the timeline. Standalone workspace that imports events from all 5 other object kinds. ---
@@ -4121,55 +4109,8 @@ function confirmDeleteCaption(id) {
   renderCaptionStudio();
 }
 function promptAttachCaption(id) {
-  var c = captionReadAll().find(function(x) { return x.captionId === id; });
-  if (!c) return;
-  if (!window.campaignData || !window.campaignData.campaigns) { window.alert('No campaigns yet.'); return; }
-  var keys = Object.keys(window.campaignData.campaigns);
-  if (keys.length === 0) { window.alert('No campaigns yet. Create one in the Campaign Builder first.'); return; }
-  var attached = [];
-  keys.forEach(function(cid) {
-    var cc = window.campaignData.campaigns[cid];
-    if (cc && Array.isArray(cc.captions) && cc.captions.indexOf(id) !== -1) attached.push(cid);
-  });
-  var lines = ['Attach caption to a campaign:', ''];
-  keys.forEach(function(cid, i) {
-    var cc = window.campaignData.campaigns[cid];
-    var mark = attached.indexOf(cid) !== -1 ? '✓ ' : '  ';
-    var n = (cc.identity && cc.identity.name) || cid;
-    lines.push((i + 1) + ') ' + mark + n);
-  });
-  lines.push('');
-  lines.push('Enter number to toggle attachment, or 0 to cancel.');
-  var ans = window.prompt(lines.join('\n'));
-  if (!ans) return;
-  var n = parseInt(ans, 10);
-  if (isNaN(n) || n < 0 || n > keys.length) return;
-  if (n === 0) { renderCaptionStudio(); return; }
-  var cid = keys[n - 1];
-  var cc = window.campaignData.campaigns[cid];
-  if (!cc) return;
-  cc.captions = Array.isArray(cc.captions) ? cc.captions : [];
-  cc.history = Array.isArray(cc.history) ? cc.history : [];
-  var now = new Date().toISOString();
-  var idx = cc.captions.indexOf(id);
-  if (idx === -1) {
-    cc.captions.push(id);
-    cc.history.push({ action: 'caption-attached', by: 'christelle', at: now, note: 'Caption attached.' });
-  } else {
-    cc.captions.splice(idx, 1);
-    cc.history.push({ action: 'caption-detached', by: 'christelle', at: now, note: 'Caption detached.' });
-  }
-  cc.updatedAt = now;
-  devStoreAppend(cc);
-  c.linkedCampaign = idx === -1 ? cid : null;
-  c.updatedAt = now;
-  c.history = Array.isArray(c.history) ? c.history : [];
-  c.history.push({ action: idx === -1 ? 'attached' : 'detached', by: 'christelle', at: now });
-  captionAppend(c);
-  renderCaptionStudio();
-  if (typeof window.renderCampaign === 'function' && window.campaignData.activeCampaignId === cid) {
-    try { renderCampaign(cid); } catch (e) {}
-  }
+  // Step 20: routed to the Quick Attach modal (replaces native prompt)
+  try { openQuickAttach('caption', id); } catch (e) { /* swallow — workspace stays usable */ }
 }
 // Cross-workspace helpers: open the caption modal with a source pre-selected and the source's
 // text/title as the caption seed. These mirror useTrendAsHookSeed from Step 13.
@@ -4570,55 +4511,8 @@ function confirmDeleteAsset(id) {
   renderAssetPlanner();
 }
 function promptAttachAsset(id) {
-  var a = assetReadAll().find(function(x) { return x.assetId === id; });
-  if (!a) return;
-  if (!window.campaignData || !window.campaignData.campaigns) { window.alert('No campaigns yet.'); return; }
-  var keys = Object.keys(window.campaignData.campaigns);
-  if (keys.length === 0) { window.alert('No campaigns yet. Create one in the Campaign Builder first.'); return; }
-  var attached = [];
-  keys.forEach(function(cid) {
-    var c = window.campaignData.campaigns[cid];
-    if (c && Array.isArray(c.assetRequests) && c.assetRequests.indexOf(id) !== -1) attached.push(cid);
-  });
-  var lines = ['Link asset request to a campaign:', ''];
-  keys.forEach(function(cid, i) {
-    var c = window.campaignData.campaigns[cid];
-    var mark = attached.indexOf(cid) !== -1 ? '✓ ' : '  ';
-    var n = (c.identity && c.identity.name) || cid;
-    lines.push((i + 1) + ') ' + mark + n);
-  });
-  lines.push('');
-  lines.push('Enter number to toggle link, or 0 to cancel.');
-  var ans = window.prompt(lines.join('\n'));
-  if (!ans) return;
-  var n = parseInt(ans, 10);
-  if (isNaN(n) || n < 0 || n > keys.length) return;
-  if (n === 0) { renderAssetPlanner(); return; }
-  var cid = keys[n - 1];
-  var c = window.campaignData.campaigns[cid];
-  if (!c) return;
-  c.assetRequests = Array.isArray(c.assetRequests) ? c.assetRequests : [];
-  c.history = Array.isArray(c.history) ? c.history : [];
-  var now = new Date().toISOString();
-  var idx = c.assetRequests.indexOf(id);
-  if (idx === -1) {
-    c.assetRequests.push(id);
-    c.history.push({ action: 'asset-requested', by: 'christelle', at: now, note: 'Asset requested: "' + (a.title || '').substring(0, 40) + '"' });
-  } else {
-    c.assetRequests.splice(idx, 1);
-    c.history.push({ action: 'asset-unlinked', by: 'christelle', at: now, note: 'Asset unlinked: "' + (a.title || '').substring(0, 40) + '"' });
-  }
-  c.updatedAt = now;
-  devStoreAppend(c);
-  a.campaignLink = idx === -1 ? cid : null;
-  a.updatedAt = now;
-  a.history = Array.isArray(a.history) ? a.history : [];
-  a.history.push({ action: idx === -1 ? 'linked' : 'unlinked', by: 'christelle', at: now });
-  assetAppend(a);
-  renderAssetPlanner();
-  if (typeof window.renderCampaign === 'function' && window.campaignData.activeCampaignId === cid) {
-    try { renderCampaign(cid); } catch (e) {}
-  }
+  // Step 20: routed to the Quick Attach modal (replaces native prompt)
+  try { openQuickAttach('asset_request', id); } catch (e) { /* swallow — workspace stays usable */ }
 }
 // Cross-workspace helpers: open the asset request modal with a source pre-selected.
 function requestAssetFromCampaign(cid) { openAssetModal('campaign:' + cid); }
