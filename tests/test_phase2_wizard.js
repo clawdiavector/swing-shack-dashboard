@@ -63,7 +63,7 @@ function httpJson(method, url, body) {
 section('HTML structure');
 const html = fs.readFileSync(HTML_PATH, 'utf-8');
 
-assert('header has + Create Campaign button', html.includes('+ Create Campaign'));
+assert('header has + Campaign Factory button', html.includes('+ Campaign Factory'));
 assert('header has Hooks view button', html.includes('id="btn-hooks"') && html.includes('onclick="showView(\'hooks\')"'));
 assert('view-hooks panel exists', html.includes('id="view-hooks"'));
 assert('Hook Bank filter select exists', html.includes('id="hooks-filter"'));
@@ -309,7 +309,7 @@ assert('Caption campaign history records caption-attached', html.includes("'capt
 
 // ── Step 16: Asset Planner ──────────────────────────────────────────
 section('Step 16: Asset Planner (HTML structure)');
-assert('header has Asset Planner view button', html.includes('id="btn-assets"') && html.includes("onclick=\"showView('assets')\""));
+assert('header has Production Board view button', html.includes('id="btn-production"') && html.includes("onclick=\"showView('assets')\""));
 assert('view-assets panel exists', html.includes('id="view-assets"'));
 assert('Asset Planner filter select exists', html.includes('id="assets-filter"'));
 assert('Asset filter has Unlinked/Linked + 6 statuses + 2 priorities', [
@@ -481,6 +481,88 @@ section('Live API — wizard payload (new shape)');
   // cross-workspace requestAssetFrom* helpers, dual history contract
   // (asset-requested on both campaign + source), and priority+requiredBy sort.
   results.push('  (19 new assertions for Step 16 — Asset Planner view, modal, fields, store, source-from-6-kinds, dual history contract, priority+date sort)');
+
+  // ── Step 18: Foundation — Objects + Events, Products/Goals, Attachments, Intelligence, Confidence, Provenance, Ops Feed, Campaign Factory, Surprise Me ──
+  section('Step 18: Foundation (HTML structure + JS API surface)');
+  // 1. Operations Feed (new home)
+  assert('view-opsfeed panel exists',         html.includes('id="view-opsfeed"'));
+  assert('opsfeed has Biggest Opportunity bucket', html.includes('id="opsfeed-opportunity"'));
+  assert('opsfeed has Needs Attention bucket',     html.includes('id="opsfeed-needs"'));
+  assert('opsfeed has Worth Trying bucket',        html.includes('id="opsfeed-worth"'));
+  assert('Surprise Me button exists',          html.includes('id="btn-surprise-me"'));
+  assert('Surprise Me render target exists',   html.includes('id="surprise-me-results"'));
+  // 2. Creative Studio hub
+  assert('view-creative panel exists',        html.includes('id="view-creative"'));
+  assert('Creative Studio hook counter el',   html.includes('id="cs-hook-count"'));
+  assert('Creative Studio confident list el', html.includes('id="cs-confident-list"'));
+  // 3. Header reparenting
+  assert('Operations Feed header button',     html.includes('id="btn-opsfeed"') && html.includes("showView('opsfeed')"));
+  assert('Campaign Factory header button',    html.includes('id="btn-factory"') && html.includes('openCampaignFactory'));
+  assert('Creative Studio header button',     html.includes('id="btn-creative"') && html.includes("showView('creative')"));
+  assert('Production Board header button',    html.includes('id="btn-production"') && html.includes("showView('assets')"));
+  assert('Product switcher label element',    html.includes('id="product-switcher-label"'));
+  assert('Event count badge element',          html.includes('id="composer-event-count"'));
+  // 4. Domain model
+  assert('DOMAINS object defined with 7',     html.includes('research:') && html.includes('creative:') && html.includes('intelligence:') &&
+                                              html.includes('production:') && html.includes('publishing:') && html.includes('performance:') &&
+                                              html.includes('learning:'));
+  assert('domainOf helper',                   html.includes('function domainOf(kind)'));
+  assert('labelForKind helper',               html.includes('function labelForKind(kind)'));
+  assert('kindStoreKey helper',               html.includes('function kindStoreKey(kind)'));
+  // 5. Stores + Events
+  assert('readStore / writeStore',            html.includes('function readStore(key)') && html.includes('function writeStore(key, arr)'));
+  assert('PRODUCT_STORE_KEY',                 html.includes("PRODUCT_STORE_KEY = 'campaign-os:dev:products'"));
+  assert('GOAL_STORE_KEY',                    /GOAL_STORE_KEY\s*=\s*'campaign-os:dev:goals'/.test(html));
+  assert('EVENT_STORE_KEY',                   /EVENT_STORE_KEY\s*=\s*'campaign-os:dev:events'/.test(html));
+  assert('ATTACH_STORE_KEY',                  html.includes("ATTACH_STORE_KEY = 'campaign-os:dev:campaign_attachments'"));
+  assert('applyEvent function',               html.includes('function applyEvent(evt)'));
+  assert('activeProductId auto-seeds Swing Shack', html.includes("name: 'Swing Shack'"));
+  // 6. Provenance + computed confidence
+  assert('makeProvenance / attachProvenance', html.includes('function makeProvenance(') && html.includes('function attachProvenance('));
+  assert('getConfidence function',            html.includes('function getConfidence(kind, id)'));
+  assert('confidenceLabel function',          html.includes('function confidenceLabel(c)'));
+  assert('confidenceProvenanceText function', html.includes('function confidenceProvenanceText(kind, id)'));
+  assert('manual confidence escape hatch',    html.includes("'manual'"));
+  // 7. Campaign attachments
+  assert('attachToCampaign function',         html.includes('function attachToCampaign(campaignId'));
+  assert('detachFromCampaign function',       html.includes('function detachFromCampaign(campaignId'));
+  assert('attachmentsForCampaign helper',     html.includes('function attachmentsForCampaign('));
+  // 8. Intelligence (Knowledge) — 5 sub-kinds
+  assert('intelCreate function',              html.includes('function intelCreate(subKind, payload)'));
+  assert('intelAccept function',              html.includes('function intelAccept('));
+  assert('Intelligence store keys for 5 kinds',
+    html.includes("'intelligence:recommendations'") &&
+    html.includes("'intelligence:patterns'") &&
+    html.includes("'intelligence:opportunities'") &&
+    html.includes("'intelligence:combinations'") &&
+    html.includes("'intelligence:lessons'"));
+  // 9. Proactive Composer + Surprise Me
+  assert('composerOnEvent function',          html.includes('function composerOnEvent(evt)'));
+  assert('composer triggers on trend events', html.includes("t !== 'trend.updated'"));
+  assert('surpriseMeGenerate function',       html.includes('function surpriseMeGenerate()'));
+  assert('Surprise Me returns 3 ideas',       html.includes('i<3'));
+  // 10. Operations Feed + Campaign Factory
+  assert('opsFeedData function',              html.includes('function opsFeedData()'));
+  assert('3 ops buckets (opportunity/needs/worth)', html.includes('opportunity:') && html.includes('needsAttention:') && html.includes('worthTrying:'));
+  assert('openCampaignFactory function',      html.includes('function openCampaignFactory()'));
+  assert('5 Campaign Factory build options',
+    html.includes("key:'idea'") && html.includes("key:'trend'") && html.includes("key:'goal'") && html.includes("key:'product'") && html.includes("key:'surprise'"));
+  assert('campaignFactoryCreate writes event', html.includes("type: 'campaign.created'"));
+  assert('Goal selector in Campaign Factory', html.includes('id="cf-goal"'));
+  // 11. Renderer functions
+  assert('renderOpsFeed function',            html.includes('function renderOpsFeed()'));
+  assert('renderCreativeStudio function',     html.includes('function renderCreativeStudio()'));
+  assert('runSurpriseMe function',            html.includes('function runSurpriseMe()'));
+  // 12. showView dispatch
+  assert('showView handles opsfeed',          html.includes("if (name === 'opsfeed') { renderOpsFeed();"));
+  assert('showView handles creative',         html.includes("if (name === 'creative') { renderCreativeStudio();"));
+  // 13. Bootstrap
+  assert('default product bootstrap',         html.includes("activeProductId()"));
+  assert('header refresh bootstrap',          html.includes('refreshHeader()'));
+  // 14. window.OS API surface
+  assert('window.OS exposed',                 html.includes('window.OS = {'));
+  assert('OS.products / goals / events / attachments / intelligence / composer / opsFeed', html.includes('products:') && html.includes('goals:') && html.includes('events:') && html.includes('attachments:') && html.includes('intelligence:') && html.includes('composer:') && html.includes('opsFeed:'));
+  results.push('  (52 new assertions for Step 18 — Foundation: Ops Feed, Creative Studio, Products, Goals, Events, Attachments, Intelligence, Confidence, Provenance, Campaign Factory, Surprise Me)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');

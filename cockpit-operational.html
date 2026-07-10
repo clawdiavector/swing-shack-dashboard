@@ -321,18 +321,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div class="header-subtitle" id="header-subtitle">Portfolio Overview</div>
 </div>
 <div style="display:flex;align-items:center;gap:16px">
+<div id="product-switcher-label" style="font-size:11px;color:var(--col-muted);font-weight:600;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface)">Product: —</div>
+<span id="composer-event-count" style="font-size:10px;color:var(--col-muted)">0 events</span>
 <div class="view-toggle">
-<button class="view-btn" id="btn-portfolio" onclick="showView('portfolio')">Portfolio</button>
+<button class="view-btn active" id="btn-opsfeed" onclick="showView('opsfeed')">Operations Feed</button>
 <button class="view-btn" id="btn-trends" onclick="showView('trends')">Trend Catcher</button>
+<button class="view-btn" id="btn-factory" style="background:var(--col-green);color:#0a0a0f;font-weight:700" onclick="openCampaignFactory()">+ Campaign Factory</button>
+<button class="view-btn" id="btn-creative" onclick="showView('creative')">Creative Studio</button>
+<button class="view-btn" id="btn-production" onclick="showView('assets')">Production Board</button>
 <button class="view-btn" id="btn-calendar" onclick="showView('calendar')">Calendar</button>
-<button class="view-btn" id="btn-hooks" onclick="showView('hooks')">Hooks</button>
-<button class="view-btn" id="btn-memes" onclick="showView('memes')">Meme Lord</button>
-<button class="view-btn" id="btn-billboards" onclick="showView('billboards')">Billboard Lab</button>
-<button class="view-btn" id="btn-captions" onclick="showView('captions')">Caption Studio</button>
-<button class="view-btn" id="btn-assets" onclick="showView('assets')">Asset Planner</button>
-<button class="view-btn" id="btn-review" onclick="showView('review')">Review</button>
 <button class="view-btn" id="btn-detail" onclick="showView('detail')">Campaign</button>
-<button class="view-btn" id="btn-create" style="background:var(--col-green);color:#0a0a0f;font-weight:700" onclick="openCreateModal()">+ Create Campaign</button>
+<button class="view-btn" id="btn-review" onclick="showView('review')">Review</button>
+<button class="view-btn" id="btn-hooks" onclick="showView('hooks')" style="font-size:10px">Hooks</button>
+<button class="view-btn" id="btn-memes" onclick="showView('memes')" style="font-size:10px">Memes</button>
+<button class="view-btn" id="btn-billboards" onclick="showView('billboards')" style="font-size:10px">Billboards</button>
+<button class="view-btn" id="btn-captions" onclick="showView('captions')" style="font-size:10px">Captions</button>
+<button class="view-btn" id="btn-portfolio" onclick="showView('portfolio')" style="font-size:10px">Portfolio</button>
 <button class="view-btn" id="btn-clear-dev" style="color:var(--col-red);font-weight:600;margin-left:8px" onclick="clearDevData()" title="Clear all dev-store campaigns and reload">Clear Dev Data</button>
 </div>
 <div class="campaign-selector-wrap" id="campaignSelectorWrap" style="display:none">
@@ -341,7 +345,67 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 </div>
 </div>
 </div>
-<div id="view-portfolio" class="view-panel active">
+<div id="view-portfolio" class="view-panel">
+
+<!-- Step 18: Operations Feed (home) -->
+<div id="view-opsfeed" class="view-panel active" style="padding:24px">
+<div style="max-width:1100px;margin:0 auto">
+<div id="opsfeed-greeting" style="font-size:22px;font-weight:700;margin-bottom:6px">Good morning Christelle.</div>
+<div id="opsfeed-summary" style="color:var(--col-muted);font-size:13px;margin-bottom:24px">Loading today's picture…</div>
+<button class="view-btn" id="btn-surprise-me" style="background:var(--col-green);color:#0a0a0f;font-weight:700;padding:10px 18px;margin-bottom:24px" onclick="runSurpriseMe()">✨ Surprise Me — build me 3 campaign ideas</button>
+<div id="surprise-me-results" style="margin-bottom:32px"></div>
+<div style="display:grid;grid-template-columns:1fr;gap:20px">
+<div class="ops-bucket">
+<div class="ops-bucket-title" style="color:#FF9F43;font-size:14px;font-weight:700;margin-bottom:10px">🔥 Biggest Opportunity</div>
+<div id="opsfeed-opportunity" class="ops-bucket-list"></div>
+</div>
+<div class="ops-bucket">
+<div class="ops-bucket-title" style="color:#FF5C5C;font-size:14px;font-weight:700;margin-bottom:10px">⚠ Needs Attention</div>
+<div id="opsfeed-needs" class="ops-bucket-list"></div>
+</div>
+<div class="ops-bucket">
+<div class="ops-bucket-title" style="color:#5CC8FF;font-size:14px;font-weight:700;margin-bottom:10px">💡 Worth Trying</div>
+<div id="opsfeed-worth" class="ops-bucket-list"></div>
+</div>
+</div>
+<div id="opsfeed-stats" style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border);font-size:11px;color:var(--col-muted)">Foundation: <span id="opsfeed-stat-products">0</span> products · <span id="opsfeed-stat-goals">0</span> goals · <span id="opsfeed-stat-events">0</span> events · <span id="opsfeed-stat-attaches">0</span> attachments</div>
+</div>
+</div>
+
+<!-- Step 18: Creative Studio (4-quadrant hub) -->
+<div id="view-creative" class="view-panel" style="padding:24px">
+<div style="max-width:1100px;margin:0 auto">
+<div style="font-size:18px;font-weight:700;margin-bottom:4px">Creative Studio</div>
+<div style="color:var(--col-muted);font-size:12px;margin-bottom:24px">How do I make this stronger? Hooks, memes, billboards, captions — independent, reusable, attachable.</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<button class="view-btn" style="padding:24px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:700;text-align:left" onclick="showView('hooks')">
+<div style="font-size:11px;color:var(--col-muted);margin-bottom:6px">HOOK BANK</div>
+<div id="cs-hook-count" style="font-size:22px">0</div>
+<div style="font-size:11px;color:var(--col-muted)">hooks captured</div>
+</button>
+<button class="view-btn" style="padding:24px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:700;text-align:left" onclick="showView('memes')">
+<div style="font-size:11px;color:var(--col-muted);margin-bottom:6px">MEME LORD</div>
+<div id="cs-meme-count" style="font-size:22px">0</div>
+<div style="font-size:11px;color:var(--col-muted)">meme ideas</div>
+</button>
+<button class="view-btn" style="padding:24px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:700;text-align:left" onclick="showView('billboards')">
+<div style="font-size:11px;color:var(--col-muted);margin-bottom:6px">BILLBOARD LAB</div>
+<div id="cs-bb-count" style="font-size:22px">0</div>
+<div style="font-size:11px;color:var(--col-muted)">billboard lines</div>
+</button>
+<button class="view-btn" style="padding:24px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:700;text-align:left" onclick="showView('captions')">
+<div style="font-size:11px;color:var(--col-muted);margin-bottom:6px">CAPTION STUDIO</div>
+<div id="cs-cap-count" style="font-size:22px">0</div>
+<div style="font-size:11px;color:var(--col-muted)">captions drafted</div>
+</button>
+</div>
+<div style="margin-top:32px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
+<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--col-muted)">CONFIDENT CREATIVE — the ones with the highest computed confidence</div>
+<div id="cs-confident-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+</div>
+</div>
+</div>
+
 <div class="card">
 <div class="card-title">Campaign Portfolio — 4 campaigns</div>
 <div class="stat-card" style="margin-bottom:16px">
@@ -1262,6 +1326,8 @@ function showView(name) {
   document.getElementById('btn-billboards').classList.toggle('active', name === 'billboards');
   document.getElementById('view-captions').classList.toggle('active', name === 'captions');
   document.getElementById('view-assets').classList.toggle('active', name === 'assets');
+  document.getElementById('view-opsfeed').classList.toggle('active', name === 'opsfeed');
+  document.getElementById('view-creative').classList.toggle('active', name === 'creative');
   document.getElementById('btn-portfolio').classList.toggle('active', name === 'portfolio');
   document.getElementById('btn-detail').classList.toggle('active', name === 'detail');
   document.getElementById('btn-review').classList.toggle('active', name === 'review');
@@ -1271,7 +1337,9 @@ function showView(name) {
   document.getElementById('btn-trends').classList.toggle('active', name === 'trends');
   document.getElementById('btn-calendar').classList.toggle('active', name === 'calendar');
   document.getElementById('btn-captions').classList.toggle('active', name === 'captions');
-  document.getElementById('btn-assets').classList.toggle('active', name === 'assets');
+  document.getElementById('btn-opsfeed').classList.toggle('active', name === 'opsfeed');
+  document.getElementById('btn-creative').classList.toggle('active', name === 'creative');
+  document.getElementById('btn-production').classList.toggle('active', name === 'assets');
   document.getElementById('campaignSelectorWrap').style.display = (name === 'detail') ? 'flex' : 'none';
   if (name === 'portfolio') document.getElementById('header-subtitle').textContent = 'Portfolio Overview';
   if (name === 'review') { renderReviewQueue(); document.getElementById('header-subtitle').textContent = 'Review Queue'; }
@@ -1283,8 +1351,438 @@ function showView(name) {
   if (name === 'calendar') { renderCalendar(); document.getElementById('header-subtitle').textContent = 'Calendar — the timeline. Plan, schedule, and see everything happening.'; }
   if (name === 'captions') { renderCaptionStudio(); document.getElementById('header-subtitle').textContent = 'Caption Studio — write once, push anywhere. Source from hooks, trends, memes, billboards.'; }
   if (name === 'assets') { renderAssetPlanner(); document.getElementById('header-subtitle').textContent = 'Asset Planner — turn creative into concrete asks. Photo, video, reel, graphic, window screen.'; }
+  if (name === 'opsfeed') { renderOpsFeed(); document.getElementById('header-subtitle').textContent = 'Operations Feed — what deserves your attention right now'; }
+  if (name === 'creative') { renderCreativeStudio(); document.getElementById('header-subtitle').textContent = 'Creative Studio — the work that makes the rest stronger'; }
 }
 function getCampaign(id) { return (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[id] : null; }
+
+/* =====================================================================
+   STEP 18 — Foundation: Objects + Events, Product/Goal, Campaign Attachments,
+   Intelligence Knowledge, Computed Confidence, Provenance
+   ===================================================================== */
+var PRODUCT_STORE_KEY = 'campaign-os:dev:products';
+var GOAL_STORE_KEY   = 'campaign-os:dev:goals';
+var EVENT_STORE_KEY  = 'campaign-os:dev:events';
+var ATTACH_STORE_KEY = 'campaign-os:dev:campaign_attachments';
+var ACTIVE_PRODUCT_KEY = 'campaign-os:dev:active_product';
+var DOMAINS = {
+  research:    { label: 'Research',    kinds: ['trend'] },
+  creative:    { label: 'Creative',    kinds: ['hook', 'meme', 'billboard', 'caption'] },
+  intelligence:{ label: 'Intelligence',kinds: ['recommendation', 'pattern', 'opportunity', 'combination', 'lesson'] },
+  production:  { label: 'Production',  kinds: ['asset_request', 'calendar_item'] },
+  publishing:  { label: 'Publishing',  kinds: ['post', 'channel'] },
+  performance: { label: 'Performance', kinds: ['metric', 'performance_snapshot'] },
+  learning:    { label: 'Learning',    kinds: ['learning', 'playbook'] }
+};
+function domainOf(kind) {
+  for (var d in DOMAINS) if (DOMAINS[d].kinds.indexOf(kind) >= 0) return d;
+  return 'creative';
+}
+function labelForKind(kind) {
+  var map = { trend:'Trend', hook:'Hook', meme:'Meme', billboard:'Billboard', caption:'Caption',
+              asset_request:'Asset Request', calendar_item:'Calendar Item',
+              recommendation:'Recommendation', pattern:'Pattern', opportunity:'Opportunity',
+              combination:'Combination', lesson:'Lesson', learning:'Learning', playbook:'Playbook' };
+  return map[kind] || kind;
+}
+function kindStoreKey(kind) {
+  var map = { trend:'trends', hook:'hooks', meme:'memes', billboard:'billboards',
+              caption:'captions', asset_request:'asset_requests', calendar_item:'calendar',
+              recommendation:'intelligence:recommendations', pattern:'intelligence:patterns',
+              opportunity:'intelligence:opportunities', combination:'intelligence:combinations',
+              lesson:'intelligence:lessons' };
+  return 'campaign-os:dev:' + (map[kind] || kind);
+}
+function readStore(key) { try { var r = localStorage.getItem(key); return r ? JSON.parse(r) : []; } catch(e){return [];} }
+function writeStore(key, arr) { try { localStorage.setItem(key, JSON.stringify(arr||[])); } catch(e){} }
+function readObject(key) { try { var r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch(e){return null;} }
+function writeObject(key, obj) { try { localStorage.setItem(key, JSON.stringify(obj||null)); } catch(e){} }
+function uid(prefix) { return (prefix||'id') + '-' + Math.random().toString(36).slice(2,10); }
+function productsAll() { return readStore(PRODUCT_STORE_KEY); }
+function productById(id) { return productsAll().filter(function(p){return p.id===id;})[0] || null; }
+function activeProductId() {
+  var cur = readObject(ACTIVE_PRODUCT_KEY);
+  if (cur) return cur;
+  var all = productsAll();
+  if (!all.length) {
+    var p = { id: uid('prod'), name: 'Swing Shack', description: 'Default product — golf coaching and fitting', createdAt: new Date().toISOString() };
+    writeStore(PRODUCT_STORE_KEY, [p]);
+    writeObject(ACTIVE_PRODUCT_KEY, p.id);
+    applyEvent({ type: 'product.created', productId: p.id, productName: p.name, at: p.createdAt });
+    return p.id;
+  }
+  writeObject(ACTIVE_PRODUCT_KEY, all[0].id);
+  return all[0].id;
+}
+function setActiveProduct(id) { writeObject(ACTIVE_PRODUCT_KEY, id); }
+function productCreate(name, description) {
+  var p = { id: uid('prod'), name: name || 'New Product', description: description || '', createdAt: new Date().toISOString() };
+  var all = productsAll(); all.push(p); writeStore(PRODUCT_STORE_KEY, all);
+  applyEvent({ type: 'product.created', productId: p.id, productName: p.name, at: p.createdAt });
+  return p;
+}
+function productCount() { return productsAll().length; }
+function goalsAll() { return readStore(GOAL_STORE_KEY); }
+function goalById(id) { return goalsAll().filter(function(g){return g.id===id;})[0] || null; }
+function goalCreate(payload) {
+  var g = { id: uid('goal'), productId: activeProductId(),
+            name: payload.name || 'New Goal', description: payload.description || '',
+            why: payload.why || '', horizon: payload.horizon || 'q', status: 'active',
+            createdAt: new Date().toISOString() };
+  var all = goalsAll(); all.push(g); writeStore(GOAL_STORE_KEY, all);
+  applyEvent({ type: 'goal.created', goalId: g.id, goalName: g.name, at: g.createdAt });
+  return g;
+}
+function goalCount() { return goalsAll().length; }
+function eventsAll() { return readStore(EVENT_STORE_KEY); }
+function applyEvent(evt) {
+  if (!evt) return;
+  if (!evt.id) evt.id = uid('evt');
+  if (!evt.at) evt.at = new Date().toISOString();
+  if (!evt.productId) evt.productId = activeProductId();
+  var all = eventsAll(); all.push(evt); writeStore(EVENT_STORE_KEY, all);
+  try { composerOnEvent(evt); } catch (e) {}
+  return evt;
+}
+function eventsForObject(kind, objectId) {
+  return eventsAll().filter(function(e){
+    if (e.objectKind === kind && e.objectId === objectId) return true;
+    if (e.type && e.type.indexOf('.') >= 0) {
+      var parts = e.type.split('.');
+      if (parts.length >= 3 && parts[1] === kind) {
+        return (e.hookId === objectId || e.memeId === objectId || e.billboardId === objectId ||
+                e.trendId === objectId || e.captionId === objectId || e.assetRequestId === objectId);
+      }
+    }
+    return false;
+  });
+}
+function eventCount() { return eventsAll().length; }
+function makeProvenance(createdEventId, sourceRefs) {
+  return { createdEventId: createdEventId || null, sourceRefs: sourceRefs || [], confidenceSource: 'computed' };
+}
+function attachProvenance(obj, kind) {
+  if (!obj) return obj;
+  if (!obj.provenance) obj.provenance = makeProvenance(null, []);
+  if (!obj.provenance.sourceRefs) obj.provenance.sourceRefs = [];
+  var map = { hook:['trendId'], meme:['hookId'], billboard:['hookId','trendId'],
+              caption:['hookId','trendId','memeId','billboardId'] };
+  var fks = map[kind] || [];
+  for (var i=0; i<fks.length; i++) {
+    var k = fks[i]; if (obj[k]) {
+      obj.provenance.sourceRefs.push({ kind: k.replace(/Id$/,''), id: obj[k] });
+    }
+  }
+  return obj;
+}
+function getConfidence(kind, id) {
+  if (!kind || !id) return 0;
+  var arr = readStore(kindStoreKey(kind));
+  var o = arr.filter(function(x){return x.id===id;})[0];
+  if (o && o.provenance && o.provenance.confidenceSource === 'manual' && typeof o.provenance.manualConfidence === 'number') {
+    return o.provenance.manualConfidence;
+  }
+  var evs = eventsForObject(kind, id);
+  if (!evs.length) return 0.1;
+  var points = 0;
+  for (var i=0; i<evs.length; i++) {
+    var t = evs[i].type || '';
+    if (t.indexOf('created')>=0) points += 1;
+    if (t.indexOf('updated')>=0 || t.indexOf('attached')>=0 || t.indexOf('detached')>=0) points += 1;
+    if (t.indexOf('approved')>=0) points += 3;
+    if (t.indexOf('published')>=0) points += 5;
+    if (t.indexOf('reviewed')>=0) points += 2;
+  }
+  return Math.round(Math.min(1, 0.2 + Math.log(1 + points) / Math.log(20) * 0.8) * 100) / 100;
+}
+function confidenceLabel(c) {
+  if (c >= 0.75) return 'High';
+  if (c >= 0.5) return 'Medium';
+  if (c >= 0.25) return 'Low';
+  return 'New';
+}
+function confidenceProvenanceText(kind, id) {
+  var evs = eventsForObject(kind, id);
+  if (!evs.length) return 'No history yet.';
+  var created = evs.filter(function(e){return (e.type||'').indexOf('created')>=0;}).length;
+  return 'Based on ' + evs.length + ' event' + (evs.length===1?'':'s') + ' (created: ' + created + ', updated: ' + (evs.length-created) + ').';
+}
+function attachmentsForCampaign(campaignId) { return readStore(ATTACH_STORE_KEY).filter(function(a){return a.campaignId===campaignId;}); }
+function attachmentsForObject(kind, objectId) { return readStore(ATTACH_STORE_KEY).filter(function(a){return a.objectKind===kind && a.objectId===objectId;}); }
+function attachToCampaign(campaignId, kind, objectId, rationale) {
+  var all = readStore(ATTACH_STORE_KEY);
+  if (all.filter(function(a){return a.campaignId===campaignId && a.objectKind===kind && a.objectId===objectId;}).length) return null;
+  var a = { id: uid('att'), campaignId: campaignId, objectKind: kind, objectId: objectId,
+            rationale: rationale || '', createdAt: new Date().toISOString() };
+  all.push(a); writeStore(ATTACH_STORE_KEY, all);
+  applyEvent({ type: 'object.attached', objectKind: kind, objectId: objectId, campaignId: campaignId, at: a.createdAt });
+  return a;
+}
+function detachFromCampaign(campaignId, kind, objectId) {
+  var all = readStore(ATTACH_STORE_KEY);
+  var next = all.filter(function(a){return !(a.campaignId===campaignId && a.objectKind===kind && a.objectId===objectId);});
+  if (next.length === all.length) return false;
+  writeStore(ATTACH_STORE_KEY, next);
+  applyEvent({ type: 'object.detached', objectKind: kind, objectId: objectId, campaignId: campaignId, at: new Date().toISOString() });
+  return true;
+}
+function attachmentCount() { return readStore(ATTACH_STORE_KEY).length; }
+function intelList(subKind) { return readStore(kindStoreKey(subKind)); }
+function intelCreate(subKind, payload) {
+  var arr = readStore(kindStoreKey(subKind));
+  var o = { id: uid(subKind.slice(0,3)), kind: subKind, productId: activeProductId(),
+            title: payload.title || 'New ' + labelForKind(subKind),
+            body: payload.body || '', status: 'open',
+            relatedObjects: payload.relatedObjects || [],
+            createdAt: new Date().toISOString() };
+  if (payload.acceptedRecommendation) o.acceptedRecommendation = payload.acceptedRecommendation;
+  arr.push(o); writeStore(kindStoreKey(subKind), arr);
+  applyEvent({ type: subKind + '.created', objectKind: subKind, objectId: o.id, at: o.createdAt });
+  return o;
+}
+function intelAccept(subKind, intelId) {
+  var arr = readStore(kindStoreKey(subKind));
+  var o = arr.filter(function(x){return x.id===intelId;})[0];
+  if (!o) return null;
+  o.status = 'accepted'; o.acceptedAt = new Date().toISOString();
+  writeStore(kindStoreKey(subKind), arr);
+  applyEvent({ type: subKind + '.accepted', objectKind: subKind, objectId: intelId, at: o.acceptedAt });
+  return o;
+}
+function intelCount(subKind) { return readStore(kindStoreKey(subKind)).length; }
+function composerOnEvent(evt) {
+  if (!evt) return;
+  var t = evt.type || '';
+  if (t !== 'trend.updated' && t.indexOf('trend.') !== 0) return;
+  var trends = readStore(TREND_STORE_KEY);
+  var now = Date.now();
+  var recent = trends.filter(function(tr){
+    if (tr.status !== 'shortlisted') return false;
+    var at = new Date(tr.updatedAt || tr.createdAt || 0).getTime();
+    return (now - at) < (7 * 24 * 60 * 60 * 1000);
+  });
+  if (recent.length < 3) return;
+  var props = intelList('opportunity');
+  if (props.filter(function(p){return p.proposalKind==='composer_trends';}).length) return;
+  intelCreate('opportunity', {
+    title: 'Bundle ' + recent.length + ' shortlisted trends into a campaign',
+    body: 'You have ' + recent.length + ' trends shortlisted this week. None are attached to a campaign. Consider building one.',
+    relatedObjects: recent.map(function(r){return {kind:'trend', id:r.id};})
+  });
+  var arr = intelList('opportunity');
+  var created = arr[arr.length-1];
+  if (created) created.proposalKind = 'composer_trends';
+  writeStore(kindStoreKey('opportunity'), arr);
+}
+function surpriseMeGenerate() {
+  var trends = readStore(TREND_STORE_KEY).filter(function(t){return t.status==='shortlisted';}).slice(0,2);
+  var hooks  = readStore(HOOK_STORE_KEY).slice(0,1);
+  var memes  = readStore(MEME_STORE_KEY).slice(0,1);
+  var billys = readStore(BILLBOARD_STORE_KEY).slice(0,1);
+  var caps   = readStore(CAPTION_STORE_KEY).slice(0,1);
+  var m = new Date().getMonth();
+  var season = (m < 2 || m === 11) ? 'festive' : (m < 5 ? 'spring' : (m < 8 ? 'summer' : 'autumn'));
+  var out = [];
+  for (var i=0; i<3; i++) {
+    var pieces = [];
+    if (trends[i]) pieces.push({ kind:'trend', id:trends[i].id, label:trends[i].title });
+    if (hooks[0]) pieces.push({ kind:'hook', id:hooks[0].id, label:hooks[0].hookLine || hooks[0].text || 'hook' });
+    if (memes[0] && i===0) pieces.push({ kind:'meme', id:memes[0].id, label:memes[0].memeLine || 'meme' });
+    if (billys[0] && i===1) pieces.push({ kind:'billboard', id:billys[0].id, label:billys[0].line || 'billboard' });
+    if (caps[0] && i===2) pieces.push({ kind:'caption', id:caps[0].id, label:caps[0].text || 'caption' });
+    out.push({
+      id: uid('sme'),
+      title: 'Idea ' + (i+1) + ' — ' + (trends[i] ? trends[i].title : season) + ' (' + season + ')',
+      pieces: pieces,
+      whyNow: 'Based on your ' + (trends.length? 'shortlisted trends': 'season ('+season+')') + '.'
+    });
+  }
+  return out;
+}
+function opsFeedData() {
+  var campaigns = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns : {};
+  var assets = readStore(ASSET_STORE_KEY);
+  var overdue = assets.filter(function(a){ return a.status==='in-production' && a.requiredBy && new Date(a.requiredBy) < new Date(); });
+  var liveCampaigns = Object.keys(campaigns).filter(function(k){ return campaigns[k].identity && campaigns[k].identity.status==='active'; });
+  var opps = intelList('opportunity');
+  var pats = intelList('pattern');
+  var recs = intelList('recommendation').filter(function(r){return r.status==='open';});
+  return {
+    opportunity: opps.slice(0,5).map(function(o){ return { id:o.id, kind:'opportunity', title:o.title, body:o.body }; })
+      .concat(recs.slice(0,3).map(function(r){ return { id:r.id, kind:'recommendation', title:r.title, body:r.body }; })),
+    needsAttention: [
+      overdue.length ? { id:'overdue', kind:'overdue', title: overdue.length + ' asset' + (overdue.length===1?'':'s') + ' overdue', body:'In-production requests past required-by date.' } : null,
+      liveCampaigns.length === 0 ? { id:'no-live', kind:'empty', title:'No live campaigns', body:'Build one in Campaign Factory.' } : null
+    ].filter(Boolean),
+    worthTrying: pats.slice(0,5).map(function(p){ return { id:p.id, kind:'pattern', title:p.title, body:p.body }; })
+  };
+}
+function refreshHeader() {
+  var pid = activeProductId();
+  var p = productById(pid);
+  var el = document.getElementById('product-switcher-label');
+  if (el) el.textContent = 'Product: ' + (p ? p.name : '—');
+  var ce = document.getElementById('composer-event-count');
+  if (ce) ce.textContent = eventCount() + ' events';
+}
+window.OS = {
+  DOMAINS: DOMAINS, domainOf: domainOf, labelForKind: labelForKind, kindStoreKey: kindStoreKey,
+  readStore: readStore, writeStore: writeStore, readObject: readObject, writeObject: writeObject, uid: uid,
+  products: { all: productsAll, byId: productById, create: productCreate, count: productCount, activeId: activeProductId, setActive: setActiveProduct },
+  goals: { all: goalsAll, byId: goalById, create: goalCreate, count: goalCount },
+  events: { all: eventsAll, apply: applyEvent, forObject: eventsForObject, count: eventCount },
+  provenance: { make: makeProvenance, attach: attachProvenance },
+  confidence: { get: getConfidence, label: confidenceLabel, provenanceText: confidenceProvenanceText },
+  attachments: { forCampaign: attachmentsForCampaign, forObject: attachmentsForObject, attach: attachToCampaign, detach: detachFromCampaign, count: attachmentCount },
+  intelligence: { list: intelList, create: intelCreate, accept: intelAccept, count: intelCount },
+  composer: { onEvent: composerOnEvent, surpriseMe: surpriseMeGenerate },
+  opsFeed: opsFeedData
+};
+(function(){
+  try { activeProductId(); } catch (e) {}
+  try { refreshHeader(); } catch (e) {}
+  try { renderOpsFeed(); } catch (e) {}
+})();
+/* ====================== END STEP 18 FOUNDATION ====================== */
+
+/* STEP 18 — UI renderers (Operations Feed, Creative Studio, Campaign Factory, Surprise Me) */
+function renderOpsFeed() {
+  var d = opsFeedData();
+  function bucket(arr, emptyText) {
+    if (!arr.length) return '<div style="color:var(--col-muted);font-size:12px;padding:8px 0">' + emptyText + '</div>';
+    return arr.map(function(it){
+      return '<div class="ops-card" style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px">' +
+        '<div style="font-weight:600;font-size:12px">' + it.title + '</div>' +
+        (it.body ? '<div style="font-size:11px;color:var(--col-muted);margin-top:2px">' + it.body + '</div>' : '') +
+      '</div>';
+    }).join('');
+  }
+  var o = document.getElementById('opsfeed-opportunity'); if (o) o.innerHTML = bucket(d.opportunity,    'No opportunities yet — add a trend, the Composer will suggest.');
+  var n = document.getElementById('opsfeed-needs');         if (n) n.innerHTML = bucket(d.needsAttention, 'All clear. Nothing needs your attention right now.');
+  var w = document.getElementById('opsfeed-worth');         if (w) w.innerHTML = bucket(d.worthTrying,  'No patterns logged yet. Composer watches for these.');
+  function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
+  setText('opsfeed-stat-products', productCount());
+  setText('opsfeed-stat-goals', goalCount());
+  setText('opsfeed-stat-events', eventCount());
+  setText('opsfeed-stat-attaches', attachmentCount());
+  var sum = document.getElementById('opsfeed-summary');
+  if (sum) {
+    var live = 0;
+    if (window.campaignData && window.campaignData.campaigns) {
+      for (var k in window.campaignData.campaigns) {
+        var c = window.campaignData.campaigns[k];
+        if (c && c.identity && c.identity.status==='active') live++;
+      }
+    }
+    sum.textContent = 'Today: ' + d.opportunity.length + ' opportunities, ' + live + ' campaigns live, ' + d.needsAttention.length + ' need attention.';
+  }
+  refreshHeader();
+}
+function renderCreativeStudio() {
+  function setC(id, n) { var el = document.getElementById(id); if (el) el.textContent = n; }
+  setC('cs-hook-count', readStore(HOOK_STORE_KEY).length);
+  setC('cs-meme-count', readStore(MEME_STORE_KEY).length);
+  setC('cs-bb-count',   readStore(BILLBOARD_STORE_KEY).length);
+  setC('cs-cap-count',  readStore(CAPTION_STORE_KEY).length);
+  var all = [];
+  ['hook','meme','billboard','caption'].forEach(function(k){
+    readStore(kindStoreKey(k)).forEach(function(o){
+      all.push({ kind:k, id:o.id, label: o.hookLine || o.memeLine || o.line || o.text || 'untitled', conf: getConfidence(k, o.id) });
+    });
+  });
+  all.sort(function(a,b){ return b.conf - a.conf; });
+  var top = all.slice(0, 6);
+  var list = document.getElementById('cs-confident-list');
+  if (list) {
+    list.innerHTML = top.length ? top.map(function(t){
+      var color = t.conf>=0.75?'#00CC77':t.conf>=0.5?'#FFCC00':'#FF5C5C';
+      var lbl = (t.label||'').length>30 ? t.label.slice(0,30)+'…' : t.label;
+      return '<div class="conf-chip" title="Confidence: ' + t.conf + ' — ' + confidenceProvenanceText(t.kind, t.id) + '" style="font-size:11px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:14px"><span style="color:' + color + ';font-weight:700">' + confidenceLabel(t.conf) + '</span> · ' + labelForKind(t.kind) + ' · ' + lbl + '</div>';
+    }).join('') : '<div style="color:var(--col-muted);font-size:11px">No creative yet.</div>';
+  }
+}
+function runSurpriseMe() {
+  var ideas = surpriseMeGenerate();
+  var el = document.getElementById('surprise-me-results');
+  if (!el) return;
+  el.innerHTML = '<div style="font-weight:700;margin-bottom:10px">3 ideas, built from your ' + (ideas[0].pieces.length?'existing creative':'season') + ':</div>' + ideas.map(function(id){
+    var pieces = id.pieces.length ? id.pieces.map(function(p){ return '<span style="font-size:10px;padding:2px 8px;background:#0a0a0f;border:1px solid var(--border);border-radius:10px">' + labelForKind(p.kind) + ': ' + p.label + '</span>'; }).join('') : '<span style="color:var(--col-muted);font-size:11px">no pieces yet — capture a trend first</span>';
+    return '<div class="sme-card" style="padding:14px;background:var(--surface);border:1px solid var(--col-green);border-radius:8px;margin-bottom:10px">' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:6px">' + id.title + '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">' + pieces + '</div>' +
+      '<div style="color:var(--col-muted);font-size:11px">' + id.whyNow + '</div>' +
+    '</div>';
+  }).join('');
+  applyEvent({ type: 'surpriseMe.ran', count: ideas.length, at: new Date().toISOString() });
+  renderOpsFeed();
+}
+function openCampaignFactory() {
+  var modal = document.createElement('div');
+  modal.id = 'campaign-factory-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999';
+  var opts = [
+    { key:'idea',     title:'Build from an idea',     sub:'Just a spark — turn it into a campaign.', icon:'💡' },
+    { key:'trend',    title:'Build from a trend',     sub:'Pick a shortlisted trend from Trend Catcher.', icon:'📡' },
+    { key:'goal',     title:'Build from a goal',      sub:'A goal you set, executed.', icon:'🎯' },
+    { key:'product',  title:'Build from a product',   sub:'A product feature, release, or angle.', icon:'📦' },
+    { key:'surprise', title:'Surprise me',            sub:'3 ideas, generated from your data.', icon:'✨' }
+  ];
+  var goalOpts = goalsAll().map(function(g){ return '<option value="' + g.id + '">' + g.name + '</option>'; }).join('');
+  modal.innerHTML = '<div style="background:#0a0a14;border:1px solid var(--col-green);border-radius:12px;padding:24px;width:560px;max-width:92vw">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<div style="font-size:18px;font-weight:700">Let\'s build something.</div>' +
+      '<button class="view-btn" onclick="closeCampaignFactory()">×</button>' +
+    '</div>' +
+    '<div style="color:var(--col-muted);font-size:12px;margin-bottom:20px">Pick where you\'re starting from.</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">' +
+      opts.map(function(o){
+        return '<button class="view-btn" style="text-align:left;padding:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-weight:600" onclick="campaignFactoryPick(\'' + o.key + '\')">' +
+          '<div style="font-size:14px;margin-bottom:4px">' + o.icon + ' ' + o.title + '</div>' +
+          '<div style="font-size:10px;color:var(--col-muted);font-weight:400">' + o.sub + '</div>' +
+        '</button>';
+      }).join('') +
+    '</div>' +
+    '<label style="font-size:11px;color:var(--col-muted)">Campaign name (optional)</label>' +
+    '<input type="text" id="cf-name" placeholder="e.g. TrackMan Intelligence — Spring 2026" style="width:100%;padding:8px;margin-top:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px">' +
+    '<label style="font-size:11px;color:var(--col-muted);display:block;margin-top:10px">Link to Goal (optional)</label>' +
+    '<select id="cf-goal" style="width:100%;padding:8px;margin-top:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px"><option value="">— No goal —</option>' + goalOpts + '</select>' +
+    '<div style="display:flex;gap:8px;margin-top:16px">' +
+      '<button class="view-btn" style="background:var(--col-muted);color:#0a0a0f;font-weight:700" onclick="closeCampaignFactory()">Cancel</button>' +
+      '<button class="view-btn" style="background:var(--col-green);color:#0a0a0f;font-weight:700;flex:1" onclick="campaignFactoryCreate()">Create campaign</button>' +
+    '</div>' +
+  '</div>';
+  document.body.appendChild(modal);
+  setTimeout(function(){ var n = document.getElementById('cf-name'); if (n) n.focus(); }, 50);
+}
+function closeCampaignFactory() {
+  var m = document.getElementById('campaign-factory-modal');
+  if (m) m.remove();
+}
+function campaignFactoryPick(key) {
+  applyEvent({ type: 'campaignFactory.pick', source: key, at: new Date().toISOString() });
+  if (key === 'trend')           { closeCampaignFactory(); showView('trends'); }
+  else if (key === 'surprise')   { closeCampaignFactory(); showView('opsfeed'); runSurpriseMe(); }
+  else if (key === 'goal')       { closeCampaignFactory(); showView('opsfeed'); }
+  else { closeCampaignFactory(); }
+}
+function campaignFactoryCreate() {
+  var name = ((document.getElementById('cf-name')||{}).value || '').trim();
+  var goalId = (document.getElementById('cf-goal')||{}).value || '';
+  var cid = uid('camp');
+  if (!window.campaignData) window.campaignData = { campaigns: {} };
+  if (!window.campaignData.campaigns) window.campaignData.campaigns = {};
+  if (name) {
+    window.campaignData.campaigns[cid] = {
+      identity: { campaignId: cid, name: name, shortName: name, status: 'draft', createdAt: new Date().toISOString() }
+    };
+    if (goalId) window.campaignData.campaigns[cid].identity.goalId = goalId;
+  }
+  applyEvent({ type: 'campaign.created', campaignId: cid, name: name, goalId: goalId, at: new Date().toISOString() });
+  closeCampaignFactory();
+  renderOpsFeed();
+  if (name) selectCampaign(cid);
+}
+
 function initSelector() {
   var sel = document.getElementById('campaignSelector');
   var ids = Object.keys(window.campaignData.campaigns).sort();
