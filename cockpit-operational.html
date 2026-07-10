@@ -14,7 +14,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .header-left { display: flex; flex-direction: column; gap: 4px; }
 .header-title { font-size: 22px; font-weight: 700; }
 .header-subtitle { font-size: 12px; color: var(--col-muted); }
-.view-toggle { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
+.view-toggle { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px; flex-wrap: wrap; max-width: 100%; }
+.view-toggle > .view-btn { white-space: nowrap; }
 .view-btn { padding: 6px 14px; font-size: 11px; font-weight: 600; color: var(--col-muted); cursor: pointer; border-radius: 6px; border: none; background: transparent; transition: all 0.15s; }
 .view-btn:hover { color: var(--text); }
 .view-btn.active { background: rgba(0,204,119,0.15); color: var(--col-green); }
@@ -323,7 +324,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div style="display:flex;align-items:center;gap:16px">
 <div id="product-switcher-label" style="font-size:11px;color:var(--col-muted);font-weight:600;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface)">Product: —</div>
 <span id="composer-event-count" style="font-size:10px;color:var(--col-muted)">0 events</span>
-<input type="text" id="global-search-input" placeholder="Search across hooks, memes, trends, captions, assets, intelligence…" style="width:340px;padding:6px 10px;font-size:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px" onkeydown="if(event.key==='Enter'){runGlobalSearch();}else if(event.key==='Escape'){closeGlobalSearch();}">
+<input type="text" id="global-search-input" placeholder="Search across hooks, memes, trends, captions, assets, intelligence…" style="width:280px;padding:6px 10px;font-size:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px" onkeydown="if(event.key==='Enter'){runGlobalSearch();}else if(event.key==='Escape'){closeGlobalSearch();}">
 <div class="view-toggle">
 <button class="view-btn active" id="btn-opsfeed" onclick="showView('opsfeed')">Operations Feed</button>
 <button class="view-btn" id="btn-trends" onclick="showView('trends')">Trend Catcher</button>

@@ -688,6 +688,21 @@ section('Live API — wizard payload (new shape)');
   assert('Surprise Me button on home', html.includes('runSurpriseMe()'));
   results.push('  (15 new assertions for Step 21 — Home page alive: Operations Feed loads by default and is structurally a peer of view-portfolio)');
 
+  // ── Step 22: Nav reachable on 1280px — .view-toggle must allow buttons to wrap, not overflow ──
+  section('Step 22: Nav reachable on standard viewports (no button overflows the visible area)');
+  // 1. .view-toggle CSS allows wrapping
+  assert('.view-toggle has flex-wrap: wrap', /\.view-toggle\s*\{[^}]*flex-wrap:\s*wrap/.test(html));
+  // 2. .view-toggle is bounded by parent (max-width: 100% or similar)
+  assert('.view-toggle has max-width: 100%', /\.view-toggle\s*\{[^}]*max-width:\s*100%/.test(html));
+  // 3. Buttons have white-space: nowrap so they don't break their labels mid-word
+  assert('.view-toggle > .view-btn white-space: nowrap', /\.view-toggle\s*>\s*\.view-btn\s*\{[^}]*white-space:\s*nowrap/.test(html));
+  // 4. All 13 nav buttons exist in the markup
+  const navBtnIds = ['btn-opsfeed','btn-trends','btn-factory','btn-creative','btn-production','btn-calendar','btn-detail','btn-review','btn-hooks','btn-memes','btn-billboards','btn-captions','btn-portfolio'];
+  navBtnIds.forEach(id => assert('nav button ' + id, html.includes('id="' + id + '"')));
+  // 5. The global search input is now narrower (340px → 280px) so the nav has room to wrap
+  assert('global search width 280px', /id="global-search-input"[^>]*width:\s*280px/.test(html));
+  results.push('  (5 nav buttons + 4 layout assertions for Step 22 — Nav wraps to multiple lines so all 13 buttons are reachable on 1280px viewports)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
