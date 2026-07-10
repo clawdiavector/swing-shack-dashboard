@@ -656,6 +656,38 @@ section('Live API — wizard payload (new shape)');
   assert('promptAttachMeme no longer uses window.prompt', !/function promptAttachMeme\([\s\S]{0,200}window\.prompt/.test(html));
   results.push('  (20 new assertions for Step 20 — Quick Attach modal: replaces 6 native prompts, writes to campaign_attachments, supports create+attach)');
 
+  // ── Step 21: Home page alive — Operations Feed is the default view, not nested in view-portfolio ──
+  section('Step 21: Home page alive (Operations Feed loads by default + is structurally a peer of view-portfolio)');
+  // 1. view-opsfeed exists in the markup
+  assert('view-opsfeed element',                       html.includes('id="view-opsfeed"'));
+  // 2. view-creative exists in the markup
+  assert('view-creative element',                      html.includes('id="view-creative"'));
+  // 3. view-opsfeed has active class by default (no JS needed to start the home)
+  assert('view-opsfeed is .active by default',         /id="view-opsfeed"[^>]*class="view-panel active"/.test(html));
+  // 4. showView('opsfeed') is wired to fire on DOMContentLoaded (so it actually shows on load)
+  assert('showView(opsfeed) wired on DOMContentLoaded', /DOMContentLoaded[\s\S]{0,300}showView\('opsfeed'\)/.test(html));
+  // 5. showView('opsfeed') runs AFTER devStoreHydrate (so renderOpsFeed has data)
+  assert('showView(opsfeed) runs AFTER devStoreHydrate', /devStoreHydrate\(\)[\s\S]{0,800}showView\('opsfeed'\)/.test(html));
+  // 6. view-opsfeed is NOT inside view-portfolio (was the Step 18 regression that blanked the home)
+  //    Find the index of view-portfolio's open and view-opsfeed's open; view-opsfeed's index must be greater.
+  const vpOpen = html.indexOf('id="view-portfolio"');
+  const ofOpen = html.indexOf('id="view-opsfeed"');
+  const cvOpen = html.indexOf('id="view-creative"');
+  assert('view-opsfeed appears AFTER view-portfolio (not nested inside)', ofOpen > vpOpen);
+  assert('view-creative appears AFTER view-portfolio (not nested inside)', cvOpen > vpOpen);
+  // 7. showView function toggles view-opsfeed (and not the new view-creative via wrong path)
+  assert('showView toggles view-opsfeed',  /function showView\(name\)[\s\S]{0,3000}getElementById\('view-opsfeed'\)/.test(html));
+  assert('showView toggles view-creative', /function showView\(name\)[\s\S]{0,3000}getElementById\('view-creative'\)/.test(html));
+  // 8. Header subtitle for opsfeed is set (so the OS knows what view it's on)
+  assert('header subtitle opsfeed', /name === 'opsfeed'[\s\S]{0,200}header-subtitle/.test(html));
+  // 9. The 3 buckets are present
+  assert('Biggest Opportunity bucket', html.includes('Biggest Opportunity'));
+  assert('Needs Attention bucket',     html.includes('Needs Attention'));
+  assert('Worth Trying bucket',        html.includes('Worth Trying'));
+  // 10. Surprise Me button exists in the home view
+  assert('Surprise Me button on home', html.includes('runSurpriseMe()'));
+  results.push('  (15 new assertions for Step 21 — Home page alive: Operations Feed loads by default and is structurally a peer of view-portfolio)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
