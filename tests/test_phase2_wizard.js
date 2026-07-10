@@ -564,6 +564,62 @@ section('Live API — wizard payload (new shape)');
   assert('OS.products / goals / events / attachments / intelligence / composer / opsFeed', html.includes('products:') && html.includes('goals:') && html.includes('events:') && html.includes('attachments:') && html.includes('intelligence:') && html.includes('composer:') && html.includes('opsFeed:'));
   results.push('  (52 new assertions for Step 18 — Foundation: Ops Feed, Creative Studio, Products, Goals, Events, Attachments, Intelligence, Confidence, Provenance, Campaign Factory, Surprise Me)');
 
+  // ── Step 19: Global Search (header bar + modal, 12 kinds) + Campaign References panel wired to campaign_attachments ──
+  section('Step 19: Global Search + Campaign References (HTML structure + JS API surface)');
+  // 1. Global Search bar in header
+  assert('global search input in header',     html.includes('id="global-search-input"'));
+  assert('global search Enter handler',       /global-search-input[^>]*onkeydown=["']if\(event\.key===['"]Enter['"]\)\{runGlobalSearch\(\);\}/.test(html));
+  assert('global search Escape handler',      html.includes('closeGlobalSearch()'));
+  assert('global search Cmd/Ctrl+K shortcut', html.includes("e.metaKey || e.ctrlKey") && html.includes("e.key === 'k'"));
+  assert('global search focuses opens modal', html.includes("hi.addEventListener('focus'"));
+  // 2. Global Search modal
+  assert('globalSearchModal element',         html.includes('id="globalSearchModal"'));
+  assert('globalSearchQueryInput element',    html.includes('id="globalSearchQueryInput"'));
+  assert('globalSearchResults element',       html.includes('id="globalSearchResults"'));
+  // 3. Functions
+  assert('escapeSearchHtml function',         html.includes('function escapeSearchHtml(s)'));
+  assert('highlightHit function',             html.includes('function highlightHit(text, query)'));
+  assert('searchKinds function',              html.includes('function searchKinds()'));
+  assert('searchKind function',               html.includes('function searchKind(kind, q)'));
+  assert('openGlobalSearch function',         html.includes('window.openGlobalSearch') && html.includes('function() {'));
+  assert('closeGlobalSearch function',        html.includes('window.closeGlobalSearch') && html.includes('function() {'));
+  assert('runGlobalSearch function',          html.includes('window.runGlobalSearch') && html.includes('function() {'));
+  assert('globalSearchGo function',           html.includes('window.globalSearchGo'));
+  // 4. Coverage — 12 attachable/indexable kinds
+  assert('search covers hook',                html.includes("kind:'hook'"));
+  assert('search covers meme',                html.includes("kind:'meme'"));
+  assert('search covers billboard',           html.includes("kind:'billboard'"));
+  assert('search covers trend',               html.includes("kind:'trend'"));
+  assert('search covers caption',             html.includes("kind:'caption'"));
+  assert('search covers asset_request',        html.includes("kind:'asset_request'"));
+  assert('search covers calendar_item',       html.includes("kind:'calendar_item'"));
+  assert('search covers product',             html.includes("kind:'product'"));
+  assert('search covers goal',                html.includes("kind:'goal'"));
+  assert('search covers recommendation',       html.includes("kind:'recommendation'"));
+  assert('search covers pattern',             html.includes("kind:'pattern'"));
+  assert('search covers opportunity',         html.includes("kind:'opportunity'"));
+  assert('search covers combination',         html.includes("kind:'combination'"));
+  assert('search covers lesson',              html.includes("kind:'lesson'"));
+  assert('search covers event',               html.includes("kind:'event'"));
+  // 5. Hit highlighting
+  assert('highlightHit wraps in <mark>',      html.includes('<mark style="background:rgba(255,204,0'));
+  // 6. Campaign References panel
+  assert('renderCampaignReferences function', html.includes('function renderCampaignReferences(campaignId, container)'));
+  assert('renderCampaign calls references',   html.includes('try { renderCampaignReferences(id, detailContent); }'));
+  assert('references panel id',               html.includes("'campaign-references-panel'"));
+  assert('References title in panel',         html.includes('References ('));
+  assert('references groups by kind',         html.includes('var groups = {};'));
+  assert('references shows confidence',       html.includes('getConfidence(kind, a.objectId)'));
+  assert('references rationale field',        html.includes('a.rationale'));
+  assert('detachAndRefresh function',         html.includes('function detachAndRefresh('));
+  assert('openAttachPicker function',         html.includes('function openAttachPicker('));
+  assert('attachAndRefresh function',         html.includes('function attachAndRefresh('));
+  assert('closeAttachPicker function',        html.includes('function closeAttachPicker('));
+  assert('+ Attach from anywhere button',     html.includes('+ Attach from anywhere'));
+  assert('Detach action in references',       html.includes("color:var(--col-red)") && html.includes("detachAndRefresh("));
+  assert('references reads campaign_attachments', html.includes('attachmentsForCampaign(campaignId)'));
+  results.push('  (32 new assertions for Step 19 — Global Search (12 kinds) + Campaign References panel wired to campaign_attachments)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);

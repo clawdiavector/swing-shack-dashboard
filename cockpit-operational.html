@@ -323,6 +323,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div style="display:flex;align-items:center;gap:16px">
 <div id="product-switcher-label" style="font-size:11px;color:var(--col-muted);font-weight:600;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface)">Product: —</div>
 <span id="composer-event-count" style="font-size:10px;color:var(--col-muted)">0 events</span>
+<input type="text" id="global-search-input" placeholder="Search across hooks, memes, trends, captions, assets, intelligence…" style="width:340px;padding:6px 10px;font-size:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px" onkeydown="if(event.key==='Enter'){runGlobalSearch();}else if(event.key==='Escape'){closeGlobalSearch();}">
 <div class="view-toggle">
 <button class="view-btn active" id="btn-opsfeed" onclick="showView('opsfeed')">Operations Feed</button>
 <button class="view-btn" id="btn-trends" onclick="showView('trends')">Trend Catcher</button>
@@ -1868,6 +1869,129 @@ function renderCampaign(id) {
       detailContent.innerHTML = detailContent.innerHTML.split(embeddedName).join(c.identity.name);
     }
   }
+  // Step 19: append the References panel wired to campaign_attachments
+  try { renderCampaignReferences(id, detailContent); } catch (e) {}
+}
+/* STEP 19 — Campaign References panel
+   Reads campaign_attachments M2M, renders each attached object as a row with
+   its provenance + computed confidence. Detach action fires
+   object.detached event. Counts shown in the panel header. */
+function renderCampaignReferences(campaignId, container) {
+  if (!campaignId || !container) return;
+  if (typeof attachmentsForCampaign !== 'function') return;
+  var atts = attachmentsForCampaign(campaignId);
+  // Group by kind for scannable layout
+  var groups = {};
+  for (var i=0; i<atts.length; i++) {
+    var k = atts[i].objectKind;
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(atts[i]);
+  }
+  var summary = '<div style="font-size:11px;color:var(--col-muted);margin-bottom:8px">' +
+    '<b style="color:var(--text)">' + atts.length + '</b> reference' + (atts.length===1?'':'s') + ' attached · grouped by kind</div>';
+  var body;
+  if (!atts.length) {
+    body = '<div style="font-size:11px;color:var(--col-muted);padding:10px;background:rgba(0,0,0,0.2);border-radius:6px">No references yet. Attach a hook, trend, meme, billboard, caption, asset, or opportunity from its own workspace — or click "Attach from anywhere" below to pick from existing objects.</div>';
+  } else {
+    body = Object.keys(groups).map(function(kind){
+      var rows = groups[kind].map(function(a){
+        // Resolve object label
+        var label = 'untitled';
+        var extra = '';
+        if (kind === 'campaign') {
+          var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[a.objectId] : null;
+          if (c && c.identity) { label = c.identity.name || c.identity.campaignId; }
+        } else {
+          var arr = readStore(kindStoreKey(kind));
+          var obj = arr.filter(function(x){ return x.id === a.objectId; })[0];
+          if (obj) {
+            label = obj.hookLine || obj.memeLine || obj.line || obj.text || obj.title || obj.name || a.objectId;
+            extra = obj.brand || obj.format || obj.platform || obj.priority || obj.signalType || '';
+            if (obj.id && obj.id.indexOf('a-') === 0) label = 'Asset — ' + (obj.title || 'untitled');
+          }
+        }
+        var conf = (kind === 'campaign') ? 0 : getConfidence(kind, a.objectId);
+        var confColor = conf>=0.75?'#00CC77':conf>=0.5?'#FFCC00':'#FF5C5C';
+        var rationaleHtml = a.rationale ? '<div style="font-size:10px;color:var(--col-muted);font-style:italic;margin-top:2px">"' + a.rationale + '"</div>' : '';
+        return '<div class="ref-row" data-kind="' + kind + '" data-id="' + a.objectId + '" style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:4px">' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:11px;font-weight:600">' + labelForKind(kind) + ' · ' + label + '</div>' +
+            (extra ? '<div style="font-size:10px;color:var(--col-muted)">' + extra + '</div>' : '') +
+            rationaleHtml +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">' +
+            (kind !== 'campaign' ? '<span style="font-size:10px;font-weight:700;color:' + confColor + '">' + confidenceLabel(conf) + '</span>' : '') +
+            '<button class="view-btn" style="font-size:10px;padding:3px 8px;color:var(--col-red);border:1px solid var(--col-red)" onclick="detachAndRefresh(\'' + campaignId + '\', \'' + kind + '\', \'' + a.objectId + '\')">Detach</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      return '<div class="ref-group" style="margin-bottom:12px">' +
+        '<div style="font-size:10px;font-weight:700;color:var(--col-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">' + labelForKind(kind) + ' (' + groups[kind].length + ')</div>' +
+        rows +
+      '</div>';
+    }).join('');
+  }
+  var panel = document.createElement('div');
+  panel.id = 'campaign-references-panel';
+  panel.className = 'card';
+  panel.style.marginTop = '20px';
+  panel.innerHTML = '<div class="card-title">References (' + atts.length + ')</div>' + summary + body +
+    '<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">' +
+      '<button class="view-btn" style="font-size:11px;padding:5px 10px" onclick="openAttachPicker(\'' + campaignId + '\')">+ Attach from anywhere</button>' +
+      '<span style="font-size:10px;color:var(--col-muted);align-self:center">Objects are reusable — same hook can power many campaigns.</span>' +
+    '</div>';
+  container.appendChild(panel);
+}
+function detachAndRefresh(campaignId, kind, objectId) {
+  if (typeof detachFromCampaign === 'function') {
+    detachFromCampaign(campaignId, kind, objectId);
+    // Re-render the detail
+    try { renderCampaign(campaignId); } catch (e) {}
+    try { renderOpsFeed(); } catch (e) {}
+  }
+}
+function openAttachPicker(campaignId) {
+  // Lightweight picker: list all objects across the 8 attachable kinds, with
+  // attach buttons. Doesn't pre-select; user clicks to attach.
+  var KINDS = ['hook','meme','billboard','caption','asset_request','calendar_item','opportunity','pattern','recommendation'];
+  var rows = KINDS.map(function(kind){
+    var items = readStore(kindStoreKey(kind));
+    if (!items.length) return '';
+    var inner = items.slice(0, 30).map(function(o){
+      var label = o.hookLine || o.memeLine || o.line || o.text || o.title || o.name || 'untitled';
+      var alreadyAttached = attachmentsForCampaign(campaignId).filter(function(a){ return a.objectKind === kind && a.objectId === o.id; }).length > 0;
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:5px;margin-bottom:3px">' +
+        '<div style="font-size:11px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + label + '</div>' +
+        (alreadyAttached
+          ? '<span style="font-size:10px;color:var(--col-muted)">attached</span>'
+          : '<button class="view-btn" style="font-size:10px;padding:3px 8px;background:var(--col-green);color:#0a0a0f" onclick="attachAndRefresh(\'' + campaignId + '\', \'' + kind + '\', \'' + o.id + '\')">Attach</button>') +
+      '</div>';
+    }).join('');
+    return '<div style="margin-bottom:10px">' +
+      '<div style="font-size:10px;font-weight:700;color:var(--col-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">' + labelForKind(kind) + ' (' + items.length + ')</div>' +
+      inner +
+    '</div>';
+  }).join('');
+  var modal = document.createElement('div');
+  modal.id = 'attach-picker-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999';
+  modal.innerHTML = '<div style="background:#0a0a14;border:1px solid var(--col-green);border-radius:10px;padding:20px;width:520px;max-width:92vw;max-height:80vh;overflow:auto">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+      '<div style="font-size:14px;font-weight:700">Attach to this campaign</div>' +
+      '<button class="view-btn" onclick="closeAttachPicker()">×</button>' +
+    '</div>' +
+    (rows || '<div style="color:var(--col-muted);font-size:12px">No objects yet — create some first.</div>') +
+  '</div>';
+  document.body.appendChild(modal);
+}
+function closeAttachPicker() { var m = document.getElementById('attach-picker-modal'); if (m) m.remove(); }
+function attachAndRefresh(campaignId, kind, objectId) {
+  if (typeof attachToCampaign === 'function') {
+    attachToCampaign(campaignId, kind, objectId, '');
+  }
+  closeAttachPicker();
+  try { renderCampaign(campaignId); } catch (e) {}
+  try { renderOpsFeed(); } catch (e) {}
 }
 // Track the original name baked into each embedded renderFn template,
 // so renames can be reflected in the rendered detail view.
@@ -5051,6 +5175,172 @@ function renderGenericDetail(c) {
   '</div>';
 }
 
+/* =====================================================================
+   STEP 19 — Global Search (header bar + modal, 12 stores covered)
+   Searches every domain object (creative + research + production + intelligence)
+   plus goals + products + events.
+   ===================================================================== */
+function escapeSearchHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function highlightHit(text, query) {
+  if (!query) return escapeSearchHtml(text);
+  var escText = escapeSearchHtml(text);
+  var pattern = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escText.replace(new RegExp('(' + pattern + ')', 'gi'), '<mark style="background:rgba(255,204,0,0.3);color:#FFCC00;padding:0 2px;border-radius:2px">$1</mark>');
+}
+function searchKinds() {
+  // Every kind the OS knows about, with the label + which view to jump to + the
+  // shape of the searchable text. Campaign row uses window.campaignData.
+  return [
+    { kind:'campaign',    label:'Campaign',   view:'detail',  labelOf:function(c){return c.identity?(c.identity.name||c.identity.campaignId):'';}, extraOf:function(c){return c.identity?(c.identity.shortName||''):'';} },
+    { kind:'hook',        label:'Hook',       view:'hooks',   labelOf:function(o){return o.hookLine||o.text||'';}, extraOf:function(o){return o.brand||'';} },
+    { kind:'meme',        label:'Meme',       view:'memes',   labelOf:function(o){return o.memeLine||'';}, extraOf:function(o){return o.format||'';} },
+    { kind:'billboard',   label:'Billboard',  view:'billboards', labelOf:function(o){return o.line||'';}, extraOf:function(o){return o.format||'';} },
+    { kind:'trend',       label:'Trend',      view:'trends',  labelOf:function(o){return o.title||'';}, extraOf:function(o){return o.signalType||'';} },
+    { kind:'caption',     label:'Caption',    view:'captions',labelOf:function(o){return o.text||'';}, extraOf:function(o){return (o.platform||'')+' · '+(o.format||'');} },
+    { kind:'asset_request',label:'Asset Req.', view:'assets',  labelOf:function(o){return o.title||'';}, extraOf:function(o){return (o.assetType||'')+' · '+(o.priority||'');} },
+    { kind:'calendar_item',label:'Calendar',  view:'calendar',labelOf:function(o){return o.title||'';}, extraOf:function(o){return (o.type||'')+' · '+(o.date||'');} },
+    { kind:'product',     label:'Product',    view:'portfolio',labelOf:function(o){return o.name||'';}, extraOf:function(o){return o.description||'';} },
+    { kind:'goal',        label:'Goal',       view:'portfolio',labelOf:function(o){return o.name||'';}, extraOf:function(o){return o.description||'';} },
+    { kind:'recommendation',label:'Rec.',     view:'portfolio',labelOf:function(o){return o.title||'';}, extraOf:function(o){return o.body||'';} },
+    { kind:'pattern',     label:'Pattern',    view:'portfolio',labelOf:function(o){return o.title||'';}, extraOf:function(o){return o.body||'';} },
+    { kind:'opportunity', label:'Opportunity',view:'portfolio',labelOf:function(o){return o.title||'';}, extraOf:function(o){return o.body||'';} },
+    { kind:'combination', label:'Combination',view:'portfolio',labelOf:function(o){return o.title||'';}, extraOf:function(o){return o.body||'';} },
+    { kind:'lesson',      label:'Lesson',     view:'portfolio',labelOf:function(o){return o.title||'';}, extraOf:function(o){return o.body||'';} },
+    { kind:'event',       label:'Event',      view:'portfolio',labelOf:function(e){return e.type||'';}, extraOf:function(e){return e.id||'';} }
+  ];
+}
+function searchKind(kind, q) {
+  if (kind === 'campaign') {
+    var out = [];
+    if (window.campaignData && window.campaignData.campaigns) {
+      Object.keys(window.campaignData.campaigns).forEach(function(cid){
+        var c = window.campaignData.campaigns[cid];
+        if (!c) return;
+        var s = JSON.stringify(c).toLowerCase();
+        if (s.indexOf(q.toLowerCase()) >= 0) out.push({ id: cid, obj: c });
+      });
+    }
+    return out;
+  }
+  if (kind === 'product')    return productsAll().filter(function(o){ return JSON.stringify(o).toLowerCase().indexOf(q.toLowerCase()) >= 0; }).map(function(o){ return { id:o.id, obj:o }; });
+  if (kind === 'goal')       return goalsAll().filter(function(o){ return JSON.stringify(o).toLowerCase().indexOf(q.toLowerCase()) >= 0; }).map(function(o){ return { id:o.id, obj:o }; });
+  if (kind === 'event')      return eventsAll().filter(function(o){ return JSON.stringify(o).toLowerCase().indexOf(q.toLowerCase()) >= 0; }).map(function(o){ return { id:o.id, obj:o }; });
+  if (kind === 'recommendation' || kind === 'pattern' || kind === 'opportunity' || kind === 'combination' || kind === 'lesson') {
+    return intelList(kind).filter(function(o){ return JSON.stringify(o).toLowerCase().indexOf(q.toLowerCase()) >= 0; }).map(function(o){ return { id:o.id, obj:o }; });
+  }
+  // Standard 7 dev stores
+  return readStore(kindStoreKey(kind)).filter(function(o){ return JSON.stringify(o).toLowerCase().indexOf(q.toLowerCase()) >= 0; }).map(function(o){ return { id:o.id, obj:o }; });
+}
+window.openGlobalSearch = function() {
+  var m = document.getElementById('globalSearchModal');
+  if (!m) return;
+  m.style.display = 'block';
+  var qInput = document.getElementById('globalSearchQueryInput');
+  if (qInput) { qInput.value = (document.getElementById('global-search-input')||{}).value || ''; qInput.focus(); qInput.select(); }
+  // Run once with current header query
+  runGlobalSearch();
+};
+window.closeGlobalSearch = function() {
+  var m = document.getElementById('globalSearchModal');
+  if (m) m.style.display = 'none';
+};
+window.runGlobalSearch = function() {
+  var qRaw = ((document.getElementById('globalSearchQueryInput')||{}).value || (document.getElementById('global-search-input')||{}).value || '').trim();
+  var out = document.getElementById('globalSearchResults');
+  if (!out) return;
+  // Sync the two inputs
+  var qi = document.getElementById('globalSearchQueryInput');
+  var hi = document.getElementById('global-search-input');
+  if (qi && hi && qi.value !== hi.value) { if (document.activeElement !== hi) hi.value = qi.value; }
+  if (!qRaw) {
+    out.innerHTML = '<div style="color:var(--col-muted);font-size:12px;padding:8px 0">Type to search across ' + searchKinds().length + ' kinds.</div>';
+    return;
+  }
+  var kinds = searchKinds();
+  var groups = [];
+  var totalHits = 0;
+  for (var i=0; i<kinds.length; i++) {
+    var k = kinds[i];
+    var hits = searchKind(k.kind, qRaw);
+    if (!hits.length) continue;
+    totalHits += hits.length;
+    groups.push({ kind:k, hits:hits });
+  }
+  if (!totalHits) {
+    out.innerHTML = '<div style="color:var(--col-muted);font-size:12px;padding:8px 0">No matches for <b>' + escapeSearchHtml(qRaw) + '</b>.</div>';
+    return;
+  }
+  out.innerHTML = '<div style="font-size:11px;color:var(--col-muted);margin-bottom:10px">' + totalHits + ' match' + (totalHits===1?'':'es') + ' across ' + groups.length + ' kind' + (groups.length===1?'':'s') + '</div>' + groups.map(function(g){
+    var rows = g.hits.slice(0, 12).map(function(h){
+      var label = g.kind.labelOf(h.obj) || 'untitled';
+      var extra = g.kind.extraOf(h.obj) || '';
+      return '<div class="gs-row" data-kind="' + g.kind.kind + '" data-id="' + escapeSearchHtml(h.id) + '" onclick="globalSearchGo(\'' + g.kind.kind + '\', \'' + escapeSearchHtml(h.id).replace(/'/g,"\\'") + '\')" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:4px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor=\'var(--col-green)\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
+        '<div style="font-size:12px;font-weight:600">' + highlightHit(label, qRaw) + '</div>' +
+        (extra ? '<div style="font-size:10px;color:var(--col-muted);margin-top:2px">' + highlightHit(extra, qRaw) + '</div>' : '') +
+      '</div>';
+    }).join('');
+    var more = g.hits.length > 12 ? '<div style="font-size:10px;color:var(--col-muted);padding:4px 10px">+ ' + (g.hits.length-12) + ' more</div>' : '';
+    return '<div class="gs-group" style="margin-bottom:14px">' +
+      '<div style="font-size:10px;font-weight:700;color:var(--col-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">' + g.kind.label + ' (' + g.hits.length + ')</div>' +
+      rows + more +
+    '</div>';
+  }).join('');
+};
+window.globalSearchGo = function(kind, id) {
+  closeGlobalSearch();
+  var k = searchKinds().filter(function(x){ return x.kind === kind; })[0];
+  if (!k) return;
+  showView(k.view);
+  if (kind === 'campaign') {
+    selectCampaign(id);
+    return;
+  }
+  // Ring the card with a brief pulse
+  setTimeout(function(){
+    var el = document.getElementById('card-' + kind + '-' + id) || document.getElementById(kind + '-' + id);
+    if (el) {
+      el.scrollIntoView({ behavior:'smooth', block:'center' });
+      el.style.transition = 'box-shadow 0.6s ease';
+      el.style.boxShadow = '0 0 0 3px rgba(0,204,119,0.6)';
+      setTimeout(function(){ el.style.boxShadow = ''; }, 1600);
+    }
+  }, 60);
+};
+// Bind the header search input: focus opens the modal
+(function(){
+  var hi = document.getElementById('global-search-input');
+  if (hi) {
+    hi.addEventListener('focus', function(){
+      // Open modal pre-populated with whatever's typed
+      openGlobalSearch();
+    });
+  }
+  // Cmd/Ctrl+K shortcut
+  document.addEventListener('keydown', function(e){
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      openGlobalSearch();
+    }
+  });
+})();
 </script>
+
+<!-- Step 19: Global Search modal markup (lives in body, JS above manipulates it) -->
+<div id="globalSearchModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10000;padding:60px 20px;overflow:auto">
+<div style="max-width:720px;margin:0 auto;background:#0a0a14;border:1px solid var(--col-green);border-radius:10px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+<div style="font-size:14px;font-weight:700">Search results</div>
+<button class="view-btn" onclick="closeGlobalSearch()">×</button>
+</div>
+<input type="text" id="globalSearchQueryInput" placeholder="Refine search…" style="width:100%;padding:10px;font-size:14px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;margin-bottom:14px" onkeydown="if(event.key==='Enter'){runGlobalSearch();}else if(event.key==='Escape'){closeGlobalSearch();}">
+<div id="globalSearchResults"></div>
+</div>
+</div>
+
 </body>
 </html>
