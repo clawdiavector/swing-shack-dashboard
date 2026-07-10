@@ -1610,7 +1610,7 @@ function opsFeedData() {
   var liveButUnhealthy = Object.keys(campaigns)
     .map(function(k){ return { k:k, c:campaigns[k] }; })
     .filter(function(x){ var id = x.c.identity; return id && id.status==='active' && (id.healthState==='degraded' || id.healthState==='critical'); })
-    .map(function(x){ return { id:'health:'+x.k, kind:'health', title: x.c.identity.name + ' is ' + x.c.identity.healthState, body: 'Health ' + (x.c.identity.healthScore != null ? x.c.identity.healthScore : '—') + ' — open it from Portfolio.' }; });
+    .map(function(x){ return { id:'health:'+x.k, kind:'health', campaignId: x.k, healthScore: x.c.identity.healthScore, healthState: x.c.identity.healthState, title: x.c.identity.name + ' is ' + x.c.identity.healthState, body: 'Health ' + (x.c.identity.healthScore != null ? x.c.identity.healthScore : '—') }; });
   var opps = intelList('opportunity');
   var pats = intelList('pattern');
   var recs = intelList('recommendation').filter(function(r){return r.status==='open';});
@@ -1658,6 +1658,26 @@ function renderOpsFeed() {
   function bucket(arr, emptyText) {
     if (!arr.length) return '<div style="color:var(--col-muted);font-size:12px;padding:8px 0">' + emptyText + '</div>';
     return arr.map(function(it){
+      // Step 23: a Needs Attention card for a degraded/critical live campaign is a button
+      // that opens the campaign detail view directly. 1 click from "TrackMan is degraded"
+      // to looking at TrackMan.
+      if (it.kind === 'health' && it.campaignId) {
+        var score = (it.healthScore != null) ? it.healthScore : '—';
+        var state = it.healthState || 'degraded';
+        return '<button type="button" class="ops-card ops-card-clickable" data-campaign-id="' + it.campaignId + '" onclick="selectCampaign(\'' + it.campaignId + '\')" ' +
+          'style="display:block;width:100%;text-align:left;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;cursor:pointer;font-family:inherit;color:inherit;transition:background 0.12s,border-color 0.12s" ' +
+          'onmouseover="this.style.background=\'var(--surface-2, #f5f5f5)\';this.style.borderColor=\'var(--accent, #c8a85a)\'" ' +
+          'onmouseout="this.style.background=\'var(--surface)\';this.style.borderColor=\'var(--border)\'">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+            '<div style="font-weight:600;font-size:12px">' + it.title + '</div>' +
+            '<span style="font-size:10px;font-weight:700;letter-spacing:0.04em;padding:2px 6px;border-radius:3px;background:rgba(200,168,90,0.12);color:#8a6f1f;text-transform:uppercase">Health ' + score + '</span>' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--col-muted);margin-top:4px;display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+            '<span>Open campaign</span>' +
+            '<span style="font-size:14px;line-height:1;color:var(--col-muted)">›</span>' +
+          '</div>' +
+        '</button>';
+      }
       return '<div class="ops-card" style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px">' +
         '<div style="font-weight:600;font-size:12px">' + it.title + '</div>' +
         (it.body ? '<div style="font-size:11px;color:var(--col-muted);margin-top:2px">' + it.body + '</div>' : '') +

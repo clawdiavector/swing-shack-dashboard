@@ -718,6 +718,25 @@ section('Live API — wizard payload (new shape)');
   assert('renderOpsFeed populates opsfeed-needs', /opsfeed-needs[\s\S]{0,200}d\.needsAttention/.test(html));
   results.push('  (5 assertions for Step 22.5 — Operations Feed surfaces degraded live campaigns so the home view stops pretending nothing needs attention)');
 
+  // ── Step 23: Needs Attention cards are clickable buttons that open the campaign ──
+  section('Step 23: Needs Attention cards for degraded campaigns are clickable buttons');
+  // 1. liveButUnhealthy items carry a campaignId field (so the render layer can build a real link)
+  assert('liveButUnhealthy items carry campaignId', /campaignId:\s*x\.k/.test(html));
+  // 2. The renderOpsFeed bucket function renders a <button> for kind==='health' cards
+  assert('bucket renders <button> for health-kind cards', /it\.kind\s*===\s*'health'[\s\S]{0,200}<button/.test(html));
+  // 3. The button has a data-campaign-id attribute (test + a11y target)
+  assert('button has data-campaign-id attribute', /data-campaign-id="'\s*\+\s*it\.campaignId/.test(html));
+  // 4. The button's onclick calls selectCampaign (which navigates to the campaign detail view)
+  assert('button onclick calls selectCampaign', /onclick="selectCampaign\(\\?'/.test(html));
+  // 5. The card has a visible "Open campaign" affordance (chevron or text)
+  assert('card shows "Open campaign" affordance', />Open campaign</.test(html));
+  // 6. The card surfaces the health score as a visual pill
+  assert('card shows a Health <score> pill', /Health '\s*\+\s*score/.test(html));
+  // 7. The non-health needsAttention items (overdue / no-live) still render as plain divs, not buttons
+  //    (they have no campaign to open — staying read-only is correct)
+  assert('non-health cards remain <div> not <button>', /return '<div class="ops-card"/.test(html));
+  results.push('  (7 assertions for Step 23 — clickable Needs Attention cards cut the home-to-campaign path from 4 clicks to 1)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
