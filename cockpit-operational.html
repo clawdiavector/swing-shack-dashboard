@@ -2062,6 +2062,16 @@ function renderCampaign(id) {
   var detailContent = document.getElementById('detail-content');
   if (!detailContent) return;
   detailContent.innerHTML = window.renderFns[id](c);
+  // Step 24: prepend the strategist review block — the "decision layer" that
+  // diagnoses why this campaign isn't winning and recommends the highest-leverage
+  // action. The existing data sections stay below as the evidence underneath.
+  try {
+    var existing = detailContent.querySelector('#strategist-block');
+    if (existing) existing.remove();
+    var strategist = document.createElement('div');
+    strategist.innerHTML = renderStrategistBlock(id);
+    if (strategist.firstChild) detailContent.insertBefore(strategist.firstChild, detailContent.firstChild);
+  } catch (e) {}
   // Embedded renderFns bake the original campaign name into the HTML template.
   // If the live campaign has been renamed, swap the old name for the new name.
   if (c && c.identity && c.identity.name) {
@@ -2142,6 +2152,123 @@ function renderCampaignReferences(campaignId, container) {
       '<span style="font-size:10px;color:var(--col-muted);align-self:center">Objects are reusable — same hook can power many campaigns.</span>' +
     '</div>';
   container.appendChild(panel);
+}
+/* STEP 24 — Strategist review block
+   Diagnoses why a campaign isn't winning from real campaign data, ranks
+   issues by impact, and recommends the single highest-leverage action.
+   The "decision layer" lives above the existing data sections (which
+   remain the evidence underneath).
+
+   TODO:
+   Replace Impact with computed Health Gain once a real health engine exists.
+   Plan: Step 25 will introduce a computeCampaignHealth(c) function in this
+   file. That function will be the single source of truth for health scores
+   across: health ring, Operations Feed, campaign ranking, and this block.
+   Until then, "Impact" is derived from priority order, not from a health
+   delta — the campaign's healthScore is static campaign data, so we cannot
+   truthfully compute "from → to" against it. */
+var STRATEGIST_WEIGHTS = { strategy: 25, creative: 20, production: 25, publishing: 20, learning: 10 };
+function diagnoseCampaign(campaignId) {
+  var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
+  if (!c) return { issues: [], recommendation: null, health: 0, state: 'unknown' };
+  // Strategy present? brief + dna + visualDirection must all be non-empty.
+  var hasBrief = !!(c.brief && (c.brief.purpose || c.brief.bigIdea || c.brief.audience));
+  var hasDna   = !!(c.dna   && (c.dna.tone  || c.dna.contentMix));
+  var hasVis   = !!(c.visualDirection && (c.visualDirection.mood || c.visualDirection.creativeDirection));
+  var strategy = hasBrief && hasDna && hasVis;
+  // Creative present? any M2M attachment of creative kinds to this campaign.
+  var atts = (typeof attachmentsForCampaign === 'function') ? attachmentsForCampaign(campaignId) : [];
+  var creativeKinds = ['hook','meme','billboard','caption','trend','opportunity','pattern'];
+  var creative = atts.some(function(a){ return creativeKinds.indexOf(a.objectKind) !== -1; });
+  // Production moving? at least one asset not in 'rejected' status.
+  var prodCount = 0; var publishedCount = 0;
+  if (c.assets && typeof c.assets === 'object') {
+    var keys = Object.keys(c.assets);
+    for (var i=0; i<keys.length; i++) {
+      var a = c.assets[keys[i]];
+      if (a && a.status && a.status !== 'rejected') prodCount++;
+      if (a && a.status === 'published') publishedCount++;
+    }
+  }
+  var production = prodCount > 0;
+  // Publishing live? at least one published asset.
+  var publishing = publishedCount > 0;
+  // Learning loop? memory has lessons or best hooks or best visuals.
+  var mem = c.memory || {};
+  var learning = ((mem.lessonsLearned && mem.lessonsLearned.length > 0) ||
+                  (mem.bestHooks && mem.bestHooks.length > 0) ||
+                  (mem.bestVisuals && mem.bestVisuals.length > 0));
+  // Build issues list — each one can be PROVEN from the data above.
+  var issues = [];
+  if (!strategy)   issues.push({ key:'strategy',   title:'No clear campaign brief',     reason:'Every creative decision needs a strategy to hang on. Without it, hooks land in the wrong place.', action:'Start Brief', dest:'creative' });
+  if (!creative)   issues.push({ key:'creative',   title:'No creative attached',         reason:'No hooks, captions, memes, or trends are linked to this campaign. Production has nothing to build from.', action:'Create Creative', dest:'creative' });
+  if (!production) issues.push({ key:'production', title:'No production work moving',    reason:'Nothing is in the production pipeline. The campaign lives only on paper.', action:'Plan Assets', dest:'assets' });
+  if (!publishing) issues.push({ key:'publishing', title:'No publishing plan',           reason:'Nothing has gone live and nothing is scheduled. The campaign never reaches the audience.', action:'Schedule Publishing', dest:'calendar' });
+  if (!learning)   issues.push({ key:'learning',   title:'No learning loop',             reason:'No lessons recorded. The team will repeat the same mistakes on the next campaign.', action:'Capture Lessons', dest:'creative' });
+  // Rank by STRATEGIST_WEIGHTS (highest weight first) — this is the priority order,
+  // not a fabricated health delta.
+  issues.sort(function(a,b){ return (STRATEGIST_WEIGHTS[b.key]||0) - (STRATEGIST_WEIGHTS[a.key]||0); });
+  // Impact label: derived from the issue's rank, not from a computed delta.
+  // Top of the list = High, next = Medium, everything else = Low. (No fabrication.)
+  issues.forEach(function(it, idx){
+    it.impact = (idx === 0) ? 'High' : (idx === 1) ? 'Medium' : 'Low';
+  });
+  // State label: derived from the campaign's stored healthScore (static data, but the
+  // band/category is computed honestly from the number — not invented).
+  var currentHealth = (c.identity && typeof c.identity.healthScore === 'number') ? c.identity.healthScore : 0;
+  var state;
+  if (currentHealth >= 80) state = 'healthy';
+  else if (currentHealth >= 50) state = 'degraded';
+  else state = 'critical';
+  var rec = null;
+  if (issues.length) {
+    rec = { key: issues[0].key, title: issues[0].title, action: issues[0].action, dest: issues[0].dest, impact: issues[0].impact };
+  }
+  return { issues: issues, recommendation: rec, health: currentHealth, state: state };
+}
+function renderStrategistBlock(campaignId) {
+  var d = diagnoseCampaign(campaignId);
+  if (!d.issues.length) {
+    return '<div class="card strategist-allgood" id="strategist-block" data-campaign-id="' + campaignId + '" style="border-left:3px solid #00cc77;background:linear-gradient(135deg,#0a2a1a 0%,#0d1f15 100%);margin-bottom:20px;padding:18px 20px">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:18px">✅</span><div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#00cc77;text-transform:uppercase">Strategist Review</div></div>' +
+      '<div style="font-size:14px;font-weight:600;color:#e8e8ed">All systems go.</div>' +
+      '<div style="font-size:12px;color:#9aa0a6;margin-top:4px">Health ' + d.health + ' — strategy, creative, production, publishing, and learning are all in place.</div>' +
+    '</div>';
+  }
+  var rec = d.recommendation;
+  function impactColor(level) { return level === 'High' ? '#FF5C5C' : level === 'Medium' ? '#FFAA00' : '#9aa0a6'; }
+  function impactBg(level)   { return level === 'High' ? 'rgba(255,92,92,0.12)' : level === 'Medium' ? 'rgba(255,170,0,0.12)' : 'rgba(154,160,166,0.08)'; }
+  var issuesHtml = d.issues.map(function(it, i){
+    var onclickFn = "showView('" + it.dest + "'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+    return '<div class="strategist-issue" data-issue-key="' + it.key + '" data-impact="' + it.impact + '" style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;' + (i===0?'border-top:0':'') + 'border-bottom:1px solid rgba(255,255,255,0.06)">' +
+      '<div style="font-size:13px;font-weight:700;color:#c8a85a;min-width:18px">' + (i+1) + '</div>' +
+      '<div style="flex:1">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px">' +
+          '<div style="font-size:13px;font-weight:600;color:#e8e8ed">' + it.title + '</div>' +
+          '<span class="strategist-impact" style="font-size:9px;font-weight:700;letter-spacing:0.06em;padding:2px 6px;border-radius:3px;background:' + impactBg(it.impact) + ';color:' + impactColor(it.impact) + ';text-transform:uppercase">Impact: ' + it.impact + '</span>' +
+        '</div>' +
+        '<div style="font-size:11px;color:#9aa0a6">' + it.reason + '</div>' +
+      '</div>' +
+      '<button type="button" class="strategist-action strategist-action-issue" data-issue-key="' + it.key + '" data-impact="' + it.impact + '" onclick="' + onclickFn + '" style="font-size:11px;font-weight:600;padding:6px 10px;background:rgba(200,168,90,0.1);color:#c8a85a;border:1px solid rgba(200,168,90,0.3);border-radius:4px;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0">' + it.action + ' ›</button>' +
+    '</div>';
+  }).join('');
+  var recOnclick = "showView('" + rec.dest + "'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+  return '<div class="card" id="strategist-block" data-campaign-id="' + campaignId + '" style="border-left:3px solid #c8a85a;background:linear-gradient(135deg,#1a1810 0%,#0f0d08 100%);margin-bottom:20px;padding:0">' +
+    '<div style="padding:18px 20px 14px 20px">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:18px">🎯</span><div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#c8a85a;text-transform:uppercase">Strategist Review</div><div class="strategist-health" data-health="' + d.health + '" style="margin-left:auto;font-size:11px;font-weight:600;color:#ffaa00">Health ' + d.health + ' · ' + d.state + '</div></div>' +
+      '<div style="font-size:11px;color:#9aa0a6;margin-bottom:6px">Why this campaign isn\'t winning:</div>' +
+      issuesHtml +
+    '</div>' +
+    '<div class="strategist-recommendation" data-recommendation-key="' + rec.key + '" data-recommendation-impact="' + rec.impact + '" style="background:rgba(200,168,90,0.06);border-top:1px solid rgba(200,168,90,0.2);padding:14px 20px">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:12px">⭐</span><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#c8a85a;text-transform:uppercase">Highest leverage action</div></div>' +
+      '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">' +
+        '<div style="font-size:14px;font-weight:600;color:#e8e8ed">' + rec.title + '.</div>' +
+        '<span class="strategist-impact" style="font-size:10px;font-weight:700;letter-spacing:0.06em;padding:3px 8px;border-radius:3px;background:' + impactBg(rec.impact) + ';color:' + impactColor(rec.impact) + ';text-transform:uppercase">Impact: ' + rec.impact + '</span>' +
+      '</div>' +
+      '<div style="font-size:11px;color:#9aa0a6;margin-bottom:12px">' + d.issues[0].reason + '</div>' +
+      '<button type="button" class="strategist-recommendation-action" data-recommendation-key="' + rec.key + '" data-impact="' + rec.impact + '" onclick="' + recOnclick + '" style="font-size:12px;font-weight:600;padding:8px 14px;background:#c8a85a;color:#0a0a14;border:none;border-radius:4px;cursor:pointer;font-family:inherit">' + rec.action + ' ›</button>' +
+    '</div>' +
+  '</div>';
 }
 function detachAndRefresh(campaignId, kind, objectId) {
   if (typeof detachFromCampaign === 'function') {

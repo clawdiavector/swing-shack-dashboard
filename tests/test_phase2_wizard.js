@@ -737,6 +737,38 @@ section('Live API — wizard payload (new shape)');
   assert('non-health cards remain <div> not <button>', /return '<div class="ops-card"/.test(html));
   results.push('  (7 assertions for Step 23 — clickable Needs Attention cards cut the home-to-campaign path from 4 clicks to 1)');
 
+  // ── Step 24: Strategist review block at the top of the campaign detail page ──
+  section('Step 24: Strategist review block — diagnosis + ranked impact + single recommendation');
+  // 1. There is a diagnoseCampaign function that returns issues, recommendation, health, state
+  assert('diagnoseCampaign function defined', /function diagnoseCampaign\(campaignId\)/.test(html));
+  // 2. There is a renderStrategistBlock function
+  assert('renderStrategistBlock function defined', /function renderStrategistBlock\(campaignId\)/.test(html));
+  // 3. diagnoseCampaign reads real fields, not a hardcoded checklist
+  assert('diagnoseCampaign reads c.brief',        /c\.brief\s*&&/.test(html));
+  assert('diagnoseCampaign reads c.dna',          /c\.dna\s*&&/.test(html));
+  assert('diagnoseCampaign reads c.visualDirection', /c\.visualDirection\s*&&/.test(html));
+  assert('diagnoseCampaign reads attachmentsForCampaign', /attachmentsForCampaign/.test(html));
+  assert('diagnoseCampaign reads c.assets',       /c\.assets\s*&&/.test(html));
+  // 4. Impact is derived from rank order (idx 0 = High, 1 = Medium, else Low) — no fabricated health delta
+  assert('Impact label derived from rank (High/Medium/Low)', /idx === 0[\s\S]{0,50}'High'[\s\S]{0,80}idx === 1[\s\S]{0,50}'Medium'[\s\S]{0,80}'Low'/.test(html));
+  // 5. There is NO fabricated health-gain math on the recommendation (no rec.from / rec.to / rec.delta)
+  assert('No fabricated rec.from/rec.to/rec.delta', !/rec\.from\s*:/.test(html) && !/rec\.to\s*:/.test(html) && !/rec\.delta\s*:/.test(html));
+  // 6. The "Estimated health gain" line is NOT rendered
+  assert('No "Estimated health gain" string in file', !/Estimated health gain/.test(html));
+  // 7. There IS a TODO comment about replacing Impact with computed Health Gain
+  assert('TODO comment for Step 25 health engine present', /TODO:[\s\S]{0,300}Replace Impact with computed Health Gain/.test(html));
+  // 8. The strategist block is prepended into detail-content in renderCampaign
+  assert('renderCampaign prepends strategist block', /renderStrategistBlock\(id\)/.test(html));
+  // 9. Issue action buttons navigate to existing views (not 'production' or 'creative-studio' which don't exist)
+  assert('Plan Assets action uses dest=assets (not production)', /'Plan Assets',\s*dest:\s*'assets'/.test(html));
+  assert('Create Creative action uses dest=creative (not creative-studio)', /'Create Creative',\s*dest:\s*'creative'/.test(html));
+  assert('Schedule Publishing action uses dest=calendar', /'Schedule Publishing',\s*dest:\s*'calendar'/.test(html));
+  // 10. State label is derived from health score (not invented)
+  assert('State label derived from healthScore (>=80 healthy / >=50 degraded / else critical)', /currentHealth\s*>=\s*80[\s\S]{0,50}healthy[\s\S]{0,100}currentHealth\s*>=\s*50[\s\S]{0,50}degraded[\s\S]{0,100}critical/.test(html));
+  // 11. The strategist block is rendered as #strategist-block with data-campaign-id
+  assert('Strategist block has data-campaign-id attribute', /id="strategist-block" data-campaign-id="'\s*\+\s*campaignId/.test(html));
+  results.push('  (13 assertions for Step 24 — strategist review block answers "why isn\'t this winning" with real diagnosis + ranked impact + single recommendation; no fabricated health-gain math)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
