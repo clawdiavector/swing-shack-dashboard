@@ -1606,6 +1606,11 @@ function opsFeedData() {
   var assets = readStore(ASSET_STORE_KEY);
   var overdue = assets.filter(function(a){ return a.status==='in-production' && a.requiredBy && new Date(a.requiredBy) < new Date(); });
   var liveCampaigns = Object.keys(campaigns).filter(function(k){ return campaigns[k].identity && campaigns[k].identity.status==='active'; });
+  // Step 22.5: live campaigns whose health is degraded or critical — the OS should not pretend "nothing needs attention"
+  var liveButUnhealthy = Object.keys(campaigns)
+    .map(function(k){ return { k:k, c:campaigns[k] }; })
+    .filter(function(x){ var id = x.c.identity; return id && id.status==='active' && (id.healthState==='degraded' || id.healthState==='critical'); })
+    .map(function(x){ return { id:'health:'+x.k, kind:'health', title: x.c.identity.name + ' is ' + x.c.identity.healthState, body: 'Health ' + (x.c.identity.healthScore != null ? x.c.identity.healthScore : '—') + ' — open it from Portfolio.' }; });
   var opps = intelList('opportunity');
   var pats = intelList('pattern');
   var recs = intelList('recommendation').filter(function(r){return r.status==='open';});
@@ -1615,7 +1620,7 @@ function opsFeedData() {
     needsAttention: [
       overdue.length ? { id:'overdue', kind:'overdue', title: overdue.length + ' asset' + (overdue.length===1?'':'s') + ' overdue', body:'In-production requests past required-by date.' } : null,
       liveCampaigns.length === 0 ? { id:'no-live', kind:'empty', title:'No live campaigns', body:'Build one in Campaign Factory.' } : null
-    ].filter(Boolean),
+    ].filter(Boolean).concat(liveButUnhealthy),
     worthTrying: pats.slice(0,5).map(function(p){ return { id:p.id, kind:'pattern', title:p.title, body:p.body }; })
   };
 }

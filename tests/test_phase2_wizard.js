@@ -703,6 +703,21 @@ section('Live API — wizard payload (new shape)');
   assert('global search width 280px', /id="global-search-input"[^>]*width:\s*280px/.test(html));
   results.push('  (5 nav buttons + 4 layout assertions for Step 22 — Nav wraps to multiple lines so all 13 buttons are reachable on 1280px viewports)');
 
+  // ── Step 22.5: Operations Feed surfaces degraded live campaigns (not just overdue assets) ──
+  section('Step 22.5: Operations Feed surfaces degraded live campaigns (not just overdue assets)');
+  // 1. opsFeedData now looks at healthState
+  assert('opsFeedData filters by healthState', /healthState==='degraded'\s*\|\|\s*x\.c\.identity\.healthState==='critical'/.test(html) || /healthState==='degraded'[\s\S]{0,200}healthState==='critical'/.test(html));
+  // 2. opsFeedData maps degraded campaigns into needsAttention
+  assert('opsFeedData adds degraded campaigns to needsAttention', /\.concat\(liveButUnhealthy\)/.test(html));
+  // 3. Each needsAttention item has a title and a body (the OS card shape)
+  assert('liveButUnhealthy has title', /x\.c\.identity\.name\s*\+\s*' is '\s*\+\s*x\.c\.identity\.healthState/.test(html));
+  assert('liveButUnhealthy has health body', /'Health '\s*\+/.test(html));
+  // 4. The summary line still includes needsAttention count
+  assert('summary includes need-attention count', /d\.needsAttention\.length\s*\+\s*' need attention/.test(html));
+  // 5. The renderOpsFeed function reads d.needsAttention into opsfeed-needs
+  assert('renderOpsFeed populates opsfeed-needs', /opsfeed-needs[\s\S]{0,200}d\.needsAttention/.test(html));
+  results.push('  (5 assertions for Step 22.5 — Operations Feed surfaces degraded live campaigns so the home view stops pretending nothing needs attention)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
