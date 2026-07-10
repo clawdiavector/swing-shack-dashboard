@@ -1,36 +1,36 @@
 {
-  "lastUpdated": "2026-07-10T10:00:06.369Z",
+  "lastUpdated": "2026-07-10T16:00:05.077Z",
   "source": "automated",
   "website": {
-    "activeUsers": 616,
-    "sessions": 830,
-    "pageViews": 1370,
-    "avgSessionSeconds": 108.51783858313253,
-    "bounceRate": 0.6783132530120481,
+    "activeUsers": 639,
+    "sessions": 872,
+    "pageViews": 1469,
+    "avgSessionSeconds": 108.47348099770642,
+    "bounceRate": 0.6307339449541285,
     "topPages": [
       {
         "path": "/",
-        "views": 669
+        "views": 704
       },
       {
         "path": "/bookings/",
-        "views": 326
+        "views": 361
       },
       {
         "path": "/customer-portal/",
-        "views": 219
+        "views": 235
       },
       {
         "path": "/club-fitting/",
-        "views": 54
+        "views": 58
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 49
+        "views": 51
       },
       {
         "path": "/philosophy/",
-        "views": 15
+        "views": 18
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -45,60 +45,60 @@
         "views": 5
       },
       {
-        "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
-        "views": 3
+        "path": "/membership/",
+        "views": 4
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 280
-      },
-      {
-        "source": "instagram",
-        "sessions": 182
+        "sessions": 303
       },
       {
         "source": "(direct)",
-        "sessions": 181
+        "sessions": 195
+      },
+      {
+        "source": "instagram",
+        "sessions": 190
       },
       {
         "source": "facebook",
-        "sessions": 75
+        "sessions": 77
       },
       {
         "source": "(not set)",
-        "sessions": 55
+        "sessions": 31
       },
       {
         "source": "clublab.app",
-        "sessions": 24
+        "sessions": 29
       },
       {
-        "source": "(data not available)",
-        "sessions": 14
+        "source": "bing",
+        "sessions": 16
       },
       {
         "source": "c.yoco.com",
         "sessions": 14
       },
       {
-        "source": "bing",
-        "sessions": 13
-      },
-      {
         "source": "m.facebook.com",
         "sessions": 10
+      },
+      {
+        "source": "l.instagram.com",
+        "sessions": 7
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 585
+        "sessions": 614
       },
       {
         "device": "desktop",
-        "sessions": 241
+        "sessions": 255
       },
       {
         "device": "tablet",
