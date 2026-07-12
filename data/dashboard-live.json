@@ -1,28 +1,28 @@
 {
-  "lastUpdated": "2026-07-12T10:00:06.881Z",
+  "lastUpdated": "2026-07-12T16:00:04.823Z",
   "source": "automated",
   "website": {
-    "activeUsers": 709,
-    "sessions": 926,
-    "pageViews": 1505,
-    "avgSessionSeconds": 89.82965117818573,
-    "bounceRate": 0.6252699784017278,
+    "activeUsers": 733,
+    "sessions": 958,
+    "pageViews": 1560,
+    "avgSessionSeconds": 88.12409122025052,
+    "bounceRate": 0.6377870563674322,
     "topPages": [
       {
         "path": "/",
-        "views": 785
+        "views": 810
       },
       {
         "path": "/bookings/",
-        "views": 348
+        "views": 362
       },
       {
         "path": "/customer-portal/",
-        "views": 210
+        "views": 224
       },
       {
         "path": "/club-fitting/",
-        "views": 56
+        "views": 57
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
@@ -37,11 +37,11 @@
         "views": 10
       },
       {
-        "path": "/404.html",
-        "views": 7
+        "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+        "views": 8
       },
       {
-        "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+        "path": "/404.html",
         "views": 7
       },
       {
@@ -52,31 +52,31 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 302
+        "sessions": 317
       },
       {
         "source": "instagram",
-        "sessions": 242
+        "sessions": 250
       },
       {
         "source": "(direct)",
-        "sessions": 187
+        "sessions": 192
       },
       {
         "source": "facebook",
         "sessions": 99
       },
       {
+        "source": "(not set)",
+        "sessions": 26
+      },
+      {
         "source": "clublab.app",
-        "sessions": 25
+        "sessions": 26
       },
       {
         "source": "bing",
         "sessions": 14
-      },
-      {
-        "source": "(not set)",
-        "sessions": 13
       },
       {
         "source": "m.facebook.com",
@@ -88,17 +88,17 @@
       },
       {
         "source": "paid_meta",
-        "sessions": 7
+        "sessions": 8
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 675
+        "sessions": 701
       },
       {
         "device": "desktop",
-        "sessions": 248
+        "sessions": 254
       },
       {
         "device": "tablet",
