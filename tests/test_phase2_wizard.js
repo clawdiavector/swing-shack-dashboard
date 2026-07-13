@@ -821,6 +821,106 @@ section('Live API — wizard payload (new shape)');
   assert('diagnoseCampaign returns empty issues when all categories present', /var issues = \[\];[\s\S]{0,300}issues\.push\(\{ key:'strategy'/.test(html));
   results.push('  (18 assertions for Step 25 — Creative Studio carries campaign context, auto-attaches hooks via existing M2M writer, fixes "untitled" bug for legacy hookId format, Ops Feed "Needs Attention" reflects diagnosis not static healthState)');
 
+  // ── Step 26: Hook modal is campaign-aware when opened from campaign context ──
+  // Root decision friction: "I am being asked to invent the hook from scratch, even though
+  // the OS already knows the campaign." The fix pre-fills kind/brand/placeholder with real
+  // campaign facts and surfaces brief/audience/tone/offer as read-only guidance. Standalone
+  // open remains unchanged: kind='meme', brand='', generic placeholder, no guidance block.
+  section('Step 26: Hook modal is campaign-aware (kind=hook, brand=active product, campaign placeholder, compact guidance; standalone unchanged)');
+
+  // 1. Guidance container exists in modal HTML, hidden by default.
+  assert('Hook modal contains h-campaign-guidance container',
+         /id="h-campaign-guidance"[\s\S]{0,200}display:\s*none/.test(html));
+  assert('Hook modal contains h-guidance-rows container inside the guidance block',
+         /id="h-campaign-guidance"[\s\S]{0,300}id="h-guidance-rows"/.test(html));
+
+  // 2. openHookForCampaign injects a "Hook" option into the kind dropdown and sets its value.
+  // Locate the function body and check that it adds the option and sets k.value = 'hook'.
+  var ofcBody = html.match(/function openHookForCampaign\([\s\S]*?^}/m);
+  assert('openHookForCampaign function body present in HTML', !!ofcBody);
+  if (ofcBody) {
+    var body = ofcBody[0];
+    assert('openHookForCampaign injects a Hook option into h-kind',
+           /querySelector\('option\[value="hook"\]'\)[\s\S]{0,500}(hookOpt|opt|option)\.value\s*=\s*'hook'/.test(body));
+    assert('openHookForCampaign sets h-kind value to "hook"',
+           /k\.value\s*=\s*'hook'/.test(body));
+  }
+
+  // 3. openHookForCampaign pre-fills brand with the active product.
+  if (ofcBody) {
+    assert('openHookForCampaign sets h-brand to "swing-shack"',
+           /document\.getElementById\('h-brand'\)[\s\S]{0,400}\.value\s*=\s*'swing-shack'/.test(ofcBody[0]));
+  }
+
+  // 4. openHookForCampaign replaces the placeholder with a campaign-aware one built from
+  //    brief.bigIdea (or brief.purpose). No invented text — only re-uses what exists.
+  if (ofcBody) {
+    assert('openHookForCampaign builds placeholder from brief.bigIdea or brief.purpose',
+           /brief\.bigIdea\s*\|\|\s*brief\.purpose/.test(ofcBody[0]));
+    assert('openHookForCampaign sets h-text placeholder using campaign anchor',
+           /t\.placeholder\s*=\s*'e\.g\.\s*'\s*\+\s*ph/.test(ofcBody[0]) ||
+           /t\.placeholder\s*=\s*'e\.g\.\s*'\s*\+\s*anchor/.test(ofcBody[0]));
+  }
+
+  // 5. openHookForCampaign populates read-only guidance rows from real campaign fields.
+  if (ofcBody) {
+    assert('openHookForCampaign surfaces brief.purpose as PURPOSE row',
+           /brief\.purpose[\s\S]{0,400}rows\.push\(\s*\{\s*k:\s*'PURPOSE'/.test(ofcBody[0]));
+    assert('openHookForCampaign surfaces brief.audience as AUDIENCE row',
+           /brief\.audience[\s\S]{0,400}rows\.push\(\s*\{\s*k:\s*'AUDIENCE'/.test(ofcBody[0]));
+    assert('openHookForCampaign surfaces dna.tone as TONE row',
+           /briefDna\.tone[\s\S]{0,400}rows\.push\(\s*\{\s*k:\s*'TONE'/.test(ofcBody[0]));
+    assert('openHookForCampaign surfaces strategy.primaryOffer as OFFER row',
+           /strategy\.primaryOffer[\s\S]{0,400}rows\.push\(\s*\{\s*k:\s*'OFFER'/.test(ofcBody[0]));
+  }
+
+  // 6. openHookForCampaign shows the guidance block when rows exist, hides it otherwise.
+  if (ofcBody) {
+    assert('openHookForCampaign hides guidance block when no rows exist',
+           /rows\.length\s*===\s*0[\s\S]{0,200}guideEl\.style\.display\s*=\s*'none'/.test(ofcBody[0]));
+    assert('openHookForCampaign shows guidance block when rows exist',
+           /rows\.length\s*===\s*0[\s\S]{0,1500}guideEl\.style\.display\s*=\s*'block'/.test(ofcBody[0]));
+  }
+
+  // 7. Standalone openHookModal must NOT touch the guidance block visibility beyond hiding it.
+  var ohmBody = html.match(/function openHookModal\(\)\s*\{[\s\S]*?^}/m);
+  assert('openHookModal function body present', !!ohmBody);
+  if (ohmBody) {
+    var ohm = ohmBody[0];
+    assert('openHookModal hides h-campaign-guidance',
+           /h-campaign-guidance[\s\S]{0,200}guideEl\.style\.display\s*=\s*'none'/.test(ohm));
+    assert('openHookModal removes the injected Hook option if it was injected previously',
+           /step26Injected[\s\S]{0,400}injected\.remove/.test(ohm));
+    assert('openHookModal restores the generic TrackMan placeholder',
+           /Your short game is lying to you/.test(ohm));
+  }
+
+  // 8. openEditHookModal hides the guidance block (editing is not campaign-context creation).
+  var oemBody = html.match(/function openEditHookModal\([^)]*\)\s*\{[\s\S]*?^}/m);
+  assert('openEditHookModal function body present', !!oemBody);
+  if (oemBody) {
+    assert('openEditHookModal hides h-campaign-guidance',
+           /h-campaign-guidance[\s\S]{0,200}guideEl\.style\.display\s*=\s*'none'/.test(oemBody[0]));
+  }
+
+  // 9. closeHookModal defensively hides the guidance block.
+  var chmBody = html.match(/function closeHookModal\(\)\s*\{[\s\S]*?^}/m);
+  assert('closeHookModal function body present', !!chmBody);
+  if (chmBody) {
+    assert('closeHookModal hides h-campaign-guidance',
+           /h-campaign-guidance[\s\S]{0,200}guideEl\.style\.display\s*=\s*'none'/.test(chmBody[0]));
+  }
+
+  // 10. Step 25 save behaviour is preserved: pendingAttachAfterSave stays {kind:'hook', campaignId}.
+  assert('openHookForCampaign still sets pendingAttachAfterSave with kind:hook (Step 25 contract preserved)',
+         /pendingAttachAfterSave\s*=\s*\{\s*campaignId:\s*campaignId,\s*kind:\s*'hook'\s*\}/.test(html));
+
+  // 11. handleHookSubmit still attaches hooks created from campaign context (Step 25 contract).
+  assert('handleHookSubmit still branches on pendingAttachAfterSave.kind === "hook" (Step 25 contract preserved)',
+         /pendingAttachAfterSave[\s\S]{0,400}pendingAttachAfterSave\.kind\s*===\s*'hook'/.test(html));
+
+  results.push('  (Step 26 — hook modal becomes campaign-aware when opened with campaign context; standalone path unchanged; Step 25 save/attach/diagnosis pipeline preserved)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);

@@ -780,6 +780,10 @@ No billboards yet. Click <strong>+ New Billboard</strong> to capture a billboard
 <button class="view-btn" onclick="closeHookModal()">×</button>
 </div>
 <form id="hookForm" onsubmit="return handleHookSubmit(event)">
+<div id="h-campaign-guidance" style="display:none;margin-bottom:14px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px">
+  <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--col-green);margin-bottom:6px">From this campaign</div>
+  <div id="h-guidance-rows"></div>
+</div>
 <div style="margin-bottom:12px">
 <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--col-muted);display:block;margin-bottom:4px">The hook *</label>
 <textarea id="h-text" rows="2" required placeholder="e.g. Your short game is lying to you. TrackMan proves it in 20 minutes." style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;resize:vertical"></textarea>
@@ -1824,6 +1828,69 @@ function openHookForCampaign(campaignId) {
     var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
     var cname = (c && c.identity && c.identity.name) || campaignId;
     if (titleEl) titleEl.textContent = 'New Hook — for ' + cname;
+    // Step 26: when the modal opens with campaign context, use what the OS already knows
+    // about the campaign to guide the marketer. We do NOT invent any hook text — we only
+    // pre-fill form defaults (kind, brand, placeholder) and surface existing campaign
+    // facts as compact read-only guidance above the textarea. The marketer still writes the hook.
+    var k = document.getElementById('h-kind');
+    if (k) {
+      // Inject a temporary "Hook" option at the top of the kind dropdown if not already there.
+      // The data layer treats 'hook' as a valid kind (see kinds list at line ~1384), but the
+      // default dropdown doesn't include it. We only add it when context demands it, and we
+      // remove it again on the next standalone open so it doesn't pollute the default form.
+      if (!k.querySelector('option[value="hook"]')) {
+        var hookOpt = document.createElement('option');
+        hookOpt.value = 'hook';
+        hookOpt.textContent = 'Hook';
+        k.insertBefore(hookOpt, k.firstChild);
+        k.dataset.step26Injected = '1';
+      }
+      k.value = 'hook';
+    }
+    var b = document.getElementById('h-brand');
+    if (b) b.value = 'swing-shack';
+    // Build campaign-aware placeholder from the campaign's own brief bigIdea (if present),
+    // otherwise fall back to purpose. Fall back to the generic placeholder if neither exists.
+    var t = document.getElementById('h-text');
+    if (t) {
+      var brief = (c && c.brief) || {};
+      var anchor = (brief.bigIdea || brief.purpose || '').trim();
+      if (anchor) {
+        // Cap placeholder length so the textarea isn't dominated by it.
+        var max = 140;
+        var ph = anchor.length > max ? (anchor.slice(0, max - 1) + '…') : anchor;
+        t.placeholder = 'e.g. ' + ph;
+      }
+    }
+    // Populate the compact guidance block with existing campaign facts. Read-only.
+    // We do NOT compute, invent, or summarise — we surface the literal values that already
+    // exist in the campaign data. If a field is missing, we skip that row entirely.
+    var guideEl = document.getElementById('h-campaign-guidance');
+    var rowsEl  = document.getElementById('h-guidance-rows');
+    if (guideEl && rowsEl) {
+      var rows = [];
+      var briefDna = c && c.dna;
+      var strategy = c && c.strategy;
+      var identity = c && c.identity;
+      if (brief && brief.purpose)        rows.push({ k: 'PURPOSE',   v: brief.purpose });
+      if (brief && brief.audience)       rows.push({ k: 'AUDIENCE',  v: brief.audience });
+      if (briefDna && briefDna.tone)     rows.push({ k: 'TONE',      v: briefDna.tone });
+      if (strategy && strategy.primaryOffer) rows.push({ k: 'OFFER',  v: strategy.primaryOffer });
+      if (rows.length === 0) {
+        guideEl.style.display = 'none';
+      } else {
+        rowsEl.innerHTML = rows.map(function(r) {
+          // Escape user-visible strings to avoid HTML injection from the data layer.
+          var safeK = String(r.k).replace(/[&<>]/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[ch]; });
+          var safeV = String(r.v).replace(/[&<>]/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[ch]; });
+          return '<div style="display:flex;gap:8px;margin-bottom:6px">' +
+                   '<div style="flex:0 0 84px;font-size:9px;font-weight:700;letter-spacing:0.06em;color:var(--col-muted);text-transform:uppercase;padding-top:2px">' + safeK + '</div>' +
+                   '<div style="flex:1;font-size:11px;line-height:1.45;color:var(--text)">' + safeV + '</div>' +
+                 '</div>';
+        }).join('');
+        guideEl.style.display = 'block';
+      }
+    }
   } catch (e) {}
 }
 function runSurpriseMe() {
@@ -2672,6 +2739,22 @@ function openHookModal() {
   var t = document.getElementById('h-text');
   if (t) { t.value = ''; t.focus(); }
   var k = document.getElementById('h-kind'); if (k) k.value = 'meme';
+  // Step 26: standalone open should not show the campaign guidance block, and the temporary
+  // "Hook" option that openHookForCampaign injected should be removed so the dropdown returns
+  // to its original default set.
+  try {
+    var guideEl = document.getElementById('h-campaign-guidance');
+    if (guideEl) guideEl.style.display = 'none';
+    var rowsEl = document.getElementById('h-guidance-rows');
+    if (rowsEl) rowsEl.innerHTML = '';
+    if (k && k.dataset && k.dataset.step26Injected === '1') {
+      var injected = k.querySelector('option[value="hook"]');
+      if (injected) injected.remove();
+      delete k.dataset.step26Injected;
+    }
+    // Also restore the generic placeholder if a campaign-aware one was set.
+    if (t) t.placeholder = 'e.g. Your short game is lying to you. TrackMan proves it in 20 minutes.';
+  } catch (e) {}
   var b = document.getElementById('h-brand'); if (b) b.value = '';
   var s = document.getElementById('h-source'); if (s) s.value = '';
   var n = document.getElementById('h-note'); if (n) n.value = '';
@@ -2697,12 +2780,27 @@ function openEditHookModal(id) {
   var ok = document.getElementById('hook-success'); if (ok) ok.style.display = 'none';
   var titleEl = modal && modal.querySelector('.modal-title');
   if (titleEl) titleEl.textContent = 'Edit Hook';
+  // Step 26: editing an existing hook is not a campaign-context creation, so the guidance
+  // block should not be shown here either.
+  try {
+    var guideEl = document.getElementById('h-campaign-guidance');
+    if (guideEl) guideEl.style.display = 'none';
+    var rowsEl = document.getElementById('h-guidance-rows');
+    if (rowsEl) rowsEl.innerHTML = '';
+  } catch (e) {}
   return true;
 }
 function closeHookModal() {
   currentHookId = null;
   var modal = document.getElementById('hookModal');
   if (modal) modal.style.display = 'none';
+  // Step 26: defensive hide of the campaign guidance block so it never bleeds across opens.
+  try {
+    var guideEl = document.getElementById('h-campaign-guidance');
+    if (guideEl) guideEl.style.display = 'none';
+    var rowsEl = document.getElementById('h-guidance-rows');
+    if (rowsEl) rowsEl.innerHTML = '';
+  } catch (e) {}
 }
 function handleHookSubmit(e) {
   e.preventDefault();
