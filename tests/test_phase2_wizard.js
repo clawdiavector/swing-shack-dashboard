@@ -769,6 +769,44 @@ section('Live API — wizard payload (new shape)');
   assert('Strategist block has data-campaign-id attribute', /id="strategist-block" data-campaign-id="'\s*\+\s*campaignId/.test(html));
   results.push('  (13 assertions for Step 24 — strategist review block answers "why isn\'t this winning" with real diagnosis + ranked impact + single recommendation; no fabricated health-gain math)');
 
+  // ── Step 25: Campaign context panel in Creative Studio ──
+  section('Step 25: Creative Studio carries campaign context from strategist action');
+  // 1. The context panel container exists in the view-creative HTML
+  assert('Creative Studio has cs-context-panel container', /id="cs-context-panel"[\s\S]{0,200}style="display:none/.test(html));
+  // 2. The panel has the slots the renderer fills (campaign name, fields grid, action)
+  assert('Context panel has campaign-name slot', /id="cs-context-campaign-name"/.test(html));
+  assert('Context panel has fields grid',         /id="cs-context-fields"/.test(html));
+  assert('Context panel has action slot',         /id="cs-context-action"/.test(html));
+  // 3. The panel has a "Switch to standalone" button that clears the context
+  assert('Switch to standalone button calls creativeContextClear', /onclick="creativeContextClear\(\)"/.test(html));
+  // 4. renderCreativeStudio reads the campaign context id and renders the panel
+  assert('renderCreativeStudio reads creativeContextCampaignId', /renderCreativeStudio[\s\S]{0,300}creativeContextCampaignId/.test(html));
+  // 5. renderCreativeStudio reads ONLY real campaign fields (no AI, no fake drafts)
+  assert('Context reads brief.purpose',         /brief\.purpose/.test(html));
+  assert('Context reads brief.audience',        /brief\.audience/.test(html));
+  assert('Context reads brief.bigIdea',         /brief\.bigIdea/.test(html));
+  assert('Context reads dna.tone',              /dna\.tone/.test(html));
+  assert('Context reads identity.platforms',    /identity\.platforms/.test(html));
+  // 6. openHookForCampaign function exists, sets pendingAttachAfterSave, opens hook modal
+  assert('openHookForCampaign function defined', /function openHookForCampaign\(campaignId\)/.test(html));
+  assert('openHookForCampaign sets pendingAttachAfterSave', /openHookForCampaign[\s\S]{0,200}pendingAttachAfterSave\s*=\s*\{[\s\S]{0,100}kind:\s*'hook'/.test(html));
+  assert('openHookForCampaign calls openHookModal', /openHookForCampaign[\s\S]{0,300}openHookModal\(\)/.test(html));
+  // 7. creativeContextClear function clears the var and re-renders
+  assert('creativeContextClear clears creativeContextCampaignId', /creativeContextClear[\s\S]{0,200}creativeContextCampaignId\s*=\s*null/.test(html));
+  // 8. handleHookSubmit auto-attaches via attachToCampaign when pendingAttachAfterSave is set
+  assert('handleHookSubmit checks pendingAttachAfterSave.kind==hook', /pendingAttachAfterSave[\s\S]{0,100}\.kind\s*===\s*'hook'[\s\S]{0,100}\.campaignId/.test(html));
+  assert('handleHookSubmit calls attachToCampaign(cid, hook, hookId)', /attachToCampaign\(cid,\s*'hook',\s*hook\.hookId/.test(html));
+  // 9. Success message reflects whether an attach happened
+  assert('Success message is "Saved and attached to campaign." when attached', /Saved and attached to campaign/.test(html));
+  assert('Success message is "Saved." when no attach happened', /'Saved\.'/.test(html));
+  // 10. Strategist issue/recommendation buttons set creativeContextCampaignId before showView(creative)
+  assert('Strategist issue action sets creativeContextCampaignId', /onclickFn\s*=[\s\S]{0,300}creativeContextCampaignId\s*=\s*'"\s*\+\s*campaignId/.test(html));
+  // 11. Creative Studio re-renders after hook save so the count is fresh
+  assert('handleHookSubmit calls renderCreativeStudio', /renderHookBank\(\)[\s\S]{0,200}renderCreativeStudio/.test(html));
+  // 12. References panel resolves hook objects via hookId (not just id) — fixes "untitled" bug
+  assert('References panel filters by hookId', /renderCampaignReferences[\s\S]{0,2000}x\.hookId\s*===\s*a\.objectId/.test(html));
+  results.push('  (15 assertions for Step 25 — Creative Studio carries campaign context, auto-attaches hooks via existing M2M writer, fixes "untitled" bug for legacy hookId format)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);

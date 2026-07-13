@@ -396,6 +396,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div style="max-width:1100px;margin:0 auto">
 <div style="font-size:18px;font-weight:700;margin-bottom:4px">Creative Studio</div>
 <div style="color:var(--col-muted);font-size:12px;margin-bottom:24px">How do I make this stronger? Hooks, memes, billboards, captions — independent, reusable, attachable.</div>
+<!-- Step 25: campaign context panel (hidden in standalone mode) -->
+<div id="cs-context-panel" style="display:none;margin-bottom:24px;padding:18px 20px;background:linear-gradient(135deg,#1a1810 0%,#0f0d08 100%);border:1px solid #c8a85a;border-left:3px solid #c8a85a;border-radius:8px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
+<div>
+<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#c8a85a;text-transform:uppercase;margin-bottom:4px">Creating for</div>
+<div id="cs-context-campaign-name" style="font-size:18px;font-weight:700;color:#e8e8ed">—</div>
+</div>
+<button type="button" class="view-btn" onclick="creativeContextClear()" style="font-size:10px;padding:4px 8px;color:var(--col-muted);border:1px solid var(--border)">Switch to standalone</button>
+</div>
+<div id="cs-context-fields" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:16px;font-size:12px"></div>
+<div id="cs-context-action"></div>
+</div>
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
 <button class="view-btn" style="padding:24px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:700;text-align:left" onclick="showView('hooks')">
 <div style="font-size:11px;color:var(--col-muted);margin-bottom:6px">HOOK BANK</div>
@@ -1707,6 +1719,43 @@ function renderOpsFeed() {
 }
 function renderCreativeStudio() {
   function setC(id, n) { var el = document.getElementById(id); if (el) el.textContent = n; }
+  // Step 25: if creativeContextCampaignId is set, render the campaign context panel above the tiles.
+  // The panel shows real campaign fields (brief, audience, big idea, tone, platform, offer) and
+  // one obvious next action: a button that opens the hook modal with auto-attach preset.
+  var contextId = window.creativeContextCampaignId;
+  var contextCampaign = contextId && window.campaignData && window.campaignData.campaigns ? window.campaignData.campaigns[contextId] : null;
+  var contextPanel = document.getElementById('cs-context-panel');
+  if (contextPanel && contextCampaign) {
+    contextPanel.style.display = 'block';
+    var nameEl = document.getElementById('cs-context-campaign-name');
+    if (nameEl) nameEl.textContent = (contextCampaign.identity && contextCampaign.identity.name) || contextId;
+    var fieldsEl = document.getElementById('cs-context-fields');
+    if (fieldsEl) {
+      var brief = contextCampaign.brief || {};
+      var dna   = contextCampaign.dna   || {};
+      var vd    = contextCampaign.visualDirection || {};
+      var strat = contextCampaign.strategy || {};
+      var identity = contextCampaign.identity || {};
+      var rows = [];
+      function row(label, val) { if (val) rows.push('<div><div style="font-size:10px;color:var(--col-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">' + label + '</div><div style="color:#e8e8ed;line-height:1.4">' + String(val).slice(0, 220) + '</div></div>'); }
+      row('Brief', brief.purpose);
+      row('Audience', brief.audience);
+      row('Big idea', brief.bigIdea);
+      row('Tone', dna.tone);
+      row('Platforms', Array.isArray(identity.platforms) ? identity.platforms.join(', ') : '');
+      row('Offer', identity.primaryOffer || strat.primaryOffer);
+      fieldsEl.innerHTML = rows.length ? rows.join('') : '<div style="color:var(--col-muted);font-size:12px;grid-column:1/-1">No campaign context yet — fill the brief to make this richer.</div>';
+    }
+    var actionEl = document.getElementById('cs-context-action');
+    if (actionEl) {
+      // Primary action: open the hook modal with the campaign pre-attached. No AI, no fake draft — just an empty form ready for the marketer to write their own hook.
+      var cname = (contextCampaign.identity && contextCampaign.identity.name) || contextId;
+      actionEl.innerHTML = '<button type="button" id="cs-context-primary-action" class="cs-context-primary-action" onclick="openHookForCampaign(\'' + contextId + '\')" style="font-size:13px;font-weight:700;padding:10px 16px;background:#c8a85a;color:#0a0a14;border:none;border-radius:6px;cursor:pointer;font-family:inherit">Create first hook for ' + cname + ' →</button>' +
+        '<div style="font-size:11px;color:var(--col-muted);margin-top:8px">Hook modal opens with the campaign already linked. Save the hook and it attaches automatically — no extra step.</div>';
+    }
+  } else if (contextPanel) {
+    contextPanel.style.display = 'none';
+  }
   setC('cs-hook-count', readStore(HOOK_STORE_KEY).length);
   setC('cs-meme-count', readStore(MEME_STORE_KEY).length);
   setC('cs-bb-count',   readStore(BILLBOARD_STORE_KEY).length);
@@ -1727,6 +1776,29 @@ function renderCreativeStudio() {
       return '<div class="conf-chip" title="Confidence: ' + t.conf + ' — ' + confidenceProvenanceText(t.kind, t.id) + '" style="font-size:11px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:14px"><span style="color:' + color + ';font-weight:700">' + confidenceLabel(t.conf) + '</span> · ' + labelForKind(t.kind) + ' · ' + lbl + '</div>';
     }).join('') : '<div style="color:var(--col-muted);font-size:11px">No creative yet.</div>';
   }
+}
+// Step 25: clear the campaign context (return to standalone mode) and re-render.
+function creativeContextClear() {
+  window.creativeContextCampaignId = null;
+  window.pendingAttachAfterSave = null;
+  renderCreativeStudio();
+}
+// Step 25: open the hook modal with the campaign pre-attached. When the hook is saved, it
+// auto-attachs to the campaign via the existing campaign_attachments M2M table.
+function openHookForCampaign(campaignId) {
+  if (!campaignId) return;
+  window.pendingAttachAfterSave = { campaignId: campaignId, kind: 'hook' };
+  openHookModal();
+  // Override the title so the marketer knows which campaign this hook is being created for.
+  // The modal itself doesn't have a campaign field — the link is established when the hook
+  // is saved (auto-attach via pendingAttachAfterSave).
+  try {
+    var modal = document.getElementById('hookModal');
+    var titleEl = modal && modal.querySelector('.modal-title');
+    var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
+    var cname = (c && c.identity && c.identity.name) || campaignId;
+    if (titleEl) titleEl.textContent = 'New Hook — for ' + cname;
+  } catch (e) {}
 }
 function runSurpriseMe() {
   var ideas = surpriseMeGenerate();
@@ -2114,7 +2186,11 @@ function renderCampaignReferences(campaignId, container) {
           if (c && c.identity) { label = c.identity.name || c.identity.campaignId; }
         } else {
           var arr = readStore(kindStoreKey(kind));
-          var obj = arr.filter(function(x){ return x.id === a.objectId; })[0];
+          // Step 25: handle legacy per-kind id fields (hookId/memeId/billboardId/...)
+          // in addition to the generic id field. Pre-existing inconsistency that the
+          // Quick Attach modal already handles; without this, freshly created hooks
+          // (which use hookId, not id) show as "untitled" in the references panel.
+          var obj = arr.filter(function(x){ return x && (x.id === a.objectId || x.hookId === a.objectId || x.memeId === a.objectId || x.billboardId === a.objectId || x.captionId === a.objectId || x.trendId === a.objectId || x.assetRequestId === a.objectId); })[0];
           if (obj) {
             label = obj.hookLine || obj.memeLine || obj.line || obj.text || obj.title || obj.name || a.objectId;
             extra = obj.brand || obj.format || obj.platform || obj.priority || obj.signalType || '';
@@ -2240,6 +2316,11 @@ function renderStrategistBlock(campaignId) {
   function impactBg(level)   { return level === 'High' ? 'rgba(255,92,92,0.12)' : level === 'Medium' ? 'rgba(255,170,0,0.12)' : 'rgba(154,160,166,0.08)'; }
   var issuesHtml = d.issues.map(function(it, i){
     var onclickFn = "showView('" + it.dest + "'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+    // Step 25: when the action navigates to Creative Studio, also set the campaign context so
+    // the destination knows which campaign the marketer is creating for.
+    if (it.dest === 'creative') {
+      onclickFn = "window.creativeContextCampaignId = '" + campaignId + "'; showView('creative'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+    }
     return '<div class="strategist-issue" data-issue-key="' + it.key + '" data-impact="' + it.impact + '" style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;' + (i===0?'border-top:0':'') + 'border-bottom:1px solid rgba(255,255,255,0.06)">' +
       '<div style="font-size:13px;font-weight:700;color:#c8a85a;min-width:18px">' + (i+1) + '</div>' +
       '<div style="flex:1">' +
@@ -2253,6 +2334,10 @@ function renderStrategistBlock(campaignId) {
     '</div>';
   }).join('');
   var recOnclick = "showView('" + rec.dest + "'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+  // Step 25: also set campaign context when the recommendation navigates to Creative Studio
+  if (rec.dest === 'creative') {
+    recOnclick = "window.creativeContextCampaignId = '" + campaignId + "'; showView('creative'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+  }
   return '<div class="card" id="strategist-block" data-campaign-id="' + campaignId + '" style="border-left:3px solid #c8a85a;background:linear-gradient(135deg,#1a1810 0%,#0f0d08 100%);margin-bottom:20px;padding:0">' +
     '<div style="padding:18px 20px 14px 20px">' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:18px">🎯</span><div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#c8a85a;text-transform:uppercase">Strategist Review</div><div class="strategist-health" data-health="' + d.health + '" style="margin-left:auto;font-size:11px;font-weight:600;color:#ffaa00">Health ' + d.health + ' · ' + d.state + '</div></div>' +
@@ -2617,8 +2702,34 @@ function handleHookSubmit(e) {
   if (!Array.isArray(hook.history)) hook.history = [];
   hook.history.push({ action: currentHookId ? 'updated' : 'created', by: 'christelle', at: now });
   hookAppend(hook);
+  // Step 25: if this hook was created from a campaign context, attach it to the campaign via the
+  // existing campaign_attachments M2M writer. No extra step required from the marketer.
+  try {
+    if (!currentHookId && window.pendingAttachAfterSave && window.pendingAttachAfterSave.kind === 'hook' && window.pendingAttachAfterSave.campaignId) {
+      var cid = window.pendingAttachAfterSave.campaignId;
+      if (typeof attachToCampaign === 'function') {
+        attachToCampaign(cid, 'hook', hook.hookId, '');
+        window.__hookAttachedOnSave = true;
+        if (typeof renderCampaign === 'function') {
+          try { renderCampaign(cid); } catch (e) {}
+        }
+        if (typeof renderOpsFeed === 'function') {
+          try { renderOpsFeed(); } catch (e) {}
+        }
+      }
+      window.pendingAttachAfterSave = null;
+    }
+  } catch (e) {}
   renderHookBank();
-  if (okEl) { okEl.textContent = 'Saved.'; okEl.style.display = 'block'; }
+  // Step 25: refresh the Creative Studio tiles so the new hook count is visible
+  // if the user is currently looking at Creative Studio.
+  if (typeof renderCreativeStudio === 'function') { try { renderCreativeStudio(); } catch (e) {} }
+  if (okEl) {
+    var attachedThisSave = !currentHookId && window.__hookAttachedOnSave === true;
+    window.__hookAttachedOnSave = false;
+    okEl.textContent = attachedThisSave ? 'Saved and attached to campaign.' : 'Saved.';
+    okEl.style.display = 'block';
+  }
   // Auto-close after short delay (so the success message is visible)
   setTimeout(function() { closeHookModal(); }, 500);
   return false;
