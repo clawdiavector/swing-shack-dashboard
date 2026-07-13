@@ -1618,11 +1618,37 @@ function opsFeedData() {
   var assets = readStore(ASSET_STORE_KEY);
   var overdue = assets.filter(function(a){ return a.status==='in-production' && a.requiredBy && new Date(a.requiredBy) < new Date(); });
   var liveCampaigns = Object.keys(campaigns).filter(function(k){ return campaigns[k].identity && campaigns[k].identity.status==='active'; });
-  // Step 22.5: live campaigns whose health is degraded or critical — the OS should not pretend "nothing needs attention"
+  // Step 22.5: live campaigns whose health is degraded or critical — the OS should not pretend "nothing needs attention".
+  // Step 25: source of truth is the strategist diagnosis, not the static healthState field. The strategist block
+  // already uses diagnoseCampaign(); if it says "All systems go" (zero issues), the Ops Feed must agree.
+  // The static healthState stays for the campaign detail page's display band — but it is NOT the trigger
+  // for "Needs Attention" because the OS would then lie about whether the issue was resolved.
   var liveButUnhealthy = Object.keys(campaigns)
     .map(function(k){ return { k:k, c:campaigns[k] }; })
-    .filter(function(x){ var id = x.c.identity; return id && id.status==='active' && (id.healthState==='degraded' || id.healthState==='critical'); })
-    .map(function(x){ return { id:'health:'+x.k, kind:'health', campaignId: x.k, healthScore: x.c.identity.healthScore, healthState: x.c.identity.healthState, title: x.c.identity.name + ' is ' + x.c.identity.healthState, body: 'Health ' + (x.c.identity.healthScore != null ? x.c.identity.healthScore : '—') }; });
+    .filter(function(x){ var id = x.c.identity; return id && id.status==='active'; })
+    .map(function(x){
+      var d = (typeof diagnoseCampaign === 'function') ? diagnoseCampaign(x.k) : null;
+      var hasIssues = d && d.issues && d.issues.length > 0;
+      if (!hasIssues) return null;
+      // Use the top diagnosed issue's impact as the headline health band (High/Medium/Low)
+      var topImpact = d.issues[0].impact || 'High';
+      var healthBand = topImpact === 'High' ? 'critical' : (topImpact === 'Medium' ? 'degraded' : 'degraded');
+      var score = (x.c.identity.healthScore != null) ? x.c.identity.healthScore : null;
+      // Prefer the top issue's title over the static healthState label, so the card shows the
+      // actual diagnosed problem, not just "is degraded".
+      var rec = d.recommendation;
+      var titleText = rec ? rec.title : (x.c.identity.name + ' has unresolved issues');
+      return {
+        id: 'health:' + x.k,
+        kind: 'health',
+        campaignId: x.k,
+        healthScore: score,
+        healthState: healthBand,
+        title: titleText,
+        body: 'Health ' + (score != null ? score : '—') + (rec ? ' · ' + rec.action : '')
+      };
+    })
+    .filter(Boolean);
   var opps = intelList('opportunity');
   var pats = intelList('pattern');
   var recs = intelList('recommendation').filter(function(r){return r.status==='open';});

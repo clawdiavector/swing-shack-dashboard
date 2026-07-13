@@ -704,19 +704,24 @@ section('Live API — wizard payload (new shape)');
   results.push('  (5 nav buttons + 4 layout assertions for Step 22 — Nav wraps to multiple lines so all 13 buttons are reachable on 1280px viewports)');
 
   // ── Step 22.5: Operations Feed surfaces degraded live campaigns (not just overdue assets) ──
-  section('Step 22.5: Operations Feed surfaces degraded live campaigns (not just overdue assets)');
-  // 1. opsFeedData now looks at healthState
-  assert('opsFeedData filters by healthState', /healthState==='degraded'\s*\|\|\s*x\.c\.identity\.healthState==='critical'/.test(html) || /healthState==='degraded'[\s\S]{0,200}healthState==='critical'/.test(html));
-  // 2. opsFeedData maps degraded campaigns into needsAttention
-  assert('opsFeedData adds degraded campaigns to needsAttention', /\.concat\(liveButUnhealthy\)/.test(html));
+  section('Step 22.5 + Step 25: Operations Feed surfaces unresolved diagnosed issues (single source of truth = diagnoseCampaign)');
+  // 1. (Step 22.5) opsFeedData originally filtered by static healthState; Step 25 replaced that with diagnoseCampaign
+  // so the list drops a campaign whose issues are actually resolved.
+  assert('opsFeedData uses diagnoseCampaign for live unhealthy filter', /diagnoseCampaign\(x\.k\)/.test(html));
+  assert('Ops Feed no longer filters by static healthState as the primary trigger', !/healthState==='degraded'\s*\|\|\s*x\.c\.identity\.healthState==='critical'/.test(html));
+  // 2. opsFeedData maps unhealthy campaigns into needsAttention
+  assert('opsFeedData adds unhealthy campaigns to needsAttention', /\.concat\(liveButUnhealthy\)/.test(html));
   // 3. Each needsAttention item has a title and a body (the OS card shape)
-  assert('liveButUnhealthy has title', /x\.c\.identity\.name\s*\+\s*' is '\s*\+\s*x\.c\.identity\.healthState/.test(html));
+  assert('liveButUnhealthy card title is the diagnosed issue title (not "is degraded")', /rec\.title\|.*has unresolved issues/.test(html) || /recommendation\.title\|/.test(html) || /rec\s*\?\s*rec\.title/.test(html));
   assert('liveButUnhealthy has health body', /'Health '\s*\+/.test(html));
   // 4. The summary line still includes needsAttention count
   assert('summary includes need-attention count', /d\.needsAttention\.length\s*\+\s*' need attention/.test(html));
   // 5. The renderOpsFeed function reads d.needsAttention into opsfeed-needs
   assert('renderOpsFeed populates opsfeed-needs', /opsfeed-needs[\s\S]{0,200}d\.needsAttention/.test(html));
-  results.push('  (5 assertions for Step 22.5 — Operations Feed surfaces degraded live campaigns so the home view stops pretending nothing needs attention)');
+  // 6. The diagnose function returns an empty issues array when all categories are present —
+  //    this is what allows a campaign to drop from the list once the issue is resolved.
+  assert('diagnoseCampaign returns empty issues when campaign is complete', /var issues = \[\][\s\S]{0,50}issues\.push/.test(html));
+  results.push('  (7 assertions for Step 22.5 + Step 25 — Operations Feed surfaces unresolved diagnosed issues so the home view stops lying once a campaign\'s issues are resolved)');
 
   // ── Step 23: Needs Attention cards are clickable buttons that open the campaign ──
   section('Step 23: Needs Attention cards for degraded campaigns are clickable buttons');
@@ -805,7 +810,16 @@ section('Live API — wizard payload (new shape)');
   assert('handleHookSubmit calls renderCreativeStudio', /renderHookBank\(\)[\s\S]{0,200}renderCreativeStudio/.test(html));
   // 12. References panel resolves hook objects via hookId (not just id) — fixes "untitled" bug
   assert('References panel filters by hookId', /renderCampaignReferences[\s\S]{0,2000}x\.hookId\s*===\s*a\.objectId/.test(html));
-  results.push('  (15 assertions for Step 25 — Creative Studio carries campaign context, auto-attaches hooks via existing M2M writer, fixes "untitled" bug for legacy hookId format)');
+  // 13. (User feedback 2026-07-13) Operations Feed must use diagnoseCampaign, not static healthState,
+  //     so the "Needs Attention" list drops a campaign whose issues have actually been resolved.
+  assert('Ops Feed liveButUnhealthy calls diagnoseCampaign', /liveButUnhealthy[\s\S]{0,500}diagnoseCampaign/.test(html));
+  // The legacy filter line should no longer be the trigger — the diagnoseCampaign call must appear in
+  // the liveButUnhealthy block.
+  assert('liveButUnhealthy block contains diagnoseCampaign call (not just static healthState)', /liveButUnhealthy[\s\S]{0,1500}diagnoseCampaign\(x\.k\)/.test(html));
+  // 14. diagnoseCampaign returns empty issues array when strategy/creative/production/publishing/learning
+  //     are all in place — this is what triggers the campaign to drop from "Needs Attention".
+  assert('diagnoseCampaign returns empty issues when all categories present', /var issues = \[\];[\s\S]{0,300}issues\.push\(\{ key:'strategy'/.test(html));
+  results.push('  (18 assertions for Step 25 — Creative Studio carries campaign context, auto-attaches hooks via existing M2M writer, fixes "untitled" bug for legacy hookId format, Ops Feed "Needs Attention" reflects diagnosis not static healthState)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
