@@ -5549,9 +5549,41 @@ function renderNewCampaignCard(c) {
     '<div class="ccard-assetcount" style="color:var(--col-green)">0 assets &middot; draft</div>' +
   '</div>';
 }
+// Step 28: HTML escape helper for user-entered idea text. The brief-prompt textarea
+// preserves <, >, & literally, so we must encode on render to keep the dashboard
+// safe and to display the exact characters the user typed (escaping changes how
+// the browser renders the markup, not what the user sees).
+function escapeIdeaHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 function renderGenericDetail(c) {
   var id = c.identity || {};
-  return '<div class="brief-panel">' +
+  var brief = c.brief || {};
+  // Step 28: ORIGINAL IDEA callout — surfaced verbatim so the marketer can
+  // immediately confirm "the OS understood and saved my idea." Conditional on
+  // brief.bigIdea being present and non-empty: existing campaigns without an
+  // idea render with no callout (no empty block, no placeholder).
+  var ideaRaw = (brief.bigIdea || '').toString();
+  var ideaTrimmed = ideaRaw.trim();
+  var ideaCallout = '';
+  if (ideaTrimmed) {
+    ideaCallout =
+      '<div class="brief-panel" style="margin-bottom:16px;background:linear-gradient(135deg,#0d2b1a 0%,#0a1f15 100%);border:1px solid #00cc7733;border-left:3px solid #00cc77;border-radius:8px;padding:14px 16px">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+          '<span style="font-size:14px;line-height:1">⭐</span>' +
+          '<div style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:#00cc77;text-transform:uppercase">Original Idea</div>' +
+        '</div>' +
+        '<div style="font-size:14px;color:#e8e8ed;line-height:1.5;white-space:pre-wrap;word-wrap:break-word">' + escapeIdeaHtml(ideaRaw) + '</div>' +
+      '</div>';
+  }
+  return ideaCallout +
+    '<div class="brief-panel">' +
     '<div class="brief-title">Campaign Detail</div>' +
     '<div class="brief-row"><div class="brief-key">Name</div><div class="brief-value">' + (id.name || '—') + '</div></div>' +
     '<div class="brief-row"><div class="brief-key">ID</div><div class="brief-value">' + (id.campaignId || '—') + '</div></div>' +

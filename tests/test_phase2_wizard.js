@@ -1011,6 +1011,103 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 27 — Campaign Factory idea/product/goal paths reveal followup; idea text becomes brief.bigIdea; trend/surprise unchanged; close resets state; campaign.created event carries source + bigIdea)');
 
+  // ── Step 28: ORIGINAL IDEA callout surfaces the user's entered idea verbatim on the
+  // generic campaign detail page (which is what new Factory-sourced campaigns land on),
+  // so the marketer can immediately confirm "the OS understood and saved my idea."
+  // Conditional: only renders when brief.bigIdea is present and non-empty. Existing
+  // campaigns without an idea render with no callout — no empty block, no placeholder.
+  section('Step 28: ORIGINAL IDEA callout on generic campaign detail page (verbatim brief.bigIdea; conditional on presence)');
+
+  // 1. HTML escape helper exists (preserves what the user sees; safe to render).
+  var escapeBody = html.match(/function\s+escapeIdeaHtml\([\s\S]*?^}/m);
+  assert('escapeIdeaHtml helper present', !!escapeBody);
+  if (escapeBody) {
+    assert('escapeIdeaHtml encodes & as &amp;',  /&/.test(escapeBody[0]) && /&amp;/.test(escapeBody[0]));
+    assert('escapeIdeaHtml encodes < as &lt;',   /</.test(escapeBody[0]) && /&lt;/.test(escapeBody[0]));
+    assert('escapeIdeaHtml encodes > as &gt;',   />/.test(escapeBody[0]) && /&gt;/.test(escapeBody[0]));
+    assert('escapeIdeaHtml encodes " as &quot;', /"/.test(escapeBody[0]) && /&quot;/.test(escapeBody[0]));
+    assert('escapeIdeaHtml encodes \' as &#39;', /'/.test(escapeBody[0]) && /&#39;/.test(escapeBody[0]));
+  }
+
+  // 2. renderGenericDetail reads brief.bigIdea and renders it verbatim (escaped) inside an
+  // ORIGINAL IDEA block. The block must be conditional on brief.bigIdea being non-empty.
+  var rgdBody = html.match(/function\s+renderGenericDetail\([\s\S]*?^}/m);
+  assert('renderGenericDetail function body present', !!rgdBody);
+  if (rgdBody) {
+    var rgd = rgdBody[0];
+
+    // Reads brief.bigIdea.
+    assert('renderGenericDetail reads brief.bigIdea',
+           /brief\s*=\s*c\.brief\s*\|\|\s*\{\}/.test(rgd) ||
+           /brief\s*=\s*c\.brief/.test(rgd));
+
+    // Has the original-idea callout block.
+    assert('renderGenericDetail contains ORIGINAL IDEA label',
+           /Original Idea/i.test(rgd));
+
+    // Uses escapeIdeaHtml on the rendered text — protects against XSS and preserves the
+    // exact characters the user typed (only HTML-encoding the markup).
+    assert('renderGenericDetail renders brief.bigIdea through escapeIdeaHtml',
+           /escapeIdeaHtml\(\s*ideaRaw\s*\)/.test(rgd) || /escapeIdeaHtml\(\s*brief\.bigIdea\s*\)/.test(rgd));
+
+    // Conditional: only renders when bigIdea is non-empty (after trim). Existing campaigns
+    // without brief.bigIdea produce no callout (no empty block, no placeholder).
+    assert('renderGenericDetail gates callout on non-empty bigIdea (if-trimmed)',
+           /ideaTrimmed[\s\S]{0,200}if[\s\S]{0,400}ideaCallout\s*=/.test(rgd) ||
+           /brief\.bigIdea[\s\S]{0,200}if[\s\S]{0,400}ideaCallout\s*=/.test(rgd) ||
+           /if\s*\(\s*ideaTrimmed\s*\)/.test(rgd));
+
+    // Callout comes BEFORE the existing brief-panel rows (Name/ID/etc.) so secondary
+    // metadata doesn't visually displace the captured-idea confirmation.
+    var calloutIdx = rgd.indexOf('ideaCallout');
+    var titleIdx = rgd.indexOf('Campaign Detail');
+    assert('ORIGINAL IDEA callout is rendered before Campaign Detail title (i.e. above secondary metadata)',
+           calloutIdx > 0 && titleIdx > 0 && calloutIdx < titleIdx);
+  }
+
+  // 3. Existing rows are still rendered (Name/ID/Status/Owner/Created/Updated/History).
+  if (rgdBody) {
+    var rgd2 = rgdBody[0];
+    assert('renderGenericDetail still renders Name row',     /brief-key[^>]*>Name</.test(rgd2) || /Name<\/div>/.test(rgd2));
+    assert('renderGenericDetail still renders ID row',       /brief-key[^>]*>ID</.test(rgd2)   || /ID<\/div>/.test(rgd2));
+    assert('renderGenericDetail still renders Status row',   /brief-key[^>]*>Status</.test(rgd2) || /Status<\/div>/.test(rgd2));
+    assert('renderGenericDetail still renders Created row',  /brief-key[^>]*>Created</.test(rgd2) || /Created<\/div>/.test(rgd2));
+  }
+
+  // 4. Strategist block prepending in renderCampaign is preserved (Step 24 contract).
+  assert('renderCampaign still prepends renderStrategistBlock (Step 24 contract preserved)',
+         /renderStrategistBlock\(id\)/.test(html));
+
+  // 5. End-to-end shape: the escape contract is what "use exact text" requires.
+  //    We assert the shape of the helper against the source rather than running it
+  //    (the suite reads HTML as a string; the function only exists at runtime in
+  //    the dashboard page, not in this static-analysis test).
+  if (escapeBody) {
+    var eb = escapeBody[0];
+    // The escape helper must apply all five transforms in a single chained call
+    // so the displayed text round-trips back to the user's exact input.
+    assert('escapeIdeaHtml chain contains the & → &amp; transform',
+           /replace\(\s*\/&\/g\s*,\s*'&amp;'\s*\)/.test(eb));
+    assert('escapeIdeaHtml chain contains the < → &lt; transform',
+           /replace\(\s*\/<\/g\s*,\s*'&lt;'\s*\)/.test(eb));
+    assert('escapeIdeaHtml chain contains the > → &gt; transform',
+           /replace\(\s*\/>\/g\s*,\s*'&gt;'\s*\)/.test(eb));
+    assert('escapeIdeaHtml chain contains the " → &quot; transform',
+           /replace\(\s*\/\\?"\/g\s*,\s*'&quot;'\s*\)/.test(eb));
+    // The literal escape replacement for apostrophe uses String.prototype.replace with
+    // a single-char regex. We assert the source contains the exact replacement string.
+    assert("escapeIdeaHtml contains the ' → &#39; transform",
+           eb.indexOf("replace(/'/g, '&#39;')") !== -1);
+    // No rewrite/summary transforms — only escaping.
+    assert('escapeIdeaHtml does NOT rewrite or summarise (no .slice, no substr, no .replace with summary text)',
+           !/\.slice\(/.test(eb) && !/\.substr\(/.test(eb) && !/summary/i.test(eb));
+    // String() coercion + null guard: input is whatever the user typed.
+    assert('escapeIdeaHtml handles null/undefined input (returns empty string)',
+           /if\s*\(\s*s\s*==\s*null\s*\)\s*return\s*''/.test(eb));
+  }
+
+  results.push('  (Step 28 — ORIGINAL IDEA callout surfaces verbatim brief.bigIdea on the generic detail page; HTML-escaped; conditional on non-empty idea; existing rows and strategist block preserved)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
