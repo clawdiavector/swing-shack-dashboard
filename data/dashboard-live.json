@@ -1,36 +1,36 @@
 {
-  "lastUpdated": "2026-07-14T04:00:05.117Z",
+  "lastUpdated": "2026-07-14T10:00:04.497Z",
   "source": "automated",
   "website": {
-    "activeUsers": 689,
-    "sessions": 885,
-    "pageViews": 1478,
-    "avgSessionSeconds": 87.84227817288135,
-    "bounceRate": 0.6463276836158192,
+    "activeUsers": 700,
+    "sessions": 912,
+    "pageViews": 1541,
+    "avgSessionSeconds": 89.04965041008772,
+    "bounceRate": 0.6008771929824561,
     "topPages": [
       {
         "path": "/",
-        "views": 779
+        "views": 794
       },
       {
         "path": "/bookings/",
-        "views": 334
+        "views": 360
       },
       {
         "path": "/customer-portal/",
-        "views": 204
+        "views": 216
       },
       {
         "path": "/club-fitting/",
-        "views": 62
+        "views": 64
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 40
+        "views": 44
       },
       {
         "path": "/philosophy/",
-        "views": 19
+        "views": 20
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
@@ -52,7 +52,7 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 299
+        "sessions": 318
       },
       {
         "source": "instagram",
@@ -60,49 +60,49 @@
       },
       {
         "source": "(direct)",
-        "sessions": 170
+        "sessions": 181
       },
       {
         "source": "facebook",
-        "sessions": 76
-      },
-      {
-        "source": "(not set)",
-        "sessions": 44
+        "sessions": 80
       },
       {
         "source": "clublab.app",
-        "sessions": 28
-      },
-      {
-        "source": "(data not available)",
-        "sessions": 16
+        "sessions": 32
       },
       {
         "source": "bing",
-        "sessions": 14
+        "sessions": 16
+      },
+      {
+        "source": "(not set)",
+        "sessions": 13
       },
       {
         "source": "paid_meta",
-        "sessions": 7
+        "sessions": 8
       },
       {
         "source": "c.yoco.com",
+        "sessions": 7
+      },
+      {
+        "source": "l.instagram.com",
         "sessions": 6
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 643
+        "sessions": 654
       },
       {
         "device": "desktop",
-        "sessions": 239
+        "sessions": 253
       },
       {
         "device": "tablet",
-        "sessions": 3
+        "sessions": 5
       }
     ]
   },
