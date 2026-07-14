@@ -1,28 +1,28 @@
 {
-  "lastUpdated": "2026-07-14T10:00:05.615Z",
+  "lastUpdated": "2026-07-14T16:00:04.927Z",
   "source": "automated",
   "website": {
-    "activeUsers": 700,
-    "sessions": 912,
-    "pageViews": 1541,
-    "avgSessionSeconds": 89.04965041008772,
-    "bounceRate": 0.6008771929824561,
+    "activeUsers": 727,
+    "sessions": 954,
+    "pageViews": 1624,
+    "avgSessionSeconds": 94.64367661111112,
+    "bounceRate": 0.6184486373165619,
     "topPages": [
       {
         "path": "/",
-        "views": 794
+        "views": 821
       },
       {
         "path": "/bookings/",
-        "views": 360
+        "views": 394
       },
       {
         "path": "/customer-portal/",
-        "views": 216
+        "views": 229
       },
       {
         "path": "/club-fitting/",
-        "views": 64
+        "views": 70
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
@@ -38,7 +38,7 @@
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 8
+        "views": 9
       },
       {
         "path": "/404.html",
@@ -52,57 +52,57 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 318
+        "sessions": 334
       },
       {
         "source": "instagram",
-        "sessions": 231
+        "sessions": 233
       },
       {
         "source": "(direct)",
-        "sessions": 181
+        "sessions": 188
       },
       {
         "source": "facebook",
-        "sessions": 80
-      },
-      {
-        "source": "clublab.app",
-        "sessions": 32
-      },
-      {
-        "source": "bing",
-        "sessions": 16
+        "sessions": 81
       },
       {
         "source": "(not set)",
-        "sessions": 13
+        "sessions": 39
+      },
+      {
+        "source": "clublab.app",
+        "sessions": 35
+      },
+      {
+        "source": "bing",
+        "sessions": 18
+      },
+      {
+        "source": "c.yoco.com",
+        "sessions": 9
+      },
+      {
+        "source": "(data not available)",
+        "sessions": 8
       },
       {
         "source": "paid_meta",
         "sessions": 8
-      },
-      {
-        "source": "c.yoco.com",
-        "sessions": 7
-      },
-      {
-        "source": "l.instagram.com",
-        "sessions": 6
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 654
+        "sessions": 678
       },
       {
         "device": "desktop",
-        "sessions": 253
+        "sessions": 270
       },
       {
         "device": "tablet",
-        "sessions": 5
+        "sessions": 6
       }
     ]
   },
