@@ -2418,6 +2418,55 @@ function selectCampaign(id) {
     detailContent.appendChild(histBlock);
   }
 }
+// Step 33: Production Assets counter on Campaign Detail used to render from a
+// hardcoded string inside each seeded renderFns template. Diagnose, Production
+// Board and Operations Feed all read live from c.assets — Campaign Detail was
+// frozen at seed time. This helper patches the rendered HTML so Campaign Detail
+// reads from the same source. One source of truth — no duplicate projection.
+function patchProductionAssetsSection(container, c) {
+  var assets = (c && c.assets && typeof c.assets === 'object') ? c.assets : {};
+  var keys = Object.keys(assets);
+  var count = keys.length;
+  var statusColor = function(s) {
+    if (s === 'published') return '#4488ff';
+    if (s === 'rejected')  return '#ff4455';
+    if (s === 'cancelled') return '#6e6e82';
+    return '#ffaa00';
+  };
+  var statusBadge = function(s) {
+    var label = String(s || 'idea');
+    var col = statusColor(s);
+    return '<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:' + col + '22;color:' + col + '">' + label + '</span>';
+  };
+  var cards = container.querySelectorAll('.card');
+  for (var i = 0; i < cards.length; i++) {
+    var card = cards[i];
+    var title = card.querySelector('.card-title');
+    if (!title || title.textContent.indexOf('Production Assets') !== 0) continue;
+    var newHtml = '<div class="card-title">Production Assets — ' + count + ' total</div>';
+    if (count === 0) {
+      newHtml += '<div style="text-align:center;padding:48px;color:#6e6e82">No assets in production</div>';
+    } else {
+      for (var j = 0; j < keys.length; j++) {
+        var a = assets[keys[j]];
+        if (!a) continue;
+        var name = String(a.name || a.title || a.assetId || 'Untitled');
+        var type = String(a.assetType || 'asset');
+        var status = String(a.status || 'idea');
+        var owner = String(a.owner || '—');
+        var firstChar = (name[0] || '?').toUpperCase();
+        newHtml +=
+          '<div class="prod-item"><div class="prod-thumb"><span style="font-size:20px;color:#6e6e82">' + firstChar + '</span></div>' +
+          '<div class="prod-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
+          statusBadge(status) +
+          '<span style="font-size:10px;color:#6e6e82">' + type + '</span></div>' +
+          '<div class="prod-name">' + name + '</div>' +
+          '<div class="prod-meta">@ <span>' + owner + '</span></div></div></div>';
+      }
+    }
+    card.innerHTML = newHtml;
+  }
+}
 function renderCampaign(id) {
   var D = window.campaignData;
   var c = D.campaigns[id];
@@ -2443,6 +2492,10 @@ function renderCampaign(id) {
       detailContent.innerHTML = detailContent.innerHTML.split(embeddedName).join(c.identity.name);
     }
   }
+  // Step 33: Production Assets section reads from live c.assets (was hardcoded
+  // in the seeded renderFns template strings). Runs AFTER the strategist + name
+  // substitution so it operates on the final DOM tree.
+  try { patchProductionAssetsSection(detailContent, c); } catch (e) {}
   // Step 19: append the References panel wired to campaign_attachments
   try { renderCampaignReferences(id, detailContent); } catch (e) {}
 }
