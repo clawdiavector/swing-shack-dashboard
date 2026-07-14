@@ -1642,6 +1642,11 @@ function opsFeedData() {
       // actual diagnosed problem, not just "is degraded".
       var rec = d.recommendation;
       var titleText = rec ? rec.title : (x.c.identity.name + ' has unresolved issues');
+      // Step 30: surface the priority signals the OS already computes — recommendation
+      // impact (High/Medium/Low), the diagnostic state ("healthy"/"degraded"), the
+      // count of diagnosed issues, and the current health score. These power the
+      // deterministic priority sort so the marketer doesn't have to compare, calculate
+      // or guess which Needs Attention card to handle first.
       return {
         id: 'health:' + x.k,
         kind: 'health',
@@ -1649,10 +1654,32 @@ function opsFeedData() {
         healthScore: score,
         healthState: healthBand,
         title: titleText,
-        body: 'Health ' + (score != null ? score : '—') + (rec ? ' · ' + rec.action : '')
+        body: 'Health ' + (score != null ? score : '—') + (rec ? ' · ' + rec.action : ''),
+        impact: rec ? (rec.impact || 'High') : topImpact,
+        diagnoseState: d.state || healthBand,
+        issueCount: d.issues.length
       };
     })
     .filter(Boolean);
+  // Step 30: deterministic priority sort — High impact first, Critical state first,
+  // more issues first, lower health first. Re-runs on every renderOpsFeed() call, so
+  // the Feed re-sorts automatically when diagnosis changes (e.g. after creative is
+  // attached and issueCount or healthScore shifts).
+  var IMPACT_RANK = { 'High': 0, 'Medium': 1, 'Low': 2 };
+  var STATE_RANK = { 'critical': 0, 'degraded': 1, 'healthy': 2 };
+  liveButUnhealthy.sort(function(a, b){
+    var ai = IMPACT_RANK[a.impact] != null ? IMPACT_RANK[a.impact] : 0;
+    var bi = IMPACT_RANK[b.impact] != null ? IMPACT_RANK[b.impact] : 0;
+    if (ai !== bi) return ai - bi;
+    var as = STATE_RANK[a.diagnoseState] != null ? STATE_RANK[a.diagnoseState] : 0;
+    var bs = STATE_RANK[b.diagnoseState] != null ? STATE_RANK[b.diagnoseState] : 0;
+    if (as !== bs) return as - bs;
+    var ac = (a.issueCount || 0) - (b.issueCount || 0); // desc: more issues first
+    if (ac !== 0) return -ac;
+    var ah = (a.healthScore == null ? 101 : a.healthScore);
+    var bh = (b.healthScore == null ? 101 : b.healthScore);
+    return ah - bh; // asc: lower health first
+  });
   var opps = intelList('opportunity');
   var pats = intelList('pattern');
   var recs = intelList('recommendation').filter(function(r){return r.status==='open';});
@@ -1699,7 +1726,7 @@ function renderOpsFeed() {
   var d = opsFeedData();
   function bucket(arr, emptyText) {
     if (!arr.length) return '<div style="color:var(--col-muted);font-size:12px;padding:8px 0">' + emptyText + '</div>';
-    return arr.map(function(it){
+    return arr.map(function(it, idx){
       // Step 23: a Needs Attention card for a degraded/critical live campaign is a button
       // that opens the campaign detail view directly. 1 click from "TrackMan is degraded"
       // to looking at TrackMan.
@@ -1718,16 +1745,51 @@ function renderOpsFeed() {
         var nameLabel = campName
           ? '<div style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:var(--col-muted);text-transform:uppercase;margin-bottom:3px">' + escapeIdeaHtml(campName) + '</div>'
           : '';
+        // Step 30: priority badge. The deterministic sort in opsFeedData() puts the
+        // highest-impact recommendation first (idx 0). The OS already knows which
+        // card deserves attention first — surface it on the card itself rather than
+        // making the marketer compare, calculate or guess. The first card shows
+        // "DO THIS FIRST"; subsequent cards in a multi-card bucket show "NEXT".
+        var priorityBadge = '';
+        var priorityBanner = '';
+        if (idx === 0) {
+          priorityBadge = '<span style="font-size:9px;font-weight:800;letter-spacing:0.08em;padding:3px 7px;border-radius:3px;background:#c0392b;color:#fff;text-transform:uppercase">▶ DO THIS FIRST</span>';
+          priorityBanner = '<div style="margin-bottom:8px;padding:6px 10px;background:rgba(192,57,43,0.08);border-left:3px solid #c0392b;border-radius:3px;font-size:11px;font-weight:600;color:#8a2a1f">▶ DO THIS FIRST — highest-priority card on this list</div>';
+        } else if (arr.length > 1) {
+          priorityBadge = '<span style="font-size:9px;font-weight:700;letter-spacing:0.08em;padding:2px 6px;border-radius:3px;background:var(--surface-2,#f5f5f5);color:var(--col-muted);text-transform:uppercase">NEXT</span>';
+        }
+        // Step 30: surface the recommendation's impact level (High / Medium / Low) the
+        // OS already computed via diagnoseCampaign(). Honest signal — no new scoring.
+        var impactLabel = it.impact ? (it.impact.toUpperCase() + ' IMPACT') : '';
+        var impactBadge = impactLabel
+          ? '<span style="font-size:9px;font-weight:700;letter-spacing:0.06em;padding:2px 6px;border-radius:3px;background:rgba(192,57,43,0.08);color:#8a2a1f;text-transform:uppercase">' + escapeIdeaHtml(impactLabel) + '</span>'
+          : '';
+        // Step 30: explainer on the DO THIS FIRST card. Templated from real diagnosis
+        // data (impact + issueCount) so it stays truthful — no fabricated urgency or
+        // business impact, no marketing language.
+        var explainer = '';
+        if (idx === 0 && it.issueCount > 0) {
+          var adj = (it.impact === 'High') ? 'Highest-impact' : (it.impact === 'Medium' ? 'Medium-impact' : 'Low-impact');
+          var noun = (it.issueCount === 1) ? 'unresolved area' : 'unresolved areas';
+          explainer = '<div style="font-size:11px;color:var(--col-muted);margin-top:6px;line-height:1.4">' + adj + ' issue across ' + it.issueCount + ' ' + noun + '.</div>';
+        }
+        var rightMeta = '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">' +
+          priorityBadge +
+          impactBadge +
+          '<span style="font-size:10px;font-weight:700;letter-spacing:0.04em;padding:2px 6px;border-radius:3px;background:rgba(200,168,90,0.12);color:#8a6f1f;text-transform:uppercase">Health ' + score + '</span>' +
+        '</div>';
         return '<button type="button" class="ops-card ops-card-clickable" data-campaign-id="' + it.campaignId + '" onclick="selectCampaign(\'' + it.campaignId + '\')" ' +
           'style="display:block;width:100%;text-align:left;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;cursor:pointer;font-family:inherit;color:inherit;transition:background 0.12s,border-color 0.12s" ' +
           'onmouseover="this.style.background=\'var(--surface-2, #f5f5f5)\';this.style.borderColor=\'var(--accent, #c8a85a)\'" ' +
           'onmouseout="this.style.background=\'var(--surface)\';this.style.borderColor=\'var(--border)\'">' +
+          priorityBanner +
           '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
             '<div style="min-width:0;flex:1">' +
               nameLabel +
-              '<div style="font-weight:600;font-size:12px">' + it.title + '</div>' +
+              '<div style="font-weight:600;font-size:12px">' + escapeIdeaHtml(it.title) + '</div>' +
+              explainer +
             '</div>' +
-            '<span style="font-size:10px;font-weight:700;letter-spacing:0.04em;padding:2px 6px;border-radius:3px;background:rgba(200,168,90,0.12);color:#8a6f1f;text-transform:uppercase">Health ' + score + '</span>' +
+            rightMeta +
           '</div>' +
           '<div style="font-size:11px;color:var(--col-muted);margin-top:4px;display:flex;align-items:center;justify-content:space-between;gap:8px">' +
             '<span>Open campaign</span>' +

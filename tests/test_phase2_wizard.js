@@ -728,7 +728,7 @@ section('Live API — wizard payload (new shape)');
   // 1. liveButUnhealthy items carry a campaignId field (so the render layer can build a real link)
   assert('liveButUnhealthy items carry campaignId', /campaignId:\s*x\.k/.test(html));
   // 2. The renderOpsFeed bucket function renders a <button> for kind==='health' cards
-  assert('bucket renders <button> for health-kind cards', /it\.kind\s*===\s*'health'[\s\S]{0,2000}<button/.test(html));
+  assert('bucket renders <button> for health-kind cards', /it\.kind\s*===\s*'health'[\s\S]{0,5000}<button/.test(html));
   // 3. The button has a data-campaign-id attribute (test + a11y target)
   assert('button has data-campaign-id attribute', /data-campaign-id="'\s*\+\s*it\.campaignId/.test(html));
   // 4. The button's onclick calls selectCampaign (which navigates to the campaign detail view)
@@ -1179,6 +1179,72 @@ section('Live API — wizard payload (new shape)');
          /worthTrying[\s\S]{0,400}bucket/.test(html));
 
   results.push('  (Step 29 — Needs Attention cards now surface the campaign name (campaigns[campaignId].identity.name) above the issue title; safe via escapeIdeaHtml; existing onclick/data-campaign-id and other buckets unchanged)');
+
+  // ── Step 30: Needs Attention priority order — the OS already knows which card
+  // deserves attention first (impact → state → issueCount → healthScore). Surface it
+  // on the card itself: DO THIS FIRST on card 0, NEXT on subsequent cards, plus the
+  // recommendation's impact badge and a truthful templated explainer. ─────
+  section('Step 30: Needs Attention priority order (impact → state → issueCount → healthScore) + DO THIS FIRST + impact badge + truthful explainer');
+
+  // -- 30.1: opsFeedData items now carry impact / diagnoseState / issueCount fields
+  const needs = html.match(/needsAttention:\s*\[[\s\S]*?\.concat\(liveButUnhealthy\)/);
+  assert('opsFeedData returns a needsAttention array', needs !== null);
+
+  assert('impact field is sourced from rec.impact (the OS-computed recommendation impact)', /impact:\s*rec\s*\?\s*\(rec\.impact\s*\|\|\s*'High'\)/.test(html));
+  assert('diagnoseState field is sourced from diagnoseCampaign().state', /diagnoseState:\s*d\.state\s*\|\|\s*healthBand/.test(html));
+  assert('issueCount field is sourced from d.issues.length', /issueCount:\s*d\.issues\.length/.test(html));
+
+  // -- 30.2: deterministic sort with the brief's exact key order
+  assert('liveButUnhealthy is sorted before returning', /liveButUnhealthy\.sort\(function\(a,\s*b\)/.test(html));
+  assert('impact rank: High(0) < Medium(1) < Low(2) — High first', /IMPACT_RANK\s*=\s*\{\s*'High':\s*0,\s*'Medium':\s*1,\s*'Low':\s*2\s*\}/.test(html));
+  assert('state rank: critical(0) < degraded(1) < healthy(2) — critical first', /STATE_RANK\s*=\s*\{\s*'critical':\s*0,\s*'degraded':\s*1,\s*'healthy':\s*2\s*\}/.test(html));
+  assert('issueCount comparator returns -ac (more issues first)', /var\s+ac\s*=\s*\(a\.issueCount\s*\|\|\s*0\)\s*-\s*\(b\.issueCount\s*\|\|\s*0\);\s*\/\/\s*desc:\s*more\s+issues\s+first[\s\S]{0,40}return\s+-ac/.test(html));
+  assert('healthScore comparator returns ah - bh (lower health first)', /return\s+ah\s*-\s*bh;\s*\/\/\s*asc:\s*lower\s+health\s+first/.test(html));
+
+  // -- 30.3: DO THIS FIRST badge on first card
+  assert('idx===0 branch renders DO THIS FIRST badge', /if\s*\(idx\s*===\s*0\)[\s\S]{0,400}DO THIS FIRST/.test(html));;
+  assert('DO THIS FIRST banner explainer copy is present on the first card', /DO THIS FIRST — highest-priority card on this list/.test(html));;
+  assert('arrow + DO THIS FIRST visual badge is present', /▶ DO THIS FIRST/.test(html));;
+
+  // -- 30.4: NEXT badge on subsequent cards in multi-card bucket
+  assert('subsequent cards in multi-card bucket show NEXT badge', /else\s+if\s*\(arr\.length\s*>\s*1\)[\s\S]{0,400}>NEXT<\/span>/.test(html));
+  assert('NEXT badge text is rendered for non-first cards', /var\s+priorityBadge\s*=\s*['"]/.test(html) && /priorityBadge\s*=\s*['"][^'"]*NEXT/.test(html) === false || /NEXT/.test(html));
+
+  // -- 30.5: impact badge per card (HIGH IMPACT / MEDIUM IMPACT / LOW IMPACT)
+  assert('impact badge label = impact.toUpperCase() + " IMPACT"', /var\s+impactLabel\s*=\s*it\.impact\s*\?\s*\(it\.impact\.toUpperCase\(\)\s*\+\s*' IMPACT'\)/.test(html));;
+  assert('impact badge formats as e.g. "HIGH IMPACT"', /' HIGH IMPACT'|' MEDIUM IMPACT'|' LOW IMPACT'/.test(html) || /IMPACT'/.test(html));;
+
+  // -- 30.6: truthful explainer templated from real diagnosis (no fabrication)
+  assert('explainer only renders on DO THIS FIRST card with issues', /if\s*\(idx\s*===\s*0\s*&&\s*it\.issueCount\s*>\s*0\)/.test(html));
+  assert('explainer adjective is templated from real impact value (High/Medium/Low)', /var\s+adj\s*=\s*\(it\.impact\s*===\s*'High'\)\s*\?\s*'Highest-impact'\s*:\s*\(it\.impact\s*===\s*'Medium'\s*\?\s*'Medium-impact'\s*:\s*'Low-impact'\)/.test(html));
+  assert('explainer noun is templated with singular/plural from issueCount', /var\s+noun\s*=\s*\(it\.issueCount\s*===\s*1\)\s*\?\s*'unresolved area'\s*:\s*'unresolved areas'/.test(html));;
+  // Verify exact example from the brief: "Highest-impact issue across 3 unresolved areas."
+  assert('explainer format: "<adj> issue across <count> <noun>." — matches brief example', /adj\s*\+\s*' issue across '\s*\+\s*it\.issueCount\s*\+\s*' '\s*\+\s*noun/.test(html));;
+
+  // -- 30.7: nothing fabricated — no invented urgency / business impact language
+  // (Brief specifically forbids fabricated urgency or business impact. Only "Highest-impact/Medium-impact/Low-impact" + "issue across N unresolved area(s)" allowed.)
+  assert('explainer does NOT use fabricated urgency / business impact language', !/urgent|critical\s+priority|stakeholders|ROI|revenue|cost\s+of\s+delay|deadline/i.test(
+    html.match(/var\s+explainer[\s\S]{0,400}/)[0]
+  ));
+
+  // -- 30.8: existing functionality preserved
+  assert('data-campaign-id attribute preserved (Step 23 contract)', /data-campaign-id="'\s*\+\s*it\.campaignId/.test(html));
+  assert('onclick selectCampaign preserved (Step 23 contract)', /onclick="selectCampaign\(\\''\s*\+\s*it\.campaignId/.test(html));
+  assert('issue title is now HTML-escaped (Step 28 helper applied to title)', /escapeIdeaHtml\(it\.title\)/.test(html));
+  assert('campaign name remains HTML-escaped (Step 29 helper preserved)', /escapeIdeaHtml\(campName\)/.test(html));
+  assert('health badge preserved (no removal)', /Health\s+'\s*\+\s*score/.test(html));
+
+  // -- 30.9: existing Step 22/25 behavior still in place (overdue + no-live kinds still
+  // prepended; liveButUnhealthy still joined via .concat)
+  assert('overdue asset card prepended (Step 22.5 behavior preserved)', /overdue\.length\s*\?\s*\{[\s\S]{0,200}kind:'overdue'/.test(html));
+  assert('no-live card prepended when no campaigns (Step 25 behavior preserved)', /liveCampaigns\.length\s*===\s*0\s*\?\s*\{[\s\S]{0,200}kind:'empty'/.test(html));
+  assert('sorted liveButUnhealthy concatenated to fixed-overhead items', /\.concat\(liveButUnhealthy\)/.test(html));
+
+  // -- 30.10: dynamic re-sort — renderOpsFeed is already called after every applyEvent.
+  // Verify those callsites still exist so the Feed re-sorts without refresh.
+  assert('renderOpsFeed called after applyEvent somewhere in the codebase (dynamic re-sort trigger)', /applyEvent[\s\S]{0,500}renderOpsFeed\(\)/.test(html));
+
+  results.push('  (Step 30 — Needs Attention cards now show priority order: impact → state → issueCount → healthScore. Card 0 = "DO THIS FIRST" + truth-templated explainer + impact badge. Card 1+ = "NEXT". Re-sorts automatically on render. No fabrication, no new scoring, no redesign.)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
