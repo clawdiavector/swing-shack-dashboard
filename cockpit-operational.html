@@ -1706,12 +1706,27 @@ function renderOpsFeed() {
       if (it.kind === 'health' && it.campaignId) {
         var score = (it.healthScore != null) ? it.healthScore : '—';
         var state = it.healthState || 'degraded';
+        // Step 29: surface the campaign name on the Needs Attention card. The OS already
+        // knows it (campaigns[it.campaignId].identity.name) — the marketer shouldn't have
+        // to click in to find out which campaign a card refers to. Placed as a small
+        // muted label above the issue title so the identity is the first thing seen.
+        var campName = '';
+        try {
+          var cdoc = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[it.campaignId] : null;
+          if (cdoc && cdoc.identity && cdoc.identity.name) campName = cdoc.identity.name;
+        } catch (e) {}
+        var nameLabel = campName
+          ? '<div style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:var(--col-muted);text-transform:uppercase;margin-bottom:3px">' + escapeIdeaHtml(campName) + '</div>'
+          : '';
         return '<button type="button" class="ops-card ops-card-clickable" data-campaign-id="' + it.campaignId + '" onclick="selectCampaign(\'' + it.campaignId + '\')" ' +
           'style="display:block;width:100%;text-align:left;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;cursor:pointer;font-family:inherit;color:inherit;transition:background 0.12s,border-color 0.12s" ' +
           'onmouseover="this.style.background=\'var(--surface-2, #f5f5f5)\';this.style.borderColor=\'var(--accent, #c8a85a)\'" ' +
           'onmouseout="this.style.background=\'var(--surface)\';this.style.borderColor=\'var(--border)\'">' +
           '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
-            '<div style="font-weight:600;font-size:12px">' + it.title + '</div>' +
+            '<div style="min-width:0;flex:1">' +
+              nameLabel +
+              '<div style="font-weight:600;font-size:12px">' + it.title + '</div>' +
+            '</div>' +
             '<span style="font-size:10px;font-weight:700;letter-spacing:0.04em;padding:2px 6px;border-radius:3px;background:rgba(200,168,90,0.12);color:#8a6f1f;text-transform:uppercase">Health ' + score + '</span>' +
           '</div>' +
           '<div style="font-size:11px;color:var(--col-muted);margin-top:4px;display:flex;align-items:center;justify-content:space-between;gap:8px">' +

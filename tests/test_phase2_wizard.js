@@ -728,7 +728,7 @@ section('Live API — wizard payload (new shape)');
   // 1. liveButUnhealthy items carry a campaignId field (so the render layer can build a real link)
   assert('liveButUnhealthy items carry campaignId', /campaignId:\s*x\.k/.test(html));
   // 2. The renderOpsFeed bucket function renders a <button> for kind==='health' cards
-  assert('bucket renders <button> for health-kind cards', /it\.kind\s*===\s*'health'[\s\S]{0,200}<button/.test(html));
+  assert('bucket renders <button> for health-kind cards', /it\.kind\s*===\s*'health'[\s\S]{0,2000}<button/.test(html));
   // 3. The button has a data-campaign-id attribute (test + a11y target)
   assert('button has data-campaign-id attribute', /data-campaign-id="'\s*\+\s*it\.campaignId/.test(html));
   // 4. The button's onclick calls selectCampaign (which navigates to the campaign detail view)
@@ -1107,6 +1107,78 @@ section('Live API — wizard payload (new shape)');
   }
 
   results.push('  (Step 28 — ORIGINAL IDEA callout surfaces verbatim brief.bigIdea on the generic detail page; HTML-escaped; conditional on non-empty idea; existing rows and strategist block preserved)');
+
+  // ── Step 29: Operations Feed "Needs Attention" cards surface the campaign name.
+  // Root decision friction: "I see 'No production work moving HEALTH 68' but no campaign
+  // name. To answer which campaign needs my attention I have to click in. The OS already
+  // knows the campaign name — it's right there in campaigns[campaignId].identity.name."
+  // The fix surfaces the campaign name on the card, no new architecture, no fabrication.
+  section('Step 29: Needs Attention cards surface the campaign name (OS already knows it; surface it)');
+
+  // 1. renderOpsFeed reads campaign identity name when building health cards.
+  var rofBody = html.match(/function\s+renderOpsFeed\s*\(\s*\)\s*\{[\s\S]*?^}/m);
+  assert('renderOpsFeed function body present', !!rofBody);
+  if (rofBody) {
+    var rof = rofBody[0];
+
+    // Reads the campaign name from the live campaign object.
+    assert('renderOpsFeed reads campaigns[campaignId].identity.name',
+           /window\.campaignData[\s\S]{0,400}campaigns[\s\S]{0,400}identity[\s\S]{0,200}\.name/.test(rof) ||
+           /campaignData\s*\.\s*campaigns\s*\[\s*it\.campaignId\s*\][\s\S]{0,400}identity[\s\S]{0,200}\.name/.test(rof) ||
+           /cdoc[\s\S]{0,200}identity[\s\S]{0,200}\.name/.test(rof));
+
+    // Renders the name through escapeIdeaHtml (Step 28 helper) — safe if a campaign
+    // name ever contains markup characters; preserves the exact characters shown.
+    assert('renderOpsFeed escapes campaign name with escapeIdeaHtml',
+           /escapeIdeaHtml\(\s*campName\s*\)/.test(rof));
+
+    // The name is rendered as a label INSIDE the same health-card button. The card
+    // still has data-campaign-id + onclick=selectCampaign(…), so Step 23 click-to-open
+    // behavior is preserved.
+    assert('renderOpsFeed still emits ops-card-clickable with data-campaign-id',
+           /data-campaign-id="'\s*\+\s*it\.campaignId/.test(rof));
+    assert('renderOpsFeed still emits onclick=selectCampaign(<id>)',
+           /onclick="selectCampaign\(\\''\s*\+\s*it\.campaignId/.test(rof));
+
+    // Card structure: name label appears before the issue title in DOM order so the
+    // identity is the first thing the marketer sees.
+    var nameIdx = rof.indexOf('nameLabel');
+    var titleIdx = rof.indexOf("'<div style=\"font-weight:600;font-size:12px\">' + it.title");
+    assert('campaign name label is rendered before the issue title (identity first)',
+           nameIdx > 0 && titleIdx > 0 && nameIdx < titleIdx);
+
+    // The card still surfaces the issue title and the health badge.
+    assert('renderOpsFeed still renders the issue title (it.title)',
+           /'\+\s*it\.title\s*\+/.test(rof) || /it\.title\s*\+/.test(rof));
+    assert('renderOpsFeed still renders the Health <score> badge',
+           /'Health\s*'\s*\+\s*score/.test(rof) || /Health\s*'\s*\+\s*score/.test(rof));
+  }
+
+  // 2. Defensive: if the campaign data is missing the name, the card still renders
+  //    (no "undefined" text leaks out). The nameLabel is empty-string when campName
+  //    is empty, so no label is appended.
+  if (rofBody) {
+    var rof2 = rofBody[0];
+    assert('renderOpsFeed gates the name label on a truthy campaign name (no undefined leak)',
+           /var nameLabel\s*=\s*campName\s*\?/.test(rof2) ||
+           /campName\s*\?\s*'<div[^>]*>'/.test(rof2));
+  }
+
+  // 3. The existing non-health card path (overdue / no-live) is unchanged.
+  if (rofBody) {
+    var rof3 = rofBody[0];
+    assert('non-health cards still render via the generic branch',
+           /return\s*'<div class="ops-card"[\s\S]{0,400}it\.title/.test(rof3));
+  }
+
+  // 4. The other ops-feed buckets (opportunity, worthTrying) are unaffected.
+  assert('opportunity bucket still rendered',
+         /opsfeed-opportunity[\s\S]{0,400}bucket\(d\.opportunity/.test(html));
+  assert('worthTrying bucket still rendered',
+         /opsfeed-worth[\s\S]{0,400}bucket\(d\.worthTrying/.test(html) ||
+         /worthTrying[\s\S]{0,400}bucket/.test(html));
+
+  results.push('  (Step 29 — Needs Attention cards now surface the campaign name (campaigns[campaignId].identity.name) above the issue title; safe via escapeIdeaHtml; existing onclick/data-campaign-id and other buckets unchanged)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
