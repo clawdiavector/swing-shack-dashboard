@@ -1468,6 +1468,85 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 31 — Production Board becomes campaign-aware when the marketer arrives from a strategist "Plan Assets ›" action. Context panel surfaces campaign name + reason + primary CTA. Primary CTA pre-fills LINK TO CAMPAIGN, SOURCE OBJECT, BRAND, PRIORITY, and the TITLE placeholder from real OS data. Asset save writes to c.assets so diagnosis refreshes and Ops Feed re-sorts. Standalone mode preserved when context is null or "Switch to standalone" is clicked. No broader redesign, no AI, no fabrication.)');
 
+  // ── Step 32: campaign-routed Production Board shows one creation path only ──
+  // Friction: when the OS routes the marketer to Production Board from a campaign
+  // strategist action, both the campaign-aware CTA (in PLANNING FOR panel) and the
+  // generic "+ New Asset Request" button are visible. The generic button creates a
+  // standalone request and silently drops the campaign context. The marketer has to
+  // remember which button preserves the link. Step 32 hides the generic button while
+  // a campaign context is active; "Switch to standalone" restores it. Direct nav
+  // (no context) keeps the button visible. Standalone mode is not removed from the
+  // product.
+
+  section('Step 32: campaign-routed Production Board hides generic + New Asset Request; Switch to standalone restores it');
+
+  // -- 32.1: helper function exists and reads productionContextCampaignId.
+  var ugabv = getFnBody('updateGenericAssetButtonVisibility');
+  assert('updateGenericAssetButtonVisibility function defined', !!ugabv);
+  if (ugabv) {
+    assert('updateGenericAssetButtonVisibility references window.productionContextCampaignId',
+           /window\.productionContextCampaignId/.test(ugabv));
+    assert('updateGenericAssetButtonVisibility targets #btn-new-asset',
+           /getElementById\(\s*['"]btn-new-asset['"]\s*\)/.test(ugabv));
+    assert('updateGenericAssetButtonVisibility sets display:none when context is set',
+           /productionContextCampaignId[\s\S]{0,200}display\s*=\s*['"]none['"]/.test(ugabv));
+    assert('updateGenericAssetButtonVisibility clears display when context is null',
+           /else\s*\{[\s\S]{0,80}display\s*=\s*['"]['"]/.test(ugabv));
+  }
+
+  // -- 32.2: renderProductionContextPanel calls the helper on both branches.
+  var rpcp = getFnBody('renderProductionContextPanel');
+  assert('renderProductionContextPanel defined', !!rpcp);
+  if (rpcp) {
+    assert('renderProductionContextPanel calls updateGenericAssetButtonVisibility when context is null',
+           /!contextCampaign[\s\S]{0,400}updateGenericAssetButtonVisibility/.test(rpcp));
+    assert('renderProductionContextPanel calls updateGenericAssetButtonVisibility when context is active',
+           /panel\.style\.display\s*=\s*['"]block['"][\s\S]{0,200}updateGenericAssetButtonVisibility/.test(rpcp));
+  }
+
+  // -- 32.3: productionContextClear calls the helper so Switch to standalone restores the button.
+  var pcc = getFnBody('productionContextClear');
+  assert('productionContextClear defined', !!pcc);
+  if (pcc) {
+    assert('productionContextClear calls updateGenericAssetButtonVisibility',
+           /renderAssetPlanner[\s\S]{0,200}updateGenericAssetButtonVisibility/.test(pcc) ||
+           /updateGenericAssetButtonVisibility[\s\S]{0,400}renderAssetPlanner/.test(pcc));
+    assert('productionContextClear still sets window.productionContextCampaignId = null',
+           /window\.productionContextCampaignId\s*=\s*null/.test(pcc));
+    assert('productionContextClear still re-renders the asset planner',
+           /renderAssetPlanner/.test(pcc));
+  }
+
+  // -- 32.4: #btn-new-asset stays in the DOM (standalone mode is preserved in markup).
+  assert('#btn-new-asset still exists in Production Board markup',
+         /id="view-assets"[\s\S]{0,4000}id="btn-new-asset"/.test(html) ||
+         /id="btn-new-asset"[\s\S]{0,4000}id="view-assets"/.test(html));
+  assert('+ New Asset Request button still calls openAssetModal() with no args (standalone)',
+         /id="btn-new-asset"[\s\S]{0,200}onclick=["']openAssetModal\(\)["']/.test(html));
+
+  // -- 32.5: Production Board renders the campaign-aware view via showView('assets'),
+  // which calls renderAssetPlanner() → renderProductionContextPanel() → updateGenericAssetButtonVisibility().
+  assert('showView("assets") calls renderAssetPlanner (full re-render on view switch)',
+         /name\s*===\s*['"]assets['"][\s\S]{0,200}renderAssetPlanner/.test(html));
+
+  // -- 32.6: Switch to standalone button still exists and wires to productionContextClear.
+  assert('Switch to standalone button still calls productionContextClear()',
+         /onclick=["']productionContextClear\(\)["']/.test(html));
+
+  // -- 32.7: campaign-aware save flow is preserved (Step 31 contract still holds —
+  // hiding the generic button does not touch the modal pre-fill pipeline).
+  var oamfc = getFnBody('openAssetModalForCampaign');
+  assert('openAssetModalForCampaign still pre-fills LINK TO CAMPAIGN from campaignId',
+         oamfc && /a-campaign[\s\S]{0,200}\.value\s*=\s*campaignId/.test(oamfc));
+  assert('openAssetModalForCampaign still pre-fills PRIORITY to high',
+         oamfc && /a-priority[\s\S]{0,200}\.value\s*=\s*['"]high['"]/.test(oamfc));
+  assert('openAssetModalForCampaign still shows inline campaign banner',
+         oamfc && /asset-modal-campaign-banner[\s\S]{0,200}style\.display\s*=\s*['"]block['"]/.test(oamfc));
+  assert('openAssetModalForCampaign still sets modal title to "New Asset Request — for <name>"',
+         oamfc && /New Asset Request — for /.test(oamfc));
+
+  results.push('  (Step 32 — On a campaign-routed Production Board, the generic "+ New Asset Request" button is hidden while a campaign context is active. Only the campaign-aware CTA in the PLANNING FOR panel is visible. "Switch to standalone" restores the generic button. Direct navigation to Production Board (no context) keeps the generic button visible with standalone defaults. The campaign-aware modal pre-fill flow (LINK TO CAMPAIGN, SOURCE OBJECT, BRAND, PRIORITY, TITLE placeholder, inline banner) is preserved unchanged. No broader Production Board redesign, no new modal, no AI.)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);

@@ -4941,9 +4941,25 @@ function assetEsc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</
 // Defaults to null (standalone mode). Set when arriving from a strategist action with dest === 'assets'.
 window.productionContextCampaignId = window.productionContextCampaignId || null;
 // Step 31: clear the campaign context (return to standalone mode) and re-render Production Board.
+// Step 32: also restore the generic + New Asset Request button so standalone mode is fully visible.
 function productionContextClear() {
   window.productionContextCampaignId = null;
   renderAssetPlanner();
+  updateGenericAssetButtonVisibility();
+}
+// Step 32: when a campaign context is active, the generic + New Asset Request button
+// drops campaign context silently. Hide it so the only visible creation action is the
+// campaign-aware CTA. When context is null (direct nav OR Switch to standalone),
+// the generic button returns. The button stays in the DOM (no markup change) —
+// only its display property toggles.
+function updateGenericAssetButtonVisibility() {
+  var btn = document.getElementById('btn-new-asset');
+  if (!btn) return;
+  if (window.productionContextCampaignId) {
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = '';
+  }
 }
 // Step 31: render the campaign context panel above the Production Board list when a context
 // is set. Mirrors the Step 25 renderCreativeStudio context-panel pattern. Hidden otherwise.
@@ -4957,9 +4973,14 @@ function renderProductionContextPanel() {
   var contextCampaign = contextId && window.campaignData && window.campaignData.campaigns ? window.campaignData.campaigns[contextId] : null;
   if (!contextCampaign) {
     panel.style.display = 'none';
+    // Step 32: when no context is active, the generic + New Asset Request button is visible.
+    updateGenericAssetButtonVisibility();
     return;
   }
   panel.style.display = 'block';
+  // Step 32: when context is active, hide the generic + New Asset Request button so the
+  // marketer doesn't have to remember which creation path preserves the campaign link.
+  updateGenericAssetButtonVisibility();
   var cname = (contextCampaign.identity && contextCampaign.identity.name) || contextId;
   nameEl.textContent = cname;
   // Reason: pull from the diagnosis (highest-impact recommendation.title + first-issue.reason).
