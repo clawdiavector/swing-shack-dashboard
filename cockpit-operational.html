@@ -1651,10 +1651,14 @@ function opsFeedData() {
       var d = (typeof diagnoseCampaign === 'function') ? diagnoseCampaign(x.k) : null;
       var hasIssues = d && d.issues && d.issues.length > 0;
       if (!hasIssues) return null;
-      // Use the top diagnosed issue's impact as the headline health band (High/Medium/Low)
+      // Step 34: health is computed by the one health engine. Diagnose and
+      // Operations Feed agree by construction — both read from getCampaignCategoryState.
+      var h = (typeof computeCampaignHealth === 'function') ? computeCampaignHealth(x.k) : null;
       var topImpact = d.issues[0].impact || 'High';
-      var healthBand = topImpact === 'High' ? 'critical' : (topImpact === 'Medium' ? 'degraded' : 'degraded');
-      var score = (x.c.identity.healthScore != null) ? x.c.identity.healthScore : null;
+      // Step 34: state band comes from the health engine, not the old ad-hoc
+      // mapping from topImpact. The engine maps score -> healthy/degraded/critical.
+      var healthBand = h ? h.state : (topImpact === 'High' ? 'critical' : 'degraded');
+      var score = h ? h.score : null;
       // Prefer the top issue's title over the static healthState label, so the card shows the
       // actual diagnosed problem, not just "is degraded".
       var rec = d.recommendation;
@@ -1670,6 +1674,7 @@ function opsFeedData() {
         campaignId: x.k,
         healthScore: score,
         healthState: healthBand,
+        healthUpdatedAt: h ? h.updatedAt : null,
         title: titleText,
         body: 'Health ' + (score != null ? score : '—') + (rec ? ' · ' + rec.action : ''),
         impact: rec ? (rec.impact || 'High') : topImpact,
@@ -2467,6 +2472,99 @@ function patchProductionAssetsSection(container, c) {
     card.innerHTML = newHtml;
   }
 }
+// Step 34: Campaign Detail health ring + state label + Updated timestamp were
+// hardcoded inside the four seeded renderFns templates. computeCampaignHealth is
+// the single source of truth — this helper finds the seeded ring elements in
+// the rendered DOM and rewrites them with live values, mirroring the Step 33
+// pattern. No new markup. No template refactor.
+function patchCampaignHealthSection(container, campaignId) {
+  if (typeof computeCampaignHealth !== 'function') return;
+  var h = computeCampaignHealth(campaignId);
+  if (!h) return;
+  // State-driven colour: healthy=green, degraded=amber, critical=red, unknown=muted.
+  function colorForState(s) {
+    if (s === 'healthy') return '#00cc77';
+    if (s === 'degraded') return '#ffaa00';
+    if (s === 'critical') return '#ff4455';
+    return '#6e6e82';
+  }
+  function stateText(s) {
+    if (!s) return 'Unknown';
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  var color = colorForState(h.state);
+  // 1. The big ring number inside the SVG ring.
+  var ringNumber = container.querySelector('.ring-number');
+  if (ringNumber) {
+    ringNumber.textContent = String(h.score);
+    ringNumber.style.color = color;
+  }
+  // 2. The SVG fill circle (the second <circle> in the ring). The seeded template
+  // uses stroke-dasharray="201" and a static stroke-dashoffset; recompute from score.
+  var ringContainer = container.querySelector('.ring');
+  if (ringContainer) {
+    var circles = ringContainer.querySelectorAll('svg circle');
+    if (circles && circles.length >= 2) {
+      var fillCircle = circles[circles.length - 1];
+      var offset = 201 - Math.round((h.score / 100) * 201);
+      fillCircle.setAttribute('stroke-dashoffset', String(offset));
+      fillCircle.setAttribute('stroke', color);
+    }
+  }
+  // 3. The small "degraded" / "healthy" / "critical" label inside the ring.
+  var ringLabel = container.querySelector('.ring-label');
+  if (ringLabel) {
+    ringLabel.textContent = h.state || 'unknown';
+  }
+  // 4. The big external state label. The seeded template writes the word
+  // lowercase ("degraded" / "healthy" / "critical" / "unknown") and relies on
+  // CSS text-transform:capitalize to render it capitalized. textContent returns
+  // the actual text without the CSS transform — so match lowercase. Also avoid
+  // the small caps stat-sub divs under the ring (which say "Degraded" etc.
+  // verbatim and use class="stat-sub") AND the ring-label div (small text
+  // inside the ring, already patched in step 3 above).
+  var externalLabel = null;
+  var allDivs = container.querySelectorAll('div');
+  for (var i = 0; i < allDivs.length; i++) {
+    var t = (allDivs[i].textContent || '').trim();
+    if (!t) continue;
+    // Skip the small ring stat-sub labels (Healthy/Degraded/Critical verbatim).
+    if (allDivs[i].classList && allDivs[i].classList.contains('stat-sub')) continue;
+    // Skip the small ring-label div (already patched above).
+    if (allDivs[i].classList && allDivs[i].classList.contains('ring-label')) continue;
+    var tLower = t.toLowerCase();
+    if (tLower === 'degraded' || tLower === 'healthy' || tLower === 'critical' || tLower === 'unknown') {
+      externalLabel = allDivs[i];
+      break;
+    }
+  }
+  if (externalLabel) {
+    externalLabel.textContent = stateText(h.state);
+    externalLabel.style.color = color;
+  }
+  // 5. The "Updated <iso>" sub-line. Find the smallest div whose text starts
+  // with "Updated " and replace with the live timestamp formatted as a
+  // human-readable locale string.
+  if (h.updatedAt) {
+    var updatedText = null;
+    for (var j = 0; j < allDivs.length; j++) {
+      var ut = (allDivs[j].textContent || '').trim();
+      if (/^Updated\s+20/.test(ut) || /^Updated\s+\d/.test(ut)) {
+        // Pick the shortest matching div (the timestamp line itself, not a parent).
+        if (!updatedText || allDivs[j].textContent.length < updatedText.textContent.length) {
+          updatedText = allDivs[j];
+        }
+      }
+    }
+    if (updatedText) {
+      try {
+        updatedText.textContent = 'Updated ' + new Date(h.updatedAt).toLocaleString();
+      } catch (e) {
+        updatedText.textContent = 'Updated ' + h.updatedAt;
+      }
+    }
+  }
+}
 function renderCampaign(id) {
   var D = window.campaignData;
   var c = D.campaigns[id];
@@ -2496,6 +2594,10 @@ function renderCampaign(id) {
   // in the seeded renderFns template strings). Runs AFTER the strategist + name
   // substitution so it operates on the final DOM tree.
   try { patchProductionAssetsSection(detailContent, c); } catch (e) {}
+  // Step 34: Campaign Health ring + state + updatedAt read from
+  // computeCampaignHealth — same source as diagnoseCampaign and Operations Feed.
+  // Runs AFTER the seeded renderFns so it operates on the final DOM tree.
+  try { patchCampaignHealthSection(detailContent, id); } catch (e) {}
   // Step 19: append the References panel wired to campaign_attachments
   try { renderCampaignReferences(id, detailContent); } catch (e) {}
 }
@@ -2579,18 +2681,19 @@ function renderCampaignReferences(campaignId, container) {
    The "decision layer" lives above the existing data sections (which
    remain the evidence underneath).
 
-   TODO:
-   Replace Impact with computed Health Gain once a real health engine exists.
-   Plan: Step 25 will introduce a computeCampaignHealth(c) function in this
-   file. That function will be the single source of truth for health scores
-   across: health ring, Operations Feed, campaign ranking, and this block.
-   Until then, "Impact" is derived from priority order, not from a health
-   delta — the campaign's healthScore is static campaign data, so we cannot
-   truthfully compute "from → to" against it. */
+   Step 34 introduces computeCampaignHealth(c) — the single source of truth
+   for health score, state band, updatedAt and per-category state. Both
+   diagnoseCampaign and every visible health surface (Campaign Detail ring,
+   Operations Feed card, Portfolio campaign-cards) consume it through
+   getCampaignCategoryState, so the diagnosis and the health display cannot
+   disagree. */
 var STRATEGIST_WEIGHTS = { strategy: 25, creative: 20, production: 25, publishing: 20, learning: 10 };
-function diagnoseCampaign(campaignId) {
+// Step 34: shared category-presence source. Both diagnoseCampaign and
+// computeCampaignHealth read from this — they cannot disagree on which
+// categories are present. Returns null only if the campaign is missing.
+function getCampaignCategoryState(campaignId) {
   var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
-  if (!c) return { issues: [], recommendation: null, health: 0, state: 'unknown' };
+  if (!c) return null;
   // Strategy present? brief + dna + visualDirection must all be non-empty.
   var hasBrief = !!(c.brief && (c.brief.purpose || c.brief.bigIdea || c.brief.audience));
   var hasDna   = !!(c.dna   && (c.dna.tone  || c.dna.contentMix));
@@ -2618,13 +2721,82 @@ function diagnoseCampaign(campaignId) {
   var learning = ((mem.lessonsLearned && mem.lessonsLearned.length > 0) ||
                   (mem.bestHooks && mem.bestHooks.length > 0) ||
                   (mem.bestVisuals && mem.bestVisuals.length > 0));
-  // Build issues list — each one can be PROVEN from the data above.
+  return {
+    strategy: strategy,
+    creative: creative,
+    production: production,
+    publishing: publishing,
+    learning: learning
+  };
+}
+// Step 34: one health engine. Returns { score, state, updatedAt, categories }.
+// State bands (documented):
+//   80-100 -> healthy
+//   50-79  -> degraded
+//   0-49   -> critical
+// Score = sum of STRATEGIST_WEIGHTS for present categories. Total = 100.
+// updatedAt = the most recent timestamp available from campaign.updatedAt,
+//   asset updates, attachment creation, and history events — never fabricated.
+// No visible surface may read c.identity.healthScore — this is the only
+// source of truth for Campaign Detail ring, Operations Feed card, Portfolio
+// campaign-cards, and Strategist block.
+function computeCampaignHealth(campaignId) {
+  var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
+  if (!c) {
+    return { score: 0, state: 'unknown', updatedAt: null,
+             categories: { strategy:false, creative:false, production:false, publishing:false, learning:false } };
+  }
+  var cats = getCampaignCategoryState(campaignId) ||
+    { strategy:false, creative:false, production:false, publishing:false, learning:false };
+  var score = 0;
+  for (var k in cats) {
+    if (cats[k]) score += (STRATEGIST_WEIGHTS[k] || 0);
+  }
+  var state = score >= 80 ? 'healthy' : (score >= 50 ? 'degraded' : 'critical');
+  // updatedAt: latest known timestamp from real state — never fabricated.
+  // Walk: c.updatedAt, each asset.updatedAt||createdAt, each attachment
+  // createdAt, each history event at. Pick the max.
+  var latest = null;
+  function consider(t) {
+    if (!t) return;
+    var ms = (typeof t === 'string') ? Date.parse(t) : (t instanceof Date ? t.getTime() : null);
+    if (ms == null || isNaN(ms)) return;
+    if (latest == null || ms > latest) latest = ms;
+  }
+  consider(c.updatedAt);
+  if (c.identity) consider(c.identity.updatedAt);
+  if (c.assets && typeof c.assets === 'object') {
+    var akeys = Object.keys(c.assets);
+    for (var ai=0; ai<akeys.length; ai++) {
+      var a = c.assets[akeys[ai]];
+      if (!a) continue;
+      consider(a.updatedAt);
+      consider(a.createdAt);
+    }
+  }
+  if (typeof attachmentsForCampaign === 'function') {
+    var atts = attachmentsForCampaign(campaignId);
+    for (var xi=0; xi<atts.length; xi++) consider(atts[xi].createdAt);
+  }
+  if (Array.isArray(c.history)) {
+    for (var hi=0; hi<c.history.length; hi++) consider(c.history[hi].at);
+  }
+  var updatedAt = latest != null ? new Date(latest).toISOString() : (c.updatedAt || null);
+  return { score: score, state: state, updatedAt: updatedAt, categories: cats };
+}
+function diagnoseCampaign(campaignId) {
+  var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
+  if (!c) return { issues: [], recommendation: null, health: 0, state: 'unknown', categories: null, updatedAt: null };
+  // Categories from the single shared source — same truth as computeCampaignHealth.
+  var cats = getCampaignCategoryState(campaignId) ||
+    { strategy:false, creative:false, production:false, publishing:false, learning:false };
+  // Build issues list — each one can be PROVEN from the categories above.
   var issues = [];
-  if (!strategy)   issues.push({ key:'strategy',   title:'No clear campaign brief',     reason:'Every creative decision needs a strategy to hang on. Without it, hooks land in the wrong place.', action:'Start Brief', dest:'creative' });
-  if (!creative)   issues.push({ key:'creative',   title:'No creative attached',         reason:'No hooks, captions, memes, or trends are linked to this campaign. Production has nothing to build from.', action:'Create Creative', dest:'creative' });
-  if (!production) issues.push({ key:'production', title:'No production work moving',    reason:'Nothing is in the production pipeline. The campaign lives only on paper.', action:'Plan Assets', dest:'assets' });
-  if (!publishing) issues.push({ key:'publishing', title:'No publishing plan',           reason:'Nothing has gone live and nothing is scheduled. The campaign never reaches the audience.', action:'Schedule Publishing', dest:'calendar' });
-  if (!learning)   issues.push({ key:'learning',   title:'No learning loop',             reason:'No lessons recorded. The team will repeat the same mistakes on the next campaign.', action:'Capture Lessons', dest:'creative' });
+  if (!cats.strategy)   issues.push({ key:'strategy',   title:'No clear campaign brief',     reason:'Every creative decision needs a strategy to hang on. Without it, hooks land in the wrong place.', action:'Start Brief', dest:'creative' });
+  if (!cats.creative)   issues.push({ key:'creative',   title:'No creative attached',         reason:'No hooks, captions, memes, or trends are linked to this campaign. Production has nothing to build from.', action:'Create Creative', dest:'creative' });
+  if (!cats.production) issues.push({ key:'production', title:'No production work moving',    reason:'Nothing is in the production pipeline. The campaign lives only on paper.', action:'Plan Assets', dest:'assets' });
+  if (!cats.publishing) issues.push({ key:'publishing', title:'No publishing plan',           reason:'Nothing has gone live and nothing is scheduled. The campaign never reaches the audience.', action:'Schedule Publishing', dest:'calendar' });
+  if (!cats.learning)   issues.push({ key:'learning',   title:'No learning loop',             reason:'No lessons recorded. The team will repeat the same mistakes on the next campaign.', action:'Capture Lessons', dest:'creative' });
   // Rank by STRATEGIST_WEIGHTS (highest weight first) — this is the priority order,
   // not a fabricated health delta.
   issues.sort(function(a,b){ return (STRATEGIST_WEIGHTS[b.key]||0) - (STRATEGIST_WEIGHTS[a.key]||0); });
@@ -2633,18 +2805,13 @@ function diagnoseCampaign(campaignId) {
   issues.forEach(function(it, idx){
     it.impact = (idx === 0) ? 'High' : (idx === 1) ? 'Medium' : 'Low';
   });
-  // State label: derived from the campaign's stored healthScore (static data, but the
-  // band/category is computed honestly from the number — not invented).
-  var currentHealth = (c.identity && typeof c.identity.healthScore === 'number') ? c.identity.healthScore : 0;
-  var state;
-  if (currentHealth >= 80) state = 'healthy';
-  else if (currentHealth >= 50) state = 'degraded';
-  else state = 'critical';
+  // Step 34: health is computed from the SAME category state — single truth.
+  var h = computeCampaignHealth(campaignId);
   var rec = null;
   if (issues.length) {
     rec = { key: issues[0].key, title: issues[0].title, action: issues[0].action, dest: issues[0].dest, impact: issues[0].impact };
   }
-  return { issues: issues, recommendation: rec, health: currentHealth, state: state };
+  return { issues: issues, recommendation: rec, health: h.score, state: h.state, categories: cats, updatedAt: h.updatedAt };
 }
 function renderStrategistBlock(campaignId) {
   var d = diagnoseCampaign(campaignId);
@@ -2778,6 +2945,22 @@ document.addEventListener('DOMContentLoaded', function() {
 // Step 21: default home view — Operations Feed (must run AFTER devStoreHydrate so renderOpsFeed has data)
 document.addEventListener('DOMContentLoaded', function() {
   try { showView('opsfeed'); } catch (err) { /* silent — fall back to whatever is .active */ }
+});
+// Step 34: refresh the embedded campaign-cards' asset count + health band
+// from live state on first paint. The HTML markup is hardcoded at seed with
+// "0 assets · Degraded" / "6 assets · Degraded" etc. — those are not live.
+// Refresh every card so the Portfolio reflects computeCampaignHealth
+// immediately, not just after the marketer triggers a re-render. Runs after
+// devStoreHydrate + showView('opsfeed') so dev-store campaigns are present
+// and the Operations Feed has already rendered.
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    if (typeof updateCampaignCard === 'function' && window.campaignData && window.campaignData.campaigns) {
+      Object.keys(window.campaignData.campaigns).forEach(function(id) {
+        try { updateCampaignCard(id); } catch (e) {}
+      });
+    }
+  } catch (err) { /* silent */ }
 });
 // Step 10: wire hooks filter re-render on change
 document.addEventListener('DOMContentLoaded', function() {
@@ -2978,9 +3161,27 @@ function updateCampaignCard(id) {
   if (metaEl) metaEl.textContent = c.identity.goal || 'Created just now';
   var assetEl = card.querySelector('.ccard-assetcount');
   if (assetEl) {
-    var count = (c.assets && c.assets.length) || 0;
+    // Step 34: count = c.assets is a map (Step 31 bridge), so use Object.keys length.
+    // Status = campaign status (active/draft), distinct from health. Health band
+    // is computed live by computeCampaignHealth — same engine as the Campaign
+    // Detail ring and the Operations Feed card.
+    var count = (c.assets && typeof c.assets === 'object') ? Object.keys(c.assets).length : 0;
     var status = c.identity.status || 'draft';
-    assetEl.textContent = count + ' assets · ' + status;
+    var healthText = '';
+    if (typeof computeCampaignHealth === 'function') {
+      var h = computeCampaignHealth(id);
+      if (h && h.state) {
+        var band = h.state.charAt(0).toUpperCase() + h.state.slice(1);
+        healthText = ' · ' + band;
+        // Also colour the count line by the live health band so the card is
+        // visually consistent with the Campaign Detail ring and Ops Feed.
+        if (h.state === 'healthy')  assetEl.style.color = '#00cc77';
+        else if (h.state === 'degraded') assetEl.style.color = '#ffaa00';
+        else if (h.state === 'critical') assetEl.style.color = '#ff4455';
+        else assetEl.style.color = '';
+      }
+    }
+    assetEl.textContent = count + ' assets · ' + status + healthText;
   }
   var badgeEl = card.querySelector('.ccard-status');
   if (badgeEl) {

@@ -760,16 +760,21 @@ section('Live API — wizard payload (new shape)');
   assert('No fabricated rec.from/rec.to/rec.delta', !/rec\.from\s*:/.test(html) && !/rec\.to\s*:/.test(html) && !/rec\.delta\s*:/.test(html));
   // 6. The "Estimated health gain" line is NOT rendered
   assert('No "Estimated health gain" string in file', !/Estimated health gain/.test(html));
-  // 7. There IS a TODO comment about replacing Impact with computed Health Gain
-  assert('TODO comment for Step 25 health engine present', /TODO:[\s\S]{0,300}Replace Impact with computed Health Gain/.test(html));
+  // 7. The Step 25 TODO has been resolved by Step 34 — computeCampaignHealth is in place.
+  assert('computeCampaignHealth function is declared (Step 34 health engine)',
+         /function\s+computeCampaignHealth\s*\(/.test(html));
+  assert('computeCampaignHealth is documented as the single source of truth',
+         /Step 34[^]*?single source of truth/i.test(html));
   // 8. The strategist block is prepended into detail-content in renderCampaign
   assert('renderCampaign prepends strategist block', /renderStrategistBlock\(id\)/.test(html));
   // 9. Issue action buttons navigate to existing views (not 'production' or 'creative-studio' which don't exist)
   assert('Plan Assets action uses dest=assets (not production)', /'Plan Assets',\s*dest:\s*'assets'/.test(html));
   assert('Create Creative action uses dest=creative (not creative-studio)', /'Create Creative',\s*dest:\s*'creative'/.test(html));
   assert('Schedule Publishing action uses dest=calendar', /'Schedule Publishing',\s*dest:\s*'calendar'/.test(html));
-  // 10. State label is derived from health score (not invented)
-  assert('State label derived from healthScore (>=80 healthy / >=50 degraded / else critical)', /currentHealth\s*>=\s*80[\s\S]{0,50}healthy[\s\S]{0,100}currentHealth\s*>=\s*50[\s\S]{0,50}degraded[\s\S]{0,100}critical/.test(html));
+  // 10. State label is derived from health score (not invented). Step 34 moves
+  // this logic into computeCampaignHealth so all surfaces agree.
+  assert('State band lives in computeCampaignHealth (>=80 healthy / >=50 degraded / else critical)',
+         /function\s+computeCampaignHealth[\s\S]{0,1500}>=\s*80[\s\S]{0,30}healthy[\s\S]{0,60}>=\s*50[\s\S]{0,30}degraded[\s\S]{0,60}critical/.test(html));
   // 11. The strategist block is rendered as #strategist-block with data-campaign-id
   assert('Strategist block has data-campaign-id attribute', /id="strategist-block" data-campaign-id="'\s*\+\s*campaignId/.test(html));
   results.push('  (13 assertions for Step 24 — strategist review block answers "why isn\'t this winning" with real diagnosis + ranked impact + single recommendation; no fabricated health-gain math)');
@@ -1576,13 +1581,26 @@ section('Live API — wizard payload (new shape)');
   assert('renderCampaign now calls patchProductionAssetsSection after the seeded render',
          rcb && /patchProductionAssetsSection\(detailContent,\s*c\)/.test(rcb));
 
-  // -- 33.3: the patch uses the same source as diagnoseCampaign — both read c.assets
-  // and both compute Object.keys(c.assets).length. This proves "one source of truth."
+  // -- 33.3: the patch uses the same source as diagnoseCampaign. After Step 34
+  // both diagnoseCampaign and computeCampaignHealth delegate to
+  // getCampaignCategoryState — one shared category-state source. This proves
+  // "one source of truth" across Campaign Detail ring, Operations Feed,
+  // Strategist block, and the patch.
   var dcb = getFnBody('diagnoseCampaign');
-  assert('diagnoseCampaign still reads c.assets (Step 18 contract preserved)',
-         dcb && /c\.assets/.test(dcb) && /Object\.keys/.test(dcb));
-  assert('both diagnoseCampaign and patchProductionAssetsSection use Object.keys(c.assets) — same source',
-         ppas && /Object\.keys\(assets\)/.test(ppas) && dcb && /Object\.keys\(c\.assets\)/.test(dcb));
+  var gccb = getFnBody('getCampaignCategoryState');
+  var cchb = getFnBody('computeCampaignHealth');
+  assert('Step 34: diagnoseCampaign now delegates to getCampaignCategoryState',
+         dcb && /getCampaignCategoryState\(/.test(dcb));
+  assert('Step 34: diagnoseCampaign now uses computeCampaignHealth (no separate state-band math)',
+         dcb && /computeCampaignHealth\(/.test(dcb));
+  assert('Step 34: shared category-state source getCampaignCategoryState exists',
+         typeof gccb === 'string' && /c\.assets/.test(gccb) && /Object\.keys/.test(gccb));
+  assert('Step 34: health engine computeCampaignHealth uses the same category source',
+         cchb && /getCampaignCategoryState\(/.test(cchb));
+  assert('Step 34: computeCampaignHealth reads c.assets via the shared source',
+         cchb && /Object\.keys/.test(cchb));
+  assert('Step 34: both computeCampaignHealth and patchProductionAssetsSection use Object.keys — same source',
+         cchb && /Object\.keys/.test(cchb) && ppas && /Object\.keys\(assets\)/.test(ppas));
 
   // -- 33.4: production status color logic — the patch uses a color function that
   // maps status values to specific colors (published blue, rejected red, else orange).
@@ -1631,6 +1649,143 @@ section('Live API — wizard payload (new shape)');
          hasb && /renderOpsFeed\(\)/.test(hasb));
 
   results.push('  (Step 33 — Campaign Detail Production Assets counter now reads live from c.assets, the same source used by diagnoseCampaign, Production Board and Operations Feed. Before this fix, the four seeded renderFns templates hardcoded "0 total" / "6 total" / "36 total" inside static string literals; the TrackMan counter stayed frozen at "0 total" even after handleAssetSubmit wrote to c.assets via the Step 31 bridge. patchProductionAssetsSection runs inside renderCampaign after the seeded template renders, locates the Production Assets card-title, and replaces its innerHTML with a fresh count (Object.keys(c.assets).length) and prod-item rows derived from the same c.assets. Empty placeholder still renders when c.assets is empty. No duplicate counting logic — one source of truth. No template rewrites — the seeded layout is preserved as the visual scaffold.)');
+
+  // ───────────────────────────────────────────────────────────────
+  // STEP 34 — One health engine (computeCampaignHealth). Every visible
+  // health surface (Campaign Detail ring + state + Updated timestamp,
+  // Operations Feed card, Strategist block, Portfolio campaign-cards) reads
+  // from this single function. diagnoseCampaign and the engine share
+  // getCampaignCategoryState so they cannot disagree.
+  // ───────────────────────────────────────────────────────────────
+
+  var cchb34 = getFnBody('computeCampaignHealth');
+  var gccb34 = getFnBody('getCampaignCategoryState');
+
+  // -- 34.1: one health engine declared and used everywhere.
+  assert('Step 34: computeCampaignHealth function is declared',
+         typeof cchb34 === 'string' && cchb34.length > 200);
+  assert('Step 34: getCampaignCategoryState is the shared source (declared)',
+         typeof gccb34 === 'string' && gccb34.length > 100);
+
+  // -- 34.2: shared category-state source. Both diagnoseCampaign and
+  // computeCampaignHealth read from it. They cannot disagree.
+  assert('Step 34: computeCampaignHealth uses getCampaignCategoryState as its source',
+         cchb34 && /getCampaignCategoryState\(/.test(cchb34));
+  assert('Step 34: diagnoseCampaign uses getCampaignCategoryState (no duplicate presence check)',
+         dcb && /getCampaignCategoryState\(/.test(dcb));
+  assert('Step 34: getCampaignCategoryState computes the same five categories as diagnoseCampaign',
+         gccb34 && /strategy:\s*strategy/.test(gccb34) && /creative:\s*creative/.test(gccb34) &&
+                       /production:\s*production/.test(gccb34) && /publishing:\s*publishing/.test(gccb34) &&
+                       /learning:\s*learning/.test(gccb34));
+
+  // -- 34.3: transparent formula — uses STRATEGIST_WEIGHTS, weights total 100.
+  assert('Step 34: computeCampaignHealth iterates STRATEGIST_WEIGHTS to compute score',
+         cchb34 && /for\s*\(\s*var\s+k\s+in\s+cats\s*\)/.test(cchb34) && /STRATEGIST_WEIGHTS/.test(cchb34));
+  assert('Step 34: STRATEGIST_WEIGHTS total = 25+20+25+20+10 = 100 (transparent)',
+         /var\s+STRATEGIST_WEIGHTS\s*=\s*\{\s*strategy:\s*25\s*,\s*creative:\s*20\s*,\s*production:\s*25\s*,\s*publishing:\s*20\s*,\s*learning:\s*10\s*\}/.test(html));
+
+  // -- 34.4: state bands documented. 80-100 healthy, 50-79 degraded, else critical.
+  assert('Step 34: state band 80+ -> healthy (documented in code)',
+         cchb34 && />=\s*80\s*\?\s*'healthy'/.test(cchb34));
+  assert('Step 34: state band 50+ -> degraded',
+         cchb34 && />=\s*50\s*\?\s*'degraded'/.test(cchb34));
+  assert('Step 34: state band else -> critical',
+         cchb34 && /'critical'/.test(cchb34));
+
+  // -- 34.5: updatedAt is computed from real state (not fabricated).
+  assert('Step 34: updatedAt walks c.updatedAt + asset updates + attachments + history',
+         cchb34 && /consider\(c\.updatedAt\)/.test(cchb34) &&
+                       /consider\(a\.updatedAt\)/.test(cchb34) &&
+                       /consider\(atts\[xi\]\.createdAt\)/.test(cchb34) &&
+                       /consider\(c\.history\[hi\]\.at\)/.test(cchb34));
+  assert('Step 34: updatedAt never invents a time (returns ISO from max of real timestamps)',
+         cchb34 && /new Date\(latest\)\.toISOString\(\)/.test(cchb34));
+
+  // -- 34.6: return shape matches the brief — { score, state, updatedAt, categories }.
+  assert('Step 34: return shape includes score',
+         cchb34 && /score:\s*score/.test(cchb34));
+  assert('Step 34: return shape includes state',
+         cchb34 && /state:\s*state/.test(cchb34));
+  assert('Step 34: return shape includes updatedAt',
+         cchb34 && /updatedAt:\s*updatedAt/.test(cchb34));
+  assert('Step 34: return shape includes categories (the five booleans)',
+         cchb34 && /categories:\s*cats/.test(cchb34));
+
+  // -- 34.7: patchCampaignHealthSection + renderCampaign wiring.
+  var pchb = getFnBody('patchCampaignHealthSection');
+  assert('Step 34: patchCampaignHealthSection helper is declared',
+         typeof pchb === 'string' && pchb.length > 200);
+  assert('Step 34: patchCampaignHealthSection reads computeCampaignHealth',
+         pchb && /computeCampaignHealth\(/.test(pchb));
+  assert('Step 34: patchCampaignHealthSection rewrites .ring-number text',
+         pchb && /ringNumber\.textContent/.test(pchb));
+  assert('Step 34: patchCampaignHealthSection rewrites SVG stroke-dashoffset (live ring fill)',
+         pchb && /stroke-dashoffset/.test(pchb) && /fillCircle\.setAttribute/.test(pchb));
+  assert('Step 34: patchCampaignHealthSection rewrites .ring-label (small state text)',
+         pchb && /ringLabel\.textContent/.test(pchb));
+  assert('Step 34: patchCampaignHealthSection rewrites external state label (Healthy/Degraded/Critical)',
+         pchb && /externalLabel\.textContent/.test(pchb));
+  assert('Step 34: patchCampaignHealthSection rewrites Updated timestamp',
+         pchb && /updatedText\.textContent/.test(pchb) && /Updated\s+/.test(pchb));
+  assert('Step 34: renderCampaign calls patchCampaignHealthSection after the seeded render',
+         rcb && /patchCampaignHealthSection\(detailContent,\s*id\)/.test(rcb));
+  assert('Step 34: patchCampaignHealthSection is wrapped in try/catch when called',
+         rcb && /try\s*\{\s*patchCampaignHealthSection[\s\S]{0,100}catch/.test(rcb));
+
+  // -- 34.8: Operations Feed consumes computeCampaignHealth (not c.identity.healthScore).
+  assert('Step 34: opsFeedData uses computeCampaignHealth for the card score',
+         /function\s+opsFeedData[\s\S]{0,4000}computeCampaignHealth\(/.test(html));
+  assert('Step 34: opsFeedData no longer reads c.identity.healthScore for the live card',
+         !/var\s+score\s*=\s*\(?x\.c\.identity\.healthScore/.test(html) ||
+         /var\s+score\s*=\s*\(?x\.c\.identity\.healthScore[\s\S]{0,200}\/\/\s*Step\s*34/i.test(html) ||
+         /Step\s*34:[\s\S]{0,500}c\.identity\.healthScore[\s\S]{0,200}fallback/i.test(html));
+  // Stronger: the opsFeedData body should NOT contain a live read of
+  // x.c.identity.healthScore (it's now a fallback for backwards compat only,
+  // not the primary source).
+  var opsfBody = getFnBody('opsFeedData');
+  assert('Step 34: opsFeedData primary score source is computeCampaignHealth, not c.identity.healthScore',
+         opsfBody && /computeCampaignHealth\(/.test(opsfBody) &&
+                       !/var\s+score\s*=\s*\(?x\.c\.identity\.healthScore/.test(opsfBody));
+
+  // -- 34.9: Portfolio campaign-cards consume computeCampaignHealth.
+  assert('Step 34: updateCampaignCard calls computeCampaignHealth for the health band',
+         /function\s+updateCampaignCard[\s\S]{0,1500}computeCampaignHealth\(/.test(html));
+  assert('Step 34: updateCampaignCard writes the health band text into the card',
+         /function\s+updateCampaignCard[\s\S]{0,1500}band\s*=\s*h\.state\.charAt\(0\)/.test(html));
+  // On boot, every embedded card is refreshed via the new DOMContentLoaded listener.
+  assert('Step 34: DOMContentLoaded listener refreshes every campaign card on boot',
+         /DOMContentLoaded[\s\S]{0,400}updateCampaignCard[\s\S]{0,300}forEach/.test(html));
+
+  // -- 34.10: no visible surface still depends on c.identity.healthScore.
+  // The seed keeps the field for backwards compatibility, but no display
+  // code should read it. renderOpsFeed and the ring patch should not.
+  var rorBody = getFnBody('renderOpsFeed');
+  assert('Step 34: renderOpsFeed card renders health score from it.healthScore (already live)',
+         rorBody && /it\.healthScore/.test(rorBody));
+  // opsFeedData no longer assigns healthScore from c.identity — replaced by h.score.
+  assert('Step 34: opsFeedData no longer assigns healthScore from c.identity.healthScore',
+         opsfBody && !/healthScore:\s*\(?x\.c\.identity\.healthScore/.test(opsfBody));
+
+  // -- 34.11: Strategist block reads from diagnoseCampaign which now uses
+  // computeCampaignHealth — Strategist Health X · state is live too.
+  var rsb = getFnBody('renderStrategistBlock');
+  assert('Step 34: renderStrategistBlock still shows Health X · state (live via diagnoseCampaign)',
+         rsb && /Health\s*'/.test(rsb) && /d\.state/.test(rsb));
+  assert('Step 34: renderStrategistBlock Health text reads from d.health (now live)',
+         rsb && /d\.health/.test(rsb));
+
+  // -- 34.12: Step 32 / Step 33 contracts preserved. Campaign-routed Production
+  // Board still hides the generic button, the patchProductionAssetsSection
+  // patch still runs, and diagnoseCampaign still reads from c.assets via
+  // getCampaignCategoryState.
+  assert('Step 34: getCampaignCategoryState reads c.assets (shared source)',
+         gccb34 && /c\.assets/.test(gccb34) && /Object\.keys/.test(gccb34));
+  assert('Step 34: getCampaignCategoryState still reads attachmentsForCampaign',
+         gccb34 && /attachmentsForCampaign/.test(gccb34));
+  assert('Step 34: getCampaignCategoryState still reads c.memory for learning',
+         gccb34 && /c\.memory/.test(gccb34));
+
+  results.push('  (Step 34 — One health engine: computeCampaignHealth(campaignId) returns { score, state, updatedAt, categories } using STRATEGIST_WEIGHTS (25/20/25/20/10, total 100). State bands: 80-100 healthy, 50-79 degraded, 0-49 critical. updatedAt is the max of c.updatedAt, asset updates, attachment creation, and history events — never fabricated. diagnoseCampaign and computeCampaignHealth share getCampaignCategoryState so they cannot disagree. Every visible health surface (Campaign Detail ring + state + Updated timestamp, Operations Feed card, Strategist block Health X · state, Portfolio campaign-cards) consumes the same function. patchCampaignHealthSection finds the seeded ring elements in the rendered DOM and rewrites them with live values, mirroring the Step 33 pattern. updateCampaignCard writes the live health band into the portfolio card. A new DOMContentLoaded listener refreshes every embedded card on first paint. c.identity.healthScore is kept in the seed for backwards compatibility only — no visible surface reads it for display.)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
