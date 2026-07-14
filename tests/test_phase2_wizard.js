@@ -921,6 +921,96 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 26 — hook modal becomes campaign-aware when opened with campaign context; standalone path unchanged; Step 25 save/attach/diagnosis pipeline preserved)');
 
+  // ── Step 27: Campaign Factory dead paths (idea/product/goal) actually work ──
+  // Root decision friction: "I clicked Build from an idea and the modal closed
+  // with no follow-up — no idea prompt, no campaign, no confirmation. Same with
+  // Build from a product and Build from a goal." The fix: each dead path now
+  // keeps the modal open with a followup block appropriate to the source, and
+  // idea/product text becomes brief.bigIdea on the new campaign.
+  section('Step 27: Campaign Factory idea/product/goal paths are no longer dead ends; idea text becomes brief.bigIdea');
+
+  // 1. campaignFactoryPick body present and structured for the new branches.
+  var cfpBody = html.match(/function campaignFactoryPick\(key\)\s*\{[\s\S]*?^}/m);
+  assert('campaignFactoryPick function body present', !!cfpBody);
+  if (cfpBody) {
+    var cfp = cfpBody[0];
+
+    // The old dead code:  else { closeCampaignFactory(); }
+    assert('campaignFactoryPick no longer has the bare "else close" fallback for idea/product',
+           !/else\s*\{\s*closeCampaignFactory\(\)\s*;\s*\}/.test(cfp));
+
+    // idea path: must reveal the followup block and focus the textarea, NOT close.
+    assert('campaignFactoryPick("idea") reveals cf-followup',
+           /key\s*===\s*'idea'[\s\S]{0,400}follow[\s\S]{0,200}\.style\.display\s*=\s*'block'/.test(cfp));
+    assert('campaignFactoryPick("idea") focuses cf-idea textarea',
+           /key\s*===\s*'idea'[\s\S]{0,800}ftextarea\.focus\(\)/.test(cfp));
+    assert('campaignFactoryPick("idea") does NOT closeCampaignFactory',
+           !/key\s*===\s*'idea'[\s\S]{0,800}closeCampaignFactory\(/.test(cfp));
+
+    // product path: same shape as idea but specialised label.
+    assert('campaignFactoryPick("product") reveals cf-followup',
+           /key\s*===\s*'product'[\s\S]{0,400}follow[\s\S]{0,200}\.style\.display\s*=\s*'block'/.test(cfp));
+    assert('campaignFactoryPick("product") uses a product-specific label',
+           /key\s*===\s*'product'[\s\S]{0,500}flabel\.textContent\s*=\s*'Which product feature/.test(cfp));
+
+    // goal path: focus cf-goal select; do NOT close. (Bounded by the goal block's
+    // own `return;` so the regex doesn't span into the defensive fallback at the
+    // bottom of the function.)
+    assert('campaignFactoryPick("goal") focuses cf-goal select',
+           /key\s*===\s*'goal'[\s\S]{0,500}gsel\.focus\(\)/.test(cfp));
+    assert('campaignFactoryPick("goal") does NOT closeCampaignFactory (within its own block)',
+           /key\s*===\s*'goal'[\s\S]{0,800}return\s*;/.test(cfp) &&
+           !/key\s*===\s*'goal'[\s\S]{0,500}closeCampaignFactory\(\)/.test(cfp));
+
+    // trend/surprise paths still work as before.
+    assert('campaignFactoryPick("trend") still navigates to trends view',
+           /key\s*===\s*'trend'[\s\S]{0,400}showView\('trends'\)/.test(cfp));
+    assert('campaignFactoryPick("surprise") still runs runSurpriseMe',
+           /key\s*===\s*'surprise'[\s\S]{0,400}runSurpriseMe\(\)/.test(cfp));
+  }
+
+  // 2. The followup block exists in the modal HTML, hidden by default.
+  assert('Campaign Factory modal contains cf-followup container (hidden by default)',
+         /id="cf-followup"[\s\S]{0,200}display:\s*none/.test(html));
+  assert('cf-followup contains cf-idea textarea',
+         /id="cf-followup"[\s\S]{0,400}id="cf-idea"/.test(html));
+  assert('cf-followup has a cf-followup-label that campaignFactoryPick rewrites',
+         /id="cf-followup"[\s\S]{0,400}id="cf-followup-label"/.test(html));
+
+  // 3. campaignFactoryCreate reads cf-idea and writes brief.bigIdea for idea/product source.
+  var cfcBody = html.match(/function campaignFactoryCreate\(\)\s*\{[\s\S]*?^}/m);
+  assert('campaignFactoryCreate function body present', !!cfcBody);
+  if (cfcBody) {
+    var cfc = cfcBody[0];
+    assert('campaignFactoryCreate reads cf-idea textarea',
+           /document\.getElementById\('cf-idea'\)[\s\S]{0,300}\.value/.test(cfc));
+    assert('campaignFactoryCreate tracks picked source via __cfPickedSource',
+           /__cfPickedSource/.test(cfc));
+    assert('campaignFactoryCreate computes bigIdea only when source is idea or product and text is present',
+           /var\s+bigIdea\s*=\s*\(\(pickedSource\s*===\s*'idea'\s*\|\|\s*pickedSource\s*===\s*'product'\)\s*&&\s*ideaRaw\)\s*\?\s*ideaRaw\s*:\s*''/.test(cfc));
+    assert('campaignFactoryCreate writes bigIdea into brief.bigIdea on the new campaign',
+           /\.brief\.bigIdea\s*=\s*bigIdea/.test(cfc));
+    assert('campaignFactoryCreate does NOT set brief.bigIdea for goal source',
+           !/pickedSource\s*===\s*'goal'[\s\S]{0,400}brief[\s\S]{0,200}\.bigIdea/.test(cfc));
+    assert('campaign.created event now carries source + bigIdea fields',
+           /type:\s*'campaign\.created'[\s\S]{0,400}source:\s*pickedSource[\s\S]{0,200}bigIdea:\s*bigIdea/.test(cfc));
+    assert('campaignFactoryCreate resets __cfPickedSource before closing',
+           /__cfPickedSource\s*=\s*''[\s\S]{0,200}closeCampaignFactory/.test(cfc));
+  }
+
+  // 4. closeCampaignFactory defensively resets __cfPickedSource.
+  var ccfBody = html.match(/function closeCampaignFactory\(\)\s*\{[\s\S]*?^}/m);
+  assert('closeCampaignFactory resets __cfPickedSource', !!ccfBody && /__cfPickedSource\s*=\s*''/.test(ccfBody[0]));
+
+  // 5. The generic campaign detail renderer still reads brief.bigIdea (Step 26 contract
+  //    preserved for campaigns created via Factory idea/product sources).
+  assert('renderGenericDetail still surfaces brief.bigIdea',
+         /row\(['"]Big idea['"],\s*brief\.bigIdea\)/.test(html) ||
+         /row\(\s*['"]Big idea['"],\s*brief\.bigIdea\s*\)/.test(html) ||
+         /['"]Big idea['"][\s\S]{0,400}brief\.bigIdea/.test(html));
+
+  results.push('  (Step 27 — Campaign Factory idea/product/goal paths reveal followup; idea text becomes brief.bigIdea; trend/surprise unchanged; close resets state; campaign.created event carries source + bigIdea)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);

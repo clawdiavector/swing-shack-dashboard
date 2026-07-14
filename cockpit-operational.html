@@ -1934,9 +1934,17 @@ function openCampaignFactory() {
         '</button>';
       }).join('') +
     '</div>' +
+    // Step 27: followup block — appears when user picks idea/product/goal so the path
+    // is no longer a dead end. idea/product show a free-text capture that becomes
+    // brief.bigIdea on the new campaign; goal highlights the existing cf-goal select.
+    '<div id="cf-followup" style="display:none;margin-bottom:16px;padding:12px;background:rgba(0,204,119,0.06);border:1px solid rgba(0,204,119,0.25);border-radius:6px">' +
+      '<label id="cf-followup-label" style="font-size:11px;color:var(--col-green);font-weight:700;display:block;margin-bottom:6px">Describe the idea in one line</label>' +
+      '<textarea id="cf-idea" rows="2" placeholder="e.g. Winter simulator membership — get people through the door in June/July." style="width:100%;padding:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical"></textarea>' +
+      '<div id="cf-followup-hint" style="font-size:10px;color:var(--col-muted);margin-top:6px">This becomes the campaign\'s big idea and seeds any hook you write next.</div>' +
+    '</div>' +
     '<label style="font-size:11px;color:var(--col-muted)">Campaign name (optional)</label>' +
     '<input type="text" id="cf-name" placeholder="e.g. TrackMan Intelligence — Spring 2026" style="width:100%;padding:8px;margin-top:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px">' +
-    '<label style="font-size:11px;color:var(--col-muted);display:block;margin-top:10px">Link to Goal (optional)</label>' +
+    '<label id="cf-goal-label" style="font-size:11px;color:var(--col-muted);display:block;margin-top:10px">Link to Goal (optional)</label>' +
     '<select id="cf-goal" style="width:100%;padding:8px;margin-top:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px"><option value="">— No goal —</option>' + goalOpts + '</select>' +
     '<div style="display:flex;gap:8px;margin-top:16px">' +
       '<button class="view-btn" style="background:var(--col-muted);color:#0a0a0f;font-weight:700" onclick="closeCampaignFactory()">Cancel</button>' +
@@ -1947,19 +1955,84 @@ function openCampaignFactory() {
   setTimeout(function(){ var n = document.getElementById('cf-name'); if (n) n.focus(); }, 50);
 }
 function closeCampaignFactory() {
+  // Step 27: reset transient state and hide the followup block so the next open starts clean.
+  window.__cfPickedSource = '';
   var m = document.getElementById('campaign-factory-modal');
   if (m) m.remove();
 }
 function campaignFactoryPick(key) {
   applyEvent({ type: 'campaignFactory.pick', source: key, at: new Date().toISOString() });
-  if (key === 'trend')           { closeCampaignFactory(); showView('trends'); }
-  else if (key === 'surprise')   { closeCampaignFactory(); showView('opsfeed'); runSurpriseMe(); }
-  else if (key === 'goal')       { closeCampaignFactory(); showView('opsfeed'); }
-  else { closeCampaignFactory(); }
+  // Step 27: track which path the user picked so campaignFactoryCreate knows what to do.
+  window.__cfPickedSource = key;
+  // Always reveal the followup block (so the user sees the modal is responding),
+  // then specialise the label/placeholder per source. This replaces the previous
+  // behaviour where idea/product/goal simply closed the modal and did nothing.
+  var follow = document.getElementById('cf-followup');
+  var flabel = document.getElementById('cf-followup-label');
+  var fhint  = document.getElementById('cf-followup-hint');
+  var ftextarea = document.getElementById('cf-idea');
+  var goalLabel = document.getElementById('cf-goal-label');
+  if (key === 'trend') {
+    // Already worked — trends view is the source picker itself.
+    closeCampaignFactory();
+    showView('trends');
+    return;
+  }
+  if (key === 'surprise') {
+    // Already worked — Composer generates ideas from data.
+    closeCampaignFactory();
+    showView('opsfeed');
+    runSurpriseMe();
+    return;
+  }
+  if (key === 'idea') {
+    if (follow)   follow.style.display = 'block';
+    if (flabel)   flabel.textContent = 'Describe the idea in one line';
+    if (fhint)    fhint.textContent  = "This becomes the campaign's big idea and seeds any hook you write next.";
+    if (ftextarea) {
+      ftextarea.placeholder = "e.g. Winter simulator membership — get people through the door in June/July.";
+      setTimeout(function(){ ftextarea.focus(); }, 30);
+    }
+    if (goalLabel) goalLabel.style.color = 'var(--col-muted)';
+    return;
+  }
+  if (key === 'product') {
+    if (follow)   follow.style.display = 'block';
+    if (flabel)   flabel.textContent = 'Which product feature, release or angle?';
+    if (fhint)    fhint.textContent  = "This becomes the campaign's big idea and seeds any hook you write next.";
+    if (ftextarea) {
+      ftextarea.placeholder = "e.g. New PuttView bay — indoor putting with immediate feedback on every stroke.";
+      setTimeout(function(){ ftextarea.focus(); }, 30);
+    }
+    if (goalLabel) goalLabel.style.color = 'var(--col-muted)';
+    return;
+  }
+  if (key === 'goal') {
+    // Don't close — focus the goal select and highlight the label so the user
+    // sees the modal responding. (Previously this closed and navigated to OpsFeed
+    // with no way to pick a goal, which felt like a dead end.)
+    if (goalLabel) {
+      goalLabel.style.color = 'var(--col-green)';
+      goalLabel.textContent = 'Pick a goal — this is what your campaign will execute';
+    }
+    var gsel = document.getElementById('cf-goal');
+    if (gsel) setTimeout(function(){ gsel.focus(); }, 30);
+    if (follow) follow.style.display = 'none';
+    return;
+  }
+  // Unknown key — defensive fallback (matches old behaviour).
+  closeCampaignFactory();
 }
 function campaignFactoryCreate() {
   var name = ((document.getElementById('cf-name')||{}).value || '').trim();
   var goalId = (document.getElementById('cf-goal')||{}).value || '';
+  // Step 27: read idea/product text if the user picked one of those paths.
+  var ideaRaw = ((document.getElementById('cf-idea')||{}).value || '').trim();
+  var pickedSource = window.__cfPickedSource || '';
+  // bigIdea is set when: source is idea or product AND the user entered text.
+  // Goal path does NOT auto-fill bigIdea — the goal is the goal, the user
+  // still needs to articulate the idea themselves.
+  var bigIdea = ((pickedSource === 'idea' || pickedSource === 'product') && ideaRaw) ? ideaRaw : '';
   var cid = uid('camp');
   if (!window.campaignData) window.campaignData = { campaigns: {} };
   if (!window.campaignData.campaigns) window.campaignData.campaigns = {};
@@ -1968,10 +2041,41 @@ function campaignFactoryCreate() {
       identity: { campaignId: cid, name: name, shortName: name, status: 'draft', createdAt: new Date().toISOString() }
     };
     if (goalId) window.campaignData.campaigns[cid].identity.goalId = goalId;
+    if (bigIdea) {
+      // brief.bigIdea is the same shape TrackMan/Takomo use, so the generic detail
+      // renderer and the Step 26 hook modal placeholder both read it correctly.
+      if (!window.campaignData.campaigns[cid].brief) window.campaignData.campaigns[cid].brief = {};
+      window.campaignData.campaigns[cid].brief.bigIdea = bigIdea;
+      // Also surface the source the user came from so downstream views (Strategist,
+      // Operations Feed) can show "sourced from: idea / product" without re-deriving.
+      window.campaignData.campaigns[cid].identity.source = pickedSource;
+    }
   }
-  applyEvent({ type: 'campaign.created', campaignId: cid, name: name, goalId: goalId, at: new Date().toISOString() });
+  applyEvent({
+    type: 'campaign.created',
+    campaignId: cid,
+    name: name,
+    goalId: goalId,
+    source: pickedSource,
+    bigIdea: bigIdea,
+    at: new Date().toISOString()
+  });
+  // Reset transient state before closing so a subsequent open starts clean.
+  window.__cfPickedSource = '';
   closeCampaignFactory();
   renderOpsFeed();
+  // Step 27: ensure the new campaign has a render fn registered and the campaign
+  // selector <select> lists it. Without this, selectCampaign(cid) calls renderCampaign
+  // which calls window.renderFns[id](c) — undefined for brand-new campaigns — and the
+  // detail view keeps showing the previously active campaign instead of the one we just
+  // created. This was a latent bug in both the 7-step wizard and the Factory modal.
+  if (name) {
+    if (!window.renderFns) window.renderFns = {};
+    if (!window.renderFns[cid] && typeof renderGenericDetail === 'function') {
+      window.renderFns[cid] = function(c) { return renderGenericDetail(c); };
+    }
+    try { if (typeof initSelector === 'function') initSelector(); } catch (e) {}
+  }
   if (name) selectCampaign(cid);
 }
 
