@@ -518,6 +518,18 @@ No captions yet. Click <strong>+ New Caption</strong>, or seed from a hook, tren
 
 <!-- Step 16: Asset Planner — turn creative into concrete asks. Standalone workspace, source from any 6 object kinds. -->
 <div id="view-assets" class="view-panel">
+<!-- Step 31: campaign context panel (hidden in standalone mode). Mirrors the Step 25 cs-context-panel pattern. When the marketer arrives from a strategist action (e.g. "Plan Assets" for a campaign with no production work moving), the panel surfaces the campaign name, the reason they were routed here, and one obvious next action — a primary CTA that opens the asset modal pre-filled from the OS's existing campaign knowledge. Standalone mode hides it. -->
+<div id="pb-context-panel" style="display:none;margin-bottom:20px;padding:18px 20px;background:linear-gradient(135deg,#1a1810 0%,#0f0d08 100%);border:1px solid #c8a85a;border-left:3px solid #c8a85a;border-radius:8px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
+<div style="min-width:0;flex:1">
+<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#c8a85a;text-transform:uppercase;margin-bottom:4px">Planning for</div>
+<div id="pb-context-campaign-name" style="font-size:18px;font-weight:700;color:#e8e8ed">—</div>
+<div id="pb-context-reason" style="font-size:11px;color:#9aa0a6;margin-top:4px"></div>
+</div>
+<button type="button" class="view-btn" onclick="productionContextClear()" style="font-size:10px;padding:4px 8px;color:var(--col-muted);border:1px solid var(--border);flex-shrink:0">Switch to standalone</button>
+</div>
+<div id="pb-context-action"></div>
+</div>
 <div class="card">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
 <div class="card-title" id="assets-header" style="margin:0;border:none;padding:0">Asset Planner — 0 asset requests</div>
@@ -1235,6 +1247,11 @@ No billboards yet. Click <strong>+ New Billboard</strong> to capture a billboard
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
 <div class="modal-title" style="font-size:18px;font-weight:700">New Asset Request</div>
 <button class="view-btn" onclick="closeAssetModal()">×</button>
+</div>
+<!-- Step 31: inline campaign banner inside the modal. Visible only when the modal was opened from a campaign context (Production Board → context panel → primary CTA). Reminds the marketer which campaign this asset is being created for while they fill the form. Hidden in standalone mode. -->
+<div id="asset-modal-campaign-banner" style="display:none;margin-bottom:14px;padding:10px 12px;background:rgba(200,168,90,0.08);border-left:3px solid #c8a85a;border-radius:4px">
+<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#c8a85a;text-transform:uppercase;margin-bottom:2px">For</div>
+<div id="asset-modal-campaign-name" style="font-size:13px;font-weight:700;color:#e8e8ed">—</div>
 </div>
 <form id="assetForm" onsubmit="return handleAssetSubmit(event)">
 <div style="margin-bottom:12px">
@@ -2595,6 +2612,12 @@ function renderStrategistBlock(campaignId) {
     if (it.dest === 'creative') {
       onclickFn = "window.creativeContextCampaignId = '" + campaignId + "'; showView('creative'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
     }
+    // Step 31: mirror Step 25 for Production Board. When the action navigates to Production
+    // Board, set the production context so the destination surfaces the campaign context
+    // panel and the asset modal opens pre-filled with the campaign.
+    if (it.dest === 'assets') {
+      onclickFn = "window.productionContextCampaignId = '" + campaignId + "'; showView('assets'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+    }
     return '<div class="strategist-issue" data-issue-key="' + it.key + '" data-impact="' + it.impact + '" style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;' + (i===0?'border-top:0':'') + 'border-bottom:1px solid rgba(255,255,255,0.06)">' +
       '<div style="font-size:13px;font-weight:700;color:#c8a85a;min-width:18px">' + (i+1) + '</div>' +
       '<div style="flex:1">' +
@@ -2611,6 +2634,10 @@ function renderStrategistBlock(campaignId) {
   // Step 25: also set campaign context when the recommendation navigates to Creative Studio
   if (rec.dest === 'creative') {
     recOnclick = "window.creativeContextCampaignId = '" + campaignId + "'; showView('creative'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+  }
+  // Step 31: mirror Step 25 for Production Board on the recommendation button too.
+  if (rec.dest === 'assets') {
+    recOnclick = "window.productionContextCampaignId = '" + campaignId + "'; showView('assets'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
   }
   return '<div class="card" id="strategist-block" data-campaign-id="' + campaignId + '" style="border-left:3px solid #c8a85a;background:linear-gradient(135deg,#1a1810 0%,#0f0d08 100%);margin-bottom:20px;padding:0">' +
     '<div style="padding:18px 20px 14px 20px">' +
@@ -4909,6 +4936,110 @@ function assetModalPopulateOptions(preselectedSourceRef) {
   }
 }
 function assetEsc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+// Step 31: production-context state (mirror of Step 25's window.creativeContextCampaignId).
+// When set, the Production Board shows a context panel + pre-filled asset form for that campaign.
+// Defaults to null (standalone mode). Set when arriving from a strategist action with dest === 'assets'.
+window.productionContextCampaignId = window.productionContextCampaignId || null;
+// Step 31: clear the campaign context (return to standalone mode) and re-render Production Board.
+function productionContextClear() {
+  window.productionContextCampaignId = null;
+  renderAssetPlanner();
+}
+// Step 31: render the campaign context panel above the Production Board list when a context
+// is set. Mirrors the Step 25 renderCreativeStudio context-panel pattern. Hidden otherwise.
+function renderProductionContextPanel() {
+  var panel = document.getElementById('pb-context-panel');
+  var nameEl = document.getElementById('pb-context-campaign-name');
+  var reasonEl = document.getElementById('pb-context-reason');
+  var actionEl = document.getElementById('pb-context-action');
+  if (!panel || !nameEl || !reasonEl || !actionEl) return;
+  var contextId = window.productionContextCampaignId;
+  var contextCampaign = contextId && window.campaignData && window.campaignData.campaigns ? window.campaignData.campaigns[contextId] : null;
+  if (!contextCampaign) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  var cname = (contextCampaign.identity && contextCampaign.identity.name) || contextId;
+  nameEl.textContent = cname;
+  // Reason: pull from the diagnosis (highest-impact recommendation.title + first-issue.reason).
+  // Truthful templating — only what the OS already computed. If diagnoseCampaign is unavailable,
+  // fall back to "You arrived here from a campaign context" (no fabrication).
+  var d = (typeof diagnoseCampaign === 'function') ? diagnoseCampaign(contextId) : null;
+  var reasonText = '';
+  if (d && d.recommendation) {
+    reasonText = 'Reason: ' + d.recommendation.title + '.';
+  } else {
+    reasonText = 'You arrived here from a campaign context.';
+  }
+  reasonEl.textContent = reasonText;
+  // Primary CTA: open the asset modal pre-filled from the OS's existing campaign knowledge.
+  // Same pattern as Step 25's openHookForCampaign(campaignId) — no AI, no fake drafts, no
+  // generated title/type/date/owner/notes. Just defaults that the OS already knows.
+  actionEl.innerHTML = '<button type="button" id="pb-context-primary-action" class="pb-context-primary-action" onclick="openAssetModalForCampaign(\'' + contextId + '\')" style="font-size:13px;font-weight:700;padding:10px 16px;background:#c8a85a;color:#0a0a14;border:none;border-radius:6px;cursor:pointer;font-family:inherit">Create first asset request for ' + escapeIdeaHtml(cname) + ' →</button>' +
+    '<div style="font-size:11px;color:var(--col-muted);margin-top:8px">Asset form opens pre-linked to this campaign. Save and it attaches automatically — no extra step.</div>';
+}
+// Step 31: open the asset modal with the campaign pre-filled. When the asset is saved, it
+// auto-links to the campaign via the existing campaign-asset sync in handleAssetSubmit.
+// The marketer still chooses: title, type, requiredBy, owner, notes. The OS already knows:
+// - LINK TO CAMPAIGN defaults to the campaign
+// - SOURCE OBJECT defaults to campaign:<id>
+// - BRAND defaults from the active product / campaign identity
+// - PRIORITY defaults to High (because the recommendation impact is High)
+// - title placeholder becomes campaign-specific (built from brief.bigIdea or purpose)
+function openAssetModalForCampaign(campaignId) {
+  if (!campaignId) return;
+  var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
+  var cname = (c && c.identity && c.identity.name) || campaignId;
+  // Open the modal with the campaign as the preselected source.
+  openAssetModal('campaign:' + campaignId);
+  // Override LINK TO CAMPAIGN to the campaign (openAssetModal defaults to '' for new requests).
+  var campSel = document.getElementById('a-campaign');
+  if (campSel) campSel.value = campaignId;
+  // BRAND: default to the active product's brand if available; fall back to campaign.brand
+  // (not currently stored), then to 'swing-shack' as the only valid non-empty option.
+  var brandEl = document.getElementById('a-brand');
+  if (brandEl && (brandEl.options.length > 1)) {
+    // Prefer the second option (the real brand, e.g. "Swing Shack") over "— None —".
+    var preferred = '';
+    for (var bi = 0; bi < brandEl.options.length; bi++) {
+      var v = brandEl.options[bi].value;
+      if (v && v !== '') { preferred = v; break; }
+    }
+    if (preferred) brandEl.value = preferred;
+  }
+  // PRIORITY: default to High because the recommendation impact is High (the marketer can change).
+  var priorityEl = document.getElementById('a-priority');
+  if (priorityEl) priorityEl.value = 'high';
+  // Title placeholder: derive from the campaign's brief.bigIdea or brief.purpose so the
+  // marketer sees campaign-specific guidance, not the generic TrackMan example.
+  // The actual title is still typed by the marketer — placeholder is not a default.
+  var titleEl = document.getElementById('a-title');
+  if (titleEl) {
+    var brief = (c && c.brief) || {};
+    var anchor = (brief.bigIdea || brief.purpose || '').trim();
+    var ph;
+    if (anchor) {
+      // Cap placeholder length so the input isn't dominated by it.
+      var max = 120;
+      ph = anchor.length > max ? (anchor.slice(0, max - 1) + '…') : anchor;
+      titleEl.placeholder = 'e.g. ' + ph;
+    } else {
+      titleEl.placeholder = 'e.g. Hero shot — ' + escapeIdeaHtml(cname);
+    }
+  }
+  // Modal title and inline banner: show the campaign context so the marketer sees which
+  // campaign this asset is being created for while filling the form.
+  var modal = document.getElementById('assetModal');
+  var titleText = modal && modal.querySelector('.modal-title');
+  if (titleText) titleText.textContent = 'New Asset Request — for ' + cname;
+  var banner = document.getElementById('asset-modal-campaign-banner');
+  var bannerName = document.getElementById('asset-modal-campaign-name');
+  if (banner && bannerName) {
+    banner.style.display = 'block';
+    bannerName.textContent = cname;
+  }
+}
 var currentAssetId = null;
 function openAssetModal(preselectedSourceRef) {
   currentAssetId = null;
@@ -4963,6 +5094,13 @@ function closeAssetModal() {
   currentAssetId = null;
   var modal = document.getElementById('assetModal');
   if (modal) modal.style.display = 'none';
+  // Step 31: reset the inline campaign banner + modal title so a subsequent standalone
+  // open doesn't show stale campaign context. The form field values themselves are reset
+  // by openAssetModal() at the top of every open.
+  var banner = document.getElementById('asset-modal-campaign-banner');
+  if (banner) banner.style.display = 'none';
+  var titleEl = modal && modal.querySelector('.modal-title');
+  if (titleEl) titleEl.textContent = 'New Asset Request';
 }
 // Push asset-requested history entry to the source object (any of 6 kinds).
 function pushAssetRequestedToSource(sourceRef, asset) {
@@ -5036,6 +5174,12 @@ function handleAssetSubmit(e) {
     if (c) {
       c.assetRequests = Array.isArray(c.assetRequests) ? c.assetRequests : [];
       if (c.assetRequests.indexOf(asset.assetId) === -1) c.assetRequests.push(asset.assetId);
+      // Step 31: bridge the asset store to c.assets so diagnoseCampaign sees the new asset
+      // when computing the production issue. Without this, adding an asset wouldn't change
+      // the "No production work moving" diagnosis — diagnose reads c.assets, not the asset store.
+      // Pre-existing gap surfaced by the brief's "strategist diagnosis updates" requirement.
+      c.assets = c.assets && typeof c.assets === 'object' ? c.assets : {};
+      c.assets[asset.assetId] = asset;
       c.history = Array.isArray(c.history) ? c.history : [];
       c.history.push({ action: 'asset-requested', by: 'christelle', at: now, note: 'Asset requested: "' + asset.title.substring(0, 40) + '"' });
       c.updatedAt = now;
@@ -5058,6 +5202,10 @@ function handleAssetSubmit(e) {
   }
   assetAppend(asset);
   renderAssetPlanner();
+  // Step 31: re-render Ops Feed so the diagnosis change is reflected. Without this, the
+  // Ops Feed card for the linked campaign would not re-sort or drop even after the
+  // diagnosis flips (e.g., production issue resolved once c.assets gets a non-rejected asset).
+  try { renderOpsFeed(); } catch (e) {}
   if (okEl) { okEl.textContent = 'Saved.'; okEl.style.display = 'block'; }
   setTimeout(function() { closeAssetModal(); }, 500);
   return false;
@@ -5152,6 +5300,9 @@ function renderAssetCard(a) {
   '</div>';
 }
 function renderAssetPlanner() {
+  // Step 31: render the campaign context panel first (hidden in standalone mode).
+  // Mirrors how renderCreativeStudio() calls the context-panel render at the top.
+  try { renderProductionContextPanel(); } catch (e) {}
   var list = document.getElementById('assets-list');
   var empty = document.getElementById('assets-empty');
   var header = document.getElementById('assets-header');

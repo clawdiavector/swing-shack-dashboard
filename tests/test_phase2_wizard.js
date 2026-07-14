@@ -1246,6 +1246,228 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 30 — Needs Attention cards now show priority order: impact → state → issueCount → healthScore. Card 0 = "DO THIS FIRST" + truth-templated explainer + impact badge. Card 1+ = "NEXT". Re-sorts automatically on render. No fabrication, no new scoring, no redesign.)');
 
+  // ── Step 31: Production Board becomes campaign-aware when the marketer
+  // arrives from a strategist "Plan Assets ›" action. Root decision friction:
+  // "The OS told me to plan TrackMan's first asset, then dropped me on a
+  // generic Production Board that forgot the campaign and made me repeat
+  // information it already knows." Fix: carry the campaign context into the
+  // destination view (panel + reason), give one obvious next action (primary
+  // CTA that pre-fills the form), keep standalone mode untouched, and bridge
+  // the asset store to c.assets so diagnosis re-evaluates after save. ─────
+  section('Step 31: Production Board is campaign-aware when arriving from strategist action (panel + reason + primary CTA + form pre-fill + diagnosis refresh)');
+
+  // Helper: extract a function body by walking from "function name(" until the
+  // next top-level "\nfunction " declaration. Function bodies can contain
+  // nested braces so a simple non-greedy [\s\S]*?\n\s*}/ stops at the first
+  // inner closing brace and truncates the body.
+  function getFnBody(name) {
+    var start = html.indexOf('function ' + name + '(');
+    if (start === -1) return null;
+    var nextFn = html.indexOf('\nfunction ', start + 1);
+    return nextFn === -1 ? html.substring(start) : html.substring(start, nextFn);
+  }
+
+  // -- 31.1: pb-context-panel exists in #view-assets, mirror of cs-context-panel.
+  assert('Production Board view contains a pb-context-panel element',
+         /id="view-assets"[\s\S]{0,4000}id="pb-context-panel"/.test(html) ||
+         /id="pb-context-panel"[\s\S]{0,4000}id="view-assets"/.test(html));
+  // Default state of the panel: hidden until a strategist action sets the context.
+  assert('pb-context-panel is hidden by default (display:none)',
+         /id="pb-context-panel"[\s\S]{0,200}display:\s*none/.test(html));
+
+  // -- 31.2: asset modal has an inline campaign banner element (the context
+  // must remain visible while the modal is open).
+  assert('asset modal has an inline campaign banner (id="asset-modal-campaign-banner")',
+         /id="asset-modal-campaign-banner"/.test(html));
+
+  // -- 31.3: openAssetModalForCampaign pre-fills the form from real OS data.
+  var oamfc = getFnBody('openAssetModalForCampaign');
+  assert('openAssetModalForCampaign function defined', !!oamfc);
+  if (oamfc) {
+    // Reads the live campaign doc to pre-fill LINK TO CAMPAIGN + SOURCE OBJECT.
+    assert('openAssetModalForCampaign reads the campaign doc from window.campaignData',
+           /window\.campaignData[\s\S]{0,400}campaigns[\s\S]{0,200}campaignId/.test(oamfc) ||
+           /campaignData\s*\.\s*campaigns[\s\S]{0,400}campaignId/.test(oamfc));
+    // Pre-fills LINK TO CAMPAIGN <select> with the campaign id.
+    assert('openAssetModalForCampaign sets #a-campaign to campaignId',
+           /document\.getElementById\(['"]a-campaign['"]\)[\s\S]{0,200}\.value\s*=\s*campaignId/.test(oamfc) ||
+           /a-campaign[\s\S]{0,200}\.value\s*=\s*campaignId/.test(oamfc));
+    // Pre-fills SOURCE OBJECT <select> with `campaign:<id>` so the asset
+    // arrives already attached — no extra step required.
+    assert('openAssetModalForCampaign sets #a-source via openAssetModal("campaign:<id>")',
+           /openAssetModal\(\s*['"]campaign:['"]?\s*\+\s*campaignId/.test(oamfc));
+    // Pre-fills PRIORITY to High — because the recommendation.impact is High.
+    assert('openAssetModalForCampaign sets #a-priority to "high"',
+           /a-priority[\s\S]{0,200}\.value\s*=\s*['"]high['"]/.test(oamfc));
+    // Pre-fills BRAND from real OS data — picks the first non-empty option from the <select>
+    // (campaign.productBrand or product.brand fallback). Never forces "— None —".
+    assert('openAssetModalForCampaign reads brand from real product/campaign options',
+           /brandEl\.options[\s\S]{0,200}\.value/.test(oamfc) ||
+           /var\s+preferred[\s\S]{0,400}brandEl\.options/.test(oamfc));
+    // Pre-fills TITLE placeholder dynamically from brief.bigIdea or purpose —
+    // never an invented title (marketer still types).
+    // (The brief.bigIdea is read FIRST into a var, THEN used to set titleEl.placeholder,
+    // so the regex follows that order.)
+    assert('openAssetModalForCampaign sets TITLE placeholder from real brief data (bigIdea/purpose)',
+           /brief\.bigIdea[\s\S]{0,800}\.placeholder[\s\S]{0,200}=\s*['"]e\.g\.\s*['"]?\s*\+\s*ph/.test(oamfc) ||
+           /brief\.bigIdea[\s\S]{0,500}placeholder[\s\S]{0,200}=\s*['"]e\.g\.\s*['"]?\s*\+\s*ph/.test(oamfc));
+    // Shows the inline modal banner so campaign context remains visible while the modal is open.
+    assert('openAssetModalForCampaign shows the inline campaign banner (asset-modal-campaign-banner)',
+           /asset-modal-campaign-banner[\s\S]{0,400}display\s*=\s*['"]block['"]/.test(oamfc) ||
+           /asset-modal-campaign-banner[\s\S]{0,400}style\.display\s*=\s*['"]block['"]/.test(oamfc));
+    // Does NOT invent title/type/date/owner/notes — they stay empty/placeholder.
+    assert('openAssetModalForCampaign does NOT set #a-title value to non-empty (marketer still types)',
+           !/a-title[\s\S]{0,200}\.value\s*=\s*['"][^'"]+['"]/.test(oamfc));
+    assert('openAssetModalForCampaign does NOT set #a-requiredby to non-empty (marketer still picks)',
+           !/a-requiredby[\s\S]{0,200}\.value\s*=\s*['"][^'"]+['"]/.test(oamfc));
+    assert('openAssetModalForCampaign does NOT set #a-owner to non-empty (marketer still picks)',
+           !/a-owner[\s\S]{0,200}\.value\s*=\s*['"][^'"]+['"]/.test(oamfc));
+    // Modal title shows " — for X" so the marketer sees the campaign while the modal is open.
+    assert('openAssetModalForCampaign sets modal title to "New Asset Request — for <name>"',
+           /New Asset Request\s*—\s*for/.test(oamfc));
+  }
+
+  // -- 31.4: renderProductionContextPanel reads the campaign doc and renders
+  // the campaign name + reason (from live diagnosis) into the panel.
+  var rpcp = getFnBody('renderProductionContextPanel');
+  assert('renderProductionContextPanel function defined', !!rpcp);
+  if (rpcp) {
+    assert('renderProductionContextPanel reads window.productionContextCampaignId',
+           /window\.productionContextCampaignId/.test(rpcp));
+    assert('renderProductionContextPanel reads campaign.identity.name for display',
+           /identity[\s\S]{0,200}\.name/.test(rpcp));
+    assert('renderProductionContextPanel shows the panel via display:block when context set',
+           /panel\.style\.display\s*=\s*['"]block['"]/.test(rpcp));
+    assert('renderProductionContextPanel hides the panel when context null (standalone)',
+           /panel\.style\.display\s*=\s*['"]none['"]/.test(rpcp));
+    // The reason text comes from a real diagnose call — not invented.
+    assert('renderProductionContextPanel sources "Reason" from diagnoseCampaign (live data)',
+           /diagnoseCampaign[\s\S]{0,400}recommendation|diagnoseCampaign[\s\S]{0,400}reason|d\.recommendation\.title/.test(rpcp));
+    // Campaign name is escaped to prevent XSS in the panel.
+    assert('renderProductionContextPanel escapes campaign name with escapeIdeaHtml',
+           /escapeIdeaHtml\([\s\S]{0,200}cname/.test(rpcp));
+    // Primary CTA wired to openAssetModalForCampaign(contextId).
+    assert('renderProductionContextPanel primary CTA calls openAssetModalForCampaign(contextId)',
+           /openAssetModalForCampaign\(\s*['"]\s*'\s*\+\s*contextId/.test(rpcp) ||
+           /openAssetModalForCampaign\(\s*contextId/.test(rpcp) ||
+           /openAssetModalForCampaign[\s\S]{0,200}contextId/.test(rpcp));
+  }
+
+  // -- 31.5: productionContextClear function exists and resets context.
+  var pcc = getFnBody('productionContextClear');
+  assert('productionContextClear function defined', !!pcc);
+  if (pcc) {
+    assert('productionContextClear sets window.productionContextCampaignId = null',
+           /window\.productionContextCampaignId\s*=\s*null/.test(pcc));
+    assert('productionContextClear re-renders the asset planner (standalone view returns)',
+           /renderAssetPlanner\(/.test(pcc));
+  }
+
+  // -- 31.6: strategist "Plan Assets ›" button sets window.productionContextCampaignId.
+  // Mirrors the Step 25 pattern where the same button sets window.creativeContextCampaignId.
+  // The strategist block builder must set production context whenever dest === 'assets'.
+  assert('strategist block sets production context when dest is "assets" (issue button)',
+         /it\.dest\s*===\s*['"]assets['"][\s\S]{0,400}window\.productionContextCampaignId\s*=/.test(html));
+  assert('strategist block sets production context when dest is "assets" (recommendation button)',
+         /rec\.dest\s*===\s*['"]assets['"][\s\S]{0,400}window\.productionContextCampaignId\s*=/.test(html));
+  // Mirror: dest === 'creative' still sets creative context (Step 25 contract preserved).
+  assert('strategist block still sets creative context when dest is "creative" (Step 25 contract)',
+         /it\.dest\s*===\s*['"]creative['"][\s\S]{0,400}window\.creativeContextCampaignId\s*=/.test(html) ||
+         /rec\.dest\s*===\s*['"]creative['"][\s\S]{0,400}window\.creativeContextCampaignId\s*=/.test(html));
+
+  // -- 31.7: renderAssetPlanner calls renderProductionContextPanel so the panel
+  // surfaces correctly on every view entry.
+  var rap = getFnBody('renderAssetPlanner');
+  assert('renderAssetPlanner function defined', !!rap);
+  if (rap) {
+    assert('renderAssetPlanner calls renderProductionContextPanel()',
+           /renderProductionContextPanel\(\)/.test(rap));
+    // Existing behavior preserved: filter + table render still happens.
+    assert('renderAssetPlanner still renders the filter/table (existing behavior preserved)',
+           /filter|assetFilter|assetRow|renderAsset|assetList|assets-filter/.test(rap));
+  }
+
+  // -- 31.8: Standalone mode preserved — openAssetModal("") keeps generic defaults.
+  var oam = getFnBody('openAssetModal');
+  assert('openAssetModal function defined', !!oam);
+  if (oam) {
+    // Generic defaults are reset: title empty, brand "— None —", priority medium, etc.
+    assert('openAssetModal resets title to empty (standalone)',
+           /a-title['"]?\)\.value\s*=\s*['"]\s*['"]|a-title['"]?\)\.value\s*=\s*['"]['"]/.test(oam));
+    assert('openAssetModal resets brand to "" (standalone default)',
+           /a-brand['"]?\)\.value\s*=\s*['"]\s*['"]|a-brand['"]?\)\.value\s*=\s*['"]['"]/.test(oam));
+    assert('openAssetModal resets priority to "medium" (standalone default)',
+           /a-priority['"]?\)\.value\s*=\s*['"]medium['"]/.test(oam));
+    assert('openAssetModal resets modal title to "New Asset Request" (standalone)',
+           /titleEl\.textContent\s*=\s*['"]New Asset Request['"]/.test(oam));
+  }
+
+  // -- 31.8b: closeAssetModal hides the inline banner so a subsequent standalone open
+  // doesn't show stale campaign context.
+  var cam = getFnBody('closeAssetModal');
+  assert('closeAssetModal function defined', !!cam);
+  if (cam) {
+    assert('closeAssetModal hides the inline campaign banner (resets state for next open)',
+           /asset-modal-campaign-banner[\s\S]{0,400}display\s*=\s*['"]none['"]/.test(cam) ||
+           /asset-modal-campaign-banner[\s\S]{0,400}style\.display\s*=\s*['"]none['"]/.test(cam));
+  }
+
+  // -- 31.9: handleAssetSubmit writes the new asset to c.assets so diagnoseCampaign
+  // re-evaluates. Without this bridge, adding an asset does NOT change the diagnosis
+  // because diagnose reads c.assets (not the asset store) — pre-existing gap.
+  var has = getFnBody('handleAssetSubmit');
+  assert('handleAssetSubmit function defined', !!has);
+  if (has) {
+    // The bridge: write asset to c.assets[assetId] after the asset store append.
+    assert('handleAssetSubmit writes the new asset to campaign.c.assets (diagnosis refresh)',
+           /c\.assets[\s\S]{0,200}=[\s\S]{0,200}c\.assets[\s\S]{0,200}assetId[\s\S]{0,200}=[\s\S]{0,200}asset/.test(has) ||
+           /c\.assets[\s\S]{0,200}\[asset\.assetId\][\s\S]{0,200}=[\s\S]{0,200}asset/.test(has));
+    // renderOpsFeed is called after save so the Ops Feed re-sorts with the new diagnosis.
+    assert('handleAssetSubmit triggers renderOpsFeed() (Ops Feed auto-refresh)',
+           /renderOpsFeed\(\)/.test(has));
+    // Existing pipeline preserved: campaignLink + sourceRef + history + renderAssetPlanner.
+    assert('handleAssetSubmit still writes c.assetRequests array (existing pipeline)',
+           /c\.assetRequests[\s\S]{0,200}\.push|c\.assetRequests[\s\S]{0,200}\.unshift/.test(has));
+    assert('handleAssetSubmit still calls renderAssetPlanner() (existing render)',
+           /renderAssetPlanner\(/.test(has));
+  }
+
+  // -- 31.10: existing openAssetModal signature preserved — the "+ New Asset Request"
+  // button (standalone) still calls openAssetModal() with no args.
+  assert('+ New Asset Request button still calls openAssetModal() with no args (standalone)',
+         /onclick="openAssetModal\(\)"/.test(html));
+
+  // -- 31.11: Primary CTA inside the panel calls openAssetModalForCampaign(cid).
+  assert('pb-context-panel primary CTA calls openAssetModalForCampaign(cid)',
+         /onclick="openAssetModalForCampaign\(['"]\$\{?cid\}?['"]\)"/.test(html) ||
+         /onclick="openAssetModalForCampaign\([^)]+\)"/.test(html));
+
+  // -- 31.12: "Switch to standalone" button calls productionContextClear.
+  assert('pb-context-panel "Switch to standalone" button calls productionContextClear()',
+         /onclick="productionContextClear\(\)"/.test(html));
+
+  // -- 31.13: No broader Production Board redesign — the existing
+  // Asset Planner table header, filter <select>, and "+ New Asset Request"
+  // button remain unchanged.
+  assert('Production Board still has "Asset Planner" header',
+         /id="view-assets"[\s\S]{0,4000}Asset Planner/.test(html) ||
+         /Asset Planner[\s\S]{0,4000}id="view-assets"/.test(html));
+  assert('Production Board still has the filter <select>',
+         /id="view-assets"[\s\S]{0,4000}<select[\s\S]{0,400}asset/i.test(html) ||
+         /<select[\s\S]{0,400}asset[\s\S]{0,400}id="view-assets"/.test(html));
+  assert('Production Board still has "+ New Asset Request" button',
+         /id="view-assets"[\s\S]{0,4000}\+ New Asset Request/.test(html) ||
+         /\+ New Asset Request[\s\S]{0,4000}id="view-assets"/.test(html));
+
+  // -- 31.14: productionContextClear uses window.productionContextCampaignId and
+  // re-renders. The wire from panel-button → contextClear → standalone view is
+  // explicit in source.
+  assert('productionContextClear hides pb-context-panel and shows standalone view',
+         /productionContextClear[\s\S]{0,400}renderAssetPlanner[\s\S]{0,400}productionContextCampaignId[\s\S]{0,400}null/.test(html) ||
+         /productionContextClear\(\)[\s\S]{0,400}window\.productionContextCampaignId\s*=\s*null/.test(html));
+
+  results.push('  (Step 31 — Production Board becomes campaign-aware when the marketer arrives from a strategist "Plan Assets ›" action. Context panel surfaces campaign name + reason + primary CTA. Primary CTA pre-fills LINK TO CAMPAIGN, SOURCE OBJECT, BRAND, PRIORITY, and the TITLE placeholder from real OS data. Asset save writes to c.assets so diagnosis refreshes and Ops Feed re-sorts. Standalone mode preserved when context is null or "Switch to standalone" is clicked. No broader redesign, no AI, no fabrication.)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
