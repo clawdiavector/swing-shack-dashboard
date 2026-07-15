@@ -465,6 +465,18 @@ No trends yet. Click <strong>+ New Trend</strong> to log a Reddit post, TikTok w
 
 <!-- Step 14: Calendar — the timeline. Standalone workspace, imports events from all other object kinds. -->
 <div id="view-calendar" class="view-panel">
+<!-- Step 36: campaign context panel (hidden in standalone mode). Mirrors the Step 31 pb-context-panel pattern. When the marketer arrives from a strategist action (e.g. "Schedule Publishing" for a campaign with no publishing plan), the panel surfaces the campaign name, the reason they were routed here, and one obvious next action — a primary CTA that opens the calendar modal pre-filled from the OS's existing campaign knowledge. Standalone mode hides it. -->
+<div id="cal-context-panel" style="display:none;margin-bottom:20px;padding:18px 20px;background:linear-gradient(135deg,#1a1810 0%,#0f0d08 100%);border:1px solid #c8a85a;border-left:3px solid #c8a85a;border-radius:8px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
+<div style="min-width:0;flex:1">
+<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#c8a85a;text-transform:uppercase;margin-bottom:4px">Scheduling for</div>
+<div id="cal-context-campaign-name" style="font-size:18px;font-weight:700;color:#e8e8ed">—</div>
+<div id="cal-context-reason" style="font-size:11px;color:#9aa0a6;margin-top:4px"></div>
+</div>
+<button type="button" class="view-btn" onclick="calendarContextClear()" style="font-size:10px;padding:4px 8px;color:var(--col-muted);border:1px solid var(--border);flex-shrink:0">Switch to standalone</button>
+</div>
+<div id="cal-context-action"></div>
+</div>
 <div class="card">
 <div class="cal-toolbar">
 <div class="card-title" id="calendar-header" style="margin:0;border:none;padding:0;flex:1">Calendar — 0 items</div>
@@ -1085,6 +1097,11 @@ No billboards yet. Click <strong>+ New Billboard</strong> to capture a billboard
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
 <div class="modal-title" style="font-size:18px;font-weight:700">New Calendar Item</div>
 <button class="view-btn" onclick="closeCalModal()">×</button>
+</div>
+<!-- Step 36: inline campaign banner (hidden in standalone mode). Mirrors asset-modal-campaign-banner. Shows the campaign name while the marketer is filling the form so they can see which campaign this calendar item is being created for. -->
+<div id="cal-modal-campaign-banner" style="display:none;margin-bottom:12px;padding:8px 12px;background:linear-gradient(135deg,#1a1810 0%,#0f0d08 100%);border:1px solid #c8a85a;border-left:3px solid #c8a85a;border-radius:6px;font-size:12px">
+<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#c8a85a;text-transform:uppercase;margin-bottom:2px">Scheduling for</div>
+<div id="cal-modal-campaign-name" style="font-size:14px;font-weight:700;color:#e8e8ed">—</div>
 </div>
 <form id="calForm" onsubmit="return handleCalSubmit(event)">
 <div style="margin-bottom:12px">
@@ -2838,6 +2855,12 @@ function renderStrategistBlock(campaignId) {
     if (it.dest === 'assets') {
       onclickFn = "window.productionContextCampaignId = '" + campaignId + "'; showView('assets'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
     }
+    // Step 36: mirror Step 31 for Calendar. When the action navigates to Calendar
+    // (e.g. "Schedule Publishing" issue), set the calendar context so the destination
+    // surfaces the campaign context panel and the calendar modal opens pre-filled.
+    if (it.dest === 'calendar') {
+      onclickFn = "window.calendarContextCampaignId = '" + campaignId + "'; showView('calendar'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+    }
     return '<div class="strategist-issue" data-issue-key="' + it.key + '" data-impact="' + it.impact + '" style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;' + (i===0?'border-top:0':'') + 'border-bottom:1px solid rgba(255,255,255,0.06)">' +
       '<div style="font-size:13px;font-weight:700;color:#c8a85a;min-width:18px">' + (i+1) + '</div>' +
       '<div style="flex:1">' +
@@ -2858,6 +2881,10 @@ function renderStrategistBlock(campaignId) {
   // Step 31: mirror Step 25 for Production Board on the recommendation button too.
   if (rec.dest === 'assets') {
     recOnclick = "window.productionContextCampaignId = '" + campaignId + "'; showView('assets'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
+  }
+  // Step 36: mirror Step 25/31 for Calendar on the recommendation button too.
+  if (rec.dest === 'calendar') {
+    recOnclick = "window.calendarContextCampaignId = '" + campaignId + "'; showView('calendar'); try { window.campaignData.activeCampaignId = '" + campaignId + "'; } catch(e) {}";
   }
   return '<div class="card" id="strategist-block" data-campaign-id="' + campaignId + '" style="border-left:3px solid #c8a85a;background:linear-gradient(135deg,#1a1810 0%,#0f0d08 100%);margin-bottom:20px;padding:0">' +
     '<div style="padding:18px 20px 14px 20px">' +
@@ -4384,7 +4411,7 @@ function calModalPopulateSourceOptions() {
 }
 function escapeHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 var currentCalId = null;
-function openCalModal() {
+function openCalModal(preselectedSourceRef) {
   currentCalId = null;
   var modal = document.getElementById('calModal');
   if (modal) modal.style.display = 'flex';
@@ -4401,9 +4428,16 @@ function openCalModal() {
   var ok = document.getElementById('cal-success'); if (ok) ok.style.display = 'none';
   calModalPopulateSourceOptions();
   var src = document.getElementById('c-source');
-  if (src) src.value = '';
+  // Step 36: when called with a preselected source (e.g. "campaign:trackman-intelligence"
+  // from openCalModalForCampaign), pre-select it in the source dropdown. Otherwise
+  // default to empty (standalone).
+  if (src) src.value = preselectedSourceRef || '';
+  // Step 36: reset the modal title and inline campaign banner to standalone defaults.
+  // openCalModalForCampaign() will override these right after this returns.
   var titleEl = modal && modal.querySelector('.modal-title');
   if (titleEl) titleEl.textContent = 'New Calendar Item';
+  var banner = document.getElementById('cal-modal-campaign-banner');
+  if (banner) banner.style.display = 'none';
   var saveBtn = document.getElementById('cal-save');
   if (saveBtn) { saveBtn.textContent = 'Save Calendar Item'; saveBtn.disabled = false; }
   var firstField = document.getElementById('c-title');
@@ -4430,12 +4464,23 @@ function openEditCalModal(id) {
   var ok = document.getElementById('cal-success'); if (ok) ok.style.display = 'none';
   var titleEl = modal && modal.querySelector('.modal-title');
   if (titleEl) titleEl.textContent = 'Edit Calendar Item';
+  // Step 36: defensive — editing an existing calendar item is not a campaign-context creation.
+  // Hide the inline campaign banner so a stale "Scheduling for X" doesn't bleed across opens.
+  var editBanner = document.getElementById('cal-modal-campaign-banner');
+  if (editBanner) editBanner.style.display = 'none';
   return true;
 }
 function closeCalModal() {
   currentCalId = null;
   var modal = document.getElementById('calModal');
   if (modal) modal.style.display = 'none';
+  // Step 36: reset the inline campaign banner + modal title so a subsequent
+  // standalone open doesn't show stale campaign context. The form field
+  // values themselves are reset by openCalModal() at the top of every open.
+  var banner = document.getElementById('cal-modal-campaign-banner');
+  if (banner) banner.style.display = 'none';
+  var titleEl = modal && modal.querySelector('.modal-title');
+  if (titleEl) titleEl.textContent = 'New Calendar Item';
 }
 function handleCalSubmit(e) {
   e.preventDefault();
@@ -4691,6 +4736,11 @@ function renderCalCard(it) {
   '</div>';
 }
 function renderCalendar() {
+  // Step 36: render the campaign context panel first (hidden in standalone mode).
+  // Mirrors how renderAssetPlanner() / renderCreativeStudio() call the context-panel render at the top.
+  if (typeof renderCalendarContextPanel === 'function') {
+    try { renderCalendarContextPanel(); } catch (e) {}
+  }
   var list = document.getElementById('cal-list');
   var empty = document.getElementById('cal-empty');
   var header = document.getElementById('calendar-header');
@@ -5213,6 +5263,143 @@ function productionContextClear() {
   window.productionContextCampaignId = null;
   renderAssetPlanner();
   updateGenericAssetButtonVisibility();
+}
+// Step 36: calendar-context state (mirror of window.creativeContextCampaignId and
+// window.productionContextCampaignId). When set, the Calendar view shows a
+// context panel + pre-filled calendar modal for that campaign. Defaults to
+// null (standalone mode). Set when arriving from a strategist action with
+// dest === 'calendar' (e.g. "Schedule Publishing" issue).
+window.calendarContextCampaignId = window.calendarContextCampaignId || null;
+// Step 36: clear the campaign context (return to standalone mode) and re-render
+// Calendar. Mirrors productionContextClear / creativeContextClear exactly.
+function calendarContextClear() {
+  window.calendarContextCampaignId = null;
+  renderCalendar();
+  updateGenericCalButtonVisibility();
+}
+// Step 36: when a campaign context is active, the generic + New Calendar Item
+// button drops campaign context silently (it's wired to openCalModal() with no
+// args, so no pre-fill). Hide it so the only visible creation action is the
+// campaign-aware CTA. When context is null (direct nav OR Switch to standalone),
+// the generic button returns. The button stays in the DOM (no markup change) —
+// only its display property toggles. Mirrors Step 32's
+// updateGenericAssetButtonVisibility exactly.
+function updateGenericCalButtonVisibility() {
+  var btn = document.getElementById('btn-new-cal');
+  if (!btn) return;
+  if (window.calendarContextCampaignId) {
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = '';
+  }
+}
+// Step 36: render the campaign context panel above the Calendar list when a
+// context is set. Mirrors the Step 31 renderProductionContextPanel pattern.
+// Hidden otherwise. Reads live state — no fabrication.
+function renderCalendarContextPanel() {
+  var panel = document.getElementById('cal-context-panel');
+  var nameEl = document.getElementById('cal-context-campaign-name');
+  var reasonEl = document.getElementById('cal-context-reason');
+  var actionEl = document.getElementById('cal-context-action');
+  if (!panel || !nameEl || !reasonEl || !actionEl) return;
+  var contextId = window.calendarContextCampaignId;
+  var contextCampaign = contextId && window.campaignData && window.campaignData.campaigns ? window.campaignData.campaigns[contextId] : null;
+  if (!contextCampaign) {
+    panel.style.display = 'none';
+    // Step 36: when no context is active, the generic + New Calendar Item button is visible.
+    updateGenericCalButtonVisibility();
+    return;
+  }
+  panel.style.display = 'block';
+  // Step 36: when context is active, hide the generic + New Calendar Item button so the
+  // marketer doesn't have to remember which creation path preserves the campaign link.
+  updateGenericCalButtonVisibility();
+  var cname = (contextCampaign.identity && contextCampaign.identity.name) || contextId;
+  nameEl.textContent = cname;
+  // Reason: pull from the diagnosis (the publishing-issue reason) — same source
+  // the Strategist block surfaces. Truthful templating — only what the OS
+  // already computed. If diagnoseCampaign is unavailable, fall back to a
+  // generic "you arrived from a campaign context" message (no fabrication).
+  var d = (typeof diagnoseCampaign === 'function') ? diagnoseCampaign(contextId) : null;
+  var reasonText = '';
+  if (d && d.issues) {
+    var pubIssue = null;
+    for (var pi = 0; pi < d.issues.length; pi++) {
+      if (d.issues[pi] && d.issues[pi].key === 'publishing') { pubIssue = d.issues[pi]; break; }
+    }
+    if (pubIssue) {
+      reasonText = 'Reason: ' + pubIssue.title + '. ' + pubIssue.reason;
+    } else {
+      reasonText = 'You arrived here from a campaign context.';
+    }
+  } else {
+    reasonText = 'You arrived here from a campaign context.';
+  }
+  reasonEl.textContent = reasonText;
+  // Primary CTA: open the calendar modal pre-filled from the OS's existing
+  // campaign knowledge. Mirrors openAssetModalForCampaign's contract: no AI,
+  // no fake drafts, no generated title/date/notes. Just defaults that the OS
+  // already knows.
+  actionEl.innerHTML = '<button type="button" id="cal-context-primary-action" class="cal-context-primary-action" onclick="openCalModalForCampaign(\'' + contextId + '\')" style="font-size:13px;font-weight:700;padding:10px 16px;background:#c8a85a;color:#0a0a14;border:none;border-radius:6px;cursor:pointer;font-family:inherit">Schedule first publishing item for ' + assetEsc(cname) + ' →</button>' +
+    '<div style="font-size:11px;color:var(--col-muted);margin-top:8px">Calendar form opens pre-linked to this campaign. Save and it attaches automatically — no extra step.</div>';
+}
+// Step 36: open the calendar modal with the campaign pre-filled. When the
+// calendar item is saved, it auto-links to the campaign via the existing
+// calendar→campaign sync in handleCalSubmit (the `calendar-linked` history
+// entry, which only writes when sourceKind === 'campaign'). The marketer still
+// chooses: title, date, time, type, status, brand, channel, source, note. The
+// OS already knows:
+// - SOURCE OBJECT defaults to campaign:<id> (and the pre-fill selects the campaign in the source dropdown)
+// - BRAND defaults from the active product / campaign identity (same logic as openAssetModalForCampaign)
+// - TYPE defaults to "campaign" so the calendar item's kind is a campaign item
+// - Date default stays "today" (standalone default) — the marketer picks the actual date
+// - title placeholder becomes campaign-specific (built from brief.bigIdea or purpose)
+function openCalModalForCampaign(campaignId) {
+  if (!campaignId) return;
+  var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
+  var cname = (c && c.identity && c.identity.name) || campaignId;
+  // Open the modal with the campaign as the preselected source.
+  openCalModal('campaign:' + campaignId);
+  // BRAND: default to the active product's brand if available; fall back to
+  // the first non-empty option. Mirrors openAssetModalForCampaign's brand logic.
+  var brandEl = document.getElementById('c-brand');
+  if (brandEl && (brandEl.options.length > 1)) {
+    var preferred = '';
+    for (var bi = 0; bi < brandEl.options.length; bi++) {
+      var v = brandEl.options[bi].value;
+      if (v && v !== '') { preferred = v; break; }
+    }
+    if (preferred) brandEl.value = preferred;
+  }
+  // TYPE: default to "campaign" so the calendar item's kind is a campaign item.
+  var typeEl = document.getElementById('c-type');
+  if (typeEl) typeEl.value = 'campaign';
+  // Title placeholder: derive from the campaign's brief.bigIdea or brief.purpose
+  // so the marketer sees campaign-specific guidance, not the generic example.
+  // The actual title is still typed by the marketer — placeholder is not a default.
+  var titleEl = document.getElementById('c-title');
+  if (titleEl) {
+    var brief = (c && c.brief) || {};
+    var anchor = (brief.bigIdea || brief.purpose || '').trim();
+    if (anchor) {
+      var max = 120;
+      titleEl.placeholder = (anchor.length > max ? (anchor.slice(0, max - 1) + '…') : anchor);
+    } else {
+      titleEl.placeholder = 'e.g. Schedule ' + cname + ' launch';
+    }
+  }
+  // Modal title and inline banner: show the campaign context so the marketer
+  // sees which campaign this calendar item is being created for while filling
+  // the form. Mirrors openAssetModalForCampaign's banner pattern.
+  var modal = document.getElementById('calModal');
+  var titleText = modal && modal.querySelector('.modal-title');
+  if (titleText) titleText.textContent = 'New Calendar Item — for ' + cname;
+  var banner = document.getElementById('cal-modal-campaign-banner');
+  var bannerName = document.getElementById('cal-modal-campaign-name');
+  if (banner && bannerName) {
+    banner.style.display = 'block';
+    bannerName.textContent = cname;
+  }
 }
 // Step 32: when a campaign context is active, the generic + New Asset Request button
 // drops campaign context silently. Hide it so the only visible creation action is the

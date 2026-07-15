@@ -1869,6 +1869,218 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 35 — Campaign history is now truthful: one user action = one history entry. The asset save no longer double-writes asset-requested to c.history when source IS the campaign (pushAssetRequestedToSource kind==campaign branch is now no-op for c.history; the link block in handleAssetSubmit is the single source of truth). The hook save now writes exactly one hook-attached entry on a successful attach (guarded by attachToCampaign returning non-null, so no-op re-attach does not create a duplicate). Non-campaign source branches still push to the source object (caption/meme/billboard/trend/hook history arrays) — the dual history contract is preserved for those five kinds. The Step 31 c.assets bridge and renderOpsFeed re-render are intact. The Step 25 hook→campaign auto-attach is intact.)');
 
+  // ───────────────────────────────────────────────────────────────
+  // STEP 36 — Calendar gets the campaign-aware workspace pattern.
+  // The existing production/creative pattern (context state global +
+  // context-panel HTML + renderContextPanel() + contextClear() +
+  // openXModalForCampaign() + strategist on-click branch) is mirrored
+  // for Calendar. Standalone Calendar is preserved (no context panel,
+  // generic + button, generic modal). Switch to standalone restores it.
+  // ───────────────────────────────────────────────────────────────
+
+  // -- 36.1: HTML structure — context panel and modal banner exist.
+  assert('Step 36: cal-context-panel HTML block exists',
+         html.includes('id="cal-context-panel"'));
+  assert('Step 36: cal-context-campaign-name placeholder exists',
+         html.includes('id="cal-context-campaign-name"'));
+  assert('Step 36: cal-context-reason placeholder exists',
+         html.includes('id="cal-context-reason"'));
+  assert('Step 36: cal-context-action placeholder exists',
+         html.includes('id="cal-context-action"'));
+  assert('Step 36: cal-context-panel hidden in standalone mode (display:none in style attr)',
+         /<div id="cal-context-panel"[^>]*style="[^"]*display:none/.test(html));
+  assert('Step 36: Switch to standalone button in context panel calls calendarContextClear',
+         /class="view-btn"[^>]*onclick="calendarContextClear\(\)"/.test(html));
+  assert('Step 36: cal-modal-campaign-banner HTML block exists inside calModal',
+         html.includes('id="cal-modal-campaign-banner"'));
+  assert('Step 36: cal-modal-campaign-name placeholder exists',
+         html.includes('id="cal-modal-campaign-name"'));
+  assert('Step 36: cal-modal-campaign-banner hidden in standalone mode (display:none in style attr)',
+         /<div id="cal-modal-campaign-banner"[^>]*style="[^"]*display:none/.test(html));
+
+  // -- 36.2: state global declared (mirrors window.productionContextCampaignId).
+  assert('Step 36: window.calendarContextCampaignId state global declared',
+         /window\.calendarContextCampaignId\s*=\s*window\.calendarContextCampaignId\s*\|\|\s*null/.test(html));
+
+  // -- 36.3: calendarContextClear function exists, resets context, re-renders Calendar,
+  //          and restores the generic + New Calendar Item button visibility.
+  var ccc = getFnBody('calendarContextClear');
+  assert('Step 36: calendarContextClear function defined', !!ccc);
+  if (ccc) {
+    assert('Step 36: calendarContextClear nulls window.calendarContextCampaignId',
+           /window\.calendarContextCampaignId\s*=\s*null/.test(ccc));
+    assert('Step 36: calendarContextClear calls renderCalendar',
+           /renderCalendar\(\)/.test(ccc));
+    assert('Step 36: calendarContextClear calls updateGenericCalButtonVisibility',
+           /updateGenericCalButtonVisibility\(\)/.test(ccc));
+  }
+
+  // -- 36.4: updateGenericCalButtonVisibility toggles #btn-new-cal display
+  //          based on window.calendarContextCampaignId (mirrors Step 32).
+  var ugcbv = getFnBody('updateGenericCalButtonVisibility');
+  assert('Step 36: updateGenericCalButtonVisibility function defined', !!ugcbv);
+  if (ugcbv) {
+    assert('Step 36: updateGenericCalButtonVisibility reads btn-new-cal',
+           /getElementById\(['"]btn-new-cal['"]\)/.test(ugcbv));
+    assert('Step 36: updateGenericCalButtonVisibility hides button when context is set',
+           /window\.calendarContextCampaignId[\s\S]{0,100}btn\.style\.display\s*=\s*'none'/.test(ugcbv));
+    assert('Step 36: updateGenericCalButtonVisibility shows button when context is null',
+           /btn\.style\.display\s*=\s*''/.test(ugcbv));
+  }
+
+  // -- 36.5: renderCalendarContextPanel reads the campaign doc and renders
+  //          the campaign name + reason (from live diagnosis) into the panel.
+  var rccp = getFnBody('renderCalendarContextPanel');
+  assert('Step 36: renderCalendarContextPanel function defined', !!rccp);
+  if (rccp) {
+    assert('Step 36: renderCalendarContextPanel reads window.calendarContextCampaignId',
+           /window\.calendarContextCampaignId/.test(rccp));
+    assert('Step 36: renderCalendarContextPanel reads contextCampaign via window.campaignData',
+           /window\.campaignData\.campaigns/.test(rccp));
+    assert('Step 36: renderCalendarContextPanel hides panel when no context',
+           /panel\.style\.display\s*=\s*'none'/.test(rccp));
+    assert('Step 36: renderCalendarContextPanel shows panel when context active',
+           /panel\.style\.display\s*=\s*'block'/.test(rccp));
+    assert('Step 36: renderCalendarContextPanel sets campaign name from identity.name',
+           /contextCampaign\.identity\s*&&\s*contextCampaign\.identity\.name/.test(rccp));
+    assert('Step 36: renderCalendarContextPanel reads live diagnosis for reason',
+           /diagnoseCampaign\(contextId\)/.test(rccp));
+    assert('Step 36: renderCalendarContextPanel surfaces the publishing-issue reason',
+           /key\s*===\s*'publishing'/.test(rccp));
+    assert('Step 36: renderCalendarContextPanel renders primary CTA wired to openCalModalForCampaign',
+           /onclick="openCalModalForCampaign\(/.test(rccp));
+    assert('Step 36: renderCalendarContextPanel CTA copy is "Schedule first publishing item for"',
+           /Schedule first publishing item for/.test(rccp));
+  }
+
+  // -- 36.6: openCalModalForCampaign pre-fills the form from real OS data
+  //          (mirrors openAssetModalForCampaign's contract).
+  var ocmfc = getFnBody('openCalModalForCampaign');
+  assert('Step 36: openCalModalForCampaign function defined', !!ocmfc);
+  if (ocmfc) {
+    assert('Step 36: openCalModalForCampaign calls openCalModal with campaign:<id> as source',
+           /openCalModal\(['"]campaign:\s*['"]?\s*\+\s*campaignId/.test(ocmfc));
+    assert('Step 36: openCalModalForCampaign sets brand from first non-empty option',
+           /brandEl\.options/.test(ocmfc) && /preferred\s*=\s*v/.test(ocmfc));
+    assert('Step 36: openCalModalForCampaign sets type to "campaign"',
+           /typeEl\.value\s*=\s*'campaign'/.test(ocmfc));
+    assert('Step 36: openCalModalForCampaign sets title placeholder from brief.bigIdea or brief.purpose',
+           /brief\.bigIdea\s*\|\|\s*brief\.purpose/.test(ocmfc));
+    assert('Step 36: openCalModalForCampaign sets modal title to "New Calendar Item — for <cname>"',
+           /'New Calendar Item — for '\s*\+\s*cname/.test(ocmfc));
+    assert('Step 36: openCalModalForCampaign shows the inline campaign banner',
+           /banner\.style\.display\s*=\s*'block'/.test(ocmfc));
+    assert('Step 36: openCalModalForCampaign does NOT fabricate a title or date value (only placeholder)',
+           !/\b(?:title|d)El\.value\s*=/.test(ocmfc) ||
+           (!/titleEl\.value\s*=/.test(ocmfc) && !/\bdEl\.value\s*=/.test(ocmfc)));
+  }
+
+  // -- 36.7: openCalModal accepts a preselectedSourceRef argument and uses it.
+  var ocm = getFnBody('openCalModal');
+  assert('Step 36: openCalModal accepts preselectedSourceRef argument', !!ocm);
+  if (ocm) {
+    assert('Step 36: openCalModal signature includes preselectedSourceRef',
+           /function\s+openCalModal\s*\(\s*preselectedSourceRef\s*\)/.test(ocm));
+    assert('Step 36: openCalModal sets source value from preselectedSourceRef',
+           /src\.value\s*=\s*preselectedSourceRef\s*\|\|\s*''/.test(ocm));
+    assert('Step 36: openCalModal resets modal title to standalone default',
+           /titleEl\.textContent\s*=\s*'New Calendar Item'/.test(ocm));
+    assert('Step 36: openCalModal hides inline campaign banner by default',
+           /banner\.style\.display\s*=\s*'none'/.test(ocm));
+  }
+
+  // -- 36.8: closeCalModal resets the inline campaign banner and modal title
+  //          so a subsequent standalone open doesn't show stale context.
+  var ccm = getFnBody('closeCalModal');
+  assert('Step 36: closeCalModal function defined', !!ccm);
+  if (ccm) {
+    assert('Step 36: closeCalModal hides the inline campaign banner',
+           /banner\.style\.display\s*=\s*'none'/.test(ccm));
+    assert('Step 36: closeCalModal resets the modal title',
+           /titleEl\.textContent\s*=\s*'New Calendar Item'/.test(ccm));
+  }
+
+  // -- 36.9: renderCalendar calls renderCalendarContextPanel near the top
+  //          so the panel surfaces correctly on every view entry. Either a
+  //          typeof guard or a try/catch wrapper is acceptable; both prove
+  //          the call exists and is safe.
+  var rcc = getFnBody('renderCalendar');
+  assert('Step 36: renderCalendar function defined', !!rcc);
+  if (rcc) {
+    var hasRCCP = /renderCalendarContextPanel\(\)/.test(rcc);
+    var hasGuard = /typeof\s+renderCalendarContextPanel\s*===\s*'function'/.test(rcc) ||
+                   /try\s*\{[^}]*renderCalendarContextPanel\(\)[^}]*\}\s*catch/.test(rcc);
+    assert('Step 36: renderCalendar calls renderCalendarContextPanel (guarded)', hasRCCP && hasGuard);
+  }
+
+  // -- 36.10: Strategist routing — issues[] and recOnclick both set
+  //           window.calendarContextCampaignId for dest === 'calendar'.
+  //   The Step 36 patch added two branches: one in issues[] loop, one
+  //   in the recOnclick block. Both set the calendar context.
+  assert('Step 36: strategist issues[] branch sets window.calendarContextCampaignId for dest === calendar',
+         /if\s*\(\s*it\.dest\s*===\s*'calendar'\s*\)\s*\{[\s\S]{0,300}window\.calendarContextCampaignId/.test(html));
+  assert('Step 36: strategist recOnclick branch sets window.calendarContextCampaignId for rec.dest === calendar',
+         /if\s*\(\s*rec\.dest\s*===\s*'calendar'\s*\)\s*\{[\s\S]{0,200}window\.calendarContextCampaignId/.test(html));
+
+  // -- 36.11: Standalone Calendar is preserved — the generic + New Calendar
+  //           Item button stays in the DOM and is wired to openCalModal().
+  assert('Step 36: + New Calendar Item button still exists in DOM',
+         html.includes('id="btn-new-cal"') && html.includes('onclick="openCalModal()"'));
+  assert('Step 36: openCalModal() is the standalone entry point (no required args)',
+         /function\s+openCalModal\s*\(\s*preselectedSourceRef\s*\)/.test(html));
+
+  // -- 36.12: Non-regression of prior contracts.
+  //   The Step 31 c.assets bridge in handleAssetSubmit is still intact.
+  var has36 = getFnBody('handleAssetSubmit');
+  assert('Step 36: handleAssetSubmit still bridges c.assets[assetId] = asset (Step 31 contract intact)',
+         has36 && /c\.assets\[asset\.assetId\]\s*=\s*asset/.test(has36));
+  assert('Step 36: handleAssetSubmit still calls renderOpsFeed (Step 31 contract intact)',
+         has36 && /renderOpsFeed\(\)/.test(has36));
+  //   The Step 35 history-truth fix is still intact (no double asset-requested,
+  //   one hook-attached per save).
+  assert('Step 36: pushAssetRequestedToSource kind==campaign branch still skips inner push(c)',
+         /kind === 'campaign'[\s\S]{0,500}devStoreAppend/.test(html) &&
+         !/kind === 'campaign'[\s\S]{0,500}push\(c\)/.test(html));
+  var hhs36 = getFnBody('handleHookSubmit');
+  assert('Step 36: handleHookSubmit still pushes hook-attached to c.history (Step 35 contract intact)',
+         hhs36 && /\.history\.push\(\{\s*action:\s*'hook-attached'/.test(hhs36));
+  //   The Step 34 one-health-engine is still intact.
+  var cchb36 = getFnBody('computeCampaignHealth');
+  assert('Step 36: computeCampaignHealth function still defined (Step 34 contract intact)',
+         typeof cchb36 === 'string' && cchb36.length > 200);
+  assert('Step 36: computeCampaignHealth still uses getCampaignCategoryState as source',
+         cchb36 && /getCampaignCategoryState\(/.test(cchb36));
+  //   The Step 25/31 creative+production context state globals are still set/cleared
+  //   by their respective clear functions. (Step 25's creative state is initialised
+  //   on first use; Step 31's production state is defensively initialised to null
+  //   on the window. Step 36 mirrors Step 31 for calendar.)
+  var ccc36 = getFnBody('creativeContextClear');
+  assert('Step 36: creativeContextClear still nulls window.creativeContextCampaignId',
+         ccc36 && /window\.creativeContextCampaignId\s*=\s*null/.test(ccc36));
+  var pcc36 = getFnBody('productionContextClear');
+  assert('Step 36: productionContextClear still nulls window.productionContextCampaignId',
+         pcc36 && /window\.productionContextCampaignId\s*=\s*null/.test(pcc36));
+  assert('Step 36: window.productionContextCampaignId state global still declared',
+         /window\.productionContextCampaignId\s*=\s*window\.productionContextCampaignId\s*\|\|\s*null/.test(html));
+  assert('Step 36: window.calendarContextCampaignId state global still declared (Step 36 mirror of Step 31 pattern)',
+         /window\.calendarContextCampaignId\s*=\s*window\.calendarContextCampaignId\s*\|\|\s*null/.test(html));
+  //   The diagnoseCampaign function still defines the publishing issue with
+  //   dest === 'calendar' (so the new strategist branch is reachable).
+  var dcb36 = getFnBody('diagnoseCampaign');
+  assert('Step 36: diagnoseCampaign still defines the publishing issue with dest=calendar',
+         dcb36 && /key:'publishing'[\s\S]{0,400}dest:'calendar'/.test(dcb36));
+
+  // -- 36.13: handleCalSubmit still writes calendar-linked to c.history when
+  //           the calendar item's source IS the campaign (the dual-history
+  //           contract established before Step 36). This proves the campaign-
+  //           aware save still attaches to the campaign the same way the
+  //           standalone save does.
+  var hcs36 = getFnBody('handleCalSubmit');
+  assert('Step 36: handleCalSubmit still writes calendar-linked to c.history for campaign source',
+         hcs36 && /action:\s*'calendar-linked'/.test(hcs36) && /sourceKind\s*===\s*'campaign'/.test(hcs36));
+
+  results.push('  (Step 36 — Calendar now has the campaign-aware workspace pattern. Strategist "Schedule Publishing" (and any dest===calendar action) sets window.calendarContextCampaignId before showView, so the Calendar renders a SCHEDULING FOR panel with the campaign name, a reason derived from the live publishing-issue diagnosis, and a single primary CTA "Schedule first publishing item for <Campaign> →" wired to openCalModalForCampaign. The calendar modal opens pre-filled with the campaign selected as the source object, the brand defaulted, the type set to "campaign", and a campaign-specific title placeholder built from brief.bigIdea or brief.purpose — never fabricated. The generic + New Calendar Item button hides when context is active (mirrors Step 32 updateGenericAssetButtonVisibility) and returns on Switch to standalone. Standalone Calendar is preserved: openCalModal() called with no args, no context panel, generic button visible. The calendar-linked dual-history contract (c.history push when sourceKind === campaign) is preserved. The Step 31 c.assets bridge, the Step 25/31 context state globals, the Step 34 one-health-engine, the Step 35 history-truth fix, and all prior contracts remain intact.)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
