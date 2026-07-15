@@ -1753,8 +1753,11 @@ section('Live API — wizard payload (new shape)');
   assert('Step 34: updateCampaignCard writes the health band text into the card',
          /function\s+updateCampaignCard[\s\S]{0,1500}band\s*=\s*h\.state\.charAt\(0\)/.test(html));
   // On boot, every embedded card is refreshed via the new DOMContentLoaded listener.
+  // Step 38: this is now a refreshPortfolio() call instead of a per-card
+  // updateCampaignCard forEach — refreshPortfolio() handles the cards AND
+  // the totals in one pass.
   assert('Step 34: DOMContentLoaded listener refreshes every campaign card on boot',
-         /DOMContentLoaded[\s\S]{0,400}updateCampaignCard[\s\S]{0,300}forEach/.test(html));
+         /DOMContentLoaded[\s\S]{0,400}refreshPortfolio\(\)/.test(html));
 
   // -- 34.10: no visible surface still depends on c.identity.healthScore.
   // The seed keeps the field for backwards compatibility, but no display
@@ -2204,6 +2207,166 @@ section('Live API — wizard payload (new shape)');
          html.includes('removeItem(CAL_STORE_KEY)'));
 
   results.push('  (Step 37 — Publishing is now a single shared capability, not a Calendar-specific check. hasPublishingPlan(campaignId) is the canonical entry point: today it reads the campaign-linked Calendar items from the existing store and treats any non-skipped item as a publishing plan. getCampaignCategoryState() delegates to it for the publishing category. The dead-code check `c.assets[].status === "published"` is removed (asset statuses are needed/requested/in-production/ready/used/cancelled — there is no "published" state on assets, and the check was unreachable). The Strategist issue text is updated to match the canonical definition and is future-extensible (mentions Postiz / Meta / Buffer). Future integrations plug in by adding their own check inside hasPublishingPlan — the function name and signature do not mention any specific integration, so renaming is not required. Every surface that consumes getCampaignCategoryState (Campaign Detail ring/state/timestamp, Operations Feed, Portfolio campaign-cards, Strategist block) becomes truthful automatically because the shared category-state source is the single source of truth. All prior contracts (Step 25/31/32/33/34/35/36) remain intact — production, creative, learning, health engine, history truth, and Calendar campaign-aware modal are preserved.)');
+
+  // ───────────────────────────────────────────────────────────────
+  // STEP 38 — One Portfolio refresh function. The previous Portfolio
+  // displayed frozen seed-time values (1 Healthy / 2 Degraded / 0 Critical,
+  // 42 Total Assets, hardcoded "0 assets · Degraded" per card) while
+  // Campaign Detail, Strategist, Operations Feed and computeCampaignHealth
+  // showed live truth. refreshPortfolio() walks the campaign collection
+  // and rewrites every visible Portfolio surface from current state.
+  // ───────────────────────────────────────────────────────────────
+
+  // -- 38.1: refreshPortfolio() function is declared and is the single
+  //          Portfolio refresh entry point. No other "refresh the Portfolio"
+  //          function exists alongside it.
+  var rfp = getFnBody('refreshPortfolio');
+  assert('Step 38: refreshPortfolio function is declared', !!rfp);
+  if (rfp) {
+    assert('Step 38: refreshPortfolio iterates the campaign collection',
+           /Object\.keys\(window\.campaignData\.campaigns\)/.test(rfp) || /window\.campaignData\.campaigns\)/.test(rfp));
+    assert('Step 38: refreshPortfolio calls updateCampaignCard for each card',
+           /updateCampaignCard\(/.test(rfp));
+    assert('Step 38: refreshPortfolio calls computeCampaignHealth for the totals',
+           /computeCampaignHealth\(/.test(rfp));
+    assert('Step 38: refreshPortfolio writes to the stable totals IDs',
+           /portfolio-healthy/.test(rfp) && /portfolio-degraded/.test(rfp) &&
+                       /portfolio-critical/.test(rfp) && /portfolio-total-assets/.test(rfp) &&
+                       /portfolio-published/.test(rfp) && /portfolio-in-progress/.test(rfp) &&
+                       /portfolio-card-title/.test(rfp));
+    // The body contains a regex literal /selectCampaign\('([^']+)'\)/
+    // (the source has a backslash before each paren because that text is
+    // itself a regex literal). The next ~115 chars include the match
+    // capture group, the `if (match && ids.indexOf(match[1]) === -1)` check,
+    // and the stale-card `parentNode.removeChild(staleCards[s])` removal.
+    // We assert the structural shape: the selectCampaign pattern is used
+    // AND removeChild is called somewhere in the same stale-card block.
+    assert('Step 38: refreshPortfolio removes stale .ccard whose campaignId is gone',
+           /selectCampaign[\s\S]{0,200}removeChild/.test(rfp));
+    // Does NOT introduce a second health engine.
+    assert('Step 38: refreshPortfolio does NOT call c.identity.healthScore',
+           !/c\.identity\.healthScore/.test(rfp));
+  }
+  // renderNewCampaignCard helper exists (used for Campaign Factory / dev-store).
+  var rncc = getFnBody('renderNewCampaignCard');
+  assert('Step 38: renderNewCampaignCard helper is declared', !!rncc);
+
+  // -- 38.2: the Portfolio HTML has stable IDs on every count + the card grid.
+  //   No more hardcoded seed-time literals in the HTML markup.
+  assert('Step 38: Portfolio stat row uses #portfolio-healthy', /id="portfolio-healthy"/.test(html));
+  assert('Step 38: Portfolio stat row uses #portfolio-degraded', /id="portfolio-degraded"/.test(html));
+  assert('Step 38: Portfolio stat row uses #portfolio-critical', /id="portfolio-critical"/.test(html));
+  assert('Step 38: Portfolio stat row uses #portfolio-total-assets', /id="portfolio-total-assets"/.test(html));
+  assert('Step 38: Portfolio stat row uses #portfolio-published', /id="portfolio-published"/.test(html));
+  assert('Step 38: Portfolio stat row uses #portfolio-in-progress', /id="portfolio-in-progress"/.test(html));
+  assert('Step 38: Portfolio card title uses #portfolio-card-title', /id="portfolio-card-title"/.test(html));
+  assert('Step 38: Portfolio card grid uses #portfolio-cards', /id="portfolio-cards"/.test(html));
+  // The previous hardcoded "1 Healthy", "0 Critical", "42 Total Assets",
+  // "1 Published", "41 In Progress" seed-time literals are GONE from the HTML.
+  // The new HTML defaults every stat to 0 (which refreshPortfolio() rewrites
+  // on boot and on every save), so we check that the SEED-TIME non-zero
+  // values are not present anywhere in the markup.
+  assert('Step 38: no hardcoded "1 Healthy" / "2 Degraded" / "42 Total Assets" / "1 Published" / "41 In Progress" seed-time literals in HTML',
+         !/stat-value[^>]*>1<\/div><div class="stat-sub">Healthy/.test(html) &&
+         !/stat-value[^>]*>2<\/div><div class="stat-sub">Degraded/.test(html) &&
+         !/stat-value[^>]*>42<\/div><div class="stat-sub">Total Assets/.test(html) &&
+         !/stat-value[^>]*>1<\/div><div class="stat-sub">Published/.test(html) &&
+         !/stat-value[^>]*>41<\/div><div class="stat-sub">In Progress/.test(html));
+  // Every stat in the new HTML starts at 0 — these are placeholders that
+  // refreshPortfolio() rewrites on first paint.
+  assert('Step 38: every Portfolio stat starts at 0 (placeholder, rewritten by refreshPortfolio on boot)',
+         /id="portfolio-healthy"[^>]*>0</.test(html) &&
+         /id="portfolio-degraded"[^>]*>0</.test(html) &&
+         /id="portfolio-critical"[^>]*>0</.test(html) &&
+         /id="portfolio-total-assets"[^>]*>0</.test(html) &&
+         /id="portfolio-published"[^>]*>0</.test(html) &&
+         /id="portfolio-in-progress"[^>]*>0</.test(html));
+  // The previous hardcoded "4 campaigns" / per-card seed values are gone.
+  assert('Step 38: no hardcoded "Campaign Portfolio — 4 campaigns" title in HTML',
+         !/Campaign Portfolio\s*—\s*4 campaigns/.test(html));
+  assert('Step 38: no hardcoded per-card seed asset counts in HTML',
+         !/0 assets\s*&middot;\s*Degraded/.test(html) &&
+         !/6 assets\s*&middot;\s*Degraded/.test(html) &&
+         !/36 assets\s*&middot;\s*Unknown/.test(html));
+
+  // -- 38.3: refreshPortfolio is called at every save path the brief
+  //          required: boot, showView('portfolio'), handleAssetSubmit,
+  //          handleHookSubmit, handleCalSubmit, changeAssetStatus,
+  //          changeCalStatus, campaignFactoryCreate, devStoreHydrate.
+  assert('Step 38: refreshPortfolio called on DOMContentLoaded boot',
+         /DOMContentLoaded[\s\S]{0,400}refreshPortfolio\(\)/.test(html));
+  assert('Step 38: refreshPortfolio called in showView("portfolio") branch',
+         /name === 'portfolio'[\s\S]{0,200}refreshPortfolio\(\)/.test(html));
+  var has38 = getFnBody('handleAssetSubmit');
+  assert('Step 38: refreshPortfolio called in handleAssetSubmit',
+         has38 && /refreshPortfolio\(\)/.test(has38));
+  var hhs38 = getFnBody('handleHookSubmit');
+  assert('Step 38: refreshPortfolio called in handleHookSubmit',
+         hhs38 && /refreshPortfolio\(\)/.test(hhs38));
+  var hcs38 = getFnBody('handleCalSubmit');
+  assert('Step 38: refreshPortfolio called in handleCalSubmit',
+         hcs38 && /refreshPortfolio\(\)/.test(hcs38));
+  var cas38 = getFnBody('changeAssetStatus');
+  assert('Step 38: refreshPortfolio called in changeAssetStatus',
+         cas38 && /refreshPortfolio\(\)/.test(cas38));
+  var ccs38 = getFnBody('changeCalStatus');
+  assert('Step 38: refreshPortfolio called in changeCalStatus',
+         ccs38 && /refreshPortfolio\(\)/.test(ccs38));
+  var cfc38 = getFnBody('campaignFactoryCreate');
+  assert('Step 38: refreshPortfolio called in campaignFactoryCreate',
+         cfc38 && /refreshPortfolio\(\)/.test(cfc38));
+  var dsh38 = getFnBody('devStoreHydrate');
+  assert('Step 38: refreshPortfolio called in devStoreHydrate',
+         dsh38 && /refreshPortfolio\(\)/.test(dsh38));
+
+  // -- 38.4: refreshPortfolio uses the brief's mapping for the totals.
+  //   "In progress" must use the current data model's intermediate states
+  //   (requested / in-production / ready). "Published" must use the terminal
+  //   state (used). Both are states the current model can prove.
+  if (rfp) {
+    assert('Step 38: refreshPortfolio in-progress count uses model-provable states',
+           /inProgressStates\s*=\s*\['requested',\s*'in-production',\s*'ready'\]/.test(rfp) ||
+           /inProgressStates\s*=\s*\['ready',\s*'in-production',\s*'requested'\]/.test(rfp));
+    assert('Step 38: refreshPortfolio published count uses model-provable terminal state',
+           /publishedStates\s*=\s*\['used'\]/.test(rfp));
+  }
+
+  // -- 38.5: Non-regression of the single health engine contract (Step 34).
+  //   refreshPortfolio reads from computeCampaignHealth, not a parallel engine.
+  //   No new health calculations are introduced. The diagnostic categories
+  //   are still derived from getCampaignCategoryState.
+  var cchb38 = getFnBody('computeCampaignHealth');
+  assert('Step 38: computeCampaignHealth still defined (Step 34 contract intact)',
+         typeof cchb38 === 'string' && cchb38.length > 200);
+  assert('Step 38: computeCampaignHealth still uses getCampaignCategoryState as source',
+         cchb38 && /getCampaignCategoryState\(/.test(cchb38));
+  assert('Step 38: refreshPortfolio uses computeCampaignHealth (the single engine), not its own health math',
+         rfp && /computeCampaignHealth\(/.test(rfp) && !/function\s+computeCampaignHealth/.test(rfp));
+  // The diagnose engine is unchanged.
+  var dcb38 = getFnBody('diagnoseCampaign');
+  assert('Step 38: diagnoseCampaign still uses getCampaignCategoryState',
+         dcb38 && /getCampaignCategoryState\(/.test(dcb38));
+
+  // -- 38.6: Non-regression of Step 37 (publishing capability shared category).
+  assert('Step 38: hasPublishingPlan still defined (Step 37 contract intact)',
+         typeof getFnBody('hasPublishingPlan') === 'string' && getFnBody('hasPublishingPlan').length > 200);
+  assert('Step 38: getCampaignCategoryState still delegates to hasPublishingPlan',
+         /hasPublishingPlan\(\s*campaignId\s*\)/.test(html));
+  // Step 33 contract: the Campaign Detail production assets counter is live.
+  assert('Step 38: patchProductionAssetsSection still defined (Step 33 contract intact)',
+         typeof getFnBody('patchProductionAssetsSection') === 'string' && getFnBody('patchProductionAssetsSection').length > 200);
+  // Step 36 contract: the Calendar context-aware modal is preserved.
+  assert('Step 38: openCalModalForCampaign still defined (Step 36 contract intact)',
+         typeof getFnBody('openCalModalForCampaign') === 'string' && getFnBody('openCalModalForCampaign').length > 200);
+  // Step 31 / 35 / 36 save contracts are preserved.
+  assert('Step 38: handleAssetSubmit still bridges c.assets[assetId] = asset (Step 31 intact)',
+         has38 && /c\.assets\[asset\.assetId\]\s*=\s*asset/.test(has38));
+  assert('Step 38: handleHookSubmit still pushes hook-attached to c.history (Step 35 intact)',
+         hhs38 && /\.history\.push\(\{\s*action:\s*'hook-attached'/.test(hhs38));
+  assert('Step 38: handleCalSubmit still writes calendar-linked to c.history (Step 35 intact)',
+         hcs38 && /action:\s*'calendar-linked'/.test(hcs38));
+
+  results.push('  (Step 38 — One Portfolio refresh function. The previous Portfolio displayed frozen seed-time values (1 Healthy / 2 Degraded / 0 Critical, 42 Total Assets, "0 assets · Degraded" per card) while Campaign Detail, Strategist, Operations Feed and computeCampaignHealth showed live truth. refreshPortfolio() walks window.campaignData.campaigns and rewrites every visible Portfolio surface from current state: each card (via updateCampaignCard), the per-band counts (via computeCampaignHealth), the Total Assets count, the Published/In-Progress counts (using only states the current data model can prove: publishedStates = ["used"], inProgressStates = ["requested", "in-production", "ready"]), and the campaign-card-title. The HTML markup now uses stable IDs (#portfolio-healthy, #portfolio-degraded, #portfolio-critical, #portfolio-total-assets, #portfolio-published, #portfolio-in-progress, #portfolio-card-title, #portfolio-cards) — no more hardcoded seed-time literals. Stale .ccard elements whose campaignId is no longer in the data are removed. refreshPortfolio() is called on boot, on showView("portfolio"), on handleAssetSubmit, handleHookSubmit, handleCalSubmit, changeAssetStatus, changeCalStatus, campaignFactoryCreate, and devStoreHydrate. The single health engine (computeCampaignHealth) is the only source of truth — no second health engine is introduced. The Step 33/34/35/36/37 contracts are preserved: patchProductionAssetsSection, patchCampaignHealthSection, openCalModalForCampaign, hasPublishingPlan, and the per-campaign history-truth fixes are all intact.)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');

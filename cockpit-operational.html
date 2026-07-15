@@ -350,19 +350,20 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 <div id="view-portfolio" class="view-panel">
 
 <div class="card">
-<div class="card-title">Campaign Portfolio — 4 campaigns</div>
+<!-- Step 38: stable IDs on every count. The previous hardcoded "4 campaigns", "1 Healthy / 2 Degraded / 0 Critical", "42 Total Assets", "1 Published / 41 In Progress" were frozen from the seed and disagreed with computeCampaignHealth() and the live c.assets map. refreshPortfolio() rewrites the textContent of each of these elements on every refresh. -->
+<div class="card-title" id="portfolio-card-title">Campaign Portfolio</div>
 <div class="stat-card" style="margin-bottom:16px">
 <div class="stat-label">Portfolio Health</div>
 <div style="display:flex;gap:20px;margin-top:8px;flex-wrap:wrap">
-<div><div class="stat-value green">1</div><div class="stat-sub">Healthy</div></div>
-<div><div class="stat-value" style="color:var(--col-amber)">2</div><div class="stat-sub">Degraded</div></div>
-<div><div class="stat-value" style="color:var(--col-red)">0</div><div class="stat-sub">Critical</div></div>
-<div><div class="stat-value">42</div><div class="stat-sub">Total Assets</div></div>
-<div><div class="stat-value green">1</div><div class="stat-sub">Published</div></div>
-<div><div class="stat-value" style="color:var(--col-amber)">41</div><div class="stat-sub">In Progress</div></div>
+<div><div class="stat-value green" id="portfolio-healthy">0</div><div class="stat-sub">Healthy</div></div>
+<div><div class="stat-value" style="color:var(--col-amber)" id="portfolio-degraded">0</div><div class="stat-sub">Degraded</div></div>
+<div><div class="stat-value" style="color:var(--col-red)" id="portfolio-critical">0</div><div class="stat-sub">Critical</div></div>
+<div><div class="stat-value" id="portfolio-total-assets">0</div><div class="stat-sub">Total Assets</div></div>
+<div><div class="stat-value green" id="portfolio-published">0</div><div class="stat-sub">Published</div></div>
+<div><div class="stat-value" style="color:var(--col-amber)" id="portfolio-in-progress">0</div><div class="stat-sub">In Progress</div></div>
 </div>
 </div>
-<div class="campaign-cards"><div class="ccard" onclick="selectCampaign('trackman-intelligence')" style="cursor:pointer"><div class="ccard-status" data-status="approved">approved</div><div class="ccard-name">TrackMan Intelligence</div><div class="ccard-meta">Drive fitting bookings and coaching sessions</div><div class="ccard-assetcount" style="color:#ffaa00">0 assets &middot; Degraded</div></div><div class="ccard" onclick="selectCampaign('takomo-101t')" style="cursor:pointer"><div class="ccard-status" data-status="approved">approved</div><div class="ccard-name">Takomo 101T</div><div class="ccard-meta">Drive Takomo 101T iron fittings and showcase value prop</div><div class="ccard-assetcount" style="color:#ffaa00">6 assets &middot; Degraded</div></div><div class="ccard" onclick="selectCampaign('winter-golf')" style="cursor:pointer"><div class="ccard-status" data-status="approved">approved</div><div class="ccard-name">Winter Golf</div><div class="ccard-meta">Drive indoor golf sessions during SA winter season</div><div class="ccard-assetcount" style="color:#00cc77">0 assets &middot; Healthy</div></div><div class="ccard" onclick="selectCampaign('use-the-right-equipment-mq5l90bk')" style="cursor:pointer"><div class="ccard-status" data-status="approved">approved</div><div class="ccard-name">Use the Right Equipment</div><div class="ccard-meta"></div><div class="ccard-assetcount" style="color:#ff4455">36 assets &middot; Unknown</div></div></div>
+<div class="campaign-cards" id="portfolio-cards"></div>
 </div>
 </div>
 
@@ -1393,7 +1394,7 @@ function showView(name) {
   document.getElementById('btn-creative').classList.toggle('active', name === 'creative');
   document.getElementById('btn-production').classList.toggle('active', name === 'assets');
   document.getElementById('campaignSelectorWrap').style.display = (name === 'detail') ? 'flex' : 'none';
-  if (name === 'portfolio') document.getElementById('header-subtitle').textContent = 'Portfolio Overview';
+  if (name === 'portfolio') { try { refreshPortfolio(); } catch (e) {} document.getElementById('header-subtitle').textContent = 'Portfolio Overview'; }
   if (name === 'review') { renderReviewQueue(); document.getElementById('header-subtitle').textContent = 'Review Queue'; }
   if (name === 'detail') document.getElementById('header-subtitle').textContent = 'Detail';
   if (name === 'hooks') { renderHookBank(); document.getElementById('header-subtitle').textContent = 'Hook Bank — standalone or attach to a campaign'; }
@@ -2180,6 +2181,9 @@ function campaignFactoryCreate() {
   window.__cfPickedSource = '';
   closeCampaignFactory();
   renderOpsFeed();
+  // Step 38: refresh the Portfolio so the new campaign appears as a card
+  // and the totals update (campaign count +1, band counts may shift).
+  try { refreshPortfolio(); } catch (e) { /* silent */ }
   // Step 27: ensure the new campaign has a render fn registered and the campaign
   // selector <select> lists it. Without this, selectCampaign(cid) calls renderCampaign
   // which calls window.renderFns[id](c) — undefined for brand-new campaigns — and the
@@ -3008,21 +3012,13 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
   try { showView('opsfeed'); } catch (err) { /* silent — fall back to whatever is .active */ }
 });
-// Step 34: refresh the embedded campaign-cards' asset count + health band
-// from live state on first paint. The HTML markup is hardcoded at seed with
-// "0 assets · Degraded" / "6 assets · Degraded" etc. — those are not live.
-// Refresh every card so the Portfolio reflects computeCampaignHealth
-// immediately, not just after the marketer triggers a re-render. Runs after
+// Step 38: refresh the Portfolio from live state on first paint. Runs after
 // devStoreHydrate + showView('opsfeed') so dev-store campaigns are present
-// and the Operations Feed has already rendered.
+// and the Operations Feed has already rendered. Replaces the previous
+// per-card updateCampaignCard loop — refreshPortfolio() handles all cards
+// AND the totals in one pass.
 document.addEventListener('DOMContentLoaded', function() {
-  try {
-    if (typeof updateCampaignCard === 'function' && window.campaignData && window.campaignData.campaigns) {
-      Object.keys(window.campaignData.campaigns).forEach(function(id) {
-        try { updateCampaignCard(id); } catch (e) {}
-      });
-    }
-  } catch (err) { /* silent */ }
+  try { refreshPortfolio(); } catch (err) { /* silent */ }
 });
 // Step 10: wire hooks filter re-render on change
 document.addEventListener('DOMContentLoaded', function() {
@@ -3198,9 +3194,10 @@ function devStoreHydrate() {
     hydrated++;
   });
   if (hydrated > 0) {
-    var total = Object.keys(window.campaignData.campaigns).length;
-    var titleEl = document.querySelector('.card-title');
-    if (titleEl) titleEl.textContent = 'Campaign Portfolio — ' + total + ' campaigns';
+    // Step 38: refreshPortfolio replaces the old per-title line — it walks
+    // every card, rewrites the totals, and ensures any newly-hydrated
+    // campaign has a card in the grid.
+    try { refreshPortfolio(); } catch (e) { /* silent */ }
   }
   return { hydrated: hydrated, source: 'localStorage' };
 }
@@ -3252,6 +3249,131 @@ function updateCampaignCard(id) {
     badgeEl.textContent = st;
   }
   return true;
+}
+// Step 38: build a fresh .ccard element for a given campaign. Used by
+// refreshPortfolio() to add a card for a campaign that didn't have one
+// in the hardcoded HTML (Campaign Factory / dev-store-hydrated campaigns).
+// Mirrors the markup of the four seeded cards so the styling stays consistent.
+function renderNewCampaignCard(c) {
+  if (!c || !c.identity) return '';
+  var cid = c.identity.campaignId || '';
+  var name = c.identity.name || cid;
+  var status = c.identity.status || 'draft';
+  return '<div class="ccard" onclick="selectCampaign(\'' + cid + '\')" style="cursor:pointer">' +
+    '<div class="ccard-status" data-status="' + status + '">' + status + '</div>' +
+    '<div class="ccard-name">' + name + '</div>' +
+    '<div class="ccard-meta">' + (c.identity.goal || 'Created just now') + '</div>' +
+    '<div class="ccard-assetcount" style="color:#ffaa00">0 assets &middot; ' + status + '</div>' +
+  '</div>';
+}
+// Step 38: one Portfolio refresh function. Walks window.campaignData.campaigns
+// and rewrites every visible Portfolio surface from current state. One
+// source of truth: the campaign data. One health engine: computeCampaignHealth.
+// One asset count source: Object.keys(c.assets).length (the same source used
+// by diagnoseCampaign, the Step 33 patchProductionAssetsSection, the Step 34
+// health engine, and the previous updateCampaignCard).
+//
+// This function is called from:
+//   - the boot path (after devStoreHydrate)
+//   - showView('portfolio') every time the marketer opens the Portfolio
+//   - handleAssetSubmit (after the existing renderOpsFeed call)
+//   - handleHookSubmit (after the existing renderHookBank + renderCreativeStudio)
+//   - handleCalSubmit (after the existing renderCalendar)
+//   - changeAssetStatus (after the existing renderOpsFeed)
+//   - campaignFactoryCreate (after the existing renderOpsFeed)
+//   - devStoreHydrate (replacing the existing titleEl update)
+//
+// Replaces the old per-card updateCampaignCard boot loop and the devStoreHydrate
+// titleEl line.
+function refreshPortfolio() {
+  if (!window.campaignData || !window.campaignData.campaigns) return;
+  var grid = document.getElementById('portfolio-cards');
+  var ids = Object.keys(window.campaignData.campaigns);
+  // Walk 1: ensure every campaign in the data has a card, and refresh its text.
+  // createDocumentFragment so we append once at the end and avoid reflow churn.
+  var newCardFrag = [];
+  for (var i = 0; i < ids.length; i++) {
+    var cid = ids[i];
+    var c = window.campaignData.campaigns[cid];
+    if (!c) continue;
+    var existing = null;
+    if (grid) existing = grid.querySelector('.ccard[onclick*="' + cid + '"]');
+    if (!existing) {
+      newCardFrag.push(renderNewCampaignCard(c));
+    }
+    // Refresh the card's text fields whether the card is new or existing.
+    // updateCampaignCard already handles the existing-card path; for new cards
+    // it returns false (no card to update) but that's fine because the just-
+    // inserted HTML will be in the DOM by the time we walk the totals.
+    try { updateCampaignCard(cid); } catch (e) { /* silent */ }
+  }
+  // Walk 2: append any new cards we generated, after their text is up-to-date.
+  if (grid && newCardFrag.length) {
+    grid.insertAdjacentHTML('beforeend', newCardFrag.join(''));
+    // updateCampaignCard for the freshly-inserted cards now that they're in the DOM.
+    for (var k = 0; k < ids.length; k++) {
+      try { updateCampaignCard(ids[k]); } catch (e) { /* silent */ }
+    }
+  }
+  // Walk 3: remove any .ccard whose campaignId is no longer in the data
+  // (clearDevData + manual edits). Without this, a stale card would linger
+  // on the Portfolio after its campaign is gone.
+  if (grid) {
+    var staleCards = Array.from(grid.querySelectorAll('.ccard'));
+    for (var s = 0; s < staleCards.length; s++) {
+      var oc = staleCards[s].getAttribute('onclick') || '';
+      var match = oc.match(/selectCampaign\('([^']+)'\)/);
+      if (match && ids.indexOf(match[1]) === -1) {
+        staleCards[s].parentNode.removeChild(staleCards[s]);
+      }
+    }
+  }
+  // Walk 4: totals. Iterate the campaigns ONCE and compute everything.
+  var healthyCount = 0, degradedCount = 0, criticalCount = 0, unknownCount = 0;
+  var totalAssets = 0;
+  var publishedCount = 0, inProgressCount = 0;
+  // "Published" maps to the current data model's terminal-shipped state
+  // (asset.status === 'used'). "In progress" maps to the three intermediate
+  // pipeline states (requested / in-production / ready). Both use ONLY
+  // states the current data model can prove, per the brief.
+  var publishedStates = ['used'];
+  var inProgressStates = ['requested', 'in-production', 'ready'];
+  for (var j = 0; j < ids.length; j++) {
+    var c2 = window.campaignData.campaigns[ids[j]];
+    if (!c2) continue;
+    // Health band via the single shared engine.
+    if (typeof computeCampaignHealth === 'function') {
+      var h = computeCampaignHealth(ids[j]);
+      if (h && h.state === 'healthy') healthyCount++;
+      else if (h && h.state === 'degraded') degradedCount++;
+      else if (h && h.state === 'critical') criticalCount++;
+      else unknownCount++;
+    }
+    // Asset totals from c.assets (the same source as the Step 33 patch).
+    if (c2.assets && typeof c2.assets === 'object') {
+      var akeys = Object.keys(c2.assets);
+      totalAssets += akeys.length;
+      for (var a = 0; a < akeys.length; a++) {
+        var aObj = c2.assets[akeys[a]];
+        if (!aObj || !aObj.status) continue;
+        if (publishedStates.indexOf(aObj.status) !== -1) publishedCount++;
+        if (inProgressStates.indexOf(aObj.status) !== -1) inProgressCount++;
+      }
+    }
+  }
+  // Walk 5: write the totals into the DOM by stable ID. No seed-time literals.
+  function setText(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = String(val);
+  }
+  var campaignCount = ids.length;
+  setText('portfolio-card-title', 'Campaign Portfolio — ' + campaignCount + (campaignCount === 1 ? ' campaign' : ' campaigns'));
+  setText('portfolio-healthy', healthyCount);
+  setText('portfolio-degraded', degradedCount);
+  setText('portfolio-critical', criticalCount);
+  setText('portfolio-total-assets', totalAssets);
+  setText('portfolio-published', publishedCount);
+  setText('portfolio-in-progress', inProgressCount);
 }
 
 // --- Step 10: Hook Bank — UI functions ---
@@ -3385,6 +3507,9 @@ function handleHookSubmit(e) {
   // Step 25: refresh the Creative Studio tiles so the new hook count is visible
   // if the user is currently looking at Creative Studio.
   if (typeof renderCreativeStudio === 'function') { try { renderCreativeStudio(); } catch (e) {} }
+  // Step 38: refresh the Portfolio so the campaign's health band, creative
+  // presence, and totals update after a campaign-aware hook save.
+  try { refreshPortfolio(); } catch (e) {}
   if (okEl) {
     var attachedThisSave = !currentHookId && window.__hookAttachedOnSave === true;
     window.__hookAttachedOnSave = false;
@@ -4564,6 +4689,10 @@ function handleCalSubmit(e) {
     }
   }
   renderCalendar();
+  // Step 38: a campaign-linked calendar item satisfies the publishing
+  // category (per Step 37 hasPublishingPlan), so the campaign's health
+  // band can flip. Refresh the Portfolio so the card + totals update.
+  try { refreshPortfolio(); } catch (e) {}
   if (okEl) { okEl.textContent = 'Saved.'; okEl.style.display = 'block'; }
   setTimeout(function() { closeCalModal(); }, 500);
   return false;
@@ -4580,6 +4709,9 @@ function changeCalStatus(id, newStatus) {
   c.history.push({ action: 'status-changed', by: 'christelle', at: now, note: 'Status: ' + prev + ' → ' + newStatus });
   calAppend(c);
   renderCalendar();
+  // Step 38: a calendar status change (e.g. planned → skipped) can flip the
+  // publishing category via hasPublishingPlan. Refresh the Portfolio.
+  try { refreshPortfolio(); } catch (e) {}
   return true;
 }
 function confirmDeleteCal(id) {
@@ -5723,6 +5855,9 @@ function handleAssetSubmit(e) {
   // Ops Feed card for the linked campaign would not re-sort or drop even after the
   // diagnosis flips (e.g., production issue resolved once c.assets gets a non-rejected asset).
   try { renderOpsFeed(); } catch (e) {}
+  // Step 38: refresh the Portfolio so the new asset count + health band update
+  // on the campaign card, and the Total Assets / In Progress stats roll up.
+  try { refreshPortfolio(); } catch (e) {}
   if (okEl) { okEl.textContent = 'Saved.'; okEl.style.display = 'block'; }
   setTimeout(function() { closeAssetModal(); }, 500);
   return false;
@@ -5739,6 +5874,10 @@ function changeAssetStatus(id, newStatus) {
   a.history.push({ action: 'status-changed', by: 'christelle', at: now, note: 'Status: ' + prev + ' → ' + newStatus });
   assetAppend(a);
   renderAssetPlanner();
+  // Step 38: a status change can move an asset between Published and In Progress
+  // (e.g. requested → in-production → ready → used). Refresh the Portfolio
+  // so the totals + the campaign card's status line update.
+  try { refreshPortfolio(); } catch (e) {}
   return true;
 }
 function confirmDeleteAsset(id) {
