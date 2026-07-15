@@ -3294,7 +3294,20 @@ function handleHookSubmit(e) {
     if (!currentHookId && window.pendingAttachAfterSave && window.pendingAttachAfterSave.kind === 'hook' && window.pendingAttachAfterSave.campaignId) {
       var cid = window.pendingAttachAfterSave.campaignId;
       if (typeof attachToCampaign === 'function') {
-        attachToCampaign(cid, 'hook', hook.hookId, '');
+        // Step 35: attachToCampaign writes the M2M row + an OS event, but it does not
+        // append to c.history. The marketer-visible History log needs a hook-attached
+        // entry, exactly one per save. Write it here, in the same handler that owns the
+        // save. devStoreAppend keeps the dev-store snapshot in sync.
+        var attachRes = attachToCampaign(cid, 'hook', hook.hookId, '');
+        if (attachRes) {
+          var cHookAttach = window.campaignData && window.campaignData.campaigns && window.campaignData.campaigns[cid];
+          if (cHookAttach) {
+            cHookAttach.history = Array.isArray(cHookAttach.history) ? cHookAttach.history : [];
+            cHookAttach.history.push({ action: 'hook-attached', by: 'christelle', at: now, note: 'Hook "' + (hook.text || '').substring(0, 40) + '" attached.' });
+            cHookAttach.updatedAt = now;
+            devStoreAppend(cHookAttach);
+          }
+        }
         window.__hookAttachedOnSave = true;
         if (typeof renderCampaign === 'function') {
           try { renderCampaign(cid); } catch (e) {}
@@ -5391,8 +5404,15 @@ function pushAssetRequestedToSource(sourceRef, asset) {
     obj.updatedAt = now;
   }
   if (kind === 'campaign') {
+    // Step 35: skip the inner c.history push when source is the campaign itself.
+    // The "Sync to campaign" block in handleAssetSubmit already wrote the asset-requested
+    // entry to c.history (the link block is the source of truth for the campaign's history).
+    // Writing here too would create a duplicate 1ms later. devStoreAppend is kept so the
+    // campaign record (and the asset store cross-link) stays current, but c.history is left
+    // alone. For non-campaign sources (caption/meme/billboard/trend/hook) the inner push
+    // still fires — those are different objects, and the dual write is the contract.
     var c = window.campaignData && window.campaignData.campaigns && window.campaignData.campaigns[sid];
-    push(c); if (c) devStoreAppend(c);
+    if (c) devStoreAppend(c);
   } else if (kind === 'caption') {
     var cap = captionReadAll().find(function(x) { return x.captionId === sid; });
     push(cap); if (cap) captionAppend(cap);

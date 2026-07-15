@@ -1787,6 +1787,88 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 34 — One health engine: computeCampaignHealth(campaignId) returns { score, state, updatedAt, categories } using STRATEGIST_WEIGHTS (25/20/25/20/10, total 100). State bands: 80-100 healthy, 50-79 degraded, 0-49 critical. updatedAt is the max of c.updatedAt, asset updates, attachment creation, and history events — never fabricated. diagnoseCampaign and computeCampaignHealth share getCampaignCategoryState so they cannot disagree. Every visible health surface (Campaign Detail ring + state + Updated timestamp, Operations Feed card, Strategist block Health X · state, Portfolio campaign-cards) consumes the same function. patchCampaignHealthSection finds the seeded ring elements in the rendered DOM and rewrites them with live values, mirroring the Step 33 pattern. updateCampaignCard writes the live health band into the portfolio card. A new DOMContentLoaded listener refreshes every embedded card on first paint. c.identity.healthScore is kept in the seed for backwards compatibility only — no visible surface reads it for display.)');
 
+  // ── Step 35: campaign history is now truthful ──────────────────
+  // Contract: one user action = one history entry.
+  //   - Campaign-aware asset save: 1 × 'asset-requested' (was 2)
+  //   - Campaign-aware hook save:  1 × 'hook-attached' (was 0)
+  // The source must write correctly. The renderer must not deduplicate.
+
+  // -- 35.1: pushAssetRequestedToSource kind==='campaign' branch no longer
+  // writes to c.history. The "Sync to campaign" link block in handleAssetSubmit
+  // is the single source of truth for the campaign's asset-requested entry.
+  var partsBody35 = getFnBody('pushAssetRequestedToSource');
+  assert('Step 35: pushAssetRequestedToSource still exists',
+         typeof partsBody35 === 'string' && partsBody35.length > 0);
+  // Slice the kind==='campaign' branch — find the branch opener and read the
+  // next ~600 chars (must contain "devStoreAppend" and must NOT contain
+  // "push(c)" which is the inner function call that wrote to c.history).
+  var kindCampBranch35 = null;
+  if (partsBody35) {
+    var idx = partsBody35.indexOf("kind === 'campaign'");
+    if (idx >= 0) kindCampBranch35 = partsBody35.substring(idx, idx + 600);
+  }
+  assert('Step 35: source-sync campaign branch is locatable in pushAssetRequestedToSource',
+         kindCampBranch35 && /devStoreAppend/.test(kindCampBranch35));
+  assert('Step 35: source-sync campaign branch no longer calls push(c) on the campaign',
+         kindCampBranch35 && !/push\(c\)/.test(kindCampBranch35));
+  // The link block in handleAssetSubmit still writes the asset-requested entry —
+  // it's the source of truth, not pushAssetRequestedToSource.
+  var hasBody35 = getFnBody('handleAssetSubmit');
+  assert('Step 35: handleAssetSubmit link block still pushes asset-requested to c.history',
+         hasBody35 && /c\.history\.push\(\{ action: 'asset-requested'/.test(hasBody35));
+
+  // -- 35.2: handleHookSubmit writes 'hook-attached' to c.history on attach.
+  // Pre-Step-35, handleHookSubmit had no campaign-history push for the hook.
+  // The brief required exactly one entry per campaign-aware hook save.
+  var hhsBody35 = getFnBody('handleHookSubmit');
+  assert('Step 35: handleHookSubmit still calls attachToCampaign on save',
+         hhsBody35 && /attachToCampaign\(cid,\s*'hook',\s*hook\.hookId/.test(hhsBody35));
+  assert('Step 35: handleHookSubmit pushes hook-attached to c.history after a successful attach',
+         hhsBody35 && /\.history\.push\(\{ action: 'hook-attached'/.test(hhsBody35));
+  // The push must be guarded by the attach result, so a no-op re-attach (already
+  // attached) does not create a second history row.
+  assert('Step 35: hook-attached push is guarded by attachToCampaign returning non-null',
+         hhsBody35 && /if\s*\(\s*attachRes\s*\)/.test(hhsBody35));
+  // The note must reference the hook text, not a placeholder or asset title.
+  // The actual note is a JS string concat: 'Hook "' + (hook.text || '').substring(0, 40) + '" attached.'
+  // — the match-regex grabs only the leading literal "Hook \"" which doesn't contain hook.text.
+  // Check the broader context: the hook-attached push must reference hook.text somewhere
+  // within ~400 chars of the action label, so the note is genuinely built from the hook text.
+  var hookNoteRegion35 = hhsBody35 && hhsBody35.match(/action: 'hook-attached'[\s\S]{0,400}hook\.text/);
+  assert('Step 35: hook-attached note references hook.text (truthful, not a placeholder)',
+         !!hookNoteRegion35);
+
+  // -- 35.3: existing pipelines still work. Asset save still hits both stores,
+  // hook save still emits the M2M, the campaign-link and source-sync branches
+  // still run for non-campaign sources.
+  assert('Step 35: handleAssetSubmit still calls assetAppend after the history push',
+         hasBody35 && /assetAppend\(asset\)/.test(hasBody35));
+  assert('Step 35: handleAssetSubmit still calls pushAssetRequestedToSource for source-sync',
+         hasBody35 && /pushAssetRequestedToSource\(newSource,\s*asset\)/.test(hasBody35));
+  // The non-campaign source branches (caption/meme/billboard/trend/hook) still
+  // call push() to write to the source object's history.
+  assert('Step 35: source-sync caption branch still pushes to the source object',
+         partsBody35 && /push\(cap\)/.test(partsBody35));
+  assert('Step 35: source-sync meme branch still pushes to the source object',
+         partsBody35 && /push\(m\)/.test(partsBody35));
+  assert('Step 35: source-sync billboard branch still pushes to the source object',
+         partsBody35 && /push\(b\)/.test(partsBody35));
+  assert('Step 35: source-sync trend branch still pushes to the source object',
+         partsBody35 && /push\(t\)/.test(partsBody35));
+  assert('Step 35: source-sync hook branch still pushes to the source object',
+         partsBody35 && /push\(h\)/.test(partsBody35));
+
+  // -- 35.4: the health engine and Strategist surfaces still get their inputs
+  // (the fix does not regress Step 34 / Step 31 bridges).
+  assert('Step 35: handleAssetSubmit still bridges c.assets[assetId] = asset (Step 31 fix intact)',
+         hasBody35 && /c\.assets\[asset\.assetId\]\s*=\s*asset/.test(hasBody35));
+  assert('Step 35: handleAssetSubmit still calls renderOpsFeed (Step 31 re-render intact)',
+         hasBody35 && /renderOpsFeed\(\)/.test(hasBody35));
+  assert('Step 35: handleHookSubmit still calls renderHookBank + renderCreativeStudio',
+         hhsBody35 && /renderHookBank\(\)/.test(hhsBody35) && /renderCreativeStudio\(\)/.test(hhsBody35));
+
+  results.push('  (Step 35 — Campaign history is now truthful: one user action = one history entry. The asset save no longer double-writes asset-requested to c.history when source IS the campaign (pushAssetRequestedToSource kind==campaign branch is now no-op for c.history; the link block in handleAssetSubmit is the single source of truth). The hook save now writes exactly one hook-attached entry on a successful attach (guarded by attachToCampaign returning non-null, so no-op re-attach does not create a duplicate). Non-campaign source branches still push to the source object (caption/meme/billboard/trend/hook history arrays) — the dual history contract is preserved for those five kinds. The Step 31 c.assets bridge and renderOpsFeed re-render are intact. The Step 25 hook→campaign auto-attach is intact.)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
