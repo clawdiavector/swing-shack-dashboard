@@ -2704,10 +2704,42 @@ function renderCampaignReferences(campaignId, container) {
    Operations Feed card, Portfolio campaign-cards) consume it through
    getCampaignCategoryState, so the diagnosis and the health display cannot
    disagree. */
+// Step 37: shared publishing capability. The canonical definition is
+// "a campaign has a publishing plan" — a publishing plan is any artifact
+// produced by a publishing integration that has been linked to the campaign
+// and not withdrawn. Today the only publishing integration is Calendar (a
+// campaign-linked calendar item with status other than 'skipped' is a plan).
+// Future integrations (Postiz, Meta, Buffer, etc.) plug in by adding their
+// own check inside this function. The function name and signature do not
+// mention any specific integration, so renaming the file is not required
+// when a new integration is added.
+//
+// Reads ONLY from existing stores — no new data, no fabrication.
+function hasPublishingPlan(campaignId) {
+  if (!campaignId) return false;
+  // Integration 1: Calendar. A campaign-linked calendar item that has not
+  // been explicitly skipped is a publishing plan. Calendar items live in
+  // their own store (CAL_STORE_KEY) with sourceKind='campaign' and
+  // sourceId=<campaignId>. Skipped items are not plans.
+  try {
+    var calItems = (typeof calReadAll === 'function') ? calReadAll() : [];
+    for (var i = 0; i < calItems.length; i++) {
+      var ci = calItems[i];
+      if (ci && ci.sourceKind === 'campaign' && ci.sourceId === campaignId) {
+        var s = ci.status || 'planned';
+        if (s !== 'skipped') return true;
+      }
+    }
+  } catch (err) { /* silent — read-only capability check */ }
+  // Future integrations would OR their own checks here.
+  return false;
+}
 var STRATEGIST_WEIGHTS = { strategy: 25, creative: 20, production: 25, publishing: 20, learning: 10 };
 // Step 34: shared category-presence source. Both diagnoseCampaign and
 // computeCampaignHealth read from this — they cannot disagree on which
 // categories are present. Returns null only if the campaign is missing.
+// Step 37: publishing category now delegates to hasPublishingPlan(campaignId)
+// — a single shared capability that any publishing integration can satisfy.
 function getCampaignCategoryState(campaignId) {
   var c = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns[campaignId] : null;
   if (!c) return null;
@@ -2721,18 +2753,21 @@ function getCampaignCategoryState(campaignId) {
   var creativeKinds = ['hook','meme','billboard','caption','trend','opportunity','pattern'];
   var creative = atts.some(function(a){ return creativeKinds.indexOf(a.objectKind) !== -1; });
   // Production moving? at least one asset not in 'rejected' status.
-  var prodCount = 0; var publishedCount = 0;
+  var prodCount = 0;
   if (c.assets && typeof c.assets === 'object') {
     var keys = Object.keys(c.assets);
     for (var i=0; i<keys.length; i++) {
       var a = c.assets[keys[i]];
       if (a && a.status && a.status !== 'rejected') prodCount++;
-      if (a && a.status === 'published') publishedCount++;
     }
   }
   var production = prodCount > 0;
-  // Publishing live? at least one published asset.
-  var publishing = publishedCount > 0;
+  // Publishing plan? delegated to the shared hasPublishingPlan() capability.
+  // Step 37: replaces the Step 34 dead-code check
+  // `c.assets[].status === 'published'`, which read a state that the asset
+  // UI cannot produce (asset statuses are needed/requested/in-production/
+  // ready/used/cancelled — there is no 'published' state on assets).
+  var publishing = hasPublishingPlan(campaignId);
   // Learning loop? memory has lessons or best hooks or best visuals.
   var mem = c.memory || {};
   var learning = ((mem.lessonsLearned && mem.lessonsLearned.length > 0) ||
@@ -2812,7 +2847,7 @@ function diagnoseCampaign(campaignId) {
   if (!cats.strategy)   issues.push({ key:'strategy',   title:'No clear campaign brief',     reason:'Every creative decision needs a strategy to hang on. Without it, hooks land in the wrong place.', action:'Start Brief', dest:'creative' });
   if (!cats.creative)   issues.push({ key:'creative',   title:'No creative attached',         reason:'No hooks, captions, memes, or trends are linked to this campaign. Production has nothing to build from.', action:'Create Creative', dest:'creative' });
   if (!cats.production) issues.push({ key:'production', title:'No production work moving',    reason:'Nothing is in the production pipeline. The campaign lives only on paper.', action:'Plan Assets', dest:'assets' });
-  if (!cats.publishing) issues.push({ key:'publishing', title:'No publishing plan',           reason:'Nothing has gone live and nothing is scheduled. The campaign never reaches the audience.', action:'Schedule Publishing', dest:'calendar' });
+  if (!cats.publishing) issues.push({ key:'publishing', title:'No publishing plan',           reason:'No campaign-linked publishing plan exists yet. A linked calendar item — or, in future, a Postiz / Meta / Buffer integration — is the only thing that satisfies this category.', action:'Schedule Publishing', dest:'calendar' });
   if (!cats.learning)   issues.push({ key:'learning',   title:'No learning loop',             reason:'No lessons recorded. The team will repeat the same mistakes on the next campaign.', action:'Capture Lessons', dest:'creative' });
   // Rank by STRATEGIST_WEIGHTS (highest weight first) — this is the priority order,
   // not a fabricated health delta.

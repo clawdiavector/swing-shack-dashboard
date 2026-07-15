@@ -2081,6 +2081,130 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 36 — Calendar now has the campaign-aware workspace pattern. Strategist "Schedule Publishing" (and any dest===calendar action) sets window.calendarContextCampaignId before showView, so the Calendar renders a SCHEDULING FOR panel with the campaign name, a reason derived from the live publishing-issue diagnosis, and a single primary CTA "Schedule first publishing item for <Campaign> →" wired to openCalModalForCampaign. The calendar modal opens pre-filled with the campaign selected as the source object, the brand defaulted, the type set to "campaign", and a campaign-specific title placeholder built from brief.bigIdea or brief.purpose — never fabricated. The generic + New Calendar Item button hides when context is active (mirrors Step 32 updateGenericAssetButtonVisibility) and returns on Switch to standalone. Standalone Calendar is preserved: openCalModal() called with no args, no context panel, generic button visible. The calendar-linked dual-history contract (c.history push when sourceKind === campaign) is preserved. The Step 31 c.assets bridge, the Step 25/31 context state globals, the Step 34 one-health-engine, the Step 35 history-truth fix, and all prior contracts remain intact.)');
 
+  // ───────────────────────────────────────────────────────────────
+  // STEP 37 — Publishing capability is a single shared category that
+  // any publishing integration can satisfy. Today the only integration
+  // is Calendar. Reuses the Step 34 shared-category architecture
+  // (getCampaignCategoryState) so every surface that consumes it
+  // (Campaign Detail ring, Operations Feed card, Portfolio campaign-
+  // cards, Strategist block) becomes truthful automatically.
+  // ───────────────────────────────────────────────────────────────
+
+  // -- 37.1: hasPublishingPlan() function exists and is the single shared
+  //          publishing capability. Its name and signature do not mention
+  //          any specific integration, so future integrations (Postiz,
+  //          Meta, Buffer) can be added inside it without renaming.
+  var hpp = getFnBody('hasPublishingPlan');
+  assert('Step 37: hasPublishingPlan function defined', !!hpp);
+  if (hpp) {
+    assert('Step 37: hasPublishingPlan signature takes campaignId and returns boolean',
+           /function\s+hasPublishingPlan\s*\(\s*campaignId\s*\)/.test(hpp) && /return\s+false/.test(hpp));
+    // The function body must NOT mention Postiz/Meta/Buffer (those are
+    // future integrations that get added later). Today it can mention Calendar.
+    assert('Step 37: hasPublishingPlan reads from the calendar store (current integration)',
+           /calReadAll\s*\(/.test(hpp) || /CAL_STORE_KEY/.test(hpp));
+    assert('Step 37: hasPublishingPlan filters calendar items by campaign link',
+           /sourceKind\s*===\s*'campaign'/.test(hpp) && /sourceId\s*===\s*campaignId/.test(hpp));
+    assert('Step 37: hasPublishingPlan treats status="skipped" as NOT a plan',
+           /'skipped'/.test(hpp));
+  }
+
+  // -- 37.2: getCampaignCategoryState delegates to hasPublishingPlan
+  //          for the publishing category. The dead-code check
+  //          `c.assets[].status === 'published'` is REMOVED.
+  var gccs37 = getFnBody('getCampaignCategoryState');
+  assert('Step 37: getCampaignCategoryState still defined', !!gccs37);
+  if (gccs37) {
+    assert('Step 37: getCampaignCategoryState calls hasPublishingPlan for publishing',
+           /hasPublishingPlan\s*\(\s*campaignId\s*\)/.test(gccs37));
+    assert('Step 37: getCampaignCategoryState no longer reads c.assets[].status === "published"',
+           !/^\s*\ba\.status\s*===\s*'published'/m.test(gccs37) && !/^\s*\bc\.assets\[[^\]]+\]\.status\s*===\s*'published'/m.test(gccs37));
+    // The production check (any non-rejected asset) is preserved.
+    assert('Step 37: getCampaignCategoryState still reads c.assets for production (non-rejected)',
+           /a\.status\s*!==\s*'rejected'/.test(gccs37));
+    // The strategy, creative, learning checks are unchanged.
+    assert('Step 37: getCampaignCategoryState still has strategy/creative/learning branches',
+           /strategy:\s*strategy/.test(gccs37) && /creative:\s*creative/.test(gccs37) &&
+                       /production:\s*production/.test(gccs37) && /learning:\s*learning/.test(gccs37));
+  }
+
+  // -- 37.3: Strategist's publishing-issue reason text is updated to
+  //          match the canonical definition (a campaign-linked Calendar
+  //          item, or future Postiz/Meta/Buffer integration).
+  var dcb37 = getFnBody('diagnoseCampaign');
+  assert('Step 37: diagnoseCampaign still defines the publishing issue', !!dcb37);
+  if (dcb37) {
+    assert('Step 37: publishing issue title is still "No publishing plan"',
+           dcb37 && /key:'publishing'[\s\S]{0,400}title:'No publishing plan'/.test(dcb37));
+    assert('Step 37: publishing issue reason no longer says "Nothing has gone live"',
+           dcb37 && !/Nothing has gone live/.test(dcb37));
+    assert('Step 37: publishing issue reason mentions campaign-linked publishing plan',
+           dcb37 && /campaign-linked publishing plan/.test(dcb37));
+    assert('Step 37: publishing issue reason is future-extensible (mentions Postiz/Meta/Buffer)',
+           dcb37 && /Postiz/.test(dcb37) && /Meta/.test(dcb37) && /Buffer/.test(dcb37));
+    assert('Step 37: publishing issue action is still "Schedule Publishing" with dest=calendar',
+           dcb37 && /action:\s*'Schedule Publishing'/.test(dcb37) && /dest:\s*'calendar'/.test(dcb37));
+  }
+
+  // -- 37.4: Non-regression of the Step 34 one-health-engine contract.
+  //   computeCampaignHealth and diagnoseCampaign still share the same
+  //   category-state source, so they cannot disagree.
+  var cchb37 = getFnBody('computeCampaignHealth');
+  var dcb37cb = getFnBody('diagnoseCampaign');
+  assert('Step 37: computeCampaignHealth still uses getCampaignCategoryState as source',
+         cchb37 && /getCampaignCategoryState\(/.test(cchb37));
+  assert('Step 37: diagnoseCampaign still uses getCampaignCategoryState as source',
+         dcb37cb && /getCampaignCategoryState\(/.test(dcb37cb));
+
+  // -- 37.5: Non-regression of the Step 36 publishing-category fix in
+  //   the wider walkthrough surface. The Strategist's publishing-issue
+  //   action is wired to the Calendar context state in renderStrategistBlock.
+  //   Both the issues[] branch and the recOnclick branch set
+  //   window.calendarContextCampaignId for dest === 'calendar'.
+  assert('Step 37: strategist issues[] branch still sets window.calendarContextCampaignId for dest === calendar',
+         /if\s*\(\s*it\.dest\s*===\s*'calendar'\s*\)\s*\{[\s\S]{0,300}window\.calendarContextCampaignId/.test(html));
+  assert('Step 37: strategist recOnclick branch still sets window.calendarContextCampaignId for rec.dest === calendar',
+         /if\s*\(\s*rec\.dest\s*===\s*'calendar'\s*\)\s*\{[\s\S]{0,200}window\.calendarContextCampaignId/.test(html));
+  //   The Calendar's campaign-aware modal (Step 36) still preserves the
+  //   pre-fill from existing OS data — no fabrication.
+  var ocmfc37 = getFnBody('openCalModalForCampaign');
+  assert('Step 37: openCalModalForCampaign function still defined (Step 36 contract intact)',
+         !!ocmfc37);
+  if (ocmfc37) {
+    assert('Step 37: openCalModalForCampaign still sets type to "campaign"',
+           /typeEl\.value\s*=\s*'campaign'/.test(ocmfc37));
+    assert('Step 37: openCalModalForCampaign still does NOT fabricate a title value (only placeholder)',
+           !/\btitleEl\.value\s*=/.test(ocmfc37));
+  }
+  //   handleCalSubmit still writes calendar-linked to c.history when source
+  //   is a campaign — the history log is unchanged by Step 37.
+  var hcs37 = getFnBody('handleCalSubmit');
+  assert('Step 37: handleCalSubmit still writes calendar-linked to c.history for campaign source',
+         hcs37 && /action:\s*'calendar-linked'/.test(hcs37) && /sourceKind\s*===\s*'campaign'/.test(hcs37));
+
+  // -- 37.6: Non-regression of all prior contracts — Steps 25, 31, 32, 33, 34, 35, 36.
+  assert('Step 37: handleAssetSubmit still bridges c.assets[assetId] = asset (Step 31 contract intact)',
+         getFnBody('handleAssetSubmit') && /c\.assets\[asset\.assetId\]\s*=\s*asset/.test(getFnBody('handleAssetSubmit')));
+  assert('Step 37: handleAssetSubmit still calls renderOpsFeed (Step 31 contract intact)',
+         getFnBody('handleAssetSubmit') && /renderOpsFeed\(\)/.test(getFnBody('handleAssetSubmit')));
+  assert('Step 37: handleHookSubmit still pushes hook-attached to c.history (Step 35 contract intact)',
+         getFnBody('handleHookSubmit') && /\.history\.push\(\{\s*action:\s*'hook-attached'/.test(getFnBody('handleHookSubmit')));
+  assert('Step 37: patchProductionAssetsSection still defined (Step 33 contract intact)',
+         typeof getFnBody('patchProductionAssetsSection') === 'string' && getFnBody('patchProductionAssetsSection').length > 200);
+  assert('Step 37: patchCampaignHealthSection still defined (Step 34 contract intact)',
+         typeof getFnBody('patchCampaignHealthSection') === 'string' && getFnBody('patchCampaignHealthSection').length > 200);
+  assert('Step 37: renderCalendarContextPanel still defined (Step 36 contract intact)',
+         typeof getFnBody('renderCalendarContextPanel') === 'string' && getFnBody('renderCalendarContextPanel').length > 200);
+  assert('Step 37: window.calendarContextCampaignId state global still declared',
+         /window\.calendarContextCampaignId\s*=\s*window\.calendarContextCampaignId\s*\|\|\s*null/.test(html));
+  assert('Step 37: window.productionContextCampaignId state global still declared',
+         /window\.productionContextCampaignId\s*=\s*window\.productionContextCampaignId\s*\|\|\s*null/.test(html));
+  //   clearDevData still clears the calendar store (no regression on Step 14/16 lifecycle).
+  assert('Step 37: clearDevData still removes CAL_STORE_KEY (Step 14 lifecycle intact)',
+         html.includes('removeItem(CAL_STORE_KEY)'));
+
+  results.push('  (Step 37 — Publishing is now a single shared capability, not a Calendar-specific check. hasPublishingPlan(campaignId) is the canonical entry point: today it reads the campaign-linked Calendar items from the existing store and treats any non-skipped item as a publishing plan. getCampaignCategoryState() delegates to it for the publishing category. The dead-code check `c.assets[].status === "published"` is removed (asset statuses are needed/requested/in-production/ready/used/cancelled — there is no "published" state on assets, and the check was unreachable). The Strategist issue text is updated to match the canonical definition and is future-extensible (mentions Postiz / Meta / Buffer). Future integrations plug in by adding their own check inside hasPublishingPlan — the function name and signature do not mention any specific integration, so renaming is not required. Every surface that consumes getCampaignCategoryState (Campaign Detail ring/state/timestamp, Operations Feed, Portfolio campaign-cards, Strategist block) becomes truthful automatically because the shared category-state source is the single source of truth. All prior contracts (Step 25/31/32/33/34/35/36) remain intact — production, creative, learning, health engine, history truth, and Calendar campaign-aware modal are preserved.)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
