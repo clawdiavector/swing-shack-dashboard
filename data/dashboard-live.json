@@ -1,48 +1,48 @@
 {
-  "lastUpdated": "2026-07-15T10:00:04.913Z",
+  "lastUpdated": "2026-07-15T16:00:05.575Z",
   "source": "automated",
   "website": {
-    "activeUsers": 620,
-    "sessions": 820,
-    "pageViews": 1396,
-    "avgSessionSeconds": 83.82121223292684,
-    "bounceRate": 0.5646341463414634,
+    "activeUsers": 659,
+    "sessions": 869,
+    "pageViews": 1485,
+    "avgSessionSeconds": 86.95895254315306,
+    "bounceRate": 0.5891829689298044,
     "topPages": [
       {
         "path": "/",
-        "views": 684
+        "views": 723
       },
       {
         "path": "/bookings/",
-        "views": 349
+        "views": 371
       },
       {
         "path": "/customer-portal/",
-        "views": 196
+        "views": 205
       },
       {
         "path": "/club-fitting/",
-        "views": 65
+        "views": 74
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 43
+        "views": 45
       },
       {
         "path": "/philosophy/",
-        "views": 20
+        "views": 22
+      },
+      {
+        "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
+        "views": 13
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
         "views": 9
       },
       {
-        "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 8
-      },
-      {
         "path": "/membership/",
-        "views": 5
+        "views": 6
       },
       {
         "path": "/404.html",
@@ -52,27 +52,31 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 304
+        "sessions": 321
       },
       {
         "source": "(direct)",
-        "sessions": 176
+        "sessions": 189
       },
       {
         "source": "instagram",
-        "sessions": 174
+        "sessions": 175
       },
       {
         "source": "facebook",
-        "sessions": 63
+        "sessions": 64
       },
       {
         "source": "clublab.app",
         "sessions": 36
       },
       {
+        "source": "(not set)",
+        "sessions": 28
+      },
+      {
         "source": "bing",
-        "sessions": 15
+        "sessions": 17
       },
       {
         "source": "paid_meta",
@@ -83,22 +87,18 @@
         "sessions": 10
       },
       {
-        "source": "(not set)",
-        "sessions": 5
-      },
-      {
         "source": "l.instagram.com",
-        "sessions": 4
+        "sessions": 5
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 569
+        "sessions": 596
       },
       {
         "device": "desktop",
-        "sessions": 243
+        "sessions": 265
       },
       {
         "device": "tablet",
