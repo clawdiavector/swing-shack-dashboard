@@ -1,40 +1,40 @@
 {
-  "lastUpdated": "2026-07-16T10:00:08.380Z",
+  "lastUpdated": "2026-07-16T16:00:04.427Z",
   "source": "automated",
   "website": {
-    "activeUsers": 604,
-    "sessions": 787,
-    "pageViews": 1385,
-    "avgSessionSeconds": 89.79916114993648,
-    "bounceRate": 0.5412960609911055,
+    "activeUsers": 630,
+    "sessions": 825,
+    "pageViews": 1452,
+    "avgSessionSeconds": 88.44943129454545,
+    "bounceRate": 0.5624242424242424,
     "topPages": [
       {
         "path": "/",
-        "views": 647
+        "views": 677
       },
       {
         "path": "/bookings/",
-        "views": 365
+        "views": 384
       },
       {
         "path": "/customer-portal/",
-        "views": 210
+        "views": 214
       },
       {
         "path": "/club-fitting/",
-        "views": 62
+        "views": 69
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 44
+        "views": 48
       },
       {
         "path": "/philosophy/",
-        "views": 15
+        "views": 17
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 13
+        "views": 14
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
@@ -52,11 +52,11 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 301
+        "sessions": 320
       },
       {
         "source": "(direct)",
-        "sessions": 169
+        "sessions": 176
       },
       {
         "source": "instagram",
@@ -68,19 +68,19 @@
       },
       {
         "source": "clublab.app",
-        "sessions": 36
-      },
-      {
-        "source": "bing",
-        "sessions": 16
+        "sessions": 39
       },
       {
         "source": "(not set)",
-        "sessions": 13
+        "sessions": 33
+      },
+      {
+        "source": "bing",
+        "sessions": 18
       },
       {
         "source": "fb",
-        "sessions": 13
+        "sessions": 17
       },
       {
         "source": "c.yoco.com",
@@ -94,15 +94,15 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 527
+        "sessions": 544
       },
       {
         "device": "desktop",
-        "sessions": 253
+        "sessions": 272
       },
       {
         "device": "tablet",
-        "sessions": 6
+        "sessions": 7
       }
     ]
   },
