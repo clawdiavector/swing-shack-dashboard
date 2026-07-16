@@ -2368,6 +2368,103 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 38 — One Portfolio refresh function. The previous Portfolio displayed frozen seed-time values (1 Healthy / 2 Degraded / 0 Critical, 42 Total Assets, "0 assets · Degraded" per card) while Campaign Detail, Strategist, Operations Feed and computeCampaignHealth showed live truth. refreshPortfolio() walks window.campaignData.campaigns and rewrites every visible Portfolio surface from current state: each card (via updateCampaignCard), the per-band counts (via computeCampaignHealth), the Total Assets count, the Published/In-Progress counts (using only states the current data model can prove: publishedStates = ["used"], inProgressStates = ["requested", "in-production", "ready"]), and the campaign-card-title. The HTML markup now uses stable IDs (#portfolio-healthy, #portfolio-degraded, #portfolio-critical, #portfolio-total-assets, #portfolio-published, #portfolio-in-progress, #portfolio-card-title, #portfolio-cards) — no more hardcoded seed-time literals. Stale .ccard elements whose campaignId is no longer in the data are removed. refreshPortfolio() is called on boot, on showView("portfolio"), on handleAssetSubmit, handleHookSubmit, handleCalSubmit, changeAssetStatus, changeCalStatus, campaignFactoryCreate, and devStoreHydrate. The single health engine (computeCampaignHealth) is the only source of truth — no second health engine is introduced. The Step 33/34/35/36/37 contracts are preserved: patchProductionAssetsSection, patchCampaignHealthSection, openCalModalForCampaign, hasPublishingPlan, and the per-campaign history-truth fixes are all intact.)');
 
+  // ── Step 39: Campaign Detail becomes live on view entry ───────────
+  // The walkthrough found that after an asset save (or hook attach, or calendar link)
+  // the marketer navigates back to Campaign Detail and sees the stale "Health 35 · critical"
+  // and "Production Assets — 0 total" text. The data layer is correct (Operations Feed,
+  // Portfolio, computeCampaignHealth all agree) — only the Campaign Detail page is stale,
+  // because showView('detail') only set the subtitle without re-running renderCampaign(id).
+  //
+  // Fix: showView('detail') now calls renderCampaign(activeCampaignId) before setting
+  // the subtitle. This is the existing render pipeline (no second path), triggered once
+  // per view entry. The Step 33/34 inline patches (patchProductionAssetsSection,
+  // patchCampaignHealthSection) run as part of renderCampaign, so the Health ring +
+  // Production Assets counter are always live on entry.
+  section('Step 39: Campaign Detail live on view entry');
+
+  // -- 39.1: showView('detail') calls renderCampaign(activeCampaignId).
+  // Find the showView body and assert it now contains a renderCampaign call gated on
+  // name === 'detail' and activeCampaignId.
+  var sv39 = getFnBody('showView');
+  assert('Step 39: showView function exists', typeof sv39 === 'string' && sv39.length > 1000);
+  assert('Step 39: showView has the detail branch', sv39 && /name === 'detail'/.test(sv39));
+  // The new branch: if detail AND renderCampaign exists AND window.campaignData.activeCampaignId is set.
+  assert('Step 39: showView detail branch calls renderCampaign(activeCampaignId)',
+         sv39 && /name\s*===\s*'detail'[\s\S]{0,500}renderCampaign\(\s*window\.campaignData\.activeCampaignId\s*\)/.test(sv39));
+  assert('Step 39: showView detail branch guards on renderCampaign typeof',
+         sv39 && /typeof\s+renderCampaign\s*===\s*'function'/.test(sv39));
+  // The new branch is inside the LAST `if (name === 'detail')` block at the bottom
+  // of showView's body. There are several `name === 'detail'` matches in the body
+  // (view-detail / btn-detail toggles + the campaignSelectorWrap branch + our new
+  // branch). Take the chunk immediately after the LAST `name === 'detail'` — that's
+  // the body of the new `if (name === 'detail' && ...)` guard.
+  var sv39Parts = sv39.split(/name\s*===\s*'detail'/);
+  // sv39Parts[sv39Parts.length - 1] is the tail AFTER the new branch (else if + hooks etc.)
+  // sv39Parts[sv39Parts.length - 2] is the body of the new branch.
+  var sv39DetailBranch = sv39Parts[sv39Parts.length - 2];
+  assert('Step 39: showView detail branch guards on activeCampaignId',
+         /activeCampaignId/.test(sv39DetailBranch));
+  // The guard reads activeCampaignId off window.campaignData (the data layer) — the
+  // local 'activeCampaignId' var is not in scope inside showView, so the canonical
+  // path is window.campaignData.activeCampaignId. Assert both forms exist (legacy
+  // and canonical) so the test catches accidental future regressions either way.
+  assert('Step 39: showView detail branch reads activeCampaignId from window.campaignData',
+         /window\.campaignData\s*&&\s*window\.campaignData\.activeCampaignId/.test(sv39DetailBranch));
+  assert('Step 39: showView detail branch guards on window.campaignData existence',
+         /window\.campaignData[\s\S]{0,300}window\.campaignData\.campaigns\[window\.campaignData\.activeCampaignId\]/.test(sv39DetailBranch));
+  // No second health engine — Step 39 just calls the existing renderCampaign, which
+  // calls computeCampaignHealth via patchCampaignHealthSection.
+  assert('Step 39: showView does NOT introduce a second health engine',
+         !/function\s+computeCampaignHealth/.test(sv39DetailBranch));
+
+  // -- 39.2: renderCampaign still contains the Step 33/34 patches.
+  var rc39 = getFnBody('renderCampaign');
+  assert('Step 39: renderCampaign still exists', typeof rc39 === 'string' && rc39.length > 500);
+  assert('Step 39: renderCampaign still calls patchProductionAssetsSection (Step 33 intact)',
+         rc39 && /patchProductionAssetsSection\(/.test(rc39));
+  assert('Step 39: renderCampaign still calls patchCampaignHealthSection (Step 34 intact)',
+         rc39 && /patchCampaignHealthSection\(/.test(rc39));
+
+  // -- 39.3: save handlers still update their other surfaces.
+  // handleHookSubmit already calls renderCampaign(cid) on attach (Step 25). Step 39
+  // adds the view-entry refresh, so handleHookSubmit's existing call is preserved
+  // (and useful when the marketer is currently on Campaign Detail when the save fires).
+  var hhs39 = getFnBody('handleHookSubmit');
+  assert('Step 39: handleHookSubmit still calls renderCampaign in attach branch',
+         hhs39 && /renderCampaign\(\s*cid\s*\)/.test(hhs39));
+  // handleAssetSubmit, handleCalSubmit, changeAssetStatus, changeCalStatus rely on the
+  // navigation-side refresh now. Verify they still call refreshPortfolio + renderOpsFeed
+  // (Step 38 contract preserved).
+  var has39b = getFnBody('handleAssetSubmit');
+  assert('Step 39: handleAssetSubmit still calls renderOpsFeed',
+         has39b && /renderOpsFeed\(\)/.test(has39b));
+  assert('Step 39: handleAssetSubmit still calls refreshPortfolio',
+         has39b && /refreshPortfolio\(\)/.test(has39b));
+  var hcs39 = getFnBody('handleCalSubmit');
+  assert('Step 39: handleCalSubmit still calls refreshPortfolio',
+         hcs39 && /refreshPortfolio\(\)/.test(hcs39));
+
+  // -- 39.4: Non-regression of all previous steps.
+  assert('Step 39: refreshPortfolio still defined (Step 38 intact)',
+         typeof getFnBody('refreshPortfolio') === 'string' && getFnBody('refreshPortfolio').length > 500);
+  assert('Step 39: computeCampaignHealth still defined (Step 34 intact)',
+         typeof getFnBody('computeCampaignHealth') === 'string' && getFnBody('computeCampaignHealth').length > 200);
+  assert('Step 39: patchProductionAssetsSection still defined (Step 33 intact)',
+         typeof getFnBody('patchProductionAssetsSection') === 'string' && getFnBody('patchProductionAssetsSection').length > 200);
+  assert('Step 39: patchCampaignHealthSection still defined (Step 34 intact)',
+         typeof getFnBody('patchCampaignHealthSection') === 'string' && getFnBody('patchCampaignHealthSection').length > 200);
+  assert('Step 39: renderFns still maps every seeded campaign',
+         /renderFns\["trackman-intelligence"\]/.test(html) &&
+         /renderFns\["takomo-101t"\]/.test(html) &&
+         /renderFns\["winter-golf"\]/.test(html) &&
+         /renderFns\["use-the-right-equipment-mq5l90bk"\]/.test(html));
+  assert('Step 39: showView("portfolio") still calls refreshPortfolio',
+         sv39 && /name === 'portfolio'[\s\S]{0,200}refreshPortfolio\(\)/.test(sv39));
+  assert('Step 39: DOMContentLoaded boot still calls refreshPortfolio',
+         /DOMContentLoaded[\s\S]{0,400}refreshPortfolio\(\)/.test(html));
+
+  results.push('  (Step 39 — Campaign Detail is now live on view entry. The walkthrough surfaced a data-integrity finding: after an external state change (asset save, hook attach, calendar item linked) the Campaign Detail page kept the stale HTML from its last render — Health ring said 35/critical while computeCampaignHealth returned 60/degraded, and the Production Assets counter said "0 total" while c.assets had 1 entry. The data layer was already correct (Operations Feed, Portfolio, computeCampaignHealth all agreed). The fix is one new branch inside showView("detail"): renderCampaign(window.campaignData.activeCampaignId) is called before the subtitle is set, guarded by typeof + data existence + campaign existence. This is the existing render pipeline — no second health engine, no second refresh path — triggered once per view entry. The Step 33/34 inline patches (patchProductionAssetsSection, patchCampaignHealthSection) now run on every Campaign Detail entry, so the Health ring and Production Assets counter are always live. save handlers (handleAssetSubmit, handleHookSubmit, handleCalSubmit, changeAssetStatus, changeCalStatus) continue to call renderOpsFeed + refreshPortfolio on save for their respective surfaces; the navigation-side refresh completes the round-trip. Step 33/34/35/36/37/38 contracts all preserved.)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);

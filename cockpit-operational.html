@@ -1396,7 +1396,22 @@ function showView(name) {
   document.getElementById('campaignSelectorWrap').style.display = (name === 'detail') ? 'flex' : 'none';
   if (name === 'portfolio') { try { refreshPortfolio(); } catch (e) {} document.getElementById('header-subtitle').textContent = 'Portfolio Overview'; }
   if (name === 'review') { renderReviewQueue(); document.getElementById('header-subtitle').textContent = 'Review Queue'; }
-  if (name === 'detail') document.getElementById('header-subtitle').textContent = 'Detail';
+  // Step 39: re-render the active campaign whenever the marketer opens Campaign Detail.
+  // Previously showView('detail') only set the subtitle — the detail page kept whatever
+  // HTML was last rendered. After an external state change (asset save, hook attach,
+  // calendar item linked) the page showed stale Health ring + Production Assets count
+  // until the marketer re-clicked the campaign. Now every entry into the detail view
+  // runs renderCampaign(activeCampaignId), which calls the existing Step 33/34 patches
+  // (patchProductionAssetsSection, patchCampaignHealthSection) inline. No second health
+  // engine, no second refresh path — just the existing render pipeline triggered once
+  // per view entry. save handlers still call renderOpsFeed + refreshPortfolio on save;
+  // this is the navigation-side refresh that completes the round-trip.
+  if (name === 'detail' && typeof renderCampaign === 'function' && window.campaignData && window.campaignData.activeCampaignId && window.campaignData.campaigns[window.campaignData.activeCampaignId]) {
+    try { renderCampaign(window.campaignData.activeCampaignId); } catch (e) {}
+    document.getElementById('header-subtitle').textContent = 'Detail';
+  } else if (name === 'detail') {
+    document.getElementById('header-subtitle').textContent = 'Detail';
+  }
   if (name === 'hooks') { renderHookBank(); document.getElementById('header-subtitle').textContent = 'Hook Bank — standalone or attach to a campaign'; }
   if (name === 'memes') { renderMemeLord(); document.getElementById('header-subtitle').textContent = 'Meme Lord — capture meme ideas, attach to campaigns'; }
   if (name === 'billboards') { renderBillboardLab(); document.getElementById('header-subtitle').textContent = 'Billboard Lab — window screens, billboards, social overlays'; }
