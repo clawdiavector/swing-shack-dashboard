@@ -272,6 +272,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .atag[data-priority="low"] { background:#6e6e8233; color:#a0a0b0; }
 .atag[data-priority="medium"] { background:#4488ff22; color:#4488ff; }
 .atag[data-priority="high"] { background:#ffaa0022; color:#ffaa00; }
+/* Step 40: Asset Context (truthful, read-only) */
+.actx-block { margin-top: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; }
+.actx-row { display: flex; gap: 8px; padding: 3px 0; line-height: 1.4; }
+.actx-label { color: var(--col-muted); text-transform: uppercase; font-size: 9px; letter-spacing: 0.06em; font-weight: 600; min-width: 110px; flex-shrink: 0; }
+.actx-value { color: var(--text); flex: 1; word-break: break-word; }
+.actx-empty { color: var(--col-muted); font-style: italic; }
+.actx-section-label { color: var(--col-muted); text-transform: uppercase; font-size: 9px; letter-spacing: 0.08em; font-weight: 700; margin: 8px 0 4px 0; padding-bottom: 4px; border-bottom: 1px dashed var(--border); }
 .atag[data-priority="urgent"] { background:#ff445522; color:#ff4455; }
 .atag[data-status="needed"] { background:#6e6e8233; color:#a0a0b0; }
 .atag[data-status="requested"] { background:#4488ff22; color:#4488ff; }
@@ -5913,6 +5920,89 @@ function requestAssetFromMeme(memeId) { openAssetModal('meme:' + memeId); }
 function requestAssetFromBillboard(billboardId) { openAssetModal('billboard:' + billboardId); }
 function requestAssetFromTrend(trendId) { openAssetModal('trend:' + trendId); }
 function requestAssetFromHook(hookId) { openAssetModal('hook:' + hookId); }
+// --- Step 40: resolveAssetContext(assetId) — read-only resolver.
+// Returns ONLY relationships that are explicitly stored. Never infers.
+// DIRECT: campaign (via asset.campaignLink or asset.campaignId)
+// REVERSE-RESOLVED (only when a stored reference proves it):
+//   - calendar slots where meta.asset or sourceId equals assetId
+//   - channel plans where campaign.channels[].plannedItems[].asset equals assetId
+//   - hook bindings: only where the SAME calendar slot or plannedItem pairs both this asset and a hook
+function resolveAssetContext(assetId) {
+  var out = { asset: null, campaign: null, calendarSlots: [], channelPlans: [], confirmedHookBindings: [] };
+  if (!window.campaignData) return out;
+  var all = (typeof assetReadAll === 'function') ? assetReadAll() : [];
+  for (var i = 0; i < all.length; i++) {
+    if (all[i] && all[i].assetId === assetId) { out.asset = all[i]; break; }
+  }
+  if (!out.asset) {
+    var camps = window.campaignData.campaigns || {};
+    Object.keys(camps).forEach(function(cid) {
+      var ca = camps[cid] && camps[cid].assets && camps[cid].assets[assetId];
+      if (ca) out.asset = ca;
+    });
+  }
+  if (!out.asset) return out;
+  var cid = out.asset.campaignLink || out.asset.campaignId;
+  if (cid && window.campaignData.campaigns && window.campaignData.campaigns[cid]) {
+    out.campaign = window.campaignData.campaigns[cid];
+  }
+  var calPool = [];
+  if (window.campaignData.calendarItems && Array.isArray(window.campaignData.calendarItems)) {
+    calPool = calPool.concat(window.campaignData.calendarItems);
+  }
+  if (out.campaign && Array.isArray(out.campaign.calendarItems)) {
+    calPool = calPool.concat(out.campaign.calendarItems);
+  }
+  for (var j = 0; j < calPool.length; j++) {
+    var ci = calPool[j];
+    if (!ci) continue;
+    var meta = ci.meta || {};
+    var metaAsset = meta.asset || ci.sourceId || ci.assetId;
+    if (metaAsset === assetId) {
+      out.calendarSlots.push({
+        calItemId: ci.calItemId || ci.id || ci.calendarId,
+        date: ci.date || ci.scheduledDate || ci.day || null,
+        time: ci.time || ci.scheduledTime || ci.window || null,
+        channel: ci.channel || null,
+        hookRef: meta.hook || ci.hookId || null
+      });
+    }
+  }
+  if (out.campaign && out.campaign.channels) {
+    Object.keys(out.campaign.channels).forEach(function(chName) {
+      var ch = out.campaign.channels[chName];
+      if (!ch || !Array.isArray(ch.plannedItems)) return;
+      for (var k = 0; k < ch.plannedItems.length; k++) {
+        var pi = ch.plannedItems[k];
+        if (!pi) continue;
+        var piAsset = pi.asset || pi.assetId || (pi.source && pi.source.asset);
+        if (piAsset === assetId) {
+          out.channelPlans.push({
+            channel: chName,
+            day: pi.day || pi.date || null,
+            window: pi.window || pi.time || null,
+            hookRef: pi.hook || pi.hookId || null
+          });
+        }
+      }
+    });
+  }
+  var provenHooks = {};
+  out.calendarSlots.forEach(function(s) {
+    if (s.hookRef) provenHooks[s.hookRef] = true;
+  });
+  out.channelPlans.forEach(function(p) {
+    if (p.hookRef) provenHooks[p.hookRef] = true;
+  });
+  Object.keys(provenHooks).forEach(function(hid) {
+    var hh = hookReadAll().find(function(x) { return x.hookId === hid; });
+    out.confirmedHookBindings.push({
+      hookId: hid,
+      hookText: hh ? (hh.text || hh.headline || hh.line || hid) : hid
+    });
+  });
+  return out;
+}
 function renderAssetCard(a) {
   var esc = function(s) { return String(s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); };
   var sourceText = '';
@@ -5949,6 +6039,53 @@ function renderAssetCard(a) {
   var statusButtons = ['needed', 'requested', 'in-production', 'ready', 'used', 'cancelled'].map(function(s) {
     return '<button class="acard-status-btn ' + (status === s ? 'active' : '') + '" onclick="changeAssetStatus(\'' + a.assetId + '\', \'' + s + '\')">' + s + '</button>';
   }).join('');
+  // Step 40: truthful Asset Context — only proven relationships, never inferred.
+  var ctx = (typeof resolveAssetContext === 'function') ? resolveAssetContext(a.assetId) : { asset: a, campaign: null, calendarSlots: [], channelPlans: [], confirmedHookBindings: [] };
+  var ctxAsset = ctx.asset || a;
+  var ctxC = ctx.campaign;
+  var ctxCampaignName = (ctxC && ctxC.identity && ctxC.identity.name) || (ctxAsset && (ctxAsset.campaignLink || ctxAsset.campaignId)) || null;
+  var ctxCampaignId = (ctxC && (ctxC.identity && ctxC.identity.campaignId)) || (ctxAsset && (ctxAsset.campaignLink || ctxAsset.campaignId)) || null;
+  var ctxRequiredBy = ctxAsset && ctxAsset.requiredBy ? ctxAsset.requiredBy : null;
+  var ctxStatus = ctxAsset && ctxAsset.status ? ctxAsset.status : (status);
+  var ctxPriority = ctxAsset && ctxAsset.priority ? ctxAsset.priority : (priority);
+  var ctxBrief = ctxAsset && ctxAsset.brief ? ctxAsset.brief : null;
+  // PROVEN calendar slot (only when a stored record references this asset)
+  var slot = ctx.calendarSlots && ctx.calendarSlots.length ? ctx.calendarSlots[0] : null;
+  var slotDate = slot ? (slot.date || null) : null;
+  var slotTime = slot ? (slot.time || null) : null;
+  var slotChannel = slot && slot.channel ? slot.channel : null;
+  // PROVEN channel (only when campaign.channels[].plannedItems[].asset equals this assetId)
+  var ch = ctx.channelPlans && ctx.channelPlans.length ? ctx.channelPlans[0] : null;
+  var channelName = ch ? ch.channel : null;
+  // PROVEN hook (only where the SAME stored record pairs asset + hook)
+  var hook = ctx.confirmedHookBindings && ctx.confirmedHookBindings.length ? ctx.confirmedHookBindings[0] : null;
+  var hookText = hook ? hook.hookText : null;
+  // CAMPAIGN CONTEXT (clearly labelled, never presented as a direct asset field)
+  var ctxHealth = (ctxC && typeof computeCampaignHealth === 'function') ? computeCampaignHealth(ctxCampaignId) : null;
+  var ctxHealthScore = ctxHealth ? (ctxHealth.healthScore !== undefined ? ctxHealth.healthScore : ctxHealth.score) : null;
+  var ctxHealthState = ctxHealth ? (ctxHealth.healthState !== undefined ? ctxHealth.healthState : ctxHealth.state) : null;
+  var ctxCampaignStatus = ctxC && ctxC.identity && ctxC.identity.status ? ctxC.identity.status : null;
+  var ctxBigIdea = ctxC && ctxC.brief && ctxC.brief.bigIdea ? ctxC.brief.bigIdea : null;
+  function ctxRow(label, value, emptyText) {
+    if (value !== null && value !== undefined && value !== '') {
+      return '<div class="actx-row"><span class="actx-label">' + label + '</span><span class="actx-value">' + esc(value) + '</span></div>';
+    }
+    return '<div class="actx-row"><span class="actx-label">' + label + '</span><span class="actx-value actx-empty">' + esc(emptyText) + '</span></div>';
+  }
+  var contextHtml = '<div class="actx-block">' +
+    ctxRow('Campaign', ctxCampaignName, 'No campaign linked.') +
+    ctxRow('Required by', ctxRequiredBy, 'No required-by date set.') +
+    ctxRow('Status', ctxStatus, '—') +
+    ctxRow('Scheduled', (slotDate ? (slotDate + (slotTime ? ' at ' + slotTime : '')) : null), 'No publishing slot linked yet.') +
+    ctxRow('Channel', slotChannel || channelName, 'No channel planned yet.') +
+    ctxRow('Ships with hook', hookText, 'No hook is directly paired with this asset.') +
+    (ctxBrief ? ctxRow('Brief', ctxBrief, '') : '') +
+    '<div class="actx-section-label">CAMPAIGN CONTEXT</div>' +
+    ctxRow('Campaign name', ctxCampaignName, '—') +
+    ctxRow('Campaign status', ctxCampaignStatus, '—') +
+    ctxRow('Campaign health', (ctxHealthScore !== null && ctxHealthState) ? (ctxHealthScore + ' · ' + ctxHealthState) : null, '—') +
+    ctxRow('Big idea', ctxBigIdea, '—') +
+  '</div>';
   return '<div class="acard">' +
     '<div class="acard-title">' + esc(a.title) + '</div>' +
     '<div class="acard-meta">' +
@@ -5962,6 +6099,7 @@ function renderAssetCard(a) {
     '</div>' +
     (sourceText ? '<div style="margin-top:6px">' + sourceText + '</div>' : '') +
     (a.notes ? '<div class="acard-note">' + esc(a.notes) + '</div>' : '') +
+    contextHtml +
     '<div class="acard-status-row">' + statusButtons + '</div>' +
     '<div class="acard-actions">' +
       '<button class="acard-btn" onclick="openEditAssetModal(\'' + a.assetId + '\')">Edit</button>' +

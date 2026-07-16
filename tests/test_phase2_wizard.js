@@ -2465,6 +2465,97 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 39 — Campaign Detail is now live on view entry. The walkthrough surfaced a data-integrity finding: after an external state change (asset save, hook attach, calendar item linked) the Campaign Detail page kept the stale HTML from its last render — Health ring said 35/critical while computeCampaignHealth returned 60/degraded, and the Production Assets counter said "0 total" while c.assets had 1 entry. The data layer was already correct (Operations Feed, Portfolio, computeCampaignHealth all agreed). The fix is one new branch inside showView("detail"): renderCampaign(window.campaignData.activeCampaignId) is called before the subtitle is set, guarded by typeof + data existence + campaign existence. This is the existing render pipeline — no second health engine, no second refresh path — triggered once per view entry. The Step 33/34 inline patches (patchProductionAssetsSection, patchCampaignHealthSection) now run on every Campaign Detail entry, so the Health ring and Production Assets counter are always live. save handlers (handleAssetSubmit, handleHookSubmit, handleCalSubmit, changeAssetStatus, changeCalStatus) continue to call renderOpsFeed + refreshPortfolio on save for their respective surfaces; the navigation-side refresh completes the round-trip. Step 33/34/35/36/37/38 contracts all preserved.)');
 
+  // ── Step 40: Truthful Asset Context (read-only) ───────────────
+  // Verify resolver exists, returns the expected shape, and only emits proven relationships.
+  // The resolver must read from localStorage + campaignData + calendarItems + campaign.channels.
+  const hasResolver = /function\s+resolveAssetContext\s*\(\s*assetId\s*\)\s*\{/.test(html);
+  assert('Step 40: resolveAssetContext(assetId) function exists', hasResolver);
+
+  // Resolver must inspect localStorage asset_requests store OR campaign-scoped assets.
+  const resolverSrc = hasResolver ? (html.match(/function\s+resolveAssetContext\s*\(\s*assetId\s*\)\s*\{[\s\S]*?\n\}/) || [''])[0] : '';
+  assert('Step 40: resolver reads from assetReadAll (standalone store)',
+         /assetReadAll\s*\(\s*\)/.test(resolverSrc));
+  assert('Step 40: resolver walks window.campaignData.campaigns for campaign-scoped assets',
+         /window\.campaignData\.campaigns[\s\S]{0,200}cid[\s\S]{0,200}assets[\s\S]{0,200}assetId/.test(resolverSrc));
+  assert('Step 40: resolver scans calendarItems for asset references',
+         /calendarItems[\s\S]{0,400}meta\.asset[\s\S]{0,200}===[\s\S]{0,80}assetId/.test(resolverSrc));
+  assert('Step 40: resolver scans campaign.channels[].plannedItems[].asset',
+         /channels[\s\S]{0,400}plannedItems[\s\S]{0,400}\.asset[\s\S]{0,80}===[\s\S]{0,80}assetId/.test(resolverSrc));
+  assert('Step 40: hook binding is only emitted when paired in the SAME calendar/channel record',
+         /calendarSlots[\s\S]{0,200}\.hookRef[\s\S]{0,400}channelPlans[\s\S]{0,200}\.hookRef/.test(resolverSrc));
+  assert('Step 40: resolver returns empty arrays when nothing is proven',
+         /calendarSlots:\s*\[\][\s\S]{0,40}channelPlans:\s*\[\][\s\S]{0,40}confirmedHookBindings:\s*\[\]/.test(resolverSrc));
+
+  // Resolver must NOT infer relationships by scanning campaign-level hooks list alone.
+  const noCampaignHookScan = !/campaign\.hooks[\s\S]{0,400}\.map[\s\S]{0,200}asset/.test(resolverSrc) &&
+                             !/confirmedHookBindings\s*=\s*campaign\.hooks/.test(resolverSrc);
+  assert('Step 40: resolver does NOT pair every campaign-level hook with this asset', noCampaignHookScan);
+
+  // Verify the asset card template now embeds the truthful Asset Context block.
+  assert('Step 40: renderAssetCard calls resolveAssetContext per asset',
+         /function\s+renderAssetCard[\s\S]+?resolveAssetContext\(/.test(html));
+  assert('Step 40: asset card contains CAMPAIGN CONTEXT section label',
+         /class="actx-section-label"[\s\S]{0,40}CAMPAIGN CONTEXT/.test(html));
+  assert('Step 40: asset card shows empty state "No publishing slot linked yet."',
+         /No publishing slot linked yet\./.test(html));
+  assert('Step 40: asset card shows empty state "No channel planned yet."',
+         /No channel planned yet\./.test(html));
+  assert('Step 40: asset card shows empty state "No hook is directly paired with this asset."',
+         /No hook is directly paired with this asset\./.test(html));
+
+  // Truthful direct fields.
+  assert('Step 40: asset card labels Campaign directly (only via asset.campaignId)',
+         /ctxRow\(\s*['"]Campaign['"]/.test(html));
+  assert('Step 40: asset card labels Required by directly (only via asset.requiredBy)',
+         /ctxRow\(\s*['"]Required by['"]/.test(html));
+  assert('Step 40: asset card labels Status directly (only via asset.status)',
+         /ctxRow\(\s*['"]Status['"]/.test(html));
+  assert('Step 40: asset card labels Scheduled (only via calendarSlots[0].date/time)',
+         /ctxRow\(\s*['"]Scheduled['"]/.test(html));
+  assert('Step 40: asset card labels Channel (only via calendarSlots[0].channel || channelPlans[0].channel)',
+         /ctxRow\(\s*['"]Channel['"]/.test(html));
+  assert('Step 40: asset card labels "Ships with hook" (only via confirmedHookBindings[0])',
+         /ctxRow\(\s*['"]Ships with hook['"]/.test(html));
+
+  // CAMPAIGN CONTEXT sub-section: clearly labelled, distinct from direct asset fields.
+  const ctxBlock = (html.match(/var contextHtml\s*=\s*'<div class="actx-block">[\s\S]*?'<\/div>'/) || [''])[0];
+  assert('Step 40: CAMPAIGN CONTEXT section appears AFTER the direct asset rows',
+         ctxBlock && /ctxRow\([^)]+\)[\s\S]{0,2000}actx-section-label[\s\S]{0,40}CAMPAIGN CONTEXT/.test(ctxBlock));
+  assert('Step 40: CAMPAIGN CONTEXT includes Campaign health (computed, not stored)',
+         ctxBlock && /ctxRow\(\s*['"]Campaign health['"]/.test(ctxBlock));
+  assert('Step 40: CAMPAIGN CONTEXT includes Big idea',
+         ctxBlock && /ctxRow\(\s*['"]Big idea['"]/.test(ctxBlock));
+
+  // CSS for new context classes.
+  assert('Step 40: CSS for .actx-block defined',
+         /\.actx-block\s*\{/.test(html));
+  assert('Step 40: CSS for .actx-row defined',
+         /\.actx-row\s*\{/.test(html));
+  assert('Step 40: CSS for .actx-label defined',
+         /\.actx-label\s*\{/.test(html));
+  assert('Step 40: CSS for .actx-empty defined',
+         /\.actx-empty\s*\{/.test(html));
+  assert('Step 40: CSS for .actx-section-label defined',
+         /\.actx-section-label\s*\{/.test(html));
+
+  // Guardrails — the brief forbids redesigning Asset Planner, adding attachment controls,
+  // modifying Calendar, modifying campaign channels, or adding bidirectional fields.
+  // The renderAssetCard edit must NOT add new onclick handlers beyond the existing three
+  // (openEditAssetModal, promptAttachAsset, confirmDeleteAsset).
+  const cardSrc = (html.match(/function\s+renderAssetCard[\s\S]*?function\s+renderAssetPlanner\s*\(\s*\)/) || [''])[0];
+  const onclickMatches = cardSrc.match(/onclick="[^"]+"/g) || [];
+  const onclicks = onclickMatches.join(' ');
+  assert('Step 40: no new attachment control added (no attach/schedule/ship button)',
+         !/attach-asset|attachToCampaign|schedule-asset|scheduleAsset|publishNow|shipNow/.test(onclicks));
+  assert('Step 40: no asset-to-calendar/channedItem bidirectional field added to the asset object',
+         !/asset\.(calItemId|scheduleId|channel|publishTarget|hookIds|attachedHooks)\s*=/.test(resolverSrc));
+
+  // Read-only contract: renderAssetCard must NOT call any mutator (writeStore, assetAppend, assetWriteAll, assetDelete).
+  assert('Step 40: renderAssetCard is read-only — no writeStore, assetAppend, or assetDelete call',
+         !/writeStore\s*\(|assetAppend\s*\(|assetDelete\s*\(|assetWriteAll\s*\(/.test(cardSrc));
+
+  results.push('  (Step 40 — Truthful Asset Context. New shared resolver resolveAssetContext(assetId) walks asset.campaignId → campaign → calendarItems + campaign.channels[].plannedItems, returns only records that explicitly reference this asset, and only emits a hook binding when the SAME calendar slot or plannedItem pairs both the asset and a hook. The asset card now embeds an Asset Context block: direct fields (Campaign, Required by, Status, Scheduled, Channel, Ships with hook) with truthful empty states, followed by a clearly labelled CAMPAIGN CONTEXT section (campaign name, status, computed health, big idea). The renderAssetCard edit does not add any new mutation or attach control — Step 31/36/37/39 contracts all preserved. Asset Planner behaviour unchanged: still standalone-workspace + context-aware modes, still no click-to-detail, still sortable by priority/requiredBy/updatedAt.)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
