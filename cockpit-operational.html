@@ -1440,6 +1440,15 @@ var GOAL_STORE_KEY   = 'campaign-os:dev:goals';
 var EVENT_STORE_KEY  = 'campaign-os:dev:events';
 var ATTACH_STORE_KEY = 'campaign-os:dev:campaign_attachments';
 var ACTIVE_PRODUCT_KEY = 'campaign-os:dev:active_product';
+// Path C Stage 1: single canonical source of truth for Performance pipeline event types.
+// Stage 2 consumes this constant. No emitters are added in Stage 1.
+var PERFORMANCE_EVENT_TYPES = Object.freeze({
+  LEARNING_CANDIDATE_PROPOSED:  'learning.candidate.proposed',
+  LEARNING_RECORD_PROMOTED:      'learning.record.promoted',
+  LEARNING_RECORD_REJECTED:      'learning.record.rejected',
+  LEARNING_RECORD_SUPERSEDED:    'learning.record.superseded',
+  LEARNING_EVIDENCE_PACKED:      'learning.evidence.packed'
+});
 var DOMAINS = {
   research:    { label: 'Research',    kinds: ['trend'] },
   creative:    { label: 'Creative',    kinds: ['hook', 'meme', 'billboard', 'caption'] },
@@ -1465,7 +1474,11 @@ function kindStoreKey(kind) {
               caption:'captions', asset_request:'asset_requests', calendar_item:'calendar',
               recommendation:'intelligence:recommendations', pattern:'intelligence:patterns',
               opportunity:'intelligence:opportunities', combination:'intelligence:combinations',
-              lesson:'intelligence:lessons' };
+              lesson:'intelligence:lessons',
+              // Path C Stage 1 additions: durable Learning kinds declared in DOMAINS map.
+              // No readers or writers exist yet. Stage 2 introduces them.
+              learning:'learning:lessons_learned',
+              playbook:'learning:playbooks' };
   return 'campaign-os:dev:' + (map[kind] || kind);
 }
 function readStore(key) { try { var r = localStorage.getItem(key); return r ? JSON.parse(r) : []; } catch(e){return [];} }
@@ -6786,6 +6799,31 @@ window.globalSearchGo = function(kind, id) {
       openGlobalSearch();
     }
   });
+
+  // ── Path C Stage 1: Performance pipeline stubs ───────────────
+  // Each stub throws a labelled Stage-1 error if called. Stage 2
+  // implementations replace the body with real logic. The throw is
+  // the safety net: accidental integration in Stage 2 surfaces
+  // immediately rather than silently producing plausible data.
+
+  function performanceAggregate(campaignId, opts) {
+    throw new Error('Stage 1 stub not implemented: performanceAggregate');
+  }
+  function performanceDerive(classification, asset, engagementRef, campaignContext) {
+    throw new Error('Stage 1 stub not implemented: performanceDerive');
+  }
+  function performancePromote(candidate) {
+    throw new Error('Stage 1 stub not implemented: performancePromote');
+  }
+  function performanceReject(candidate, reason) {
+    throw new Error('Stage 1 stub not implemented: performanceReject');
+  }
+  function reclassifyAsset(assetId, newEngagementRef) {
+    throw new Error('Stage 1 stub not implemented: reclassifyAsset');
+  }
+  function evidencePack(classification, asset, engagementRef, campaignContext) {
+    throw new Error('Stage 1 stub not implemented: evidencePack');
+  }
 })();
 </script>
 

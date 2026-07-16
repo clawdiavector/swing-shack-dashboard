@@ -2556,6 +2556,97 @@ section('Live API — wizard payload (new shape)');
 
   results.push('  (Step 40 — Truthful Asset Context. New shared resolver resolveAssetContext(assetId) walks asset.campaignId → campaign → calendarItems + campaign.channels[].plannedItems, returns only records that explicitly reference this asset, and only emits a hook binding when the SAME calendar slot or plannedItem pairs both the asset and a hook. The asset card now embeds an Asset Context block: direct fields (Campaign, Required by, Status, Scheduled, Channel, Ships with hook) with truthful empty states, followed by a clearly labelled CAMPAIGN CONTEXT section (campaign name, status, computed health, big idea). The renderAssetCard edit does not add any new mutation or attach control — Step 31/36/37/39 contracts all preserved. Asset Planner behaviour unchanged: still standalone-workspace + context-aware modes, still no click-to-detail, still sortable by priority/requiredBy/updatedAt.)');
 
+  // ── Path C Stage 1: Performance pipeline foundation ──────────────
+  // Stage 1 ships only: a frozen event-type constant, kindStoreKey
+  // extensions for learning/playbook, six throwing stubs, and NO
+  // emitters, NO campaign.memory writes, NO UI changes.
+
+  // 1. PERFORMANCE_EVENT_TYPES — single canonical source of truth.
+  assert('Stage 1: PERFORMANCE_EVENT_TYPES object exists',
+         /var\s+PERFORMANCE_EVENT_TYPES\s*=\s*Object\.freeze\s*\(/.test(html));
+  assert('Stage 1: PERFORMANCE_EVENT_TYPES contains all five canonical keys',
+         /LEARNING_CANDIDATE_PROPOSED:\s*'learning\.candidate\.proposed'/.test(html) &&
+         /LEARNING_RECORD_PROMOTED:\s*'learning\.record\.promoted'/.test(html) &&
+         /LEARNING_RECORD_REJECTED:\s*'learning\.record\.rejected'/.test(html) &&
+         /LEARNING_RECORD_SUPERSEDED:\s*'learning\.record\.superseded'/.test(html) &&
+         /LEARNING_EVIDENCE_PACKED:\s*'learning\.evidence\.packed'/.test(html));
+
+  // 2. kindStoreKey — extended for learning + playbook.
+  assert('Stage 1: kindStoreKey(\'learning\') resolves to learning:lessons_learned',
+         /learning:\s*'learning:lessons_learned'/.test(html));
+  assert('Stage 1: kindStoreKey(\'playbook\') resolves to learning:playbooks',
+         /playbook:\s*'learning:playbooks'/.test(html));
+
+  // 3. Six throwing stubs — each must throw a labelled Error.
+  const stubNames = ['performanceAggregate', 'performanceDerive', 'performancePromote',
+                     'performanceReject', 'reclassifyAsset', 'evidencePack'];
+  stubNames.forEach(function(name) {
+    // Stub function must exist with the right signature and throw a labelled Error.
+    // Build the regex source from parts so escaping stays explicit per fragment.
+    const _open = 'function' + String.fromCharCode(0x5c, 0x73) + '+';  // "function\s+"
+    const _name_ = name;
+    const _args = String.fromCharCode(0x5c, 0x73) + '*' + String.fromCharCode(0x5c, 0x28) + '[^)]*' + String.fromCharCode(0x5c, 0x29);  // \s*\([^)]*\)
+    const _space = String.fromCharCode(0x5c, 0x73) + '*' + String.fromCharCode(0x5c, 0x7b);  // \s*\{
+    const _any = '[' + String.fromCharCode(0x5c, 0x73, 0x5c, 0x53) + ']{0,300}';  // [\s\S]{0,300}
+    const _throw = 'throw new Error' + String.fromCharCode(0x5c, 0x28);  // throw new Error\(
+    const _msg = '[' + String.fromCharCode(0x5c, 0x27, 0x22) + ']Stage 1 stub not implemented: ';  // [\'"]Stage 1 stub not implemented: 
+    const _suffix = '[' + String.fromCharCode(0x5c, 0x27, 0x22) + ']';  // [\'"]  matches closing quote
+    const stubRegex = new RegExp(_open + _name_ + _args + _space + _any + _throw + _msg + _name_ + _suffix);
+    assert('Stage 1: ' + name + ' stub exists and throws labelled Error', stubRegex.test(html));
+  });
+  // 4. No emitters — applyEvent({ type: 'learning.*' }) must be zero.
+  const emitterMatches = html.match(/applyEvent\s*\(\s*\{[^}]*type:\s*['"]learning\./g) || [];
+  assert('Stage 1: zero applyEvent emitters for learning.* event types', emitterMatches.length === 0);
+
+  // 5. No campaign.memory writes — none of the six stubs mutates campaign.memory.
+  stubNames.forEach(function(name) {
+    const stubSrc = (html.match(new RegExp('function\\s+' + name + '\\s*\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n  \\}')) || [''])[0];
+    const noMemoryMutation = !/\.memory\b|\bmemory\s*=/.test(stubSrc);
+    const noStoreWrites = !/writeStore\s*\(|devStoreAppend\s*\(/.test(stubSrc);
+    const noEventEmission = !/applyEvent\s*\(/.test(stubSrc);
+    assert('Stage 1: ' + name + ' stub does not mutate campaign.memory', noMemoryMutation);
+    assert('Stage 1: ' + name + ' stub does not call writeStore or devStoreAppend', noStoreWrites);
+    assert('Stage 1: ' + name + ' stub does not call applyEvent', noEventEmission);
+  });
+
+  // 6. No pre-existing handler calls any of the six stubs.
+  stubNames.forEach(function(name) {
+    // Search for call sites: name followed by an open paren, anywhere in source.
+    const callRegex = new RegExp('\\b' + name + '\\s*\\(', 'g');
+    const allMatches = (html.match(callRegex) || []).length;
+    // Each stub has exactly 1 occurrence (its own definition). Anything more is a call site.
+    assert('Stage 1: no pre-existing call site for ' + name + ' (only definition)', allMatches === 1);
+  });
+
+  // 7. Negative assertion — rejected_candidates / LEARNING_REJECTS_KEY must NOT appear in source.
+  assert('Stage 1: rejected_candidates NOT introduced anywhere in source',
+         !/rejected_candidates\b/.test(html) && !/LEARNING_REJECTS_KEY\b/.test(html));
+
+  // 8. Health-engine / Strategist / Ops Feed source unchanged — five anchor functions
+  //    must still be the same shape they were pre-Stage-1.
+  assert('Stage 1: getCampaignCategoryState unchanged (still reads memory fields)',
+         /function\s+getCampaignCategoryState\s*\(\s*campaignId\s*\)\s*\{[\s\S]{0,2500}mem\.lessonsLearned[\s\S]{0,400}mem\.bestHooks[\s\S]{0,400}mem\.bestVisuals/.test(html));
+  assert('Stage 1: computeCampaignHealth unchanged (still uses STRATEGIST_WEIGHTS)',
+         /function\s+computeCampaignHealth\s*\(\s*campaignId\s*\)[\s\S]{0,1500}STRATEGIST_WEIGHTS/.test(html));
+  assert('Stage 1: diagnoseCampaign unchanged (still pushes learning issue)',
+         /function\s+diagnoseCampaign\s*\(\s*campaignId\s*\)[\s\S]{0,2500}if\s*\(!cats\.learning\)\s*issues\.push\(\s*\{\s*key:\s*'learning'/.test(html));
+  assert('Stage 1: opsFeedData still filters by diagnoseCampaign issues length',
+         /function\s+opsFeedData\s*\(\s*\)[\s\S]{0,1500}if\s*\(!hasIssues\)\s*return null/.test(html));
+  assert('Stage 1: Strategist action for learning still routes to creative (unchanged)',
+         /action:\s*'Capture Lessons',\s*dest:\s*'creative'/.test(html));
+
+  // 9. Campaign memory structure (seed JSON) — verified by marker that the existing
+  //    TrackMan/Takomo seed memory objects still parse. We do not re-validate the
+  //    byte-identical claim via grep (too noisy); the five anchor assertions above
+  //    cover behavioural equivalence. Add a positive schema-presence check instead.
+  assert('Stage 1: campaign.memory schema fields still present in seed JSON',
+         /"lessonsLearned"/.test(html) &&
+         /"bestHooks"/.test(html) &&
+         /"bestVisuals"/.test(html) &&
+         /"failedContent"/.test(html));
+
+  results.push('  (Path C Stage 1 — Performance pipeline foundation. One frozen PERFORMANCE_EVENT_TYPES constant with five canonical event-type strings; kindStoreKey extended with learning→learning:lessons_learned and playbook→learning:playbooks; six throwing stubs (performanceAggregate, performanceDerive, performancePromote, performanceReject, reclassifyAsset, evidencePack) that throw labelled Errors if called; zero emitters; zero campaign.memory mutations; zero changes to getCampaignCategoryState, computeCampaignHealth, diagnoseCampaign, opsFeedData, or the Strategist. rejected_candidates[] and LEARNING_REJECTS_KEY deliberately NOT introduced — deferred to Stage 2 when the first real Promotion Gate writer exists. Stage 1 is a foundation contract only: it prepares the system for Truth Collector without changing marketer-visible behaviour.)');
+
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
   results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
