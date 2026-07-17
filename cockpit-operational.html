@@ -7186,14 +7186,21 @@ window.globalSearchGo = function(kind, id) {
       if (snap.classification !== 'PROMOTED_CANDIDATE' && snap.classification !== 'UNDERPERFORMED_CANDIDATE') {
         return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.CLASSIFICATION_INVALID_FOR_PROMOTION, 'promotion-gate');
       }
-      // Rule 1: evidence pack exists and is frozen
+      // Rule 1: evidence pack exists and is marked immutable.
+      // Read packs from localStorage; JSON round-trip unfreezes nested objects. The
+      // pack's `immutable: true` field (set by evidencePack() at write time) survives
+      // JSON serialization and serves as the durable immutability marker. We also
+      // re-freeze on read so any consumer that mutates a nested field throws.
       var packs = readStore(EVIDENCE_PACKS_KEY);
       var pack = packs.filter(function (p) { return p.packId === snap.evidence_pack_id; })[0];
       if (!pack) {
         return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.EVIDENCE_PACK_MISSING, 'promotion-gate');
       }
-      if (!Object.isFrozen(pack)) {
+      if (!pack.immutable) {
         return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.EVIDENCE_PACK_UNFROZEN, 'promotion-gate');
+      }
+      if (!Object.isFrozen(pack)) {
+        deepFreeze(pack);
       }
       // Rule 1: asset still exists
       var assetId = snap.assetRef;
@@ -7601,6 +7608,32 @@ window.globalSearchGo = function(kind, id) {
         verification: 'verified'
       });
       return { pack: pack, idempotent: false };
+    }
+    // ── Dev-only test surface (inert unless ?phasec_test=1) ─────────
+    // Exposes Stage 2/3 functions on window.__phaseC for runtime tests.
+    // Stage 3.1 verification hook. Remove in Stage 4 if not needed.
+    if (typeof window !== 'undefined' && /[?&]phasec_test=1\b/.test(window.location.search || '')) {
+      window.__phaseC = Object.freeze({
+        PERFORMANCE_EVENT_TYPES: PERFORMANCE_EVENT_TYPES,
+        STAGE2_INPUT_REJECTION_REASONS: STAGE2_INPUT_REJECTION_REASONS,
+        STAGE3_PROMOTION_GATE_REJECTION_REASONS: STAGE3_PROMOTION_GATE_REJECTION_REASONS,
+        STAGE2_CANDIDATE_KIND_ORDER: STAGE2_CANDIDATE_KIND_ORDER,
+        EVIDENCE_PACKS_KEY: EVIDENCE_PACKS_KEY,
+        performanceAggregate: performanceAggregate,
+        performanceDerive: performanceDerive,
+        performancePromote: performancePromote,
+        performanceReject: performanceReject,
+        reclassifyAsset: reclassifyAsset,
+        evidencePack: evidencePack,
+        specifyLearningsForCampaign: specifyLearningsForCampaign,
+        deepFreeze: deepFreeze,
+        applyEvent: applyEvent,
+        readStore: readStore,
+        writeStore: writeStore,
+        uid: uid,
+        devStoreAppend: devStoreAppend,
+        assetReadAll: assetReadAll
+      });
     }
   })();
 </script>

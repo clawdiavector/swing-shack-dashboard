@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Stage 3 Supersession Runtime Test</title>
+<style>
+body { font-family: monospace; background: #0a0a14; color: #e8e8f0; padding: 20px; }
+.pass { color: #00cc77; }
+.fail { color: #ff5566; font-weight: bold; }
+.section { color: #0066cc; margin-top: 16px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+pre { background: #111; padding: 10px; border-radius: 4px; overflow-x: auto; }
+#status { font-size: 18px; font-weight: bold; margin: 20px 0; }
+</style>
+</head>
+<body>
+<h1>Stage 3 Supersession Runtime Test</h1>
+<div id="status">Loading cockpit...</div>
+<div id="results"></div>
+
+<iframe id="cockpit" src="/cockpit-operational.html?phasec_test=1" style="display:none"></iframe>
+
+<script>
+const results = [];
+let total = 0, passed = 0, failed = 0;
+
+function record(name, cond, info) {
+  total++;
+  if (cond) {
+    passed++;
+    results.push(`<div class="pass">PASS  ${name}</div>`);
+  } else {
+    failed++;
+    results.push(`<div class="fail">FAIL  ${name}${info ? ' — ' + JSON.stringify(info).slice(0, 200) : ''}</div>`);
+  }
+}
+
+function section(title) {
+  results.push(`<div class="section">[${title}]</div>`);
+}
+
+// Helper: read all events from EVENT_STORE_KEY filtered by campaignId
+function eventsForCampaign(cockpitWin, campaignId) {
+  const all = JSON.parse(cockpitWin.localStorage.getItem('campaign-os:dev:events') || '[]');
+  return all.filter(e => e && e.campaignId === campaignId);
+}
+
+const iframe = document.getElementById('cockpit');
+console.log('[TEST] iframe src:', iframe.src);
+let __testsStarted = false;
+function onCockpitLoad() {
+  if (__testsStarted) return;
+  __testsStarted = true;
+  console.log('[TEST] onCockpitLoad fired');
+  const cockpitWin = iframe.contentWindow;
+  let retries = 60;
+  const check = () => {
+    const hasPC = cockpitWin && cockpitWin.__phaseC;
+    console.log('[TEST] check attempt, retries=' + retries + ', hasPhaseC=' + (typeof hasPC));
+    if (cockpitWin && hasPC && typeof cockpitWin.__phaseC.performancePromote === 'function') {
+      console.log('[TEST] __phaseC ready, running tests');
+      runTests(cockpitWin).catch(e => {
+        console.error('[TEST] runTests threw:', e);
+        document.getElementById('status').textContent = 'ERROR: ' + e.message;
+        document.getElementById('status').className = 'fail';
+        window.__runtimeTestResult = { error: e.message, stack: e.stack };
+      });
+    } else if (retries > 0) {
+      retries--;
+      setTimeout(check, 200);
+    } else {
+      console.error('[TEST] __phaseC timeout after 60 retries');
+      document.getElementById('status').textContent = 'ERROR: cockpit did not expose __phaseC after 12s';
+      document.getElementById('status').className = 'fail';
+      window.__runtimeTestResult = { error: 'cockpit __phaseC timeout' };
+    }
+  };
+  check();
+}
+iframe.addEventListener('load', onCockpitLoad);
+// Also fire immediately if iframe already loaded
+if (iframe.contentWindow && iframe.contentWindow.document && iframe.contentWindow.document.readyState === 'complete') {
+  console.log('[TEST] iframe already complete, calling onCockpitLoad immediately');
+  onCockpitLoad();
+}
+
+async function runTests(cockpitWin) {
+  document.getElementById('status').textContent = 'Cockpit loaded. Running supersession runtime tests...';
+  document.getElementById('status').className = 'pass';
+
+  let __debug_state = { scenario: 'init' };
+  function debugSnapshot(label) {
+    __debug_state.label = label;
+    __debug_state.partialResults = results.map(r => r.replace(/<[^>]+>/g, ''));
+    try {
+      const c = cockpitWin.campaignData.campaigns['phasec-runtime-test'];
+      __debug_state.memory = c ? {
+        bestHooksLength: c.memory.bestHooks.length,
+        bestHooks: c.memory.bestHooks.map(r => ({ id: r.id, supersedes: r.supersedes, supersededBy: r.supersededBy })),
+        rejectedCount: c.memory.rejected_candidates.length
+      } : null;
+    } catch(e) { __debug_state.memoryError = e.message; }
+    window.__runtimeDebugState = JSON.parse(JSON.stringify(__debug_state));
+  }
+
+  try {
+
+  const P = cockpitWin.__phaseC;
+  const TEST_CAMPAIGN_ID = 'phasec-runtime-test';
+  const TEST_ASSET_ID = 'asset-runtime-1';
+  const TEST_HOOK_ID = 'hook-runtime-1';
+  const TEST_PACK_ID = 'pack-runtime-1';
+
+  // Clear localStorage from prior runs so event assertions are deterministic
+  try { cockpitWin.localStorage.removeItem('campaign-os:dev:events'); } catch(e) {}
+  try { cockpitWin.localStorage.removeItem('campaign-os:dev:evidence_packs'); } catch(e) {}
+
+  // ── Build fixture ────────────────────────────────────────────
+  section('Fixture setup');
+
+  if (!cockpitWin.campaignData) {
+    record('window.campaignData exists', false);
+    return;
+  }
+  record('window.campaignData exists', true);
+
+  if (!cockpitWin.campaignData.campaigns) cockpitWin.campaignData.campaigns = {};
+  if (!cockpitWin.campaignData.hooks) cockpitWin.campaignData.hooks = [];
+
+  cockpitWin.campaignData.hooks.push({
+    id: TEST_HOOK_ID,
+    hookId: TEST_HOOK_ID,
+    text: 'Test hook for supersession runtime',
+    campaignId: TEST_CAMPAIGN_ID
+  });
+  record('Test hook added', cockpitWin.campaignData.hooks.some(h => (h.id || h.hookId) === TEST_HOOK_ID));
+
+  cockpitWin.campaignData.campaigns[TEST_CAMPAIGN_ID] = {
+    identity: { campaignId: TEST_CAMPAIGN_ID, name: 'Runtime Test Campaign', status: 'active' },
+    memory: { bestHooks: [], bestVisuals: [], failedContent: [], lessonsLearned: [], playbook: [], rejected_candidates: [] },
+    provenance: { events: [] },
+    assets: {
+      [TEST_ASSET_ID]: {
+        assetId: TEST_ASSET_ID,
+        id: TEST_ASSET_ID,
+        campaignId: TEST_CAMPAIGN_ID,
+        type: 'image',
+        status: 'used',
+        hookId: TEST_HOOK_ID
+      }
+    }
+  };
+  record('Test campaign created', cockpitWin.campaignData.campaigns[TEST_CAMPAIGN_ID] != null);
+
+  const evidencePack = P.deepFreeze({
+    packId: TEST_PACK_ID,
+    createdAt: '2026-07-17T10:00:00Z',
+    createdBy: 'evidence-pack',
+    campaignId: TEST_CAMPAIGN_ID,
+    asset: { ref: { kind: 'asset', id: TEST_ASSET_ID } },
+    engagement: {
+      ref: { kind: 'assets[].engagement', assetId: TEST_ASSET_ID, capturedAt: '2026-07-17T10:00:00Z' },
+      snapshot: { impressions: 1000, reach: 800, likes: 50, comments: 10, shares: 5, engagementRate: 0.065 },
+      verified: true,
+      source: 'ga4'
+    },
+    campaignContext: { ref: { kind: 'campaign', id: TEST_CAMPAIGN_ID } },
+    platform: 'ga4',
+    immutable: true
+  });
+  const existingPacks = P.readStore(P.EVIDENCE_PACKS_KEY);
+  existingPacks.push(evidencePack);
+  P.writeStore(P.EVIDENCE_PACKS_KEY, existingPacks);
+  record('Evidence pack stored', P.readStore(P.EVIDENCE_PACKS_KEY).some(p => p.packId === TEST_PACK_ID));
+  record('Evidence pack frozen', Object.isFrozen(evidencePack));
+
+  // ── Scenario 1: Promote candidate A (initial) ─────────────────
+  section('Scenario 1: Promote initial candidate A');
+  __debug_state.scenario = '1-pre'; debugSnapshot('1-pre');
+
+  const candA = P.deepFreeze({
+    candidateId: 'cand-A',
+    campaignId: TEST_CAMPAIGN_ID,
+    candidateKind: 'bestHook',
+    assetRef: TEST_ASSET_ID,
+    classification: 'PROMOTED_CANDIDATE',
+    evidence_pack_id: TEST_PACK_ID,
+    derivedAt: '2026-07-17T10:01:00Z',
+    provenance: { source: 'performance-derived', confidence_source: 'performance', derived_by: 'performance-derive' },
+    promotionStatus: 'proposed'
+  });
+
+  let resA, recordA, memoryAfterA, eventsA, promotedEventA;
+  try {
+    resA = P.performancePromote(candA);
+  } catch(e) {
+    __debug_state.scenario1Error = e.message + '\n' + e.stack;
+    debugSnapshot('1-throw');
+    throw e;
+  }
+  __debug_state.scenario1ResA = resA;
+  debugSnapshot('1-post-promote');
+  record('A: resA returned', resA != null, resA);
+  record('A: resA.promoted === true', resA && resA.promoted === true, resA);
+  record('A: resA.memoryRef.field === bestHooks', resA && resA.memoryRef && resA.memoryRef.field === 'bestHooks', resA && resA.memoryRef);
+
+  memoryAfterA = cockpitWin.campaignData.campaigns[TEST_CAMPAIGN_ID].memory;
+  record('A: memory.bestHooks.length === 1', memoryAfterA.bestHooks.length === 1, { length: memoryAfterA.bestHooks.length });
+  recordA = memoryAfterA.bestHooks[0];
+  record('A: recordA exists', recordA != null);
+  if (recordA) {
+    record('A: recordA is frozen', Object.isFrozen(recordA));
+    record('A: recordA.id matches resA.record.id', resA.record && recordA.id === resA.record.id);
+    record('A: recordA.supersedes === null (initial)', recordA.supersedes === null);
+    record('A: recordA.supersededBy === null (initial)', recordA.supersededBy === null);
+  }
+
+  eventsA = eventsForCampaign(cockpitWin, TEST_CAMPAIGN_ID);
+  promotedEventA = eventsA.find(e => e.type === P.PERFORMANCE_EVENT_TYPES.LEARNING_RECORD_PROMOTED && e.record && e.record.id === recordA.id);
+  record('A: LEARNING_RECORD_PROMOTED event emitted', promotedEventA != null, { eventsCount: eventsA.length });
+  record('A: no LEARNING_RECORD_SUPERSEDED on initial', !eventsA.some(e => e.type === P.PERFORMANCE_EVENT_TYPES.LEARNING_RECORD_SUPERSEDED));
+
+  // ── Scenario 2: Promote candidate B (newer) ───────────────────
+  section('Scenario 2: Promote newer candidate B (same assetRef+kind)');
+
+  const candB = P.deepFreeze({
+    candidateId: 'cand-B',
+    campaignId: TEST_CAMPAIGN_ID,
+    candidateKind: 'bestHook',
+    assetRef: TEST_ASSET_ID,
+    classification: 'PROMOTED_CANDIDATE',
+    evidence_pack_id: TEST_PACK_ID,
+    derivedAt: new Date(Date.now() + 60000).toISOString(),  // 60s in the future relative to now, so newer than A's just-set promotedAt
+    provenance: { source: 'performance-derived', confidence_source: 'performance', derived_by: 'performance-derive' },
+    promotionStatus: 'proposed'
+  });
+
+  let resB, resC;
+  resB = P.performancePromote(candB);
+  record('B: resB returned', resB != null);
+  record('B: resB.promoted === true', resB && resB.promoted === true, resB);
+  record('B: resB.memoryRef.field === bestHooks', resB && resB.memoryRef && resB.memoryRef.field === 'bestHooks', resB && resB.memoryRef);
+
+  const memoryAfterB = cockpitWin.campaignData.campaigns[TEST_CAMPAIGN_ID].memory;
+  record('B: memory.bestHooks.length === 2', memoryAfterB.bestHooks.length === 2, { length: memoryAfterB.bestHooks.length });
+  if (memoryAfterB.bestHooks.length >= 2) {
+    record('B: A still at index 0 (reference equality)', memoryAfterB.bestHooks[0] === recordA);
+    record('B: A.supersededBy === null (body never touched)', recordA.supersededBy === null, { supersededBy: recordA.supersededBy });
+    record('B: B at index 1', memoryAfterB.bestHooks[1] != null);
+    record('B: B is frozen', Object.isFrozen(memoryAfterB.bestHooks[1]));
+    record('B: B.supersedes === A.id', memoryAfterB.bestHooks[1].supersedes === recordA.id, {
+      bs: memoryAfterB.bestHooks[1].supersedes,
+      aid: recordA.id
+    });
+    record('B: B.supersededBy === null', memoryAfterB.bestHooks[1].supersededBy === null);
+  }
+
+  const eventsB = eventsForCampaign(cockpitWin, TEST_CAMPAIGN_ID);
+  const supersededEventB = eventsB.find(e =>
+    e.type === P.PERFORMANCE_EVENT_TYPES.LEARNING_RECORD_SUPERSEDED &&
+    e.oldRecordId === recordA.id &&
+    e.newRecordId === memoryAfterB.bestHooks[1].id
+  );
+  record('B: LEARNING_RECORD_SUPERSEDED emitted (old=A, new=B)', supersededEventB != null);
+  const promotedEventB = eventsB.find(e =>
+    e.type === P.PERFORMANCE_EVENT_TYPES.LEARNING_RECORD_PROMOTED &&
+    e.record && e.record.id === memoryAfterB.bestHooks[1].id
+  );
+  record('B: LEARNING_RECORD_PROMOTED emitted for B', promotedEventB != null);
+
+  if (supersededEventB && promotedEventB) {
+    const supersededIdx = eventsB.indexOf(supersededEventB);
+    const promotedIdx = eventsB.indexOf(promotedEventB);
+    record('B: SUPERSEDED event emitted BEFORE PROMOTED', supersededIdx < promotedIdx && supersededIdx >= 0, {
+      supersededIdx, promotedIdx
+    });
+  }
+
+  // ── Scenario 3: Older candidate C rejected ────────────────────
+  section('Scenario 3: Older candidate C rejected with superseded_by_newer');
+
+  const candC = P.deepFreeze({
+    candidateId: 'cand-C',
+    campaignId: TEST_CAMPAIGN_ID,
+    candidateKind: 'bestHook',
+    assetRef: TEST_ASSET_ID,
+    classification: 'PROMOTED_CANDIDATE',
+    evidence_pack_id: TEST_PACK_ID,
+    derivedAt: new Date(Date.now() - 3600000).toISOString(),  // 1h in the past, definitely older than A
+    provenance: { source: 'performance-derived', confidence_source: 'performance', derived_by: 'performance-derive' },
+    promotionStatus: 'proposed'
+  });
+
+  resC = P.performancePromote(candC);
+  record('C: resC returned', resC != null);
+  record('C: resC.rejected === true (gate rejected C)', resC && resC.rejected === true, resC);
+  record('C: resC.record.reason === superseded_by_newer',
+    resC && resC.record && resC.record.reason === P.STAGE3_PROMOTION_GATE_REJECTION_REASONS.SUPERSEDED_BY_NEWER,
+    { record: resC && resC.record });
+  record('C: resC.rejectionStage === promotion-gate',
+    resC && resC.rejectionStage === 'promotion-gate');
+
+  const memoryAfterC = cockpitWin.campaignData.campaigns[TEST_CAMPAIGN_ID].memory;
+  record('C: memory.bestHooks.length still 2 (C NOT appended)', memoryAfterC.bestHooks.length === 2, {
+    length: memoryAfterC.bestHooks.length
+  });
+  record('C: C recorded in rejected_candidates',
+    memoryAfterC.rejected_candidates.some(r => r.inputAssetId === TEST_ASSET_ID && r.reason === 'superseded_by_newer'),
+    { rejected: memoryAfterC.rejected_candidates });
+
+  // ── Scenario 4: specifyLearningsForCampaign returns frozen shallow copies ──
+  section('Scenario 4: specifyLearningsForCampaign returns frozen shallow copies');
+
+  const learn = P.specifyLearningsForCampaign(TEST_CAMPAIGN_ID);
+  record('specifyLearningsForCampaign returns non-null', learn != null);
+  if (learn) {
+    record('Returned object is frozen', Object.isFrozen(learn));
+    record('bestHooks shallow copy is frozen', Object.isFrozen(learn.bestHooks));
+    record('bestHooks length === 2', learn.bestHooks.length === 2);
+    record('bestHooks[0] === A (reference equality, NOT deep copy)', learn.bestHooks[0] === recordA);
+    record('bestHooks[0].supersedes === null (A unchanged)', learn.bestHooks[0].supersedes === null);
+    record('bestHooks[1].supersedes === A.id (lineage captured)', learn.bestHooks[1].supersedes === recordA.id);
+
+    let mutationThrew = false;
+    try {
+      learn.bestHooks.push({ malicious: true });
+    } catch (e) {
+      mutationThrew = true;
+    }
+    record('Mutating returned array fails or silent-fails', mutationThrew || !learn.bestHooks.some(r => r.malicious), {
+      mutationThrew, hasMalicious: learn.bestHooks.some(r => r.malicious)
+    });
+
+    record('Underlying memory.bestHooks unchanged after caller mutation',
+      cockpitWin.campaignData.campaigns[TEST_CAMPAIGN_ID].memory.bestHooks.length === 2, {
+      length: cockpitWin.campaignData.campaigns[TEST_CAMPAIGN_ID].memory.bestHooks.length
+    });
+  }
+
+  // ── Final report ──
+  document.getElementById('results').innerHTML = results.join('');
+  const status = document.getElementById('status');
+  status.textContent = `Total: ${total}, Passed: ${passed}, Failed: ${failed}`;
+  status.className = failed === 0 ? 'pass' : 'fail';
+
+  window.__runtimeTestResult = {
+    total, passed, failed,
+    results: results.map(r => r.replace(/<[^>]+>/g, ''))
+  };
+
+  } catch(e) {
+    __debug_state.scenario = 'final-throw';
+    __debug_state.error = e.message + '\n' + e.stack;
+    debugSnapshot('final-throw');
+    document.getElementById('status').textContent = 'ERROR: ' + e.message;
+    document.getElementById('status').className = 'fail';
+    window.__runtimeTestResult = { error: e.message, stack: e.stack, debug: window.__runtimeDebugState };
+  }
+}
+</script>
+</body>
+</html>
