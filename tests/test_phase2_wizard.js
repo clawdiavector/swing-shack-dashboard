@@ -2783,8 +2783,8 @@ section('Live API — wizard payload (new shape)');
          /snap\.classification\s*!==\s*['"]PROMOTED_CANDIDATE['"][\s\S]{0,300}snap\.classification\s*!==\s*['"]UNDERPERFORMED_CANDIDATE['"]/.test(html));
   assert('Stage 3: performancePromote rejects missing evidence pack',
          /snap\.evidence_pack_id[\s\S]{0,400}EVIDENCE_PACK_MISSING/.test(html));
-  assert('Stage 3: performancePromote rejects unfrozen evidence pack',
-         /Object\.isFrozen\(pack\)[\s\S]{0,300}EVIDENCE_PACK_UNFROZEN/.test(html));
+  assert('Stage 3: performancePromote rejects non-immutable evidence pack',
+         /pack\.immutable[\s\S]{0,300}EVIDENCE_PACK_UNFROZEN/.test(html));
   assert('Stage 3: performancePromote rejects deleted asset',
          /assetExists[\s\S]{0,500}ASSET_DELETED_SINCE_EVIDENCE/.test(html));
   assert('Stage 3: performancePromote rejects deleted hook for bestHook candidates',
