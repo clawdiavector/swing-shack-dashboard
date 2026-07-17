@@ -2577,10 +2577,11 @@ section('Live API — wizard payload (new shape)');
   assert('Stage 1: kindStoreKey(\'playbook\') resolves to learning:playbooks',
          /playbook:\s*'learning:playbooks'/.test(html));
 
-  // 3. Stage 1 throwing stubs that remain throwing after Stage 2:
-  //    performancePromote, reclassifyAsset.
-  //    Stage 2 implemented performanceAggregate, performanceDerive, performanceReject (input), and evidencePack.
-  const stubNames = ['performancePromote', 'reclassifyAsset'];
+  // 3. Stage 1 throwing stubs that remain throwing after Stage 2 + Stage 3:
+  //    (none — all six Stage 1 stubs are now implemented).
+  //    Stage 2 implemented performanceAggregate, performanceDerive, performanceReject (input + promotion-gate), evidencePack.
+  //    Stage 3 implemented performancePromote, specifyLearningsForCampaign, reclassifyAsset.
+  const stubNames = [];
   stubNames.forEach(function(name) {
     // Stub function must exist with the right signature and throw a labelled Error.
     // Build the regex source from parts so escaping stays explicit per fragment.
@@ -2725,16 +2726,17 @@ section('Live API — wizard payload (new shape)');
          /rejectionStage:\s*['"]input['"]/.test(html));
   assert('Stage 2: performanceReject(input) restricts reason to Tier 1 enumeration',
          /STAGE2_INPUT_REJECTION_REASON_VALUES\.indexOf\(reason\)\s*===\s*-1/.test(html));
-  assert('Stage 2: performanceReject(promotion-gate) throws — Stage 3 territory',
-         /stage\s*===\s*['"]promotion-gate['"][\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 2 stub: promotion-gate rejection lives in Stage 3['"]/.test(html));
+  assert('Stage 2: performanceReject(promotion-gate) implemented in Stage 3 (no longer throws Stage 2 stub)',
+         !/stage\s*===\s*['"]promotion-gate['"][\s\S]{0,400}throw\s+new\s+Error\(\s*['"]Stage 2 stub: promotion-gate rejection lives in Stage 3['"]/.test(html));
+  assert('Stage 3: performanceReject(promotion-gate) real implementation present',
+         /stage\s*===\s*['"]promotion-gate['"][\s\S]{0,800}STAGE3_PROMOTION_GATE_REJECTION_REASON_VALUES/.test(html));
   assert('Stage 2: performanceReject with invalid stage throws',
-         /throw\s+new\s+Error\(\s*['"]Stage 2 performanceReject: stage must be \\?"input\\?" or \\?"promotion-gate\\?"['"]\s*\)/.test(html));
+         /throw\s+new\s+Error\(\s*['"]Stage 3 performanceReject: stage must be \\?"input\\?" or \\?"promotion-gate\\?"['"]\s*\)/.test(html));
 
-  // Two stubs still throwing (Stage 3 territory)
-  assert('Stage 2: performancePromote still throws Stage 1 message',
-         /function\s+performancePromote\s*\(\s*candidate\s*\)\s*\{[\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 1 stub not implemented: performancePromote['"]\s*\)/.test(html));
-  assert('Stage 2: reclassifyAsset still throws Stage 1 message',
-         /function\s+reclassifyAsset\s*\(\s*assetId\s*,\s*newEngagementRef\s*\)\s*\{[\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 1 stub not implemented: reclassifyAsset['"]\s*\)/.test(html));
+  // Stage 3 implemented all remaining Stage 1 stubs.
+  // No stubs remain throwing. Stage 4 territory is downstream (Truth Collector).
+  assert('Stage 3: no Stage 1 stubs remain throwing (all six implemented)',
+         !/Stage 1 stub not implemented:/.test(html));
 
   // Locked invariants
   assert('Stage 2: evidencePack() is the only writer to EVIDENCE_PACKS_KEY',
@@ -2760,13 +2762,125 @@ section('Live API — wizard payload (new shape)');
   assert('Stage 2: diagnoseCampaign still routes learning to creative (unchanged)',
          /action:\s*['"]Capture Lessons['"]\s*,\s*dest:\s*['"]creative['"]/.test(html));
 
-  // Stage 3 still impossible to bypass
-  assert('Stage 2: performancePromote remains a throwing stub (Stage 3 territory)',
-         /function\s+performancePromote[\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 1 stub not implemented: performancePromote['"]/.test(html));
-  assert('Stage 2: reclassifyAsset remains a throwing stub (Stage 3 territory)',
-         /function\s+reclassifyAsset[\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 1 stub not implemented: reclassifyAsset['"]/.test(html));
+  // Stage 4 still impossible to bypass (Truth Collector territory)
+  // Stage 3 implemented all Stage 1 stubs. Stage 4 introduces Truth Collector.
+  assert('Stage 3: no Stage 1 stubs remain throwing',
+         !/Stage 1 stub not implemented:/.test(html));
 
-  results.push('  (Path C Stage 2 — Performance pipeline read-and-propose layer. Four functions implemented: evidencePack() validates Tier 1 input, builds an immutable frozen Evidence Pack, persists to EVIDENCE_PACKS_KEY, and emits LEARNING_EVIDENCE_PACKED via the single applyEvent path; performanceDerive() constructs transient candidates in the locked deterministic order (bestHook→bestVisual→failedContent→lesson), freezes the snapshot before applyEvent, and emits LEARNING_CANDIDATE_PROPOSED; performanceAggregate() iterates assets in lex-by-id order, calls evidencePack+performanceDerive per asset, returns summary with classified counts; performanceReject(input) persists to campaign.memory.rejected_candidates[] with Tier 1 reason enumeration, throws on promotion-gate. Two Stage 1 stubs (performancePromote, reclassifyAsset) remain throwing — Stage 3 territory. No writes to campaign.memory.bestHooks/bestVisuals/failedContent/lessonsLearned/playbook. No candidates store. applyEvent never freezes or mutates its argument. No UI changes. getCampaignCategoryState, computeCampaignHealth, diagnoseCampaign, opsFeedData, Strategist source unchanged.)');
+  // ═══ Path C Stage 3 — Promotion Gate ═══
+  // Schema constants
+  assert('Stage 3: STAGE3_PROMOTION_GATE_REJECTION_REASONS frozen object declared',
+         /var\s+STAGE3_PROMOTION_GATE_REJECTION_REASONS\s*=\s*Object\.freeze\(\s*\{[^}]*EVIDENCE_PACK_MISSING:\s*'evidence_pack_missing'[^}]*\}\s*\)/.test(html));
+  assert('Stage 3: RECLASSIFY_ASSET_REASONS frozen object declared',
+         /var\s+RECLASSIFY_ASSET_REASONS\s*=\s*Object\.freeze\(\s*\{[^}]*ASSET_NOT_FOUND:\s*'asset_not_found'[^}]*INVALID_CLASSIFICATION:\s*'invalid_classification'[^}]*\}\s*\)/.test(html));
+
+  // performancePromote implementation
+  assert('Stage 3: performancePromote signature is (candidate)',
+         /function\s+performancePromote\s*\(\s*candidate\s*\)/.test(html));
+  assert('Stage 3: performancePromote checks provenance.source === "performance-derived"',
+         /snap\.provenance\.source\s*!==\s*['"]performance-derived['"]/.test(html));
+  assert('Stage 3: performancePromote validates classification is PROMOTED or UNDERPERFORMED',
+         /snap\.classification\s*!==\s*['"]PROMOTED_CANDIDATE['"][\s\S]{0,300}snap\.classification\s*!==\s*['"]UNDERPERFORMED_CANDIDATE['"]/.test(html));
+  assert('Stage 3: performancePromote rejects missing evidence pack',
+         /snap\.evidence_pack_id[\s\S]{0,400}EVIDENCE_PACK_MISSING/.test(html));
+  assert('Stage 3: performancePromote rejects unfrozen evidence pack',
+         /Object\.isFrozen\(pack\)[\s\S]{0,300}EVIDENCE_PACK_UNFROZEN/.test(html));
+  assert('Stage 3: performancePromote rejects deleted asset',
+         /assetExists[\s\S]{0,500}ASSET_DELETED_SINCE_EVIDENCE/.test(html));
+  assert('Stage 3: performancePromote rejects deleted hook for bestHook candidates',
+         /snap\.candidateKind\s*===\s*['"]bestHook['"][\s\S]{0,500}HOOK_DELETED_SINCE_EVIDENCE/.test(html));
+  assert('Stage 3: performancePromote initialises campaign.memory defensively',
+         /!campaign\.memory\s*\)\s*campaign\.memory\s*=\s*\{\}/.test(html));
+  assert('Stage 3: performancePromote initialises memory field array defensively',
+         /!Array\.isArray\(campaign\.memory\[fieldName\]\)[\s\S]{0,200}campaign\.memory\[fieldName\]\s*=\s*\[\]/.test(html));
+  assert('Stage 3: performancePromote appends frozen records (Refinement 2)',
+         /deepFreeze\(record\)[\s\S]{0,200}campaign\.memory\[fieldName\]\.push\(record\)/.test(html));
+  assert('Stage 3: performancePromote detects supersession by (campaignId, candidateKind, assetRef)',
+         /rec\.assetRef\s*===\s*assetId[\s\S]{0,200}rec\.candidateKind\s*===\s*snap\.candidateKind/.test(html));
+  assert('Stage 3: performancePromote append-only supersession (Refinement 3) — new record appended, old unchanged',
+         /record\.supersedes\s*=\s*existingRec\.id[\s\S]{0,400}campaign\.memory\[fieldName\]\.push\(record\)/.test(html));
+  assert('Stage 3: performancePromote emits LEARNING_RECORD_SUPERSEDED before LEARNING_RECORD_PROMOTED in supersession',
+         /LEARNING_RECORD_SUPERSEDED[\s\S]{0,800}LEARNING_RECORD_PROMOTED/.test(html));
+  assert('Stage 3: performancePromote emits LEARNING_RECORD_PROMOTED via applyEvent',
+         /applyEvent\(\s*\{[\s\S]{0,500}type:\s*PERFORMANCE_EVENT_TYPES\.LEARNING_RECORD_PROMOTED/.test(html));
+  assert('Stage 3: performancePromote never writes to EVIDENCE_PACKS_KEY',
+         !/function\s+performancePromote\s*\(\s*candidate\s*\)[\s\S]{0,8000}writeStore\s*\(\s*EVIDENCE_PACKS_KEY/.test(html));
+  assert('Stage 3: performancePromote never freezes events outside applyEvent',
+         !/function\s+performancePromote\s*\(\s*candidate\s*\)[\s\S]{0,8000}Object\.freeze\([\s\S]{0,200}\.events/.test(html));
+
+  // performanceReject promotion-gate implementation
+  assert('Stage 3: performanceReject(promotion-gate) restricts reason to Tier 2 enumeration',
+         /STAGE3_PROMOTION_GATE_REJECTION_REASON_VALUES\.indexOf\(reason\)\s*===\s*-1/.test(html));
+  assert('Stage 3: performanceReject(promotion-gate) sets rejectionStage: "promotion-gate"',
+         /rejectionStage:\s*['"]promotion-gate['"]/.test(html));
+  assert('Stage 3: performanceReject(promotion-gate) emits LEARNING_RECORD_REJECTED event',
+         /applyEvent\(\s*\{[\s\S]{0,500}type:\s*PERFORMANCE_EVENT_TYPES\.LEARNING_RECORD_REJECTED/.test(html));
+  assert('Stage 3: performanceReject(promotion-gate) defensive memory init',
+         /!Array\.isArray\(pgCampaign\.memory\.rejected_candidates\)/.test(html));
+
+  // specifyLearningsForCampaign implementation
+  assert('Stage 3: specifyLearningsForCampaign signature is (campaignId)',
+         /function\s+specifyLearningsForCampaign\s*\(\s*campaignId\s*\)/.test(html));
+  assert('Stage 3: specifyLearningsForCampaign returns frozen shallow copies (Refinement 4)',
+         /shallowFreezeCopy[\s\S]{0,400}Object\.freeze\(\s*\{[\s\S]{0,2000}bestHooks:[\s\S]{0,200}bestVisuals:[\s\S]{0,200}failedContent:[\s\S]{0,200}lessonsLearned:[\s\S]{0,200}playbook:[\s\S]{0,200}rejected:/.test(html));
+  assert('Stage 3: specifyLearningsForCampaign returns null for unknown campaign',
+         /!\s*campaignsRoot\s*\|\|\s*!campaignsRoot\[campaignId\][\s\S]{0,200}return\s+null/.test(html));
+  assert('Stage 3: specifyLearningsForCampaign computes promotedAt from memory records',
+         /rec\.promotedAt[\s\S]{0,300}promotedAt\s*=\s*rec\.promotedAt/.test(html));
+
+  // reclassifyAsset implementation (Refinement 1)
+  assert('Stage 3: reclassifyAsset signature is (assetId, newClassification)',
+         /function\s+reclassifyAsset\s*\(\s*assetId\s*,\s*newClassification\s*\)/.test(html));
+  assert('Stage 3: reclassifyAsset validates classification enum',
+         /VALID_CLASSIFICATIONS[\s\S]{0,400}INVALID_CLASSIFICATION/.test(html));
+  assert('Stage 3: reclassifyAsset persists classification to embedded asset',
+         /c\.assets\[assetId\]\.classification\s*=\s*newClassification/.test(html));
+  assert('Stage 3: reclassifyAsset persists classification to standalone asset',
+         /standalone\[i\]\.classification\s*=\s*newClassification/.test(html));
+  assert('Stage 3: reclassifyAsset returns { reclassified: true, assetId, oldClass, newClass, at }',
+         /reclassified:\s*true[\s\S]{0,400}oldClass:\s*oldClass[\s\S]{0,200}newClass:\s*newClassification[\s\S]{0,200}at:\s*new\s+Date/.test(html));
+  assert('Stage 3: reclassifyAsset returns { reclassified: false, reason: ASSET_NOT_FOUND } when missing',
+         /return\s*\{\s*reclassified:\s*false\s*,\s*reason:\s*RECLASSIFY_ASSET_REASONS\.ASSET_NOT_FOUND\s*\}/.test(html));
+
+  // performanceAggregate promotion wiring (Refinement 5)
+  assert('Stage 3: performanceAggregate wires promotion in locked kind order (bestHook,bestVisual,failedContent,lesson)',
+         /kindOrder\s*=\s*\{\s*bestHook:\s*0\s*,\s*bestVisual:\s*1\s*,\s*failedContent:\s*2\s*,\s*lesson:\s*3\s*\}/.test(html));
+  assert('Stage 3: performanceAggregate sorts promotion queue by kindOrder',
+         /promotionQueue\s*=\s*candidates\.slice\(\)\.sort\(\s*function\s*\(\s*a\s*,\s*b\s*\)\s*\{[\s\S]{0,400}kindOrder\[a\.candidateKind\][\s\S]{0,200}kindOrder\[b\.candidateKind\]/.test(html));
+  assert('Stage 3: performanceAggregate returns promotions array in result',
+         /promotions:\s*promotionResults/.test(html));
+
+  // Locked invariants
+  assert('Stage 3: no Stage 1 stub messages remain',
+         !/Stage 1 stub not implemented:/.test(html));
+  assert('Stage 3: Tier 1 reasons distinct from Tier 2 reasons (no overlap)',
+         /STAGE2_INPUT_REJECTION_REASONS[\s\S]{0,2000}engagement_unverified[\s\S]{0,2000}STAGE3_PROMOTION_GATE_REJECTION_REASONS[\s\S]{0,2000}evidence_pack_missing/.test(html));
+  assert('Stage 3: promoted records include evidence_refs array (provenance invariant)',
+         /evidence_refs:\s*\[snap\.evidence_pack_id\]/.test(html));
+  assert('Stage 3: supersession event carries oldRecordId and newRecordId',
+         /LEARNING_RECORD_SUPERSEDED[\s\S]{0,400}oldRecordId:\s*existingRec\.id[\s\S]{0,200}newRecordId:\s*record\.id/.test(html));
+  assert('Stage 3: Performance event constants still frozen (Stage 1 preserved)',
+         /var\s+PERFORMANCE_EVENT_TYPES\s*=\s*Object\.freeze/.test(html));
+  assert('Stage 3: applyEvent purity preserved (no Object.freeze on its argument)',
+         !/function\s+applyEvent\s*\(\s*event\s*\)\s*\{[\s\S]{0,500}Object\.freeze/.test(html));
+
+  // Truth rules preserved
+  assert('Stage 3: getCampaignCategoryState unchanged',
+         /function\s+getCampaignCategoryState\s*\(\s*campaignId\s*\)\s*\{[\s\S]{0,2500}mem\.lessonsLearned/.test(html));
+  assert('Stage 3: computeCampaignHealth unchanged',
+         /function\s+computeCampaignHealth\s*\(\s*campaignId\s*\)[\s\S]{0,1500}STRATEGIST_WEIGHTS/.test(html));
+  assert('Stage 3: diagnoseCampaign unchanged',
+         /function\s+diagnoseCampaign\s*\(\s*campaignId\s*\)[\s\S]{0,2500}action:\s*['"]Capture Lessons['"]\s*,\s*dest:\s*['"]creative['"]/.test(html));
+  assert('Stage 3: opsFeedData unchanged',
+         /function\s+opsFeedData\s*\(\s*\)[\s\S]{0,1500}if\s*\(!hasIssues\)\s*return\s+null/.test(html));
+  assert('Stage 3: seed memory schema preserved (bestHooks/bestVisuals/failedContent/lessonsLearned still referenced)',
+         /"lessonsLearned"/.test(html) && /"bestHooks"/.test(html) && /"bestVisuals"/.test(html) && /"failedContent"/.test(html));
+  assert('Stage 3: no UI changes (no new view IDs or buttons)',
+         !/id="stage3-/.test(html) && !/id="learningWorkspace"/.test(html));
+  assert('Stage 3: no new top-level navigation entries',
+         !/showView\(\s*['"]learning['"]\s*\)/.test(html) && !/showView\(\s*['"]playbook['"]\s*\)/.test(html));
+
+  results.push('  (Path C Stage 3 — Promotion Gate. performancePromote() implements Rules 1-4: provenance gate, classification gate, evidence pack existence/frozenness, asset/hook existence, suppression rules, append-only supersession. Every promoted record is deepFreeze()-ed before push to campaign.memory.{bestHooks,bestVisuals,failedContent,lessonsLearned}[]. Supersession is append-only — old records are never overwritten, only marked with supersededBy; new records carry supersedes pointing at the old id. Tier 2 rejection reasons (evidence_pack_missing, evidence_pack_unfrozen, asset_deleted_since_evidence, hook_deleted_since_evidence, asset_too_recent, evidence_stale, superseded_by_newer, provenance_source_invalid, classification_invalid_for_promotion) are distinct from Tier 1 input validation reasons. performanceReject(promotion-gate) persists to campaign.memory.rejected_candidates[] with rejectionStage=promotion-gate and emits LEARNING_RECORD_REJECTED. specifyLearningsForCampaign() returns frozen shallow copies of each memory field. reclassifyAsset() validates + persists classification, returns documented result shape. performanceAggregate() now calls performancePromote() in locked deterministic order bestHook→bestVisual→failedContent→lesson. No Stage 1 stubs remain throwing. No UI changes. getCampaignCategoryState, computeCampaignHealth, diagnoseCampaign, opsFeedData, Strategist source unchanged. Seed memory schema preserved.)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');

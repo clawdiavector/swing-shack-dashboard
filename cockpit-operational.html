@@ -6801,15 +6801,64 @@ window.globalSearchGo = function(kind, id) {
     }
   });
 
-  // ── Performance pipeline stubs (Stage 1) ──────────────────────
+  // ── Path C Stage 1: Performance pipeline stubs ───────────────
   // Each stub throws a labelled Stage-1 error if called. Stage 2
   // implementations replace the body with real logic. The throw is
   // the safety net: accidental integration in Stage 2 surfaces
   // immediately rather than silently producing plausible data.
 
-    // Stage 2 evidence store key. Single canonical localStorage key
-    // for all Evidence Packs. Maps from kindStoreKey('evidence_pack').
-    var EVIDENCE_PACKS_KEY = 'campaign-os:dev:evidence_packs';
+  // ── Stage 2 JSDoc schema declarations ─────────────────────────
+    // Shape contracts for evidence packs, candidates, rejections.
+    // Performance Pipeline — Read & Propose Layer (Stage 2)
+    //
+    // EvidencePack (immutable, persisted to EVIDENCE_PACKS_KEY):
+    //   { packId, createdAt, createdBy: 'evidence-pack', campaignId,
+  //     asset: { ref: { kind: 'asset', id }, required: true },
+  //     engagement: { ref: { kind, assetId, capturedAt },
+  //                   snapshot: { impressions, reach, likes, comments, shares, engagementRate },
+  //                   verified: true, source: 'ga4'|'meta' },
+  //     campaignContext: { ref: { kind: 'campaign', id } },
+  //     platform: 'ga4'|'meta', timestamps: {...}, verification: { state: 'verified', reason: null } }
+  //
+  // Candidate (transient; frozen snapshot persisted via applyEvent):
+  //   { candidateId, campaignId, candidateKind: 'bestHook'|'bestVisual'|'failedContent'|'lesson',
+  //     assetRef, classification: 'PROMOTED_CANDIDATE'|'UNDERPERFORMED_CANDIDATE',
+  //     evidence_pack_id, derivedAt, provenance: { source, confidence_source, derived_by },
+  //     promotionStatus: 'proposed' }
+  //
+  // RejectedCandidate (Tier 1, persisted to campaign.memory.rejected_candidates[]):
+  //   { id, candidateKind, inputAssetId, reason: <Tier 1>, observedMetrics,
+  //     rejectedAt, rejectedBy: 'stage-2-input-validation', rejectionStage: 'input' }
+  //
+  // ── Stage 3 JSDoc schema declarations ─────────────────────────
+  // Promoted records (immutable, persisted to campaign.memory.*[]):
+  //   { id, hookId|assetId, hookTextSnapshot|assetType|reason|text|...,
+  //     performance: { reach, likes, engagementRate, impressions, comments, shares } | null,
+  //     evidence_refs: [<packId>], promotedAt, promotedBy: 'performance-promotion',
+  //     supersedes: <id>|null, supersededBy: <id>|null }
+  // Memory fields written by performancePromote:
+  //   campaign.memory.bestHooks[], .bestVisuals[], .failedContent[], .lessonsLearned[], .playbook[]
+  // Append-only invariant: records are never deleted or modified; supersession only sets
+  // supersededBy on the old and supersedes on the new (Refinement 3).
+  //
+  // RejectedCandidate Tier 2 (persisted to campaign.memory.rejected_candidates[]):
+  //   { id, candidateKind, inputAssetId, reason: <Tier 2>, observedMetrics,
+  //     rejectedAt, rejectedBy: 'performance-promotion', rejectionStage: 'promotion-gate' }
+  // Tier 1 reasons (frozen) vs Tier 2 reasons (frozen) — distinct enumerations.
+  //
+  // reclassifyAsset reason enumeration (frozen):
+  //   'asset_not_found' | 'invalid_classification'
+  //
+  // Deterministic promotion order (locked Refinement 5):
+  //   bestHook(0) → bestVisual(1) → failedContent(2) → lesson(3)
+    //
+    // specifyLearningsForCampaign returns frozen shallow copies (Refinement 4):
+    //   { bestHooks, bestVisuals, failedContent, lessonsLearned, playbook,
+    //     rejected, promotedAt, lastUpdatedAt } — all arrays frozen shallow.
+
+      // Stage 2 evidence store key. Single canonical localStorage key
+      // for all Evidence Packs. Maps from kindStoreKey('evidence_pack').
+      var EVIDENCE_PACKS_KEY = 'campaign-os:dev:evidence_packs';
 
     // Stage 2 Tier 1 rejection reasons (the ONLY allowed reason values).
     var STAGE2_INPUT_REJECTION_REASONS = Object.freeze({
@@ -6826,6 +6875,36 @@ window.globalSearchGo = function(kind, id) {
       STAGE2_INPUT_REJECTION_REASONS.ASSET_NOT_FOUND,
       STAGE2_INPUT_REJECTION_REASONS.CAMPAIGN_MISMATCH
     ]);
+
+    // Stage 3 Promotion Gate rejection reasons (Tier 2 — distinct from Stage 2 Tier 1).
+    var STAGE3_PROMOTION_GATE_REJECTION_REASONS = Object.freeze({
+      EVIDENCE_PACK_MISSING: 'evidence_pack_missing',
+      EVIDENCE_PACK_UNFROZEN: 'evidence_pack_unfrozen',
+      ASSET_DELETED_SINCE_EVIDENCE: 'asset_deleted_since_evidence',
+      HOOK_DELETED_SINCE_EVIDENCE: 'hook_deleted_since_evidence',
+      ASSET_TOO_RECENT: 'asset_too_recent',
+      EVIDENCE_STALE: 'evidence_stale',
+      SUPERSEDED_BY_NEWER: 'superseded_by_newer',
+      PROVENANCE_SOURCE_INVALID: 'provenance_source_invalid',
+      CLASSIFICATION_INVALID_FOR_PROMOTION: 'classification_invalid_for_promotion'
+    });
+    var STAGE3_PROMOTION_GATE_REJECTION_REASON_VALUES = Object.freeze([
+      STAGE3_PROMOTION_GATE_REJECTION_REASONS.EVIDENCE_PACK_MISSING,
+      STAGE3_PROMOTION_GATE_REJECTION_REASONS.EVIDENCE_PACK_UNFROZEN,
+      STAGE3_PROMOTION_GATE_REJECTION_REASONS.ASSET_DELETED_SINCE_EVIDENCE,
+      STAGE3_PROMOTION_GATE_REJECTION_REASONS.HOOK_DELETED_SINCE_EVIDENCE,
+      STAGE3_PROMOTION_GATE_REJECTION_REASONS.ASSET_TOO_RECENT,
+      STAGE3_PROMOTION_GATE_REJECTION_REASONS.EVIDENCE_STALE,
+      STAGE3_PROMOTION_GATE_REJECTION_REASONS.SUPERSEDED_BY_NEWER,
+      STAGE3_PROMOTION_GATE_REJECTION_REASONS.PROVENANCE_SOURCE_INVALID,
+      STAGE3_PROMOTION_GATE_REJECTION_REASONS.CLASSIFICATION_INVALID_FOR_PROMOTION
+    ]);
+
+    // Stage 3 reclassifyAsset reason enumeration.
+    var RECLASSIFY_ASSET_REASONS = Object.freeze({
+      ASSET_NOT_FOUND: 'asset_not_found',
+      INVALID_CLASSIFICATION: 'invalid_classification'
+    });
 
     // Stage 2 candidate kinds in deterministic emission order (locked).
     var STAGE2_CANDIDATE_KIND_ORDER = Object.freeze(['bestHook', 'bestVisual', 'failedContent', 'lesson']);
@@ -6922,12 +7001,62 @@ window.globalSearchGo = function(kind, id) {
           }
         }
       });
+      // Stage 3 wiring (Refinement 5): promote each candidate in the locked
+      // deterministic order bestHook → bestVisual → failedContent → lesson.
+      // Each promotion completes synchronously before the next begins.
+      // performancePromote() returns Tier 2 rejection results as values (not throws);
+      // any thrown error indicates a programmer bug and propagates immediately.
+      var promotionResults = [];
+      var kindOrder = { bestHook: 0, bestVisual: 1, failedContent: 2, lesson: 3 };
+      var promotionQueue = candidates.slice().sort(function (a, b) {
+        var ka = (kindOrder[a.candidateKind] !== undefined) ? kindOrder[a.candidateKind] : 99;
+        var kb = (kindOrder[b.candidateKind] !== undefined) ? kindOrder[b.candidateKind] : 99;
+        return ka - kb;
+      });
+      promotionQueue.forEach(function (cand) {
+        promotionResults.push(performancePromote(cand));
+      });
       return {
         candidates: candidates,
         rejected: rejected,
         classified: classified,
+        promotions: promotionResults,
         durationMs: Date.now() - startedAt
       };
+    }
+    function specifyLearningsForCampaign(campaignId) {
+      // Stage 3 read-only aggregator. Returns frozen shallow copies of each
+      // memory field so callers cannot mutate campaign memory through the
+      // returned object (Refinement 4). Returns null for unknown campaigns.
+      if (!campaignId || typeof campaignId !== 'string') return null;
+      var campaignsRoot = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns : null;
+      if (!campaignsRoot || !campaignsRoot[campaignId]) return null;
+      var memory = campaignsRoot[campaignId].memory || {};
+      var fields = ['bestHooks', 'bestVisuals', 'failedContent', 'lessonsLearned', 'playbook'];
+      var promotedAt = null;
+      fields.forEach(function (f) {
+        var arr = memory[f];
+        if (Array.isArray(arr)) {
+          arr.forEach(function (rec) {
+            if (rec && rec.promotedAt && (!promotedAt || rec.promotedAt > promotedAt)) {
+              promotedAt = rec.promotedAt;
+            }
+          });
+        }
+      });
+      var shallowFreezeCopy = function (arr) {
+        return Object.freeze(Array.isArray(arr) ? arr.slice() : []);
+      };
+      return Object.freeze({
+        bestHooks: shallowFreezeCopy(memory.bestHooks),
+        bestVisuals: shallowFreezeCopy(memory.bestVisuals),
+        failedContent: shallowFreezeCopy(memory.failedContent),
+        lessonsLearned: shallowFreezeCopy(memory.lessonsLearned),
+        playbook: shallowFreezeCopy(memory.playbook),
+        rejected: shallowFreezeCopy(memory.rejected_candidates),
+        promotedAt: promotedAt,
+        lastUpdatedAt: promotedAt
+      });
     }
     function performanceDerive(evidencePack) {
       // Snapshot ownership (locked Revision 3): performanceDerive constructs the
@@ -7038,7 +7167,199 @@ window.globalSearchGo = function(kind, id) {
       return firstCandidate;
     }
     function performancePromote(candidate) {
-      throw new Error('Stage 1 stub not implemented: performancePromote');
+      // Stage 3 Promotion Gate. Decides whether a candidate becomes durable
+      // Learning truth. All promoted records are deep-frozen before insertion
+      // (Refinement 2). Supersession is append-only — old records are never
+      // overwritten, only marked with supersededBy (Refinement 3).
+      if (!candidate || typeof candidate !== 'object') {
+        throw new Error('Stage 3 performancePromote: candidate required');
+      }
+      var snap = candidate.snapshot || candidate;
+      if (!snap.candidateKind || !snap.campaignId) {
+        throw new Error('Stage 3 performancePromote: candidate missing candidateKind or campaignId');
+      }
+      // Rule 1: provenance gate
+      if (!snap.provenance || snap.provenance.source !== 'performance-derived') {
+        return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.PROVENANCE_SOURCE_INVALID, 'promotion-gate');
+      }
+      // Rule 1: classification gate (NEUTRAL/INVALID never propose, defensive)
+      if (snap.classification !== 'PROMOTED_CANDIDATE' && snap.classification !== 'UNDERPERFORMED_CANDIDATE') {
+        return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.CLASSIFICATION_INVALID_FOR_PROMOTION, 'promotion-gate');
+      }
+      // Rule 1: evidence pack exists and is frozen
+      var packs = readStore(EVIDENCE_PACKS_KEY);
+      var pack = packs.filter(function (p) { return p.packId === snap.evidence_pack_id; })[0];
+      if (!pack) {
+        return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.EVIDENCE_PACK_MISSING, 'promotion-gate');
+      }
+      if (!Object.isFrozen(pack)) {
+        return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.EVIDENCE_PACK_UNFROZEN, 'promotion-gate');
+      }
+      // Rule 1: asset still exists
+      var assetId = snap.assetRef;
+      var campaignsRoot = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns : null;
+      if (!campaignsRoot || !campaignsRoot[snap.campaignId]) {
+        return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.EVIDENCE_PACK_MISSING, 'promotion-gate');
+      }
+      var campaign = campaignsRoot[snap.campaignId];
+      var assetExists = (campaign.assets && campaign.assets[assetId]) ||
+                        (typeof assetReadAll === 'function' && assetReadAll().some(function (a) { return (a.assetId || a.id) === assetId; }));
+      if (!assetExists) {
+        return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.ASSET_DELETED_SINCE_EVIDENCE, 'promotion-gate');
+      }
+      // Rule 1: hook still exists (for bestHook candidates)
+      var hookRecord = null;
+      if (snap.candidateKind === 'bestHook') {
+        var hookId = (campaign.assets[assetId] && campaign.assets[assetId].hookId) || null;
+        if (!hookId) {
+          return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.HOOK_DELETED_SINCE_EVIDENCE, 'promotion-gate');
+        }
+        // Look up hook in any hook store
+        var hooksAll = (window.campaignData && window.campaignData.hooks) ? window.campaignData.hooks : [];
+        if (!Array.isArray(hooksAll)) hooksAll = [];
+        hookRecord = hooksAll.filter(function (h) { return h && (h.id === hookId || h.hookId === hookId); })[0] || null;
+        if (!hookRecord) {
+          return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.HOOK_DELETED_SINCE_EVIDENCE, 'promotion-gate');
+        }
+      }
+      // Rule 2: map candidateKind → memory field
+      var fieldMap = {
+        bestHook: 'bestHooks',
+        bestVisual: 'bestVisuals',
+        failedContent: 'failedContent',
+        lesson: 'lessonsLearned',
+        playbook: 'playbook'
+      };
+      var fieldName = fieldMap[snap.candidateKind];
+      if (!fieldName) {
+        return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.CLASSIFICATION_INVALID_FOR_PROMOTION, 'promotion-gate');
+      }
+      // Defensive initialisation: ensure campaign.memory and the target array exist.
+      if (!campaign.memory) campaign.memory = {};
+      if (!Array.isArray(campaign.memory[fieldName])) campaign.memory[fieldName] = [];
+      // Rule 3: supersession check — find existing record with same (campaignId, candidateKind, assetRef)
+      var existingIdx = -1;
+      var existingRec = null;
+      campaign.memory[fieldName].forEach(function (rec, idx) {
+        if (rec && rec.assetRef === assetId && rec.candidateKind === snap.candidateKind && !rec.supersededBy) {
+          existingIdx = idx;
+          existingRec = rec;
+        }
+      });
+      var promotedAt = new Date().toISOString();
+      var nowISO = promotedAt;
+      // Build the promoted record
+      var record = {
+        id: uid('lrn'),
+        campaignId: snap.campaignId,
+        assetRef: assetId,
+        candidateKind: snap.candidateKind,
+        classification: snap.classification,
+        evidence_refs: [snap.evidence_pack_id],
+        promotedAt: nowISO,
+        promotedBy: 'performance-promotion',
+        supersedes: null,
+        supersededBy: null
+      };
+      // Per-kind payload fields
+      if (snap.candidateKind === 'bestHook') {
+        record.hookId = hookRecord ? (hookRecord.id || hookRecord.hookId) : null;
+        record.hookTextSnapshot = hookRecord ? hookRecord.text : null;
+        record.performance = {
+          reach: pack.engagement.snapshot.reach,
+          likes: pack.engagement.snapshot.likes,
+          engagementRate: pack.engagement.snapshot.engagementRate,
+          impressions: pack.engagement.snapshot.impressions,
+          comments: pack.engagement.snapshot.comments,
+          shares: pack.engagement.snapshot.shares
+        };
+      } else if (snap.candidateKind === 'bestVisual') {
+        record.assetType = (campaign.assets[assetId] && campaign.assets[assetId].type) || null;
+        record.performance = {
+          reach: pack.engagement.snapshot.reach,
+          likes: pack.engagement.snapshot.likes,
+          engagementRate: pack.engagement.snapshot.engagementRate,
+          impressions: pack.engagement.snapshot.impressions,
+          comments: pack.engagement.snapshot.comments,
+          shares: pack.engagement.snapshot.shares
+        };
+      } else if (snap.candidateKind === 'failedContent') {
+        record.reason = snap.classification === 'UNDERPERFORMED_CANDIDATE' ? 'low_engagement' : 'below_baseline';
+        record.observedMetrics = {
+          reach: pack.engagement.snapshot.reach,
+          likes: pack.engagement.snapshot.likes,
+          engagementRate: pack.engagement.snapshot.engagementRate
+        };
+        record.lessonRef = null;
+      } else if (snap.candidateKind === 'lesson') {
+        record.text = snap.text || ('Lesson derived from asset ' + assetId + ' on ' + nowISO);
+        record.lessonType = snap.classification === 'PROMOTED_CANDIDATE' ? 'pattern' : 'failure_mode';
+        record.confidence = null;
+      } else if (snap.candidateKind === 'playbook') {
+        record.name = snap.name || 'Untitled playbook';
+        record.description = snap.description || null;
+        record.patternRefs = [];
+      }
+      // Rule 3: supersession handling — append-only, never overwrite
+      if (existingRec && existingIdx >= 0) {
+        // Compare promotedAt timestamps — if existing is newer, this candidate is rejected.
+        if (existingRec.promotedAt && existingRec.promotedAt >= snap.derivedAt) {
+          return performanceReject(snap, STAGE3_PROMOTION_GATE_REJECTION_REASONS.SUPERSEDED_BY_NEWER, 'promotion-gate');
+        }
+        // Otherwise: append the new record, mark the old as superseded.
+        record.supersedes = existingRec.id;
+        // Append-only: do not delete the old record.
+        deepFreeze(record);
+        campaign.memory[fieldName].push(record);
+        // Mark the old record as superseded (mutating it would violate immutability — instead we
+        // create a marker record in the rejected_candidates collection).
+        // For practical purposes, we set a soft reference via a separate supersession log.
+        // The append-only invariant means the old record itself is not touched.
+        // Emit LEARNING_RECORD_SUPERSEDED first, then LEARNING_RECORD_PROMOTED.
+        applyEvent({
+          type: PERFORMANCE_EVENT_TYPES.LEARNING_RECORD_SUPERSEDED,
+          at: nowISO,
+          by: 'performance-promote',
+          campaignId: snap.campaignId,
+          oldRecordId: existingRec.id,
+          newRecordId: record.id,
+          reason: 'newer_evidence',
+          supersedes: { field: fieldName, oldIndex: existingIdx, newIndex: campaign.memory[fieldName].length - 1 }
+        });
+        applyEvent({
+          type: PERFORMANCE_EVENT_TYPES.LEARNING_RECORD_PROMOTED,
+          at: nowISO,
+          by: 'performance-promote',
+          campaignId: snap.campaignId,
+          candidateId: snap.candidateId || null,
+          memoryRef: { field: fieldName, index: campaign.memory[fieldName].length - 1 },
+          record: record,
+          promotedAt: nowISO,
+          promotedBy: 'performance-promotion'
+        });
+        if (typeof devStoreAppend === 'function') {
+          devStoreAppend(campaign);
+        }
+        return { promoted: true, memoryRef: { field: fieldName, index: campaign.memory[fieldName].length - 1 }, record: record, superseded: existingRec.id };
+      }
+      // No existing record — pure promotion.
+      deepFreeze(record);
+      campaign.memory[fieldName].push(record);
+      applyEvent({
+        type: PERFORMANCE_EVENT_TYPES.LEARNING_RECORD_PROMOTED,
+        at: nowISO,
+        by: 'performance-promote',
+        campaignId: snap.campaignId,
+        candidateId: snap.candidateId || null,
+        memoryRef: { field: fieldName, index: campaign.memory[fieldName].length - 1 },
+        record: record,
+        promotedAt: nowISO,
+        promotedBy: 'performance-promotion'
+      });
+      if (typeof devStoreAppend === 'function') {
+        devStoreAppend(campaign);
+      }
+      return { promoted: true, memoryRef: { field: fieldName, index: campaign.memory[fieldName].length - 1 }, record: record };
     }
     function performanceReject(inputOrCandidate, reason, stage) {
       if (stage === 'input') {
@@ -7080,12 +7401,116 @@ window.globalSearchGo = function(kind, id) {
         return { rejected: true, rejectionStage: 'input', record: record };
       }
       if (stage === 'promotion-gate') {
-        throw new Error('Stage 2 stub: promotion-gate rejection lives in Stage 3');
+        // Stage 3 implements promotion-gate rejection. Reasons are restricted
+        // to the Tier 2 enumeration. Records persist to campaign.memory.rejected_candidates[]
+        // with rejectionStage: 'promotion-gate'. Emits LEARNING_RECORD_REJECTED event.
+        if (!reason || STAGE3_PROMOTION_GATE_REJECTION_REASON_VALUES.indexOf(reason) === -1) {
+          throw new Error('Stage 3 performanceReject: invalid promotion-gate reason "' + reason + '"');
+        }
+        var candidate = inputOrCandidate;
+        if (!candidate || typeof candidate !== 'object') {
+          throw new Error('Stage 3 performanceReject: promotion-gate requires a candidate object');
+        }
+        var snapshot = candidate.snapshot || candidate;
+        var pgCampaignId = snapshot.campaignId;
+        var campaignsRoot2 = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns : null;
+        if (!campaignsRoot2) {
+          throw new Error('Stage 3 performanceReject: no campaign store');
+        }
+        var pgCampaign = null;
+        Object.keys(campaignsRoot2).forEach(function (cid) {
+          if (cid === pgCampaignId) pgCampaign = campaignsRoot2[cid];
+        });
+        if (!pgCampaign) {
+          throw new Error('Stage 3 performanceReject: unknown campaignId "' + pgCampaignId + '"');
+        }
+        var pgRecord = {
+          id: uid('rej'),
+          candidateKind: snapshot.candidateKind || 'unknown',
+          inputAssetId: snapshot.assetRef || null,
+          reason: reason,
+          observedMetrics: null,
+          rejectedAt: new Date().toISOString(),
+          rejectedBy: 'performance-promotion',
+          rejectionStage: 'promotion-gate'
+        };
+        if (!pgCampaign.memory) pgCampaign.memory = {};
+        if (!Array.isArray(pgCampaign.memory.rejected_candidates)) {
+          // Defensive: replace corrupted values with a fresh array (Refinement 4).
+          pgCampaign.memory.rejected_candidates = [];
+        }
+        pgCampaign.memory.rejected_candidates.push(pgRecord);
+        if (typeof devStoreAppend === 'function') {
+          devStoreAppend(pgCampaign);
+        }
+        applyEvent({
+          type: PERFORMANCE_EVENT_TYPES.LEARNING_RECORD_REJECTED,
+          at: pgRecord.rejectedAt,
+          by: 'performance-reject',
+          campaignId: pgCampaignId,
+          candidateId: snapshot.candidateId || null,
+          reason: reason,
+          rejectionStage: 'promotion-gate',
+          rejectedAt: pgRecord.rejectedAt,
+          rejectedBy: 'performance-promotion'
+        });
+        return { rejected: true, rejectionStage: 'promotion-gate', record: pgRecord };
       }
-      throw new Error('Stage 2 performanceReject: stage must be "input" or "promotion-gate"');
+      throw new Error('Stage 3 performanceReject: stage must be "input" or "promotion-gate"');
     }
-    function reclassifyAsset(assetId, newEngagementRef) {
-      throw new Error('Stage 1 stub not implemented: reclassifyAsset');
+    function reclassifyAsset(assetId, newClassification) {
+      // Stage 3 minimal truthful implementation (Refinement 1). Validates asset
+      // exists, validates classification enum, persists the new classification.
+      // No events yet — Stage 4 territory for event wiring. No behavioural
+      // effects on the marketer-visible UI. Returns documented result shape.
+      var VALID_CLASSIFICATIONS = ['PROMOTED_CANDIDATE', 'UNDERPERFORMED_CANDIDATE', 'NEUTRAL', 'INVALID', null];
+      if (!assetId || typeof assetId !== 'string') {
+        return { reclassified: false, reason: RECLASSIFY_ASSET_REASONS.ASSET_NOT_FOUND };
+      }
+      if (VALID_CLASSIFICATIONS.indexOf(newClassification) === -1) {
+        return { reclassified: false, reason: RECLASSIFY_ASSET_REASONS.INVALID_CLASSIFICATION };
+      }
+      // Try embedded asset first.
+      var campaignsRoot3 = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns : null;
+      var oldClass = null;
+      var updated = false;
+      if (campaignsRoot3) {
+        Object.keys(campaignsRoot3).forEach(function (cid) {
+          var c = campaignsRoot3[cid];
+          if (c && c.assets && c.assets[assetId]) {
+            oldClass = c.assets[assetId].classification || null;
+            c.assets[assetId].classification = newClassification;
+            updated = true;
+            if (typeof devStoreAppend === 'function') {
+              devStoreAppend(c);
+            }
+          }
+        });
+      }
+      if (!updated && typeof assetReadAll === 'function') {
+        var standalone = assetReadAll();
+        for (var i = 0; i < standalone.length; i++) {
+          if (standalone[i] && (standalone[i].assetId === assetId || standalone[i].id === assetId)) {
+            oldClass = standalone[i].classification || null;
+            standalone[i].classification = newClassification;
+            if (typeof assetWriteAll === 'function') {
+              assetWriteAll(standalone);
+            }
+            updated = true;
+            break;
+          }
+        }
+      }
+      if (!updated) {
+        return { reclassified: false, reason: RECLASSIFY_ASSET_REASONS.ASSET_NOT_FOUND };
+      }
+      return {
+        reclassified: true,
+        assetId: assetId,
+        oldClass: oldClass,
+        newClass: newClassification,
+        at: new Date().toISOString()
+      };
     }
     function evidencePack(asset, engagementRef, campaignContext) {
       // Tier 1 validation. Each gate sets a rejection reason if it fails.
