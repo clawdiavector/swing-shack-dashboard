@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-17T10:00:06.386Z",
+  "lastUpdated": "2026-07-17T16:00:04.738Z",
   "source": "automated",
   "website": {
-    "activeUsers": 585,
-    "sessions": 754,
-    "pageViews": 1326,
-    "avgSessionSeconds": 89.12383814323607,
-    "bounceRate": 0.5145888594164456,
+    "activeUsers": 623,
+    "sessions": 807,
+    "pageViews": 1410,
+    "avgSessionSeconds": 93.5981747472119,
+    "bounceRate": 0.5427509293680297,
     "topPages": [
       {
         "path": "/",
-        "views": 603
+        "views": 644
       },
       {
         "path": "/bookings/",
-        "views": 347
+        "views": 367
       },
       {
         "path": "/customer-portal/",
-        "views": 203
+        "views": 217
       },
       {
         "path": "/club-fitting/",
-        "views": 64
+        "views": 72
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 50
+        "views": 51
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -52,31 +52,35 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 297
+        "sessions": 315
       },
       {
         "source": "(direct)",
-        "sessions": 166
+        "sessions": 174
       },
       {
         "source": "instagram",
         "sessions": 110
       },
       {
+        "source": "fb",
+        "sessions": 45
+      },
+      {
         "source": "clublab.app",
-        "sessions": 39
+        "sessions": 40
       },
       {
         "source": "facebook",
         "sessions": 38
       },
       {
-        "source": "fb",
-        "sessions": 32
+        "source": "(not set)",
+        "sessions": 31
       },
       {
         "source": "bing",
-        "sessions": 17
+        "sessions": 20
       },
       {
         "source": "c.yoco.com",
@@ -85,20 +89,16 @@
       {
         "source": "paid_meta",
         "sessions": 10
-      },
-      {
-        "source": "l.instagram.com",
-        "sessions": 4
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 520
+        "sessions": 558
       },
       {
         "device": "desktop",
-        "sessions": 226
+        "sessions": 241
       },
       {
         "device": "tablet",
