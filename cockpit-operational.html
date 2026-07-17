@@ -1478,7 +1478,8 @@ function kindStoreKey(kind) {
               // Path C Stage 1 additions: durable Learning kinds declared in DOMAINS map.
               // No readers or writers exist yet. Stage 2 introduces them.
               learning:'learning:lessons_learned',
-              playbook:'learning:playbooks' };
+              playbook:'learning:playbooks',
+              evidence_pack:'campaign-os:dev:evidence_packs' };
   return 'campaign-os:dev:' + (map[kind] || kind);
 }
 function readStore(key) { try { var r = localStorage.getItem(key); return r ? JSON.parse(r) : []; } catch(e){return [];} }
@@ -6800,31 +6801,383 @@ window.globalSearchGo = function(kind, id) {
     }
   });
 
-  // ── Path C Stage 1: Performance pipeline stubs ───────────────
+  // ── Performance pipeline stubs (Stage 1) ──────────────────────
   // Each stub throws a labelled Stage-1 error if called. Stage 2
   // implementations replace the body with real logic. The throw is
   // the safety net: accidental integration in Stage 2 surfaces
   // immediately rather than silently producing plausible data.
 
-  function performanceAggregate(campaignId, opts) {
-    throw new Error('Stage 1 stub not implemented: performanceAggregate');
-  }
-  function performanceDerive(classification, asset, engagementRef, campaignContext) {
-    throw new Error('Stage 1 stub not implemented: performanceDerive');
-  }
-  function performancePromote(candidate) {
-    throw new Error('Stage 1 stub not implemented: performancePromote');
-  }
-  function performanceReject(candidate, reason) {
-    throw new Error('Stage 1 stub not implemented: performanceReject');
-  }
-  function reclassifyAsset(assetId, newEngagementRef) {
-    throw new Error('Stage 1 stub not implemented: reclassifyAsset');
-  }
-  function evidencePack(classification, asset, engagementRef, campaignContext) {
-    throw new Error('Stage 1 stub not implemented: evidencePack');
-  }
-})();
+    // Stage 2 evidence store key. Single canonical localStorage key
+    // for all Evidence Packs. Maps from kindStoreKey('evidence_pack').
+    var EVIDENCE_PACKS_KEY = 'campaign-os:dev:evidence_packs';
+
+    // Stage 2 Tier 1 rejection reasons (the ONLY allowed reason values).
+    var STAGE2_INPUT_REJECTION_REASONS = Object.freeze({
+      ENGAGEMENT_UNVERIFIED: 'engagement_unverified',
+      ENGAGEMENT_SOURCE_MANUAL: 'engagement_source_manual',
+      ENGAGEMENT_MISSING_METRICS: 'engagement_missing_metrics',
+      ASSET_NOT_FOUND: 'asset_not_found',
+      CAMPAIGN_MISMATCH: 'campaign_mismatch'
+    });
+    var STAGE2_INPUT_REJECTION_REASON_VALUES = Object.freeze([
+      STAGE2_INPUT_REJECTION_REASONS.ENGAGEMENT_UNVERIFIED,
+      STAGE2_INPUT_REJECTION_REASONS.ENGAGEMENT_SOURCE_MANUAL,
+      STAGE2_INPUT_REJECTION_REASONS.ENGAGEMENT_MISSING_METRICS,
+      STAGE2_INPUT_REJECTION_REASONS.ASSET_NOT_FOUND,
+      STAGE2_INPUT_REJECTION_REASONS.CAMPAIGN_MISMATCH
+    ]);
+
+    // Stage 2 candidate kinds in deterministic emission order (locked).
+    var STAGE2_CANDIDATE_KIND_ORDER = Object.freeze(['bestHook', 'bestVisual', 'failedContent', 'lesson']);
+
+    // Deep-freeze helper for the snapshot. Returns the same reference.
+    function deepFreeze(obj) {
+      if (obj && typeof obj === 'object') {
+        Object.freeze(obj);
+        Object.keys(obj).forEach(function (k) { deepFreeze(obj[k]); });
+      }
+      return obj;
+    }
+
+    function performanceAggregate(campaignId, opts) {
+      // Iterates assets in lex-by-id order, calls evidencePack() and
+      // performanceDerive() per asset, applies locked deterministic kind order,
+      // emits events in order, returns the summary.
+      if (!campaignId || typeof campaignId !== 'string') {
+        throw new Error('Stage 2 performanceAggregate: campaignId required');
+      }
+      var campaignsRoot = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns : null;
+      if (!campaignsRoot || !campaignsRoot[campaignId]) {
+        throw new Error('Stage 2 performanceAggregate: unknown campaignId "' + campaignId + '"');
+      }
+      var campaign = campaignsRoot[campaignId];
+      var startedAt = Date.now();
+      // Collect assets from both the standalone asset store and the embedded c.assets[id] map.
+      var embeddedAssets = (campaign.assets && typeof campaign.assets === 'object') ? Object.keys(campaign.assets).map(function (k) { return campaign.assets[k]; }) : [];
+      var standaloneAssets = (typeof assetReadAll === 'function') ? assetReadAll() : [];
+      var allAssets = embeddedAssets.concat(standaloneAssets);
+      // Filter to assets that belong to this campaign. Match by campaignId or by being embedded.
+      allAssets = allAssets.filter(function (a) {
+        if (!a) return false;
+        return a.campaignId === campaignId || (campaign.assets && campaign.assets[a.assetId || a.id]);
+      });
+      // Deduplicate by assetId/id.
+      var seen = {};
+      var uniqueAssets = [];
+      allAssets.forEach(function (a) {
+        var key = a.assetId || a.id;
+        if (!key || seen[key]) return;
+        seen[key] = true;
+        uniqueAssets.push(a);
+      });
+      // Sort by id lexicographically for deterministic ordering (locked).
+      uniqueAssets.sort(function (a, b) {
+        var ka = a.assetId || a.id || '';
+        var kb = b.assetId || b.id || '';
+        return ka < kb ? -1 : ka > kb ? 1 : 0;
+      });
+      var candidates = [];
+      var rejected = [];
+      var classified = { PROMOTED_CANDIDATE: 0, UNDERPERFORMED_CANDIDATE: 0, NEUTRAL: 0, INVALID: 0 };
+      uniqueAssets.forEach(function (asset) {
+        var engagement = (asset && asset.engagement) || null;
+        var packResult = evidencePack(asset, engagement, { id: campaignId });
+        if (!packResult || !packResult.pack) {
+          // Reject this input via performanceReject(stage='input').
+          rejected.push({
+            candidateKind: 'unknown',
+            inputAssetId: asset && (asset.assetId || asset.id),
+            reason: (packResult && packResult.reason) || STAGE2_INPUT_REJECTION_REASONS.ASSET_NOT_FOUND,
+            observedMetrics: null,
+            rejectedAt: new Date().toISOString(),
+            rejectedBy: 'stage-2-input-validation',
+            rejectionStage: 'input'
+          });
+          classified.INVALID++;
+          return;
+        }
+        var derived = performanceDerive(packResult.pack);
+        if (derived) {
+          candidates.push(derived);
+          if (derived.classification === 'PROMOTED_CANDIDATE') classified.PROMOTED_CANDIDATE++;
+          else if (derived.classification === 'UNDERPERFORMED_CANDIDATE') classified.UNDERPERFORMED_CANDIDATE++;
+        } else {
+          classified.NEUTRAL++;
+        }
+      });
+      // Persist rejected inputs via the canonical input-rejection path.
+      rejected.forEach(function (r) {
+        try {
+          performanceReject({
+            campaignId: campaignId,
+            candidateKind: r.candidateKind,
+            inputAssetId: r.inputAssetId,
+            observedMetrics: r.observedMetrics
+          }, r.reason, 'input');
+        } catch (e) {
+          // Stage 2 truth rule: rejection persistence failures must not silently disappear.
+          // Logged loudly via console.warn. Aggregate run continues.
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('Stage 2 performanceAggregate: rejection persistence failed for assetId=' + r.inputAssetId + ', reason=' + r.reason + ', error=' + (e && e.message));
+          }
+        }
+      });
+      return {
+        candidates: candidates,
+        rejected: rejected,
+        classified: classified,
+        durationMs: Date.now() - startedAt
+      };
+    }
+    function performanceDerive(evidencePack) {
+      // Snapshot ownership (locked Revision 3): performanceDerive constructs the
+      // frozen snapshot BEFORE calling applyEvent. applyEvent itself never mutates.
+      if (!evidencePack || typeof evidencePack !== 'object' || !evidencePack.packId) {
+        throw new Error('Stage 2 performanceDerive: invalid evidence pack');
+      }
+      // Classification derivation (locked §6 rules).
+      var snap = evidencePack.engagement && evidencePack.engagement.snapshot;
+      if (!snap) {
+        throw new Error('Stage 2 performanceDerive: evidence pack missing engagement snapshot');
+      }
+      var impressions = snap.impressions;
+      var reach = snap.reach;
+      var likes = snap.likes;
+      var comments = snap.comments;
+      var shares = snap.shares;
+      var engagementRate = snap.engagementRate;
+      var hasPositiveSignal = (typeof likes === 'number' && likes > 0) ||
+                              (typeof comments === 'number' && comments > 0) ||
+                              (typeof shares === 'number' && shares > 0) ||
+                              (typeof engagementRate === 'number' && engagementRate > 0);
+      var hasAudienceReach = (typeof reach === 'number' && reach > 0) ||
+                              (typeof impressions === 'number' && impressions > 0);
+      // Rule 1: PROMOTED_CANDIDATE — verified engagement + at least one positive signal.
+      if (hasPositiveSignal) {
+        return stage2_deriveEmitCandidates(evidencePack, 'PROMOTED_CANDIDATE');
+      }
+      // Rule 2: UNDERPERFORMED_CANDIDATE — audience reached but no positive engagement.
+      if (hasAudienceReach) {
+        return stage2_deriveEmitCandidates(evidencePack, 'UNDERPERFORMED_CANDIDATE');
+      }
+      // Rule 3: NEUTRAL — no audience reach; not yet performable.
+      return null;
+    }
+    function stage2_deriveEmitCandidates(evidencePack, classification) {
+      // Map asset shape → candidate kinds, in the locked deterministic order.
+      var assetId = evidencePack.asset.ref.id;
+      var asset = (typeof assetReadAll === 'function' ? assetReadAll() : []).filter(function (a) { return (a.assetId || a.id) === assetId; })[0] || null;
+      var kinds = [];
+      var isVideo = asset && asset.type === 'video';
+      var isImage = asset && asset.type === 'image';
+      var hasHook = asset && asset.hookId;
+      if (classification === 'PROMOTED_CANDIDATE') {
+        if (hasHook) kinds.push('bestHook');
+        if (isVideo || isImage) kinds.push('bestVisual');
+        kinds.push('lesson');
+      } else if (classification === 'UNDERPERFORMED_CANDIDATE') {
+        // Shape-rich underperformed assets can also carry bestHook/bestVisual
+        // because they may be the best of their underperformed cohort.
+        if (hasHook) kinds.push('bestHook');
+        if (isVideo || isImage) kinds.push('bestVisual');
+        kinds.push('failedContent');
+        kinds.push('lesson');
+      } else {
+        return null;
+      }
+      // Sort by the locked deterministic order, regardless of asset-shape insertion.
+      var orderIndex = { bestHook: 0, bestVisual: 1, failedContent: 2, lesson: 3 };
+      kinds.sort(function (a, b) { return (orderIndex[a] !== undefined ? orderIndex[a] : 99) - (orderIndex[b] !== undefined ? orderIndex[b] : 99); });
+      var firstCandidate = null;
+      kinds.forEach(function (kind) {
+        var candidate = {
+          candidateId: uid('cand'),
+          campaignId: evidencePack.campaignId,
+          candidateKind: kind,
+          assetRef: assetId,
+          classification: classification,
+          evidence_pack_id: evidencePack.packId,
+          derivedAt: new Date().toISOString(),
+          provenance: {
+            source: 'performance-derived',
+            confidence_source: 'performance',
+            derived_by: 'performance-derive'
+          },
+          promotionStatus: 'proposed'
+        };
+        // Frozen snapshot is constructed here, before applyEvent is called.
+        var snapshot = deepFreeze(JSON.parse(JSON.stringify(candidate)));
+        // Idempotency on {packId, candidateKind}: check event log for an existing event.
+        var eventsForCampaign = ((window.campaignData && window.campaignData.campaigns && window.campaignData.campaigns[evidencePack.campaignId]) ? (window.campaignData.campaigns[evidencePack.campaignId].provenance && window.campaignData.campaigns[evidencePack.campaignId].provenance.events) || [] : []);
+        var existing = eventsForCampaign.filter(function (e) {
+          return e.type === PERFORMANCE_EVENT_TYPES.LEARNING_CANDIDATE_PROPOSED &&
+                 e.evidence_pack_id === evidencePack.packId &&
+                 e.candidateKind === kind;
+        })[0];
+        if (existing) {
+          if (!firstCandidate) firstCandidate = existing.snapshot;
+          return;
+        }
+        // Emit the event. applyEvent receives the candidateId + frozen snapshot as-is.
+        applyEvent({
+          type: PERFORMANCE_EVENT_TYPES.LEARNING_CANDIDATE_PROPOSED,
+          at: new Date().toISOString(),
+          by: 'performance-derive',
+          campaignId: evidencePack.campaignId,
+          candidateId: candidate.candidateId,
+          candidateKind: kind,
+          assetRef: { kind: 'asset', id: assetId },
+          evidence_pack_id: evidencePack.packId,
+          classification: classification,
+          provenance: candidate.provenance,
+          promotionStatus: 'proposed',
+          snapshot: snapshot
+        });
+        if (!firstCandidate) firstCandidate = candidate;
+      });
+      return firstCandidate;
+    }
+    function performancePromote(candidate) {
+      throw new Error('Stage 1 stub not implemented: performancePromote');
+    }
+    function performanceReject(inputOrCandidate, reason, stage) {
+      if (stage === 'input') {
+        // Stage 2 implements input validation rejection.
+        // Reasons are restricted to the Tier 1 enumeration.
+        if (!reason || STAGE2_INPUT_REJECTION_REASON_VALUES.indexOf(reason) === -1) {
+          throw new Error('Stage 2 performanceReject: invalid reason "' + reason + '"');
+        }
+        var input = inputOrCandidate || {};
+        var campaignId = input.campaignId;
+        var campaignsRoot = (window.campaignData && window.campaignData.campaigns) ? window.campaignData.campaigns : null;
+        if (!campaignsRoot) {
+          throw new Error('Stage 2 performanceReject: no campaign store');
+        }
+        var campaign = null;
+        Object.keys(campaignsRoot).forEach(function (cid) {
+          if (cid === campaignId) campaign = campaignsRoot[cid];
+        });
+        if (!campaign) {
+          throw new Error('Stage 2 performanceReject: unknown campaignId "' + campaignId + '"');
+        }
+        var record = {
+          id: uid('rej'),
+          candidateKind: input.candidateKind || 'unknown',
+          inputAssetId: input.inputAssetId || null,
+          reason: reason,
+          observedMetrics: input.observedMetrics || null,
+          rejectedAt: new Date().toISOString(),
+          rejectedBy: 'stage-2-input-validation',
+          rejectionStage: 'input'
+        };
+        if (!campaign.memory) campaign.memory = {};
+        if (!Array.isArray(campaign.memory.rejected_candidates)) campaign.memory.rejected_candidates = [];
+        campaign.memory.rejected_candidates.push(record);
+        // Campaign persistence — use the single write path if available.
+        if (typeof devStoreAppend === 'function') {
+          devStoreAppend(campaign);
+        }
+        return { rejected: true, rejectionStage: 'input', record: record };
+      }
+      if (stage === 'promotion-gate') {
+        throw new Error('Stage 2 stub: promotion-gate rejection lives in Stage 3');
+      }
+      throw new Error('Stage 2 performanceReject: stage must be "input" or "promotion-gate"');
+    }
+    function reclassifyAsset(assetId, newEngagementRef) {
+      throw new Error('Stage 1 stub not implemented: reclassifyAsset');
+    }
+    function evidencePack(asset, engagementRef, campaignContext) {
+      // Tier 1 validation. Each gate sets a rejection reason if it fails.
+      if (!asset || typeof asset !== 'object') {
+        return { pack: null, reason: STAGE2_INPUT_REJECTION_REASONS.ASSET_NOT_FOUND, rejectedAt: new Date().toISOString() };
+      }
+      if (!campaignContext || typeof campaignContext !== 'object' || !campaignContext.id) {
+        return { pack: null, reason: STAGE2_INPUT_REJECTION_REASONS.CAMPAIGN_MISMATCH, rejectedAt: new Date().toISOString() };
+      }
+      if (asset.campaignId !== campaignContext.id) {
+        return { pack: null, reason: STAGE2_INPUT_REJECTION_REASONS.CAMPAIGN_MISMATCH, rejectedAt: new Date().toISOString() };
+      }
+      if (!engagementRef || typeof engagementRef !== 'object') {
+        return { pack: null, reason: STAGE2_INPUT_REJECTION_REASONS.ENGAGEMENT_UNVERIFIED, rejectedAt: new Date().toISOString() };
+      }
+      if (engagementRef.verified !== true) {
+        return { pack: null, reason: STAGE2_INPUT_REJECTION_REASONS.ENGAGEMENT_UNVERIFIED, rejectedAt: new Date().toISOString() };
+      }
+      if (engagementRef.source === 'manual') {
+        return { pack: null, reason: STAGE2_INPUT_REJECTION_REASONS.ENGAGEMENT_SOURCE_MANUAL, rejectedAt: new Date().toISOString() };
+      }
+      if (engagementRef.source !== 'ga4' && engagementRef.source !== 'meta') {
+        return { pack: null, reason: STAGE2_INPUT_REJECTION_REASONS.ENGAGEMENT_SOURCE_MANUAL, rejectedAt: new Date().toISOString() };
+      }
+      var impressions = (typeof engagementRef.impressions === 'number') ? engagementRef.impressions : null;
+      var reach = (typeof engagementRef.reach === 'number') ? engagementRef.reach : null;
+      var likes = (typeof engagementRef.likes === 'number') ? engagementRef.likes : null;
+      var comments = (typeof engagementRef.comments === 'number') ? engagementRef.comments : null;
+      var shares = (typeof engagementRef.shares === 'number') ? engagementRef.shares : null;
+      var engagementRate = (typeof engagementRef.engagementRate === 'number') ? engagementRef.engagementRate : null;
+      var hasAnyMetric = (impressions !== null) || (reach !== null) || (likes !== null) ||
+                         (comments !== null) || (shares !== null) || (engagementRate !== null);
+      if (!hasAnyMetric) {
+        return { pack: null, reason: STAGE2_INPUT_REJECTION_REASONS.ENGAGEMENT_MISSING_METRICS, rejectedAt: new Date().toISOString() };
+      }
+      // Idempotency: same {campaignId, assetId, engagementCapturedAt} returns existing packId.
+      var capturedAt = engagementRef.capturedAt || new Date().toISOString();
+      var existing = readStore(EVIDENCE_PACKS_KEY).filter(function (p) {
+        return p.campaignId === campaignContext.id &&
+               p.asset.ref.id === asset.id &&
+               p.engagement.ref.capturedAt === capturedAt;
+      })[0];
+      if (existing) {
+        return { pack: existing, idempotent: true };
+      }
+      // Build the immutable pack.
+      var pack = {
+        packId: uid('pack'),
+        createdAt: new Date().toISOString(),
+        createdBy: 'evidence-pack',
+        campaignId: campaignContext.id,
+        asset: { ref: { kind: 'asset', id: asset.id }, required: true },
+        engagement: {
+          ref: { kind: 'engagement', assetId: asset.id, capturedAt: capturedAt },
+          snapshot: {
+            impressions: impressions,
+            reach: reach,
+            likes: likes,
+            comments: comments,
+            shares: shares,
+            engagementRate: engagementRate
+          },
+          verified: true,
+          source: engagementRef.source
+        },
+        campaignContext: { ref: { kind: 'campaign', id: campaignContext.id } },
+        platform: engagementRef.source,
+        timestamps: {
+          assetCreatedAt: asset.createdAt || null,
+          engagementCapturedAt: capturedAt,
+          packCreatedAt: new Date().toISOString()
+        },
+        verification: { state: 'verified', reason: null }
+      };
+      deepFreeze(pack);
+      var packs = readStore(EVIDENCE_PACKS_KEY);
+      packs.push(pack);
+      writeStore(EVIDENCE_PACKS_KEY, packs);
+      // Emit event via the single applyEvent write path.
+      applyEvent({
+        type: PERFORMANCE_EVENT_TYPES.LEARNING_EVIDENCE_PACKED,
+        at: new Date().toISOString(),
+        by: 'evidence-pack',
+        campaignId: campaignContext.id,
+        packId: pack.packId,
+        assetRef: pack.asset.ref,
+        engagementRef: pack.engagement.ref,
+        verification: 'verified'
+      });
+      return { pack: pack, idempotent: false };
+    }
+  })();
 </script>
 
 <!-- Step 19: Global Search modal markup (lives in body, JS above manipulates it) -->

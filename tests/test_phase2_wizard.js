@@ -2577,9 +2577,10 @@ section('Live API — wizard payload (new shape)');
   assert('Stage 1: kindStoreKey(\'playbook\') resolves to learning:playbooks',
          /playbook:\s*'learning:playbooks'/.test(html));
 
-  // 3. Six throwing stubs — each must throw a labelled Error.
-  const stubNames = ['performanceAggregate', 'performanceDerive', 'performancePromote',
-                     'performanceReject', 'reclassifyAsset', 'evidencePack'];
+  // 3. Stage 1 throwing stubs that remain throwing after Stage 2:
+  //    performancePromote, reclassifyAsset.
+  //    Stage 2 implemented performanceAggregate, performanceDerive, performanceReject (input), and evidencePack.
+  const stubNames = ['performancePromote', 'reclassifyAsset'];
   stubNames.forEach(function(name) {
     // Stub function must exist with the right signature and throw a labelled Error.
     // Build the regex source from parts so escaping stays explicit per fragment.
@@ -2599,15 +2600,22 @@ section('Live API — wizard payload (new shape)');
   assert('Stage 1: zero applyEvent emitters for learning.* event types', emitterMatches.length === 0);
 
   // 5. No campaign.memory writes — none of the six stubs mutates campaign.memory.
-  stubNames.forEach(function(name) {
-    const stubSrc = (html.match(new RegExp('function\\s+' + name + '\\s*\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n  \\}')) || [''])[0];
-    const noMemoryMutation = !/\.memory\b|\bmemory\s*=/.test(stubSrc);
-    const noStoreWrites = !/writeStore\s*\(|devStoreAppend\s*\(/.test(stubSrc);
-    const noEventEmission = !/applyEvent\s*\(/.test(stubSrc);
-    assert('Stage 1: ' + name + ' stub does not mutate campaign.memory', noMemoryMutation);
-    assert('Stage 1: ' + name + ' stub does not call writeStore or devStoreAppend', noStoreWrites);
-    assert('Stage 1: ' + name + ' stub does not call applyEvent', noEventEmission);
-  });
+    stubNames.forEach(function(name) {
+      // Build the regex with explicit escape sequences to avoid nested-escape pitfalls.
+      const _fn = 'function' + String.fromCharCode(0x5c, 0x73) + '+' + name;
+      const _sig = String.fromCharCode(0x5c, 0x73) + '*' + String.fromCharCode(0x5c, 0x28) + '[^)]*' + String.fromCharCode(0x5c, 0x29);
+      const _open = String.fromCharCode(0x5c, 0x73) + '*' + String.fromCharCode(0x5c, 0x7b);
+      const _any = '[' + String.fromCharCode(0x5c, 0x73, 0x5c, 0x53) + ']*?';
+      const _close = String.fromCharCode(0x5c, 0x6e) + String.fromCharCode(0x5c, 0x73) + '*' + String.fromCharCode(0x5c, 0x7d);
+      const _capture = new RegExp(_fn + _sig + _open + _any + _close);
+      const stubSrc = (html.match(_capture) || [''])[0];
+      const noMemoryMutation = !/\.memory\b|\bmemory\s*=/.test(stubSrc);
+      const noStoreWrites = !/writeStore\s*\(|devStoreAppend\s*\(/.test(stubSrc);
+      const noEventEmission = !/applyEvent\s*\(/.test(stubSrc);
+      assert('Stage 1: ' + name + ' stub does not mutate campaign.memory', noMemoryMutation);
+      assert('Stage 1: ' + name + ' stub does not call writeStore or devStoreAppend', noStoreWrites);
+      assert('Stage 1: ' + name + ' stub does not call applyEvent', noEventEmission);
+    });
 
   // 6. No pre-existing handler calls any of the six stubs.
   stubNames.forEach(function(name) {
@@ -2618,9 +2626,11 @@ section('Live API — wizard payload (new shape)');
     assert('Stage 1: no pre-existing call site for ' + name + ' (only definition)', allMatches === 1);
   });
 
-  // 7. Negative assertion — rejected_candidates / LEARNING_REJECTS_KEY must NOT appear in source.
-  assert('Stage 1: rejected_candidates NOT introduced anywhere in source',
-         !/rejected_candidates\b/.test(html) && !/LEARNING_REJECTS_KEY\b/.test(html));
+  // 7. Stage 1 expectation: rejected_candidates / LEARNING_REJECTS_KEY NOT in source.
+  //    Stage 2 introduces rejected_candidates[] on the campaign record via
+  //    performanceReject(stage='input'). LEARNING_REJECTS_KEY stays retired.
+  assert('Stage 1: LEARNING_REJECTS_KEY NOT introduced anywhere in source',
+         !/LEARNING_REJECTS_KEY\b/.test(html));
 
   // 8. Health-engine / Strategist / Ops Feed source unchanged — five anchor functions
   //    must still be the same shape they were pre-Stage-1.
@@ -2645,7 +2655,118 @@ section('Live API — wizard payload (new shape)');
          /"bestVisuals"/.test(html) &&
          /"failedContent"/.test(html));
 
-  results.push('  (Path C Stage 1 — Performance pipeline foundation. One frozen PERFORMANCE_EVENT_TYPES constant with five canonical event-type strings; kindStoreKey extended with learning→learning:lessons_learned and playbook→learning:playbooks; six throwing stubs (performanceAggregate, performanceDerive, performancePromote, performanceReject, reclassifyAsset, evidencePack) that throw labelled Errors if called; zero emitters; zero campaign.memory mutations; zero changes to getCampaignCategoryState, computeCampaignHealth, diagnoseCampaign, opsFeedData, or the Strategist. rejected_candidates[] and LEARNING_REJECTS_KEY deliberately NOT introduced — deferred to Stage 2 when the first real Promotion Gate writer exists. Stage 1 is a foundation contract only: it prepares the system for Truth Collector without changing marketer-visible behaviour.)');
+  // ═══ Path C Stage 2 — Performance pipeline read-and-propose layer ═══
+  // Schema declarations
+  assert('Stage 2: EVIDENCE_PACKS_KEY constant declared',
+         /var\s+EVIDENCE_PACKS_KEY\s*=\s*['"]campaign-os:dev:evidence_packs['"]/.test(html));
+  assert('Stage 2: STAGE2_INPUT_REJECTION_REASONS frozen object declared',
+         /var\s+STAGE2_INPUT_REJECTION_REASONS\s*=\s*Object\.freeze\(\s*\{[^}]*ENGAGEMENT_UNVERIFIED:\s*'engagement_unverified'[^}]*\}\s*\)/.test(html));
+  assert('Stage 2: STAGE2_CANDIDATE_KIND_ORDER frozen with locked order bestHook,bestVisual,failedContent,lesson',
+         /var\s+STAGE2_CANDIDATE_KIND_ORDER\s*=\s*Object\.freeze\(\s*\[\s*['"]bestHook['"]\s*,\s*['"]bestVisual['"]\s*,\s*['"]failedContent['"]\s*,\s*['"]lesson['"]\s*\]\s*\)/.test(html));
+
+  // evidencePack implementation
+  assert('Stage 2: evidencePack signature is (asset, engagementRef, campaignContext) — no classification param',
+         /function\s+evidencePack\s*\(\s*asset\s*,\s*engagementRef\s*,\s*campaignContext\s*\)/.test(html));
+  assert('Stage 2: evidencePack checks verified === true',
+         /engagementRef\.verified\s*!==\s*true/.test(html));
+  assert('Stage 2: evidencePack rejects manual source with reason engagement_source_manual',
+         /engagementRef\.source\s*===\s*['"]manual['"][\s\S]{0,200}ENGAGEMENT_SOURCE_MANUAL/.test(html));
+  assert('Stage 2: evidencePack rejects non-ga4/non-meta source',
+         /engagementRef\.source\s*!==\s*['"]ga4['"][\s\S]{0,200}engagementRef\.source\s*!==\s*['"]meta['"]/.test(html));
+  assert('Stage 2: evidencePack rejects when no numeric metric present',
+         /hasAnyMetric[\s\S]{0,200}ENGAGEMENT_MISSING_METRICS/.test(html));
+  assert('Stage 2: evidencePack rejects on asset-not-found when asset is null/non-object',
+         /!asset\s*\|\|\s*typeof\s+asset\s*!==\s*['"]object['"][\s\S]{0,200}ASSET_NOT_FOUND/.test(html));
+  assert('Stage 2: evidencePack rejects on campaign-mismatch when asset.campaignId !== context.id',
+         /asset\.campaignId\s*!==\s*campaignContext\.id[\s\S]{0,200}CAMPAIGN_MISMATCH/.test(html));
+  assert('Stage 2: evidencePack idempotency on (campaignId, assetId, capturedAt)',
+         /p\.campaignId\s*===\s*campaignContext\.id[\s\S]{0,200}p\.asset\.ref\.id\s*===\s*asset\.id[\s\S]{0,200}p\.engagement\.ref\.capturedAt\s*===\s*capturedAt/.test(html));
+  assert('Stage 2: evidencePack returns existing pack on idempotent match',
+         /if\s*\(existing\)\s*\{\s*return\s*\{\s*pack:\s*existing\s*,\s*idempotent:\s*true\s*\}/.test(html));
+  assert('Stage 2: evidencePack freezes the pack via deepFreeze',
+         /deepFreeze\(pack\)/.test(html));
+  assert('Stage 2: evidencePack writes to EVIDENCE_PACKS_KEY via writeStore',
+         /writeStore\(EVIDENCE_PACKS_KEY\s*,\s*packs\)/.test(html));
+  assert('Stage 2: evidencePack emits LEARNING_EVIDENCE_PACKED event via applyEvent',
+         /applyEvent\(\s*\{[\s\S]{0,300}type:\s*PERFORMANCE_EVENT_TYPES\.LEARNING_EVIDENCE_PACKED/.test(html));
+
+  // performanceDerive implementation
+  assert('Stage 2: performanceDerive signature is (evidencePack) — no classification param',
+         /function\s+performanceDerive\s*\(\s*evidencePack\s*\)/.test(html));
+  assert('Stage 2: performanceDerive applies Rule 1 (PROMOTED_CANDIDATE) on positive signal',
+         /hasPositiveSignal[\s\S]{0,300}stage2_deriveEmitCandidates\([^,]+,\s*['"]PROMOTED_CANDIDATE['"]\s*\)/.test(html));
+  assert('Stage 2: performanceDerive applies Rule 2 (UNDERPERFORMED_CANDIDATE) only with audience reach',
+         /hasAudienceReach[\s\S]{0,300}stage2_deriveEmitCandidates\([^,]+,\s*['"]UNDERPERFORMED_CANDIDATE['"]\s*\)/.test(html));
+  assert('Stage 2: performanceDerive returns null on NEUTRAL (no audience reach)',
+         /return\s+null\s*;\s*\}\s*function\s+stage2_deriveEmitCandidates/.test(html));
+  assert('Stage 2: performanceDerive constructs frozen snapshot before applyEvent (snapshot ownership locked)',
+         /deepFreeze\(JSON\.parse\(JSON\.stringify\(candidate\)\)\)[\s\S]{0,1500}applyEvent\(/.test(html));
+  assert('Stage 2: performanceDerive propagates snapshot into the LEARNING_CANDIDATE_PROPOSED event payload',
+         /snapshot:\s*snapshot/.test(html));
+  assert('Stage 2: performanceDerive sorts kinds by locked order: bestHook(0), bestVisual(1), failedContent(2), lesson(3)',
+         /orderIndex\s*=\s*\{\s*bestHook:\s*0\s*,\s*bestVisual:\s*1\s*,\s*failedContent:\s*2\s*,\s*lesson:\s*3\s*\}/.test(html));
+  assert('Stage 2: performanceDerive idempotency on (packId, candidateKind)',
+         /e\.evidence_pack_id\s*===\s*evidencePack\.packId[\s\S]{0,200}e\.candidateKind\s*===\s*kind/.test(html));
+
+  // performanceAggregate implementation
+  assert('Stage 2: performanceAggregate signature is (campaignId, opts)',
+         /function\s+performanceAggregate\s*\(\s*campaignId\s*,\s*opts\s*\)/.test(html));
+  assert('Stage 2: performanceAggregate iterates assets in lex-by-id order (deterministic)',
+         /uniqueAssets\.sort\(\s*function\s*\(\s*a\s*,\s*b\s*\)\s*\{[\s\S]{0,200}ka\s*<\s*kb/.test(html));
+  assert('Stage 2: performanceAggregate returns summary with classified counts',
+         /return\s*\{\s*candidates:\s*candidates[\s\S]{0,400}classified:\s*classified[\s\S]{0,200}durationMs:/.test(html));
+
+  // performanceReject implementation (input only)
+  assert('Stage 2: performanceReject signature is (inputOrCandidate, reason, stage)',
+         /function\s+performanceReject\s*\(\s*inputOrCandidate\s*,\s*reason\s*,\s*stage\s*\)/.test(html));
+  assert('Stage 2: performanceReject(input) persists to campaign.memory.rejected_candidates[]',
+         /campaign\.memory\.rejected_candidates\.push\(record\)/.test(html));
+  assert('Stage 2: performanceReject(input) sets rejectionStage: input',
+         /rejectionStage:\s*['"]input['"]/.test(html));
+  assert('Stage 2: performanceReject(input) restricts reason to Tier 1 enumeration',
+         /STAGE2_INPUT_REJECTION_REASON_VALUES\.indexOf\(reason\)\s*===\s*-1/.test(html));
+  assert('Stage 2: performanceReject(promotion-gate) throws — Stage 3 territory',
+         /stage\s*===\s*['"]promotion-gate['"][\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 2 stub: promotion-gate rejection lives in Stage 3['"]/.test(html));
+  assert('Stage 2: performanceReject with invalid stage throws',
+         /throw\s+new\s+Error\(\s*['"]Stage 2 performanceReject: stage must be \\?"input\\?" or \\?"promotion-gate\\?"['"]\s*\)/.test(html));
+
+  // Two stubs still throwing (Stage 3 territory)
+  assert('Stage 2: performancePromote still throws Stage 1 message',
+         /function\s+performancePromote\s*\(\s*candidate\s*\)\s*\{[\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 1 stub not implemented: performancePromote['"]\s*\)/.test(html));
+  assert('Stage 2: reclassifyAsset still throws Stage 1 message',
+         /function\s+reclassifyAsset\s*\(\s*assetId\s*,\s*newEngagementRef\s*\)\s*\{[\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 1 stub not implemented: reclassifyAsset['"]\s*\)/.test(html));
+
+  // Locked invariants
+  assert('Stage 2: evidencePack() is the only writer to EVIDENCE_PACKS_KEY',
+         (html.match(/writeStore\s*\(\s*EVIDENCE_PACKS_KEY/g) || []).length === 1);
+  assert('Stage 2: no candidates store — candidates persist only via applyEvent',
+         !/kindStoreKey\s*\(\s*['"]candidates['"]/.test(html) && !/kindStoreKey\s*\(\s*['"]candidate['"]/.test(html));
+  assert('Stage 2: no LEARNING_REJECTS_KEY anywhere in source',
+         !/LEARNING_REJECTS_KEY\b/.test(html));
+  assert('Stage 2: campaign.memory writes are limited to rejected_candidates[] (no bestHooks/bestVisuals/failedContent/lessonsLearned/playbook writes)',
+         !/\.memory\.bestHooks\.push|bestHooks\.push\(|\.memory\.bestVisuals\.push|bestVisuals\.push\(|\.memory\.failedContent\.push|failedContent\.push\(|\.memory\.lessonsLearned\.push|lessonsLearned\.push\(|\.memory\.playbook\.push|playbook\.push\(/.test(html));
+  assert('Stage 2: applyEvent is the only event-emission path (no direct localStorage event writes)',
+         !/localStorage\.setItem\s*\([^)]*events[^)]*\)/i.test(html));
+
+  // applyEvent purity invariant — must not freeze or mutate its argument.
+  assert('Stage 2: applyEvent body does not call Object.freeze on its argument',
+         !/function\s+applyEvent\s*\(\s*event\s*\)\s*\{[\s\S]{0,500}Object\.freeze/.test(html));
+
+  // Truth rules preserved
+  assert('Stage 2: getCampaignCategoryState still reads memory fields (unchanged)',
+         /function\s+getCampaignCategoryState\s*\(\s*campaignId\s*\)\s*\{[\s\S]{0,2500}mem\.lessonsLearned/.test(html));
+  assert('Stage 2: computeCampaignHealth still uses STRATEGIST_WEIGHTS (unchanged)',
+         /function\s+computeCampaignHealth\s*\(\s*campaignId\s*\)[\s\S]{0,1500}STRATEGIST_WEIGHTS/.test(html));
+  assert('Stage 2: diagnoseCampaign still routes learning to creative (unchanged)',
+         /action:\s*['"]Capture Lessons['"]\s*,\s*dest:\s*['"]creative['"]/.test(html));
+
+  // Stage 3 still impossible to bypass
+  assert('Stage 2: performancePromote remains a throwing stub (Stage 3 territory)',
+         /function\s+performancePromote[\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 1 stub not implemented: performancePromote['"]/.test(html));
+  assert('Stage 2: reclassifyAsset remains a throwing stub (Stage 3 territory)',
+         /function\s+reclassifyAsset[\s\S]{0,200}throw\s+new\s+Error\(\s*['"]Stage 1 stub not implemented: reclassifyAsset['"]/.test(html));
+
+  results.push('  (Path C Stage 2 — Performance pipeline read-and-propose layer. Four functions implemented: evidencePack() validates Tier 1 input, builds an immutable frozen Evidence Pack, persists to EVIDENCE_PACKS_KEY, and emits LEARNING_EVIDENCE_PACKED via the single applyEvent path; performanceDerive() constructs transient candidates in the locked deterministic order (bestHook→bestVisual→failedContent→lesson), freezes the snapshot before applyEvent, and emits LEARNING_CANDIDATE_PROPOSED; performanceAggregate() iterates assets in lex-by-id order, calls evidencePack+performanceDerive per asset, returns summary with classified counts; performanceReject(input) persists to campaign.memory.rejected_candidates[] with Tier 1 reason enumeration, throws on promotion-gate. Two Stage 1 stubs (performancePromote, reclassifyAsset) remain throwing — Stage 3 territory. No writes to campaign.memory.bestHooks/bestVisuals/failedContent/lessonsLearned/playbook. No candidates store. applyEvent never freezes or mutates its argument. No UI changes. getCampaignCategoryState, computeCampaignHealth, diagnoseCampaign, opsFeedData, Strategist source unchanged.)');
 
   // ── Summary ────────────────────────────────────────────────────
   results.push('');
