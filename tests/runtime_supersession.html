@@ -347,6 +347,19 @@ async function runTests(cockpitWin) {
     results: results.map(r => r.replace(/<[^>]+>/g, ''))
   };
 
+  // Cleanup: remove the test campaign from the dev store so the cockpit
+  // portfolio doesn't show a stale RUNTIME TEST entry on subsequent loads.
+  try {
+    const all = JSON.parse(cockpitWin.localStorage.getItem('campaign-os:dev:campaigns') || '[]');
+    const cleaned = all.filter(c => !c || !c.identity || c.identity.campaignId !== TEST_CAMPAIGN_ID);
+    cockpitWin.localStorage.setItem('campaign-os:dev:campaigns', JSON.stringify(cleaned));
+  } catch(e) { /* cleanup is best-effort */ }
+  try {
+    const events = JSON.parse(cockpitWin.localStorage.getItem('campaign-os:dev:events') || '[]');
+    const cleanedEv = events.filter(e => !e || e.campaignId !== TEST_CAMPAIGN_ID);
+    cockpitWin.localStorage.setItem('campaign-os:dev:events', JSON.stringify(cleanedEv));
+  } catch(e) {}
+
   } catch(e) {
     __debug_state.scenario = 'final-throw';
     __debug_state.error = e.message + '\n' + e.stack;
