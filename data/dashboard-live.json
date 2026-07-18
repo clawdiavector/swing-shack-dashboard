@@ -1,44 +1,44 @@
 {
-  "lastUpdated": "2026-07-18T04:00:07.440Z",
+  "lastUpdated": "2026-07-18T10:00:03.849Z",
   "source": "automated",
   "website": {
-    "activeUsers": 589,
-    "sessions": 752,
-    "pageViews": 1259,
-    "avgSessionSeconds": 88.19714887632979,
-    "bounceRate": 0.5811170212765957,
+    "activeUsers": 621,
+    "sessions": 792,
+    "pageViews": 1331,
+    "avgSessionSeconds": 92.34314895959598,
+    "bounceRate": 0.5227272727272727,
     "topPages": [
       {
         "path": "/",
-        "views": 588
+        "views": 625
       },
       {
         "path": "/bookings/",
-        "views": 321
+        "views": 338
       },
       {
         "path": "/customer-portal/",
-        "views": 178
+        "views": 185
       },
       {
         "path": "/club-fitting/",
-        "views": 65
+        "views": 67
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 54
+        "views": 59
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 15
+        "views": 17
       },
       {
         "path": "/philosophy/",
-        "views": 13
+        "views": 14
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
-        "views": 9
+        "views": 10
       },
       {
         "path": "/membership/",
@@ -52,27 +52,23 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 305
+        "sessions": 324
       },
       {
         "source": "(direct)",
-        "sessions": 152
+        "sessions": 162
       },
       {
         "source": "instagram",
-        "sessions": 91
+        "sessions": 92
       },
       {
         "source": "fb",
-        "sessions": 65
-      },
-      {
-        "source": "(not set)",
-        "sessions": 45
+        "sessions": 78
       },
       {
         "source": "clublab.app",
-        "sessions": 36
+        "sessions": 37
       },
       {
         "source": "facebook",
@@ -81,6 +77,10 @@
       {
         "source": "bing",
         "sessions": 18
+      },
+      {
+        "source": "(not set)",
+        "sessions": 15
       },
       {
         "source": "paid_meta",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 529
+        "sessions": 560
       },
       {
         "device": "desktop",
-        "sessions": 215
+        "sessions": 224
       },
       {
         "device": "tablet",
