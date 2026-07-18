@@ -1,40 +1,40 @@
 {
-  "lastUpdated": "2026-07-18T10:00:08.239Z",
+  "lastUpdated": "2026-07-18T16:00:05.542Z",
   "source": "automated",
   "website": {
-    "activeUsers": 621,
-    "sessions": 792,
-    "pageViews": 1331,
-    "avgSessionSeconds": 92.34314895959598,
-    "bounceRate": 0.5227272727272727,
+    "activeUsers": 639,
+    "sessions": 820,
+    "pageViews": 1388,
+    "avgSessionSeconds": 92.56901277439025,
+    "bounceRate": 0.5390243902439025,
     "topPages": [
       {
         "path": "/",
-        "views": 625
+        "views": 653
       },
       {
         "path": "/bookings/",
-        "views": 338
+        "views": 352
       },
       {
         "path": "/customer-portal/",
-        "views": 185
+        "views": 192
       },
       {
         "path": "/club-fitting/",
-        "views": 67
+        "views": 70
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 59
+        "views": 61
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 17
+        "views": 18
       },
       {
         "path": "/philosophy/",
-        "views": 14
+        "views": 16
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
@@ -52,11 +52,11 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 324
+        "sessions": 338
       },
       {
         "source": "(direct)",
-        "sessions": 162
+        "sessions": 165
       },
       {
         "source": "instagram",
@@ -64,11 +64,15 @@
       },
       {
         "source": "fb",
-        "sessions": 78
+        "sessions": 83
       },
       {
         "source": "clublab.app",
-        "sessions": 37
+        "sessions": 39
+      },
+      {
+        "source": "(not set)",
+        "sessions": 27
       },
       {
         "source": "facebook",
@@ -76,11 +80,7 @@
       },
       {
         "source": "bing",
-        "sessions": 18
-      },
-      {
-        "source": "(not set)",
-        "sessions": 15
+        "sessions": 19
       },
       {
         "source": "paid_meta",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 560
+        "sessions": 586
       },
       {
         "device": "desktop",
-        "sessions": 224
+        "sessions": 225
       },
       {
         "device": "tablet",
