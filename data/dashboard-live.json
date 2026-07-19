@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-19T04:00:04.155Z",
+  "lastUpdated": "2026-07-19T10:00:05.069Z",
   "source": "automated",
   "website": {
-    "activeUsers": 584,
-    "sessions": 752,
-    "pageViews": 1301,
-    "avgSessionSeconds": 95.76764471675533,
-    "bounceRate": 0.5345744680851063,
+    "activeUsers": 601,
+    "sessions": 774,
+    "pageViews": 1351,
+    "avgSessionSeconds": 93.3109345994832,
+    "bounceRate": 0.49870801033591733,
     "topPages": [
       {
         "path": "/",
-        "views": 598
+        "views": 618
       },
       {
         "path": "/bookings/",
-        "views": 341
+        "views": 357
       },
       {
         "path": "/customer-portal/",
-        "views": 182
+        "views": 191
       },
       {
         "path": "/club-fitting/",
-        "views": 68
+        "views": 70
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 58
+        "views": 59
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -52,27 +52,23 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 317
+        "sessions": 329
       },
       {
         "source": "(direct)",
-        "sessions": 151
+        "sessions": 155
       },
       {
         "source": "fb",
-        "sessions": 94
+        "sessions": 98
       },
       {
         "source": "instagram",
-        "sessions": 57
+        "sessions": 58
       },
       {
         "source": "clublab.app",
         "sessions": 40
-      },
-      {
-        "source": "(not set)",
-        "sessions": 33
       },
       {
         "source": "bing",
@@ -83,8 +79,12 @@
         "sessions": 18
       },
       {
+        "source": "(not set)",
+        "sessions": 12
+      },
+      {
         "source": "paid_meta",
-        "sessions": 9
+        "sessions": 11
       },
       {
         "source": "c.yoco.com",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 525
+        "sessions": 543
       },
       {
         "device": "desktop",
-        "sessions": 219
+        "sessions": 224
       },
       {
         "device": "tablet",
