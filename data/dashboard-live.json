@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-18T16:00:05.953Z",
+  "lastUpdated": "2026-07-19T04:00:04.155Z",
   "source": "automated",
   "website": {
-    "activeUsers": 639,
-    "sessions": 820,
-    "pageViews": 1388,
-    "avgSessionSeconds": 92.56901277439025,
-    "bounceRate": 0.5390243902439025,
+    "activeUsers": 584,
+    "sessions": 752,
+    "pageViews": 1301,
+    "avgSessionSeconds": 95.76764471675533,
+    "bounceRate": 0.5345744680851063,
     "topPages": [
       {
         "path": "/",
-        "views": 653
+        "views": 598
       },
       {
         "path": "/bookings/",
-        "views": 352
+        "views": 341
       },
       {
         "path": "/customer-portal/",
-        "views": 192
+        "views": 182
       },
       {
         "path": "/club-fitting/",
-        "views": 70
+        "views": 68
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 61
+        "views": 58
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -34,11 +34,11 @@
       },
       {
         "path": "/philosophy/",
-        "views": 16
+        "views": 12
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
-        "views": 10
+        "views": 9
       },
       {
         "path": "/membership/",
@@ -52,53 +52,53 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 338
+        "sessions": 317
       },
       {
         "source": "(direct)",
-        "sessions": 165
-      },
-      {
-        "source": "instagram",
-        "sessions": 92
+        "sessions": 151
       },
       {
         "source": "fb",
-        "sessions": 83
+        "sessions": 94
+      },
+      {
+        "source": "instagram",
+        "sessions": 57
       },
       {
         "source": "clublab.app",
-        "sessions": 39
+        "sessions": 40
       },
       {
         "source": "(not set)",
-        "sessions": 27
-      },
-      {
-        "source": "facebook",
-        "sessions": 27
+        "sessions": 33
       },
       {
         "source": "bing",
         "sessions": 19
       },
       {
+        "source": "facebook",
+        "sessions": 18
+      },
+      {
         "source": "paid_meta",
-        "sessions": 10
+        "sessions": 9
       },
       {
         "source": "c.yoco.com",
-        "sessions": 9
+        "sessions": 7
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 586
+        "sessions": 525
       },
       {
         "device": "desktop",
-        "sessions": 225
+        "sessions": 219
       },
       {
         "device": "tablet",
@@ -109,63 +109,63 @@
   "searchConsole": [
     {
       "query": "swing shack",
-      "clicks": 247,
-      "impressions": 533,
-      "position": "2.3"
+      "clicks": 240,
+      "impressions": 518,
+      "position": "2.4"
     },
     {
       "query": "swingshack",
-      "clicks": 65,
-      "impressions": 127,
-      "position": "2.7"
+      "clicks": 66,
+      "impressions": 131,
+      "position": "2.8"
     },
     {
       "query": "takomo irons south africa",
-      "clicks": 64,
-      "impressions": 308,
+      "clicks": 66,
+      "impressions": 317,
       "position": "2.3"
     },
     {
       "query": "takomo south africa",
-      "clicks": 27,
-      "impressions": 83,
-      "position": "2.8"
+      "clicks": 28,
+      "impressions": 85,
+      "position": "2.7"
     },
     {
       "query": "golf simulator",
-      "clicks": 19,
-      "impressions": 1170,
+      "clicks": 17,
+      "impressions": 1156,
       "position": "6.8"
     },
     {
       "query": "indoor golf johannesburg",
-      "clicks": 12,
-      "impressions": 89,
-      "position": "2.8"
+      "clicks": 11,
+      "impressions": 81,
+      "position": "2.9"
     },
     {
       "query": "golf simulator johannesburg",
-      "clicks": 11,
-      "impressions": 96,
-      "position": "2.4"
+      "clicks": 10,
+      "impressions": 90,
+      "position": "2.3"
     },
     {
       "query": "golf shack",
       "clicks": 9,
-      "impressions": 36,
-      "position": "3.1"
+      "impressions": 37,
+      "position": "2.2"
+    },
+    {
+      "query": "swing shack golf",
+      "clicks": 8,
+      "impressions": 24,
+      "position": "2.4"
     },
     {
       "query": "vice golf balls south africa",
       "clicks": 8,
-      "impressions": 45,
+      "impressions": 47,
       "position": "2.9"
-    },
-    {
-      "query": "swing shack golf",
-      "clicks": 7,
-      "impressions": 22,
-      "position": "2.4"
     }
   ],
   "instagram": {}
