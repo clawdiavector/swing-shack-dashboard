@@ -1,36 +1,36 @@
 {
-  "lastUpdated": "2026-07-19T10:00:05.069Z",
+  "lastUpdated": "2026-07-19T16:00:05.003Z",
   "source": "automated",
   "website": {
-    "activeUsers": 601,
-    "sessions": 774,
-    "pageViews": 1351,
-    "avgSessionSeconds": 93.3109345994832,
-    "bounceRate": 0.49870801033591733,
+    "activeUsers": 615,
+    "sessions": 791,
+    "pageViews": 1376,
+    "avgSessionSeconds": 94.72288506068269,
+    "bounceRate": 0.5094816687737042,
     "topPages": [
       {
         "path": "/",
-        "views": 618
+        "views": 628
       },
       {
         "path": "/bookings/",
-        "views": 357
+        "views": 364
       },
       {
         "path": "/customer-portal/",
-        "views": 191
+        "views": 193
       },
       {
         "path": "/club-fitting/",
-        "views": 70
+        "views": 72
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 59
+        "views": 60
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 18
+        "views": 19
       },
       {
         "path": "/philosophy/",
@@ -41,26 +41,26 @@
         "views": 9
       },
       {
-        "path": "/membership/",
-        "views": 4
+        "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
+        "views": 5
       },
       {
-        "path": "/404.html",
-        "views": 3
+        "path": "/membership/",
+        "views": 4
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 329
+        "sessions": 336
       },
       {
         "source": "(direct)",
-        "sessions": 155
+        "sessions": 158
       },
       {
         "source": "fb",
-        "sessions": 98
+        "sessions": 100
       },
       {
         "source": "instagram",
@@ -71,16 +71,16 @@
         "sessions": 40
       },
       {
+        "source": "(not set)",
+        "sessions": 23
+      },
+      {
         "source": "bing",
-        "sessions": 19
+        "sessions": 20
       },
       {
         "source": "facebook",
         "sessions": 18
-      },
-      {
-        "source": "(not set)",
-        "sessions": 12
       },
       {
         "source": "paid_meta",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 543
+        "sessions": 554
       },
       {
         "device": "desktop",
-        "sessions": 224
+        "sessions": 230
       },
       {
         "device": "tablet",
