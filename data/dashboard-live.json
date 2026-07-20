@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2026-07-20T16:00:05.807Z",
+  "lastUpdated": "2026-07-20T16:00:07.020Z",
   "source": "automated",
   "website": {
     "activeUsers": 621,
     "sessions": 812,
     "pageViews": 1404,
-    "avgSessionSeconds": 99.32848546674875,
+    "avgSessionSeconds": 99.32848546674876,
     "bounceRate": 0.5307881773399015,
     "topPages": [
       {
