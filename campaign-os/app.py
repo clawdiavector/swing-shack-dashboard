@@ -8,6 +8,7 @@ import json
 import datetime
 import subprocess
 import shutil
+import logging
 from flask import Flask, jsonify, request, send_from_directory, g
 from flask_cors import CORS
 
@@ -278,6 +279,117 @@ def index():
 @app.route('/<path:filename>')
 def static_files(filename):
     return send_from_directory('.', filename)
+
+# ─── TRUTH COLLECTOR (Stage 4 — server-side only) ─────────────────────
+# The Truth Collector ingests real analytics (GA4 + Meta) and writes
+# append-only engagement history. It is the upstream of Stage 2 (evidencePack).
+# It owns NO Learning truth. It does NOT modify campaign.memory.*.
+
+try:
+    import truth_collector as _tc_module
+    from truth_collector import (
+        EngagementStore,
+        truth_collector_ingest_publish_event,
+        truth_collector_ingest_cron_tick,
+        truth_collector_ingest_manual_trigger,
+        truth_collector_write_engagement,
+        truth_collector_get_engagement_history,
+        ga4_credentials_present,
+        meta_credentials_present,
+        CredentialsMissingError,
+    )
+    _TRUTH_COLLECTOR_AVAILABLE = True
+except ImportError as _tc_err:
+    _app_log = logging.getLogger("app")
+    _app_log.warning("Truth Collector module not available: %s", _tc_err)
+    _TRUTH_COLLECTOR_AVAILABLE = False
+
+
+def _truth_store():
+    """Construct a fresh EngagementStore pointed at DATA_DIR."""
+    return EngagementStore(DATA_DIR)
+
+
+@app.route('/api/engagement/ingest-publish-event', methods=['POST'])
+def tc_ingest_publish_event():
+    """POST /api/engagement/ingest-publish-event
+    Body: { post_id, status, published_at, channel, metadata? }
+    Server-side only. The browser does NOT call this directly — Postiz webhook does.
+    """
+    if not _TRUTH_COLLECTOR_AVAILABLE:
+        return jsonify({"error": "Truth Collector unavailable"}), 503
+    payload = request.get_json(silent=True)
+    if payload is None:
+        return jsonify({"error": "JSON body required"}), 400
+    result = truth_collector_ingest_publish_event(payload, _truth_store())
+    status_code = 200 if result.get("ok") else 400
+    if result.get("reason") == "credentials_missing":
+        status_code = 503  # BLOCKED state
+    return jsonify(result), status_code
+
+
+@app.route('/api/engagement/ingest-cron-tick', methods=['POST'])
+def tc_ingest_cron_tick():
+    """POST /api/engagement/ingest-cron-tick
+    Body: {} (or omitted). Iterates all published assets.
+    Server-side only. The cron worker calls this.
+    """
+    if not _TRUTH_COLLECTOR_AVAILABLE:
+        return jsonify({"error": "Truth Collector unavailable"}), 503
+    data = load_data()
+    result = truth_collector_ingest_cron_tick(_truth_store(), data)
+    status_code = 200 if result.get("ok") else 500
+    return jsonify(result), status_code
+
+
+@app.route('/api/engagement/ingest-manual-trigger/<campaign_id>', methods=['POST'])
+def tc_ingest_manual_trigger(campaign_id):
+    """POST /api/engagement/ingest-manual-trigger/<campaign_id>
+    Server-side only. Called by future Stage 5+ UI surface or direct dev call.
+    """
+    if not _TRUTH_COLLECTOR_AVAILABLE:
+        return jsonify({"error": "Truth Collector unavailable"}), 503
+    data = load_data()
+    result = truth_collector_ingest_manual_trigger(campaign_id, _truth_store(), data)
+    status_code = 200 if result.get("ok") else 404
+    return jsonify(result), status_code
+
+
+@app.route('/api/engagement/<asset_id>', methods=['GET'])
+def tc_get_engagement_history(asset_id):
+    """GET /api/engagement/<asset_id>
+    Read-only accessor. Returns the append-only engagement history for an asset.
+    Browser reads via this endpoint only — never bypasses.
+    """
+    if not _TRUTH_COLLECTOR_AVAILABLE:
+        return jsonify({"error": "Truth Collector unavailable"}), 503
+    history = truth_collector_get_engagement_history(asset_id, _truth_store())
+    if history is None:
+        return jsonify({"assetId": asset_id, "history": []}), 200
+    return jsonify({"assetId": asset_id, "history": history, "count": len(history)}), 200
+
+
+@app.route('/api/engagement/health', methods=['GET'])
+def tc_health():
+    """GET /api/engagement/health
+    Truth Collector state. Reports credential presence (boolean only, no values).
+    """
+    if not _TRUTH_COLLECTOR_AVAILABLE:
+        return jsonify({"available": False}), 503
+    store = _truth_store()
+    state = store._read()
+    return jsonify({
+        "available": True,
+        "credentials": {
+            "ga4": ga4_credentials_present(),
+            "meta": meta_credentials_present(),
+        },
+        "historyCount": len(state.get("history", [])),
+        "lastRunAt": state.get("lastRunAt"),
+        "lastSuccessAt": state.get("lastSuccessAt"),
+        "lastErrorAt": state.get("lastErrorAt"),
+    }), 200
+
 
 # ─── STARTUP ────────────────────────────────────────────────────────────
 
