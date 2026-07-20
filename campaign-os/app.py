@@ -95,7 +95,7 @@ def init_repo():
         subprocess.run(['git', 'clone', '--depth=1', remote_url, REPO_DIR],
                        cwd=DATA_DIR, check=True, capture_output=True)
         print(f"Git clone OK: {REPO_DIR}")
- except Exception as e:
+    except Exception as e:
         print(f"Git clone failed (non-fatal): {e}")
 
 # ─── BOOTSTRAP ──────────────────────────────────────────────────────────
