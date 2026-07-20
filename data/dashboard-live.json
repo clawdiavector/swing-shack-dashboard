@@ -1,28 +1,28 @@
 {
-  "lastUpdated": "2026-07-20T10:00:04.987Z",
+  "lastUpdated": "2026-07-20T16:00:05.807Z",
   "source": "automated",
   "website": {
-    "activeUsers": 588,
-    "sessions": 766,
-    "pageViews": 1325,
-    "avgSessionSeconds": 99.62890556135768,
-    "bounceRate": 0.5039164490861618,
+    "activeUsers": 621,
+    "sessions": 812,
+    "pageViews": 1404,
+    "avgSessionSeconds": 99.32848546674875,
+    "bounceRate": 0.5307881773399015,
     "topPages": [
       {
         "path": "/",
-        "views": 612
+        "views": 647
       },
       {
         "path": "/bookings/",
-        "views": 339
+        "views": 361
       },
       {
         "path": "/customer-portal/",
-        "views": 187
+        "views": 203
       },
       {
         "path": "/club-fitting/",
-        "views": 71
+        "views": 74
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
@@ -34,7 +34,7 @@
       },
       {
         "path": "/philosophy/",
-        "views": 13
+        "views": 14
       },
       {
         "path": "/membership/",
@@ -45,30 +45,30 @@
         "views": 5
       },
       {
-        "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+        "path": "/404.html",
         "views": 4
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 312
+        "sessions": 333
       },
       {
         "source": "(direct)",
-        "sessions": 159
+        "sessions": 166
       },
       {
         "source": "fb",
-        "sessions": 141
+        "sessions": 147
       },
       {
         "source": "clublab.app",
-        "sessions": 42
+        "sessions": 45
       },
       {
         "source": "(not set)",
-        "sessions": 23
+        "sessions": 39
       },
       {
         "source": "bing",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 524
+        "sessions": 554
       },
       {
         "device": "desktop",
-        "sessions": 235
+        "sessions": 250
       },
       {
         "device": "tablet",
