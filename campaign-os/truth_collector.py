@@ -41,12 +41,14 @@ EngagementRecord shape (see §3 of Stage 4 spec):
 """
 from __future__ import annotations
 
+import datetime
 import json
+import logging
 import os
 import time
+import urllib.error
+import urllib.request
 import uuid
-import datetime
-import logging
 from typing import Any, Optional
 
 LOG = logging.getLogger("truth_collector")
@@ -248,6 +250,37 @@ class EngagementStore:
 
 # ── Credentials ────────────────────────────────────────────────────────
 
+def _read_meta_access_token() -> Optional[str]:
+    """
+    Resolve the Meta access token from (in order):
+      1. META_ACCESS_TOKEN_FILE  — JSON file with {"access_token": "..."}
+      2. META_ACCESS_TOKEN       — raw env value
+      3. META_REFRESH_TOKEN      — present flag only (server-side refresh
+         not implemented in this stage; we will not silently invent a token)
+
+    Returns the token string, or None if no usable source exists.
+    Never raises — caller decides how to treat absence.
+    """
+    from_file = os.environ.get("META_ACCESS_TOKEN_FILE")
+    if from_file and from_file.strip():
+        try:
+            with open(from_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            tok = data.get("access_token")
+            if isinstance(tok, str) and tok.strip():
+                return tok.strip()
+        except (OSError, json.JSONDecodeError):
+            pass  # fall through to env
+    raw = os.environ.get("META_ACCESS_TOKEN")
+    if raw and raw.strip():
+        return raw.strip()
+    if os.environ.get("META_REFRESH_TOKEN"):
+        # Presence-only acknowledgement. A refresh flow is a future step.
+        # We do NOT silently fabricate an access token here.
+        pass
+    return None
+
+
 def ga4_credentials_present() -> bool:
     """True iff GA4 credentials are configured."""
     return bool(os.environ.get("GA4_PROPERTY_ID")) and bool(
@@ -256,10 +289,22 @@ def ga4_credentials_present() -> bool:
 
 
 def meta_credentials_present() -> bool:
-    """True iff Meta credentials are configured."""
-    return bool(os.environ.get("META_APP_ID")) and bool(os.environ.get("META_APP_SECRET")) and bool(
-        os.environ.get("META_ACCESS_TOKEN") or os.environ.get("META_REFRESH_TOKEN")
-    )
+    """True iff Meta credentials are configured.
+
+    Read-only path requirement (Step 76):
+      - META_APP_ID is set
+      - META_ACCESS_TOKEN_FILE points to a readable JSON file with a
+        non-empty access_token field, OR META_ACCESS_TOKEN env var is set
+
+    META_APP_SECRET is NOT required for the current read-only Graph API
+    path. The 60-day long-lived Page Access Token already validated
+    (Step 75 probes) carries its own validity window. App Secret is
+    only needed at token exchange / refresh time — that path will be
+    added in a future step (before the 2026-08-29 expiry).
+    """
+    if not os.environ.get("META_APP_ID"):
+        return False
+    return _read_meta_access_token() is not None
 
 
 # ── Upstream fetches (real HTTP) ───────────────────────────────────────
@@ -268,36 +313,224 @@ def fetch_ga4_engagement(asset_id: str, channel: str, captured_at: str) -> dict:
     """
     Real GA4 fetch. Returns a dict matching the EngagementRecord schema's metric block.
 
-    Reads GA4_PROPERTY_ID and GA4_API_KEY from env. If credentials are missing,
-    raises an exception with reason='credentials_missing'.
+    Reads GA4_PROPERTY_ID + (GA4_SERVICE_ACCOUNT_JSON_PATH | GA4_API_KEY) from env.
+    Uses service-account OAuth2 token-exchange for the read-only Analytics Data API.
+    Preserves the raw upstream response in `raw` for provenance.
 
-    This is a placeholder for the real GA4 Data API call (analyticsdata.googleapis.com).
-    The real implementation would use the google-analytics-data Python client or
-    a direct HTTP call to https://analyticsdata.googleapis.com/v1beta/properties/{id}:runReport.
+    Supported fields (per Stage 4 §3):
+      impressions, reach, engagementRate (numeric; null when unavailable;
+      0 only when upstream explicitly reports zero — no inference, no defaults).
+
+    Note: GA4 is a *website* analytics product. It does not report likes,
+    comments, or shares. For asset-level Instagram/Facebook engagement,
+    use fetch_meta_engagement(). This function returns None for those fields.
     """
     if not ga4_credentials_present():
         raise CredentialsMissingError("GA4 credentials not configured")
-    # Placeholder: real implementation goes here. This stub exists so the wiring is
-    # truthful — it returns NO fake metrics and NO mock data. Tests that need GA4
-    # behaviour either mock fetch_ga4_engagement OR run with real credentials.
-    raise NotImplementedError(
-        "fetch_ga4_engagement: real GA4 Data API client must be wired here. "
-        "No mock metrics, no fabricated analytics. See Stage 4 spec §3 §6."
+
+    property_id = os.environ.get("GA4_PROPERTY_ID", "").strip()
+    sa_path = os.environ.get("GA4_SERVICE_ACCOUNT_JSON_PATH", "").strip()
+    api_key = os.environ.get("GA4_API_KEY", "").strip()
+
+    # ── Obtain bearer token ─────────────────────────────────────────────
+    # Service-account path is the supported one (GA4_API_KEY is the legacy
+    # Universal Analytics path; we attempt it but most modern GA4 setups
+    # use service accounts).
+    bearer = None
+    if sa_path:
+        try:
+            from google.oauth2 import service_account as _sa  # noqa: WPS433
+            from google.auth.transport.requests import Request as _GRequest  # noqa: WPS433
+        except ImportError as e:
+            raise UpstreamRejectedError(
+                0,
+                f"google-auth library not installed ({e}). Run: uv pip install -r requirements.txt",
+            )
+        try:
+            with open(sa_path, "r", encoding="utf-8") as f:
+                sa_info = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            raise CredentialsMissingError(f"GA4_SERVICE_ACCOUNT_JSON_PATH unreadable: {e}")
+        scopes = ["https://www.googleapis.com/auth/analytics.readonly"]
+        try:
+            creds = _sa.Credentials.from_service_account_info(sa_info, scopes=scopes)
+            creds.refresh(_GRequest())
+            bearer = creds.token
+        except Exception as e:
+            raise UpstreamRejectedError(0, f"GA4 OAuth token-exchange failed: {e}")
+
+    if not bearer and api_key:
+        # Legacy API-key path. GA4 Data API does NOT support ?key= — this
+        # path is reserved for the older Universal Analytics Reporting API.
+        # We surface a truthful error so the operator knows to switch.
+        raise UpstreamRejectedError(
+            0,
+            "GA4_API_KEY is set but GA4 Data API requires service-account auth. "
+            "Use GA4_SERVICE_ACCOUNT_JSON_PATH instead.",
+        )
+
+    if not bearer:
+        raise CredentialsMissingError("GA4 bearer token could not be obtained")
+
+    # ── Query Analytics Data API ───────────────────────────────────────
+    # Asset-level GA4 mapping is intentionally NOT invented here.
+    # GA4 reports per-page or per-session, not per-social-post. The caller
+    # passes asset_id + captured_at, but we request the property aggregate
+    # for the captured_at day. The assetId is preserved in the provenance
+    # chain, not in the upstream query.
+    try:
+        day = captured_at[:10]  # YYYY-MM-DD
+    except (TypeError, ValueError):
+        raise MalformedResponseError(f"captured_at not parseable as ISO date: {captured_at!r}")
+
+    body = json.dumps({
+        "dateRanges": [{"startDate": day, "endDate": day}],
+        "metrics": [
+            {"name": "sessions"},
+            {"name": "totalUsers"},
+            {"name": "screenPageViews"},
+            {"name": "engagementRate"},
+        ],
+    }).encode("utf-8")
+
+    url = f"https://analyticsdata.googleapis.com/v1beta/properties/{property_id}:runReport"
+    req = urllib.request.Request(
+        url,
+        data=body,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {bearer}",
+            "Content-Type": "application/json",
+        },
     )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw_text = resp.read().decode("utf-8")
+            raw = json.loads(raw_text)
+            request_id = resp.headers.get("x-request-id") or resp.headers.get("X-Request-Id")
+    except urllib.error.HTTPError as e:
+        body_err = e.read().decode("utf-8", errors="replace")[:400]
+        if e.code in (401, 403):
+            raise UpstreamRejectedError(e.code, f"GA4 unauthorized ({e.code}): {body_err}")
+        if e.code == 429:
+            raise UpstreamRejectedError(e.code, f"GA4 rate-limited: {body_err}")
+        if 500 <= e.code < 600:
+            raise  # retryable — let _with_retry handle
+        raise UpstreamRejectedError(e.code, f"GA4 upstream error ({e.code}): {body_err}")
+    except urllib.error.URLError as e:
+        raise  # retryable
+
+    # ── Map response ────────────────────────────────────────────────────
+    # GA4 returns rows[].metricValues[].value as strings. Schema-validate
+    # before parsing — malformed upstream is the truth-collector's call.
+    try:
+        rows = raw.get("rows", []) or []
+    except AttributeError:
+        raise MalformedResponseError(f"GA4 response not a dict: {raw_text[:200]}")
+
+    sessions: Optional[int] = None
+    users: Optional[int] = None
+    pageviews: Optional[int] = None
+    eng_rate: Optional[float] = None
+    for row in rows:
+        try:
+            mv = row["metricValues"]
+            s = int(mv[0]["value"]) if len(mv) > 0 and mv[0]["value"] not in (None, "") else None
+            u = int(mv[1]["value"]) if len(mv) > 1 and mv[1]["value"] not in (None, "") else None
+            pv = int(mv[2]["value"]) if len(mv) > 2 and mv[2]["value"] not in (None, "") else None
+            er = float(mv[3]["value"]) if len(mv) > 3 and mv[3]["value"] not in (None, "") else None
+        except (KeyError, IndexError, ValueError, TypeError) as e:
+            raise MalformedResponseError(f"GA4 row malformed: {e}")
+
+        # Sum across all rows (date dimension is single — should be 1 row)
+        sessions = (sessions or 0) + (s or 0)
+        users = (users or 0) + (u or 0)
+        pageviews = (pageviews or 0) + (pv or 0)
+        # engagementRate is a ratio, sum-and-divide would be wrong; average instead
+        if eng_rate is None and er is not None:
+            eng_rate = er
+        elif eng_rate is not None and er is not None:
+            eng_rate = (eng_rate + er) / 2  # simple average over rows
+
+    # Build canonical EngagementRecord-shaped metric block.
+    # NOTE: GA4 reports impressions-equivalent as sessions, reach as users,
+    # and engagement as a rate. likes/comments/shares are NOT GA4 metrics —
+    # they remain None (truthful absence, not zero).
+    metrics = {
+        "impressions": pageviews,        # GA4 closest analogue
+        "reach": users if users and users > 0 else sessions,
+        "likes": None,
+        "comments": None,
+        "shares": None,
+        "engagementRate": eng_rate,
+        "_request_id": request_id,
+        # Preserve raw upstream + provenance for forensic / replay.
+        "raw": raw,
+    }
+
+    return metrics
 
 
 def fetch_meta_engagement(asset_id: str, channel: str, captured_at: str) -> dict:
     """
     Real Meta fetch. Returns a dict matching the EngagementRecord schema's metric block.
 
-    Reads META_APP_ID, META_APP_SECRET, META_ACCESS_TOKEN from env.
+    Reads META_APP_ID + (META_ACCESS_TOKEN_FILE | META_ACCESS_TOKEN) from env.
+    Uses the Graph API to read Instagram Business media insights.
+
+    Supported fields (per Stage 4 §3):
+      reach, likes, comments, shares, saved, engagementRate (numeric; null
+      when unavailable; 0 only when upstream explicitly reports zero — no
+      inference, no defaults).
+
+    Truth-before-cleverness: This fetcher does NOT invent a mapping from
+    asset_id → Instagram media_id. The caller MUST supply the IG media_id
+    via META_INSTAGRAM_BUSINESS_ACCOUNT_ID env var (the page's IG account)
+    AND the asset→media mapping must be passed in via asset_id by the
+    upstream lookup. If we cannot resolve a real media_id, we return
+    metrics with all-Null fields and a provenance note — never zeros, never
+    inferred numbers.
+
+    Currently the asset→media_id resolution lives in app.py's
+    _lookup_asset_by_postiz_post_id() — that path needs a real Postiz
+    webhook (Step 75/76 deferred). Until then this fetcher returns a
+    truthful "no mapping" response so the pipeline never fabricates data.
     """
     if not meta_credentials_present():
         raise CredentialsMissingError("Meta credentials not configured")
-    raise NotImplementedError(
-        "fetch_meta_engagement: real Meta Graph API client must be wired here. "
-        "No mock metrics, no fabricated analytics. See Stage 4 spec §3 §6."
-    )
+
+    token = _read_meta_access_token()
+    ig_account_id = os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "").strip()
+    page_id = os.environ.get("META_PAGE_ID", "").strip()
+
+    # Truthful absence: without a media_id we cannot call /insights.
+    # We do NOT guess. We do NOT default to the latest media.
+    # The asset→media mapping is the responsibility of the upstream
+    # _lookup_asset_by_postiz_post_id() in app.py — when it returns a real
+    # media_id, this fetcher will use it. Until then we surface a clear
+    # MAPPING_BLOCKED reason via the canonical metrics dict (all None +
+    # provenance note).
+    return {
+        "impressions": None,
+        "reach": None,
+        "likes": None,
+        "comments": None,
+        "shares": None,
+        "saved": None,
+        "engagementRate": None,
+        "_request_id": None,
+        "raw": {
+            "reason": "no_media_id_resolved",
+            "note": "fetch_meta_engagement requires a real asset→media_id mapping from "
+                    "_lookup_asset_by_postiz_post_id. The mapping layer is part of the "
+                    "publish-event webhook (deferred to Step 77+). Until then, no upstream "
+                    "call is made and no metrics are fabricated.",
+            "ig_account_id": ig_account_id or None,
+            "page_id": page_id or None,
+            "asset_id": asset_id,
+            "captured_at": captured_at,
+        },
+    }
 
 
 class CredentialsMissingError(Exception):

@@ -31,6 +31,8 @@ from truth_collector import (
     ga4_credentials_present,
     meta_credentials_present,
     CredentialsMissingError,
+    UpstreamRejectedError,
+    MalformedResponseError,
     TRUTH_EVENT_TYPES,
 )
 
@@ -418,17 +420,30 @@ class TestNoFakeAnalytics(unittest.TestCase):
                 tc.fetch_meta_engagement("a1", "instagram", "2026-07-20T08:00:00Z")
 
     def test_ga4_raises_not_implemented_with_credentials(self):
-        """Even with credentials, the placeholder raises NotImplementedError — no fake metrics."""
-        with patch.dict(os.environ, {"GA4_PROPERTY_ID": "123", "GA4_API_KEY": "abc"}):
-            with self.assertRaises(NotImplementedError):
+        """With credentials but no real service-account JSON, the real fetcher
+        surfaces a clean error — never fabricates metrics."""
+        with patch.dict(os.environ, {"GA4_PROPERTY_ID": "123", "GA4_API_KEY": "abc"}, clear=False):
+            # GA4_API_KEY alone cannot fetch from Data API (legacy path).
+            # UpstreamRejectedError is the truthful signal.
+            with self.assertRaises(UpstreamRejectedError):
                 tc.fetch_ga4_engagement("a1", "web", "2026-07-20T08:00:00Z")
 
     def test_meta_raises_not_implemented_with_credentials(self):
+        """With credentials but no real asset→media mapping, the real fetcher
+        returns a truthful MAPPING_BLOCKED-shaped metrics dict (all None +
+        provenance note) — no fake numbers."""
         with patch.dict(os.environ, {
-            "META_APP_ID": "x", "META_APP_SECRET": "y", "META_ACCESS_TOKEN": "z"
-        }):
-            with self.assertRaises(NotImplementedError):
-                tc.fetch_meta_engagement("a1", "instagram", "2026-07-20T08:00:00Z")
+            "META_APP_ID": "x", "META_ACCESS_TOKEN": "z"
+        }, clear=False):
+            metrics = tc.fetch_meta_engagement("a1", "instagram", "2026-07-20T08:00:00Z")
+            # All upstream metrics null. Raw carries the mapping reason.
+            self.assertIsNone(metrics["impressions"])
+            self.assertIsNone(metrics["reach"])
+            self.assertIsNone(metrics["likes"])
+            self.assertIsNone(metrics["comments"])
+            self.assertIsNone(metrics["shares"])
+            self.assertIsNone(metrics["engagementRate"])
+            self.assertEqual(metrics["raw"]["reason"], "no_media_id_resolved")
 
 
 class TestNoMutationOfStageTruth(unittest.TestCase):
