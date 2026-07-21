@@ -16,9 +16,16 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { loadPostizApiKey } = require('./_lib/postiz-credentials');
 
 const DATA = path.join(__dirname, '..', 'data');
-const POSTIZ_KEY = '265b40afbdb241d358f4244d5d1798a2fde6e220b79ffc329a8845b927124326';
+
+// Load Postiz credential via shared helper (env-driven, no hardcoded key).
+// Source precedence: POSTIZ_API_KEY_FILE → POSTIZ_API_KEY → throw.
+const postizCred = loadPostizApiKey();
+const POSTIZ_KEY = postizCred.apiKey;
+console.log(`[run_publisher] Postiz credential loaded: source=${postizCred.source}, length=${postizCred.length}`);
+
 const INTEGRATIONS = {
   instagram: 'cmnfoum2703e6ql0yiajgcg21',
   tiktok:    'cmmdgfz3b00s1o20ykrwau2o2',

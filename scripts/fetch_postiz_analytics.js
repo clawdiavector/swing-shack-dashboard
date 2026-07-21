@@ -5,9 +5,20 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { loadPostizApiKey } = require('./_lib/postiz-credentials');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'ig-analytics.json');
-const API_KEY = '265b40afbdb241d358f4244d5d1798a2fde6e220b79ffc329a8845b927124326';
+
+// Postiz credential loaded via shared helper. Never stored as literal.
+let API_KEY;
+try {
+  const c = loadPostizApiKey();
+  API_KEY = c.apiKey;
+  console.log(`[fetch_postiz_analytics] Postiz credential loaded: source=${c.source}, length=${c.length}`);
+} catch (e) {
+  console.error(`[fetch_postiz_analytics] ${e.message}`);
+  process.exit(2);
+}
 const INSTAGRAM_ID = 'cmnfoum2703e6ql0yiajgcg21';
 
 async function fetchMedia() {
