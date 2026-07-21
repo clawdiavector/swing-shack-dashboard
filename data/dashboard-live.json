@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-21T10:00:06.475Z",
+  "lastUpdated": "2026-07-21T16:00:06.429Z",
   "source": "automated",
   "website": {
-    "activeUsers": 633,
-    "sessions": 816,
-    "pageViews": 1371,
-    "avgSessionSeconds": 93.61283088235295,
-    "bounceRate": 0.5955882352941176,
+    "activeUsers": 673,
+    "sessions": 863,
+    "pageViews": 1426,
+    "avgSessionSeconds": 91.57256110312862,
+    "bounceRate": 0.6176129779837776,
     "topPages": [
       {
         "path": "/",
-        "views": 648
+        "views": 681
       },
       {
         "path": "/bookings/",
-        "views": 338
+        "views": 347
       },
       {
         "path": "/customer-portal/",
-        "views": 195
+        "views": 201
       },
       {
         "path": "/club-fitting/",
-        "views": 68
+        "views": 70
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 62
+        "views": 63
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -34,52 +34,52 @@
       },
       {
         "path": "/philosophy/",
-        "views": 14
+        "views": 15
       },
       {
         "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
-        "views": 6
+        "views": 7
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
-        "views": 5
+        "views": 6
       },
       {
         "path": "/404.html",
-        "views": 4
+        "views": 5
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 318
+        "sessions": 328
       },
       {
         "source": "fb",
-        "sessions": 183
+        "sessions": 201
       },
       {
         "source": "(direct)",
-        "sessions": 166
+        "sessions": 171
       },
       {
         "source": "(not set)",
-        "sessions": 68
+        "sessions": 86
       },
       {
         "source": "clublab.app",
-        "sessions": 44
+        "sessions": 47
       },
       {
         "source": "bing",
-        "sessions": 20
-      },
-      {
-        "source": "facebook",
-        "sessions": 9
+        "sessions": 21
       },
       {
         "source": "instagram",
+        "sessions": 11
+      },
+      {
+        "source": "facebook",
         "sessions": 9
       },
       {
@@ -88,21 +88,21 @@
       },
       {
         "source": "an",
-        "sessions": 6
+        "sessions": 7
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 569
+        "sessions": 603
       },
       {
         "device": "desktop",
-        "sessions": 238
+        "sessions": 250
       },
       {
         "device": "tablet",
-        "sessions": 8
+        "sessions": 9
       }
     ]
   },
