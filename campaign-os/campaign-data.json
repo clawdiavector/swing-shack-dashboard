@@ -22,7 +22,7 @@
           "gmb"
         ],
         "createdAt": "2026-03-15T00:00:00Z",
-        "updatedAt": "2026-06-02T13:24:44.888Z",
+        "updatedAt": "2026-07-21T00:00:00Z",
         "healthScore": 68,
         "healthState": "degraded",
         "campaignType": "evergreen",
@@ -142,7 +142,11 @@
           "Meters > Yards for SA market \u2014 confirmed April 2026",
           "Dark background with data overlay looks premium with TrackMan theme",
           "Caption \u2260 Overlay Text \u2014 supplementary copy drives click-through, not the hook itself",
-          "Hook A best performer (Round 1) was never re-published \u2014 opportunity cost"
+          "Hook A best performer (Round 1) was never re-published \u2014 opportunity cost",
+          "Stats-led hook significantly outperforms transformation angle. TrackMan keyword strong.",
+          "Swing speed hook won over drive distance hook. Both underperformed Round 1 winner.",
+          "ALL-TIME WINNER. Slice pain point resonates strongly. Repetition recommended weekly.",
+          "Spin rate hook. Single variant posted - no competing hook this round."
         ],
         "notes": []
       },
