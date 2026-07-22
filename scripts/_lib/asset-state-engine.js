@@ -374,20 +374,33 @@ function evaluatePublishStatus(asset, history, ext, observations) {
     observations.push({ axis: 'publishStatus', evidence: { reason: 'publish-failed in history' } });
     return 'failed';
   }
-  // Eligibility for scheduled
-  const eligible =
-    asset.approvalStatus === 'approved' &&
-    asset.captionStatus === 'approved' &&
-    (asset.visualStatus === 'approved' || asset.visualStatus === 'skipped') &&
-    (asset.qualityGateState === 'gate1-passed' ||
-     asset.qualityGateState === 'gate2-passed' ||
-     asset.qualityGateState === 'approved' ||
-     asset.qualityGateState === 'skipped');
+  // Eligibility for scheduled. Reads history directly so this can run
+  // pre-apply (when asset.approvalStatus is still its previous value).
+  const captionApproved = history.some(h => h && (h.action === 'caption-approved' || h.action === 'approved')) ||
+    (typeof asset.caption === 'string' && asset.caption.length >= 100);
+  const visualApproved = asset.assetType === 'research' ||
+    history.some(h => h && (h.action === 'visual-approved'));
+  const approvalApproved = history.some(h => h && (h.action === 'approval-approved' || h.action === 'approved') && h.by === 'christelle') ||
+    (ext.approvalActions || []).some(a => a && a.assetId === asset.assetId && a.action === 'approved');
+  const gatePassed = asset.qualityGateState === 'gate1-passed' ||
+    asset.qualityGateState === 'gate2-passed' ||
+    asset.qualityGateState === 'approved' ||
+    asset.qualityGateState === 'skipped' ||
+    (asset.assetType === 'research' && typeof asset.caption === 'string' && asset.caption.length >= 50) ||
+    // non-research gate1 derivation from history (so pre-apply still works)
+    (asset.assetType !== 'research' &&
+     typeof asset.caption === 'string' && asset.caption.length >= 50 &&
+     (asset.visualBrief && (
+       (typeof asset.visualBrief === 'string' && asset.visualBrief.length > 20) ||
+       (typeof asset.visualBrief === 'object' && asset.visualBrief.concept && asset.visualBrief.concept.length > 20)
+     )) &&
+     !!asset.owner);
+  const eligible = approvalApproved && captionApproved && visualApproved && gatePassed;
   if (eligible) {
-    observations.push({ axis: 'publishStatus', evidence: { reason: 'all gates satisfied -> scheduled' } });
+    observations.push({ axis: 'publishStatus', evidence: { reason: 'all gates satisfied -> scheduled', captionApproved, visualApproved, approvalApproved, gatePassed } });
     return 'scheduled';
   }
-  observations.push({ axis: 'publishStatus', evidence: { reason: 'not eligible (gates not satisfied)' } });
+  observations.push({ axis: 'publishStatus', evidence: { reason: 'not eligible (gates not satisfied)', captionApproved, visualApproved, approvalApproved, gatePassed } });
   return 'planned';
 }
 
