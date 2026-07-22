@@ -28,6 +28,7 @@ const https = require('https');
 const { execSync } = require('child_process');
 const { loadPostizApiKey } = require('./_lib/postiz-credentials');
 const { regenerate: regenerateIndex } = require('./regenerate-publishing-index');
+const { evaluateAsset, applyStateTransition, recordEvent } = require('./_lib/asset-state-engine');
 
 const REPO_ROOT = path.join(__dirname, '..');
 const DATA = path.join(REPO_ROOT, 'data');
@@ -385,6 +386,69 @@ class DuplicatePostizPostIdError extends Error {
   constructor(msg) { super(msg); this.name = 'DuplicatePostizPostId'; }
 }
 
+// ── Engine integration: derive 5 publishing-state fields after live Postiz ──
+//
+// Step 87 Publisher integration:
+//   1. Append a `publish-confirmed` history event (real event, by 'publisher')
+//   2. evaluateAsset(asset, asset.history, externalSignals) — pure projection
+//   3. applyStateTransition(asset, desired) — field-only mutator
+//   4. Persist the updated asset atomically (lock + atomic rename)
+//
+// Engine failures are logged but DO NOT block the publishing reference write.
+// The reference is canonical; the state fields are derived. If the engine
+// crashes, the next reconcile run will project the correct state anyway.
+
+function derivePublishingStateAfterPostiz(ref, postizStatus) {
+  let outcome = { changed: false, fieldsChanged: [], error: null };
+  acquireCanonicalLock();
+  try {
+    const canonical = readCanonical();
+    const campaign = canonical.campaigns && canonical.campaigns[ref.campaignId];
+    if (!campaign) throw new Error(`campaign not found: ${ref.campaignId}`);
+    const asset = campaign.assets && campaign.assets[ref.assetId];
+    if (!asset) throw new Error(`asset not found: ${ref.assetId}`);
+
+    // Step 1: record real event
+    if (!Array.isArray(asset.history)) asset.history = [];
+    const isSuccess = postizStatus === 'live' || postizStatus === 'scheduled' || postizStatus === 'published';
+    recordEvent(asset.history, isSuccess ? 'publish-confirmed' : 'publish-failed', {
+      by: 'publisher',
+      postizPostId: ref.postizPostId,
+      releaseURL: ref.releaseURL || null,
+      releaseId: ref.releaseId || null,
+      currentStatus: ref.currentStatus,
+      reason: isSuccess ? 'postiz_call_succeeded' : 'postiz_call_failed',
+    });
+
+    // Step 2: pure projection
+    const desired = evaluateAsset(asset, asset.history, {
+      postizConfirmations: [{
+        assetId: ref.assetId,
+        status: isSuccess ? 'live' : 'failed',
+        postizPostId: ref.postizPostId,
+        releaseURL: ref.releaseURL || null,
+      }],
+    });
+
+    // Step 3: apply (fields only — engine never touches history)
+    const applyResult = applyStateTransition(asset, desired);
+    outcome = {
+      changed: applyResult.changed,
+      fieldsChanged: applyResult.fieldsChanged,
+      error: null,
+    };
+
+    // Step 4: persist
+    writeCanonicalAtomic(canonical);
+  } catch (e) {
+    outcome.error = e.message;
+    console.warn(`[run_publisher] engine integration failed for ${ref.assetId}: ${e.message}`);
+  } finally {
+    releaseCanonicalLock();
+  }
+  return outcome;
+}
+
 // ── Lookup asset from ready-for-approval item ─────────────────────────────
 // Maps a publish-queue item back to (campaignId, assetId) using current
 // campaign-data.json assets. Returns null if no match — caller skips the item.
@@ -621,6 +685,10 @@ async function runLive() {
       });
       appendReferenceToCanonical(ref, campaignId);
 
+      // Step 3.5: derive 5 publishing-state fields via Asset State Engine
+      // (records publish-confirmed history event, evaluates, applies fields only)
+      const engineOutcome = derivePublishingStateAfterPostiz(ref, response.state || response.currentStatus);
+
       // Step 4: Auto-regenerate the index (Amendment 5)
       const regenResult = regenerateIndex({ mode: 'incremental-after-write' });
 
@@ -631,6 +699,9 @@ async function runLive() {
         campaignId,
         rawResponseHash: ref.provenance.rawResponseRef.hash,
         indexRegenerated: regenResult.ok,
+        stateEngineChanged: engineOutcome.changed,
+        stateEngineFields: engineOutcome.fieldsChanged,
+        stateEngineError: engineOutcome.error,
       });
     } catch (e) {
       if (e instanceof DuplicatePostizPostIdError) {
