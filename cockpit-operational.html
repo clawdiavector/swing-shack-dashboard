@@ -5898,6 +5898,195 @@ function handleAssetSubmit(e) {
   setTimeout(function() { closeAssetModal(); }, 500);
   return false;
 }
+// Step 87 — Asset State Engine integration (cockpit subset)
+//
+// The cockpit is a self-contained HTML file (no require()). We inline a
+// minimal subset of the engine: the pure evaluator + field-only mutator +
+// event recorder. The canonical source is scripts/_lib/asset-state-engine.js
+// — when that file changes, this block MUST be updated to match. The
+// consistency tests (tests/test_asset_state_engine.js) validate that
+// scripts/_lib/asset-state-engine.js produces the same results as the
+// expected outputs here.
+//
+// Rules (enforced by tests):
+//   - applyStateTransition NEVER touches asset.history (cockpit enforces
+//     history writes explicitly via recordEvent).
+//   - applyStateTransition NEVER touches caption/visualBrief/filePath/owner.
+//   - evaluateAsset NEVER touches asset directly (caller passes history).
+//   - Producers (this cockpit) emit history events via recordEvent ONLY.
+(function() {
+  var KNOWN_HISTORY_ACTIONS = [
+    'caption-created','caption-revised','caption-approved','caption-rejected',
+    'visual-generated','visual-revised','visual-approved','visual-rejected',
+    'approval-requested','approval-approved','approval-rejected',
+    'publish-requested','publish-confirmed','publish-failed',
+    'asset-edited','campaign-edited','engagement-recorded','regenerate-requested',
+    // legacy read-only aliases
+    'created','generated','brief-created','delivered','rejected','approved',
+    'caption-draft','visual-brief-written','shell-created','published'
+  ];
+  var LEGACY_ACTION_ALIAS = {
+    'caption-draft':'caption-created','visual-brief-written':'visual-revised',
+    'delivered':'visual-generated','brief-created':'visual-revised',
+    'generated':'visual-generated','created':'asset-edited',
+    'shell-created':'asset-edited','published':'publish-confirmed',
+    'approved':'approval-approved','rejected':'approval-rejected'
+  };
+
+  function recordEvent(history, action, payload) {
+    if (!Array.isArray(history)) throw new TypeError('history must be array');
+    if (KNOWN_HISTORY_ACTIONS.indexOf(action) === -1) throw new Error('unknown action: ' + action);
+    payload = payload || {};
+    var ev = { action: action, by: (typeof payload.by==='string'&&payload.by)?payload.by:'unknown', at: (typeof payload.at==='string'&&payload.at)?payload.at:new Date().toISOString() };
+    for (var k in payload) if (k!=='by'&&k!=='at'&&ev[k]===undefined) ev[k]=payload[k];
+    history.push(ev);
+    return ev;
+  }
+  function _normHistory(raw) {
+    var out = [];
+    for (var i=0;i<raw.length;i++) {
+      var h = raw[i]; if (!h||typeof h!=='object'||typeof h.action!=='string') continue;
+      if (KNOWN_HISTORY_ACTIONS.indexOf(h.action)===-1) continue;
+      var aliased = LEGACY_ACTION_ALIAS[h.action]||h.action;
+      var n = { action: aliased, by: h.by||'unknown', at: h.at||'' };
+      for (var k in h) if (k!=='action'&&k!=='by'&&k!=='at') n[k]=h[k];
+      out.push(n);
+    }
+    return out;
+  }
+  function _checkVisualBrief(a) {
+    if (!a.visualBrief) return false;
+    if (typeof a.visualBrief==='string') return a.visualBrief.length>20;
+    if (typeof a.visualBrief==='object') {
+      if (typeof a.visualBrief.concept==='string' && a.visualBrief.concept.length>20) return true;
+      if (typeof a.visualBrief.description==='string' && a.visualBrief.description.length>20) return true;
+    }
+    return false;
+  }
+  function _findLast(arr, action) {
+    for (var i=arr.length-1;i>=0;i--) if (arr[i]&&arr[i].action===action) return arr[i];
+    return null;
+  }
+  function _evalQuality(asset, hist) {
+    if (asset.qualityGateState==='gate2-failed') {
+      if (!hist.some(function(h){return h&&h.action==='regenerate-requested';})) return 'gate2-failed';
+    }
+    if (asset.assetType==='research') {
+      var hasCap = typeof asset.caption==='string' && asset.caption.length>=50;
+      var hasFind = Array.isArray(asset.keyFindings) && asset.keyFindings.length>0;
+      return (hasCap&&hasFind)?'gate1-passed':'pending';
+    }
+    if (asset.qualityGateState==='gate2-passed'||asset.qualityGateState==='approved') {
+      var vOK = asset.visualStatus==='approved'||asset.visualStatus==='skipped';
+      return vOK?asset.qualityGateState:'gate1-passed';
+    }
+    var hasCap2 = typeof asset.caption==='string' && asset.caption.length>=50;
+    var hasBrief = _checkVisualBrief(asset);
+    var hasOwner = !!asset.owner;
+    return (hasCap2&&hasBrief&&hasOwner)?'gate1-passed':'pending';
+  }
+  function _evalCaption(asset, hist) {
+    var caps = hist.filter(function(h){return h&&['caption-created','caption-revised','caption-approved','caption-rejected'].indexOf(h.action)!==-1;});
+    var lastRej = _findLast(caps,'caption-rejected');
+    if (lastRej && !caps.some(function(h){return h.action==='caption-revised'&&h.at>lastRej.at;})) return 'rejected';
+    var lastApp = _findLast(caps,'caption-approved');
+    if (lastApp && !caps.some(function(h){return h.action==='caption-revised'&&h.at>lastApp.at;})) return 'approved';
+    var capLen = typeof asset.caption==='string'?asset.caption.length:0;
+    if (caps.some(function(h){return h.action==='caption-created'||h.action==='caption-revised';}) || capLen>=100) {
+      return capLen>=100?'approved':'draft';
+    }
+    return 'pending';
+  }
+  function _evalVisual(asset, hist) {
+    if (asset.assetType==='research') return 'skipped';
+    var vis = hist.filter(function(h){return h&&['visual-generated','visual-revised','visual-approved','visual-rejected','asset-edited'].indexOf(h.action)!==-1;});
+    var lastRej = _findLast(vis,'visual-rejected');
+    if (lastRej && !vis.some(function(h){return h.action==='visual-revised'&&h.at>lastRej.at;})) return 'rejected';
+    var lastApp = _findLast(vis,'visual-approved');
+    if (lastApp && !vis.some(function(h){return h.action==='visual-revised'&&h.at>lastApp.at;})) return 'approved';
+    if (asset.filePath && vis.some(function(h){return h.action==='visual-generated';})) return 'generated';
+    var hasBrief = _checkVisualBrief(asset);
+    if (hasBrief) return 'brief-written';
+    return 'pending';
+  }
+  function _evalApproval(asset, hist, ext) {
+    ext = ext || {};
+    var extA = (ext.approvalActions||[]).find(function(a){return a&&a.assetId===asset.assetId;});
+    if (extA && extA.action==='approved') return 'approved';
+    if (extA && extA.action==='rejected') return 'rejected';
+    var approvalEvents = hist.filter(function(h){return h&&['approval-requested','approval-approved','approval-rejected'].indexOf(h.action)!==-1;});
+    var lastEv = approvalEvents.slice(-1)[0];
+    if (lastEv && lastEv.action==='approval-rejected') return 'rejected';
+    if (lastEv && lastEv.action==='approval-approved' && lastEv.by==='christelle') return 'approved';
+    var capDraft = hist.some(function(h){return h&&(h.action==='caption-created'||h.action==='caption-revised');});
+    var visBriefWritten = hist.some(function(h){return h&&h.action==='visual-revised';}) || _checkVisualBrief(asset);
+    if (capDraft && visBriefWritten) return 'review';
+    return 'pending';
+  }
+  function _evalPublish(asset, hist, ext) {
+    ext = ext || {};
+    var extP = (ext.postizConfirmations||[]).find(function(p){return p&&p.assetId===asset.assetId;});
+    if (extP && extP.status==='live') return 'live';
+    if (extP && extP.status==='failed') return 'failed';
+    if (hist.some(function(h){return h&&h.action==='publish-failed';})) return 'failed';
+    var capApp = hist.some(function(h){return h&&(h.action==='caption-approved'||h.action==='approved');}) || (typeof asset.caption==='string'&&asset.caption.length>=100);
+    var visApp = asset.assetType==='research' || hist.some(function(h){return h&&h.action==='visual-approved';});
+    var appApp = hist.some(function(h){return h&&(h.action==='approval-approved'||h.action==='approved')&&h.by==='christelle';}) ||
+      (ext.approvalActions||[]).some(function(a){return a&&a.assetId===asset.assetId&&a.action==='approved';});
+    var gate = asset.qualityGateState==='gate1-passed'||asset.qualityGateState==='gate2-passed'||
+               asset.qualityGateState==='approved'||asset.qualityGateState==='skipped'||
+               (asset.assetType==='research'&&typeof asset.caption==='string'&&asset.caption.length>=50)||
+               (asset.assetType!=='research'&&typeof asset.caption==='string'&&asset.caption.length>=50&&_checkVisualBrief(asset)&&!!asset.owner);
+    return (appApp&&capApp&&visApp&&gate)?'scheduled':'planned';
+  }
+
+  function evaluateAsset(asset, history, externalSignals) {
+    if (!asset||typeof asset!=='object') throw new TypeError('asset required');
+    var rawHist = Array.isArray(history)?history:(asset.history||[]);
+    var hist = _normHistory(rawHist);
+    var ext = externalSignals || {};
+    var observations = [];
+    return {
+      qualityGateState: _evalQuality(asset, hist),
+      captionStatus:    _evalCaption(asset, hist),
+      visualStatus:     _evalVisual(asset, hist),
+      approvalStatus:   _evalApproval(asset, hist, ext),
+      publishStatus:    _evalPublish(asset, hist, ext),
+      observations: observations
+    };
+  }
+
+  var SCHEMA = {
+    qualityGateState: ['pending','gate1-passed','gate2-passed','gate2-failed','approved','skipped'],
+    captionStatus:    ['pending','draft','approved','rejected'],
+    visualStatus:     ['pending','brief-written','generated','approved','rejected','skipped'],
+    approvalStatus:   ['pending','review','approved','rejected'],
+    publishStatus:    ['planned','scheduled','live','failed','skipped','archived']
+  };
+
+  function applyStateTransition(asset, desiredState) {
+    if (!asset||typeof asset!=='object') throw new TypeError('asset required');
+    if (!desiredState||typeof desiredState!=='object') throw new TypeError('desiredState required');
+    var fieldsChanged = [];
+    for (var field in SCHEMA) {
+      var cand = desiredState[field];
+      if (cand===undefined) continue;
+      if (SCHEMA[field].indexOf(cand)===-1) throw new Error('Invalid value for '+field+': '+cand);
+      if (asset[field]!==cand) { asset[field]=cand; fieldsChanged.push(field); }
+    }
+    if (fieldsChanged.length>0) asset.updatedAt = new Date().toISOString();
+    return { changed: fieldsChanged.length>0, fieldsChanged: fieldsChanged };
+  }
+
+  window.AssetStateEngine = {
+    recordEvent: recordEvent,
+    evaluateAsset: evaluateAsset,
+    applyStateTransition: applyStateTransition,
+    KNOWN_HISTORY_ACTIONS: KNOWN_HISTORY_ACTIONS
+  };
+})();
+// End Step 87 engine inline subset.
+
 function changeAssetStatus(id, newStatus) {
   var a = assetReadAll().find(function(x) { return x.assetId === id; });
   if (!a) return false;
@@ -5907,7 +6096,19 @@ function changeAssetStatus(id, newStatus) {
   a.status = newStatus;
   a.updatedAt = now;
   a.history = Array.isArray(a.history) ? a.history : [];
+  // Existing status-changed event (cockpit lifecycle) — preserved.
   a.history.push({ action: 'status-changed', by: 'christelle', at: now, note: 'Status: ' + prev + ' → ' + newStatus });
+  // Step 87: Asset State Engine integration. Derive the 5 publishing-state
+  // fields after the asset-lifecycle change. The engine is a pure projection;
+  // applyStateTransition writes ONLY the 5 fields.
+  try {
+    if (window.AssetStateEngine) {
+      var desired = window.AssetStateEngine.evaluateAsset(a, a.history, {});
+      window.AssetStateEngine.applyStateTransition(a, desired);
+    }
+  } catch (e) {
+    console.warn('[asset-state-engine] cockpit integration error:', e && e.message);
+  }
   assetAppend(a);
   renderAssetPlanner();
   // Step 38: a status change can move an asset between Published and In Progress
