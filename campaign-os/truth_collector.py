@@ -471,7 +471,12 @@ def fetch_ga4_engagement(asset_id: str, channel: str, captured_at: str) -> dict:
     return metrics
 
 
-def fetch_meta_engagement(asset_id: str, channel: str, captured_at: str) -> dict:
+def fetch_meta_engagement(
+    asset_id: str,
+    channel: str,
+    captured_at: str,
+    platform_media_id: Optional[str] = None,
+) -> dict:
     """
     Real Meta fetch. Returns a dict matching the EngagementRecord schema's metric block.
 
@@ -483,18 +488,18 @@ def fetch_meta_engagement(asset_id: str, channel: str, captured_at: str) -> dict
       when unavailable; 0 only when upstream explicitly reports zero — no
       inference, no defaults).
 
+    Step 80 Stage 3 — platform_media_id contract:
+      When platform_media_id is provided, the fetcher makes a real Graph API
+      call against that media ID. When platform_media_id is None, the fetcher
+      returns the existing truthful MAPPING_BLOCKED response (no upstream call,
+      no fabrication). This preserves backward compatibility — existing callers
+      that don't supply a media_id see no behaviour change.
+
     Truth-before-cleverness: This fetcher does NOT invent a mapping from
-    asset_id → Instagram media_id. The caller MUST supply the IG media_id
-    via META_INSTAGRAM_BUSINESS_ACCOUNT_ID env var (the page's IG account)
-    AND the asset→media mapping must be passed in via asset_id by the
-    upstream lookup. If we cannot resolve a real media_id, we return
+    asset_id → Instagram media_id. The caller MUST supply a real
+    platform_media_id. If we cannot resolve a real media_id, we return
     metrics with all-Null fields and a provenance note — never zeros, never
     inferred numbers.
-
-    Currently the asset→media_id resolution lives in app.py's
-    _lookup_asset_by_postiz_post_id() — that path needs a real Postiz
-    webhook (Step 75/76 deferred). Until then this fetcher returns a
-    truthful "no mapping" response so the pipeline never fabricates data.
     """
     if not meta_credentials_present():
         raise CredentialsMissingError("Meta credentials not configured")
@@ -503,13 +508,170 @@ def fetch_meta_engagement(asset_id: str, channel: str, captured_at: str) -> dict
     ig_account_id = os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "").strip()
     page_id = os.environ.get("META_PAGE_ID", "").strip()
 
-    # Truthful absence: without a media_id we cannot call /insights.
-    # We do NOT guess. We do NOT default to the latest media.
-    # The asset→media mapping is the responsibility of the upstream
-    # _lookup_asset_by_postiz_post_id() in app.py — when it returns a real
-    # media_id, this fetcher will use it. Until then we surface a clear
-    # MAPPING_BLOCKED reason via the canonical metrics dict (all None +
-    # provenance note).
+    # Step 80 Stage 3 — when platform_media_id is provided, make a real Graph
+    # API call. When None, return the truthful MAPPING_BLOCKED response (no
+    # upstream call, no fabrication). Provider-specific dispatch by channel.
+    if not platform_media_id:
+        # Truthful absence: without a media_id we cannot call /insights.
+        # We do NOT guess. We do NOT default to the latest media.
+        return {
+            "impressions": None,
+            "reach": None,
+            "likes": None,
+            "comments": None,
+            "shares": None,
+            "saved": None,
+            "engagementRate": None,
+            "_request_id": None,
+            "raw": {
+                "reason": "no_media_id_resolved",
+                "note": "fetch_meta_engagement requires a real platform_media_id. "
+                        "Until the upstream lookup or caller supplies one, no upstream "
+                        "call is made and no metrics are fabricated.",
+                "ig_account_id": ig_account_id or None,
+                "page_id": page_id or None,
+                "asset_id": asset_id,
+                "channel": channel,
+                "captured_at": captured_at,
+            },
+        }
+
+    # ── Real Graph API call ────────────────────────────────────────────
+    # Provider-specific dispatch by channel. Each branch validates the media_id
+    # shape (Instagram: numeric, Facebook: page-scoped id) and constructs the
+    # appropriate Graph API request. Errors surface as UpstreamRejectedError
+    # (non-retryable 4xx) or MalformedResponseError (cannot parse).
+    channel_lower = (channel or "").lower()
+
+    if channel_lower == "instagram":
+        # Instagram media_id must be numeric (Graph API contract).
+        if not platform_media_id.isdigit():
+            raise MalformedResponseError(
+                f"Instagram platform_media_id must be numeric, got: {platform_media_id!r}"
+            )
+        # GET /{ig-media-id}/insights?metric=reach,likes,comments,shares,saved
+        # (engagementRate derived client-side from the four counts)
+        url = (
+            f"https://graph.facebook.com/v18.0/{platform_media_id}/insights"
+            f"?metric=reach,likes,comments,shares,saved"
+        )
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                raw_text = resp.read().decode("utf-8")
+                raw = json.loads(raw_text)
+                request_id = resp.headers.get("x-request-id") or resp.headers.get("X-Request-Id")
+        except urllib.error.HTTPError as e:
+            body_err = e.read().decode("utf-8", errors="replace")[:400]
+            if e.code in (401, 403):
+                raise UpstreamRejectedError(e.code, f"Meta unauthorized ({e.code}): {body_err}")
+            if e.code == 429:
+                raise UpstreamRejectedError(e.code, f"Meta rate-limited: {body_err}")
+            if 500 <= e.code < 600:
+                raise  # retryable — let _with_retry handle
+            raise UpstreamRejectedError(e.code, f"Meta upstream error ({e.code}): {body_err}")
+        except urllib.error.URLError:
+            raise  # retryable
+
+        # Parse insights response. Graph returns
+        # {"data": [{"name": "reach", "period": "lifetime", "values": [{"value": N}]}, ...]}
+        try:
+            data_list = raw.get("data", []) or []
+        except AttributeError:
+            raise MalformedResponseError(f"Meta insights response not a dict: {raw_text[:200]}")
+
+        def _metric(name):
+            for entry in data_list:
+                if entry.get("name") == name:
+                    values = entry.get("values") or []
+                    if values:
+                        return values[0].get("value")
+            return None
+
+        reach = _metric("reach")
+        likes = _metric("likes")
+        comments = _metric("comments")
+        shares = _metric("shares")
+        saved = _metric("saved")
+
+        # engagementRate = (likes + comments + shares + saved) / reach.
+        # Only compute when reach is positive (avoid divide-by-zero + never
+        # invent a ratio from zero reach).
+        eng_rate: Optional[float] = None
+        if reach and reach > 0:
+            counts = [c for c in (likes, comments, shares, saved) if c is not None]
+            if counts:
+                eng_rate = sum(counts) / reach
+
+        return {
+            "impressions": reach,  # IG /insights has no impressions field; reach is the closest analogue
+            "reach": reach,
+            "likes": likes,
+            "comments": comments,
+            "shares": shares,
+            "saved": saved,
+            "engagementRate": eng_rate,
+            "_request_id": request_id,
+            "raw": raw,
+        }
+
+    if channel_lower == "facebook":
+        # Facebook post id is page-scoped: {page-id}_{post-id}. Verify the
+        # post exists by GET /{post-id}?fields=id,permalink_url
+        if page_id and not platform_media_id.startswith(f"{page_id}_"):
+            raise MalformedResponseError(
+                f"Facebook platform_media_id {platform_media_id!r} does not start "
+                f"with expected page_id prefix {page_id!r}"
+            )
+        url = (
+            f"https://graph.facebook.com/v18.0/{platform_media_id}"
+            f"?fields=id,permalink_url"
+        )
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                raw_text = resp.read().decode("utf-8")
+                raw = json.loads(raw_text)
+                request_id = resp.headers.get("x-request-id") or resp.headers.get("X-Request-Id")
+        except urllib.error.HTTPError as e:
+            body_err = e.read().decode("utf-8", errors="replace")[:400]
+            if e.code in (401, 403):
+                raise UpstreamRejectedError(e.code, f"Meta unauthorized ({e.code}): {body_err}")
+            if e.code == 429:
+                raise UpstreamRejectedError(e.code, f"Meta rate-limited: {body_err}")
+            if 500 <= e.code < 600:
+                raise  # retryable
+            raise UpstreamRejectedError(e.code, f"Meta upstream error ({e.code}): {body_err}")
+        except urllib.error.URLError:
+            raise  # retryable
+
+        # Verification only. Facebook post metrics require different /insights
+        # endpoints that depend on post type; for now we verify existence
+        # truthfully and return None for engagement counters (no fabrication).
+        return {
+            "impressions": None,
+            "reach": None,
+            "likes": None,
+            "comments": None,
+            "shares": None,
+            "saved": None,
+            "engagementRate": None,
+            "_request_id": request_id,
+            "raw": {
+                "verified": bool(raw.get("id")),
+                "permalink_url": raw.get("permalink_url"),
+                "note": "Facebook post verified. Engagement counters require type-specific "
+                        "Graph API endpoints; deferred to Stage 5.",
+            },
+        }
+
+    # GMB and TikTok — no IG/FB equivalent. Return truthful MAPPING_BLOCKED.
     return {
         "impressions": None,
         "reach": None,
@@ -520,14 +682,12 @@ def fetch_meta_engagement(asset_id: str, channel: str, captured_at: str) -> dict
         "engagementRate": None,
         "_request_id": None,
         "raw": {
-            "reason": "no_media_id_resolved",
-            "note": "fetch_meta_engagement requires a real asset→media_id mapping from "
-                    "_lookup_asset_by_postiz_post_id. The mapping layer is part of the "
-                    "publish-event webhook (deferred to Step 77+). Until then, no upstream "
-                    "call is made and no metrics are fabricated.",
-            "ig_account_id": ig_account_id or None,
-            "page_id": page_id or None,
+            "reason": "channel_no_meta_equivalent",
+            "note": f"channel={channel!r} has no Meta-equivalent Graph API endpoint. "
+                    f"TikTok deferred; GMB uses Google Business API (not Meta).",
             "asset_id": asset_id,
+            "channel": channel,
+            "platform_media_id": platform_media_id,
             "captured_at": captured_at,
         },
     }
@@ -547,6 +707,30 @@ class MalformedResponseError(Exception):
     pass
 
 
+# ── Step 80 Stage 3 — Lookup bridge ─────────────────────────────────
+# These exceptions signal that the lookup bridge is in a state where the
+# caller should NOT proceed with a real upstream call. IndexStale means the
+# generated index is out of sync with canonical (defense-in-depth — publisher
+# auto-regens, so this should never fire in normal operation). FixtureIdRejected
+# means a cmFIXTURE* post ID reached production paths — fail loud, do not
+# silently accept.
+class IndexStale(Exception):
+    def __init__(self, message: str, canonical_sha: Optional[str] = None,
+                 index_sha: Optional[str] = None):
+        self.canonical_sha = canonical_sha
+        self.index_sha = index_sha
+        super().__init__(message)
+
+
+class FixtureIdRejected(Exception):
+    def __init__(self, post_id: str):
+        self.post_id = post_id
+        super().__init__(
+            f"Fixture post id {post_id!r} (cmFIXTURE* prefix) rejected. "
+            f"Fixture IDs must never enter production paths."
+        )
+
+
 # ── Public API: the five Truth Collector functions ─────────────────────
 
 def truth_collector_ingest_publish_event(postiz_payload: dict, store: EngagementStore) -> dict:
@@ -554,6 +738,11 @@ def truth_collector_ingest_publish_event(postiz_payload: dict, store: Engagement
 
     Triggered by Postiz publish webhook. Looks up the asset via postizPostId,
     fetches GA4/Meta engagement, writes via truth_collector_write_engagement.
+
+    Step 80 Stage 3 — the lookup now reads data/publishing-references.json
+    (regenerated by the publisher after every successful canonical write).
+    platform_media_id flows through to fetch_meta_engagement when the channel
+    is instagram/facebook/meta.
     """
     started_at = _now_iso()
     run_id = _ulid("run")
@@ -571,11 +760,19 @@ def truth_collector_ingest_publish_event(postiz_payload: dict, store: Engagement
     if not published_at or not channel:
         return {"ok": False, "reason": "invalid_payload"}
 
-    # 2. Look up asset via postizPostId in the campaign data
-    lookup = _lookup_asset_by_postiz_post_id(post_id)
-    if not lookup:
+    # 2. Look up asset via postizPostId in the publishing-references index.
+    #    Returns dict or None. Raises IndexStale / FixtureIdRejected.
+    try:
+        ref = _lookup_asset_by_postiz_post_id(post_id)
+    except IndexStale as e:
+        return {"ok": False, "reason": "index_stale", "postId": post_id, "detail": str(e)}
+    except FixtureIdRejected as e:
+        return {"ok": False, "reason": "fixture_id_rejected", "postId": post_id}
+    if not ref:
         return {"ok": False, "reason": "asset_not_found_for_post", "postId": post_id}
-    asset_id, campaign_id = lookup
+    asset_id = ref["assetId"]
+    campaign_id = ref["campaignId"]
+    platform_media_id = ref.get("platformMediaId")
 
     # 3. Fetch with retry
     try:
@@ -586,6 +783,7 @@ def truth_collector_ingest_publish_event(postiz_payload: dict, store: Engagement
             captured_at=published_at,
             run_id=run_id,
             postiz_post_id=post_id,
+            platform_media_id=platform_media_id,
         )
     except CredentialsMissingError:
         return {"ok": False, "reason": REASON_CREDENTIALS_MISSING, "postId": post_id, "assetId": asset_id}
@@ -658,6 +856,18 @@ def truth_collector_ingest_cron_tick(store: EngagementStore, campaign_data: dict
                         continue
 
                 run_id = _ulid("run")
+                # Resolve platform_media_id from the regenerated publishing
+                # references index (Step 80 Stage 3). Lookup may raise
+                # IndexStale or FixtureIdRejected — both bubble up.
+                platform_media_id = None
+                if postiz_post_id:
+                    try:
+                        ref = _lookup_asset_by_postiz_post_id(postiz_post_id)
+                    except (IndexStale, FixtureIdRejected):
+                        failed += 1
+                        continue
+                    if ref:
+                        platform_media_id = ref.get("platformMediaId")
                 try:
                     record = _fetch_and_build_record(
                         asset_id=asset_id,
@@ -666,6 +876,7 @@ def truth_collector_ingest_cron_tick(store: EngagementStore, campaign_data: dict
                         captured_at=item["publishedAt"],
                         run_id=run_id,
                         postiz_post_id=postiz_post_id,
+                        platform_media_id=platform_media_id,
                     )
                 except CredentialsMissingError:
                     failed += 1
@@ -748,6 +959,18 @@ def truth_collector_ingest_manual_trigger(campaign_id: str, store: EngagementSto
                 continue
             scanned += 1
             run_id = _ulid("run")
+            # Resolve platform_media_id from the regenerated publishing
+            # references index (Step 80 Stage 3).
+            platform_media_id = None
+            postiz_post_id = item.get("postizPostId")
+            if postiz_post_id:
+                try:
+                    ref = _lookup_asset_by_postiz_post_id(postiz_post_id)
+                except (IndexStale, FixtureIdRejected):
+                    failed += 1
+                    continue
+                if ref:
+                    platform_media_id = ref.get("platformMediaId")
             try:
                 record = _fetch_and_build_record(
                     asset_id=asset_id,
@@ -755,7 +978,8 @@ def truth_collector_ingest_manual_trigger(campaign_id: str, store: EngagementSto
                     channel=platform,
                     captured_at=item["publishedAt"],
                     run_id=run_id,
-                    postiz_post_id=item.get("postizPostId"),
+                    postiz_post_id=postiz_post_id,
+                    platform_media_id=platform_media_id,
                 )
             except Exception:  # noqa: BLE001
                 failed += 1
@@ -800,46 +1024,111 @@ def truth_collector_get_engagement_history(asset_id: str, store: EngagementStore
 
 # ── Internal helpers ───────────────────────────────────────────────────
 
-def _lookup_asset_by_postiz_post_id(postiz_post_id: str) -> Optional[tuple]:
-    """Look up (assetId, campaignId) by postizPostId in the campaign data.
+def _lookup_asset_by_postiz_post_id(postiz_post_id: str) -> Optional[dict]:
+    """Look up a publishing reference by postizPostId.
 
-    Reads DATA_DIR/campaign-data.json. Returns None if not found or if file
-    is missing/malformed.
+    Step 80 Stage 3 — reads data/publishing-references.json (generated by
+    the publisher after every canonical write). Validates freshness by
+    comparing data/state.json.canonicalSha256 against
+    data/publishing-references.json.sourceCampaignSha256.
+
+    Returns a dict of shape:
+      {assetId, campaignId, integrationId, channel, platformMediaId,
+       currentStatus, createdAt, rawResponseRefHash}
+
+    Raises:
+      IndexStale      — when state.json and index hash disagree
+      FixtureIdRejected — when postiz_post_id starts with cmFIXTURE
+    Returns None when the index is missing, malformed, or postiz_post_id
+    is not present in the index.
     """
+    # Fixture protection — fail loud. cmFIXTURE* must never enter production.
+    if postiz_post_id and postiz_post_id.startswith("cmFIXTURE"):
+        raise FixtureIdRejected(postiz_post_id)
+
+    # Resolve paths. Default to <repo>/data/ for dev, $DATA_DIR/data/ for prod.
     data_dir = os.environ.get("DATA_DIR", "/data")
-    campaign_file = os.path.join(data_dir, "campaign-data.json")
-    if not os.path.exists(campaign_file):
+    if data_dir == "/data":
+        # Dev fallback: repo-relative
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        data_dir = os.path.join(repo_root, "data")
+
+    index_path = os.path.join(data_dir, "publishing-references.json")
+    state_path = os.path.join(data_dir, "state.json")
+
+    # Freshness check — if state.json is missing, we cannot validate; skip
+    # the check rather than block. The publisher auto-regens both files
+    # together, so in normal operation they stay in sync.
+    state = None
+    if os.path.exists(state_path):
+        try:
+            with open(state_path, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            state = None  # malformed state — skip check
+
+    # Read the index.
+    if not os.path.exists(index_path):
         return None
     try:
-        with open(campaign_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        with open(index_path, "r", encoding="utf-8") as f:
+            index = json.load(f)
     except (json.JSONDecodeError, OSError):
         return None
-    for campaign_id, campaign in (data.get("campaigns") or {}).items():
-        for ch in campaign.get("channels", []) or []:
-            for item in ch.get("plannedItems", []) or []:
-                if item.get("postizPostId") == postiz_post_id:
-                    asset_ref = item.get("asset") or {}
-                    if isinstance(asset_ref, dict):
-                        asset_id = asset_ref.get("id")
-                        if asset_id:
-                            return (asset_id, campaign_id)
+
+    # Freshness validation: state.canonicalSha256 must equal index.sourceCampaignSha256.
+    # Both are SHA-256 of the canonical FILE BYTES (per regenerate-publishing-index.js).
+    if state and isinstance(state, dict):
+        canonical_sha = state.get("canonicalSha256")
+        index_sha = index.get("sourceCampaignSha256")
+        if canonical_sha and index_sha and canonical_sha != index_sha:
+            raise IndexStale(
+                f"publishing-references.json out of sync with canonical: "
+                f"index.sourceCampaignSha256={index_sha!r} != "
+                f"state.canonicalSha256={canonical_sha!r}. "
+                f"Run scripts/regenerate-publishing-index.js to rebuild.",
+                canonical_sha=canonical_sha,
+                index_sha=index_sha,
+            )
+
+    # Walk references, find the one with matching postizPostId.
+    for ref in (index.get("references") or []):
+        if ref.get("postizPostId") == postiz_post_id:
+            return {
+                "assetId": ref.get("assetId"),
+                "campaignId": ref.get("campaignId"),
+                "integrationId": ref.get("integrationId"),
+                "channel": ref.get("channel"),
+                "platformMediaId": ref.get("platformMediaId"),
+                "currentStatus": ref.get("currentStatus"),
+                "createdAt": ref.get("createdAt"),
+                "rawResponseRefHash": (
+                    (ref.get("provenance") or {}).get("rawResponseRef") or {}
+                ).get("hash"),
+            }
     return None
 
 
 def _fetch_and_build_record(asset_id: str, campaign_id: str, channel: str,
-                            captured_at: str, run_id: str, postiz_post_id: Optional[str]) -> dict:
+                            captured_at: str, run_id: str, postiz_post_id: Optional[str],
+                            platform_media_id: Optional[str] = None) -> dict:
     """
     Fetch upstream engagement with retry, build the canonical EngagementRecord.
     Raises CredentialsMissingError, UpstreamRejectedError, MalformedResponseError,
     or generic Exception for retryable network failures.
+
+    Step 80 Stage 3 — platform_media_id flows through to fetch_meta_engagement
+    when channel is instagram/facebook/meta. None → MAPPING_BLOCKED preserved.
     """
     captured_at_iso = captured_at  # upstream-supplied timestamp
 
     def do_fetch():
         # Choose fetcher by channel
         if channel in ("instagram", "facebook", "meta"):
-            return fetch_meta_engagement(asset_id, channel, captured_at_iso)
+            return fetch_meta_engagement(
+                asset_id, channel, captured_at_iso,
+                platform_media_id=platform_media_id,
+            )
         # Default: GA4 (tiktok, youtube, gmb, x, linkedin, web)
         return fetch_ga4_engagement(asset_id, channel, captured_at_iso)
 

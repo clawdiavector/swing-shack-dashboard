@@ -255,7 +255,7 @@ class TestIngestPublishEvent(unittest.TestCase):
         self.assertEqual(result["reason"], "asset_not_found_for_post")
 
     def test_credentials_missing_returns_blocked(self):
-        with patch.object(tc, "_lookup_asset_by_postiz_post_id", return_value=("a1", "c1")):
+        with patch.object(tc, "_lookup_asset_by_postiz_post_id", return_value={"assetId": "a1", "campaignId": "c1", "platformMediaId": None}):
             with patch.object(tc, "_fetch_and_build_record",
                               side_effect=CredentialsMissingError("test")):
                 result = truth_collector_ingest_publish_event(
@@ -266,13 +266,13 @@ class TestIngestPublishEvent(unittest.TestCase):
         self.assertEqual(result["reason"], "credentials_missing")
 
     def test_successful_ingest_writes_record(self):
-        def fake_fetch(asset_id, campaign_id, channel, captured_at, run_id, postiz_post_id):
+        def fake_fetch(asset_id, campaign_id, channel, captured_at, run_id, postiz_post_id, platform_media_id=None):
             return make_record(
                 asset_id=asset_id, campaign_id=campaign_id,
                 source="meta" if channel in ("instagram", "facebook", "meta") else "ga4",
                 captured_at=captured_at, run_id=run_id, postiz_post_id=postiz_post_id,
             )
-        with patch.object(tc, "_lookup_asset_by_postiz_post_id", return_value=("a1", "c1")):
+        with patch.object(tc, "_lookup_asset_by_postiz_post_id", return_value={"assetId": "a1", "campaignId": "c1", "platformMediaId": "1799"}):
             with patch.object(tc, "_fetch_and_build_record", side_effect=fake_fetch):
                 result = truth_collector_ingest_publish_event(
                     {"post_id": "p1", "status": "published",
@@ -284,13 +284,13 @@ class TestIngestPublishEvent(unittest.TestCase):
         self.assertEqual(len(self.store.for_asset("a1")), 1)
 
     def test_duplicate_publish_event_skips(self):
-        def fake_fetch(asset_id, campaign_id, channel, captured_at, run_id, postiz_post_id):
+        def fake_fetch(asset_id, campaign_id, channel, captured_at, run_id, postiz_post_id, platform_media_id=None):
             return make_record(
                 asset_id=asset_id, campaign_id=campaign_id,
                 source="meta" if channel in ("instagram", "facebook", "meta") else "ga4",
                 captured_at=captured_at, run_id=run_id, postiz_post_id=postiz_post_id,
             )
-        with patch.object(tc, "_lookup_asset_by_postiz_post_id", return_value=("a1", "c1")):
+        with patch.object(tc, "_lookup_asset_by_postiz_post_id", return_value={"assetId": "a1", "campaignId": "c1", "platformMediaId": None}):
             with patch.object(tc, "_fetch_and_build_record", side_effect=fake_fetch):
                 # First call
                 truth_collector_ingest_publish_event(
@@ -465,6 +465,272 @@ class TestNoMutationOfStageTruth(unittest.TestCase):
         self.assertNotIn("campaign.memory", stripped)
         # And no Learning events
         self.assertNotIn("LEARNING_", stripped)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Step 80 Stage 3 — Lookup bridge tests
+# ─────────────────────────────────────────────────────────────────────
+class TestLookupBridge(unittest.TestCase):
+    """Stage 3 contract: _lookup_asset_by_postiz_post_id reads
+    data/publishing-references.json, validates freshness via
+    data/state.json, rejects fixture IDs, returns a dict."""
+
+    def setUp(self):
+        # Use an isolated temp directory as the data root.
+        self.tmpdir = tempfile.mkdtemp()
+        self._original_data_dir = os.environ.get("DATA_DIR")
+        os.environ["DATA_DIR"] = self.tmpdir  # triggers the dev-fallback in the lookup
+
+    def tearDown(self):
+        if self._original_data_dir is not None:
+            os.environ["DATA_DIR"] = self._original_data_dir
+        else:
+            os.environ.pop("DATA_DIR", None)
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _write_index(self, index):
+        with open(os.path.join(self.tmpdir, "publishing-references.json"), "w") as f:
+            json.dump(index, f)
+
+    def _write_state(self, sha):
+        with open(os.path.join(self.tmpdir, "state.json"), "w") as f:
+            json.dump({"canonicalSha256": sha, "updatedAt": "2026-07-22T00:00:00Z"}, f)
+
+    def test_fixture_id_rejected(self):
+        # cmFIXTURE* prefix must raise FixtureIdRejected regardless of index contents.
+        self._write_index({"references": [], "sourceCampaignSha256": "x"})
+        self._write_state("x")
+        with self.assertRaises(tc.FixtureIdRejected):
+            tc._lookup_asset_by_postiz_post_id("cmFIXTURE00000000000000000001")
+
+    def test_missing_index_returns_none(self):
+        # No publishing-references.json on disk — return None, no exception.
+        result = tc._lookup_asset_by_postiz_post_id("realPostId123")
+        self.assertIsNone(result)
+
+    def test_index_stale_raises(self):
+        # Index hash != state hash — IndexStale.
+        self._write_index({"references": [], "sourceCampaignSha256": "aaa"})
+        self._write_state("bbb")
+        with self.assertRaises(tc.IndexStale):
+            tc._lookup_asset_by_postiz_post_id("realPostId123")
+
+    def test_fresh_index_returns_dict(self):
+        # Hash matches, ref present — return dict with all expected fields.
+        sha = "0" * 64
+        ref = {
+            "publishingId": "pub-test",
+            "assetId": "asset-1",
+            "campaignId": "camp-1",
+            "postizPostId": "postiz-abc",
+            "integrationId": "cmIG",
+            "integrationProvider": "instagram",
+            "channel": "instagram",
+            "releaseURL": "https://instagram.com/p/abc/",
+            "releaseId": "abc",
+            "platformMediaId": "17990000000000001",
+            "currentStatus": "published",
+            "createdAt": "2026-07-22T10:00:00Z",
+            "scheduledAt": None,
+            "publishedAt": "2026-07-22T10:00:00Z",
+            "provenance": {"rawResponseRef": {"hash": "deadbeef" * 8}},
+        }
+        self._write_index({"sourceCampaignSha256": sha, "references": [ref]})
+        self._write_state(sha)
+        result = tc._lookup_asset_by_postiz_post_id("postiz-abc")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["assetId"], "asset-1")
+        self.assertEqual(result["campaignId"], "camp-1")
+        self.assertEqual(result["integrationId"], "cmIG")
+        self.assertEqual(result["channel"], "instagram")
+        self.assertEqual(result["platformMediaId"], "17990000000000001")
+        self.assertEqual(result["currentStatus"], "published")
+        self.assertEqual(result["rawResponseRefHash"], "deadbeef" * 8)
+
+    def test_unknown_post_id_returns_none(self):
+        sha = "1" * 64
+        self._write_index({"sourceCampaignSha256": sha, "references": []})
+        self._write_state(sha)
+        result = tc._lookup_asset_by_postiz_post_id("never-published-post")
+        self.assertIsNone(result)
+
+
+class TestMetaFetcherSignature(unittest.TestCase):
+    """Stage 3 contract: fetch_meta_engagement accepts platform_media_id,
+    preserves MAPPING_BLOCKED when None, calls real Graph API when provided."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        # Write a JSON token file so meta_credentials_present() returns True.
+        # The _read_meta_access_token expects {"access_token": "..."} JSON.
+        self.token_path = os.path.join(self.tmpdir, "meta-token.json")
+        with open(self.token_path, "w") as f:
+            json.dump({"access_token": "fake-token-abc123"}, f)
+        os.environ["META_ACCESS_TOKEN_FILE"] = self.token_path
+        os.environ["META_APP_ID"] = "1187824310088903"
+        os.environ["META_INSTAGRAM_BUSINESS_ACCOUNT_ID"] = "17841456713897671"
+
+    def tearDown(self):
+        for k in ("META_ACCESS_TOKEN_FILE", "META_APP_ID", "META_INSTAGRAM_BUSINESS_ACCOUNT_ID"):
+            os.environ.pop(k, None)
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_none_platform_media_id_preserves_mapping_blocked(self):
+        # No media_id — MAPPING_BLOCKED, no upstream call.
+        result = tc.fetch_meta_engagement(
+            asset_id="asset-1",
+            channel="instagram",
+            captured_at="2026-07-22T10:00:00Z",
+            platform_media_id=None,
+        )
+        self.assertIsNone(result["reach"])
+        self.assertIsNone(result["likes"])
+        self.assertEqual(result["raw"]["reason"], "no_media_id_resolved")
+
+    def test_gmb_returns_channel_no_meta_equivalent(self):
+        # GMB has no Meta-equivalent Graph API endpoint — truthful absence.
+        result = tc.fetch_meta_engagement(
+            asset_id="asset-1",
+            channel="gmb",
+            captured_at="2026-07-22T10:00:00Z",
+            platform_media_id="some-media-id",
+        )
+        self.assertEqual(result["raw"]["reason"], "channel_no_meta_equivalent")
+
+    def test_instagram_non_numeric_raises(self):
+        # Instagram media_id must be numeric per Graph API contract.
+        with self.assertRaises(tc.MalformedResponseError):
+            tc.fetch_meta_engagement(
+                asset_id="asset-1",
+                channel="instagram",
+                captured_at="2026-07-22T10:00:00Z",
+                platform_media_id="not-numeric-abc",
+            )
+
+    def test_instagram_happy_path_mocked(self):
+        # Mock urlopen to return a synthetic Graph insights response.
+        class _FakeResp:
+            def __init__(self, payload):
+                self._payload = payload
+                self.headers = {"x-request-id": "req-test-123"}
+
+            def read(self):
+                return json.dumps(self._payload).encode("utf-8")
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        payload = {
+            "data": [
+                {"name": "reach", "period": "lifetime", "values": [{"value": 1000}]},
+                {"name": "likes", "period": "lifetime", "values": [{"value": 50}]},
+                {"name": "comments", "period": "lifetime", "values": [{"value": 5}]},
+                {"name": "shares", "period": "lifetime", "values": [{"value": 2}]},
+                {"name": "saved", "period": "lifetime", "values": [{"value": 3}]},
+            ]
+        }
+
+        with patch("urllib.request.urlopen", return_value=_FakeResp(payload)):
+            result = tc.fetch_meta_engagement(
+                asset_id="asset-1",
+                channel="instagram",
+                captured_at="2026-07-22T10:00:00Z",
+                platform_media_id="17990000000000001",
+            )
+        self.assertEqual(result["reach"], 1000)
+        self.assertEqual(result["likes"], 50)
+        self.assertEqual(result["comments"], 5)
+        self.assertEqual(result["shares"], 2)
+        self.assertEqual(result["saved"], 3)
+        # engagementRate = (50+5+2+3) / 1000 = 0.06
+        self.assertAlmostEqual(result["engagementRate"], 0.06, places=4)
+        self.assertEqual(result["_request_id"], "req-test-123")
+
+
+class TestIngestThreading(unittest.TestCase):
+    """Stage 3 contract: ingest_publish_event threads platform_media_id
+    from the lookup into fetch_meta_engagement."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.store = EngagementStore(self.tmpdir)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_publish_event_reaches_meta_fetch_with_media_id(self):
+        captured = {}
+
+        def fake_fetch(asset_id, campaign_id, channel, captured_at, run_id, postiz_post_id, platform_media_id=None):
+            captured["platform_media_id"] = platform_media_id
+            captured["channel"] = channel
+            return make_record(
+                asset_id=asset_id, campaign_id=campaign_id,
+                source="meta", captured_at=captured_at, run_id=run_id, postiz_post_id=postiz_post_id,
+            )
+
+        with patch.object(tc, "_lookup_asset_by_postiz_post_id",
+                          return_value={"assetId": "a1", "campaignId": "c1", "platformMediaId": "17990000000000001"}):
+            with patch.object(tc, "_fetch_and_build_record", side_effect=fake_fetch):
+                result = truth_collector_ingest_publish_event(
+                    {"post_id": "p1", "status": "published",
+                     "published_at": "2026-07-20T08:00:00Z", "channel": "instagram"},
+                    self.store,
+                )
+        self.assertTrue(result["ok"])
+        self.assertEqual(captured["platform_media_id"], "17990000000000001")
+        self.assertEqual(captured["channel"], "instagram")
+
+    def test_publish_event_index_stale_returns_blocked(self):
+        with patch.object(tc, "_lookup_asset_by_postiz_post_id",
+                          side_effect=tc.IndexStale("stale", canonical_sha="a", index_sha="b")):
+            result = truth_collector_ingest_publish_event(
+                {"post_id": "p1", "status": "published",
+                 "published_at": "2026-07-20T08:00:00Z", "channel": "instagram"},
+                self.store,
+            )
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["reason"], "index_stale")
+
+    def test_publish_event_fixture_id_rejected(self):
+        with patch.object(tc, "_lookup_asset_by_postiz_post_id",
+                          side_effect=tc.FixtureIdRejected("cmFIXTURE01")):
+            result = truth_collector_ingest_publish_event(
+                {"post_id": "cmFIXTURE01", "status": "published",
+                 "published_at": "2026-07-20T08:00:00Z", "channel": "instagram"},
+                self.store,
+            )
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["reason"], "fixture_id_rejected")
+
+    def test_publish_event_unchanged_when_no_media_id(self):
+        # platform_media_id absent in lookup result → fetch called with None
+        # → MAPPING_BLOCKED preserved (backward compat for existing callers).
+        captured = {}
+
+        def fake_fetch(asset_id, campaign_id, channel, captured_at, run_id, postiz_post_id, platform_media_id=None):
+            captured["platform_media_id"] = platform_media_id
+            return make_record(
+                asset_id=asset_id, campaign_id=campaign_id,
+                source="meta", captured_at=captured_at, run_id=run_id, postiz_post_id=postiz_post_id,
+            )
+
+        with patch.object(tc, "_lookup_asset_by_postiz_post_id",
+                          return_value={"assetId": "a1", "campaignId": "c1", "platformMediaId": None}):
+            with patch.object(tc, "_fetch_and_build_record", side_effect=fake_fetch):
+                result = truth_collector_ingest_publish_event(
+                    {"post_id": "p1", "status": "published",
+                     "published_at": "2026-07-20T08:00:00Z", "channel": "instagram"},
+                    self.store,
+                )
+        self.assertTrue(result["ok"])
+        self.assertIsNone(captured["platform_media_id"])
 
 
 if __name__ == "__main__":
