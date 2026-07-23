@@ -259,7 +259,7 @@ test('buildPublishingReference produces valid canonical reference', () => {
     });
 
     // Required fields
-    for (const k of ['publishingId', 'assetId', 'postizPostId', 'integrationId',
+    for (const k of ['publishingId', 'assetId', 'campaignId', 'postizPostId', 'integrationId',
                      'integrationProvider', 'channel', 'currentStatus', 'createdAt',
                      'provenance', 'history']) {
       assert(ref[k] !== undefined, `missing field: ${k}`);

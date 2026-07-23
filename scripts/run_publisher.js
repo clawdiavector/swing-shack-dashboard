@@ -313,6 +313,7 @@ function buildPublishingReference({
   return {
     publishingId,
     assetId,
+    campaignId,  // canonical self-describing reference; needed for engine writeback
     postizPostId: response.id,
     integrationId,
     integrationProvider,
