@@ -1,0 +1,7 @@
+{
+  "_fixture": true,
+  "_note": "SYNTHETIC Postiz upload response. Used ONLY in test/verification mode (POSTIZ_FIXTURE=true). Never accepted by production ingestion. The id prefix is cmFIXTURE so the truth_collector guard can detect and reject it.",
+  "_captured_from": "synthetic — mirrors Postiz /public/v1/upload response shape",
+  "id": "cmFIXTUREupload00000000000001",
+  "path": "fixtures/cmFIXTUREupload00000000000001.jpg"
+}

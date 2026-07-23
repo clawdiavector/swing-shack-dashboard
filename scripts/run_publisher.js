@@ -74,6 +74,141 @@ const CHANNEL_TO_PROVIDER = {
   facebook: 'facebook',
 };
 
+// Provider-specific Postiz `settings` shape (Step 94). Each provider must
+// declare its own object so platforms do not blindly reuse the Instagram
+// settings. Settings must include `__type` and `post_type` per Postiz API
+// contract. Optional fields default sensibly.
+const PROVIDER_SETTINGS = {
+  instagram: ({ post_type = 'post' } = {}) => ({
+    __type: 'instagram',
+    post_type,
+    is_trial_reel: false,
+    collaborators: [],
+  }),
+  tiktok: () => ({
+    __type: 'tiktok',
+    post_type: 'post',
+    is_trial_reel: false,
+    collaborators: [],
+  }),
+  gmb: () => ({
+    __type: 'gmb',
+    post_type: 'post',
+    is_trial_reel: false,
+    collaborators: [],
+  }),
+  facebook: () => ({
+    __type: 'facebook',
+    post_type: 'post',
+    is_trial_reel: false,
+    collaborators: [],
+  }),
+};
+
+// ── Postiz upload endpoint (media upload helper) ──────────────────────────
+//
+// Step 94: real media is required for Instagram posts. Postiz exposes a
+// dedicated upload endpoint that returns { id, path } which must be referenced
+// from posts[].value[].image[]. The helper below is HTTP-agnostic: it returns
+// a normalized { ok, id, path, status, body, raw } envelope. The caller decides
+// what to do with the result.
+//
+// CRITICAL: this function is network-touching. Callers MUST guard it:
+//   - fixture mode MUST NOT call it (use the upload fixture instead)
+//   - live mode MUST wrap it in try/catch and log failures for reconciliation
+//   - secrets MUST NOT be printed in any error path
+
+function postizUpload({ filePath, key, mimeType }) {
+  return new Promise((resolve, reject) => {
+    if (!filePath || !fs.existsSync(filePath)) {
+      return resolve({ ok: false, status: 0, error: 'missing_local_file', filePath });
+    }
+    const fileBuf = fs.readFileSync(filePath);
+    const filename = path.basename(filePath);
+    const boundary = '----PostizBoundary' + Math.random().toString(36).slice(2);
+    const mime = mimeType || (filePath.toLowerCase().endsWith('.jpg') || filePath.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' : 'application/octet-stream');
+
+    const parts = [];
+    parts.push(`--${boundary}\r\n`);
+    parts.push(`Content-Disposition: form-data; name="file"; filename="${filename}"\r\n`);
+    parts.push(`Content-Type: ${mime}\r\n\r\n`);
+    const head = Buffer.from(parts.join(''), 'utf8');
+    const tail = Buffer.from(`\r\n--${boundary}--\r\n`, 'utf8');
+    const body = Buffer.concat([head, fileBuf, tail]);
+
+    const req = https.request({
+      hostname: 'api.postiz.com',
+      path: '/public/v1/upload',
+      method: 'POST',
+      headers: {
+        'Authorization': key,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length,
+      },
+      timeout: 30000,
+    }, (res) => {
+      let buf = '';
+      res.on('data', (c) => { buf += c; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(buf);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            // Normalized envelope — Postiz returns { id, path } (and possibly other fields)
+            resolve({
+              ok: true,
+              status: res.statusCode,
+              id: parsed.id || null,
+              path: parsed.path || null,
+              body: parsed,
+              raw: buf,
+            });
+          } else {
+            resolve({ ok: false, status: res.statusCode, body: parsed, raw: buf, error: 'http_error' });
+          }
+        } catch (e) {
+          resolve({ ok: false, status: res.statusCode, body: null, raw: buf, parseError: e.message, error: 'parse_error' });
+        }
+      });
+    });
+    req.on('error', (e) => reject(e));
+    req.on('timeout', () => { req.destroy(new Error('timeout')); });
+    req.write(body);
+    req.end();
+  });
+}
+
+// Build the canonical Postiz v1 payload for a single (provider, asset) pair.
+// Pure function: same inputs produce same outputs. No I/O, no globals, no
+// randomness. The caption must be the full canonical caption (truth) — the
+// queue's hook_text is a 220-char preview and is intentionally ignored.
+//
+// `imageRefs` is an array of { id, path } objects from the upload step.
+// Empty array means text-only (allowed by Postiz; required for non-IG).
+function buildPostizPayload({ provider, integrationId, date, caption, tags = [], imageRefs = [] }) {
+  if (!provider || !integrationId || !caption) {
+    throw new Error('buildPostizPayload requires provider, integrationId, caption');
+  }
+  const settingsBuilder = PROVIDER_SETTINGS[provider];
+  if (!settingsBuilder) {
+    throw new Error(`unknown provider: ${provider}`);
+  }
+  const value = [{
+    content: caption,
+    image: imageRefs.map(ref => ({ id: ref.id, path: ref.path })),
+  }];
+  return {
+    type: 'draft',
+    date,
+    shortLink: false,
+    tags: Array.isArray(tags) ? tags : [],
+    posts: [{
+      integration: { id: integrationId },
+      value,
+      settings: settingsBuilder(),
+    }],
+  };
+}
+
 function readJson(n) {
   try { return JSON.parse(fs.readFileSync(path.join(DATA, n), 'utf8')); }
   catch { return null; }
@@ -642,16 +777,56 @@ async function runLive() {
       || cap?.short_caption
       || `${item.hook_text || blueprint?.hook_overlay_text || ''}\n\nSwing Shack\nLink in bio · Book your session`;
 
-    const payload = {
-      type: 'draft',  // Step 78: only "draft" or "schedule" per Postiz API
+    // Step 1.5: Media upload (Step 94 contract)
+    // Instagram requires real media via /public/v1/upload; the response {id, path}
+    // is referenced from posts[].value[].image[]. Missing local file or failed
+    // upload blocks the draft creation. Fixture mode skips the real upload.
+    let imageRefs = [];
+    const localMediaPath = asset && typeof asset.filePath === 'string' ? asset.filePath : null;
+    const needsUpload = !isFixtureMode() && localMediaPath;
+    if (needsUpload) {
+      try {
+        const uploadResult = await postizUpload({ filePath: localMediaPath, key: POSTIZ_KEY });
+        if (!uploadResult.ok || !uploadResult.id || !uploadResult.path) {
+          failures.push({
+            item_id: item.item_id,
+            reason: 'postiz_upload_failed',
+            excerpt: `status=${uploadResult.status} error=${uploadResult.error || 'unknown'} filePath=${localMediaPath}`,
+            reconciliation: { stage: 'upload', assetId, campaignId, localMediaPath },
+          });
+          continue;
+        }
+        imageRefs = [{ id: uploadResult.id, path: uploadResult.path }];
+      } catch (e) {
+        failures.push({
+          item_id: item.item_id,
+          reason: 'postiz_upload_network_error',
+          excerpt: e.message.substring(0, 400),
+          reconciliation: { stage: 'upload', assetId, campaignId, localMediaPath },
+        });
+        continue;
+      }
+    } else if (!isFixtureMode() && !localMediaPath) {
+      // Live mode without media: block the request — Postiz rejects empty image[]
+      // for providers that require media. (For non-IG providers we may allow text-only
+      // later; for now, block all live publishes without media.)
+      failures.push({
+        item_id: item.item_id,
+        reason: 'missing_media',
+        excerpt: `asset.filePath is missing or not a string; live publish requires media`,
+      });
+      continue;
+    }
+
+    // Build the canonical Postiz v1 payload via the shared helper (Step 94 contract)
+    const payload = buildPostizPayload({
+      provider: integration.provider,
+      integrationId: integration.id,
       date: planEntry?.scheduled_date ? new Date(planEntry.scheduled_date).toISOString() : new Date().toISOString(),
-      shortLink: false,
-      tags: ['SwingShack', 'IndoorGolf', 'TrackMan'],
-      posts: [{
-        integration: { id: integration.id },
-        settings: { message: captionText.substring(0, 2200) },
-      }],
-    };
+      caption: captionText,
+      tags: [], // Per Step 94 spec: tags is an object array or []
+      imageRefs,
+    });
 
     // Step 2: Call Postiz (real or fixture)
     let response;
@@ -671,6 +846,12 @@ async function runLive() {
             item_id: item.item_id,
             reason: `postiz_${result.status}`,
             excerpt: JSON.stringify(result.body || result.raw || '').substring(0, 400),
+            // If we already uploaded media but Postiz rejected the create, record
+            // the reconciliation entry so an operator can clean up the orphan upload.
+            reconciliation: imageRefs.length > 0 ? {
+              stage: 'create_after_upload',
+              assetId, campaignId, imageRefs, status: result.status,
+            } : null,
           });
           continue;
         }
@@ -680,6 +861,10 @@ async function runLive() {
           item_id: item.item_id,
           reason: 'postiz_network_error',
           excerpt: e.message.substring(0, 400),
+          reconciliation: imageRefs.length > 0 ? {
+            stage: 'create_after_upload_network',
+            assetId, campaignId, imageRefs,
+          } : null,
         });
         continue;
       }
@@ -787,6 +972,10 @@ module.exports = {
   loadFixtureResponse,
   buildFixtureResponse,
   resolveAssetForItem,
+  // Step 94 exports
+  buildPostizPayload,
+  PROVIDER_SETTINGS,
+  postizUpload,
   ALLOWED_TRANSITIONS,
   ACTION_TO_STATUS,
   InvalidStatusTransitionError,
