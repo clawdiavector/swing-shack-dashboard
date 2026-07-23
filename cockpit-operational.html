@@ -6029,15 +6029,41 @@ function handleAssetSubmit(e) {
     if (extP && extP.status==='live') return 'live';
     if (extP && extP.status==='failed') return 'failed';
     if (hist.some(function(h){return h&&h.action==='publish-failed';})) return 'failed';
-    var capApp = hist.some(function(h){return h&&(h.action==='caption-approved'||h.action==='approved');}) || (typeof asset.caption==='string'&&asset.caption.length>=100);
-    var visApp = asset.assetType==='research' || hist.some(function(h){return h&&h.action==='visual-approved';});
-    var appApp = hist.some(function(h){return h&&(h.action==='approval-approved'||h.action==='approved')&&h.by==='christelle';}) ||
+    // Step 88 fix: each axis must satisfy the ENGINE-PROJECTED state,
+    // not raw history. visualStatus=brief-written is NOT sufficient for
+    // scheduled. Research assets are exempt from visual gate.
+    var captionState = asset.captionStatus;
+    var visualState = asset.visualStatus;
+    var approvalState = asset.approvalStatus;
+    var gateState = asset.qualityGateState;
+    var captionEventApproved = hist.some(function(h){return h&&(h.action==='caption-approved'||h.action==='approved');});
+    var visualEventApproved = hist.some(function(h){return h&&h.action==='visual-approved';});
+    var approvalEventApproved = hist.some(function(h){return h&&(h.action==='approval-approved'||h.action==='approved')&&h.by==='christelle';}) ||
       (ext.approvalActions||[]).some(function(a){return a&&a.assetId===asset.assetId&&a.action==='approved';});
-    var gate = asset.qualityGateState==='gate1-passed'||asset.qualityGateState==='gate2-passed'||
-               asset.qualityGateState==='approved'||asset.qualityGateState==='skipped'||
-               (asset.assetType==='research'&&typeof asset.caption==='string'&&asset.caption.length>=50)||
-               (asset.assetType!=='research'&&typeof asset.caption==='string'&&asset.caption.length>=50&&_checkVisualBrief(asset)&&!!asset.owner);
-    return (appApp&&capApp&&visApp&&gate)?'scheduled':'planned';
+    var captionApproved =
+      captionState==='approved' ||
+      (captionState===undefined && captionEventApproved) ||
+      (typeof asset.caption==='string' && asset.caption.length>=100 && !hist.some(function(h){return h&&h.action==='caption-rejected';}));
+    var visualApproved =
+      visualState==='approved' ||
+      visualState==='skipped' ||
+      (visualState===undefined && asset.assetType==='research') ||
+      (visualState===undefined && visualEventApproved);
+    var approvalApproved =
+      approvalState==='approved' ||
+      (approvalState===undefined && approvalEventApproved);
+    var gate =
+      gateState==='gate1-passed'||gateState==='gate2-passed'||gateState==='approved'||gateState==='skipped'||
+      (gateState===undefined && asset.assetType==='research' && typeof asset.caption==='string' && asset.caption.length>=50)||
+      (gateState===undefined && asset.assetType!=='research' && typeof asset.caption==='string' && asset.caption.length>=50 && _checkVisualBrief(asset) && !!asset.owner);
+    // Production artefacts: caption + platform + (visualBrief OR filePath OR research+keyFindings)
+    var isResearch = asset.assetType==='research';
+    var researchArtefacts = isResearch && Array.isArray(asset.keyFindings) && asset.keyFindings.length>0;
+    var artefactsPresent =
+      typeof asset.caption==='string' && asset.caption.length>0 &&
+      typeof asset.platform==='string' && asset.platform.length>0 &&
+      (asset.visualBrief || asset.filePath || researchArtefacts);
+    return (approvalApproved && captionApproved && visualApproved && gate && artefactsPresent) ? 'scheduled' : 'planned';
   }
 
   function evaluateAsset(asset, history, externalSignals) {

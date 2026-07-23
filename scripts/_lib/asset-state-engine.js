@@ -374,33 +374,104 @@ function evaluatePublishStatus(asset, history, ext, observations) {
     observations.push({ axis: 'publishStatus', evidence: { reason: 'publish-failed in history' } });
     return 'failed';
   }
-  // Eligibility for scheduled. Reads history directly so this can run
-  // pre-apply (when asset.approvalStatus is still its previous value).
-  const captionApproved = history.some(h => h && (h.action === 'caption-approved' || h.action === 'approved')) ||
-    (typeof asset.caption === 'string' && asset.caption.length >= 100);
-  const visualApproved = asset.assetType === 'research' ||
-    history.some(h => h && (h.action === 'visual-approved'));
-  const approvalApproved = history.some(h => h && (h.action === 'approval-approved' || h.action === 'approved') && h.by === 'christelle') ||
+  // Eligibility for scheduled. Step 88 fix:
+  //
+  // "scheduled" means genuinely ready to enter Publisher. Each axis must
+  // satisfy the ENGINE-PROJECTED current state, not just the raw history.
+  // A visual brief is planning; scheduling is execution readiness. They
+  // are separate states.
+  //
+  // - captionStatus: must be the engine's projected state (not history alone)
+  // - visualStatus:  must be approved or skipped (production artefact exists
+  //                 or is not required for research). brief-written is NOT
+  //                 sufficient.
+  // - approvalStatus: must be approved by christelle (history-driven)
+  // - qualityGateState: must be at or past gate1
+  const captionState = asset.captionStatus;
+  const visualState = asset.visualStatus;
+  const approvalState = asset.approvalStatus;
+  const gateState = asset.qualityGateState;
+
+  // History-derived overrides (only for backward-compat with assets whose
+  // engine fields haven't been applied yet — e.g. immediately after an
+  // approval event in the same evaluateAsset call).
+  const captionEventApproved = history.some(h => h && (h.action === 'caption-approved' || h.action === 'approved'));
+  const visualEventApproved = history.some(h => h && h.action === 'visual-approved');
+  const approvalEventApproved = history.some(h => h && (h.action === 'approval-approved' || h.action === 'approved') && h.by === 'christelle') ||
     (ext.approvalActions || []).some(a => a && a.assetId === asset.assetId && a.action === 'approved');
-  const gatePassed = asset.qualityGateState === 'gate1-passed' ||
-    asset.qualityGateState === 'gate2-passed' ||
-    asset.qualityGateState === 'approved' ||
-    asset.qualityGateState === 'skipped' ||
-    (asset.assetType === 'research' && typeof asset.caption === 'string' && asset.caption.length >= 50) ||
-    // non-research gate1 derivation from history (so pre-apply still works)
-    (asset.assetType !== 'research' &&
+
+  const captionApproved =
+    captionState === 'approved' ||
+    (captionState === undefined && captionEventApproved) ||
+    (typeof asset.caption === 'string' && asset.caption.length >= 100 && !history.some(h => h && h.action === 'caption-rejected'));
+
+  const visualApproved =
+    visualState === 'approved' ||
+    visualState === 'skipped' ||
+    (visualState === undefined && asset.assetType === 'research') ||
+    (visualState === undefined && visualEventApproved);
+
+  const approvalApproved =
+    approvalState === 'approved' ||
+    (approvalState === undefined && approvalEventApproved);
+
+  // qualityGateState: eligible means at or past gate1. For research, a
+  // caption + keyFindings is sufficient for gate1. For non-research, a
+  // caption + visualBrief + owner is sufficient. If the field is unset but
+  // the inputs prove gate1, fall back to that derivation.
+  const gatePassed =
+    gateState === 'gate1-passed' ||
+    gateState === 'gate2-passed' ||
+    gateState === 'approved' ||
+    gateState === 'skipped' ||
+    (gateState === undefined && asset.assetType === 'research' && typeof asset.caption === 'string' && asset.caption.length >= 50) ||
+    (gateState === undefined && asset.assetType !== 'research' &&
      typeof asset.caption === 'string' && asset.caption.length >= 50 &&
      (asset.visualBrief && (
        (typeof asset.visualBrief === 'string' && asset.visualBrief.length > 20) ||
        (typeof asset.visualBrief === 'object' && asset.visualBrief.concept && asset.visualBrief.concept.length > 20)
      )) &&
      !!asset.owner);
-  const eligible = approvalApproved && captionApproved && visualApproved && gatePassed;
+
+  // All required production artefacts present:
+  //   - caption field non-empty (the actual copy)
+  //   - platform set (so Publisher knows where to dispatch)
+  //   - visual brief OR filePath OR (research + keyFindings) (production
+  //     artefact exists or planning document is complete)
+  const isResearch = asset.assetType === 'research';
+  const researchArtefacts = isResearch && Array.isArray(asset.keyFindings) && asset.keyFindings.length > 0;
+  const artefactsPresent =
+    typeof asset.caption === 'string' && asset.caption.length > 0 &&
+    typeof asset.platform === 'string' && asset.platform.length > 0 &&
+    (asset.visualBrief || asset.filePath || researchArtefacts);
+
+  const eligible = approvalApproved && captionApproved && visualApproved && gatePassed && artefactsPresent;
   if (eligible) {
-    observations.push({ axis: 'publishStatus', evidence: { reason: 'all gates satisfied -> scheduled', captionApproved, visualApproved, approvalApproved, gatePassed } });
+    observations.push({
+      axis: 'publishStatus',
+      evidence: {
+        reason: 'all gates satisfied -> scheduled',
+        captionApproved, visualApproved, approvalApproved, gatePassed, artefactsPresent,
+        visualState, captionState, approvalState, gateState,
+      },
+    });
     return 'scheduled';
   }
-  observations.push({ axis: 'publishStatus', evidence: { reason: 'not eligible (gates not satisfied)', captionApproved, visualApproved, approvalApproved, gatePassed } });
+  observations.push({
+    axis: 'publishStatus',
+    evidence: {
+      reason: 'not eligible (gates not satisfied)',
+      captionApproved, visualApproved, approvalApproved, gatePassed, artefactsPresent,
+      visualState, captionState, approvalState, gateState,
+      missingGates: [
+        !captionApproved && 'captionApproved',
+        !visualApproved && 'visualApproved',
+        !approvalApproved && 'approvalApproved',
+        !gatePassed && 'gatePassed',
+        !artefactsPresent && 'artefactsPresent',
+      ].filter(Boolean),
+    },
+  });
   return 'planned';
 }
 

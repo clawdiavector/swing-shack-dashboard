@@ -170,6 +170,7 @@ section('11. All gates satisfied -> publishStatus scheduled');
   const a = fixture({
     assetId: 'sched-test',
     caption: 'x'.repeat(150),
+    platform: 'instagram',
     visualBrief: { concept: 'A dramatic shot of the driver against a black backdrop with data overlay' },
     filePath: 'assets/x.png',
     history: [
@@ -182,6 +183,69 @@ section('11. All gates satisfied -> publishStatus scheduled');
   });
   const r = eng.evaluateAsset(a, a.history, {});
   assert('publishStatus = scheduled', r.publishStatus === 'scheduled');
+}
+
+section('11b. brief-written visualStatus is NOT sufficient for scheduled');
+{
+  // Step 88 hardening: even with full history of approval events, if the
+  // visualStatus field is only brief-written (planning complete but no
+  // production artefact), the engine MUST NOT return scheduled.
+  const a = fixture({
+    assetId: 'planning-only',
+    caption: 'x'.repeat(150),
+    platform: 'instagram',
+    visualBrief: { concept: 'A dramatic shot of the driver against a black backdrop with data overlay' },
+    visualStatus: 'brief-written',  // explicit: planning complete, no artefact
+    history: [
+      { action: 'caption-created', by: 'copywriter', at: '2026-01-01T00:00:00Z' },
+      { action: 'visual-revised', by: 'image-gen', at: '2026-01-02T00:00:00Z' },
+      { action: 'approval-approved', by: 'christelle', at: '2026-01-03T00:00:00Z' },
+    ],
+  });
+  const r = eng.evaluateAsset(a, a.history, {});
+  assert('publishStatus = planned when visualStatus=brief-written', r.publishStatus === 'planned');
+}
+
+section('11c. Missing platform blocks scheduled');
+{
+  // Step 88 hardening: an asset without a platform field is not dispatchable
+  // to any integration. Publisher would skip it. Schedule gate must reject.
+  const a = fixture({
+    assetId: 'no-platform',
+    caption: 'x'.repeat(150),
+    visualBrief: { concept: 'A dramatic shot of the driver against a black backdrop with data overlay' },
+    filePath: 'assets/x.png',
+    history: [
+      { action: 'caption-created', by: 'copywriter', at: '2026-01-01T00:00:00Z' },
+      { action: 'visual-revised', by: 'image-gen', at: '2026-01-02T00:00:00Z' },
+      { action: 'visual-generated', by: 'image-gen', at: '2026-01-03T00:00:00Z', filePath: 'assets/x.png' },
+      { action: 'visual-approved', by: 'retina', at: '2026-01-04T00:00:00Z' },
+      { action: 'approval-approved', by: 'christelle', at: '2026-01-05T00:00:00Z' },
+    ],
+  });
+  const r = eng.evaluateAsset(a, a.history, {});
+  assert('publishStatus = planned when platform missing', r.publishStatus === 'planned');
+}
+
+section('11d. research asset with visualStatus=skipped CAN reach scheduled');
+{
+  // Step 88 design: research assets skip visual gate. With caption approved,
+  // approval approved, gate1 passed (research derivation), platform set,
+  // artefacts present (caption + keyFindings + platform), it should reach
+  // scheduled.
+  const a = fixture({
+    assetId: 'research-sched',
+    assetType: 'research',
+    caption: 'x'.repeat(200),
+    platform: 'instagram,tiktok',
+    keyFindings: ['finding1', 'finding2'],
+    history: [
+      { action: 'caption-created', by: 'copywriter', at: '2026-01-01T00:00:00Z' },
+      { action: 'approval-approved', by: 'christelle', at: '2026-01-02T00:00:00Z' },
+    ],
+  });
+  const r = eng.evaluateAsset(a, a.history, {});
+  assert('research publishStatus = scheduled', r.publishStatus === 'scheduled');
 }
 
 section('12. Postiz external confirmation -> publishStatus live');
