@@ -739,6 +739,82 @@ test('runLive in fixture mode creates 1 reference + 1 events file + fresh index'
   }
 });
 
+// ── Section 8b: Caption truth — canonical caption wins over queue hook_text ─
+section('8b. Caption truth: canonical asset.caption wins over queue hook_text');
+
+test('publisher reads canonical asset.caption, not truncated queue hook_text', () => {
+  setup();
+  try {
+    // Build a synthetic canonical where the asset's caption is LONGER than the
+    // queue's hook_text (mirroring real-world: queue emits 220-char preview,
+    // canonical stores the full approved caption).
+    const longCanonicalCaption = 'A'.repeat(400); // 400 chars in canonical
+    const truncatedHookText = 'B'.repeat(220);    // 220 chars in queue (truncated)
+
+    // Save real canonical, replace with synthetic for the test, restore after.
+    const realCanonical = fs.readFileSync(CANONICAL_PATH, 'utf8');
+    const synthetic = {
+      portfolioMetadata: { name: 't', version: 1, lastUpdated: '2026-07-23T00:00:00Z', owner: 'test' },
+      activeCampaignId: 't',
+      updatedAt: '2026-07-23T00:00:00Z',
+      campaigns: {
+        'use-the-right-equipment-mq5l90bk': {
+          identity: { campaignId: 'use-the-right-equipment-mq5l90bk', status: 'active', owner: 'test' },
+          assets: {
+            'use-the-right-equipment-mq5l90bk-feed-post-04': {
+              assetId: 'use-the-right-equipment-mq5l90bk-feed-post-04',
+              assetType: 'feed-post',
+              owner: 'test',
+              platform: 'instagram',
+              caption: longCanonicalCaption,
+              visualBrief: 'x'.repeat(40),
+              qualityGateState: 'gate1-passed',
+              captionStatus: 'approved',
+              visualStatus: 'approved',
+              approvalStatus: 'approved',
+              publishStatus: 'scheduled',
+              history: []
+            }
+          }
+        }
+      }
+    };
+    fs.writeFileSync(CANONICAL_PATH, JSON.stringify(synthetic, null, 2));
+
+    try {
+      // Build a queue item with a TRUNCATED hook_text (the broken scenario).
+      const queueItem = {
+        item_id: 'use-the-right-equipment-mq5l90bk-feed-post-04',
+        linked_blueprint_id: 'use-the-right-equipment-mq5l90bk-feed-post-04',
+        linked_hook_id: 'test-hook',
+        platform: 'instagram',
+        item_type: 'feed-post',
+        hook_text: truncatedHookText,
+        verdict: 'pass'
+      };
+
+      // Resolve the asset the way the live publish loop does
+      const assetMatch = pub.resolveAssetForItem(queueItem);
+      assert(assetMatch !== null, 'asset resolves for canonical item');
+      const { campaignId, assetId } = assetMatch;
+      const canonical = JSON.parse(fs.readFileSync(CANONICAL_PATH, 'utf8'));
+      const asset = canonical.campaigns[campaignId].assets[assetId];
+      const canonicalCaption = asset && typeof asset.caption === 'string' ? asset.caption : null;
+
+      // The fix: canonicalCaption wins over truncated hook_text.
+      assert(canonicalCaption === longCanonicalCaption, 'canonicalCaption === 400 As (full approved text)');
+      assert(canonicalCaption !== truncatedHookText, 'canonicalCaption is NOT the truncated 220-char hook_text');
+      assert(canonicalCaption.length === 400, 'canonicalCaption length is 400 (canonical truth, not truncated)');
+      assert(canonicalCaption.includes('A'.repeat(400)), 'canonicalCaption preserves the full approved text');
+    } finally {
+      // Restore the real canonical
+      fs.writeFileSync(CANONICAL_PATH, realCanonical);
+    }
+  } finally {
+    teardown();
+  }
+});
+
 // ── Section 9: Truth-collector guard against cmFIXTURE* ids ──────────────
 section('9. Truth-collector guard against fixture ids');
 

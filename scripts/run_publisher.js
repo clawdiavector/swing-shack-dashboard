@@ -610,6 +610,21 @@ async function runLive() {
   const skips = [];
 
   for (const item of approvedItems) {
+    // Step 1: Resolve asset FIRST so we can read the canonical caption directly.
+    // The queue's hook_text is a 220-char preview and would truncate the published
+    // caption — the canonical asset.caption is the single source of truth.
+    const assetMatch = resolveAssetForItem(item);
+    if (!assetMatch) {
+      skips.push({ item_id: item.item_id, reason: 'asset_not_found_in_canonical' });
+      continue;
+    }
+    const { campaignId, assetId } = assetMatch;
+
+    const canonical = readCanonical();
+    const campaign = canonical.campaigns && canonical.campaigns[campaignId];
+    const asset = campaign && campaign.assets && campaign.assets[assetId];
+    const canonicalCaption = asset && typeof asset.caption === 'string' ? asset.caption : null;
+
     const cap = caps.captions?.find(c => c.caption_id === item.item_id) ||
                 caps.captions?.find(c => c.caption_id === item.linked_caption_id) ||
                 caps.captions?.find(c => c.caption_id === item.linked_blueprint_id);
@@ -620,8 +635,12 @@ async function runLive() {
     const integration = INTEGRATIONS[platform] || INTEGRATIONS.instagram;
     const channel = CHANNEL_TO_PROVIDER[integration.provider] || platform;
 
-    const captionText = cap?.medium_caption || cap?.short_caption ||
-                        `${item.hook_text || blueprint?.hook_overlay_text || ''}\n\nSwing Shack\nLink in bio · Book your session`;
+    // Caption precedence: canonical asset.caption (truth) > caption record > fallback.
+    // This ensures Postiz receives the full approved caption, not the 220-char queue preview.
+    const captionText = canonicalCaption
+      || cap?.medium_caption
+      || cap?.short_caption
+      || `${item.hook_text || blueprint?.hook_overlay_text || ''}\n\nSwing Shack\nLink in bio · Book your session`;
 
     const payload = {
       type: 'draft',  // Step 78: only "draft" or "schedule" per Postiz API
@@ -633,14 +652,6 @@ async function runLive() {
         settings: { message: captionText.substring(0, 2200) },
       }],
     };
-
-    // Step 1: Resolve asset
-    const assetMatch = resolveAssetForItem(item);
-    if (!assetMatch) {
-      skips.push({ item_id: item.item_id, reason: 'asset_not_found_in_canonical' });
-      continue;
-    }
-    const { campaignId, assetId } = assetMatch;
 
     // Step 2: Call Postiz (real or fixture)
     let response;
