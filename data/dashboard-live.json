@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-23T10:00:05.279Z",
+  "lastUpdated": "2026-07-23T16:00:05.221Z",
   "source": "automated",
   "website": {
-    "activeUsers": 694,
-    "sessions": 879,
-    "pageViews": 1445,
-    "avgSessionSeconds": 93.70017866552901,
-    "bounceRate": 0.5358361774744027,
+    "activeUsers": 712,
+    "sessions": 906,
+    "pageViews": 1503,
+    "avgSessionSeconds": 95.79453350993377,
+    "bounceRate": 0.5496688741721855,
     "topPages": [
       {
         "path": "/",
-        "views": 746
+        "views": 774
       },
       {
         "path": "/bookings/",
-        "views": 305
+        "views": 320
       },
       {
         "path": "/customer-portal/",
-        "views": 201
+        "views": 208
       },
       {
         "path": "/club-fitting/",
-        "views": 68
+        "views": 71
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 57
+        "views": 60
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -45,38 +45,38 @@
         "views": 9
       },
       {
-        "path": "/404.html",
-        "views": 6
+        "path": "/membership/",
+        "views": 7
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 330
+        "sessions": 345
       },
       {
         "source": "fb",
-        "sessions": 260
+        "sessions": 265
       },
       {
         "source": "(direct)",
-        "sessions": 158
+        "sessions": 160
       },
       {
         "source": "clublab.app",
-        "sessions": 48
-      },
-      {
-        "source": "bing",
-        "sessions": 23
+        "sessions": 49
       },
       {
         "source": "(not set)",
-        "sessions": 15
+        "sessions": 27
+      },
+      {
+        "source": "bing",
+        "sessions": 24
       },
       {
         "source": "ig",
-        "sessions": 10
+        "sessions": 11
       },
       {
         "source": "instagram",
@@ -88,17 +88,17 @@
       },
       {
         "source": "paid_meta",
-        "sessions": 6
+        "sessions": 7
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 632
+        "sessions": 650
       },
       {
         "device": "desktop",
-        "sessions": 239
+        "sessions": 248
       },
       {
         "device": "tablet",
@@ -109,8 +109,8 @@
   "searchConsole": [
     {
       "query": "swing shack",
-      "clicks": 215,
-      "impressions": 465,
+      "clicks": 223,
+      "impressions": 481,
       "position": "2.5"
     },
     {
@@ -121,27 +121,33 @@
     },
     {
       "query": "takomo irons south africa",
-      "clicks": 67,
-      "impressions": 290,
+      "clicks": 68,
+      "impressions": 296,
       "position": "2.2"
     },
     {
       "query": "takomo south africa",
-      "clicks": 27,
-      "impressions": 91,
+      "clicks": 29,
+      "impressions": 95,
       "position": "2.7"
     },
     {
       "query": "golf simulator",
       "clicks": 17,
-      "impressions": 1041,
+      "impressions": 1065,
       "position": "6.8"
     },
     {
       "query": "takomo irons",
       "clicks": 10,
-      "impressions": 176,
-      "position": "4.0"
+      "impressions": 192,
+      "position": "3.9"
+    },
+    {
+      "query": "golf simulator johannesburg",
+      "clicks": 9,
+      "impressions": 84,
+      "position": "2.2"
     },
     {
       "query": "swing shack golf",
@@ -150,22 +156,16 @@
       "position": "2.2"
     },
     {
-      "query": "golf simulator johannesburg",
+      "query": "golf shack",
       "clicks": 8,
-      "impressions": 78,
-      "position": "2.2"
+      "impressions": 35,
+      "position": "2.5"
     },
     {
       "query": "indoor golf johannesburg",
       "clicks": 8,
-      "impressions": 75,
+      "impressions": 76,
       "position": "3.0"
-    },
-    {
-      "query": "vice golf balls south africa",
-      "clicks": 8,
-      "impressions": 50,
-      "position": "2.9"
     }
   ],
   "instagram": {}
