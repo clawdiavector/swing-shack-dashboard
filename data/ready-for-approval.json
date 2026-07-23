@@ -1,13 +1,13 @@
 {
   "schema": "https://clawdia.io/agents/qa-inspector/v1",
-  "generated": "2026-07-23T10:03:02.607Z",
+  "generated": "2026-07-23T11:44:41.472Z",
   "source": "campaign-os+legacy-merge",
-  "count": 85,
-  "campaignOsCount": 0,
+  "count": 86,
+  "campaignOsCount": 1,
   "legacyCount": 85,
   "skipped": {
     "alreadyPublished": 0,
-    "totalScheduled": 0
+    "totalScheduled": 1
   },
   "items": [
     {
@@ -561,6 +561,26 @@
       "issues": [],
       "passed_checks": 4,
       "total_checks": 4
+    },
+    {
+      "item_id": "use-the-right-equipment-mq5l90bk-feed-post-04",
+      "linked_blueprint_id": "use-the-right-equipment-mq5l90bk-feed-post-04",
+      "linked_hook_id": "feed-post-the-fitting-solution-positioning-professional-fitting-as-the-obvious-a",
+      "item_type": "feed-post",
+      "platform": "instagram",
+      "format_type": "static",
+      "hook_text": "Your swing has been asking for these clubs. A fitting finally let them answer.\n\nThis isn't about expensive equipment. It's about equipment that's right for you.\n\nThe moment everything clicks — when you finally hit the sw",
+      "verdict": "pass",
+      "issues": [],
+      "passed_checks": 4,
+      "total_checks": 4,
+      "owner": "copywriter",
+      "days_in_queue": 0,
+      "priority": "normal",
+      "queue_owner": "campaign-os-generator",
+      "generated_at": "2026-07-23T11:44:41.472Z",
+      "source": "campaign-os",
+      "campaign_id": "use-the-right-equipment-mq5l90bk"
     },
     {
       "item_id": "var-0vn1ajbk",

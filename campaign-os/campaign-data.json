@@ -699,7 +699,7 @@
         "campaignId": "use-the-right-equipment-mq5l90bk",
         "name": "Use the Right Equipment",
         "campaignType": "Awareness",
-        "status": "generatingBlueprint",
+        "status": "active",
         "primaryGoal": "Bookings",
         "healthScore": null,
         "healthState": "unknown",
@@ -34627,8 +34627,25 @@
           "angleId": "sa-7",
           "finding": "Dominant false belief: 'My swing is the problem, not my clubs' — this is the #1 objection. P2 (Performance Tax) provides the data that disproves this. The misattribution is the core marketing challenge."
         }
+      ],
+      "history": [
+        {
+          "action": "campaign-activated",
+          "at": "2026-07-23T11:44:41.472Z",
+          "by": "christelle",
+          "reason": "Campaign activation approved after readiness proof",
+          "evidence": {
+            "scheduledAssetIds": [
+              "use-the-right-equipment-mq5l90bk-feed-post-04"
+            ],
+            "fromStatus": "generatingBlueprint",
+            "toStatus": "active",
+            "by": "christelle",
+            "at": "2026-07-23T11:44:41.472Z"
+          }
+        }
       ]
     }
   },
-  "updatedAt": "2026-07-23T10:03:02.607Z"
+  "updatedAt": "2026-07-23T11:44:41.472Z"
 }
