@@ -405,11 +405,16 @@ function evaluatePublishStatus(asset, history, ext, observations) {
     (captionState === undefined && captionEventApproved) ||
     (typeof asset.caption === 'string' && asset.caption.length >= 100 && !history.some(h => h && h.action === 'caption-rejected'));
 
-  const visualApproved =
-    visualState === 'approved' ||
-    visualState === 'skipped' ||
-    (visualState === undefined && asset.assetType === 'research') ||
-    (visualState === undefined && visualEventApproved);
+  var visualApproved =
+        visualState==='approved' ||
+        visualState==='skipped' ||
+        (visualState===undefined && asset.assetType==='research') ||
+        (visualState===undefined && visualEventApproved) ||
+        // Field is stale (still at brief-written/generated) but the
+        // canonical visual-approved event is in history. The engine
+        // treats the event as authoritative when the field hasn't been
+        // re-applied yet in this call.
+        ((visualState==='brief-written' || visualState==='generated') && visualEventApproved);
 
   const approvalApproved =
     approvalState === 'approved' ||

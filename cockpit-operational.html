@@ -6048,7 +6048,11 @@ function handleAssetSubmit(e) {
       visualState==='approved' ||
       visualState==='skipped' ||
       (visualState===undefined && asset.assetType==='research') ||
-      (visualState===undefined && visualEventApproved);
+      (visualState===undefined && visualEventApproved) ||
+      // Field is stale but canonical visual-approved event in history.
+      // Engine treats event as authoritative when field hasn't been
+      // re-applied yet in this call.
+      ((visualState==='brief-written' || visualState==='generated') && visualEventApproved);
     var approvalApproved =
       approvalState==='approved' ||
       (approvalState===undefined && approvalEventApproved);
