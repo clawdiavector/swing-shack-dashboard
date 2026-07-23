@@ -99,22 +99,28 @@ section('4. takomo-101t-visual-a gate2-failed sticky');
   assert('approvalStatus = rejected', r.approvalStatus === 'rejected');
 }
 
-section('5. 36 use-the-right-equipment assets stay at publishStatus=planned');
+section('5. 36 use-the-right-equipment assets — 35 planned, 1 scheduled');
 {
+  // Step 88 Phase 3 (controlled approval proof) advanced
+  // use-the-right-equipment-mq5l90bk-feed-post-04 from planned to
+  // scheduled. The other 35 stay at planned.
   const data = JSON.parse(fs.readFileSync(CANONICAL_PATH, 'utf8'));
   const c = data.campaigns['use-the-right-equipment-mq5l90bk'];
   let allPlanned = true;
   let count = 0;
+  let scheduled = 0;
   for (const [aid, a] of Object.entries(c.assets)) {
     const r = eng.evaluateAsset(a, a.history, {});
     count++;
-    if (r.publishStatus !== 'planned') {
+    if (r.publishStatus === 'scheduled') scheduled++;
+    if (r.publishStatus !== 'planned' && r.publishStatus !== 'scheduled') {
       allPlanned = false;
       results.push(`  WARN  ${aid}: publishStatus=${r.publishStatus}`);
     }
   }
   assert('36 use-the-right-equipment assets evaluated', count === 36);
-  assert('all 36 publishStatus = planned', allPlanned);
+  assert('exactly 1 use-the-right-equipment asset at scheduled', scheduled === 1);
+  assert('all 36 use-the-right-equipment assets are planned or scheduled', allPlanned);
 }
 
 section('6. Asset history lengths unchanged after dry-run');
