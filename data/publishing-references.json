@@ -1,0 +1,45 @@
+{
+  "schema": "https://clawdia.io/agents/publisher/publishing-references/v1",
+  "generated": "2026-07-24T10:14:07.017Z",
+  "sourceCampaignSha256": "7431524360f88b3a2a900553802adeb0781acb731ca0168ff749e8018ff95b66",
+  "sourceCampaignFile": "campaign-os/campaign-data.json",
+  "regenerationMode": "incremental-after-write",
+  "count": 1,
+  "references": [
+    {
+      "publishingId": "pub-cxrcx1wc",
+      "assetId": "use-the-right-equipment-mq5l90bk-feed-post-04",
+      "campaignId": "use-the-right-equipment-mq5l90bk",
+      "postizPostId": "cmrypnzq802fspe0ynp1nu3vb",
+      "integrationId": "cmnfoum2703e6ql0yiajgcg21",
+      "integrationProvider": "instagram",
+      "channel": "instagram",
+      "releaseURL": null,
+      "releaseId": null,
+      "platformMediaId": null,
+      "currentStatus": "draft",
+      "createdAt": "2026-07-24T10:02:18.660Z",
+      "scheduledAt": "2026-07-24T09:01:33.500Z",
+      "publishedAt": null,
+      "provenance": {
+        "source": "publisher-reconciliation",
+        "runId": "run-hir63yf8",
+        "actor": "publisher",
+        "publishedVia": "reconciliation",
+        "chain": [
+          "publisher-reconciliation"
+        ],
+        "rawResponseRef": {
+          "hash": "540937ba93258fdf9d533e3c9330668a1db83a61970d1dec4a4074a9b1b787c4",
+          "path": "data/events/postiz/540937ba93258fdf9d533e3c9330668a1db83a61970d1dec4a4074a9b1b787c4.json",
+          "capturedAt": "2026-07-24T10:02:18.660Z"
+        },
+        "reconciledFrom": {
+          "orphanPostizPostId": "cmrypnzq802fspe0ynp1nu3vb",
+          "sourceRunId": null,
+          "reconciledAt": "2026-07-24T10:02:18.660Z"
+        }
+      }
+    }
+  ]
+}

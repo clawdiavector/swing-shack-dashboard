@@ -406,7 +406,7 @@ class InvalidStatusTransitionError extends Error {
 
 // ── Build publishing reference from Postiz response ──────────────────────
 function buildPublishingReference({
-  assetId, campaignId, response, fixture, runId, actor,
+  assetId, campaignId, response, fixture, runId, actor, isReconciliation,
 }) {
   // The postiz response is the source of truth for post-side facts.
   // We project to our canonical reference shape; null where the upstream
@@ -461,23 +461,32 @@ function buildPublishingReference({
     scheduledAt: isScheduled ? publishDateIso : null,
     publishedAt: isPublished ? publishDateIso : null,
     provenance: {
-      source: LIVE_MODE ? 'publisher' : 'publisher-fixture',
+      source: isReconciliation ? 'publisher-reconciliation' : (LIVE_MODE ? 'publisher' : 'publisher-fixture'),
       runId,
       actor,
-      publishedVia: isFixtureMode() ? 'fixture' : 'postiz-api',
-      chain: [isFixtureMode() ? 'publisher-fixture' : 'publisher', 'postiz-api'],
+      publishedVia: isReconciliation ? 'reconciliation' : (isFixtureMode() ? 'fixture' : 'postiz-api'),
+      chain: isReconciliation ? ['publisher-reconciliation'] : [isFixtureMode() ? 'publisher-fixture' : 'publisher', 'postiz-api'],
       rawResponseRef: {
         hash: rawRef.hash,
         path: path.relative(REPO_ROOT, rawRef.path),
         capturedAt: now,
       },
+      // Step 95: when the canonical entry was reconciled from an existing Postiz
+      // orphan (no fresh API call), record the source run + draft ID so the
+      // audit trail is unambiguous.
+      reconciledFrom: isReconciliation ? {
+        orphanPostizPostId: response.id,
+        sourceRunId: typeof fixture?.runId === 'string' ? fixture.runId : null,
+        reconciledAt: now,
+      } : undefined,
     },
     history: [
       {
         action: 'created',
         at: now,
         by: actor,
-        reason: currentStatus === 'draft' ? 'draft_created'
+        reason: isReconciliation ? 'orphan_reconciled'
+              : currentStatus === 'draft' ? 'draft_created'
               : currentStatus === 'published' ? 'direct_publish'
               : null,
         rawResponseHash: rawRef.hash,
@@ -1108,6 +1117,7 @@ async function runLive() {
         fixture: usedFixture ? response : null,
         runId,
         actor,
+        isReconciliation: usedReconciliation,
       });
       appendReferenceToCanonical(ref, campaignId);
 

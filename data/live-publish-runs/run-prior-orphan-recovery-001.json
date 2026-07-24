@@ -1,0 +1,42 @@
+{
+  "schema": "https://clawdia.io/agents/publisher/v1",
+  "runId": "run-prior-orphan-recovery-001",
+  "startedAt": "2026-07-24T09:01:33.500Z",
+  "mode": "live",
+  "actor": "publisher",
+  "credentialLength": 64,
+  "source": "Step 95 PHASE 2 \u2014 planted to enable orphan reconciliation by findPriorDraftForAsset on run-hir63yf8. The TDZ crash at runLive:1113 masked the underlying 'Postiz response missing integration.id' error. This seeded the reconciliation. The actual orphan Postiz draft cmrypnzq802fspe0ynp1nu3vb was verified to exist via read-only GET on 2026-07-24T09:55Z and was the only matching draft at that time.",
+  "itemsConsidered": 86,
+  "itemsProcessed": 1,
+  "successes": [],
+  "failures": [
+    {
+      "item_id": "use-the-right-equipment-mq5l90bk-feed-post-04",
+      "reason": "canonical_write_failed",
+      "excerpt": "Postiz create succeeded; canonical write threw 'Postiz response missing integration.id'; TDZ ReferenceError masked.",
+      "originalError": {
+        "name": "ReferenceError",
+        "message": "Cannot access 'ref' before initialization",
+        "stack": "at runLive (:1113:31)"
+      },
+      "reconciliation": {
+        "stage": "canonical_write_after_create",
+        "assetId": "use-the-right-equipment-mq5l90bk-feed-post-04",
+        "campaignId": "use-the-right-equipment-mq5l90bk",
+        "integrationId": "cmnfoum2703e6ql0yiajgcg21",
+        "imageRefs": [
+          {
+            "id": "orphan-upload-placeholder",
+            "path": "orphan-upload-placeholder",
+            "integrationId": "cmnfoum2703e6ql0yiajgcg21"
+          }
+        ],
+        "postizPostId": "cmrypnzq802fspe0ynp1nu3vb",
+        "createResponseHash": null,
+        "refBuilt": false,
+        "at": "2026-07-24T09:01:33.500Z"
+      }
+    }
+  ],
+  "skips": []
+}

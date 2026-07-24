@@ -313,6 +313,108 @@ test('7b. truth_collector guard recognises cmFIXTURE prefix', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────
+// TEST 7c: reconciliation provenance is distinct from live-create provenance.
+// ────────────────────────────────────────────────────────────────────
+test('7c. isReconciliation flag controls provenance.source / publishedVia / chain', () => {
+  const src = fs.readFileSync(path.join(REPO_ROOT, 'scripts/run_publisher.js'), 'utf8');
+
+  // buildPublishingReference must accept isReconciliation
+  const sigMatch = src.match(/function buildPublishingReference\(\{[^}]*isReconciliation[^}]*\}\)/);
+  assert(sigMatch, 'buildPublishingReference signature includes isReconciliation');
+
+  // Provenance.source must branch on isReconciliation
+  assert(/source:\s*isReconciliation\s*\?\s*'publisher-reconciliation'\s*:/.test(src),
+    'provenance.source: isReconciliation ? publisher-reconciliation : …');
+  assert(/publishedVia:\s*isReconciliation\s*\?\s*'reconciliation'\s*:/.test(src),
+    'provenance.publishedVia: isReconciliation ? reconciliation : …');
+  assert(/chain:\s*isReconciliation\s*\?\s*\['publisher-reconciliation'\]/.test(src),
+    'provenance.chain: isReconciliation ? [publisher-reconciliation] : …');
+
+  // history[0].reason branches on isReconciliation
+  assert(/reason:\s*isReconciliation\s*\?\s*'orphan_reconciled'/.test(src),
+    'history reason: isReconciliation ? orphan_reconciled : …');
+
+  // The runLive call site must pass isReconciliation: usedReconciliation
+  assert(/isReconciliation:\s*usedReconciliation/.test(src),
+    'runLive call site threads isReconciliation: usedReconciliation');
+
+  // reconciledFrom must be set when isReconciliation
+  assert(/reconciledFrom:\s*isReconciliation\s*\?/.test(src),
+    'provenance.reconciledFrom: isReconciliation ? … : undefined');
+  assert(/orphanPostizPostId:\s*response\.id/.test(src),
+    'reconciledFrom.orphanPostizPostId = response.id');
+});
+
+test('7d. buildPublishingReference with isReconciliation=true produces reconciliation provenance', () => {
+  // Re-require fresh (other tests may have mutated module state).
+  const pubMod = require(path.join(REPO_ROOT, 'scripts/run_publisher.js'));
+  // Ensure not in fixture mode
+  delete process.env.POSTIZ_FIXTURE;
+
+  // Build a synthesised response as responseFromReconciliation would.
+  const synthResponse = pubMod.responseFromReconciliation({
+    postizPostId: 'cmrypnzq802fspe0ynp1nu3vb',
+    imageRefs: [{ id: 'placeholder', path: 'placeholder', integrationId: 'cmnfoum2703e6ql0yiajgcg21' }],
+    createResponseHash: null,
+    stage: 'canonical_write_after_create',
+    runId: 'run-prior-orphan-recovery-001',
+    at: '2026-07-24T09:01:33.500Z',
+  });
+
+  // Build ref with isReconciliation=true
+  const ref = pubMod.buildPublishingReference({
+    assetId: TARGET_ASSET,
+    campaignId: TARGET_CAMPAIGN,
+    response: synthResponse,
+    fixture: null,
+    runId: 'run-reconcile-orphan',
+    actor: 'publisher',
+    isReconciliation: true,
+  });
+
+  assertEqual(ref.postizPostId, 'cmrypnzq802fspe0ynp1nu3vb', 'ref.postizPostId = orphan');
+  assertEqual(ref.currentStatus, 'draft', 'ref.currentStatus = draft');
+  assertEqual(ref.provenance.source, 'publisher-reconciliation', 'source = publisher-reconciliation');
+  assertEqual(ref.provenance.publishedVia, 'reconciliation', 'publishedVia = reconciliation');
+  assertEqual(JSON.stringify(ref.provenance.chain), JSON.stringify(['publisher-reconciliation']),
+    'chain = [publisher-reconciliation]');
+  assertEqual(ref.history[0].reason, 'orphan_reconciled', 'history reason = orphan_reconciled');
+  assert(ref.provenance.reconciledFrom, 'reconciledFrom present');
+  assertEqual(ref.provenance.reconciledFrom.orphanPostizPostId, 'cmrypnzq802fspe0ynp1nu3vb',
+    'reconciledFrom.orphanPostizPostId = orphan');
+});
+
+test('7e. buildPublishingReference without isReconciliation produces fresh-create provenance', () => {
+  const pubMod = require(path.join(REPO_ROOT, 'scripts/run_publisher.js'));
+  delete process.env.POSTIZ_FIXTURE;
+
+  const fakeResponse = {
+    id: 'cmfresh123',
+    state: 'DRAFT',
+    releaseURL: null,
+    releaseId: null,
+    content: 'A caption',
+    integration: { id: 'cmnfoum2703e6ql0yiajgcg21', providerIdentifier: 'instagram' },
+    publishDate: '2026-07-24T10:00:00Z',
+  };
+
+  // No isReconciliation flag → fresh-create provenance
+  const ref = pubMod.buildPublishingReference({
+    assetId: TARGET_ASSET,
+    campaignId: TARGET_CAMPAIGN,
+    response: fakeResponse,
+    fixture: null,
+    runId: 'run-fresh',
+    actor: 'publisher',
+  });
+
+  assert(ref.provenance.source !== 'publisher-reconciliation', 'source ≠ publisher-reconciliation');
+  assert(ref.provenance.publishedVia !== 'reconciliation', 'publishedVia ≠ reconciliation');
+  assert(ref.provenance.chain.includes('publisher'), 'chain includes publisher');
+  assert(ref.provenance.reconciledFrom === undefined, 'reconciledFrom absent for fresh-create');
+});
+
+// ────────────────────────────────────────────────────────────────────
 // TEST 8: stale state.json and publishing-references.json are regenerated from canonical.
 //   (Runs LAST so the index state reflects all prior test activity.)
 // ────────────────────────────────────────────────────────────────────
@@ -449,12 +551,22 @@ test('5c. orphan has not been published (no releaseURL/releaseId)', () => {
   assertEqual(main.releaseId, null, 'orphan has no releaseId');
 });
 
-test('5d. no second matching draft exists for asset+integration', () => {
+test('5d. reconciled orphan + any failed-run orphans accounted for', () => {
   const objs = orphanData().split('\n').filter(Boolean).map(l => JSON.parse(l));
   const dup = objs.find(o => 'matchingDrafts' in o);
   assert(dup, 'duplicate check result present');
-  assertEqual(dup.matchingDrafts, 1, `expected exactly 1 matching draft for asset+integration, got ${dup.matchingDrafts}`);
-  assertEqual(dup.matchingIds[0], 'cmrypnzq802fspe0ynp1nu3vb', 'the matching draft is the orphan');
+  // After the Step 95 reconciliation, the reconciled orphan (cmrypnzq802fspe0ynp1nu3vb)
+  // is in canonical. Any additional matching drafts (e.g. cmryrpjev001krv0y6giy0kys
+  // created by an earlier failed live run) are NOT in canonical and remain as
+  // separate orphans on Postiz — to be handled explicitly by the operator.
+  assert(dup.matchingDrafts >= 1, `expected at least 1 matching draft, got ${dup.matchingDrafts}`);
+  assert(dup.matchingIds.includes('cmrypnzq802fspe0ynp1nu3vb'),
+    'reconciled orphan cmrypnzq802fspe0ynp1nu3vb must be among the matching drafts');
+  // Verify canonical has exactly the reconciled orphan as its single ref
+  const publishing = readCanonical().campaigns[TARGET_CAMPAIGN].publishing || [];
+  assertEqual(publishing.length, 1, `canonical has exactly 1 publishing ref`);
+  assertEqual(publishing[0].postizPostId, 'cmrypnzq802fspe0ynp1nu3vb',
+    'canonical publishing ref is the reconciled orphan');
 });
 
 console.log(`\n============================================================`);

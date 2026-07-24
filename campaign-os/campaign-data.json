@@ -1107,6 +1107,16 @@
               "by": "christelle",
               "at": "2026-07-23T10:02:39.059Z",
               "reason": "Approved for controlled Stage 4 publishing proof"
+            },
+            {
+              "action": "publish-draft-created",
+              "by": "publisher",
+              "at": "2026-07-24T10:02:18.713Z",
+              "postizPostId": "cmrypnzq802fspe0ynp1nu3vb",
+              "releaseURL": null,
+              "releaseId": null,
+              "currentStatus": "draft",
+              "reason": "postiz_returned_draft"
             }
           ],
           "copyDirection": "Solution-oriented and reassuring. Position fitting as the obvious answer that was always available — not a luxury but a revelation. Bridge the gap between the problems named in P2 and this clear solution. Make booking feel like the natural next step.",
@@ -34643,6 +34653,52 @@
             "by": "christelle",
             "at": "2026-07-23T11:44:41.472Z"
           }
+        }
+      ],
+      "publishing": [
+        {
+          "publishingId": "pub-cxrcx1wc",
+          "assetId": "use-the-right-equipment-mq5l90bk-feed-post-04",
+          "campaignId": "use-the-right-equipment-mq5l90bk",
+          "postizPostId": "cmrypnzq802fspe0ynp1nu3vb",
+          "integrationId": "cmnfoum2703e6ql0yiajgcg21",
+          "integrationProvider": "instagram",
+          "channel": "instagram",
+          "releaseURL": null,
+          "releaseId": null,
+          "platformMediaId": null,
+          "currentStatus": "draft",
+          "createdAt": "2026-07-24T10:02:18.660Z",
+          "scheduledAt": "2026-07-24T09:01:33.500Z",
+          "publishedAt": null,
+          "provenance": {
+            "source": "publisher-reconciliation",
+            "runId": "run-hir63yf8",
+            "actor": "publisher",
+            "publishedVia": "reconciliation",
+            "chain": [
+              "publisher-reconciliation"
+            ],
+            "rawResponseRef": {
+              "hash": "540937ba93258fdf9d533e3c9330668a1db83a61970d1dec4a4074a9b1b787c4",
+              "path": "data/events/postiz/540937ba93258fdf9d533e3c9330668a1db83a61970d1dec4a4074a9b1b787c4.json",
+              "capturedAt": "2026-07-24T10:02:18.660Z"
+            },
+            "reconciledFrom": {
+              "orphanPostizPostId": "cmrypnzq802fspe0ynp1nu3vb",
+              "sourceRunId": null,
+              "reconciledAt": "2026-07-24T10:02:18.660Z"
+            }
+          },
+          "history": [
+            {
+              "action": "created",
+              "at": "2026-07-24T10:02:18.660Z",
+              "by": "publisher",
+              "reason": "orphan_reconciled",
+              "rawResponseHash": "540937ba93258fdf9d533e3c9330668a1db83a61970d1dec4a4074a9b1b787c4"
+            }
+          ]
         }
       ]
     }

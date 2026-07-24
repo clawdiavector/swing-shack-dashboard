@@ -103,6 +103,13 @@ function snapshotAll() {
     state: fs.existsSync(STATE_PATH) ? fs.readFileSync(STATE_PATH, 'utf8') : null,
     index: fs.existsSync(INDEX_PATH) ? fs.readFileSync(INDEX_PATH, 'utf8') : null,
     events: fs.existsSync(EVENTS_DIR) ? fs.readdirSync(EVENTS_DIR) : [],
+    // Snapshot live-publish-runs files so test runs don't pollute the audit dir.
+    // The reconciliation records (e.g. run-prior-orphan-recovery-001.json) are
+    // referenced by future runs for orphan recovery, so they must be preserved
+    // across test invocations.
+    runFiles: fs.existsSync(path.join(DATA, 'live-publish-runs'))
+      ? fs.readdirSync(path.join(DATA, 'live-publish-runs'))
+      : [],
   };
 }
 
@@ -118,11 +125,45 @@ function restoreAll(snap) {
   } else {
     fs.writeFileSync(INDEX_PATH, snap.index);
   }
-  // Remove any events created during the test
+  // Remove any events created during the test (BUT preserve canonical-referenced
+  // event files — those are referenced by publishing[] entries and must not
+  // be deleted even if the test happened to be the one that created them).
   if (fs.existsSync(EVENTS_DIR)) {
+    const referencedHashes = new Set();
+    try {
+      const canonical = JSON.parse(fs.readFileSync(CANONICAL_PATH, 'utf8'));
+      for (const cid of Object.keys(canonical.campaigns || {})) {
+        for (const r of (canonical.campaigns[cid].publishing || [])) {
+          if (r.provenance && r.provenance.rawResponseRef && r.provenance.rawResponseRef.hash) {
+            referencedHashes.add(`${r.provenance.rawResponseRef.hash}.json`);
+          }
+        }
+      }
+    } catch (_) { /* best-effort */ }
     for (const fn of fs.readdirSync(EVENTS_DIR)) {
-      if (!snap.events.includes(fn)) {
+      if (!snap.events.includes(fn) && !referencedHashes.has(fn)) {
         fs.unlinkSync(path.join(EVENTS_DIR, fn));
+      }
+    }
+  }
+  // Remove any live-publish-runs files created during the test (BUT preserve
+  // canonical-referenced run files — those may be referenced by future
+  // reconciliation runs and by audit chains).
+  const runsDir = path.join(DATA, 'live-publish-runs');
+  if (fs.existsSync(runsDir)) {
+    const referencedRunIds = new Set();
+    try {
+      const canonical = JSON.parse(fs.readFileSync(CANONICAL_PATH, 'utf8'));
+      for (const cid of Object.keys(canonical.campaigns || {})) {
+        for (const r of (canonical.campaigns[cid].publishing || [])) {
+          if (r.provenance && r.provenance.runId) referencedRunIds.add(`${r.provenance.runId}.json`);
+        }
+      }
+    } catch (_) { /* best-effort */ }
+    for (const fn of fs.readdirSync(runsDir)) {
+      const isPlantedSeed = /^run-prior-orphan-recovery-.*\.json$/.test(fn);
+      if (!snap.runFiles.includes(fn) && !referencedRunIds.has(fn) && !isPlantedSeed) {
+        fs.unlinkSync(path.join(runsDir, fn));
       }
     }
   }
@@ -551,16 +592,21 @@ test('regenerate after write produces fresh index with matching SHA', () => {
       assetId: 'a-regen', campaignId: 'use-the-right-equipment-mq5l90bk',
       response, fixture: response, runId: 'r', actor: 't',
     });
+    // Snapshot the baseline count (may include a pre-existing reconciled ref
+    // from prior Step 95 reconciliation runs).
+    const baselineCount =
+      (JSON.parse(fs.readFileSync(CANONICAL_PATH, 'utf8'))
+        .campaigns['use-the-right-equipment-mq5l90bk'].publishing || []).length;
     pub.appendReferenceToCanonical(ref, 'use-the-right-equipment-mq5l90bk');
     const regenResult = regenerate();
     assert(regenResult.ok, 'regen ok');
-    assertEqual(regenResult.referenceCount, 1, '1 reference in index');
+    assertEqual(regenResult.referenceCount, baselineCount + 1, 'referenceCount grew by 1');
     assertEqual(regenResult.canonicalSha256, sha256File(CANONICAL_PATH), 'regen sha256 matches canonical');
 
     const index = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf8'));
     assertEqual(index.sourceCampaignSha256, regenResult.canonicalSha256, 'index sourceCampaignSha256 matches');
-    assertEqual(index.count, 1, 'index count matches');
-    assertEqual(index.references[0].postizPostId, ref.postizPostId, 'postizPostId in index');
+    assertEqual(index.count, baselineCount + 1, 'index count matches');
+    assert(index.references.some(r => r.postizPostId === ref.postizPostId), 'new postizPostId in index');
 
     // State file updated
     assert(fs.existsSync(STATE_PATH), 'state.json exists');
@@ -707,30 +753,66 @@ test('runLive in fixture mode creates 1 reference + 1 events file + fresh index'
       }
     }
 
-    // Remove runLive's live-publish-runs directory and all its files (always, not
-// only when empty — runLive always creates a run log file inside).
+    // Remove runLive's live-publish-runs directory and all its files — EXCEPT
+    // canonical-referenced run files (those are audit-chain records that must
+    // survive test runs). When canonical publishes[] references a runId, that
+    // run file is preserved.
     const runsDir = path.join(DATA, 'live-publish-runs');
     if (fs.existsSync(runsDir)) {
+      const referencedRunIds = new Set();
+      try {
+        const canonical = JSON.parse(fs.readFileSync(CANONICAL_PATH, 'utf8'));
+        for (const cid of Object.keys(canonical.campaigns || {})) {
+          for (const r of (canonical.campaigns[cid].publishing || [])) {
+            if (r.provenance && r.provenance.runId) referencedRunIds.add(`${r.provenance.runId}.json`);
+          }
+        }
+      } catch (_) { /* best-effort */ }
       try {
         for (const fn of fs.readdirSync(runsDir)) {
-          fs.unlinkSync(path.join(runsDir, fn));
+          // Preserve files referenced by canonical AND planted orphan-recovery seeds
+          // (named like run-prior-orphan-recovery-*.json — these enable the
+          // reconciliation path on subsequent runs).
+          const isPlantedSeed = /^run-prior-orphan-recovery-.*\.json$/.test(fn);
+          if (!referencedRunIds.has(fn) && !isPlantedSeed) {
+            fs.unlinkSync(path.join(runsDir, fn));
+          }
         }
-        fs.rmdirSync(runsDir);
+        // Remove the directory only if empty after deletions.
+        if (fs.existsSync(runsDir) && fs.readdirSync(runsDir).length === 0) {
+          fs.rmdirSync(runsDir);
+        }
       } catch (e) { /* best-effort */ }
     }
 
-    // Same for data/events/postiz — runLive's persistRawResponse writes here
+    // Same for data/events/postiz — EXCEPT canonical-referenced event files
+    // (those are referenced by publishing[].provenance.rawResponseRef.path).
     const eventsPostizDir = path.join(DATA, 'events', 'postiz');
     if (fs.existsSync(eventsPostizDir)) {
+      const referencedHashes = new Set();
+      try {
+        const canonical = JSON.parse(fs.readFileSync(CANONICAL_PATH, 'utf8'));
+        for (const cid of Object.keys(canonical.campaigns || {})) {
+          for (const r of (canonical.campaigns[cid].publishing || [])) {
+            if (r.provenance && r.provenance.rawResponseRef && r.provenance.rawResponseRef.hash) {
+              referencedHashes.add(`${r.provenance.rawResponseRef.hash}.json`);
+            }
+          }
+        }
+      } catch (_) { /* best-effort */ }
       try {
         for (const fn of fs.readdirSync(eventsPostizDir)) {
-          fs.unlinkSync(path.join(eventsPostizDir, fn));
+          if (!referencedHashes.has(fn)) {
+            fs.unlinkSync(path.join(eventsPostizDir, fn));
+          }
         }
-        fs.rmdirSync(eventsPostizDir);
-        // Also remove the parent 'events' dir if empty
-        const eventsParent = path.join(DATA, 'events');
-        if (fs.existsSync(eventsParent) && fs.readdirSync(eventsParent).length === 0) {
-          fs.rmdirSync(eventsParent);
+        if (fs.existsSync(eventsPostizDir) && fs.readdirSync(eventsPostizDir).length === 0) {
+          fs.rmdirSync(eventsPostizDir);
+          // Also remove the parent 'events' dir if empty
+          const eventsParent = path.join(DATA, 'events');
+          if (fs.existsSync(eventsParent) && fs.readdirSync(eventsParent).length === 0) {
+            fs.rmdirSync(eventsParent);
+          }
         }
       } catch (e) { /* best-effort */ }
     }

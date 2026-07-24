@@ -358,6 +358,9 @@ test('Live path: failed postizUpload records failure with reconciliation entry',
     const aid = 'use-the-right-equipment-mq5l90bk-feed-post-04';
     if (!canonical.campaigns[cid]) canonical.campaigns[cid] = { identity: { campaignId: cid, status: 'active' }, assets: {} };
     canonical.campaigns[cid].identity.status = 'active';
+    // Clear publishing[] (may contain a pre-existing reconciled ref from
+    // prior Step 95 reconciliation runs that we don't want to inherit).
+    canonical.campaigns[cid].publishing = [];
     canonical.campaigns[cid].assets[aid] = {
       assetId: aid,
       assetType: 'feed-post',
