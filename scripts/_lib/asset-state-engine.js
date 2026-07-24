@@ -65,8 +65,15 @@ const KNOWN_HISTORY_ACTIONS = [
   'visual-generated', 'visual-revised', 'visual-approved', 'visual-rejected',
   // canonical approval lifecycle
   'approval-requested', 'approval-approved', 'approval-rejected',
-  // canonical publish lifecycle
-  'publish-requested', 'publish-confirmed', 'publish-failed',
+  // canonical publish lifecycle (Step 94b: split the publish lifecycle so a
+  // draft, scheduled, and live outcome each have a truthful event name).
+  //   publish-draft-created: Postiz returned a draft (not live)
+  //   publish-scheduled:     Postiz returned a scheduled post
+  //   publish-confirmed:     Postiz returned a live/published post
+  //   publish-failed:        Postiz returned a failure
+  // Only publish-confirmed may move publishStatus to 'live'.
+  'publish-requested', 'publish-draft-created', 'publish-scheduled',
+  'publish-confirmed', 'publish-failed',
   // generic
   'asset-edited', 'campaign-edited', 'engagement-recorded',
   // regeneration request (resets gate2-failed stickiness)
@@ -358,9 +365,18 @@ function evaluateApprovalStatus(asset, history, ext, observations) {
 }
 
 function evaluatePublishStatus(asset, history, ext, observations) {
-  // Postiz confirmation from external signals
+  // Postiz confirmation from external signals (Step 94b).
+  //
+  // ONLY a confirmed-live status flips publishStatus to 'live'. A draft or
+  // scheduled confirmation leaves publishStatus where eligibility puts it
+  // (typically 'scheduled' when all 5 engine gates are satisfied).
+  //
+  // The history event `publish-confirmed` alone does NOT flip to live — that
+  // event is only emitted when Postiz returned a live/published response. If
+  // the external signal is missing or non-live, the engine trusts eligibility
+  // (which keeps the asset at 'scheduled' until proven live by a poll).
   const extPostiz = (ext.postizConfirmations || []).find(p => p && p.assetId === asset.assetId);
-  if (extPostiz && extPostiz.status === 'live') {
+  if (extPostiz && (extPostiz.status === 'live' || extPostiz.status === 'published')) {
     observations.push({ axis: 'publishStatus', evidence: { reason: 'Postiz confirmation -> live' } });
     return 'live';
   }
@@ -368,12 +384,18 @@ function evaluatePublishStatus(asset, history, ext, observations) {
     observations.push({ axis: 'publishStatus', evidence: { reason: 'Postiz failure recorded' } });
     return 'failed';
   }
-  // History-driven failure
+  // History-driven failure (Step 87 contract preserved).
   const failedEvent = history.find(h => h && h.action === 'publish-failed');
   if (failedEvent) {
     observations.push({ axis: 'publishStatus', evidence: { reason: 'publish-failed in history' } });
     return 'failed';
   }
+  // Step 94b: draft / scheduled history events are informational. They
+  // confirm that the publisher reached Postiz successfully, but do NOT
+  // move publishStatus beyond the eligibility projection below.
+  // (publish-draft-created, publish-scheduled, publish-confirmed history
+  //  events are all recognised by the engine but none of them alone flips
+  //  to 'live' — only ext.postizConfirmations[].status === 'live'/'published' does.)
   // Eligibility for scheduled. Step 88 fix:
   //
   // "scheduled" means genuinely ready to enter Publisher. Each axis must

@@ -5919,7 +5919,10 @@ function handleAssetSubmit(e) {
     'caption-created','caption-revised','caption-approved','caption-rejected',
     'visual-generated','visual-revised','visual-approved','visual-rejected',
     'approval-requested','approval-approved','approval-rejected',
-    'publish-requested','publish-confirmed','publish-failed',
+    // canonical publish lifecycle (Step 94b: draft/scheduled/live each have
+    // their own truthful event). Only publish-confirmed may project 'live'.
+    'publish-requested','publish-draft-created','publish-scheduled',
+    'publish-confirmed','publish-failed',
     'asset-edited','campaign-edited','engagement-recorded','regenerate-requested',
     // legacy read-only aliases
     'created','generated','brief-created','delivered','rejected','approved',
@@ -6025,8 +6028,13 @@ function handleAssetSubmit(e) {
   }
   function _evalPublish(asset, hist, ext) {
     ext = ext || {};
+    // Step 94b: ONLY confirmed-live or published external signals flip
+    // publishStatus to 'live'. A draft or scheduled signal leaves status
+    // where eligibility puts it (typically 'scheduled'). History events
+    // publish-draft-created / publish-scheduled / publish-confirmed alone
+    // do NOT flip to 'live' — they only confirm the publisher reached Postiz.
     var extP = (ext.postizConfirmations||[]).find(function(p){return p&&p.assetId===asset.assetId;});
-    if (extP && extP.status==='live') return 'live';
+    if (extP && (extP.status==='live' || extP.status==='published')) return 'live';
     if (extP && extP.status==='failed') return 'failed';
     if (hist.some(function(h){return h&&h.action==='publish-failed';})) return 'failed';
     // Step 88 fix: each axis must satisfy the ENGINE-PROJECTED state,

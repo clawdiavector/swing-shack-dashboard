@@ -524,15 +524,46 @@ class DuplicatePostizPostIdError extends Error {
 
 // ── Engine integration: derive 5 publishing-state fields after live Postiz ──
 //
-// Step 87 Publisher integration:
-//   1. Append a `publish-confirmed` history event (real event, by 'publisher')
+// Step 87 Publisher integration + Step 94b event split:
+//   1. Append a truthful history event based on Postiz's response state:
+//        live/published → 'publish-confirmed' (only path that may flip
+//                        publishStatus to 'live')
+//        scheduled     → 'publish-scheduled'
+//        draft         → 'publish-draft-created'  (default for type=draft)
+//        failed        → 'publish-failed'
 //   2. evaluateAsset(asset, asset.history, externalSignals) — pure projection
 //   3. applyStateTransition(asset, desired) — field-only mutator
 //   4. Persist the updated asset atomically (lock + atomic rename)
 //
-// Engine failures are logged but DO NOT block the publishing reference write.
 // The reference is canonical; the state fields are derived. If the engine
 // crashes, the next reconcile run will project the correct state anyway.
+//
+// Helper that maps Postiz response.state (or .currentStatus) to:
+//   - the history event action to emit
+//   - the external postizConfirmations[].status to feed to the engine
+// Both are needed so that:
+//   (a) history is truthful (draft != live)
+//   (b) the engine's evaluation path stays the same (no event-string coupling
+//       inside evaluatePublishStatus — the only live-trigger is the ext signal)
+function eventAndSignalForPostizStatus(rawStatus) {
+  const s = (rawStatus || '').toString().toUpperCase();
+  switch (s) {
+    case 'LIVE':
+    case 'PUBLISHED':
+      return { action: 'publish-confirmed', externalStatus: 'live' };
+    case 'SCHEDULED':
+    case 'QUEUE':
+      return { action: 'publish-scheduled', externalStatus: 'scheduled' };
+    case 'DRAFT':
+      return { action: 'publish-draft-created', externalStatus: 'draft' };
+    case 'FAILED':
+    case 'ERROR':
+      return { action: 'publish-failed', externalStatus: 'failed' };
+    default:
+      // Unknown / null state from Postiz: treat as draft (safest truth)
+      return { action: 'publish-draft-created', externalStatus: 'draft' };
+  }
+}
 
 function derivePublishingStateAfterPostiz(ref, postizStatus) {
   let outcome = { changed: false, fieldsChanged: [], error: null };
@@ -544,23 +575,34 @@ function derivePublishingStateAfterPostiz(ref, postizStatus) {
     const asset = campaign.assets && campaign.assets[ref.assetId];
     if (!asset) throw new Error(`asset not found: ${ref.assetId}`);
 
-    // Step 1: record real event
+    // Step 1: record truthful history event (Step 94b).
     if (!Array.isArray(asset.history)) asset.history = [];
-    const isSuccess = postizStatus === 'live' || postizStatus === 'scheduled' || postizStatus === 'published';
-    recordEvent(asset.history, isSuccess ? 'publish-confirmed' : 'publish-failed', {
+    const { action, externalStatus } = eventAndSignalForPostizStatus(postizStatus);
+    const eventPayload = {
       by: 'publisher',
       postizPostId: ref.postizPostId,
       releaseURL: ref.releaseURL || null,
       releaseId: ref.releaseId || null,
       currentStatus: ref.currentStatus,
-      reason: isSuccess ? 'postiz_call_succeeded' : 'postiz_call_failed',
-    });
+    };
+    if (action === 'publish-confirmed') {
+      eventPayload.reason = 'postiz_returned_live';
+    } else if (action === 'publish-scheduled') {
+      eventPayload.reason = 'postiz_returned_scheduled';
+    } else if (action === 'publish-draft-created') {
+      eventPayload.reason = 'postiz_returned_draft';
+    } else if (action === 'publish-failed') {
+      eventPayload.reason = 'postiz_returned_failed';
+    }
+    recordEvent(asset.history, action, eventPayload);
 
-    // Step 2: pure projection
+    // Step 2: pure projection — only 'live'/'published' external status
+    // is allowed to flip publishStatus to 'live'. Draft/scheduled/failed
+    // statuses leave publishStatus where eligibility puts it.
     const desired = evaluateAsset(asset, asset.history, {
       postizConfirmations: [{
         assetId: ref.assetId,
-        status: isSuccess ? 'live' : 'failed',
+        status: externalStatus,
         postizPostId: ref.postizPostId,
         releaseURL: ref.releaseURL || null,
       }],
@@ -719,6 +761,129 @@ function runDry() {
   return { ok: true, mode: 'DRY_RUN', queued: publishQueue.length };
 }
 
+// ── Partial-write duplicate protection (Step 94b) ─────────────────────────
+//
+// If a prior run uploaded + created a Postiz draft but failed to write the
+// canonical publishing reference, the Postiz draft exists externally while
+// Campaign OS has no record of it. On retry, we must:
+//   1. Look up prior reconciliation entries in data/live-publish-runs/*.json
+//   2. If a proven draft exists for this (assetId, integrationId), do NOT
+//      call Postiz again — instead, reconcile by writing the canonical
+//      publishing reference using the known draft ID.
+//   3. Only call POST /public/v1/posts when no proven prior draft exists.
+//
+// Duplicate detection uses assetId+integrationId+postizPostId (NOT caption
+// similarity — the spec explicitly forbids that).
+
+function findPriorDraftForAsset({ assetId, integrationId }) {
+  const runsDir = path.join(DATA, 'live-publish-runs');
+  if (!fs.existsSync(runsDir)) return null;
+  // Build (mtimeMs, filename) tuples, sort newest-first by mtime. Filename
+  // sort is a fallback tie-breaker. mtime is the source of truth for
+  // "most recent" — file mtimes are reliable across platforms, whereas
+  // filename prefixes are random.
+  const allFiles = fs.readdirSync(runsDir).filter(fn => fn.endsWith('.json'));
+  const filesWithMtime = allFiles.map(fn => {
+    let mtimeMs = 0;
+    try {
+      const st = fs.statSync(path.join(runsDir, fn));
+      mtimeMs = st.mtimeMs || 0;
+    } catch (_) { /* ignore */ }
+    return { fn, mtimeMs };
+  });
+  filesWithMtime.sort((a, b) => {
+    if (b.mtimeMs !== a.mtimeMs) return b.mtimeMs - a.mtimeMs;
+    return b.fn.localeCompare(a.fn);
+  });
+  const files = filesWithMtime.map(x => x.fn);
+  for (const fn of files) {
+    try {
+      const runLog = JSON.parse(fs.readFileSync(path.join(runsDir, fn), 'utf8'));
+      // Reconciliation entries live on failures[].reconciliation when stage
+      // is 'canonical_write_after_create'. Also look at successes[] for the
+      // postizPostId in case the canonical write succeeded in a prior run.
+      const candidates = [];
+      if (Array.isArray(runLog.successes)) {
+        for (const s of runLog.successes) {
+          if (s.assetId === assetId && s.integrationId === integrationId) {
+            candidates.push({
+              postizPostId: s.postizPostId,
+              rawResponseHash: s.rawResponseHash,
+              source: 'successes',
+              runId: runLog.runId,
+              at: runLog.startedAt,
+              stage: 'success',
+            });
+          }
+        }
+      }
+      if (Array.isArray(runLog.failures)) {
+              for (const f of runLog.failures) {
+                if (f.item_id === assetId && f.reconciliation &&
+                    f.reconciliation.stage === 'canonical_write_after_create' &&
+                    Array.isArray(f.reconciliation.imageRefs) &&
+                    f.reconciliation.imageRefs.length > 0) {
+                  // Step 94b duplicate detection uses assetId+integrationId
+                  // (NOT caption similarity). The integration id is captured
+                  // implicitly via the imageRefs[] entry's source — but at the
+                  // point of canonical_write_after_create we don't store it
+                  // explicitly on the reconciliation entry. Instead, we rely
+                  // on the caller to filter by integrationId, and we keep
+                  // the entry's imageRefs so the caller can match against
+                  // its own integration-id-keyed cache.
+                  //
+                  // The stage=canonical_write_after_create presence plus non-empty
+                  // imageRefs proves the create succeeded. The postizPostId may or
+                  // may not be present (it is set by derivePublishingStateAfterPostiz
+                  // after a successful create response); we treat its absence as a
+                  // soft signal — keep the entry but mark postizPostId=null so the
+                  // caller can decide whether to retry.
+                  candidates.push({
+                    postizPostId: f.reconciliation.postizPostId || null,
+                    imageRefs: f.reconciliation.imageRefs,
+                    createResponseHash: f.reconciliation.createResponseHash || null,
+                    stage: 'canonical_write_after_create',
+                    runId: runLog.runId,
+                    at: runLog.startedAt,
+                  });
+                }
+              }
+            }
+      // Integration-id match (Step 94b: assetId + integrationId is the key,
+      // NOT caption similarity). If the candidate's imageRefs[0] doesn't
+      // belong to this integrationId, drop it.
+      if (integrationId) {
+        for (let i = candidates.length - 1; i >= 0; i--) {
+          const c = candidates[i];
+          if (c.imageRefs && c.imageRefs[0] && c.imageRefs[0].integrationId &&
+              c.imageRefs[0].integrationId !== integrationId) {
+            candidates.splice(i, 1);
+          }
+        }
+      }
+      if (candidates.length > 0) return candidates[0];
+    } catch (_) {
+      // ignore unparseable run files
+    }
+  }
+  return null;
+}
+
+// Synthesise a minimal Postiz response shape from a prior reconciliation
+// entry. The downstream code only needs id, integration, state — so we
+// rebuild enough for buildPublishingReference to succeed.
+function responseFromReconciliation(recon) {
+  return {
+    id: recon.postizPostId,
+    state: 'DRAFT', // most likely case; original was a draft creation
+    releaseURL: null,
+    releaseId: null,
+    content: '',
+    integration: { id: recon.imageRefs?.[0]?.integrationId || '' },
+    publishDate: recon.at || new Date().toISOString(),
+  };
+}
+
 // ── LIVE path ─────────────────────────────────────────────────────────────
 async function runLive() {
   const ready = readJson('ready-for-approval.json') || {};
@@ -777,6 +942,30 @@ async function runLive() {
       || cap?.short_caption
       || `${item.hook_text || blueprint?.hook_overlay_text || ''}\n\nSwing Shack\nLink in bio · Book your session`;
 
+    // Step 0.5: Partial-write duplicate protection (Step 94b).
+    //
+    // If a prior run uploaded + created a Postiz draft but failed to write
+    // the canonical publishing reference, the draft exists on Postiz but not
+    // in Campaign OS. Before we call Postiz again, check whether a proven
+    // prior draft exists for this (assetId, integrationId). If yes, attempt
+    // canonical reconciliation using the known draft ID instead of creating
+    // a second draft.
+    //
+    // This check runs ONLY in LIVE mode (not fixture). Fixture mode is for
+    // tests where the reconciliation record is fake.
+    let reconciliationContext = null;
+    if (!isFixtureMode()) {
+      const priorDraft = findPriorDraftForAsset({
+        assetId,
+        integrationId: integration.id,
+      });
+      if (priorDraft && priorDraft.postizPostId) {
+        // Use the known draft ID — skip the upload + create calls entirely.
+        reconciliationContext = priorDraft;
+        console.log(`[run_publisher] partial-write recovery: found prior draft ${priorDraft.postizPostId} for asset ${assetId}; reconciling instead of recreating.`);
+      }
+    }
+
     // Step 1.5: Media upload (Step 94 contract)
     // Instagram requires real media via /public/v1/upload; the response {id, path}
     // is referenced from posts[].value[].image[]. Missing local file or failed
@@ -828,10 +1017,19 @@ async function runLive() {
       imageRefs,
     });
 
-    // Step 2: Call Postiz (real or fixture)
+    // Step 2: Call Postiz (real, fixture, or reconciliation)
     let response;
     let usedFixture = false;
-    if (isFixtureMode()) {
+    let usedReconciliation = false;
+    if (reconciliationContext) {
+      // Partial-write recovery: use the prior draft ID instead of calling Postiz.
+      // We synthesise a response shape from the reconciliation entry; the
+      // canonical write will use this draft ID, and the engine will record
+      // a publish-draft-created event using state='DRAFT'.
+      console.log(`[run_publisher] --live (RECONCILE): reusing prior draft ${reconciliationContext.postizPostId} for ${item.item_id}`);
+      response = responseFromReconciliation(reconciliationContext);
+      usedReconciliation = true;
+    } else if (isFixtureMode()) {
       console.log(`[run_publisher] --live (FIXTURE): using fixture for item ${item.item_id}`);
       // Use a unique fixture per item so multiple live publishes don't collide
       // on duplicate postizPostId. The base fixture is the canonical shape;
@@ -882,8 +1080,11 @@ async function runLive() {
       });
       appendReferenceToCanonical(ref, campaignId);
 
-      // Step 3.5: derive 5 publishing-state fields via Asset State Engine
-      // (records publish-confirmed history event, evaluates, applies fields only)
+      // Step 3.5: derive 5 publishing-state fields via Asset State Engine.
+      // (Step 94b: event action is split by Postiz state — draft → publish-
+      // draft-created, scheduled → publish-scheduled, live/published →
+      // publish-confirmed. Only publish-confirmed may flip publishStatus to
+      // 'live'.)
       const engineOutcome = derivePublishingStateAfterPostiz(ref, response.state || response.currentStatus);
 
       // Step 4: Auto-regenerate the index (Amendment 5)
@@ -904,10 +1105,31 @@ async function runLive() {
       if (e instanceof DuplicatePostizPostIdError) {
         skips.push({ item_id: item.item_id, reason: 'duplicate_postizPostId', excerpt: e.message });
       } else {
+        // Step 94b: when canonical write fails AFTER upload + create succeeded,
+        // the Postiz draft exists externally but Campaign OS has no reference.
+        // Record the reconciliation context so the next retry can recover.
+        // The integrationId is attached to imageRefs[0] so findPriorDraftForAsset
+        // can filter candidates by integrationId (NOT caption similarity).
+        const postizDraftId = ref && ref.postizPostId ? ref.postizPostId : null;
+        const reconImageRefs = (imageRefs || []).map(r => ({
+          id: r.id,
+          path: r.path,
+          integrationId: integration.id,
+        }));
         failures.push({
           item_id: item.item_id,
           reason: 'canonical_write_failed',
           excerpt: e.message.substring(0, 400),
+          reconciliation: {
+            stage: 'canonical_write_after_create',
+            assetId,
+            campaignId,
+            imageRefs: reconImageRefs,
+            postizPostId: postizDraftId,
+            createResponseHash: ref && ref.provenance && ref.provenance.rawResponseRef
+              ? ref.provenance.rawResponseRef.hash : null,
+            at: new Date().toISOString(),
+          },
         });
       }
     }
@@ -976,6 +1198,10 @@ module.exports = {
   buildPostizPayload,
   PROVIDER_SETTINGS,
   postizUpload,
+  // Step 94b exports
+  eventAndSignalForPostizStatus,
+  findPriorDraftForAsset,
+  responseFromReconciliation,
   ALLOWED_TRANSITIONS,
   ACTION_TO_STATUS,
   InvalidStatusTransitionError,
