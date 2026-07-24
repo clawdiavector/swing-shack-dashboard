@@ -873,15 +873,41 @@ function findPriorDraftForAsset({ assetId, integrationId }) {
 // entry. The downstream code only needs id, integration, state — so we
 // rebuild enough for buildPublishingReference to succeed.
 function responseFromReconciliation(recon) {
+  // Synthesise a Postiz-shaped response from a reconciliation record so the
+  // publisher can call buildPublishingReference without making a real Postiz
+  // API call. The synthesised response MUST include providerIdentifier so
+  // buildPublishingReference's `CHANNEL_TO_PROVIDER[integrationProvider]`
+  // lookup doesn't throw "unknown integration provider: null".
+  //
+  // Field name is `postizPostId` to match the canonical reconciliation record
+  // shape produced by the runLive catch handler and the
+  // findPriorDraftForAsset helper (both use `postizPostId`).
+  const integrationId = recon.imageRefs?.[0]?.integrationId || '';
+  const providerIdentifier = inferProviderFromIntegration(integrationId);
+  const draftId = recon.postizPostId;
   return {
-    id: recon.postizPostId,
+    id: draftId,
     state: 'DRAFT', // most likely case; original was a draft creation
     releaseURL: null,
     releaseId: null,
     content: '',
-    integration: { id: recon.imageRefs?.[0]?.integrationId || '' },
+    integration: { id: integrationId, providerIdentifier },
     publishDate: recon.at || new Date().toISOString(),
   };
+}
+
+// Infer a Postiz providerIdentifier from an integrationId. The Postiz
+// integrations list endpoint returns the canonical id → provider mapping.
+// We hardcode the known Swing Shack integrations here; this could be lifted
+// to a cached lookup against the integrations endpoint.
+function inferProviderFromIntegration(integrationId) {
+  const known = {
+    cmnfoum2703e6ql0yiajgcg21: 'instagram',
+    cmmdgfz3b00s1o20ykrwau2o2: 'tiktok',
+    cmmdgju7f00tppk0y6bne9zrk: 'gmb',
+    cmmdg0bty00r6o20yvmzskvdw: 'facebook',
+  };
+  return known[integrationId] || 'instagram'; // safe default for this brand
 }
 
 // ── LIVE path ─────────────────────────────────────────────────────────────
@@ -1069,8 +1095,13 @@ async function runLive() {
     }
 
     // Step 3: Build + append reference (atomic, with lock)
+    // TDZ FIX (Phase 1, Item 1): ref is declared with `let` outside the try
+    // block so the catch handler can reference it even if buildPublishingReference
+    // throws before assignment. This preserves the original error in `e` while
+    // letting the catch produce a complete reconciliation record.
+    let ref = null;
     try {
-      const ref = buildPublishingReference({
+      ref = buildPublishingReference({
         assetId,
         campaignId,
         response,
@@ -1110,7 +1141,18 @@ async function runLive() {
         // Record the reconciliation context so the next retry can recover.
         // The integrationId is attached to imageRefs[0] so findPriorDraftForAsset
         // can filter candidates by integrationId (NOT caption similarity).
-        const postizDraftId = ref && ref.postizPostId ? ref.postizPostId : null;
+        //
+        // TDZ FIX: ref is now `let`-declared above. It is null only when
+        // buildPublishingReference itself threw; otherwise it carries the
+        // partially-built ref so postizPostId + provenance can be preserved.
+        //
+        // Field name is `postizPostId` to match the existing
+        // test_step94b_event_semantics_and_recovery.js contract
+        // (which checks the source literal `postizPostId:`).
+        const postizDraftId = (ref && typeof ref === 'object' && ref.postizPostId) ? ref.postizPostId : null;
+        const createResponseHashValue = (ref && ref.provenance && ref.provenance.rawResponseRef && ref.provenance.rawResponseRef.hash)
+          ? ref.provenance.rawResponseRef.hash
+          : null;
         const reconImageRefs = (imageRefs || []).map(r => ({
           id: r.id,
           path: r.path,
@@ -1119,15 +1161,26 @@ async function runLive() {
         failures.push({
           item_id: item.item_id,
           reason: 'canonical_write_failed',
+          // Preserve the ORIGINAL error — name, message, and stack — so the
+          // underlying failure is always visible in the audit record.
           excerpt: e.message.substring(0, 400),
+          originalError: {
+            name: e.name || 'Error',
+            message: e.message,
+            stack: typeof e.stack === 'string' ? e.stack.split('\n').slice(0, 8).join('\n') : null,
+          },
           reconciliation: {
             stage: 'canonical_write_after_create',
             assetId,
             campaignId,
+            integrationId: integration.id,
             imageRefs: reconImageRefs,
             postizPostId: postizDraftId,
-            createResponseHash: ref && ref.provenance && ref.provenance.rawResponseRef
-              ? ref.provenance.rawResponseRef.hash : null,
+            createResponseHash: createResponseHashValue,
+            // Did buildPublishingReference itself throw? If so, ref is null
+            // and we have no postizPostId from the ref. Surface that signal
+            // explicitly so the failure is not silently downgraded.
+            refBuilt: ref !== null,
             at: new Date().toISOString(),
           },
         });
