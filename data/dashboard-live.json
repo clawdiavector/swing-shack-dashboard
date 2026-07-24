@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-24T04:00:06.010Z",
+  "lastUpdated": "2026-07-24T10:00:04.760Z",
   "source": "automated",
   "website": {
-    "activeUsers": 655,
-    "sessions": 831,
-    "pageViews": 1358,
-    "avgSessionSeconds": 96.66244567629363,
-    "bounceRate": 0.5836341756919374,
+    "activeUsers": 682,
+    "sessions": 867,
+    "pageViews": 1421,
+    "avgSessionSeconds": 94.18538914071512,
+    "bounceRate": 0.5478662053056517,
     "topPages": [
       {
         "path": "/",
-        "views": 715
+        "views": 744
       },
       {
         "path": "/bookings/",
-        "views": 275
+        "views": 294
       },
       {
         "path": "/customer-portal/",
-        "views": 189
+        "views": 196
       },
       {
         "path": "/club-fitting/",
-        "views": 62
+        "views": 64
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 54
+        "views": 55
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -34,7 +34,7 @@
       },
       {
         "path": "/philosophy/",
-        "views": 13
+        "views": 14
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
@@ -42,45 +42,45 @@
       },
       {
         "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
-        "views": 9
+        "views": 10
       },
       {
-        "path": "/membership/",
+        "path": "/404.html",
         "views": 6
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 306
+        "sessions": 326
       },
       {
         "source": "fb",
-        "sessions": 259
+        "sessions": 264
       },
       {
         "source": "(direct)",
-        "sessions": 139
+        "sessions": 145
       },
       {
         "source": "clublab.app",
-        "sessions": 44
-      },
-      {
-        "source": "(not set)",
-        "sessions": 38
+        "sessions": 47
       },
       {
         "source": "bing",
-        "sessions": 19
+        "sessions": 20
+      },
+      {
+        "source": "(not set)",
+        "sessions": 15
       },
       {
         "source": "ig",
-        "sessions": 11
+        "sessions": 12
       },
       {
         "source": "instagram",
-        "sessions": 10
+        "sessions": 12
       },
       {
         "source": "an",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 610
+        "sessions": 633
       },
       {
         "device": "desktop",
-        "sessions": 213
+        "sessions": 227
       },
       {
         "device": "tablet",
