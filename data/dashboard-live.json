@@ -1,44 +1,44 @@
 {
-  "lastUpdated": "2026-07-24T16:00:05.390Z",
+  "lastUpdated": "2026-07-25T04:00:05.124Z",
   "source": "automated",
   "website": {
-    "activeUsers": 707,
-    "sessions": 903,
-    "pageViews": 1490,
-    "avgSessionSeconds": 96.47507334440755,
-    "bounceRate": 0.5658914728682171,
+    "activeUsers": 638,
+    "sessions": 821,
+    "pageViews": 1349,
+    "avgSessionSeconds": 94.42015358465287,
+    "bounceRate": 0.6065773447015834,
     "topPages": [
       {
         "path": "/",
-        "views": 772
+        "views": 690
       },
       {
         "path": "/bookings/",
-        "views": 305
+        "views": 279
       },
       {
         "path": "/customer-portal/",
-        "views": 206
+        "views": 186
       },
       {
         "path": "/club-fitting/",
-        "views": 70
+        "views": 64
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 59
-      },
-      {
-        "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 17
+        "views": 55
       },
       {
         "path": "/philosophy/",
-        "views": 17
+        "views": 16
+      },
+      {
+        "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
+        "views": 14
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
-        "views": 11
+        "views": 12
       },
       {
         "path": "/membership/",
@@ -52,15 +52,15 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 345
+        "sessions": 308
       },
       {
         "source": "fb",
-        "sessions": 268
+        "sessions": 240
       },
       {
         "source": "(direct)",
-        "sessions": 154
+        "sessions": 138
       },
       {
         "source": "clublab.app",
@@ -68,74 +68,74 @@
       },
       {
         "source": "(not set)",
-        "sessions": 27
+        "sessions": 37
       },
       {
         "source": "bing",
-        "sessions": 20
+        "sessions": 17
       },
       {
         "source": "ig",
-        "sessions": 13
+        "sessions": 14
       },
       {
         "source": "instagram",
-        "sessions": 13
+        "sessions": 12
       },
       {
         "source": "an",
-        "sessions": 7
+        "sessions": 6
       },
       {
-        "source": "paid_meta",
-        "sessions": 6
+        "source": "dialedin.co.za",
+        "sessions": 5
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 653
+        "sessions": 594
       },
       {
         "device": "desktop",
-        "sessions": 243
+        "sessions": 219
       },
       {
         "device": "tablet",
-        "sessions": 8
+        "sessions": 7
       }
     ]
   },
   "searchConsole": [
     {
       "query": "swing shack",
-      "clicks": 217,
-      "impressions": 466,
+      "clicks": 209,
+      "impressions": 445,
       "position": "2.5"
     },
     {
       "query": "swingshack",
-      "clicks": 72,
-      "impressions": 134,
+      "clicks": 71,
+      "impressions": 133,
       "position": "2.6"
     },
     {
       "query": "takomo irons south africa",
-      "clicks": 70,
-      "impressions": 295,
-      "position": "2.2"
+      "clicks": 68,
+      "impressions": 291,
+      "position": "2.1"
     },
     {
       "query": "takomo south africa",
-      "clicks": 30,
-      "impressions": 93,
+      "clicks": 29,
+      "impressions": 86,
       "position": "2.6"
     },
     {
       "query": "golf simulator",
       "clicks": 15,
-      "impressions": 1076,
-      "position": "6.8"
+      "impressions": 1038,
+      "position": "6.7"
     },
     {
       "query": "swing shack golf",
@@ -152,19 +152,19 @@
     {
       "query": "golf simulator johannesburg",
       "clicks": 9,
-      "impressions": 83,
+      "impressions": 82,
       "position": "2.2"
     },
     {
       "query": "vice golf balls south africa",
       "clicks": 9,
-      "impressions": 54,
+      "impressions": 52,
       "position": "2.9"
     },
     {
       "query": "indoor golf johannesburg",
       "clicks": 8,
-      "impressions": 77,
+      "impressions": 72,
       "position": "3.0"
     }
   ],
