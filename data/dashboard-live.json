@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-26T10:00:07.277Z",
+  "lastUpdated": "2026-07-26T16:00:07.144Z",
   "source": "automated",
   "website": {
-    "activeUsers": 686,
-    "sessions": 883,
-    "pageViews": 1447,
-    "avgSessionSeconds": 96.6513736375991,
-    "bounceRate": 0.5685164212910532,
+    "activeUsers": 706,
+    "sessions": 911,
+    "pageViews": 1493,
+    "avgSessionSeconds": 96.33309209330406,
+    "bounceRate": 0.5817782656421515,
     "topPages": [
       {
         "path": "/",
-        "views": 731
+        "views": 745
       },
       {
         "path": "/bookings/",
-        "views": 313
+        "views": 329
       },
       {
         "path": "/customer-portal/",
-        "views": 197
+        "views": 202
       },
       {
         "path": "/club-fitting/",
-        "views": 73
+        "views": 77
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 52
+        "views": 59
       },
       {
         "path": "/philosophy/",
@@ -52,19 +52,23 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 329
+        "sessions": 342
       },
       {
         "source": "fb",
-        "sessions": 244
+        "sessions": 245
       },
       {
         "source": "(direct)",
-        "sessions": 158
+        "sessions": 162
       },
       {
         "source": "clublab.app",
-        "sessions": 56
+        "sessions": 59
+      },
+      {
+        "source": "(not set)",
+        "sessions": 26
       },
       {
         "source": "ig",
@@ -76,15 +80,11 @@
       },
       {
         "source": "instagram",
-        "sessions": 15
+        "sessions": 16
       },
       {
         "source": "an",
-        "sessions": 13
-      },
-      {
-        "source": "(not set)",
-        "sessions": 12
+        "sessions": 14
       },
       {
         "source": "dialedin.co.za",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 647
+        "sessions": 669
       },
       {
         "device": "desktop",
-        "sessions": 229
+        "sessions": 235
       },
       {
         "device": "tablet",
