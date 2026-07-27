@@ -1,9 +1,9 @@
 # Campaign OS — Status Handoff
 
 **Branch:** `feat/asset-state-engine`
-**HEAD:** `03a4add` (just pushed)
+**HEAD:** `3b31f24` (just pushed)
 **Live URL:** `https://episodes-images-futures-coleman.trycloudflare.com`
-**Tests:** 73/73 pass (`cd campaign-os && source ../.venv/bin/activate && python3 -m unittest discover -s tests`)
+| **Tests:** 112/112 pass (`cd campaign-os && source ../.venv/bin/activate && python3 -m unittest discover -s tests`)
 
 ---
 
@@ -21,9 +21,10 @@
 - ✅ Single SPA (`campaign-os.html`, 100KB+, sidebar with 21 nav entries across 5 sections)
 - ✅ Campaign Builder v2 — full plans: goals/persona/5 weighted pillars/15 hooks/15 image prompts/15 captions/16-post 30-day calendar/KPIs/success criteria/day-7/14/30 winning picture
 - ✅ Drag-and-drop calendar (HTML5 DnD on slots, color-coded by pillar, `/api/schedule/<assetId>` POST/DELETE, duplicate-zone, queue-item scheduling)
-- ✅ Inline asset editor (THIS TURN)
+- ✅ Inline asset editor
 - ✅ Caption Studio, Headlines, CTAs generators (composed from hook bank + base caption + CTA pill)
-- ✅ 73 passing tests (was 423 before — tests consolidated into single campaign-os suite)
+- ✅ **Meme Lord v2** (THIS TURN) — meme historian: 75 curated memes across eras with brand-fit scoring, top-picks recommender, caption-draft generator (3 flavours), filter bar (voice/pillar/platform/era/still-works/search), modal with why-it-works + format-hint + fit-seeds + re-roll on different seed.
+- ✅ 112 passing tests (was 73 before — +39 new for Meme Lord v2)
 
 ## Priorities for next cron iteration
 
@@ -91,10 +92,11 @@ curl -sI https://episodes-images-futures-coleman.trycloudflare.com | head -1
 ## Recent commits
 
 ```
+3b31f24  feat(campaign-os): Meme Lord v2 — meme historian + brand-fit recommender
+2fb0b7b  docs: tick-3 cron status block — drag-and-drop calendar
+f674d91  docs: tick-3 — mark drag-and-drop calendar shipped
+f8acd62  docs: Campaign OS status handoff for next cron iteration
 03a4add  feat: Campaign OS — inline asset editor + dynamic DATA_DIR
-d79945f  feat: Campaign Builder v2 — extraordinary campaign plans
-e6f887b  docs: update BUILD_STATUS, intel module + app.py pushed
-a60ef9a  feat: Campaign OS — single SPA + 23 intelligence views
 ```
 
 ## Known issues / blockers
@@ -104,3 +106,24 @@ a60ef9a  feat: Campaign OS — single SPA + 23 intelligence views
 - **Cloudflare tunnel expires when cloudflared exits** → if URL is down on next cron tick, kill+restart `cloudflared tunnel --url http://127.0.0.1:8765` and grep the new URL from `/tmp/cloudflared.log`.
 - **Pyright false positives** on `_sys.path.insert` and runtime path mutations — ignore; runtime is correct.
 - **3 phase_tdz live-API tests still skipped** (pre-existing, gated behind `LIVE_NETWORK_TESTS=1`).
+
+---
+
+## Cron tick 4 — 2026-07-27 21:10 SAST
+
+**Built:** Meme Lord v2 — meme historian + brand-fit recommender
+
+**Files:**
+- `data/meme_knowledge.json` — 75 curated memes across 3 eras (classic/mid/recent) with format/mechanism taxonomy, voice_bible (swing-shack/stick/bag-drop), era+fatigue+brand-fit scoring seeds per meme
+- `campaign-os/app.py` — added `_load_meme_knowledge()`, `_score_meme_brand_fit()`, `_filter_memes()`, plus 3 new endpoints:
+  - `GET /api/intel/meme_knowledge` (filters: era, format, mechanism, voice, pillar, platform, only_still_works, search; sort: brand_fit/peak_year/name)
+  - `GET /api/intel/meme_recommend` (top-N for voice+pillar+platform with alternates)
+  - `POST /api/intel/meme_apply` (returns 3 caption flavours + brand-fit + voice rules; supports user hook + pick_seed_index for re-rolls)
+- `campaign-os/campaign-os.html` — full Meme Lord section rewrite: filter bar, top-picks grid (with brand-fit badge + era+fatigue chips + fit-seeds details), historian library (sortable rows), modal with full meme detail and "Generate caption" flow (copy-to-clipboard + re-roll on different fit-seed)
+- `campaign-os/tests/test_meme_lord_v2.py` — 39 new tests covering envelope shape, data shape, all 8 filter dimensions, brand-fit scoring with voice/pillar permutations, apply endpoint edge cases (400/404/error envelopes), caption flavour generation, fit-seed wrapping, voice_bible rules
+
+**Tests:** 112/112 pass (was 73; +39 new)
+**Verified via:** curl `/api/intel/meme_knowledge?limit=2`, `/api/intel/meme_recommend?voice=stick&pillar=club-fitting&platform=tiktok`, `/api/intel/meme_apply` (POST), `https://episodes-images-futures-coleman.trycloudflare.com/api/health` returns 200
+**Server:** restarted on PID 83959; Cloudflare tunnel still up
+
+**Next priority:** Trend Catcher v2 (priority 5) — split signals into 3 sources (marketing industry / golf news / competitors), add relevance scoring + suggested response for each signal.
