@@ -795,6 +795,17 @@ def intel_dispatch(name):
     return jsonify(payload), status
 
 
+@app.route('/api/intel/trends_v2', methods=['GET'])
+def trends_v2():
+    candidate = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'trend_signals_v2.json')
+    payload = _read_json_file(candidate) or {}
+    signals = payload.get('sources', []) if isinstance(payload, dict) else []
+    source = request.args.get('source'); minimum = request.args.get('min_relevance', type=int)
+    if source: signals = [s for s in signals if s.get('source') == source]
+    if minimum is not None: signals = [s for s in signals if int(s.get('relevance', 0)) >= minimum]
+    signals = sorted(signals, key=lambda s: s.get('relevance', 0), reverse=True)
+    return jsonify({'ok': True, 'ts': _now_iso(), 'signals': signals, 'sources': sorted({s.get('source') for s in signals}), 'count': len(signals)})
+
 @app.route('/api/search', methods=['GET'])
 def search_dispatch():
     """GET /api/search?q=<query> — universal search across all data."""

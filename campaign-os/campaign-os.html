@@ -435,7 +435,8 @@ a:hover{text-decoration:underline}
 
     <!-- ── TRENDS ───────────────────────────────────────── -->
     <section class="section" id="sec-trends">
-      <div class="section-h"><h2>Trend Catcher</h2><span class="sub">Reddit · YouTube · Golf News · Competitors</span></div>
+      <div class="section-h"><h2>Trend Catcher <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · scored signals</span></h2><span class="sub">Marketing · Golf News · Competitors</span></div>
+      <div class="card" style="margin-bottom:1rem"><div class="card-h"><h3>⚡ Signal radar</h3><span class="muted" id="tr-v2-count">—</span></div><div id="tr-v2" class="grid"></div></div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3>🗣️ Reddit trends</h3></div><div id="tr-reddit"></div></div>
         <div class="card col-6"><div class="card-h"><h3>📺 YouTube signals</h3></div><div id="tr-yt"></div></div>
@@ -1142,6 +1143,9 @@ $$('[data-cal-shift]').forEach(b => b.addEventListener('click', () => {
 async function renderTrends(){
   if(!S.trends) S.trends = await API.get('/api/intel/trend_catcher');
   const t = S.trends;
+  const v2 = await API.get('/api/intel/trends_v2');
+  $('#tr-v2-count').textContent = `${v2.count || 0} ranked signals`;
+  $('#tr-v2').innerHTML = (v2.signals||[]).map(s => `<div class="card col-4"><div class="li-title">${esc(s.title)}</div><div class="li-meta"><span class="pill on">${esc(s.source.replace(/-/g,' '))}</span> <b>${s.relevance}/100</b></div><p class="muted" style="font-size:12px">${esc(s.detail)}</p><div style="font-size:12px;color:var(--ac)">→ ${esc(s.suggested_response)}</div></div>`).join('');
   // YouTube signals come as {key, value} dicts — render as {topic, hot}
   const renderYT = arr => safeList(arr, 12).map(it => {
     if(it.key !== undefined){

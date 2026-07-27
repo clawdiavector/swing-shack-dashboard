@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "sources": [
+    {"id":"marketing-voice","source":"marketing-industry","title":"Short-form video is shifting toward useful entertainment","detail":"Audiences reward practical tips packaged with a strong point of view.","relevance":88,"freshness":"evergreen","suggested_response":"Film a 20-second swing fix with one surprising test and a booking CTA.","tags":["video","education"]},
+    {"id":"marketing-proof","source":"marketing-industry","title":"Proof-led creative is outperforming polished claims","detail":"Show the before/after, not just the promise.","relevance":84,"freshness":"evergreen","suggested_response":"Turn a launch-monitor result into a split-screen before/after reel.","tags":["proof","reels"]},
+    {"id":"golf-major","source":"golf-news","title":"Major-week conversations are spiking around pressure golf","detail":"Players, routines and clutch decisions are the conversation hooks.","relevance":92,"freshness":"seasonal","suggested_response":"Post a pressure-game challenge: closest to the pin under a timer.","tags":["major","challenge"]},
+    {"id":"golf-tech","source":"golf-news","title":"Launch-monitor data remains a mainstream golf story","detail":"Golfers want understandable numbers, not a wall of metrics.","relevance":95,"freshness":"evergreen","suggested_response":"Create a 'one number that changed the shot' carousel from a fitting.","tags":["trackman","fitting"]},
+    {"id":"competitor-trackman","source":"competitor","title":"TrackMan is leaning harder into measurable improvement","detail":"Competitor messaging makes data feel accessible and actionable.","relevance":82,"freshness":"monitor","suggested_response":"Own the local proof: publish one customer outcome with permission.","tags":["trackman","proof"]},
+    {"id":"competitor-foresight","source":"competitor","title":"Foresight keeps selling indoor realism and playability","detail":"The category is moving beyond practice into repeatable entertainment.","relevance":79,"freshness":"monitor","suggested_response":"Position Swing Shack as the social round that happens to improve your game.","tags":["foresight","social"]},
+    {"id":"competitor-toptracer","source":"competitor","title":"Toptracer makes group competition the product","detail":"Simple leaderboards give casual golfers a reason to return.","relevance":86,"freshness":"monitor","suggested_response":"Launch a monthly leaderboard night with a visible winner loop.","tags":["toptracer","events"]}
+  ]
+}
