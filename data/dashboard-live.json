@@ -1,90 +1,90 @@
 {
-  "lastUpdated": "2026-07-26T16:00:07.390Z",
+  "lastUpdated": "2026-07-27T04:00:04.119Z",
   "source": "automated",
   "website": {
-    "activeUsers": 706,
-    "sessions": 911,
-    "pageViews": 1493,
-    "avgSessionSeconds": 96.33309209330406,
-    "bounceRate": 0.5817782656421515,
+    "activeUsers": 660,
+    "sessions": 858,
+    "pageViews": 1411,
+    "avgSessionSeconds": 98.27389724708624,
+    "bounceRate": 0.6002331002331003,
     "topPages": [
       {
         "path": "/",
-        "views": 745
+        "views": 699
       },
       {
         "path": "/bookings/",
-        "views": 329
+        "views": 310
       },
       {
         "path": "/customer-portal/",
-        "views": 202
+        "views": 186
       },
       {
         "path": "/club-fitting/",
-        "views": 77
+        "views": 76
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 59
+        "views": 62
       },
       {
         "path": "/philosophy/",
-        "views": 17
+        "views": 16
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 14
+        "views": 13
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
         "views": 13
       },
       {
-        "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
-        "views": 12
+        "path": "/404.html",
+        "views": 10
       },
       {
-        "path": "/404.html",
+        "path": "/membership/",
         "views": 10
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 342
+        "sessions": 333
       },
       {
         "source": "fb",
-        "sessions": 245
+        "sessions": 223
       },
       {
         "source": "(direct)",
-        "sessions": 162
+        "sessions": 149
       },
       {
         "source": "clublab.app",
-        "sessions": 59
+        "sessions": 60
       },
       {
         "source": "(not set)",
-        "sessions": 26
+        "sessions": 35
       },
       {
         "source": "ig",
+        "sessions": 18
+      },
+      {
+        "source": "instagram",
         "sessions": 17
       },
       {
         "source": "bing",
-        "sessions": 16
-      },
-      {
-        "source": "instagram",
-        "sessions": 16
+        "sessions": 15
       },
       {
         "source": "an",
-        "sessions": 14
+        "sessions": 13
       },
       {
         "source": "dialedin.co.za",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 669
+        "sessions": 629
       },
       {
         "device": "desktop",
-        "sessions": 235
+        "sessions": 221
       },
       {
         "device": "tablet",
@@ -109,26 +109,26 @@
   "searchConsole": [
     {
       "query": "swing shack",
-      "clicks": 220,
-      "impressions": 466,
+      "clicks": 207,
+      "impressions": 440,
       "position": "2.8"
     },
     {
       "query": "swingshack",
       "clicks": 78,
-      "impressions": 144,
+      "impressions": 141,
       "position": "2.5"
     },
     {
       "query": "takomo irons south africa",
-      "clicks": 69,
-      "impressions": 304,
+      "clicks": 67,
+      "impressions": 294,
       "position": "2.1"
     },
     {
       "query": "takomo south africa",
       "clicks": 29,
-      "impressions": 94,
+      "impressions": 93,
       "position": "2.6"
     },
     {
@@ -146,13 +146,13 @@
     {
       "query": "golf simulator",
       "clicks": 14,
-      "impressions": 1060,
+      "impressions": 1015,
       "position": "6.7"
     },
     {
       "query": "golf simulator johannesburg",
       "clicks": 9,
-      "impressions": 88,
+      "impressions": 86,
       "position": "2.2"
     },
     {
@@ -164,7 +164,7 @@
     {
       "query": "indoor golf",
       "clicks": 8,
-      "impressions": 246,
+      "impressions": 232,
       "position": "5.6"
     }
   ],
