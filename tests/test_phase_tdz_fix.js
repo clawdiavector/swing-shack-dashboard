@@ -36,7 +36,9 @@ const TARGET_INTEGRATION = 'cmnfoum2703e6ql0yiajgcg21';
 let total = 0;
 let passed = 0;
 let failed = 0;
+let skipped = 0;
 const failures = [];
+const liveNetworkEnabled = process.env.LIVE_NETWORK_TESTS === '1';
 
 function test(name, fn) {
   total++;
@@ -50,6 +52,22 @@ function test(name, fn) {
     console.log(`  ❌ ${name}: ${e.message}`);
   }
 }
+
+// Live-network test (Step 97/98 separation). Only runs when LIVE_NETWORK_TESTS=1.
+// These tests hit the real Postiz API; they are NOT part of the unit baseline.
+function liveTest(name, fn) {
+  total++;
+  if (!liveNetworkEnabled) {
+    skipped++;
+    console.log(`  ⏭️  SKIP ${name} (LIVE_NETWORK_TESTS=1 to run)`);
+    return;
+  }
+  test(name, fn);
+}
+
+console.log(liveNetworkEnabled
+  ? `\n=== Phase 3 TDZ-Fix Lock Suite (LIVE NETWORK ENABLED) ===\n`
+  : `\n=== Phase 3 TDZ-Fix Lock Suite (live tests skipped — set LIVE_NETWORK_TESTS=1 to run) ===\n`);
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg || 'assertion failed');
@@ -456,8 +474,9 @@ test('9. when buildPublishingReference throws, ref stays null and no canonical m
 // ────────────────────────────────────────────────────────────────────
 // TEST 10: existing test baselines remain green.
 // ────────────────────────────────────────────────────────────────────
-test('10. all 318 baseline tests still pass', () => {
+test('10. all 338 baseline tests still pass', () => {
   const suites = [
+    'tests/test_visibility_guard.js',
     'tests/test_asset_state_engine.js',
     'tests/test_engine_convergence.js',
     'tests/test_publisher_writeback.js',
@@ -517,7 +536,7 @@ function orphanData() {
   return _orphanCache;
 }
 
-test('5a. orphan draft cmrypnzq802fspe0ynp1nu3vb exists, state DRAFT, caption matches', () => {
+liveTest('5a. orphan draft cmrypnzq802fspe0ynp1nu3vb exists, state DRAFT, caption matches', () => {
   const out = orphanData();
   // Parse all JSON objects (one per print line)
   const lines = out.split('\n').filter(Boolean);
@@ -543,7 +562,7 @@ test('5b. orphan caption matches canonical exactly', () => {
   assert(caption.endsWith('Swing Shack. Book your moment.'), 'caption ends with canonical last line');
 });
 
-test('5c. orphan has not been published (no releaseURL/releaseId)', () => {
+liveTest('5c. orphan has not been published (no releaseURL/releaseId)', () => {
   const objs = orphanData().split('\n').filter(Boolean).map(l => JSON.parse(l));
   const main = objs[0];
   assertEqual(main.state, 'DRAFT', 'orphan is still DRAFT (not published)');
@@ -551,7 +570,7 @@ test('5c. orphan has not been published (no releaseURL/releaseId)', () => {
   assertEqual(main.releaseId, null, 'orphan has no releaseId');
 });
 
-test('5d. reconciled orphan + any failed-run orphans accounted for', () => {
+liveTest('5d. reconciled orphan + any failed-run orphans accounted for', () => {
   const objs = orphanData().split('\n').filter(Boolean).map(l => JSON.parse(l));
   const dup = objs.find(o => 'matchingDrafts' in o);
   assert(dup, 'duplicate check result present');
@@ -570,7 +589,8 @@ test('5d. reconciled orphan + any failed-run orphans accounted for', () => {
 });
 
 console.log(`\n============================================================`);
-console.log(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
+console.log(`Total: ${total}, Passed: ${passed}, Failed: ${failed}, Skipped: ${skipped}`);
+console.log(`Live tests: ${liveNetworkEnabled ? 'ENABLED' : 'DISABLED (set LIVE_NETWORK_TESTS=1 to enable)'}`);
 if (failures.length) {
   console.log(`\nFailures:`);
   for (const f of failures) console.log(`  ❌ ${f.name}: ${f.error}`);

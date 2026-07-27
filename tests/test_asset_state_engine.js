@@ -609,9 +609,20 @@ section('30. applyStateTransition field-only — does not mutate other fields');
   assert('history unchanged', JSON.stringify(after.history) === JSON.stringify([{ action: 'caption-created', by: 'copywriter', at: '2026-01-01T00:00:00Z' }]));
 }
 
-// ─── Output ───────────────────────────────────────────────────────────────
-
-results.push('');
+// Step 97/98 Visibility Guard: dispute blocks the mark-live flip.
+section('visibility-guard: dispute blocks mark-live');
+{
+  const a = fixture({ assetId: 'vg-test', publishStatus: 'scheduled', history: [] });
+  // Without dispute: postizConfirmations status='live' flips publishStatus to 'live'.
+  const desiredOk = eng.evaluateAsset(a, a.history, { postizConfirmations: [{ assetId: 'vg-test', status: 'live' }] });
+  assert('default unknown does NOT block mark-live (publishStatus flips to live)', desiredOk.publishStatus === 'live');
+  // With dispute: flip must be blocked.
+  const desiredBlocked = eng.evaluateAsset(a, a.history, {
+    postizConfirmations: [{ assetId: 'vg-test', status: 'live' }],
+    operatorVisibility: { 'vg-test': 'not-visible' },
+  });
+  assert('dispute blocks mark-live (publishStatus does NOT flip to live)', desiredBlocked.publishStatus !== 'live');
+}
 results.push(`Total: ${total}, Passed: ${passed}, Failed: ${failed}`);
 console.log(results.join('\n'));
 process.exit(failed > 0 ? 1 : 0);
