@@ -340,6 +340,14 @@ except ImportError as _intel_err:
     _app_log.warning("Intelligence module not available: %s", _intel_err)
     _INTELLIGENCE_AVAILABLE = False
 
+try:
+    from _lib import campaign_planner as _planner_module
+    from _lib.campaign_planner import PLANNER_FUNCS, plan_campaign, plan_portfolio
+    _PLANNER_AVAILABLE = True
+except ImportError as _planner_err:
+    _app_log.warning("Campaign planner module not available: %s", _planner_err)
+    _PLANNER_AVAILABLE = False
+
 
 def _intel(name):
     """Run a named intelligence function; return JSON dict."""
@@ -396,6 +404,41 @@ def intel_index():
         "ok": True,
         "views": sorted(list(INTELLIGENCE_FUNCS.keys()) if _INTELLIGENCE_AVAILABLE else []),
         "usage": "GET /api/intel/<view-name>",
+    })
+
+
+@app.route('/api/plan/portfolio', methods=['GET'])
+def plan_portfolio_route():
+    """GET /api/plan/portfolio — full plan for every campaign."""
+    if not _PLANNER_AVAILABLE:
+        return jsonify({"ok": False, "error": "Planner unavailable"}), 503
+    try:
+        return jsonify(plan_portfolio()), 200
+    except Exception as exc:
+        _app_log.exception("plan_portfolio failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/plan/<campaign_id>', methods=['GET'])
+def plan_campaign_route(campaign_id):
+    """GET /api/plan/<campaign_id> — full marketing plan for one campaign."""
+    if not _PLANNER_AVAILABLE:
+        return jsonify({"ok": False, "error": "Planner unavailable"}), 503
+    try:
+        return jsonify(plan_campaign(campaign_id)), 200
+    except Exception as exc:
+        _app_log.exception("plan_campaign failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/plan/index', methods=['GET'])
+def plan_index():
+    """GET /api/plan/index — planner endpoint index."""
+    return jsonify({
+        "ok": True,
+        "endpoints": ["portfolio", "campaign/<id>"],
+        "available": _PLANNER_AVAILABLE,
+        "usage": "GET /api/plan/portfolio | GET /api/plan/<campaign_id>",
     })
 
 

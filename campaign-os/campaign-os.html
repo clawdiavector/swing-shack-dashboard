@@ -1102,6 +1102,7 @@ async function renderPostiz(){
 }
 
 // ─── CAMPAIGNS ──────────────────────────────────────────────────
+let _campaignsExpanded = new Set();
 async function renderCampaigns(){
   const d = await API.get('/api/campaigns');
   const camps = d.campaigns || {};
@@ -1113,8 +1114,110 @@ async function renderCampaigns(){
     const assets = c.assets || {};
     const n = Object.keys(assets).length;
     const status = c.identity?.status || '';
-    return `<div class="card col-4"><div class="card-h"><h3>${esc(cname)}</h3><span class="h-meta">${esc(status)}</span></div><div class="row gap-1" style="margin-bottom:.75rem"><span class="muted">${n} assets</span>${d.activeCampaignId===cid?pill('on','active'):''}</div>${c.identity?.brief?`<div style="font-size:13px;color:var(--tx-2);line-height:1.5">${esc(c.identity.brief).slice(0,180)}…</div>`:''}<div class="btn-row" style="margin-top:.75rem"><button class="btn" onclick="go('campaigns');setTimeout(()=>openReview('${cid}','${Object.keys(assets)[0]||''}'),100)">View assets</button></div></div>`;
-  }).join('') + '</div>';
+    return `<div class="card col-4" id="camp-card-${cid}" onclick="toggleCampaignPlan('${cid}')"><div class="card-h"><h3>${esc(cname)}</h3><span class="h-meta">${esc(status)}</span></div><div class="row gap-1" style="margin-bottom:.5rem"><span class="muted">${n} assets</span>${d.activeCampaignId===cid?pill('on','active'):''}</div>${c.identity?.brief?`<div style="font-size:12px;color:var(--tx-2);line-height:1.4">${esc(c.identity.brief).slice(0,160)}…</div>`:''}<div class="btn-row" style="margin-top:.75rem"><button class="btn ghost" onclick="event.stopPropagation();toggleCampaignPlan('${cid}')">📋 Full plan</button><button class="btn ghost" onclick="event.stopPropagation();go('calendar')">📅 Calendar</button></div></div>`;
+  }).join('') + '</div><div id="camp-plans"></div>';
+}
+window.toggleCampaignPlan = async (cid) => {
+  const el = document.getElementById('camp-plans');
+  if(_campaignsExpanded.has(cid)){
+    const block = document.getElementById('plan-'+cid);
+    if(block) block.remove();
+    _campaignsExpanded.delete(cid);
+    return;
+  }
+  _campaignsExpanded.add(cid);
+  toast('Loading plan…');
+  const p = await API.get('/api/plan/'+cid);
+  if(!p.ok){ toast(p.error||'Failed', 'err'); _campaignsExpanded.delete(cid); return; }
+  renderPlan(p, cid);
+};
+function renderPlan(p, cid){
+  let el = document.getElementById('plan-'+cid);
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'plan-'+cid;
+    el.style.cssText = 'margin-top:1rem';
+    document.getElementById('camp-plans').appendChild(el);
+  }
+  const goal = p.goal || {};
+  const persona = p.persona || {};
+  const kpis = p.kpis || {};
+  const cal = p.calendar || [];
+  const hooks = p.hook_bank || [];
+  const captions = p.captions || [];
+  const images = p.image_prompts || [];
+  const pillars = p.pillars || [];
+  const brand = p.brand || {};
+  const success = p.success_criteria || [];
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-h"><h3>📋 Full plan — ${esc(p.campaign_name)}</h3><span class="h-meta">${esc(p.summary)}</span><button class="btn ghost" onclick="toggleCampaignPlan('${cid}')">Close</button></div>
+
+      <div class="grid" style="margin-bottom:1rem">
+        <div class="card col-6"><div class="card-h"><h3>🎯 Goals</h3></div>
+          <div style="margin-bottom:.75rem"><b>Primary:</b> ${esc(goal.primary||'—')}</div>
+          <div style="margin-bottom:.5rem"><b>Secondary:</b></div>
+          <ul style="list-style:none;padding:0">
+            ${(goal.secondary||[]).map(g=>`<li class="li"><div class="li-body"><div class="li-title">${esc(g)}</div></div></li>`).join('')}
+          </ul>
+        </div>
+        <div class="card col-6"><div class="card-h"><h3>👤 Persona — ${esc(persona.name||'')}</h3></div>
+          <dl class="kvs">
+            <dt>Age</dt><dd>${esc((persona.demographics||{}).age||'—')}</dd>
+            <dt>Location</dt><dd>${esc((persona.demographics||{}).location||'—')}</dd>
+            <dt>Plays</dt><dd>${esc((persona.demographics||{}).plays||'—')}</dd>
+            <dt>Pains</dt><dd>${(persona.pains||[]).length} identified</dd>
+            <dt>Where they scroll</dt><dd>${(persona.where_they_scroll||[]).join(', ')}</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card-h" style="margin-top:1rem"><h3>📚 Content pillars (${pillars.length})</h3></div>
+      <div class="grid">${pillars.map(pil => `
+        <div class="card col-${pil.weight > 0.2 ? '6' : '4'}" style="border-left:3px solid ${pil.color_accent}">
+          <div class="card-h"><h3>${esc(pil.label)}</h3><span class="h-meta">${(pil.weight*100).toFixed(0)}% weight</span></div>
+          <div style="font-size:13px;color:var(--tx-2);line-height:1.5;margin-bottom:.5rem">${esc(pil.purpose||'')}</div>
+          <div class="muted" style="font-size:12px">${esc(pil.rationale||'')}</div>
+        </div>`).join('')}</div>
+
+      <div class="card-h" style="margin-top:1rem"><h3>🪝 Hook bank (${hooks.length})</h3></div>
+      <ul class="list">${hooks.slice(0,10).map(h => `<li class="li"><div class="li-body"><div class="li-title">${esc((h.hook||'').slice(0,140))}</div><div class="li-meta">${h.score?pill('on','score '+h.score):''} ${pill('live', h.source||'')}</div></div></li>`).join('')}</ul>
+
+      <div class="card-h" style="margin-top:1rem"><h3>🎨 Image prompt library (${images.length})</h3></div>
+      <ul class="list">${images.slice(0,8).map(im => `<li class="li"><div class="li-body"><div class="li-title">${esc((im.prompt||'').slice(0,160))}…</div><div class="li-meta">${pill('live', im.pillar||'')} · ${pill('draft', im.format||'')} · ${esc(im.model_hint||'')}</div></div></li>`).join('')}</ul>
+
+      <div class="card-h" style="margin-top:1rem"><h3>✍️ Caption library (${captions.length})</h3></div>
+      <ul class="list">${captions.slice(0,8).map(c => `<li class="li"><div class="li-body"><div class="li-title">${esc((c.caption||'').slice(0,180))}…</div><div class="li-meta">${pill('live', c.pillar||'')} · ${esc(c.cta||'')}</div></div></li>`).join('')}</ul>
+
+      <div class="card-h" style="margin-top:1rem"><h3>📅 30-day calendar (${cal.length} posts)</h3></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.5rem">
+        ${cal.map(c => `
+          <div style="background:var(--bg-3);border-radius:8px;padding:.5rem .75rem;border-left:3px solid var(--ac)">
+            <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase">${esc(c.weekday||'')} week ${c.week} · ${esc(c.day)}</div>
+            <div style="font-weight:600;font-size:13px;margin:.2rem 0">${esc(c.hook||'').slice(0,90)}</div>
+            <div class="muted" style="font-size:11px">${esc(c.format||'')} · ${esc(c.platform||'')} · ${esc(c.time_sast||'')}</div>
+            <div style="font-size:11px;color:var(--tx-3);margin-top:.25rem">CTA: ${esc(c.cta||'')}</div>
+          </div>`).join('')}
+      </div>
+
+      <div class="card-h" style="margin-top:1rem"><h3>🎯 KPIs & success criteria</h3></div>
+      <div class="grid">
+        <div class="card col-4"><div class="stat"><div class="stat-val">${(kpis.reach_30d?.mid||0).toLocaleString()}</div><div class="stat-lbl">Reach (30d, mid)</div></div></div>
+        <div class="card col-4"><div class="stat"><div class="stat-val">${kpis.bookings_30d?.target||0}</div><div class="stat-lbl">Bookings target</div></div></div>
+        <div class="card col-4"><div class="stat"><div class="stat-val">${kpis.follow_growth?.target||0}</div><div class="stat-lbl">Follower growth</div></div></div>
+        <div class="card col-12"><div class="card-h"><h3>✅ Success criteria</h3></div>
+          <ul class="list">${success.map(s=>`<li class="li"><div class="li-body"><div class="li-title">${esc(s)}</div></div></li>`).join('')}</ul>
+        </div>
+        <div class="card col-12"><div class="card-h"><h3>📈 What winning looks like</h3></div>
+          <dl class="kvs">
+            <dt>Day 7</dt><dd>${esc(kpis.what_winning_looks_like?.day_7||'—')}</dd>
+            <dt>Day 14</dt><dd>${esc(kpis.what_winning_looks_like?.day_14||'—')}</dd>
+            <dt>Day 30</dt><dd>${esc(kpis.what_winning_looks_like?.day_30||'—')}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // ─── AGENTS ─────────────────────────────────────────────────────
