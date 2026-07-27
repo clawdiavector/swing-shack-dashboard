@@ -169,19 +169,31 @@ a:hover{text-decoration:underline}
 .modal-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem}
 
 /* ─── Calendar grid ──────────────────────────────────────────── */
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem}
-.cal-h{font-size:11px;color:var(--tx-3);text-align:center;padding:.5rem 0;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
-.cal-d{background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);min-height:120px;padding:.5rem;display:flex;flex-direction:column;gap:.25rem;transition:border var(--t)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5rem;min-width:0}
+.cal-h{font-size:11px;color:var(--tx-3);text-align:center;padding:.5rem 0;font-weight:600;text-transform:uppercase;letter-spacing:.05em;min-width:0}
+.cal-d{background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);min-height:120px;min-width:0;padding:.5rem;display:flex;flex-direction:column;gap:.25rem;transition:border var(--t);overflow:hidden}
 .cal-d:hover{border-color:var(--bd-2)}
 .cal-d.today{border-color:var(--ac);background:rgba(52,211,153,.06)}
 .cal-d.overdue{opacity:.7}
+.cal-d.drag-over{border-color:var(--ac);background:rgba(52,211,153,.12);box-shadow:0 0 0 2px var(--ac-glow)}
 .cal-dh{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--tx-3);font-weight:600}
 .cal-dh .n{color:var(--tx);font-size:13px}
-.cal-slot{background:var(--bg-4);border-radius:4px;padding:3px 6px;font-size:11px;color:var(--tx-2);border-left:2px solid var(--ac);line-height:1.3;cursor:grab}
+.cal-slot{background:var(--bg-4);border-radius:4px;padding:5px 7px;font-size:11px;color:var(--tx-2);border-left:3px solid var(--ac);line-height:1.3;cursor:grab;transition:opacity .15s,transform .15s,background var(--t)}
+.cal-slot:hover{background:#263450;transform:translateY(-1px)}
+.cal-slot.dragging{opacity:.38;cursor:grabbing}
 .cal-slot.draft{border-left-color:var(--tx-3)}
 .cal-slot.review{border-left-color:var(--yel)}
 .cal-slot.blocked{border-left-color:var(--red)}
 .cal-slot.scheduled{border-left-color:var(--blu)}
+.cal-slot .cal-slot-name{font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-slot .cal-slot-meta{font-size:10px;color:var(--tx-3);margin-top:2px;display:flex;gap:4px;align-items:center}
+.cal-slot .cal-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
+.cal-duplicate-zone{margin-top:1rem;border:1px dashed var(--bd-2);border-radius:var(--r);padding:1rem;display:flex;align-items:center;gap:.75rem;color:var(--tx-3);background:rgba(167,139,250,.04);transition:all var(--t)}
+.cal-duplicate-zone.drag-over{border-color:var(--pur);background:rgba(167,139,250,.14);color:var(--tx)}
+.cal-duplicate-zone strong{color:var(--tx-2);font-size:13px}
+.cal-duplicate-zone small{display:block;font-size:11px;margin-top:2px}
+@media (max-width:900px){.cal-grid{grid-template-columns:repeat(4,minmax(150px,1fr));overflow-x:auto;padding-bottom:.5rem}.cal-h{display:none}.cal-d{min-width:150px}}
+@media (max-width:600px){.cal-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}.cal-d{min-width:0}}
 
 /* ─── Review row ─────────────────────────────────────────────── */
 .review{padding:.75rem 1rem;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);display:flex;align-items:flex-start;gap:1rem;margin-bottom:.5rem;transition:all var(--t)}
@@ -204,6 +216,22 @@ a:hover{text-decoration:underline}
 .kvs{display:grid;grid-template-columns:auto 1fr;gap:.4rem .75rem;font-size:13px}
 .kvs dt{color:var(--tx-3);font-weight:500}
 .kvs dd{color:var(--tx);font-weight:500}
+
+/* ─── Inline editor ──────────────────────────────────────────── */
+.ed{width:100%;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.5rem .65rem;color:var(--tx);font:13px/1.45 inherit;outline:none;transition:border var(--t),box-shadow var(--t);resize:vertical}
+.ed:hover{border-color:var(--bd-2)}
+.ed:focus{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-glow);background:var(--bg-2)}
+.ed.ed-cap{min-height:96px;font-size:13.5px;line-height:1.5}
+.ed.ed-vb,.ed.ed-ip{min-height:64px;font-family:ui-monospace,SF Mono,Menlo,Consolas,monospace;font-size:12px}
+.ed-label{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--tx-3);margin-bottom:.25rem}
+.ed-foot{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-top:.65rem;padding-top:.5rem;border-top:1px dashed var(--bd);font-size:11px}
+.ed-status{color:var(--tx-3);transition:color .2s}
+.ed-status.modified{color:var(--org)}
+.ed-status.saving{color:var(--blu)}
+.ed-status.ok{color:var(--ac)}
+.ed-status.err{color:var(--red)}
+.ed-history{margin-top:.5rem}
+.btn.small{padding:.25rem .5rem;font-size:11px}
 
 /* ─── Insight strip ──────────────────────────────────────────── */
 .insight-strip{display:flex;gap:1rem;padding:.85rem 1.1rem;background:linear-gradient(135deg,rgba(52,211,153,.08) 0%,rgba(96,165,250,.08) 100%);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:1.25rem}
@@ -354,6 +382,11 @@ a:hover{text-decoration:underline}
       </div>
       <div class="card">
         <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-duplicate-zone" id="cal-duplicate-zone" data-drop-target="duplicate">
+          <span style="font-size:20px">⧉</span>
+          <div><strong>Drop here to duplicate</strong><small>Creates a fresh draft copy without publishing anything</small></div>
+        </div>
+        <div class="muted" style="font-size:11px;margin-top:.75rem">Drag a card to another day to reschedule · colors show pillar / brand · queue items are safe to move</div>
       </div>
     </section>
 
@@ -565,6 +598,25 @@ const API = {
   },
   async post(path, body){
     const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})});
+    if(!r.ok) throw new Error(`${path} → ${r.status}`);
+    return r.json();
+  },
+  async patch(path, body){
+    const r = await fetch(path, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})});
+    if(!r.ok) {
+      let err = `${path} → ${r.status}`;
+      try { const j = await r.json(); if(j.error) err = j.error; } catch(_){}
+      throw new Error(err);
+    }
+    return r.json();
+  },
+  async put(path, body){
+    const r = await fetch(path, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})});
+    if(!r.ok) throw new Error(`${path} → ${r.status}`);
+    return r.json();
+  },
+  async delete(path){
+    const r = await fetch(path, {method:'DELETE'});
     if(!r.ok) throw new Error(`${path} → ${r.status}`);
     return r.json();
   }
@@ -841,34 +893,137 @@ async function renderPublish(){
 }
 
 // ─── CALENDAR ───────────────────────────────────────────────────
+let _calDrag = null;
+let _calRenderToken = 0;
+
+function calDragStart(event){
+  const el = event.currentTarget;
+  _calDrag = {
+    assetId: el.dataset.assetId,
+    campaignId: el.dataset.campaignId || '',
+    source: el.dataset.source || 'campaign',
+    scheduledFor: el.dataset.scheduledFor || '',
+    name: el.dataset.name || '',
+  };
+  el.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', JSON.stringify(_calDrag));
+}
+function calDragEnd(event){
+  event.currentTarget.classList.remove('dragging');
+  _calDrag = null;
+  $$('.cal-d.drag-over,.cal-duplicate-zone.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+function calDragOver(event){
+  if(!_calDrag) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  event.currentTarget.classList.add('drag-over');
+}
+function calDragLeave(event){
+  if(event.currentTarget.contains(event.relatedTarget)) return;
+  event.currentTarget.classList.remove('drag-over');
+}
+function calDropTime(date){
+  const source = _calDrag?.scheduledFor;
+  let time = '09:00:00';
+  if(source && source.includes('T')) time = source.slice(11,19) || time;
+  return `${date}T${time}Z`;
+}
+async function calDrop(event, targetDate){
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  if(!_calDrag?.assetId) return;
+  const drag = {..._calDrag};
+  if(event.currentTarget.dataset.dropTarget === 'duplicate'){
+    return calDuplicate(drag);
+  }
+  const scheduledFor = calDropTime(targetDate);
+  if(drag.scheduledFor && drag.scheduledFor.slice(0,10) === targetDate){
+    toast('Already scheduled on '+targetDate);
+    return;
+  }
+  try{
+    const r = await API.post('/api/schedule/'+encodeURIComponent(drag.assetId), {
+      campaignId: drag.campaignId || undefined, scheduledFor, updatedBy:'calendar'
+    });
+    if(!r.ok) throw new Error(r.error || 'Reschedule failed');
+    toast('Rescheduled to '+targetDate);
+    await renderCalendar();
+  }catch(err){
+    toast(err.message || 'Reschedule failed', 'err');
+  }
+}
+async function calDuplicate(drag){
+  try{
+    const r = await API.post('/api/schedule/'+encodeURIComponent(drag.assetId)+'/duplicate', {
+      campaignId: drag.campaignId || undefined,
+      scheduledFor: calDropTime(new Date().toISOString().slice(0,10)),
+      updatedBy:'calendar'
+    });
+    if(!r.ok) throw new Error(r.error || 'Duplicate failed');
+    toast('Duplicated as a new draft');
+    await renderCalendar();
+  }catch(err){
+    toast(err.message || 'Duplicate failed', 'err');
+  }
+}
+function calSlotHtml(s){
+  const cls = s.approvalStatus==='approved' ? 'scheduled' : (s.publishStatus==='draft' ? 'draft' : 'review');
+  const color = s.color || '#34d399';
+  const label = (s.pillar || s.brand || s.platform || 'content').replace(/_/g,' ');
+  return `<div class="cal-slot ${cls}" draggable="true"
+    data-asset-id="${esc(s.assetId || '')}"
+    data-campaign-id="${esc(s.campaignId || '')}"
+    data-source="${esc(s.source || 'campaign')}"
+    data-scheduled-for="${esc(s.scheduledFor || '')}"
+    data-name="${esc(s.name || '')}"
+    style="border-left-color:${esc(color)}"
+    ondragstart="calDragStart(event)" ondragend="calDragEnd(event)"
+    title="Drag to reschedule · ${esc(label)}">
+    <div class="cal-slot-name">${esc((s.name||'Untitled').slice(0,42))}</div>
+    <div class="cal-slot-meta"><span class="cal-dot" style="background:${esc(color)}"></span>${esc(label.slice(0,22))} · ${esc(s.platform || 'instagram')}</div>
+  </div>`;
+}
 async function renderCalendar(){
-  const data = await API.get('/api/intel/calendar?days=14');
+  const token = ++_calRenderToken;
+  const start = S.calStart || '';
+  const data = await API.get('/api/intel/calendar?days=14'+(start?'&start='+encodeURIComponent(start):''));
+  if(token !== _calRenderToken) return;
   S.cal = data;
   $('#cal-summary').textContent = data.totalScheduled + ' scheduled in next 14 days · ' + (data.days[0]?.count || 0) + ' today';
-
   const grid = $('#cal-grid');
-  const days = data.days;
+  const days = data.days || [];
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   let html = dayNames.map(d => `<div class="cal-h">${d}</div>`).join('');
-  // Pad before today (Mon=0)
-  const today = new Date(data.today);
-  const firstDow = (new Date(days[0].date)).getDay(); // 0=Sun
-  const padCount = (firstDow + 6) % 7; // shift so Mon=0
+  const firstDow = (new Date((days[0]||{}).date || data.today)).getDay();
+  const padCount = (firstDow + 6) % 7;
   for(let i=0;i<padCount;i++) html += `<div></div>`;
-
   days.forEach(d => {
-    const dt = new Date(d.date);
+    const dt = new Date(d.date+'T00:00:00');
     const isToday = d.date === data.today;
-    const slotsHtml = d.slots.slice(0,4).map(s => {
-      const cls = s.approvalStatus==='approved' ? 'scheduled' : (s.publishStatus==='draft' ? 'draft' : 'review');
-      return `<div class="cal-slot ${cls}">${esc((s.name||'').slice(0,30))}</div>`;
-    }).join('');
-    const more = d.slots.length > 4 ? `<div class="muted" style="font-size:10px">+${d.slots.length-4} more</div>` : '';
-    html += `<div class="cal-d ${isToday?'today':''}"><div class="cal-dh"><span class="n">${dt.getDate()}</span><span>${d.count}</span></div>${slotsHtml}${more}</div>`;
+    const slots = (d.slots || []).slice(0,6).map(calSlotHtml).join('');
+    const more = d.slots.length > 6 ? `<div class="muted" style="font-size:10px">+${d.slots.length-6} more</div>` : '';
+    html += `<div class="cal-d ${isToday?'today':''}" data-drop-date="${esc(d.date)}" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,'${esc(d.date)}')">
+      <div class="cal-dh"><span class="n">${dt.getDate()}</span><span>${d.count}</span></div>${slots}${more}
+    </div>`;
   });
   grid.innerHTML = html;
 }
-$$('[data-cal-shift]').forEach(b => b.addEventListener('click', () => { S.calOffset += parseInt(b.dataset.calShift, 10); renderCalendar(); }));
+const calDuplicateZone = $('#cal-duplicate-zone');
+calDuplicateZone.addEventListener('dragover', calDragOver);
+calDuplicateZone.addEventListener('dragleave', calDragLeave);
+calDuplicateZone.addEventListener('drop', calDrop);
+$$('[data-cal-shift]').forEach(b => b.addEventListener('click', () => {
+  const shift = parseInt(b.dataset.calShift, 10);
+  if(shift === 0){ S.calStart = ''; }
+  else {
+    const base = S.calStart ? new Date(S.calStart+'T00:00:00') : new Date();
+    base.setDate(base.getDate()+shift);
+    S.calStart = base.toISOString().slice(0,10);
+  }
+  renderCalendar();
+}));
 
 // ─── TRENDS ─────────────────────────────────────────────────────
 async function renderTrends(){
@@ -1216,9 +1371,149 @@ function renderPlan(p, cid){
           </dl>
         </div>
       </div>
+
+      <div class="card-h" style="margin-top:1rem;display:flex;align-items:center;gap:.5rem">
+        <h3>✏️ Assets — click any field to edit</h3>
+        <span class="muted" style="font-size:12px">saves automatically · ⌘+Enter saves · Esc cancels</span>
+      </div>
+      <div id="plan-assets-${cid}"><div class="muted" style="padding:1rem">Loading assets…</div></div>
     </div>
   `;
+  loadPlanAssets(cid);
 }
+
+window.loadPlanAssets = async (cid) => {
+  const wrap = document.getElementById('plan-assets-'+cid);
+  if(!wrap) return;
+  const c = await API.get('/api/campaigns/'+cid);
+  if(!c || c.error){ wrap.innerHTML = '<div class="empty">No assets</div>'; return; }
+  const assets = c.assets || {};
+  const ids = Object.keys(assets);
+  if(!ids.length){ wrap.innerHTML = '<div class="empty">No assets yet for this campaign</div>'; return; }
+  wrap.innerHTML = ids.map(aid => assetEditorHtml(aid, assets[aid], cid)).join('');
+};
+
+function assetEditorHtml(aid, a, cid){
+  const cap = esc(a.caption || '');
+  const vb = esc(a.visualBrief || '');
+  const hl = esc(a.headline || '');
+  const ip = esc(a.imagePrompt || '');
+  const tags = (a.hashtags || []).map(t => esc(t)).join(' ');
+  return `<div class="card" style="margin-bottom:.75rem" data-asset-id="${esc(aid)}">
+    <div class="card-h">
+      <h3 style="font-size:14px">${esc(a.name || aid)}</h3>
+      <span class="h-meta">${pill(a.approvalStatus==='approved'?'on':a.approvalStatus==='rejected'?'blocked':'draft', a.approvalStatus||'draft')} ${pill('live', a.platform||'instagram')}</span>
+    </div>
+    <div class="grid">
+      <div class="col-6">
+        <div class="ed-label">Caption</div>
+        <textarea class="ed ed-cap" data-field="caption" data-aid="${esc(aid)}" rows="4" placeholder="Write a caption…">${cap}</textarea>
+      </div>
+      <div class="col-6">
+        <div class="ed-label">Headline</div>
+        <input class="ed" type="text" data-field="headline" data-aid="${esc(aid)}" value="${hl}" placeholder="Short headline">
+        <div class="ed-label" style="margin-top:.5rem">Visual brief</div>
+        <textarea class="ed ed-vb" data-field="visualBrief" data-aid="${esc(aid)}" rows="3" placeholder="Describe the image…">${vb}</textarea>
+      </div>
+      <div class="col-8">
+        <div class="ed-label">Image prompt</div>
+        <textarea class="ed ed-ip" data-field="imagePrompt" data-aid="${esc(aid)}" rows="3" placeholder="Photorealistic / studio shot / etc…">${ip}</textarea>
+      </div>
+      <div class="col-4">
+        <div class="ed-label">Hashtags</div>
+        <input class="ed" type="text" data-field="hashtags" data-aid="${esc(aid)}" value="${tags}" placeholder="golf johannesburg trackman">
+      </div>
+    </div>
+    <div class="ed-foot" data-aid="${esc(aid)}">
+      <span class="ed-status" data-aid="${esc(aid)}">Click any field, type, then ⌘+Enter to save · Esc cancels</span>
+      <button class="btn ghost small" data-act="history" data-aid="${esc(aid)}">📜 History</button>
+    </div>
+    <div class="ed-history" data-aid="${esc(aid)}" style="display:none"></div>
+  </div>`;
+}
+
+async function saveAssetField(input){
+  const aid = input.dataset.aid;
+  const field = input.dataset.field;
+  const cid = input.closest('[id^="plan-assets-"]').id.replace('plan-assets-','');
+  let value = input.value;
+  const foot = document.querySelector('.ed-foot[data-aid="'+aid+'"] .ed-status[data-aid="'+aid+'"]');
+  const setStatus = (msg, kind) => { if(foot){ foot.textContent = msg; foot.className = 'ed-status '+(kind||'')+' ed-status-'+aid; } };
+  setStatus('Saving…', 'saving');
+  try{
+    const body = { campaignId: cid, updatedBy: 'inline-editor' };
+    body[field] = value;
+    const r = await API.patch('/api/assets/'+encodeURIComponent(aid), body);
+    if(!r.ok) throw new Error(r.error || 'Save failed');
+    const change = (r.changes||[])[0];
+    if(change){
+      setStatus('✓ Saved '+change.field+' '+(change.old?'(was: "'+truncate(change.old,30)+'")':''), 'ok');
+    } else {
+      setStatus('✓ No changes', 'ok');
+    }
+    setTimeout(() => setStatus('Click any field, type, then ⌘+Enter to save · Esc cancels', 'muted'), 3500);
+  }catch(err){
+    setStatus('✗ '+(err.message||'Save failed'), 'err');
+  }
+}
+
+function truncate(s, n){ return (s||'').length > n ? (s||'').slice(0,n)+'…' : (s||''); }
+
+async function loadAssetHistory(aid){
+  const wrap = document.querySelector('.ed-history[data-aid="'+aid+'"]');
+  if(!wrap) return;
+  if(wrap.style.display !== 'none'){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  wrap.innerHTML = '<div class="muted" style="padding:.5rem">Loading…</div>';
+  const r = await API.get('/api/assets/'+encodeURIComponent(aid)+'/history');
+  if(!r.ok){ wrap.innerHTML = '<div class="empty">No history</div>'; return; }
+  const hist = r.history || [];
+  wrap.innerHTML = `<div style="background:var(--bg-2);border-top:1px solid var(--bd);padding:.5rem .75rem">
+    <div class="muted" style="font-size:11px;margin-bottom:.4rem">📜 ${r.historyTotal} history events · ${r.refsTotal} publishing refs</div>
+    ${hist.slice().reverse().slice(0,10).map(h => `
+      <div style="display:flex;gap:.5rem;font-size:11px;padding:.2rem 0;border-bottom:1px dashed var(--bd)">
+        <span class="muted" style="min-width:140px">${esc(h.ts||'')}</span>
+        <span>${pill(h.event==='inline-edit'?'on':'draft', h.event||'')}</span>
+        <span class="muted">${esc(h.actor||'')}</span>
+        ${h.fields?`<span>${esc((h.fields||[]).join(', '))}</span>`:''}
+      </div>`).join('')}
+  </div>`;
+}
+
+document.addEventListener('keydown', e => {
+  const el = document.activeElement;
+  if(el && el.classList?.contains('ed')){
+    if((e.metaKey || e.ctrlKey) && e.key === 'Enter'){
+      e.preventDefault();
+      saveAssetField(el);
+    } else if(e.key === 'Escape'){
+      e.preventDefault();
+      const cid = el.closest('[id^="plan-assets-"]')?.id.replace('plan-assets-','');
+      const aid = el.dataset.aid;
+      // revert by reloading the assets panel
+      if(cid) loadPlanAssets(cid);
+      el.blur();
+    }
+  }
+});
+document.addEventListener('input', e => {
+  const el = e.target;
+  if(el.classList?.contains('ed')){
+    const foot = document.querySelector('.ed-foot[data-aid="'+el.dataset.aid+'"] .ed-status[data-aid="'+el.dataset.aid+'"]');
+    if(foot && !foot.className.includes('saving')){
+      foot.textContent = 'Modified — ⌘+Enter to save';
+      foot.className = 'ed-status modified ed-status-'+el.dataset.aid;
+    }
+  }
+});
+document.addEventListener('blur', e => {
+  const el = e.target;
+  // No auto-save on blur — user must press ⌘+Enter (avoid surprising writes)
+}, true);
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-act="history"]');
+  if(btn){ e.preventDefault(); loadAssetHistory(btn.dataset.aid); }
+});
 
 // ─── AGENTS ─────────────────────────────────────────────────────
 async function renderAgents(){

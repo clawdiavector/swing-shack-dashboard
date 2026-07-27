@@ -5,9 +5,12 @@ Data lives on Railway disk. GitHub is backup/version history.
 """
 import os
 import json
+import copy
 import datetime
+import re
 import subprocess
 import shutil
+import uuid
 import logging
 from flask import Flask, jsonify, request, send_from_directory, g
 from flask_cors import CORS
@@ -16,10 +19,27 @@ app = Flask(__name__, static_folder='.')
 CORS(app)
 _app_log = logging.getLogger("campaign-os")
 
-# Directory where we store campaign data (Railway persistent disk)
+def _data_paths():
+    """Resolve runtime DATA_DIR + canonical file paths at call time.
+
+    Reading from os.environ on every call lets tests override DATA_DIR via
+    `os.environ['DATA_DIR']` even when the module was imported elsewhere.
+    """
+    base = os.environ.get('DATA_DIR') or '/data'
+    return {
+        'data_dir': base,
+        'campaign_file': os.path.join(base, 'campaign-data.json'),
+        'schedule_file': os.path.join(base, 'scheduled-items.json'),
+    }
+
+
 DATA_DIR = os.environ.get('DATA_DIR', '/data')
 CAMPAIGN_FILE = os.path.join(DATA_DIR, 'campaign-data.json')
 REPO_DIR = os.path.join(DATA_DIR, 'repo')
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BUNDLED_DATA_DIR = os.path.join(REPO_ROOT, 'data')
+SCHEDULE_FILE = os.path.join(DATA_DIR, 'scheduled-items.json')
+BUNDLED_SCHEDULE_FILE = os.path.join(BUNDLED_DATA_DIR, 'scheduled-items.json')
 GIT_REMOTE = os.environ.get('GIT_REMOTE', 
  'https://x-access-token:${GITHUB_TOKEN}@github.com/clawdiavector/swing-shack-dashboard.git')
 BRANCH = 'main'
@@ -28,9 +48,11 @@ BRANCH = 'main'
 
 def load_data():
     """Load campaign data, falling back to bundled campaign-os/campaign-data.json, then embedded default."""
-    # Primary: Railway persistent disk (DATA_DIR/campaign-data.json)
-    if os.path.exists(CAMPAIGN_FILE):
-        with open(CAMPAIGN_FILE, 'r', encoding='utf-8') as f:
+    paths = _data_paths()
+    campaign_file = paths['campaign_file']
+    # Primary: runtime DATA_DIR/campaign-data.json
+    if os.path.exists(campaign_file):
+        with open(campaign_file, 'r', encoding='utf-8') as f:
             return json.load(f)
     # Fallback 1: bundled canonical campaign data shipped with the deploy
     bundled = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campaign-data.json')
@@ -41,10 +63,170 @@ def load_data():
     return {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
 
 def save_data(data):
-    """Save campaign data to Railway disk."""
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(CAMPAIGN_FILE, 'w', encoding='utf-8') as f:
+    """Save campaign data to runtime DATA_DIR."""
+    paths = _data_paths()
+    os.makedirs(paths['data_dir'], exist_ok=True)
+    with open(paths['campaign_file'], 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
+def _now_iso():
+    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+
+def _normalise_schedule_datetime(value):
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError('scheduledFor is required')
+    raw = value.strip()
+    if len(raw) == 10:
+        raw += 'T09:00:00'
+    try:
+        parsed = datetime.datetime.fromisoformat(raw.replace('Z', '+00:00'))
+    except (TypeError, ValueError) as exc:
+        raise ValueError('scheduledFor must be a valid ISO 8601 datetime') from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return parsed.astimezone(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+
+def _schedule_datetime_from_body(body):
+    for key in ('scheduledFor', 'targetDatetime', 'targetDateTime', 'publishDate', 'date'):
+        if body.get(key) is not None:
+            return _normalise_schedule_datetime(body[key])
+    raise ValueError('scheduledFor is required')
+
+def _read_json_file(path):
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
+
+def load_schedule():
+    """Read the scheduling sidecar; campaign-data.json remains read-only here."""
+    paths = _data_paths()
+    schedule_file = paths['schedule_file']
+    manifest = _read_json_file(schedule_file)
+    if manifest is None:
+        manifest = _read_json_file(BUNDLED_SCHEDULE_FILE)
+    if not isinstance(manifest, dict):
+        manifest = {}
+    scheduled = manifest.get('scheduled')
+    if not isinstance(scheduled, list):
+        scheduled = manifest.get('items') if isinstance(manifest.get('items'), list) else []
+    out = dict(manifest)
+    out['scheduled'] = [dict(item) for item in scheduled if isinstance(item, dict)]
+    out['total'] = len(out['scheduled'])
+    out.setdefault('schema', 'https://clawdia.io/agents/publisher/v1')
+    return out
+
+def save_schedule(manifest):
+    """Atomically persist the sidecar in the runtime DATA_DIR."""
+    paths = _data_paths()
+    os.makedirs(paths['data_dir'], exist_ok=True)
+    payload = dict(manifest or {})
+    payload['scheduled'] = [item for item in payload.get('scheduled', []) if isinstance(item, dict)]
+    payload['total'] = len(payload['scheduled'])
+    payload['generated'] = _now_iso()
+    paths = _data_paths()
+    schedule_file = paths['schedule_file']
+    tmp = schedule_file + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+        f.write('\n')
+    os.replace(tmp, schedule_file)
+    return payload
+
+def _read_publisher_queue():
+    for path in (os.path.join(DATA_DIR, 'publish-queue.json'),
+                 os.path.join(BUNDLED_DATA_DIR, 'publish-queue.json')):
+        value = _read_json_file(path)
+        if isinstance(value, dict):
+            items = value.get('queued') if isinstance(value.get('queued'), list) else value.get('queue')
+            if isinstance(items, list):
+                return [dict(item) for item in items if isinstance(item, dict)]
+    return []
+
+def _entry_matches(item, asset_id):
+    return asset_id in {item.get('assetId'), item.get('asset_id'), item.get('item_id'),
+                        item.get('publish_id'), item.get('publishId'), item.get('id')}
+
+def _manifest_entry(manifest, asset_id):
+    return next((item for item in manifest.get('scheduled', []) if _entry_matches(item, asset_id)), None)
+
+def _campaign_target(asset_id, campaign_id=None, data=None):
+    data = data or load_data()
+    for cid, campaign in (data.get('campaigns') or {}).items():
+        if campaign_id and cid != campaign_id:
+            continue
+        assets = campaign.get('assets') or {}
+        if asset_id not in assets:
+            continue
+        asset = assets[asset_id]
+        identity = campaign.get('identity') or {}
+        return {
+            'source': 'campaign', 'assetId': asset_id, 'campaignId': cid,
+            'campaign': campaign, 'asset': asset,
+            'name': asset.get('name', asset_id), 'caption': asset.get('caption', ''),
+            'platform': asset.get('platform') or asset.get('integration') or 'instagram',
+            'brand': identity.get('brand') or identity.get('business') or 'Swing Shack',
+            'pillar': asset.get('pillarName') or asset.get('pillar') or '',
+        }
+    return None
+
+def _queue_target(asset_id):
+    for item in _read_publisher_queue():
+        if _entry_matches(item, asset_id):
+            return {
+                'source': 'queue', 'assetId': asset_id,
+                'campaignId': item.get('campaignId') or item.get('campaign_id'),
+                'queueItem': item,
+                'name': item.get('name') or item.get('caption_preview') or item.get('caption') or asset_id,
+                'caption': item.get('caption') or item.get('caption_preview', ''),
+                'platform': item.get('platform') or 'instagram',
+                'brand': item.get('brand') or item.get('business') or 'Swing Shack',
+                'pillar': item.get('pillarName') or item.get('pillar') or '',
+            }
+    return None
+
+def _schedule_target(asset_id, campaign_id=None):
+    data = load_data()
+    target = _campaign_target(asset_id, campaign_id, data) or _queue_target(asset_id)
+    if target:
+        if campaign_id and target.get('campaignId') and target['campaignId'] != campaign_id:
+            return None
+        return target
+    manifest = load_schedule()
+    item = _manifest_entry(manifest, asset_id)
+    if item:
+        return {
+            'source': item.get('source') or 'calendar', 'assetId': asset_id,
+            'campaignId': item.get('campaignId'), 'manifestItem': item,
+            'name': item.get('name') or item.get('caption') or asset_id,
+            'caption': item.get('caption', ''), 'platform': item.get('platform') or 'instagram',
+            'brand': item.get('brand') or 'Swing Shack',
+            'pillar': item.get('pillar') or item.get('pillarName') or '',
+        }
+    return None
+
+def _upsert_schedule_entry(manifest, target, scheduled_for, platform=None, extra=None):
+    item = _manifest_entry(manifest, target['assetId'])
+    if item is None:
+        item = {'assetId': target['assetId']}
+        manifest.setdefault('scheduled', []).append(item)
+    item.update({
+        'assetId': target['assetId'], 'campaignId': target.get('campaignId'),
+        'source': target.get('source', 'calendar'), 'name': target.get('name') or target['assetId'],
+        'caption': target.get('caption', ''), 'brand': target.get('brand') or 'Swing Shack',
+        'pillar': target.get('pillar') or '', 'platform': platform or target.get('platform') or 'instagram',
+        'scheduledFor': scheduled_for, 'publishStatus': 'scheduled', 'updatedAt': _now_iso(),
+    })
+    if extra:
+        item.update(extra)
+    return item
+
+def _schedule_response(manifest):
+    payload = dict(manifest)
+    payload['scheduled'] = [dict(item) for item in manifest.get('scheduled', [])]
+    payload['total'] = len(payload['scheduled'])
+    return payload
 
 def git_push(message):
     """
@@ -248,6 +430,128 @@ def review_asset(asset_id):
         response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
     return jsonify(response)
 
+# ─── INLINE ASSET EDIT ──────────────────────────────────────────────────
+ALLOWED_INLINE_FIELDS = {
+    'caption', 'visualBrief', 'imagePrompt', 'imageUrl',
+    'hookText', 'headline', 'cta', 'hashtags', 'platform',
+    'pillar', 'pillarName', 'name', 'notes', 'scheduledFor',
+}
+
+
+@app.route('/api/assets/<asset_id>', methods=['PATCH', 'PUT'])
+def edit_asset_inline(asset_id):
+    """Inline edit an asset's editable fields without touching approval state.
+
+    Body: { campaignId, <field>: <value>, ... }
+    Editable fields: caption, visualBrief, imagePrompt, imageUrl, hookText,
+    headline, cta, hashtags, platform, pillar, pillarName, name, notes,
+    scheduledFor.
+
+    Does NOT mutate approvalStatus, reviewTs, or publishingReferences — those
+    flow through /api/review/<asset_id> and the asset state engine.
+    """
+    body = request.get_json(silent=True) or {}
+    campaign_id = body.get('campaignId')
+    if not campaign_id:
+        return jsonify({"error": "campaignId required"}), 400
+
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if campaign_id not in campaigns:
+        return jsonify({"error": "Campaign not found"}), 404
+    campaign = campaigns[campaign_id]
+    assets = campaign.get("assets", {})
+    if asset_id not in assets:
+        return jsonify({"error": "Asset not found"}), 404
+
+    asset = assets[asset_id]
+    now = _now_iso()
+    changes = []
+    rejected = []
+
+    for key, value in body.items():
+        if key == 'campaignId':
+            continue
+        if key not in ALLOWED_INLINE_FIELDS:
+            rejected.append(key)
+            continue
+        if key == 'scheduledFor':
+            try:
+                value = _normalise_schedule_datetime(value)
+            except ValueError as exc:
+                return jsonify({"error": str(exc)}), 400
+        # Normalise hashtags into a list of clean tokens
+        if key == 'hashtags' and isinstance(value, str):
+            value = [h.strip().lstrip('#') for h in re.split(r'[,\s#]+', value) if h.strip()]
+        # Don't no-op — record what actually changed
+        if asset.get(key) != value:
+            changes.append({"field": key, "old": asset.get(key), "new": value})
+        asset[key] = value
+
+    if not changes and not rejected:
+        return jsonify({"ok": True, "assetId": asset_id, "asset": asset,
+                        "message": "no changes", "changes": []}), 200
+
+    asset['updatedAt'] = now
+    campaign['updatedAt'] = now
+    history = asset.setdefault('history', [])
+    history.append({
+        "event": "inline-edit",
+        "ts": now,
+        "actor": body.get('updatedBy') or 'human',
+        "fields": [c['field'] for c in changes],
+    })
+    save_data(data)
+
+    ok, msg = git_push(
+        f"Campaign OS v0.1: Inline edit '{asset.get('name', asset_id)}' "
+        f"({len(changes)} field{'s' if len(changes)!=1 else ''})"
+    )
+    response = {
+        "ok": True,
+        "assetId": asset_id,
+        "campaignId": campaign_id,
+        "asset": asset,
+        "changes": changes,
+        "rejectedFields": rejected,
+    }
+    if not ok:
+        response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
+    return jsonify(response)
+
+
+@app.route('/api/assets/<asset_id>/history', methods=['GET'])
+def asset_history(asset_id):
+    """Return the asset's edit history (created → review → publish → edit)."""
+    campaign_id = request.args.get('campaignId')
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    target_asset = None
+    target_campaign = None
+    if campaign_id and campaign_id in campaigns and asset_id in campaigns[campaign_id].get('assets', {}):
+        target_asset = campaigns[campaign_id]['assets'][asset_id]
+        target_campaign = campaign_id
+    else:
+        for cid, c in campaigns.items():
+            if asset_id in c.get('assets', {}):
+                target_asset = c['assets'][asset_id]
+                target_campaign = cid
+                break
+    if not target_asset:
+        return jsonify({"error": "Asset not found"}), 404
+    history = target_asset.get('history', []) or []
+    publishing_refs = target_asset.get('publishingReferences', []) or []
+    return jsonify({
+        "ok": True,
+        "assetId": asset_id,
+        "campaignId": target_campaign,
+        "history": history,
+        "publishingReferences": publishing_refs,
+        "historyTotal": len(history),
+        "refsTotal": len(publishing_refs),
+    })
+
+
 @app.route('/api/export/<campaign_id>', methods=['GET'])
 def export_review(campaign_id):
     """Export all review decisions for a campaign."""
@@ -276,6 +580,122 @@ def export_review(campaign_id):
         "exportedAt": datetime.datetime.utcnow().isoformat() + 'Z',
         "reviewDecisions": decisions
     })
+
+# ─── CALENDAR SCHEDULING ────────────────────────────────────────────────
+
+@app.route('/api/schedule', methods=['GET'])
+def get_schedule():
+    """Return the publisher-compatible scheduling sidecar."""
+    return jsonify({"ok": True, **_schedule_response(load_schedule())}), 200
+
+@app.route('/api/schedule/<asset_id>', methods=['POST'])
+def schedule_asset(asset_id):
+    """Schedule/reschedule an asset or publisher queue item in the sidecar."""
+    body = request.get_json(silent=True) or {}
+    campaign_id = body.get('campaignId') or body.get('campaign_id')
+    target = _schedule_target(asset_id, campaign_id)
+    if not target:
+        return jsonify({"ok": False, "error": "Asset or queue item not found"}), 404
+    try:
+        scheduled_for = _schedule_datetime_from_body(body)
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    manifest = load_schedule()
+    previous = _manifest_entry(manifest, asset_id)
+    previous_for = (previous or {}).get('scheduledFor')
+    item = _upsert_schedule_entry(
+        manifest, target, scheduled_for, platform=body.get('platform'),
+        extra={"updatedBy": body.get('updatedBy', 'calendar')},
+    )
+    saved = save_schedule(manifest)
+    return jsonify({
+        "ok": True, "assetId": asset_id, "campaignId": target.get('campaignId'),
+        "source": target.get('source'), "scheduledFor": item['scheduledFor'],
+        "previousScheduledFor": previous_for, "schedule": _schedule_response(saved),
+    }), 200
+
+@app.route('/api/schedule/<asset_id>/duplicate', methods=['POST'])
+def duplicate_scheduled_asset(asset_id):
+    """Create a scheduled copy without invoking Postiz."""
+    body = request.get_json(silent=True) or {}
+    campaign_id = body.get('campaignId') or body.get('campaign_id')
+    target = _schedule_target(asset_id, campaign_id)
+    if not target:
+        return jsonify({"ok": False, "error": "Asset or queue item not found"}), 404
+    try:
+        scheduled_for = _schedule_datetime_from_body(body)
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+    new_asset_id = f"{asset_id}-copy-{uuid.uuid4().hex[:8]}"
+    now = _now_iso()
+    new_target = dict(target)
+    new_target.update({
+        'assetId': new_asset_id,
+        'name': body.get('newName') or f"Copy · {target.get('name') or asset_id}",
+        'source': 'calendar',
+    })
+
+    if target.get('source') == 'campaign' and target.get('campaign') is not None:
+        data = load_data()
+        campaign = (data.get('campaigns') or {}).get(target['campaignId'])
+        source_asset = ((campaign or {}).get('assets') or {}).get(asset_id)
+        if not campaign or not source_asset:
+            return jsonify({"ok": False, "error": "Campaign asset disappeared; retry"}), 409
+        copied = copy.deepcopy(source_asset)
+        copied.update({
+            'assetId': new_asset_id, 'campaignId': target['campaignId'],
+            'name': new_target['name'], 'approvalStatus': 'draft', 'approvalState': 'draft',
+            'publishStatus': 'planned', 'status': 'draft',
+            'scheduledFor': scheduled_for, 'publishDate': scheduled_for,
+            'createdAt': now, 'updatedAt': now, 'reviewTs': None,
+            'publishingReferences': [],
+            'history': [{"event": "duplicated", "fromAssetId": asset_id, "at": now}],
+        })
+        campaign.setdefault('assets', {})[new_asset_id] = copied
+        campaign['updatedAt'] = now
+        data['updatedAt'] = now
+        save_data(data)
+        new_target.update({'asset': copied, 'caption': copied.get('caption', ''),
+                           'platform': copied.get('platform') or target.get('platform')})
+        new_asset = copied
+        duplicate_mode = 'campaign-asset'
+    else:
+        new_target.update({'caption': target.get('caption', ''), 'platform': target.get('platform') or 'instagram'})
+        new_asset = {
+            'assetId': new_asset_id, 'campaignId': target.get('campaignId'),
+            'name': new_target['name'], 'caption': new_target['caption'],
+            'platform': new_target['platform'], 'scheduledFor': scheduled_for,
+            'publishStatus': 'planned', 'approvalStatus': 'draft',
+            'duplicateOf': asset_id, 'createdAt': now,
+        }
+        duplicate_mode = 'calendar-sidecar'
+
+    manifest = load_schedule()
+    item = _upsert_schedule_entry(
+        manifest, new_target, scheduled_for,
+        platform=body.get('platform') or new_target.get('platform'),
+        extra={'duplicateOf': asset_id, 'duplicateMode': duplicate_mode,
+               'updatedBy': body.get('updatedBy', 'calendar')},
+    )
+    saved = save_schedule(manifest)
+    return jsonify({
+        "ok": True, "originalAssetId": asset_id, "newAssetId": new_asset_id,
+        "campaignId": new_target.get('campaignId'), "source": duplicate_mode,
+        "scheduledFor": item['scheduledFor'], "newAsset": new_asset,
+        "schedule": _schedule_response(saved),
+    }), 201
+
+@app.route('/api/schedule/<asset_id>', methods=['DELETE'])
+def unschedule_asset(asset_id):
+    """Remove a sidecar schedule without deleting the asset."""
+    manifest = load_schedule()
+    before = len(manifest.get('scheduled', []))
+    manifest['scheduled'] = [item for item in manifest.get('scheduled', []) if not _entry_matches(item, asset_id)]
+    if len(manifest['scheduled']) == before:
+        return jsonify({"ok": False, "error": "Schedule entry not found"}), 404
+    saved = save_schedule(manifest)
+    return jsonify({"ok": True, "assetId": asset_id, "schedule": _schedule_response(saved)}), 200
 
 # ─── STATIC FILES ─────────────────────────────────────────────────────
 
@@ -357,6 +777,10 @@ def _intel(name):
     if not fn:
         return {"ok": False, "error": f"Unknown view: {name}"}, 404
     try:
+        if name == 'calendar':
+            days = int(request.args.get('days', 14))
+            start = request.args.get('start') or None
+            return _intel_module.calendar_view(days=days, start=start), 200
         return fn(), 200
     except Exception as exc:
         _app_log.exception("Intel %s failed", name)

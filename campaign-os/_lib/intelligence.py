@@ -23,6 +23,16 @@ DATA_DIR = os.path.join(REPO_ROOT, "data")
 CAMPAIGN_OS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
+def _runtime_data_file(name: str) -> str:
+    """Prefer the persistent runtime disk, then the bundled data corpus."""
+    runtime_dir = os.environ.get("DATA_DIR")
+    if runtime_dir:
+        candidate = os.path.join(runtime_dir, name)
+        if os.path.exists(candidate):
+            return candidate
+    return os.path.join(DATA_DIR, name)
+
+
 def _now_iso() -> str:
     return datetime.datetime.utcnow().isoformat() + "Z"
 
@@ -122,117 +132,149 @@ def morning_brief() -> Dict[str, Any]:
 
 # ─── CALENDAR ──────────────────────────────────────────────────────────
 
-def calendar_view(days: int = 14) -> Dict[str, Any]:
-    """Build a working calendar from publish-queue + scheduled + draft state."""
+def calendar_view(days: int = 14, start: Optional[str] = None) -> Dict[str, Any]:
+    """Build a calendar from campaign assets, sidecar schedules, and queue items."""
     cd = _campaign_data()
     campaigns = cd.get("campaigns", {})
+    schedule_manifest = _read_json(_runtime_data_file("scheduled-items.json")) or {}
+    schedule_items = schedule_manifest.get("scheduled", []) if isinstance(schedule_manifest, dict) else []
+    schedule_map = {}
+    for item in schedule_items if isinstance(schedule_items, list) else []:
+        if isinstance(item, dict):
+            for key in (item.get("assetId"), item.get("asset_id"), item.get("item_id"), item.get("publish_id"), item.get("id")):
+                if key:
+                    schedule_map[key] = item
 
-    today = datetime.date.today()
+    try:
+        start_date = datetime.date.fromisoformat(start[:10]) if start else datetime.date.today()
+    except (TypeError, ValueError):
+        start_date = datetime.date.today()
     by_day: Dict[str, List[Dict[str, Any]]] = {}
+    seen = set()
+    seen_asset_ids = set()
 
-    # Collect all assets with scheduled dates
+    def add_slot(slot: Dict[str, Any], scheduled_for: Optional[str]):
+        if not scheduled_for:
+            return
+        try:
+            d = datetime.datetime.fromisoformat(str(scheduled_for).replace("Z", "+00:00")).date()
+        except (ValueError, AttributeError):
+            return
+        slot["scheduledFor"] = scheduled_for
+        slot.setdefault("source", "campaign")
+        slot.setdefault("color", _calendar_color(slot.get("pillar"), slot.get("brand"), slot.get("platform")))
+        key = (slot.get("assetId"), slot.get("source"), d.isoformat())
+        if key in seen:
+            return
+        seen.add(key)
+        seen_asset_ids.add(slot.get("assetId"))
+        by_day.setdefault(d.isoformat(), []).append(slot)
+
     for cid, c in campaigns.items():
         cname = c.get("identity", {}).get("name", cid)
+        identity = c.get("identity") or {}
         for aid, asset in (c.get("assets") or {}).items():
-            aps = asset.get("approvalStatus", "draft")
-            ps = asset.get("publishStatus", "draft")
-            sch = asset.get("scheduledFor") or asset.get("publishDate")
-            slot = {"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "approvalStatus": aps, "publishStatus": ps, "platform": asset.get("platform") or asset.get("integration", "instagram")}
-            if sch:
-                try:
-                    d = datetime.datetime.fromisoformat(sch.replace("Z", "+00:00")).date()
-                    key = d.isoformat()
-                    by_day.setdefault(key, []).append(slot)
-                except (ValueError, AttributeError):
-                    pass
+            override = schedule_map.get(aid) or {}
+            slot = {
+                "source": "calendar" if override else "campaign",
+                "campaignId": cid,
+                "campaignName": cname,
+                "assetId": aid,
+                "name": asset.get("name", aid),
+                "caption": asset.get("caption", "")[:180],
+                "approvalStatus": asset.get("approvalStatus", "draft"),
+                "publishStatus": asset.get("publishStatus", "draft"),
+                "platform": asset.get("platform") or asset.get("integration", "instagram"),
+                "brand": identity.get("brand") or identity.get("business") or "Swing Shack",
+                "pillar": asset.get("pillarName") or asset.get("pillar") or "",
+            }
+            slot.update({k: v for k, v in override.items() if k in ("brand", "pillar", "platform", "campaignId") and v})
+            add_slot(slot, override.get("scheduledFor") or asset.get("scheduledFor") or asset.get("publishDate"))
 
-    # Add queued items from publish-queue (use generated date offset by index)
-    pq = _read_json(os.path.join(DATA_DIR, "publish-queue.json")) or {}
+    pq = _read_json(_runtime_data_file("publish-queue.json")) or {}
     queued = pq.get("queued", []) if isinstance(pq, dict) else []
     if not isinstance(queued, list):
         queued = []
-    # If items lack explicit publishDate, distribute them across next N days
-    explicit_publish = [q for q in queued if isinstance(q, dict) and (q.get("publishDate") or q.get("publish_at") or q.get("date"))]
-    if explicit_publish:
-        for it in explicit_publish[:50]:
-            dt = it.get("publishDate") or it.get("publish_at") or it.get("date")
-            try:
-                d = datetime.datetime.fromisoformat(dt.replace("Z", "+00:00")).date()
-            except (ValueError, AttributeError):
-                continue
-            key = d.isoformat()
-            by_day.setdefault(key, []).append({
-                "source": "queue",
-                "platform": it.get("platform", "instagram"),
-                "name": (it.get("caption_preview") or it.get("caption") or it.get("name") or "")[:60],
-                "approvalStatus": it.get("approvalStatus", "approved"),
-                "publishStatus": "scheduled",
-                "postizId": it.get("postiz_post_id") or it.get("postizId"),
-            })
-    elif queued:
-        # Distribute across days based on index — pack 3-4 per day
-        per_day = max(1, len(queued) // days)
-        for i, it in enumerate(queued):
-            if not isinstance(it, dict):
-                continue
-            slot_idx = i // per_day
-            if slot_idx >= days:
-                break
-            d = today + datetime.timedelta(days=slot_idx)
-            key = d.isoformat()
-            by_day.setdefault(key, []).append({
-                "source": "queue",
-                "platform": it.get("platform", "instagram"),
-                "name": (it.get("caption_preview") or it.get("caption") or it.get("name") or it.get("linked_hook_id", "—"))[:60],
-                "approvalStatus": it.get("approvalStatus", "approved"),
-                "publishStatus": "scheduled",
-                "postizId": it.get("postiz_post_id") or it.get("postizId"),
-                "_queueIdx": i,
-            })
-
-    # Add scheduled from publish-queue
-    pq = _read_json(os.path.join(DATA_DIR, "publish-queue.json")) or {}
-    items = pq.get("queue", []) if isinstance(pq, dict) else []
-    for it in items[:50]:
+    for i, it in enumerate(queued[:100]):
         if not isinstance(it, dict):
             continue
-        dt = it.get("publishDate") or it.get("scheduledFor") or it.get("date")
-        if not dt:
+        asset_id = it.get("assetId") or it.get("asset_id") or it.get("item_id") or it.get("publish_id") or f"queue-{i}"
+        if asset_id in seen_asset_ids and asset_id not in schedule_map:
             continue
-        try:
-            d = datetime.datetime.fromisoformat(dt.replace("Z", "+00:00")).date()
-        except (ValueError, AttributeError):
-            continue
-        key = d.isoformat()
-        by_day.setdefault(key, []).append({
+        if asset_id in schedule_map:
+            scheduled_for = schedule_map[asset_id].get("scheduledFor")
+        else:
+            scheduled_for = it.get("publishDate") or it.get("publish_at") or it.get("date")
+            if not scheduled_for:
+                # Preserve the existing useful queue preview, but make it a
+                # real, addressable calendar slot for drag/drop.
+                per_day = max(1, len(queued) // max(days, 1))
+                scheduled_for = (start_date + datetime.timedelta(days=min(i // per_day, max(days - 1, 0)))).isoformat() + "T09:00:00Z"
+        slot = {
             "source": "queue",
-            "platform": it.get("platform", "instagram"),
-            "name": it.get("name") or it.get("caption", "")[:60],
+            "assetId": asset_id,
+            "campaignId": it.get("campaignId") or it.get("campaign_id"),
+            "campaignName": it.get("campaignName") or it.get("campaign_name") or "Publisher queue",
+            "name": (it.get("caption_preview") or it.get("caption") or it.get("name") or it.get("linked_hook_id", "—"))[:90],
+            "caption": it.get("caption") or it.get("caption_preview", ""),
             "approvalStatus": it.get("approvalStatus", "approved"),
-            "publishStatus": "scheduled",
-            "postizId": it.get("postizId"),
-        })
+            "publishStatus": "scheduled" if scheduled_for else it.get("status", "queued"),
+            "platform": it.get("platform", "instagram"),
+            "brand": it.get("brand") or "Swing Shack",
+            "pillar": it.get("pillarName") or it.get("pillar") or "",
+            "postizId": it.get("postiz_post_id") or it.get("postizId"),
+            "queueIndex": i,
+        }
+        override = schedule_map.get(asset_id) or {}
+        if override:
+            slot.update({k: v for k, v in override.items() if k in ("brand", "pillar", "platform", "campaignId") and v})
+        add_slot(slot, scheduled_for)
 
-    # Build continuous day range
+    # Sidecar-only copies have no entry in campaign-data.json or the publisher
+    # queue. They still need to render immediately after a duplicate drop.
+    for item in schedule_items if isinstance(schedule_items, list) else []:
+        if not isinstance(item, dict):
+            continue
+        asset_id = item.get("assetId") or item.get("asset_id") or item.get("item_id") or item.get("publish_id")
+        if not asset_id or asset_id in seen_asset_ids:
+            continue
+        slot = {
+            "source": "calendar",
+            "assetId": asset_id,
+            "campaignId": item.get("campaignId"),
+            "campaignName": item.get("campaignName") or "Calendar copy",
+            "name": (item.get("name") or item.get("caption") or asset_id)[:90],
+            "caption": item.get("caption", ""),
+            "approvalStatus": item.get("approvalStatus", "draft"),
+            "publishStatus": item.get("publishStatus", "scheduled"),
+            "platform": item.get("platform", "instagram"),
+            "brand": item.get("brand") or "Swing Shack",
+            "pillar": item.get("pillar") or item.get("pillarName") or "",
+        }
+        add_slot(slot, item.get("scheduledFor") or item.get("publishDate"))
+
     days_list = []
-    for i in range(days):
-        d = today + datetime.timedelta(days=i)
+    for i in range(max(1, min(int(days or 14), 60))):
+        d = start_date + datetime.timedelta(days=i)
         key = d.isoformat()
-        days_list.append({
-            "date": key,
-            "weekday": d.strftime("%a"),
-            "slots": by_day.get(key, []),
-            "count": len(by_day.get(key, [])),
-        })
+        slots = sorted(by_day.get(key, []), key=lambda x: x.get("scheduledFor", ""))
+        days_list.append({"date": key, "weekday": d.strftime("%a"), "slots": slots, "count": len(slots)})
+    total_scheduled = sum(day["count"] for day in days_list)
+    return {"ok": True, "ts": _now_iso(), "today": start_date.isoformat(), "days": days_list, "totalScheduled": total_scheduled}
 
-    total_scheduled = sum(len(by_day.get((today + datetime.timedelta(days=i)).isoformat(), [])) for i in range(days))
-    return {
-        "ok": True,
-        "ts": _now_iso(),
-        "today": today.isoformat(),
-        "days": days_list,
-        "totalScheduled": total_scheduled,
+
+def _calendar_color(pillar: Any, brand: Any, platform: Any) -> str:
+    palette = {
+        "education": "#34d399", "education & authority": "#34d399",
+        "social proof": "#60a5fa", "offer": "#fb923c", "community": "#a78bfa",
+        "entertainment": "#facc15", "instagram": "#f472b6", "tiktok": "#e6ecf5",
+        "gmb": "#60a5fa", "swing shack": "#34d399", "stick": "#fb923c", "bag drop": "#a78bfa",
     }
+    for value in (pillar, brand, platform):
+        key = str(value or "").strip().lower()
+        if key in palette:
+            return palette[key]
+    return "#34d399"
 
 
 # ─── REVIEW INBOX ──────────────────────────────────────────────────────
