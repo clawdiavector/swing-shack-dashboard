@@ -113,3 +113,22 @@ done
 ## Test baseline (do not break)
 - 433 passing / 0 failing / 3 skipped (live-API gated)
 - Tests at: `tests/test_*.js`, `campaign-os/tests/test_truth_collector.py`
+---
+
+## Cron tick 2026-07-27T20:15 SAST (kickoff — pre-cron)
+
+**Built**:
+- Hourly cron job `da7bebf99c66` (12 ticks 22:00–10:00 SAST) for autonomous overnight build
+- On-disk status handoff `CAMPAIGN_OS_STATUS.md` with priorities, design tokens, hard rules, agent-call guidance
+- Committed working tree (37 files, +2,339 / −21,686) and pushed as `a60ef9a` to `origin/feat/asset-state-engine`
+- Fresh public tunnel: `https://episodes-images-futures-coleman.trycloudflare.com` (live, 200)
+- Re-stated cron prompt with the new "front-end + back-end + UX = shipped" bar + design tokens + delegate_task guidance
+
+**Files added/modified**: `CAMPAIGN_OS_STATUS.md` (new + appended), staged-and-committed the entire previous-session SPA + intelligence module + 26 stale-UI deletions
+**New routes**: none added this tick (all from previous session: 23 /api/intel/<view> + /api/search)
+**New UI sections**: none added this tick (kickoff only)
+**Tests added**: none this tick
+**Commit**: `a60ef9a` + `git push -u origin feat/asset-state-engine` succeeded
+**Verified live**: `https://episodes-images-futures-coleman.trycloudflare.com/` → 200; `/api/intel/morning_brief` → 200
+**Next priority (PRIORITY 1)**: Campaign Builder v2 — full plan generator (goal/audience/pillars/hooks/calendar/image prompts/captions/KPIs). Backend at `campaign-os/_lib/campaign_planner.py`, frontend cards in `campaign-os.html` "Campaigns" section showing the generated plan for each campaign.
+**Blockers**: none
