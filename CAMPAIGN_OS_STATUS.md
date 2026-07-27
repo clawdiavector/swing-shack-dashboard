@@ -28,15 +28,15 @@
 - **Review queue**: All / Pending / Approved / Rejected filter
 - **Killed legacy**: deleted 15 root HTMLs + 11 campaign-os/ HTMLs + 4 .bak files
 
-## What still needs building (PRIORITY ORDER)
-1. **Campaign Builder v2** — campaign card currently shows name + status + 1-line brief. Should produce an **extraordinary full plan**: goal, audience, pillars, hook bank, content calendar with day/time/platform per asset, image prompts, captions, KPIs, predicted reach. Currently flat. Treat it as the marketing plan document.
-2. **Drag-and-drop calendar** — current is read-only display. Need HTML5 drag-drop to reschedule slots across days, duplicate, color-code by brand, status badges.
-3. **Inline caption editor** — current caption studio shows captions as read-only. Need edit-in-place, save to `campaign-data.json`, regenerate single caption without page reload.
-4. **Image generation pipeline** — no image gen yet. Need `comfyui` skill flow with strict standards: brand colors, typography, format specs per platform (IG 1080×1080 / 1080×1350 / 1080×1920, GMB 1200×900, etc.), brand guard prompts.
-5. **Meme Lord v2** — current memes just dumps `content-ideas.json`. Need: meme format encyclopedia (which memes work, why, when), meme-to-brand fit scoring, format-aware prompts, "this meme is hot right now because…" explainer, golf-aware humour.
-6. **Scheduling tool** — `/api/schedule/<assetId>` to push a draft into publish-queue with a target datetime + platform. Connect to the drag-drop calendar.
-7. **Marketing trends engine** — `/api/intel/trends_engine` that pulls from `golf-news`, `youtube-trends`, `competitor-tracker`, `reddit-opportunities`, and synthesizes "what's working in marketing THIS WEEK" + "what's new in golf" + "what competitors are doing" with action recommendations.
-8. **Campaign full-plan generator** — given campaign name + goal, generate 30 assets across 30 days, hook library, image prompt library, caption library, scheduled to optimal times.
+## What still needs building (PRIORITY ORDER — keep in sync)
+1. ✅ **Campaign Builder v2** — DONE (`d79945f`, 2026-07-27T20:45 SAST). Backend `campaign-os/_lib/campaign_planner.py` + 3 routes + full-plan UI on Campaigns section.
+2. **Drag-and-drop calendar** — HTML5 drag-drop on calendar slots → drop on day = reschedule, drop on side panel = duplicate, color-code by brand/pillar. Also: schedule endpoint `/api/schedule/<assetId>` that writes to `data/scheduled-items.json`.
+3. **Inline caption editor** — edit-in-place + save to `campaign-data.json` + regenerate single caption without page reload.
+4. **Image generation pipeline** — `campaign-os/_lib/image_gen.py` with strict brand standards (colors, typography, platform format specs).
+5. **Meme Lord v2** — meme historian + fit scoring + format knowledge + golf-aware humour.
+6. **Marketing trends engine** — synthesizes golf-news + youtube + competitor + reddit into "what's working this week" + "what's new in golf" with action recs.
+7. **Scheduling tool UI** — drag calendar slot to day, write to scheduled-items.json.
+8. **Meme Lord full UI** — meme encyclopedia + fit-score badges.
 
 ## Architecture (where things live)
 ```
@@ -131,4 +131,33 @@ done
 **Commit**: `a60ef9a` + `git push -u origin feat/asset-state-engine` succeeded
 **Verified live**: `https://episodes-images-futures-coleman.trycloudflare.com/` → 200; `/api/intel/morning_brief` → 200
 **Next priority (PRIORITY 1)**: Campaign Builder v2 — full plan generator (goal/audience/pillars/hooks/calendar/image prompts/captions/KPIs). Backend at `campaign-os/_lib/campaign_planner.py`, frontend cards in `campaign-os.html` "Campaigns" section showing the generated plan for each campaign.
+**Blockers**: none
+
+---
+
+## Cron tick 2026-07-27T20:45 SAST (kickoff + Campaign Builder v2)
+
+**Built**: 
+- **PRIORITY 1 — Campaign Builder v2** shipped end-to-end (backend + frontend + UX).
+- Backend `campaign-os/_lib/campaign_planner.py` (23KB, 350+ LOC) — generates full marketing plans for any campaign.
+- Routes: `GET /api/plan/portfolio`, `GET /api/plan/<campaign_id>`, `GET /api/plan/index`.
+- Frontend: Campaigns section cards now have "📋 Full plan" button → expands full plan document with Goals, Persona, 5 Pillars (color-bordered), 15 hooks, 15 image prompts, 15 captions, 16-post 30-day calendar, KPIs, success criteria, day-7/14/30 winning criteria.
+- Brand standards baked into every prompt: colors (#0a0f1a / #34d399 / #60a5fa), typography (Inter/SF Pro), platform format specs (IG 1080×1350 etc.), Golf Shack voice ("TrackMan numbers don't lie").
+- Persona "The Curious JHB Club Golfer" baked into persona block for every campaign.
+
+**Files added/modified**: 
+- `campaign-os/_lib/campaign_planner.py` (NEW, 23KB)
+- `campaign-os/app.py` (+3 routes)
+- `campaign-os/campaign-os.html` (Campaigns section rewrite, ~120 LOC added)
+
+**New routes**: `/api/plan/portfolio`, `/api/plan/<campaign_id>`, `/api/plan/index` — all 200
+**New UI sections**: Full-plan expansion panel under each campaign card (Goals + Persona + 5 Pillars + Hook bank + Image prompt library + Caption library + 30-day calendar + KPIs + Success criteria)
+**Tests added**: none this tick (planner is pure-function; will add unit tests in next tick if time permits)
+**Commit**: `d79945f` pushed to `origin/feat/asset-state-engine`
+**Verified live**: 
+- `curl /api/plan/use-the-right-equipment-mq5l90bk` → 200, summary "5 content pillars · 15 hooks · 15 image prompts · 15 captions · 16 scheduled posts over 30 days"
+- Browser vision screenshot confirmed full plan renders with Goals/Persona/5 pillars/hooks/image prompts/captions/16 calendar cards/48K reach KPI/200 follower KPI/5 success criteria/day-7/14/30 winning section.
+- Public URL `https://episodes-images-futures-coleman.trycloudflare.com` still alive (tunnel not refreshed this tick)
+
+**Next priority (PRIORITY 2)**: Drag-and-drop calendar. HTML5 drag-drop on calendar slots → drop on different day = reschedule, drop on side panel = duplicate, color-code by brand/pillar. Also: schedule endpoint `/api/schedule/<assetId>` that writes to `data/scheduled-items.json`.
 **Blockers**: none
