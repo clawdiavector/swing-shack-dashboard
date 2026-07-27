@@ -26,11 +26,17 @@ BRANCH = 'main'
 # ─── HELPERS ────────────────────────────────────────────────────────────
 
 def load_data():
-    """Load campaign data, falling back to embedded default."""
+    """Load campaign data, falling back to bundled campaign-os/campaign-data.json, then embedded default."""
+    # Primary: Railway persistent disk (DATA_DIR/campaign-data.json)
     if os.path.exists(CAMPAIGN_FILE):
         with open(CAMPAIGN_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
-    # Return minimal structure if no data file exists
+    # Fallback 1: bundled canonical campaign data shipped with the deploy
+    bundled = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campaign-data.json')
+    if os.path.exists(bundled):
+        with open(bundled, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    # Fallback 2: minimal empty structure
     return {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
 
 def save_data(data):
@@ -274,6 +280,10 @@ def export_review(campaign_id):
 
 @app.route('/')
 def index():
+    return send_from_directory('.', 'home.html')
+
+@app.route('/cockpit-operational.html')
+def cockpit():
     return send_from_directory('.', 'cockpit-operational.html')
 
 @app.route('/<path:filename>')

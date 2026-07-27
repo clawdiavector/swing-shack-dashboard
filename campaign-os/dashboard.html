@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swing Shack — Marketing Intelligence Dashboard</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0f0f23;
+  --card: #1a1a2e;
+  --card-hover: #1f1f3a;
+  --text: #e0e0ff;
+  --muted: #7878a0;
+  --success: #00d26a;
+  --warning: #ffa500;
+  --danger: #ff4757;
+  --info: #00b4d8;
+  --purple: #9b59b6;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+.container { max-width: 1400px; margin: 0 auto; }
+
+.header { text-align: center; padding: 20px 0 30px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; }
+.header h1 { font-size: 2rem; background: linear-gradient(90deg, #e1306c, #ff0050); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header p { color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+
+.summary-bar { display: flex; gap: 20px; background: var(--card); border-radius: 12px; padding: 15px 20px; margin-bottom: 25px; flex-wrap: wrap; }
+.summary-item { display: flex; flex-direction: column; gap: 4px; }
+.summary-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.summary-value { font-weight: 600; font-size: 0.95rem; }
+.summary-value.warn { color: var(--warning); }
+.summary-value.ok { color: var(--success); }
+
+.section { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; }
+.section-header h2 { font-size: 1.2rem; }
+.badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 8px; }
+.badge.fresh { background: rgba(0,210,106,0.15); color: var(--success); }
+.badge.stale { background: rgba(255,71,87,0.15); color: var(--danger); }
+.badge.warn { background: rgba(255,165,0,0.15); color: var(--warning); }
+
+.empty { color: var(--muted); font-style: italic; font-size: 0.9rem; }
+.small { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+
+.ig-stats-row { display: flex; gap: 20px; margin-bottom: 15px; }
+.ig-stat { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 18px; text-align: center; }
+.ig-stat-num { font-size: 1.8rem; font-weight: bold; color: var(--info); display: block; }
+.ig-stat-label { font-size: 0.75rem; color: var(--muted); }
+
+.post-list { display: flex; flex-direction: column; gap: 6px; }
+.post-row { display: flex; gap: 10px; align-items: center; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 0.85rem; }
+.post-date { color: var(--muted); min-width: 80px; }
+.post-caption { flex: 1; color: var(--text); }
+.post-reach { color: var(--muted); }
+.post-likes { color: #e1306c; }
+.post-eng { color: var(--muted); }
+.post-eng.good { color: var(--success); }
+
+.hook-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hook-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 15px; }
+.hook-card.fresh { border-left: 3px solid var(--info); }
+.hook-text { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.hook-meta { display: flex; gap: 8px; font-size: 0.75rem; color: var(--muted); }
+.hook-score { color: var(--warning); }
+.hook-group { margin-bottom: 15px; }
+.hook-group h3 { font-size: 0.9rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+.idea-list { display: flex; flex-direction: column; gap: 8px; }
+.idea-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 15px; }
+.idea-card.today { border-left: 3px solid var(--success); }
+.idea-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.idea-meta { display: flex; gap: 8px; font-size: 0.75rem; color: var(--muted); }
+.idea-format { background: rgba(0,180,216,0.2); color: var(--info); padding: 2px 6px; border-radius: 4px; }
+.idea-cta { font-size: 0.8rem; color: var(--success); margin-top: 4px; }
+.idea-group { margin-bottom: 12px; }
+.idea-group h3 { font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
+
+.news-list { display: flex; flex-direction: column; gap: 8px; }
+.news-card { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px; }
+.news-headline { font-weight: 600; font-size: 0.9rem; margin-bottom: 5px; }
+.news-meta { font-size: 0.75rem; color: var(--muted); }
+.news-source { margin-right: 10px; }
+.news-badge { display: inline-block; background: rgba(255,71,87,0.2); color: var(--danger); font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-top: 4px; }
+
+.reddit-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.reddit-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px; border-left: 3px solid #ff4500; }
+.reddit-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.reddit-meta { display: flex; gap: 10px; font-size: 0.75rem; color: var(--muted); }
+.reddit-sub { color: #ff4500; }
+.reddit-intent { font-size: 0.75rem; color: var(--info); margin-top: 4px; }
+
+.seo-keywords { overflow-x: auto; }
+.seo-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.seo-table th { text-align: left; color: var(--muted); padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.seo-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.seo-table .good { color: var(--success); }
+.seo-table .bad { color: var(--danger); }
+.seo-summary { margin-bottom: 12px; font-size: 0.85rem; }
+.seo-win { color: var(--success); margin-bottom: 4px; }
+.seo-lose { color: var(--danger); }
+
+.ga4-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.ga4-table th { text-align: left; color: var(--muted); padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.ga4-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.ga4-table .good { color: var(--success); }
+
+.ab-list { display: flex; flex-direction: column; gap: 10px; }
+.ab-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px; }
+.ab-name { font-weight: 600; margin-bottom: 5px; }
+.ab-meta { display: flex; gap: 12px; font-size: 0.8rem; }
+.ab-winner.good { color: var(--success); }
+.ab-action { font-size: 0.8rem; color: var(--info); margin-top: 4px; }
+
+.cooldown-list { display: flex; flex-direction: column; gap: 6px; }
+.cooldown-item { background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; }
+
+/* WATCHED + WORKED */
+.ww-summary { font-size: 0.82rem; color: var(--muted); margin-bottom: 12px; font-style: italic; }
+.ww-summary-line { font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; font-weight: 600; }
+.ww-filter-bar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.ww-filter-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--muted); font-size: 0.75rem; padding: 4px 12px; border-radius: 20px; cursor: pointer; transition: all 0.15s; font-weight: 600; }
+.ww-filter-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.ww-filter-btn.active { background: rgba(155,89,182,0.3); border-color: rgba(155,89,182,0.5); color: #c07fd4; }
+
+/* THIS WEEK STRIP */
+.tw-strip { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr; gap: 0; background: var(--card); border-radius: 12px; padding: 14px 0; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.08); }
+.tw-item { padding: 0 16px; }
+.tw-item--post { border-left: 3px solid #00d26a; }
+.tw-item--sales { border-left: 3px solid #ffa500; }
+.tw-item--missed { border-left: 3px solid #ff4757; }
+.tw-item--cta { border-left: 3px solid #00b4d8; }
+.tw-item--money { border-left: 3px solid #ff4757; }
+
+/* EXECUTIVE SUMMARY */
+.es-box { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.08); }
+.es-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 800; margin-bottom: 10px; }
+.es-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 14px; }
+.es-item { display: flex; flex-direction: column; gap: 3px; }
+.es-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+.es-value { font-size: 0.82rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+.tw-sep { width: 1px; background: rgba(255,255,255,0.08); margin: 4px 0; }
+.tw-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 700; margin-bottom: 5px; }
+.tw-value { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 3px; line-height: 1.3; }
+.tw-meta { font-size: 0.7rem; color: var(--muted); }
+.tw-meta--secondary { color: var(--muted); opacity: 0.7; margin-top: 2px; }
+.tw-action { font-size: 0.7rem; color: var(--info); margin-top: 3px; font-style: italic; }
+.tw-sales-main { color: #ffa500; }
+
+/* FOLLOW UP NEXT */
+.fu-summary { font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; font-weight: 600; }
+.fu-hi { color: #ff4757; }
+.fu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fu-card { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 12px 14px; border-left: 3px solid #ff6b35; }
+.fu-card-header { display: flex; gap: 8px; align-items: center; margin-bottom: 7px; flex-wrap: wrap; }
+.fu-topic { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #ff6b35; background: rgba(255,107,53,0.15); padding: 2px 7px; border-radius: 4px; }
+.fu-owner { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+.fu-urgency { font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+.fu-urgency--high { background: rgba(255,71,87,0.2); color: #ff4757; }
+.fu-urgency--med  { background: rgba(255,165,0,0.2); color: #ffa500; }
+.fu-urgency--low  { background: rgba(0,180,216,0.2); color: var(--info); }
+.fu-planned { font-size: 0.65rem; color: var(--success); background: rgba(0,210,106,0.1); padding: 2px 6px; border-radius: 4px; }
+.fu-hook { font-size: 0.87rem; font-weight: 700; color: var(--text); margin-bottom: 4px; line-height: 1.35; }
+.fu-why { font-size: 0.73rem; color: var(--muted); font-style: italic; margin-bottom: 5px; }
+.fu-footer { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.fu-asset { font-size: 0.7rem; color: var(--info); }
+.fu-cta { font-size: 0.7rem; color: var(--success); }
+
+/* ASSET NEEDS THIS WEEK */
+.an-summary { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+.an-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.an-card { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px; border-left: 3px solid var(--warning); }
+.an-header { display: flex; gap: 6px; align-items: center; margin-bottom: 5px; flex-wrap: wrap; }
+.an-owner { font-size: 0.75rem; font-weight: 800; color: var(--text); }
+.an-count { font-size: 0.7rem; color: var(--muted); }
+.an-urg { font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(255,71,87,0.2); color: #ff4757; margin-left: auto; }
+.an-urg.week { background: rgba(255,165,0,0.2); color: var(--warning); }
+.an-urg.flex { background: rgba(0,180,216,0.15); color: var(--info); }
+.an-label { font-size: 0.78rem; font-weight: 700; color: var(--warning); margin-bottom: 4px; }
+.an-posts { display: flex; flex-direction: column; gap: 2px; }
+.an-post { font-size: 0.68rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* OWNER WORKLOAD */
+.ow-header-row { display: grid; grid-template-columns: 140px 1fr 1fr; gap: 10px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.ow-col-owner, .ow-col-items, .ow-col-top { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 700; }
+.ow-row { display: grid; grid-template-columns: 140px 1fr 1fr; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.ow-owner { display: flex; flex-direction: column; gap: 2px; }
+.ow-name { font-size: 0.82rem; font-weight: 800; color: var(--text); }
+.ow-total { font-size: 0.7rem; color: var(--muted); }
+.ow-bars { display: flex; gap: 5px; flex-wrap: wrap; }
+.ow-bar { font-size: 0.7rem; padding: 2px 7px; border-radius: 5px; color: var(--muted); background: rgba(255,255,255,0.05); }
+.ow-bar--today.active { background: rgba(255,71,87,0.2); color: #ff4757; font-weight: 700; }
+.ow-bar--week { color: var(--muted); }
+.ow-top-item { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ow-note { font-size: 0.72rem; color: var(--muted); margin-top: 8px; font-style: italic; }
+
+/* RETARGET THIS WEEK */
+.rt-summary { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+.rt-summary b { color: #ff4757; }
+.rt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rt-card { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 11px 13px; border-left: 3px solid #ff6b35; }
+.rt-header { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.rt-icon { font-size: 0.9rem; }
+.rt-action { font-size: 0.78rem; font-weight: 800; color: var(--text); flex: 1; }
+.rt-owner { font-size: 0.7rem; color: var(--muted); font-weight: 600; }
+.rt-urg { font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+.rt-planned { font-size: 0.65rem; color: var(--success); background: rgba(0,210,106,0.1); padding: 2px 6px; border-radius: 4px; }
+.rt-hook { font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 3px; line-height: 1.3; }
+.rt-why { font-size: 0.72rem; color: var(--muted); font-style: italic; margin-bottom: 4px; }
+.rt-cta { font-size: 0.7rem; color: var(--success); }
+
+/* DO THIS FIRST */
+.dtf-summary { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+.dtf-summary b { color: #ffa502; }
+.dtf-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+.dtf-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 14px 14px 12px; border-left: 4px solid #ffa502; display: flex; gap: 10px; align-items: flex-start; }
+.dtf-emoji { font-size: 1.4rem; flex-shrink: 0; }
+.dtf-body { flex: 1; min-width: 0; }
+.dtf-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+.dtf-title { font-size: 0.82rem; font-weight: 800; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+.dtf-meta { font-size: 0.7rem; color: var(--success); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dtf-score { font-size: 1.3rem; font-weight: 900; flex-shrink: 0; line-height: 1; }
+
+/* WHAT ACTUALLY WORKED */
+.waws-stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.waws-stat { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; text-align: center; }
+.waws-stat-val { font-size: 1.5rem; font-weight: 900; color: var(--text); }
+.waws-stat-lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 2px; }
+.waws-wr-section { margin-bottom: 12px; }
+.waws-wr-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+.waws-wr-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.waws-wr { display: flex; gap: 5px; align-items: center; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; }
+.waws-wr-name { color: var(--muted); text-transform: capitalize; }
+.waws-wr-rate { font-weight: 800; }
+.waws-wr-count { color: var(--muted); font-size: 0.7rem; }
+.waws-card { display: flex; gap: 10px; padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; }
+.wawc-won { background: rgba(46,213,115,0.1); border-left: 3px solid #2ed573; }
+.wawc-lost { background: rgba(255,71,87,0.08); border-left: 3px solid #ff4757; }
+.waws-card-icon { font-size: 1.3rem; flex-shrink: 0; }
+.waws-card-body { flex: 1; }
+.waws-card-type { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
+.waws-card-hook { font-size: 0.85rem; font-weight: 800; color: var(--text); margin-bottom: 2px; line-height: 1.3; }
+.waws-card-meta { font-size: 0.72rem; color: var(--muted); }
+.waws-sub { margin-top: 10px; }
+.waws-sub-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+.waws-ignored-row { font-size: 0.78rem; color: var(--muted); padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.waws-under-row { font-size: 0.78rem; color: #ff4757; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+
+/* TEST / SCALE / KILL */
+.tsk-alert-bar { background: rgba(255,71,87,0.15); border: 1px solid rgba(255,71,87,0.3); border-radius: 8px; padding: 8px 12px; font-size: 0.8rem; font-weight: 700; color: #ff4757; margin-bottom: 12px; }
+.tsk-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.tsk-col { display: flex; flex-direction: column; gap: 8px; }
+.tsk-col-title { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.8px; padding: 6px 10px; border-radius: 6px; margin-bottom: 2px; }
+.tsk-test-title { background: rgba(255,165,0,0.15); color: #ffa502; }
+.tsk-scale-title { background: rgba(46,213,115,0.12); color: #2ed573; }
+.tsk-kill-title { background: rgba(255,71,87,0.1); color: #ff4757; }
+.tsk-empty { font-size: 0.75rem; color: var(--muted); padding: 8px; text-align: center; font-style: italic; }
+.tsk-card { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px; border-left: 3px solid #888; display: flex; gap: 8px; align-items: flex-start; }
+.tsk-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.tsk-body { flex: 1; min-width: 0; }
+.tsk-title { font-size: 0.8rem; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+.tsk-meta { font-size: 0.7rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
+.tsk-owner { font-size: 0.68rem; color: var(--muted); font-weight: 600; display: inline-block; margin-right: 4px; }
+.tsk-urg { font-size: 0.62rem; font-weight: 800; padding: 1px 5px; border-radius: 3px; display: inline-block; }
+.tsk-urg-today { background: rgba(255,71,87,0.2); color: #ff4757; }
+.tsk-urg-this_week { background: rgba(255,165,0,0.2); color: #ffa502; }
+.tsk-urg-flexible { background: rgba(0,180,216,0.15); color: var(--info); }
+
+/* RUN THE WEEK */
+.rtw-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; color: var(--muted); }
+.rtw-summary b { color: var(--text); font-weight: 800; }
+.rtw-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px; }
+.rtw-col { background: rgba(255,255,255,0.03); border-radius: 10px; border-top: 3px solid #888; padding: 10px; }
+.rtw-col-head { font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 8px; padding-top: 6px; }
+.rtw-empty { font-size: 0.75rem; color: var(--muted); font-style: italic; text-align: center; padding: 8px; }
+.rtw-rows { display: flex; flex-direction: column; gap: 6px; }
+.rtw-row { padding: 7px 9px; background: rgba(255,255,255,0.04); border-radius: 7px; }
+.rtw-row-title { font-size: 0.78rem; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+.rtw-owner { font-size: 0.68rem; color: var(--muted); font-weight: 600; display: inline; margin-right: 4px; }
+.rtw-sev { font-size: 0.6rem; font-weight: 800; padding: 1px 5px; border-radius: 3px; display: inline-block; }
+.rtw-sev-high { background: rgba(255,71,87,0.2); color: #ff4757; }
+.rtw-sev-medium { background: rgba(255,165,0,0.2); color: #ffa502; }
+.rtw-sev-low { background: rgba(0,180,216,0.15); color: var(--info); }
+/* SYSTEM HEALTH */
+.hl-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 0.78rem; color: var(--muted); }
+.hl-bar b { color: var(--text); }
+.hl-sep { color: rgba(255,255,255,0.15); }
+.hl-pipeline { color: var(--info); font-weight: 700; }
+.hl-sources { color: var(--text); }
+.hl-stale { color: #ffa502; font-weight: 700; }
+.hl-risk { padding: 8px 12px; background: rgba(255,255,255,0.04); border-radius: 8px; margin-bottom: 10px; }
+.hl-risk-head { font-size: 0.8rem; margin-bottom: 3px; }
+.hl-risk-fix { font-size: 0.73rem; color: var(--muted); font-style: italic; }
+.hl-agents { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.hl-agent { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 7px 10px; min-width: 100px; text-align: center; }
+.hl-agent-name { font-size: 0.68rem; color: var(--muted); font-weight: 600; margin-bottom: 3px; }
+.hl-agent-score { font-size: 0.9rem; font-weight: 900; }
+.hl-score-hi { color: #00c853; }
+.hl-score-mid { color: #ffa502; }
+.hl-score-lo { color: #ff4757; }
+.hl-score-new { color: var(--info); font-size: 0.65rem; }
+.hl-fail { color: #ff4757; font-weight: 900; }
+.hl-opstrip { margin-top: 8px; font-size: 0.73rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; }
+.hl-opsep { color: rgba(255,255,255,0.15); }
+
+/* TODAY'S LEARNING */
+.lr-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 0.6fr; gap: 10px; margin-bottom: 10px; }
+.lr-cell { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px; }
+.lr-cell-head { font-size: 0.62rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 6px; }
+.lr-cell-body { font-size: 0.75rem; color: var(--text); line-height: 1.4; }
+.lr-cell-hook { border-top: 3px solid #00c853; }
+.lr-cell-cta { border-top: 3px solid #ff6b35; }
+.lr-cell-risk { border-top: 3px solid #ffa502; }
+.lr-cell-trust { border-top: 3px solid #00b4d8; }
+.lr-big { font-size: 1.4rem; font-weight: 900; color: #00b4d8; }
+.lr-repeat { font-size: 0.75rem; color: #00c853; margin-bottom: 4px; }
+.lr-stop { font-size: 0.75rem; color: #ff4757; margin-bottom: 4px; }
+.lr-agents { font-size: 0.68rem; color: var(--muted); margin-top: 6px; }
+
+/* AGENT RUNS TODAY */
+.run-summary { font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; }
+.run-list { display: flex; flex-direction: column; gap: 6px; }
+.run-row { display: grid; grid-template-columns: 1.5fr 0.8fr 0.6fr 3fr; gap: 8px; align-items: center; padding: 7px 10px; background: rgba(255,255,255,0.04); border-radius: 7px; font-size: 0.72rem; }
+.run-agent { font-weight: 700; color: var(--text); }
+.run-status { }
+.run-ok { background: rgba(0,200,83,0.2); color: #00c853; font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+.run-partial { background: rgba(255,165,0,0.2); color: #ffa502; font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+.run-fail { background: rgba(255,71,87,0.2); color: #ff4757; font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+.run-dur { color: var(--muted); font-size: 0.65rem; }
+.run-scripts { display: flex; flex-wrap: wrap; gap: 3px; }
+.run-script { font-size: 0.6rem; padding: 1px 5px; border-radius: 3px; }
+.run-script-ok { background: rgba(0,200,83,0.12); color: #00c853; }
+.run-script-fail { background: rgba(255,71,87,0.12); color: #ff4757; }
+
+/* MAKE THE CONTENT */
+.mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.mc-cell { padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 8px; border-left: 3px solid var(--border, #333); }
+.mc-cell-head { font-size: 0.68rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+.mc-cell-body { font-size: 0.75rem; color: var(--text); line-height: 1.4; }
+.mc-cell-captions { border-left-color: #00c853; }
+.mc-cell-visuals { border-left-color: #ffa502; }
+.mc-cell-prompts { border-left-color: #ff6b81; }
+.mc-cell-blogs { border-left-color: #1e90ff; }
+.mc-cell-reddit { border-left-color: #ff4757; }
+.mc-ready { color: #00c853; font-weight: 700; }
+.mc-draft { color: var(--muted); }
+.mc-legend { font-size: 0.65rem; color: var(--muted); margin-top: 6px; }
+
+/* READY TO PUBLISH */
+.pub-strip { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.75rem; margin-bottom: 10px; }
+.pub-ok { color: #00c853; font-weight: 700; }
+.pub-wait { color: #ffa502; }
+.pub-blocked { color: #ff4757; }
+.pub-brand { color: var(--muted); }
+.pub-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.pub-cat { padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 6px; border-left: 3px solid var(--border,#333); flex: 1; min-width: 100px; }
+.pub-cat-head { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.pub-cat-count { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.pub-brand-bar { font-size: 0.65rem; color: var(--muted); margin-top: 6px; }
+.pub-brand-fill { height: 4px; background: linear-gradient(90deg, #ff4757 var(--fill), #ffa502 50%, #00c853 80%); border-radius: 2px; margin-top: 2px; }
+
+/* FIX BEFORE LIVE */
+.fix-total { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.fix-list { display: flex; flex-direction: column; gap: 6px; }
+.fix-group { padding: 8px 10px; border-radius: 6px; border-left: 3px solid; }
+.fix-group-rej { background: rgba(255,71,87,0.08); border-left-color: #ff4757; }
+.fix-group-warn { background: rgba(255,165,0,0.08); border-left-color: #ffa502; }
+.fix-group-tone { background: rgba(98,0,255,0.08); border-left-color: #6600ff; }
+.fix-head { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; color: var(--muted); }
+.fix-item { font-size: 0.68rem; color: var(--text); padding: 2px 0; }
+.fix-type { font-weight: 700; color: var(--muted); font-size: 0.62rem; text-transform: uppercase; margin-right: 4px; }
+
+/* PUBLISHING BOARD */
+.pb-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.pb-table { font-size: 0.68rem; }
+.pb-head { display: grid; grid-template-columns: 0.8fr 1.5fr 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.6rem; text-transform: uppercase; margin-bottom: 4px; }
+.pb-row { display: grid; grid-template-columns: 0.8fr 1.5fr 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.pb-time { font-weight: 700; color: var(--text); font-size: 0.7rem; }
+.pb-slot-label { color: var(--muted); font-size: 0.65rem; }
+.pb-hook { color: var(--text); font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-format { color: var(--muted); font-size: 0.65rem; }
+.pb-svc { color: var(--muted); font-size: 0.65rem; }
+.pb-status { font-size: 0.65rem; }
+.pb-log-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.pb-log-table { font-size: 0.68rem; }
+.pb-log-row { display: grid; grid-template-columns: 1fr 2fr 1fr 0.8fr; gap: 8px; padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.pb-evt { font-size: 0.65rem; font-weight: 700; }
+.pb-log-hook { font-size: 0.68rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-log-plat { font-size: 0.65rem; color: var(--muted); }
+.pb-log-used { font-size: 0.7rem; text-align: center; }
+.pb-used-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; }
+
+/* RECOVER REVENUE */
+.rv-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.rv-table { font-size: 0.65rem; }
+.rv-head { display: grid; grid-template-columns: 1.5fr 1.5fr 1.5fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.rv-row { display: grid; grid-template-columns: 1.5fr 1.5fr 1.5fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.rv-service { font-weight: 700; color: var(--text); }
+.rv-action, .rv-type, .rv-urg { font-size: 0.62rem; }
+
+/* NURTURE NEXT */
+.nr-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.nr-table { font-size: 0.65rem; }
+.nr-head { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr 1.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.nr-row { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr 1.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.nr-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.nr-obj, .nr-emails, .nr-aud { font-size: 0.62rem; }
+
+/* FIX THIS PAGE FIRST */
+.fp-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.fp-table { font-size: 0.65rem; }
+.fp-head { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.fp-row { display: grid; grid-template-columns: 1fr 1fr 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.fp-page { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.fp-issue, .fp-fix, .fp-sev { font-size: 0.62rem; }
+
+/* TRUST TO LIVE */
+.tg-current { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.tg-score { font-size: 2rem; font-weight: 900; color: #ffd700; line-height: 1; }
+.tg-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.1em; }
+.tg-bars { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.tg-bar-row { display: grid; grid-template-columns: 1fr 2fr 0.6fr; gap: 6px; align-items: center; font-size: 0.6rem; }
+.tg-bar-label { color: var(--muted); }
+.tg-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+.tg-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.tg-bar-val { color: var(--text); font-weight: 700; text-align: right; }
+.tg-summary { font-size: 0.65rem; color: var(--muted); margin-bottom: 6px; }
+.tg-gaps { font-size: 0.62rem; }
+.tg-gaps-label { font-size: 0.55rem; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.tg-gap-row { padding: 2px 0; }
+.tg-row { display: grid; grid-template-columns: 2fr 0.6fr 1.4fr; gap: 6px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.62rem; }
+.tg-issue { font-weight: 700; color: var(--text); }
+.tg-impact, .tg-fix { font-size: 0.6rem; }
+
+/* SAFETY TESTS */
+.st-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.st-table { font-size: 0.65rem; margin-bottom: 8px; }
+.st-head { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.st-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.st-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.st-result { font-size: 0.62rem; }
+.st-recs { display: flex; flex-direction: column; gap: 3px; font-size: 0.62rem; }
+.st-rec-row { padding: 2px 0; }
+
+/* MODE PROMOTION TRACKER */
+.mp-mode { font-size: 0.9rem; font-weight: 900; margin-bottom: 6px; }
+.mp-rec { font-size: 0.7rem; margin-bottom: 6px; }
+.mp-progress { font-size: 0.65rem; color: var(--muted); margin-bottom: 8px; }
+.mp-criteria { }
+.mp-crit-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.mp-row { display: grid; grid-template-columns: 0.5fr 2.5fr; gap: 6px; padding: 3px 0; font-size: 0.65rem; align-items: center; }
+.mp-crit { color: var(--text); }
+
+/* LIVE MODE CONTROL */
+.lm-mode-row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px; }
+.lm-current-mode { font-size: 1.2rem; font-weight: 900; }
+.lm-trust { text-align: center; }
+.lm-trust-label { font-size: 0.55rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.1em; }
+.lm-trust-score { font-size: 1.4rem; font-weight: 900; color: #ffd700; line-height: 1; }
+.lm-rules { display: flex; flex-direction: column; gap: 2px; font-size: 0.6rem; }
+.lm-rule-item { }
+.lm-kills { font-size: 0.7rem; margin-top: 6px; }
+.lm-perms { font-size: 0.62rem; color: var(--muted); margin-top: 4px; }
+.lm-perms-label { color: var(--text); font-weight: 600; }
+.lm-off { font-size: 0.8rem; }
+
+/* FIX TRUST NOW */
+.ft-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.ft-flaky { font-size: 0.7rem; margin-bottom: 6px; }
+.ft-gaps { font-size: 0.65rem; }
+.ft-row { display: grid; grid-template-columns: 2fr 0.6fr; gap: 6px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.ft-issue { font-weight: 700; color: var(--text); }
+.ft-imp { font-size: 0.62rem; }
+
+/* FAILURE PATTERNS */
+.fp-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.fp-section-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.fp-table { font-size: 0.65rem; margin-bottom: 8px; }
+.fp-head { display: grid; grid-template-columns: 2fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.fp-row { display: grid; grid-template-columns: 2fr 0.8fr; gap: 6px; padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.65rem; }
+.fp-type { text-transform: capitalize; color: var(--text); }
+.fp-count { font-weight: 700; }
+.fp-worst { font-size: 0.65rem; color: var(--muted); }
+.fp-tag { display: inline-block; font-size: 0.6rem; background: rgba(255,255,255,0.08); border-radius: 3px; padding: 1px 5px; margin: 1px; }
+
+/* SELF-HEAL ACTIONS */
+.sh-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.sh-allowed { margin-bottom: 8px; }
+.sh-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.sh-table { font-size: 0.65rem; }
+.sh-head { display: grid; grid-template-columns: 0.5fr 1.5fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.sh-row { display: grid; grid-template-columns: 0.5fr 1.5fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.sh-type, .sh-agent { font-size: 0.62rem; }
+.sh-agent { color: var(--muted); }
+
+/* AUTONOMOUS ACTIONS TODAY */
+.aa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.aa-table { font-size: 0.65rem; }
+.aa-head { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.aa-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.aa-type { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.aa-src { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); }
+.aa-st { font-size: 0.62rem; }
+
+/* ROLLBACK & SAFETY */
+.rb-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.rb-table { font-size: 0.65rem; margin-bottom: 8px; }
+.rb-head { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.rb-row { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.rb-type { font-weight: 700; color: var(--text); }
+.rb-action, .rb-st { font-size: 0.62rem; }
+.rb-safe-list { display: flex; flex-direction: column; gap: 4px; }
+.rb-safe { font-size: 0.7rem; }
+
+/* WHAT TO SELL NOW */
+.sn-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.sn-table { font-size: 0.65rem; }
+.sn-head { display: grid; grid-template-columns: 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.sn-row { display: grid; grid-template-columns: 2fr 0.8fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.sn-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.sn-score { font-weight: 900; color: #ffd700; font-size: 0.7rem; }
+.sn-push, .sn-conf { font-size: 0.62rem; }
+
+/* EASY UPSELLS */
+.up-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.up-table { font-size: 0.65rem; }
+.up-head { display: grid; grid-template-columns: 2fr 2fr 2fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.up-row { display: grid; grid-template-columns: 2fr 2fr 2fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.up-trigger, .up-primary, .up-addon { font-size: 0.62rem; }
+.up-trigger { font-weight: 600; color: var(--text); }
+
+/* STOCK & OFFERS */
+.st-section { margin-bottom: 10px; }
+.st-section-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 4px; }
+.st-table { font-size: 0.65rem; margin-bottom: 8px; }
+.st-head { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.st-row { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.st-item { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.st-type, .st-urg { font-size: 0.62rem; }
+.st-safe-row, .st-blocked-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.62rem; }
+.st-safe-name { color: #00ff88; font-weight: 600; }
+.st-safe-margin { color: var(--muted); }
+.st-blocked-name { color: #ff4444; }
+.st-blocked-reason { color: var(--muted); font-size: 0.58rem; }
+
+/* COMPETITOR WATCH */
+.cw-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cw-table { font-size: 0.65rem; }
+.cw-head { display: grid; grid-template-columns: 1.5fr 2fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cw-row { display: grid; grid-template-columns: 1.5fr 2fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cw-comp { font-weight: 700; color: var(--text); }
+.cw-change, .cw-thr, .cw-opp { font-size: 0.62rem; }
+
+/* MARKET GAPS TO OWN */
+.mg-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.mg-table { font-size: 0.65rem; }
+.mg-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.mg-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.mg-type { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.mg-easiest, .mg-seo { font-size: 0.7rem; text-align: center; }
+.mg-pri { font-size: 0.62rem; }
+
+/* REVIEW BATTLEFIELD */
+.rb-ours { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px; }
+.rb-our-label { font-size: 0.58rem; text-transform: uppercase; color: var(--muted); writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.1em; }
+.rb-our-score { font-size: 1.4rem; font-weight: 900; color: #ffd700; line-height: 1; }
+.rb-our-reviews { font-size: 0.65rem; color: var(--muted); }
+.rb-our-adv { font-size: 0.62rem; color: var(--text); flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.rb-adv-item { }
+.rb-comp-table { font-size: 0.65rem; }
+.rb-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.rb-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.rb-name { font-weight: 700; color: var(--text); }
+.rb-score { font-weight: 700; }
+.rb-reviews, .rb-resp { font-size: 0.62rem; }
+
+/* CAPTURE MORE LEADS */
+.cl-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cl-table { font-size: 0.65rem; }
+.cl-head { display: grid; grid-template-columns: 1fr 1.2fr 2.5fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cl-row { display: grid; grid-template-columns: 1fr 1.2fr 2.5fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cl-location { font-weight: 700; color: var(--text); }
+.cl-friction, .cl-fix, .cl-imp { font-size: 0.62rem; }
+
+/* WHATSAPP MONEY */
+.wa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.wa-table { font-size: 0.65rem; }
+.wa-head { display: grid; grid-template-columns: 2fr 1.5fr 0.7fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.wa-row { display: grid; grid-template-columns: 2fr 1.5fr 0.7fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.wa-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.wa-type, .wa-msgs, .wa-pri { font-size: 0.62rem; }
+
+/* BUNDLES TO PUSH */
+.bn-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.bn-table { font-size: 0.65rem; }
+.bn-head { display: grid; grid-template-columns: 2fr 1fr 1fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.bn-row { display: grid; grid-template-columns: 2fr 1fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.bn-name { font-weight: 700; color: var(--text); font-size: 0.65rem; }
+.bn-price, .bn-saving, .bn-conf { font-size: 0.62rem; }
+
+/* AUTONOMY CONTROL */
+.ac-header { display: flex; gap: 16px; margin-bottom: 8px; }
+.ac-mode { font-size: 0.75rem; font-weight: 700; color: var(--text); }
+.ac-trust { font-size: 0.72rem; color: var(--muted); }
+.ac-summary { font-size: 0.68rem; color: var(--muted); margin-bottom: 8px; }
+.ac-table { font-size: 0.65rem; }
+.ac-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 8px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ac-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 8px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.ac-id { color: var(--text); font-weight: 600; }
+.ac-risk { text-transform: uppercase; font-size: 0.58rem; }
+.ac-rule { color: var(--muted); font-size: 0.62rem; }
+
+/* AUTONOMY SAFETY LOG */
+.sl-summary { font-size: 0.68rem; color: var(--muted); margin-bottom: 8px; }
+.sl-table { font-size: 0.65rem; }
+.sl-head { display: grid; grid-template-columns: 24px 2fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.sl-row { display: grid; grid-template-columns: 24px 2fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.sl-icon { font-size: 0.7rem; }
+.sl-text { font-size: 0.65rem; }
+.sl-type { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; }
+
+/* WEEK IN REVIEW */
+.wr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin-bottom: 4px; }
+.wr-cell { display: flex; flex-direction: column; background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; }
+.wr-label { font-size: 0.58rem; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.wr-val { font-size: 0.68rem; color: var(--text); font-weight: 600; }
+.wr-warn .wr-val { color: #f0a500; }
+
+/* LEARNINGS TO KEEP */
+.lk-repeat-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+.lk-heading { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin: 6px 0 4px; letter-spacing: 0.05em; }
+.lk-row { font-size: 0.68rem; padding: 4px 6px; border-radius: 4px; color: var(--text); }
+.lk-ok { background: rgba(0,255,136,0.08); color: #00ff88; }
+.lk-warn { background: rgba(255,100,0,0.08); color: #ff6444; }
+
+/* OWNER PERFORMANCE */
+.ow-sum { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.ow-head { display: grid; grid-template-columns: 1.5fr 0.7fr 0.7fr 0.7fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ow-row { display: grid; grid-template-columns: 1.5fr 0.7fr 0.7fr 0.7fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+.ow-owner { font-weight: 600; color: var(--text); }
+.ow-count, .ow-fail, .ow-wins { color: var(--muted); font-size: 0.62rem; }
+.ow-ovl { font-size: 0.62rem; }
+.ow-risks { font-size: 0.62rem; margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* SENT TODAY */
+.sent-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.78rem; }
+.sent-count { font-weight: 800; padding: 2px 8px; border-radius: 5px; }
+.sent-ok-c { background: rgba(0,200,83,0.15); color: #00c853; }
+.sent-dry-c { background: rgba(100,100,255,0.15); color: #6464ff; }
+.sent-suppr-c { background: rgba(255,165,0,0.15); color: #ffa502; }
+.sent-fail-c { background: rgba(255,71,87,0.15); color: #ff4757; }
+.sent-list { display: flex; flex-direction: column; gap: 6px; }
+.sent-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 10px; background: rgba(255,255,255,0.04); border-radius: 7px; font-size: 0.75rem; }
+.sent-row-suppr { background: rgba(255,165,0,0.06); }
+.sent-row-fail { background: rgba(255,71,87,0.06); }
+.sent-type { text-transform: capitalize; color: var(--text); font-weight: 600; }
+.sent-owner { color: var(--muted); }
+.sent-status { font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+.sent-ok { background: rgba(0,200,83,0.2); color: #00c853; }
+.sent-suppr { background: rgba(255,165,0,0.2); color: #ffa502; }
+.sent-fail { background: rgba(255,71,87,0.2); color: #ff4757; }
+.sent-reason { font-size: 0.68rem; color: var(--muted); }
+.sent-block-head { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); padding: 4px 0 2px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+.ig-yt-badge { background: linear-gradient(90deg, rgba(225,48,108,0.25), rgba(255,0,80,0.25)); color: #e1306c; font-size: 0.72rem; letter-spacing: 0.5px; }
+.ww-grid { display: flex; flex-direction: column; gap: 10px; }
+.ww-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px 16px; }
+.ww-card--pt { border-left: 4px solid var(--success); }
+.ww-card--tt { border-left: 4px solid #ff6b35; }
+.ww-card--po { border-left: 4px solid var(--purple); }
+.ww-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+.ww-badge { display: inline-block; font-size: 0.68rem; padding: 3px 9px; border-radius: 6px; font-weight: 700; letter-spacing: 0.3px; }
+.ww-badge--pt { background: rgba(0,210,106,0.25); color: #00d26a; border: 1px solid rgba(0,210,106,0.4); }
+.ww-badge--tt { background: rgba(255,107,53,0.25); color: #ff6b35; border: 1px solid rgba(255,107,53,0.4); }
+.ww-badge--po { background: rgba(155,89,182,0.2); color: #b07cc6; border: 1px solid rgba(155,89,182,0.35); }
+.ww-action { font-size: 0.72rem; padding: 3px 8px; border-radius: 5px; font-weight: 600; }
+.ww-action--cta   { background: rgba(0,210,106,0.15); color: var(--success); }
+.ww-action--reel  { background: rgba(225,48,108,0.15); color: #e1306c; }
+.ww-action--lessons { background: rgba(0,180,216,0.15); color: var(--info); }
+.ww-action--product { background: rgba(255,165,0,0.15); color: var(--warning); }
+.ww-action--boost { background: rgba(255,107,53,0.15); color: #ff6b35; }
+.ww-hook { font-weight: 600; font-size: 0.92rem; margin-bottom: 8px; line-height: 1.45; color: var(--text); }
+.ww-scores { display: flex; gap: 10px; margin-bottom: 6px; }
+.ww-score { font-size: 0.76rem; font-weight: 800; padding: 2px 8px; border-radius: 5px; letter-spacing: 0.2px; }
+.ww-score.ig { background: rgba(225,48,108,0.2); color: #e1306c; }
+.ww-score.yt { background: rgba(255,0,80,0.18); color: #ff4070; }
+.ww-score.cross { background: rgba(155,89,182,0.2); color: #c07fd4; cursor: help; border-bottom: 1px dotted rgba(155,89,182,0.5); }
+.ww-topics { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 4px; }
+.ww-topic { background: rgba(255,255,255,0.08); color: var(--muted); font-size: 0.7rem; padding: 2px 7px; border-radius: 20px; }
+.ww-evidence { font-size: 0.73rem; color: var(--muted); margin-top: 4px; }
+.ww-evidence-more { color: var(--info); font-style: italic; }
+.ww-ct-badge { display: inline-block; font-size: 0.62rem; padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+.ww-ct-badge--cta    { background: rgba(0,210,106,0.15); color: #00d26a; }
+.ww-ct-badge--promo { background: rgba(255,107,53,0.15); color: #ff6b35; }
+.ww-ct-badge--product { background: rgba(255,165,0,0.15); color: var(--warning); }
+
+/* LIVE MODE HEALTH */
+.lmh-mode-row { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+.lmh-mode { font-size: 1.1rem; font-weight: 900; }
+.lmh-trust, .lmh-streak { font-size: 0.72rem; color: var(--muted); }
+.lmh-verdict { font-size: 0.72rem; color: var(--muted); }
+/* AUTONOMY AUDIT */
+.aa-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.aa-table { font-size: 0.65rem; }
+.aa-head { display: grid; grid-template-columns: 2fr 0.8fr 1.2fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.aa-row { display: grid; grid-template-columns: 2fr 0.8fr 1.2fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.aa-type { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.aa-total, .aa-detail { font-size: 0.62rem; }
+/* CAPABILITY CONTROLS */
+.cc-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cc-table { font-size: 0.65rem; }
+.cc-head { display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cc-row { display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cc-name { font-weight: 700; color: var(--text); }
+.cc-verdict, .cc-pause { font-size: 0.62rem; text-transform: capitalize; }
+
+/* INTEGRATION HEALTH */
+.api-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.api-table { font-size: 0.65rem; }
+.api-head { display: grid; grid-template-columns: 2fr 1fr 0.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.api-row { display: grid; grid-template-columns: 2fr 1fr 0.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.api-name { font-weight: 700; color: var(--text); }
+.api-status { font-size: 0.62rem; text-transform: capitalize; }
+.api-safe { font-size: 0.7rem; text-align: center; }
+
+/* CAPABILITY UNLOCKS */
+.cu-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.cu-table { font-size: 0.65rem; }
+.cu-head { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.cu-row { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.cu-name { font-weight: 700; color: var(--text); }
+.cu-st { font-size: 0.62rem; text-transform: capitalize; }
+.cu-blocker { font-size: 0.58rem; }
+
+/* ROI COVERAGE */
+.roi-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.roi-section-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); margin: 8px 0 4px; letter-spacing: 0.05em; }
+.roi-table { font-size: 0.65rem; }
+.roi-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.roi-name { font-weight: 700; color: var(--text); }
+.roi-signal { font-size: 0.62rem; text-transform: capitalize; }
+
+/* ATTRIBUTION CHAIN */
+.att-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.att-table { font-size: 0.65rem; }
+.att-head { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.att-row { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.att-hook { font-weight: 700; color: var(--text); }
+.att-svc { color: var(--muted); font-size: 0.6rem; }
+.att-conf { font-size: 0.6rem; }
+
+/* WHATSAPP READY */
+.wa-status-row { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+.wa-api { font-size: 0.8rem; font-weight: 700; }
+.wa-counts { font-size: 0.72rem; color: var(--muted); }
+.wa-table { font-size: 0.65rem; }
+.wa-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.wa-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.wa-name { font-weight: 700; color: var(--text); }
+.wa-tier { font-size: 0.62rem; }
+.wa-sla { font-size: 0.6rem; color: var(--muted); }
+
+/* ROI TRUTH */
+.rt-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; }
+.rt-band { margin-bottom: 10px; }
+.rt-band-label { font-size: 0.65rem; font-weight: 700; margin-bottom: 4px; }
+.rt-items { display: flex; flex-wrap: wrap; gap: 4px; }
+.rt-item { font-size: 0.62rem; background: rgba(255,255,255,0.08); border-radius: 3px; padding: 2px 6px; }
+
+/* REVENUE TRUTH */
+.rtv-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.rtv-modelled { color: var(--warning); font-weight: 700; font-size: 0.8rem; }
+.rtv-bands { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.rtv-bands span { font-size: 0.62rem; padding: 2px 6px; border-radius: 3px; }
+.rtv-note { font-size: 0.62rem; color: var(--muted); margin-top: 6px; font-style: italic; }
+
+/* TRACKING COVERAGE */
+.tc-row { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+.tc-rate { font-size: 0.8rem; font-weight: 700; }
+.tc-stats { font-size: 0.72rem; color: var(--muted); }
+.tc-chains { font-size: 0.68rem; color: var(--text); margin: 6px 0; }
+.tc-note { font-size: 0.62rem; color: var(--muted); font-style: italic; }
+
+/* DECISION CONFIDENCE */
+.dc-mode { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.dc-table { font-size: 0.62rem; }
+.dc-head { display: grid; grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.dc-row { display: grid; grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.dc-area { font-weight: 700; color: var(--text); }
+.dc-conf { font-size: 0.62rem; }
+.dc-auto { font-size: 0.62rem; }
+
+/* TRACKING FIX NOW */
+.tf-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; }
+.tf-top { font-size: 0.68rem; color: var(--text); margin: 6px 0; padding: 4px 8px; background: rgba(255,255,255,0.04); border-radius: 4px; }
+.tf-table { font-size: 0.62rem; }
+.tf-head { display: grid; grid-template-columns: 2fr 1fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.tf-row { display: grid; grid-template-columns: 2fr 1fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.tf-type { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.tf-sev { font-size: 0.62rem; }
+.tf-auto { font-size: 0.62rem; }
+
+/* EVENT VALIDATION */
+.ev-status-row { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.ev-table { font-size: 0.62rem; margin-bottom: 6px; }
+.ev-head { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ev-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.ev-name { font-weight: 700; color: var(--text); text-transform: capitalize; }
+.ev-status { font-size: 0.62rem; }
+.ev-note { font-size: 0.62rem; color: var(--muted); font-style: italic; }
+
+/* UTM BACKFILL */
+.ub-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+.ub-needs { font-size: 0.68rem; color: var(--warning); margin-bottom: 8px; }
+.ub-table { font-size: 0.62rem; }
+.ub-head { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.ub-row { display: grid; grid-template-columns: 2fr 0.8fr 0.8fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.ub-hook { font-weight: 700; color: var(--text); }
+.ub-ql { font-size: 0.62rem; }
+.ub-effort { font-size: 0.62rem; }
+
+/* TRACKING LAUNCH CHECKLIST */
+.lc-summary { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
+.lc-table { font-size: 0.62rem; }
+.lc-head { display: grid; grid-template-columns: 2fr 1fr 1.5fr 0.6fr; gap: 6px; padding: 3px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; color: var(--muted); font-size: 0.58rem; text-transform: uppercase; margin-bottom: 3px; }
+.lc-row { display: grid; grid-template-columns: 2fr 1fr 1.5fr 0.6fr; gap: 6px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 0.65rem; }
+.lc-label { font-weight: 700; color: var(--text); }
+.lc-status { font-size: 0.62rem; }
+.lc-owner { font-size: 0.6rem; color: var(--muted); }
+.lc-blk { font-size: 0.6rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>⛳ Swing Shack — Marketing Intelligence</h1>
+    <p>Auto-updated daily · Used items filtered · Ideas improve over time</p>
+  </div>
+
+  
+<div class="summary-bar">
+  <div class="summary-item">
+    <span class="summary-label">Last Build</span>
+    <span class="summary-value">2026/07/02, 09:10:31 SAST</span>
+  </div>
+  <div class="summary-item">
+    <span class="summary-label">Stale Sources</span>
+    <span class="summary-value warn">IG Analytics, GA4, Reddit, Golf News, SEO Rankings, SEO Audit, Hook Bank, Ideas</span>
+  </div>
+  <div class="summary-item">
+    <span class="summary-label">Today's Top Idea</span>
+    <span class="summary-value">TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL</span>
+  </div>
+</div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#127968 LIVE MODE HEALTH</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="lmh-mode-row"><div class="lmh-mode"><span class="pub-ok">LIVE</span></div><div class="lmh-trust">Trust: <strong>9.4</strong></div><div class="lmh-streak">Streak: <strong>0d</strong></div></div><div class="lmh-verdict"><span class="pub-ok">ALL_HEALTHY</span> &middot; Actions: 13 &middot; Drills: 6/8 drills</div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128203 AUTONOMY AUDIT</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="aa-summary"><span class="pub-ok">CLEAN</span> &middot; Total: 13 &middot; Good: <span class="pub-ok">3</span> &middot; Q: <span class="pub-warn">0</span> &middot; Bad: <span class="pub-blocked">0</span></div><div class="aa-table"><div class="aa-head"><span>Action</span><span>Total</span><span>G/Q/B</span></div><div class="aa-row"><div class="aa-type">discord nudge</div><div class="aa-total">1</div><div class="aa-detail"><span class="pub-ok">1</span>/<span class="pub-warn">0</span>/<span class="pub-blocked">0</span></div></div><div class="aa-row"><div class="aa-type">blocked</div><div class="aa-total">7</div><div class="aa-detail"><span class="pub-ok">0</span>/<span class="pub-warn">0</span>/<span class="pub-blocked">0</span></div></div><div class="aa-row"><div class="aa-type">draft only</div><div class="aa-total">3</div><div class="aa-detail"><span class="pub-ok">3</span>/<span class="pub-warn">0</span>/<span class="pub-blocked">0</span></div></div><div class="aa-row"><div class="aa-type">manual only</div><div class="aa-total">2</div><div class="aa-detail"><span class="pub-ok">0</span>/<span class="pub-warn">0</span>/<span class="pub-blocked">0</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128736 CAPABILITY CONTROLS</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="cc-summary">Keep: <span class="pub-ok">6</span> &middot; Pause: <span class="pub-blocked">2</span> &middot; Expand: <span class="pub-green">0</span></div><div class="cc-table"><div class="cc-head"><span>Capability</span><span>Verdict</span><span>Status</span></div><div class="cc-row"><div class="cc-name">Discord Nudges</div><div class="cc-verdict"><span class="pub-ok">keep</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Fallback Swaps</div><div class="cc-verdict"><span class="pub-ok">keep</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Story Scheduling</div><div class="cc-verdict"><span class="pub-ok">keep</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Evergreen Reposts</div><div class="cc-verdict"><span class="pub-ok">keep</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Auto-Promote Approved</div><div class="cc-verdict"><span class="pub-wait">keep with watch</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Low-Risk Publishing</div><div class="cc-verdict"><span class="pub-wait">keep with watch</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Lead Routing</div><div class="cc-verdict"><span class="pub-blocked">pause until proven</span></div><div class="cc-pause"></div></div><div class="cc-row"><div class="cc-name">Budget Shifts</div><div class="cc-verdict"><span class="pub-blocked">paused</span></div><div class="cc-pause"> <span class="pub-blocked">PAUSED</span></div></div></div>
+  </div>
+
+  <div class="tw-strip">
+    <div class="tw-item tw-item--post">
+      <div class="tw-label">🎯 Post this first</div>
+      <div class="tw-value">That slice costing you yards off the tee? ...</div>
+      <div class="tw-meta">REACH · static</div>
+    </div>
+    <div class="tw-sep"></div>
+    <div class="tw-item tw-item--sales">
+      <div class="tw-label">💰 Push this week</div>
+      <div class="tw-value">Club Fitting</div>
+      <div class="tw-meta">7.4/10 · Strong IG engagement (8)</div>
+    </div>
+    <div class="tw-sep"></div>
+    <div class="tw-item tw-item--money">
+      <div class="tw-label">💸 Making money</div>
+      <div class="tw-value" style="font-size:0.82rem">Golf Lessons</div>
+      <div class="tw-meta">258 booking sessions</div>
+      <div class="tw-meta" style="color:#ffa500">TrackMan / Stats converts</div>
+    </div>
+    <div class="tw-sep"></div>
+    <div class="tw-item tw-item--missed">
+      <div class="tw-label">⚠️ Biggest leak</div>
+      <div class="tw-value" style="font-size:0.82rem;color:#ff4757">Push booking CTA on IG this week — booking p</div>
+      <div class="tw-meta">booking traffic no retargeting</div>
+    </div>
+    <div class="tw-sep"></div>
+    <div class="tw-item tw-item--cta">
+      <div class="tw-label">📲 Best CTA</div>
+      <div class="tw-value">Book your fit </div>
+      <div class="tw-meta">Club Fitting</div>
+    </div>
+  </div>
+  
+  <div class="es-box">
+    <div class="es-title">📋 THIS WEEK IN ONE LOOK</div>
+    <div class="es-grid">
+      <div class="es-item">
+      <div class="es-label">🎯 Top post</div>
+      <div class="es-value" style="">That slice costing you yards off the tee...</div>
+    </div>
+      <div class="es-item">
+      <div class="es-label">💰 Service to push</div>
+      <div class="es-value" style="color:#ffa500;font-weight:800">Club Fitting</div>
+    </div>
+      <div class="es-item">
+      <div class="es-label">⚠️ Missed / leak</div>
+      <div class="es-value" style="color:#ff4757;font-weight:800">booking traffic no retargeting</div>
+    </div>
+      <div class="es-item">
+      <div class="es-label">👥 Owner pressure</div>
+      <div class="es-value" style="color:#ff6b81;font-weight:800">Coach Cat (10)</div>
+    </div>
+      <div class="es-item">
+      <div class="es-label">📊 Trust score</div>
+      <div class="es-value" style="color:#ffa500;font-weight:800">10.0/10</div>
+    </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>💪 DO THIS FIRST</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="dtf-summary">Overall priority: <b style="color:#ffa502">9.6/10</b> &middot; 4 actions queued</div><div class="dtf-grid"><div class="dtf-card"><div class="dtf-emoji">🎯</div><div class="dtf-body"><div class="dtf-label">Post this first</div><div class="dtf-title">That slice costing you yards off the tee? TrackMan foun...</div><div class="dtf-meta">Freshness 7/10</div></div><div class="dtf-score" style="color:#ffa502">7</div></div><div class="dtf-card"><div class="dtf-emoji">💰</div><div class="dtf-body"><div class="dtf-label">Push this service</div><div class="dtf-title">Club Fitting</div><div class="dtf-meta">7.4/10</div></div><div class="dtf-score" style="color:#ffa502">7.4</div></div><div class="dtf-card"><div class="dtf-emoji">🔁</div><div class="dtf-body"><div class="dtf-label">Retarget this first</div><div class="dtf-title">Your clubs are waiting. Your handicap won't fix itself....</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">15</div></div><div class="dtf-card"><div class="dtf-emoji">⚠️</div><div class="dtf-body"><div class="dtf-label">Fix this leak</div><div class="dtf-title">—</div><div class="dtf-meta">Book a session · swingshack.co.za/bookings · From ...</div></div><div class="dtf-score" style="color:#2ed573">8.95</div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>📊 WHAT ACTUALLY WORKED</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="waws-stats"><div class="waws-stat"><div class="waws-stat-val" style="color:#2ed573">0%</div><div class="waws-stat-lbl">Exec rate</div></div><div class="waws-stat"><div class="waws-stat-val" style="color:#ffa502">0%</div><div class="waws-stat-lbl">Win rate</div></div><div class="waws-stat"><div class="waws-stat-val">12</div><div class="waws-stat-lbl">Recs tracked</div></div><div class="waws-stat"><div class="waws-stat-val">0</div><div class="waws-stat-lbl">Executed</div></div></div><div class="waws-wr-section"><div class="waws-wr-title">Win rate by type</div><div class="waws-wr-grid"></div></div><div class="waws-sub"><div class="waws-sub-title">Ignored (no matching post found)</div><div class="waws-ignored-row">↳ That slice costing you yards off the tee? TrackMan foun...</div><div class="waws-ignored-row">↳ Need some help with your putting? Coach Cat explains wh...</div><div class="waws-ignored-row">↳ Book your session with Coach Cat @swingshack ⛳️</div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔬 TEST / SCALE / KILL</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="tsk-alert-bar">⚠️ 1 high-urgency anomaly alert(s) need action today</div><div class="tsk-grid"><div class="tsk-col"><div class="tsk-col-title tsk-test-title">🔬 TEST NEXT</div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "lesson</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Coach Cat</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "short_</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#ffa502"><div class="tsk-icon">🔬</div><div class="tsk-body"><div class="tsk-title">Test TrackMan stats angle vs transformation angle on "driver</div><div class="tsk-meta">engagement_rate > 3% AND save_rate > 1.5%</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div></div><div class="tsk-col"><div class="tsk-col-title tsk-scale-title">⬆️ SCALE NOW</div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Need to relax and find your golf swing tempo? Join Coach Cat</div><div class="tsk-meta">IG 10 + cross-signal 7.4 — proven on multiple channels</div><span class="tsk-owner">👤 Coach Cat</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Need some help with your putting? Coach Cat explains what ma</div><div class="tsk-meta">IG 9.82 + cross-signal 7.1 — proven on multiple channels</div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-today">TODAY</span></div></div><div class="tsk-card" style="border-left-color:#2ed573"><div class="tsk-icon">⬆️</div><div class="tsk-body"><div class="tsk-title">Scale Soft / Engagement CTA across all posts</div><div class="tsk-meta"></div><span class="tsk-owner">👤 Swing Shack page</span><span class="tsk-urg tsk-urg-this_week">THIS_WEEK</span></div></div></div><div class="tsk-col"><div class="tsk-col-title tsk-kill-title">🕳️ KILL / PAUSE</div><div class="tsk-card" style="border-left-color:#ff4757"><div class="tsk-icon">🕳️</div><div class="tsk-body"><div class="tsk-title">Stop actively pushing Events & Competitions</div><div class="tsk-meta">Move Events & Competitions to bottom of priority list — weak dema</div></div></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔧 RUN THE WEEK</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="rtw-summary"><span class="rtw-sum-item"><b>18</b> tasks</span><span class="rtw-sum-item"><b>7</b> blocked</span><span class="rtw-sum-item"><b>1</b> risks high</span><span class="rtw-sum-item"><b>19</b> blockers</span><span class="rtw-sum-item"><b>0</b> need approval</span></div><div class="rtw-grid"><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ff4757">📅 TODAY'S TASKS</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">A/B Test: hook_angle</div><span class="rtw-owner">👤 Coach Cat</span></div><div class="rtw-row"><div class="rtw-row-title">A/B Test: hook_angle</div><span class="rtw-owner">👤 Swing Shack page</span></div><div class="rtw-row"><div class="rtw-row-title">A/B Test: hook_angle</div><span class="rtw-owner">👤 Swing Shack page</span></div><div class="rtw-row"><div class="rtw-row-title">That slice costing you yards off the tee? TrackMan foun</div><span class="rtw-owner">👤 Coach Cat / Divan</span></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ffa502">⏳ WAITING APPROVAL</div><div class="rtw-empty">None</div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ff6b35">⚠️ AT RISK THIS WEEK</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">Coach Cat has 10 tasks this week</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Move 7 tasks to Swing Shack page or delay low-urgency i</div></div><div class="rtw-row"><div class="rtw-row-title">Club Fitting is priority #1 but has no scheduled conten</div><span class="rtw-owner">👤 Divan</span><span class="rtw-sev rtw-sev-medium">MEDIUM</span><div class="rtw-fix">→ Schedule at least 1 post for Club Fitting this week — s</div></div><div class="rtw-row"><div class="rtw-row-title">Rework the "driver" hook into a follow-up Reel this wee</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-medium">MEDIUM</span><div class="rtw-fix">→ Rework the "driver" hook into a follow-up Reel this wee</div></div><div class="rtw-row"><div class="rtw-row-title">Rework the "lessons" hook into a follow-up Reel this we</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-medium">MEDIUM</span><div class="rtw-fix">→ Rework the "lessons" hook into a follow-up Reel this we</div></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#ff4757">🔨 BLOCKING EXECUTION</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">Asset needed today</div><span class="rtw-owner">👤 Coach Cat / Divan</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Source TrackMan screenshot or data graphic — 1 post(s) </div></div><div class="rtw-row"><div class="rtw-row-title">Asset needed today</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Source Swing clip or lesson photo — 4 post(s) need this</div></div><div class="rtw-row"><div class="rtw-row-title">Booking link missing</div><span class="rtw-owner">👤 Coach Cat</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Add swingshack.co.za/bookings or swingshack.co.za/membe</div></div><div class="rtw-row"><div class="rtw-row-title">Missing: TrackMan screenshot or data graphic</div><span class="rtw-owner">👤 Coach Cat / Divan</span><span class="rtw-sev rtw-sev-high">HIGH</span><div class="rtw-fix">→ Source or create TrackMan screenshot or data graphic — </div></div></div></div><div class="rtw-col"><div class="rtw-col-head" style="border-top-color:#00b4d8">⇄ REBALANCE WEEK</div><div class="rtw-rows"><div class="rtw-row"><div class="rtw-row-title">A/B Test: youtube_angle_to_ig</div><span class="rtw-sev rtw-sev-high">HIGH</span></div><div class="rtw-row"><div class="rtw-row-title">delay</div><span class="rtw-owner">👤 Divan</span><span class="rtw-sev rtw-sev-low">LOW</span></div><div class="rtw-row"><div class="rtw-row-title">delay</div><span class="rtw-owner">👤 Swing Shack page</span><span class="rtw-sev rtw-sev-low">LOW</span></div></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129504 SYSTEM HEALTH</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="hl-bar"><span class="hl-pipeline">&#128444; 6m ago</span><span class="hl-sep">|</span><span class="hl-sources">&#128173; 5/15 sources fresh</span><span class="hl-sep">|</span><span class="hl-stale">&#26a0&#65039; 9 stale</span></div><div class="hl-risk" style="border-left:3px solid #ffa502"><div class="hl-risk-head">&#9888&#65039; <b>TOP RISK:</b> <span style="color:#ffa502">19 blocked tasks</span></div><div class="hl-risk-fix">&#8594; Unblock tasks in RUN THE WEEK section</div></div><div class="hl-opstrip">&#128280 19 blocked <span class="hl-opsep">|</span> &#9888&#65039 1 high risk</div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129504 TODAY'S LEARNING</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No learnings stored yet. Run store_daily_learnings.js to populate.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128736 MAKE THE CONTENT</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="mc-grid"><div class="mc-cell mc-cell-captions"><div class="mc-cell-head">&#9997 CAPTIONS</div><div class="mc-cell-body">20 total &middot; <span class="mc-ready">20 ready for QA</span></div></div><div class="mc-cell mc-cell-visuals"><div class="mc-cell-head">&#127916 VISUALS</div><div class="mc-cell-body">20 briefs &middot; <span class="mc-ready">20 ready</span></div></div><div class="mc-cell mc-cell-prompts"><div class="mc-cell-head">&#128172 IMAGE PROMPTS</div><div class="mc-cell-body">20 prompts &middot; Top: &quot;Golf social media post, professional gol&quot;</div></div><div class="mc-cell mc-cell-blogs"><div class="mc-cell-head">&#128221 BLOGS</div><div class="mc-cell-body">8 briefs &middot; 3 drafts &middot; 8 FAQ clusters</div></div><div class="mc-cell mc-cell-reddit"><div class="mc-cell-head">&#129313 REDDIT MOVES</div><div class="mc-cell-body">5 replies &middot; <span class="mc-ready">3 high signal</span></div></div></div><div class="mc-legend">&#9888&#65039; All outputs are <b>draft</b> &mdash; QA review required before publishing</div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#9989 READY TO PUBLISH</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="pub-strip"><span class="pub-ok">85 passed QA</span> <span class="hl-opsep">|</span> <span class="pub-wait">85 awaiting approval</span> <span class="hl-opsep">|</span> <span class="pub-blocked">3 blocked</span> <span class="hl-opsep">|</span> <span class="pub-brand">Brand: 99/100</span></div><div class="pub-cats"><div class="pub-cat"><div class="pub-cat-head">&#9997 Awaiting copy</div><div class="pub-cat-count">48</div></div><div class="pub-cat"><div class="pub-cat-head">&#127916 Awaiting creative</div><div class="pub-cat-count">37</div></div><div class="pub-cat"><div class="pub-cat-head">&#128308 Blocked</div><div class="pub-cat-count">3</div></div></div><div class="pub-brand-bar"><span>Brand score: 99/100</span><div class="pub-brand-fill" style="width:99%"></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128465 FIX BEFORE LIVE</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="fix-total">3 issue(s) total &middot; 3 rejects &middot; 0 fixes needed</div><div class="fix-list"><div class="fix-group fix-group-rej"><div class="fix-head">&#128308 QA Rejects</div><div class="fix-item"><span class="fix-type">visual_brief</span>: No layout specified in visual brief</div><div class="fix-item"><span class="fix-type">visual_brief</span>: No layout specified in visual brief</div><div class="fix-item"><span class="fix-type">visual_brief</span>: No layout specified in visual brief</div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128176 RECOVER REVENUE</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="rv-summary">5 recovery items &middot; <span class="pub-blocked">0 high urgency</span></div><div class="rv-table"><div class="rv-head"><span>Service</span><span>Action</span><span>Leak</span><span>Urgency</span></div><div class="rv-row"><div class="rv-service">Club Fitting</div><div class="rv-action">investigate</div><div class="rv-type">booking traffic no r</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Coaching</div><div class="rv-action">investigate</div><div class="rv-type">hook winner no follo</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Practice</div><div class="rv-action">investigate</div><div class="rv-type">hook winner no follo</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Social Play</div><div class="rv-action">investigate</div><div class="rv-type">hook winner no follo</div><div class="rv-urg"><span class="pub-ok">low</span></div></div><div class="rv-row"><div class="rv-service">Club Fitting</div><div class="rv-action">investigate</div><div class="rv-type">service page no ig</div><div class="rv-urg"><span class="pub-ok">low</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128236 NURTURE NEXT</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="nr-summary">3 sequences &middot; 9 emails total</div><div class="nr-table"><div class="nr-head"><span>Sequence</span><span>Objective</span><span>Emails</span><span>Audience</span></div><div class="nr-row"><div class="nr-name">Booking Recovery Sequence</div><div class="nr-obj">recover_abandoned_bo</div><div class="nr-emails">3 emails</div><div class="nr-aud">visited pricing did </div></div><div class="nr-row"><div class="nr-name">Service Discovery — Club Fitti</div><div class="nr-obj">introduce_club_fitti</div><div class="nr-emails">3 emails</div><div class="nr-aud">engaged blog or soci</div></div><div class="nr-row"><div class="nr-name">Coaching Discovery</div><div class="nr-obj">convert_interested_l</div><div class="nr-emails">3 emails</div><div class="nr-aud">visited coaching pag</div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128736 FIX THIS PAGE FIRST</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="fp-summary">8 fixes &middot; <span class="pub-blocked">4 high severity</span></div><div class="fp-table"><div class="fp-head"><span>Page</span><span>Issue</span><span>Fix</span><span>Severity</span></div><div class="fp-row"><div class="fp-page">/membership</div><div class="fp-issue">pricing clarity</div><div class="fp-fix">Add clear pricing table with value conte</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/membership</div><div class="fp-issue">cta weak</div><div class="fp-fix">Replace &quot;Learn More&quot; with &quot;Book Your Fir</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/club-fitting</div><div class="fp-issue">intent mismatch</div><div class="fp-fix">Add booking urgency — limited slots, fit</div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/book</div><div class="fp-issue">friction</div><div class="fp-fix">Reduce booking form to 3 fields — name, </div><div class="fp-sev"><span class="pub-blocked">high</span></div></div><div class="fp-row"><div class="fp-page">/coaching</div><div class="fp-issue">trust gap</div><div class="fp-fix">Add instructor credentials + TrackMan ce</div><div class="fp-sev"><span class="pub-wait">medium</span></div></div><div class="fp-row"><div class="fp-page">/coaching</div><div class="fp-issue">faq missing</div><div class="fp-fix">Add FAQ section covering &quot;what to expect</div><div class="fp-sev"><span class="pub-wait">medium</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129720 CAPTURE MORE LEADS</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="cl-summary">8 fixes &middot; <span class="pub-blocked">3 high impact</span> &middot; fastest: lcf-1</div><div class="cl-table"><div class="cl-head"><span>Page</span><span>Friction</span><span>Fix</span><span>Impact</span></div><div class="cl-row"><div class="cl-location">/book</div><div class="cl-friction">booking form too lon</div><div class="cl-fix">Reduce /book form to 3 fields: name, email, p</div><div class="cl-imp"><span class="pub-blocked">high</span></div></div><div class="cl-row"><div class="cl-location">/membership</div><div class="cl-friction">cta not mobile respo</div><div class="cl-fix">Make &quot;Book Your Session&quot; CTA button sticky on</div><div class="cl-imp"><span class="pub-blocked">high</span></div></div><div class="cl-row"><div class="cl-location">/book</div><div class="cl-friction">no whatsapp booking </div><div class="cl-fix">Add WhatsApp click-to-chat: &quot;Or book via What</div><div class="cl-imp"><span class="pub-blocked">high</span></div></div><div class="cl-row"><div class="cl-location">/coaching</div><div class="cl-friction">pricing not on servi</div><div class="cl-fix">Add pricing from R850 on /coaching — &quot;from R8</div><div class="cl-imp"><span class="pub-wait">medium</span></div></div><div class="cl-row"><div class="cl-location">/contact</div><div class="cl-friction">contact form frictio</div><div class="cl-fix">Replace contact form with WhatsApp pre-fill: </div><div class="cl-imp"><span class="pub-wait">medium</span></div></div><div class="cl-row"><div class="cl-location">/book</div><div class="cl-friction">no booking reminder</div><div class="cl-fix">After form submit: trigger WhatsApp confirmat</div><div class="cl-imp"><span class="pub-wait">medium</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128241 WHATSAPP MONEY</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="wa-summary">4 flows &middot; <span class="pub-blocked">3 high priority</span></div><div class="wa-table"><div class="wa-head"><span>Flow</span><span>Type</span><span>Steps</span><span>Priority</span></div><div class="wa-row"><div class="wa-name">Booking Quick-Start</div><div class="wa-type">booking_assistance</div><div class="wa-msgs">6 msgs</div><div class="wa-pri"><span class="pub-blocked">high</span></div></div><div class="wa-row"><div class="wa-name">Which Service Suits Me?</div><div class="wa-type">qualification</div><div class="wa-msgs">4 msgs</div><div class="wa-pri"><span class="pub-blocked">high</span></div></div><div class="wa-row"><div class="wa-name">Pricing FAQ Automation</div><div class="wa-type">pricing</div><div class="wa-msgs">1 msgs</div><div class="wa-pri"><span class="pub-blocked">high</span></div></div><div class="wa-row"><div class="wa-name">Abandoned Booking Recovery</div><div class="wa-type">recovery</div><div class="wa-msgs">3 msgs</div><div class="wa-pri"><span class="pub-wait">medium</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128230 BUNDLES TO PUSH</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="bn-summary">5 bundles &middot; <span class="pub-ok">3 high confidence</span></div><div class="bn-table"><div class="bn-head"><span>Bundle</span><span>Price</span><span>Saving</span><span>Confidence</span></div><div class="bn-row"><div class="bn-name">Fitting Starter Pack</div><div class="bn-price">R1,100</div><div class="bn-saving">R150 (12%)</div><div class="bn-conf"><span class="pub-ok">high</span></div></div><div class="bn-row"><div class="bn-name">Junior Golf Development Bund</div><div class="bn-price">R2,100</div><div class="bn-saving">R250 (11%)</div><div class="bn-conf"><span class="pub-wait">medium</span></div></div><div class="bn-row"><div class="bn-name">Social Golf Experience (x4)</div><div class="bn-price">R920</div><div class="bn-saving">R100 (10%)</div><div class="bn-conf"><span class="pub-ok">high</span></div></div><div class="bn-row"><div class="bn-name">Precision Practice Pack (10 </div><div class="bn-price">R2,000</div><div class="bn-saving">R500 (20%)</div><div class="bn-conf"><span class="pub-ok">high</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129302 AUTONOMY CONTROL</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="ac-header"><div class="ac-mode">Mode: <span class="pub-wait">MINIMAL</span></div><div class="ac-trust">Trust: 8/10</div></div><div class="ac-summary">Allowed: 1 | Blocked: 12</div><div class="ac-table"><div class="ac-head"><span>Action</span><span>Risk</span><span>Limit</span></div><div class="ac-row"><div class="ac-id">discord_nudge</div><div class="ac-risk">LOW</div><div class="ac-rule">max:20</div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128737 AUTONOMY SAFETY LOG</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="sl-summary">Total auto-actions: 4 | Swaps: 0 | Promotes: 0 | Nudges: 4</div><div class="sl-table"><div class="sl-head"><span></span><span>Action</span><span>Type</span></div><div class="sl-row"><span class="sl-icon">&#128172</span><span class="sl-text pub-ok">deadline_warning</span><span class="sl-type">nudge</span></div><div class="sl-row"><span class="sl-icon">&#128172</span><span class="sl-text pub-ok">asset_reminder</span><span class="sl-type">nudge</span></div><div class="sl-row"><span class="sl-icon">&#128172</span><span class="sl-text pub-ok">asset_reminder</span><span class="sl-type">nudge</span></div><div class="sl-row"><span class="sl-icon">&#128172</span><span class="sl-text pub-ok">owner_overload_warning</span><span class="sl-type">nudge</span></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128200 WEEK IN REVIEW</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="wr-cell"><span class="wr-label">Published</span><span class="wr-val">0 (0%)</span></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129504 LEARNINGS TO KEEP</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">Run learning_summariser.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129309 OWNER PERFORMANCE</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">Run owner_performance_reporter.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128640 PUBLISHING BOARD</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="pb-summary">1 slots &middot; <span class="pub-ok">1 filled</span> &middot; <span class="pub-blocked">0 open</span> &middot; <span class="pub-wait">3 balance gaps</span></div><div class="pb-table"><div class="pb-head"><span>Time</span><span>Slot</span><span>Hook</span><span>Format</span><span>Service</span><span>Status</span></div><div class="pb-row"><div class="pb-time">09:00</div><div class="pb-slot-label">Morning — high reach</div><div class="pb-hook">That slice costing you yards off th</div><div class="pb-format">static</div><div class="pb-svc">Practice</div><div class="pb-status"><span class="pub-ok">planned</span></div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#128240 POSTBACK CONFIRMED</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="pb-log-summary">0 events &middot; <span class="pub-ok">0 published</span> &middot; <span class="pub-wait">0 scheduled</span> &middot; <span class="pub-blocked">0 failed</span></div><div class="pb-log-table"><div class="pb-head"><span>Event</span><span>Hook/Item</span><span>Platform</span><span>Used marked</span></div></div><div class="pb-used-note">Used items marked: 0 of 0</div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>&#129512 AGENT RUNS TODAY</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No agent runs today. Run <code>node run_agent.js --all</code> to execute.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>📱 Instagram Performance</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    
+  <div class="ig-stats-row">
+    <div class="ig-stat">
+      <span class="ig-stat-num">10</span>
+      <span class="ig-stat-label">posts tracked</span>
+    </div>
+    <div class="ig-stat">
+      <span class="ig-stat-num">2.61%</span>
+      <span class="ig-stat-label">avg engagement</span>
+    </div>
+    <div class="ig-stat">
+      <span class="ig-stat-num">8.33%</span>
+      <span class="ig-stat-label">best eng rate</span>
+    </div>
+  </div>
+  <div class="post-list">
+    
+    <div class="post-row">
+      <span class="post-date">2026/05/30</span>
+      <span class="post-caption">For the golfer who wants driver energy with a...</span>
+      <span class="post-reach">51 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">0.00% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/05/29</span>
+      <span class="post-caption">Mileseey Golf tech is available for order thr...</span>
+      <span class="post-reach">161 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">0.00% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/05/28</span>
+      <span class="post-caption">The number. The map. The plan.
+Mileseey GeneP...</span>
+      <span class="post-reach">61 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng good">3.28% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/05/27</span>
+      <span class="post-caption">Your driver can feel fine.
+But TrackMan shows...</span>
+      <span class="post-reach">74 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">1.35% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/05/27</span>
+      <span class="post-caption">Not quite a driver. Not quite a fairway wood....</span>
+      <span class="post-reach">108 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">2.78% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/05/26</span>
+      <span class="post-caption">TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL
+Book...</span>
+      <span class="post-reach">24 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng good">8.33% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/05/26</span>
+      <span class="post-caption">Measure the distance. 
+Cue the song. 
+Hit bom...</span>
+      <span class="post-reach">146 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">2.74% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/05/21</span>
+      <span class="post-caption">5 THINGS TRACKMAN REVEALS
+1. Spin affects dis...</span>
+      <span class="post-reach">128 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng good">3.13% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/05/20</span>
+      <span class="post-caption">SWEET SPOT IS TINY.
+TrackMan shows exactly wh...</span>
+      <span class="post-reach">101 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">1.98% eng</span>
+    </div>
+    <div class="post-row">
+      <span class="post-date">2026/05/19</span>
+      <span class="post-caption">Coaching, fitting, practice and play. All und...</span>
+      <span class="post-reach">355 reach</span>
+      <span class="post-likes">❤️ 0</span>
+      <span class="post-eng ok">2.54% eng</span>
+    </div>
+  </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🪝 Hook Bank</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    
+  <div class="hook-group">
+    <h3>🔥 Top Performing Hooks</h3>
+    <div class="hook-list">
+      
+      <div class="hook-card">
+        <div class="hook-text">Need to relax and find your golf swing tempo? Join Coach Cat...</div>
+        <div class="hook-meta">
+          <span class="hook-score">3.10%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL</div>
+        <div class="hook-meta">
+          <span class="hook-score">8.33%</span>
+          <span class="hook-topic">equipment</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Need some help with your putting? Coach Cat explains what ma...</div>
+        <div class="hook-meta">
+          <span class="hook-score">3.31%</span>
+          <span class="hook-topic">equipment</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Lowest net score wins a *new custom fitted driver!*</div>
+        <div class="hook-meta">
+          <span class="hook-score">1.78%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Book your session with Coach Cat @swingshack ⛳️</div>
+        <div class="hook-meta">
+          <span class="hook-score">1.74%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">That slice costing you yards off the tee? TrackMan found it ...</div>
+        <div class="hook-meta">
+          <span class="hook-score">2.59%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">It never rains in doors… Book your slot now before your tee ...</div>
+        <div class="hook-meta">
+          <span class="hook-score">2.22%</span>
+          <span class="hook-topic">technique</span>
+        </div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-text">Not quite a driver. Not quite a fairway wood.</div>
+        <div class="hook-meta">
+          <span class="hook-score">2.78%</span>
+          <span class="hook-topic">equipment</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>👀 WATCHED + WORKED</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    
+  <div class="ww-filter-bar">
+    <button class="ww-filter-btn active" data-filter="all">All</button>
+    <button class="ww-filter-btn" data-filter="hook">Hooks</button>
+    <button class="ww-filter-btn" data-filter="promo">Promo</button>
+    <button class="ww-filter-btn" data-filter="cta">CTA</button>
+    <button class="ww-filter-btn" data-filter="product">Product</button>
+  </div>
+  <p class="ww-summary-line">5 🔥 proven + trending · 0 🚀 promote next · 0 ✅ proven only</p>
+  <div class="ww-grid" id="ww-grid">
+    <div class="ww-card ww-card--pt" data-content-type="hook">
+      <div class="ww-card-top">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="ww-badge ww-badge--pt">🔥 PROVEN + TRENDING</span>
+          
+        </div>
+        <span class="ww-action ww-action--boost">🚀 Boost on IG</span>
+      </div>
+      <div class="ww-hook">Need to relax and find your golf swing tempo? Join Coach Cat this</div>
+      <div class="ww-scores">
+        <span class="ww-score ig">IG 10</span>
+        <span class="ww-score yt">YT 7</span>
+        <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 7.4</span>
+      </div>
+      <div class="ww-topics"><span class="ww-topic">lessons</span><span class="ww-topic">swing</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
+    </div>
+    <div class="ww-card ww-card--pt" data-content-type="hook">
+      <div class="ww-card-top">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="ww-badge ww-badge--pt">🔥 PROVEN + TRENDING</span>
+          
+        </div>
+        <span class="ww-action ww-action--boost">🚀 Boost on IG</span>
+      </div>
+      <div class="ww-hook">TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL</div>
+      <div class="ww-scores">
+        <span class="ww-score ig">IG 10</span>
+        <span class="ww-score yt">YT 6</span>
+        <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 7.2</span>
+      </div>
+      <div class="ww-topics"><span class="ww-topic">simulator</span><span class="ww-topic">swing</span></div>
+      <div class="ww-evidence">📺 5 Powerful Tips to Unleash Your Senior <span class="ww-evidence-more">+ 1 more video</span></div>
+    </div>
+    <div class="ww-card ww-card--pt" data-content-type="hook">
+      <div class="ww-card-top">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="ww-badge ww-badge--pt">🔥 PROVEN + TRENDING</span>
+          
+        </div>
+        <span class="ww-action ww-action--boost">🚀 Boost on IG</span>
+      </div>
+      <div class="ww-hook">Need some help with your putting? Coach Cat explains what makes</div>
+      <div class="ww-scores">
+        <span class="ww-score ig">IG 9.620000000000001</span>
+        <span class="ww-score yt">YT 6</span>
+        <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 7</span>
+      </div>
+      <div class="ww-topics"><span class="ww-topic">short_game</span><span class="ww-topic">lessons</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
+    </div>
+    <div class="ww-card ww-card--pt" data-content-type="promo">
+      <div class="ww-card-top">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="ww-badge ww-badge--pt">🔥 PROVEN + TRENDING</span>
+          <span class="ww-ct-badge ww-ct-badge--promo">PROMO</span>
+        </div>
+        <span class="ww-action ww-action--boost">🚀 Promote as contest</span>
+      </div>
+      <div class="ww-hook">Lowest net score wins a *new custom fitted driver!*</div>
+      <div class="ww-scores">
+        <span class="ww-score ig">IG 9.51</span>
+        <span class="ww-score yt">YT 6</span>
+        <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 6.9</span>
+      </div>
+      <div class="ww-topics"><span class="ww-topic">competition</span><span class="ww-topic">driver</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
+    </div>
+    <div class="ww-card ww-card--pt" data-content-type="cta">
+      <div class="ww-card-top">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="ww-badge ww-badge--pt">🔥 PROVEN + TRENDING</span>
+          <span class="ww-ct-badge ww-ct-badge--cta">CTA</span>
+        </div>
+        <span class="ww-action ww-action--cta">📲 Use as CTA</span>
+      </div>
+      <div class="ww-hook">Book your session with Coach Cat @swingshack ⛳️</div>
+      <div class="ww-scores">
+        <span class="ww-score ig">IG 8.98</span>
+        <span class="ww-score yt">YT 6</span>
+        <span class="ww-score cross" title="Cross = IG proof × 0.6 + YouTube alignment × 0.2 + Reddit × 0.2">Cross 6.6</span>
+      </div>
+      <div class="ww-topics"><span class="ww-topic">booking</span><span class="ww-topic">conversion</span></div>
+      <div class="ww-evidence">📺 Possibly The BEST DRIVER Tip Ever In GOLF <span class="ww-evidence-more">+ 1 more video</span></div>
+    </div></div>
+  <script>
+  document.querySelectorAll('.ww-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = btn.dataset.filter;
+      document.querySelectorAll('.ww-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.ww-card').forEach(c => {
+        const ct = c.dataset.contentType || 'hook';
+        c.style.display = (f === 'all' || ct === f) ? '' : 'none';
+      });
+    });
+  });
+  </script>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔄 FOLLOW UP NEXT</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="fu-summary">
+    3 topics need follow-up ·
+    <span class="fu-hi">3 high priority</span> ·
+    Owners: Divan, Coach Cat
+  </p><div class="fu-grid">
+    <div class="fu-card">
+      <div class="fu-card-header">
+        <span class="fu-topic">driver</span>
+        <span class="fu-owner">👤 Divan</span>
+        <span class="fu-urgency fu-urgency--high">HIGH</span>
+        <span class="fu-planned">📅 in this week's plan</span>
+      </div>
+      <div class="fu-hook">Your driver data tells a story. TrackMan tells you how to fix it.</div>
+      <div class="fu-why">→ Topic already scheduled this week — follow-up CTA still reco...</div>
+      <div class="fu-footer">
+        <span class="fu-asset">📦 Club/fitting photo or TrackMan data scre...</span>
+        <span class="fu-cta">Book a lesson · Link in bio</span>
+      </div>
+    </div>
+    <div class="fu-card">
+      <div class="fu-card-header">
+        <span class="fu-topic">lessons</span>
+        <span class="fu-owner">👤 Coach Cat</span>
+        <span class="fu-urgency fu-urgency--high">HIGH</span>
+        <span class="fu-planned">📅 in this week's plan</span>
+      </div>
+      <div class="fu-hook">Zero to 18 handicap in 6 months. Cat breaks down the sessions tha...</div>
+      <div class="fu-why">→ Topic already scheduled this week — follow-up CTA still reco...</div>
+      <div class="fu-footer">
+        <span class="fu-asset">📦 Swing clip or lesson photo</span>
+        <span class="fu-cta">Book your first lesson · swingshack...</span>
+      </div>
+    </div>
+    <div class="fu-card">
+      <div class="fu-card-header">
+        <span class="fu-topic">short_game</span>
+        <span class="fu-owner">👤 Coach Cat</span>
+        <span class="fu-urgency fu-urgency--high">HIGH</span>
+        <span class="fu-planned">📅 in this week's plan</span>
+      </div>
+      <div class="fu-hook">One putting session with Cat changed everything. Here's the drill...</div>
+      <div class="fu-why">→ Topic already scheduled this week — follow-up CTA still reco...</div>
+      <div class="fu-footer">
+        <span class="fu-asset">📦 Swing clip or lesson photo</span>
+        <span class="fu-cta">Book a lesson · swingshack.co.za/me...</span>
+      </div>
+    </div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>📦 ASSET NEEDS THIS WEEK</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <div class="an-summary">6 asset needs across 4 owners · 2 needed today</div><div class="an-grid">
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Coach Cat / Divan</span>
+        <span class="an-count">1 post</span>
+        <span class="an-urg">today</span>
+      </div>
+      <div class="an-label">📊 TrackMan screenshot or data graphic</div>
+      <div class="an-posts"><div class="an-post">· That slice costing you yards off the tee? TrackMan</div></div>
+    </div>
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Coach Cat</span>
+        <span class="an-count">4 posts</span>
+        <span class="an-urg">today</span>
+      </div>
+      <div class="an-label">🎬 Swing clip (video or photo)</div>
+      <div class="an-posts"><div class="an-post">· Need some help with your putting? Coach Cat explai</div><div class="an-post">· Need to relax and find your golf swing tempo? Join</div></div>
+    </div>
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Divan</span>
+        <span class="an-count">2 posts</span>
+        <span class="an-urg">week</span>
+      </div>
+      <div class="an-label">🖼 High-quality static image</div>
+      <div class="an-posts"><div class="an-post">· Lowest net score wins a *new custom fitted driver!</div><div class="an-post">· Have you ever been for an elite level Custom Fitti</div></div>
+    </div>
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Swing Shack page</span>
+        <span class="an-count">1 post</span>
+        <span class="an-urg">week</span>
+      </div>
+      <div class="an-label">🖼 High-quality static image</div>
+      <div class="an-posts"><div class="an-post">· Go to your coaching sessions. Your ball deserves b</div></div>
+    </div>
+    <div class="an-card">
+      <div class="an-header">
+        <span class="an-owner">👤 Coach Cat</span>
+        <span class="an-count">1 post</span>
+        <span class="an-urg">flex</span>
+      </div>
+      <div class="an-label">📝 Text graphic / booking CTA image</div>
+      <div class="an-posts"><div class="an-post">· Book your session with Coach Cat @swingshack ⛳️</div></div>
+    </div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>💡 Content Ideas</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    
+  <div class="idea-group">
+    <h3>🎯 Post Today</h3>
+    <div class="idea-list">
+      
+      <div class="idea-card today">
+        <div class="idea-title">TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL</div>
+        <div class="idea-meta">
+          <span class="idea-format">static</span>
+          <span class="idea-cta">CTA: Link in bio · Book your session</span>
+        </div>
+      </div>
+      <div class="idea-card today">
+        <div class="idea-title">Go to your coaching sessions. Your ball deserves better 🫂</div>
+        <div class="idea-meta">
+          <span class="idea-format">static</span>
+          <span class="idea-cta">CTA: Link in bio · Book your session</span>
+        </div>
+      </div>
+      <div class="idea-card today">
+        <div class="idea-title">Have you ever been for an elite level Custom Fitting? Get th...</div>
+        <div class="idea-meta">
+          <span class="idea-format">static</span>
+          <span class="idea-cta">CTA: Link in bio · Book your session</span>
+        </div>
+      </div>
+      <div class="idea-card today">
+        <div class="idea-title">THAT SLICE COSTING YOU YARDS?</div>
+        <div class="idea-meta">
+          <span class="idea-format">static</span>
+          <span class="idea-cta">CTA: TrackMan your swing · Book from R250</span>
+        </div>
+      </div>
+      <div class="idea-card today">
+        <div class="idea-title">YOUR GOLF NEEDS A MENTOR</div>
+        <div class="idea-meta">
+          <span class="idea-format">static</span>
+          <span class="idea-cta">CTA: Coaching from R850 · TrackMan + certified instructors</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>👥 OWNER WORKLOAD</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    
+  <div class="ow-header-row">
+    <span class="ow-col-owner">Owner</span>
+    <span class="ow-col-items">Workload</span>
+    <span class="ow-col-top">Top item</span>
+  </div>
+  
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Coach Cat</span>
+        <span class="ow-total">10 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today active" title="Today">1 today</span>
+        <span class="ow-bar ow-bar--week">6 this week</span>
+        <span class="ow-bar ow-bar--flex">1 flexible</span>
+      </div>
+      <div class="ow-top-item">Need some help with your putting? Coach Cat explai</div>
+    </div>
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Coach Cat / Divan</span>
+        <span class="ow-total">1 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today active" title="Today">1 today</span>
+        <span class="ow-bar ow-bar--week"></span>
+        <span class="ow-bar ow-bar--flex"></span>
+      </div>
+      <div class="ow-top-item">That slice costing you yards off the tee? TrackMan</div>
+    </div>
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Divan</span>
+        <span class="ow-total">3 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today " title="Today"></span>
+        <span class="ow-bar ow-bar--week">1 this week</span>
+        <span class="ow-bar ow-bar--flex">1 flexible</span>
+      </div>
+      <div class="ow-top-item">Have you ever been for an elite level Custom Fitti</div>
+    </div>
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Swing Shack page</span>
+        <span class="ow-total">1 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today " title="Today"></span>
+        <span class="ow-bar ow-bar--week">1 this week</span>
+        <span class="ow-bar ow-bar--flex"></span>
+      </div>
+      <div class="ow-top-item">Go to your coaching sessions. Your ball deserves b</div>
+    </div>
+    <div class="ow-row">
+      <div class="ow-owner">
+        <span class="ow-name">Nancy / Front Desk</span>
+        <span class="ow-total">1 items</span>
+      </div>
+      <div class="ow-bars">
+        <span class="ow-bar ow-bar--today " title="Today"></span>
+        <span class="ow-bar ow-bar--week">1 this week</span>
+        <span class="ow-bar ow-bar--flex"></span>
+      </div>
+      <div class="ow-top-item">null</div>
+    </div>
+  <p class="ow-note">Most loaded: <b>Coach Cat</b> (10 items)</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔁 RETARGET THIS WEEK</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="rt-summary">2 retargeting actions · <b>undefined today</b> · <b>undefined this week</b></p><div class="rt-grid"><div class="rt-card"><div class="rt-header"><span class="rt-icon">💸</span><span class="rt-action">Push booking CTA — traffic is hot</span><span class="rt-owner">👤 Swing Shack page</span><span class="rt-urg" style="background:#00b4d822;color:#00b4d8">flex</span></div><div class="rt-hook">Your clubs are waiting. Your handicap won't fix itself. ⛳</div><div class="rt-why">→ Booking page traffic hot with no retargeting</div><div class="rt-cta">CTA: Book a session · swingshack.co.za/bookings · From R250</div></div><div class="rt-card"><div class="rt-header"><span class="rt-icon">🎯</span><span class="rt-action">Publish service reminder post</span><span class="rt-owner">👤 Divan</span><span class="rt-urg" style="background:#ffa50022;color:#ffa500">THIS WEEK</span></div><div class="rt-hook">Off-the-rack clubs are costing you yards. Here's what TrackMan found.</div><div class="rt-why">→ 61 sessions with no social conversion path</div><div class="rt-cta">CTA: Get your clubs custom fitted · swingshack.co.za/members...</div></div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🧪 A/B Test Lab</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    
+  <div class="ab-list">
+    
+    <div class="ab-card">
+      <div class="ab-name">Test undefined</div>
+      <div class="ab-meta">
+        <span class="ab-winner good">🏆 Winner: a</span>
+        <span class="ab-eng">?% eng</span>
+      </div>
+      
+    </div>
+    <div class="ab-card">
+      <div class="ab-name">Test undefined</div>
+      <div class="ab-meta">
+        <span class="ab-winner good">🏆 Winner: a</span>
+        <span class="ab-eng">?% eng</span>
+      </div>
+      
+    </div>
+    <div class="ab-card">
+      <div class="ab-name">Test undefined</div>
+      <div class="ab-meta">
+        <span class="ab-winner good">🏆 Winner: a</span>
+        <span class="ab-eng">?% eng</span>
+      </div>
+      
+    </div>
+    <div class="ab-card">
+      <div class="ab-name">Test undefined</div>
+      <div class="ab-meta">
+        <span class="ab-winner good">🏆 Winner: a</span>
+        <span class="ab-eng">?% eng</span>
+      </div>
+      
+    </div>
+  </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🏌️ Golf News</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No golf news yet.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔴 Reddit Pain Points</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">No Reddit trends yet.</p>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔍 SEO Rankings</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    
+  <div class="seo-summary">
+    
+    
+  </div>
+  <div class="seo-keywords">
+    <table class="seo-table">
+      <tr><th>Keyword</th><th>Rank</th><th>7d Δ</th></tr>
+      
+      <tr>
+        <td>indoor golf johannesburg</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+      <tr>
+        <td>golf simulator johannesburg</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+      <tr>
+        <td>club fitting johannesburg</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+      <tr>
+        <td>golf lessons randburg</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+      <tr>
+        <td>golf practice johannesburg</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+      <tr>
+        <td>trackman johannesburg</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+      <tr>
+        <td>custom clubs johannesburg</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+      <tr>
+        <td>indoor golf randburg</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+      <tr>
+        <td>golf simulator south africa</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+      <tr>
+        <td>golf fitting johannesburg price</td>
+        <td class="good">?</td>
+        <td class="ok">0</td>
+      </tr>
+    </table>
+  </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🌐 Website Performance</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    
+    <div class="ga4-pages">
+      <table class="ga4-table">
+        <tr><th>Landing Page</th><th>Sessions</th><th>Eng Rate</th></tr>
+        <tr><td>/</td><td>281</td><td class="">?</td></tr><tr><td>/bookings/</td><td>179</td><td class="">?</td></tr><tr><td>/</td><td>95</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>61</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>55</td><td class="">?</td></tr><tr><td>/customer-portal/</td><td>40</td><td class="">?</td></tr><tr><td>/</td><td>32</td><td class="">?</td></tr><tr><td>/club-fitting/</td><td>32</td><td class="">?</td></tr><tr><td>/checkout/</td><td>25</td><td class="">?</td></tr><tr><td>/bookings/</td><td>22</td><td class="">?</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>🔄 Used Items On Cooldown</h2>
+      <span class="badge stale">⚠️ stale</span>
+    </div>
+    <p class="empty">Nothing on cooldown.</p>
+  </div>
+</div>
+</body>
+</html>
