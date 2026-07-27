@@ -751,6 +751,7 @@ try:
         morning_brief, calendar_view, review_inbox, hooks_view, memes_view,
         billboards_view, caption_studio, performance_view, learning_view,
         generate_hooks, generate_captions, generate_ctas, generate_headlines,
+        generate_image,
         reddit_outreach, gbp_suggestions, seo_assistant, faq_generator,
         trend_catcher, opportunities_view, postiz_overview, assets_view,
         agents_view, explain_performance, universal_search,
@@ -819,6 +820,65 @@ def search_dispatch():
     except Exception as exc:
         _app_log.exception("search failed")
         return jsonify({"ok": False, "error": str(exc), "results": []}), 500
+
+
+@app.route('/api/intel/generate_image', methods=['GET', 'POST'])
+def intel_generate_image():
+    """GET/POST /api/intel/generate_image — build structured image prompt spec.
+
+    Query/Body params (all optional):
+      asset_id=<str>     — pull brand/pillar/platform context from this asset
+      pillar=<education|club-fitting|community|events>
+      platform=<instagram|tiktok|twitter|facebook|gmb>
+      provider=<ideogram|dall-e|midjourney|stable-diffusion>
+      subject=<text>      — override the auto-generated subject line
+      hook=<text>        — hook text to seed the subject
+
+    Returns {ok, ...} envelope with:
+      - full prompt text per provider
+      - negative prompt
+      - platform aspect ratio config
+      - color keywords
+      - composition notes
+
+    No API credentials are called. Prompt spec is provider-ready.
+    """
+    body = (request.get_json(silent=True) or {}) if request.method == 'POST' else {}
+    args = dict(request.args)
+
+    asset_id = body.get('asset_id') or args.get('asset_id')
+    pillar = body.get('pillar') or args.get('pillar')
+    platform = body.get('platform') or args.get('platform')
+    provider = body.get('provider') or args.get('provider')
+    subject_override = body.get('subject') or args.get('subject')
+    hook_override = body.get('hook') or args.get('hook')
+
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        result = generate_image(
+            asset_id,
+            pillar_override=pillar,
+            platform_override=platform,
+        )
+
+        # Allow overrides without modifying the source
+        if pillar:
+            result['pillar_override'] = pillar
+        if platform:
+            result['platform_override'] = platform
+        if provider:
+            result['provider_override'] = provider
+        if subject_override:
+            result['subject_override'] = subject_override
+        if hook_override:
+            result['hook_override'] = hook_override
+
+        result['ok'] = True
+        return jsonify(result), 200
+    except Exception as exc:
+        _app_log.exception("generate_image failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
 
 
 @app.route('/api/intel/generate/captions/<asset_id>', methods=['POST'])

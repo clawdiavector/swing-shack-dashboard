@@ -334,6 +334,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="memes"><span class="nav-icon">😂</span> Meme Lord</div>
       <div class="nav" data-go="billboards"><span class="nav-icon">🪧</span> Billboard Lab</div>
       <div class="nav" data-go="captions"><span class="nav-icon">✍️</span> Caption Studio</div>
+      <div class="nav" data-go="imagegen"><span class="nav-icon">🖼️</span> Image Gen</div>
       <div class="nav" data-go="headlines"><span class="nav-icon">📰</span> Headlines</div>
       <div class="nav" data-go="ctas"><span class="nav-icon">🎯</span> CTAs</div>
     </div>
@@ -627,6 +628,79 @@ a:hover{text-decoration:underline}
       <div class="card"><div id="cta-list"></div></div>
     </section>
 
+    <!-- ── IMAGE GENERATION ──────────────────────────────────── -->
+    <section class="section" id="sec-imagegen">
+      <div class="section-h">
+        <h2>Image Generation</h2>
+        <span class="sub">Provider-ready prompt specs — Ideogram · DALL-E · Midjourney · Stable Diffusion</span>
+        <div class="btn-row" style="margin-left:auto">
+          <select id="ig-pillar" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="">— pillar —</option>
+            <option value="education">Education</option>
+            <option value="club-fitting">Club Fitting</option>
+            <option value="community">Community</option>
+            <option value="events">Events</option>
+          </select>
+          <select id="ig-platform" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="">— platform —</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+            <option value="twitter">Twitter</option>
+            <option value="facebook">Facebook</option>
+            <option value="gmb">Google Business</option>
+          </select>
+          <select id="ig-provider" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="">— provider —</option>
+            <option value="ideogram">Ideogram</option>
+            <option value="dall-e">DALL-E</option>
+            <option value="midjourney">Midjourney</option>
+            <option value="stable-diffusion">Stable Diffusion</option>
+          </select>
+          <button class="btn primary" id="ig-gen">⚡ Generate Prompt</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card col-12">
+          <div class="card-h"><h3>Prompt Spec</h3>
+            <div id="ig-spec-badge" style="margin-left:auto;font-size:11px;color:var(--tx-3)"></div>
+          </div>
+          <div id="ig-meta" style="margin-bottom:.75rem;padding:.5rem;background:var(--bg-2);border-radius:8px;font-size:12px;color:var(--tx-2)"></div>
+          <div id="ig-prompt" style="display:none">
+            <div id="ig-provider-prompt" style="margin-bottom:1rem"></div>
+            <div id="ig-all-providers" style="margin-bottom:1rem"></div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+              <div style="flex:1;min-width:200px">
+                <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">Negative Prompt</div>
+                <div id="ig-neg" style="font-size:12px;color:var(--tx-2);background:var(--bg-2);padding:.5rem;border-radius:6px;white-space:pre-wrap;max-height:120px;overflow-y:auto"></div>
+              </div>
+              <div style="flex:1;min-width:200px">
+                <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">Color Keywords</div>
+                <div id="ig-colors" style="font-size:12px;color:var(--tx-2);background:var(--bg-2);padding:.5rem;border-radius:6px"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+              <div style="flex:1;min-width:200px">
+                <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">Platform Config</div>
+                <div id="ig-platform-config" style="font-size:12px;color:var(--tx-2);background:var(--bg-2);padding:.5rem;border-radius:6px"></div>
+              </div>
+              <div style="flex:1;min-width:200px">
+                <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">Composition</div>
+                <div id="ig-comp" style="font-size:12px;color:var(--tx-2);background:var(--bg-2);padding:.5rem;border-radius:6px"></div>
+              </div>
+            </div>
+            <div style="margin-bottom:.5rem">
+              <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">Hook / Subject override</div>
+              <div style="display:flex;gap:.5rem">
+                <input id="ig-hook" placeholder="e.g. 'The real reason your slice won't fix itself'" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:12px" />
+                <button class="btn primary" id="ig-regen" disabled>↻ Re-generate</button>
+              </div>
+            </div>
+          </div>
+          <div id="ig-empty" style="color:var(--tx-3);font-size:13px;text-align:center;padding:2rem">Click Generate Prompt to build a provider-ready spec</div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── SEO ───────────────────────────────────────────── -->
     <section class="section" id="sec-seo">
       <div class="section-h"><h2>SEO Assistant</h2></div>
@@ -769,7 +843,7 @@ const TITLES = {
   calendar:'Calendar', trends:'Trend Catcher', ideas:'Opportunities',
   performance:'Performance', learning:'Learning', hooks:'Hook Bank',
   memes:'Meme Lord', billboards:'Billboard Lab', captions:'Caption Studio',
-  headlines:'Headlines', ctas:'CTAs', seo:'SEO Assistant', gbp:'Google Business',
+  imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', seo:'SEO Assistant', gbp:'Google Business',
   reddit:'Reddit Outreach', faqs:'FAQ Opportunities', postiz:'Postiz',
   campaigns:'Campaigns', agents:'Agents & health',
 };
@@ -798,6 +872,7 @@ async function loadSection(sec){
     if(sec==='memes') return renderMemes();
     if(sec==='billboards') return renderBillboards();
     if(sec==='captions') return renderCaptions();
+    if(sec==='imagegen') return renderImageGen();
     if(sec==='headlines') return renderHeadlines();
     if(sec==='ctas') return renderCTAs();
     if(sec==='seo') return renderSEO();
@@ -1517,6 +1592,132 @@ $('#cta-gen').addEventListener('click', async () => {
   const r = await API.get('/api/intel/ctas_generate');
   $('#cta-list').innerHTML = safeList(r.ctas, 8).map(it => `<li class="li"><div class="li-body"><div class="li-title" style="font-size:15px">${esc(it.cta)}</div><div class="li-meta">${esc(it.source||'')}${it.perf?` · score ${it.perf}`:''}</div></div></li>`).join('') || '<div class="empty">Nothing generated</div>';
   toast('Generated '+r.count+' CTAs');
+});
+
+// ─── IMAGE GENERATION ─────────────────────────────────────────────
+async function renderImageGen(){
+  empty('ig-meta', 'Configure pillar + platform above, then click Generate Prompt');
+  empty('ig-provider-prompt', '');
+  empty('ig-all-providers', '');
+  empty('ig-neg', '');
+  empty('ig-colors', '');
+  empty('ig-platform-config', '');
+  empty('ig-comp', '');
+  $('#ig-spec-badge').textContent = '';
+  $('#ig-prompt').style.display = 'none';
+  $('#ig-empty').style.display = 'block';
+  $('#ig-regen').disabled = true;
+}
+
+async function doImageGen(hookOverride){
+  const pillar = $('#ig-pillar').value;
+  const platform = $('#ig-platform').value;
+  const provider = $('#ig-provider').value;
+  const hook = hookOverride !== undefined ? hookOverride : ($('#ig-hook').value || '');
+
+  const params = new URLSearchParams();
+  if(pillar) params.set('pillar', pillar);
+  if(platform) params.set('platform', platform);
+  if(provider) params.set('provider', provider);
+  if(hook) params.set('hook', hook);
+  const qs = params.toString();
+
+  const r = await API.get('/api/intel/generate_image' + (qs ? '?' + qs : ''));
+  if(!r.ok){ toast(r.error||'Generation failed', 'err'); return; }
+
+  $('#ig-empty').style.display = 'none';
+  $('#ig-prompt').style.display = 'block';
+  $('#ig-regen').disabled = false;
+
+  // Meta bar
+  const pillarLabel = r.pillar_label || r.pillar || '—';
+  const platformKey = r.platform || 'instagram';
+  const platformPx = (r.platform_config || {}).aspect_px || '1080x1080';
+  const ar = (r.platform_config || {}).aspect_ratio || '1:1';
+  const badge = `${pillarLabel} · ${platformKey} · ${platformPx} (${ar}) · ${r.tone || '—'} tone`;
+  $('#ig-spec-badge').textContent = badge;
+
+  // Meta line
+  const metaLines = [
+    `Brand: ${esc(r.brand||'Swing Shack')}`,
+    `Campaign: ${esc(r.campaign||'—')}`,
+    `Provider used: ${esc(r.provider_used||'ideogram')}`,
+    `Note: ${r.metadata?.note || 'Ready for any provider — swap in asset-image-spec.json'}`,
+  ];
+  if(r.hook_override) metaLines.push(`Hook override: "${esc(r.hook_override)}"`);
+  $('#ig-meta').innerHTML = metaLines.map(l => `<div>${l}</div>`).join('');
+
+  // Reference prompt for selected provider
+  const provKey = provider || r.provider_used || 'ideogram';
+  const refProv = (r.providers || {})[provKey] || {};
+  const refPrompt = refProv.prompt || r.reference_prompt || '—';
+  const refStyle = (refProv.style_presets || []).join(', ') || '—';
+  $('#ig-provider-prompt').innerHTML =
+    `<div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">Reference Prompt — ${esc(refProv.display_name||provKey)} (${refStyle})</div>` +
+    `<div style="background:var(--bg-2);border:1px solid var(--bd);border-radius:8px;padding:.75rem;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5;margin-bottom:.5rem;cursor:pointer" onclick="copyText(this)" title="Click to copy">${esc(refPrompt)}</div>` +
+    `<button class="btn-mini" onclick="copyText(document.querySelector('#ig-provider-prompt div:last-child'))">📋 Copy prompt</button>`;
+
+  // All providers accordion
+  const allProvs = Object.entries(r.providers || {});
+  if(allProvs.length > 1){
+    $('#ig-all-providers').innerHTML =
+      `<div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">All Providers</div>` +
+      allProvs.map(([k, v]) => {
+        const isActive = k === provKey;
+        const style = isActive ? 'border-color:var(--ac);background:var(--bg-2)' : 'opacity:.65';
+        return `<div style="margin-bottom:.5rem;padding:.5rem;border:1px solid var(--bd);border-radius:6px;${style}">` +
+          `<div style="font-size:11px;font-weight:600;margin-bottom:.2rem;color:var(--ac)">${esc(v.display_name||k)} ${isActive?'(active)':''}</div>` +
+          `<div style="font-size:11px;color:var(--tx-2);margin-bottom:.25rem">AR: ${esc(v.aspect_ratio||'—')} · ${esc(v.aspect_ratio_flag||'—')} · Presets: ${esc((v.style_presets||[]).join(', ')||'—')}</div>` +
+          `<div style="font-size:11px;background:var(--bg-1);padding:.4rem;border-radius:4px;white-space:pre-wrap;cursor:pointer" onclick="copyText(this)">${esc(v.prompt||'—')}</div>` +
+          `</div>`;
+      }).join('');
+  } else {
+    $('#ig-all-providers').innerHTML = '';
+  }
+
+  // Negative prompt
+  $('#ig-neg').textContent = r.negative_prompt || '—';
+
+  // Color keywords
+  const colors = (r.color_keywords || []).map(c => pill('', esc(c))).join(' ');
+  $('#ig-colors').innerHTML = colors || '<span style="color:var(--tx-3)">—</span>';
+
+  // Platform config
+  const pc = r.platform_config || {};
+  const useCases = (pc.use_cases || []).map(u => pill('on', esc(u))).join(' ');
+  $('#ig-platform-config').innerHTML =
+    `<div>AR: <b>${esc(pc.aspect_ratio||'—')}</b> · ${esc(pc.aspect_px||'—')}</div>` +
+    `<div style="margin-top:.2rem">Text safety: <b>${esc(pc.text_safety_zone||'center 70%')}</b></div>` +
+    `<div style="margin-top:.2rem;margin-bottom:.2rem">Use cases: ${useCases}</div>`;
+
+  // Composition
+  const comp = r.composition || {};
+  const overlays = (comp.overlays || []).map(o => pill('', esc(o))).join(' ');
+  $('#ig-comp').innerHTML =
+    `<div><b>Subject:</b> ${esc(comp.primary_subject||'—')}</div>` +
+    `<div style="margin-top:.2rem"><b>Background:</b> ${esc(comp.background||'—')}</div>` +
+    `<div style="margin-top:.2rem"><b>Lighting:</b> ${esc(comp.lighting||'—')}</div>` +
+    `<div style="margin-top:.2rem"><b>DoF:</b> ${esc(comp.depth_of_field||'—')}</div>` +
+    (overlays ? `<div style="margin-top:.2rem">${overlays}</div>` : '');
+
+  toast('Prompt spec generated — click any prompt text to copy');
+}
+
+function copyText(el){
+  const text = el.textContent.trim();
+  if(!text || text === '—') return;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = el.textContent;
+    el.textContent = 'Copied!';
+    el.style.color = 'var(--success)';
+    setTimeout(() => { el.textContent = orig; el.style.color = ''; }, 1200);
+  }).catch(() => toast('Copy failed — select manually', 'err'));
+}
+
+$('#ig-gen').addEventListener('click', () => doImageGen());
+$('#ig-regen').addEventListener('click', () => {
+  const hook = $('#ig-hook').value;
+  doImageGen(hook || undefined);
 });
 
 // ─── SEO ────────────────────────────────────────────────────────

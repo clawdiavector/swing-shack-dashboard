@@ -1012,4 +1012,188 @@ INTELLIGENCE_FUNCS = {
     "assets": assets_view,
     "agents": agents_view,
     "explain": explain_performance,
+    "image_generate": lambda: generate_image(None),
 }
+
+
+# ─── IMAGE GENERATION PROMPT BUILDER ───────────────────────────────────────
+
+def generate_image(
+    asset_id: Optional[str] = None,
+    pillar_override: Optional[str] = None,
+    platform_override: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Build a provider-ready structured image prompt spec for a campaign asset.
+
+    Takes an optional asset_id to pull brand/pillar/platform context from the
+    campaign data. Optional pillar_override and platform_override allow callers
+    to specify content pillar and target platform directly without an asset.
+
+    Returns a structured spec with all the information needed by any image-generation
+    provider (Ideogram / DALL-E / Midjourney / Stable Diffusion).
+
+    The actual API call to the provider is NOT made here — just the spec.
+    When credentials arrive, swap the provider in asset-image-spec.json.
+    """
+    cd = _campaign_data()
+    asset = None
+    campaign_name = ""
+
+    if asset_id:
+        for cid, c in cd.get("campaigns", {}).items():
+            if asset_id in (c.get("assets") or {}):
+                asset = c["assets"][asset_id]
+                campaign_name = c.get("identity", {}).get("name", cid)
+                break
+
+    # Load the image spec file
+    spec_path = _runtime_data_file("asset-image-spec.json")
+    spec = _read_json(spec_path) or {}
+
+    # Resolve pillar
+    pillars_p = spec.get("pillars") or {}
+
+    # Resolve pillar — prefer override, then asset, then default education
+    if pillar_override:
+        pillar_key = pillar_override.lower().strip()
+    else:
+        pillar_key = ((asset or {}).get("pillarName") or (asset or {}).get("pillar") or "education").lower().strip()
+    pillar_map = {
+        "education & authority": "education",
+        "education": "education",
+        "club fitting": "club-fitting",
+        "club-fitting": "club-fitting",
+        "community": "community",
+        "events": "events",
+        "offer": "events",
+    }
+    resolved_pillar = pillar_map.get(pillar_key, pillar_key)
+    pillar_data = pillars_p.get(resolved_pillar) or pillars_p.get("education") or {}
+
+    # Resolve platform — prefer override, then asset, then default instagram
+    if platform_override:
+        platform_raw = platform_override
+    else:
+        platform_raw = ((asset or {}).get("platform") or (asset or {}).get("integration", "instagram"))
+    platform_key = platform_raw.lower().strip()
+    platforms_p = spec.get("platforms") or {}
+    platform_data = platforms_p.get(platform_key) or platforms_p.get("instagram") or {}
+
+    # Resolve brand
+    brand = "Swing Shack"
+    if asset:
+        for cid, c in cd.get("campaigns", {}).items():
+            if asset_id in (c.get("assets") or {}):
+                brand = c.get("identity", {}).get("brand") or c.get("identity", {}).get("business") or "Swing Shack"
+                break
+
+    # Resolve provider (default: ideogram — swap via spec when creds arrive)
+    provider = spec.get("provider_default", "ideogram")
+    provider_tpl = spec.get("provider_templates", {}).get(provider, spec.get("provider_templates", {}).get("ideogram", {}))
+
+    # Build the base prompt from asset context
+    asset_name = (asset.get("name") or "") if asset else ""
+    asset_caption = (asset.get("caption") or "") if asset else ""
+    visual_brief = (asset.get("visualBrief") or asset.get("imagePrompt") or "") if asset else ""
+    hook_text = (asset.get("hookText") or "") if asset else ""
+
+    # Select pillar model hint
+    pillar_hints = pillar_data.get("model_hints", [])
+    model_hint = pillar_hints[0] if pillar_hints else "professional golf photography"
+
+    # Build the subject line
+    subject_parts = []
+    if hook_text and len(hook_text) > 3:
+        subject_parts.append(f"'{hook_text}' moment")
+    if asset_name and asset_name != asset_id:
+        subject_parts.append(asset_name)
+    if visual_brief and len(visual_brief) > 5:
+        subject_parts.append(visual_brief)
+    if not subject_parts:
+        subject_parts.append(f"{brand} — {resolved_pillar.replace('-', ' ')} content")
+
+    subject_line = ", ".join(subject_parts)
+
+    # Assemble the full prompt text
+    prompt_parts = [
+        pillar_data.get("example_prompt_fragment", ""),
+        subject_line,
+        model_hint,
+        pillar_data.get("composition", {}).get("background", ""),
+    ]
+    full_prompt_text = " | ".join([p for p in prompt_parts if p])
+
+    # Wrap for each provider
+    providers_out = {}
+    for prov_key, prov_tpl in spec.get("provider_templates", {}).items():
+        ar = platform_data.get("aspect_ratio", "1:1")
+        ar_map = prov_tpl.get("aspect_ratio_map", {})
+        ar_flag = ar_map.get(ar, ar_map.get("1:1", ar))
+
+        neg_hint = prov_tpl.get("negative_hint", "")
+        prov_prompt = (
+            (prov_tpl.get("prompt_prefix", "") or "") +
+            full_prompt_text +
+            (prov_tpl.get("prompt_suffix", "") or "") +
+            neg_hint +
+            (" " + ar_flag if ar_flag else "")
+        )
+        providers_out[prov_key] = {
+            "provider": prov_key,
+            "display_name": prov_tpl.get("name", prov_key),
+            "prompt": prov_prompt.strip(),
+            "aspect_ratio": ar,
+            "aspect_ratio_flag": ar_flag,
+            "style_presets": prov_tpl.get("style_presets", []),
+        }
+
+    # Negative prompts per pillar
+    neg_parts = pillar_data.get("negative_prompts", spec.get("pillars", {}).get("education", {}).get("negative_prompts", []))
+    negative_prompt = " | ".join(neg_parts) if neg_parts else ""
+
+    # Color keywords
+    color_keywords = pillar_data.get("color_keywords", [])
+
+    # CTA placeholder if relevant
+    cta_placeholder = asset.get("cta", "") if asset else ""
+    caption_placeholder = asset_caption[:200] if asset_caption else ""
+
+    return {
+        "ok": True,
+        "ts": _now_iso(),
+        "asset_id": asset_id,
+        "campaign": campaign_name,
+        "brand": brand,
+        "pillar": resolved_pillar,
+        "pillar_label": pillar_data.get("label", resolved_pillar),
+        "platform": platform_key,
+        "platform_config": {
+            "aspect_ratio": platform_data.get("aspect_ratio", "1:1"),
+            "aspect_px": platform_data.get("aspect_px", "1080x1080"),
+            "text_safety_zone": platform_data.get("text_safety_zone", "center 70%"),
+            "use_cases": platform_data.get("use_cases", []),
+        },
+        "tone": pillar_data.get("tone", "professional"),
+        "color_keywords": color_keywords,
+        "subject": subject_line,
+        "prompt_parts": {
+            "pillar_fragment": pillar_data.get("example_prompt_fragment", ""),
+            "subject": subject_line,
+            "model_hint": model_hint,
+            "background": pillar_data.get("composition", {}).get("background", ""),
+        },
+        "negative_prompt": negative_prompt,
+        "composition": pillar_data.get("composition", {}),
+        "providers": providers_out,
+        "reference_prompt": providers_out.get(provider, {}).get("prompt", full_prompt_text),
+        "provider_used": provider,
+        "brand_voice_notes": spec.get("brand_voice_for_images", {}),
+        "metadata": {
+            "asset_name": asset_name,
+            "caption_preview": caption_placeholder[:120],
+            "cta_placeholder": cta_placeholder[:80],
+            "hook_text": hook_text[:120] if hook_text else None,
+            "note": "Swap provider_key in provider_templates to switch Ideogram/DALL-E/MJ/SD. Actual API call pending creds."
+        },
+    }

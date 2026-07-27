@@ -111,6 +111,12 @@ f8acd62  docs: Campaign OS status handoff for next cron iteration
 - **Pyright false positives** on `_sys.path.insert` and runtime path mutations — ignore; runtime is correct.
 - **3 phase_tdz live-API tests still skipped** (pre-existing, gated behind `LIVE_NETWORK_TESTS=1`).
 
+## Cron tick 6 — 2026-07-28 01:17 SAST
+Built: Image generation pipeline — brand image specification plus provider-ready structured prompt generation for Ideogram, DALL-E, Midjourney, and Stable Diffusion; single-SPA Image Gen controls and copy UX.
+Files: data/asset-image-spec.json; campaign-os/_lib/intelligence.py; campaign-os/app.py; campaign-os/campaign-os.html; campaign-os/tests/test_image_generation.py; campaign-os/tests/test_inline_asset_edit.py
+Tests: 152/152 pass (+38 image-generation tests); GET/POST endpoint verified by Flask tests and live curl; Image Gen SPA verified in browser.
+Next: Caption Studio v2 (priority 7)
+
 ---
 
 ## Cron tick 4 — 2026-07-27 21:10 SAST

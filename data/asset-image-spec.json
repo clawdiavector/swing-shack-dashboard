@@ -1,0 +1,294 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "brand": "Swing Shack",
+    "description": "Brand style rules for AI image generation — palette, typography, model hints per pillar, aspect ratios per platform, and provider-ready prompt scaffolding.",
+    "last_updated": "2026-07-28",
+    "providers": ["ideogram", "dall-e", "midjourney", "stable-diffusion"]
+  },
+
+  "color_palette": {
+    "primary": "#1a472a",
+    "secondary": "#2d6a4f",
+    "accent_gold": "#c8a45e",
+    "accent_warm": "#e07b39",
+    "grass_green": "#52b788",
+    "sky_blue": "#74c0fc",
+    "earth_brown": "#8b6914",
+    "deep_navy": "#0d1b2a",
+    "off_white": "#f8f5f0",
+    "warm_white": "#fdfaf6",
+    "text_dark": "#1a1a1a",
+    "text_light": "#f0ede8",
+    "overlay_dark": "rgba(13, 27, 42, 0.85)",
+    "success": "#40916c",
+    "warning": "#f4a261",
+    "danger": "#e63946"
+  },
+
+  "typography": {
+    "headlines": {
+      "font_family": "Playfair Display, Georgia, serif",
+      "weight": "700",
+      "style": "normal",
+      "max_size_px": 72,
+      "min_size_px": 28,
+      "tracking": "-0.02em",
+      "line_height": 1.1
+    },
+    "subheadlines": {
+      "font_family": "Lato, Helvetica Neue, sans-serif",
+      "weight": "600",
+      "style": "normal",
+      "max_size_px": 36,
+      "min_size_px": 18,
+      "tracking": "0",
+      "line_height": 1.3
+    },
+    "body_copy": {
+      "font_family": "Lato, Helvetica Neue, sans-serif",
+      "weight": "400",
+      "style": "normal",
+      "max_size_px": 18,
+      "min_size_px": 14,
+      "tracking": "0.01em",
+      "line_height": 1.6
+    },
+    "cta": {
+      "font_family": "Lato, Helvetica Neue, sans-serif",
+      "weight": "700",
+      "style": "uppercase",
+      "tracking": "0.08em",
+      "line_height": 1.2
+    },
+    "hashtag": {
+      "font_family": "Lato, Helvetica Neue, sans-serif",
+      "weight": "400",
+      "style": "normal",
+      "tracking": "0.04em"
+    }
+  },
+
+  "pillars": {
+    "education": {
+      "label": "Education & Authority",
+      "model_hints": [
+        "swing golf club mid-motion, TrackMan data overlay, split-screen technique analysis",
+        "indoor golf simulator, Johannesburg, TrackMan launch monitor readings, clean studio lighting",
+        "golf instructor demonstrating grip, side-by-side swing comparison, professional setting"
+      ],
+      "negative_prompts": [
+        "cluttered background, people in background, blurry, low quality, distorted text",
+        "outdated equipment, worn golf balls, unprofessional setting, blurry swing",
+        "watermark, signature, text overlay unless specified"
+      ],
+      "composition": {
+        "primary_subject": "golfer mid-swing or instructor demonstrating technique",
+        "background": "clean indoor studio or driving range, Johannesburg cityscape subtly visible through window",
+        "lighting": "natural daylight from left, soft fill from right, accent spotlight on clubhead",
+        "overlays": ["pillar badge: EDUCATION", "Swing Shack watermark (bottom right)"],
+        "depth_of_field": "shallow — subject sharp, background softly blurred"
+      },
+      "tone": "authoritative, trustworthy, instructional",
+      "color_keywords": ["deep green", "clean white", "gold accent", "professional blue"],
+      "example_prompt_fragment": "Split-screen golf swing analysis, TrackMan data overlay, indoor Johannesburg studio, professional photography, ShotByJHB aesthetic, F/2.8 shallow depth of field, 35mm prime lens"
+    },
+    "club-fitting": {
+      "label": "Club Fitting",
+      "model_hints": [
+        "golf club fitting session, fitter with launch monitor screen, client holding new driver",
+        " TrackMan screen showing ball flight data, close-up of iron being fitted, precision setting",
+        "golf bag with custom fitted clubs, workshop aesthetic, precision tools in frame"
+      ],
+      "negative_prompts": [
+        "unprofessional workshop, messy environment, broken clubs, low quality",
+        "people not relevant to fitting, distracting logos, generic stock photo look",
+        "incorrect club sizes, bent shafts, damaged clubheads"
+      ],
+      "composition": {
+        "primary_subject": "fitted golf club or fitting session with data screen",
+        "background": "Swing Shack fitting studio with TrackMan visible, clean precision aesthetic",
+        "lighting": "dramatic side lighting, slight lens flare from monitor glow, contrasty",
+        "overlays": ["pillar badge: CLUB FITTING", "Swing Shack logo (bottom right)"],
+        "depth_of_field": "medium — both club and fitting screen in focus"
+      },
+      "tone": "precise, data-driven, premium",
+      "color_keywords": ["matte black", "chrome silver", "deep green", "data blue"],
+      "example_prompt_fragment": "Golf club fitting session with TrackMan launch monitor, Johannesburg precision studio, professional product photography, ShotByJHB aesthetic, dramatic side lighting, 50mm portrait lens"
+    },
+    "community": {
+      "label": "Community",
+      "model_hints": [
+        "group of golfers socialising at Swing Shack, warm Johannesburg evening light",
+        "golf community event, people laughing with clubs, outdoor course backdrop",
+        "golfer high-fiving instructor after lesson, celebration moment, authentic candid"
+      ],
+      "negative_prompts": [
+        "sad expressions, people looking at camera directly, posed group photo",
+        "crowded messy backgrounds, cigarette smoke, outdated facilities",
+        "people alone looking lonely, overly commercial, stock photo aesthetic"
+      ],
+      "composition": {
+        "primary_subject": "people connecting over golf — genuine, candid-feeling moments",
+        "background": "Swing Shack venue or nearby Johannesburg golf course, warm evening golden hour",
+        "lighting": "golden hour warm light, natural and flattering, slight lens flare",
+        "overlays": ["pillar badge: COMMUNITY", "Swing Shack community tag"],
+        "depth_of_field": "shallow — subjects sharp, bokeh lights in background"
+      },
+      "tone": "warm, inclusive, celebratory",
+      "color_keywords": ["golden hour", "warm amber", "grass green", "community blue"],
+      "example_prompt_fragment": "Golf community social event, Johannesburg golden hour, genuine celebration moment, candid documentary photography, ShotByJHB aesthetic, warm color grading, 35mm street photography lens"
+    },
+    "events": {
+      "label": "Events & Offers",
+      "model_hints": [
+        "Swing Shack event banner in foreground, Johannesburg skyline, professional event photography",
+        "golfer celebrating a win with new fitted clubs, premium offer framing",
+        "promotional display at Swing Shack, trackman data visible, exclusive offer visual"
+      ],
+      "negative_prompts": [
+        "outdated promotional materials, low-res graphics, clip art",
+        "empty venue, sad lonely atmosphere, wrong brand colors",
+        "other brand logos prominent, competitor branding, generic stock look"
+      ],
+      "composition": {
+        "primary_subject": "event atmosphere or promotional offer with clear call-to-action",
+        "background": "Swing Shack event venue or Johannesburg skyline, professional event staging",
+        "lighting": "bright and energetic, event spotlights, high contrast for readability",
+        "overlays": ["EVENT badge", "Swing Shack offer framing"],
+        "depth_of_field": "medium to deep — offer text must be legible at all sizes"
+      },
+      "tone": "energetic, exciting, action-oriented",
+      "color_keywords": ["gold accent", "high contrast", "energetic warm", "promotional red"],
+      "example_prompt_fragment": "Golf event promotional photography, Swing Shack Johannesburg venue, bold composition, ShotByJHB aesthetic, professional event lighting, 24mm wide-angle lens, high contrast color grading"
+    }
+  },
+
+  "platforms": {
+    "instagram": {
+      "aspect_ratio": "1:1",
+      "aspect_px": "1080x1080",
+      "use_cases": ["single image post", "carousel card", "reel thumbnail", "story card"],
+      "text_safety_zone": "center 70% of frame — no critical text in outer 15%",
+      "min_text_height_px": 40,
+      "model_hints": ["square crop", "centered subject", "high contrast for explore tab"]
+    },
+    "tiktok": {
+      "aspect_ratio": "9:16",
+      "aspect_px": "1080x1920",
+      "use_cases": ["video thumbnail", "static overlay post", "story"],
+      "text_safety_zone": "top 30% and bottom 25% — middle band is safest for text",
+      "min_text_height_px": 50,
+      "model_hints": ["vertical format", "dramatic framing", "full-body or close-up"]
+    },
+    "twitter": {
+      "aspect_ratio": "16:9",
+      "aspect_px": "1200x675",
+      "use_cases": ["link preview card", "standalone image tweet", "header element"],
+      "text_safety_zone": "bottom third — title and CTA, top 2/3 for visual",
+      "min_text_height_px": 35,
+      "model_hints": ["landscape format", "wide composition", "readable at small sizes"]
+    },
+    "facebook": {
+      "aspect_ratio": "1.91:1",
+      "aspect_px": "1200x630",
+      "use_cases": ["link preview", "feed post", "event cover"],
+      "text_safety_zone": "center — landscape framing with space for headline overlay",
+      "min_text_height_px": 38,
+      "model_hints": ["landscape format", "warm inviting", "clear focal point"]
+    },
+    "gmb": {
+      "aspect_ratio": "1.78:1",
+      "aspect_px": "720x405",
+      "use_cases": ["Google Business profile photo", "post image", "service photo"],
+      "text_safety_zone": "full frame — prefer no overlaid text, let the image speak",
+      "min_text_height_px": 30,
+      "model_hints": ["professional exterior/interior", "clear branding visible", "welcoming composition"]
+    }
+  },
+
+  "provider_templates": {
+    "ideogram": {
+      "name": "Ideogram",
+      "prompt_prefix": "",
+      "prompt_suffix": " — shot by @swingshackjhb, ShotByJHB aesthetic, professional golf photography",
+      "negative_hint": " --no text, watermark, signature",
+      "style_presets": ["REALISTIC", "PROFESSIONAL_PHOTOGRAPHY", "GOLF_LIFESTYLE"],
+      "aspect_ratio_map": {
+        "1:1": "--aspect-1-1",
+        "9:16": "--aspect-9-16",
+        "16:9": "--aspect-16-9",
+        "1.91:1": "--aspect-1-91-1"
+      }
+    },
+    "dall-e": {
+      "name": "DALL-E",
+      "prompt_prefix": "Professional golf photography, Swing Shack Johannesburg brand aesthetic. ",
+      "prompt_suffix": " ShotByJHB style, high-end golf marketing photography.",
+      "negative_hint": " Do not include any text, logos, or watermarks.",
+      "style_presets": ["natural", "vivid", "professional"],
+      "aspect_ratio_map": {
+        "1:1": "1024x1024",
+        "9:16": "1024x1792",
+        "16:9": "1792x1024",
+        "1.91:1": "1792x940"
+      }
+    },
+    "midjourney": {
+      "name": "Midjourney",
+      "prompt_prefix": "/imagine prompt: ",
+      "prompt_suffix": " --ar 1:1 --style raw --s 250 --q 2",
+      "negative_hint": " --no text, watermark, signature, low quality, blurry",
+      "style_presets": ["raw", "photographic", "luxury"],
+      "aspect_ratio_map": {
+        "1:1": "--ar 1:1",
+        "9:16": "--ar 9:16",
+        "16:9": "--ar 16:9",
+        "1.91:1": "--ar 1.91:1"
+      }
+    },
+    "stable-diffusion": {
+      "name": "Stable Diffusion / ComfyUI",
+      "prompt_prefix": "masterpiece, best quality, professional golf photography, Swing Shack Johannesburg aesthetic, ",
+      "prompt_suffix": ", ShotByJHB, (professional golf marketing:1.3)",
+      "negative_hint": " text, watermark, signature, low quality, blurry, deformed, bad anatomy",
+      "controlnet_hint": "Use Canny or Depth controlnet for consistent golf poses",
+      "style_presets": ["photographic", "masterpiece", "realistic"],
+      "aspect_ratio_map": {
+        "1:1": "1:1",
+        "9:16": "9:16",
+        "16:9": "16:9",
+        "1.91:1": "1.91:1"
+      }
+    }
+  },
+
+  "brand_voice_for_images": {
+    "always_include": [
+      "Johannesburg golf authenticity",
+      "ShotByJHB aesthetic",
+      "professional golf marketing photography quality"
+    ],
+    "never_include": [
+      "competitor brand names or logos",
+      "dated golf technology",
+      "sad or lonely imagery",
+      "generic stock photo aesthetic",
+      "cluttered compositions",
+      "out-of-focus critical elements",
+      "text unless explicitly requested"
+    ],
+    "lighting_mood": {
+      "primary": "natural daylight with warm Johannesburg golden hour tones",
+      "secondary": "studio spotlight with soft fill for indoor equipment shots",
+      "accent": "subtle lens flare from monitor/display glow for tech-forward content"
+    },
+    "photojournalism_notes": [
+      "Prefer authentic-feeling candids over posed shots",
+      "Always show emotion — celebration, focus, community joy",
+      "Include subtle Johannesburg urban context in outdoor shots",
+      "TrackMan/data screens should be readable but not dominating frame",
+      "Club detail shots benefit from dramatic side lighting"
+    ]
+  }
+}

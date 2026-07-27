@@ -30,6 +30,21 @@ class InlineAssetEditApiTests(unittest.TestCase):
         cls.flask_app = campaign_app.app
         cls.client = cls.flask_app.test_client()
         cls.module.init_repo = lambda: None
+        # Patch module-level DATA_DIR and CAMPAIGN_FILE so that load_data()
+        # and save_data() use the test temp dir even if another test module
+        # cleared os.environ["DATA_DIR"] with clear=True before our setUpClass.
+        cls.module.DATA_DIR = str(cls.tmpdir)
+        cls.module.CAMPAIGN_FILE = str(cls.tmpdir / "campaign-data.json")
+        # Also re-patch _data_paths in case a previous test (e.g.
+        # test_image_generation) replaced it with a closure that captured
+        # its own temp dir and ignores os.environ / module vars.
+        _campaign_file = str(cls.tmpdir / "campaign-data.json")
+        _schedule_file = str(cls.tmpdir / "scheduled-items.json")
+        cls.module._data_paths = lambda: {
+            'data_dir': str(cls.tmpdir),
+            'campaign_file': _campaign_file,
+            'schedule_file': _schedule_file,
+        }
 
     @classmethod
     def tearDownClass(cls):
