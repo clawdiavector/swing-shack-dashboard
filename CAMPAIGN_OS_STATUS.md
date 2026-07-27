@@ -30,12 +30,12 @@
 
 ## What still needs building (PRIORITY ORDER — keep in sync)
 1. ✅ **Campaign Builder v2** — DONE (`d79945f`, 2026-07-27T20:45 SAST). Backend `campaign-os/_lib/campaign_planner.py` + 3 routes + full-plan UI on Campaigns section.
-2. **Drag-and-drop calendar** — HTML5 drag-drop on calendar slots → drop on day = reschedule, drop on side panel = duplicate, color-code by brand/pillar. Also: schedule endpoint `/api/schedule/<assetId>` that writes to `data/scheduled-items.json`.
-3. **Inline caption editor** — edit-in-place + save to `campaign-data.json` + regenerate single caption without page reload.
+2. ✅ **Drag-and-drop calendar** — DONE (this tick). HTML5 drag-drop on calendar slots → drop on day = reschedule, drop on duplicate zone = create draft copy, color-coded by pillar/brand/platform, queue + campaign assets supported. Schedule sidecar endpoint writes runtime `scheduled-items.json`.
+3. ✅ **Inline caption editor** — DONE (`03a4add`, 2026-07-27T21:xx SAST). Edit-in-place + save through `/api/assets/<assetId>` + regenerate single caption without page reload.
 4. **Image generation pipeline** — `campaign-os/_lib/image_gen.py` with strict brand standards (colors, typography, platform format specs).
 5. **Meme Lord v2** — meme historian + fit scoring + format knowledge + golf-aware humour.
 6. **Marketing trends engine** — synthesizes golf-news + youtube + competitor + reddit into "what's working this week" + "what's new in golf" with action recs.
-7. **Scheduling tool UI** — drag calendar slot to day, write to scheduled-items.json.
+7. **Scheduling tool UI** — absorbed into completed drag-and-drop calendar.
 8. **Meme Lord full UI** — meme encyclopedia + fit-score badges.
 
 ## Architecture (where things live)
