@@ -14,6 +14,7 @@ from flask_cors import CORS
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
+_app_log = logging.getLogger("campaign-os")
 
 # Directory where we store campaign data (Railway persistent disk)
 DATA_DIR = os.environ.get('DATA_DIR', '/data')
@@ -280,7 +281,15 @@ def export_review(campaign_id):
 
 @app.route('/')
 def index():
-    return send_from_directory('.', 'home.html')
+    return send_from_directory('.', 'campaign-os.html')
+
+@app.route('/home.html')
+def home_alias():
+    return send_from_directory('.', 'campaign-os.html')
+
+@app.route('/cockpit.html')
+def cockpit_alias():
+    return send_from_directory('.', 'campaign-os.html')
 
 @app.route('/cockpit-operational.html')
 def cockpit():
@@ -313,6 +322,81 @@ except ImportError as _tc_err:
     _app_log = logging.getLogger("app")
     _app_log.warning("Truth Collector module not available: %s", _tc_err)
     _TRUTH_COLLECTOR_AVAILABLE = False
+
+try:
+    from _lib import intelligence as _intel_module
+    from _lib.intelligence import (
+        INTELLIGENCE_FUNCS,
+        morning_brief, calendar_view, review_inbox, hooks_view, memes_view,
+        billboards_view, caption_studio, performance_view, learning_view,
+        generate_hooks, generate_captions, generate_ctas, generate_headlines,
+        reddit_outreach, gbp_suggestions, seo_assistant, faq_generator,
+        trend_catcher, opportunities_view, postiz_overview, assets_view,
+        agents_view, explain_performance, universal_search,
+    )
+    _INTELLIGENCE_AVAILABLE = True
+except ImportError as _intel_err:
+    _app_log = logging.getLogger("app")
+    _app_log.warning("Intelligence module not available: %s", _intel_err)
+    _INTELLIGENCE_AVAILABLE = False
+
+
+def _intel(name):
+    """Run a named intelligence function; return JSON dict."""
+    if not _INTELLIGENCE_AVAILABLE:
+        return {"ok": False, "error": "Intelligence unavailable"}, 503
+    fn = INTELLIGENCE_FUNCS.get(name)
+    if not fn:
+        return {"ok": False, "error": f"Unknown view: {name}"}, 404
+    try:
+        return fn(), 200
+    except Exception as exc:
+        _app_log.exception("Intel %s failed", name)
+        return {"ok": False, "error": str(exc), "view": name}, 500
+
+
+@app.route('/api/intel/<name>', methods=['GET'])
+def intel_dispatch(name):
+    """GET /api/intel/<view-name> — see INTELLIGENCE_FUNCS for the index."""
+    payload, status = _intel(name)
+    return jsonify(payload), status
+
+
+@app.route('/api/search', methods=['GET'])
+def search_dispatch():
+    """GET /api/search?q=<query> — universal search across all data."""
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 2:
+        return jsonify({"ok": False, "error": "q must be 2+ chars", "results": []}), 400
+    try:
+        return jsonify(universal_search(q)), 200
+    except Exception as exc:
+        _app_log.exception("search failed")
+        return jsonify({"ok": False, "error": str(exc), "results": []}), 500
+
+
+@app.route('/api/intel/generate/captions/<asset_id>', methods=['POST'])
+def intel_generate_captions(asset_id):
+    """POST /api/intel/generate/captions/<assetId> — generate caption variants."""
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = request.get_json(silent=True) or {}
+        n = int(body.get('n', 5))
+        return jsonify(generate_captions(asset_id, n)), 200
+    except Exception as exc:
+        _app_log.exception("caption generate failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/intel/index', methods=['GET'])
+def intel_index():
+    """GET /api/intel/index — discoverable list of intel endpoints."""
+    return jsonify({
+        "ok": True,
+        "views": sorted(list(INTELLIGENCE_FUNCS.keys()) if _INTELLIGENCE_AVAILABLE else []),
+        "usage": "GET /api/intel/<view-name>",
+    })
 
 
 def _truth_store():

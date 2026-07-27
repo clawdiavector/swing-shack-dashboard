@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Campaign OS · Swing Shack</title>
+<meta name="theme-color" content="#0a0f1a">
+<style>
+/* ─── Reset + base ─────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0f1a;
+  --bg-2:#101727;
+  --bg-3:#172033;
+  --bg-4:#1e2940;
+  --bd:#22304d;
+  --bd-2:#2a3a5c;
+  --tx:#e6ecf5;
+  --tx-2:#a8b4cc;
+  --tx-3:#6c7a96;
+  --ac:#34d399;
+  --ac-2:#22c55e;
+  --ac-glow:rgba(52,211,153,.25);
+  --blu:#60a5fa;
+  --pur:#a78bfa;
+  --org:#fb923c;
+  --red:#f87171;
+  --yel:#facc15;
+  --gd:linear-gradient(135deg,#34d399 0%,#60a5fa 100%);
+  --sh:0 8px 32px rgba(0,0,0,.4);
+  --sh-2:0 2px 8px rgba(0,0,0,.3);
+  --r:14px;
+  --r-s:8px;
+  --r-p:999px;
+  --t:.18s ease;
+}
+html,body{height:100%}
+body{
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--tx);
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+button{cursor:pointer;font:inherit;color:inherit;background:none;border:none}
+input,textarea,select{font:inherit;color:inherit;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.55rem .75rem;outline:none;transition:border var(--t)}
+input:focus,textarea:focus,select:focus{border-color:var(--ac)}
+a{color:var(--blu);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ─── Layout ─────────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.side{
+  background:var(--bg-2);
+  border-right:1px solid var(--bd);
+  padding:1.25rem .75rem;
+  position:sticky;top:0;height:100vh;
+  overflow-y:auto;
+}
+.brand{
+  display:flex;align-items:center;gap:.6rem;
+  padding:.5rem .75rem 1.25rem;
+  border-bottom:1px solid var(--bd);
+  margin-bottom:.75rem;
+}
+.brand-mark{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--gd);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+}
+.brand-name{font-weight:700;font-size:15px;letter-spacing:-.01em}
+.brand-sub{font-size:11px;color:var(--tx-3)}
+
+.nav-section{margin-bottom:1rem}
+.nav-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--tx-3);padding:.5rem .75rem .25rem}
+.nav{display:flex;align-items:center;gap:.6rem;padding:.55rem .75rem;border-radius:var(--r-s);color:var(--tx-2);cursor:pointer;transition:all var(--t);font-size:13px;font-weight:500}
+.nav:hover{background:var(--bg-3);color:var(--tx)}
+.nav.on{background:var(--bg-3);color:var(--tx);box-shadow:inset 2px 0 0 var(--ac)}
+.nav-icon{width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
+.nav-badge{margin-left:auto;background:var(--ac);color:var(--bg);font-size:10px;font-weight:700;padding:2px 6px;border-radius:var(--r-p);min-width:18px;text-align:center}
+.nav-badge.muted{background:var(--bg-4);color:var(--tx-2)}
+
+.main{padding:1.5rem 2rem 4rem;max-width:100%;overflow-x:hidden}
+.topbar{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem}
+.topbar h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.topbar .crumbs{font-size:12px;color:var(--tx-3)}
+.search{margin-left:auto;position:relative;width:340px;max-width:40vw}
+.search input{width:100%;padding-left:2.25rem}
+.search-ico{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--tx-3)}
+.search-results{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);
+  box-shadow:var(--sh);max-height:60vh;overflow:auto;z-index:50;
+  display:none;
+}
+.search-results.on{display:block}
+.sr-kind{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--tx-3);padding:.5rem .75rem .25rem}
+.sr-item{display:block;padding:.5rem .75rem;color:var(--tx);font-size:13px;border-bottom:1px solid var(--bd)}
+.sr-item:hover{background:var(--bg-3);text-decoration:none}
+.sr-item .sr-meta{color:var(--tx-3);font-size:11px}
+
+/* ─── Section + widget grid ──────────────────────────────────── */
+.section{display:none;animation:fade .25s ease}
+.section.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.section-h{display:flex;align-items:baseline;gap:1rem;margin-bottom:1rem}
+.section-h h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.section-h .sub{color:var(--tx-3);font-size:13px}
+
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(12,1fr)}
+.card{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:1rem 1.1rem;box-shadow:var(--sh-2);transition:border var(--t)}
+.card:hover{border-color:var(--bd-2)}
+.card-h{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem}
+.card-h h3{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.card-h .h-meta{margin-left:auto;color:var(--tx-3);font-size:11px}
+.col-3{grid-column:span 3}
+.col-4{grid-column:span 4}
+.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}
+.col-7{grid-column:span 7}
+.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}
+.col-12{grid-column:span 12}
+@media (max-width:1100px){.col-3,.col-4,.col-5{grid-column:span 6}.col-7,.col-8,.col-9{grid-column:span 12}}
+@media (max-width:720px){.col-3,.col-4,.col-5,.col-6,.col-7,.col-8,.col-9{grid-column:span 12}}
+
+/* ─── Stat cards ─────────────────────────────────────────────── */
+.stat{display:flex;flex-direction:column;gap:.25rem}
+.stat-val{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.stat-lbl{font-size:12px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em}
+.stat-trend{font-size:11px;color:var(--ac);margin-top:.25rem}
+.stat-trend.down{color:var(--red)}
+
+/* ─── Lists ───────────────────────────────────────────────────── */
+.list{list-style:none}
+.li{padding:.6rem .75rem;border-radius:var(--r-s);background:var(--bg-3);margin-bottom:.4rem;display:flex;align-items:center;gap:.75rem;transition:background var(--t);cursor:pointer;border:1px solid transparent}
+.li:hover{background:var(--bg-4);border-color:var(--bd-2)}
+.li-body{flex:1;min-width:0}
+.li-title{font-weight:500;font-size:13px;line-height:1.3}
+.li-meta{font-size:11px;color:var(--tx-3);margin-top:2px;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.li-action{margin-left:auto;color:var(--tx-3);font-size:12px}
+
+/* ─── Badges / pills ─────────────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;gap:.3rem;font-size:10px;font-weight:600;padding:3px 8px;border-radius:var(--r-p);text-transform:uppercase;letter-spacing:.04em;background:var(--bg-3);color:var(--tx-2)}
+.pill.on{background:rgba(52,211,153,.18);color:var(--ac)}
+.pill.review{background:rgba(250,204,21,.18);color:var(--yel)}
+.pill.blocked{background:rgba(248,113,113,.18);color:var(--red)}
+.pill.draft{background:var(--bg-4);color:var(--tx-3)}
+.pill.live{background:rgba(96,165,250,.18);color:var(--blu)}
+.pill.warn{background:rgba(251,146,60,.18);color:var(--org)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--ac)}
+
+/* ─── Buttons ────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem .9rem;border-radius:var(--r-s);background:var(--bg-3);border:1px solid var(--bd);color:var(--tx);font-weight:500;font-size:13px;transition:all var(--t)}
+.btn:hover{background:var(--bg-4);border-color:var(--bd-2)}
+.btn.primary{background:var(--ac);color:var(--bg);border-color:var(--ac);font-weight:600}
+.btn.primary:hover{background:var(--ac-2);border-color:var(--ac-2);box-shadow:0 0 0 4px var(--ac-glow)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--tx-2)}
+.btn.ghost:hover{background:var(--bg-3);color:var(--tx)}
+.btn-row{display:flex;gap:.5rem;flex-wrap:wrap}
+
+/* ─── Modal ──────────────────────────────────────────────────── */
+.modal-bg{position:fixed;inset:0;background:rgba(10,15,26,.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:100;padding:2rem}
+.modal-bg.on{display:flex}
+.modal{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:1.5rem;max-width:720px;width:100%;max-height:90vh;overflow:auto;box-shadow:var(--sh)}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:.75rem}
+.modal .sub{color:var(--tx-3);font-size:13px;margin-bottom:1rem}
+.modal-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem}
+
+/* ─── Calendar grid ──────────────────────────────────────────── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem}
+.cal-h{font-size:11px;color:var(--tx-3);text-align:center;padding:.5rem 0;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.cal-d{background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);min-height:120px;padding:.5rem;display:flex;flex-direction:column;gap:.25rem;transition:border var(--t)}
+.cal-d:hover{border-color:var(--bd-2)}
+.cal-d.today{border-color:var(--ac);background:rgba(52,211,153,.06)}
+.cal-d.overdue{opacity:.7}
+.cal-dh{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--tx-3);font-weight:600}
+.cal-dh .n{color:var(--tx);font-size:13px}
+.cal-slot{background:var(--bg-4);border-radius:4px;padding:3px 6px;font-size:11px;color:var(--tx-2);border-left:2px solid var(--ac);line-height:1.3;cursor:grab}
+.cal-slot.draft{border-left-color:var(--tx-3)}
+.cal-slot.review{border-left-color:var(--yel)}
+.cal-slot.blocked{border-left-color:var(--red)}
+.cal-slot.scheduled{border-left-color:var(--blu)}
+
+/* ─── Review row ─────────────────────────────────────────────── */
+.review{padding:.75rem 1rem;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);display:flex;align-items:flex-start;gap:1rem;margin-bottom:.5rem;transition:all var(--t)}
+.review:hover{border-color:var(--bd-2)}
+.review-cap{flex:1;min-width:0}
+.review-cap-t{font-weight:500;font-size:13px;margin-bottom:.25rem}
+.review-cap-x{color:var(--tx-3);font-size:12px;line-height:1.4}
+.review-meta{display:flex;flex-direction:column;gap:.25rem;align-items:flex-end;font-size:11px;color:var(--tx-3);min-width:120px}
+
+/* ─── Empty + loading states ─────────────────────────────────── */
+.empty{padding:2rem;text-align:center;color:var(--tx-3);font-size:13px;background:var(--bg-3);border-radius:var(--r-s);border:1px dashed var(--bd)}
+.skeleton{background:linear-gradient(90deg,var(--bg-3) 0%,var(--bg-4) 50%,var(--bg-3) 100%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:var(--r-s)}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+
+/* ─── Sparkline ──────────────────────────────────────────────── */
+.spark{height:36px;width:100%;display:block}
+.spark circle{fill:var(--ac)}
+
+/* ─── Inline list inside cards ───────────────────────────────── */
+.kvs{display:grid;grid-template-columns:auto 1fr;gap:.4rem .75rem;font-size:13px}
+.kvs dt{color:var(--tx-3);font-weight:500}
+.kvs dd{color:var(--tx);font-weight:500}
+
+/* ─── Insight strip ──────────────────────────────────────────── */
+.insight-strip{display:flex;gap:1rem;padding:.85rem 1.1rem;background:linear-gradient(135deg,rgba(52,211,153,.08) 0%,rgba(96,165,250,.08) 100%);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:1.25rem}
+.insight-strip .ico{font-size:18px}
+.insight-strip .txt{font-size:13px;color:var(--tx);line-height:1.5}
+.insight-strip .txt b{color:var(--ac)}
+
+/* ─── Toast ──────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--bg-2);border:1px solid var(--bd);border-left:3px solid var(--ac);padding:.75rem 1rem;border-radius:var(--r-s);box-shadow:var(--sh);font-size:13px;max-width:340px;transform:translateY(120%);transition:transform .25s ease;z-index:200}
+.toast.on{transform:none}
+.toast.err{border-left-color:var(--red)}
+
+/* ─── Misc ───────────────────────────────────────────────────── */
+.muted{color:var(--tx-3)}
+.row{display:flex;align-items:center;gap:.75rem}
+.gap-1{gap:1rem}
+.flex-1{flex:1}
+.t-warm{color:var(--org)}
+.t-cool{color:var(--blu)}
+.t-up{color:var(--ac)}
+.t-down{color:var(--red)}
+.fadein{animation:fade .3s ease}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ─── Sidebar ─────────────────────────────────────────── -->
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-mark">⛳</div>
+      <div>
+        <div class="brand-name">Campaign OS</div>
+        <div class="brand-sub">Swing Shack</div>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Today</div>
+      <div class="nav on" data-go="brief"><span class="nav-icon">☀️</span> Morning Brief <span class="nav-badge" id="nav-brief-count">0</span></div>
+      <div class="nav" data-go="review"><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
+      <div class="nav" data-go="publish"><span class="nav-icon">🚀</span> Publish <span class="nav-badge muted" id="nav-publish-count">0</span></div>
+      <div class="nav" data-go="calendar"><span class="nav-icon">📅</span> Calendar</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Intelligence</div>
+      <div class="nav" data-go="trends"><span class="nav-icon">📡</span> Trends</div>
+      <div class="nav" data-go="ideas"><span class="nav-icon">💡</span> Ideas</div>
+      <div class="nav" data-go="performance"><span class="nav-icon">📈</span> Performance</div>
+      <div class="nav" data-go="learning"><span class="nav-icon">🧠</span> Learning</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Workspaces</div>
+      <div class="nav" data-go="hooks"><span class="nav-icon">🪝</span> Hook Bank</div>
+      <div class="nav" data-go="memes"><span class="nav-icon">😂</span> Meme Lord</div>
+      <div class="nav" data-go="billboards"><span class="nav-icon">🪧</span> Billboard Lab</div>
+      <div class="nav" data-go="captions"><span class="nav-icon">✍️</span> Caption Studio</div>
+      <div class="nav" data-go="headlines"><span class="nav-icon">📰</span> Headlines</div>
+      <div class="nav" data-go="ctas"><span class="nav-icon">🎯</span> CTAs</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Marketing</div>
+      <div class="nav" data-go="seo"><span class="nav-icon">🔎</span> SEO</div>
+      <div class="nav" data-go="gbp"><span class="nav-icon">📍</span> Google Business</div>
+      <div class="nav" data-go="reddit"><span class="nav-icon">🗣️</span> Reddit</div>
+      <div class="nav" data-go="faqs"><span class="nav-icon">❓</span> FAQs</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Data</div>
+      <div class="nav" data-go="postiz"><span class="nav-icon">📮</span> Postiz</div>
+      <div class="nav" data-go="campaigns"><span class="nav-icon">🎯</span> Campaigns</div>
+      <div class="nav" data-go="agents"><span class="nav-icon">🤖</span> Agents</div>
+    </div>
+  </aside>
+
+  <!-- ─── Main ─────────────────────────────────────────────── -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="crumbs" id="crumbs">Today</div>
+        <h1 id="title">Morning Brief</h1>
+      </div>
+      <div class="search">
+        <span class="search-ico">🔎</span>
+        <input id="search-input" placeholder="Search campaigns, hooks, captions, ideas…" autocomplete="off">
+        <div class="search-results" id="search-results"></div>
+      </div>
+    </div>
+
+    <!-- ── BRIEF ────────────────────────────────────────── -->
+    <section class="section on" id="sec-brief">
+      <div class="section-h"><h2>What should you do today?</h2><span class="sub">Live signal from across all sources</span></div>
+      <div id="brief-strip" class="insight-strip"><div class="ico">☀️</div><div class="txt" id="brief-strip-txt">Loading…</div></div>
+      <div class="grid" id="brief-grid"></div>
+    </section>
+
+    <!-- ── REVIEW ────────────────────────────────────────── -->
+    <section class="section" id="sec-review">
+      <div class="section-h">
+        <h2>Review queue</h2>
+        <span class="sub" id="review-summary">—</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn ghost" data-rfilter="all">All</button>
+          <button class="btn ghost" data-rfilter="pending">Pending</button>
+          <button class="btn ghost" data-rfilter="approved">Approved</button>
+          <button class="btn ghost" data-rfilter="rejected">Rejected</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>⏳ Pending</h3><span class="h-meta">Click an item to open</span></div>
+        <div id="review-pending"></div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="card-h"><h3>✓ Approved (ready to publish)</h3></div>
+        <div id="review-approved"></div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="card-h"><h3>✗ Rejected</h3></div>
+        <div id="review-rejected"></div>
+      </div>
+    </section>
+
+    <!-- ── PUBLISH ───────────────────────────────────────── -->
+    <section class="section" id="sec-publish">
+      <div class="section-h"><h2>Publishing pipeline</h2><span class="sub" id="publish-summary">—</span></div>
+      <div class="grid">
+        <div class="card col-6"><div class="card-h"><h3>📮 Drafts</h3><span class="h-meta" id="pub-drafts-count">—</span></div><div id="pub-drafts"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🗓️ Scheduled</h3><span class="h-meta" id="pub-sched-count">—</span></div><div id="pub-sched"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>✓ Published</h3><span class="h-meta" id="pub-pub-count">—</span></div><div id="pub-pub"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🚨 Failed</h3><span class="h-meta" id="pub-fail-count">—</span></div><div id="pub-fail"></div></div>
+      </div>
+    </section>
+
+    <!-- ── CALENDAR ──────────────────────────────────────── -->
+    <section class="section" id="sec-calendar">
+      <div class="section-h">
+        <h2>Calendar</h2>
+        <span class="sub" id="cal-summary">—</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn ghost" data-cal-shift="-7">← Prev week</button>
+          <button class="btn ghost" data-cal-shift="0">Today</button>
+          <button class="btn ghost" data-cal-shift="7">Next week →</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+    </section>
+
+    <!-- ── TRENDS ───────────────────────────────────────── -->
+    <section class="section" id="sec-trends">
+      <div class="section-h"><h2>Trend Catcher</h2><span class="sub">Reddit · YouTube · Golf News · Competitors</span></div>
+      <div class="grid">
+        <div class="card col-6"><div class="card-h"><h3>🗣️ Reddit trends</h3></div><div id="tr-reddit"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>📺 YouTube signals</h3></div><div id="tr-yt"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>⛳ Golf news</h3></div><div id="tr-news"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>👀 Competitor moves</h3></div><div id="tr-comp"></div></div>
+      </div>
+    </section>
+
+    <!-- ── IDEAS ─────────────────────────────────────────── -->
+    <section class="section" id="sec-ideas">
+      <div class="section-h"><h2>Opportunities</h2><span class="sub">Ideas · missed · upsell · bundles · funnel leaks</span></div>
+      <div class="grid">
+        <div class="card col-6"><div class="card-h"><h3>💡 Content ideas</h3><span class="h-meta" id="ideas-total">—</span></div><div id="ideas-list"></div></div>
+        <div class="card col-3"><div class="card-h"><h3>🚀 Post today</h3></div><div id="ideas-today"></div></div>
+        <div class="card col-3"><div class="card-h"><h3>📆 This week</h3></div><div id="ideas-week"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>⚠️ Missed opportunities</h3></div><div id="ideas-missed"></div></div>
+        <div class="card col-3"><div class="card-h"><h3>💸 Upsells</h3></div><div id="ideas-upsell"></div></div>
+        <div class="card col-3"><div class="card-h"><h3>📦 Bundles</h3></div><div id="ideas-bundles"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🪠 Funnel leaks</h3></div><div id="ideas-funnel"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🌐 Landing-page fixes</h3></div><div id="ideas-landing"></div></div>
+      </div>
+    </section>
+
+    <!-- ── PERFORMANCE ───────────────────────────────────── -->
+    <section class="section" id="sec-performance">
+      <div class="section-h"><h2>Performance</h2><span class="sub">What worked, what's leaking, what to scale</span></div>
+      <div id="insights-strip" class="insight-strip"><div class="ico">📈</div><div class="txt" id="insights-strip-txt">Loading…</div></div>
+      <div class="grid">
+        <div class="card col-3"><div class="stat"><div class="stat-val" id="perf-ig-posts">—</div><div class="stat-lbl">IG posts</div></div></div>
+        <div class="card col-3"><div class="stat"><div class="stat-val" id="perf-ga-sessions">—</div><div class="stat-lbl">GA4 sessions</div></div></div>
+        <div class="card col-3"><div class="stat"><div class="stat-val" id="perf-rising">—</div><div class="stat-lbl">SEO rising</div></div></div>
+        <div class="card col-3"><div class="stat"><div class="stat-val" id="perf-falling">—</div><div class="stat-lbl">SEO falling</div></div></div>
+        <div class="card col-7"><div class="card-h"><h3>🏆 Top Instagram posts</h3></div><div id="perf-ig-top"></div></div>
+        <div class="card col-5"><div class="card-h"><h3>🔎 Top SEO keywords</h3></div><div id="perf-seo"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🧪 A/B tests</h3></div><div id="perf-ab"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🌐 Top pages by sessions</h3></div><div id="perf-pages"></div></div>
+        <div class="card col-12"><div class="card-h"><h3>💡 Insights</h3></div><div id="perf-insights"></div></div>
+      </div>
+    </section>
+
+    <!-- ── LEARNING ──────────────────────────────────────── -->
+    <section class="section" id="sec-learning">
+      <div class="section-h"><h2>Learning</h2><span class="sub">What to repeat, what to stop, what to try</span></div>
+      <div class="grid">
+        <div class="card col-6"><div class="card-h"><h3>✅ What worked</h3></div><div id="learn-worked"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🚫 What failed</h3></div><div id="learn-failed"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🎯 CTA rankings</h3></div><div id="learn-cta"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>📈 Trend delta</h3></div><div id="learn-trend"></div></div>
+        <div class="card col-12"><div class="card-h"><h3>🚨 Failure patterns</h3></div><div id="learn-fail-pat"></div></div>
+      </div>
+    </section>
+
+    <!-- ── HOOKS ─────────────────────────────────────────── -->
+    <section class="section" id="sec-hooks">
+      <div class="section-h">
+        <h2>Hook Bank</h2>
+        <span class="sub" id="hooks-total">—</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn primary" id="hooks-gen">⚡ Generate 10 new hooks</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card col-7"><div class="card-h"><h3>👀 Watched + worked</h3></div><div id="hooks-ww"></div></div>
+        <div class="card col-5"><div class="card-h"><h3>🧬 Hook formulas</h3></div><div id="hooks-formulas"></div></div>
+      </div>
+      <div class="card" style="margin-top:1rem"><div class="card-h"><h3>🆕 Fresh hooks from signals</h3></div><div id="hooks-generated"></div></div>
+    </section>
+
+    <!-- ── MEMES ─────────────────────────────────────────── -->
+    <section class="section" id="sec-memes">
+      <div class="section-h"><h2>Meme Lord</h2><span class="sub" id="memes-summary">—</span></div>
+      <div class="grid">
+        <div class="card col-6"><div class="card-h"><h3>😂 Meme ideas</h3></div><div id="memes-list"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>✍️ Captions</h3></div><div id="memes-caps"></div></div>
+        <div class="card col-12"><div class="card-h"><h3>🔁 Caption variants</h3></div><div id="memes-vars"></div></div>
+      </div>
+    </section>
+
+    <!-- ── BILLBOARDS ────────────────────────────────────── -->
+    <section class="section" id="sec-billboards">
+      <div class="section-h"><h2>Billboard Lab</h2><span class="sub" id="bb-summary">—</span></div>
+      <div class="grid">
+        <div class="card col-6"><div class="card-h"><h3>🪧 Concepts</h3></div><div id="bb-list"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🎨 Visual briefs</h3></div><div id="bb-briefs"></div></div>
+      </div>
+    </section>
+
+    <!-- ── CAPTIONS ──────────────────────────────────────── -->
+    <section class="section" id="sec-captions">
+      <div class="section-h"><h2>Caption Studio</h2><span class="sub">Generate · regenerate · test</span></div>
+      <div class="grid">
+        <div class="card col-12">
+          <div class="card-h"><h3>Pick an asset</h3></div>
+          <div class="row gap-1">
+            <select id="cap-asset-select" style="flex:1;max-width:420px"></select>
+            <button class="btn primary" id="cap-gen">⚡ Generate 5 captions</button>
+          </div>
+          <div id="cap-results" style="margin-top:1rem"></div>
+        </div>
+        <div class="card col-7"><div class="card-h"><h3>📚 Caption bank</h3></div><div id="cap-bank"></div></div>
+        <div class="card col-5"><div class="card-h"><h3>🎯 CTA performance</h3></div><div id="cap-cta"></div></div>
+      </div>
+    </section>
+
+    <!-- ── HEADLINES ─────────────────────────────────────── -->
+    <section class="section" id="sec-headlines">
+      <div class="section-h"><h2>Headline Generator</h2>
+        <div class="btn-row" style="margin-left:auto"><button class="btn primary" id="head-gen">⚡ Generate 5</button></div>
+      </div>
+      <div class="card"><div id="head-list"></div></div>
+    </section>
+
+    <!-- ── CTAS ──────────────────────────────────────────── -->
+    <section class="section" id="sec-ctas">
+      <div class="section-h"><h2>CTA Generator</h2>
+        <div class="btn-row" style="margin-left:auto"><button class="btn primary" id="cta-gen">⚡ Generate 5</button></div>
+      </div>
+      <div class="card"><div id="cta-list"></div></div>
+    </section>
+
+    <!-- ── SEO ───────────────────────────────────────────── -->
+    <section class="section" id="sec-seo">
+      <div class="section-h"><h2>SEO Assistant</h2></div>
+      <div class="grid">
+        <div class="card col-6"><div class="card-h"><h3>🔎 Audit summary</h3></div><div id="seo-audit"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>📈 Rankings</h3></div><div id="seo-rank"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🌍 GEO</h3></div><div id="seo-geo"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>🛠️ Landing-page fixes</h3></div><div id="seo-fixes"></div></div>
+      </div>
+    </section>
+
+    <!-- ── GBP ───────────────────────────────────────────── -->
+    <section class="section" id="sec-gbp">
+      <div class="section-h"><h2>Google Business</h2></div>
+      <div class="grid">
+        <div class="card col-6"><div class="card-h"><h3>📍 Profile & services</h3></div><div id="gbp-profile"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>📝 Last post</h3></div><div id="gbp-last"></div></div>
+      </div>
+    </section>
+
+    <!-- ── REDDIT ────────────────────────────────────────── -->
+    <section class="section" id="sec-reddit">
+      <div class="section-h"><h2>Reddit Outreach</h2></div>
+      <div class="grid">
+        <div class="card col-6"><div class="card-h"><h3>🎯 Pain points</h3></div><div id="reddit-pain"></div></div>
+        <div class="card col-6"><div class="card-h"><h3>💬 Replies</h3></div><div id="reddit-replies"></div></div>
+      </div>
+    </section>
+
+    <!-- ── FAQS ──────────────────────────────────────────── -->
+    <section class="section" id="sec-faqs">
+      <div class="section-h"><h2>FAQ Opportunities</h2></div>
+      <div class="card"><div id="faqs-list"></div></div>
+    </section>
+
+    <!-- ── POSTIZ ────────────────────────────────────────── -->
+    <section class="section" id="sec-postiz">
+      <div class="section-h"><h2>Postiz</h2><span class="sub" id="postiz-summary">—</span></div>
+      <div class="grid">
+        <div class="card col-12"><div class="card-h"><h3>📋 Queue</h3></div><div id="postiz-queue"></div></div>
+        <div class="card col-12"><div class="card-h"><h3>🔗 Publishing references (canonical)</h3></div><div id="postiz-refs"></div></div>
+      </div>
+    </section>
+
+    <!-- ── CAMPAIGNS ─────────────────────────────────────── -->
+    <section class="section" id="sec-campaigns">
+      <div class="section-h"><h2>Campaigns</h2><span class="sub" id="camp-summary">—</span></div>
+      <div id="camp-list"></div>
+    </section>
+
+    <!-- ── AGENTS ────────────────────────────────────────── -->
+    <section class="section" id="sec-agents">
+      <div class="section-h"><h2>Agents & health</h2></div>
+      <div class="grid">
+        <div class="card col-7"><div class="card-h"><h3>🤖 Agent runs</h3></div><div id="agents-list"></div></div>
+        <div class="card col-5"><div class="card-h"><h3>🩺 System health</h3></div><div id="agents-health"></div></div>
+        <div class="card col-12"><div class="card-h"><h3>🔌 Integrations</h3></div><div id="agents-int"></div></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ─── Modal ─────────────────────────────────────────────────── -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal"></div>
+</div>
+
+<!-- ─── Toast ─────────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   Campaign OS · single-page app
+   ════════════════════════════════════════════════════════════════ */
+
+// ─── API ───────────────────────────────────────────────────────
+const API = {
+  async get(path){
+    const r = await fetch(path);
+    if(!r.ok) throw new Error(`${path} → ${r.status}`);
+    return r.json();
+  },
+  async post(path, body){
+    const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})});
+    if(!r.ok) throw new Error(`${path} → ${r.status}`);
+    return r.json();
+  }
+};
+
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ─── State ──────────────────────────────────────────────────────
+const S = {
+  brief:null, review:null, cal:null, calOffset:0,
+  hooks:null, memes:null, bb:null, cap:null, perf:null, learn:null,
+  ideas:null, trends:null, postiz:null, seo:null, gbp:null,
+  reddit:null, faqs:null, camps:null, assets:null, agents:null,
+};
+
+// ─── Toasts / Modal ─────────────────────────────────────────────
+function toast(msg, kind='ok'){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast on' + (kind === 'err' ? ' err' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=> t.classList.remove('on'), 3000);
+}
+function modal(html){
+  $('#modal').innerHTML = html;
+  $('#modal-bg').classList.add('on');
+}
+function closeModal(){ $('#modal-bg').classList.remove('on'); }
+$('#modal-bg').addEventListener('click', e => { if(e.target.id==='modal-bg') closeModal(); });
+
+// ─── Section switcher ──────────────────────────────────────────
+const TITLES = {
+  brief:'Morning Brief', review:'Review queue', publish:'Publishing',
+  calendar:'Calendar', trends:'Trend Catcher', ideas:'Opportunities',
+  performance:'Performance', learning:'Learning', hooks:'Hook Bank',
+  memes:'Meme Lord', billboards:'Billboard Lab', captions:'Caption Studio',
+  headlines:'Headlines', ctas:'CTAs', seo:'SEO Assistant', gbp:'Google Business',
+  reddit:'Reddit Outreach', faqs:'FAQ Opportunities', postiz:'Postiz',
+  campaigns:'Campaigns', agents:'Agents & health',
+};
+function go(sec){
+  $$('.nav').forEach(n => n.classList.toggle('on', n.dataset.go===sec));
+  $$('.section').forEach(s => s.classList.remove('on'));
+  document.getElementById('sec-'+sec).classList.add('on');
+  $('#title').textContent = TITLES[sec] || sec;
+  $('#crumbs').textContent = TITLES[sec] || sec;
+  loadSection(sec);
+}
+$$('.nav').forEach(n => n.addEventListener('click', () => go(n.dataset.go)));
+
+// ─── Section loaders ────────────────────────────────────────────
+async function loadSection(sec){
+  try {
+    if(sec==='brief') return renderBrief();
+    if(sec==='review') return renderReview();
+    if(sec==='publish') return renderPublish();
+    if(sec==='calendar') return renderCalendar();
+    if(sec==='trends') return renderTrends();
+    if(sec==='ideas') return renderIdeas();
+    if(sec==='performance') return renderPerformance();
+    if(sec==='learning') return renderLearning();
+    if(sec==='hooks') return renderHooks();
+    if(sec==='memes') return renderMemes();
+    if(sec==='billboards') return renderBillboards();
+    if(sec==='captions') return renderCaptions();
+    if(sec==='headlines') return renderHeadlines();
+    if(sec==='ctas') return renderCTAs();
+    if(sec==='seo') return renderSEO();
+    if(sec==='gbp') return renderGBP();
+    if(sec==='reddit') return renderReddit();
+    if(sec==='faqs') return renderFAQs();
+    if(sec==='postiz') return renderPostiz();
+    if(sec==='campaigns') return renderCampaigns();
+    if(sec==='agents') return renderAgents();
+  } catch(e){ console.error(sec, e); toast('Failed to load '+sec, 'err'); }
+}
+
+// ─── Generic renderers ──────────────────────────────────────────
+function empty(id, msg='Nothing here yet'){
+  document.getElementById(id).innerHTML = `<div class="empty">${esc(msg)}</div>`;
+}
+function pill(kind, text){ return `<span class="pill ${kind}">${esc(text)}</span>`; }
+function safeList(arr, cap=10){ return Array.isArray(arr) ? arr.slice(0, cap) : []; }
+function pretty(obj){
+  const s = JSON.stringify(obj || {}, null, 2);
+  return `<pre style="white-space:pre-wrap;font-size:11px;background:var(--bg-3);padding:.5rem;border-radius:6px;margin-top:.5rem;max-height:200px;overflow:auto">${esc(s)}</pre>`;
+}
+function itemHtml(it, fmt){
+  if(typeof it === 'string') return `<li class="li"><div class="li-body"><div class="li-title">${esc(it)}</div></div></li>`;
+  // Look for title in item OR in nested item field
+  const inner = (it.item && typeof it.item === 'object') ? it.item : it;
+  // Try common title fields first
+  let title = inner.title || inner.name || inner.caption || inner.hook_text || inner.hook || inner.headline || inner.cta || inner.angle || inner.pain_point || inner.issue || inner.text || inner.best_example || inner.formula || it.label || '';
+
+  // If no title found, dig into nested dicts for first meaningful string
+  if(!title && typeof inner === 'object'){
+    // Try title-related keys first
+    for(const k of ['fix','easy_fix','reason','detail','summary','description','message','body','content','copy','action','next_action','next_step','recommendation']){
+      const v = inner[k];
+      if(typeof v === 'string' && v.length > 10){
+        title = v; break;
+      }
+    }
+    // Then try first long string field
+    if(!title){
+      for(const [k, v] of Object.entries(inner)){
+        if(typeof v === 'string' && v.length > 15 && !['id','type','category','owner','platform','status','mode','generated','updated','schema','item_id','publish_id','postiz_post_id','integration_id','linked_hook_id','linked_blueprint_id'].includes(k)){
+          title = v; break;
+        }
+      }
+    }
+    // Try addons array
+    if(!title && Array.isArray(inner.addons) && inner.addons.length){
+      const first = inner.addons[0];
+      title = (typeof first === 'string' ? first : (first.name || first.title || JSON.stringify(first).slice(0,80)));
+    }
+  }
+
+  const meta = [];
+  if(it.emoji) meta.push(it.emoji);
+  if(inner.kind || it.kind) meta.push(pill(inner.kind || it.kind, inner.kind || it.kind));
+  if(inner.platform || it.platform) meta.push(pill('live', inner.platform || it.platform));
+  if(inner.status || it.status) meta.push(pill(inner.status || it.status, inner.status || it.status));
+  if(inner.score !== undefined || it.score !== undefined) meta.push(pill('on', `score ${inner.score ?? it.score}`));
+  if(inner.severity || it.severity) meta.push(pill(inner.severity==='high'||it.severity==='high'?'blocked':inner.severity==='medium'||it.severity==='medium'?'review':'draft', inner.severity || it.severity));
+  if(inner.confidence || it.confidence) meta.push(pill(inner.confidence==='high'||it.confidence==='high'?'on':'review', inner.confidence || it.confidence));
+  if(inner.category || it.category) meta.push(pill('live', (inner.category || it.category).replace(/_/g,' ')));
+  if(inner.format_type || it.format_type) meta.push(pill('draft', inner.format_type || it.format_type));
+  if(inner.source || it.source) meta.push(`<span class="muted">${esc(inner.source || it.source)}</span>`);
+  if(inner.post_id || inner.id || it.post_id || it.id) meta.push(`<span class="muted">${esc(String(inner.post_id || inner.id || it.post_id || it.id).slice(0,18))}</span>`);
+
+  // Fallback title when nothing useful found
+  const finalTitle = title || (it.why_chosen ? it.why_chosen.slice(0,80) : (it.summary ? it.summary.slice(0,80) : JSON.stringify(it).slice(0,80).replace(/\\"/g,'"')));
+
+  return `<li class="li"><div class="li-body"><div class="li-title">${esc(finalTitle)}</div>${meta.length?`<div class="li-meta">${meta.join(' ')}</div>`:''}</div></li>`;
+}
+
+// ─── BRIEF ──────────────────────────────────────────────────────
+async function renderBrief(){
+  if(!S.brief){
+    const [b, r, t] = await Promise.all([
+      API.get('/api/intel/morning_brief'),
+      API.get('/api/intel/review_inbox'),
+      API.get('/api/intel/trend_catcher'),
+    ]);
+    S.brief = b; S.review = r; S.trends = t;
+  }
+  const b = S.brief;
+  $('#brief-strip-txt').innerHTML = `<b>${esc(b.summary)}</b> · ${b.do_first.length} recommended actions · ${b.missed_high_impact.length} high-impact misses · ${b.seo_quick_wins.length} SEO quick wins.`;
+
+  const c = b.counts;
+  const dofirst = safeList(b.do_first, 8);
+  const review = safeList(b.needs_review, 8);
+  const publish = safeList(b.ready_to_publish, 8);
+  const missed = safeList(b.missed_high_impact, 6);
+  const seo = safeList(b.seo_quick_wins, 6);
+  const today = safeList(b.post_today, 5);
+
+  $('#nav-brief-count').textContent = dofirst.length + review.length;
+  $('#nav-review-count').textContent = review.length;
+  $('#nav-publish-count').textContent = publish.length;
+
+  // Hot trends ticker (top 3 from reddit + youtube + news)
+  const trends = S.trends || {};
+  const hotTrend = [
+    ...safeList(trends.reddit, 2).map(x => ({kind:'reddit', t: x.title || x.headline || x.name || x.theme || x.key || ''})),
+    ...safeList(trends.youtube, 2).map(x => ({kind:'youtube', t: x.title || x.headline || x.name || x.theme || x.key || ''})),
+    ...safeList(trends.golf_news, 2).map(x => ({kind:'golf-news', t: x.title || x.headline || x.name || x.theme || x.key || ''})),
+  ].filter(x => x.t).slice(0, 6);
+
+  $('#brief-grid').innerHTML = `
+    <div class="card col-3"><div class="stat"><div class="stat-val">${c.total||0}</div><div class="stat-lbl">Total assets</div></div></div>
+    <div class="card col-3"><div class="stat"><div class="stat-val">${c.approved||0}</div><div class="stat-lbl">Approved</div><div class="stat-trend">${c.scheduled||0} scheduled</div></div></div>
+    <div class="card col-3"><div class="stat"><div class="stat-val">${review.length}</div><div class="stat-lbl">Need review</div></div></div>
+    <div class="card col-3"><div class="stat"><div class="stat-val">${publish.length}</div><div class="stat-lbl">Ready to publish</div></div></div>
+
+    <div class="card col-12"><div class="card-h"><h3>🔥 Hot right now</h3><span class="h-meta">Live signals</span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap">${hotTrend.length?hotTrend.map(t => `<span class="pill ${t.kind==='reddit'?'live':t.kind==='youtube'?'warn':'on'}">${esc(t.kind)} · ${esc(t.t.slice(0,60))}</span>`).join(''):'<span class="muted">No signals right now</span>'}</div></div>
+
+    <div class="card col-6"><div class="card-h"><h3>🎯 Do first</h3></div><ul class="list">${dofirst.map(x=>itemHtml(x)).join('') || '<li class="empty">Nothing urgent right now</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3>📝 Needs your review</h3></div><ul class="list">${review.map(x=>`<li class="li" onclick="openReview('${x.campaignId}','${x.assetId}')"><div class="li-body"><div class="li-title">${esc(x.name)}</div><div class="li-meta">${esc(x.campaignId)}</div></div><span class="li-action">→</span></li>`).join('') || '<li class="empty">No pending review</li>'}</ul></div>
+
+    <div class="card col-6"><div class="card-h"><h3>🚀 Ready to publish</h3></div><ul class="list">${publish.map(x=>`<li class="li" onclick="go('publish')"><div class="li-body"><div class="li-title">${esc(x.name)}</div><div class="li-meta">${esc(x.campaignId)}</div></div>${pill('on','approved')}</li>`).join('') || '<li class="empty">Nothing queued yet</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3>⚠️ High-impact misses</h3></div><ul class="list">${missed.map(itemHtml).join('') || '<li class="empty">No missed opportunities</li>'}</ul></div>
+
+    <div class="card col-6"><div class="card-h"><h3>🔎 SEO quick wins</h3></div><ul class="list">${seo.map(itemHtml).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3>📮 Post today</h3></div><ul class="list">${today.map(itemHtml).join('') || '<li class="empty">Nothing scheduled today</li>'}</ul></div>
+  `;
+}
+
+// ─── REVIEW ─────────────────────────────────────────────────────
+async function renderReview(){
+  if(!S.review) S.review = await API.get('/api/intel/review_inbox');
+  const r = S.review;
+  $('#review-summary').textContent = r.summary;
+  const renderRow = x => `
+    <div class="review" onclick="openReview('${x.campaignId}','${x.assetId}')">
+      <div class="review-cap">
+        <div class="review-cap-t">${esc(x.name)} <span class="muted">· ${esc(x.campaignName || x.campaignId)}</span></div>
+        <div class="review-cap-x">${esc(x.caption || x.issue || x.reason || 'No preview')}</div>
+      </div>
+      <div class="review-meta">
+        ${pill(x.approvalStatus||'draft', x.approvalStatus||'draft')}
+        ${x.platform ? pill('live', x.platform) : ''}
+        <span class="muted">${esc((x.updatedAt||'').slice(0,10))}</span>
+      </div>
+    </div>`;
+  $('#review-pending').innerHTML = r.pending.length ? r.pending.map(renderRow).join('') : '<div class="empty">No assets pending review</div>';
+  $('#review-approved').innerHTML = r.approved.length ? r.approved.map(renderRow).join('') : '<div class="empty">No approved assets</div>';
+  $('#review-rejected').innerHTML = r.rejected.length ? r.rejected.map(renderRow).join('') : '<div class="empty">No rejected assets</div>';
+}
+$$('[data-rfilter]').forEach(b => b.addEventListener('click', () => {
+  const f = b.dataset.rfilter;
+  $$('.card', $('#sec-review')).forEach((card, i) => {
+    if(f === 'all') card.style.display = '';
+    else if(f === 'pending' && i === 0) card.style.display = '';
+    else if(f === 'approved' && i === 1) card.style.display = '';
+    else if(f === 'rejected' && i === 2) card.style.display = '';
+    else if(i !== (f === 'pending' ? 0 : f === 'approved' ? 1 : 2)) card.style.display = 'none';
+  });
+}));
+window.openReview = async (cid, aid) => {
+  const c = await API.get('/api/campaigns/'+cid);
+  const a = (c.assets || {})[aid];
+  if(!a){ modal(`<h3>Asset not found</h3><div class="sub">${esc(cid)} / ${esc(aid)}</div>`); return; }
+  const plat = a.platform || a.integration || 'instagram';
+  modal(`
+    <h3>${esc(a.name || aid)}</h3>
+    <div class="sub">${esc(c.identity?.name || cid)} · ${esc(plat)} · ${esc(a.kind || '')}</div>
+    <div class="row gap-1" style="margin-bottom:1rem">${pill(a.approvalStatus||'draft', a.approvalStatus||'draft')} ${pill(a.publishStatus||'draft', a.publishStatus||'draft')} ${pill(a.captionStatus||'—', 'caption')} ${pill(a.visualStatus||'—', 'visual')}</div>
+    <h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Caption</h4>
+    <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(a.caption || '—')}</div>
+    <h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Visual brief</h4>
+    <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(a.visualBrief || '—')}</div>
+    ${a.publishingReferences?.length ? `<h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Publishing references</h4><ul class="list">${a.publishingReferences.map(p=>`<li class="li"><div class="li-body"><div class="li-title">${esc(p.postizId || '—')}</div><div class="li-meta">${esc(p.platform || '')} · ${esc(p.publishStatus || '')}</div></div></li>`).join('')}</ul>` : ''}
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="btn ghost" onclick="closeModal()">Close</button>
+      <button class="btn" onclick="goToSection('captions');closeModal();setTimeout(()=>{const sel=document.getElementById('cap-asset-select');sel.value='${aid}';document.getElementById('cap-gen').click();},300)">⚡ Generate captions</button>
+      ${a.publishingReferences?.length ? `<button class="btn" onclick="window.open('https://app.postiz.com/post/${a.publishingReferences[0].postizId}','_blank')">📮 Open in Postiz</button>` : ''}
+      <button class="btn" onclick="reviewAction('${cid}','${aid}','revisionRequested')">Request revision</button>
+      <button class="btn" style="color:var(--red)" onclick="reviewAction('${cid}','${aid}','rejected')">Reject</button>
+      <button class="btn primary" onclick="reviewAction('${cid}','${aid}','approved')">Approve</button>
+    </div>
+  `);
+};
+window.goToSection = (s) => go(s);
+window.reviewAction = async (cid, aid, status) => {
+  try {
+    await API.post('/api/review/'+aid, {campaignId:cid, approvalStatus:status});
+    toast('Saved: '+status);
+    closeModal();
+    S.review = null; S.brief = null;
+    loadSection('review');
+  } catch(e){ toast(e.message, 'err'); }
+};
+
+// ─── PUBLISH ────────────────────────────────────────────────────
+async function renderPublish(){
+  if(!S.postiz) S.postiz = await API.get('/api/intel/postiz');
+  const p = S.postiz;
+  $('#publish-summary').textContent = p.summary;
+  $('#pub-drafts-count').textContent = (S.postiz.queue||[]).length + ' in queue';
+  $('#pub-sched-count').textContent = (S.postiz.scheduled||[]).length;
+  $('#pub-pub-count').textContent = (S.postiz.published||[]).length;
+  $('#pub-fail-count').textContent = '0';
+
+  const row = it => `<li class="li"><div class="li-body"><div class="li-title">${esc((it.caption||it.name||'').slice(0,80))}</div><div class="li-meta">${esc(it.platform||'')} · ${esc(it.publishStatus||it.status||'')}</div></div></li>`;
+
+  $('#pub-drafts').innerHTML = (p.queue||[]).slice(0,20).map(row).join('') || '<div class="empty">No drafts</div>';
+  $('#pub-sched').innerHTML = (p.scheduled||[]).slice(0,20).map(row).join('') || '<div class="empty">Nothing scheduled</div>';
+  $('#pub-pub').innerHTML = (p.published||[]).slice(0,20).map(row).join('') || '<div class="empty">Nothing published yet</div>';
+  $('#pub-fail').innerHTML = '<div class="empty">No failures detected ✓</div>';
+}
+
+// ─── CALENDAR ───────────────────────────────────────────────────
+async function renderCalendar(){
+  const data = await API.get('/api/intel/calendar?days=14');
+  S.cal = data;
+  $('#cal-summary').textContent = data.totalScheduled + ' scheduled in next 14 days · ' + (data.days[0]?.count || 0) + ' today';
+
+  const grid = $('#cal-grid');
+  const days = data.days;
+  const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let html = dayNames.map(d => `<div class="cal-h">${d}</div>`).join('');
+  // Pad before today (Mon=0)
+  const today = new Date(data.today);
+  const firstDow = (new Date(days[0].date)).getDay(); // 0=Sun
+  const padCount = (firstDow + 6) % 7; // shift so Mon=0
+  for(let i=0;i<padCount;i++) html += `<div></div>`;
+
+  days.forEach(d => {
+    const dt = new Date(d.date);
+    const isToday = d.date === data.today;
+    const slotsHtml = d.slots.slice(0,4).map(s => {
+      const cls = s.approvalStatus==='approved' ? 'scheduled' : (s.publishStatus==='draft' ? 'draft' : 'review');
+      return `<div class="cal-slot ${cls}">${esc((s.name||'').slice(0,30))}</div>`;
+    }).join('');
+    const more = d.slots.length > 4 ? `<div class="muted" style="font-size:10px">+${d.slots.length-4} more</div>` : '';
+    html += `<div class="cal-d ${isToday?'today':''}"><div class="cal-dh"><span class="n">${dt.getDate()}</span><span>${d.count}</span></div>${slotsHtml}${more}</div>`;
+  });
+  grid.innerHTML = html;
+}
+$$('[data-cal-shift]').forEach(b => b.addEventListener('click', () => { S.calOffset += parseInt(b.dataset.calShift, 10); renderCalendar(); }));
+
+// ─── TRENDS ─────────────────────────────────────────────────────
+async function renderTrends(){
+  if(!S.trends) S.trends = await API.get('/api/intel/trend_catcher');
+  const t = S.trends;
+  // YouTube signals come as {key, value} dicts — render as {topic, hot}
+  const renderYT = arr => safeList(arr, 12).map(it => {
+    if(it.key !== undefined){
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(String(it.key).replace(/_/g,' '))}</div><div class="li-meta">${pill(it.value==true||it.value==='true'?'on':'muted', it.value==true||it.value==='true'?'trending':'cooling')} · youtube</div></div></li>`;
+    }
+    // Competitor-style items: extract competitor name + readable text
+    if(it.competitor){
+      const txt = it.response || it.change || it.summary || it.note || it.what_changed || '';
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''}</div></div></li>`;
+    }
+    const title = it.title || it.headline || it.name || it.theme || it.angle || it.change || it.summary || it.suggested_angle || it.trend_pain_point || it.thread_topic || it.body || it.text || JSON.stringify(it).slice(0,80);
+    const src = it._src ? it._src.replace(/_/g,' ') : (it.kind || it.source || '');
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${src?`<div class="li-meta"><span class="muted">${esc(src)}</span></div>`:''}</div></li>`;
+  }).join('') || '<li class="empty">No signals</li>';
+  $('#tr-reddit').innerHTML = renderYT(t.reddit);
+  $('#tr-yt').innerHTML = renderYT(t.youtube);
+  $('#tr-news').innerHTML = renderYT(t.golf_news);
+  $('#tr-comp').innerHTML = renderYT(t.competitor_changes);
+}
+
+// ─── IDEAS ──────────────────────────────────────────────────────
+async function renderIdeas(){
+  if(!S.ideas) S.ideas = await API.get('/api/intel/opportunities');
+  const d = S.ideas;
+  $('#ideas-total').textContent = (d.ideas||[]).length + ' ideas';
+  const renderList = arr => safeList(arr, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-list').innerHTML = renderList(d.ideas);
+  $('#ideas-today').innerHTML = renderList(d.post_today);
+  $('#ideas-week').innerHTML = renderList(d.this_week);
+  $('#ideas-missed').innerHTML = renderList(d.missed);
+  $('#ideas-upsell').innerHTML = renderList(d.upsells);
+  $('#ideas-bundles').innerHTML = renderList(d.bundles);
+  $('#ideas-funnel').innerHTML = renderList(d.funnel_leaks);
+  $('#ideas-landing').innerHTML = renderList(d.landing_fixes);
+}
+
+// ─── PERFORMANCE ────────────────────────────────────────────────
+async function renderPerformance(){
+  const [p, e] = await Promise.all([API.get('/api/intel/performance'), API.get('/api/intel/explain')]);
+  S.perf = p;
+  $('#insights-strip-txt').innerHTML = (e.insights||[]).slice(0,3).map(i => `<b>${esc((i.kind||'insight').replace('-',' ').replace(/_/g,' '))}:</b> ${esc(i.claim)}`).join(' &nbsp;·&nbsp; ') || 'No insights yet — connect analytics to see what is working';
+
+  $('#perf-ig-posts').textContent = p.instagram?.total_posts || 0;
+  $('#perf-ga-sessions').textContent = (p.ga4?.total_sessions || '—').toLocaleString();
+  $('#perf-rising').textContent = (p.seo?.rising||[]).length;
+  $('#perf-falling').textContent = (p.seo?.falling||[]).length;
+
+  const topIg = (p.instagram?.top_posts||[]).slice(0,8);
+  $('#perf-ig-top').innerHTML = topIg.length ? topIg.map(it => {
+    const cap = (it.hook_text || it.captionPreview || it.caption || '').slice(0,80);
+    const er = parseFloat(it.engagementRate || it.engagement_rate || 0) || 0;
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(cap)}</div><div class="li-meta">${pill('on', 'ER '+er.toFixed(2)+'%')} ${it.topic_cluster?pill('live', it.topic_cluster):''} ${it.format_type?pill('draft', it.format_type):''}</div></div></li>`;
+  }).join('') : '<div class="empty">No IG data</div>';
+
+  const seo = p.seo;
+  const seoRows = [];
+  (seo.rising||[]).slice(0,5).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k)}</div><div class="li-meta">${pill('on','rising')}</div></div></li>`));
+  (seo.falling||[]).slice(0,5).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k)}</div><div class="li-meta">${pill('blocked','falling')}</div></div></li>`));
+  (seo.quick_wins||[]).slice(0,3).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k.keyword||k.query||k.title||JSON.stringify(k).slice(0,60))}</div><div class="li-meta">${pill('live','quick win')}${k.position?` · pos ${k.position}`:''}</div></div></li>`));
+  if(!seoRows.length && (seo.keywords||[]).length){
+    (seo.keywords||[]).slice(0,8).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k.keyword||k.query||k.title||JSON.stringify(k).slice(0,60))}</div>${k.position?`<div class="li-meta">pos ${k.position}${k.volume?' · '+k.volume+' vol':''}</div>`:''}</div></li>`));
+  }
+  $('#perf-seo').innerHTML = seoRows.join('') || '<div class="empty">No keyword data</div>';
+
+  $('#perf-ab').innerHTML = safeList(p.ab_tests, 8).map(it => {
+    const winner = it.winner || it.winning_variant || '';
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.test_name||it.name||it.test_id||'Test')}</div><div class="li-meta">${winner?`winner: ${esc(winner)}`:''} · status: ${esc(it.status||'')}</div></div></li>`;
+  }).join('') || '<div class="empty">No A/B tests</div>';
+
+  $('#perf-pages').innerHTML = safeList(p.ga4?.pages, 10).map(it => `
+    <li class="li"><div class="li-body"><div class="li-title">${esc(it.path||it.page||it.url||'')}</div><div class="li-meta">${(it.sessions||0).toLocaleString()} sessions · ${(it.engagement_rate||0).toFixed(1)}% ER</div></div></li>
+  `).join('') || '<div class="empty">No GA4 data</div>';
+
+  $('#perf-insights').innerHTML = safeList(e.insights, 12).map(i => `
+    <div class="review"><div class="review-cap"><div class="review-cap-t">${esc(i.claim)}</div></div><div class="review-meta">${pill(i.kind==='seo-trend-up'?'on':i.kind==='seo-trend-down'?'blocked':'live', i.kind||'')}</div></div>
+  `).join('') || '<div class="empty">No insights yet</div>';
+}
+
+// ─── LEARNING ───────────────────────────────────────────────────
+async function renderLearning(){
+  if(!S.learn) S.learn = await API.get('/api/intel/learning');
+  const l = S.learn;
+  $('#learn-worked').innerHTML = safeList(l.what_worked, 10).map(itemHtml).join('') || '<div class="empty">Nothing yet</div>';
+  $('#learn-failed').innerHTML = safeList(l.what_failed, 10).map(itemHtml).join('') || '<div class="empty">Nothing yet</div>';
+  $('#learn-cta').innerHTML = safeList(l.cta_rankings, 10).map(it => {
+    const score = it.score ?? it.cvr ?? it.ctr ?? '';
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.cta||it.text||JSON.stringify(it))}</div>${score?`<div class="li-meta">score ${score}</div>`:''}</div></li>`;
+  }).join('') || '<div class="empty">No CTA data</div>';
+  $('#learn-trend').innerHTML = safeList(l.trend_delta, 10).map(itemHtml).join('') || '<div class="empty">No trend data</div>';
+  $('#learn-fail-pat').innerHTML = safeList(l.failure_patterns, 10).map(itemHtml).join('') || '<div class="empty">No patterns</div>';
+}
+
+// ─── HOOKS ──────────────────────────────────────────────────────
+async function renderHooks(){
+  if(!S.hooks) S.hooks = await API.get('/api/intel/hooks');
+  const h = S.hooks;
+  $('#hooks-total').textContent = (h.total||0) + ' hooks · ' + (h.all_hooks?.length||0) + ' in active buckets';
+  const renderHook = it => {
+    const txt = it.hook_text || it.hook || it.text || it.title || '';
+    const sc = it.cross_signal_score || it.ig_proof_score || it.perf || it.score;
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,120))}</div>${sc?`<div class="li-meta">${pill('on','score '+sc)} ${it._bucket?pill('live', it._bucket.replace(/_/g,' ')):''}</div>`:''}</div></li>`;
+  };
+  $('#hooks-ww').innerHTML = safeList(h.all_hooks, 20).map(renderHook).join('') || '<div class="empty">No hooks yet</div>';
+  const renderFormula = it => `<li class="li"><div class="li-body"><div class="li-title">${esc((it.best_example || '').slice(0,120))}</div><div class="li-meta">${pill('live', it.formula || '')} ${it.count?` · ${it.count} uses`:''} ${it.avg_cross_score?` · avg score ${it.avg_cross_score}`:''}</div></div></li>`;
+  $('#hooks-formulas').innerHTML = safeList(h.hook_formulas, 20).map(renderFormula).join('') || '<div class="empty">No formulas</div>';
+  empty('hooks-generated', 'Click Generate to produce fresh hooks from current signals');
+}
+$('#hooks-gen').addEventListener('click', async () => {
+  const r = await API.get('/api/intel/hooks_generate');
+  $('#hooks-generated').innerHTML = safeList(r.generated, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.hook)}</div><div class="li-meta">${esc(it.source||'')} · ${pill(it.kind||'live', it.kind||'live')}</div></div></li>`).join('');
+  toast('Generated '+r.count+' fresh hooks');
+});
+
+// ─── MEMES ──────────────────────────────────────────────────────
+async function renderMemes(){
+  if(!S.memes) S.memes = await API.get('/api/intel/memes');
+  const m = S.memes;
+  $('#memes-summary').textContent = m.summary;
+  $('#memes-list').innerHTML = safeList(m.memes, 12).map(itemHtml).join('') || '<div class="empty">No meme ideas</div>';
+  $('#memes-caps').innerHTML = safeList(m.captions, 12).map(itemHtml).join('') || '<div class="empty">No captions</div>';
+  $('#memes-vars').innerHTML = safeList(m.variants, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.caption||it.hook||it.title||JSON.stringify(it).slice(0,80))}</div>${it.platform?`<div class="li-meta">${pill('live', it.platform)}</div>`:''}</div></li>`).join('') || '<div class="empty">No variants</div>';
+}
+
+// ─── BILLBOARDS ─────────────────────────────────────────────────
+async function renderBillboards(){
+  if(!S.bb) S.bb = await API.get('/api/intel/billboards');
+  const b = S.bb;
+  $('#bb-summary').textContent = b.summary;
+  $('#bb-list').innerHTML = safeList(b.billboards, 12).map(itemHtml).join('') || '<div class="empty">No concepts yet</div>';
+  $('#bb-briefs').innerHTML = safeList(b.briefs, 12).map(itemHtml).join('') || '<div class="empty">No visual briefs</div>';
+}
+
+// ─── CAPTIONS ───────────────────────────────────────────────────
+async function renderCaptions(){
+  if(!S.cap) S.cap = await API.get('/api/intel/caption_studio');
+  if(!S.assets) S.assets = await API.get('/api/intel/assets');
+  const sel = $('#cap-asset-select');
+  sel.innerHTML = '<option value="">— pick an asset —</option>' + (S.assets.assets||[]).slice(0,60).map(a => `<option value="${esc(a.assetId)}">${esc(a.campaignName)} · ${esc(a.name)}</option>`).join('');
+  const c = S.cap;
+  $('#cap-bank').innerHTML = safeList(c.captions, 20).map(it => {
+    const txt = it.hook_text || it.short_caption || it.medium_caption || it.long_caption || it.caption || it.text || '';
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,140))}</div><div class="li-meta">${it.platform?pill('live', it.platform):''} ${it.format_type?pill('draft', it.format_type):''}</div></div></li>`;
+  }).join('') || '<div class="empty">No captions</div>';
+  $('#cap-cta').innerHTML = safeList(c.cta_rankings, 10).map(it => {
+    const txt = it.cta || it.text || it.label || it.cta_type || '';
+    const perf = it.avg_engagement_rate || it.cvr || it.score || '';
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt)}</div>${perf?`<div class="li-meta">${pill('on', 'avg '+perf+(typeof perf==='number'?'%':''))}</div>`:''}</div></li>`;
+  }).join('') || '<div class="empty">No CTA data</div>';
+  empty('cap-results', 'Pick an asset and click Generate');
+}
+$('#cap-gen').addEventListener('click', async () => {
+  const id = $('#cap-asset-select').value;
+  if(!id){ toast('Pick an asset first', 'err'); return; }
+  const r = await API.post('/api/intel/generate/captions/'+id, {n:5});
+  if(!r.ok){ toast(r.error||'Failed', 'err'); return; }
+  $('#cap-results').innerHTML = `<h4 style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">${r.count} variants for ${esc(r.asset)}</h4>` + (r.variants||[]).map(v => `
+    <div class="review"><div class="review-cap"><div class="review-cap-t">${esc(v.hook)}</div><div class="review-cap-x">${esc(v.body)}</div></div><div class="review-meta">${pill('live', v.platform||'')} ${pill('on', 'CTA')} <span class="muted">${esc(v.source||'')}</span></div></div>
+  `).join('');
+  toast('Generated '+r.count+' caption variants');
+});
+
+// ─── HEADLINES ─────────────────────────────────────────────────
+async function renderHeadlines(){
+  empty('head-list', 'Click Generate to produce headlines from current signals');
+}
+$('#head-gen').addEventListener('click', async () => {
+  const r = await API.get('/api/intel/headlines_generate');
+  $('#head-list').innerHTML = safeList(r.headlines, 8).map(it => `<li class="li"><div class="li-body"><div class="li-title" style="font-size:16px">${esc(it.headline)}</div><div class="li-meta">${esc(it.seed||'')} · ${esc(it.source||'')}</div></div></li>`).join('') || '<div class="empty">Nothing generated</div>';
+  toast('Generated '+r.count+' headlines');
+});
+
+// ─── CTAS ───────────────────────────────────────────────────────
+async function renderCTAs(){
+  empty('cta-list', 'Click Generate to produce CTAs from your performance data');
+}
+$('#cta-gen').addEventListener('click', async () => {
+  const r = await API.get('/api/intel/ctas_generate');
+  $('#cta-list').innerHTML = safeList(r.ctas, 8).map(it => `<li class="li"><div class="li-body"><div class="li-title" style="font-size:15px">${esc(it.cta)}</div><div class="li-meta">${esc(it.source||'')}${it.perf?` · score ${it.perf}`:''}</div></div></li>`).join('') || '<div class="empty">Nothing generated</div>';
+  toast('Generated '+r.count+' CTAs');
+});
+
+// ─── SEO ────────────────────────────────────────────────────────
+async function renderSEO(){
+  if(!S.seo) S.seo = await API.get('/api/intel/seo_assistant');
+  const s = S.seo;
+  const auditSum = s.audit?.summary || {};
+  $('#seo-audit').innerHTML = `<dl class="kvs"><dt>Findings</dt><dd>${auditSum.total_findings||'—'}</dd><dt>High</dt><dd>${auditSum.high_severity||'—'}</dd><dt>Medium</dt><dd>${auditSum.medium_severity||'—'}</dd><dt>Low</dt><dd>${auditSum.low_severity||'—'}</dd></dl>` + safeList(s.audit?.high_priority, 8).map(itemHtml).join('');
+  const rank = s.rankings;
+  $('#seo-rank').innerHTML = `<div class="row gap-1" style="margin-bottom:.75rem">${pill('on',(rank?.rising||[]).length+' rising')} ${pill('blocked',(rank?.falling||[]).length+' falling')} ${pill('live',(rank?.quick_wins||[]).length+' quick wins')}</div>` + safeList(rank?.keywords, 10).map(itemHtml).join('');
+  $('#seo-geo').innerHTML = `<dl class="kvs"><dt>GEO score</dt><dd>${s.geo?.geo_score||'—'}</dd></dl>` + safeList(s.geo?.high_priority, 6).map(itemHtml).join('');
+  $('#seo-fixes').innerHTML = safeList(s.fixes, 10).map(itemHtml).join('') || '<div class="empty">No fixes suggested</div>';
+}
+
+// ─── GBP ────────────────────────────────────────────────────────
+async function renderGBP(){
+  if(!S.gbp) S.gbp = await API.get('/api/intel/gbp_suggestions');
+  const g = S.gbp;
+  const inp = g.input || {};
+  $('#gbp-profile').innerHTML = `<dl class="kvs"><dt>Business</dt><dd>${esc(inp.business_name||'—')}</dd><dt>Location</dt><dd>${esc(inp.location_context||'—')}</dd><dt>Services</dt><dd>${esc((inp.services||[]).join(', '))}</dd></dl>` + safeList(inp.seo_opportunities, 6).map(itemHtml).join('');
+  const last = g.last_post || {};
+  $('#gbp-last').innerHTML = `<div style="margin-bottom:.75rem"><b>Last angle:</b> ${esc(last.chosen_angle||'—')}</div><div class="muted" style="font-size:12px">${esc(last.why_this_angle_wins||'')}</div>` + safeList(last.seo_signals_used, 4).map(itemHtml).join('');
+}
+
+// ─── REDDIT ─────────────────────────────────────────────────────
+async function renderReddit(){
+  if(!S.reddit) S.reddit = await API.get('/api/intel/reddit_outreach');
+  const r = S.reddit;
+  $('#reddit-pain').innerHTML = safeList(r.pain_points, 12).map(itemHtml).join('') || '<div class="empty">No pain points yet</div>';
+  $('#reddit-replies').innerHTML = safeList(r.replies, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.text||it.reply||it.title||JSON.stringify(it).slice(0,80))}</div></div></li>`).join('') || '<div class="empty">No replies yet</div>';
+}
+
+// ─── FAQS ───────────────────────────────────────────────────────
+async function renderFAQs(){
+  const r = await API.get('/api/intel/faq_generator');
+  $('#faqs-list').innerHTML = safeList(r.faqs, 30).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.question||it.title||it.q||JSON.stringify(it).slice(0,80))}</div>${it.answer||it.a?`<div class="li-meta">${esc((it.answer||it.a).slice(0,140))}</div>`:''}</div></li>`).join('') || '<div class="empty">No FAQ opportunities</div>';
+}
+
+// ─── POSTIZ ─────────────────────────────────────────────────────
+async function renderPostiz(){
+  if(!S.postiz) S.postiz = await API.get('/api/intel/postiz');
+  const p = S.postiz;
+  $('#postiz-summary').textContent = p.summary;
+  $('#postiz-queue').innerHTML = safeList(p.queue, 20).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc((it.caption||it.name||'').slice(0,80))}</div><div class="li-meta">${esc(it.platform||'')} · ${esc(it.publishStatus||it.status||'')} · ${esc((it.publishDate||'').slice(0,16))}</div></div></li>`).join('') || '<div class="empty">Queue empty</div>';
+  const refs = p.publishing_refs?.references || p.publishing_refs?.items || [];
+  $('#postiz-refs').innerHTML = safeList(refs, 20).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.postizId||it.id||'—')}</div><div class="li-meta">${esc(it.campaignId||'')} · ${esc(it.assetId||'')} · ${esc(it.publishStatus||'')}</div></div></li>`).join('') || '<div class="empty">No canonical references yet</div>';
+}
+
+// ─── CAMPAIGNS ──────────────────────────────────────────────────
+async function renderCampaigns(){
+  const d = await API.get('/api/campaigns');
+  const camps = d.campaigns || {};
+  const ids = Object.keys(camps);
+  $('#camp-summary').textContent = ids.length + ' campaigns · ' + (d.activeCampaignId||'no active');
+  $('#camp-list').innerHTML = '<div class="grid">' + ids.map(cid => {
+    const c = camps[cid];
+    const cname = c.identity?.name || cid;
+    const assets = c.assets || {};
+    const n = Object.keys(assets).length;
+    const status = c.identity?.status || '';
+    return `<div class="card col-4"><div class="card-h"><h3>${esc(cname)}</h3><span class="h-meta">${esc(status)}</span></div><div class="row gap-1" style="margin-bottom:.75rem"><span class="muted">${n} assets</span>${d.activeCampaignId===cid?pill('on','active'):''}</div>${c.identity?.brief?`<div style="font-size:13px;color:var(--tx-2);line-height:1.5">${esc(c.identity.brief).slice(0,180)}…</div>`:''}<div class="btn-row" style="margin-top:.75rem"><button class="btn" onclick="go('campaigns');setTimeout(()=>openReview('${cid}','${Object.keys(assets)[0]||''}'),100)">View assets</button></div></div>`;
+  }).join('') + '</div>';
+}
+
+// ─── AGENTS ─────────────────────────────────────────────────────
+async function renderAgents(){
+  if(!S.agents) S.agents = await API.get('/api/intel/agents');
+  const a = S.agents;
+  $('#agents-list').innerHTML = safeList(a.agents, 20).map(itemHtml).join('') || '<div class="empty">No agent runs</div>';
+  const h = a.system_health || {};
+  $('#agents-health').innerHTML = `<dl class="kvs"><dt>Status</dt><dd>${esc(h.status||'—')}</dd><dt>Confidence</dt><dd>${esc(h.confidence||'—')}</dd><dt>Generated</dt><dd>${esc((h.generated||'').slice(0,19))}</dd></dl>` + pretty(h.data_status);
+  $('#agents-int').innerHTML = safeList(a.integration_health?.health, 12).map(itemHtml).join('') || '<div class="empty">No integration data</div>';
+}
+
+// ─── Search ─────────────────────────────────────────────────────
+let searchTimer;
+$('#search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim();
+  if(q.length < 2){ $('#search-results').classList.remove('on'); return; }
+  searchTimer = setTimeout(async () => {
+    const r = await API.get('/api/search?q='+encodeURIComponent(q));
+    const list = r.results || [];
+    if(!list.length){ $('#search-results').classList.remove('on'); return; }
+    const grouped = {};
+    list.forEach(x => { (grouped[x.kind] = grouped[x.kind] || []).push(x); });
+    let html = '';
+    for(const [kind, items] of Object.entries(grouped).slice(0,8)){
+      html += `<div class="sr-kind">${esc(kind)} (${items.length})</div>`;
+      items.slice(0,5).forEach(x => { html += `<a class="sr-item" href="#">${esc(x.title||'—')}<div class="sr-meta">${esc(x.id||'')}</div></a>`; });
+    }
+    $('#search-results').innerHTML = html;
+    $('#search-results').classList.add('on');
+  }, 200);
+});
+$('#search-input').addEventListener('blur', () => setTimeout(()=>$('#search-results').classList.remove('on'), 200));
+
+// ─── Boot ───────────────────────────────────────────────────────
+(async function boot(){
+  try {
+    await renderBrief();
+    // Pre-load core views in background
+    Promise.all([
+      API.get('/api/intel/review_inbox').then(r => S.review=r),
+      API.get('/api/intel/postiz').then(r => S.postiz=r),
+    ]).catch(e=>console.warn('preload', e));
+  } catch(e){ toast('Boot failed: '+e.message, 'err'); console.error(e); }
+})();
+</script>
+</body>
+</html>
