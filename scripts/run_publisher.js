@@ -29,6 +29,7 @@ const { execSync } = require('child_process');
 const { loadPostizApiKey } = require('./_lib/postiz-credentials');
 const { regenerate: regenerateIndex } = require('./regenerate-publishing-index');
 const { evaluateAsset, applyStateTransition, recordEvent } = require('./_lib/asset-state-engine');
+const visibilityGuard = require('./_lib/visibility-guard');
 
 const REPO_ROOT = path.join(__dirname, '..');
 const DATA = path.join(REPO_ROOT, 'data');
@@ -995,9 +996,14 @@ async function runLive() {
         integrationId: integration.id,
       });
       if (priorDraft && priorDraft.postizPostId) {
-        // Use the known draft ID — skip the upload + create calls entirely.
-        reconciliationContext = priorDraft;
-        console.log(`[run_publisher] partial-write recovery: found prior draft ${priorDraft.postizPostId} for asset ${assetId}; reconciling instead of recreating.`);
+        const operatorState = (process.env.VISIBILITY_DISPUTES ? (JSON.parse(process.env.VISIBILITY_DISPUTES)[assetId]) : null) || 'unknown';
+        const guard = visibilityGuard.assertNoVisibilityDispute({ apiState: 'exists', canonicalState: 'exists', operatorVisibilityState: operatorState });
+        if (!visibilityGuard.blocksAction(guard, 'duplicate-skip')) {
+          reconciliationContext = priorDraft;
+          console.log(`[run_publisher] partial-write recovery: found prior draft ${priorDraft.postizPostId} for asset ${assetId}; reconciling instead of recreating.`);
+        } else {
+          console.log(`[run_publisher] partial-write recovery SKIPPED for asset ${assetId}: guard=${guard.state} (${guard.reason}).`);
+        }
       }
     }
 
@@ -1057,13 +1063,16 @@ async function runLive() {
     let usedFixture = false;
     let usedReconciliation = false;
     if (reconciliationContext) {
-      // Partial-write recovery: use the prior draft ID instead of calling Postiz.
-      // We synthesise a response shape from the reconciliation entry; the
-      // canonical write will use this draft ID, and the engine will record
-      // a publish-draft-created event using state='DRAFT'.
-      console.log(`[run_publisher] --live (RECONCILE): reusing prior draft ${reconciliationContext.postizPostId} for ${item.item_id}`);
-      response = responseFromReconciliation(reconciliationContext);
-      usedReconciliation = true;
+      const operatorState = (process.env.VISIBILITY_DISPUTES ? (JSON.parse(process.env.VISIBILITY_DISPUTES)[item.item_id]) : null) || 'unknown';
+      const guard = visibilityGuard.assertNoVisibilityDispute({ apiState: 'unknown', canonicalState: 'exists', operatorVisibilityState: operatorState });
+      if (visibilityGuard.blocksAction(guard, 'reconcile')) {
+        console.log(`[run_publisher] --live (RECONCILE) BLOCKED: guard=${guard.state} (${guard.reason}). Falling back.`);
+        reconciliationContext = null;
+      } else {
+        console.log(`[run_publisher] --live (RECONCILE): reusing prior draft ${reconciliationContext.postizPostId} for ${item.item_id}`);
+        response = responseFromReconciliation(reconciliationContext);
+        usedReconciliation = true;
+      }
     } else if (isFixtureMode()) {
       console.log(`[run_publisher] --live (FIXTURE): using fixture for item ${item.item_id}`);
       // Use a unique fixture per item so multiple live publishes don't collide

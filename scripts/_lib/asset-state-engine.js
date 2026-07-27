@@ -45,6 +45,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const visibilityGuard = require('./visibility-guard');
 
 // ── Schema ────────────────────────────────────────────────────────────────
 
@@ -377,8 +378,14 @@ function evaluatePublishStatus(asset, history, ext, observations) {
   // (which keeps the asset at 'scheduled' until proven live by a poll).
   const extPostiz = (ext.postizConfirmations || []).find(p => p && p.assetId === asset.assetId);
   if (extPostiz && (extPostiz.status === 'live' || extPostiz.status === 'published')) {
-    observations.push({ axis: 'publishStatus', evidence: { reason: 'Postiz confirmation -> live' } });
-    return 'live';
+    const operatorState = (ext.operatorVisibility && ext.operatorVisibility[asset.assetId]) || 'unknown';
+    const guard = visibilityGuard.assertNoVisibilityDispute({ apiState: 'exists', canonicalState: 'exists', operatorVisibilityState: operatorState });
+    if (visibilityGuard.blocksAction(guard, 'mark-live')) {
+      observations.push({ axis: 'publishStatus', evidence: { reason: `visibility guard blocks mark-live: ${guard.reason}` } });
+    } else {
+      observations.push({ axis: 'publishStatus', evidence: { reason: 'Postiz confirmation -> live' } });
+      return 'live';
+    }
   }
   if (extPostiz && extPostiz.status === 'failed') {
     observations.push({ axis: 'publishStatus', evidence: { reason: 'Postiz failure recorded' } });

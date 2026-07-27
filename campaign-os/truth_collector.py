@@ -51,6 +51,11 @@ import urllib.request
 import uuid
 from typing import Any, Optional
 
+# Step 97/98 Visibility Guard — language adapter (JS canonical).
+import sys as _sys
+_sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '_lib'))
+from visibility_guard import assert_no_visibility_dispute, blocks_action  # noqa: E402
+
 LOG = logging.getLogger("truth_collector")
 
 # ── Constants ───────────────────────────────────────────────────────────
@@ -773,6 +778,13 @@ def truth_collector_ingest_publish_event(postiz_payload: dict, store: Engagement
     asset_id = ref["assetId"]
     campaign_id = ref["campaignId"]
     platform_media_id = ref.get("platformMediaId")
+
+    # Step 97/98: visibility guard. Default unknown never blocks; only an
+    # explicit dispute halts destructive-state-reconciliation on this asset.
+    _op_state = json.loads(os.environ.get('VISIBILITY_DISPUTES', '{}')).get(asset_id, 'unknown')
+    _guard = assert_no_visibility_dispute(apiState='exists', canonicalState='exists', operatorVisibilityState=_op_state)
+    if blocks_action(_guard, 'destructive-state-reconciliation'):
+        return {"ok": False, "reason": "visibility_disputed", "postId": post_id, "assetId": asset_id, "guard": _guard['state'], "detail": _guard['reason']}
 
     # 3. Fetch with retry
     try:

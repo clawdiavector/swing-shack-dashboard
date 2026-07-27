@@ -912,6 +912,26 @@ test('cmFIXTURE* post IDs are detectable as fixture (truth_collector guard)', ()
   assert(/^cmFIXTURE/.test(id), 'fixture prefix is uppercase, real IDs are lowercase');
 });
 
+// ── Section 10: Visibility guard (Step 97/98) ────────────────────────────
+section('10. Visibility guard — dispute blocks prior-draft skip');
+
+test('VISIBILITY_DISPUTES env on prior draft causes duplicate-skip to be blocked', () => {
+  const guard = require('../scripts/_lib/visibility-guard');
+  // Asset with dispute reported — duplicate-skip is one of the locked actions.
+  const g = guard.assertNoVisibilityDispute({ apiState: 'exists', canonicalState: 'exists', operatorVisibilityState: 'not-visible' });
+  assert('dispute produces VISIBILITY_DISPUTED', g.state === 'VISIBILITY_DISPUTED');
+  assert('dispute blocks duplicate-skip', guard.blocksAction(g, 'duplicate-skip') === true);
+  assert('dispute allows read', guard.blocksAction(g, 'read') === false);
+  assert('dispute allows analytics', guard.blocksAction(g, 'analytics') === false);
+});
+
+test('no VISIBILITY_DISPUTES env (default unknown) does NOT block prior-draft skip', () => {
+  const guard = require('../scripts/_lib/visibility-guard');
+  const g = guard.assertNoVisibilityDispute({ apiState: 'exists', canonicalState: 'exists', operatorVisibilityState: 'unknown' });
+  assert('unknown is OK', g.state === 'OK');
+  assert('unknown does not block duplicate-skip', guard.blocksAction(g, 'duplicate-skip') === false);
+});
+
 // ── Summary ──────────────────────────────────────────────────────────────
 async function main() {
   // Drain the test queue sequentially, awaiting each async test

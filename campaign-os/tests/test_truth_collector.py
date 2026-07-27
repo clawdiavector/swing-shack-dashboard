@@ -733,5 +733,54 @@ class TestIngestThreading(unittest.TestCase):
         self.assertIsNone(captured["platform_media_id"])
 
 
+# Step 97/98 Visibility Guard
+class TestVisibilityGuard(unittest.TestCase):
+    def _store(self):
+        from truth_collector import EngagementStore
+        return EngagementStore("/tmp/_tc_visibility_test_store")
+
+    def test_dispute_blocks_ingest(self):
+        # VISIBILITY_DISPUTES env reports a dispute for asset 'a1'.
+        # The truth_collector must refuse to record engagement.
+        captured = {}
+        def fake_fetch(asset_id, campaign_id, channel, captured_at, run_id, postiz_post_id, platform_media_id):
+            captured["called"] = True
+            return {"asset_id": asset_id, "captured_at": captured_at}
+        import os
+        os.environ["VISIBILITY_DISPUTES"] = json.dumps({"a1": "not-visible"})
+        try:
+            with patch.object(tc, "_lookup_asset_by_postiz_post_id",
+                              return_value={"assetId": "a1", "campaignId": "c1", "platformMediaId": None}):
+                with patch.object(tc, "_fetch_and_build_record", side_effect=fake_fetch):
+                    result = truth_collector_ingest_publish_event(
+                        {"post_id": "p1", "status": "published",
+                         "published_at": "2026-07-20T08:00:00Z", "channel": "instagram"},
+                        self._store(),
+                    )
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["reason"], "visibility_disputed")
+            self.assertNotIn("called", captured, "fetch must not be called when dispute blocks")
+        finally:
+            del os.environ["VISIBILITY_DISPUTES"]
+
+    def test_default_unknown_does_not_block(self):
+        import os
+        os.environ.pop("VISIBILITY_DISPUTES", None)
+        def fake_fetch(asset_id, campaign_id, channel, captured_at, run_id, postiz_post_id, platform_media_id):
+            return make_record(
+                asset_id=asset_id, campaign_id=campaign_id,
+                source="meta", captured_at=captured_at, run_id=run_id, postiz_post_id=postiz_post_id,
+            )
+        with patch.object(tc, "_lookup_asset_by_postiz_post_id",
+                          return_value={"assetId": "a1", "campaignId": "c1", "platformMediaId": None}):
+            with patch.object(tc, "_fetch_and_build_record", side_effect=fake_fetch):
+                result = truth_collector_ingest_publish_event(
+                    {"post_id": "p1", "status": "published",
+                     "published_at": "2026-07-20T08:00:00Z", "channel": "instagram"},
+                    self._store(),
+                )
+        self.assertTrue(result["ok"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
