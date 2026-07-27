@@ -244,6 +244,49 @@ a:hover{text-decoration:underline}
 .toast.on{transform:none}
 .toast.err{border-left-color:var(--red)}
 
+/* ─── Meme Lord v2 ─────────────────────────────────────────── */
+.mini-select{background:var(--bg-2);color:var(--tx);border:1px solid var(--bg-3);border-radius:6px;padding:5px 8px;font-size:12px;font-weight:500}
+.btn-mini{display:inline-flex;align-items:center;gap:.3rem;padding:4px 10px;border-radius:6px;background:var(--bg-3);border:1px solid var(--bd);color:var(--tx-2);font-size:11px;font-weight:500;cursor:pointer;transition:all var(--t)}
+.btn-mini:hover{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+.link-btn{background:none;border:none;color:var(--ac);cursor:pointer;font-size:11px;font-weight:600;text-transform:lowercase;letter-spacing:.02em;padding:0 .25rem}
+.link-btn:hover{text-decoration:underline}
+.meme-chip{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;margin-right:.25rem}
+.meme-bf{display:inline-flex;align-items:center;gap:.3rem;font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;letter-spacing:.02em}
+.meme-picks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.85rem}
+.meme-pick{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:.85rem 1rem;display:flex;flex-direction:column;gap:.5rem;transition:all var(--t)}
+.meme-pick:hover{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-glow)}
+.meme-pick-h{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
+.meme-pick-title{font-weight:600;font-size:14px;color:var(--tx)}
+.meme-pick-sub{font-size:11px;color:var(--tx-3);margin-top:2px}
+.meme-pick-why{font-size:12px;color:var(--tx-2);line-height:1.4}
+.meme-pick-tags{display:flex;flex-wrap:wrap;gap:.25rem}
+.meme-pick-seeds{font-size:11px;color:var(--tx-3)}
+.meme-pick-seeds summary{cursor:pointer;font-weight:600;color:var(--ac);padding:.15rem 0}
+.meme-pick-seeds ul{margin:.35rem 0 0 1rem;padding:0}
+.mem-seed{margin:.15rem 0}
+.meme-pick-actions{display:flex;gap:.4rem;margin-top:.25rem}
+.meme-tag{display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;background:var(--bg-3);color:var(--tx-2);border-radius:99px;margin-right:.2rem}
+.meme-list{display:flex;flex-direction:column;gap:.35rem;max-height:600px;overflow-y:auto;padding-right:.35rem}
+.meme-list::-webkit-scrollbar{width:6px}
+.meme-list::-webkit-scrollbar-thumb{background:var(--bg-3);border-radius:3px}
+.meme-row{display:grid;grid-template-columns:1fr auto auto auto;gap:.5rem;align-items:center;padding:.55rem .75rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-s);transition:all var(--t)}
+.meme-row:hover{border-color:var(--ac);background:var(--bg-3)}
+.meme-row-title{font-weight:500;font-size:13px;color:var(--tx)}
+.meme-row-still{margin-left:.25rem;font-size:11px}
+.meme-row-sub{display:flex;align-items:center;gap:.25rem;margin-top:2px;font-size:10px;color:var(--tx-3)}
+.meme-fmt{font-size:10px;color:var(--tx-3);text-transform:lowercase;font-weight:500;margin-left:.15rem}
+.meme-row-actions{display:flex;gap:.25rem}
+.meme-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:300;padding:1rem}
+.meme-modal-inner{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:1.5rem;max-width:680px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:var(--sh)}
+.meme-modal-section{margin-bottom:.85rem}
+.meme-modal-section b{color:var(--ac);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.mem-reasons{margin:.35rem 0 0 1rem;font-size:12px;color:var(--tx-2)}
+.meme-caps{display:flex;flex-direction:column;gap:.5rem;margin-top:.5rem}
+.meme-cap-row{display:grid;grid-template-columns:80px 1fr auto;gap:.75rem;align-items:center;padding:.55rem .75rem;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s)}
+.meme-cap-flavour{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ac);padding:2px 7px;background:var(--bg);border-radius:99px;text-align:center}
+.meme-cap-text{font-size:13px;color:var(--tx);line-height:1.4}
+.meme-seeds{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+
 /* ─── Misc ───────────────────────────────────────────────────── */
 .muted{color:var(--tx-3)}
 .row{display:flex;align-items:center;gap:.75rem}
@@ -463,11 +506,81 @@ a:hover{text-decoration:underline}
 
     <!-- ── MEMES ─────────────────────────────────────────── -->
     <section class="section" id="sec-memes">
-      <div class="section-h"><h2>Meme Lord</h2><span class="sub" id="memes-summary">—</span></div>
+      <div class="section-h">
+        <h2>Meme Lord <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · meme historian</span></h2>
+        <span class="sub" id="memes-summary">—</span>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:center">
+          <label class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em">Voice</label>
+          <select id="mem-voice" class="mini-select">
+            <option value="swing-shack">Swing Shack (default)</option>
+            <option value="stick">Stick (edgy)</option>
+            <option value="bag-drop">Bag Drop (premium)</option>
+          </select>
+          <label class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-left:1rem">Pillar</label>
+          <select id="mem-pillar" class="mini-select">
+            <option value="education">Education</option>
+            <option value="club-fitting">Club fitting</option>
+            <option value="community">Community</option>
+            <option value="events">Events</option>
+          </select>
+          <label class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-left:1rem">Platform</label>
+          <select id="mem-platform" class="mini-select">
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+            <option value="facebook">Facebook</option>
+            <option value="twitter">Twitter</option>
+          </select>
+          <label class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-left:1rem">Era</label>
+          <select id="mem-era" class="mini-select">
+            <option value="">All</option>
+            <option value="classic">Classic</option>
+            <option value="mid">Mid</option>
+            <option value="recent">Recent</option>
+            <option value="current">Current</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:.35rem;margin-left:auto;font-size:12px">
+            <input type="checkbox" id="mem-still-works" /> <span>Only still-works</span>
+          </label>
+          <input type="text" id="mem-search" placeholder="Search tag, name, idea…" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bg-3);border-radius:6px;padding:6px 10px;font-size:12px;min-width:200px" />
+        </div>
+      </div>
+
       <div class="grid">
-        <div class="card col-6"><div class="card-h"><h3>😂 Meme ideas</h3></div><div id="memes-list"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>✍️ Captions</h3></div><div id="memes-caps"></div></div>
-        <div class="card col-12"><div class="card-h"><h3>🔁 Caption variants</h3></div><div id="memes-vars"></div></div>
+        <!-- Top: brand-fit recommendations -->
+        <div class="card col-12">
+          <div class="card-h">
+            <h3>🎯 Top picks for <span id="mem-picks-context">swing-shack · education · instagram</span></h3>
+            <span class="muted" id="mem-picks-summary" style="font-size:11px">—</span>
+          </div>
+          <div id="memes-picks" class="meme-picks-grid"></div>
+        </div>
+
+        <!-- Bottom: historian library -->
+        <div class="card col-12">
+          <div class="card-h">
+            <h3>📚 Meme historian — <span id="mem-lib-count">—</span></h3>
+            <span class="muted" style="font-size:11px">sort by <button class="link-btn mem-sort" data-sort="brand_fit">brand-fit</button> · <button class="link-btn mem-sort" data-sort="peak_year">peak year</button> · <button class="link-btn mem-sort" data-sort="name">name</button></span>
+          </div>
+          <div id="memes-list" class="meme-list"></div>
+        </div>
+      </div>
+
+      <!-- Apply modal -->
+      <div id="meme-modal" class="meme-modal" style="display:none">
+        <div class="meme-modal-inner">
+          <div class="row" style="justify-content:space-between;align-items:flex-start">
+            <div>
+              <h3 id="meme-modal-title" style="margin:0">Meme</h3>
+              <div class="muted" id="meme-modal-meta" style="font-size:12px;margin-top:.25rem">—</div>
+            </div>
+            <button class="link-btn" id="meme-modal-close">✕</button>
+          </div>
+          <div id="meme-modal-body" style="margin-top:1rem"></div>
+        </div>
       </div>
     </section>
 
@@ -1142,14 +1255,206 @@ $('#hooks-gen').addEventListener('click', async () => {
   toast('Generated '+r.count+' fresh hooks');
 });
 
-// ─── MEMES ──────────────────────────────────────────────────────
+// ─── MEME LORD v2 — meme historian ───────────────────────────
+const MEM_STATE = {
+  voice: 'swing-shack', pillar: 'education', platform: 'instagram',
+  era: '', only_still_works: false, search: '', sort: 'brand_fit',
+  picks: null, library: null,
+};
+let MEM_LIB_CACHE = null; // {ts, items}
+
+function memEraLabel(e){
+  return ({classic:'Classic',mid:'Mid',recent:'Recent',current:'Current'})[e] || e;
+}
+
+function memEraChip(e){
+  const colors = {classic:'#7c5cff',mid:'#34d399',recent:'#fbbf24',current:'#fb7185'};
+  return `<span class="meme-chip" style="background:${colors[e]||'#94a3b8'}1a;color:${colors[e]||'#94a3b8'};border:1px solid ${colors[e]||'#94a3b8'}33">${memEraLabel(e)}</span>`;
+}
+
+function memFatigueChip(r){
+  if(r === 'low') return `<span class="meme-chip" style="background:#34d3991a;color:#34d399;border:1px solid #34d39933">low fatigue</span>`;
+  if(r === 'medium') return `<span class="meme-chip" style="background:#fbbf241a;color:#fbbf24;border:1px solid #fbbf2433">medium fatigue</span>`;
+  if(r === 'high') return `<span class="meme-chip" style="background:#fb71851a;color:#fb7185;border:1px solid #fb718533">high fatigue</span>`;
+  return '';
+}
+
+function memBrandFitBadge(score){
+  let color = '#94a3b8';
+  if(score >= 75) color = '#34d399';
+  else if(score >= 50) color = '#fbbf24';
+  else if(score >= 25) color = '#fb923c';
+  else color = '#94a3b8';
+  return `<span class="meme-bf" style="background:${color}1a;color:${color};border:1px solid ${color}44" title="Brand-fit score">⛳ ${score}</span>`;
+}
+
+function memPicksCard(m){
+  const seeds = (m.swingshack_fit_seeds || []).slice(0, 3).map(s => `<li class="mem-seed">${esc(s)}</li>`).join('');
+  const tags = (m.tags || []).slice(0, 4).map(t => `<span class="meme-tag">${esc(t)}</span>`).join(' ');
+  return `
+    <div class="meme-pick" data-id="${esc(m.id)}">
+      <div class="meme-pick-h">
+        <div>
+          <div class="meme-pick-title">${esc(m.name)}</div>
+          <div class="meme-pick-sub">peak ${m.peak_year || '?'} · ${memEraLabel(m.era)}</div>
+        </div>
+        ${memBrandFitBadge(m.brand_fit || 0)}
+      </div>
+      <div class="meme-pick-why" title="${esc(m.why_it_works || '')}">${esc(m.why_it_works || '')}</div>
+      <div class="meme-pick-tags">${tags}</div>
+      <details class="meme-pick-seeds"><summary>3 fit-seeds for Swing Shack</summary><ul>${seeds}</ul></details>
+      <div class="meme-pick-actions">
+        <button class="btn-mini mem-apply" data-id="${esc(m.id)}">Generate caption →</button>
+        <button class="btn-mini mem-open" data-id="${esc(m.id)}">Why it works</button>
+      </div>
+    </div>`;
+}
+
+function memLibraryRow(m){
+  const still = m.still_works === true ? '✅' : (m.still_works === false ? '⚠️' : '·');
+  const fmtLabel = (m.format || '').replace(/-/g,' ');
+  const tags = (m.tags || []).slice(0, 3).map(t => `<span class="meme-tag">${esc(t)}</span>`).join(' ');
+  return `
+    <li class="meme-row" data-id="${esc(m.id)}">
+      <div class="meme-row-main">
+        <div class="meme-row-title">${esc(m.name)} <span class="meme-row-still">${still}</span></div>
+        <div class="meme-row-sub">${memEraChip(m.era)} ${memFatigueChip(m.fatigue_risk)} <span class="meme-fmt">${esc(fmtLabel)}</span></div>
+      </div>
+      <div class="meme-row-tags">${tags}</div>
+      <div class="meme-row-bf">${memBrandFitBadge(m.brand_fit || 0)}</div>
+      <div class="meme-row-actions">
+        <button class="btn-mini mem-open" data-id="${esc(m.id)}">Why</button>
+        <button class="btn-mini mem-apply" data-id="${esc(m.id)}">Use →</button>
+      </div>
+    </li>`;
+}
+
+async function memRefresh(){
+  const params = new URLSearchParams({
+    voice: MEM_STATE.voice, pillar: MEM_STATE.pillar, platform: MEM_STATE.platform,
+    era: MEM_STATE.era || '', only_still_works: MEM_STATE.only_still_works ? '1' : '',
+    search: MEM_STATE.search || '', sort: MEM_STATE.sort, limit: '60',
+    voice_for_score: MEM_STATE.voice, pillar_for_score: MEM_STATE.pillar, platform_for_score: MEM_STATE.platform,
+  });
+
+  const [lib, picks] = await Promise.all([
+    API.get('/api/intel/meme_knowledge?'+params.toString()),
+    API.get('/api/intel/meme_recommend?voice='+MEM_STATE.voice+'&pillar='+MEM_STATE.pillar+'&platform='+MEM_STATE.platform+'&limit=6'),
+  ]);
+
+  MEM_LIB_CACHE = lib;
+  MEM_STATE.library = lib;
+  MEM_STATE.picks = picks;
+
+  $('#memes-summary').textContent = lib.summary || '—';
+  $('#mem-picks-context').textContent = `${MEM_STATE.voice} · ${MEM_STATE.pillar} · ${MEM_STATE.platform}`;
+  $('#mem-picks-summary').textContent = picks.summary || '';
+  $('#mem-lib-count').textContent = `${lib.total} of ${lib.stats?.total_memes ?? '?'}`;
+
+  $('#memes-picks').innerHTML = (picks.recommendations || []).map(memPicksCard).join('') || '<div class="empty">No recommendations match — try a different pillar/voice.</div>';
+  $('#memes-list').innerHTML = (lib.memes || []).slice(0, 60).map(memLibraryRow).join('') || '<div class="empty">No memes match the filters.</div>';
+
+  if(!MEM_LIB_CACHE._bound){
+    MEM_LIB_CACHE._bound = true;
+    $('#memes-picks').addEventListener('click', memClickDelegated);
+    $('#memes-list').addEventListener('click', memClickDelegated);
+    $('#meme-modal-close').addEventListener('click', () => $('#meme-modal').style.display = 'none');
+    $('#meme-modal').addEventListener('click', (e) => { if(e.target.id === 'meme-modal') $('#meme-modal').style.display = 'none'; });
+    $('#mem-voice').addEventListener('change', (e) => { MEM_STATE.voice = e.target.value; memRefresh(); });
+    $('#mem-pillar').addEventListener('change', (e) => { MEM_STATE.pillar = e.target.value; memRefresh(); });
+    $('#mem-platform').addEventListener('change', (e) => { MEM_STATE.platform = e.target.value; memRefresh(); });
+    $('#mem-era').addEventListener('change', (e) => { MEM_STATE.era = e.target.value; memRefresh(); });
+    $('#mem-still-works').addEventListener('change', (e) => { MEM_STATE.only_still_works = e.target.checked; memRefresh(); });
+    let searchTimer = null;
+    $('#mem-search').addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { MEM_STATE.search = e.target.value; memRefresh(); }, 220);
+    });
+    document.querySelectorAll('.mem-sort').forEach(b => b.addEventListener('click', (e) => {
+      MEM_STATE.sort = e.target.dataset.sort;
+      memRefresh();
+    }));
+  }
+}
+
+async function memClickDelegated(e){
+  const btn = e.target.closest('.mem-open, .mem-apply');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  if(btn.classList.contains('mem-open')){
+    const m = (MEM_STATE.library?.memes || []).find(x => x.id === id)
+           || (MEM_STATE.picks?.recommendations || []).find(x => x.id === id);
+    if(!m) return;
+    showMemeDetail(m);
+  } else if(btn.classList.contains('mem-apply')){
+    await memApply(id);
+  }
+}
+
+function showMemeDetail(m){
+  $('#meme-modal-title').textContent = m.name;
+  $('#meme-modal-meta').innerHTML = `${memEraChip(m.era)} ${memFatigueChip(m.fatigue_risk)} peak ${m.peak_year} · ${esc(m.format || '')} · ${memBrandFitBadge(m.brand_fit || 0)}`;
+  const seeds = (m.swingshack_fit_seeds || []).map(s => `<li>${esc(s)}</li>`).join('');
+  const tags = (m.tags || []).map(t => `<span class="meme-tag">${esc(t)}</span>`).join(' ');
+  const reasons = (m.brand_fit_reasons || []).map(r => `<li>${esc(r)}</li>`).join('');
+  $('#meme-modal-body').innerHTML = `
+    <div class="meme-modal-section"><b>Why it works</b><div class="muted" style="margin-top:.35rem">${esc(m.why_it_works || '')}</div></div>
+    <div class="meme-modal-section"><b>Origin</b><div class="muted" style="margin-top:.35rem">${esc(m.origin || '—')}</div></div>
+    <div class="meme-modal-section"><b>Format hint</b><div class="muted" style="margin-top:.35rem">${esc(m.format_hint || '—')}</div></div>
+    <div class="meme-modal-section"><b>Brand-fit score: ${m.brand_fit ?? '?'}/100</b><ul class="mem-reasons">${reasons}</ul></div>
+    <div class="meme-modal-section"><b>Swing Shack fit-seeds (${(m.swingshack_fit_seeds || []).length})</b><ul>${seeds}</ul></div>
+    <div class="meme-modal-section"><b>Tags</b><div style="margin-top:.35rem">${tags}</div></div>
+    <div class="meme-modal-section" style="margin-top:1rem">
+      <button class="btn-mini mem-apply" data-id="${esc(m.id)}">Generate caption →</button>
+    </div>`;
+  $('#meme-modal').style.display = 'flex';
+}
+
+async function memApply(memeId){
+  const body = {
+    meme_id: memeId,
+    voice: MEM_STATE.voice, pillar: MEM_STATE.pillar, platform: MEM_STATE.platform,
+  };
+  const r = await API.post('/api/intel/meme_apply', body);
+  if(!r.ok){ toast(r.error || 'Failed', 'err'); return; }
+  $('#meme-modal-title').textContent = `Caption drafts — ${r.meme.name}`;
+  $('#meme-modal-meta').innerHTML = `${memEraChip(r.meme.era)} ${memBrandFitBadge(r.brand_fit.score)} · voice ${esc(r.applied.voice)} · ${esc(r.applied.platform)}`;
+  const caps = (r.captions || []).map(c => `
+    <div class="meme-cap-row">
+      <span class="meme-cap-flavour">${esc(c.flavour)}</span>
+      <span class="meme-cap-text">${esc(c.text)}</span>
+      <button class="btn-mini meme-copy-cap" data-text="${esc(c.text)}">Copy</button>
+    </div>`).join('');
+  const seedsList = (r.meme.swingshack_fit_seeds || []).map((s, i) =>
+    `<button class="btn-mini meme-seed-pick" data-idx="${i}" data-id="${esc(r.meme.id)}">${esc(s)}</button>`).join('');
+  $('#meme-modal-body').innerHTML = `
+    <div class="meme-modal-section"><b>Captions</b><div class="meme-caps">${caps}</div></div>
+    <div class="meme-modal-section" style="margin-top:1rem"><b>Or use a different fit-seed →</b><div class="meme-seeds">${seedsList}</div></div>
+    <div class="meme-modal-section" style="margin-top:1rem"><b>Format hint</b><div class="muted">${esc(r.format_hint || '—')}</div></div>
+    <div class="meme-modal-section" style="margin-top:1rem"><b>Why this works</b><div class="muted">${esc(r.why_it_works || '—')}</div></div>
+    <div class="meme-modal-section" style="margin-top:1rem"><b>Voice rules (${esc(r.applied.voice)})</b><ul class="mem-reasons">${(r.brand_fit.voice_rules || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
+  $('#meme-modal').style.display = 'flex';
+
+  // Wire up copy + seed pick
+  $('#meme-modal-body').querySelectorAll('.meme-copy-cap').forEach(b => b.addEventListener('click', (e) => {
+    navigator.clipboard?.writeText(e.target.dataset.text);
+    toast('Copied to clipboard');
+  }));
+  $('#meme-modal-body').querySelectorAll('.meme-seed-pick').forEach(b => b.addEventListener('click', async (e) => {
+    const idx = parseInt(e.currentTarget.dataset.idx, 10);
+    const id = e.currentTarget.dataset.id;
+    const r2 = await API.post('/api/intel/meme_apply', { meme_id: id, voice: MEM_STATE.voice, pillar: MEM_STATE.pillar, platform: MEM_STATE.platform, pick_seed_index: idx });
+    if(r2.ok){ toast('Re-rolled with seed ' + idx); memApply(id); }
+  }));
+}
+
 async function renderMemes(){
-  if(!S.memes) S.memes = await API.get('/api/intel/memes');
-  const m = S.memes;
-  $('#memes-summary').textContent = m.summary;
-  $('#memes-list').innerHTML = safeList(m.memes, 12).map(itemHtml).join('') || '<div class="empty">No meme ideas</div>';
-  $('#memes-caps').innerHTML = safeList(m.captions, 12).map(itemHtml).join('') || '<div class="empty">No captions</div>';
-  $('#memes-vars').innerHTML = safeList(m.variants, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.caption||it.hook||it.title||JSON.stringify(it).slice(0,80))}</div>${it.platform?`<div class="li-meta">${pill('live', it.platform)}</div>`:''}</div></li>`).join('') || '<div class="empty">No variants</div>';
+  $('#memes-summary').textContent = 'Loading meme historian…';
+  try { await memRefresh(); }
+  catch(err){
+    $('#memes-summary').textContent = 'Failed to load memes';
+    toast('Meme historian failed', 'err');
+  }
 }
 
 // ─── BILLBOARDS ─────────────────────────────────────────────────

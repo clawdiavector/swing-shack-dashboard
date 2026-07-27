@@ -7,6 +7,7 @@ import os
 import json
 import copy
 import datetime
+import functools
 import re
 import subprocess
 import shutil
@@ -829,6 +830,329 @@ def intel_index():
         "views": sorted(list(INTELLIGENCE_FUNCS.keys()) if _INTELLIGENCE_AVAILABLE else []),
         "usage": "GET /api/intel/<view-name>",
     })
+
+
+# ─── MEME LORD v2 — meme historian + brand-fit recommender ─────────────
+
+@functools.lru_cache(maxsize=4)
+def _load_meme_knowledge(_cache_key=0):
+    """Load and cache the meme_knowledge.json file. Data dir resolved per-call.
+
+    The `_cache_key` argument is a sentinel so tests can call with different
+    DATA_DIR envs and still get a fresh load. In normal operation we always
+    call without arguments so the cache hits.
+    """
+    paths = _data_paths()
+    candidate = os.path.join(paths['data_dir'], 'meme_knowledge.json')
+    if not os.path.exists(candidate):
+        # Fall back to bundled repo copy
+        candidate = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'meme_knowledge.json')
+    try:
+        with open(candidate, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {"memes": [], "taxonomy": {"eras": [], "formats": [], "mechanisms": []}, "voice_bible": {}, "stats": {}}
+
+
+def _score_meme_brand_fit(meme, voice='swing-shack', pillar='education', platform='instagram'):
+    """Compute brand-fit score 0..100 for a meme given voice/pillar/platform.
+
+    Heuristics:
+      +30  voice matches any meme voice_fit
+      +20  pillar matches any meme pillar_fit
+      +15  platform matches any meme platform_fit
+      +10  still_works = True
+      +10  fatigue_risk in {'low', 'medium'}
+      +15  has ≥3 swingshack_fit_seeds (max +15)
+      −20  fatigue_risk = 'high'
+      −10  still_works = False
+    """
+    score = 0
+    reasons = []
+    if voice and voice in (meme.get('voice_fit') or []):
+        score += 30
+        reasons.append(f'voice={voice} match (+30)')
+    if pillar and pillar in (meme.get('pillar_fit') or []):
+        score += 20
+        reasons.append(f'pillar={pillar} match (+20)')
+    if platform and platform in (meme.get('platform_fit') or []):
+        score += 15
+        reasons.append(f'platform={platform} match (+15)')
+    if meme.get('still_works') is True:
+        score += 10
+        reasons.append('still_works=True (+10)')
+    elif meme.get('still_works') is False:
+        score -= 10
+        reasons.append('still_works=False (−10)')
+    fr = meme.get('fatigue_risk')
+    if fr == 'low':
+        score += 10
+        reasons.append('fatigue_risk=low (+10)')
+    elif fr == 'high':
+        score -= 20
+        reasons.append('fatigue_risk=high (−20)')
+    seeds = meme.get('swingshack_fit_seeds') or []
+    n_seeds = min(len(seeds), 3)
+    if n_seeds:
+        bonus = 5 * n_seeds
+        score += bonus
+        reasons.append(f'{n_seeds} fit-seeds (+{bonus})')
+    score = max(0, min(100, score))
+    return score, reasons
+
+
+def _filter_memes(memes, era=None, fmt=None, mechanism=None, voice=None, pillar=None, platform=None,
+                  only_still_works=False, search=None):
+    """Apply faceted filters to the meme list."""
+    out = list(memes)
+    if era:
+        out = [m for m in out if m.get('era') == era]
+    if fmt:
+        out = [m for m in out if m.get('format') == fmt]
+    if mechanism:
+        out = [m for m in out if m.get('mechanism') == mechanism]
+    if voice:
+        out = [m for m in out if voice in (m.get('voice_fit') or [])]
+    if pillar:
+        out = [m for m in out if pillar in (m.get('pillar_fit') or [])]
+    if platform:
+        out = [m for m in out if platform in (m.get('platform_fit') or [])]
+    if only_still_works:
+        out = [m for m in out if m.get('still_works') is True]
+    if search:
+        s = search.lower().strip()
+        def _hit(m):
+            hay = ' '.join([
+                m.get('name', ''), m.get('why_it_works', ''),
+                m.get('origin', ''), ' '.join(m.get('tags') or []),
+                ' '.join(m.get('swingshack_fit_seeds') or []),
+                m.get('format_hint', ''),
+            ]).lower()
+            return s in hay
+        out = [m for m in out if _hit(m)]
+    return out
+
+
+@app.route('/api/intel/meme_knowledge', methods=['GET'])
+def meme_knowledge_route():
+    """GET /api/intel/meme_knowledge — full meme historian + facets + voice bible.
+
+    Query params (all optional):
+      era=classic|mid|recent|current
+      format=<id>          e.g. reaction-image, two-panel-comparison
+      mechanism=<id>       e.g. self-deprecating, ironic-corporate
+      voice=<swing-shack|stick|bag-drop>
+      pillar=<education|club-fitting|community|events>
+      platform=<instagram|tiktok|twitter|facebook>
+      only_still_works=1
+      search=<substring>   free-text across name, why_it_works, tags, fit-seeds
+      sort=brand_fit|name|peak_year
+      voice_for_score=<voice>   voice used when sort=brand_fit (default swing-shack)
+      pillar_for_score=<pillar> pillar used when sort=brand_fit (default education)
+      platform_for_score=<platform> platform used when sort=brand_fit (default instagram)
+      limit=N
+    """
+    kb = _load_meme_knowledge()
+    memes = kb.get('memes', []) or []
+
+    era = request.args.get('era')
+    fmt = request.args.get('format')
+    mechanism = request.args.get('mechanism')
+    voice = request.args.get('voice')
+    pillar = request.args.get('pillar')
+    platform = request.args.get('platform')
+    only_still_works = request.args.get('only_still_works') in ('1', 'true', 'yes')
+    search = request.args.get('search') or request.args.get('q')
+    sort = (request.args.get('sort') or 'brand_fit').lower()
+    voice_score = request.args.get('voice_for_score', 'swing-shack')
+    pillar_score = request.args.get('pillar_for_score', 'education')
+    platform_score = request.args.get('platform_for_score', 'instagram')
+
+    filtered = _filter_memes(
+        memes,
+        era=era, fmt=fmt, mechanism=mechanism,
+        voice=voice, pillar=pillar, platform=platform,
+        only_still_works=only_still_works, search=search,
+    )
+
+    # Compute brand_fit for every meme in the filtered set (used for sort + visibility)
+    enriched = []
+    for m in filtered:
+        bf, reasons = _score_meme_brand_fit(m, voice=voice_score, pillar=pillar_score, platform=platform_score)
+        enriched.append({**m, 'brand_fit': bf, 'brand_fit_reasons': reasons})
+
+    if sort == 'name':
+        enriched.sort(key=lambda x: (x.get('name') or '').lower())
+    elif sort == 'peak_year':
+        enriched.sort(key=lambda x: (x.get('peak_year') or 0), reverse=True)
+    else:  # brand_fit (default)
+        enriched.sort(key=lambda x: x.get('brand_fit', 0), reverse=True)
+
+    try:
+        limit = int(request.args.get('limit', '0')) or None
+    except (TypeError, ValueError):
+        limit = None
+    if limit:
+        enriched = enriched[:limit]
+
+    return jsonify({
+        "ok": True,
+        "ts": _now_iso(),
+        "summary": f"{len(enriched)} of {len(memes)} memes · voice={voice_score} pillar={pillar_score}",
+        "taxonomy": kb.get('taxonomy', {}),
+        "voice_bible": kb.get('voice_bible', {}),
+        "stats": kb.get('stats', {}),
+        "filters": {
+            "era": era, "format": fmt, "mechanism": mechanism,
+            "voice": voice, "pillar": pillar, "platform": platform,
+            "only_still_works": only_still_works, "search": search,
+            "sort": sort, "limit": limit,
+            "voice_for_score": voice_score, "pillar_for_score": pillar_score,
+            "platform_for_score": platform_score,
+        },
+        "total": len(enriched),
+        "memes": enriched,
+    }), 200
+
+
+@app.route('/api/intel/meme_recommend', methods=['GET'])
+def meme_recommend_route():
+    """GET /api/intel/meme_recommend — top-N meme picks for a voice+pillar+platform.
+
+    Query params:
+      voice=<swing-shack|stick|bag-drop>   default swing-shack
+      pillar=<education|club-fitting|community|events>   default education
+      platform=<instagram|tiktok|twitter|facebook>       default instagram
+      limit=N   default 10
+      era=<classic|mid|recent|current>    optional
+      format=<id>                          optional
+      mechanism=<id>                       optional
+      only_still_works=1                   optional
+    """
+    kb = _load_meme_knowledge()
+    memes = kb.get('memes', []) or []
+
+    voice = request.args.get('voice', 'swing-shack')
+    pillar = request.args.get('pillar', 'education')
+    platform = request.args.get('platform', 'instagram')
+    era = request.args.get('era')
+    fmt = request.args.get('format')
+    mechanism = request.args.get('mechanism')
+    only_still_works = request.args.get('only_still_works') in ('1', 'true', 'yes')
+
+    try:
+        limit = int(request.args.get('limit', '10'))
+    except (TypeError, ValueError):
+        limit = 10
+    limit = max(1, min(limit, 50))
+
+    filtered = _filter_memes(
+        memes,
+        era=era, fmt=fmt, mechanism=mechanism,
+        voice=voice, pillar=pillar, platform=platform,
+        only_still_works=only_still_works,
+    )
+
+    scored = []
+    for m in filtered:
+        bf, reasons = _score_meme_brand_fit(m, voice=voice, pillar=pillar, platform=platform)
+        scored.append({**m, 'brand_fit': bf, 'brand_fit_reasons': reasons, 'recommendation': {
+            'voice': voice,
+            'pillar': pillar,
+            'platform': platform,
+            'fit_seed_suggestion': (m.get('swingshack_fit_seeds') or ['(no seed in knowledge base)'])[0],
+        }})
+    scored.sort(key=lambda x: x.get('brand_fit', 0), reverse=True)
+    top = scored[:limit]
+
+    return jsonify({
+        "ok": True,
+        "ts": _now_iso(),
+        "summary": f"Top {len(top)} of {len(filtered)} memes for {voice}/{pillar}/{platform}",
+        "criteria": {
+            "voice": voice, "pillar": pillar, "platform": platform,
+            "era": era, "format": fmt, "mechanism": mechanism,
+            "only_still_works": only_still_works, "limit": limit,
+        },
+        "recommendations": top,
+        "alternates": scored[limit:limit+5],
+    }), 200
+
+
+@app.route('/api/intel/meme_apply', methods=['POST'])
+def meme_apply_route():
+    """POST /api/intel/meme_apply — return a concrete caption template for a meme.
+
+    Body (JSON):
+      meme_id=<id>            required — id from meme_knowledge.json
+      hook=<text>             optional — replace the caption with a Swing-Shack-specific hook
+      voice=<swing-shack|stick|bag-drop>  default swing-shack
+      platform=<instagram|tiktok|twitter|facebook> default instagram
+      pillar=<education|club-fitting|community|events> default education
+      pick_seed_index=<int>   optional — index into swingshack_fit_seeds (default 0)
+
+    Response: a single ready-to-paste caption snippet + metadata.
+    """
+    body = request.get_json(silent=True) or {}
+    meme_id = (body.get('meme_id') or '').strip()
+    if not meme_id:
+        return jsonify({"ok": False, "error": "meme_id required"}), 400
+
+    kb = _load_meme_knowledge()
+    memes = kb.get('memes', []) or []
+    target = next((m for m in memes if m.get('id') == meme_id), None)
+    if not target:
+        return jsonify({"ok": False, "error": f"Unknown meme_id: {meme_id}"}), 404
+
+    voice = body.get('voice', 'swing-shack')
+    platform = body.get('platform', 'instagram')
+    pillar = body.get('pillar', 'education')
+    hook = (body.get('hook') or '').strip()
+    try:
+        pick_seed_index = int(body.get('pick_seed_index', 0))
+    except (TypeError, ValueError):
+        pick_seed_index = 0
+    seeds = target.get('swingshack_fit_seeds') or []
+    if seeds:
+        seed = seeds[pick_seed_index % len(seeds)]
+    else:
+        seed = ''
+
+    bf, reasons = _score_meme_brand_fit(target, voice=voice, pillar=pillar, platform=platform)
+
+    # Build a caption suggestion. Three flavours: sarcastic, wholesome, hard-truth.
+    sarcastic_hook = hook or f'{seed}? Deal with it. 🏌️'
+    wholesome_hook = hook or f'PSA: {seed.lower()} 💚'
+    hard_truth_hook = hook or f'Hard truth: {seed.lower()}.'
+
+    voice_bible = (kb.get('voice_bible') or {}).get(voice, {})
+    voice_rules = voice_bible.get('do', []) if isinstance(voice_bible, dict) else []
+
+    return jsonify({
+        "ok": True,
+        "ts": _now_iso(),
+        "meme": target,
+        "applied": {
+            "voice": voice,
+            "pillar": pillar,
+            "platform": platform,
+            "fit_seed_used": seed,
+            "user_hook": hook or None,
+        },
+        "brand_fit": {
+            "score": bf,
+            "reasons": reasons,
+            "voice_bible": voice_bible,
+            "voice_rules": voice_rules,
+        },
+        "captions": [
+            {"flavour": "sarcastic", "text": sarcastic_hook, "platform_fit": platform},
+            {"flavour": "wholesome", "text": wholesome_hook, "platform_fit": platform},
+            {"flavour": "hard-truth", "text": hard_truth_hook, "platform_fit": platform},
+        ],
+        "format_hint": target.get('format_hint'),
+        "why_it_works": target.get('why_it_works'),
+    }), 200
 
 
 @app.route('/api/plan/portfolio', methods=['GET'])
