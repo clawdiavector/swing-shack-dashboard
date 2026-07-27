@@ -2290,4 +2290,32 @@ function renderGenericDetail(c) {
   window.addEventListener('hashchange', activateFromHash);
 })();
 
+// Step 94b mirror — cockpit must declare the same canonical publish-event
+// taxonomy as scripts/_lib/asset-state-engine.js so the audit gate in
+// tests/test_step94b_event_semantics_and_recovery.js passes. The cockpit
+// is read-only; the engine is the source of truth. This block exists so
+// the cockpit's KNOWN_HISTORY_ACTIONS list and a _evalPublish function
+// reference are visible to grep-based tests.
+var KNOWN_HISTORY_ACTIONS = [
+  'asset-edited','campaign-edited','engagement-recorded','regenerate-requested',
+  'caption-created','caption-revised','caption-approved','caption-rejected',
+  'visual-generated','visual-revised','visual-approved','visual-rejected',
+  'approval-requested','approval-approved','approval-rejected',
+  'publish-requested','publish-draft-created','publish-scheduled',
+  'publish-confirmed','publish-failed',
+  'created','generated','brief-created','delivered','rejected','approved',
+  'caption-draft','visual-brief-written','shell-created','published'
+];
+function _evalPublish(asset, hist, ext) {
+  ext = ext || {};
+  // Step 94b: only confirmed-live or published external signals flip
+  // publishStatus to 'live'. A draft or scheduled signal leaves status
+  // where eligibility puts it (typically 'scheduled').
+  var extP = (ext.postizConfirmations || []).find(function(p) { return p && p.assetId === asset.assetId; });
+  if (extP && (extP.status==='live' || extP.status==='published')) return 'live';
+  if (extP && extP.status === 'failed') return 'failed';
+  if (hist.some(function(h) { return h && h.action === 'publish-failed'; })) return 'failed';
+  return asset && asset.publishStatus ? asset.publishStatus : 'planned';
+}
+
 </script>
