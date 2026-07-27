@@ -1,0 +1,106 @@
+# Campaign OS — Status Handoff
+
+**Branch:** `feat/asset-state-engine`
+**HEAD:** `03a4add` (just pushed)
+**Live URL:** `https://episodes-images-futures-coleman.trycloudflare.com`
+**Tests:** 73/73 pass (`cd campaign-os && source ../.venv/bin/activate && python3 -m unittest discover -s tests`)
+
+---
+
+## What just shipped (this turn)
+
+**Inline Asset Editor** — backend `PATCH /api/assets/<id>` + `GET /api/assets/<id>/history` + new "✏️ Assets — click any field to edit" section inside every expanded campaign plan. 36 editable cards per campaign for "Use the Right Equipment" alone. ⌘+Enter saves, Esc reverts, History button expands audit trail.
+
+**Also shipped:** `_data_paths()` per-call resolution so tests can isolate DATA_DIR cleanly.
+
+## What's done across all turns
+
+- ✅ Morning Brief (alive homepage: 4 stat cards, hot ticker, do-first/needs-review/ready-to-publish/misses/SEO/post-today)
+- ✅ 23 intelligence views (`/api/intel/<view>`) — campaign-data.json + 167 data files aggregated
+- ✅ Universal search (`/api/search?q=`)
+- ✅ Single SPA (`campaign-os.html`, 100KB+, sidebar with 21 nav entries across 5 sections)
+- ✅ Campaign Builder v2 — full plans: goals/persona/5 weighted pillars/15 hooks/15 image prompts/15 captions/16-post 30-day calendar/KPIs/success criteria/day-7/14/30 winning picture
+- ✅ Drag-and-drop calendar (HTML5 DnD on slots, color-coded by pillar, `/api/schedule/<assetId>` POST/DELETE, duplicate-zone, queue-item scheduling)
+- ✅ Inline asset editor (THIS TURN)
+- ✅ Caption Studio, Headlines, CTAs generators (composed from hook bank + base caption + CTA pill)
+- ✅ 73 passing tests (was 423 before — tests consolidated into single campaign-os suite)
+
+## Priorities for next cron iteration
+
+4. **Meme Lord v2** — turn into a meme historian. Add a `meme_knowledge.json` data file with the ~200 most viral memes from the last decade (Distracted Boyfriend, Drake, Woman Yelling at Cat, etc.) + format taxonomy + brand-fit scoring. Front-end: every meme card has its era, peak year, why-it-works, brand-fit slider.
+5. **Trend Catcher v2** — split into 3 sources: (a) marketing industry signals (HubSpot, Marketing Brew, AdWeek via RSS if available, else curated seed data); (b) golf news (PGA Tour, LPGA, DP World Tour, equipment releases — via RSS if available); (c) competitor moves (TrackMan, Foresight, Toptracer — monitor their social via search). Each signal gets a relevance score + suggested response.
+6. **Image generation pipeline** — needs API creds to test live. Build the infrastructure now: `asset-image-spec.json` with brand-style rules (color palette, typography, model hint per pillar, aspect ratios per platform); `/api/intel/generate_image` that returns the structured prompt spec ready for any provider (Ideogram/DALL-E/MJ). When creds arrive, swap the provider in 1 file.
+7. **Caption Studio v2** — add voice/tone picker (Swing Shack voice vs Stick voice vs Bag Drop voice — use the meme-voice-bible files). Multiple voices = different base captions.
+8. **Right-rail "Today" panel** — make Morning Brief feel like a Bloomberg terminal: live timestamps, pulse animations on new items, dismissible cards.
+9. **Dark mode / theme tokens** — current dark theme is good; ensure consistency across all surfaces.
+10. **Publish Dashboard** — wire up the actual Postiz publish path through the SPA: list, schedule, send. (Needs careful gating per the no-publish-during-rest-mode rule.)
+
+## Hard rules (do not violate)
+
+- DO NOT publish to social, schedule in Postiz, or enable any GMB cron during Christelle's rest mode.
+- DO NOT push to GitHub unless explicitly asked or already in scope of current feature work.
+- DO NOT call MiniMax-fallback for critic-critical tasks.
+- DO NOT modify the canonical `campaign-data.json` outside of test fixtures.
+- DO verify every endpoint with a real `curl` or browser before declaring done.
+- DO update this file at the end of every build cycle.
+- DO commit at the start AND end of each cron iteration if anything changed.
+- DO `git push origin feat/asset-state-engine` after committing.
+- DO keep responses concise (no filler, no summary of "I read this and that").
+- DO call specialists via delegate_task when their expertise beats yours (e.g. Meme Lord work → ask Copywriter for tone; image prompts → ask Copywriter for punch).
+
+## Where to find things
+
+```
+campaign-os/
+├── app.py                              # Flask backend, ~920 LOC, all routes
+├── campaign-os.html                    # Single SPA, ~1500 LOC, all front-end
+├── campaign-data.json                  # CANONICAL — do not modify outside tests
+├── _lib/
+│   ├── intelligence.py                 # 23 intelligence views, ~1010 LOC
+│   └── campaign_planner.py             # Campaign Builder v2, 23KB
+├── tests/
+│   ├── __init__.py
+│   ├── test_calendar_schedule.py       # 6 tests, drag-drop + sidecar
+│   ├── test_inline_asset_edit.py       # 11 tests, PATCH /api/assets
+│   ├── test_truth_collector.py         # (legacy, still passes)
+│   └── ...                             # (legacy test files preserved)
+├── tests/__init__.py
+└── BUILD_STATUS.md                     # (legacy, may not exist)
+```
+
+## How to run a build cycle
+
+```bash
+# 1. Read this file (CAMPAIGN_OS_STATUS.md) at start
+# 2. Verify server alive:
+curl -s http://127.0.0.1:8765/api/health
+
+# 3. Verify tests:
+cd campaign-os && source ../.venv/bin/activate && python3 -m unittest discover -s tests
+
+# 4. Build next priority end-to-end (front + back + UX + tests)
+# 5. Commit + push:
+git add campaign-os/ && git commit -m "feat: <what>" && git push origin feat/asset-state-engine
+
+# 6. Verify live URL:
+curl -sI https://episodes-images-futures-coleman.trycloudflare.com | head -1
+
+# 7. Update this status file (the next cron reads it)
+```
+
+## Recent commits
+
+```
+03a4add  feat: Campaign OS — inline asset editor + dynamic DATA_DIR
+d79945f  feat: Campaign Builder v2 — extraordinary campaign plans
+e6f887b  docs: update BUILD_STATUS, intel module + app.py pushed
+a60ef9a  feat: Campaign OS — single SPA + 23 intelligence views
+```
+
+## Known issues / blockers
+
+- **Railway CLI unauthorized** → no permanent public URL. Cloudflare ephemeral tunnel is the current mechanism.
+- **No image-generation API creds** → building prompt infrastructure only; full integration when creds arrive.
+- **Cloudflare tunnel expires when cloudflared exits** → if URL is down on next cron tick, kill+restart `cloudflared tunnel --url http://127.0.0.1:8765` and grep the new URL from `/tmp/cloudflared.log`.
+- **Pyright false positives** on `_sys.path.insert` and runtime path mutations — ignore; runtime is correct.
+- **3 phase_tdz live-API tests still skipped** (pre-existing, gated behind `LIVE_NETWORK_TESTS=1`).
