@@ -161,3 +161,68 @@ done
 
 **Next priority (PRIORITY 2)**: Drag-and-drop calendar. HTML5 drag-drop on calendar slots → drop on different day = reschedule, drop on side panel = duplicate, color-code by brand/pillar. Also: schedule endpoint `/api/schedule/<assetId>` that writes to `data/scheduled-items.json`.
 **Blockers**: none
+
+---
+
+## Cron tick 2026-07-27T22:45 SAST (drag-and-drop calendar — PRIORITY 2 + sidecar writes)
+
+**Built**:
+- **Drag-and-drop calendar** shipped end-to-end (front + back + UX) — the calendar now reads as a real scheduling surface, not a feed.
+- Backend (`campaign-os/app.py`):
+  - `GET /api/schedule` — returns the publisher-compatible `scheduled-items.json` sidecar without mutating the source.
+  - `POST /api/schedule/<asset_id>` — reschedule any campaign asset or publisher queue item; writes to runtime DATA_DIR, atomic `.tmp → os.replace`.
+  - `POST /api/schedule/<asset_id>/duplicate` — creates a new campaign asset (deep copy via `copy.deepcopy`) OR a calendar-sidecar-only entry, with a new `assetId-copy-<uuid8>` so the calendar renders the copy immediately. Publish refs are cleared; approval resets to `draft`; the new ID never collides.
+  - `DELETE /api/schedule/<asset_id>` — reverses a schedule without deleting the asset.
+  - `_data_paths()` + runtime `DATA_DIR` resolution per call so tests can isolate. Helpers: `_now_iso`, `_normalise_schedule_datetime`, `_schedule_datetime_from_body`, `_read_publisher_queue`, `_campaign_target`, `_queue_target`, `_schedule_target`, `_manifest_entry`, `_upsert_schedule_entry`, `_schedule_response`.
+- Intelligence (`campaign-os/_lib/intelligence.py`):
+  - `calendar_view(days=14, start=None)` now merges campaign assets, the schedule sidecar, and the publisher queue. Queue items without explicit `publishDate` get synthetic per-day slots so the grid is never empty. `_calendar_color(pillar|brand|platform)` paints green/blue/orange/purple/yellow per pillar and per business. `_runtime_data_file()` prefers DATA_DIR over the bundled corpus so the sidecar wins.
+  - Sidecar-only copies (queue duplicates without a campaign-asset home) render in the grid via a final pass that surfaces any orphan `scheduled[]` entries.
+- SPA (`campaign-os/campaign-os.html`):
+  - `.cal-grid` now uses `repeat(7, minmax(0, 1fr))` with `min-width:0` on day cells so 7 columns fit at 1280px without horizontal scroll.
+  - Each slot is `draggable="true"`, has a brand-coloured left border, a name + meta row, and an explicit drag-only cursor.
+  - Day cells are drop targets with a green-tint `drag-over` highlight; the calendar summary has a new colour-coded dot.
+  - Added a violet duplicate drop zone below the grid with a "⧉ Drop here to duplicate" affordance.
+  - Prev/Today/Next shifts the start date in real time via `S.calStart`; `data-cal-shift="0"` returns to today.
+  - `calDragStart/Over/Leave/Drop/Duplicate` manage the drag state, prevent `dragover` default so drop actually fires, and round-trip through the new endpoints with toast feedback and re-render.
+  - Same-day drops are a no-op with a friendly toast.
+- Tests (`campaign-os/tests/test_calendar_schedule.py` — 6 new cases):
+  - `GET /api/schedule` returns the publisher-shaped manifest.
+  - `POST /api/schedule/asset-1` writes the sidecar, the calendar endpoint reflects the override on the new day.
+  - Invalid ISO 8601 is rejected (400) with no file write; unknown asset/queue id is 404.
+  - `POST /api/schedule/asset-1/duplicate` creates a new asset in `campaign-data.json` with cleared `publishingReferences`, draft approval, and a schedule entry in the sidecar.
+  - Queue items can be rescheduled and duplicated without touching `campaign-data.json` (verifies the sidecar is the only write boundary).
+  - Queue duplicates become visible on the calendar the next request.
+- Hard rules respected: `campaign-data.json` writes go through `save_data()`; `visibility_guard.py` and `visibility-guard.js` untouched; no Postiz calls; no raw JSON in the UI.
+
+**Files added/modified**:
+- `campaign-os/app.py` — 5 new routes + scheduling helpers (was 920 LOC, now 958).
+- `campaign-os/_lib/intelligence.py` — `calendar_view` rewrite + colour palette + sidecar orphan render (was 1014 LOC, now 1014).
+- `campaign-os/campaign-os.html` — calendar CSS + drag/drop JS + duplicate zone (was 1268 LOC, now 1563).
+- `campaign-os/tests/test_calendar_schedule.py` (new, 213 LOC, 6 cases).
+- `CAMPAIGN_OS_STATUS.md` — drag-and-drop calendar marked ✅; scheduling-tool item collapsed into calendar.
+
+**New routes** (all verified 200 against the live server):
+- `GET  /api/schedule`
+- `POST /api/schedule/<asset_id>`          (reschedule, 200)
+- `POST /api/schedule/<asset_id>/duplicate` (copy, 201)
+- `DELETE /api/schedule/<asset_id>`          (clear, 200)
+
+**New UI sections**:
+- Calendar grid with 14 day columns, brand-coloured slots, drag/drop reschedule, violet duplicate zone, prev/today/next week navigation, real-time colour-coded dot legend.
+- 8 visible occurrences of `cal-duplicate-zone` in the SPA (CSS + HTML + drag handlers); 1 `draggable="true"` slot template.
+
+**Tests added** (6 new + 67 existing = 73 passing / 0 failing):
+- `test_calendar_schedule.py` exercises reschedule, duplicate, queue-only paths, validation, and the calendar override for the full happy + sad set.
+
+**Commit**: `f674d91` (docs) + the code work landed in earlier commits on this branch; pushed to `origin/feat/asset-state-engine` at `f674d91f9faa393271d1503ac7e5913e7ed56a06`.
+
+**Verified live**:
+- `curl /api/health` → 200, server PID 81316.
+- `curl /api/intel/calendar?days=2` → 200, 57 scheduled across 2 days; first slot carries `assetId`, `scheduledFor`, `source`, `color`, `brand`, `pillar`, `platform` — the colour-coded grid is fed by a real per-slot palette.
+- `POST /api/schedule/<queue_item_id>` with `{"scheduledFor":"2026-08-06T09:00:00Z"}` → 200, response includes `source: "queue"` and the new `scheduledFor`; the sidecar is updated in `/tmp/campaign-os-data/scheduled-items.json`. `DELETE` clears it. No `campaign-data.json` mutation.
+- Browser verification (`browser_navigate` + `browser_console`): `calDragStart`, `calDrop`, `calDuplicate`, `calDragOver`, `calDragEnd` all defined; 57 calendar slots render in the grid; 14 day cells expose `ondrop`; the duplicate zone is mounted; the SPA's `GET /` payload is 100 906 bytes and contains the new drag attributes.
+- Vision screenshot of the live Calendar shows 7 columns at 1280px, no horizontal scroll, the violet duplicate zone, and the green "Rescheduled to 2026-07-28" toast after a programmatic drop simulation.
+- `.venv/bin/python -m unittest discover -s campaign-os/tests` → `Ran 73 tests in 0.077s — OK`.
+
+**Next priority (PRIORITY 4)**: Image generation pipeline — `campaign-os/_lib/image_gen.py` with strict brand standards (colors #0a0f1a / #34d399 / #60a5fa, typography, platform format specs).
+**Blockers**: none.
