@@ -791,6 +791,8 @@ def _intel(name):
 @app.route('/api/intel/<name>', methods=['GET'])
 def intel_dispatch(name):
     """GET /api/intel/<view-name> — see INTELLIGENCE_FUNCS for the index."""
+    if name == 'trends_v2':
+        return trends_v2()
     payload, status = _intel(name)
     return jsonify(payload), status
 
