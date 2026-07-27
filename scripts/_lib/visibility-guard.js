@@ -8,6 +8,9 @@
 
 const VALID_OPERATOR_STATES = ['visible', 'not-visible', 'disputed', 'unknown'];
 const BLOCKING_STATES = new Set(['VISIBILITY_DISPUTED', 'EXTERNAL_STATE_DISPUTED']);
+// "Missing-like" values for apiState / canonicalState: empty/undefined/null + 'missing' + 'absent'.
+// All are treated as "not present". Only truthy non-missing values (e.g. 'exists') count as present.
+const ABSENT_LIKE = v => v === undefined || v === null || v === '' || v === 'missing' || v === 'absent';
 
 const STATE_CHANGING_ACTIONS = [
   'reconcile',
@@ -22,21 +25,28 @@ function assertNoVisibilityDispute(context) {
     return { state: 'NO_OBJECT', allowStateChange: false, reason: 'invalid context' };
   }
   const { apiState, canonicalState, operatorVisibilityState } = context;
-  // Treat undefined / null / empty string as "no value supplied" -> default to 'unknown'.
-  // Treat any other non-valid state as invalid input -> fail closed.
-  const opProvided = operatorVisibilityState !== undefined && operatorVisibilityState !== null && operatorVisibilityState !== '';
-  if (opProvided && !VALID_OPERATOR_STATES.includes(operatorVisibilityState)) {
+  // Operator state: missing-like -> 'unknown' (no opinion). Any other invalid value fails closed.
+  if (!ABSENT_LIKE(operatorVisibilityState) && !VALID_OPERATOR_STATES.includes(operatorVisibilityState)) {
     return { state: 'VISIBILITY_DISPUTED', allowStateChange: false, reason: `invalid operator state: ${operatorVisibilityState}` };
   }
-  const opState = opProvided ? operatorVisibilityState : 'unknown';
+  const opState = ABSENT_LIKE(operatorVisibilityState) ? 'unknown' : operatorVisibilityState;
   if (opState === 'not-visible' || opState === 'disputed') {
     return { state: 'VISIBILITY_DISPUTED', allowStateChange: false, reason: `operator reports ${operatorVisibilityState}` };
   }
-  if (!canonicalState || canonicalState === 'missing') {
+  // Canonical is the authority. Canonical missing + API missing -> NO_OBJECT.
+  const canonicalMissing = ABSENT_LIKE(canonicalState);
+  const apiMissing = ABSENT_LIKE(apiState);
+  if (canonicalMissing && apiMissing) {
     return { state: 'NO_OBJECT', allowStateChange: false, reason: 'no canonical object' };
   }
-  if (!apiState || apiState === 'missing') {
+  // Canonical exists but API does not -> EXTERNAL_STATE_DISPUTED.
+  if (!canonicalMissing && apiMissing) {
     return { state: 'EXTERNAL_STATE_DISPUTED', allowStateChange: false, reason: 'canonical exists but API missing' };
+  }
+  // Canonical missing but API exists -> API_ONLY (canonical is authority: nothing to change here,
+  // but flag the discrepancy). No operator dispute -> do NOT block.
+  if (canonicalMissing && !apiMissing) {
+    return { state: 'API_ONLY', allowStateChange: true, reason: 'api confirms existence; canonical has no record' };
   }
   return { state: 'OK', allowStateChange: true, reason: 'canonical and API agree' };
 }

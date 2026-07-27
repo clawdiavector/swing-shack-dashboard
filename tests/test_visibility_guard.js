@@ -12,11 +12,21 @@ const TABLE = [
   ['exists', 'exists', 'visible', 'OK', false],
   ['exists', 'exists', 'not-visible', 'VISIBILITY_DISPUTED', true],
   ['exists', 'exists', 'disputed', 'VISIBILITY_DISPUTED', true],
-  ['exists', 'missing', 'unknown', 'NO_OBJECT', false],
+  // API_ONLY: API confirms existence, canonical has no record, no operator dispute -> do NOT block.
+  ['exists', 'missing', 'unknown', 'API_ONLY', false],
+  ['exists', 'absent', 'unknown', 'API_ONLY', false],
+  // Canonical exists, API missing -> EXTERNAL_STATE_DISPUTED -> blocks.
   ['missing', 'exists', 'unknown', 'EXTERNAL_STATE_DISPUTED', true],
+  // Both missing -> NO_OBJECT -> does not block (no object to act on).
+  ['missing', 'missing', 'unknown', 'NO_OBJECT', false],
+  ['missing', 'absent', 'unknown', 'NO_OBJECT', false],
+  // Operator dispute overrides any canonical/API agreement.
   ['exists', 'missing', 'not-visible', 'VISIBILITY_DISPUTED', true],
+  // Invalid operator value fails closed.
+  ['exists', 'exists', 'garbage', 'VISIBILITY_DISPUTED', true],
+  // All-falsy sentinel -> unknown operator + both missing -> NO_OBJECT.
   ['', '', 'unknown', 'NO_OBJECT', false],
-  ['exists', 'exists', 'garbage', 'VISIBILITY_DISPUTED', true], // invalid input fails closed
+  ['', '', '', 'NO_OBJECT', false],
   [undefined, undefined, undefined, 'NO_OBJECT', false],
 ];
 

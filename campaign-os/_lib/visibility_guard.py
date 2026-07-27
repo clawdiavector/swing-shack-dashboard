@@ -11,24 +11,24 @@ STATE_CHANGING_ACTIONS = frozenset({
 
 
 def assert_no_visibility_dispute(apiState, canonicalState, operatorVisibilityState):
-    # Treat None / '' as "no value supplied" -> default to 'unknown'.
-    # Treat any other non-valid state as invalid input -> fail closed.
-    op_provided = operatorVisibilityState is not None and operatorVisibilityState != ''
-    if op_provided and operatorVisibilityState not in VALID_OPERATOR_STATES:
+    def absent_like(v): return v is None or v in ('', 'missing', 'absent')
+    if not absent_like(operatorVisibilityState) and operatorVisibilityState not in VALID_OPERATOR_STATES:
         return {'state': 'VISIBILITY_DISPUTED', 'allowStateChange': False,
                 'reason': f'invalid operator state: {operatorVisibilityState}'}
-    op_state = operatorVisibilityState if op_provided and operatorVisibilityState in VALID_OPERATOR_STATES else 'unknown'
+    op_state = 'unknown' if absent_like(operatorVisibilityState) else operatorVisibilityState
     if op_state in ('not-visible', 'disputed'):
         return {'state': 'VISIBILITY_DISPUTED', 'allowStateChange': False,
                 'reason': f'operator reports {operatorVisibilityState}'}
-    if not canonicalState or canonicalState == 'missing':
-        return {'state': 'NO_OBJECT', 'allowStateChange': False,
-                'reason': 'no canonical object'}
-    if not apiState or apiState == 'missing':
-        return {'state': 'EXTERNAL_STATE_DISPUTED', 'allowStateChange': False,
-                'reason': 'canonical exists but API missing'}
-    return {'state': 'OK', 'allowStateChange': True,
-            'reason': 'canonical and API agree'}
+    canonical_missing = absent_like(canonicalState)
+    api_missing = absent_like(apiState)
+    if canonical_missing and api_missing:
+        return {'state': 'NO_OBJECT', 'allowStateChange': False, 'reason': 'no canonical object'}
+    if not canonical_missing and api_missing:
+        return {'state': 'EXTERNAL_STATE_DISPUTED', 'allowStateChange': False, 'reason': 'canonical exists but API missing'}
+    if canonical_missing and not api_missing:
+        # API_ONLY: canonical is authority, no object to manage; flag discrepancy, do not block.
+        return {'state': 'API_ONLY', 'allowStateChange': True, 'reason': 'api confirms existence; canonical has no record'}
+    return {'state': 'OK', 'allowStateChange': True, 'reason': 'canonical and API agree'}
 
 
 def blocks_action(guard, action):

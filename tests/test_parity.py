@@ -10,15 +10,32 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 TABLE = [
     # [api, canonical, operator, expected state]
+    # ── Locked locked-behaviour matrix ─────────────────────────────────────
+    # 1. unknown default does not block normal operations.
     ('exists', 'exists', 'unknown', 'OK'),
+    # 2. visible operator does not block.
     ('exists', 'exists', 'visible', 'OK'),
+    # 3. not-visible operator blocks.
     ('exists', 'exists', 'not-visible', 'VISIBILITY_DISPUTED'),
+    # 4. disputed operator blocks.
     ('exists', 'exists', 'disputed', 'VISIBILITY_DISPUTED'),
-    ('exists', 'missing', 'unknown', 'NO_OBJECT'),
+    # 5. API says exists, canonical says missing (no operator dispute) -> API_ONLY, do NOT block.
+    ('exists', 'missing', 'unknown', 'API_ONLY'),
+    # 6. Same but with 'absent' as the canonical value (locked spec from Step 99 audit).
+    ('exists', 'absent', 'unknown', 'API_ONLY'),
+    # 7. Canonical exists but API is missing -> EXTERNAL_STATE_DISPUTED.
     ('missing', 'exists', 'unknown', 'EXTERNAL_STATE_DISPUTED'),
+    # 8. Both canonical and API missing -> NO_OBJECT.
+    ('missing', 'missing', 'unknown', 'NO_OBJECT'),
+    # 9. Canonical says absent, API missing -> NO_OBJECT.
+    ('missing', 'absent', 'unknown', 'NO_OBJECT'),
+    # 10. Operator dispute overrides any canonical/API agreement.
     ('exists', 'missing', 'not-visible', 'VISIBILITY_DISPUTED'),
-    ('', '', 'unknown', 'NO_OBJECT'),
+    # 11. Invalid operator value fails closed.
     ('exists', 'exists', 'garbage', 'VISIBILITY_DISPUTED'),
+    # 12. All-falsy sentinel -> defaults to unknown, falsy api+canonical -> NO_OBJECT.
+    ('', '', 'unknown', 'NO_OBJECT'),
+    # 13. All-falsy everything -> same.
     ('', '', '', 'NO_OBJECT'),
 ]
 

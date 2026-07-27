@@ -474,7 +474,7 @@ test('9. when buildPublishingReference throws, ref stays null and no canonical m
 // ────────────────────────────────────────────────────────────────────
 // TEST 10: existing test baselines remain green.
 // ────────────────────────────────────────────────────────────────────
-test('10. all 324 baseline tests still pass', () => {
+test('10. all 338 baseline tests still pass', () => {
   const suites = [
     'tests/test_visibility_guard.js',
     'tests/test_asset_state_engine.js',
