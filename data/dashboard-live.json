@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-27T10:00:06.337Z",
+  "lastUpdated": "2026-07-27T16:00:05.318Z",
   "source": "automated",
   "website": {
-    "activeUsers": 684,
-    "sessions": 894,
-    "pageViews": 1474,
-    "avgSessionSeconds": 98.75703227069351,
-    "bounceRate": 0.5682326621923938,
+    "activeUsers": 704,
+    "sessions": 929,
+    "pageViews": 1528,
+    "avgSessionSeconds": 98.58980534445641,
+    "bounceRate": 0.5844994617868676,
     "topPages": [
       {
         "path": "/",
-        "views": 723
+        "views": 743
       },
       {
         "path": "/bookings/",
-        "views": 328
+        "views": 346
       },
       {
         "path": "/customer-portal/",
-        "views": 195
+        "views": 203
       },
       {
         "path": "/club-fitting/",
-        "views": 83
+        "views": 86
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 65
+        "views": 67
       },
       {
         "path": "/philosophy/",
@@ -38,21 +38,21 @@
       },
       {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
-        "views": 13
+        "views": 14
+      },
+      {
+        "path": "/404.html",
+        "views": 11
       },
       {
         "path": "/membership/",
         "views": 11
-      },
-      {
-        "path": "/404.html",
-        "views": 10
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 350
+        "sessions": 366
       },
       {
         "source": "fb",
@@ -60,27 +60,27 @@
       },
       {
         "source": "(direct)",
-        "sessions": 154
+        "sessions": 158
       },
       {
         "source": "clublab.app",
-        "sessions": 65
+        "sessions": 70
       },
       {
         "source": "(not set)",
-        "sessions": 21
+        "sessions": 37
+      },
+      {
+        "source": "instagram",
+        "sessions": 22
       },
       {
         "source": "ig",
         "sessions": 20
       },
       {
-        "source": "instagram",
-        "sessions": 17
-      },
-      {
         "source": "bing",
-        "sessions": 15
+        "sessions": 17
       },
       {
         "source": "an",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 651
+        "sessions": 670
       },
       {
         "device": "desktop",
-        "sessions": 236
+        "sessions": 252
       },
       {
         "device": "tablet",
