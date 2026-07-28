@@ -1744,6 +1744,57 @@ const HELP = (() => {
         If none land, change <i>one</i> input and regenerate — don't change all three.</p>
         <p><b>Anti-pattern:</b> generating 12 variants across all three voices at once.
         You'll drown in mediocre copy. Pick a voice, iterate within it.</p>`
+    },
+    'seo-audit': {
+      title: 'How the SEO Audit surfaces what to fix first',
+      body: `
+        <p>SEO Audit is a <b>deep-dive + fix-draft tool</b>. It runs the whole site
+        through a checklist of common on-page problems, ranks them by severity, and
+        hands you a one-click way to draft a fix. Nothing here publishes — fixes
+        land in the Fix Draft modal as a copy-pasteable snippet you review first.</p>
+        <p><span class="hc-term">🎯 Health score</span> is the headline number on the
+        top-left card. It runs 0-100 and maps to four bands: <b>healthy</b> (green, 80+),
+        <b>needs attention</b> (amber, 60-79), <b>poor</b> (orange, 40-59),
+        <b>critical</b> (red, &lt;40). It's a site-wide rollup — a single 20-page audit
+        is enough to move the score by 5 points, but a single missing H1 on a
+        high-traffic landing page moves it by less. Read it as a <b>trend</b>, not as
+        a daily KPI.</p>
+        <p><span class="hc-term">🧭 Filters</span> (top-right card) narrow the rest of
+        the page by page, by issue type, or by severity. The <b>"only fixable"</b>
+        checkbox is the single most useful filter — it strips out findings where the
+        fix isn't obvious (e.g. "add user reviews" needs a real workflow, not just
+        copy). Use it when you have 30 minutes, not when you want to browse.</p>
+        <p><span class="hc-term">📄 Per-page findings</span> groups every issue by URL.
+        Click any finding to open the <b>Fix Draft modal</b>: type a target keyword,
+        click Generate, copy the snippet, paste into your CMS. The generated snippet
+        is a starting point — it follows the brand voice but you still edit before
+        publishing. Don't treat it as final copy.</p>
+        <p><span class="hc-term">🔥 Top priority actions</span> is the system's ranked
+        shortlist: the 5-10 fixes that move the score the most for the least effort.
+        <b>Start here every time</b> — these are the issues with the highest impact-per-minute
+        ratio. The ranking weights severity × effort × pages affected.</p>
+        <p><span class="hc-term">📋 All recommendations</span> is the full flat list
+        (filtered by your dropdowns). Use it when you've cleared the priority list
+        and want to see what's left. Sorting is by page, then severity.</p>
+        <p><span class="hc-term">🛬 Landing-page fixes</span> is the separate panel for
+        the highest-traffic pages. These are the URLs where SEO wins compound fastest.
+        Findings here are usually <b>structural</b> (missing H1, thin copy, missing
+        FAQ schema) — not just metadata tweaks. They take longer to fix but the
+        payoff per page is 5-10× a regular recommendation.</p>
+        <p><b>How to use this page:</b> (1) read the Health score band to know if the
+        site is in trouble; (2) open "Top priority actions" and pick one; (3) click
+        into the finding, generate a fix draft, paste into your CMS; (4) refresh
+        the audit to confirm the score moved. One fix per session is fine — the score
+        doesn't have to hit 100 in a week.</p>
+        <p><b>Anti-pattern:</b> opening the page, reading the score, and closing it
+        without acting. The score is a <b>call to action</b>, not a status display.
+        If the band is amber or worse, the first priority action will take 15 minutes
+        and move it.</p>
+        <p><b>Anti-pattern 2:</b> treating low-severity findings as ignorable. Low
+        severity means "the search engines don't penalise this" — it doesn't mean
+        "users won't notice". A missing alt tag on a hero image is low severity
+        for SEO but high severity for accessibility. Read the <i>finding message</i>,
+        not just the pill.</p>`
     }
   };
 
