@@ -1,9 +1,9 @@
 # Campaign OS — Status Handoff
 
 **Branch:** `feat/asset-state-engine`
-**HEAD:** `3b31f24` (just pushed)
+**HEAD:** `a20c327` (just pushed)
 **Live URL:** `https://episodes-images-futures-coleman.trycloudflare.com`
-| **Tests:** 112/112 pass (`cd campaign-os && source ../.venv/bin/activate && python3 -m unittest discover -s tests`)
+| **Tests:** 233/233 pass (`cd campaign-os && source ../.venv/bin/activate && python3 -m unittest discover -s tests`)
 
 ---
 
@@ -25,13 +25,30 @@
 - ✅ Caption Studio, Headlines, CTAs generators (composed from hook bank + base caption + CTA pill)
 - ✅ **Meme Lord v2** (THIS TURN) — meme historian: 75 curated memes across eras with brand-fit scoring, top-picks recommender, caption-draft generator (3 flavours), filter bar (voice/pillar/platform/era/still-works/search), modal with why-it-works + format-hint + fit-seeds + re-roll on different seed.
 - ✅ **Theme tokens + light/dark switcher** — two-tier CSS token system (`:root` aliases + `[data-theme]` overrides) with full dark + light themes, `prefers-color-scheme` auto-mode, topbar switcher pill (Dark/Light/Auto), `localStorage` persistence, server-side `GET/POST /api/intel/theme` + `GET /api/intel/tokens` design-system manifest. Every raw hex removed from CSS — all colors flow through semantic tokens (`--bg`, `--tx`, `--ac`, `--scrim`, `--pill-on`, etc.); meme era/fatigue/brand-fit palette uses `color-mix()` so it auto-themes.
-- ✅ 183 passing tests (was 73 baseline; +110 across all turns)
+- ✅ 233 passing tests (was 73 baseline; +160 across all turns)
 
-## Cron tick 10 — 2026-07-28 05:15 SAST
-Built: Caption Studio v2 — voice-aware generation controls (Swing Shack / Stick / Bag Drop), six tone presets, provider-ready caption endpoint, voice-bible endpoint, and SPA picker/results UX.
-Files: campaign-os/app.py; campaign-os/_lib/intelligence.py; campaign-os/campaign-os.html; data/voice_bible.json; tests/test_caption_studio_v2.py
-Tests: 183/183 pass; existing Caption Studio v2 implementation verified locally (endpoint + SPA wiring).
-Next: Publish Dashboard (priority 10), with publish/schedule actions disabled during rest mode.
+## Cron tick 11 — 2026-07-28 06:00 SAST
+
+**Built:** Hashtags & SEO Pack engine (priority 11, rest-mode-safe) — pure-read intelligence for curated hashtag sets + on-page SEO scaffolding. Avoided Publish Dashboard (priority 10) because it's blocked during Christelle's rest-mode and would otherwise gate the next cron. Hashtag/SEO Pack ships the same operational value (publish-pack ready, brand-fit scored) with zero social/Postiz surface.
+
+**Files:**
+- `data/hashtag_seo_pack.json` — 78 tags across 4 pillars × 3 voices × 5 platforms, trending signals (7), banned tags (4), full SEO templates (titles / meta / h1 / slug rules / alt-text rules / schema types / og descriptions), brand keyword bank
+- `campaign-os/app.py` — 4 new endpoints + 2 helpers (`_build_hashtag_set`, `_score_hashtag_set`, `_render_seo_pack`, `_normalise_tag`):
+  - `GET /api/intel/hashtags?pillar&voice&platform&count&include_trending&search&banned_only` — curated hashtag set with banned filter, trending filter, search filter, platform-max cap, GMB→empty
+  - `GET /api/intel/seo_pack?pillar&voice&platform&custom_keyword` — full SEO pack with scoring
+  - `POST /api/intel/seo_pack` — JSON-body alias
+  - `GET /api/intel/seo_index` — manifest for SPA picker
+- `campaign-os/campaign-os.html` — new `#sec-hashtagseo` section + nav entry `#️⃣ Hashtags & SEO`: pillar/voice/platform/count controls, hashtag pills (click to copy), score badges, banned-filter display, platform tips card, full SEO pack card (title/h1/meta/slug/alt/og/schema/keywords), trending signals, brand keywords; auto-regenerates on control change
+- `campaign-os/tests/test_hashtag_seo.py` — 50 new tests across 4 classes:
+  - `HashtagNormalisationTests` (6): leading-hash, lowercase, dedupe-hash, whitespace, empty/non-string rejection
+  - `HashtagApiTests` (23): envelope shape, all-pillar/voice/platform permutations, banned filter, banned-only diagnostic, GMB→empty, count cap, platform-max cap, search filter, include_trending toggle, score in-range, by_category keys, brand tag presence, error envelopes (400 for invalid pillar/voice/platform/count, missing params)
+  - `SeoPackApiTests` (16): envelope shape (GET + POST), pack keys, page_title ≤70, meta_description 110..160, slug well-formed, alt-text sized, schema type per pillar, score in-range, score ≥80 for known pillars, custom_keyword override, secondary keywords, primary-keyword-in-meta
+  - `SeoIndexApiTests` (5): envelope shape, pillar/voice/platform lists, stats keys
+  - `BundledFallbackTests` (1): engine still serves requests when DATA_DIR is empty
+
+**Tests:** 233/233 pass (was 183; **+50 hashtag/SEO tests**); zero baseline regressions. Verified live: `curl /api/intel/hashtags?pillar=education&voice=swing-shack&platform=instagram`, `curl /api/intel/seo_pack?pillar=club-fitting&voice=stick`, `curl /api/intel/seo_index`, all return 200. Tunnel still alive.
+
+**Next priority:** Publish Dashboard (priority 10) — still blocked by rest-mode. Next rest-mode-safe candidates: SEO Audit Detail (deep-dive on seo-audit.json), GBP Post Drafter, Reddit Reply Drafter, Calendar Heatmap (read-only). Or revisit existing renderer stubs (`renderBillboards`, `renderHeadlines`, `renderCTAs`) to bring them up to the same polish as Meme Lord / Caption Studio.
 
 
 ## Hard rules (do not violate)
@@ -66,6 +83,7 @@ campaign-os/
 │   ├── test_today_panel.py             # 3 tests, right-rail Today
 │   ├── test_trends_v2.py               # 2 tests, Trend Catcher v2
 │   ├── test_theme_tokens.py            # 28 tests, dark/light/system
+│   ├── test_hashtag_seo.py             # 50 tests, hashtag + SEO pack
 │   ├── test_truth_collector.py         # (legacy, still passes)
 │   └── ...                             # (legacy test files preserved)
 ├── tests/__init__.py
