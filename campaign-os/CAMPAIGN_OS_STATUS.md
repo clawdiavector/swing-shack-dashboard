@@ -117,11 +117,11 @@ Files: data/asset-image-spec.json; campaign-os/_lib/intelligence.py; campaign-os
 Tests: 152/152 pass (+38 image-generation tests); GET/POST endpoint verified by Flask tests and live curl; Image Gen SPA verified in browser.
 Next: Caption Studio v2 (priority 7)
 
-## Cron tick 7 — 2026-07-28 02:10 SAST
-Built: Caption Studio v2 — Swing Shack, Stick, and Bag Drop voice picker; six-tone selector; voice-specific caption bodies and metadata; canonical caption generation and voice-bible APIs.
-Files: data/voice_bible.json; campaign-os/_lib/intelligence.py; campaign-os/app.py; campaign-os/campaign-os.html; tests/test_caption_studio_v2.py
-Tests: 152/152 baseline pass; 8/8 focused Caption Studio tests pass; APIs verified via live curl and SPA controls verified in browser.
-Next: Right-rail Today panel (priority 8)
+## Cron tick 8 — 2026-07-28 03:05 SAST
+Built: Right-rail Today panel — Bloomberg-style live cards in Morning Brief with dismissable per-card action, live UTC timestamp header, 30-second pulse refresh, colour-coded by lane (action/review/publish/post).
+Files: campaign-os/app.py; campaign-os/campaign-os.html; campaign-os/tests/test_today_panel.py
+Tests: 155/155 pass (was 152; +3 today panel); endpoints verified via live curl + tunnel.
+Next: Dark mode / theme tokens (priority 9)
 
 ---
 
