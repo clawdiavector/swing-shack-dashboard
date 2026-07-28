@@ -314,12 +314,28 @@ def health():
 
 @app.route('/api/campaigns', methods=['GET'])
 def list_campaigns():
-    """Return all campaigns."""
+    """GET /api/campaigns — list all campaigns, filtered by active brand.
+    Query string: ?brand_id=<id> overrides the active brand for this request.
+    Pass ?all_brands=1 to bypass brand filtering entirely."""
     data = load_data()
+    all_campaigns = data.get("campaigns", {})
+    if request.args.get('all_brands') in ('1', 'true', 'yes'):
+        filtered = dict(all_campaigns)
+        active_bid = None
+    else:
+        active_bid = get_brand_id()
+        filtered = {cid: c for cid, c in all_campaigns.items() if c.get('brand_id') == active_bid}
+    active_campaign_id = data.get('activeCampaignId')
+    # If the active campaign belongs to a different brand than the filter, fall back to the first
+    # matching campaign in this brand (or None).
+    if active_campaign_id and active_campaign_id not in filtered:
+        active_campaign_id = next(iter(filtered.keys()), None)
     return jsonify({
-        "campaigns": data.get("campaigns", {}),
-        "activeCampaignId": data.get("activeCampaignId"),
-        "portfolioMetadata": data.get("portfolioMetadata", {})
+        "campaigns": filtered,
+        "activeCampaignId": active_campaign_id,
+        "portfolioMetadata": data.get("portfolioMetadata", {}),
+        "brand_id": active_bid,
+        "brand_filter_applied": active_bid is not None,
     })
 
 @app.route('/api/campaigns/<campaign_id>', methods=['GET'])
@@ -3095,6 +3111,225 @@ def tc_health():
         "lastRunAt": state.get("lastRunAt"),
         "lastSuccessAt": state.get("lastSuccessAt"),
         "lastErrorAt": state.get("lastErrorAt"),
+    }), 200
+
+
+# ─── BRAND REGISTRY — multi-brand partition for Campaign OS ────────────
+# Top-level partition: every campaign, asset, hook, meme, caption, GBP post,
+# FAQ, scheduled item and published item belongs to exactly one brand.
+# Brand selection (via ?brand_id= or X-Brand header) filters every endpoint.
+# Default brand is "swing-shack" (the operational default).
+
+BRANDS_FILE = os.path.join(BUNDLED_DATA_DIR, 'brands.json')
+
+
+def load_brands_registry():
+    """Load the canonical brand registry. Idempotent + cached."""
+    if os.path.exists(BRANDS_FILE):
+        with open(BRANDS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {
+        "schema": "https://campaign-os/brands/v1",
+        "version": "1.0",
+        "default_brand_id": "swing-shack",
+        "brands": {
+            "swing-shack": {
+                "id": "swing-shack", "display_name": "Swing Shack",
+                "voice_id": "swing-shack", "icon": "⛳",
+                "active": True, "order": 1, "short_label": "SS",
+                "tagline": "Johannesburg's home of better golf.",
+                "primary_color": "#0F766E", "accent_color": "#F59E0B",
+            }
+        }
+    }
+
+
+def get_brand_id():
+    """Resolve the active brand from request headers or query string."""
+    bid = request.headers.get('X-Brand') or request.args.get('brand_id')
+    if bid:
+        return bid
+    registry = load_brands_registry()
+    return registry.get('default_brand_id') or 'swing-shack'
+
+
+def brand_published_ids(brand_id):
+    """Collect all asset IDs that belong to a brand. Used by filter helpers."""
+    data = load_data()
+    out = set()
+    for cid, c in (data.get('campaigns') or {}).items():
+        if c.get('brand_id') != brand_id:
+            continue
+        for aid in (c.get('assets') or {}).keys():
+            out.add(aid)
+    return out
+
+
+@app.route('/api/brands', methods=['GET'])
+def list_brands():
+    """GET /api/brands — all registered brands with their voice + campaign counts."""
+    registry = load_brands_registry()
+    data = load_data()
+    # Annotate each brand with the count of campaigns + assets that belong to it
+    out = {}
+    for bid, brand in (registry.get('brands') or {}).items():
+        if not brand.get('active', True):
+            continue
+        campaigns = [c for c in (data.get('campaigns') or {}).values() if c.get('brand_id') == bid]
+        asset_count = sum(len(c.get('assets') or {}) for c in campaigns)
+        out[bid] = dict(brand)
+        out[bid]['campaign_count'] = len(campaigns)
+        out[bid]['asset_count'] = asset_count
+    return jsonify({
+        "default_brand_id": registry.get('default_brand_id'),
+        "active_brand_id": get_brand_id(),
+        "brands": out,
+        "count": len(out),
+    }), 200
+
+
+@app.route('/api/brands/<brand_id>', methods=['GET'])
+def get_brand(brand_id):
+    """GET /api/brands/<id> — single brand full record."""
+    registry = load_brands_registry()
+    brand = (registry.get('brands') or {}).get(brand_id)
+    if not brand:
+        return jsonify({"error": "Brand not found", "brand_id": brand_id}), 404
+    data = load_data()
+    campaigns = [c for c in (data.get('campaigns') or {}).values() if c.get('brand_id') == brand_id]
+    return jsonify({
+        "brand": brand,
+        "campaigns": [{"id": cid, "name": c.get('identity', {}).get('name', cid)}
+                      for cid, c in (data.get('campaigns') or {}).items()
+                      if c.get('brand_id') == brand_id],
+        "asset_count": sum(len(c.get('assets') or {}) for c in campaigns),
+        "voice_bible": _load_voice_bible_brand(brand_id),
+    }), 200
+
+
+def _load_voice_bible_brand(brand_id):
+    """Read voice_bible.json#voices/<brand_id> for the given brand."""
+    path = os.path.join(BUNDLED_DATA_DIR, 'voice_bible.json')
+    try:
+        with open(path) as f:
+            bible = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
+    return (bible.get('voices') or {}).get(brand_id)
+
+
+@app.route('/api/brands/<brand_id>/bootstrap', methods=['POST'])
+def bootstrap_brand(brand_id):
+    """POST /api/brands/<id>/bootstrap — scaffold empty campaign-data partition for new brand.
+    Idempotent: if a brand already has data, returns 200 with current state."""
+    registry = load_brands_registry()
+    if brand_id not in (registry.get('brands') or {}):
+        return jsonify({"error": "Unknown brand", "brand_id": brand_id}), 404
+    data = load_data()
+    data.setdefault('brand_partitions', {})
+    if data['brand_partitions'].get(brand_id, {}).get('bootstrapped'):
+        return jsonify({"ok": True, "brand_id": brand_id, "already_bootstrapped": True,
+                        "partition": data['brand_partitions'][brand_id]}), 200
+    data['brand_partitions'][brand_id] = {
+        "bootstrapped": True,
+        "bootstrapped_at": _now_iso(),
+        "campaign_count": sum(1 for c in (data.get('campaigns') or {}).values() if c.get('brand_id') == brand_id),
+        "asset_count": sum(len(c.get('assets') or {}) for c in (data.get('campaigns') or {}).values() if c.get('brand_id') == brand_id),
+    }
+    save_data(data)
+    return jsonify({"ok": True, "brand_id": brand_id,
+                    "partition": data['brand_partitions'][brand_id]}), 200
+
+
+@app.route('/api/brands/<brand_id>/select', methods=['POST'])
+def select_brand(brand_id):
+    """POST /api/brands/<id>/select — record the active brand selection (persisted preference).
+    Used by the SPA brand switcher to remember which brand is open."""
+    registry = load_brands_registry()
+    if brand_id not in (registry.get('brands') or {}):
+        return jsonify({"error": "Unknown brand", "brand_id": brand_id}), 404
+    # Persisted preference lives in theme-preferences.json alongside the theme
+    paths = _data_paths()
+    state_path = os.path.join(paths['data_dir'], 'active-brand.json')
+    os.makedirs(paths['data_dir'], exist_ok=True)
+    with open(state_path, 'w') as f:
+        json.dump({"brand_id": brand_id, "selected_at": _now_iso()}, f, indent=2)
+    return jsonify({"ok": True, "brand_id": brand_id}), 200
+
+
+@app.route('/api/brands/active', methods=['GET'])
+def get_active_brand():
+    """GET /api/brands/active — read the persisted brand preference (if any)."""
+    paths = _data_paths()
+    state_path = os.path.join(paths['data_dir'], 'active-brand.json')
+    if os.path.exists(state_path):
+        try:
+            with open(state_path) as f:
+                pref = json.load(f)
+                return jsonify({"brand_id": pref.get('brand_id', get_brand_id()),
+                                "selected_at": pref.get('selected_at'),
+                                "source": "preference"}), 200
+        except (json.JSONDecodeError, OSError):
+            pass
+    return jsonify({"brand_id": get_brand_id(), "source": "default"}), 200
+
+
+# ─── BRAND-AWARE DATA FILTER HELPER ─────────────────────────────────────
+
+def _brand_filtered_campaigns(brand_id=None):
+    """Return campaigns filtered by brand_id. Falls back to all if brand_id is None."""
+    bid = brand_id or get_brand_id()
+    data = load_data()
+    out = {}
+    for cid, c in (data.get('campaigns') or {}).items():
+        if c.get('brand_id') == bid:
+            out[cid] = c
+    return out, bid
+
+
+def _brand_filtered_assets(brand_id=None):
+    """Return a flat list of all assets across campaigns, brand-scoped."""
+    campaigns, bid = _brand_filtered_campaigns(brand_id)
+    out = []
+    for cid, c in campaigns.items():
+        for aid, a in (c.get('assets') or {}).items():
+            entry = dict(a)
+            entry['_campaign_id'] = cid
+            entry['_campaign_name'] = (c.get('identity') or {}).get('name', cid)
+            entry['_brand_id'] = c.get('brand_id', bid)
+            out.append(entry)
+    return out
+
+
+# ─── BRAND CONTEXT (used by SPA + generators to know which brand is active) ──
+
+@app.route('/api/intel/brand-context', methods=['GET'])
+def intel_brand_context():
+    """GET /api/intel/brand-context — return the active brand + its voice bible + filters.
+    Used by the SPA to render the brand switcher and by generators (captions/memes/CTAs) to
+    scope to the active brand's voice + tone options."""
+    bid = get_brand_id()
+    registry = load_brands_registry()
+    brand = (registry.get('brands') or {}).get(bid) or {}
+    voice_bible = _load_voice_bible_brand(bid)
+    data = load_data()
+    campaigns = [c for c in (data.get('campaigns') or {}).values() if c.get('brand_id') == bid]
+    return jsonify({
+        "brand_id": bid,
+        "brand": brand,
+        "voice_bible": voice_bible,
+        "tone_options": brand.get('tone_options', []) or [],
+        "pillar_defaults": brand.get('pillar_defaults', []) or [],
+        "campaigns": [{"id": cid, "name": (c.get('identity') or {}).get('name', cid)}
+                      for cid, c in (data.get('campaigns') or {}).items()
+                      if c.get('brand_id') == bid],
+        "asset_count": sum(len(c.get('assets') or {}) for c in campaigns),
+        "available_brands": [
+            {"id": b.get('id'), "display_name": b.get('display_name'),
+             "icon": b.get('icon'), "short_label": b.get('short_label'),
+             "campaign_count": sum(1 for c in (data.get('campaigns') or {}).values() if c.get('brand_id') == b.get('id'))}
+            for b in (registry.get('brands') or {}).values() if b.get('active', True)
+        ],
     }), 200
 
 

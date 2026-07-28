@@ -172,7 +172,8 @@
           }
         ]
       },
-      "assets": {}
+      "assets": {},
+      "brand_id": "swing-shack"
     },
     "takomo-101t": {
       "identity": {
@@ -345,7 +346,8 @@
             "players-distance",
             "value",
             "campaign-test"
-          ]
+          ],
+          "brand_id": "swing-shack"
         },
         "takomo-101t-hook-a": {
           "assetId": "takomo-101t-hook-a",
@@ -376,7 +378,8 @@
             "hook-a",
             "review",
             "caption"
-          ]
+          ],
+          "brand_id": "swing-shack"
         },
         "takomo-101t-visual-a": {
           "assetId": "takomo-101t-visual-a",
@@ -434,7 +437,8 @@
           "blockedBy": [
             "product-looks-fake",
             "ai-product-not-credible"
-          ]
+          ],
+          "brand_id": "swing-shack"
         },
         "takomo-101t-production": {
           "assetId": "takomo-101t-production",
@@ -465,7 +469,8 @@
             "takomo",
             "production",
             "full-campaign"
-          ]
+          ],
+          "brand_id": "swing-shack"
         },
         "takomo-101t-hero-b": {
           "assetId": "takomo-101t-hero-b",
@@ -513,7 +518,8 @@
             "takomo",
             "hero-visual",
             "pending-qc"
-          ]
+          ],
+          "brand_id": "swing-shack"
         },
         "takomo-101t-hero-c": {
           "assetId": "takomo-101t-hero-c",
@@ -569,9 +575,11 @@
             "hero-visual",
             "v2",
             "pending-qc"
-          ]
+          ],
+          "brand_id": "swing-shack"
         }
-      }
+      },
+      "brand_id": "swing-shack"
     },
     "winter-golf": {
       "identity": {
@@ -692,7 +700,8 @@
           }
         ]
       },
-      "assets": {}
+      "assets": {},
+      "brand_id": "swing-shack"
     },
     "use-the-right-equipment-mq5l90bk": {
       "identity": {
@@ -892,7 +901,8 @@
                 "#golfperformance"
               ]
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-02",
@@ -972,7 +982,8 @@
           ],
           "realPhotoBrief": "Real golfer mid-swing — silhouette or motion blur only. TrackMan fitting bay background preferred. No club heads visible. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-03",
@@ -1048,7 +1059,8 @@
           ],
           "realPhotoBrief": "Real TrackMan screen capture — actual golfer dispersion data. Real golf clubs used in fitting. Fitting bay environment. No staged studio. Photographer: Swing Shack staff.",
           "visualQualityTier": "hero",
-          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-04",
@@ -1161,7 +1173,8 @@
           "visualQualityTier": "supporting",
           "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
           "filePath": "assets/campaigns/use-the-right-equipment-mq5l90bk/feed-post-04.jpg",
-          "updatedAt": "2026-07-23T10:03:02.603Z"
+          "updatedAt": "2026-07-23T10:03:02.603Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-05": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-05",
@@ -1245,7 +1258,8 @@
           ],
           "realPhotoBrief": "Real golfer at Swing Shack — newly fitted clubs, about to make first swing. Candid. Environment: driving range or fitting bay. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-06": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-06",
@@ -1330,7 +1344,8 @@
           ],
           "realPhotoBrief": "Props: household objects reframed as golf equipment (sponge clubs, pool float drivers, novelty items). Real golfer in background. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-07": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-07",
@@ -1409,7 +1424,8 @@
           ],
           "realPhotoBrief": "Real golfer at Swing Shack — looking at TrackMan data on screen/tablet, expression of realisation. Candid. Fitting bay environment. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-08": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-08",
@@ -1482,7 +1498,8 @@
           ],
           "realPhotoBrief": "Real Takomo or Swing Shack clubs — two clubs from same family, one wrong spec one right spec. Studio or clean fitting bay background. Photographer: Swing Shack staff or approved supplier imagery.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-09": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-09",
@@ -1560,7 +1577,8 @@
           ],
           "realPhotoBrief": "Real golfer leaving Swing Shack fitting bay with clubs in hand. Candid. Natural light. Environment: Swing Shack exterior or parking area. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-10": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-10",
@@ -1643,7 +1661,8 @@
           ],
           "realPhotoBrief": "Real golfer at driving range — good contact with newly fitted clubs. Candid. Natural range light. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T11:15:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-11": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-11",
@@ -1761,7 +1780,8 @@
                 "#golfperformance"
               ]
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-12": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-12",
@@ -1878,7 +1898,8 @@
                 "#indoorgolf"
               ]
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-feed-post-13": {
           "assetId": "use-the-right-equipment-mq5l90bk-feed-post-13",
@@ -1985,7 +2006,8 @@
                 "#golfjhb"
               ]
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-carousel-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-01",
@@ -2118,7 +2140,8 @@
                 "headline": "Book Your Fit."
               }
             ]
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-carousel-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-02",
@@ -2297,7 +2320,8 @@
               ],
               "slides": 5
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-carousel-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-03",
@@ -2411,7 +2435,8 @@
               ],
               "platform": "instagram"
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-carousel-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-carousel-04",
@@ -2526,7 +2551,8 @@
           ],
           "realPhotoBrief": "Real fitting session moments — TrackMan screen, real clubs, golfer making contact. All 5 slides from real Swing Shack photography. Photographer: Swing Shack staff.",
           "visualQualityTier": "supporting",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-reel-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-reel-01",
@@ -2636,7 +2662,8 @@
           ],
           "realPhotoBrief": "Real golfer at Swing Shack — real swing footage, fitting bay. 15 seconds of authentic fitting content. Photographer: Swing Shack staff.",
           "visualQualityTier": "hero",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-reel-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-reel-02",
@@ -2768,7 +2795,8 @@
           ],
           "realPhotoBrief": "Real ball flight marks showing slice/top/thin patterns. Real shaft flex comparison. Real fitting session at Swing Shack. Real golfer swing footage — no AI swing motion.",
           "visualQualityTier": "hero",
-          "visualBriefGeneratedAt": "2026-06-09T12:57:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:57:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-story-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-01",
@@ -2883,7 +2911,8 @@
           ],
           "realPhotoBrief": "No real photography required — AI mood background acceptable. Photographer: none needed.",
           "visualQualityTier": "seasonal",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-story-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-02",
@@ -2991,7 +3020,8 @@
           ],
           "realPhotoBrief": "No real photography required — AI mood background acceptable. Photographer: none needed.",
           "visualQualityTier": "seasonal",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-story-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-03",
@@ -3093,7 +3123,8 @@
           ],
           "realPhotoBrief": "AI-generated background acceptable. Real TrackMan data graphic styling. No real photography required.",
           "visualQualityTier": "seasonal",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-story-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-04",
@@ -3201,7 +3232,8 @@
           ],
           "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
           "visualQualityTier": "seasonal",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-story-05": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-05",
@@ -3316,7 +3348,8 @@
           ],
           "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
           "visualQualityTier": "seasonal",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-story-06": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-06",
@@ -3431,7 +3464,8 @@
           ],
           "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
           "visualQualityTier": "seasonal",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-story-07": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-07",
@@ -3539,7 +3573,8 @@
           ],
           "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
           "visualQualityTier": "seasonal",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-story-08": {
           "assetId": "use-the-right-equipment-mq5l90bk-story-08",
@@ -3640,7 +3675,8 @@
           ],
           "realPhotoBrief": "AI-generated background acceptable. No real photography required.",
           "visualQualityTier": "seasonal",
-          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z"
+          "visualBriefGeneratedAt": "2026-06-09T12:40:00Z",
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-01": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-01",
@@ -3739,7 +3775,8 @@
               ],
               "platform": "gmb"
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-02": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-02",
@@ -3832,7 +3869,8 @@
               ],
               "platform": "gmb"
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-03": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-03",
@@ -3950,7 +3988,8 @@
               "gmbCompliant": true,
               "localContext": "Johannesburg"
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-04": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-04",
@@ -4043,7 +4082,8 @@
               ],
               "platform": "gmb"
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-05": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-05",
@@ -4129,7 +4169,8 @@
             ],
             "gmbConstraints": "Clean, professional, trustworthy. Welcoming Johannesburg golfer to the practice bay. No flashy gimmicks.",
             "textOverlay": "Headline: \"R250 gets you answers.\" Subline: \"Swing Shack. TrackMan-powered fitting.\""
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-06": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-06",
@@ -4229,7 +4270,8 @@
               ],
               "platform": "gmb"
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-07": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-07",
@@ -4323,7 +4365,8 @@
               ],
               "platform": "gmb"
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-08": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-08",
@@ -4412,7 +4455,8 @@
               ],
               "platform": "gmb"
             }
-          }
+          },
+          "brand_id": "swing-shack"
         },
         "use-the-right-equipment-mq5l90bk-gmb-post-09": {
           "assetId": "use-the-right-equipment-mq5l90bk-gmb-post-09",
@@ -4505,7 +4549,8 @@
               ],
               "platform": "gmb"
             }
-          }
+          },
+          "brand_id": "swing-shack"
         }
       },
       "dna": {
@@ -34700,7 +34745,8 @@
             }
           ]
         }
-      ]
+      ],
+      "brand_id": "swing-shack"
     }
   },
   "updatedAt": "2026-07-23T11:44:41.472Z"
