@@ -312,6 +312,116 @@ def health():
         "git_synced": os.path.exists(os.path.join(REPO_DIR, '.git'))
     })
 
+
+# ─── Brand Directory (image + copy generator source-of-truth) ───────────
+from _lib import brand_directory as _brand_dir  # noqa: E402
+
+
+@app.route('/api/brand-directory', methods=['GET'])
+def brand_directory_index():
+    """GET /api/brand-directory — flat index of every brand's readiness + canonical fields.
+
+    Returns the merged brand-index.json so the SPA Brand surface can render
+    readiness scores per brand, and so image/copy generators know which
+    brands are ready (all 4 gate files) vs partial (fall back to voice bible).
+    """
+    try:
+        idx = _brand_dir.build_index()
+        return jsonify(idx)
+    except Exception as e:
+        _app_log.exception("brand_directory_index failed")
+        return jsonify({"error": str(e), "schema": "https://campaign-os/brand-directory/index/v1"}), 500
+
+
+@app.route('/api/brand-directory/<brand_id>', methods=['GET'])
+def brand_directory_get(brand_id):
+    """GET /api/brand-directory/<brand_id> — full per-brand directory payload.
+
+    Used by image_dissector (when Drive is wired in) and the Brand surface
+    "View details" panel. Returns voice, palette, archetypes, copy, examples.
+    """
+    try:
+        brand = _brand_dir.load_brand(brand_id)
+        if not brand.get("exists"):
+            return jsonify({"error": f"unknown brand_id: {brand_id}"}), 404
+        return jsonify(brand)
+    except Exception as e:
+        _app_log.exception("brand_directory_get failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/brand-directory/<brand_id>/generate-brief', methods=['GET'])
+def brand_directory_generate_brief(brand_id):
+    """GET /api/brand-directory/<brand_id>/generate-brief?surface=...&tone=...
+
+    Returns a ready-to-use prompt brief for the image generator or the
+    caption generator. Combines: archetype layers + palette + typography +
+    voice tone-rules + headline bank + CTA bank.
+
+    Query params:
+        surface (optional): square-post | story | banner | meme-3up | quote | any
+        tone (optional): educational | confident | funny | sarcastic | relatable | provocative | warm
+
+    Output: { archetype, palette, typography, headline_options, cta_options, voice_anchor }
+    """
+    try:
+        brand = _brand_dir.load_brand(brand_id)
+        if not brand.get("exists"):
+            return jsonify({"error": f"unknown brand_id: {brand_id}"}), 404
+
+        surface = request.args.get("surface", "").strip().lower()
+        tone = request.args.get("tone", "").strip().lower()
+
+        # Pick archetype
+        archetypes = brand.get("archetypes") or []
+        archetype = None
+        if surface:
+            for a in archetypes:
+                aid = (a.get("id") or "").lower()
+                if surface in aid:
+                    archetype = a
+                    break
+        if not archetype and archetypes:
+            archetype = archetypes[0]
+
+        # Pull headlines + CTAs that match the requested tone (or any if none match)
+        headlines_md = brand.get("copy", {}).get("headlines", "")
+        ctas_md = brand.get("copy", {}).get("ctas", "")
+
+        return jsonify({
+            "brand_id": brand_id,
+            "ready": brand.get("ready"),
+            "surface": surface or (archetype.get("id") if archetype else None),
+            "tone": tone or "any",
+            "archetype": archetype,
+            "palette": brand.get("palette"),
+            "typography": brand.get("typography"),
+            "voice_anchor": (brand.get("voice", {}).get("tone_rules", "")[:400] + "...") if brand.get("voice", {}).get("tone_rules") else "",
+            "headlines_bank": headlines_md,
+            "ctas_bank": ctas_md,
+            "do_say_dont_say": brand.get("voice", {}).get("do_say_dont_say", ""),
+        })
+    except Exception as e:
+        _app_log.exception("brand_directory_generate_brief failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/brand-directory/refresh', methods=['POST'])
+def brand_directory_refresh():
+    """POST /api/brand-directory/refresh — rebuild _system/brand-index.json.
+
+    Called after the image dissector (Drive wiring) writes new visual specs,
+    or after manual folder edits. Idempotent.
+    """
+    try:
+        path = _brand_dir.write_index()
+        idx = _brand_dir.build_index()
+        return jsonify({"wrote": str(path), "index": idx})
+    except Exception as e:
+        _app_log.exception("brand_directory_refresh failed")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/campaigns', methods=['GET'])
 def list_campaigns():
     """GET /api/campaigns — list all campaigns, filtered by active brand.

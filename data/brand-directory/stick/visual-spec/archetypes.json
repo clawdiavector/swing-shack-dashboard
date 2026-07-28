@@ -1,0 +1,56 @@
+{
+  "schema": "https://campaign-os/brand-directory/visual-archetypes/v1",
+  "brand_id": "stick",
+  "version": "1.0",
+  "updated": "2026-07-28T20:10:00Z",
+  "canvas": {
+    "primary_unit": "instagram_square_1080",
+    "aspect": "1:1",
+    "safe_area": "central 90%"
+  },
+  "archetypes": [
+    {
+      "id": "stick-callout",
+      "name": "Stick Callout — Bold One-Liner",
+      "description": "Black background, single bold statement in white, red CTA pill or no CTA.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "solid", "fill": "primary"},
+        {"id": "headline", "kind": "text", "position": "centre", "max_lines": 3, "weight": 900, "size_px": 72, "colour": "neutral_light", "alignment": "centre"},
+        {"id": "accent_rule", "kind": "decorative", "element": "thick red rule above or below headline", "position": "below headline", "width": 120, "height": 6, "colour": "accent"},
+        {"id": "logo_mark", "kind": "logo", "position": "bottom-right", "size": "small (60px)", "colour_treatment": "mono_light"}
+      ],
+      "example_prompt_seed": "Stick callout: off-rack clubs line. Black background, white text, red rule.",
+      "use_cases": ["sarcastic", "confident", "provocative"]
+    },
+    {
+      "id": "stick-meme-3up",
+      "name": "Stick Meme 3-Up",
+      "description": "Same as Swing Shack meme grid but with Stick palette + harder captions.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "panel_1", "kind": "solid", "fill": "primary", "caption_position": "top", "caption_weight": 700, "caption_size_px": 30, "caption_colour": "neutral_light"},
+        {"id": "panel_2", "kind": "solid", "fill": "primary", "caption_position": "middle", "caption_weight": 700, "caption_size_px": 30, "caption_colour": "neutral_light"},
+        {"id": "panel_3", "kind": "solid", "fill": "accent", "caption_position": "bottom", "caption_weight": 900, "caption_size_px": 34, "caption_colour": "neutral_light"}
+      ],
+      "caption_colour_default": "neutral_light",
+      "example_prompt_seed": "3-up meme: range balls denial. Setup | twist | punchline.",
+      "use_cases": ["meme_lord", "relatable", "funny"]
+    },
+    {
+      "id": "stick-tweet-card",
+      "name": "Stick Tweet Card",
+      "description": "Quote-tweet style. Single short statement, attribution at bottom.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "solid", "fill": "primary"},
+        {"id": "tweet_text", "kind": "text", "position": "centre", "max_lines": 4, "weight": 700, "size_px": 40, "colour": "neutral_light", "alignment": "centre", "max_chars_per_line": 30},
+        {"id": "attribution", "kind": "text", "position": "bottom-left", "weight": 500, "size_px": 18, "colour": "accent", "alignment": "left"}
+      ],
+      "example_prompt_seed": "Stick tweet card: range balls denial. Black bg, white quote.",
+      "use_cases": ["sarcastic", "relatable"]
+    }
+  ],
+  "fallback_when_no_image_gen": "produce copy-only deliverables (headline + caption + archetype spec). Image gen slot waits for Drive wiring.",
+  "source": "best-guess; needs Drive validation once folders wired in."
+}

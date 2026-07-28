@@ -1,0 +1,57 @@
+{
+  "schema": "https://campaign-os/brand-directory/visual-archetypes/v1",
+  "brand_id": "bag-drop",
+  "version": "1.0",
+  "updated": "2026-07-28T20:10:00Z",
+  "canvas": {
+    "primary_unit": "instagram_square_1080",
+    "aspect": "1:1",
+    "safe_area": "central 90%"
+  },
+  "archetypes": [
+    {
+      "id": "bagdrop-member-moment",
+      "name": "Bag Drop — Member Moment",
+      "description": "Warm orange background, navy headline, photo of golfers / bags / bay optional.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "solid_or_photo", "fill": "primary"},
+        {"id": "headline", "kind": "text", "position": "centre", "max_lines": 3, "weight": 700, "size_px": 56, "colour": "accent", "alignment": "centre"},
+        {"id": "subhead", "kind": "text_optional", "position": "below headline", "weight": 500, "size_px": 26, "colour": "neutral_light", "alignment": "centre"},
+        {"id": "logo_mark", "kind": "logo", "position": "bottom-right", "size": "small (60px)", "colour_treatment": "mono_navy"}
+      ],
+      "example_prompt_seed": "Bag Drop member moment: leave the bag, play lighter. Orange bg, navy headline.",
+      "use_cases": ["relatable", "funny", "warm"]
+    },
+    {
+      "id": "bagdrop-thursday-invite",
+      "name": "Bag Drop — Thursday Social Invite",
+      "description": "Hero shot of golfers / bay / social moment. Headline invites to Thursday social.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "photo", "treatment": "dim 25%, warm orange overlay 35%"},
+        {"id": "headline", "kind": "text", "position": "top-centre", "max_lines": 2, "weight": 800, "size_px": 60, "colour": "neutral_light", "alignment": "centre", "padding_top": 80},
+        {"id": "subhead", "kind": "text", "position": "below headline", "weight": 600, "size_px": 32, "colour": "accent", "alignment": "centre"},
+        {"id": "cta_pill", "kind": "button_or_url", "position": "bottom-centre", "shape": "pill", "fill": "accent", "text_colour": "neutral_light", "max_chars": 24}
+      ],
+      "example_prompt_seed": "Thursday member social invite. Warm photo bg, navy CTA pill.",
+      "use_cases": ["event", "social_proof", "community"]
+    },
+    {
+      "id": "bagdrop-quote-warmth",
+      "name": "Bag Drop — Warmth Quote Card",
+      "description": "Single warm quote card. Light, supportive, member-energy.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "solid", "fill": "neutral_light"},
+        {"id": "accent_rule", "kind": "decorative", "element": "thin deep-navy rule above quote", "position": "above quote", "width": 80, "height": 4, "colour": "accent"},
+        {"id": "quote_text", "kind": "text", "position": "centre", "max_lines": 4, "weight": 600, "size_px": 44, "colour": "accent", "alignment": "centre", "max_chars_per_line": 26},
+        {"id": "attribution", "kind": "text", "position": "below quote", "weight": 500, "size_px": 18, "colour": "neutral_mid", "alignment": "centre"}
+      ],
+      "example_prompt_seed": "Bag Drop warmth quote. Cream bg, navy text.",
+      "use_cases": ["relatable", "warm", "community"]
+    }
+  ],
+  "fallback_when_no_image_gen": "produce copy-only deliverables (headline + caption + archetype spec). Image gen slot waits for Drive wiring.",
+  "source": "best-guess; needs Drive validation once folders wired in."
+}

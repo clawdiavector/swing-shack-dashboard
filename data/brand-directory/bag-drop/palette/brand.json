@@ -1,0 +1,43 @@
+{
+  "schema": "https://campaign-os/brand-directory/palette/v1",
+  "brand_id": "bag-drop",
+  "version": "1.0",
+  "updated": "2026-07-28T20:10:00Z",
+  "palette": {
+    "primary": {
+      "hex": "#F4A261",
+      "name": "warm orange",
+      "usage": "backgrounds, dominant warmth colour, hero backgrounds"
+    },
+    "accent": {
+      "hex": "#264653",
+      "name": "deep teal-navy",
+      "usage": "text, headlines, CTA pills"
+    },
+    "neutral_dark": {
+      "hex": "#1A1A1A",
+      "name": "charcoal",
+      "usage": "alternate backgrounds, dark mode"
+    },
+    "neutral_light": {
+      "hex": "#FAF7F2",
+      "name": "warm paper",
+      "usage": "text on orange, body copy"
+    },
+    "neutral_mid": {
+      "hex": "#6B7280",
+      "name": "concrete",
+      "usage": "secondary text, captions"
+    },
+    "supporting": [
+      {"hex": "#E76F51", "name": "burnt orange", "usage": "hover state, emphasis"},
+      {"hex": "#E9C46A", "name": "soft mustard", "usage": "tag pills, badges"}
+    ]
+  },
+  "contrast_checks": [
+    {"pair": ["primary", "accent"], "ratio_estimate": 4.7, "wcag": "AA pass"},
+    {"pair": ["primary", "neutral_light"], "ratio_estimate": 1.4, "wcag": "fail — never use as bg+text"},
+    {"pair": ["accent", "neutral_light"], "ratio_estimate": 11.2, "wcag": "AAA pass"}
+  ],
+  "source": "best-guess; needs Drive validation once folders wired in."
+}

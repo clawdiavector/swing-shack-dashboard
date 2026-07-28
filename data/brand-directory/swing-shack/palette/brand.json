@@ -1,0 +1,45 @@
+{
+  "schema": "https://campaign-os/brand-directory/palette/v1",
+  "brand_id": "swing-shack",
+  "version": "1.0",
+  "updated": "2026-07-28T20:10:00Z",
+  "palette": {
+    "primary": {
+      "hex": "#0F766E",
+      "name": "deep teal",
+      "usage": "backgrounds, dominant brand colour, headers, top-bar"
+    },
+    "accent": {
+      "hex": "#F59E0B",
+      "name": "amber",
+      "usage": "CTAs, highlights, key callouts, secondary buttons"
+    },
+    "neutral_dark": {
+      "hex": "#0B1220",
+      "name": "midnight ink",
+      "usage": "text on light, dark mode backgrounds, headlines"
+    },
+    "neutral_light": {
+      "hex": "#F8FAFC",
+      "name": "paper",
+      "usage": "body text on dark, light surface cards"
+    },
+    "neutral_mid": {
+      "hex": "#475569",
+      "name": "slate",
+      "usage": "secondary text, captions, metadata"
+    },
+    "supporting": [
+      {"hex": "#0EA5A4", "name": "bright teal", "usage": "hover state, secondary brand"},
+      {"hex": "#FCD34D", "name": "soft amber", "usage": "tag pills, badges"},
+      {"hex": "#1E293B", "name": "ink", "usage": "deep backgrounds"}
+    ]
+  },
+  "contrast_checks": [
+    {"pair": ["primary", "neutral_light"], "ratio_estimate": 5.1, "wcag": "AA pass for large text"},
+    {"pair": ["accent", "neutral_dark"], "ratio_estimate": 6.8, "wcag": "AA pass"},
+    {"pair": ["neutral_dark", "neutral_light"], "ratio_estimate": 16.2, "wcag": "AAA pass"},
+    {"pair": ["primary", "neutral_dark"], "ratio_estimate": 3.2, "wcag": "AA fail for body — use primary for headlines only"}
+  ],
+  "source": "brands.json#swing-shack + visual best-guess; needs Drive validation once folders are wired in"
+}
