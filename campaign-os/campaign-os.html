@@ -1745,6 +1745,43 @@ const HELP = (() => {
         <p><b>Anti-pattern:</b> generating 12 variants across all three voices at once.
         You'll drown in mediocre copy. Pick a voice, iterate within it.</p>`
     },
+    'headlines': {
+      title: 'How the Headline Generator picks what stops the scroll',
+      body: `
+        <p>This is your <span class="hc-term">bold, provocative, shareable headline</span>
+        machine. Headlines answer a different question than captions: <b>is this worth
+        clicking / saving / sharing?</b> The headline is judged in 1-2 seconds; the caption
+        gets a full paragraph. If the headline is weak, the caption never gets read.</p>
+        <p><span class="hc-term">🎙️ Voice</span> filter narrows to one brand: Swing Shack
+        (data-led, confident), Stick (sarcastic insider), Bag Drop (community-first).
+        Locked voice = the generator can't drift toward the wrong tone. <b>Voice + pillar
+        together</b> is the strongest constraint: <i>Stick + Community</i> reads nothing
+        like <i>Swing Shack + Community</i>.</p>
+        <p><span class="hc-term">🧱 Pillar</span> (Education / Club Fitting / Community /
+        Events) forces the headline to point at a content pillar, not just be a
+        one-off attention grab. A headline that doesn't ladder into a pillar ships
+        as a Reel caption opener at best — pillar-locked headlines feed the
+        Calendar.</p>
+        <p><span class="hc-term">⚡ Generate 5</span> produces 5 fresh drafts under the
+        current filter. <span class="hc-term">🎯 Recommend</span> asks the system to
+        pick <b>the single best headline</b> for the active filter pair — useful when
+        you have 30 seconds, not 5 minutes.</p>
+        <p><span class="hc-term">📜 History</span> holds every prior generation. Past
+        winners cluster: if a structure hit twice, that's a formula worth repeating.
+        <span class="hc-term">🗑 Clear history</span> wipes the panel — the audit log
+        keeps a copy; you can't lose a winner by clearing.</p>
+        <p><b>How to use this page:</b> pick a voice, pick a pillar, click Generate 5.
+        Pick the strongest headline, drop it into the Caption Studio as the opener,
+        or use it directly in a billboard / carousel / hook. If nothing lands after
+        two generations, swap the pillar (voice usually isn't the problem).</p>
+        <p><b>Anti-pattern:</b> generating in "any voice" and "any pillar" to see what
+        shows up. You'll get a generic mix that fits nothing. The filters exist for a
+        reason; one run with a locked filter beats three runs on broad.</p>
+        <p><b>Anti-pattern 2:</b> shipping a headline without checking the Hook Bank.
+        Headlines and hooks often overlap — if the Hook Bank already has a 3× winner
+        in this voice + pillar, lean into that formula instead of inventing a new
+        one.</p>`
+    },
     'seo-audit': {
       title: 'How the SEO Audit surfaces what to fix first',
       body: `
