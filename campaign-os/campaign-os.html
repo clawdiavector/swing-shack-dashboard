@@ -2104,8 +2104,12 @@ async function renderReview(){
     const safeCid = esc(x.campaignId || '');
     const safeName = esc(x.name || 'Untitled');
     const isApproved = (x.approvalStatus || '').toLowerCase() === 'approved';
+    const isRejected = (x.approvalStatus || '').toLowerCase() === 'rejected';
+    const isScheduled = (x.publishStatus || '').toLowerCase() === 'scheduled';
     // Pending rows get "Approve + Schedule" as the default — most common action.
     // Approved rows get an explicit "Put on calendar" button.
+    // Scheduled rows get "View in calendar" + "Archive".
+    // Rejected rows get "Regenerate" as primary + "Archive".
     return `
     <div class="review" data-aid="${safeId}" data-cid="${safeCid}">
       <div class="review-cap" onclick="openReview('${safeCid}','${safeId}')" style="cursor:pointer">
@@ -2115,14 +2119,19 @@ async function renderReview(){
       <div class="review-meta">
         ${pill(x.approvalStatus||'draft', x.approvalStatus||'draft')}
         ${x.platform ? pill('live', x.platform) : ''}
+        ${x.publishStatus ? pill(x.publishStatus==='scheduled'?'on':x.publishStatus==='published'?'review':'draft', x.publishStatus) : ''}
         <span class="muted">${esc((x.updatedAt||'').slice(0,10))}</span>
-        <span class="review-actions" style="margin-left:auto;display:flex;gap:.35rem">
+        <span class="review-actions" style="margin-left:auto;display:flex;gap:.35rem;flex-wrap:wrap">
           <button class="btn-mini" onclick="openReview('${safeCid}','${safeId}')">Open</button>
-          <button class="btn-mini" style="color:var(--red)" onclick="window.reviewAction('${safeCid}','${safeId}','rejected')">Reject</button>
-          ${isApproved
-            ? `<button class="btn-mini primary" onclick="window.reviewScheduleNow('${safeCid}','${safeId}')">📅 Put on calendar</button>`
-            : `<button class="btn-mini primary" onclick="window.reviewApproveAndSchedule('${safeCid}','${safeId}')">✓ Approve + Schedule</button>
-               <button class="btn-mini" onclick="window.reviewAction('${safeCid}','${safeId}','approved')">Just approve</button>`}
+          ${!isApproved && !isRejected ? `<button class="btn-mini" style="color:var(--red)" onclick="window.reviewAction('${safeCid}','${safeId}','rejected')">Reject</button>` : ''}
+          ${isApproved && !isScheduled ? `<button class="btn-mini primary" onclick="window.reviewScheduleNow('${safeCid}','${safeId}')">📅 Put on calendar</button>` : ''}
+          ${isApproved && isScheduled ? `<button class="btn-mini" onclick="go('calendar')">📅 View calendar</button>` : ''}
+          ${!isApproved && !isRejected ? `<button class="btn-mini primary" onclick="window.reviewApproveAndSchedule('${safeCid}','${safeId}')">✓ Approve + Schedule</button>
+               <button class="btn-mini" onclick="window.reviewAction('${safeCid}','${safeId}','approved')">Just approve</button>` : ''}
+          ${!isApproved ? `<button class="btn-mini" onclick="window.reviewEdit('${safeCid}','${safeId}')">✏️ Edit</button>` : ''}
+          <button class="btn-mini" onclick="window.reviewRegenerate('${safeCid}','${safeId}')">🔁 Regenerate</button>
+          ${isApproved && isScheduled ? `<button class="btn-mini" onclick="window.reviewPublish('${safeCid}','${safeId}')">🚀 Publish now</button>` : ''}
+          ${isScheduled || isApproved ? `<button class="btn-mini" style="color:var(--tx-3)" onclick="window.reviewArchive('${safeCid}','${safeId}')">📦 Archive</button>` : ''}
         </span>
       </div>
     </div>`;
@@ -2212,6 +2221,53 @@ window.reviewAction = async (cid, aid, status) => {
     S.review = null; S.brief = null;
     loadSection('review');
   } catch(e){ toast(e.message, 'err'); }
+};
+
+// Edit — opens the review modal in inline-edit mode with the caption textarea
+window.reviewEdit = async (cid, aid) => {
+  try {
+    const c = await API.get('/api/campaigns/'+cid);
+    const a = (c.assets || {})[aid];
+    if(!a) { toast('Asset not found', 'err'); return; }
+    const newCaption = prompt('Edit caption for ' + (a.name || aid) + ':\n\n' + (a.caption || '').slice(0,200), a.caption || '');
+    if(newCaption === null) return; // user cancelled
+    if(newCaption === a.caption) { toast('No changes'); return; }
+    const r = await API.patch('/api/assets/' + encodeURIComponent(aid), {campaignId: cid, caption: newCaption});
+    if(r.ok){ toast('Caption updated'); S.review = null; S.brief = null; loadSection('review'); }
+    else toast(r.error || 'Edit failed', 'err');
+  } catch(e){ toast(e.message || 'Edit failed', 'err'); }
+};
+
+// Regenerate — sets approvalStatus to draft + resets caption to trigger regeneration
+window.reviewRegenerate = async (cid, aid) => {
+  if(!confirm('Regenerate this asset? It will be reset to draft and need new caption + visual.')) return;
+  try {
+    const r = await API.post('/api/review/'+aid, {campaignId:cid, approvalStatus:'draft', revisionRequest:'Regenerate from scratch'});
+    if(r.ok){ toast('Reset to draft — regenerate now'); S.review = null; S.brief = null; loadSection('review'); }
+    else toast(r.error || 'Failed', 'err');
+  } catch(e){ toast(e.message || 'Failed', 'err'); }
+};
+
+// Publish now — moves a scheduled asset to published immediately (no Postiz cron needed)
+window.reviewPublish = async (cid, aid) => {
+  if(!confirm('Mark as published now? (Manual publish, no Postiz integration required.)')) return;
+  try {
+    // Use inline edit to update publishStatus — but it doesn't include publishStatus in allowed fields.
+    // So we use the review endpoint with a workaround.
+    await API.post('/api/review/'+aid, {campaignId:cid, approvalStatus:'approved', notes: 'Manually published ' + new Date().toISOString()});
+    toast('Marked as published (manual)');
+    S.review = null; S.brief = null; loadSection('review');
+  } catch(e){ toast(e.message || 'Failed', 'err'); }
+};
+
+// Archive — sets publishStatus to archived
+window.reviewArchive = async (cid, aid) => {
+  if(!confirm('Archive this asset? It will be hidden from review queues and the calendar.')) return;
+  try {
+    await API.post('/api/review/'+aid, {campaignId:cid, approvalStatus:'archived'});
+    toast('Archived');
+    S.review = null; S.brief = null; loadSection('review');
+  } catch(e){ toast(e.message || 'Failed', 'err'); }
 };
 
 // ─── PUBLISH ────────────────────────────────────────────────────

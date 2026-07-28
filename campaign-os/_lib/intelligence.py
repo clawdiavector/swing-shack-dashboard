@@ -399,12 +399,16 @@ def review_inbox() -> Dict[str, Any]:
         cname = c.get("identity", {}).get("name", cid)
         for aid, asset in (c.get("assets") or {}).items():
             aps = asset.get("approvalStatus", "draft")
+            ps = asset.get("publishStatus")
             if aps == "approved":
-                approved.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "caption": asset.get("caption", "")[:120], "publishStatus": asset.get("publishStatus"), "updatedAt": asset.get("updatedAt")})
+                approved.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "caption": asset.get("caption", "")[:120], "approvalStatus": aps, "publishStatus": ps, "platform": asset.get("platform") or asset.get("integration", "instagram"), "updatedAt": asset.get("updatedAt")})
             elif aps in ("rejected",):
-                rejected.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "reason": asset.get("rejectionReason", ""), "updatedAt": asset.get("updatedAt")})
+                rejected.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "reason": asset.get("rejectionReason", ""), "approvalStatus": aps, "publishStatus": ps, "updatedAt": asset.get("updatedAt")})
+            elif aps == "archived":
+                # Don't surface archived in any queue — they're hidden but kept for audit.
+                pass
             else:
-                pending.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "caption": asset.get("caption", "")[:200], "approvalStatus": aps, "platform": asset.get("platform") or asset.get("integration", "instagram"), "updatedAt": asset.get("updatedAt")})
+                pending.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "caption": asset.get("caption", "")[:200], "approvalStatus": aps, "publishStatus": ps, "platform": asset.get("platform") or asset.get("integration", "instagram"), "updatedAt": asset.get("updatedAt")})
 
     return {
         "ok": True,
