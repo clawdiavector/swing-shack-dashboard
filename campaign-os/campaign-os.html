@@ -1650,7 +1650,7 @@ function calSlotHtml(s){
   const matchedPillar = pillarKeys.find(k => normLabel === k || normLabel.includes(k));
   const pillarCls = matchedPillar ? ' pillar-' + matchedPillar : '';
   const tint = '';
-  const titleFull = title.replace(/[\\\"<>]/g, '');
+  const titleFull = title.replace(/["<>]/g, '');
   const campaignName = s.campaignName || (s.campaignId ? `Campaign ${s.campaignId.slice(0,8)}` : 'No campaign');
   const tooltipParts = [
     `📅 ${esc(s.scheduledFor||'?')}`,
