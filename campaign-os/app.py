@@ -591,6 +591,83 @@ def get_schedule():
     """Return the publisher-compatible scheduling sidecar."""
     return jsonify({"ok": True, **_schedule_response(load_schedule())}), 200
 
+@app.route('/api/review/<asset_id>/schedule-now', methods=['POST'])
+def review_schedule_now(asset_id):
+    """Approve AND schedule an asset in one click — finds the next empty
+    calendar slot and assigns it. Returns the scheduled datetime."""
+    body = request.get_json(silent=True) or {}
+    campaign_id = body.get('campaignId') or body.get('campaign_id')
+
+    # First, set approvalStatus=approved on the asset (no-op if already approved)
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    asset = None
+    if campaign_id and campaign_id in campaigns:
+        asset = campaigns[campaign_id].get("assets", {}).get(asset_id)
+    if asset is None and campaign_id is None:
+        # try to find the asset across all campaigns
+        for cid, c in campaigns.items():
+            if asset_id in (c.get("assets") or {}):
+                asset = c["assets"][asset_id]
+                campaign_id = cid
+                break
+
+    if asset is not None:
+        asset['approvalStatus'] = 'approved'
+        asset['updatedAt'] = datetime.datetime.utcnow().isoformat() + 'Z'
+        campaigns.setdefault(campaign_id, {}) if not campaign_id else None  # noop
+        data['campaigns'] = campaigns
+        save_data(data)
+
+    # Now compute the next empty slot in the next 14 days (target ≤ 4 per day)
+    target = _schedule_target(asset_id, campaign_id)
+    if not target:
+        return jsonify({"ok": False, "error": "Asset or queue item not found"}), 404
+
+    manifest = load_schedule()
+    scheduled = manifest.get('scheduled', [])
+
+    # Count per day (UTC date string YYYY-MM-DD)
+    from collections import Counter
+    day_counts = Counter()
+    for it in scheduled:
+        sf = it.get('scheduledFor') or ''
+        if isinstance(sf, str) and len(sf) >= 10:
+            day_counts[sf[:10]] += 1
+
+    # Find next day with < 4 items, starting tomorrow
+    today = datetime.date.today()
+    chosen_day = None
+    for offset in range(1, 15):
+        d = today + datetime.timedelta(days=offset)
+        if day_counts.get(d.isoformat(), 0) < 4:
+            chosen_day = d
+            break
+    if not chosen_day:
+        chosen_day = today + datetime.timedelta(days=14)
+
+    # Pick a posting hour: stagger by 9am/12pm/3pm/6pm to spread
+    hour_options = [9, 12, 15, 18]
+    hour = hour_options[day_counts.get(chosen_day.isoformat(), 0) % 4]
+    scheduled_for = datetime.datetime.combine(chosen_day, datetime.time(hour=hour, minute=0)).isoformat() + 'Z'
+
+    previous = _manifest_entry(manifest, asset_id)
+    previous_for = (previous or {}).get('scheduledFor')
+    item = _upsert_schedule_entry(
+        manifest, target, scheduled_for,
+        platform=(asset or {}).get('platform') if asset else None,
+        extra={"updatedBy": "review-schedule-now"},
+    )
+    saved = save_schedule(manifest)
+
+    return jsonify({
+        "ok": True, "assetId": asset_id, "campaignId": target.get('campaignId'),
+        "source": target.get('source'), "scheduledFor": item['scheduledFor'],
+        "previousScheduledFor": previous_for, "schedule": _schedule_response(saved),
+        "rationale": f"Next empty slot — {chosen_day.isoformat()} at {hour:02d}:00 UTC",
+    }), 200
+
+
 @app.route('/api/schedule/<asset_id>', methods=['POST'])
 def schedule_asset(asset_id):
     """Schedule/reschedule an asset or publisher queue item in the sidecar."""
@@ -1426,6 +1503,235 @@ def intel_generate_ctas_for_asset():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+# ─── HEADLINES & CTAs STUDIO v2 — voice/pillar/platform-filtered CTAs + seeds
+
+@functools.lru_cache(maxsize=4)
+def _load_cta_knowledge(_cache_key=0):
+    """Load and cache cta_knowledge.json with headline seeds + curated CTAs.
+
+    Mirrors `_load_meme_knowledge` — sentinel arg so tests can force a fresh
+    load by passing any value.
+    """
+    candidates = [
+        os.path.join(_data_paths()['data_dir'], 'cta_knowledge.json'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'cta_knowledge.json'),
+    ]
+    for c in candidates:
+        try:
+            if os.path.exists(c):
+                with open(c, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            continue
+    return {"categories": [], "ctas": [], "headline_seeds": []}
+
+
+@app.route('/api/intel/cta_knowledge', methods=['GET'])
+def cta_knowledge():
+    """GET /api/intel/cta_knowledge — curated CTA library with rich metadata.
+
+    Filters (all optional):
+      category    book | learn | discover | social | soft | ugc
+      voice       swing-shack | stick | bag-drop
+      pillar      education | club-fitting | community | events
+      platform    instagram | tiktok | facebook | twitter | gmb
+      search      free-text match against cta text
+      min_score   int, hide CTAs below this score (default 0)
+      sort        score | category | id (default score)
+
+    Returns: {ok, categories, ctas, headline_seeds, count, ts}
+    """
+    try:
+        kb = _load_cta_knowledge()
+        ctas = list(kb.get('ctas') or [])
+        categories = kb.get('categories') or []
+        seeds = kb.get('headline_seeds') or []
+
+        cat = (request.args.get('category') or '').strip()
+        voice = (request.args.get('voice') or '').strip()
+        pillar = (request.args.get('pillar') or '').strip()
+        platform = (request.args.get('platform') or '').strip()
+        search = (request.args.get('search') or '').strip().lower()
+        try:
+            min_score = int(request.args.get('min_score') or 0)
+        except (TypeError, ValueError):
+            min_score = 0
+        sort_by = (request.args.get('sort') or 'score').strip()
+
+        if cat:
+            ctas = [c for c in ctas if isinstance(c, dict) and c.get('category') == cat]
+        if voice:
+            ctas = [c for c in ctas if isinstance(c, dict) and voice in (c.get('voices') or [])]
+        if pillar:
+            ctas = [c for c in ctas if isinstance(c, dict) and pillar in (c.get('pillars') or [])]
+        if platform:
+            ctas = [c for c in ctas if isinstance(c, dict) and platform in (c.get('platforms') or [])]
+        if search:
+            ctas = [c for c in ctas if isinstance(c, dict) and (
+                search in (c.get('text') or '').lower()
+                or search in (c.get('evidence') or '').lower()
+                or search in (c.get('id') or '').lower()
+            )]
+        if min_score > 0:
+            ctas = [c for c in ctas if isinstance(c, dict) and int(c.get('score') or 0) >= min_score]
+
+        # Sorting
+        if sort_by == 'score':
+            ctas.sort(key=lambda c: (c.get('score') or 0) if isinstance(c, dict) else 0, reverse=True)
+        elif sort_by == 'category':
+            ctas.sort(key=lambda c: (c.get('category') or '') if isinstance(c, dict) else '')
+        elif sort_by == 'id':
+            ctas.sort(key=lambda c: (c.get('id') or '') if isinstance(c, dict) else '')
+
+        # Compute a count breakdown by category for the SPA
+        breakdown = {}
+        for c in ctas:
+            if not isinstance(c, dict):
+                continue
+            key = c.get('category') or 'other'
+            breakdown[key] = breakdown.get(key, 0) + 1
+
+        return jsonify({
+            "ok": True,
+            "ts": _now_iso(),
+            "categories": categories,
+            "ctas": ctas,
+            "headline_seeds": seeds,
+            "by_category": breakdown,
+            "count": len(ctas),
+            "total": len(kb.get('ctas') or []),
+            "filters_applied": {
+                "category": cat or None,
+                "voice": voice or None,
+                "pillar": pillar or None,
+                "platform": platform or None,
+                "search": search or None,
+                "min_score": min_score if min_score > 0 else None,
+                "sort": sort_by,
+            },
+            "valid_categories": sorted({c.get('category') for c in (kb.get('ctas') or []) if isinstance(c, dict)}),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("cta_knowledge failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/intel/cta_recommend', methods=['GET'])
+def cta_recommend():
+    """GET /api/intel/cta_recommend — top-N CTAs for a voice/pillar/platform triple.
+
+    Query params:
+      voice       swing-shack | stick | bag-drop
+      pillar      education | club-fitting | community | events
+      platform    instagram | tiktok | facebook | twitter | gmb
+      n           int, default 5, max 12
+
+    Returns CTAs scored by (1) match-bonus (×1.0 if all 3 filters hit) +
+    (2) base cta score + (3) category diversity bonus.
+    """
+    try:
+        kb = _load_cta_knowledge()
+        ctas = list(kb.get('ctas') or [])
+        voice = (request.args.get('voice') or '').strip()
+        pillar = (request.args.get('pillar') or '').strip()
+        platform = (request.args.get('platform') or '').strip()
+        try:
+            n = max(1, min(int(request.args.get('n') or 5), 12))
+        except (TypeError, ValueError):
+            n = 5
+
+        scored = []
+        for c in ctas:
+            if not isinstance(c, dict):
+                continue
+            base = float(c.get('score') or 50)
+            bonus = 0.0
+            if voice and voice in (c.get('voices') or []):
+                bonus += 12
+            if pillar and pillar in (c.get('pillars') or []):
+                bonus += 12
+            if platform and platform in (c.get('platforms') or []):
+                bonus += 8
+            # Category diversity: prefer categories not yet in the result
+            final_score = base + bonus
+            entry = dict(c)
+            entry['_score'] = round(final_score, 1)
+            entry['_match'] = {
+                'voice': voice in (c.get('voices') or []) if voice else None,
+                'pillar': pillar in (c.get('pillars') or []) if pillar else None,
+                'platform': platform in (c.get('platforms') or []) if platform else None,
+            }
+            scored.append(entry)
+        scored.sort(key=lambda x: x.get('_score', 0), reverse=True)
+
+        # If filters were supplied, only keep CTAs that match ALL supplied filters.
+        any_filter_supplied = bool(voice or pillar or platform)
+        if any_filter_supplied:
+            scored = [c for c in scored if not any(
+                v is False for v in (c.get('_match') or {}).values() if v is not None
+            )]
+
+        # Diversity round: prefer distinct categories in top-N. With filters on,
+        # we relax the diversity constraint a bit (allow duplicates when the
+        # pool is small) so we don't return fewer than n.
+        top = []
+        cats_seen = []
+        for c in scored:
+            cat = c.get('category')
+            if cat and cat in cats_seen and len(top) < n - 1:
+                continue  # allow one duplicate if necessary
+            top.append(c)
+            if cat and cat not in cats_seen:
+                cats_seen.append(cat)
+            if len(top) >= n:
+                break
+
+        return jsonify({
+            "ok": True,
+            "ts": _now_iso(),
+            "voice": voice or None,
+            "pillar": pillar or None,
+            "platform": platform or None,
+            "ctas": top[:n],
+            "count": min(n, len(top)),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("cta_recommend failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/intel/cta_index', methods=['GET'])
+def cta_index():
+    """GET /api/intel/cta_index — manifest for SPA picker.
+
+    Returns: {ok, categories, valid_voices, valid_pillars, valid_platforms,
+              seed_count, cta_count, ts}
+    """
+    try:
+        kb = _load_cta_knowledge()
+        categories = kb.get('categories') or []
+        ctas = kb.get('ctas') or []
+        seeds = kb.get('headline_seeds') or []
+        voices = sorted({v for c in ctas if isinstance(c, dict) for v in (c.get('voices') or [])})
+        pillars = sorted({p for c in ctas if isinstance(c, dict) for p in (c.get('pillars') or [])})
+        platforms = sorted({pl for c in ctas if isinstance(c, dict) for pl in (c.get('platforms') or [])})
+        cats = sorted({c.get('category') for c in ctas if isinstance(c, dict) and c.get('category')})
+        return jsonify({
+            "ok": True,
+            "ts": _now_iso(),
+            "categories": categories,
+            "valid_voices": voices,
+            "valid_pillars": pillars,
+            "valid_platforms": platforms,
+            "valid_categories": cats,
+            "seed_count": len(seeds),
+            "cta_count": len(ctas),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("cta_index failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 # ─── MEME LORD v2 — meme historian + brand-fit recommender ─────────────
 
 @functools.lru_cache(maxsize=4)
@@ -1451,27 +1757,33 @@ def _load_meme_knowledge(_cache_key=0):
 def _score_meme_brand_fit(meme, voice='swing-shack', pillar='education', platform='instagram'):
     """Compute brand-fit score 0..100 for a meme given voice/pillar/platform.
 
-    Heuristics:
-      +30  voice matches any meme voice_fit
-      +20  pillar matches any meme pillar_fit
-      +15  platform matches any meme platform_fit
+    Heuristics (2026-aware — fresher is better):
+      +20  voice matches
+      +15  pillar matches
+      +10  platform matches
       +10  still_works = True
-      +10  fatigue_risk in {'low', 'medium'}
-      +15  has ≥3 swingshack_fit_seeds (max +15)
-      −20  fatigue_risk = 'high'
-      −10  still_works = False
+      + 8  fatigue_risk = 'low'
+      + 5  era ∈ {current, recent}  (NEW: prefer memes that aren't overplayed)
+      + 4  has 3+ swingshack_fit_seeds
+      - 5  era = 'classic' (2014-2017)  (these are overused by everyone)
+      -10  era = 'mid' (2018-2020)
+      - 5  fatigue_risk = 'medium'
+      -15  fatigue_risk = 'high'
+      -10  still_works = False
+      - 3 per year of age beyond 2018 (peak_year decay)
     """
+    import datetime
     score = 0
     reasons = []
     if voice and voice in (meme.get('voice_fit') or []):
-        score += 30
-        reasons.append(f'voice={voice} match (+30)')
-    if pillar and pillar in (meme.get('pillar_fit') or []):
         score += 20
-        reasons.append(f'pillar={pillar} match (+20)')
-    if platform and platform in (meme.get('platform_fit') or []):
+        reasons.append(f'voice={voice} match (+20)')
+    if pillar and pillar in (meme.get('pillar_fit') or []):
         score += 15
-        reasons.append(f'platform={platform} match (+15)')
+        reasons.append(f'pillar={pillar} match (+15)')
+    if platform and platform in (meme.get('platform_fit') or []):
+        score += 10
+        reasons.append(f'platform={platform} match (+10)')
     if meme.get('still_works') is True:
         score += 10
         reasons.append('still_works=True (+10)')
@@ -1480,15 +1792,34 @@ def _score_meme_brand_fit(meme, voice='swing-shack', pillar='education', platfor
         reasons.append('still_works=False (−10)')
     fr = meme.get('fatigue_risk')
     if fr == 'low':
-        score += 10
-        reasons.append('fatigue_risk=low (+10)')
+        score += 8
+        reasons.append('fatigue_risk=low (+8)')
+    elif fr == 'medium':
+        score -= 5
+        reasons.append('fatigue_risk=medium (−5)')
     elif fr == 'high':
-        score -= 20
-        reasons.append('fatigue_risk=high (−20)')
+        score -= 15
+        reasons.append('fatigue_risk=high (−15)')
+    era = (meme.get('era') or '').lower()
+    if era in ('current', 'recent'):
+        score += 5
+        reasons.append(f'era={era} (fresh, +5)')
+    elif era == 'mid':
+        score -= 10
+        reasons.append('era=mid (2018-2020, overused, −10)')
+    elif era == 'classic':
+        score -= 5
+        reasons.append('era=classic (2014-2017, expected, −5)')
+    peak = meme.get('peak_year')
+    if isinstance(peak, int) and peak < 2026:
+        age = 2026 - peak
+        if age > 8:
+            score -= min(15, age - 5)  # cap so we don't kill classics entirely
+            reasons.append(f'peak_year {peak} (aged −{min(15, age-5)})')
     seeds = meme.get('swingshack_fit_seeds') or []
     n_seeds = min(len(seeds), 3)
     if n_seeds:
-        bonus = 5 * n_seeds
+        bonus = min(4, n_seeds)
         score += bonus
         reasons.append(f'{n_seeds} fit-seeds (+{bonus})')
     score = max(0, min(100, score))

@@ -521,6 +521,18 @@ a:hover{text-decoration:underline}
     <section class="section on" id="sec-brief">
       <div class="section-h"><h2>What should you do today?</h2><span class="sub">Live signal from across all sources</span></div>
       <div id="brief-strip" class="insight-strip"><div class="ico">☀️</div><div class="txt" id="brief-strip-txt">Loading…</div></div>
+
+      <!-- Today's recommendation: one concrete action -->
+      <div class="card" id="brief-recommendation" style="margin-top:1rem;border:1px solid var(--ac);box-shadow:0 0 0 3px rgba(99,102,241,0.08)">
+        <div class="card-h">
+          <h3>🎯 Do this right now</h3>
+          <span class="muted" id="brief-recommendation-rationale" style="font-size:12px">—</span>
+        </div>
+        <div id="brief-recommendation-body">
+          <div class="muted">Loading recommendation…</div>
+        </div>
+      </div>
+
       <div class="grid" id="brief-grid"></div>
       <aside class="today-rail" id="today-rail">
         <div class="today-rail-h"><h3>⚡ Today</h3><span class="muted" id="today-rail-ts">—</span></div>
@@ -826,18 +838,97 @@ a:hover{text-decoration:underline}
 
     <!-- ── HEADLINES ─────────────────────────────────────── -->
     <section class="section" id="sec-headlines">
-      <div class="section-h"><h2>Headline Generator</h2>
-        <div class="btn-row" style="margin-left:auto"><button class="btn primary" id="head-gen">⚡ Generate 5</button></div>
+      <div class="section-h">
+        <h2>Headline Generator <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · voice + seed aware</span></h2>
+        <span class="sub" id="head-summary">—</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn primary" id="head-gen">⚡ Generate 5</button>
+          <button class="btn" id="head-recommend">🎯 Recommend</button>
+        </div>
       </div>
-      <div class="card"><div id="head-list"></div></div>
+      <!-- Filter bar -->
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
+          <label class="muted" style="font-size:11px">Voice</label>
+          <select id="head-voice" class="mini-select">
+            <option value="">Any voice</option>
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick</option>
+            <option value="bag-drop">Bag Drop</option>
+          </select>
+          <label class="muted" style="font-size:11px;margin-left:1rem">Pillar</label>
+          <select id="head-pillar" class="mini-select">
+            <option value="">Any pillar</option>
+            <option value="education">Education</option>
+            <option value="club-fitting">Club Fitting</option>
+            <option value="community">Community</option>
+            <option value="events">Events</option>
+          </select>
+          <label class="muted" style="font-size:11px;margin-left:1rem">Count</label>
+          <input id="head-count" type="number" min="3" max="12" value="5" class="mini-select" style="width:5rem">
+          <button class="link-btn" id="head-clear-history" style="margin-left:auto">🗑 Clear history</button>
+        </div>
+      </div>
+      <!-- Newly generated -->
+      <div class="card" style="margin-bottom:.75rem"><div class="card-h"><h3>🆕 Just generated <span id="head-gen-count" class="pill muted">0</span></h3></div><div id="head-list"></div></div>
+      <!-- History -->
+      <div class="card"><div class="card-h"><h3>📜 History <span id="head-hist-count" class="pill muted">0</span></h3></div><div id="head-history"></div></div>
     </section>
 
     <!-- ── CTAS ──────────────────────────────────────────── -->
     <section class="section" id="sec-ctas">
-      <div class="section-h"><h2>CTA Generator</h2>
-        <div class="btn-row" style="margin-left:auto"><button class="btn primary" id="cta-gen">⚡ Generate 5</button></div>
+      <div class="section-h">
+        <h2>CTA Generator <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · curated knowledge base</span></h2>
+        <span class="sub" id="cta-summary">—</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn primary" id="cta-gen">⚡ Generate 5</button>
+          <button class="btn" id="cta-recommend">🎯 Recommend</button>
+        </div>
       </div>
-      <div class="card"><div id="cta-list"></div></div>
+      <!-- Filter bar -->
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
+          <label class="muted" style="font-size:11px">Voice</label>
+          <select id="cta-voice" class="mini-select">
+            <option value="">Any voice</option>
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick</option>
+            <option value="bag-drop">Bag Drop</option>
+          </select>
+          <label class="muted" style="font-size:11px;margin-left:1rem">Pillar</label>
+          <select id="cta-pillar" class="mini-select">
+            <option value="">Any pillar</option>
+            <option value="education">Education</option>
+            <option value="club-fitting">Club Fitting</option>
+            <option value="community">Community</option>
+            <option value="events">Events</option>
+          </select>
+          <label class="muted" style="font-size:11px;margin-left:1rem">Platform</label>
+          <select id="cta-platform" class="mini-select">
+            <option value="">Any platform</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+            <option value="facebook">Facebook</option>
+            <option value="twitter">Twitter</option>
+            <option value="gmb">Google Business</option>
+          </select>
+          <label class="muted" style="font-size:11px;margin-left:1rem">Category</label>
+          <select id="cta-category" class="mini-select">
+            <option value="">Any category</option>
+            <option value="book">Book</option>
+            <option value="learn">Learn</option>
+            <option value="discover">Discover</option>
+            <option value="social">Social</option>
+            <option value="soft">Soft</option>
+            <option value="ugc">UGC</option>
+          </select>
+          <button class="link-btn" id="cta-clear-history" style="margin-left:auto">🗑 Clear history</button>
+        </div>
+      </div>
+      <!-- Newly generated -->
+      <div class="card" style="margin-bottom:.75rem"><div class="card-h"><h3>🆕 Just generated <span id="cta-gen-count" class="pill muted">0</span></h3></div><div id="cta-list"></div></div>
+      <!-- History -->
+      <div class="card"><div class="card-h"><h3>📜 History <span id="cta-hist-count" class="pill muted">0</span></h3></div><div id="cta-history"></div></div>
     </section>
 
     <!-- ── IMAGE GENERATION ──────────────────────────────────── -->
@@ -1420,6 +1511,84 @@ async function renderBrief(){
   }
   const b = S.brief;
   $('#brief-strip-txt').innerHTML = `<b>${esc(b.summary)}</b> · ${b.do_first.length} recommended actions · ${b.missed_high_impact.length} high-impact misses · ${b.seo_quick_wins.length} SEO quick wins.`;
+
+  // ─── Today's recommendation — one concrete action with a working button ───
+  const rec = b.recommended_action || {type: 'browse', next: 'ideas'};
+  const rationaleEl = $('#brief-recommendation-rationale');
+  const bodyEl = $('#brief-recommendation-body');
+  if (rationaleEl) rationaleEl.textContent = b.recommended_rationale || '';
+
+  if (rec.type === 'schedule' && rec.assetId) {
+    bodyEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:14px;font-weight:600;margin-bottom:.25rem">📌 Schedule this approved asset</div>
+          <div class="muted" style="font-size:12px;margin-bottom:.4rem">${esc(rec.campaignName || rec.campaignId)} · ${esc(rec.platform)}</div>
+          <div style="font-size:13px;color:var(--tx-2)">${esc(rec.name)}</div>
+          ${rec.caption_preview ? `<div style="margin-top:.4rem;font-size:12px;color:var(--tx-3);font-style:italic">"${esc(rec.caption_preview)}…"</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end">
+          <button class="btn primary" id="rec-schedule-btn">📅 Put on calendar (next slot)</button>
+          <button class="btn ghost" onclick="openReview('${esc(rec.campaignId)}','${esc(rec.assetId)}')">Open asset →</button>
+        </div>
+      </div>`;
+    const btn = $('#rec-schedule-btn');
+    if (btn) btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = '⏳ Scheduling…';
+      try {
+        const r = await API.post('/api/review/' + encodeURIComponent(rec.assetId) + '/schedule-now', {campaignId: rec.campaignId});
+        if (r.ok) {
+          toast('Scheduled: ' + (r.scheduledFor || ''));
+          S.brief = null; S.review = null; S.cal = null;
+          await renderBrief();
+        } else {
+          toast(r.error || 'Schedule failed', 'err');
+        }
+      } catch(e) {
+        toast(e.message || 'Failed', 'err');
+      } finally {
+        btn.disabled = false; btn.textContent = '📅 Put on calendar (next slot)';
+      }
+    });
+  } else if (rec.type === 'repost' && rec.headline) {
+    bodyEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:14px;font-weight:600;margin-bottom:.25rem">🔁 Refresh this winning hook</div>
+          <div class="muted" style="font-size:12px;margin-bottom:.4rem">${rec.ig_proof ? `IG proof ${esc(String(rec.ig_proof))} · ` : ''}${esc(rec.source || '')}</div>
+          <div style="font-size:13px;color:var(--tx-2)">${esc(rec.headline)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end">
+          <button class="btn primary" onclick="go('ideas');setTimeout(()=>document.getElementById('ideas-gen')?.click(), 600)">💡 Generate fresh take</button>
+        </div>
+      </div>`;
+  } else if (rec.type === 'create' && rec.topic) {
+    bodyEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:14px;font-weight:600;margin-bottom:.25rem">🆕 Fill the gap: ${esc(rec.topic)}</div>
+          <div class="muted" style="font-size:12px;margin-bottom:.4rem">${rec.ig_score ? `IG score ${esc(String(rec.ig_score))} · ` : ''}No content exists for this topic yet</div>
+          <div style="font-size:13px;color:var(--tx-2)">${esc(rec.rationale || '')}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end">
+          <button class="btn primary" onclick="go('ideas');setTimeout(()=>document.getElementById('ideas-gen')?.click(), 600)">💡 Generate for this topic</button>
+        </div>
+      </div>`;
+  } else if (rec.type === 'trend' && rec.trend) {
+    bodyEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:14px;font-weight:600;margin-bottom:.25rem">🔥 Ride: ${esc(rec.trend)}</div>
+          <div class="muted" style="font-size:12px;margin-bottom:.4rem">${rec.heat != null ? `Heat ${esc(String(rec.heat))} · ` : ''}Trending now</div>
+          <div style="font-size:13px;color:var(--tx-2)">${esc(rec.rationale || '')}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end">
+          <button class="btn primary" onclick="go('trends')">View trend →</button>
+        </div>
+      </div>`;
+  } else {
+    bodyEl.innerHTML = `<div class="muted">${esc(rec.rationale || 'No urgent action. Browse Ideas to generate.')}</div>`;
+  }
 
   const c = b.counts;
   const dofirst = safeList(b.do_first, 8);
@@ -2274,24 +2443,323 @@ $('#cap-gen').addEventListener('click', async () => {
   toast(`Generated ${r.count} caption variants${r._voice ? ' in '+r._voice+' voice' : ''}`);
 });
 
-// ─── HEADLINES ─────────────────────────────────────────────────
-async function renderHeadlines(){
-  empty('head-list', 'Click Generate to produce headlines from current signals');
+// ─── HEADLINES v2 ─────────────────────────────────────────────
+const HEAD_STATE = { voice: '', pillar: '', count: 5, history: [] };
+
+function _loadHeadHistory(){
+  try { HEAD_STATE.history = JSON.parse(localStorage.getItem('ss:headlines:history') || '[]'); }
+  catch(e){ HEAD_STATE.history = []; }
 }
-$('#head-gen').addEventListener('click', async () => {
-  const r = await API.get('/api/intel/headlines_generate');
-  $('#head-list').innerHTML = safeList(r.headlines, 8).map(it => `<li class="li"><div class="li-body"><div class="li-title" style="font-size:16px">${esc(it.headline)}</div><div class="li-meta">${esc(it.seed||'')} · ${esc(it.source||'')}</div></div></li>`).join('') || '<div class="empty">Nothing generated</div>';
-  toast('Generated '+r.count+' headlines');
+function _saveHeadHistory(){
+  try { localStorage.setItem('ss:headlines:history', JSON.stringify(HEAD_STATE.history.slice(0, 60))); }
+  catch(e){}
+}
+function _renderHeadHistory(){
+  const hist = HEAD_STATE.history || [];
+  $('#head-hist-count').textContent = String(hist.length);
+  if(!hist.length){
+    $('#head-history').innerHTML = '<div class="empty">No history yet — every generation is saved here.</div>';
+    return;
+  }
+  $('#head-history').innerHTML = hist.map((batch, i) => {
+    const meta = [
+      batch.voice ? `voice: ${batch.voice}` : null,
+      batch.pillar ? `pillar: ${batch.pillar}` : null,
+      batch.ts ? new Date(batch.ts).toLocaleString() : null,
+    ].filter(Boolean).join(' · ');
+    return `
+      <div class="li" style="margin-bottom:.5rem">
+        <div class="li-body">
+          <div class="li-title" style="font-size:13px">Batch ${hist.length - i} <span class="muted" style="font-weight:400;font-size:11px">${esc(meta)}</span></div>
+          <div class="li-meta">${(batch.headlines||[]).map(h => `<div style="margin-top:.2rem;font-size:12px">• ${esc(h.headline||h.text||'')}</div>`).join('')}</div>
+        </div>
+        <div class="li-act"><button class="btn-mini" data-rerun-hist="${i}">↻ Re-run</button></div>
+      </div>`;
+  }).join('');
+  // Wire re-run buttons
+  $$('#head-history [data-rerun-hist]').forEach(el => el.addEventListener('click', async () => {
+    const idx = parseInt(el.getAttribute('data-rerun-hist'), 10);
+    const batch = HEAD_STATE.history[idx];
+    if (!batch) return;
+    if (batch.voice) $('#head-voice').value = batch.voice;
+    if (batch.pillar) $('#head-pillar').value = batch.pillar;
+    if (batch.count) $('#head-count').value = batch.count;
+    await _generateHeadlines();
+  }));
+}
+async function renderHeadlines(){
+  _loadHeadHistory();
+  _renderHeadHistory();
+  $('#head-summary').textContent = HEAD_STATE.history.length
+    ? `${HEAD_STATE.history.length} saved batches · click history to re-run`
+    : 'Click Generate to produce 5 fresh headlines from current signals.';
+}
+async function _generateHeadlines(){
+  HEAD_STATE.voice = $('#head-voice').value || '';
+  HEAD_STATE.pillar = $('#head-pillar').value || '';
+  HEAD_STATE.count = Math.max(3, Math.min(12, parseInt($('#head-count').value, 10) || 5));
+  const params = new URLSearchParams({n: String(HEAD_STATE.count)});
+  if (HEAD_STATE.voice) params.set('voice', HEAD_STATE.voice);
+  if (HEAD_STATE.pillar) params.set('pillar', HEAD_STATE.pillar);
+  try{
+    const r = await API.get(`/api/intel/generate_headlines?${params.toString()}`);
+    if(!r.ok || !r.headlines || !r.headlines.length){ toast('No headlines generated', 'err'); return; }
+    const html = r.headlines.map((h, i) => `
+      <div class="li" style="margin-bottom:.4rem">
+        <div class="li-body">
+          <div class="li-title" style="font-size:15px"><span class="pill primary" style="margin-right:.4rem">H${i+1}</span>${esc(h.headline)}</div>
+          <div class="li-meta">
+            <span class="muted">${esc(h.source||'pool')}</span>
+            ${h.seed?`· <span class="muted">seed:</span> ${esc((h.seed||'').slice(0,80))}`:''}
+            ${HEAD_STATE.voice?`· <span class="pill muted">voice ${esc(HEAD_STATE.voice)}</span>`:''}
+            ${HEAD_STATE.pillar?`· <span class="pill muted">${esc(HEAD_STATE.pillar)}</span>`:''}
+          </div>
+        </div>
+        <div class="li-act">
+          <button class="btn-mini" data-copy-head="${esc(h.headline)}">📋 Copy</button>
+          <button class="btn-mini primary" data-use-head="${esc(h.headline)}">Use → Caption</button>
+        </div>
+      </div>`).join('');
+    $('#head-list').innerHTML = html;
+    $('#head-gen-count').textContent = String(r.count);
+    // Save to history
+    HEAD_STATE.history.unshift({voice: HEAD_STATE.voice, pillar: HEAD_STATE.pillar, count: HEAD_STATE.count, headlines: r.headlines, ts: new Date().toISOString()});
+    _saveHeadHistory();
+    _renderHeadHistory();
+    // Wire actions
+    $$('#head-list [data-copy-head]').forEach(el => el.addEventListener('click', async () => {
+      try{ await navigator.clipboard.writeText(el.getAttribute('data-copy-head')); toast('Copied headline', 'ok'); }
+      catch(e){ toast('Copy failed', 'err'); }
+    }));
+    $$('#head-list [data-use-head]').forEach(el => el.addEventListener('click', () => {
+      const text = el.getAttribute('data-use-head');
+      // Push into Caption Studio hook input if present
+      const capHook = $('#cap-hook-input') || $('#cap-hook');
+      if (capHook){ capHook.value = text; toast('Headline sent to Caption Studio', 'ok'); }
+      else { navigator.clipboard?.writeText(text); toast('Headline copied (Caption Studio not loaded)', 'ok'); }
+    }));
+    toast(`Generated ${r.count} headlines`, 'ok');
+  }catch(e){
+    toast('Generate failed: ' + (e.message || e), 'err');
+  }
+}
+async function _recommendHeadlines(){
+  // For now just trigger generation with current voice/pillar (same endpoint — recommend = same call).
+  // We use cta_recommend-style behaviour by persisting the chosen voice/pillar so user gets consistent batches.
+  HEAD_STATE.voice = $('#head-voice').value || 'swing-shack';
+  HEAD_STATE.pillar = $('#head-pillar').value || 'club-fitting';
+  $('#head-voice').value = HEAD_STATE.voice;
+  $('#head-pillar').value = HEAD_STATE.pillar;
+  await _generateHeadlines();
+}
+$('#head-gen').addEventListener('click', _generateHeadlines);
+$('#head-recommend').addEventListener('click', _recommendHeadlines);
+$('#head-clear-history').addEventListener('click', () => {
+  if(!confirm('Clear all headline history?')) return;
+  HEAD_STATE.history = [];
+  _saveHeadHistory();
+  _renderHeadHistory();
+  toast('Headline history cleared');
 });
 
-// ─── CTAS ───────────────────────────────────────────────────────
-async function renderCTAs(){
-  empty('cta-list', 'Click Generate to produce CTAs from your performance data');
+// ─── CTAs v2 ──────────────────────────────────────────────────
+const CTA_STATE = { voice: '', pillar: '', platform: '', category: '', history: [] };
+
+function _loadCtaHistory(){
+  try { CTA_STATE.history = JSON.parse(localStorage.getItem('ss:ctas:history') || '[]'); }
+  catch(e){ CTA_STATE.history = []; }
 }
-$('#cta-gen').addEventListener('click', async () => {
-  const r = await API.get('/api/intel/ctas_generate');
-  $('#cta-list').innerHTML = safeList(r.ctas, 8).map(it => `<li class="li"><div class="li-body"><div class="li-title" style="font-size:15px">${esc(it.cta)}</div><div class="li-meta">${esc(it.source||'')}${it.perf?` · score ${it.perf}`:''}</div></div></li>`).join('') || '<div class="empty">Nothing generated</div>';
-  toast('Generated '+r.count+' CTAs');
+function _saveCtaHistory(){
+  try { localStorage.setItem('ss:ctas:history', JSON.stringify(CTA_STATE.history.slice(0, 60))); }
+  catch(e){}
+}
+const _CTA_CAT_COLORS = {
+  book: 'var(--ac)', learn: 'var(--blu)', discover: 'var(--pur)',
+  social: 'var(--org)', soft: 'var(--yel)', ugc: 'var(--red)',
+};
+const _CTA_CAT_LABELS = {
+  book: 'Book', learn: 'Learn', discover: 'Discover',
+  social: 'Social', soft: 'Soft', ugc: 'UGC',
+};
+function _renderCtaHistory(){
+  const hist = CTA_STATE.history || [];
+  $('#cta-hist-count').textContent = String(hist.length);
+  if(!hist.length){
+    $('#cta-history').innerHTML = '<div class="empty">No history yet — every generation is saved here.</div>';
+    return;
+  }
+  $('#cta-history').innerHTML = hist.map((batch, i) => {
+    const meta = [
+      batch.voice ? `voice: ${batch.voice}` : null,
+      batch.pillar ? `pillar: ${batch.pillar}` : null,
+      batch.platform ? `platform: ${batch.platform}` : null,
+      batch.category ? `cat: ${batch.category}` : null,
+      batch.ts ? new Date(batch.ts).toLocaleString() : null,
+    ].filter(Boolean).join(' · ');
+    return `
+      <div class="li" style="margin-bottom:.5rem">
+        <div class="li-body">
+          <div class="li-title" style="font-size:13px">Batch ${hist.length - i} <span class="muted" style="font-weight:400;font-size:11px">${esc(meta)}</span></div>
+          <div class="li-meta">${(batch.ctas||[]).map(c => {
+            const cat = c.category || '';
+            const catLabel = _CTA_CAT_LABELS[cat] || cat;
+            const catColor = _CTA_CAT_COLORS[cat] || 'var(--tx-3)';
+            return `<div style="margin-top:.2rem;font-size:12px;display:flex;gap:.5rem;align-items:flex-start">• <span class="pill" style="background:${catColor};color:#0f172a;font-weight:600">${esc(catLabel)}</span><span>${esc(c.text||c.cta||'')}</span></div>`;
+          }).join('')}</div>
+        </div>
+        <div class="li-act"><button class="btn-mini" data-rerun-cta-hist="${i}">↻ Re-run</button></div>
+      </div>`;
+  }).join('');
+  $$('#cta-history [data-rerun-cta-hist]').forEach(el => el.addEventListener('click', async () => {
+    const idx = parseInt(el.getAttribute('data-rerun-cta-hist'), 10);
+    const batch = CTA_STATE.history[idx];
+    if (!batch) return;
+    if (batch.voice) $('#cta-voice').value = batch.voice;
+    if (batch.pillar) $('#cta-pillar').value = batch.pillar;
+    if (batch.platform) $('#cta-platform').value = batch.platform;
+    if (batch.category) $('#cta-category').value = batch.category;
+    await _generateCtas();
+  }));
+}
+async function renderCTAs(){
+  _loadCtaHistory();
+  _renderCtaHistory();
+  $('#cta-summary').textContent = CTA_STATE.history.length
+    ? `${CTA_STATE.history.length} saved batches · filter + re-roll any time`
+    : 'Click Generate to produce 5 fresh CTAs from current signals.';
+}
+async function _generateCtas(){
+  CTA_STATE.voice = $('#cta-voice').value || '';
+  CTA_STATE.pillar = $('#cta-pillar').value || '';
+  CTA_STATE.platform = $('#cta-platform').value || '';
+  CTA_STATE.category = $('#cta-category').value || '';
+  const params = new URLSearchParams();
+  if (CTA_STATE.voice) params.set('voice', CTA_STATE.voice);
+  if (CTA_STATE.pillar) params.set('pillar', CTA_STATE.pillar);
+  if (CTA_STATE.platform) params.set('platform', CTA_STATE.platform);
+  if (CTA_STATE.category) params.set('category', CTA_STATE.category);
+  params.set('min_score', '60');
+  try{
+    const r = await API.get(`/api/intel/cta_knowledge?${params.toString()}`);
+    if(!r.ok || !r.ctas || !r.ctas.length){ toast('No CTAs match — try different filters', 'err'); return; }
+    const html = r.ctas.map((c, i) => {
+      const cat = c.category || '';
+      const catLabel = _CTA_CAT_LABELS[cat] || cat || 'other';
+      const catColor = _CTA_CAT_COLORS[cat] || 'var(--tx-3)';
+      return `
+      <div class="li" style="margin-bottom:.4rem">
+        <div class="li-body">
+          <div class="li-title" style="font-size:14px;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+            <span class="pill primary" style="background:${catColor};color:#0f172a;font-weight:600">${esc(catLabel)}</span>
+            ${esc(c.text)}
+            <span class="pill muted">score ${esc(String(c.score||0))}</span>
+          </div>
+          <div class="li-meta">
+            ${c.evidence?`<span>${esc(c.evidence)}</span>`:''}
+          </div>
+          <div style="display:flex;gap:.35rem;margin-top:.35rem;flex-wrap:wrap">
+            ${(c.voices||[]).map(v => `<span class="pill muted" style="font-size:10px">${esc(v)}</span>`).join('')}
+            ${(c.pillars||[]).map(p => `<span class="pill" style="font-size:10px">${esc(p)}</span>`).join('')}
+            ${(c.platforms||[]).map(pl => `<span class="pill" style="font-size:10px;background:var(--badge-voice-tint-2)">${esc(pl)}</span>`).join('')}
+          </div>
+        </div>
+        <div class="li-act">
+          <button class="btn-mini" data-copy-cta="${esc(c.text)}">📋 Copy</button>
+          <button class="btn-mini primary" data-use-cta="${esc(c.text)}">Use → Caption</button>
+        </div>
+      </div>`;
+    }).join('');
+    $('#cta-list').innerHTML = html;
+    $('#cta-gen-count').textContent = String(r.count);
+    // Save to history
+    CTA_STATE.history.unshift({voice: CTA_STATE.voice, pillar: CTA_STATE.pillar, platform: CTA_STATE.platform, category: CTA_STATE.category, ctas: r.ctas.map(c => ({text: c.text, category: c.category, score: c.score})), ts: new Date().toISOString()});
+    _saveCtaHistory();
+    _renderCtaHistory();
+    // Wire actions
+    $$('#cta-list [data-copy-cta]').forEach(el => el.addEventListener('click', async () => {
+      try{ await navigator.clipboard.writeText(el.getAttribute('data-copy-cta')); toast('Copied CTA', 'ok'); }
+      catch(e){ toast('Copy failed', 'err'); }
+    }));
+    $$('#cta-list [data-use-cta]').forEach(el => el.addEventListener('click', () => {
+      const text = el.getAttribute('data-use-cta');
+      const capHook = $('#cap-hook-input') || $('#cap-hook');
+      if (capHook){ capHook.value = text; toast('CTA sent to Caption Studio', 'ok'); }
+      else { navigator.clipboard?.writeText(text); toast('CTA copied (Caption Studio not loaded)', 'ok'); }
+    }));
+    toast(`Loaded ${r.count} CTAs`, 'ok');
+  }catch(e){
+    toast('Generate failed: ' + (e.message || e), 'err');
+  }
+}
+async function _recommendCtas(){
+  // Use the dedicated recommend endpoint with category diversity.
+  CTA_STATE.voice = $('#cta-voice').value || 'swing-shack';
+  CTA_STATE.pillar = $('#cta-pillar').value || 'club-fitting';
+  CTA_STATE.platform = $('#cta-platform').value || 'instagram';
+  $('#cta-voice').value = CTA_STATE.voice;
+  $('#cta-pillar').value = CTA_STATE.pillar;
+  $('#cta-platform').value = CTA_STATE.platform;
+  const params = new URLSearchParams({n: '5', voice: CTA_STATE.voice, pillar: CTA_STATE.pillar, platform: CTA_STATE.platform});
+  try{
+    const r = await API.get(`/api/intel/cta_recommend?${params.toString()}`);
+    if(!r.ok || !r.ctas || !r.ctas.length){ toast('No recommendations', 'err'); return; }
+    const html = r.ctas.map((c, i) => {
+      const cat = c.category || '';
+      const catLabel = _CTA_CAT_LABELS[cat] || cat || 'other';
+      const catColor = _CTA_CAT_COLORS[cat] || 'var(--tx-3)';
+      const m = c._match || {};
+      const badges = [
+        m.voice===true ? '<span class="pill" style="font-size:10px;background:var(--ac);color:#0f172a">voice ✓</span>' : '',
+        m.pillar===true ? '<span class="pill" style="font-size:10px;background:var(--ac);color:#0f172a">pillar ✓</span>' : '',
+        m.platform===true ? '<span class="pill" style="font-size:10px;background:var(--ac);color:#0f172a">platform ✓</span>' : '',
+      ].filter(Boolean).join(' ');
+      return `
+      <div class="li" style="margin-bottom:.4rem">
+        <div class="li-body">
+          <div class="li-title" style="font-size:14px;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+            <span class="pill primary" style="background:${catColor};color:#0f172a;font-weight:600">${esc(catLabel)}</span>
+            ${esc(c.text)}
+            <span class="pill muted">${esc(String(c._score||c.score||0))}</span>
+            ${badges}
+          </div>
+          <div class="li-meta">${esc(c.evidence||'')}</div>
+        </div>
+        <div class="li-act">
+          <button class="btn-mini" data-copy-cta="${esc(c.text)}">📋 Copy</button>
+          <button class="btn-mini primary" data-use-cta="${esc(c.text)}">Use → Caption</button>
+        </div>
+      </div>`;
+    }).join('');
+    $('#cta-list').innerHTML = html;
+    $('#cta-gen-count').textContent = String(r.count);
+    // Save to history
+    CTA_STATE.history.unshift({voice: CTA_STATE.voice, pillar: CTA_STATE.pillar, platform: CTA_STATE.platform, ctas: r.ctas, ts: new Date().toISOString()});
+    _saveCtaHistory();
+    _renderCtaHistory();
+    // Wire actions
+    $$('#cta-list [data-copy-cta]').forEach(el => el.addEventListener('click', async () => {
+      try{ await navigator.clipboard.writeText(el.getAttribute('data-copy-cta')); toast('Copied CTA', 'ok'); }
+      catch(e){ toast('Copy failed', 'err'); }
+    }));
+    $$('#cta-list [data-use-cta]').forEach(el => el.addEventListener('click', () => {
+      const text = el.getAttribute('data-use-cta');
+      const capHook = $('#cap-hook-input') || $('#cap-hook');
+      if (capHook){ capHook.value = text; toast('CTA sent to Caption Studio', 'ok'); }
+      else { navigator.clipboard?.writeText(text); toast('CTA copied (Caption Studio not loaded)', 'ok'); }
+    }));
+    toast(`Recommended ${r.count} CTAs (voice+pillar+platform match)`, 'ok');
+  }catch(e){
+    toast('Recommend failed: ' + (e.message || e), 'err');
+  }
+}
+$('#cta-gen').addEventListener('click', _generateCtas);
+$('#cta-recommend').addEventListener('click', _recommendCtas);
+$('#cta-clear-history').addEventListener('click', () => {
+  if(!confirm('Clear all CTA history?')) return;
+  CTA_STATE.history = [];
+  _saveCtaHistory();
+  _renderCtaHistory();
+  toast('CTA history cleared');
 });
 
 // ─── HASHTAGS & SEO PACK ────────────────────────────────────────

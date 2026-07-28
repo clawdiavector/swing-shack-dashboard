@@ -112,6 +112,81 @@ def morning_brief() -> Dict[str, Any]:
     ideas = _read_json(os.path.join(DATA_DIR, "content-ideas.json")) or {}
     post_today = ideas.get("post_today", []) if isinstance(ideas, dict) else []
 
+    # ─── Recommended action: one concrete thing to do NOW ──────────────
+    recommended_action = None
+    rationale = None
+
+    # Priority 1: approved but not yet scheduled → needs scheduling
+    # Build a set of assetIds already on the schedule manifest so we don't
+    # recommend "schedule this" for things already scheduled.
+    schedule_manifest = _read_json(_runtime_data_file("scheduled-items.json")) or {}
+    scheduled_set = set()
+    for item in schedule_manifest.get("scheduled", []) if isinstance(schedule_manifest, dict) else []:
+        if isinstance(item, dict):
+            for key in (item.get("assetId"), item.get("asset_id"), item.get("publish_id")):
+                if key:
+                    scheduled_set.add(key)
+
+    for cid, c in campaigns.items():
+        for aid, asset in (c.get("assets") or {}).items():
+            already_scheduled = aid in scheduled_set or bool(asset.get("scheduledFor"))
+            if asset.get("approvalStatus") == "approved" and not already_scheduled:
+                recommended_action = {
+                    "type": "schedule",
+                    "campaignId": cid,
+                    "assetId": aid,
+                    "name": asset.get("name") or aid,
+                    "caption_preview": (asset.get("caption") or "")[:140],
+                    "platform": asset.get("platform") or asset.get("integration") or "instagram",
+                    "campaignName": c.get("identity", {}).get("name") or cid,
+                }
+                rationale = "Approved but never put on the calendar — it's just sitting in drafts."
+                break
+        if recommended_action:
+            break
+
+    # Priority 2: top performing hook that's not in current campaign → repost
+    if not recommended_action and do_first and isinstance(do_first, list):
+        top = do_first[0]
+        if isinstance(top, dict):
+            recommended_action = {
+                "type": "repost",
+                "hook_id": top.get("hook_id") or top.get("id"),
+                "headline": top.get("headline") or top.get("title") or top.get("name"),
+                "ig_proof": top.get("ig_proof") or top.get("score"),
+                "source": top.get("source") or "recommendation-scores",
+            }
+            rationale = "Top IG performer — make a fresh take this week to ride the wave."
+
+    # Priority 3: missed high-impact opportunity
+    if not recommended_action and high_impact_missed:
+        m = high_impact_missed[0]
+        recommended_action = {
+            "type": "create",
+            "topic": m.get("topic") or m.get("title"),
+            "rationale": m.get("why") or m.get("insight"),
+            "ig_score": m.get("ig_score") or m.get("score"),
+        }
+        rationale = "Traffic exists with no content — fill the gap."
+
+    # Priority 4: trend with no asset attached
+    if not recommended_action:
+        tr = _read_json(os.path.join(DATA_DIR, "trend-signals.json")) or {}
+        trends = tr.get("trends", []) if isinstance(tr, dict) else []
+        if trends and isinstance(trends[0], dict):
+            t = trends[0]
+            recommended_action = {
+                "type": "trend",
+                "trend": t.get("trend") or t.get("title") or t.get("name"),
+                "heat": t.get("heat") or t.get("score"),
+                "rationale": "Trending now — get ahead before it cools.",
+            }
+            rationale = "Ride this trend before it cools."
+
+    if not recommended_action:
+        recommended_action = {"type": "browse", "next": "ideas"}
+        rationale = "Nothing urgent. Generate fresh ideas from the Ideas tab."
+
     return {
         "ok": True,
         "ts": _now_iso(),
@@ -127,6 +202,8 @@ def morning_brief() -> Dict[str, Any]:
         "missed_high_impact": high_impact_missed,
         "seo_quick_wins": quick_wins,
         "post_today": post_today[:5] if isinstance(post_today, list) else [],
+        "recommended_action": recommended_action,
+        "recommended_rationale": rationale,
     }
 
 
