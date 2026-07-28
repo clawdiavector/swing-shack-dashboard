@@ -24,17 +24,13 @@
 - ✅ Inline asset editor
 - ✅ Caption Studio, Headlines, CTAs generators (composed from hook bank + base caption + CTA pill)
 - ✅ **Meme Lord v2** (THIS TURN) — meme historian: 75 curated memes across eras with brand-fit scoring, top-picks recommender, caption-draft generator (3 flavours), filter bar (voice/pillar/platform/era/still-works/search), modal with why-it-works + format-hint + fit-seeds + re-roll on different seed.
-- ✅ 112 passing tests (was 73 before — +39 new for Meme Lord v2)
+- ✅ **Theme tokens + light/dark switcher** — two-tier CSS token system (`:root` aliases + `[data-theme]` overrides) with full dark + light themes, `prefers-color-scheme` auto-mode, topbar switcher pill (Dark/Light/Auto), `localStorage` persistence, server-side `GET/POST /api/intel/theme` + `GET /api/intel/tokens` design-system manifest. Every raw hex removed from CSS — all colors flow through semantic tokens (`--bg`, `--tx`, `--ac`, `--scrim`, `--pill-on`, etc.); meme era/fatigue/brand-fit palette uses `color-mix()` so it auto-themes.
+- ✅ 183 passing tests (was 73 baseline; +110 across all turns)
 
 ## Priorities for next cron iteration
 
-4. **Meme Lord v2** — turn into a meme historian. Add a `meme_knowledge.json` data file with the ~200 most viral memes from the last decade (Distracted Boyfriend, Drake, Woman Yelling at Cat, etc.) + format taxonomy + brand-fit scoring. Front-end: every meme card has its era, peak year, why-it-works, brand-fit slider.
-5. **Trend Catcher v2** — split into 3 sources: (a) marketing industry signals (HubSpot, Marketing Brew, AdWeek via RSS if available, else curated seed data); (b) golf news (PGA Tour, LPGA, DP World Tour, equipment releases — via RSS if available); (c) competitor moves (TrackMan, Foresight, Toptracer — monitor their social via search). Each signal gets a relevance score + suggested response.
-6. **Image generation pipeline** — needs API creds to test live. Build the infrastructure now: `asset-image-spec.json` with brand-style rules (color palette, typography, model hint per pillar, aspect ratios per platform); `/api/intel/generate_image` that returns the structured prompt spec ready for any provider (Ideogram/DALL-E/MJ). When creds arrive, swap the provider in 1 file.
-7. **Caption Studio v2** — add voice/tone picker (Swing Shack voice vs Stick voice vs Bag Drop voice — use the meme-voice-bible files). Multiple voices = different base captions.
-8. **Right-rail "Today" panel** — make Morning Brief feel like a Bloomberg terminal: live timestamps, pulse animations on new items, dismissible cards.
-9. **Dark mode / theme tokens** — current dark theme is good; ensure consistency across all surfaces.
-10. **Publish Dashboard** — wire up the actual Postiz publish path through the SPA: list, schedule, send. (Needs careful gating per the no-publish-during-rest-mode rule.)
+9. ✅ **Dark mode / theme tokens** — done in tick 9 (see above).
+10. **Publish Dashboard** — wire up the actual Postiz publish path through the SPA: list, schedule, send. (Needs careful gating per the no-publish-during-rest-mode rule. UI can show the dashboard but the action buttons must be disabled until rest-mode is lifted.)
 
 ## Hard rules (do not violate)
 
@@ -63,6 +59,11 @@ campaign-os/
 │   ├── __init__.py
 │   ├── test_calendar_schedule.py       # 6 tests, drag-drop + sidecar
 │   ├── test_inline_asset_edit.py       # 11 tests, PATCH /api/assets
+│   ├── test_image_generation.py        # 38 tests, prompt pipeline
+│   ├── test_meme_lord_v2.py            # 39 tests, meme historian
+│   ├── test_today_panel.py             # 3 tests, right-rail Today
+│   ├── test_trends_v2.py               # 2 tests, Trend Catcher v2
+│   ├── test_theme_tokens.py            # 28 tests, dark/light/system
 │   ├── test_truth_collector.py         # (legacy, still passes)
 │   └── ...                             # (legacy test files preserved)
 ├── tests/__init__.py
@@ -122,6 +123,34 @@ Built: Right-rail Today panel — Bloomberg-style live cards in Morning Brief wi
 Files: campaign-os/app.py; campaign-os/campaign-os.html; campaign-os/tests/test_today_panel.py
 Tests: 155/155 pass (was 152; +3 today panel); endpoints verified via live curl + tunnel.
 Next: Dark mode / theme tokens (priority 9)
+
+## Cron tick 9 — 2026-07-28 04:08 SAST
+
+**Built:** Dark mode / theme tokens — two-tier CSS token system (`:root` aliases + `[data-theme]` overrides) with full dark + light themes, auto/system mode following `prefers-color-scheme`, in-app theme switcher, and a `/api/intel/tokens` design-system manifest endpoint.
+
+**Files:**
+- `campaign-os/app.py` — added `_load_theme_state()` / `_save_theme_state()` (DATA_DIR-isolated, history-bounded to 20 transitions, no-op de-dup) plus 3 new endpoints:
+  - `GET /api/intel/theme` — current theme + supported values + transition history
+  - `POST /api/intel/theme` — persist `dark`/`light`/`system` (400 on bad value, with type-safe validation for non-string bodies)
+  - `GET /api/intel/tokens` — 20-token design-system manifest (name, kind, dark value, light value, purpose) for QA / extension
+  - `_data_paths()` extended with `theme_file` → `theme-preferences.json`
+- `campaign-os/campaign-os.html` — full token refactor:
+  - 33 raw hex colors removed from CSS — every color now flows through a token (e.g. `--slot-hover`, `--today-amber`, `--pill-on`, `--modal-scrim`, `--scrim`, `--badge-voice-tint`, etc.)
+  - 6 raw rgba tints replaced with semantic tokens (`--rail-accent`, `--strip-tint-a/b`, etc.)
+  - `[data-theme="dark"]` (default), `[data-theme="light"]`, and `@media (prefers-color-scheme: light)` auto-mode blocks all share the same alias names
+  - Semantic meme palette (`era-classic/mid/recent/current`, `fatigue-low/medium/high`, `bf-hi/md/lo/zero`) refactored from inline hex to `color-mix(in srgb, var(--m-classic) NN%, transparent)` — auto-themed
+  - Calendar slot JS dropped hardcoded `'#34d399'` fallback; defaults now inherit `var(--ac)` from CSS
+  - Voice-chip inline rgbas (`rgba(52,211,153,.12/.15)`) replaced with `var(--badge-voice-tint/-2)` tokens
+  - `<meta name="theme-color">` now has an `id` so JS can update it on theme change (mobile Chrome address bar tint)
+  - Theme switcher pill rendered in the topbar with three buttons (🌙 Dark / ☀️ Light / ⚙️ Auto); `initTheme()` runs at boot, reads/writes `localStorage['swing-shack:theme']`, sets `data-theme` attribute, updates meta tag, persists server-side via POST, and listens to `matchMedia('(prefers-color-scheme: light)')` change events when on Auto
+- `campaign-os/tests/test_theme_tokens.py` — 28 new tests across 3 classes:
+  - `ThemeApiTests` (12): GET default envelope + history bounding, POST persistence + transitions, 400 for invalid values (including non-string bodies), no-op dedup, file-on-disk verification, corruption recovery
+  - `TokensApiTests` (5): envelope, token shape, core-palette coverage, dark≠light contrast sanity, hex format validation
+  - `ThemeCssStructureTests` (11): data-theme block presence, prefers-color-scheme media query, theme switcher DOM, localStorage key, meta theme-color id, **no raw hex outside theme blocks** (enforced), no raw hex literals in JS inline styles, color-mix used for semantic palette, switcher position in topbar
+
+**Tests:** 183/183 pass (was 155; **+28 theme tests**); zero baseline regressions. Verified live: `curl /api/intel/theme`, POST light/system/invalid, GET tokens, browser screenshots of both themes in Morning Brief + Meme Lord sections (era chips, brand-fit badges, fatigue chips all theme-aware).
+
+**Next priority:** Publish Dashboard (priority 10) — wire up the actual Postiz publish path through the SPA. Needs careful gating per the no-publish-during-rest-mode rule (Christelle on holiday; UI can show the dashboard but the action buttons must be disabled until rest-mode is lifted).
 
 ---
 
