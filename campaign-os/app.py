@@ -32,6 +32,7 @@ def _data_paths():
         'campaign_file': os.path.join(base, 'campaign-data.json'),
         'schedule_file': os.path.join(base, 'scheduled-items.json'),
         'today_file': os.path.join(base, 'today-panel.json'),
+        'theme_file': os.path.join(base, 'theme-preferences.json'),
     }
 
 
@@ -824,6 +825,149 @@ def dismiss_today_panel():
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w', encoding='utf-8') as f: json.dump({'dismissed': values[-500:]}, f)
     return jsonify({'ok': True, 'id': ident, 'dismissed': values[-500:]})
+
+
+# ─── THEME PREFERENCES (dark/light/system) ─────────────────────────
+THEME_VALID_VALUES = ('dark', 'light', 'system')
+THEME_DEFAULT_VALUE = 'dark'
+
+def _load_theme_state():
+    """Read theme preferences file. Returns dict with theme+ts+history."""
+    path = _data_paths()['theme_file']
+    state = _read_json_file(path)
+    if not isinstance(state, dict):
+        return {'theme': THEME_DEFAULT_VALUE, 'ts': None, 'history': []}
+    theme = state.get('theme')
+    if theme not in THEME_VALID_VALUES:
+        theme = THEME_DEFAULT_VALUE
+    history = state.get('history') or []
+    if not isinstance(history, list):
+        history = []
+    return {'theme': theme, 'ts': state.get('ts'), 'history': history[-20:]}
+
+def _save_theme_state(new_theme):
+    """Atomically update theme preferences and append to history."""
+    if new_theme not in THEME_VALID_VALUES:
+        return None
+    path = _data_paths()['theme_file']
+    current = _load_theme_state()
+    ts = _now_iso()
+    if current.get('theme') == new_theme:
+        # No-op update — keep ts fresh, don't bloat history
+        return {'theme': new_theme, 'ts': ts, 'history': current['history']}
+    history = list(current.get('history') or [])
+    history.append({'theme': current.get('theme') or THEME_DEFAULT_VALUE, 'ts': ts})
+    if len(history) > 20:
+        history = history[-20:]
+    state = {'theme': new_theme, 'ts': ts, 'history': history}
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(state, f)
+    except OSError as exc:
+        _app_log.warning("theme save failed: %s", exc)
+        return None
+    return state
+
+
+@app.route('/api/intel/theme', methods=['GET'])
+def get_theme():
+    """GET /api/intel/theme — current theme preference + supported values.
+
+    Response:
+      { ok: True, theme, supported: [...], default, ts, history: [...] }
+    """
+    state = _load_theme_state()
+    return jsonify({
+        "ok": True,
+        "theme": state['theme'],
+        "supported": list(THEME_VALID_VALUES),
+        "default": THEME_DEFAULT_VALUE,
+        "ts": state.get('ts'),
+        "history": state.get('history') or [],
+    })
+
+
+@app.route('/api/intel/theme', methods=['POST'])
+def set_theme():
+    """POST /api/intel/theme — persist user's theme preference.
+
+    Body (JSON): { theme: 'dark' | 'light' | 'system' }
+
+    Response: { ok: True, theme, ts, history } or { ok: False, error }.
+    """
+    body = request.get_json(silent=True) or {}
+    raw = body.get('theme')
+    # Reject non-strings (lists, ints, dicts) before .strip()
+    if not isinstance(raw, str):
+        return jsonify({
+            "ok": False,
+            "error": f"Invalid theme — must be a string. Supported: {', '.join(THEME_VALID_VALUES)}",
+            "supported": list(THEME_VALID_VALUES),
+        }), 400
+    theme = raw.strip().lower()
+    if theme not in THEME_VALID_VALUES:
+        return jsonify({
+            "ok": False,
+            "error": f"Invalid theme '{theme}'. Supported: {', '.join(THEME_VALID_VALUES)}",
+            "supported": list(THEME_VALID_VALUES),
+        }), 400
+    saved = _save_theme_state(theme)
+    if saved is None:
+        return jsonify({"ok": False, "error": "Failed to persist theme preference"}), 500
+    return jsonify({
+        "ok": True,
+        "theme": saved['theme'],
+        "ts": saved['ts'],
+        "history": saved['history'],
+    })
+
+
+@app.route('/api/intel/tokens', methods=['GET'])
+def get_tokens():
+    """GET /api/intel/tokens — return the theme token manifest for QA + extension.
+
+    Lists every CSS custom property exposed by the SPA, what theme it belongs
+    to, and the resolved value in the current default theme. Useful for
+    design-system audits and for the front-end to discover tokens without
+    hardcoding.
+    """
+    # Static manifest — the source of truth for what's exposed.
+    # Values shown are the DARK (default) values; the light theme overrides
+    # these via [data-theme="light"] in campaign-os.html.
+    tokens = [
+        # Surface scale
+        {"name": "--bg",   "kind": "surface", "dark": "#0a0f1a", "light": "#f6f8fc", "purpose": "App background"},
+        {"name": "--bg-2", "kind": "surface", "dark": "#101727", "light": "#ffffff", "purpose": "Card / sidebar background"},
+        {"name": "--bg-3", "kind": "surface", "dark": "#172033", "light": "#eef2f8", "purpose": "Hover / list background"},
+        {"name": "--bg-4", "kind": "surface", "dark": "#1e2940", "light": "#e3e9f3", "purpose": "Active / pressed background"},
+        {"name": "--bd",   "kind": "border",  "dark": "#22304d", "light": "#d6deeb", "purpose": "Default border"},
+        {"name": "--bd-2", "kind": "border",  "dark": "#2a3a5c", "light": "#c1cad9", "purpose": "Hover / strong border"},
+        # Text scale
+        {"name": "--tx",   "kind": "text",    "dark": "#e6ecf5", "light": "#0f172a", "purpose": "Primary text"},
+        {"name": "--tx-2", "kind": "text",    "dark": "#a8b4cc", "light": "#475569", "purpose": "Secondary text"},
+        {"name": "--tx-3", "kind": "text",    "dark": "#6c7a96", "light": "#7a8aa3", "purpose": "Muted / placeholder text"},
+        # Accent + state
+        {"name": "--ac",     "kind": "accent",  "dark": "#34d399", "light": "#10b981", "purpose": "Primary accent (swing green)"},
+        {"name": "--ac-2",   "kind": "accent",  "dark": "#22c55e", "light": "#059669", "purpose": "Accent hover/press"},
+        {"name": "--blu",    "kind": "accent",  "dark": "#60a5fa", "light": "#2563eb", "purpose": "Blue accent"},
+        {"name": "--pur",    "kind": "accent",  "dark": "#a78bfa", "light": "#7c3aed", "purpose": "Purple accent"},
+        {"name": "--org",    "kind": "accent",  "dark": "#fb923c", "light": "#ea580c", "purpose": "Orange accent"},
+        {"name": "--red",    "kind": "state",   "dark": "#f87171", "light": "#dc2626", "purpose": "Error / blocked"},
+        {"name": "--yel",    "kind": "state",   "dark": "#facc15", "light": "#ca8a04", "purpose": "Warning / review"},
+        # Geometry
+        {"name": "--r",   "kind": "geometry", "dark": "14px",  "light": "14px",  "purpose": "Default radius"},
+        {"name": "--r-s", "kind": "geometry", "dark": "8px",   "light": "8px",   "purpose": "Small radius"},
+        {"name": "--r-p", "kind": "geometry", "dark": "999px", "light": "999px", "purpose": "Pill radius"},
+        {"name": "--t",   "kind": "motion",   "dark": "0.18s ease", "light": "0.18s ease", "purpose": "Default transition"},
+    ]
+    return jsonify({
+        "ok": True,
+        "default_theme": THEME_DEFAULT_VALUE,
+        "supported_themes": list(THEME_VALID_VALUES),
+        "token_count": len(tokens),
+        "tokens": tokens,
+    })
 
 
 @app.route('/api/intel/trends_v2', methods=['GET'])

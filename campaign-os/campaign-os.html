@@ -4,36 +4,137 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Campaign OS · Swing Shack</title>
-<meta name="theme-color" content="#0a0f1a">
+<meta name="theme-color" content="#0a0f1a" id="meta-theme-color">
 <style>
 /* ─── Reset + base ─────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+/* ═══════════════════════════════════════════════════════════════
+   THEME TOKENS
+   - `:root` aliases → single source of truth used by every rule
+   - `[data-theme="dark"]` (default) and `[data-theme="light"]` provide the actual values
+   - All component CSS uses the alias names (--bg, --tx, etc.) — no raw hex anywhere
+   ═══════════════════════════════════════════════════════════════ */
 :root{
-  --bg:#0a0f1a;
-  --bg-2:#101727;
-  --bg-3:#172033;
-  --bg-4:#1e2940;
-  --bd:#22304d;
-  --bd-2:#2a3a5c;
-  --tx:#e6ecf5;
-  --tx-2:#a8b4cc;
-  --tx-3:#6c7a96;
-  --ac:#34d399;
-  --ac-2:#22c55e;
-  --ac-glow:rgba(52,211,153,.25);
-  --blu:#60a5fa;
-  --pur:#a78bfa;
-  --org:#fb923c;
-  --red:#f87171;
-  --yel:#facc15;
+  --r:14px; --r-s:8px; --r-p:999px; --t:.18s ease;
+  /* alias defaults — overridden by [data-theme] below */
+  --bg:#0a0f1a; --bg-2:#101727; --bg-3:#172033; --bg-4:#1e2940;
+  --bd:#22304d; --bd-2:#2a3a5c;
+  --tx:#e6ecf5; --tx-2:#a8b4cc; --tx-3:#6c7a96;
+  --ac:#34d399; --ac-2:#22c55e; --ac-glow:rgba(52,211,153,.25);
+  --blu:#60a5fa; --pur:#a78bfa; --org:#fb923c; --red:#f87171; --yel:#facc15;
   --gd:linear-gradient(135deg,#34d399 0%,#60a5fa 100%);
-  --sh:0 8px 32px rgba(0,0,0,.4);
-  --sh-2:0 2px 8px rgba(0,0,0,.3);
-  --r:14px;
-  --r-s:8px;
-  --r-p:999px;
-  --t:.18s ease;
+  --sh:0 8px 32px rgba(0,0,0,.4); --sh-2:0 2px 8px rgba(0,0,0,.3);
+  --scrim:rgba(10,15,26,.7); --slot-hover:#263450;
+  --today-amber:#f5a524; --today-teal:#2dd4bf; --today-rose:#fb7185;
+  --today-violet:#a78bfa; --today-slate:#94a3b8; --today-amber-bright:#fbbf24;
+  --rail-action-tint:rgba(52,211,153,.06); --rail-amber-tint:rgba(245,165,36,.06);
+  --rail-teal-tint:rgba(45,212,191,.06); --rail-violet-tint:rgba(167,139,250,.04);
+  --rail-violet-strong:rgba(167,139,250,.14); --rail-accent:rgba(52,211,153,.12);
+  --pill-on:rgba(52,211,153,.18); --pill-yel:rgba(250,204,21,.18);
+  --pill-red:rgba(248,113,113,.18); --pill-blu:rgba(96,165,250,.18);
+  --pill-org:rgba(251,146,60,.18); --strip-tint-a:rgba(52,211,153,.08);
+  --strip-tint-b:rgba(96,165,250,.08); --modal-scrim:rgba(0,0,0,.55);
+  --badge-voice-tint:rgba(52,211,153,.15); --badge-voice-tint-2:rgba(52,211,153,.12);
 }
+/* ─── DARK THEME (default) ─────────────────────────────────────── */
+[data-theme="dark"]{
+  --bg:#0a0f1a; --bg-2:#101727; --bg-3:#172033; --bg-4:#1e2940;
+  --bd:#22304d; --bd-2:#2a3a5c;
+  --tx:#e6ecf5; --tx-2:#a8b4cc; --tx-3:#6c7a96;
+  --ac:#34d399; --ac-2:#22c55e; --ac-glow:rgba(52,211,153,.25);
+  --blu:#60a5fa; --pur:#a78bfa; --org:#fb923c; --red:#f87171; --yel:#facc15;
+  --gd:linear-gradient(135deg,#34d399 0%,#60a5fa 100%);
+  --sh:0 8px 32px rgba(0,0,0,.4); --sh-2:0 2px 8px rgba(0,0,0,.3);
+  --scrim:rgba(10,15,26,.7); --slot-hover:#263450;
+  --today-amber:#f5a524; --today-teal:#2dd4bf; --today-rose:#fb7185;
+  --today-violet:#a78bfa; --today-slate:#94a3b8; --today-amber-bright:#fbbf24;
+  --rail-action-tint:rgba(52,211,153,.06); --rail-amber-tint:rgba(245,165,36,.06);
+  --rail-teal-tint:rgba(45,212,191,.06); --rail-violet-tint:rgba(167,139,250,.04);
+  --rail-violet-strong:rgba(167,139,250,.14); --rail-accent:rgba(52,211,153,.12);
+  --pill-on:rgba(52,211,153,.18); --pill-yel:rgba(250,204,21,.18);
+  --pill-red:rgba(248,113,113,.18); --pill-blu:rgba(96,165,250,.18);
+  --pill-org:rgba(251,146,60,.18); --strip-tint-a:rgba(52,211,153,.08);
+  --strip-tint-b:rgba(96,165,250,.08); --modal-scrim:rgba(0,0,0,.55);
+  --badge-voice-tint:rgba(52,211,153,.15); --badge-voice-tint-2:rgba(52,211,153,.12);
+  --meta-theme:#0a0f1a;
+}
+/* ─── LIGHT THEME ──────────────────────────────────────────────── */
+[data-theme="light"]{
+  --bg:#f6f8fc; --bg-2:#ffffff; --bg-3:#eef2f8; --bg-4:#e3e9f3;
+  --bd:#d6deeb; --bd-2:#c1cad9;
+  --tx:#0f172a; --tx-2:#475569; --tx-3:#7a8aa3;
+  --ac:#10b981; --ac-2:#059669; --ac-glow:rgba(16,185,129,.22);
+  --blu:#2563eb; --pur:#7c3aed; --org:#ea580c; --red:#dc2626; --yel:#ca8a04;
+  --gd:linear-gradient(135deg,#10b981 0%,#2563eb 100%);
+  --sh:0 8px 24px rgba(15,23,42,.10); --sh-2:0 1px 3px rgba(15,23,42,.07);
+  --scrim:rgba(15,23,42,.45); --slot-hover:#dde4f0;
+  --today-amber:#d97706; --today-teal:#0d9488; --today-rose:#e11d48;
+  --today-violet:#7c3aed; --today-slate:#64748b; --today-amber-bright:#b45309;
+  --rail-action-tint:rgba(16,185,129,.08); --rail-amber-tint:rgba(217,119,6,.10);
+  --rail-teal-tint:rgba(13,148,136,.10); --rail-violet-tint:rgba(124,58,237,.06);
+  --rail-violet-strong:rgba(124,58,237,.16); --rail-accent:rgba(16,185,129,.14);
+  --pill-on:rgba(16,185,129,.15); --pill-yel:rgba(202,138,4,.15);
+  --pill-red:rgba(220,38,38,.12); --pill-blu:rgba(37,99,235,.13);
+  --pill-org:rgba(234,88,12,.15); --strip-tint-a:rgba(16,185,129,.10);
+  --strip-tint-b:rgba(37,99,235,.10); --modal-scrim:rgba(15,23,42,.45);
+  --badge-voice-tint:rgba(16,185,129,.14); --badge-voice-tint-2:rgba(16,185,129,.12);
+  --meta-theme:#f6f8fc;
+}
+/* Honor system preference when no override stored */
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]):not([data-theme="light"]){
+    --bg:#f6f8fc; --bg-2:#ffffff; --bg-3:#eef2f8; --bg-4:#e3e9f3;
+    --bd:#d6deeb; --bd-2:#c1cad9;
+    --tx:#0f172a; --tx-2:#475569; --tx-3:#7a8aa3;
+    --ac:#10b981; --ac-2:#059669; --ac-glow:rgba(16,185,129,.22);
+    --blu:#2563eb; --pur:#7c3aed; --org:#ea580c; --red:#dc2626; --yel:#ca8a04;
+    --gd:linear-gradient(135deg,#10b981 0%,#2563eb 100%);
+    --sh:0 8px 24px rgba(15,23,42,.10); --sh-2:0 1px 3px rgba(15,23,42,.07);
+    --scrim:rgba(15,23,42,.45); --slot-hover:#dde4f0;
+    --today-amber:#d97706; --today-teal:#0d9488; --today-rose:#e11d48;
+    --today-violet:#7c3aed; --today-slate:#64748b; --today-amber-bright:#b45309;
+    --rail-action-tint:rgba(16,185,129,.08); --rail-amber-tint:rgba(217,119,6,.10);
+    --rail-teal-tint:rgba(13,148,136,.10); --rail-violet-tint:rgba(124,58,237,.06);
+    --rail-violet-strong:rgba(124,58,237,.16); --rail-accent:rgba(16,185,129,.14);
+    --pill-on:rgba(16,185,129,.15); --pill-yel:rgba(202,138,4,.15);
+    --pill-red:rgba(220,38,38,.12); --pill-blu:rgba(37,99,235,.13);
+    --pill-org:rgba(234,88,12,.15); --strip-tint-a:rgba(16,185,129,.10);
+    --strip-tint-b:rgba(37,99,235,.10); --modal-scrim:rgba(15,23,42,.45);
+    --badge-voice-tint:rgba(16,185,129,.14); --badge-voice-tint-2:rgba(16,185,129,.12);
+    --meta-theme:#f6f8fc;
+  }
+}
+/* Theme switcher chip */
+.theme-switch{display:inline-flex;align-items:center;gap:.25rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-p);padding:3px;font-size:11px;margin-left:.5rem}
+.theme-switch button{font-size:11px;padding:3px 9px;border-radius:var(--r-p);color:var(--tx-2);background:transparent;font-weight:500;letter-spacing:.02em;transition:all var(--t)}
+.theme-switch button:hover{color:var(--tx)}
+.theme-switch button.on{background:var(--ac);color:var(--bg);font-weight:700}
+.theme-switch button .ico{margin-right:.2rem}
+/* ─── Semantic meme era + brand-fit palette (theme-aware) ─────── */
+:root{
+  --m-classic:#7c5cff; --m-mid:#34d399; --m-recent:#fbbf24; --m-current:#fb7185;
+  --m-slate:#94a3b8;
+  --m-low:var(--ac); --m-medium:var(--today-amber-bright); --m-high:var(--today-rose);
+  --m-bf-hi:var(--ac); --m-bf-md:var(--today-amber-bright); --m-bf-lo:var(--org); --m-bf-zero:var(--tx-3);
+}
+[data-theme="light"]{
+  --m-classic:#6d28d9; --m-mid:#059669; --m-recent:#b45309; --m-current:#be123c;
+  --m-slate:#475569;
+  --m-low:var(--ac); --m-medium:var(--today-amber-bright); --m-high:var(--today-rose);
+  --m-bf-hi:var(--ac); --m-bf-md:var(--today-amber-bright); --m-bf-lo:var(--org); --m-bf-zero:var(--tx-3);
+}
+.era-classic{background:color-mix(in srgb,var(--m-classic) 12%,transparent);color:var(--m-classic);border:1px solid color-mix(in srgb,var(--m-classic) 28%,transparent)}
+.era-mid{background:color-mix(in srgb,var(--m-mid) 12%,transparent);color:var(--m-mid);border:1px solid color-mix(in srgb,var(--m-mid) 28%,transparent)}
+.era-recent{background:color-mix(in srgb,var(--m-recent) 14%,transparent);color:var(--m-recent);border:1px solid color-mix(in srgb,var(--m-recent) 28%,transparent)}
+.era-current{background:color-mix(in srgb,var(--m-current) 14%,transparent);color:var(--m-current);border:1px solid color-mix(in srgb,var(--m-current) 28%,transparent)}
+.era-slate{background:color-mix(in srgb,var(--m-slate) 14%,transparent);color:var(--m-slate);border:1px solid color-mix(in srgb,var(--m-slate) 28%,transparent)}
+.fatigue-low{background:color-mix(in srgb,var(--m-low) 12%,transparent);color:var(--m-low);border:1px solid color-mix(in srgb,var(--m-low) 28%,transparent)}
+.fatigue-medium{background:color-mix(in srgb,var(--m-medium) 14%,transparent);color:var(--m-medium);border:1px solid color-mix(in srgb,var(--m-medium) 28%,transparent)}
+.fatigue-high{background:color-mix(in srgb,var(--m-high) 14%,transparent);color:var(--m-high);border:1px solid color-mix(in srgb,var(--m-high) 28%,transparent)}
+.bf-hi{background:color-mix(in srgb,var(--m-bf-hi) 12%,transparent);color:var(--m-bf-hi);border:1px solid color-mix(in srgb,var(--m-bf-hi) 30%,transparent)}
+.bf-md{background:color-mix(in srgb,var(--m-bf-md) 14%,transparent);color:var(--m-bf-md);border:1px solid color-mix(in srgb,var(--m-bf-md) 30%,transparent)}
+.bf-lo{background:color-mix(in srgb,var(--m-bf-lo) 14%,transparent);color:var(--m-bf-lo);border:1px solid color-mix(in srgb,var(--m-bf-lo) 30%,transparent)}
+.bf-zero{background:color-mix(in srgb,var(--m-bf-zero) 14%,transparent);color:var(--m-bf-zero);border:1px solid color-mix(in srgb,var(--m-bf-zero) 30%,transparent)}
 html,body{height:100%}
 body{
   font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;
@@ -123,9 +224,9 @@ a:hover{text-decoration:underline}
 .rail-card{background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem;margin-bottom:.5rem;animation:rail-pulse .5s ease both;display:grid;grid-template-columns:1fr auto;gap:.25rem .5rem;position:relative}
 .rail-card:hover{border-color:var(--bd-2)}
 .rail-card.action{border-left:3px solid var(--ac)}
-.rail-card.review{border-left:3px solid #f5a524}
-.rail-card.publish{border-left:3px solid #2dd4bf}
-.rail-card.post{border-left:3px solid #a78bfa}
+.rail-card.review{border-left:3px solid var(--today-amber)}
+.rail-card.publish{border-left:3px solid var(--today-teal)}
+.rail-card.post{border-left:3px solid var(--today-violet)}
 .rail-cap{grid-column:1/-1;display:flex;align-items:center;gap:.5rem}
 .rail-kind{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--tx-3);font-weight:600}
 .rail-x{cursor:pointer;color:var(--tx-3);padding:0 .3rem;font-size:14px;line-height:1;opacity:.6}
@@ -164,12 +265,12 @@ a:hover{text-decoration:underline}
 
 /* ─── Badges / pills ─────────────────────────────────────────── */
 .pill{display:inline-flex;align-items:center;gap:.3rem;font-size:10px;font-weight:600;padding:3px 8px;border-radius:var(--r-p);text-transform:uppercase;letter-spacing:.04em;background:var(--bg-3);color:var(--tx-2)}
-.pill.on{background:rgba(52,211,153,.18);color:var(--ac)}
-.pill.review{background:rgba(250,204,21,.18);color:var(--yel)}
-.pill.blocked{background:rgba(248,113,113,.18);color:var(--red)}
+.pill.on{background:var(--pill-on);color:var(--ac)}
+.pill.review{background:var(--pill-yel);color:var(--yel)}
+.pill.blocked{background:var(--pill-red);color:var(--red)}
 .pill.draft{background:var(--bg-4);color:var(--tx-3)}
-.pill.live{background:rgba(96,165,250,.18);color:var(--blu)}
-.pill.warn{background:rgba(251,146,60,.18);color:var(--org)}
+.pill.live{background:var(--pill-blu);color:var(--blu)}
+.pill.warn{background:var(--pill-org);color:var(--org)}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--ac)}
 
 /* ─── Buttons ────────────────────────────────────────────────── */
@@ -182,7 +283,7 @@ a:hover{text-decoration:underline}
 .btn-row{display:flex;gap:.5rem;flex-wrap:wrap}
 
 /* ─── Modal ──────────────────────────────────────────────────── */
-.modal-bg{position:fixed;inset:0;background:rgba(10,15,26,.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:100;padding:2rem}
+.modal-bg{position:fixed;inset:0;background:var(--scrim);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:100;padding:2rem}
 .modal-bg.on{display:flex}
 .modal{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:1.5rem;max-width:720px;width:100%;max-height:90vh;overflow:auto;box-shadow:var(--sh)}
 .modal h3{font-size:18px;font-weight:700;margin-bottom:.75rem}
@@ -194,13 +295,13 @@ a:hover{text-decoration:underline}
 .cal-h{font-size:11px;color:var(--tx-3);text-align:center;padding:.5rem 0;font-weight:600;text-transform:uppercase;letter-spacing:.05em;min-width:0}
 .cal-d{background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);min-height:120px;min-width:0;padding:.5rem;display:flex;flex-direction:column;gap:.25rem;transition:border var(--t);overflow:hidden}
 .cal-d:hover{border-color:var(--bd-2)}
-.cal-d.today{border-color:var(--ac);background:rgba(52,211,153,.06)}
+.cal-d.today{border-color:var(--ac);background:var(--rail-action-tint)}
 .cal-d.overdue{opacity:.7}
-.cal-d.drag-over{border-color:var(--ac);background:rgba(52,211,153,.12);box-shadow:0 0 0 2px var(--ac-glow)}
+.cal-d.drag-over{border-color:var(--ac);background:var(--rail-accent);box-shadow:0 0 0 2px var(--ac-glow)}
 .cal-dh{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--tx-3);font-weight:600}
 .cal-dh .n{color:var(--tx);font-size:13px}
 .cal-slot{background:var(--bg-4);border-radius:4px;padding:5px 7px;font-size:11px;color:var(--tx-2);border-left:3px solid var(--ac);line-height:1.3;cursor:grab;transition:opacity .15s,transform .15s,background var(--t)}
-.cal-slot:hover{background:#263450;transform:translateY(-1px)}
+.cal-slot:hover{background:var(--slot-hover);transform:translateY(-1px)}
 .cal-slot.dragging{opacity:.38;cursor:grabbing}
 .cal-slot.draft{border-left-color:var(--tx-3)}
 .cal-slot.review{border-left-color:var(--yel)}
@@ -209,8 +310,8 @@ a:hover{text-decoration:underline}
 .cal-slot .cal-slot-name{font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-slot .cal-slot-meta{font-size:10px;color:var(--tx-3);margin-top:2px;display:flex;gap:4px;align-items:center}
 .cal-slot .cal-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
-.cal-duplicate-zone{margin-top:1rem;border:1px dashed var(--bd-2);border-radius:var(--r);padding:1rem;display:flex;align-items:center;gap:.75rem;color:var(--tx-3);background:rgba(167,139,250,.04);transition:all var(--t)}
-.cal-duplicate-zone.drag-over{border-color:var(--pur);background:rgba(167,139,250,.14);color:var(--tx)}
+.cal-duplicate-zone{margin-top:1rem;border:1px dashed var(--bd-2);border-radius:var(--r);padding:1rem;display:flex;align-items:center;gap:.75rem;color:var(--tx-3);background:var(--rail-violet-tint);transition:all var(--t)}
+.cal-duplicate-zone.drag-over{border-color:var(--pur);background:var(--rail-violet-strong);color:var(--tx)}
 .cal-duplicate-zone strong{color:var(--tx-2);font-size:13px}
 .cal-duplicate-zone small{display:block;font-size:11px;margin-top:2px}
 @media (max-width:900px){.cal-grid{grid-template-columns:repeat(4,minmax(150px,1fr));overflow-x:auto;padding-bottom:.5rem}.cal-h{display:none}.cal-d{min-width:150px}}
@@ -255,7 +356,7 @@ a:hover{text-decoration:underline}
 .btn.small{padding:.25rem .5rem;font-size:11px}
 
 /* ─── Insight strip ──────────────────────────────────────────── */
-.insight-strip{display:flex;gap:1rem;padding:.85rem 1.1rem;background:linear-gradient(135deg,rgba(52,211,153,.08) 0%,rgba(96,165,250,.08) 100%);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:1.25rem}
+.insight-strip{display:flex;gap:1rem;padding:.85rem 1.1rem;background:linear-gradient(135deg,var(--strip-tint-a) 0%,var(--strip-tint-b) 100%);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:1.25rem}
 .insight-strip .ico{font-size:18px}
 .insight-strip .txt{font-size:13px;color:var(--tx);line-height:1.5}
 .insight-strip .txt b{color:var(--ac)}
@@ -297,7 +398,7 @@ a:hover{text-decoration:underline}
 .meme-row-sub{display:flex;align-items:center;gap:.25rem;margin-top:2px;font-size:10px;color:var(--tx-3)}
 .meme-fmt{font-size:10px;color:var(--tx-3);text-transform:lowercase;font-weight:500;margin-left:.15rem}
 .meme-row-actions{display:flex;gap:.25rem}
-.meme-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:300;padding:1rem}
+.meme-modal{position:fixed;inset:0;background:var(--modal-scrim);display:flex;align-items:center;justify-content:center;z-index:300;padding:1rem}
 .meme-modal-inner{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:1.5rem;max-width:680px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:var(--sh)}
 .meme-modal-section{margin-bottom:.85rem}
 .meme-modal-section b{color:var(--ac);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
@@ -387,6 +488,11 @@ a:hover{text-decoration:underline}
         <span class="search-ico">🔎</span>
         <input id="search-input" placeholder="Search campaigns, hooks, captions, ideas…" autocomplete="off">
         <div class="search-results" id="search-results"></div>
+      </div>
+      <div class="theme-switch" id="theme-switch" role="group" aria-label="Color theme">
+        <button data-theme-val="dark" title="Dark theme"><span class="ico">🌙</span>Dark</button>
+        <button data-theme-val="light" title="Light theme"><span class="ico">☀️</span>Light</button>
+        <button data-theme-val="system" title="Follow system preference"><span class="ico">⚙️</span>Auto</button>
       </div>
     </div>
 
@@ -874,6 +980,72 @@ const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+// ─── THEME controller ───────────────────────────────────────────
+const THEME_KEY = 'swing-shack:theme';
+const THEME_DEFAULT = 'dark';
+const THEME_VALID = new Set(['dark', 'light', 'system']);
+const THEME_STATE = { value: THEME_DEFAULT, systemPref: 'dark' };
+const themeMeta = document.getElementById('meta-theme-color');
+
+function _systemPrefers(){
+  if(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+  return 'dark';
+}
+function _applyTheme(value){
+  THEME_STATE.value = value;
+  let resolved = value;
+  if(value === 'system'){
+    THEME_STATE.systemPref = _systemPrefers();
+    resolved = THEME_STATE.systemPref;
+  }
+  if(resolved === 'dark' || resolved === 'light'){
+    document.documentElement.setAttribute('data-theme', resolved);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--meta-theme').trim() || '#0a0f1a';
+  if(themeMeta) themeMeta.setAttribute('content', bg);
+  document.querySelectorAll('#theme-switch button').forEach(b => {
+    b.classList.toggle('on', b.dataset.themeVal === value);
+    b.setAttribute('aria-pressed', b.dataset.themeVal === value ? 'true' : 'false');
+  });
+  try { localStorage.setItem(THEME_KEY, value); } catch(_){}
+}
+function initTheme(){
+  let saved = THEME_DEFAULT;
+  try { saved = localStorage.getItem(THEME_KEY) || THEME_DEFAULT; } catch(_){}
+  if(!THEME_VALID.has(saved)) saved = THEME_DEFAULT;
+  THEME_STATE.systemPref = _systemPrefers();
+  _applyTheme(saved);
+  document.querySelectorAll('#theme-switch button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.themeVal;
+      if(!THEME_VALID.has(v)) return;
+      _applyTheme(v);
+      try {
+        const p = fetch('/api/intel/theme', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ theme: v })
+        });
+        if(p && p.catch) p.catch(()=>{});
+      } catch(_){}
+    });
+  });
+  if(window.matchMedia){
+    try {
+      const mq = window.matchMedia('(prefers-color-scheme: light)');
+      const handler = () => {
+        if(THEME_STATE.value === 'system'){
+          THEME_STATE.systemPref = _systemPrefers();
+          _applyTheme('system');
+        }
+      };
+      if(mq.addEventListener) mq.addEventListener('change', handler);
+      else if(mq.addListener) mq.addListener(handler);
+    } catch(_){}
+  }
+}
+
 // ─── State ──────────────────────────────────────────────────────
 const S = {
   brief:null, review:null, cal:null, calOffset:0,
@@ -1245,19 +1417,22 @@ async function calDuplicate(drag){
 }
 function calSlotHtml(s){
   const cls = s.approvalStatus==='approved' ? 'scheduled' : (s.publishStatus==='draft' ? 'draft' : 'review');
-  const color = s.color || '#34d399';
+  const hasColor = !!s.color;
+  const color = s.color || '';
   const label = (s.pillar || s.brand || s.platform || 'content').replace(/_/g,' ');
+  const colorStyle = hasColor ? ` style="border-left-color:${esc(color)}"` : '';
+  const dotStyle = hasColor ? ` style="background:${esc(color)}"` : '';
   return `<div class="cal-slot ${cls}" draggable="true"
     data-asset-id="${esc(s.assetId || '')}"
     data-campaign-id="${esc(s.campaignId || '')}"
     data-source="${esc(s.source || 'campaign')}"
     data-scheduled-for="${esc(s.scheduledFor || '')}"
     data-name="${esc(s.name || '')}"
-    style="border-left-color:${esc(color)}"
+    ${colorStyle}
     ondragstart="calDragStart(event)" ondragend="calDragEnd(event)"
     title="Drag to reschedule · ${esc(label)}">
     <div class="cal-slot-name">${esc((s.name||'Untitled').slice(0,42))}</div>
-    <div class="cal-slot-meta"><span class="cal-dot" style="background:${esc(color)}"></span>${esc(label.slice(0,22))} · ${esc(s.platform || 'instagram')}</div>
+    <div class="cal-slot-meta"><span class="cal-dot"${dotStyle}></span>${esc(label.slice(0,22))} · ${esc(s.platform || 'instagram')}</div>
   </div>`;
 }
 async function renderCalendar(){
@@ -1433,24 +1608,23 @@ function memEraLabel(e){
 }
 
 function memEraChip(e){
-  const colors = {classic:'#7c5cff',mid:'#34d399',recent:'#fbbf24',current:'#fb7185'};
-  return `<span class="meme-chip" style="background:${colors[e]||'#94a3b8'}1a;color:${colors[e]||'#94a3b8'};border:1px solid ${colors[e]||'#94a3b8'}33">${memEraLabel(e)}</span>`;
+  const cls = ({classic:'era-classic',mid:'era-mid',recent:'era-recent',current:'era-current'})[e] || 'era-slate';
+  return `<span class="meme-chip ${cls}">${memEraLabel(e)}</span>`;
 }
 
 function memFatigueChip(r){
-  if(r === 'low') return `<span class="meme-chip" style="background:#34d3991a;color:#34d399;border:1px solid #34d39933">low fatigue</span>`;
-  if(r === 'medium') return `<span class="meme-chip" style="background:#fbbf241a;color:#fbbf24;border:1px solid #fbbf2433">medium fatigue</span>`;
-  if(r === 'high') return `<span class="meme-chip" style="background:#fb71851a;color:#fb7185;border:1px solid #fb718533">high fatigue</span>`;
+  if(r === 'low') return `<span class="meme-chip fatigue-low">low fatigue</span>`;
+  if(r === 'medium') return `<span class="meme-chip fatigue-medium">medium fatigue</span>`;
+  if(r === 'high') return `<span class="meme-chip fatigue-high">high fatigue</span>`;
   return '';
 }
 
 function memBrandFitBadge(score){
-  let color = '#94a3b8';
-  if(score >= 75) color = '#34d399';
-  else if(score >= 50) color = '#fbbf24';
-  else if(score >= 25) color = '#fb923c';
-  else color = '#94a3b8';
-  return `<span class="meme-bf" style="background:${color}1a;color:${color};border:1px solid ${color}44" title="Brand-fit score">⛳ ${score}</span>`;
+  let cls = 'bf-zero';
+  if(score >= 75) cls = 'bf-hi';
+  else if(score >= 50) cls = 'bf-md';
+  else if(score >= 25) cls = 'bf-lo';
+  return `<span class="meme-bf ${cls}" title="Brand-fit score">⛳ ${score}</span>`;
 }
 
 function memPicksCard(m){
@@ -1694,7 +1868,7 @@ $('#cap-gen').addEventListener('click', async () => {
   const r = await API.post('/api/captions/generate', payload);
   if(!r.ok){ toast(r.error||'Failed', 'err'); return; }
 
-  const voiceChip = r._voice ? `<span class="meme-chip" style="background:rgba(52,211,153,.15);color:var(--ac)">${esc(r._voice)}</span>` : '';
+  const voiceChip = r._voice ? `<span class="meme-chip" style="background:var(--badge-voice-tint);color:var(--ac)">${esc(r._voice)}</span>` : '';
   const toneChip  = r._tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(r._tone)}</span>` : '';
   const subtitle = [voiceChip, toneChip].filter(Boolean).join(' ');
   const assetLabel = r.asset ? ` for ${esc(r.asset)}` : (id ? ` for ${esc(id)}` : ' (hook pool)');
@@ -1702,7 +1876,7 @@ $('#cap-gen').addEventListener('click', async () => {
   $('#cap-results').innerHTML =
     `<h4 style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">${r.count} variants${assetLabel} ${subtitle}</h4>` +
     (r.variants||[]).map((v, i) => {
-      const vVoice = v.voice ? `<span class="meme-chip" style="background:rgba(52,211,153,.12);color:var(--ac)">${esc(v.voice)}</span>` : '';
+      const vVoice = v.voice ? `<span class="meme-chip" style="background:var(--badge-voice-tint-2);color:var(--ac)">${esc(v.voice)}</span>` : '';
       const vTone  = v.tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(v.tone)}</span>` : '';
       return `<div class="review" style="margin-bottom:.5rem">
         <div class="review-cap">
@@ -2204,6 +2378,7 @@ $('#search-input').addEventListener('input', e => {
 $('#search-input').addEventListener('blur', () => setTimeout(()=>$('#search-results').classList.remove('on'), 200));
 
 // ─── Boot ───────────────────────────────────────────────────────
+initTheme();
 (async function boot(){
   try {
     await renderBrief();
