@@ -498,6 +498,23 @@ a:hover{text-decoration:underline}
 .meme-cap-text{font-size:13px;color:var(--tx);line-height:1.4}
 .meme-seeds{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
 
+/* ─── Create surface (intelligence grid) ───────────────────────── */
+.quick-launch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem}
+.quick-launch-card{display:flex;align-items:center;gap:.85rem;padding:1rem;background:var(--bg-2);border:1px solid var(--ac);border-radius:var(--r);cursor:pointer;transition:all var(--t);text-align:left;color:var(--tx);font-family:inherit}
+.quick-launch-card:hover{background:var(--bg-3);border-color:var(--ac);transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,.18)}
+.quick-launch-ico{font-size:32px;flex-shrink:0}
+.quick-launch-body{flex:1;min-width:0}
+.quick-launch-label{font-weight:700;font-size:14px;margin-bottom:2px}
+.quick-launch-desc{font-size:11px;color:var(--tx-3);line-height:1.4}
+.gen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.65rem;margin-top:.5rem}
+.gen-card{display:flex;flex-direction:column;align-items:flex-start;gap:.4rem;padding:.85rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-s);cursor:pointer;transition:all var(--t);text-align:left;color:var(--tx);font-family:inherit;min-height:140px}
+.gen-card:hover{background:var(--bg-3);border-color:var(--ac);transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.gen-ico{font-size:24px;margin-bottom:.15rem}
+.gen-label{font-weight:600;font-size:13px;color:var(--tx)}
+.gen-desc{font-size:11px;color:var(--tx-3);line-height:1.4;flex:1}
+.gen-meta{font-size:10px;color:var(--tx-3);background:var(--bg-3);padding:2px 6px;border-radius:var(--r-p);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+@media (max-width:900px){.quick-launch-grid{grid-template-columns:1fr}}
+
 /* ─── Misc ───────────────────────────────────────────────────── */
 .muted{color:var(--tx-3)}
 .row{display:flex;align-items:center;gap:.75rem}
@@ -848,6 +865,42 @@ a:hover{text-decoration:underline}
           </div>
           <div id="meme-modal-body" style="margin-top:1rem"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ── INSIGHTS — performance + learning ──────────── -->
+    <section class="section" id="sec-insights">
+      <!-- This section is rendered by renderInsights() which calls renderPerformance() then appends a learning strip. -->
+    </section>
+
+    <!-- ── LIBRARY — universal search ──────────────── -->
+    <section class="section" id="sec-library">
+      <!-- This section is rendered by renderLibrary() which dynamically builds the search UI. -->
+    </section>
+
+    <!-- ── CREATE — intelligence grid (one-stop launchpad for all generators) ─ -->
+    <section class="section" id="sec-create">
+      <div class="section-h">
+        <h2>Create <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">intelligence grid</span></h2>
+        <span class="sub" id="create-summary">— Pick a generator. Each one returns ready-to-publish content.</span>
+      </div>
+
+      <!-- Quick Launch: most-used actions for the active brand -->
+      <div class="card" style="margin-bottom:1rem;border:1px solid var(--ac-glow)">
+        <div class="card-h"><h3>⚡ Quick launch</h3><span class="muted" id="create-quick-context">—</span></div>
+        <div class="quick-launch-grid" id="create-quick-grid"></div>
+      </div>
+
+      <!-- All generators: 12+ card grid -->
+      <div class="card">
+        <div class="card-h"><h3>🪄 All generators</h3><span class="muted" id="create-gen-count">—</span></div>
+        <div class="gen-grid" id="create-gen-grid"></div>
+      </div>
+
+      <!-- Last used generator output preview -->
+      <div class="card" style="margin-top:1rem">
+        <div class="card-h"><h3>📌 Recent output</h3><span class="muted" id="create-recent-meta">—</span></div>
+        <div id="create-recent-output" style="min-height:120px;color:var(--tx-3)">Pick a generator above and click Generate to start.</div>
       </div>
     </section>
 
@@ -1633,9 +1686,9 @@ const TITLES = {
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
 const SECTION_ALIASES = {
-  create: 'captions',    // Create = Caption Studio (placeholder; will become a tabbed generator grid)
-  insights: 'performance', // Insights = Performance (placeholder; will gain learning layer + conclusions)
-  library: 'faqs',       // Library = FAQs (placeholder; will become universal search + knowledge)
+  // create has its own section now — alias removed
+  // insights has its own section now — alias removed
+  // library has its own section now — alias removed
 };
 
 // Safe section activation — falls back to an alias if the requested section doesn't exist.
@@ -1674,16 +1727,157 @@ try {
 
 $$('.nav').forEach(n => n.addEventListener('click', () => go(n.dataset.go)));
 
+// ─── CREATE — intelligence grid (12+ generators, 1 surface) ───
+const _GENERATORS = [
+  {id: 'hooks', icon: '🪝', label: 'Hook Bank', desc: 'Tested hooks ranked by what wins for this brand.', sec: 'hooks', count: '~80 hooks'},
+  {id: 'memes', icon: '😂', label: 'Meme Lord', desc: 'Memes that fit the brand voice. Recent over classic.', sec: 'memes', count: '~150 memes'},
+  {id: 'captions', icon: '✍️', label: 'Caption Studio', desc: 'Voice-aware captions. Pick voice + tone + asset.', sec: 'captions', count: 'voice bible'},
+  {id: 'headlines', icon: '📰', label: 'Headlines', desc: 'Bold, provocative, shareable headlines per pillar.', sec: 'headlines', count: 'per pillar'},
+  {id: 'ctas', icon: '🎯', label: 'CTAs', desc: 'Brand-scoped CTAs ranked by what converts.', sec: 'ctas', count: '~40 CTAs'},
+  {id: 'hashtagseo', icon: '#️⃣', label: 'Hashtags + SEO', desc: 'Hashtag sets + SEO meta for each platform.', sec: 'hashtagseo', count: 'per platform'},
+  {id: 'faqs', icon: '❓', label: 'FAQs', desc: 'FAQ opportunities mined from search data + Q&A.', sec: 'faqs', count: 'per topic'},
+  {id: 'ideas', icon: '💡', label: 'Ideas', desc: 'Content opportunities matched to your pillars.', sec: 'ideas', count: 'ranked by IG'},
+  {id: 'trends', icon: '📡', label: 'Trends', desc: 'Real-time signals from YT / Reddit / news / golf media.', sec: 'trends', count: 'live signals'},
+  {id: 'seo', icon: '🔎', label: 'SEO Assistant', desc: 'SEO recommendations + landing-page fixes.', sec: 'seo', count: 'audit-driven'},
+  {id: 'gbp', icon: '📍', label: 'Google Business', desc: 'GBP post suggestions + templates.', sec: 'gbp', count: 'per location'},
+  {id: 'reddit', icon: '🗣️', label: 'Reddit Outreach', desc: 'Threads where your brand can contribute.', sec: 'reddit', count: 'per thread'},
+  {id: 'imagegen', icon: '🖼️', label: 'Image Prompts', desc: 'Per-asset prompts: layers (background → logo → headline → hero).', sec: 'imagegen', count: 'per asset'},
+  {id: 'billboards', icon: '🪧', label: 'Billboard Lab', desc: 'Headlines + visual briefs for billboards / hero / campaign.', sec: 'billboards', count: 'per concept'},
+  {id: 'seo-audit', icon: '📋', label: 'SEO Audit', desc: 'Deep-dive on seo-audit.json. Per-page issues + drafts.', sec: 'seo-audit', count: 'per page'},
+];
+
+async function renderCreate(){
+  const ctx = S.brandContext || (await loadBrandContext());
+  const bid = ctx?.brand_id || 'swing-shack';
+  const brand = ctx?.brand || {};
+  // Quick launch: top 3 most useful for active brand
+  const quick = ['captions', 'memes', 'hooks'];
+  $('#create-quick-context').textContent = `${brand.display_name || bid} · ${ctx?.asset_count || 0} assets`;
+  $('#create-quick-grid').innerHTML = quick.map(gid => {
+    const g = _GENERATORS.find(x => x.id === gid);
+    if(!g) return '';
+    return `<button class="quick-launch-card" data-quick="${esc(g.id)}">
+      <div class="quick-launch-ico">${g.icon}</div>
+      <div class="quick-launch-body">
+        <div class="quick-launch-label">${esc(g.label)}</div>
+        <div class="quick-launch-desc">${esc(g.desc)}</div>
+      </div>
+    </button>`;
+  }).join('');
+  // All generators grid
+  $('#create-gen-count').textContent = `${_GENERATORS.length} generators · ${ctx?.tone_options?.length || 0} tones available`;
+  $('#create-gen-grid').innerHTML = _GENERATORS.map(g => `
+    <button class="gen-card" data-gen="${esc(g.id)}" data-section="${esc(g.sec)}">
+      <div class="gen-ico">${g.icon}</div>
+      <div class="gen-label">${esc(g.label)}</div>
+      <div class="gen-desc">${esc(g.desc)}</div>
+      <div class="gen-meta">${esc(g.count)}</div>
+    </button>
+  `).join('');
+  // Bind clicks
+  $$('#create-gen-grid .gen-card, #create-quick-grid .quick-launch-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const sec = el.dataset.section || el.dataset.quick;
+      go(sec);
+    });
+  });
+}
+
+// ─── INSIGHTS — performance + learning (wrapper around performance + learning) ───
+async function renderInsights(){
+  // Render performance into sec-performance first (canonical location)
+  if(typeof renderPerformance === 'function'){
+    await renderPerformance();
+  }
+  // Clone the performance content into sec-insights so it shows under the Insights tab
+  const targetSec = $('#sec-insights');
+  const sourceSec = $('#sec-performance');
+  if(!targetSec || !sourceSec) return;
+  // Clone all children from sec-performance into sec-insights (excluding script/style)
+  targetSec.innerHTML = '';
+  Array.from(sourceSec.children).forEach(child => {
+    if(child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE'){
+      targetSec.appendChild(child.cloneNode(true));
+    }
+  });
+  // Append the Learning strip
+  let learning = null;
+  try { learning = await API.get('/api/intel/learning'); } catch(_){}
+  const learnCard = document.createElement('div');
+  learnCard.className = 'card';
+  learnCard.style.marginTop = '1rem';
+  learnCard.innerHTML = `
+    <div class="card-h"><h3>🧠 Learning</h3><span class="muted">${esc((learning?.summary || 'Patterns Campaign OS has learned').slice(0,120))}</span></div>
+    <div class="muted" style="margin-bottom:.5rem">Patterns Campaign OS has learned about this brand.</div>
+    <ul class="list">${(learning?.patterns || learning?.learnings || learning?.weekly_learnings || []).slice(0,8).map(p => `<li class="li"><div class="li-body"><div class="li-title">${esc(p.pattern || p.title || p.observation || p.lesson || '')}</div>${p.evidence?`<div class="li-meta">${esc(p.evidence)}</div>`:''}</div></li>`).join('') || '<li class="empty">No learnings yet — keep posting to surface patterns.</li>'}</ul>
+  `;
+  targetSec.appendChild(learnCard);
+  // Also re-bind event handlers that renderPerformance attached (since cloneNode doesn't carry them)
+  // For simplicity, we re-run renderInsights-bind for performance widgets if they exist
+  if(typeof bindPerformanceHandlers === 'function') bindPerformanceHandlers();
+}
+
+// ─── LIBRARY — universal search (placeholder for now; uses FAQ list as starting content) ───
+async function renderLibrary(){
+  const sec = $('#sec-library');
+  if(!sec) return;
+  let html = `
+    <div class="section-h">
+      <h2>Library</h2>
+      <span class="sub">Universal search across campaigns, assets, hooks, captions, posts, knowledge</span>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>🔎 Search</h3></div>
+      <div class="row gap-1" style="margin-bottom:1rem">
+        <input id="lib-search-input" type="text" placeholder="Search everything…" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;font-size:13px" />
+        <select id="lib-search-kind" class="mini-select">
+          <option value="">All</option>
+          <option value="campaign">Campaigns</option>
+          <option value="asset">Assets</option>
+          <option value="hook">Hooks</option>
+          <option value="caption">Captions</option>
+          <option value="post">Posts</option>
+          <option value="knowledge">Knowledge</option>
+        </select>
+      </div>
+      <div id="lib-search-results" class="muted">Type to search across everything.</div>
+    </div>
+  `;
+  sec.innerHTML = html;
+  // Bind search
+  const inp = $('#lib-search-input');
+  const sel = $('#lib-search-kind');
+  let timer = null;
+  async function runSearch(){
+    const q = (inp.value || '').trim();
+    if(!q){ $('#lib-search-results').innerHTML = '<span class="muted">Type to search.</span>'; return; }
+    $('#lib-search-results').innerHTML = '<div class="muted">Searching…</div>';
+    try {
+      const r = await API.get('/api/search?q=' + encodeURIComponent(q) + (sel.value ? '&kind=' + encodeURIComponent(sel.value) : ''));
+      const items = (r.results || r.items || r.hits || []).slice(0, 30);
+      $('#lib-search-results').innerHTML = items.length
+        ? `<ul class="list">${items.map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.title || it.name || it.headline || it.text || it.caption || JSON.stringify(it).slice(0,80))}</div><div class="li-meta">${esc(it.kind || it.type || '')}${it.campaignId?' · '+esc(it.campaignId):''}</div></div></li>`).join('')}</ul>`
+        : '<div class="empty">No results.</div>';
+    } catch(e){
+      $('#lib-search-results').innerHTML = '<div class="empty">Search failed.</div>';
+    }
+  }
+  inp.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(runSearch, 250); });
+  sel.addEventListener('change', runSearch);
+}
+
 // Map section-id → render function (used by brand switcher to re-render the active section)
 const _RENDERERS = {
   brief: renderBrief, review: renderReview, publish: renderPublish,
-  calendar: renderCalendar, trends: renderTrends, ideas: renderIdeas,
-  performance: renderPerformance, learning: renderLearning, hooks: renderHooks,
+  calendar: renderCalendar, create: renderCreate,
+  trends: renderTrends, ideas: renderIdeas, performance: renderPerformance,
+  learning: renderLearning, hooks: renderHooks,
   memes: renderMemes, billboards: renderBillboards, captions: renderCaptions,
   imagegen: renderImageGen, headlines: renderHeadlines, ctas: renderCTAs,
   hashtagseo: renderHashtagSeo, seo: renderSEO, gbp: renderGBP,
   reddit: renderReddit, faqs: renderFAQs, postiz: renderPostiz,
   'seo-audit': renderSeoAudit, campaigns: renderCampaigns, agents: renderAgents,
+  insights: renderInsights, library: renderLibrary,
 };
 async function renderSection(sec){
   const fn = _RENDERERS[sec];
@@ -1715,6 +1909,9 @@ async function loadSection(sec){
     if(sec==='review') return renderReview();
     if(sec==='publish') return renderPublish();
     if(sec==='calendar') return renderCalendar();
+    if(sec==='create') return renderCreate();
+    if(sec==='insights') return renderInsights();
+    if(sec==='library') return renderLibrary();
     if(sec==='trends') return renderTrends();
     if(sec==='ideas') return renderIdeas();
     if(sec==='performance') return renderPerformance();
