@@ -1,39 +1,39 @@
 {
-  "lastUpdated": "2026-07-28T04:00:05.630Z",
+  "lastUpdated": "2026-07-28T10:00:05.864Z",
   "source": "automated",
   "website": {
-    "activeUsers": 631,
-    "sessions": 830,
-    "pageViews": 1329,
-    "avgSessionSeconds": 93.5171372253012,
-    "bounceRate": 0.6216867469879518,
+    "activeUsers": 658,
+    "sessions": 872,
+    "pageViews": 1424,
+    "avgSessionSeconds": 111.3024184793578,
+    "bounceRate": 0.5561926605504587,
     "topPages": [
       {
         "path": "/",
-        "views": 646
+        "views": 684
       },
       {
         "path": "/bookings/",
-        "views": 300
+        "views": 324
       },
       {
         "path": "/customer-portal/",
-        "views": 156
+        "views": 177
       },
       {
         "path": "/club-fitting/",
-        "views": 80
+        "views": 85
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 73
-      },
-      {
-        "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 14
+        "views": 76
       },
       {
         "path": "/philosophy/",
+        "views": 15
+      },
+      {
+        "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
         "views": 14
       },
       {
@@ -42,17 +42,17 @@
       },
       {
         "path": "/404.html",
-        "views": 9
+        "views": 11
       },
       {
         "path": "/membership/",
-        "views": 9
+        "views": 10
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 338
+        "sessions": 360
       },
       {
         "source": "fb",
@@ -60,45 +60,45 @@
       },
       {
         "source": "(direct)",
-        "sessions": 146
+        "sessions": 159
       },
       {
         "source": "clublab.app",
-        "sessions": 64
-      },
-      {
-        "source": "(not set)",
-        "sessions": 54
+        "sessions": 72
       },
       {
         "source": "instagram",
-        "sessions": 21
+        "sessions": 23
       },
       {
         "source": "bing",
-        "sessions": 16
+        "sessions": 18
       },
       {
         "source": "ig",
         "sessions": 16
       },
       {
+        "source": "(not set)",
+        "sessions": 14
+      },
+      {
         "source": "an",
         "sessions": 11
       },
       {
-        "source": "chatgpt.com",
-        "sessions": 4
+        "source": "facebook.com",
+        "sessions": 6
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 593
+        "sessions": 611
       },
       {
         "device": "desktop",
-        "sessions": 229
+        "sessions": 252
       },
       {
         "device": "tablet",
