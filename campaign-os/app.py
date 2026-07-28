@@ -31,6 +31,7 @@ def _data_paths():
         'data_dir': base,
         'campaign_file': os.path.join(base, 'campaign-data.json'),
         'schedule_file': os.path.join(base, 'scheduled-items.json'),
+        'today_file': os.path.join(base, 'today-panel.json'),
     }
 
 
@@ -796,6 +797,33 @@ def intel_dispatch(name):
         return trends_v2()
     payload, status = _intel(name)
     return jsonify(payload), status
+
+
+@app.route('/api/today/panel', methods=['GET'])
+def today_panel():
+    brief, status = _intel('morning_brief')
+    if status != 200: return jsonify(brief), status
+    state = _read_json_file(_data_paths()['today_file']) or {}
+    hidden = set(state.get('dismissed', [])) if isinstance(state, dict) else set()
+    groups = [('do_first', 'Do first', 'action'), ('needs_review', 'Needs review', 'review'), ('ready_to_publish', 'Ready to publish', 'publish'), ('post_today', 'Post today', 'post')]
+    cards = []
+    for key, label, kind in groups:
+        for item in brief.get(key, [])[:8]:
+            ident = str(item.get('assetId') or item.get('id') or item.get('name') or '')
+            if ident and ident not in hidden:
+                cards.append({'id': ident, 'label': label, 'kind': kind, 'title': item.get('name') or item.get('title') or item.get('action') or 'Untitled', 'campaignId': item.get('campaignId'), 'updatedAt': item.get('updatedAt')})
+    return jsonify({'ok': True, 'ts': _now_iso(), 'summary': brief.get('summary', ''), 'cards': cards, 'dismissed': sorted(hidden), 'count': len(cards)})
+
+
+@app.route('/api/today/panel/dismiss', methods=['POST'])
+def dismiss_today_panel():
+    ident = str((request.get_json(silent=True) or {}).get('id') or '').strip()
+    if not ident: return jsonify({'ok': False, 'error': 'id is required'}), 400
+    path = _data_paths()['today_file']; state = _read_json_file(path) or {'dismissed': []}; values = state.get('dismissed', [])
+    if ident not in values: values.append(ident)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f: json.dump({'dismissed': values[-500:]}, f)
+    return jsonify({'ok': True, 'id': ident, 'dismissed': values[-500:]})
 
 
 @app.route('/api/intel/trends_v2', methods=['GET'])

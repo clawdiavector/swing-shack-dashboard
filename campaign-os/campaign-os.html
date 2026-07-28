@@ -114,6 +114,27 @@ a:hover{text-decoration:underline}
 .card-h{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem}
 .card-h h3{font-size:14px;font-weight:600;letter-spacing:-.01em}
 .card-h .h-meta{margin-left:auto;color:var(--tx-3);font-size:11px}
+/* ─── Today rail (right-rail panel) ───────────────────────────── */
+.today-rail{margin-top:1.25rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:1rem}
+.today-rail-h{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem}
+.today-rail-h h3{font-size:14px;font-weight:600}
+.today-rail-h .muted{margin-left:auto;font-size:11px}
+.rail-meta{font-size:11px;color:var(--tx-3);margin-bottom:.5rem}
+.rail-card{background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem;margin-bottom:.5rem;animation:rail-pulse .5s ease both;display:grid;grid-template-columns:1fr auto;gap:.25rem .5rem;position:relative}
+.rail-card:hover{border-color:var(--bd-2)}
+.rail-card.action{border-left:3px solid var(--ac)}
+.rail-card.review{border-left:3px solid #f5a524}
+.rail-card.publish{border-left:3px solid #2dd4bf}
+.rail-card.post{border-left:3px solid #a78bfa}
+.rail-cap{grid-column:1/-1;display:flex;align-items:center;gap:.5rem}
+.rail-kind{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--tx-3);font-weight:600}
+.rail-x{cursor:pointer;color:var(--tx-3);padding:0 .3rem;font-size:14px;line-height:1;opacity:.6}
+.rail-x:hover{opacity:1;color:var(--tx)}
+.rail-title{font-size:13px;font-weight:500;line-height:1.3;grid-column:1/-1}
+.rail-sub{font-size:11px;color:var(--tx-3);grid-column:1/-1}
+.rail-empty{padding:1rem;text-align:center}
+@keyframes rail-pulse{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:none}}
+
 .col-3{grid-column:span 3}
 .col-4{grid-column:span 4}
 .col-5{grid-column:span 5}
@@ -374,7 +395,11 @@ a:hover{text-decoration:underline}
       <div class="section-h"><h2>What should you do today?</h2><span class="sub">Live signal from across all sources</span></div>
       <div id="brief-strip" class="insight-strip"><div class="ico">☀️</div><div class="txt" id="brief-strip-txt">Loading…</div></div>
       <div class="grid" id="brief-grid"></div>
-    </section>
+      <aside class="today-rail" id="today-rail">
+        <div class="today-rail-h"><h3>⚡ Today</h3><span class="muted" id="today-rail-ts">—</span></div>
+        <div id="today-rail-list"><div class="muted">Loading…</div></div>
+      </aside>
+      </section>
 
     <!-- ── REVIEW ────────────────────────────────────────── -->
     <section class="section" id="sec-review">
@@ -980,6 +1005,31 @@ function itemHtml(it, fmt){
   return `<li class="li"><div class="li-body"><div class="li-title">${esc(finalTitle)}</div>${meta.length?`<div class="li-meta">${meta.join(' ')}</div>`:''}</div></li>`;
 }
 
+// ─── TODAY RAIL (right-rail Bloomberg-style panel) ─────────────
+async function renderTodayRail(){
+  if(!S.todayRail) S.todayRail = await API.get('/api/today/panel');
+  const r = S.todayRail;
+  const el = $('#today-rail-list');
+  if(!el) return;
+  const lastTs = r.ts || '';
+  const tsEl = $('#today-rail-ts');
+  if(tsEl) tsEl.textContent = lastTs.slice(11,19) + ' UTC';
+  el.innerHTML = `
+    <div class="rail-meta">${esc(lastTs.slice(11,19))} UTC · ${r.count} live</div>
+    ${(r.cards||[]).map((c,i) => `
+      <div class="rail-card ${c.kind}" data-id="${esc(c.id)}" style="animation-delay:${i*60}ms">
+        <div class="rail-cap"><span class="rail-kind">${esc(c.label)}</span><span class="rail-x" data-dismiss="${esc(c.id)}">✕</span></div>
+        <div class="rail-title">${esc(c.title)}</div>
+        <div class="rail-sub">${esc(c.campaignId || '')}</div>
+      </div>`).join('') || '<div class="muted rail-empty">All clear</div>'}`;
+  $$('[data-dismiss]', el).forEach(b => b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const id = b.dataset.dismiss;
+    await API.post('/api/today/panel/dismiss', {id});
+    S.todayRail = null; renderTodayRail();
+  }));
+}
+
 // ─── BRIEF ──────────────────────────────────────────────────────
 async function renderBrief(){
   if(!S.brief){
@@ -1030,6 +1080,7 @@ async function renderBrief(){
     <div class="card col-6"><div class="card-h"><h3>🔎 SEO quick wins</h3></div><ul class="list">${seo.map(itemHtml).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
     <div class="card col-6"><div class="card-h"><h3>📮 Post today</h3></div><ul class="list">${today.map(itemHtml).join('') || '<li class="empty">Nothing scheduled today</li>'}</ul></div>
   `;
+  renderTodayRail();
 }
 
 // ─── REVIEW ─────────────────────────────────────────────────────
@@ -2163,6 +2214,9 @@ $('#search-input').addEventListener('blur', () => setTimeout(()=>$('#search-resu
     ]).catch(e=>console.warn('preload', e));
   } catch(e){ toast('Boot failed: '+e.message, 'err'); console.error(e); }
 })();
+
+// Live right-rail: pulse every 30s (cache-busts, re-renders timestamps)
+setInterval(() => { if($('#sec-brief')?.classList.contains('on')){ S.todayRail = null; renderTodayRail(); } }, 30000);
 </script>
 </body>
 </html>
