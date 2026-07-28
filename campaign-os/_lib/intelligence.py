@@ -1079,12 +1079,17 @@ def explain_performance() -> Dict[str, Any]:
                 pct = ((ter - er_avg) / er_avg * 100)
                 direction = "better" if pct >= 0 else "worse"
                 claim = f"\"{cap}…\" is performing {abs(pct):.0f}% {direction} than your Instagram average."
+                next_step = (f"Make a fresh take on this hook for next week — same angle, "
+                             f"different format (reel vs carousel). Drive {direction} winners again.")
             else:
                 claim = f"\"{cap}…\" is one of your top Instagram posts by engagement."
+                next_step = "Resurface this hook in a different format this month."
             insights.append({
                 "claim": claim,
                 "evidence": {"post_id": t.get("id"), "er": ter, "avg": round(er_avg, 2)},
                 "kind": "ig-winner",
+                "next_step": next_step,
+                "action": "Generate fresh take",
             })
 
     if isinstance(seo, dict):
@@ -1094,6 +1099,8 @@ def explain_performance() -> Dict[str, Any]:
                 "claim": f"Your search visibility is climbing on: {', '.join(str(k) for k in rising[:3])}. Add supporting content to lock the gains.",
                 "evidence": {"keywords": rising[:5]},
                 "kind": "seo-trend-up",
+                "next_step": f"Generate 3 supporting posts around '{rising[0]}' this week to ride the climb.",
+                "action": "Generate SEO content",
             })
         falling = seo.get("falling_keywords", []) or []
         if falling:
@@ -1101,16 +1108,27 @@ def explain_performance() -> Dict[str, Any]:
                 "claim": f"Watch out: {', '.join(str(k) for k in falling[:3])} lost positions this week.",
                 "evidence": {"keywords": falling[:5]},
                 "kind": "seo-trend-down",
+                "next_step": f"Update your '{falling[0]}' landing page with fresher content — old pages lose rank.",
+                "action": "Update landing page",
             })
 
     if isinstance(ga4, dict):
         s = ga4.get("total_sessions")
         if s:
-            insights.append({"claim": f"Weekly sessions: {s}.", "evidence": {"ga4_sessions": s}, "kind": "traffic"})
+            next_step = "Check which campaigns drove the most sessions and double down on those."
+            insights.append({
+                "claim": f"Weekly sessions: {s}. Check whether traffic is converting or just browsing.",
+                "evidence": {"ga4_sessions": s},
+                "kind": "traffic",
+                "next_step": next_step,
+                "action": "View traffic source breakdown",
+            })
 
     if isinstance(win, dict):
         insights.append({
             "claim": f"Best recommendation type right now: {win.get('type', '—')}.",
+            "next_step": "Trust the system's top pick — it has the highest historical win rate.",
+            "action": "View recommendation",
             "evidence": win,
             "kind": "best-rec",
         })

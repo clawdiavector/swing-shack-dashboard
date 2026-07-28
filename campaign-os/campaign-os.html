@@ -800,6 +800,10 @@ a:hover{text-decoration:underline}
               <option value="12">12 variants</option>
             </select>
           </div>
+          <!-- Topic / trend seed (optional) -->
+          <div class="row gap-1" style="margin-bottom:.75rem">
+            <input type="text" id="cap-seed-input" placeholder="Optional: type a trend, topic, or angle to focus generation…" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bg-3);border-radius:6px;padding:6px 10px;font-size:12px" />
+          </div>
           <!-- Voice + Tone picker -->
           <div class="row gap-1" style="margin-bottom:.75rem">
             <div style="display:flex;flex-direction:column;gap:.2rem;flex:1;max-width:280px">
@@ -1639,6 +1643,9 @@ async function renderReview(){
     const safeId = esc(x.assetId || '');
     const safeCid = esc(x.campaignId || '');
     const safeName = esc(x.name || 'Untitled');
+    const isApproved = (x.approvalStatus || '').toLowerCase() === 'approved';
+    // Pending rows get "Approve + Schedule" as the default — most common action.
+    // Approved rows get an explicit "Put on calendar" button.
     return `
     <div class="review" data-aid="${safeId}" data-cid="${safeCid}">
       <div class="review-cap" onclick="openReview('${safeCid}','${safeId}')" style="cursor:pointer">
@@ -1652,7 +1659,10 @@ async function renderReview(){
         <span class="review-actions" style="margin-left:auto;display:flex;gap:.35rem">
           <button class="btn-mini" onclick="openReview('${safeCid}','${safeId}')">Open</button>
           <button class="btn-mini" style="color:var(--red)" onclick="window.reviewAction('${safeCid}','${safeId}','rejected')">Reject</button>
-          <button class="btn-mini primary" onclick="window.reviewAction('${safeCid}','${safeId}','approved')">✓ Approve</button>
+          ${isApproved
+            ? `<button class="btn-mini primary" onclick="window.reviewScheduleNow('${safeCid}','${safeId}')">📅 Put on calendar</button>`
+            : `<button class="btn-mini primary" onclick="window.reviewApproveAndSchedule('${safeCid}','${safeId}')">✓ Approve + Schedule</button>
+               <button class="btn-mini" onclick="window.reviewAction('${safeCid}','${safeId}','approved')">Just approve</button>`}
         </span>
       </div>
     </div>`;
@@ -1661,6 +1671,44 @@ async function renderReview(){
   $('#review-approved').innerHTML = r.approved.length ? r.approved.map(renderRow).join('') : '<div class="empty">No approved assets</div>';
   $('#review-rejected').innerHTML = r.rejected.length ? r.rejected.map(renderRow).join('') : '<div class="empty">No rejected assets</div>';
 }
+window.reviewApproveAndSchedule = async (cid, aid) => {
+  // Combined: approve + schedule in one click. Most common workflow.
+  const btn = document.querySelector(`.review[data-aid="${aid}"] .review-actions button[onclick*='reviewApproveAndSchedule']`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Scheduling…'; }
+  try {
+    const r = await API.post('/api/review/' + encodeURIComponent(aid) + '/schedule-now', {campaignId: cid});
+    if (r.ok) {
+      toast('Approved + scheduled for ' + (r.scheduledFor || '').slice(0,10));
+      S.review = null; S.brief = null; S.cal = null;
+      await renderReview();
+    } else {
+      toast(r.error || 'Failed', 'err');
+      if (btn) { btn.disabled = false; btn.textContent = '✓ Approve + Schedule'; }
+    }
+  } catch(e) {
+    toast(e.message || 'Failed', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Approve + Schedule'; }
+  }
+};
+window.reviewScheduleNow = async (cid, aid) => {
+  // For already-approved assets — schedule without re-approving.
+  const btn = document.querySelector(`.review[data-aid="${aid}"] .review-actions button[onclick*='reviewScheduleNow']`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Scheduling…'; }
+  try {
+    const r = await API.post('/api/review/' + encodeURIComponent(aid) + '/schedule-now', {campaignId: cid});
+    if (r.ok) {
+      toast('Scheduled for ' + (r.scheduledFor || '').slice(0,10));
+      S.cal = null;
+      await renderReview();
+    } else {
+      toast(r.error || 'Failed', 'err');
+      if (btn) { btn.disabled = false; btn.textContent = '📅 Put on calendar'; }
+    }
+  } catch(e) {
+    toast(e.message || 'Failed', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = '📅 Put on calendar'; }
+  }
+};
 $$('[data-rfilter]').forEach(b => b.addEventListener('click', () => {
   const f = b.dataset.rfilter;
   $$('.card', $('#sec-review')).forEach((card, i) => {
@@ -1891,23 +1939,56 @@ async function renderTrends(){
   $('#tr-v2-count').textContent = `${v2.count || 0} ranked signals`;
   $('#tr-v2').innerHTML = (v2.signals||[]).map(s => `<div class="card col-4"><div class="li-title">${esc(s.title)}</div><div class="li-meta"><span class="pill on">${esc(s.source.replace(/-/g,' '))}</span> <b>${s.relevance}/100</b></div><p class="muted" style="font-size:12px">${esc(s.detail)}</p><div style="font-size:12px;color:var(--ac)">→ ${esc(s.suggested_response)}</div></div>`).join('');
   // YouTube signals come as {key, value} dicts — render as {topic, hot}
-  const renderYT = arr => safeList(arr, 12).map(it => {
+  const renderYT = arr => safeList(arr, 12).map((it, idx) => {
     if(it.key !== undefined){
-      return `<li class="li"><div class="li-body"><div class="li-title">${esc(String(it.key).replace(/_/g,' '))}</div><div class="li-meta">${pill(it.value==true||it.value==='true'?'on':'muted', it.value==true||it.value==='true'?'trending':'cooling')} · youtube</div></div></li>`;
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(String(it.key).replace(/_/g,' '))}</div><div class="li-meta">${pill(it.value==true||it.value==='true'?'on':'muted', it.value==true||it.value==='true'?'trending':'cooling')} · youtube</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(it.key).replace(/_/g,' '))}">Use →</button></div></li>`;
     }
     // Competitor-style items: extract competitor name + readable text
     if(it.competitor){
       const txt = it.response || it.change || it.summary || it.note || it.what_changed || '';
-      return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''}</div></div></li>`;
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''}</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}">Use →</button></div></li>`;
     }
     const title = it.title || it.headline || it.name || it.theme || it.angle || it.change || it.summary || it.suggested_angle || it.trend_pain_point || it.thread_topic || it.body || it.text || JSON.stringify(it).slice(0,80);
     const src = it._src ? it._src.replace(/_/g,' ') : (it.kind || it.source || '');
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${src?`<div class="li-meta"><span class="muted">${esc(src)}</span></div>`:''}</div></li>`;
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${src?`<div class="li-meta"><span class="muted">${esc(src)}</span></div>`:''}</div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(title).slice(0,80))}">Use →</button></div></li>`;
   }).join('') || '<li class="empty">No signals</li>';
   $('#tr-reddit').innerHTML = renderYT(t.reddit);
   $('#tr-yt').innerHTML = renderYT(t.youtube);
   $('#tr-news').innerHTML = renderYT(t.golf_news);
   $('#tr-comp').innerHTML = renderYT(t.competitor_changes);
+  // bind "Use" buttons (delegated)
+  ['#tr-reddit','#tr-yt','#tr-news','#tr-comp'].forEach(sel => {
+    const el = $(sel);
+    if (el && !el._trend_bound) {
+      el._trend_bound = true;
+      el.addEventListener('click', (e) => {
+        const btn = e.target.closest('.trend-caption-btn');
+        if (!btn) return;
+        const topic = btn.dataset.topic || '';
+        if (!topic) return;
+        // Jump to Caption Studio with the trend title as the seed
+        go('captions');
+        // renderCaptions is async — poll for the seed input to exist, then fill + click
+        let attempts = 0;
+        const trySeed = () => {
+          attempts++;
+          const ta = $('#cap-seed-input');
+          if (ta) {
+            ta.value = topic;
+            // Wait one more tick so renderCaptions finishes (assets loaded, etc.)
+            setTimeout(() => {
+              const btn2 = $('#cap-gen');
+              if (btn2) btn2.click();
+              toast('Generating caption seeded by: ' + topic.slice(0,40));
+            }, 100);
+            return;
+          }
+          if (attempts < 60) setTimeout(trySeed, 100);
+        };
+        setTimeout(trySeed, 300);
+      });
+    }
+  });
 }
 
 // ─── IDEAS ──────────────────────────────────────────────────────
@@ -1993,8 +2074,17 @@ async function renderPerformance(){
   `).join('') || '<div class="empty">No GA4 data</div>';
 
   $('#perf-insights').innerHTML = safeList(e.insights, 12).map(i => `
-    <div class="review"><div class="review-cap"><div class="review-cap-t">${esc(i.claim)}</div></div><div class="review-meta">${pill(i.kind==='seo-trend-up'?'on':i.kind==='seo-trend-down'?'blocked':'live', i.kind||'')}</div></div>
-  `).join('') || '<div class="empty">No insights yet</div>';
+    <div class="review" style="border-left:3px solid var(--ac);padding-left:.6rem">
+      <div class="review-cap">
+        <div class="review-cap-t">${esc(i.claim)}</div>
+        ${i.next_step ? `<div style="margin-top:.4rem;font-size:12px;color:var(--ac);font-weight:600">→ ${esc(i.next_step)}</div>` : ''}
+      </div>
+      <div class="review-meta">
+        ${pill(i.kind==='seo-trend-up'?'on':i.kind==='seo-trend-down'?'blocked':i.kind==='ig-winner'?'live':'muted', i.kind||'')}
+        ${i.action ? `<button class="btn-mini" onclick="go('ideas');setTimeout(()=>document.getElementById('ideas-gen')?.click(), 600)">${esc(i.action)}</button>` : ''}
+      </div>
+    </div>
+  `).join('') || '<div class="empty">No insights yet — connect analytics to see what is working</div>';
   // Populate why-asset dropdown with the top IG posts
   const whySel = $('#why-asset');
   if (whySel) {
@@ -2410,10 +2500,12 @@ $('#cap-gen').addEventListener('click', async () => {
   const n  = parseInt($('#cap-count-select').value, 10) || 5;
   const voice = $('#cap-voice-select').value || undefined;
   const tone  = $('#cap-tone-select').value  || undefined;
+  const brief = $('#cap-seed-input')?.value?.trim() || undefined;
   const payload = { n };
   if(id) payload.assetId = id;
   if(voice) payload.voice = voice;
   if(tone)  payload.tone  = tone;
+  if(brief) payload.brief = brief;
 
   const r = await API.post('/api/captions/generate', payload);
   if(!r.ok){ toast(r.error||'Failed', 'err'); return; }

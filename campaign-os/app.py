@@ -1164,13 +1164,14 @@ def intel_generate_captions(asset_id):
 def api_captions_generate():
     """POST /api/captions/generate — voice-aware caption generation.
 
-    Body: { assetId?, n?, voice?, tone? }
+    Body: { assetId?, n?, voice?, tone?, brief? }
       assetId: campaign asset ID (optional — generates standalone hooks if absent)
       n:       number of variants 1-20 (default 5)
       voice:   'swing-shack' | 'stick' | 'bag-drop' (from voice_bible.json)
       tone:    'educational' | 'confident' | 'funny' | 'relatable' | 'provocative' | 'sarcastic'
+      brief:   free-form topic/seed (e.g. a trend title) to focus the generation
 
-    Returns: {ok, asset, variants, count, _voice, _tone, ts}
+    Returns: {ok, asset, variants, count, _voice, _tone, ts, _brief}
     """
     if not _INTELLIGENCE_AVAILABLE:
         return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
@@ -1180,7 +1181,14 @@ def api_captions_generate():
         n = min(max(int(body.get('n', 5) or 5), 1), 20)
         voice = str(body.get('voice', '') or '').strip() or None
         tone = str(body.get('tone', '') or '').strip() or None
+        brief = str(body.get('brief', '') or '').strip() or None
+        # If a brief is provided and no asset, fake an asset structure so the generator
+        # uses the brief as its hook seed rather than falling back to the random hook pool.
+        if brief and not asset_id:
+            asset_id = f"__brief__:{brief[:60]}"
         result = generate_captions(asset_id, n, voice=voice, tone=tone)
+        if brief:
+            result['_brief'] = brief
         return jsonify(result), 200
     except Exception as exc:
         _app_log.exception("api/captions/generate failed")
