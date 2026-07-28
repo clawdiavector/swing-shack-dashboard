@@ -360,6 +360,20 @@ a:hover{text-decoration:underline}
 .modal-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem}
 
 /* ─── Calendar grid ──────────────────────────────────────────── */
+.cal-hud{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;margin-bottom:1rem}
+.cal-hud-card{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-s);padding:.65rem .85rem;text-align:center;transition:all var(--t)}
+.cal-hud-card:hover{border-color:var(--bd-2);background:var(--bg-3)}
+.cal-hud-card.today{border-left:3px solid var(--ac)}
+.cal-hud-card.tomorrow{border-left:3px solid var(--blu)}
+.cal-hud-card.week{border-left:3px solid var(--org)}
+.cal-hud-card.overdue{border-left:3px solid var(--tx-3)}
+.cal-hud-card.overdue.has-overdue{border-left:3px solid var(--red);background:var(--bg-3);animation:pulseRed 2s ease-in-out infinite}
+@keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}50%{box-shadow:0 0 0 4px rgba(239,68,68,0.15)}}
+.cal-hud-card.empty-days{border-left:3px solid var(--tx-3);opacity:.8}
+.cal-hud-val{font-size:24px;font-weight:700;letter-spacing:-.02em;color:var(--tx)}
+.cal-hud-lbl{font-size:11px;color:var(--tx-3);margin-top:2px}
+@media (max-width:900px){.cal-hud{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:600px){.cal-hud{grid-template-columns:repeat(2,1fr)}}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5rem;min-width:0}
 .cal-h{font-size:11px;color:var(--tx-3);text-align:center;padding:.5rem 0;font-weight:600;text-transform:uppercase;letter-spacing:.05em;min-width:0}
 .cal-d{background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);min-height:120px;min-width:0;padding:.5rem;display:flex;flex-direction:column;gap:.25rem;transition:border var(--t);overflow:hidden}
@@ -639,11 +653,23 @@ a:hover{text-decoration:underline}
         <h2>Calendar</h2>
         <span class="sub" id="cal-summary">—</span>
         <div class="btn-row" style="margin-left:auto">
+          <select class="mini-select" id="cal-filter-platform" title="Filter by platform">
+            <option value="">All platforms</option>
+            <option value="instagram">📷 Instagram</option>
+            <option value="tiktok">🎬 TikTok</option>
+            <option value="facebook">📘 Facebook</option>
+            <option value="gmb">📍 Google Business</option>
+          </select>
+          <select class="mini-select" id="cal-filter-campaign" title="Filter by campaign">
+            <option value="">All campaigns</option>
+          </select>
           <button class="btn ghost" data-cal-shift="-7">← Prev week</button>
           <button class="btn ghost" data-cal-shift="0">Today</button>
           <button class="btn ghost" data-cal-shift="7">Next week →</button>
         </div>
       </div>
+      <!-- Calendar HUD: today's workload + overdue count + tomorrow preview -->
+      <div class="cal-hud" id="cal-hud"></div>
       <div class="card">
         <div class="cal-grid" id="cal-grid"></div>
         <div class="cal-duplicate-zone" id="cal-duplicate-zone" data-drop-target="duplicate">
@@ -2411,9 +2437,53 @@ async function renderCalendar(){
   const data = await API.get('/api/intel/calendar?days=14'+(start?'&start='+encodeURIComponent(start):''));
   if(token !== _calRenderToken) return;
   S.cal = data;
-  $('#cal-summary').textContent = data.totalScheduled + ' scheduled in next 14 days · ' + (data.days[0]?.count || 0) + ' today';
+  // Apply filters
+  const filterPlatform = $('#cal-filter-platform')?.value || '';
+  const filterCampaign = $('#cal-filter-campaign')?.value || '';
+  // Populate campaign filter (once) from full data
+  const campSel = $('#cal-filter-campaign');
+  if(campSel && !campSel._populated){
+    const camps = [...new Set((data.days || []).flatMap(d => (d.slots || []).map(s => s.campaignName || s.campaignId).filter(Boolean)))];
+    campSel.innerHTML = '<option value="">All campaigns</option>' + camps.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    campSel._populated = true;
+  }
+  // Render HUD: today's workload + overdue + tomorrow preview + weekly total
+  const today = data.days?.[0];
+  const tomorrow = data.days?.[1];
+  const todaySlots = (today?.slots || []).filter(s => (!filterPlatform || s.platform === filterPlatform) && (!filterCampaign || (s.campaignName || s.campaignId) === filterCampaign));
+  const overdueCount = (data.days || []).flatMap(d => d.slots || []).filter(s => {
+    if(s.scheduledFor && new Date(s.scheduledFor) < new Date() && s.approvalStatus !== 'published') return true;
+    return false;
+  }).length;
+  const weekTotal = (data.days || []).reduce((acc, d) => acc + (d.slots || []).filter(s => (!filterPlatform || s.platform === filterPlatform) && (!filterCampaign || (s.campaignName || s.campaignId) === filterCampaign)).length, 0);
+  $('#cal-hud').innerHTML = `
+    <div class="cal-hud-card today">
+      <div class="cal-hud-val">${todaySlots.length}</div>
+      <div class="cal-hud-lbl">📍 Today</div>
+    </div>
+    <div class="cal-hud-card tomorrow">
+      <div class="cal-hud-val">${(tomorrow?.slots || []).length}</div>
+      <div class="cal-hud-lbl">⏭️ Tomorrow</div>
+    </div>
+    <div class="cal-hud-card week">
+      <div class="cal-hud-val">${weekTotal}</div>
+      <div class="cal-hud-lbl">📅 Next 14 days</div>
+    </div>
+    <div class="cal-hud-card overdue ${overdueCount > 0 ? 'has-overdue' : ''}">
+      <div class="cal-hud-val">${overdueCount}</div>
+      <div class="cal-hud-lbl">⚠️ Overdue</div>
+    </div>
+    <div class="cal-hud-card empty-days">
+      <div class="cal-hud-val">${(data.days || []).filter(d => (d.slots||[]).length === 0).length}</div>
+      <div class="cal-hud-lbl">📭 Empty days</div>
+    </div>
+  `;
+  $('#cal-summary').textContent = data.totalScheduled + ' scheduled in next 14 days · ' + (today?.count || 0) + ' today';
   const grid = $('#cal-grid');
-  const days = data.days || [];
+  const days = (data.days || []).map(d => ({
+    ...d,
+    slots: (d.slots || []).filter(s => (!filterPlatform || s.platform === filterPlatform) && (!filterCampaign || (s.campaignName || s.campaignId) === filterCampaign))
+  }));
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   let html = dayNames.map(d => `<div class="cal-h">${d}</div>`).join('');
   const firstDow = (new Date((days[0]||{}).date || data.today)).getDay();
@@ -2430,6 +2500,10 @@ async function renderCalendar(){
   });
   grid.innerHTML = html;
 }
+
+// Bind calendar filters
+$('#cal-filter-platform')?.addEventListener('change', () => renderCalendar());
+$('#cal-filter-campaign')?.addEventListener('change', () => renderCalendar());
 const calDuplicateZone = $('#cal-duplicate-zone');
 if(calDuplicateZone){
   calDuplicateZone.addEventListener('dragover', calDragOver);
