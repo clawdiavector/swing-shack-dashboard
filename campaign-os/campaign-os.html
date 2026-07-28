@@ -326,6 +326,11 @@ a:hover{text-decoration:underline}
 .li-title{font-weight:500;font-size:13px;line-height:1.3}
 .li-meta{font-size:11px;color:var(--tx-3);margin-top:2px;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
 .li-action{margin-left:auto;color:var(--tx-3);font-size:12px}
+.li.has-action{display:grid;grid-template-columns:1fr auto;gap:.5rem;align-items:center;padding:.55rem .75rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-s);transition:all var(--t)}
+.li.has-action:hover{border-color:var(--ac);background:var(--bg-3)}
+.action-btn{white-space:nowrap}
+.li.has-action .li-body{min-width:0}
+.action-btn-primary{background:var(--ac)!important;color:var(--bg)!important;border-color:var(--ac)!important}
 
 /* ─── Badges / pills ─────────────────────────────────────────── */
 .pill{display:inline-flex;align-items:center;gap:.3rem;font-size:10px;font-weight:600;padding:3px 8px;border-radius:var(--r-p);text-transform:uppercase;letter-spacing:.04em;background:var(--bg-3);color:var(--tx-2)}
@@ -1748,6 +1753,9 @@ function itemHtml(it, fmt){
     }
   }
 
+  // Derive a concrete action button based on the item's shape
+  const action = _deriveAction(it, inner, fmt);
+
   const meta = [];
   if(it.emoji) meta.push(it.emoji);
   if(inner.kind || it.kind) meta.push(pill(inner.kind || it.kind, inner.kind || it.kind));
@@ -1764,8 +1772,168 @@ function itemHtml(it, fmt){
   // Fallback title when nothing useful found
   const finalTitle = title || (it.why_chosen ? it.why_chosen.slice(0,80) : (it.summary ? it.summary.slice(0,80) : JSON.stringify(it).slice(0,80).replace(/\\"/g,'"')));
 
-  return `<li class="li"><div class="li-body"><div class="li-title">${esc(finalTitle)}</div>${meta.length?`<div class="li-meta">${meta.join(' ')}</div>`:''}</div></li>`;
+  // Render action button (if item shape allows a useful action)
+  const actionBtn = action ? `<button class="btn-mini action-btn" data-action='${esc(JSON.stringify(action))}' title="${esc(action.tooltip || '')}">${esc(action.label)}</button>` : '';
+
+  return `<li class="li ${action ? 'has-action' : ''}" ${action && action.openReview ? `onclick="openReview('${esc(action.campaignId||'')}','${esc(action.assetId||'')}')"` : ''}>
+    <div class="li-body">
+      <div class="li-title">${esc(finalTitle)}</div>
+      ${meta.length?`<div class="li-meta">${meta.join(' ')}</div>`:''}
+    </div>
+    ${actionBtn}
+  </li>`;
 }
+
+// ─── Action button derivation ─────────────────────────────────────
+// Given an item shape, return the most useful single action a marketing manager
+// can take. Returns { label, action, ...args } or null when no useful action.
+function _deriveAction(outer, inner, fmt){
+  // 1. Asset with assetId (review queue, ready-to-publish, etc.)
+  if(outer.assetId && outer.campaignId){
+    const status = (inner.approvalStatus || outer.approvalStatus || inner.status || outer.status || '').toLowerCase();
+    if(status === 'approved'){
+      return {label: '📅 Schedule', kind: 'schedule', assetId: outer.assetId, campaignId: outer.campaignId, tooltip: 'Schedule to next empty calendar slot'};
+    }
+    if(status === 'pending' || status === 'revisionrequested' || !status){
+      return {label: '✅ Review', kind: 'review', assetId: outer.assetId, campaignId: outer.campaignId, tooltip: 'Open in review queue', openReview: true};
+    }
+    if(status === 'rejected' || status === 'blocked'){
+      return {label: '🔁 Revise', kind: 'revise', assetId: outer.assetId, campaignId: outer.campaignId, tooltip: 'Open for regeneration'};
+    }
+  }
+  // 2. Hook idea with hook_id — generate caption
+  if(inner.hook_id || outer.hook_id){
+    return {label: '✍️ Caption', kind: 'caption-from-hook', hook: inner.hook || outer.hook || title, hookId: inner.hook_id || outer.hook_id, tooltip: 'Generate caption from this hook'};
+  }
+  // 3. Post-today hook idea with idea_id — generate caption + schedule
+  if(inner.idea_id || outer.idea_id){
+    return {label: '✍️ Caption', kind: 'caption-from-hook', hook: inner.hook || outer.hook || inner.title || outer.title, hookId: inner.idea_id || outer.idea_id, tooltip: 'Generate caption + draft post'};
+  }
+  // 4. SEO keyword (just a string) — draft SEO content
+  if(outer.kind === 'seo-keyword' && outer.keyword){
+    return {label: '📝 Draft', kind: 'seo-draft', keyword: outer.keyword, tooltip: 'Draft SEO content for this keyword'};
+  }
+  // 5. Trend with key/title — view trend
+  if((outer.kind === 'reddit' || outer.kind === 'youtube' || outer.kind === 'news' || outer.kind === 'golf-news') && (outer.key || outer.title)){
+    return {label: '🔥 Use', kind: 'use-trend', trendKey: outer.key || outer.title, tooltip: 'Generate caption from this trend'};
+  }
+  // 6. Hook winner not reused (missed_high_impact) — generate fresh take
+  if(inner.type === 'hook_winner_not_reused' || inner.category === 'follow_up_gap'){
+    return {label: '💡 Fresh take', kind: 'fresh-take', topic: inner.topic, hook: inner.hook, tooltip: 'Generate a fresh take on this winning hook'};
+  }
+  // 7. Service / booking CTA item (do_first[1]) — generate booking caption
+  if(inner.type === 'service' && inner.service){
+    return {label: '✍️ Caption', kind: 'caption-from-hook', hook: inner.cta || inner.reason || inner.service, tooltip: 'Generate caption for ' + inner.service};
+  }
+  // 8. Action item (do_first[2]) with action field — execute the action
+  if(inner.action){
+    return {label: '🚀 Run it', kind: 'run-action', action: inner.action, channel: inner.channel, tooltip: 'Generate content for: ' + (inner.action || '').slice(0,60)};
+  }
+  // 9. Landing page leak (do_first[3]) — fix CTA
+  if(inner.page && (inner.easy_fix || inner.suggested_cta)){
+    return {label: '🔧 Fix CTA', kind: 'fix-cta', page: inner.page, fix: inner.easy_fix || inner.suggested_cta, tooltip: 'Generate CTA for ' + inner.page};
+  }
+  // 10. Generic: if there's a hook, offer "Caption"
+  if((inner.hook || outer.hook) && (inner.ig_score || outer.ig_score || inner.cross_score || outer.cross_score)){
+    return {label: '✍️ Caption', kind: 'caption-from-hook', hook: inner.hook || outer.hook, tooltip: 'Generate caption from this hook'};
+  }
+  // 11. If there's a CTA string, offer "Use CTA"
+  if(inner.cta || outer.cta){
+    return {label: '✍️ Caption', kind: 'caption-from-hook', hook: inner.cta || outer.cta, tooltip: 'Generate caption using this CTA'};
+  }
+  return null;
+}
+
+// Wire action button clicks (delegated)
+document.addEventListener('click', async e => {
+  const btn = e.target.closest('.action-btn');
+  if(!btn) return;
+  e.stopPropagation();
+  let action;
+  try { action = JSON.parse(btn.dataset.action); } catch(_){ return; }
+  btn.disabled = true;
+  const origLabel = btn.textContent;
+  btn.textContent = '⏳';
+  try {
+    if(action.kind === 'schedule'){
+      const r = await API.post('/api/review/' + encodeURIComponent(action.assetId) + '/schedule-now', {campaignId: action.campaignId});
+      if(r.ok){ toast('Scheduled: ' + (r.scheduledFor || '')); S.brief = null; S.cal = null; await renderBrief(); return; }
+      toast(r.error || 'Schedule failed', 'err');
+    } else if(action.kind === 'review' || action.kind === 'revise'){
+      // The li parent already has the onclick handler for openReview
+      if(typeof openReview === 'function'){
+        openReview(action.campaignId, action.assetId);
+        return;
+      }
+    } else if(action.kind === 'caption-from-hook'){
+      // Navigate to Caption Studio + pre-fill
+      go('captions');
+      setTimeout(() => {
+        const seed = document.getElementById('cap-seed-input') || document.querySelector('#sec-captions input[type="text"]');
+        if(seed){ seed.value = action.hook || ''; seed.dispatchEvent(new Event('input', {bubbles:true})); }
+        document.getElementById('cap-gen')?.click();
+      }, 600);
+      toast('Generating caption from hook…');
+      return;
+    } else if(action.kind === 'use-trend'){
+      // Navigate to Caption Studio + use trend
+      go('captions');
+      setTimeout(() => {
+        const seed = document.getElementById('cap-seed-input') || document.querySelector('#sec-captions input[type="text"]');
+        if(seed){ seed.value = action.trendKey || ''; seed.dispatchEvent(new Event('input', {bubbles:true})); }
+        document.getElementById('cap-gen')?.click();
+      }, 600);
+      toast('Generating caption from trend…');
+      return;
+    } else if(action.kind === 'fresh-take'){
+      // Generate ideas for this topic
+      go('ideas');
+      setTimeout(() => {
+        const seed = document.getElementById('ideas-seed-input') || document.querySelector('#sec-ideas input[type="text"]');
+        if(seed){ seed.value = action.topic || ''; seed.dispatchEvent(new Event('input', {bubbles:true})); }
+        document.getElementById('ideas-gen')?.click();
+      }, 600);
+      toast('Generating fresh take…');
+      return;
+    } else if(action.kind === 'seo-draft'){
+      // Navigate to SEO page with keyword
+      go('seo');
+      setTimeout(() => {
+        const seed = document.getElementById('seo-keyword-input') || document.querySelector('#sec-seo input[type="text"]');
+        if(seed){ seed.value = action.keyword || ''; seed.dispatchEvent(new Event('input', {bubbles:true})); }
+        document.getElementById('seo-gen')?.click();
+      }, 600);
+      toast('Drafting SEO content…');
+      return;
+    } else if(action.kind === 'run-action'){
+      // Navigate to Caption Studio + use the action description as the hook
+      go('captions');
+      setTimeout(() => {
+        const seed = document.getElementById('cap-seed-input') || document.querySelector('#sec-captions input[type="text"]');
+        if(seed){ seed.value = (action.action || '').slice(0, 100); seed.dispatchEvent(new Event('input', {bubbles:true})); }
+        document.getElementById('cap-gen')?.click();
+      }, 600);
+      toast('Generating caption from action…');
+      return;
+    } else if(action.kind === 'fix-cta'){
+      // Generate CTA for this page
+      go('ctas');
+      setTimeout(() => {
+        // Pre-fill CTA generator with page context if available
+        const seedEl = document.querySelector('#sec-ctas input[type="text"]');
+        if(seedEl){ seedEl.value = action.page || ''; seedEl.dispatchEvent(new Event('input', {bubbles:true})); }
+        document.getElementById('ctas-gen')?.click();
+      }, 600);
+      toast('Generating CTA for ' + (action.page || 'page') + '…');
+      return;
+    }
+  } catch(err){
+    toast(err.message || 'Action failed', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origLabel;
+  }
+});
 
 // ─── TODAY RAIL (right-rail Bloomberg-style panel) ─────────────
 async function renderTodayRail(){
@@ -1915,13 +2083,13 @@ async function renderBrief(){
     <div class="card col-12"><div class="card-h"><h3>🔥 Hot right now</h3><span class="h-meta">Live signals</span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap">${hotTrend.length?hotTrend.map(t => `<span class="pill ${t.kind==='reddit'?'live':t.kind==='youtube'?'warn':'on'}">${esc(t.kind)} · ${esc(t.t.slice(0,60))}</span>`).join(''):'<span class="muted">No signals right now</span>'}</div></div>
 
     <div class="card col-6"><div class="card-h"><h3>🎯 Do first</h3></div><ul class="list">${dofirst.map(x=>itemHtml(x)).join('') || '<li class="empty">Nothing urgent right now</li>'}</ul></div>
-    <div class="card col-6"><div class="card-h"><h3>📝 Needs your review</h3></div><ul class="list">${review.map(x=>`<li class="li" onclick="openReview('${x.campaignId}','${x.assetId}')"><div class="li-body"><div class="li-title">${esc(x.name)}</div><div class="li-meta">${esc(x.campaignId)}</div></div><span class="li-action">→</span></li>`).join('') || '<li class="empty">No pending review</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3>📝 Needs your review</h3></div><ul class="list">${review.map(x => { const a = Object.assign({approvalStatus: 'revisionRequested'}, x); return itemHtml(a); }).join('') || '<li class="empty">No pending review</li>'}</ul></div>
 
-    <div class="card col-6"><div class="card-h"><h3>🚀 Ready to publish</h3></div><ul class="list">${publish.map(x=>`<li class="li" onclick="go('publish')"><div class="li-body"><div class="li-title">${esc(x.name)}</div><div class="li-meta">${esc(x.campaignId)}</div></div>${pill('on','approved')}</li>`).join('') || '<li class="empty">Nothing queued yet</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3>🚀 Ready to publish</h3></div><ul class="list">${publish.map(x => { const a = Object.assign({approvalStatus: 'approved'}, x); return itemHtml(a); }).join('') || '<li class="empty">Nothing queued yet</li>'}</ul></div>
     <div class="card col-6"><div class="card-h"><h3>⚠️ High-impact misses</h3></div><ul class="list">${missed.map(itemHtml).join('') || '<li class="empty">No missed opportunities</li>'}</ul></div>
 
-    <div class="card col-6"><div class="card-h"><h3>🔎 SEO quick wins</h3></div><ul class="list">${seo.map(itemHtml).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
-    <div class="card col-6"><div class="card-h"><h3>📮 Post today</h3></div><ul class="list">${today.map(itemHtml).join('') || '<li class="empty">Nothing scheduled today</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3>🔎 SEO quick wins</h3></div><ul class="list">${seo.map(x => itemHtml({keyword: x, kind: 'seo-keyword'}, 'seo')).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3>📮 Post today</h3></div><ul class="list">${today.map(x => itemHtml(x)).join('') || '<li class="empty">Nothing scheduled today</li>'}</ul></div>
   `;
   renderTodayRail();
 }
