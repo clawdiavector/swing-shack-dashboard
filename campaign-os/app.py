@@ -1989,6 +1989,388 @@ def intel_seo_index():
     }), 200
 
 
+# ─── SEO AUDIT DETAIL (deep-dive on seo-audit.json + landing-page-fixes.json) ───
+
+SEO_AUDIT_TYPES = ('missing_meta_description', 'missing_h1', 'title_too_short', 'missing_faq')
+SEO_AUDIT_SEVERITIES = ('high', 'medium', 'low')
+SEO_AUDIT_ACTION_MAP = {
+    'missing_meta_description': 'Write a 110-160 char meta description with primary keyword + CTA hook',
+    'missing_h1': 'Add a single H1 with primary keyword and a clear value proposition',
+    'title_too_short': 'Expand the title to 50-60 chars with brand name + keyword + hook',
+    'missing_faq': 'Add a 3-5 question FAQ section targeting long-tail keywords',
+}
+
+
+def _load_seo_audit():
+    """Read seo-audit.json from DATA_DIR (or bundled fallback). Returns dict or {}."""
+    paths = _data_paths()
+    raw = _read_json_file(os.path.join(paths['data_dir'], 'seo-audit.json'))
+    if isinstance(raw, dict):
+        return raw
+    return _read_json_file(os.path.join(BUNDLED_DATA_DIR, 'seo-audit.json')) or {}
+
+
+def _load_landing_fixes():
+    """Read landing-page-fixes.json from DATA_DIR (or bundled fallback). Returns dict or {}."""
+    paths = _data_paths()
+    raw = _read_json_file(os.path.join(paths['data_dir'], 'landing-page-fixes.json'))
+    if isinstance(raw, dict):
+        return raw
+    return _read_json_file(os.path.join(BUNDLED_DATA_DIR, 'landing-page-fixes.json')) or {}
+
+
+def _seo_audit_score(audit):
+    """Compute a 0-100 SEO health score from audit findings.
+
+    Penalises: high severity findings 15pts each, medium 8, low 3.
+    Bonus: status==='OK' on every page gives +10.
+    """
+    if not audit:
+        return 0
+    score = 100
+    recs = audit.get('recommendations') or []
+    for rec in recs:
+        sev = str(rec.get('severity') or '').lower()
+        if sev == 'high':
+            score -= 15
+        elif sev == 'medium':
+            score -= 8
+        elif sev == 'low':
+            score -= 3
+    pages = audit.get('pages') or []
+    if pages and all(str(p.get('status') or '').upper() == 'OK' for p in pages):
+        score += 10
+    return max(0, min(100, score))
+
+
+def _seo_audit_group_by_page(audit):
+    """Return [{page, url, status, findings:[{type, severity, message, action}], score}] sorted high→low."""
+    pages = audit.get('pages') or []
+    out = []
+    for p in pages:
+        if not isinstance(p, dict):
+            continue
+        findings = p.get('findings') or []
+        normalised = []
+        for f in findings:
+            if not isinstance(f, dict):
+                continue
+            t = str(f.get('type') or '')
+            normalised.append({
+                'type': t,
+                'severity': str(f.get('severity') or 'low'),
+                'message': str(f.get('message') or ''),
+                'action': SEO_AUDIT_ACTION_MAP.get(t, 'See audit for details'),
+                'priority': 1 if str(f.get('severity') or '').lower() == 'high' else (2 if str(f.get('severity') or '').lower() == 'medium' else 3),
+            })
+        sev_counts = {'high': 0, 'medium': 0, 'low': 0}
+        for f in normalised:
+            s = f['severity'].lower()
+            sev_counts[s] = sev_counts.get(s, 0) + 1
+        out.append({
+            'page': p.get('name') or 'Unknown',
+            'url': p.get('url') or '',
+            'status': p.get('status') or 'UNKNOWN',
+            'findings': normalised,
+            'counts': sev_counts,
+            'score': max(0, 100 - sev_counts['high'] * 25 - sev_counts['medium'] * 10 - sev_counts['low'] * 3),
+        })
+    out.sort(key=lambda x: (-x['counts']['high'], -x['counts']['medium'], x['page']))
+    return out
+
+
+def _seo_fix_template(page, fix_type, custom_keyword=None):
+    """Generate a ready-to-paste fix snippet for a finding type on a specific page.
+
+    Returns {kind, snippet, character_count, character_limit, valid, notes}.
+    """
+    keyword = custom_keyword or 'indoor golf simulator Johannesburg'
+    page_name = page.get('page') if isinstance(page, dict) else (page or 'Homepage')
+    if fix_type == 'missing_meta_description':
+        kw_title = keyword.title() if keyword else 'Indoor Golf Simulator Johannesburg'
+        text = (f'{page_name} — {kw_title}. Book a TrackMan session at Swing Shack Johannesburg. '
+                f'Open 24/7. From R250.')
+        # Trim to fit 160 if necessary
+        if len(text) > 160:
+            text = text[:157].rstrip() + '...'
+        return {
+            'kind': 'meta_description',
+            'snippet': text,
+            'character_count': len(text),
+            'character_limit': 160,
+            'min_chars': 110,
+            'valid': 110 <= len(text) <= 160,
+            'notes': 'Should be 110-160 chars. Include primary keyword + brand + CTA.',
+        }
+    if fix_type == 'missing_h1':
+        kw_proper = keyword.replace('johannesburg', 'Johannesburg').title() if keyword else 'Indoor Golf Simulator Johannesburg'
+        text = f'Book Your {kw_proper} Session — Swing Shack'
+        return {
+            'kind': 'h1',
+            'snippet': text,
+            'character_count': len(text),
+            'character_limit': 70,
+            'min_chars': 20,
+            'valid': 20 <= len(text) <= 70,
+            'notes': 'One H1 per page. Should contain primary keyword and a value promise.',
+        }
+    if fix_type == 'title_too_short':
+        kw_proper = keyword.title() if keyword else 'Indoor Golf Simulator Johannesburg'
+        text = f'{page_name} | Swing Shack | {kw_proper}'
+        # Trim to 60 if necessary
+        if len(text) > 60:
+            text = text[:57].rstrip() + '...'
+        return {
+            'kind': 'title',
+            'snippet': text,
+            'character_count': len(text),
+            'character_limit': 60,
+            'min_chars': 50,
+            'valid': 50 <= len(text) <= 60,
+            'notes': 'Title tags should be 50-60 chars. Include brand + keyword + hook.',
+        }
+    if fix_type == 'missing_faq':
+        snippet = (
+            'FAQ section — Suggested questions:\n'
+            f'1. How much does a {keyword} session cost?\n'
+            f'2. Do I need to bring my own clubs to Swing Shack Johannesburg?\n'
+            '3. Can beginners use the TrackMan simulator?\n'
+            '4. Is parking available at Swing Shack?\n'
+            '5. How do I book a session at Swing Shack?'
+        )
+        return {
+            'kind': 'faq_block',
+            'snippet': snippet,
+            'character_count': len(snippet),
+            'character_limit': 2000,
+            'min_chars': 200,
+            'valid': 200 <= len(snippet) <= 2000,
+            'notes': 'Add FAQPage schema markup. Each Q&A targets long-tail keywords.',
+        }
+    return {
+        'kind': 'unknown',
+        'snippet': '',
+        'character_count': 0,
+        'character_limit': 0,
+        'min_chars': 0,
+        'valid': False,
+        'notes': f'No template available for type {fix_type}',
+    }
+
+
+@app.route('/api/intel/seo_audit_detail', methods=['GET'])
+def intel_seo_audit_detail():
+    """GET /api/intel/seo_audit_detail — deep-dive on seo-audit.json.
+
+    Query params:
+      page=Homepage|Membership|Coaching|Club Fitting   (filter to one page)
+      type=missing_meta_description|missing_h1|title_too_short|missing_faq
+      severity=high|medium|low
+      only_fixable=true  (hide low/medium — only what needs immediate work)
+
+    Returns:
+      { ok, ts, site, updated, score, band, total_findings, by_severity,
+        by_type, by_page, recommendations, top_priority_actions }
+    """
+    audit = _load_seo_audit()
+    if not audit:
+        return jsonify({
+            "ok": False,
+            "error": "No seo-audit.json available",
+            "ts": _now_iso(),
+        }), 404
+
+    page_filter = (request.args.get('page') or '').strip()
+    type_filter = (request.args.get('type') or '').strip()
+    sev_filter = (request.args.get('severity') or '').strip().lower()
+    only_fixable = str(request.args.get('only_fixable') or '').lower() in ('1', 'true', 'yes')
+
+    if page_filter and page_filter not in [p.get('name') for p in (audit.get('pages') or [])]:
+        return jsonify({
+            "ok": False,
+            "error": f"Unknown page '{page_filter}'. Valid: {[p.get('name') for p in (audit.get('pages') or [])]}",
+            "valid_pages": [p.get('name') for p in (audit.get('pages') or [])],
+        }), 400
+
+    if type_filter and type_filter not in SEO_AUDIT_TYPES:
+        return jsonify({
+            "ok": False,
+            "error": f"Unknown audit type '{type_filter}'. Valid: {list(SEO_AUDIT_TYPES)}",
+            "valid_types": list(SEO_AUDIT_TYPES),
+        }), 400
+
+    if sev_filter and sev_filter not in SEO_AUDIT_SEVERITIES:
+        return jsonify({
+            "ok": False,
+            "error": f"Unknown severity '{sev_filter}'. Valid: {list(SEO_AUDIT_SEVERITIES)}",
+            "valid_severities": list(SEO_AUDIT_SEVERITIES),
+        }), 400
+
+    page_breakdown = _seo_audit_group_by_page(audit)
+
+    if page_filter:
+        page_breakdown = [p for p in page_breakdown if p['page'] == page_filter]
+
+    by_type = {t: 0 for t in SEO_AUDIT_TYPES}
+    for p in page_breakdown:
+        for f in p['findings']:
+            if f['type'] in by_type:
+                by_type[f['type']] += 1
+
+    recommendations = []
+    for rec in (audit.get('recommendations') or []):
+        if not isinstance(rec, dict):
+            continue
+        if page_filter and rec.get('page') != page_filter:
+            continue
+        if sev_filter and str(rec.get('severity') or '').lower() != sev_filter:
+            continue
+        if type_filter and rec.get('type') != type_filter:
+            continue
+        if only_fixable and str(rec.get('severity') or '').lower() not in ('high', 'medium'):
+            continue
+        recommendations.append({
+            'type': rec.get('type'),
+            'severity': str(rec.get('severity') or 'low').lower(),
+            'message': rec.get('message') or '',
+            'page': rec.get('page') or '',
+            'action': rec.get('action') or SEO_AUDIT_ACTION_MAP.get(rec.get('type'), ''),
+            'priority': rec.get('priority') or 99,
+        })
+    recommendations.sort(key=lambda r: (r['priority'], r['page']))
+
+    # by_severity mirrors the recommendation filter set so the UX stays
+    # consistent (filter by severity → only that severity in counts).
+    by_severity = {'high': 0, 'medium': 0, 'low': 0}
+    for r in recommendations:
+        s = r['severity']
+        by_severity[s] = by_severity.get(s, 0) + 1
+
+    top_priority_actions = [r for r in recommendations if r['severity'] == 'high'][:8]
+
+    score = _seo_audit_score(audit if not page_filter else {'pages': [p for p in (audit.get('pages') or []) if p.get('name') == page_filter]})
+    if score >= 85:
+        band = 'healthy'
+    elif score >= 65:
+        band = 'needs_attention'
+    elif score >= 40:
+        band = 'poor'
+    else:
+        band = 'critical'
+
+    return jsonify({
+        "ok": True,
+        "ts": _now_iso(),
+        "site": audit.get('site') or '',
+        "updated": audit.get('updated'),
+        "score": score,
+        "band": band,
+        "total_findings": audit.get('total_findings') or sum(by_severity.values()),
+        "by_severity": by_severity,
+        "by_type": by_type,
+        "by_page": page_breakdown,
+        "recommendations": recommendations,
+        "top_priority_actions": top_priority_actions,
+        "filters_applied": {
+            "page": page_filter or None,
+            "type": type_filter or None,
+            "severity": sev_filter or None,
+            "only_fixable": only_fixable,
+        },
+        "valid_types": list(SEO_AUDIT_TYPES),
+        "valid_severities": list(SEO_AUDIT_SEVERITIES),
+        "valid_pages": [p.get('name') for p in (audit.get('pages') or [])],
+    }), 200
+
+
+@app.route('/api/intel/seo_audit_fix_draft', methods=['POST'])
+def intel_seo_audit_fix_draft():
+    """POST /api/intel/seo_audit_fix_draft — generate a ready-to-paste fix snippet.
+
+    Body (JSON):
+      { page: 'Homepage',          # required
+        type: 'missing_meta_description',  # required
+        custom_keyword: 'indoor golf'  # optional override
+      }
+
+    Returns:
+      { ok, ts, page, type, fix: {kind, snippet, character_count, character_limit,
+                                   min_chars, valid, notes} }
+    """
+    body = request.get_json(silent=True) or {}
+    page_name = str(body.get('page') or '').strip()
+    fix_type = str(body.get('type') or '').strip()
+    custom_keyword = body.get('custom_keyword')
+
+    if not page_name:
+        return jsonify({"ok": False, "error": "page is required"}), 400
+    if not fix_type:
+        return jsonify({"ok": False, "error": "type is required"}), 400
+    if fix_type not in SEO_AUDIT_TYPES:
+        return jsonify({
+            "ok": False,
+            "error": f"Unknown type '{fix_type}'. Valid: {list(SEO_AUDIT_TYPES)}",
+            "valid_types": list(SEO_AUDIT_TYPES),
+        }), 400
+
+    # Verify page exists in audit
+    audit = _load_seo_audit()
+    pages = audit.get('pages') or []
+    page_match = next((p for p in pages if isinstance(p, dict) and p.get('name') == page_name), None)
+    if page_match is None:
+        return jsonify({
+            "ok": False,
+            "error": f"Page '{page_name}' not in audit. Valid: {[p.get('name') for p in pages]}",
+            "valid_pages": [p.get('name') for p in pages],
+        }), 404
+
+    if custom_keyword is not None and not isinstance(custom_keyword, str):
+        return jsonify({"ok": False, "error": "custom_keyword must be a string"}), 400
+
+    fix = _seo_fix_template({'page': page_name}, fix_type, custom_keyword=custom_keyword)
+    return jsonify({
+        "ok": True,
+        "ts": _now_iso(),
+        "page": page_name,
+        "type": fix_type,
+        "action": SEO_AUDIT_ACTION_MAP.get(fix_type, ''),
+        "fix": fix,
+    }), 200
+
+
+@app.route('/api/intel/seo_audit_index', methods=['GET'])
+def intel_seo_audit_index():
+    """GET /api/intel/seo_audit_index — manifest of audit + landing-page-fixes.
+
+    Used by SPA to populate filter dropdowns and summary cards.
+    """
+    audit = _load_seo_audit()
+    fixes = _load_landing_fixes()
+    pages = audit.get('pages') or []
+    fix_list = fixes.get('fixes') or []
+    score = _seo_audit_score(audit)
+    return jsonify({
+        "ok": True,
+        "ts": _now_iso(),
+        "site": audit.get('site') or '',
+        "updated": audit.get('updated'),
+        "score": score,
+        "total_findings": audit.get('total_findings') or 0,
+        "pages": [p.get('name') for p in pages if isinstance(p, dict)],
+        "types": list(SEO_AUDIT_TYPES),
+        "severities": list(SEO_AUDIT_SEVERITIES),
+        "action_map": SEO_AUDIT_ACTION_MAP,
+        "landing_fixes_summary": {
+            "total": fixes.get('summary', {}).get('total_fixes') or len(fix_list),
+            "high_severity": fixes.get('summary', {}).get('high_severity') or 0,
+            "top_page": fixes.get('summary', {}).get('top_page'),
+            "top_fix": fixes.get('summary', {}).get('top_fix'),
+            "expected_lift": fixes.get('summary', {}).get('expected_lift'),
+        },
+        "landing_fixes": fix_list,
+    }), 200
+
+
 # ─── PLAN ROUTES ──────────────────────────────────────────────────────
 
 @app.route('/api/plan/portfolio', methods=['GET'])

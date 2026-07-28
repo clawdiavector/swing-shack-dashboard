@@ -27,6 +27,26 @@
 - ✅ **Theme tokens + light/dark switcher** — two-tier CSS token system (`:root` aliases + `[data-theme]` overrides) with full dark + light themes, `prefers-color-scheme` auto-mode, topbar switcher pill (Dark/Light/Auto), `localStorage` persistence, server-side `GET/POST /api/intel/theme` + `GET /api/intel/tokens` design-system manifest. Every raw hex removed from CSS — all colors flow through semantic tokens (`--bg`, `--tx`, `--ac`, `--scrim`, `--pill-on`, etc.); meme era/fatigue/brand-fit palette uses `color-mix()` so it auto-themes.
 - ✅ 233 passing tests (was 73 baseline; +160 across all turns)
 
+## Cron tick 12 — 2026-07-28 08:15 SAST
+
+**Built:** SEO Audit Detail (deep-dive on seo-audit.json + landing-page-fixes.json) — rest-mode-safe intelligence view that previous cron (tick 11) had built but never committed. Hit a TDZ runtime bug in the SPA where `const SA_STATE`/`SA_TYPE_LABELS` were unreachable from `renderSeoAudit`'s hoisted function — fixed by converting to `var` so listener handlers fire cleanly during script eval.
+
+**Files:**
+- `data/seo-audit.json` — 16 findings across 4 pages (Homepage, Membership, Coaching, Club Fitting), 8 high / 4 medium / 4 low severity, with per-finding type/message/severity/priority/action
+- `data/landing-page-fixes.json` — 7 high-impact landing-page fixes (pricing_clarity, cta_weak, intent_mismatch, friction, trust_gap, faq_missing, awareness_gap) each with fix_id/evidence/expected_outcome/revenue_impact
+- `campaign-os/app.py` — 3 new endpoints:
+  - `GET /api/intel/seo_audit_detail?page&type&severity&only_fixable` — health score (0-100), band (healthy/needs_attention/poor/critical), by_page (with normalised findings + per-page score), by_severity, by_type, recommendations, top_priority_actions, landing_fixes summary, valid_pages/severities/types, filters_applied
+  - `POST /api/intel/seo_audit_fix_draft` — generates ready-to-paste fix snippets for 4 finding types (missing_meta_description 110-160 chars, missing_h1 ≤70 chars, title_too_short 50-60 chars, missing_faq 3-5 questions), with custom_keyword override and character-count validation
+  - `GET /api/intel/seo_audit_index` — manifest with action_map, valid filter values, landing_fixes summary
+- `campaign-os/campaign-os.html` — new `#sec-seo-audit` section + nav entry `📋 SEO Audit`: health-score card + filter bar + per-page findings + top-priority-actions sidebar + all-recommendations + landing-page-fixes + fix-draft modal. **TDZ fix**: `const SA_STATE`/`SA_TYPE_LABELS` → `var`
+- `campaign-os/tests/test_seo_audit_detail.py` — 60 new tests across 7 classes (SeoScoreTests, SeoGroupByPageTests, SeoFixTemplateTests, SeoAuditDetailApiTests, SeoFixDraftApiTests, SeoAuditIndexApiTests, BundledFallbackTests)
+
+**Tests:** 293/293 pass (was 233; +60 SEO Audit Detail tests); zero baseline regressions. Verified live via curl + browser.
+
+**Next priority:** Reddit Reply Drafter (rest-mode-safe) or GBP Post Drafter. Or revisit existing renderer stubs (`renderBillboards`, `renderHeadlines`, `renderCTAs`) to bring them up to v2 polish. Publish Dashboard (priority 10) still gated behind rest-mode.
+
+---
+
 ## Cron tick 11 — 2026-07-28 06:00 SAST
 
 **Built:** Hashtags & SEO Pack engine (priority 11, rest-mode-safe) — pure-read intelligence for curated hashtag sets + on-page SEO scaffolding. Avoided Publish Dashboard (priority 10) because it's blocked during Christelle's rest-mode and would otherwise gate the next cron. Hashtag/SEO Pack ships the same operational value (publish-pack ready, brand-fit scored) with zero social/Postiz surface.

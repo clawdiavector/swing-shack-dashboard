@@ -465,6 +465,7 @@ a:hover{text-decoration:underline}
     <div class="nav-section">
       <div class="nav-title">Marketing</div>
       <div class="nav" data-go="seo"><span class="nav-icon">🔎</span> SEO</div>
+      <div class="nav" data-go="seo-audit"><span class="nav-icon">📋</span> SEO Audit</div>
       <div class="nav" data-go="gbp"><span class="nav-icon">📍</span> Google Business</div>
       <div class="nav" data-go="reddit"><span class="nav-icon">🗣️</span> Reddit</div>
       <div class="nav" data-go="faqs"><span class="nav-icon">❓</span> FAQs</div>
@@ -951,6 +952,79 @@ a:hover{text-decoration:underline}
       </div>
     </section>
 
+    <!-- ── SEO AUDIT DETAIL ──────────────────────────────── -->
+    <section class="section" id="sec-seo-audit">
+      <div class="section-h">
+        <h2>SEO Audit <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · deep-dive + fix-draft</span></h2>
+        <span class="sub" id="sa-summary">Loading…</span>
+      </div>
+
+      <!-- Top row: score band + filter bar -->
+      <div class="grid" style="margin-bottom:1rem">
+        <div class="card col-4">
+          <div class="card-h"><h3>🎯 Health score</h3></div>
+          <div id="sa-score"></div>
+        </div>
+        <div class="card col-8">
+          <div class="card-h"><h3>🧭 Filters</h3></div>
+          <div class="row gap-1" style="flex-wrap:wrap;align-items:center">
+            <select id="sa-page-filter" style="min-width:160px"><option value="">All pages</option></select>
+            <select id="sa-type-filter" style="min-width:200px"><option value="">All issue types</option></select>
+            <select id="sa-sev-filter" style="min-width:140px">
+              <option value="">All severities</option>
+              <option value="high">High only</option>
+              <option value="medium">Medium only</option>
+              <option value="low">Low only</option>
+            </select>
+            <label class="row gap-1" style="font-size:12px;color:var(--tx-2);cursor:pointer">
+              <input type="checkbox" id="sa-only-fixable" /> Only fixable (high + medium)
+            </label>
+            <button class="btn primary" id="sa-refresh" style="margin-left:auto">🔄 Refresh</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle row: per-page breakdown + priority actions -->
+      <div class="grid">
+        <div class="card col-7">
+          <div class="card-h"><h3>📄 Per-page findings</h3></div>
+          <div id="sa-pages"></div>
+        </div>
+        <div class="card col-5">
+          <div class="card-h"><h3>🔥 Top priority actions</h3></div>
+          <div id="sa-priority"></div>
+        </div>
+      </div>
+
+      <!-- Bottom row: full recommendations list + landing page fixes -->
+      <div class="grid" style="margin-top:1rem">
+        <div class="card col-7">
+          <div class="card-h"><h3>📋 All recommendations</h3></div>
+          <div id="sa-recs"></div>
+        </div>
+        <div class="card col-5">
+          <div class="card-h"><h3>🛬 Landing-page fixes</h3></div>
+          <div id="sa-landing"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SEO AUDIT FIX MODAL ──────────────────────────── -->
+    <div class="modal" id="sa-fix-modal" style="display:none">
+      <div class="modal-card" style="max-width:720px">
+        <div class="modal-h">
+          <h3 id="sa-fix-modal-title">Generate fix</h3>
+          <button class="btn ghost" id="sa-fix-close">✕</button>
+        </div>
+        <div class="modal-b" id="sa-fix-modal-body">
+          <div style="font-size:12px;color:var(--tx-3);margin-bottom:.5rem">Custom keyword (optional):</div>
+          <input type="text" id="sa-fix-keyword" placeholder="indoor golf simulator Johannesburg" style="width:100%;margin-bottom:.75rem" />
+          <button class="btn primary" id="sa-fix-generate">⚡ Generate fix snippet</button>
+          <div id="sa-fix-result" style="margin-top:1rem"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── GBP ───────────────────────────────────────────── -->
     <section class="section" id="sec-gbp">
       <div class="section-h"><h2>Google Business</h2></div>
@@ -1059,6 +1133,19 @@ const THEME_DEFAULT = 'dark';
 const THEME_VALID = new Set(['dark', 'light', 'system']);
 const THEME_STATE = { value: THEME_DEFAULT, systemPref: 'dark' };
 const themeMeta = document.getElementById('meta-theme-color');
+
+// Defensive: bind an event listener only if element exists.
+function bind(selOrEl, evt, fn){
+  const el = typeof selOrEl === 'string' ? document.querySelector(selOrEl) : selOrEl;
+  if(!el) return false;
+  el.addEventListener(evt, fn);
+  return true;
+}
+function bindAll(sel, evt, fn){
+  const els = document.querySelectorAll(sel);
+  els.forEach(el => el.addEventListener(evt, fn));
+  return els.length;
+}
 
 function _systemPrefers(){
   if(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
@@ -1182,6 +1269,7 @@ async function loadSection(sec){
     if(sec==='ctas') return renderCTAs();
     if(sec==='hashtagseo') return renderHashtagSeo();
     if(sec==='seo') return renderSEO();
+    if(sec==='seo-audit') return renderSeoAudit();
     if(sec==='gbp') return renderGBP();
     if(sec==='reddit') return renderReddit();
     if(sec==='faqs') return renderFAQs();
@@ -1535,9 +1623,11 @@ async function renderCalendar(){
   grid.innerHTML = html;
 }
 const calDuplicateZone = $('#cal-duplicate-zone');
-calDuplicateZone.addEventListener('dragover', calDragOver);
-calDuplicateZone.addEventListener('dragleave', calDragLeave);
-calDuplicateZone.addEventListener('drop', calDrop);
+if(calDuplicateZone){
+  calDuplicateZone.addEventListener('dragover', calDragOver);
+  calDuplicateZone.addEventListener('dragleave', calDragLeave);
+  calDuplicateZone.addEventListener('drop', calDrop);
+}
 $$('[data-cal-shift]').forEach(b => b.addEventListener('click', () => {
   const shift = parseInt(b.dataset.calShift, 10);
   if(shift === 0){ S.calStart = ''; }
@@ -1912,7 +2002,9 @@ async function renderCaptions(){
 
 // Update voice badge on picker change
 ['cap-voice-select','cap-tone-select'].forEach(id => {
-  $(id).addEventListener('change', () => {
+  const el = $('#'+id);
+  if(!el) return;
+  el.addEventListener('change', () => {
     CAP_STATE.voice = $('#cap-voice-select').value;
     CAP_STATE.tone  = $('#cap-tone-select').value;
     updateCapBadge();
@@ -2209,6 +2301,224 @@ async function renderSEO(){
   $('#seo-rank').innerHTML = `<div class="row gap-1" style="margin-bottom:.75rem">${pill('on',(rank?.rising||[]).length+' rising')} ${pill('blocked',(rank?.falling||[]).length+' falling')} ${pill('live',(rank?.quick_wins||[]).length+' quick wins')}</div>` + safeList(rank?.keywords, 10).map(itemHtml).join('');
   $('#seo-geo').innerHTML = `<dl class="kvs"><dt>GEO score</dt><dd>${s.geo?.geo_score||'—'}</dd></dl>` + safeList(s.geo?.high_priority, 6).map(itemHtml).join('');
   $('#seo-fixes').innerHTML = safeList(s.fixes, 10).map(itemHtml).join('') || '<div class="empty">No fixes suggested</div>';
+}
+
+// ─── SEO AUDIT DETAIL ────────────────────────────────────────────────
+// Hoisted (var) so const-TDZ doesn't break listeners that fire during script eval.
+var SA_STATE = { page: '', type: '', severity: '', only_fixable: false, currentDetail: null };
+var SA_FIX_CONTEXT = { page: '', type: '' };
+
+var SA_TYPE_LABELS = {
+  missing_meta_description: 'Missing meta description',
+  missing_h1: 'Missing H1',
+  title_too_short: 'Title too short',
+  missing_faq: 'Missing FAQ section',
+};
+
+function saSevPill(sev){
+  const cls = sev === 'high' ? 'blocked' : (sev === 'medium' ? 'on' : 'muted');
+  return pill(cls, sev);
+}
+
+function saBandLabel(band){
+  if(band === 'healthy') return pill('on', '✓ healthy');
+  if(band === 'needs_attention') return pill('on', '⚠ needs attention');
+  if(band === 'poor') return pill('blocked', '⚠ poor');
+  if(band === 'critical') return pill('blocked', '✕ critical');
+  return pill('muted', band || 'unknown');
+}
+
+async function renderSeoAudit(){
+  if(!S.saIdx){
+    S.saIdx = await API.get('/api/intel/seo_audit_index');
+  }
+  const idx = S.saIdx;
+  // Populate filter dropdowns (only first time)
+  if(idx.ok){
+    const pageSel = $('#sa-page-filter');
+    if(pageSel.options.length <= 1){
+      (idx.pages || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p; opt.textContent = p;
+        pageSel.appendChild(opt);
+      });
+    }
+    const typeSel = $('#sa-type-filter');
+    if(typeSel.options.length <= 1){
+      (idx.types || []).forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t; opt.textContent = SA_TYPE_LABELS[t] || t;
+        typeSel.appendChild(opt);
+      });
+    }
+  }
+  // Refresh detail
+  await refreshSeoAudit();
+  // Wire filter change handlers (once)
+  if(!S._saBound){
+    S._saBound = true;
+    ['sa-page-filter','sa-type-filter','sa-sev-filter'].forEach(id => {
+      $(id).addEventListener('change', () => {
+        SA_STATE.page = $('#sa-page-filter').value;
+        SA_STATE.type = $('#sa-type-filter').value;
+        SA_STATE.severity = $('#sa-sev-filter').value;
+        refreshSeoAudit();
+      });
+    });
+    $('#sa-only-fixable').addEventListener('change', e => {
+      SA_STATE.only_fixable = e.target.checked;
+      refreshSeoAudit();
+    });
+    $('#sa-refresh').addEventListener('click', () => refreshSeoAudit());
+    $('#sa-fix-close').addEventListener('click', closeSeoFixModal);
+    $('#sa-fix-generate').addEventListener('click', generateSeoFix);
+  }
+}
+
+async function refreshSeoAudit(){
+  const params = new URLSearchParams();
+  if(SA_STATE.page) params.set('page', SA_STATE.page);
+  if(SA_STATE.type) params.set('type', SA_STATE.type);
+  if(SA_STATE.severity) params.set('severity', SA_STATE.severity);
+  if(SA_STATE.only_fixable) params.set('only_fixable', 'true');
+  const d = await API.get('/api/intel/seo_audit_detail?' + params.toString());
+  S.saCurrent = d;
+  SA_STATE.currentDetail = d;
+  if(!d.ok){
+    $('#sa-summary').textContent = d.error || 'Error loading audit';
+    $('#sa-score').innerHTML = '<div class="empty">No audit available</div>';
+    $('#sa-pages').innerHTML = '';
+    $('#sa-priority').innerHTML = '';
+    $('#sa-recs').innerHTML = '';
+    return;
+  }
+  // Summary
+  const filters = d.filters_applied || {};
+  const applied = [];
+  if(filters.page) applied.push(`page: ${filters.page}`);
+  if(filters.type) applied.push(`type: ${filters.type}`);
+  if(filters.severity) applied.push(`severity: ${filters.severity}`);
+  if(filters.only_fixable) applied.push('only fixable');
+  $('#sa-summary').textContent = `${d.total_findings} findings · ${d.by_severity.high}H / ${d.by_severity.medium}M / ${d.by_severity.low}L · ${applied.length ? '[' + applied.join(', ') + ']' : 'no filters'}`;
+
+  // Score band
+  const band = d.band || 'unknown';
+  const score = d.score;
+  const sev = d.by_severity || {};
+  $('#sa-score').innerHTML = `
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem">
+      <div style="font-size:36px;font-weight:700;color:${band==='healthy'?'var(--ac)':band==='critical'?'var(--today-red, #ef4444)':'var(--today-amber, #f59e0b)'}">${score}</div>
+      <div style="flex:1">${saBandLabel(band)}<div style="font-size:11px;color:var(--tx-3);margin-top:.25rem">${esc(d.site || '—')}</div></div>
+    </div>
+    <dl class="kvs">
+      <dt>Total findings</dt><dd>${d.total_findings}</dd>
+      <dt>High severity</dt><dd>${sev.high || 0}</dd>
+      <dt>Medium severity</dt><dd>${sev.medium || 0}</dd>
+      <dt>Low severity</dt><dd>${sev.low || 0}</dd>
+      <dt>Pages audited</dt><dd>${(d.by_page || []).length}</dd>
+      <dt>Last audit</dt><dd>${esc((d.updated || '').slice(0,10) || '—')}</dd>
+    </dl>
+  `;
+
+  // Per-page cards
+  $('#sa-pages').innerHTML = (d.by_page || []).map(p => {
+    const findingChips = p.findings.map(f => `
+      <li class="li" style="cursor:pointer" data-fix-page="${esc(p.page)}" data-fix-type="${esc(f.type)}">
+        <div class="li-body">
+          <div class="li-title">${esc(SA_TYPE_LABELS[f.type] || f.type)}</div>
+          <div class="li-meta">${saSevPill(f.severity)} <span style="color:var(--tx-3)">${esc(f.message.slice(0, 100))}</span></div>
+          <div style="font-size:11px;color:var(--ac);margin-top:.25rem">💡 ${esc(f.action)}</div>
+        </div>
+      </li>`).join('');
+    return `
+      <div class="review" style="margin-bottom:.75rem">
+        <div class="review-cap-t">${esc(p.page)} <span style="font-size:11px;color:var(--tx-3);font-weight:400">— score ${p.score}/100 · ${p.counts.high}H/${p.counts.medium}M/${p.counts.low}L</span></div>
+        <div class="review-cap-x" style="font-size:12px;color:var(--tx-3);margin-bottom:.5rem">
+          <a href="${esc(p.url)}" target="_blank" style="color:var(--blu)">${esc(p.url)}</a>
+        </div>
+        <ul class="ul">${findingChips}</ul>
+      </div>
+    `;
+  }).join('') || '<div class="empty">No page data</div>';
+
+  // Wire click handlers on fix-list items
+  document.querySelectorAll('#sa-pages li[data-fix-page]').forEach(el => {
+    el.addEventListener('click', () => openSeoFixModal(el.dataset.fixPage, el.dataset.fixType));
+  });
+
+  // Top priority actions
+  $('#sa-priority').innerHTML = (d.top_priority_actions || []).map(r => `
+    <li class="li" style="cursor:pointer" data-fix-page="${esc(r.page)}" data-fix-type="${esc(r.type)}">
+      <div class="li-body">
+        <div class="li-title">${esc(r.page)} — ${esc(SA_TYPE_LABELS[r.type] || r.type)}</div>
+        <div class="li-meta">${saSevPill(r.severity)} <span style="color:var(--tx-3)">${esc(r.message.slice(0, 120))}</span></div>
+      </div>
+    </li>
+  `).join('') || '<div class="empty">No high-priority findings 🎉</div>';
+  document.querySelectorAll('#sa-priority li[data-fix-page]').forEach(el => {
+    el.addEventListener('click', () => openSeoFixModal(el.dataset.fixPage, el.dataset.fixType));
+  });
+
+  // Full recommendations list
+  $('#sa-recs').innerHTML = (d.recommendations || []).map(r => `
+    <li class="li" style="cursor:pointer" data-fix-page="${esc(r.page)}" data-fix-type="${esc(r.type)}">
+      <div class="li-body">
+        <div class="li-title">${esc(r.page)} — ${esc(SA_TYPE_LABELS[r.type] || r.type)}</div>
+        <div class="li-meta">${saSevPill(r.severity)} ${pill('muted', 'p' + r.priority)} <span style="color:var(--tx-3)">${esc(r.message.slice(0, 140))}</span></div>
+        <div style="font-size:11px;color:var(--ac);margin-top:.25rem">💡 ${esc(r.action)}</div>
+      </div>
+    </li>
+  `).join('') || '<div class="empty">No recommendations match current filters</div>';
+  document.querySelectorAll('#sa-recs li[data-fix-page]').forEach(el => {
+    el.addEventListener('click', () => openSeoFixModal(el.dataset.fixPage, el.dataset.fixType));
+  });
+
+  // Landing page fixes from index
+  if(S.saIdx && S.saIdx.landing_fixes){
+    $('#sa-landing').innerHTML = (S.saIdx.landing_fixes || []).map(f => {
+      const exp = f.expected_outcome || f.expected_lift || '';
+      const ri = f.revenue_impact ? pill('blocked', 'rev: '+f.revenue_impact) : '';
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(f.page)} — ${esc(f.issue || f.fix_id)}</div><div class="li-meta">${saSevPill(f.severity || 'low')} ${ri} <span style="color:var(--tx-3)">${esc(exp)}</span></div><div style="font-size:12px;color:var(--tx);margin-top:.3rem">${esc(f.fix || '')}</div></div></li>`;
+    }).join('') || '<div class="empty">No landing-page fixes</div>';
+  }
+}
+
+function openSeoFixModal(page, fixType){
+  SA_FIX_CONTEXT = { page, type: fixType };
+  $('#sa-fix-modal-title').textContent = `Fix: ${SA_TYPE_LABELS[fixType] || fixType} on ${page}`;
+  $('#sa-fix-keyword').value = '';
+  $('#sa-fix-result').innerHTML = '<div class="empty">Click "Generate fix snippet" to draft copy-paste text.</div>';
+  $('#sa-fix-modal').style.display = 'flex';
+}
+function closeSeoFixModal(){ $('#sa-fix-modal').style.display = 'none'; }
+
+async function generateSeoFix(){
+  const kw = $('#sa-fix-keyword').value.trim();
+  const payload = { page: SA_FIX_CONTEXT.page, type: SA_FIX_CONTEXT.type };
+  if(kw) payload.custom_keyword = kw;
+  $('#sa-fix-result').innerHTML = '<div class="muted">Generating…</div>';
+  const r = await API.post('/api/intel/seo_audit_fix_draft', payload);
+  if(!r.ok){
+    $('#sa-fix-result').innerHTML = `<div class="empty" style="color:var(--today-red, #ef4444)">${esc(r.error || 'Failed')}</div>`;
+    return;
+  }
+  const f = r.fix || {};
+  const validBadge = f.valid ? pill('on', `✓ ${f.character_count}/${f.character_limit} chars`) : pill('blocked', `⚠ ${f.character_count}/${f.character_limit} chars`);
+  $('#sa-fix-result').innerHTML = `
+    <div class="row gap-1" style="margin-bottom:.5rem">
+      <strong style="font-size:13px">${esc(f.kind || '')}</strong>
+      ${validBadge}
+      <span style="font-size:11px;color:var(--tx-3)">${esc(f.notes || '')}</span>
+    </div>
+    <div style="position:relative">
+      <textarea readonly style="width:100%;min-height:120px;font-family:var(--mono,monospace);font-size:13px;padding:.6rem;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:6px;resize:vertical">${esc(f.snippet || '')}</textarea>
+      <button class="btn primary" style="position:absolute;top:.5rem;right:.5rem;font-size:11px;padding:4px 10px" onclick="navigator.clipboard.writeText(this.parentElement.querySelector('textarea').value).then(()=>toast('Copied'))">📋 Copy</button>
+    </div>
+    <div style="margin-top:.5rem;font-size:11px;color:var(--tx-3)">
+      Min: ${f.min_chars || 0} chars · Max: ${f.character_limit || 0} chars · Current: <b>${f.character_count || 0}</b>
+    </div>
+  `;
+  toast('Fix snippet ready');
 }
 
 // ─── GBP ────────────────────────────────────────────────────────
