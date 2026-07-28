@@ -2118,19 +2118,32 @@ function go(sec){
   $('#crumbs').textContent = TITLES[sec] || sec;
   // Persist last active section for reload-state
   try { localStorage.setItem('cos.activeSec', sec); } catch(_){}
-  // Mount helper explainer for this section (idempotent — only inserts once)
+  // Mount helper explainer for this section.
+  // The 'insights' section is a clone of 'sec-performance' (rendered by renderInsights),
+  // so mount the explainer on sec-performance; the clone picks it up.
   try {
     if(typeof HELP !== 'undefined' && HELP.section){
-      // analytics explainer mapping per section
       const analyticsMap = {
-        'insights': 'ga4',     // insights rolls up GA4 + Meta + SEO
+        'insights': 'ga4',
         'performance': 'ga4',
         'learning': 'meta',
       };
       HELP.section(realSec, analyticsMap[realSec]);
     }
   } catch(e){ console.warn('HELP.section failed', realSec, e); }
-  loadSection(realSec);
+  loadSection(realSec).then(() => {
+    // Re-mount on sec-performance after loadSection runs, so renderInsights()'s clone includes the explainer
+    try {
+      if(typeof HELP !== 'undefined' && HELP.section){
+        const analyticsMap = {
+          'insights': 'ga4',
+          'performance': 'ga4',
+          'learning': 'meta',
+        };
+        HELP.section(realSec, analyticsMap[realSec]);
+      }
+    } catch(e){ /* silent */ }
+  });
 }
 
 // All-tools toggle (expand/collapse the power-user full nav)
@@ -4573,6 +4586,7 @@ async function renderBrandDirectoryPanel(){
     const ids = Object.keys(brands);
     const total = idx.total_brands || ids.length;
     const ready = idx.total_ready || 0;
+    const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop'};
 
     container.innerHTML = `
       <div class="card">
@@ -4595,7 +4609,6 @@ async function renderBrandDirectoryPanel(){
           const ac = b.archetype_ids || [];
           const palette = b.primary_color ? `<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:11px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${b.primary_color};border:1px solid var(--bg-3)"></span>${b.primary_color}</span>` : '';
           const accent = b.accent_color ? `<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:11px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${b.accent_color};border:1px solid var(--bg-3)"></span>${b.accent_color}</span>` : '';
-          const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop'};
           const label = labelMap[bid] || bid;
           return `
             <div class="card col-4">
