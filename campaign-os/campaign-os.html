@@ -243,6 +243,8 @@ a:hover{text-decoration:underline}
 .nav-icon{width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
 .nav-badge{margin-left:auto;background:var(--ac);color:var(--bg);font-size:10px;font-weight:700;padding:2px 6px;border-radius:var(--r-p);min-width:18px;text-align:center}
 .nav-badge.muted{background:var(--bg-4);color:var(--tx-2)}
+.all-tools-toggle{font-style:italic;color:var(--tx-3);font-weight:500}
+.all-tools-toggle:hover{color:var(--tx)}
 
 .main{padding:1.5rem 2rem 4rem;max-width:100%;overflow-x:hidden}
 .topbar{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem}
@@ -505,24 +507,23 @@ a:hover{text-decoration:underline}
       <div class="brand-dropdown" id="brand-dropdown" role="listbox" hidden></div>
     </div>
 
+    <!-- Top-level surfaces (8 instead of 24) -->
     <div class="nav-section">
-      <div class="nav-title">Today</div>
-      <div class="nav on" data-go="brief"><span class="nav-icon">☀️</span> Morning Brief <span class="nav-badge" id="nav-brief-count">0</span></div>
+      <div class="nav" data-go="brief" id="nav-home"><span class="nav-icon">🏠</span> Home <span class="nav-badge" id="nav-brief-count">0</span></div>
       <div class="nav" data-go="review"><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
-      <div class="nav" data-go="publish"><span class="nav-icon">🚀</span> Publish <span class="nav-badge muted" id="nav-publish-count">0</span></div>
       <div class="nav" data-go="calendar"><span class="nav-icon">📅</span> Calendar</div>
+      <div class="nav" data-go="create"><span class="nav-icon">🪄</span> Create</div>
+      <div class="nav" data-go="publish"><span class="nav-icon">🚀</span> Publish <span class="nav-badge muted" id="nav-publish-count">0</span></div>
+      <div class="nav" data-go="insights"><span class="nav-icon">📈</span> Insights</div>
+      <div class="nav" data-go="library"><span class="nav-icon">📚</span> Library</div>
+      <div class="nav" data-go="campaigns"><span class="nav-icon">🎯</span> Brand</div>
     </div>
 
-    <div class="nav-section">
-      <div class="nav-title">Intelligence</div>
+    <!-- Power-user: hidden by default, expandable via "All tools" link -->
+    <div class="nav-section" id="all-tools-section" hidden>
+      <div class="nav-title">All tools</div>
       <div class="nav" data-go="trends"><span class="nav-icon">📡</span> Trends</div>
       <div class="nav" data-go="ideas"><span class="nav-icon">💡</span> Ideas</div>
-      <div class="nav" data-go="performance"><span class="nav-icon">📈</span> Performance</div>
-      <div class="nav" data-go="learning"><span class="nav-icon">🧠</span> Learning</div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-title">Workspaces</div>
       <div class="nav" data-go="hooks"><span class="nav-icon">🪝</span> Hook Bank</div>
       <div class="nav" data-go="memes"><span class="nav-icon">😂</span> Meme Lord</div>
       <div class="nav" data-go="billboards"><span class="nav-icon">🪧</span> Billboard Lab</div>
@@ -531,22 +532,20 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="headlines"><span class="nav-icon">📰</span> Headlines</div>
       <div class="nav" data-go="ctas"><span class="nav-icon">🎯</span> CTAs</div>
       <div class="nav" data-go="hashtagseo"><span class="nav-icon">#️⃣</span> Hashtags & SEO</div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-title">Marketing</div>
+      <div class="nav" data-go="performance"><span class="nav-icon">📈</span> Performance</div>
+      <div class="nav" data-go="learning"><span class="nav-icon">🧠</span> Learning</div>
       <div class="nav" data-go="seo"><span class="nav-icon">🔎</span> SEO</div>
       <div class="nav" data-go="seo-audit"><span class="nav-icon">📋</span> SEO Audit</div>
       <div class="nav" data-go="gbp"><span class="nav-icon">📍</span> Google Business</div>
       <div class="nav" data-go="reddit"><span class="nav-icon">🗣️</span> Reddit</div>
       <div class="nav" data-go="faqs"><span class="nav-icon">❓</span> FAQs</div>
+      <div class="nav" data-go="postiz"><span class="nav-icon">📮</span> Postiz</div>
+      <div class="nav" data-go="agents"><span class="nav-icon">🤖</span> Agents</div>
     </div>
 
+    <!-- "Show all tools" toggle (lets power users expand the full nav) -->
     <div class="nav-section">
-      <div class="nav-title">Data</div>
-      <div class="nav" data-go="postiz"><span class="nav-icon">📮</span> Postiz</div>
-      <div class="nav" data-go="campaigns"><span class="nav-icon">🎯</span> Campaigns</div>
-      <div class="nav" data-go="agents"><span class="nav-icon">🤖</span> Agents</div>
+      <div class="nav all-tools-toggle" id="all-tools-toggle"><span class="nav-icon">🧰</span> <span id="all-tools-toggle-label">Show all tools</span></div>
     </div>
   </aside>
 
@@ -1591,22 +1590,57 @@ $('#modal-bg').addEventListener('click', e => { if(e.target.id==='modal-bg') clo
 
 // ─── Section switcher ──────────────────────────────────────────
 const TITLES = {
-  brief:'Morning Brief', review:'Review queue', publish:'Publishing',
-  calendar:'Calendar', trends:'Trend Catcher', ideas:'Opportunities',
-  performance:'Performance', learning:'Learning', hooks:'Hook Bank',
-  memes:'Meme Lord', billboards:'Billboard Lab', captions:'Caption Studio',
-  imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO Assistant', gbp:'Google Business',
-  reddit:'Reddit Outreach', faqs:'FAQ Opportunities', postiz:'Postiz',
-  campaigns:'Campaigns', agents:'Agents & health',
+  brief:'Home', review:'Review', publish:'Publish',
+  calendar:'Calendar', create:'Create', insights:'Insights', library:'Library',
+  campaigns:'Brand',
+  trends:'Trends', ideas:'Ideas', performance:'Performance', learning:'Learning',
+  hooks:'Hook Bank', memes:'Meme Lord', billboards:'Billboard Lab', captions:'Caption Studio',
+  imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
+  gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
+  'seo-audit':'SEO Audit', agents:'Agents & health',
 };
+// Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
+// When the new sections exist, just remove the alias and the nav will hit the new section directly.
+const SECTION_ALIASES = {
+  create: 'captions',    // Create = Caption Studio (placeholder; will become a tabbed generator grid)
+  insights: 'performance', // Insights = Performance (placeholder; will gain learning layer + conclusions)
+  library: 'faqs',       // Library = FAQs (placeholder; will become universal search + knowledge)
+};
+
+// Safe section activation — falls back to an alias if the requested section doesn't exist.
 function go(sec){
-  $$('.nav').forEach(n => n.classList.toggle('on', n.dataset.go===sec));
+  const realSec = SECTION_ALIASES[sec] || sec;
+  const targetEl = document.getElementById('sec-'+realSec);
+  if(!targetEl){
+    console.warn('Unknown section:', sec, '(alias:', realSec, ')');
+    return;
+  }
+  $$('.nav').forEach(n => n.classList.toggle('on', (n.dataset.go===sec || n.dataset.go===realSec)));
   $$('.section').forEach(s => s.classList.remove('on'));
-  document.getElementById('sec-'+sec).classList.add('on');
+  targetEl.classList.add('on');
   $('#title').textContent = TITLES[sec] || sec;
   $('#crumbs').textContent = TITLES[sec] || sec;
-  loadSection(sec);
+  // Persist last active section for reload-state
+  try { localStorage.setItem('cos.activeSec', sec); } catch(_){}
+  loadSection(realSec);
 }
+
+// All-tools toggle (expand/collapse the power-user full nav)
+$('#all-tools-toggle').addEventListener('click', () => {
+  const sec = $('#all-tools-section');
+  const isHidden = sec.hasAttribute('hidden');
+  if(isHidden){ sec.removeAttribute('hidden'); $('#all-tools-toggle-label').textContent = 'Hide all tools'; }
+  else { sec.setAttribute('hidden', ''); $('#all-tools-toggle-label').textContent = 'Show all tools'; }
+  try { localStorage.setItem('cos.allTools', isHidden ? '1' : '0'); } catch(_){}
+});
+// Restore from localStorage
+try {
+  if(localStorage.getItem('cos.allTools') === '1'){
+    $('#all-tools-section').removeAttribute('hidden');
+    $('#all-tools-toggle-label').textContent = 'Hide all tools';
+  }
+} catch(_){}
+
 $$('.nav').forEach(n => n.addEventListener('click', () => go(n.dataset.go)));
 
 // Map section-id → render function (used by brand switcher to re-render the active section)
@@ -1631,8 +1665,13 @@ async function renderSection(sec){
   // Brand must load first so the X-Brand header is set on subsequent fetches
   await loadBrandContext();
   attachExplainers();
-  // Default active section: brief
-  const activeSec = Array.from($$('.section.on')).map(s => s.id.replace(/^sec-/, ''))[0] || 'brief';
+  // Default active section: brief. Restore from localStorage if present.
+  let activeSec = 'brief';
+  try { activeSec = localStorage.getItem('cos.activeSec') || 'brief'; } catch(_){}
+  const activeSecEl = document.getElementById('sec-' + (SECTION_ALIASES[activeSec] || activeSec));
+  if(!activeSecEl) activeSec = 'brief';
+  // Mark the right nav item as active (handle alias)
+  $$('.nav').forEach(n => n.classList.toggle('on', (n.dataset.go===activeSec || n.dataset.go===(SECTION_ALIASES[activeSec] || activeSec))));
   go(activeSec);
   // Re-attach explainers whenever sections are re-rendered (since their section-h elements may be replaced)
   setInterval(() => attachExplainers(), 4000);
