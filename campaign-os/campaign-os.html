@@ -35,6 +35,10 @@
   --pill-org:rgba(251,146,60,.18); --strip-tint-a:rgba(52,211,153,.08);
   --strip-tint-b:rgba(96,165,250,.08); --modal-scrim:rgba(0,0,0,.55);
   --badge-voice-tint:rgba(52,211,153,.15); --badge-voice-tint-2:rgba(52,211,153,.12);
+  /* Calendar pillar tints — theme-aware, no inline hex in JS */
+  --pillar-equipment:#f59e0b; --pillar-club-fitting:#f59e0b;
+  --pillar-coaching:#3b82f6; --pillar-community:#10b981;
+  --pillar-events:#ec4899; --pillar-merch:#a78bfa;
 }
 /* ─── DARK THEME (default) ─────────────────────────────────────── */
 [data-theme="dark"]{
@@ -57,6 +61,9 @@
   --strip-tint-b:rgba(96,165,250,.08); --modal-scrim:rgba(0,0,0,.55);
   --badge-voice-tint:rgba(52,211,153,.15); --badge-voice-tint-2:rgba(52,211,153,.12);
   --meta-theme:#0a0f1a;
+  --pillar-equipment:#f59e0b; --pillar-club-fitting:#f59e0b;
+  --pillar-coaching:#3b82f6; --pillar-community:#10b981;
+  --pillar-events:#ec4899; --pillar-merch:#a78bfa;
 }
 /* ─── LIGHT THEME ──────────────────────────────────────────────── */
 [data-theme="light"]{
@@ -79,6 +86,9 @@
   --strip-tint-b:rgba(37,99,235,.10); --modal-scrim:rgba(15,23,42,.45);
   --badge-voice-tint:rgba(16,185,129,.14); --badge-voice-tint-2:rgba(16,185,129,.12);
   --meta-theme:#f6f8fc;
+  --pillar-equipment:#b45309; --pillar-club-fitting:#b45309;
+  --pillar-coaching:#1d4ed8; --pillar-community:#047857;
+  --pillar-events:#be185d; --pillar-merch:#6d28d9;
 }
 /* Honor system preference when no override stored */
 @media (prefers-color-scheme: light){
@@ -102,6 +112,9 @@
     --strip-tint-b:rgba(37,99,235,.10); --modal-scrim:rgba(15,23,42,.45);
     --badge-voice-tint:rgba(16,185,129,.14); --badge-voice-tint-2:rgba(16,185,129,.12);
     --meta-theme:#f6f8fc;
+    --pillar-equipment:#b45309; --pillar-club-fitting:#b45309;
+    --pillar-coaching:#1d4ed8; --pillar-community:#047857;
+    --pillar-events:#be185d; --pillar-merch:#6d28d9;
   }
 }
 /* Theme switcher chip */
@@ -307,6 +320,12 @@ a:hover{text-decoration:underline}
 .cal-slot.review{border-left-color:var(--yel)}
 .cal-slot.blocked{border-left-color:var(--red)}
 .cal-slot.scheduled{border-left-color:var(--blu)}
+/* Pillar tints (calendar slot left-border) — theme-aware via tokens */
+.cal-slot.pillar-equipment,.cal-slot.pillar-club-fitting{border-left-color:var(--pillar-equipment)}
+.cal-slot.pillar-coaching{border-left-color:var(--pillar-coaching)}
+.cal-slot.pillar-community{border-left-color:var(--pillar-community)}
+.cal-slot.pillar-events{border-left-color:var(--pillar-events)}
+.cal-slot.pillar-merch{border-left-color:var(--pillar-merch)}
 .cal-slot .cal-slot-name{font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-slot .cal-slot-meta{font-size:10px;color:var(--tx-3);margin-top:2px;display:flex;gap:4px;align-items:center}
 .cal-slot .cal-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
@@ -581,8 +600,15 @@ a:hover{text-decoration:underline}
 
     <!-- ── IDEAS ─────────────────────────────────────────── -->
     <section class="section" id="sec-ideas">
-      <div class="section-h"><h2>Opportunities</h2><span class="sub">Ideas · missed · upsell · bundles · funnel leaks</span></div>
+      <div class="section-h">
+        <h2>Opportunities</h2>
+        <span class="sub">Ideas · missed · upsell · bundles · funnel leaks</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn primary" id="ideas-gen">💡 Generate new ideas</button>
+        </div>
+      </div>
       <div class="grid">
+        <div class="card col-12"><div class="card-h"><h3>🆕 Just generated</h3></div><div id="ideas-fresh"></div></div>
         <div class="card col-6"><div class="card-h"><h3>💡 Content ideas</h3><span class="h-meta" id="ideas-total">—</span></div><div id="ideas-list"></div></div>
         <div class="card col-3"><div class="card-h"><h3>🚀 Post today</h3></div><div id="ideas-today"></div></div>
         <div class="card col-3"><div class="card-h"><h3>📆 This week</h3></div><div id="ideas-week"></div></div>
@@ -608,6 +634,15 @@ a:hover{text-decoration:underline}
         <div class="card col-6"><div class="card-h"><h3>🧪 A/B tests</h3></div><div id="perf-ab"></div></div>
         <div class="card col-6"><div class="card-h"><h3>🌐 Top pages by sessions</h3></div><div id="perf-pages"></div></div>
         <div class="card col-12"><div class="card-h"><h3>💡 Insights</h3></div><div id="perf-insights"></div></div>
+      </div>
+      <!-- Why-explain panel — answers "why did this post work/fail" with real evidence -->
+      <div class="card" style="margin-top:1rem"><div class="card-h"><h3>🔬 Why this worked / failed — explainer</h3></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+          <select id="why-asset" style="flex:1;min-width:240px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bg-3);border-radius:6px;padding:6px 10px;font-size:12px"></select>
+          <button class="btn primary" id="why-explain-btn">🔍 Explain</button>
+        </div>
+        <div id="why-result" class="muted" style="font-size:13px;line-height:1.5">Pick an asset from the dropdown and hit Explain to see the evidence chain.</div>
+      </div>
       </div>
     </section>
 
@@ -644,6 +679,9 @@ a:hover{text-decoration:underline}
       <div class="section-h">
         <h2>Meme Lord <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · meme historian</span></h2>
         <span class="sub" id="memes-summary">—</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn primary" id="mem-gen-fresh">🎲 Generate fresh meme concept</button>
+        </div>
       </div>
 
       <!-- Filter bar -->
@@ -721,7 +759,13 @@ a:hover{text-decoration:underline}
 
     <!-- ── BILLBOARDS ────────────────────────────────────── -->
     <section class="section" id="sec-billboards">
-      <div class="section-h"><h2>Billboard Lab</h2><span class="sub" id="bb-summary">—</span></div>
+      <div class="section-h">
+        <h2>Billboard Lab</h2>
+        <span class="sub" id="bb-summary">—</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn primary" id="bb-gen">🪧 Generate 5 headline concepts</button>
+        </div>
+      </div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3>🪧 Concepts</h3></div><div id="bb-list"></div></div>
         <div class="card col-6"><div class="card-h"><h3>🎨 Visual briefs</h3></div><div id="bb-briefs"></div></div>
@@ -1422,18 +1466,28 @@ async function renderReview(){
   if(!S.review) S.review = await API.get('/api/intel/review_inbox');
   const r = S.review;
   $('#review-summary').textContent = r.summary;
-  const renderRow = x => `
-    <div class="review" onclick="openReview('${x.campaignId}','${x.assetId}')">
-      <div class="review-cap">
-        <div class="review-cap-t">${esc(x.name)} <span class="muted">· ${esc(x.campaignName || x.campaignId)}</span></div>
+  const renderRow = x => {
+    const safeId = esc(x.assetId || '');
+    const safeCid = esc(x.campaignId || '');
+    const safeName = esc(x.name || 'Untitled');
+    return `
+    <div class="review" data-aid="${safeId}" data-cid="${safeCid}">
+      <div class="review-cap" onclick="openReview('${safeCid}','${safeId}')" style="cursor:pointer">
+        <div class="review-cap-t">${safeName} <span class="muted">· ${esc(x.campaignName || x.campaignId)}</span></div>
         <div class="review-cap-x">${esc(x.caption || x.issue || x.reason || 'No preview')}</div>
       </div>
       <div class="review-meta">
         ${pill(x.approvalStatus||'draft', x.approvalStatus||'draft')}
         ${x.platform ? pill('live', x.platform) : ''}
         <span class="muted">${esc((x.updatedAt||'').slice(0,10))}</span>
+        <span class="review-actions" style="margin-left:auto;display:flex;gap:.35rem">
+          <button class="btn-mini" onclick="openReview('${safeCid}','${safeId}')">Open</button>
+          <button class="btn-mini" style="color:var(--red)" onclick="window.reviewAction('${safeCid}','${safeId}','rejected')">Reject</button>
+          <button class="btn-mini primary" onclick="window.reviewAction('${safeCid}','${safeId}','approved')">✓ Approve</button>
+        </span>
       </div>
     </div>`;
+  };
   $('#review-pending').innerHTML = r.pending.length ? r.pending.map(renderRow).join('') : '<div class="empty">No assets pending review</div>';
   $('#review-approved').innerHTML = r.approved.length ? r.approved.map(renderRow).join('') : '<div class="empty">No approved assets</div>';
   $('#review-rejected').innerHTML = r.rejected.length ? r.rejected.map(renderRow).join('') : '<div class="empty">No rejected assets</div>';
@@ -1584,17 +1638,38 @@ function calSlotHtml(s){
   const label = (s.pillar || s.brand || s.platform || 'content').replace(/_/g,' ');
   const colorStyle = hasColor ? ` style="border-left-color:${esc(color)}"` : '';
   const dotStyle = hasColor ? ` style="background:${esc(color)}"` : '';
-  return `<div class="cal-slot ${cls}" draggable="true"
+  // Extract a short title from caption/name
+  const rawName = s.name || s.caption || 'Untitled';
+  const firstLine = rawName.split(/[\n\r]/)[0].trim();
+  const title = firstLine.length > 0 ? firstLine : 'Untitled';
+  // Platform icon
+  const platIcon = ({instagram:'📷', tiktok:'🎬', facebook:'📘', twitter:'🐦', gmb:'📍'})[s.platform] || '📱';
+  // Pillar color tint if no color set — uses CSS classes (theme-aware), no inline hex.
+  const pillarKeys = ['equipment','club-fitting','coaching','community','events','merch'];
+  const normLabel = (s.pillar || s.brand || s.platform || '').toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'');
+  const matchedPillar = pillarKeys.find(k => normLabel === k || normLabel.includes(k));
+  const pillarCls = matchedPillar ? ' pillar-' + matchedPillar : '';
+  const tint = '';
+  const titleFull = title.replace(/[\\\"<>]/g, '');
+  const campaignName = s.campaignName || (s.campaignId ? `Campaign ${s.campaignId.slice(0,8)}` : 'No campaign');
+  const tooltipParts = [
+    `📅 ${esc(s.scheduledFor||'?')}`,
+    `${platIcon} ${esc(s.platform||'instagram')}`,
+    `🏷 ${esc(label)}`,
+    `📦 ${esc(campaignName)}`,
+    `📊 ${esc(s.approvalStatus||'')} ${esc(s.publishStatus||'')}`.trim()
+  ];
+  return `<div class="cal-slot ${cls}${pillarCls}" draggable="true"
     data-asset-id="${esc(s.assetId || '')}"
     data-campaign-id="${esc(s.campaignId || '')}"
     data-source="${esc(s.source || 'campaign')}"
     data-scheduled-for="${esc(s.scheduledFor || '')}"
-    data-name="${esc(s.name || '')}"
+    data-name="${esc(titleFull)}"
     ${colorStyle}
     ondragstart="calDragStart(event)" ondragend="calDragEnd(event)"
-    title="Drag to reschedule · ${esc(label)}">
-    <div class="cal-slot-name">${esc((s.name||'Untitled').slice(0,42))}</div>
-    <div class="cal-slot-meta"><span class="cal-dot"${dotStyle}></span>${esc(label.slice(0,22))} · ${esc(s.platform || 'instagram')}</div>
+    title="${tooltipParts.join(' · ')}">
+    <div class="cal-slot-name">${platIcon} ${esc(title.slice(0,38))}</div>
+    <div class="cal-slot-meta"><span class="cal-dot"${dotStyle}></span>${esc(label.slice(0,18))} · ${esc(campaignName.slice(0,18))}</div>
   </div>`;
 }
 async function renderCalendar(){
@@ -1680,6 +1755,35 @@ async function renderIdeas(){
   $('#ideas-bundles').innerHTML = renderList(d.bundles);
   $('#ideas-funnel').innerHTML = renderList(d.funnel_leaks);
   $('#ideas-landing').innerHTML = renderList(d.landing_fixes);
+  // bind generate-new-ideas button
+  const genBtn = $('#ideas-gen');
+  if (genBtn && !genBtn._bound) {
+    genBtn._bound = true;
+    genBtn.addEventListener('click', async () => {
+      genBtn.disabled = true; genBtn.textContent = '💡 Generating…';
+      try {
+        const r = await API.post('/api/intel/generate_ideas', { n: 6, platform: 'instagram' });
+        if (!r.ok || !r.ideas || !r.ideas.length) {
+          toast('No idea generated — try again', 'err');
+          return;
+        }
+        const html = r.ideas.map(i => `
+          <div class="li">
+            <div class="li-body">
+              <div class="li-title">${esc(i.title)} <span class="pill primary" style="font-size:10px">${esc(i.pillar||'')}</span></div>
+              <div class="li-meta"><b>Why:</b> ${esc(i.why||'')}${i.hook ? ` · <b>Hook:</b> ${esc(i.hook).slice(0,80)}` : ''}</div>
+            </div>
+            <div class="li-act"><button class="btn-mini" onclick="navigator.clipboard?.writeText('${esc(i.title)}');toast('Copied','ok')">Copy</button></div>
+          </div>`).join('');
+        $('#ideas-fresh').innerHTML = html;
+        toast('Generated ' + r.count + ' fresh ideas', 'ok');
+      } catch(e) {
+        toast('Generate failed: ' + (e.message || e), 'err');
+      } finally {
+        genBtn.disabled = false; genBtn.textContent = '💡 Generate new ideas';
+      }
+    });
+  }
 }
 
 // ─── PERFORMANCE ────────────────────────────────────────────────
@@ -1722,6 +1826,52 @@ async function renderPerformance(){
   $('#perf-insights').innerHTML = safeList(e.insights, 12).map(i => `
     <div class="review"><div class="review-cap"><div class="review-cap-t">${esc(i.claim)}</div></div><div class="review-meta">${pill(i.kind==='seo-trend-up'?'on':i.kind==='seo-trend-down'?'blocked':'live', i.kind||'')}</div></div>
   `).join('') || '<div class="empty">No insights yet</div>';
+  // Populate why-asset dropdown with the top IG posts
+  const whySel = $('#why-asset');
+  if (whySel) {
+    const top = (p.instagram?.top_posts || []).slice(0, 20);
+    if (!whySel.options.length) {
+      whySel.innerHTML = '<option value="">— pick an asset —</option>' +
+        top.map(it => `<option value="${esc(it.post_id || it.id || '')}">${esc((it.hook_text || it.captionPreview || it.caption || 'Untitled').slice(0, 80))}</option>`).join('');
+    }
+  }
+  const whyBtn = $('#why-explain-btn');
+  if (whyBtn && !whyBtn._bound) {
+    whyBtn._bound = true;
+    whyBtn.addEventListener('click', async () => {
+      const sel = $('#why-asset');
+      const id = sel?.value;
+      const out = $('#why-result');
+      if (!id) { out.innerHTML = '<i>Pick an asset first</i>'; return; }
+      out.innerHTML = 'Computing explanation…';
+      try {
+        // Pull from top_posts if it matches, else engagement endpoint
+        const top = (S.perf?.instagram?.top_posts || []);
+        const match = top.find(it => (it.post_id || it.id) == id);
+        const er = match ? parseFloat(match.engagementRate || match.engagement_rate || 0) : 0;
+        const reach = match?.reach || match?.impressions || null;
+        const likes = match?.likes ?? null;
+        const comments = match?.comments ?? null;
+        const cta = match?.cta_type || match?.cta || '?';
+        const hook = match?.hook_text || match?.captionPreview || match?.caption || '?';
+        const pillar = match?.topic_cluster || '?';
+        const fmt = match?.format_type || match?.format || '?';
+        let r = null;
+        try { r = await API.get('/api/engagement/' + encodeURIComponent(id)); } catch(_) { r = null; }
+        const verdict = (er > 4) ? '✅ Strong performer'
+                      : (er > 2) ? '🟡 Average performer'
+                      : (er > 0) ? '🔴 Underperformer'
+                      : '⚪ No engagement data';
+        out.innerHTML = `
+          <div style="margin-bottom:.6rem"><b>${verdict}</b> — engagement rate ${er ? er.toFixed(2) + '%' : '—'} · reach ${reach ?? '—'}${likes != null ? ' · likes ' + likes : ''}${comments != null ? ' · comments ' + comments : ''}</div>
+          <div style="margin-bottom:.3rem"><b>Hook:</b> ${esc(String(hook).slice(0,160))}</div>
+          <div style="margin-bottom:.3rem"><b>Pillar:</b> ${esc(pillar)} &nbsp; <b>Format:</b> ${esc(fmt)} &nbsp; <b>CTA:</b> ${esc(cta)}</div>
+          <div style="margin-top:.6rem;padding:.6rem;background:var(--bg-3);border-radius:6px"><b>Why:</b> ${esc(r?.explanation || r?.why || ('Engagement rate ' + er.toFixed(2) + '% vs 30-day avg. Higher than 2× average = strong. Lower than 0.5× = underperformer.'))}</div>`;
+      } catch(err) {
+        out.innerHTML = '<i>Engagement endpoint failed: ' + esc(err.message || String(err)) + '</i>';
+      }
+    });
+  }
 }
 
 // ─── LEARNING ───────────────────────────────────────────────────
@@ -1958,6 +2108,39 @@ async function renderMemes(){
     $('#memes-summary').textContent = 'Failed to load memes';
     toast('Meme historian failed', 'err');
   }
+  // bind generate-fresh button (idempotent)
+  const genBtn = $('#mem-gen-fresh');
+  if (genBtn && !genBtn._bound) {
+    genBtn._bound = true;
+    genBtn.addEventListener('click', async () => {
+      const pillar = MEM_STATE.pillar || 'education';
+      const platform = MEM_STATE.platform || 'instagram';
+      const voice = MEM_STATE.voice || 'swing-shack';
+      genBtn.disabled = true; genBtn.textContent = '🎲 Generating…';
+      try {
+        const r = await API.post('/api/intel/generate_meme', { n: 5, pillar, platform, voice });
+        if (!r.ok || !r.memes || !r.memes.length) {
+          toast('No meme match — try a different pillar/voice', 'err');
+          return;
+        }
+        const html = r.memes.map(m => `
+          <div class="li" style="cursor:pointer" onclick="document.getElementById('meme-modal').style.display='flex';document.getElementById('meme-modal-title').textContent='${esc(m.name)}';document.getElementById('meme-modal-meta').textContent='Peak ${m.peak_year||'?'} · tier ${m.tier||'?'} · fit ${m.brand_fit}';document.getElementById('meme-modal-body').innerHTML='<p style=margin:0 0 .75rem 0><strong>Why this one</strong>: ${esc(m.why_pick||'')}</p><p style=margin:0><strong>Hook suggestion</strong>: ${esc(m.hook_suggestion||'(none — pick a fit-seed)')}</p>'">
+            <div class="li-body">
+              <div class="li-title">${esc(m.name)} <span class="muted" style="font-size:11px">peak ${m.peak_year||'?'} · tier ${esc(m.tier||'')}</span></div>
+              <div class="li-meta">Fit ${m.brand_fit} · ${esc(m.why_pick||'').slice(0,140)}</div>
+            </div>
+            <div class="li-act"><button class="btn-mini">Use →</button></div>
+          </div>`).join('');
+        $('#memes-picks').innerHTML = html + ($('#memes-picks').innerHTML || '');
+        $('#mem-picks-summary').textContent = `${r.memes.length} freshly generated for ${r.voice}/${r.pillar}/${r.platform}`;
+        toast('Generated ' + r.memes.length + ' fresh meme concepts', 'ok');
+      } catch(e) {
+        toast('Generate failed: ' + (e.message || e), 'err');
+      } finally {
+        genBtn.disabled = false; genBtn.textContent = '🎲 Generate fresh meme concept';
+      }
+    });
+  }
 }
 
 // ─── BILLBOARDS ─────────────────────────────────────────────────
@@ -1967,6 +2150,38 @@ async function renderBillboards(){
   $('#bb-summary').textContent = b.summary;
   $('#bb-list').innerHTML = safeList(b.billboards, 12).map(itemHtml).join('') || '<div class="empty">No concepts yet</div>';
   $('#bb-briefs').innerHTML = safeList(b.briefs, 12).map(itemHtml).join('') || '<div class="empty">No visual briefs</div>';
+  // bind generate-headlines button (idempotent)
+  const genBtn = $('#bb-gen');
+  if (genBtn && !genBtn._bound) {
+    genBtn._bound = true;
+    genBtn.addEventListener('click', async () => {
+      genBtn.disabled = true; genBtn.textContent = '🪧 Generating…';
+      try {
+        const r = await API.post('/api/intel/generate_headlines', { n: 5 });
+        if (!r.ok || !r.headlines || !r.headlines.length) {
+          toast('No headline generated', 'err');
+          return;
+        }
+        const html = r.headlines.map((h, i) => `
+          <div class="li">
+            <div class="li-body">
+              <div class="li-title"><span class="pill primary">C${i+1}</span> ${esc(h.headline)}</div>
+              <div class="li-meta">${esc(h.source || 'pool')} · seed: ${esc((h.seed||'').slice(0,80))}</div>
+            </div>
+            <div class="li-act"><button class="btn-mini" onclick="navigator.clipboard?.writeText('${esc(h.headline)}');toast('Copied','ok')">Copy</button></div>
+          </div>`).join('');
+        // Prepend freshly generated to existing list
+        const existing = $('#bb-list').innerHTML || '';
+        $('#bb-list').innerHTML = html + existing;
+        $('#bb-summary').textContent = `${r.count} freshly generated · ${b.summary || ''}`;
+        toast('Generated ' + r.count + ' billboard concepts', 'ok');
+      } catch(e) {
+        toast('Generate failed: ' + (e.message || e), 'err');
+      } finally {
+        genBtn.disabled = false; genBtn.textContent = '🪧 Generate 5 headline concepts';
+      }
+    });
+  }
 }
 
 // ─── CAPTIONS ───────────────────────────────────────────────────

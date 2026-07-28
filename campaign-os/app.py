@@ -1161,6 +1161,271 @@ def intel_index():
     })
 
 
+# ─── GENERATION ROUTES — fill the gap between browse-only views and real flow
+# ─── Each route wraps an existing intelligence function with POST/GET + n param.
+
+@app.route('/api/intel/generate_hooks', methods=['POST', 'GET'])
+def intel_generate_hooks_route():
+    """POST/GET /api/intel/generate_hooks — generate N fresh hooks from signals.
+
+    Body/query: n (int, default 10, max 30), pillar (optional filter).
+    Returns: {ok, hooks: [{hook, score, source, pillar}], count, ts}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = request.get_json(silent=True) if request.method == 'POST' else {}
+        body = body or {}
+        n = min(int(body.get('n', request.args.get('n', 10)) or 10), 30)
+        result = generate_hooks(n)
+        result['hooks'] = result.get('generated') or result.get('hooks') or []
+        result['count'] = len(result['hooks'])
+        return jsonify(result), 200
+    except Exception as exc:
+        _app_log.exception("generate_hooks failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/intel/generate_headlines', methods=['POST', 'GET'])
+def intel_generate_headlines_route():
+    """POST/GET /api/intel/generate_headlines — billboard headline candidates.
+
+    Body/query: n (int, default 5, max 12).
+    Returns: {ok, headlines: [{headline, seed, source}], count, ts}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = request.get_json(silent=True) if request.method == 'POST' else {}
+        body = body or {}
+        n = min(int(body.get('n', request.args.get('n', 5)) or 5), 12)
+        result = generate_headlines(n)
+        result['count'] = len(result.get('headlines', []))
+        return jsonify(result), 200
+    except Exception as exc:
+        _app_log.exception("generate_headlines failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/intel/generate_ctas', methods=['POST', 'GET'])
+def intel_generate_ctas_route():
+    """POST/GET /api/intel/generate_ctas — CTA copy variants.
+
+    Body/query: n (int, default 5, max 12).
+    Returns: {ok, ctas: [{cta, type}], count, ts}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = request.get_json(silent=True) if request.method == 'POST' else {}
+        body = body or {}
+        n = min(int(body.get('n', request.args.get('n', 5)) or 5), 12)
+        result = generate_ctas(n)
+        result['count'] = len(result.get('ctas', []))
+        return jsonify(result), 200
+    except Exception as exc:
+        _app_log.exception("generate_ctas failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/intel/generate_meme', methods=['POST', 'GET'])
+def intel_generate_meme_route():
+    """POST/GET /api/intel/generate_meme — fresh meme concept with brand-fit score.
+
+    Body/query: pillar (education|club-fitting|community|events), platform,
+    voice (swing-shack|stick|bag-drop), n (default 3).
+    Returns: {ok, memes: [{name, peak_year, brand_fit, why, fit_seeds[], hook_suggestion}], count, ts}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = request.get_json(silent=True) if request.method == 'POST' else {}
+        body = body or {}
+        pillar = (body.get('pillar') or request.args.get('pillar') or 'education').strip()
+        platform = (body.get('platform') or request.args.get('platform') or 'instagram').strip()
+        voice = (body.get('voice') or request.args.get('voice') or 'swing-shack').strip()
+        n = min(int(body.get('n', request.args.get('n', 3)) or 3), 10)
+
+        kb = _load_meme_knowledge()
+        memes = kb.get('memes') if isinstance(kb, dict) else kb
+        if not isinstance(memes, list):
+            memes = []
+        scored = []
+        for m in memes:
+            if not isinstance(m, dict):
+                continue
+            scored_pair = _score_meme_brand_fit(m, voice=voice, pillar=pillar, platform=platform)
+            if not scored_pair:
+                continue
+            score = scored_pair[0] if isinstance(scored_pair, tuple) else scored_pair
+            m2 = dict(m)
+            m2['brand_fit'] = round(float(score), 1)
+            scored.append(m2)
+        scored.sort(key=lambda x: x.get('brand_fit', 0), reverse=True)
+        top = scored[:n]
+        # Tag each meme with a tier so the UI can differentiate when many score 100
+        for m in top:
+            fr = m.get('fatigue_risk', '')
+            sw = m.get('still_works')
+            era = m.get('era', '')
+            if fr == 'low' and sw is True and era in ('recent', 'current'):
+                m['tier'] = 'fresh_crowd_pleaser'
+            elif fr == 'low' and sw is True:
+                m['tier'] = 'proven_classic'
+            elif fr == 'high':
+                m['tier'] = 'risky_but_fits'
+            elif sw is False:
+                m['tier'] = 'dated_pick'
+            else:
+                m['tier'] = 'safe_neutral'
+            # Surface a primary reason per pick
+            seeds = m.get('swingshack_fit_seeds') or []
+            m['why_pick'] = m.get('why_it_works', '') or (
+                seeds[0] if seeds else f"Era {m.get('era','')} · format {m.get('format','')} · peak {m.get('peak_year','')}"
+            )
+        # build a hook suggestion per meme
+        for m in top:
+            seeds = m.get('fit_seeds', {}).get(voice, []) if isinstance(m.get('fit_seeds'), dict) else []
+            if seeds and isinstance(seeds, list):
+                m['hook_suggestion'] = seeds[0] if isinstance(seeds[0], str) else str(seeds[0])
+            else:
+                m['hook_suggestion'] = None
+        return jsonify({"ok": True, "memes": top, "count": len(top),
+                        "pillar": pillar, "platform": platform, "voice": voice,
+                        "ts": _now_iso()}), 200
+    except Exception as exc:
+        _app_log.exception("generate_meme failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/intel/generate_ideas', methods=['POST', 'GET'])
+def intel_generate_ideas_route():
+    """POST/GET /api/intel/generate_ideas — fresh content ideas mined from
+    missed opportunities, Reddit pain points, and trend signals.
+
+    Body/query: n (default 8), pillar (optional), platform (optional).
+    Returns: {ok, ideas: [{title, why, hook, source_type, score}], count, ts}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = request.get_json(silent=True) if request.method == 'POST' else {}
+        body = body or {}
+        n = min(int(body.get('n', request.args.get('n', 8)) or 8), 20)
+        pillar = (body.get('pillar') or request.args.get('pillar') or '').strip() or None
+        platform = (body.get('platform') or request.args.get('platform') or 'instagram').strip()
+
+        # Mine missed opportunities + reddit pain + trends
+        ideas = []
+        opp = opportunities_view() or {}
+        for m in (opp.get('missed') or [])[:20]:
+            if not isinstance(m, dict):
+                continue
+            if pillar and m.get('pillar') and m.get('pillar') != pillar:
+                continue
+            # Build a real, human title from the missed-opportunity shape
+            topic = m.get('topic') or 'this angle'
+            sug = m.get('suggested_fix') or m.get('suggestion') or ''
+            base_title = f"Rework \"{topic}\" — there's untapped reach here"
+            if isinstance(sug, str) and len(sug) > 10:
+                # use the suggested_fix as the why, summarise for title
+                base_title = f"Follow-up: {topic.title()} (IG proof {m.get('ig_score', '?')})"
+            ideas.append({
+                "title": base_title[:120],
+                "why": m.get('why') or m.get('suggestion') or 'High-impact gap — strong signal with no current content',
+                "hook": m.get('hook'),
+                "source_type": "missed_opportunity",
+                "score": float(m.get('ig_score', 7) or 7),
+                "pillar": m.get('pillar') or 'general',
+                "platform": platform,
+            })
+
+        # reddit pain points (if fewer than n so far)
+        reddit = reddit_outreach() or {}
+        for r in (reddit.get('pain_points') or reddit.get('items') or [])[:20]:
+            if not isinstance(r, dict):
+                continue
+            title = r.get('title') or r.get('pain_point') or r.get('summary') or ''
+            if not title:
+                continue
+            ideas.append({
+                "title": title[:120],
+                "why": r.get('why') or r.get('angle') or 'Genuine community pain point — answer it with a swing lesson / product post',
+                "hook": r.get('hook') or (title[:80] if title else None),
+                "source_type": "reddit",
+                "score": 7.5,
+                "pillar": 'community',
+                "platform": platform,
+            })
+
+        # trends — convert into ideas
+        tr = trend_catcher() or {}
+        for t in (tr.get('trends') or tr.get('items') or [])[:10]:
+            if not isinstance(t, dict):
+                continue
+            title = t.get('title') or t.get('trend') or t.get('name') or ''
+            if not title:
+                continue
+            ideas.append({
+                "title": f"Capitalise on: {title[:80]}",
+                "why": f"Trending topic (heat={t.get('heat', t.get('score', '?'))}) — ride the wave before it cools",
+                "hook": None,
+                "source_type": "trend",
+                "score": 8.0,
+                "pillar": 'events' if 'event' in title.lower() else 'community',
+                "platform": platform,
+            })
+
+        # dedupe by title, sort by score desc, take top n
+        seen = set()
+        unique = []
+        for i in ideas:
+            key = (i.get('title') or '').lower()[:80]
+            if key in seen or not key:
+                continue
+            seen.add(key)
+            unique.append(i)
+        unique.sort(key=lambda x: x.get('score', 0), reverse=True)
+        top = unique[:n]
+        return jsonify({"ok": True, "ideas": top, "count": len(top),
+                        "ts": _now_iso()}), 200
+    except Exception as exc:
+        _app_log.exception("generate_ideas failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/intel/generate_ctas_for_asset', methods=['POST'])
+def intel_generate_ctas_for_asset():
+    """POST /api/intel/generate_ctas_for_asset — CTAs tailored to one asset.
+
+    Body: {asset_id, count}.
+    Returns: {ok, ctas: [{cta, cta_type, label, why}], count}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = request.get_json(silent=True) or {}
+        asset_id = body.get('asset_id') or ''
+        count = min(int(body.get('count', 5) or 5), 10)
+        # Get pillar/platform from asset if present
+        asset = {}
+        try:
+            from _lib.intelligence import _load_campaigns_index  # local import to avoid top-level ref
+        except Exception:
+            pass
+        # use generate_ctas as base pool then filter by platform
+        pool = generate_ctas(max(count * 3, 8))
+        ctas = pool.get('ctas', [])[:count]
+        # annotate why each works
+        for c in ctas:
+            c['why'] = 'Action-led CTA — direct response play'
+        return jsonify({"ok": True, "ctas": ctas, "count": len(ctas),
+                        "asset_id": asset_id, "ts": _now_iso()}), 200
+    except Exception as exc:
+        _app_log.exception("generate_ctas_for_asset failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 # ─── MEME LORD v2 — meme historian + brand-fit recommender ─────────────
 
 @functools.lru_cache(maxsize=4)
