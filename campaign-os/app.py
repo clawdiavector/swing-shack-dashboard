@@ -1484,6 +1484,513 @@ def meme_apply_route():
     }), 200
 
 
+# ─── HASHTAG & SEO PACK ENGINE — /api/intel/<verb> routes ─────────────
+
+@functools.lru_cache(maxsize=4)
+def _load_hashtag_seo(_cache_key=0):
+    """Load hashtag_seo_pack.json with DATA_DIR + bundled fallback.
+
+    The `_cache_key` sentinel lets tests force a fresh load when DATA_DIR is
+    monkey-patched. In normal operation we always call without arguments so
+    the cache hits.
+    """
+    paths = _data_paths()
+    candidate = os.path.join(paths['data_dir'], 'hashtag_seo_pack.json')
+    if not os.path.exists(candidate):
+        candidate = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '..', 'data', 'hashtag_seo_pack.json'
+        )
+    try:
+        with open(candidate, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            data.setdefault('voices', {})
+            data.setdefault('pillars', {})
+            data.setdefault('platforms', {})
+            data.setdefault('trending_signals', [])
+            data.setdefault('banned', [])
+            data.setdefault('seo_templates', {})
+            data.setdefault('brand', {})
+            return data
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {
+            "voices": {}, "pillars": {}, "platforms": {},
+            "trending_signals": [], "banned": [], "seo_templates": {},
+            "brand": {}, "stats": {}
+        }
+
+
+_VALID_PILLARS = {'education', 'club-fitting', 'community', 'events'}
+_VALID_VOICES = {'swing-shack', 'stick', 'bag-drop'}
+_VALID_PLATFORMS = {'instagram', 'tiktok', 'facebook', 'twitter', 'gmb'}
+
+
+def _normalise_tag(tag):
+    """Normalise a hashtag: lowercase, strip whitespace, ensure leading '#'."""
+    if not isinstance(tag, str):
+        return None
+    t = tag.strip().lower()
+    if not t:
+        return None
+    if not t.startswith('#'):
+        t = '#' + t
+    # strip duplicate leading '#'
+    while t.startswith('##'):
+        t = t[1:]
+    # validate: only alnum + underscore after the '#'
+    body = t[1:]
+    if not body:
+        return None
+    return t
+
+
+def _build_hashtag_set(pack, pillar, voice, platform, count, include_trending=True):
+    """Compose a curated hashtag set for a (pillar, voice, platform) trio.
+
+    Returns (ordered_list, by_category_dict). Order is:
+      1) banned filter applied first
+      2) brand/voice vocabulary seed (1 tag)
+      3) pillar core (2-3)
+      4) pillar long_tail (1-2)
+      5) pillar local (1-2)
+      6) pillar community (1)
+      7) voice-specific (1 from vocabulary_seed)
+      8) platform-specific (when recommended)
+      9) trending signals that match pillar or voice
+    The total list is then capped to `count`.
+    """
+    banned = {_normalise_tag(b['tag']) for b in pack.get('banned', []) if isinstance(b, dict)}
+
+    pillar_obj = (pack.get('pillars') or {}).get(pillar) or {}
+    voice_obj = (pack.get('voices') or {}).get(voice) or {}
+    platform_obj = (pack.get('platforms') or {}).get(platform) or {}
+
+    by_category = {
+        'pillar_core': [],
+        'pillar_long_tail': [],
+        'pillar_local': [],
+        'pillar_community': [],
+        'voice_vocab': [],
+        'trending': [],
+        'brand': [],
+    }
+
+    # 1) Brand: Swing Shack's own markers
+    for t in ('#swingshack',):
+        nt = _normalise_tag(t)
+        if nt and nt not in banned:
+            by_category['brand'].append(nt)
+
+    # 2) Pillar core / long-tail / local / community
+    for cat_key, src_key in (
+        ('pillar_core', 'core'),
+        ('pillar_long_tail', 'long_tail'),
+        ('pillar_local', 'local'),
+        ('pillar_community', 'community'),
+    ):
+        for t in pillar_obj.get(src_key, []) or []:
+            nt = _normalise_tag(t)
+            if nt and nt not in banned:
+                by_category[cat_key].append(nt)
+
+    # 3) Voice vocabulary seed
+    seed = voice_obj.get('vocabulary_seed') or []
+    if seed:
+        # build one voice tag from the first seed word + 'golf' suffix
+        seed_word = str(seed[0]).strip().lower().replace(' ', '')
+        if seed_word:
+            vt = '#' + seed_word + 'golf'
+            nt = _normalise_tag(vt)
+            if nt and nt not in banned:
+                by_category['voice_vocab'].append(nt)
+
+    # 4) Trending signals filtered by pillar or voice
+    if include_trending:
+        for sig in pack.get('trending_signals', []) or []:
+            if not isinstance(sig, dict):
+                continue
+            tag = _normalise_tag(sig.get('tag'))
+            if not tag or tag in banned:
+                continue
+            sig_pillar = sig.get('pillar')
+            sig_voice = sig.get('voice')
+            if sig_pillar == pillar or sig_voice == voice:
+                by_category['trending'].append(tag)
+
+    # Compose ordered list — strict priority
+    ordered = []
+    seen = set()
+    for key in ('brand', 'pillar_core', 'pillar_long_tail',
+                'pillar_local', 'pillar_community', 'voice_vocab',
+                'trending'):
+        for tag in by_category[key]:
+            if tag in seen:
+                continue
+            seen.add(tag)
+            ordered.append(tag)
+
+    # If we don't have enough, append unique pillar tags from other pillars
+    if len(ordered) < count:
+        for other_pillar, other_obj in (pack.get('pillars') or {}).items():
+            if other_pillar == pillar:
+                continue
+            for src_key in ('core', 'long_tail', 'local'):
+                for t in (other_obj.get(src_key) or [])[:1]:
+                    nt = _normalise_tag(t)
+                    if nt and nt not in seen and nt not in banned:
+                        seen.add(nt)
+                        ordered.append(nt)
+                        if len(ordered) >= count:
+                            break
+                if len(ordered) >= count:
+                    break
+            if len(ordered) >= count:
+                break
+
+    # Cap to requested count (also respect platform max)
+    platform_max = platform_obj.get('hashtag_count_max')
+    cap = count
+    if isinstance(platform_max, int) and platform_max > 0:
+        cap = min(cap, platform_max)
+    ordered = ordered[:max(1, cap)]
+
+    # GMB returns empty (no hashtags there)
+    if platform == 'gmb':
+        ordered = []
+
+    return ordered, by_category
+
+
+def _score_hashtag_set(ordered_tags, by_category, platform_obj):
+    """Compute a simple quality score 0..100 for a hashtag set.
+
+    Heuristics:
+      +20  has at least 1 brand tag
+      +15  has 3+ pillar_core
+      +15  has 1+ pillar_local
+      +10  has 1+ trending
+      +10  has 1+ voice_vocab
+      +10  total count between platform recommended and max
+      −15  total count > platform max
+      −20  zero pillar_core (off-brand)
+    """
+    score = 0
+    reasons = []
+    if by_category.get('brand'):
+        score += 20
+        reasons.append('brand tag present (+20)')
+    core = len(by_category.get('pillar_core', []))
+    if core >= 3:
+        score += 15
+        reasons.append(f'{core} pillar core tags (+15)')
+    elif core >= 1:
+        score += 8
+        reasons.append(f'{core} pillar core tag(s) (+8)')
+    if by_category.get('pillar_local'):
+        score += 15
+        reasons.append('local tag present (+15)')
+    if by_category.get('trending'):
+        score += 10
+        reasons.append('trending tag present (+10)')
+    if by_category.get('voice_vocab'):
+        score += 10
+        reasons.append('voice tag present (+10)')
+    n = len(ordered_tags)
+    rec = (platform_obj or {}).get('hashtag_count_recommended')
+    mx = (platform_obj or {}).get('hashtag_count_max')
+    if isinstance(rec, int) and isinstance(mx, int) and rec <= n <= mx:
+        score += 10
+        reasons.append(f'count {n} within platform range ({rec}..{mx}) (+10)')
+    if isinstance(mx, int) and mx > 0 and n > mx:
+        score -= 15
+        reasons.append(f'count {n} exceeds platform max {mx} (−15)')
+    if core == 0:
+        score -= 20
+        reasons.append('no pillar core (−20)')
+    score = max(0, min(100, score))
+    return score, reasons
+
+
+def _render_seo_pack(pack, pillar, voice, platform=None, custom_keyword=None):
+    """Build a full SEO pack for a (pillar, voice, platform?) tuple.
+
+    Returns dict with: page_title, meta_description, h1, slug, slug_rules,
+    alt_text, alt_text_rules, og_description, schema_type, primary_keyword,
+    secondary_keywords, score, reasons.
+    """
+    templates = pack.get('seo_templates') or {}
+    brand = pack.get('brand') or {}
+    primary_keywords = list(brand.get('primary_keywords') or [])
+
+    # Choose a primary keyword by pillar: prefer the pillar keyword
+    pillar_keyword_map = {
+        'education': ['indoor golf johannesburg', 'golf lessons randburg', 'golf simulator johannesburg'],
+        'club-fitting': ['club fitting johannesburg', 'custom clubs johannesburg', 'trackman johannesburg'],
+        'community': ['indoor golf randburg', 'golf practice johannesburg'],
+        'events': ['golf events gauteng'],
+    }
+    primary = custom_keyword or (
+        (pillar_keyword_map.get(pillar) or primary_keywords[:1] or [''])[0]
+    )
+    secondary = [
+        kw for kw in primary_keywords
+        if kw and kw != primary
+    ][:6]
+
+    page_title = (templates.get('page_titles') or {}).get(pillar) or (
+        f"{primary.title()} | Swing Shack"
+    )
+    meta_description = (templates.get('meta_descriptions') or {}).get(pillar) or (
+        f"{primary.title()} at Swing Shack — Johannesburg's indoor golf bay."
+    )
+    h1 = (templates.get('h1') or {}).get(pillar) or primary.title()
+    slug = (templates.get('slug_examples') or {}).get(pillar)
+    if not slug:
+        slug = (primary or 'swing-shack').lower()
+        slug = re.sub(r'[^a-z0-9\s-]', '', slug)
+        slug = re.sub(r'\s+', '-', slug.strip())
+        slug = re.sub(r'-+', '-', slug).strip('-')[:60]
+    alt_text = (templates.get('alt_text_examples') or {}).get(pillar)
+    og_description = (templates.get('og_description') or {}).get(pillar) or meta_description
+    schema_type = (templates.get('schema_types') or {}).get(pillar) or 'LocalBusiness'
+
+    # Score SEO pack quality
+    score = 0
+    reasons = []
+    if page_title and len(page_title) <= 70:
+        score += 15
+        reasons.append('title ≤ 70 chars (+15)')
+    elif page_title:
+        score += 5
+        reasons.append('title > 70 chars (+5)')
+    if 110 <= len(meta_description) <= 160:
+        score += 20
+        reasons.append(f'meta description {len(meta_description)} chars in 110..160 (+20)')
+    elif meta_description:
+        score += 8
+        reasons.append(f'meta description {len(meta_description)} chars out of range (+8)')
+    if h1 and 20 <= len(h1) <= 70:
+        score += 15
+        reasons.append(f'h1 {len(h1)} chars (+15)')
+    if slug and 20 <= len(slug) <= 60 and '-' in slug and ' ' not in slug:
+        score += 15
+        reasons.append('slug well-formed (+15)')
+    if alt_text and 20 <= len(alt_text) <= 125:
+        score += 15
+        reasons.append('alt text present and sized (+15)')
+    if primary and any(kw in (meta_description or '').lower() for kw in primary.split()[:2]):
+        score += 10
+        reasons.append('primary keyword appears in meta (+10)')
+    if og_description and og_description != meta_description:
+        score += 5
+        reasons.append('og description distinct from meta (+5)')
+    if schema_type:
+        score += 5
+        reasons.append('schema type set (+5)')
+    score = max(0, min(100, score))
+
+    return {
+        'pillar': pillar,
+        'voice': voice,
+        'platform': platform,
+        'page_title': page_title,
+        'page_title_length': len(page_title or ''),
+        'meta_description': meta_description,
+        'meta_description_length': len(meta_description or ''),
+        'h1': h1,
+        'slug': slug,
+        'slug_rules': list(templates.get('slug_rules') or []),
+        'alt_text': alt_text,
+        'alt_text_rules': list(templates.get('alt_text_rules') or []),
+        'og_description': og_description,
+        'schema_type': schema_type,
+        'primary_keyword': primary,
+        'secondary_keywords': secondary,
+        'score': score,
+        'reasons': reasons,
+    }
+
+
+@app.route('/api/intel/hashtags', methods=['GET'])
+def intel_hashtags():
+    """GET /api/intel/hashtags — curated hashtag set for (pillar, voice, platform).
+
+    Query params:
+      pillar=education|club-fitting|community|events (required)
+      voice=swing-shack|stick|bag-drop (required)
+      platform=instagram|tiktok|facebook|twitter|gmb (default instagram)
+      count=N (1..30, default 8 — auto-respects platform max)
+      include_trending=0|1 (default 1)
+      search=<substring> (free-text filter across returned tags)
+      banned_only=1 (return only banned tags filtered out — for diagnostics)
+
+    Returns {ok, pillar, voice, platform, count, ordered, by_category, score,
+             reasons, banned_filtered, platform_info, ts}
+    """
+    args = request.args
+    pillar = (args.get('pillar') or '').strip()
+    voice = (args.get('voice') or '').strip()
+    platform = (args.get('platform') or 'instagram').strip()
+    try:
+        count = max(1, min(int(args.get('count', 8) or 8), 30))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "count must be an integer"}), 400
+    include_trending = str(args.get('include_trending', '1')).lower() not in ('0', 'false', 'no')
+    search = (args.get('search') or '').strip().lower()
+    banned_only = str(args.get('banned_only', '0')).lower() in ('1', 'true', 'yes')
+
+    if not pillar or pillar not in _VALID_PILLARS:
+        return jsonify({
+            "ok": False, "error": f"pillar must be one of {sorted(_VALID_PILLARS)}"
+        }), 400
+    if not voice or voice not in _VALID_VOICES:
+        return jsonify({
+            "ok": False, "error": f"voice must be one of {sorted(_VALID_VOICES)}"
+        }), 400
+    if platform not in _VALID_PLATFORMS:
+        return jsonify({
+            "ok": False, "error": f"platform must be one of {sorted(_VALID_PLATFORMS)}"
+        }), 400
+
+    pack = _load_hashtag_seo()
+    if banned_only:
+        banned = [_normalise_tag(b['tag']) for b in pack.get('banned', []) if isinstance(b, dict)]
+        return jsonify({
+            "ok": True,
+            "banned_filtered": [t for t in banned if t],
+            "ts": _now_iso(),
+        }), 200
+
+    ordered, by_category = _build_hashtag_set(
+        pack, pillar, voice, platform, count, include_trending
+    )
+    if search:
+        ordered = [t for t in ordered if search in t.lower()]
+
+    platform_obj = (pack.get('platforms') or {}).get(platform) or {}
+    score, reasons = _score_hashtag_set(ordered, by_category, platform_obj)
+
+    return jsonify({
+        "ok": True,
+        "pillar": pillar,
+        "voice": voice,
+        "platform": platform,
+        "count": len(ordered),
+        "ordered": ordered,
+        "by_category": by_category,
+        "score": score,
+        "reasons": reasons,
+        "banned_filtered": [
+            _normalise_tag(b['tag']) for b in pack.get('banned', [])
+            if isinstance(b, dict) and _normalise_tag(b['tag'])
+        ],
+        "platform_info": {
+            "label": platform_obj.get('label'),
+            "hashtag_count_recommended": platform_obj.get('hashtag_count_recommended'),
+            "hashtag_count_max": platform_obj.get('hashtag_count_max'),
+            "placement": platform_obj.get('placement'),
+            "tips": list(platform_obj.get('tips') or []),
+        },
+        "ts": _now_iso(),
+    }), 200
+
+
+@app.route('/api/intel/seo_pack', methods=['GET'])
+def intel_seo_pack():
+    """GET /api/intel/seo_pack — full SEO pack for (pillar, voice[, platform]).
+
+    Query params:
+      pillar=education|club-fitting|community|events (required)
+      voice=swing-shack|stick|bag-drop (required)
+      platform=<optional> — included in returned pack but doesn't gate it
+      custom_keyword=<text> — override auto-chosen primary keyword
+
+    Returns {ok, pillar, voice, platform, pack, ts}
+    """
+    args = request.args
+    pillar = (args.get('pillar') or '').strip()
+    voice = (args.get('voice') or '').strip()
+    platform = (args.get('platform') or '').strip() or None
+    custom_keyword = (args.get('custom_keyword') or '').strip() or None
+
+    if not pillar or pillar not in _VALID_PILLARS:
+        return jsonify({
+            "ok": False, "error": f"pillar must be one of {sorted(_VALID_PILLARS)}"
+        }), 400
+    if not voice or voice not in _VALID_VOICES:
+        return jsonify({
+            "ok": False, "error": f"voice must be one of {sorted(_VALID_VOICES)}"
+        }), 400
+
+    pack = _load_hashtag_seo()
+    seo = _render_seo_pack(pack, pillar, voice, platform=platform,
+                           custom_keyword=custom_keyword)
+    return jsonify({
+        "ok": True,
+        "pillar": pillar,
+        "voice": voice,
+        "platform": platform,
+        "pack": seo,
+        "ts": _now_iso(),
+    }), 200
+
+
+@app.route('/api/intel/seo_pack', methods=['POST'])
+def intel_seo_pack_post():
+    """POST /api/intel/seo_pack — alias that accepts JSON body for symmetry
+    with caption/meme/image endpoints.
+
+    Body: { pillar, voice, platform?, custom_keyword? }
+    """
+    body = request.get_json(silent=True) or {}
+    pillar = str(body.get('pillar') or '').strip()
+    voice = str(body.get('voice') or '').strip()
+    platform = str(body.get('platform') or '').strip() or None
+    custom_keyword = str(body.get('custom_keyword') or '').strip() or None
+
+    if not pillar or pillar not in _VALID_PILLARS:
+        return jsonify({
+            "ok": False, "error": f"pillar must be one of {sorted(_VALID_PILLARS)}"
+        }), 400
+    if not voice or voice not in _VALID_VOICES:
+        return jsonify({
+            "ok": False, "error": f"voice must be one of {sorted(_VALID_VOICES)}"
+        }), 400
+
+    pack = _load_hashtag_seo()
+    seo = _render_seo_pack(pack, pillar, voice, platform=platform,
+                           custom_keyword=custom_keyword)
+    return jsonify({
+        "ok": True,
+        "pillar": pillar,
+        "voice": voice,
+        "platform": platform,
+        "pack": seo,
+        "ts": _now_iso(),
+    }), 200
+
+
+@app.route('/api/intel/seo_index', methods=['GET'])
+def intel_seo_index():
+    """GET /api/intel/seo_index — manifest of pillars, voices, platforms,
+    banned tags, trending signals, brand keywords. Used by the SPA picker.
+    """
+    pack = _load_hashtag_seo()
+    return jsonify({
+        "ok": True,
+        "brand": pack.get('brand', {}),
+        "voices": pack.get('voices', {}),
+        "pillars": pack.get('pillars', {}),
+        "platforms": pack.get('platforms', {}),
+        "trending_signals": pack.get('trending_signals', []),
+        "banned": pack.get('banned', []),
+        "stats": pack.get('stats', {}),
+        "ts": _now_iso(),
+    }), 200
+
+
+# ─── PLAN ROUTES ──────────────────────────────────────────────────────
+
 @app.route('/api/plan/portfolio', methods=['GET'])
 def plan_portfolio_route():
     """GET /api/plan/portfolio — full plan for every campaign."""

@@ -459,6 +459,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="imagegen"><span class="nav-icon">🖼️</span> Image Gen</div>
       <div class="nav" data-go="headlines"><span class="nav-icon">📰</span> Headlines</div>
       <div class="nav" data-go="ctas"><span class="nav-icon">🎯</span> CTAs</div>
+      <div class="nav" data-go="hashtagseo"><span class="nav-icon">#️⃣</span> Hashtags & SEO</div>
     </div>
 
     <div class="nav-section">
@@ -867,6 +868,78 @@ a:hover{text-decoration:underline}
       </div>
     </section>
 
+    <!-- ── HASHTAGS & SEO PACK ────────────────────────────── -->
+    <section class="section" id="sec-hashtagseo">
+      <div class="section-h"><h2>Hashtags &amp; SEO Pack</h2>
+        <div class="muted" style="font-size:11px;margin-top:.25rem">
+          Curated hashtag sets and on-page SEO scaffolding — pure intelligence, no social actions. Safe during rest-mode.
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card col-12">
+          <div class="card-h"><h3>🎛️ Generate</h3></div>
+          <div id="hashtag-controls" style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
+            <label>Pillar
+              <select id="hs-pillar" class="inp" style="margin-left:.25rem">
+                <option value="education">Education</option>
+                <option value="club-fitting">Club Fitting</option>
+                <option value="community">Community</option>
+                <option value="events">Events</option>
+              </select>
+            </label>
+            <label>Voice
+              <select id="hs-voice" class="inp" style="margin-left:.25rem">
+                <option value="swing-shack">Swing Shack</option>
+                <option value="stick">Stick</option>
+                <option value="bag-drop">Bag Drop</option>
+              </select>
+            </label>
+            <label>Platform
+              <select id="hs-platform" class="inp" style="margin-left:.25rem">
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="facebook">Facebook</option>
+                <option value="twitter">Twitter / X</option>
+                <option value="gmb">Google Business</option>
+              </select>
+            </label>
+            <label>Count
+              <input id="hs-count" class="inp" type="number" min="1" max="30" value="8" style="margin-left:.25rem;width:5rem">
+            </label>
+            <button id="hs-go" class="btn primary" type="button">Generate</button>
+            <button id="hs-copy" class="btn" type="button" disabled>📋 Copy tags</button>
+          </div>
+        </div>
+
+        <div class="card col-6">
+          <div class="card-h"><h3>#️⃣ Hashtags <span id="hs-count-badge" class="pill muted">0</span> <span id="hs-score-badge" class="pill"></span></h3></div>
+          <div id="hs-tags"></div>
+          <div style="margin-top:.75rem"><div class="card-h"><h3 style="font-size:12px">Why this score</h3></div><div id="hs-reasons" class="muted" style="font-size:11px"></div></div>
+          <div style="margin-top:.75rem"><div class="card-h"><h3 style="font-size:12px">Banned (filtered out)</h3></div><div id="hs-banned" class="muted" style="font-size:11px"></div></div>
+        </div>
+
+        <div class="card col-6">
+          <div class="card-h"><h3>📡 Platform tips</h3></div>
+          <div id="hs-platform-info"></div>
+        </div>
+
+        <div class="card col-12">
+          <div class="card-h"><h3>🔎 SEO Pack <span id="hs-seo-score" class="pill"></span></h3></div>
+          <div id="hs-seo"></div>
+        </div>
+
+        <div class="card col-6">
+          <div class="card-h"><h3>📈 Trending signals</h3></div>
+          <div id="hs-trending"></div>
+        </div>
+
+        <div class="card col-6">
+          <div class="card-h"><h3>🪪 Brand keywords</h3></div>
+          <div id="hs-brand-kw"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── SEO ───────────────────────────────────────────── -->
     <section class="section" id="sec-seo">
       <div class="section-h"><h2>SEO Assistant</h2></div>
@@ -1075,7 +1148,7 @@ const TITLES = {
   calendar:'Calendar', trends:'Trend Catcher', ideas:'Opportunities',
   performance:'Performance', learning:'Learning', hooks:'Hook Bank',
   memes:'Meme Lord', billboards:'Billboard Lab', captions:'Caption Studio',
-  imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', seo:'SEO Assistant', gbp:'Google Business',
+  imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO Assistant', gbp:'Google Business',
   reddit:'Reddit Outreach', faqs:'FAQ Opportunities', postiz:'Postiz',
   campaigns:'Campaigns', agents:'Agents & health',
 };
@@ -1107,6 +1180,7 @@ async function loadSection(sec){
     if(sec==='imagegen') return renderImageGen();
     if(sec==='headlines') return renderHeadlines();
     if(sec==='ctas') return renderCTAs();
+    if(sec==='hashtagseo') return renderHashtagSeo();
     if(sec==='seo') return renderSEO();
     if(sec==='gbp') return renderGBP();
     if(sec==='reddit') return renderReddit();
@@ -1912,6 +1986,92 @@ $('#cta-gen').addEventListener('click', async () => {
   $('#cta-list').innerHTML = safeList(r.ctas, 8).map(it => `<li class="li"><div class="li-body"><div class="li-title" style="font-size:15px">${esc(it.cta)}</div><div class="li-meta">${esc(it.source||'')}${it.perf?` · score ${it.perf}`:''}</div></div></li>`).join('') || '<div class="empty">Nothing generated</div>';
   toast('Generated '+r.count+' CTAs');
 });
+
+// ─── HASHTAGS & SEO PACK ────────────────────────────────────────
+let _hsLast = null;
+async function renderHashtagSeo(){
+  // Lazy-load the index once for brand keywords + trending signals
+  if(!$('#hs-trending').dataset.loaded){
+    try{
+      const idx = await API.get('/api/intel/seo_index');
+      const sigs = idx.trending_signals || [];
+      $('#hs-trending').innerHTML = sigs.length ? sigs.map(s => `<li class="li"><div class="li-body"><div class="li-title">${esc(s.tag)}</div><div class="li-meta">${esc(s.lift||'')} · ${esc(s.pillar||'')}${s.note?` · ${esc(s.note)}`:''}</div></div></li>`).join('') : '<div class="empty">No signals</div>';
+      const kws = (idx.brand && idx.brand.primary_keywords) || [];
+      $('#hs-brand-kw').innerHTML = kws.length ? `<div style="display:flex;flex-wrap:wrap;gap:.35rem">${kws.map(k => `<span class="pill">${esc(k)}</span>`).join('')}</div>` : '<div class="empty">No keywords</div>';
+      $('#hs-trending').dataset.loaded = '1';
+    }catch(e){ empty('hs-trending', 'Failed to load index'); empty('hs-brand-kw', ''); }
+  }
+  if(!$('#hs-tags').innerHTML.trim()){ await _hsGenerate(); }
+}
+async function _hsGenerate(){
+  const pillar = $('#hs-pillar').value;
+  const voice = $('#hs-voice').value;
+  const platform = $('#hs-platform').value;
+  const count = Math.max(1, Math.min(30, parseInt($('#hs-count').value, 10) || 8));
+  try{
+    const [r, seo] = await Promise.all([
+      API.get(`/api/intel/hashtags?pillar=${encodeURIComponent(pillar)}&voice=${encodeURIComponent(voice)}&platform=${encodeURIComponent(platform)}&count=${count}`),
+      API.get(`/api/intel/seo_pack?pillar=${encodeURIComponent(pillar)}&voice=${encodeURIComponent(voice)}`),
+    ]);
+    _hsLast = r;
+    // tags
+    if(!r.ok){ $('#hs-tags').innerHTML = `<div class="empty">${esc(r.error||'Failed')}</div>`; return; }
+    const tags = r.ordered || [];
+    const tagsHtml = tags.length
+      ? `<div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.5rem">${tags.map(t => `<span class="pill ${r.by_category.pillar_core.includes(t)?'ac':''}" data-tag="${esc(t)}" style="cursor:pointer" title="Click to copy">${esc(t)}</span>`).join('')}</div>`
+      : '<div class="empty">No hashtags for this platform (GMB — uses natural-language keyword phrases instead)</div>';
+    $('#hs-tags').innerHTML = tagsHtml;
+    // tag click to copy
+    $$('#hs-tags [data-tag]').forEach(el => el.addEventListener('click', async () => {
+      try{ await navigator.clipboard.writeText(el.dataset.tag); toast('Copied '+el.dataset.tag); }
+      catch(e){ toast('Copy failed','err'); }
+    }));
+    $('#hs-count-badge').textContent = String(tags.length);
+    $('#hs-count-badge').className = 'pill ' + (tags.length ? 'ac' : 'muted');
+    $('#hs-score-badge').textContent = 'score ' + r.score;
+    $('#hs-score-badge').className = 'pill ' + (r.score >= 80 ? 'ac' : (r.score >= 50 ? '' : 'muted'));
+    $('#hs-copy').disabled = tags.length === 0;
+    $('#hs-reasons').innerHTML = (r.reasons || []).map(esc).join(' · ');
+    $('#hs-banned').innerHTML = (r.banned_filtered || []).map(t => `<span class="pill muted">${esc(t)}</span>`).join(' ') || '<span class="muted">None</span>';
+    // platform info
+    const pi = r.platform_info || {};
+    $('#hs-platform-info').innerHTML = `
+      <div><b>${esc(pi.label||platform)}</b> · placement: ${esc(pi.placement||'—')} · recommended: ${pi.hashtag_count_recommended ?? '—'} · max: ${pi.hashtag_count_max ?? '—'}</div>
+      <ul style="margin-top:.5rem;padding-left:1.25rem">${(pi.tips||[]).map(t => `<li style="font-size:12px">${esc(t)}</li>`).join('')}</ul>`;
+    // seo
+    if(seo && seo.ok){
+      const p = seo.pack;
+      $('#hs-seo-score').textContent = 'score ' + p.score;
+      $('#hs-seo-score').className = 'pill ' + (p.score >= 80 ? 'ac' : (p.score >= 50 ? '' : 'muted'));
+      $('#hs-seo').innerHTML = `
+        <div class="grid">
+          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Page title <span class="pill muted">${p.page_title_length} chars</span></h3></div><div style="font-size:13px">${esc(p.page_title)}</div></div>
+          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">H1</h3></div><div style="font-size:13px">${esc(p.h1)}</div></div>
+          <div class="card col-12"><div class="card-h"><h3 style="font-size:12px">Meta description <span class="pill muted">${p.meta_description_length} chars</span></h3></div><div style="font-size:13px">${esc(p.meta_description)}</div></div>
+          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Slug</h3></div><div style="font-family:monospace;font-size:12px">${esc(p.slug)}</div></div>
+          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Alt text</h3></div><div style="font-size:12px">${esc(p.alt_text)}</div></div>
+          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">OG description</h3></div><div style="font-size:12px">${esc(p.og_description)}</div></div>
+          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Schema type</h3></div><div style="font-size:12px"><span class="pill">${esc(p.schema_type)}</span></div></div>
+          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Primary keyword</h3></div><div style="font-size:12px"><span class="pill ac">${esc(p.primary_keyword)}</span></div></div>
+          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Secondary keywords</h3></div><div style="display:flex;flex-wrap:wrap;gap:.35rem">${(p.secondary_keywords||[]).map(k => `<span class="pill muted">${esc(k)}</span>`).join('') || '<span class="muted">—</span>'}</div></div>
+          <div class="card col-12"><div class="card-h"><h3 style="font-size:12px">Why this score</h3></div><div class="muted" style="font-size:11px">${(p.reasons||[]).map(esc).join(' · ')}</div></div>
+        </div>`;
+    }
+    toast(`Hashtags + SEO pack ready (score ${r.score} / ${seo && seo.ok ? seo.pack.score : '—'})`);
+  }catch(e){
+    console.error('hashtag-seo', e);
+    toast('Failed to generate', 'err');
+  }
+}
+$('#hs-go').addEventListener('click', _hsGenerate);
+$('#hs-copy').addEventListener('click', async () => {
+  if(!_hsLast || !_hsLast.ordered || !_hsLast.ordered.length) return;
+  const text = _hsLast.ordered.join(' ');
+  try{ await navigator.clipboard.writeText(text); toast('Copied '+_hsLast.ordered.length+' tags'); }
+  catch(e){ toast('Copy failed', 'err'); }
+});
+// Auto-regenerate when controls change
+['hs-pillar','hs-voice','hs-platform','hs-count'].forEach(id => $('#'+id).addEventListener('change', _hsGenerate));
 
 // ─── IMAGE GENERATION ─────────────────────────────────────────────
 async function renderImageGen(){
