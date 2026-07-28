@@ -1640,6 +1640,74 @@ const HELP = (() => {
         <p><span class="hc-term">Add a brand</span> — copy any existing brand folder,
         rename, fill in voice + palette + archetypes. The brand switcher picks it up
         automatically on next refresh.</p>`
+    },
+    'trends': {
+      title: 'How the Trend Catcher scores signals',
+      body: `
+        <p>This page is the <b>front of the content funnel</b>. Every signal that could
+        become a post, hook, or meme starts here. The Catcher pulls from four sources
+        and ranks them so you read the top first.</p>
+        <p><span class="hc-term">⚡ Signal radar</span> (top card) is the scored shortlist.
+        Each signal gets a score from three lenses: <b>brand fit</b> (does it sound
+        like Swing Shack / Stick / Bag Drop?), <b>recency</b> (is the conversation
+        still hot or already cold?), and <b>leverage</b> (can we actually turn this
+        into a post today?). The count next to the heading is the number of signals
+        that passed the floor.</p>
+        <p><span class="hc-term">🗣️ Reddit trends</span> — what's blowing up in the
+        niche subs. High brand fit + high upvotes = a hook writing itself. Low upvotes
+        but rising = jump on it before it peaks.</p>
+        <p><span class="hc-term">📺 YouTube signals</span> — titles and topics from
+        golf creators. These are good for <b>format</b> inspiration (carousel vs
+        reel vs long-form) even when the topic doesn't transfer directly.</p>
+        <p><span class="hc-term">⛳ Golf news</span> — pro tour, equipment drops,
+        course news. Time-sensitive: a 48-hour window before the conversation moves
+        on. Best for reactive content.</p>
+        <p><span class="hc-term">👀 Competitor moves</span> — what other golf brands
+        just posted. Two reads: (a) they're onto something — riff on the angle in
+        your voice; (b) they flopped — note the topic + format and don't repeat
+        the mistake.</p>
+        <p><b>How to use this page:</b> pick the top 3 signals on the radar. For each,
+        ask "can I write a hook in the next 60 seconds?" If yes, drop it into the
+        Hooks generator. If no, archive the card and move on. Don't try to act on
+        everything — that way lies burnout, not content.</p>
+        <p><b>Anti-pattern:</b> treating all four columns equally. Reddit + News are
+        <b>topics</b>; YouTube + Competitors are <b>format signals</b>. Mixing them
+        up wastes time.</p>`
+    },
+    'ideas': {
+      title: 'How the Opportunities surface works',
+      body: `
+        <p>This page turns <b>passive gaps</b> in your content calendar into an active
+        backlog. Every card here is something the system spotted that you haven't
+        shipped yet — sorted by urgency and impact.</p>
+        <p><span class="hc-term">🆕 Just generated</span> — freshest batch from the
+        most recent "Generate new ideas" run. Review these first; older ideas lose
+        context as the trend moves on.</p>
+        <p><span class="hc-term">💡 Content ideas</span> — the full backlog, ranked by
+        brand-fit × recency. The total count tells you whether the pipeline is healthy
+        (50+ = you're ahead of schedule; under 20 = generate a new batch).</p>
+        <p><span class="hc-term">🚀 Post today</span> — highest-urgency ideas the
+        system thinks you can ship before EOD. Pre-checked for trend velocity: these
+        are the ones that go stale fastest.</p>
+        <p><span class="hc-term">📆 This week</span> — medium-urgency ideas. Pull from
+        here when "Post today" runs dry.</p>
+        <p><span class="hc-term">⚠️ Missed opportunities</span> — trends that already
+        peaked and we didn't act on. Read these as a <b>system calibration</b>, not
+        a to-do: if a type of trend keeps showing up here, your radar filter is
+        too strict — widen it.</p>
+        <p><span class="hc-term">💸 Upsells</span> — content angles tied to higher-margin
+        services (lessons, fittings, custom builds). Prioritise these when the
+        calendar is light on revenue-driving posts.</p>
+        <p><span class="hc-term">📦 Bundles</span> — cross-sell / package ideas.
+        Best for evergreen slots (Tuesday product drops, Sunday bundles).</p>
+        <p><span class="hc-term">🪠 Funnel leaks</span> — pages that get traffic but
+        don't convert. Each card links to a content angle that could patch the leak.</p>
+        <p><span class="hc-term">🌐 Landing-page fixes</span> — SEO / on-page copy
+        suggestions flagged by the audit. Boring but compounds.</p>
+        <p><b>How to use this page:</b> start with "🚀 Post today". Pick one. Click
+        into it → it loads in the Caption Studio with brand voice pre-applied. Approve
+        the hook in the Hook Bank, draft the caption, push to Review queue. Repeat
+        1-3 times per day max.</p>`
     }
   };
 
@@ -2127,6 +2195,8 @@ function go(sec){
         'insights': 'ga4',
         'performance': 'ga4',
         'learning': 'meta',
+        'trends': 'meta',
+        'ideas': 'meta',
       };
       HELP.section(realSec, analyticsMap[realSec]);
     }
@@ -2139,6 +2209,8 @@ function go(sec){
           'insights': 'ga4',
           'performance': 'ga4',
           'learning': 'meta',
+          'trends': 'meta',
+          'ideas': 'meta',
         };
         HELP.section(realSec, analyticsMap[realSec]);
       }
