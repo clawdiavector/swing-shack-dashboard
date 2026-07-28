@@ -1805,12 +1805,16 @@ const HELP = (() => {
   const section = (sectionId, alsoAnalyticsKey) => {
     const sec = document.getElementById(`sec-${sectionId}`);
     if (!sec) return;
-    const det = document.createElement('details');
-    det.className = 'help-collapsible';
-    det.style.marginTop = '0.75rem';
-    det.style.marginBottom = '0.75rem';
     const explainer = EXPLAINERS[sectionId];
     if (!explainer) return;
+    // Idempotency: remove any panels we previously inserted into this section
+    // (go() calls HELP.section twice — once before loadSection and once after —
+    // without this we'd duplicate the explainer panels on every nav click).
+    sec.querySelectorAll(':scope > .help-collapsible.help-section-explainer').forEach(old => old.remove());
+    const det = document.createElement('details');
+    det.className = 'help-collapsible help-section-explainer';
+    det.style.marginTop = '0.75rem';
+    det.style.marginBottom = '0.75rem';
     det.innerHTML = `<summary>${esc(explainer.title)}</summary><div class="hc-body">${explainer.body}</div>`;
     // Insert at the top of the section's first child (after section-h if present)
     const sectionH = sec.querySelector('.section-h');
@@ -1822,7 +1826,7 @@ const HELP = (() => {
     if (alsoAnalyticsKey && EXPLAINERS_ANALYTICS[alsoAnalyticsKey]) {
       const a = EXPLAINERS_ANALYTICS[alsoAnalyticsKey];
       const detA = document.createElement('details');
-      detA.className = 'help-collapsible';
+      detA.className = 'help-collapsible help-section-explainer';
       detA.style.marginTop = '0.5rem';
       detA.innerHTML = `<summary>${esc(a.title)}</summary><div class="hc-body">${a.body}</div>`;
       det.parentNode.insertBefore(detA, det.nextSibling);
