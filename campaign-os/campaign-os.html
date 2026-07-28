@@ -525,6 +525,35 @@ a:hover{text-decoration:underline}
 .t-up{color:var(--ac)}
 .t-down{color:var(--red)}
 .fadein{animation:fade .3s ease}
+
+/* ─── Universal helper system: tooltips + "what does this do" panels ── */
+.help-tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--bg-3);color:var(--tx-2);font-size:10px;font-weight:700;margin-left:.35rem;cursor:help;vertical-align:middle;border:1px solid var(--bg-4);transition:background .15s ease}
+.help-tip:hover{background:var(--ac);color:var(--bg)}
+.help-tip[data-help]::after{content:attr(data-help)}
+.help-pop{position:fixed;max-width:340px;min-width:220px;background:var(--bg-1);color:var(--tx);border:1px solid var(--bg-3);border-radius:8px;padding:.7rem .85rem;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.45);z-index:9999;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
+.help-pop.show{opacity:1;transform:translateY(0)}
+.help-pop .hp-title{font-weight:700;color:var(--ac);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem;display:block}
+.help-pop .hp-why{font-size:11.5px;color:var(--tx-2);margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--bg-3);display:block;line-height:1.45}
+.help-pop .hp-why b{color:var(--ac)}
+.help-banner{background:linear-gradient(135deg,rgba(15,118,110,.08),rgba(245,158,11,.05));border:1px solid var(--bg-3);border-left:3px solid var(--ac);border-radius:8px;padding:.85rem 1rem;margin-bottom:1rem;font-size:13px;line-height:1.55;color:var(--tx-2)}
+.help-banner .hb-title{font-weight:700;color:var(--ac);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem}
+.help-banner .hb-title::before{content:"💡"}
+.help-banner b{color:var(--tx)}
+.help-banner code{background:var(--bg-2);padding:1px 6px;border-radius:4px;font-size:12px;color:var(--ac);font-family:ui-monospace,SF Mono,Menlo,monospace}
+.help-collapsible{margin-bottom:1rem}
+.help-collapsible summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ac);padding:.5rem .75rem;background:var(--bg-2);border:1px solid var(--bg-3);border-radius:6px;list-style:none;user-select:none}
+.help-collapsible summary::before{content:"📖";margin-right:.5rem}
+.help-collapsible summary::-webkit-details-marker{display:none}
+.help-collapsible[open] summary{border-radius:6px 6px 0 0;border-bottom:none}
+.help-collapsible .hc-body{padding:.85rem 1rem;border:1px solid var(--bg-3);border-top:none;border-radius:0 0 6px 6px;font-size:12.5px;line-height:1.6;color:var(--tx-2);background:var(--bg-1)}
+.help-collapsible .hc-body p{margin:0 0 .65rem}
+.help-collapsible .hc-body p:last-child{margin:0}
+.help-collapsible .hc-body .hc-term{font-weight:700;color:var(--tx)}
+.help-collapsible .hc-body .hc-good{color:var(--green)}
+.help-collapsible .hc-body .hc-bad{color:var(--red)}
+.help-collapsible .hc-body .hc-warn{color:var(--ac)}
+.help-collapsible .hc-body ul{margin:.35rem 0 .65rem;padding-left:1.2rem}
+.help-collapsible .hc-body li{margin-bottom:.25rem}
 </style>
 </head>
 <body>
@@ -1336,6 +1365,7 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-campaigns">
       <div class="section-h"><h2>Campaigns</h2><span class="sub" id="camp-summary">—</span></div>
       <div id="camp-list"></div>
+      <div id="brand-directory-panel" style="margin-top:1.5rem"></div>
     </section>
 
     <!-- ── AGENTS ────────────────────────────────────────── -->
@@ -1363,6 +1393,388 @@ a:hover{text-decoration:underline}
 /* ════════════════════════════════════════════════════════════════
    Campaign OS · single-page app
    ════════════════════════════════════════════════════════════════ */
+
+// ─── UNIVERSAL HELPER SYSTEM ──────────────────────────────────────
+// Two pieces:
+//   (1) hover tooltip on any element with `data-help="what does this do"`.
+//   (2) collapsible "How to read this" panel for any section with id
+//       matching a built-in explainer (insights, performance, brief, review).
+//
+// Anyone can add a tooltip to a button / heading / card with:
+//   <span class="help-tip" data-help="What it does"></span>
+// Or programmatically: HELP.tip(element, {title:'...', help:'...', why:'...'});
+//
+// HELP.section(id) mounts a How-to-read-this panel above the section.
+const HELP = (() => {
+  let popEl = null;
+  const ensurePop = () => {
+    if (popEl) return popEl;
+    popEl = document.createElement('div');
+    popEl.className = 'help-pop';
+    document.body.appendChild(popEl);
+    return popEl;
+  };
+
+  const showPop = (target, payload) => {
+    const pop = ensurePop();
+    const title = payload.title ? `<span class="hp-title">${esc(payload.title)}</span>` : '';
+    const why = payload.why ? `<span class="hp-why"><b>Why this helps:</b> ${esc(payload.why)}</span>` : '';
+    pop.innerHTML = `${title}${esc(payload.help || '')}${why}`;
+    pop.classList.add('show');
+    const r = target.getBoundingClientRect();
+    const popR = pop.getBoundingClientRect();
+    let left = r.left + window.scrollX;
+    let top = r.bottom + window.scrollY + 6;
+    // Clamp to viewport
+    const maxLeft = window.innerWidth - popR.width - 12;
+    if (left > maxLeft) left = maxLeft;
+    if (left < 8) left = 8;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${top}px`;
+  };
+
+  const hidePop = () => {
+    if (popEl) popEl.classList.remove('show');
+  };
+
+  const tip = (target, payload) => {
+    target.classList.add('help-tip');
+    target.setAttribute('data-help', payload.help || '');
+    target.addEventListener('mouseenter', () => showPop(target, payload));
+    target.addEventListener('mouseleave', hidePop);
+    target.addEventListener('focus', () => showPop(target, payload));
+    target.addEventListener('blur', hidePop);
+  };
+
+  const banner = (html) => {
+    const div = document.createElement('div');
+    div.className = 'help-banner';
+    div.innerHTML = html;
+    return div;
+  };
+
+  const collapsible = (title, bodyHtml) => {
+    const det = document.createElement('details');
+    det.className = 'help-collapsible';
+    det.innerHTML = `<summary>${esc(title)}</summary><div class="hc-body">${bodyHtml}</div>`;
+    return det;
+  };
+
+  const EXPLAINERS = {
+    'brief': {
+      title: 'What this page is',
+      body: `
+        <p>This is your <span class="hc-term">opening move</span> for the day. Every dashboard
+        surface eventually rolls up here. The cards below answer one question: <b>what should
+        I do right now?</b></p>
+        <p><span class="hc-term">🎯 Do this right now</span> is the single highest-leverage
+        action the system found across all signals (calendar gaps, failing posts, hot trends,
+        review queue). It's not a feed of everything happening — it's <b>one pick</b> with the
+        reason beside it.</p>
+        <p><span class="hc-term">⚡ Today rail</span> shows the next ~6 hours: scheduled posts,
+        expiring approvals, deadlines. Items turn <span class="hc-warn">amber</span> if
+        approaching, <span class="hc-bad">red</span> if overdue.</p>
+        <p><b>How to use this page:</b> read the recommendation, do it (or skip with reason),
+        then move on. This page should never take more than 60 seconds.</p>`
+    },
+    'review': {
+      title: 'How the review queue works',
+      body: `
+        <p>The review queue is where <b>everything the agents generated</b> waits for human
+        approval before anything goes near a real platform. Nothing publishes without you
+        seeing it here first.</p>
+        <p><span class="hc-term">Pending</span> items need a decision: approve, reject, or
+        edit-and-approve. Approved items flow into the Publishing pipeline as drafts.</p>
+        <p><span class="hc-term">Approved (ready to publish)</span> means the copy is signed
+        off but you still choose when (or if) it goes live. That's a separate decision in
+        the Publishing surface.</p>
+        <p><span class="hc-term">Rejected</span> stays visible so the agents learn what
+        doesn't fit the brand. Heavy rejection patterns feed into the kill-list and stop
+        similar content from being generated again.</p>
+        <p><b>Rule of thumb:</b> if a card takes more than 10 seconds to decide, the agent
+        didn't give you enough — flag it in MEMORY and we'll tighten the brief.</p>`
+    },
+    'publish': {
+      title: 'Publishing pipeline states',
+      body: `
+        <p>This shows the four states every post passes through. Each card is a real Postiz
+        draft or live post — click into any item to open it in Postiz for final tweaks.</p>
+        <p><span class="hc-term">📮 Drafts</span> — approved copy sitting in Postiz waiting
+        for you to schedule.</p>
+        <p><span class="hc-term">🗓️ Scheduled</span> — has a future publish time. Will go
+        live automatically (you'll get a Discord ping when it does).</p>
+        <p><span class="hc-term">✓ Published</span> — went live, includes the published URL
+        and timestamp.</p>
+        <p><span class="hc-term">🚨 Failed</span> — the auto-publish hit an error (rejected
+        by platform, media upload failed, account disconnected). The card tells you why and
+        offers a retry.</p>
+        <p><b>Heidi never schedules or publishes without your explicit go.</b> Drafts are
+        safe; the moment something enters Scheduled you should expect it to fire.</p>`
+    },
+    'calendar': {
+      title: 'How to read the calendar',
+      body: `
+        <p>The calendar is your <b>week-at-a-glance</b> view across all platforms. Each
+        row is a day, each cell is a scheduled post. Drag to reschedule. Drop on the
+        bottom zone to duplicate (creates a fresh draft — never auto-publishes).</p>
+        <p><span class="hc-term">Filter</span> by platform or campaign to focus. The HUD
+        strip above the grid shows today's workload, what's overdue, and tomorrow's
+        preview.</p>
+        <p><span class="hc-term">🟢 green</span> = scheduled & on-brand · <span class="hc-warn">🟡 amber</span>
+        = scheduled but flag (low confidence, edit suggested) · <span class="hc-bad">🔴 red</span>
+        = draft / pending approval / failed</p>
+        <p><b>Drag-and-drop is local only.</b> Reschedules sync to Postiz when you click
+        "Sync to Postiz" at the top of the page.</p>`
+    },
+    'create': {
+      title: 'What generators are available',
+      body: `
+        <p>Each generator pulls from a specific signal source (Reddit trends, hook bank,
+        meme library, voice bible) and returns <b>ready-to-review</b> copy, hooks, or
+        memes. Every output enters the Review queue — none auto-publishes.</p>
+        <p><span class="hc-term">⚡ Quick launch</span> shows the 4 most-used generators
+        for the active brand. The first row is always one-click for the daily meme /
+        hook / caption rhythm.</p>
+        <p><span class="hc-term">🪄 All generators</span> is the full grid. Each card has
+        a small description of what it generates, the brand voices it understands, and
+        what it pulls from.</p>
+        <p><span class="hc-term">📌 Recent output</span> shows the last thing you
+        generated. Click "Regenerate" or "Edit" before approving.</p>`
+    },
+    'insights': {
+      title: 'How to read performance data',
+      body: `
+        <p>This page rolls up <b>what is working, what isn't, and why</b> across three
+        data sources: Instagram (engagement), GA4 (site traffic), and the SEO tracker.
+        Each is explained in plain language below — no marketing jargon.</p>
+        <p><span class="hc-term">Why this page exists:</span> the data feeds are noisy.
+        A spike in sessions can mean a real win, or it can mean a bot crawled the page.
+        A drop in IG likes can mean the audience is bored, or it can mean the algorithm
+        just changed. This page helps you <b>tell the difference</b> and act on the
+        signal, not the noise.</p>
+        <p><b>Open the "How to read this data" panel below</b> for a per-source
+        explainer (GA4 + Meta + SEO). It's worth the 90 seconds the first time.</p>`
+    },
+    'performance': {
+      title: 'Performance: what works, what's leaking',
+      body: `
+        <p>Performance is split into three lenses. Each answers a different question.</p>
+        <p><span class="hc-term">🏆 Top Instagram posts</span> — the last 30 days, ranked
+        by a composite score (engagement × reach × saves). A "top post" tells you what
+        tone + format + topic combo is currently resonating with your audience. Re-use
+        that combination before the algorithm forgets it.</p>
+        <p><span class="hc-term">🔎 Top SEO keywords</span> — what people actually type
+        into Google to find Swing Shack. <span class="hc-good">Rising</span> = gaining
+        impressions, <span class="hc-bad">falling</span> = losing them. Each keyword has
+        a "winning page" — that's where to push internal links next time you post.</p>
+        <p><span class="hc-term">🧪 A/B tests</span> — running experiments (caption
+        variants, hook variants, CTA variants). The card shows current winner, lift %
+        and statistical confidence.</p>
+        <p><span class="hc-term">🌐 Top pages by sessions</span> — what people read
+        after they land. High-session + low-CTA-click = landing page leak. Low-session
+        on a key page = SEO or distribution problem.</p>
+        <p><span class="hc-term">🔬 Why this worked / failed</span> — the explainer.
+        Pick any asset from the dropdown and the system walks you through the evidence
+        chain (engagement curve, audience overlap, time-of-day, hook type).</p>`
+    },
+    'learning': {
+      title: 'What "learning" actually means',
+      body: `
+        <p>This page is the agent's <b>memory across weeks</b>. It tracks three lists:</p>
+        <p><span class="hc-term">✅ What worked</span> — patterns the system detected
+        across multiple posts that performed above baseline. Examples: "Friday
+        educational posts outperform Tuesday humorous posts by 2.3× saves."</p>
+        <p><span class="hc-term">🚫 What failed</span> — patterns the system detected
+        across multiple posts that underperformed. Examples: "Off-rack CTA posts have
+        0.6× the engagement of fitting-led posts."</p>
+        <p><span class="hc-term">🎯 CTA rankings</span> — which CTAs convert / click
+        best, ordered by lift over baseline. Rotate CTAs based on this, not on
+        hunch.</p>
+        <p><span class="hc-term">🚨 Failure patterns</span> — repeated mistakes the
+        agents have made. If a pattern shows up twice, the kill-list blocks it. If a
+        pattern shows up five times, the brief changes.</p>`
+    },
+    'hooks': {
+      title: 'What the hook bank is',
+      body: `
+        <p>The hook bank is the <b>raw material of every post</b>. A hook is the first
+        line — the scroll-stopper. If the hook doesn't land, the caption doesn't
+        matter.</p>
+        <p><span class="hc-term">👀 Watched + worked</span> — hooks from posts that
+        actually performed (above-average save rate, watch time, or comments). These
+        are your proven templates.</p>
+        <p><span class="hc-term">🧬 Hook formulas</span> — the structural patterns
+        behind those hooks. "Negative observation" / "Data point opener" / "Specific
+        scenario" — each formula is a fill-in-the-blank pattern you can re-use.</p>
+        <p><span class="hc-term">⚡ Generate 10 new hooks</span> — pulls current trend
+        signals (Reddit hot posts, YouTube titles, news cycles) and writes 10 new hook
+        drafts. Each one tags which formula it used.</p>`
+    },
+    'memes': {
+      title: 'Meme Lord: how it picks what works',
+      body: `
+        <p>Meme Lord is a <b>historian of golf memes</b>, not a meme generator. The
+        library holds ~100+ golf meme templates (formats, not images), each tagged with
+        era, voice-fit, and "still works" status.</p>
+        <p><span class="hc-term">🎯 Top picks</span> — top 6 templates that fit the
+        current filter (voice + pillar + platform). Each card shows the meme name,
+        a one-line description, and a "still works" indicator.</p>
+        <p><span class="hc-term">📚 Meme historian</span> — the full library. Sort by
+        brand-fit (which template voice-aligns best), peak year (era fit), or name.</p>
+        <p><span class="hc-term">🎲 Generate fresh meme concept</span> — picks a
+        template, writes a fresh caption, fits it to the active brand voice. Lands in
+        the Review queue.</p>
+        <p><b>Rule:</b> if a meme reads like a billboard line, it doesn't ship as a
+        meme — it gets killed or promoted to a Headline Playbook entry.</p>`
+    },
+    'campaigns': {
+      title: 'Brand surface',
+      body: `
+        <p>This surface is the <b>top-level partition</b> for everything. Each brand has
+        its own voice bible, hook bank, meme bank, palette, and image archetypes. All
+        data flows through the active brand — switching the brand switcher (top-left)
+        filters every other surface.</p>
+        <p><span class="hc-term">Brand Directory</span> (this panel) shows the 9-slot
+        directory for each brand: voice, palette, archetypes, typography, copy, examples.
+        When Drive is wired in, source images land in the <code>images/</code> slot.</p>
+        <p><span class="hc-term">Add a brand</span> — copy any existing brand folder,
+        rename, fill in voice + palette + archetypes. The brand switcher picks it up
+        automatically on next refresh.</p>`
+    }
+  };
+
+  const EXPLAINERS_ANALYTICS = {
+    'ga4': {
+      title: 'How to read Google Analytics (GA4)',
+      body: `
+        <p><span class="hc-term">Sessions</span> — one visit to your site. If the same
+        person comes back 3 times in a day, that counts as 3 sessions. Don't confuse
+        with "people" — GA4 sessions can over-count if cookies are cleared.</p>
+        <p><span class="hc-term">Users</span> — distinct humans (estimated). GA4 uses
+        cookies + signals to dedupe. Always slightly fuzzy.</p>
+        <p><span class="hc-term">Engaged sessions</span> — a session that lasted 10+
+        seconds, OR had 2+ page views, OR triggered a conversion. <b>This is the
+        number that matters.</b> 1,000 sessions with 30% engagement is better than 5,000
+        sessions with 5% engagement.</p>
+        <p><span class="hc-term">Engagement rate</span> = engaged sessions ÷ total
+        sessions. Aim for 50%+. Below 30% means the content isn't holding attention.</p>
+        <p><span class="hc-term">Bounce rate</span> — the GA4 version means "sessions
+        with no engagement" (the opposite of engaged). Lower is better.</p>
+        <p><span class="hc-term">Conversions</span> — anything you marked as a goal:
+        bookings, form submits, phone clicks. The <b>conversion rate</b> is conversions ÷
+        sessions. Swing Shack's floor should be 1.5% on landing pages.</p>
+        <p><span class="hc-term">Source / Medium</span> — how people found you.
+        <code>google / organic</code> = search · <code>(direct) / (none)</code> = typed
+        the URL · <code>instagram / social</code> = from IG bio link. Watch the
+        breakdown weekly; if organic drops, your SEO is slipping.</p>
+        <p><span class="hc-term">Pages by sessions</span> — the top pages people
+        read. The "winning page" for a keyword is the page Google ranks highest; if a
+        different page is getting the sessions, that's a mismatch to fix.</p>
+        <p><b>Rule of thumb:</b> if a metric goes up, ask "is this good for the
+        business?" — sessions can spike because of bots, engagement can drop because
+        the algorithm changed. Read the page-by-page and source breakdown before
+        reacting.</p>`
+    },
+    'meta': {
+      title: 'How to read Meta (Instagram + Facebook) insights',
+      body: `
+        <p><span class="hc-term">Reach</span> — number of unique accounts that saw the
+        post. This is distribution, not interest. A post with 10K reach and 50 likes
+        was shown to the wrong audience.</p>
+        <p><span class="hc-term">Impressions</span> — total times the post was shown
+        (same person 3 times = 3 impressions). Reach ≤ Impressions, always.</p>
+        <p><span class="hc-term">Engagement</span> — likes + comments + shares + saves.
+        <b>Saves are the most important number</b> — a save means "I want to come back
+        to this." Shares are second. Likes are the weakest signal.</p>
+        <p><span class="hc-term">Engagement rate</span> = engagement ÷ reach × 100.
+        For Swing Shack's audience size, 4–8% is good. Below 2% = the algorithm will
+        bury the next post.</p>
+        <p><span class="hc-term">Saves ÷ Reach</span> — the strongest single signal of
+        "this content has lasting value." Track this per post. A post with 3% save
+        rate is outperforming one with 8% like rate.</p>
+        <p><span class="hc-term">Profile visits</span> — how many people tapped through
+        to your profile after seeing the post. A spike here = the post triggered
+        curiosity.</p>
+        <p><span class="hc-term">Follows from post</span> — direct follows generated by
+        the post. Slow burn but compounds.</p>
+        <p><span class="hc-term">Best time to post</span> — Meta tells you when your
+        audience is online. Don't post outside these windows unless you have a
+        reason; the first-hour engagement decides everything.</p>
+        <p><b>Rule of thumb:</b> if reach is high but engagement is low, your
+        <b>thumbnail</b> or <b>first line</b> misled the audience. If engagement is
+        high but reach is low, your hook landed but the algorithm doesn't know who to
+        show it to — boost or wait.</p>`
+    },
+    'seo': {
+      title: 'How to read SEO / Google Search Console data',
+      body: `
+        <p><span class="hc-term">Impressions</span> — how many times your page
+        appeared in a Google search result. Doesn't mean anyone clicked.</p>
+        <p><span class="hc-term">Clicks</span> — how many people actually clicked
+        through to your site.</p>
+        <p><span class="hc-term">CTR (click-through rate)</span> = clicks ÷
+        impressions × 100. <b>This is the headline-grabbing number.</b> A page ranking
+        #1 with 3% CTR has a bad title tag. A page ranking #8 with 12% CTR has a
+        great title and Google will likely push it up.</p>
+        <p><span class="hc-term">Position (avg)</span> — your average rank for that
+        query. Position 1–3 = first page. Position 4–10 = second page. Position 11–20
+        = page 2 (almost invisible).</p>
+        <p><span class="hc-term">Rising vs falling</span> — week-over-week change in
+        position. Rising = Google's algorithm is rewarding something you did. Falling
+        = something slipped (lost a backlink, a competitor improved, content went
+        stale).</p>
+        <p><span class="hc-term">Queries vs pages</span> — Google Search Console
+        reports which <b>search queries</b> triggered impressions, and which
+        <b>pages</b> got shown. Mismatch = your page ranks for a query but doesn't
+        satisfy it (Google will demote it eventually).</p>
+        <p><b>Rule of thumb:</b> if impressions are high but CTR is low, your
+        <b>title tag + meta description</b> aren't compelling. If CTR is high but
+        position is stuck on page 2, your <b>content depth</b> isn't matching the
+        query intent yet.</p>`
+    }
+  };
+
+  const section = (sectionId, alsoAnalyticsKey) => {
+    const sec = document.getElementById(`sec-${sectionId}`);
+    if (!sec) return;
+    const det = document.createElement('details');
+    det.className = 'help-collapsible';
+    det.style.marginTop = '0.75rem';
+    det.style.marginBottom = '0.75rem';
+    const explainer = EXPLAINERS[sectionId];
+    if (!explainer) return;
+    det.innerHTML = `<summary>${esc(explainer.title)}</summary><div class="hc-body">${explainer.body}</div>`;
+    // Insert at the top of the section's first child (after section-h if present)
+    const sectionH = sec.querySelector('.section-h');
+    if (sectionH && sectionH.nextSibling) {
+      sec.insertBefore(det, sectionH.nextSibling);
+    } else {
+      sec.insertBefore(det, sec.firstChild);
+    }
+    if (alsoAnalyticsKey && EXPLAINERS_ANALYTICS[alsoAnalyticsKey]) {
+      const a = EXPLAINERS_ANALYTICS[alsoAnalyticsKey];
+      const detA = document.createElement('details');
+      detA.className = 'help-collapsible';
+      detA.style.marginTop = '0.5rem';
+      detA.innerHTML = `<summary>${esc(a.title)}</summary><div class="hc-body">${a.body}</div>`;
+      det.parentNode.insertBefore(detA, det.nextSibling);
+    }
+  };
+
+  // Auto-attach to any existing [data-help] elements
+  const autoAttach = () => {
+    document.querySelectorAll('[data-help]:not(.help-tip)').forEach(el => {
+      const payload = {
+        help: el.getAttribute('data-help') || '',
+        title: el.getAttribute('data-help-title') || '',
+        why: el.getAttribute('data-help-why') || ''
+      };
+      tip(el, payload);
+    });
+  };
+
+  return { tip, banner, collapsible, section, autoAttach, EXPLAINERS, EXPLAINERS_ANALYTICS };
+})();
 
 // ─── API ───────────────────────────────────────────────────────
 const API = {
@@ -1706,6 +2118,18 @@ function go(sec){
   $('#crumbs').textContent = TITLES[sec] || sec;
   // Persist last active section for reload-state
   try { localStorage.setItem('cos.activeSec', sec); } catch(_){}
+  // Mount helper explainer for this section (idempotent — only inserts once)
+  try {
+    if(typeof HELP !== 'undefined' && HELP.section){
+      // analytics explainer mapping per section
+      const analyticsMap = {
+        'insights': 'ga4',     // insights rolls up GA4 + Meta + SEO
+        'performance': 'ga4',
+        'learning': 'meta',
+      };
+      HELP.section(realSec, analyticsMap[realSec]);
+    }
+  } catch(e){ console.warn('HELP.section failed', realSec, e); }
   loadSection(realSec);
 }
 
@@ -4132,6 +4556,147 @@ async function renderCampaigns(){
     const status = c.identity?.status || '';
     return `<div class="card col-4" id="camp-card-${cid}" onclick="toggleCampaignPlan('${cid}')"><div class="card-h"><h3>${esc(cname)}</h3><span class="h-meta">${esc(status)}</span></div><div class="row gap-1" style="margin-bottom:.5rem"><span class="muted">${n} assets</span>${d.activeCampaignId===cid?pill('on','active'):''}</div>${c.identity?.brief?`<div style="font-size:12px;color:var(--tx-2);line-height:1.4">${esc(c.identity.brief).slice(0,160)}…</div>`:''}<div class="btn-row" style="margin-top:.75rem"><button class="btn ghost" onclick="event.stopPropagation();toggleCampaignPlan('${cid}')">📋 Full plan</button><button class="btn ghost" onclick="event.stopPropagation();go('calendar')">📅 Calendar</button></div></div>`;
   }).join('') + '</div><div id="camp-plans"></div>';
+
+  // ─── Brand Directory panel (new — surfaces 9-slot directory per brand) ──
+  await renderBrandDirectoryPanel();
+}
+
+// ─── Brand Directory Panel ─────────────────────────────────────────────
+// Surfaces the brand-directory index (every brand's readiness score + canonical
+// palette + archetype count). Click any brand card to expand its directory.
+async function renderBrandDirectoryPanel(){
+  const container = document.getElementById('brand-directory-panel');
+  if (!container) return;
+  try {
+    const idx = await API.get('/api/brand-directory');
+    const brands = idx.brands || {};
+    const ids = Object.keys(brands);
+    const total = idx.total_brands || ids.length;
+    const ready = idx.total_ready || 0;
+
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-h">
+          <h3>📂 Brand Directory <span style="font-size:11px;color:var(--tx-3);font-weight:500;margin-left:.5rem">9-slot directory · image + copy generator source</span></h3>
+          <span class="muted" style="font-size:12px">${ready}/${total} brands ready (all 4 gate files)</span>
+        </div>
+        <div style="font-size:12px;color:var(--tx-2);margin-bottom:.75rem">
+          Each brand has 9 structured slots: <code>voice</code> · <code>palette</code> · <code>visual-spec</code> · <code>typography</code> · <code>copy</code> · <code>examples</code> · <code>images</code>.
+          The image generator reads <code>palette + archetypes</code>; the copy generator reads <code>voice + headlines + ctas</code>.
+          When Drive is wired in, <code>images/</code> will hold dissected source art and <code>visual-spec/</code> will be auto-populated.
+        </div>
+        <div class="grid">${ids.map(bid => {
+          const b = brands[bid];
+          const gates = b.gates || {};
+          const gatePills = ['tone_rules','palette','archetypes','ctas'].map(k => {
+            const ok = gates[k];
+            return `<span class="pill ${ok?'on':'draft'}" style="font-size:10px">${k.replace('_',' ')}</span>`;
+          }).join(' ');
+          const ac = b.archetype_ids || [];
+          const palette = b.primary_color ? `<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:11px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${b.primary_color};border:1px solid var(--bg-3)"></span>${b.primary_color}</span>` : '';
+          const accent = b.accent_color ? `<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:11px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${b.accent_color};border:1px solid var(--bg-3)"></span>${b.accent_color}</span>` : '';
+          const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop'};
+          const label = labelMap[bid] || bid;
+          return `
+            <div class="card col-4">
+              <div class="card-h"><h3>${esc(label)}</h3>${b.ready ? pill('on','ready') : pill('draft','partial')}</div>
+              <div style="margin-bottom:.5rem">${gatePills}</div>
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">${palette}${accent}</div>
+              <div class="muted" style="font-size:11.5px;line-height:1.5">
+                ${ac.length} archetype${ac.length===1?'':'s'}: ${ac.slice(0,3).map(a=>`<code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;font-size:10.5px">${esc(a)}</code>`).join(' ')}${ac.length>3?'…':''}
+              </div>
+              <div class="btn-row" style="margin-top:.75rem">
+                <button class="btn ghost" data-bd-view="${esc(bid)}">📋 View details</button>
+                <button class="btn ghost" data-bd-brief="${esc(bid)}">🎨 Generate brief</button>
+              </div>
+            </div>`;
+        }).join('')}</div>
+        <div id="brand-directory-detail" style="margin-top:1rem"></div>
+      </div>`;
+
+    // Wire button handlers
+    container.querySelectorAll('[data-bd-view]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const bid = btn.getAttribute('data-bd-view');
+        const detail = document.getElementById('brand-directory-detail');
+        detail.innerHTML = '<div class="muted" style="padding:1rem">Loading…</div>';
+        const data = await API.get(`/api/brand-directory/${bid}`);
+        const pal = data.palette || {};
+        const palEntries = Object.entries(pal).slice(0, 6);
+        const arche = data.archetypes || [];
+        const readme = (data.readme || '').slice(0, 400);
+        detail.innerHTML = `
+          <div class="card">
+            <div class="card-h"><h3>📋 ${esc(labelMap[bid]||bid)} — full directory</h3>${data.ready ? pill('on','ready') : pill('draft','partial')}</div>
+            ${readme ? `<details class="help-collapsible" style="margin-bottom:1rem"><summary>📄 Brand one-pager (README)</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:300px;overflow:auto">${esc(readme)}…</div></details>` : ''}
+            <div class="grid">
+              <div class="card col-6"><div class="card-h"><h3>🎨 Palette</h3></div>
+                <table style="width:100%;font-size:12px;border-collapse:collapse">
+                  ${palEntries.map(([k,v]) => `<tr><td style="padding:4px 8px">${esc(k)}</td><td style="padding:4px 8px"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${esc(v.hex||'#888')};border:1px solid var(--bg-3);vertical-align:middle;margin-right:6px"></span><code style="background:var(--bg-3);padding:1px 4px;border-radius:3px">${esc(v.hex||'—')}</code> ${esc(v.name||'')}</td></tr>`).join('')}
+                </table>
+              </div>
+              <div class="card col-6"><div class="card-h"><h3>🖼️ Archetypes (${arche.length})</h3></div>
+                <ul class="list">${arche.map(a => `<li class="li"><div class="li-body"><div class="li-title">${esc(a.name||a.id)}</div><div class="li-meta muted">${esc((a.description||'').slice(0,120))}…</div></div></li>`).join('')}</ul>
+              </div>
+              <div class="card col-12"><div class="card-h"><h3>🎤 Voice — tone rules</h3></div>
+                <details class="help-collapsible"><summary>Read tone rules</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc((data.voice?.tone_rules||'—').slice(0, 2500))}…</div></details>
+              </div>
+              <div class="card col-12"><div class="card-h"><h3>📝 Do say / Don't say</h3></div>
+                <details class="help-collapsible"><summary>Read vocabulary</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc((data.voice?.do_say_dont_say||'—').slice(0, 2500))}…</div></details>
+              </div>
+              <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
+                <details class="help-collapsible"><summary>Read headline bank</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc((data.copy?.headlines||'—').slice(0, 2500))}…</div></details>
+              </div>
+              <div class="card col-6"><div class="card-h"><h3>🎯 CTA bank</h3></div>
+                <details class="help-collapsible"><summary>Read CTA bank</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc((data.copy?.ctas||'—').slice(0, 2500))}…</div></details>
+              </div>
+            </div>
+          </div>`;
+        detail.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+
+    container.querySelectorAll('[data-bd-brief]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const bid = btn.getAttribute('data-bd-brief');
+        const tone = prompt('Tone? (educational | confident | funny | sarcastic | relatable | warm)', 'confident') || 'confident';
+        const surface = prompt('Surface? (square-post | story | banner | quote | meme-3up | any)', 'square-post') || 'square-post';
+        const detail = document.getElementById('brand-directory-detail');
+        detail.innerHTML = '<div class="muted" style="padding:1rem">Generating brief…</div>';
+        const brief = await API.get(`/api/brand-directory/${bid}/generate-brief?surface=${encodeURIComponent(surface)}&tone=${encodeURIComponent(tone)}`);
+        const arche = brief.archetype || {};
+        const archeLayers = (arche.layers || []).map(l => `<li><b>${esc(l.id||'')}</b> (${esc(l.kind||'')}) — ${esc(l.position||'')}${l.fill?' · '+esc(l.fill):''}${l.colour?' · '+esc(l.colour):''}</li>`).join('');
+        detail.innerHTML = `
+          <div class="card">
+            <div class="card-h"><h3>🎨 Generate brief — ${esc(bid)} · ${esc(brief.tone)} · ${esc(brief.surface)}</h3>${brief.ready ? pill('on','ready') : pill('draft','partial')}</div>
+            <div class="grid">
+              <div class="card col-6"><div class="card-h"><h3>🖼️ Archetype</h3></div>
+                <div style="font-weight:600;margin-bottom:.25rem">${esc(arche.name||arche.id||'—')}</div>
+                <div class="muted" style="font-size:12px;margin-bottom:.5rem">${esc(arche.description||'')}</div>
+                <div class="muted" style="font-size:11px;margin-bottom:.5rem">canvas: <code>${esc(arche.canvas||'—')}</code></div>
+                <div style="font-size:12px;font-weight:600;margin:.5rem 0">Layers (${(arche.layers||[]).length}):</div>
+                <ul style="font-size:12px;padding-left:1.2rem;line-height:1.6">${archeLayers}</ul>
+              </div>
+              <div class="card col-6"><div class="card-h"><h3>🎨 Palette + Typography</h3></div>
+                <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc(JSON.stringify({palette: brief.palette, typography: brief.typography}, null, 2))}</pre>
+              </div>
+              <div class="card col-12"><div class="card-h"><h3>🎤 Voice anchor (first 400 chars)</h3></div>
+                <div style="font-size:12px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap">${esc(brief.voice_anchor||'—')}</div>
+              </div>
+              <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
+                <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc((brief.headlines_bank||'').slice(0, 2000))}</pre>
+              </div>
+              <div class="card col-6"><div class="card-h"><h3>🎯 CTAs bank</h3></div>
+                <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc((brief.ctas_bank||'').slice(0, 2000))}</pre>
+              </div>
+            </div>
+          </div>`;
+        detail.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+  } catch(e) {
+    container.innerHTML = `<div class="card"><div class="muted">Brand Directory API not reachable: ${esc(e.message)}</div></div>`;
+  }
 }
 window.toggleCampaignPlan = async (cid) => {
   const el = document.getElementById('camp-plans');
