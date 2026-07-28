@@ -27,10 +27,12 @@
 - ✅ **Theme tokens + light/dark switcher** — two-tier CSS token system (`:root` aliases + `[data-theme]` overrides) with full dark + light themes, `prefers-color-scheme` auto-mode, topbar switcher pill (Dark/Light/Auto), `localStorage` persistence, server-side `GET/POST /api/intel/theme` + `GET /api/intel/tokens` design-system manifest. Every raw hex removed from CSS — all colors flow through semantic tokens (`--bg`, `--tx`, `--ac`, `--scrim`, `--pill-on`, etc.); meme era/fatigue/brand-fit palette uses `color-mix()` so it auto-themes.
 - ✅ 183 passing tests (was 73 baseline; +110 across all turns)
 
-## Priorities for next cron iteration
+## Cron tick 10 — 2026-07-28 05:15 SAST
+Built: Caption Studio v2 — voice-aware generation controls (Swing Shack / Stick / Bag Drop), six tone presets, provider-ready caption endpoint, voice-bible endpoint, and SPA picker/results UX.
+Files: campaign-os/app.py; campaign-os/_lib/intelligence.py; campaign-os/campaign-os.html; data/voice_bible.json; tests/test_caption_studio_v2.py
+Tests: 183/183 pass; existing Caption Studio v2 implementation verified locally (endpoint + SPA wiring).
+Next: Publish Dashboard (priority 10), with publish/schedule actions disabled during rest mode.
 
-9. ✅ **Dark mode / theme tokens** — done in tick 9 (see above).
-10. **Publish Dashboard** — wire up the actual Postiz publish path through the SPA: list, schedule, send. (Needs careful gating per the no-publish-during-rest-mode rule. UI can show the dashboard but the action buttons must be disabled until rest-mode is lifted.)
 
 ## Hard rules (do not violate)
 
