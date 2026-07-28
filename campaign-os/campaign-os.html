@@ -1988,7 +1988,7 @@ $('#cta-gen').addEventListener('click', async () => {
 });
 
 // ─── HASHTAGS & SEO PACK ────────────────────────────────────────
-let _hsLast = null;
+var _hsLast = null;
 async function renderHashtagSeo(){
   // Lazy-load the index once for brand keywords + trending signals
   if(!$('#hs-trending').dataset.loaded){
