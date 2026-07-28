@@ -380,6 +380,7 @@ def caption_studio() -> Dict[str, Any]:
     caps = _read_json(os.path.join(DATA_DIR, "captions.json")) or {}
     variants = _read_json(os.path.join(DATA_DIR, "caption-variants.json")) or {}
     cta = _read_json(os.path.join(DATA_DIR, "cta-performance.json")) or {}
+    voice_bible = _load_voice_bible()
     return {
         "ok": True,
         "ts": _now_iso(),
@@ -389,7 +390,51 @@ def caption_studio() -> Dict[str, Any]:
         "variants": variants.get("variants", []) if isinstance(variants, dict) else [],
         "cta_rankings": cta.get("cta_rankings", []) if isinstance(cta, dict) else [],
         "best_cta": cta.get("best_cta") if isinstance(cta, dict) else None,
+        "voice_bible": voice_bible,
     }
+
+
+# ─── VOICE BIBLE ────────────────────────────────────────────────────────
+
+def _load_voice_bible() -> Dict[str, Any]:
+    """Load voice_bible.json, preferring runtime DATA_DIR then bundled data dir."""
+    paths_to_try = []
+    runtime_dir = os.environ.get("DATA_DIR")
+    if runtime_dir:
+        paths_to_try.append(os.path.join(runtime_dir, "voice_bible.json"))
+    paths_to_try.append(os.path.join(DATA_DIR, "voice_bible.json"))
+    # Also try bundled (repo root /data/)
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    paths_to_try.append(os.path.join(repo_root, "data", "voice_bible.json"))
+
+    for p in paths_to_try:
+        data = _read_json(p)
+        if data and isinstance(data, dict) and "voices" in data:
+            return data
+    return {"voices": {}}
+
+
+def _load_meme_knowledge_voices() -> Dict[str, List[str]]:
+    """Extract {voice_id: [meme_ids]} mapping from meme_knowledge.json."""
+    paths_to_try = []
+    runtime_dir = os.environ.get("DATA_DIR")
+    if runtime_dir:
+        paths_to_try.append(os.path.join(runtime_dir, "meme_knowledge.json"))
+    paths_to_try.append(os.path.join(DATA_DIR, "meme_knowledge.json"))
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    paths_to_try.append(os.path.join(repo_root, "data", "meme_knowledge.json"))
+
+    for p in paths_to_try:
+        data = _read_json(p)
+        if data and isinstance(data, dict):
+            memes = data.get("memes", []) if isinstance(data.get("memes"), list) else []
+            mapping: Dict[str, List[str]] = {}
+            for meme in memes:
+                if isinstance(meme, dict):
+                    for voice in meme.get("voice_fit", []):
+                        mapping.setdefault(str(voice), []).append(meme.get("id", ""))
+            return mapping
+    return {}
 
 
 # ─── PERFORMANCE ───────────────────────────────────────────────────────
@@ -579,8 +624,22 @@ def generate_hooks(n: int = 10) -> Dict[str, Any]:
     return {"ok": True, "ts": _now_iso(), "generated": out[:n], "count": len(out)}
 
 
-def generate_captions(asset_id: Optional[str] = None, n: int = 5) -> Dict[str, Any]:
-    """Build caption variations from campaign asset + hook pool."""
+def generate_captions(
+    asset_id: Optional[str] = None,
+    n: int = 5,
+    voice: Optional[str] = None,
+    tone: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Build caption variations from campaign asset + hook pool.
+
+    Args:
+        asset_id: campaign asset ID to attach captions to
+        n:        number of variants to generate
+        voice:    voice id from voice_bible.json ('swing-shack' | 'stick' | 'bag-drop')
+        tone:     tone within the voice ('educational' | 'funny' | etc.)
+    Returns:
+        {ok, asset, campaign, variants: [{variant, hook, body, cta, platform, voice, tone}, ...], count, ts}
+    """
     cd = _campaign_data()
     asset = None
     campaign_name = ""
@@ -590,16 +649,15 @@ def generate_captions(asset_id: Optional[str] = None, n: int = 5) -> Dict[str, A
                 asset = c["assets"][asset_id]
                 campaign_name = c.get("identity", {}).get("name", cid)
                 break
-    if not asset:
-        return {"ok": False, "error": "Asset not found", "asset_id": asset_id}
 
-    pool = generate_hooks(8).get("generated", [])
-    name = asset.get("name", "")
-    platform = asset.get("platform") or asset.get("integration", "instagram")
-    audience = asset.get("audience", "") if isinstance(asset.get("audience"), str) else ""
-    base_caption = asset.get("caption") or asset.get("text") or ""
+    pool = generate_hooks(max(3, n)).get("generated", [])
+    name = (asset.get("name", "") or "") if asset else ""
+    platform = (asset.get("platform") or asset.get("integration", "instagram")) if asset else "instagram"
+    base_caption = ""
+    if asset:
+        base_caption = (asset.get("caption") or asset.get("text") or "")
+
     if not base_caption:
-        # Try hook from the hook bank for this campaign
         hb = _read_json(os.path.join(DATA_DIR, "hook-bank.json")) or {}
         buckets = hb.get("output_buckets", {}) if isinstance(hb.get("output_buckets"), dict) else {}
         for bname in ("proven_and_trending", "proven_only", "trending_to_test"):
@@ -607,28 +665,80 @@ def generate_captions(asset_id: Optional[str] = None, n: int = 5) -> Dict[str, A
                 if isinstance(h, dict) and h.get("hook_text"):
                     base_caption = h["hook_text"]
                     break
-                if base_caption:
-                    break
             if base_caption:
                 break
     if not base_caption:
-        base_caption = f"{name or campaign_name or 'your post'} — book your session at swingshack.co.za"
+        base_caption = f"{name or campaign_name or 'Swing Shack'} — swingshack.co.za"
+
+    # Resolve voice
+    vb = _load_voice_bible()
+    voices = vb.get("voices", {})
+    resolved_voice = voice if (voice and voice in voices) else None
+
+    # Resolve tone (must be allowed for the resolved voice)
+    allowed = set(voices.get(resolved_voice, {}).get("allowed_tones", []) if resolved_voice else [])
+    resolved_tone = None
+    if tone and (not allowed or tone in allowed):
+        resolved_tone = tone
+
+    def _voice_prefix(vid):
+        return voices.get(vid, {}).get("template_prefix", "")
+
+    def _voice_suffix(vid):
+        return voices.get(vid, {}).get("template_suffix", "")
+
+    def _voice_cta(vid, idx=0):
+        alts = voices.get(vid, {}).get("cta_alternatives", [])
+        cta_default = voices.get(vid, {}).get("cta_default", "Book a session → swingshack.co.za")
+        if alts and idx < len(alts):
+            return alts[idx]
+        return cta_default
+
+    def _apply_voice(hook_text, vid, t, idx):
+        prefix = _voice_prefix(vid)
+        suffix = _voice_suffix(vid)
+        cta = _voice_cta(vid, idx)
+        body = f"{prefix} {hook_text}. {suffix} {cta}"
+        return body
 
     out = []
     for i, hook in enumerate(pool[:n]):
-        title = hook.get("hook", "") if isinstance(hook, dict) else ""
+        title = (hook.get("hook", "") or "") if isinstance(hook, dict) else ""
         if not title:
             continue
-        body = f"{title}\n\n{base_caption[:240]}\n\nBook a session → swingshack.co.za"
+
+        variant_voice = resolved_voice
+        variant_tone = resolved_tone
+
+        if variant_voice:
+            body = _apply_voice(title, variant_voice, variant_tone, i)
+            cta = _voice_cta(variant_voice, i)
+        else:
+            # No voice specified — use default format
+            body = f"{title}\n\n{base_caption[:240]}\n\nBook a session → swingshack.co.za"
+            cta = "Book a session → swingshack.co.za"
+
         out.append({
             "variant": i + 1,
             "hook": title,
             "body": body,
-            "cta": "Book a session",
+            "cta": cta,
             "platform": platform,
-            "source": hook.get("source") if isinstance(hook, dict) else None,
+            "source": (hook.get("source") or "signal-pool") if isinstance(hook, dict) else None,
+            "voice": variant_voice,
+            "tone": variant_tone,
         })
-    return {"ok": True, "ts": _now_iso(), "asset": asset_id, "campaign": campaign_name, "variants": out, "count": len(out)}
+
+    return {
+        "ok": True,
+        "ts": _now_iso(),
+        "asset": asset_id,
+        "campaign": campaign_name,
+        "variants": out,
+        "count": len(out),
+        "_voice": resolved_voice,
+        "_tone": resolved_tone,
+    }
 
 
 def generate_ctas(n: int = 5) -> Dict[str, Any]:

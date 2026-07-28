@@ -597,13 +597,48 @@ a:hover{text-decoration:underline}
 
     <!-- ── CAPTIONS ──────────────────────────────────────── -->
     <section class="section" id="sec-captions">
-      <div class="section-h"><h2>Caption Studio</h2><span class="sub">Generate · regenerate · test</span></div>
+      <div class="section-h"><h2>Caption Studio <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · voice-aware</span></h2><span class="sub">Pick voice + tone → generate · regenerate · test</span></div>
       <div class="grid">
         <div class="card col-12">
-          <div class="card-h"><h3>Pick an asset</h3></div>
-          <div class="row gap-1">
-            <select id="cap-asset-select" style="flex:1;max-width:420px"></select>
-            <button class="btn primary" id="cap-gen">⚡ Generate 5 captions</button>
+          <div class="card-h"><h3>Configure + generate</h3></div>
+          <!-- Asset picker -->
+          <div class="row gap-1" style="margin-bottom:.75rem">
+            <select id="cap-asset-select" style="flex:1;max-width:380px"></select>
+            <select id="cap-count-select" style="width:120px">
+              <option value="3">3 variants</option>
+              <option value="5" selected>5 variants</option>
+              <option value="8">8 variants</option>
+              <option value="12">12 variants</option>
+            </select>
+          </div>
+          <!-- Voice + Tone picker -->
+          <div class="row gap-1" style="margin-bottom:.75rem">
+            <div style="display:flex;flex-direction:column;gap:.2rem;flex:1;max-width:280px">
+              <label class="ed-label" style="margin-bottom:.15rem">Voice</label>
+              <select id="cap-voice-select">
+                <option value="">— any voice —</option>
+                <option value="swing-shack">⛳ Swing Shack (data-driven coach)</option>
+                <option value="stick">🚩 Stick (sarcastic insider)</option>
+                <option value="bag-drop">🫂 Bag Drop (community-first)</option>
+              </select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:.2rem;flex:1;max-width:280px">
+              <label class="ed-label" style="margin-bottom:.15rem">Tone</label>
+              <select id="cap-tone-select">
+                <option value="">— any tone —</option>
+                <option value="educational">📚 Educational</option>
+                <option value="confident">💪 Confident</option>
+                <option value="funny">😂 Funny</option>
+                <option value="relatable">🤝 Relatable</option>
+                <option value="provocative">🔥 Provocative</option>
+                <option value="sarcastic">🤨 Sarcastic</option>
+              </select>
+            </div>
+          </div>
+          <!-- Generate button row -->
+          <div class="row gap-1" style="align-items:center">
+            <button class="btn primary" id="cap-gen">⚡ Generate captions</button>
+            <span id="cap-voice-badge" style="font-size:11px;color:var(--tx-3)"></span>
           </div>
           <div id="cap-results" style="margin-top:1rem"></div>
         </div>
@@ -1546,32 +1581,91 @@ async function renderBillboards(){
 }
 
 // ─── CAPTIONS ───────────────────────────────────────────────────
+const CAP_STATE = { voice: '', tone: '' };
+
 async function renderCaptions(){
   if(!S.cap) S.cap = await API.get('/api/intel/caption_studio');
   if(!S.assets) S.assets = await API.get('/api/intel/assets');
+  // Load voice bible for SPA picker
+  if(!S.voiceBible) {
+    const vb = await API.get('/api/captions/voice-bible');
+    if(vb.ok) S.voiceBible = vb;
+  }
   const sel = $('#cap-asset-select');
-  sel.innerHTML = '<option value="">— pick an asset —</option>' + (S.assets.assets||[]).slice(0,60).map(a => `<option value="${esc(a.assetId)}">${esc(a.campaignName)} · ${esc(a.name)}</option>`).join('');
+  sel.innerHTML = '<option value="">— any asset (hook pool) —</option>' + (S.assets.assets||[]).slice(0,60).map(a => `<option value="${esc(a.assetId)}">${esc(a.campaignName)} · ${esc(a.name)}</option>`).join('');
   const c = S.cap;
   $('#cap-bank').innerHTML = safeList(c.captions, 20).map(it => {
     const txt = it.hook_text || it.short_caption || it.medium_caption || it.long_caption || it.caption || it.text || '';
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,140))}</div><div class="li-meta">${it.platform?pill('live', it.platform):''} ${it.format_type?pill('draft', it.format_type):''}</div></div></li>`;
+    const voiceChip = it.voice ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(it.voice)}</span>` : '';
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,140))}</div><div class="li-meta">${it.platform?pill('live', it.platform):''} ${it.format_type?pill('draft', it.format_type):''} ${voiceChip}</div></div></li>`;
   }).join('') || '<div class="empty">No captions</div>';
   $('#cap-cta').innerHTML = safeList(c.cta_rankings, 10).map(it => {
     const txt = it.cta || it.text || it.label || it.cta_type || '';
     const perf = it.avg_engagement_rate || it.cvr || it.score || '';
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt)}</div>${perf?`<div class="li-meta">${pill('on', 'avg '+perf+(typeof perf==='number'?'%':''))}</div>`:''}</div></li>`;
   }).join('') || '<div class="empty">No CTA data</div>';
-  empty('cap-results', 'Pick an asset and click Generate');
+  empty('cap-results', 'Pick a voice + tone, then click Generate');
+  // Restore previous selections
+  if(CAP_STATE.voice) $('#cap-voice-select').value = CAP_STATE.voice;
+  if(CAP_STATE.tone) $('#cap-tone-select').value = CAP_STATE.tone;
+  updateCapBadge();
 }
+
+// Update voice badge on picker change
+['cap-voice-select','cap-tone-select'].forEach(id => {
+  $(id).addEventListener('change', () => {
+    CAP_STATE.voice = $('#cap-voice-select').value;
+    CAP_STATE.tone  = $('#cap-tone-select').value;
+    updateCapBadge();
+  });
+});
+
+function updateCapBadge(){
+  const vb = S.voiceBible;
+  const voiceLabel = vb && CAP_STATE.voice && vb.voices && vb.voices[CAP_STATE.voice]
+    ? vb.voices[CAP_STATE.voice].label : CAP_STATE.voice || '';
+  const toneLabel  = vb && CAP_STATE.tone  && vb.tones  && vb.tones[CAP_STATE.tone]
+    ? vb.tones[CAP_STATE.tone].label  : CAP_STATE.tone  || '';
+  const parts = [voiceLabel, toneLabel].filter(Boolean);
+  $('#cap-voice-badge').textContent = parts.length ? `📝 ${parts.join(' · ')}` : '';
+}
+
 $('#cap-gen').addEventListener('click', async () => {
-  const id = $('#cap-asset-select').value;
-  if(!id){ toast('Pick an asset first', 'err'); return; }
-  const r = await API.post('/api/intel/generate/captions/'+id, {n:5});
+  const id = $('#cap-asset-select').value;  // '' = use hook pool only
+  const n  = parseInt($('#cap-count-select').value, 10) || 5;
+  const voice = $('#cap-voice-select').value || undefined;
+  const tone  = $('#cap-tone-select').value  || undefined;
+  const payload = { n };
+  if(id) payload.assetId = id;
+  if(voice) payload.voice = voice;
+  if(tone)  payload.tone  = tone;
+
+  const r = await API.post('/api/captions/generate', payload);
   if(!r.ok){ toast(r.error||'Failed', 'err'); return; }
-  $('#cap-results').innerHTML = `<h4 style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">${r.count} variants for ${esc(r.asset)}</h4>` + (r.variants||[]).map(v => `
-    <div class="review"><div class="review-cap"><div class="review-cap-t">${esc(v.hook)}</div><div class="review-cap-x">${esc(v.body)}</div></div><div class="review-meta">${pill('live', v.platform||'')} ${pill('on', 'CTA')} <span class="muted">${esc(v.source||'')}</span></div></div>
-  `).join('');
-  toast('Generated '+r.count+' caption variants');
+
+  const voiceChip = r._voice ? `<span class="meme-chip" style="background:rgba(52,211,153,.15);color:var(--ac)">${esc(r._voice)}</span>` : '';
+  const toneChip  = r._tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(r._tone)}</span>` : '';
+  const subtitle = [voiceChip, toneChip].filter(Boolean).join(' ');
+  const assetLabel = r.asset ? ` for ${esc(r.asset)}` : (id ? ` for ${esc(id)}` : ' (hook pool)');
+
+  $('#cap-results').innerHTML =
+    `<h4 style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">${r.count} variants${assetLabel} ${subtitle}</h4>` +
+    (r.variants||[]).map((v, i) => {
+      const vVoice = v.voice ? `<span class="meme-chip" style="background:rgba(52,211,153,.12);color:var(--ac)">${esc(v.voice)}</span>` : '';
+      const vTone  = v.tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(v.tone)}</span>` : '';
+      return `<div class="review" style="margin-bottom:.5rem">
+        <div class="review-cap">
+          <div class="review-cap-t">${esc(v.hook||'')}</div>
+          <div class="review-cap-x">${esc(v.body||'')}</div>
+          ${v.cta ? `<div style="margin-top:.4rem;font-size:12px;color:var(--ac);font-weight:600">${esc(v.cta)}</div>` : ''}
+        </div>
+        <div class="review-meta">
+          ${v.platform?pill('live', v.platform):''} ${vVoice} ${vTone}
+          <span class="muted">${esc(v.source||'')}</span>
+        </div>
+      </div>`;
+    }).join('');
+  toast(`Generated ${r.count} caption variants${r._voice ? ' in '+r._voice+' voice' : ''}`);
 });
 
 // ─── HEADLINES ─────────────────────────────────────────────────

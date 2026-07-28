@@ -881,18 +881,102 @@ def intel_generate_image():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
-@app.route('/api/intel/generate/captions/<asset_id>', methods=['POST'])
+@app.route('/api/intel/generate/captions/<asset_id>', methods=['POST', 'GET'])
 def intel_generate_captions(asset_id):
-    """POST /api/intel/generate/captions/<assetId> — generate caption variants."""
+    """POST/GET /api/intel/generate/captions/<assetId> — generate voice-aware caption variants.
+
+    Accepts body (POST) or query params (GET):
+      n:     number of variants (default 5, max 20)
+      voice: 'swing-shack' | 'stick' | 'bag-drop' (from voice_bible.json)
+      tone:  'educational' | 'confident' | 'funny' | 'relatable' | 'provocative' | 'sarcastic'
+    Returns {ok, asset, campaign, variants, count, _voice, _tone, ts}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = {}
+        if request.method == 'POST':
+            body = request.get_json(silent=True) or {}
+        else:
+            body = {k: request.args.get(k) for k in ('n', 'voice', 'tone')}
+        n = min(int(body.get('n', 5) or 5), 20)
+        voice = str(body.get('voice', '') or '').strip() or None
+        tone = str(body.get('tone', '') or '').strip() or None
+        result = generate_captions(asset_id, n, voice=voice, tone=tone)
+        return jsonify(result), 200
+    except Exception as exc:
+        _app_log.exception("caption generate failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── Caption Studio v2 — /api/captions/<verb> routes ─────────────────────────
+
+@app.route('/api/captions/generate', methods=['POST'])
+def api_captions_generate():
+    """POST /api/captions/generate — voice-aware caption generation.
+
+    Body: { assetId?, n?, voice?, tone? }
+      assetId: campaign asset ID (optional — generates standalone hooks if absent)
+      n:       number of variants 1-20 (default 5)
+      voice:   'swing-shack' | 'stick' | 'bag-drop' (from voice_bible.json)
+      tone:    'educational' | 'confident' | 'funny' | 'relatable' | 'provocative' | 'sarcastic'
+
+    Returns: {ok, asset, variants, count, _voice, _tone, ts}
+    """
     if not _INTELLIGENCE_AVAILABLE:
         return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
     try:
         body = request.get_json(silent=True) or {}
-        n = int(body.get('n', 5))
-        return jsonify(generate_captions(asset_id, n)), 200
+        asset_id = str(body.get('assetId', '') or '').strip() or None
+        n = min(max(int(body.get('n', 5) or 5), 1), 20)
+        voice = str(body.get('voice', '') or '').strip() or None
+        tone = str(body.get('tone', '') or '').strip() or None
+        result = generate_captions(asset_id, n, voice=voice, tone=tone)
+        return jsonify(result), 200
     except Exception as exc:
-        _app_log.exception("caption generate failed")
+        _app_log.exception("api/captions/generate failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/captions/voice-bible', methods=['GET'])
+def api_captions_voice_bible():
+    """GET /api/captions/voice-bible — return voice definitions for SPA picker.
+
+    Returns: {ok, voices, ts}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        from _lib.intelligence import _load_voice_bible, _now_iso
+        vb = _load_voice_bible()
+        return jsonify({
+            "ok": True,
+            "ts": _now_iso(),
+            "voices": vb.get("voices", {}),
+            "tones": vb.get("tones", {}),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("api/captions/voice-bible failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/captions/index', methods=['GET'])
+def api_captions_index():
+    """GET /api/captions/index — discoverable routes for caption studio.
+
+    Returns: {ok, routes: [{path, methods, description}]}
+    """
+    return jsonify({
+        "ok": True,
+        "routes": [
+            {"path": "/api/captions/generate", "methods": ["POST"],
+             "description": "Generate voice-aware caption variants"},
+            {"path": "/api/captions/voice-bible", "methods": ["GET"],
+             "description": "Return voice definitions from voice_bible.json"},
+            {"path": "/api/captions/index", "methods": ["GET"],
+             "description": "This index"},
+        ],
+    }), 200
 
 
 @app.route('/api/intel/index', methods=['GET'])
