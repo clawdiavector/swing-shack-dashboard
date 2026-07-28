@@ -873,15 +873,22 @@ def _intel(name):
     fn = INTELLIGENCE_FUNCS.get(name)
     if not fn:
         return {"ok": False, "error": f"Unknown view: {name}"}, 404
+    # Thread the active brand into the intel function so its data is brand-scoped
+    bid = get_brand_id()
     try:
+        _intel_module.set_request_brand(bid)
         if name == 'calendar':
             days = int(request.args.get('days', 14))
             start = request.args.get('start') or None
-            return _intel_module.calendar_view(days=days, start=start), 200
-        return fn(), 200
+            result = _intel_module.calendar_view(days=days, start=start), 200
+        else:
+            result = fn(), 200
+        return result
     except Exception as exc:
         _app_log.exception("Intel %s failed", name)
         return {"ok": False, "error": str(exc), "view": name}, 500
+    finally:
+        _intel_module.clear_request_brand()
 
 
 @app.route('/api/intel/<name>', methods=['GET'])

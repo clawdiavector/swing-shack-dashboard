@@ -186,6 +186,55 @@ a:hover{text-decoration:underline}
 .brand-name{font-weight:700;font-size:15px;letter-spacing:-.01em}
 .brand-sub{font-size:11px;color:var(--tx-3)}
 
+/* Brand switcher (clickable dropdown) */
+.brand-switch{cursor:pointer;position:relative;transition:background var(--t)}
+.brand-switch:hover{background:var(--bg-3);border-radius:var(--r-s)}
+.brand-switch:focus{outline:2px solid var(--ac);outline-offset:1px;border-radius:var(--r-s)}
+.brand-chev{font-size:11px;color:var(--tx-3);transition:transform var(--t)}
+.brand-switch[aria-expanded="true"] .brand-chev{transform:rotate(180deg)}
+.brand-dropdown{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);
+  box-shadow:0 12px 24px rgba(0,0,0,.18),0 2px 4px rgba(0,0,0,.08);
+  z-index:50;padding:6px;max-height:320px;overflow-y:auto;
+}
+.brand-dropdown[hidden]{display:none}
+.brand-option{
+  display:flex;align-items:center;gap:.6rem;padding:.55rem .65rem;border-radius:var(--r-s);
+  cursor:pointer;font-size:13px;color:var(--tx);transition:background var(--t)
+}
+.brand-option:hover{background:var(--bg-3)}
+.brand-option.active{background:var(--bg-3);box-shadow:inset 2px 0 0 var(--ac)}
+.brand-option-ico{width:24px;height:24px;border-radius:6px;background:var(--gd);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.brand-option-name{flex:1;font-weight:600}
+.brand-option-count{font-size:10px;color:var(--tx-3);background:var(--bg-4);padding:2px 6px;border-radius:var(--r-p)}
+.brand-option-empty{font-size:11px;color:var(--tx-3);padding:.4rem .65rem;font-style:italic}
+
+/* Section explainer tooltip (hover/tap to learn what each panel does) */
+.section-explain{
+  display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
+  background:var(--bg-3);color:var(--tx-3);font-size:11px;font-weight:700;cursor:help;
+  margin-left:.4rem;position:relative;transition:all var(--t);
+  border:1px solid var(--bd);
+}
+.section-explain:hover{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+.section-explain[aria-expanded="true"]{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+.section-explain-tip{
+  position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);
+  background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:var(--r-s);
+  padding:.65rem .85rem;font-size:12px;line-height:1.5;font-weight:400;
+  width:280px;max-width:90vw;z-index:60;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);
+  pointer-events:none;opacity:0;transition:opacity var(--t);
+  white-space:normal;text-align:left;
+}
+.section-explain[aria-expanded="true"] .section-explain-tip{opacity:1}
+.section-explain-tip::after{
+  content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:var(--bd);
+}
+
+
 .nav-section{margin-bottom:1rem}
 .nav-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--tx-3);padding:.5rem .75rem .25rem}
 .nav{display:flex;align-items:center;gap:.6rem;padding:.55rem .75rem;border-radius:var(--r-s);color:var(--tx-2);cursor:pointer;transition:all var(--t);font-size:13px;font-weight:500}
@@ -445,12 +494,15 @@ a:hover{text-decoration:underline}
 
   <!-- ─── Sidebar ─────────────────────────────────────────── -->
   <aside class="side">
-    <div class="brand">
-      <div class="brand-mark">⛳</div>
-      <div>
-        <div class="brand-name">Campaign OS</div>
-        <div class="brand-sub">Swing Shack</div>
+    <!-- Brand switcher (clickable dropdown, populated from /api/brands) -->
+    <div class="brand brand-switch" id="brand-switch" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false">
+      <div class="brand-mark" id="brand-mark">⛳</div>
+      <div style="flex:1;min-width:0">
+        <div class="brand-name" id="brand-name">Campaign OS</div>
+        <div class="brand-sub" id="brand-sub">Loading brand…</div>
       </div>
+      <span class="brand-chev" aria-hidden="true">▾</span>
+      <div class="brand-dropdown" id="brand-dropdown" role="listbox" hidden></div>
     </div>
 
     <div class="nav-section">
@@ -1351,7 +1403,176 @@ const S = {
   hooks:null, memes:null, bb:null, cap:null, perf:null, learn:null,
   ideas:null, trends:null, postiz:null, seo:null, gbp:null,
   reddit:null, faqs:null, camps:null, assets:null, agents:null,
+  brand:null, brandContext:null, brandDropdownOpen:false,
 };
+
+// ─── Brand switcher + per-brand data scoping ────────────────────
+async function loadBrandContext(){
+  try {
+    const r = await fetch('/api/intel/brand-context');
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    S.brandContext = await r.json();
+    renderBrandSwitcher();
+    return S.brandContext;
+  } catch(e) {
+    console.warn('brand-context failed:', e);
+    return null;
+  }
+}
+
+function renderBrandSwitcher(){
+  if(!S.brandContext) return;
+  const ctx = S.brandContext;
+  const brand = ctx.brand || {};
+  $('#brand-mark').textContent = brand.icon || '⛳';
+  $('#brand-name').textContent = brand.display_name || ctx.brand_id;
+  const campCount = (ctx.campaigns || []).length;
+  const assetCount = ctx.asset_count || 0;
+  $('#brand-sub').textContent = `${campCount} campaign${campCount===1?'':'s'} · ${assetCount} asset${assetCount===1?'':'s'}`;
+  // Apply brand primary color as accent if defined
+  if(brand.primary_color){
+    document.documentElement.style.setProperty('--brand-color', brand.primary_color);
+    document.documentElement.style.setProperty('--ac', brand.primary_color);
+  }
+  if(brand.accent_color){
+    document.documentElement.style.setProperty('--brand-accent', brand.accent_color);
+  }
+  // Render dropdown options
+  const opts = ctx.available_brands || [];
+  const dd = $('#brand-dropdown');
+  dd.innerHTML = opts.map(b => `
+    <div class="brand-option ${b.id === ctx.brand_id ? 'active' : ''}" data-brand="${esc(b.id)}" role="option" tabindex="0">
+      <div class="brand-option-ico">${esc(b.icon || '⛳')}</div>
+      <div class="brand-option-name">${esc(b.display_name)}</div>
+      <div class="brand-option-count">${b.campaign_count || 0}c · ${b.asset_count || 0}a</div>
+    </div>
+  `).join('') || '<div class="brand-option-empty">No brands configured</div>';
+  // Bind option clicks
+  $$('#brand-dropdown .brand-option').forEach(o => {
+    o.addEventListener('click', e => { e.stopPropagation(); switchBrand(o.dataset.brand); });
+  });
+}
+
+async function switchBrand(brandId){
+  if(!brandId || brandId === S.brandContext?.brand_id) {
+    toggleBrandDropdown(false);
+    return;
+  }
+  try {
+    // Persist preference
+    await fetch('/api/brands/' + encodeURIComponent(brandId) + '/select', {method:'POST'});
+    // The next requests need to use the new brand_id query param.
+    // We store it in S so all fetches include it.
+    S.brand = brandId;
+    document.documentElement.dataset.brand = brandId;
+    // Reload brand context + everything that depends on it
+    await loadBrandContext();
+    // Invalidate all section caches so they re-render with the new brand's data
+    S.brief = null; S.review = null; S.cal = null; S.hooks = null;
+    S.memes = null; S.bb = null; S.cap = null; S.perf = null;
+    S.learn = null; S.ideas = null; S.trends = null; S.postiz = null;
+    S.seo = null; S.gbp = null; S.reddit = null; S.faqs = null;
+    S.camps = null; S.assets = null; S.agents = null;
+    // Re-render whichever section is active
+    const active = Array.from($$('.section.on')).map(s => s.id.replace(/^sec-/, ''));
+    active.forEach(sec => { try { renderSection(sec); } catch(e){ console.warn('render', sec, e); } });
+    toast(`Switched to ${(S.brandContext?.brand?.display_name) || brandId}`);
+  } catch(e) {
+    toast('Brand switch failed: ' + e.message, 'err');
+  } finally {
+    toggleBrandDropdown(false);
+  }
+}
+
+function toggleBrandDropdown(forceState){
+  const isOpen = forceState === undefined ? !S.brandDropdownOpen : !!forceState;
+  S.brandDropdownOpen = isOpen;
+  $('#brand-dropdown').hidden = !isOpen;
+  $('#brand-switch').setAttribute('aria-expanded', String(isOpen));
+}
+
+// Bind brand switcher click handlers
+$('#brand-switch').addEventListener('click', e => { e.stopPropagation(); toggleBrandDropdown(); });
+$('#brand-switch').addEventListener('keydown', e => {
+  if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleBrandDropdown(); }
+  if(e.key === 'Escape') toggleBrandDropdown(false);
+});
+document.addEventListener('click', e => {
+  if(S.brandDropdownOpen && !e.target.closest('#brand-switch')) toggleBrandDropdown(false);
+});
+
+// Augment fetch to inject brand_id query parameter automatically
+const _origFetch = window.fetch;
+window.fetch = function(url, opts){
+  const u = new URL(url, location.origin);
+  // Inject X-Brand header for SPA-initiated requests
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  if(S.brand && !opts.headers['X-Brand']){
+    opts.headers['X-Brand'] = S.brand;
+  }
+  return _origFetch(u.toString(), opts);
+};
+
+// ─── Section explainer tooltip (auto-injects "??" button after every section-h h2/h3) ──
+function attachExplainers(){
+  // Map of section-id → explanation text
+  const TIPS = {
+    'sec-brief': 'Live signal across every source — what to act on, what changed, what needs you. Updated every 30 seconds.',
+    'sec-review': 'Every generated asset lands here. Approve, reject, edit, regenerate, schedule, or publish — all in one place.',
+    'sec-publish': 'What Postiz knows about your scheduled, draft, published, and failed posts. Detect missing or deleted posts and explain failures.',
+    'sec-calendar': 'Drag-drop planning across brands, campaigns, platforms. Move work between days. Filter by campaign, status, platform.',
+    'sec-trends': 'Real-time signals from YouTube, Reddit, news, golf media. Each trend can become a caption, meme, or idea in one click.',
+    'sec-ideas': 'Content opportunities matched to your brand pillars. Each idea has a hook angle, format, and proof reference.',
+    'sec-performance': 'Every chart here has a conclusion: why this performed, what to repeat, what to stop.',
+    'sec-learning': 'Campaign OS gets smarter every week. Hooks, CTAs, formats, times that work for THIS brand. Use it to bias your next decisions.',
+    'sec-hooks': 'Your brand\'s hook bank. Tested hooks ranked by what wins for THIS brand.',
+    'sec-memes': 'Memes that fit your brand voice. Ranked by era-fit (recent over classic) and brand-fit.',
+    'sec-billboards': 'Headlines and CTA combinations tested for billboard / hero / campaign placement.',
+    'sec-captions': 'Generate voice-aware captions for any asset. Toggle tone (provocative/educational/funny) and platform (IG/FB/LinkedIn).',
+    'sec-imagegen': 'Image prompt templates per asset. Layers: background → logo → headline → hero. Each prompt is asset-specific, not generic.',
+    'sec-headlines': 'Generate bold, provocative, shareable headlines. Pick a hook angle and pillar.',
+    'sec-ctas': 'Brand-scoped CTAs ranked by what converts. Pick one, drop into a caption.',
+    'sec-hashtagseo': 'Hashtag sets + SEO meta for each platform. Pillar-filtered, trending-aware.',
+    'sec-seo': 'SEO recommendations for your website. Landing-page fixes, on-page opportunities.',
+    'sec-seo-audit': 'Deep-dive on seo-audit.json. Per-page issues, fixes, drafts.',
+    'sec-gbp': 'Google Business Profile suggestions and post templates.',
+    'sec-reddit': 'Reddit outreach opportunities — threads where your brand can contribute.',
+    'sec-faqs': 'FAQ opportunities mined from search data and customer questions.',
+    'sec-postiz': 'Direct view of the Postiz publishing queue.',
+    'sec-campaigns': 'All campaigns for the active brand. Brief, blueprint, plan, history.',
+    'sec-agents': 'Health of every agent lane — what ran, what failed, what queued.',
+  };
+  $$('.section-h').forEach(h => {
+    const sec = h.closest('.section');
+    if(!sec || !sec.id) return;
+    if(h.querySelector('.section-explain')) return;
+    const tip = TIPS[sec.id];
+    if(!tip) return;
+    const btn = document.createElement('span');
+    btn.className = 'section-explain';
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', 'What is this section?');
+    btn.setAttribute('tabindex', '0');
+    btn.innerHTML = '?<span class="section-explain-tip">' + esc(tip) + '</span>';
+    btn.addEventListener('click', e => { e.stopPropagation();
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      // Close all others
+      $$('.section-explain[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+      btn.setAttribute('aria-expanded', String(!open));
+    });
+    btn.addEventListener('mouseenter', () => $$('.section-explain[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false')) || btn.setAttribute('aria-expanded', 'true'));
+    btn.addEventListener('mouseleave', () => btn.setAttribute('aria-expanded', 'false'));
+    h.appendChild(btn);
+  });
+  // Click anywhere else to close
+  document.addEventListener('click', e => {
+    if(!e.target.closest('.section-explain')){
+      $$('.section-explain[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    }
+  });
+}
 
 // ─── Toasts / Modal ─────────────────────────────────────────────
 function toast(msg, kind='ok'){
@@ -1387,6 +1608,35 @@ function go(sec){
   loadSection(sec);
 }
 $$('.nav').forEach(n => n.addEventListener('click', () => go(n.dataset.go)));
+
+// Map section-id → render function (used by brand switcher to re-render the active section)
+const _RENDERERS = {
+  brief: renderBrief, review: renderReview, publish: renderPublish,
+  calendar: renderCalendar, trends: renderTrends, ideas: renderIdeas,
+  performance: renderPerformance, learning: renderLearning, hooks: renderHooks,
+  memes: renderMemes, billboards: renderBillboards, captions: renderCaptions,
+  imagegen: renderImageGen, headlines: renderHeadlines, ctas: renderCTAs,
+  hashtagseo: renderHashtagSeo, seo: renderSEO, gbp: renderGBP,
+  reddit: renderReddit, faqs: renderFAQs, postiz: renderPostiz,
+  'seo-audit': renderSeoAudit, campaigns: renderCampaigns, agents: renderAgents,
+};
+async function renderSection(sec){
+  const fn = _RENDERERS[sec];
+  if(fn) { try { await fn(); } catch(e){ console.warn('renderSection', sec, e); } }
+  else { try { await loadSection(sec); } catch(e){ console.warn('loadSection', sec, e); } }
+}
+
+// Initialise brand switcher + section explainers + first render
+(async function boot(){
+  // Brand must load first so the X-Brand header is set on subsequent fetches
+  await loadBrandContext();
+  attachExplainers();
+  // Default active section: brief
+  const activeSec = Array.from($$('.section.on')).map(s => s.id.replace(/^sec-/, ''))[0] || 'brief';
+  go(activeSec);
+  // Re-attach explainers whenever sections are re-rendered (since their section-h elements may be replaced)
+  setInterval(() => attachExplainers(), 4000);
+})();
 
 // ─── Section loaders ────────────────────────────────────────────
 async function loadSection(sec){
@@ -1505,12 +1755,15 @@ async function renderTodayRail(){
 
 // ─── BRIEF ──────────────────────────────────────────────────────
 async function renderBrief(){
-  if(!S.brief){
+  // Invalidate cache if brand changed since last render — cache key includes brand
+  const cacheKey = S.brand || 'default';
+  if(!S.brief || S.brief.__cacheBrand !== cacheKey){
     const [b, r, t] = await Promise.all([
       API.get('/api/intel/morning_brief'),
       API.get('/api/intel/review_inbox'),
       API.get('/api/intel/trend_catcher'),
     ]);
+    b.__cacheBrand = cacheKey;
     S.brief = b; S.review = r; S.trends = t;
   }
   const b = S.brief;

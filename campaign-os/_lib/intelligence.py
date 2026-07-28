@@ -52,18 +52,48 @@ def _all_data_files() -> List[str]:
 
 
 def _campaign_data() -> Dict[str, Any]:
-    """Load canonical campaign data, preferring /data then bundled."""
+    """Load canonical campaign data, preferring /data then bundled.
+    Optional brand filter: if REQUEST_BRAND_ID is set (threaded through by app.py),
+    campaigns belonging to other brands are stripped from the result. This lets
+    every intel view auto-scope to the active brand without each function having
+    to know about brand partitioning."""
     p1 = os.path.join(os.environ.get("DATA_DIR", "/data"), "campaign-data.json")
     p2 = os.path.join(CAMPAIGN_OS_ROOT, "campaign-data.json")
+    d = None
     if os.path.exists(p1):
         d = _read_json(p1)
-        if d:
-            return d
-    if os.path.exists(p2):
+    if d is None and os.path.exists(p2):
         d = _read_json(p2)
-        if d:
-            return d
-    return {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
+    if d is None:
+        d = {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
+    # Brand scoping — uses a thread-local style hint (set by app.py for the duration of a request)
+    brand_id = _REQUEST_BRAND_ID
+    if brand_id:
+        filtered = {cid: c for cid, c in (d.get('campaigns') or {}).items() if c.get('brand_id') == brand_id}
+        # If the active campaign id is in another brand, fall back to the first matching campaign
+        active = d.get('activeCampaignId')
+        if active and active not in filtered:
+            active = next(iter(filtered.keys()), None)
+        d = dict(d)
+        d['campaigns'] = filtered
+        d['activeCampaignId'] = active
+    return d
+
+
+# Thread-local brand id (set by app.py for each request so intel functions can scope)
+_REQUEST_BRAND_ID = None
+
+
+def set_request_brand(brand_id):
+    """Called by app.py before invoking an intel function to scope its data."""
+    global _REQUEST_BRAND_ID
+    _REQUEST_BRAND_ID = brand_id or None
+
+
+def clear_request_brand():
+    """Called by app.py after the intel function returns."""
+    global _REQUEST_BRAND_ID
+    _REQUEST_BRAND_ID = None
 
 
 # ─── BRIEF / HOME ──────────────────────────────────────────────────────
