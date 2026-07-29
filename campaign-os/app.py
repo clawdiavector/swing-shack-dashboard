@@ -1115,6 +1115,13 @@ def privacy_policy():
     return send_from_directory(os.path.dirname(__file__), 'privacy.html')
 
 
+@app.route('/meta-app-review', methods=['GET'])
+@app.route('/meta-app-review/', methods=['GET'])
+def meta_app_review_index():
+    """GET /meta-app-review — Visual evidence bundle for Meta App Review submission."""
+    return send_from_directory(os.path.dirname(__file__), 'meta-app-review/index.html')
+
+
 @app.route('/terms', methods=['GET'])
 @app.route('/terms.html', methods=['GET'])
 def terms_of_service():

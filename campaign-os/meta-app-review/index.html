@@ -1,0 +1,196 @@
+<!DOCTYPE html><html><head><meta charset='utf-8'><title>Meta App Review Test Calls</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:1100px;margin:30px auto;padding:0 20px;color:#1c1e21;background:#f0f2f5}h1{color:#1877f2}h2{border-bottom:2px solid #1877f2;padding-bottom:8px;margin-top:40px}.call{background:white;border:1px solid #dadde1;border-radius:8px;padding:20px;margin:15px 0;box-shadow:0 1px 2px rgba(0,0,0,.1)}.call-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.permission-name{font-weight:700;font-size:17px;color:#1c1e21}.http-200{background:#42b883;color:white;padding:4px 12px;border-radius:12px;font-size:13px;font-weight:600}.desc{color:#65676b;font-size:13px;margin-bottom:10px}pre{background:#1c1e21;color:#00ff88;padding:15px;border-radius:6px;overflow-x:auto;font-size:12px;line-height:1.5;font-family:'SF Mono',Monaco,Consolas,monospace;max-height:300px}.meta-info{background:#fff3cd;border:1px solid #ffeaa7;padding:10px;border-radius:6px;margin:20px 0;font-size:13px}.footer{text-align:center;margin-top:40px;color:#65676b;font-size:12px}</style></head><body>
+<h1>📋 Meta App Review — API Test Call Evidence</h1>
+<div class='meta-info'>
+<strong>App ID:</strong> 2484801338654661 (Heidi)<br>
+<strong>FB Page:</strong> Swing Shack (198859063301219)<br>
+<strong>IG Business Account:</strong> 17841456713897671 (@swingshack)<br>
+<strong>Generated:</strong> 2026-07-29 13:18 UTC (15:18 SAST)<br>
+<strong>All 8 test calls returned HTTP 200 with real Meta data.</strong>
+</div>
+<div class='call'>
+<div class='call-header'><span class='permission-name'>Pages Show List</span><span class='http-200'>HTTP 200 ✓</span></div>
+<div class='desc'>List of pages the user manages</div>
+<pre>{
+  "data": [
+    {
+      "id": "198859063301219",
+      "name": "Swing Shack",
+      "access_token": "EAAjT6eUgv8UBSMM8KF0z81deIZBxIsX9dOBE3IZCFB654VcqFaexBZCSrnknyI0tZAVe22AWve2ujaKoJIcdGjM5Ym9lLFbPASOVC1ZC618DPXLQeFLG3aFluTZBZB2PJ796HRjMCch9owZBSZAkPJRE1NloGE5ZBgeduK6MdrL8M3ZBT0uIFaYR6Wjf1c5YTZBZC5ZCOSxQZA990cUGhrPpMFtXYQfuixjhFVYHkfTxN86BHGsfQZDZD"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFIU0pEbEozel9WZAUtLbXNtN2F6amZAZARUVBdmtyUmk0VTdPM1NiaDVOc2cxbkxpQy04SC14NEV5a2k3Q3c3TS1JMmJjTUVyQ0ZAuWjBCZAHBNT1VtQW1jWWNn",
+      "after": "QVFIU0pEbEozel9WZAUtLbXNtN2F6amZAZARUVBdmtyUmk0VTdPM1NiaDVOc2cxbkxpQy04SC14NEV5a2k3Q3c3TS1JMmJjTUVyQ0ZAuWjBCZAHBNT1VtQW1jWWNn"
+    }
+  }
+}</pre>
+</div>
+<div class='call'>
+<div class='call-header'><span class='permission-name'>Business Management</span><span class='http-200'>HTTP 200 ✓</span></div>
+<div class='desc'>Business portfolios the user has access to</div>
+<pre>{
+  "data": [
+    {
+      "id": "637613695233232",
+      "name": "Swing Shack"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFIU0xJU3UwUHk0bmJXc3oyLTY3NXZATU0E5amxhOXRPME1QNmJxbUhHUTNmMG5qLUlLdEw3bEs0aFY5el9TY01QY2x2anYwMnFQS1lITVlNV2F2N2FTaTB3",
+      "after": "QVFIU0xJU3UwUHk0bmJXc3oyLTY3NXZATU0E5amxhOXRPME1QNmJxbUhHUTNmMG5qLUlLdEw3bEs0aFY5el9TY01QY2x2anYwMnFQS1lITVlNV2F2N2FTaTB3"
+    }
+  }
+}</pre>
+</div>
+<div class='call'>
+<div class='call-header'><span class='permission-name'>Pages Read Engagement</span><span class='http-200'>HTTP 200 ✓</span></div>
+<div class='desc'>Read engagement metrics on Swing Shack Facebook page</div>
+<pre>{
+  "id": "198859063301219",
+  "name": "Swing Shack",
+  "fan_count": 436
+}</pre>
+</div>
+<div class='call'>
+<div class='call-header'><span class='permission-name'>Read Insights</span><span class='http-200'>HTTP 200 ✓</span></div>
+<div class='desc'>Read aggregate page insights (views + engagements) — page token</div>
+<pre>{
+  "data": [
+    {
+      "name": "page_views_total",
+      "period": "day",
+      "values": [
+        {
+          "value": 8,
+          "end_time": "2026-07-27T07:00:00+0000"
+        },
+        {
+          "value": 12,
+          "end_time": "2026-07-28T07:00:00+0000"
+        }
+      ],
+      "title": "Daily Total views count per Page",
+      "description": "Daily: Total views count per Page",
+      "id": "198859063301219/insights/page_views_total/day"
+    },
+    {
+      "name": "page_post_engagements",
+      "period": "day",
+      "values": [
+        {
+          "value": 84,
+          "end_time": "2026-07-27T07:00:00+0000"
+        },
+        {
+          "value": 36,
+          "end_time": "2026-07-28T07:00:00+0000"
+        }
+      ],
+      "title": "Daily Post Engagements",
+      "description": "Daily: The number of times people have engaged with your posts through like, comments and shares and more.",
+      "id": "198859063301219/insights/page_post_engagements/day"
+    }
+  ],
+  "paging": {
+    "previous": "https://graph.facebook.com/v25.0/198859063301219/insights?access_token=EAAjT6eUgv8UBSHZBEsYPy5spQSPGiEVF4ynEz1SQzkVENqg7Fbn01NdGldyWwiPTCQjFdlc09WWfM9UY1uSdbJ8tLoMANdj6gA5YbkBho49PNizp7JkXD4s2YxyYLdrLSaCi3lnEJhjpTGKcLL51DLAYZCC6Hwn8ZCA1pMUzp3rTpAxzHmUk6yZAQRB1dHhcZBwdqI06gD1JCXiU51eRV7EKBsaQKl1EyiH38yQZDZD&amp;metric=page_views_total%2Cpage_post_engagements&amp;period=day&amp;since=1784876400&amp;until=1785049200",
+    "next": "https://graph.facebook.com/v25.0/198859063301
+... (full response in source JSON)</pre>
+</div>
+<div class='call'>
+<div class='call-header'><span class='permission-name'>Instagram Basic</span><span class='http-200'>HTTP 200 ✓</span></div>
+<div class='desc'>Read basic Instagram business account profile</div>
+<pre>{
+  "id": "17841456713897671",
+  "username": "swingshack",
+  "followers_count": 2473,
+  "follows_count": 177,
+  "media_count": 782
+}</pre>
+</div>
+<div class='call'>
+<div class='call-header'><span class='permission-name'>Instagram Manage Insights</span><span class='http-200'>HTTP 200 ✓</span></div>
+<div class='desc'>Read IG account insights (reach metric) — page token, period=day</div>
+<pre>{
+  "data": [
+    {
+      "name": "reach",
+      "period": "day",
+      "values": [
+        {
+          "value": 1460,
+          "end_time": "2026-07-28T07:00:00+0000"
+        },
+        {
+          "value": 636,
+          "end_time": "2026-07-29T07:00:00+0000"
+        }
+      ],
+      "title": "Reach",
+      "description": "The total number of times that the business account's media objects have been uniquely viewed.",
+      "id": "17841456713897671/insights/reach/day"
+    }
+  ],
+  "paging": {
+    "previous": "https://graph.facebook.com/v25.0/17841456713897671/insights?access_token=EAAjT6eUgv8UBSHZBEsYPy5spQSPGiEVF4ynEz1SQzkVENqg7Fbn01NdGldyWwiPTCQjFdlc09WWfM9UY1uSdbJ8tLoMANdj6gA5YbkBho49PNizp7JkXD4s2YxyYLdrLSaCi3lnEJhjpTGKcLL51DLAYZCC6Hwn8ZCA1pMUzp3rTpAxzHmUk6yZAQRB1dHhcZBwdqI06gD1JCXiU51eRV7EKBsaQKl1EyiH38yQZDZD&amp;metric=reach&amp;period=day&amp;since=1784985519&amp;until=1785158319",
+    "next": "https://graph.facebook.com/v25.0/17841456713897671/insights?access_token=EAAjT6eUgv8UBSHZBEsYPy5spQSPGiEVF4ynEz1SQzkVENqg7Fbn01NdGldyWwiPTCQjFdlc09WWfM9UY1uSdbJ8tLoMANdj6gA5YbkBho49PNizp7JkXD4s2YxyYLdrLSaCi3lnEJhjpTGKcLL51DLAYZCC6Hwn8ZCA1pMUzp3rTpAxzHmUk6yZAQRB1dHhcZBwdqI06gD1JCXiU51eRV7EKBsaQKl1EyiH38yQZDZD&amp;metric=reach&amp;period=day&amp;since=1785331121&amp;until=1785503921"
+  }
+}</pre>
+</div>
+<div class='call'>
+<div class='call-header'><span class='permission-name'>Instagram Manage Comments</span><span class='http-200'>HTTP 200 ✓</span></div>
+<div class='desc'>List IG media to demonstrate comment scope context</div>
+<pre>{
+  "data": [
+    {
+      "id": "18083616452674797",
+      "caption": "Tired of the same old setup \ud83e\udd71 try Avoda today! \n#golf #coach #fitter #equipment #golfaddict",
+      "comments_count": 0
+    },
+    {
+      "id": "17866901091651089",
+      "caption": "Wrong ball? Let\u2019s fix it. \n\nBook your ball fitting today!",
+      "comments_count": 0
+    },
+    {
+      "id": "18024027806681782",
+      "caption": "Wrong ball. Wrong numbers. Wrong feel.\nLet\u2019s fix that.\n\nGolf ball fitting is now available at Swing Shack.",
+      "comments_count": 0
+    },
+    {
+      "id": "18335254792283425",
+      "caption": "Off-the-rack is fine for groceries.\nFor clubs, let\u2019s aim a little higher.\nBook your fitting at Swing Shack.",
+      "comments_count": 0
+    },
+    {
+      "id": "18032418161824737",
+      "caption": "Book your ball fitting at Swing Shack today. DM us or book online.",
+      "comments_count": 0
+    },
+    {
+      "id": "17959043976175458",
+      "caption": "The woods are lovely this time of year. \nStill, probably better to stay out of them.\n\nBook your coaching session.",
+      "comments_count": 0
+    },
+    {
+      "id": "18383194084200293",
+      "caption": "Build of the week \ud83d\udea8\n\nTitleist T150 Iron heads \nAccra TZ 105i iron shafts\nAccra TZ Driver, Mini Driver shaft \nTaylormade mini Driver head\nCallaway Quantum Driver head \n\nReady to smash PB\u2019s \u26f3\ufe0f\ud83c\udfcc\ufe0f\u200d\u2642\ufe0f",
+      "comments_count": 0
+    }
+... (full response in source JSON)</pre>
+</div>
+<div class='call'>
+<div class='call-header'><span class='permission-name'>Instagram Manage Engagement</span><span class='http-200'>HTTP 200 ✓</span></div>
+<div class='desc'>Read engagement metrics on IG business account</div>
+<pre>{
+  "id": "17841456713897671",
+  "username": "swingshack",
+  "followers_count": 2473,
+  "follows_count": 177,
+  "media_count": 782
+}</pre>
+</div>
+<div class='footer'>Generated by Campaign OS — /Users/fivefriday/hermes-fleet/shared/handoff/meta-app-review-test-calls/</div>
+</body></html>

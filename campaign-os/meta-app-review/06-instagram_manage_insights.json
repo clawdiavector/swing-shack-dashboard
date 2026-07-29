@@ -1,0 +1,7 @@
+{
+  "name": "06-instagram_manage_insights",
+  "description": "Read IG account insights (reach metric) \u2014 page token, period=day",
+  "http_status": 200,
+  "response": "{\"data\":[{\"name\":\"reach\",\"period\":\"day\",\"values\":[{\"value\":1460,\"end_time\":\"2026-07-28T07:00:00+0000\"},{\"value\":636,\"end_time\":\"2026-07-29T07:00:00+0000\"}],\"title\":\"Reach\",\"description\":\"The total number of times that the business account's media objects have been uniquely viewed.\",\"id\":\"17841456713897671\\/insights\\/reach\\/day\"}],\"paging\":{\"previous\":\"https:\\/\\/graph.facebook.com\\/v25.0\\/17841456713897671\\/insights?access_token=EAAjT6eUgv8UBSHZBEsYPy5spQSPGiEVF4ynEz1SQzkVENqg7Fbn01NdGldyWwiPTCQjFdlc09WWfM9UY1uSdbJ8tLoMANdj6gA5YbkBho49PNizp7JkXD4s2YxyYLdrLSaCi3lnEJhjpTGKcLL51DLAYZCC6Hwn8ZCA1pMUzp3rTpAxzHmUk6yZAQRB1dHhcZBwdqI06gD1JCXiU51eRV7EKBsaQKl1EyiH38yQZDZD&metric=reach&period=day&since=1784985519&until=1785158319\",\"next\":\"https:\\/\\/graph.facebook.com\\/v25.0\\/17841456713897671\\/insights?access_token=EAAjT6eUgv8UBSHZBEsYPy5spQSPGiEVF4ynEz1SQzkVENqg7Fbn01NdGldyWwiPTCQjFdlc09WWfM9UY1uSdbJ8tLoMANdj6gA5YbkBho49PNizp7JkXD4s2YxyYLdrLSaCi3lnEJhjpTGKcLL51DLAYZCC6Hwn8ZCA1pMUzp3rTpAxzHmUk6yZAQRB1dHhcZBwdqI06gD1JCXiU51eRV7EKBsaQKl1EyiH38yQZDZD&metric=reach&period=day&since=1785331121&until=1785503921\"}}",
+  "note": "Use reach as primary metric; profile_views/website_clicks require period=lifetime"
+}
