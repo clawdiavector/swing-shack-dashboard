@@ -16,12 +16,27 @@
       "text_light":      ["#ffffff"],
       "accent_highlight":["#74cc46", "#e17026", "#63a3ef", "#8f4bf9"]
     },
-    "notes": "Accent colours used 'where needed' — i.e. for CTAs, highlights, key words. Background MUST be one of the two dark colours (flat or gradient between them)."
+    "notes": "Accent colours used 'where needed' — i.e. for CTAs, highlights, key words. Background MUST be one of the two dark colours (flat or gradient between them). The two dark colours #000000 and #191919 are INTERCHANGEABLE within either treatment type — pick either, they do not have layout-specific meaning."
+  },
+
+  "gradients": {
+    "direction": "vertical",
+    "rule": "Always top-to-bottom (or bottom-to-top). Horizontal/diagonal gradients are off-bible.",
+    "applies_to": "type_b overlay fade; type_a background gradient between the two dark colours"
+  },
+
+  "accent_frequency_rule": {
+    "max_per_image": 2,
+    "rule": "Single accent colour per image is the default. Two accents only when one is structural (e.g. CTA) and the other is highlighting (e.g. number or stat). Never three or more accent colours in one image.",
+    "answered_2026_07_29": "Single unless absolutely required for two, never more than two"
   },
 
   "borders": {
     "white_border_opacity": 0.20,
-    "stroke_width_px_relative": "thin (visual ratio ~1px per 1080px image, i.e. ~0.1% of width)"
+    "stroke_width_px_relative": "thin (visual ratio ~1px per 1080px image, i.e. ~0.1% of width)",
+    "mandatory": false,
+    "rule": "RECOMMENDED on type_a (dark bg) layouts. Strongly preferred on type_b (image bg) layouts. May be omitted only if focal contrast with white text/border is already achieved.",
+    "answered_2026_07_29": "Recommended, not mandatory"
   },
 
   "treatments": {
@@ -50,7 +65,7 @@
     },
     "body": {
       "family": "Avenir Next",
-      "weight": "(not specified; default to Regular or Demi)",
+      "weight": "Regular",
       "style": "Italic",
       "case": "sentence",
       "use": "captions, descriptions, body copy"
@@ -72,7 +87,9 @@
       "body_font_avenir_next_italic":          0.10,
       "no_off_brand_background_colours":       0.10
     },
-    "passing_threshold": 0.70
+    "passing_threshold": 0.70,
+    "threshold_notes": "Start at 0.70 for the v0.1 rollout. If too noisy (too many false-positive failures on legit brand assets), tighten to 0.80. If too strict (legit assets failing), loosen to 0.65. Re-tune after first 100 new dissections.",
+    "answered_2026_07_29": "Start at 0.70, can tighten up later if needed"
   },
 
   "voice_refs": {
@@ -80,11 +97,14 @@
     "note": "Voice bible governs copy; this file governs visuals."
   },
 
-  "open_questions": [
-    "Body font weight not specified — confirm: Regular Italic or Demi Italic?",
-    "Is the white border mandatory or recommended?",
-    "Are dark colours interchangeable or do specific layouts use one vs the other?",
-    "Do gradients always run vertical (top-to-bottom) or any direction?",
-    "Accent colour rule — 'where needed' is ambiguous. Frequency cap per image? Single accent per layout or multi?"
-  ]
+  "resolved_questions_2026_07_29": {
+    "1_body_font_weight":            "Regular Italic (not Demi).",
+    "2_white_border":                 "Recommended, not mandatory.",
+    "3_dark_colours_interchangeable": "Yes — #000000 and #191919 are interchangeable; pick either per image, no layout-specific meaning.",
+    "4_gradient_direction":           "Always vertical (top-to-bottom or bottom-to-top). No horizontal/diagonal.",
+    "5_accent_frequency_rule":        "Single accent per image is default. Two only when one is structural (CTA) + one is highlight (stat/number). Never more than two.",
+    "6_threshold":                    "0.70 for v0.1 rollout. Re-tune after first 100 new dissections."
+  },
+
+  "open_questions": []
 }

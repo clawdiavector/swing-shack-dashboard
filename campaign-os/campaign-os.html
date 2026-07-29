@@ -775,6 +775,8 @@ a:hover{text-decoration:underline}
         <div class="card col-6"><div class="card-h"><h3>🌐 Top pages by sessions</h3></div><div id="perf-pages"></div></div>
         <div class="card col-12"><div class="card-h"><h3>💡 Insights</h3></div><div id="perf-insights"></div></div>
       </div>
+      <!-- "Connect analytics" CTA — only visible when data sources are empty -->
+      <div id="perf-connect-cta" style="display:none;margin-top:1rem"></div>
       <!-- Why-explain panel — answers "why did this post work/fail" with real evidence -->
       <div class="card" style="margin-top:1rem"><div class="card-h"><h3>🔬 Why this worked / failed — explainer</h3></div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
@@ -1131,6 +1133,30 @@ a:hover{text-decoration:underline}
         </div>
       </div>
       <div class="grid">
+        <!-- ── VISUAL DNA RECIPE BRIDGE (new) ───────────────── -->
+        <div class="card col-12" id="ig-recipe-card">
+          <div class="card-h">
+            <h3>🎨 Visual Recipe from Brand Library
+              <span class="muted" style="font-size:11px;font-weight:400;margin-left:.5rem">— pulls matched templates from <span id="ig-recipe-brand">Swing Shack</span>'s <span id="ig-recipe-count">122</span> approved images</span>
+            </h3>
+            <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+              <select id="ig-recipe-brand-select" style="font-size:11px;padding:3px 6px;border-radius:5px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+                <option value="swing-shack">Swing Shack</option>
+                <option value="stick">Stick Golf</option>
+                <option value="bag-drop">Bag Drop</option>
+              </select>
+              <input id="ig-recipe-brief" placeholder="brief: e.g. coaching post, fitting offer, black friday" style="width:280px;font-size:12px;padding:5px 10px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)" />
+              <button class="btn primary" id="ig-recipe-find" style="font-size:12px;padding:5px 12px">🔍 Find Recipes</button>
+            </div>
+          </div>
+          <div id="ig-recipe-empty" style="color:var(--tx-3);font-size:13px;text-align:center;padding:1.25rem">Type a brief → see your top brand-matched templates + the scaffold they'll inherit.</div>
+          <div id="ig-recipe-results" style="display:none">
+            <div id="ig-recipe-summary" style="margin-bottom:.75rem;padding:.6rem;background:var(--bg-2);border-radius:8px;font-size:12px;color:var(--tx-2)"></div>
+            <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">Matched Reference Templates (click to use as hook)</div>
+            <div id="ig-recipe-matches" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.6rem"></div>
+          </div>
+        </div>
+
         <div class="card col-12">
           <div class="card-h"><h3>Prompt Spec</h3>
             <div id="ig-spec-badge" style="margin-left:auto;font-size:11px;color:var(--tx-3)"></div>
@@ -4077,12 +4103,41 @@ async function renderPerformance(){
   $('#perf-rising').textContent = (p.seo?.rising||[]).length;
   $('#perf-falling').textContent = (p.seo?.falling||[]).length;
 
+  // ── "Connect analytics" CTA when both Meta + GA4 are empty ──
+  const igEmpty = !(p.instagram?.total_posts);
+  const gaEmpty = !(p.ga4?.total_sessions);
+  const seoEmpty = !(p.seo?.rising?.length || p.seo?.falling?.length || p.seo?.keywords?.length);
+  const allEmpty = igEmpty && gaEmpty && seoEmpty;
+  const connectCta = `
+    <div style="border:1px dashed var(--bd);border-radius:10px;padding:1rem;margin-bottom:.75rem;background:var(--bg-2)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:.4rem;color:var(--ac)">📊 Connect analytics to populate this tab</div>
+      <div style="font-size:12px;color:var(--tx-2);line-height:1.55;margin-bottom:.5rem">
+        Three sources feed this view. Below are the deliverables once each is wired.
+        <ul style="margin:.4rem 0 .4rem 1.25rem;line-height:1.7">
+          <li><b>Instagram + Facebook</b> — gives you every post you've published, with impressions, reach, likes, comments, shares, saves, and engagement rate. <b>Reads media, captions, and interactions.</b> Needs Meta OAuth token + IG business account ID.</li>
+          <li><b>Google Analytics 4</b> — sessions, page views, engagement rate, top pages on swingshack.co.za. Needs service-account JSON.</li>
+          <li><b>Google Search Console</b> — keyword positions, rising/falling/quick wins. Already wired for some queries if SEO has run.</li>
+        </ul>
+        <div style="margin-top:.4rem;color:var(--tx-3)">Ask Heidi to spin up the setup-portal at <code>/meta</code> or <code>/ga4</code> — same pattern as Drive: paste the JSON, server stores it under <code>~/.openclaw/workspace/credentials/</code>.</div>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+        <button class="btn-mini" onclick="(window.ASK_HEIDI_OPEN||alert)('Ask Heidi: spin up setup-portal at /meta to capture Instagram + Facebook token.')">📷 Setup Instagram/Facebook</button>
+        <button class="btn-mini" onclick="(window.ASK_HEIDI_OPEN||alert)('Ask Heidi: spin up setup-portal at /ga4 to capture GA4 service-account JSON.')">🔍 Setup GA4</button>
+        <button class="btn-mini" onclick="(window.ASK_HEIDI_OPEN||alert)('Ask Heidi: confirm Search Console status — may already be partial.')">📈 Check Search Console</button>
+      </div>
+    </div>
+  `;
+  // Inject the CTA only when no real data exists yet
+  const ctaEl = $('#perf-connect-cta');
+  if(ctaEl){ ctaEl.innerHTML = allEmpty ? connectCta : ''; ctaEl.style.display = allEmpty ? 'block' : 'none'; }
+  // Note: inline "X not connected" empty states are folded into the per-card ternaries below.
+
   const topIg = (p.instagram?.top_posts||[]).slice(0,8);
   $('#perf-ig-top').innerHTML = topIg.length ? topIg.map(it => {
     const cap = (it.hook_text || it.captionPreview || it.caption || '').slice(0,80);
     const er = parseFloat(it.engagementRate || it.engagement_rate || 0) || 0;
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(cap)}</div><div class="li-meta">${pill('on', 'ER '+er.toFixed(2)+'%')} ${it.topic_cluster?pill('live', it.topic_cluster):''} ${it.format_type?pill('draft', it.format_type):''}</div></div></li>`;
-  }).join('') : '<div class="empty">No IG data</div>';
+  }).join('') : (igEmpty ? '<div class="empty" style="padding:1.25rem">📷 Instagram not connected yet. Once Meta OAuth lands (setup-portal at <code>/meta</code>) and Postiz post IDs are back-mapped to IG media IDs, this card shows every post with engagement metrics and lets you read captions + interactions.</div>' : '<div class="empty">No IG data</div>');
 
   const seo = p.seo;
   const seoRows = [];
@@ -4101,7 +4156,7 @@ async function renderPerformance(){
 
   $('#perf-pages').innerHTML = safeList(p.ga4?.pages, 10).map(it => `
     <li class="li"><div class="li-body"><div class="li-title">${esc(it.path||it.page||it.url||'')}</div><div class="li-meta">${(it.sessions||0).toLocaleString()} sessions · ${(it.engagement_rate||0).toFixed(1)}% ER</div></div></li>
-  `).join('') || '<div class="empty">No GA4 data</div>';
+  `).join('') || (gaEmpty ? '<div class="empty" style="padding:1.25rem">🔍 GA4 not connected yet. Once you drop a service-account JSON into setup-portal <code>/ga4</code>, this card shows top pages by sessions and engagement-rate for swingshack.co.za.</div>' : '<div class="empty">No GA4 data</div>');
 
   $('#perf-insights').innerHTML = safeList(e.insights, 12).map(i => `
     <div class="review" style="border-left:3px solid var(--ac);padding-left:.6rem">
@@ -4983,9 +5038,122 @@ async function renderImageGen(){
   $('#ig-prompt').style.display = 'none';
   $('#ig-empty').style.display = 'block';
   $('#ig-regen').disabled = true;
+  // Reset recipe card too
+  $('#ig-recipe-empty').style.display = 'block';
+  $('#ig-recipe-results').style.display = 'none';
+  empty('ig-recipe-summary', '');
+  empty('ig-recipe-matches', '');
 }
 
-async function doImageGen(hookOverride){
+// ─── Visual Recipe bridge (pulls from /api/visual-dna/<brand>/recipe) ───
+async function findRecipes(){
+  const brand = $('#ig-recipe-brand-select').value;
+  const brief = $('#ig-recipe-brief').value.trim();
+  if(!brief){ toast('Type a brief first (e.g. "coaching post")', 'warn'); return; }
+  if(brief.length < 2){ toast('Brief too short', 'warn'); return; }
+
+  $('#ig-recipe-empty').style.display = 'none';
+  $('#ig-recipe-results').style.display = 'block';
+  empty('ig-recipe-summary', '<span style="color:var(--tx-3)">⏳ Searching brand library for matches…</span>');
+  empty('ig-recipe-matches', '');
+
+  const r = await API.get('/api/visual-dna/' + encodeURIComponent(brand) + '/recipe?brief=' + encodeURIComponent(brief) + '&n=6');
+  if(!r.ok){
+    empty('ig-recipe-summary', `<span style="color:var(--err)">⚠ ${esc(r.error||'No matches found')}</span>`);
+    empty('ig-recipe-matches', '');
+    return;
+  }
+
+  // Summary — server returns dict-shaped counters, list-of-dict backgrounds
+  const matches = r.matches || [];
+  const s = r.scaffold || {};
+  const products = (r.products_matched || []).slice(0, 6).map(p => `<span style="background:var(--bg-1);border:1px solid var(--bd);border-radius:4px;padding:2px 6px;margin-right:.3rem;font-size:10px">${esc(p.name)} ×${p.count}</span>`).join('') || '<span style="color:var(--tx-3)">no products tagged</span>';
+  const scoreColor = (s.avg_score || 0) >= 0.7 ? 'var(--success)' : (s.avg_score || 0) >= 0.6 ? 'var(--warn)' : 'var(--err)';
+  // bg list → top 3 hex codes joined
+  const bgList = (s.common_backgrounds || []).slice(0, 3).map(b => b.hex).join(' · ');
+  // luminance dict → top 2 keys sorted by count
+  const lumList = Object.entries(s.common_luminance || {}).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([k,v]) => `${k}×${v}`).join(' · ');
+  // text colours dict → top 3 hex
+  const txtList = Object.entries(s.common_text_colour_samples || {}).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v]) => `<code style="font-size:10px;background:var(--bg-1);padding:1px 4px;border-radius:3px">${esc(k)}</code>×${v}`).join(' ');
+  const summary = `
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:center">
+      <span><b>${matches.length}</b> matches · <span style="color:${scoreColor}">avg ${(s.avg_score || 0).toFixed(2)}</span></span>
+      ${bgList ? `<span>bg: ${esc(bgList)}</span>` : ''}
+      ${lumList ? `<span>luminance: ${esc(lumList)}</span>` : ''}
+      ${s.all_caps_pattern ? '<span style="color:var(--ac)">✓ ALL CAPS heading</span>' : ''}
+      ${txtList ? `<span>accent: ${txtList}</span>` : ''}
+    </div>
+    <div style="margin-top:.4rem;font-size:11px;color:var(--tx-3)">products in matches: ${products}</div>
+  `;
+  $('#ig-recipe-summary').innerHTML = summary;
+
+  // Match cards — click to send the filename into the hook input
+  const grid = matches.map((m, i) => {
+    const filename = m.filename || m.path || ('match_' + i);
+    const score = (m.score || 0).toFixed(2);
+    const lum = m.luminance || '?';
+    const bg = (m.background_colour || '?');
+    const heading = (m.heading || '').slice(0, 50);
+    const caps = m.layer17_recipe?.auto_extracted?.all_caps_detected ? '✓' : '—';
+    const products = (m.products || []).slice(0, 3).join(', ');
+    return `
+      <div class="recipe-match" data-filename="${esc(filename)}" data-brief="${esc(brief)}" data-score="${score}" style="cursor:pointer;padding:.6rem;border:1px solid var(--bd);border-radius:8px;background:var(--bg-1);transition:all .15s" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--bd)'">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.3rem">
+          <span style="font-size:11px;font-weight:600;color:var(--ac);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${esc(filename)}</span>
+          <span style="font-size:11px;color:${scoreColor};font-weight:600">${score}</span>
+        </div>
+        <div style="font-size:10px;color:var(--tx-3);line-height:1.4">
+          <div>lum: <b style="color:var(--tx-2)">${esc(lum)}</b> · caps: ${caps}</div>
+          <div>bg: ${esc(bg)}</div>
+          ${heading ? `<div style="margin-top:.2rem;font-style:italic">"${esc(heading)}"</div>` : ''}
+          ${products ? `<div style="margin-top:.2rem;color:var(--ac)">📦 ${esc(products)}</div>` : ''}
+        </div>
+        <div style="margin-top:.4rem;display:flex;gap:.3rem">
+          <button class="btn-mini recipe-use-as-hook" style="font-size:10px;padding:2px 6px">↪ Use as hook</button>
+          <button class="btn-mini recipe-seed-prompt" style="font-size:10px;padding:2px 6px">🌱 Seed prompt</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  empty('ig-recipe-matches', grid || '<span style="color:var(--tx-3);font-size:12px;grid-column:1/-1">No matches in the library for that brief.</span>');
+
+  // Wire the per-card buttons
+  $$('.recipe-use-as-hook').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = btn.closest('.recipe-match');
+      const filename = card.dataset.filename;
+      $('#ig-hook').value = filename;
+      toast('Hook set to reference template: ' + filename);
+      // Scroll the hook input into view
+      $('#ig-hook').scrollIntoView({behavior:'smooth', block:'center'});
+    });
+  });
+  $$('.recipe-seed-prompt').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = btn.closest('.recipe-match');
+      const filename = card.dataset.filename;
+      const brief = card.dataset.brief;
+      // Apply scaffold summary into the hook as a seed for the prompt spec generator
+      const topBg = (s.common_backgrounds || [])[0]?.hex || 'auto';
+      const topAccent = Object.entries(s.common_text_colour_samples || {}).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'auto';
+      const caps = s.all_caps_pattern ? 'yes' : 'no';
+      const seedText = `[match: ${filename}] [brief: ${brief}] [scaffold: bg=${topBg} accent=${topAccent} caps=${caps}]`;
+      $('#ig-hook').value = seedText;
+      // Pass reference_recipe as JSON so the backend folds the scaffold into the prompt
+      const referenceRecipe = JSON.stringify({
+        filename: filename,
+        brief: brief,
+        scaffold: s
+      });
+      doImageGen(seedText, referenceRecipe);
+      toast('Prompt spec generated with Visual DNA recipe from ' + filename);
+    });
+  });
+}
+
+async function doImageGen(hookOverride, referenceRecipe){
   const pillar = $('#ig-pillar').value;
   const platform = $('#ig-platform').value;
   const provider = $('#ig-provider').value;
@@ -4996,6 +5164,7 @@ async function doImageGen(hookOverride){
   if(platform) params.set('platform', platform);
   if(provider) params.set('provider', provider);
   if(hook) params.set('hook', hook);
+  if(referenceRecipe) params.set('reference_recipe', referenceRecipe);
   const qs = params.toString();
 
   const r = await API.get('/api/intel/generate_image' + (qs ? '?' + qs : ''));
@@ -5021,6 +5190,10 @@ async function doImageGen(hookOverride){
     `Note: ${r.metadata?.note || 'Ready for any provider — swap in asset-image-spec.json'}`,
   ];
   if(r.hook_override) metaLines.push(`Hook override: "${esc(r.hook_override)}"`);
+  if(r.reference_recipe_applied){
+    const ra = r.reference_recipe_applied;
+    metaLines.push(`🎨 Visual DNA recipe applied — ref: ${esc(ra.filename)} · bg: ${esc(ra.top_bg||'?')} · accent: ${esc(ra.top_accent||'?')}${ra.all_caps_pattern ? ' · ALL CAPS' : ''}`);
+  }
   $('#ig-meta').innerHTML = metaLines.map(l => `<div>${l}</div>`).join('');
 
   // Reference prompt for selected provider
@@ -5094,6 +5267,16 @@ $('#ig-gen').addEventListener('click', () => doImageGen());
 $('#ig-regen').addEventListener('click', () => {
   const hook = $('#ig-hook').value;
   doImageGen(hook || undefined);
+});
+
+// Visual Recipe bridge — wire button + enter-on-input
+$('#ig-recipe-find').addEventListener('click', findRecipes);
+$('#ig-recipe-brief').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); findRecipes(); }
+});
+$('#ig-recipe-brand-select').addEventListener('change', (e) => {
+  $('#ig-recipe-brand').textContent = e.target.options[e.target.selectedIndex].text;
+  // Update count placeholder too — best effort, leave at 122 for SS until brand dirs grow
 });
 
 // ─── SEO ────────────────────────────────────────────────────────

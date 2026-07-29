@@ -1563,6 +1563,10 @@ def intel_generate_image():
       provider=<ideogram|dall-e|midjourney|stable-diffusion>
       subject=<text>      — override the auto-generated subject line
       hook=<text>        — hook text to seed the subject
+      reference_recipe=<json> — JSON-encoded Visual DNA scaffold from /api/visual-dna/<brand>/recipe.
+        Expected keys: filename, scaffold={common_backgrounds:[{hex,count}], common_text_colour_samples:{hex:count}, all_caps_pattern:bool, common_luminance:{label:count}}
+        When provided, the route folds top-1 background hex + top-1 text accent hex + all_caps hint
+        into the prompt parts and per-provider prompts, so the generated image inherits the recipe.
 
     Returns {ok, ...} envelope with:
       - full prompt text per provider
@@ -1570,6 +1574,7 @@ def intel_generate_image():
       - platform aspect ratio config
       - color keywords
       - composition notes
+      - reference_recipe_applied (when scaffold was folded in)
 
     No API credentials are called. Prompt spec is provider-ready.
     """
@@ -1582,6 +1587,18 @@ def intel_generate_image():
     provider = body.get('provider') or args.get('provider')
     subject_override = body.get('subject') or args.get('subject')
     hook_override = body.get('hook') or args.get('hook')
+    # Visual DNA scaffold from /api/visual-dna/<brand>/recipe — JSON string or dict
+    ref_recipe_raw = body.get('reference_recipe') or args.get('reference_recipe')
+    ref_recipe = None
+    if ref_recipe_raw:
+        if isinstance(ref_recipe_raw, dict):
+            ref_recipe = ref_recipe_raw
+        elif isinstance(ref_recipe_raw, str):
+            try:
+                import json as _json
+                ref_recipe = _json.loads(ref_recipe_raw)
+            except Exception:
+                ref_recipe = None
 
     if not _INTELLIGENCE_AVAILABLE:
         return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
@@ -1591,6 +1608,58 @@ def intel_generate_image():
             pillar_override=pillar,
             platform_override=platform,
         )
+
+        # Fold Visual DNA recipe scaffold into prompt parts and per-provider prompts.
+        # This is the bridge: pull real brand-image DNA into the prompt so providers
+        # (Ideogram / DALL-E / Midjourney / Stable Diffusion) inherit the brand's
+        # visual grammar (top background colour, top text accent, all-caps heading).
+        if ref_recipe and isinstance(ref_recipe, dict):
+            scaffold = ref_recipe.get('scaffold') or {}
+            match_filename = ref_recipe.get('filename') or 'reference template'
+            # Resolve top-1 background hex from list-of-{hex,count}
+            bgs = scaffold.get('common_backgrounds') or []
+            top_bg = bgs[0]['hex'] if bgs and isinstance(bgs[0], dict) else None
+            # Resolve top-1 accent hex from dict {hex:count}
+            tc = scaffold.get('common_text_colour_samples') or {}
+            top_accents = sorted(tc.items(), key=lambda kv: -kv[1]) if isinstance(tc, dict) else []
+            top_accent = top_accents[0][0] if top_accents else None
+            # Luminance hint
+            lum = scaffold.get('common_luminance') or {}
+            top_lum = sorted(lum.items(), key=lambda kv: -kv[1])[0][0] if lum else None
+            # Build a recipe hint fragment that gets appended to subject line + color keywords
+            recipe_hints = []
+            if top_bg:
+                recipe_hints.append(f"reference palette: {top_bg}")
+            if top_accent:
+                recipe_hints.append(f"accent: {top_accent}")
+            if top_lum:
+                recipe_hints.append(f"{top_lum} tone")
+            if scaffold.get('all_caps_pattern'):
+                recipe_hints.append("headline in ALL CAPS")
+            recipe_hint_text = "; ".join(recipe_hints) or f"style reference: {match_filename}"
+            # Inject into subject line (provider-agnostic) — append to existing subject
+            existing_subject = result.get('subject') or ''
+            result['subject'] = (existing_subject + f" — reference style: {recipe_hint_text}").strip()
+            # Inject hex codes into color_keywords so the providers use them
+            existing_colors = list(result.get('color_keywords') or [])
+            if top_bg and top_bg not in existing_colors:
+                existing_colors.append(top_bg)
+            if top_accent and top_accent not in existing_colors:
+                existing_colors.append(top_accent)
+            result['color_keywords'] = existing_colors
+            # Append to each provider's prompt so the prompt itself contains the colour directives
+            providers_out = result.get('providers') or {}
+            for pk, pv in providers_out.items():
+                if isinstance(pv, dict) and 'prompt' in pv:
+                    pv['prompt'] = (pv['prompt'] + f" || recipe: {recipe_hint_text}").strip()
+            result['reference_recipe_applied'] = {
+                'filename': match_filename,
+                'top_bg': top_bg,
+                'top_accent': top_accent,
+                'top_lum': top_lum,
+                'all_caps_pattern': bool(scaffold.get('all_caps_pattern')),
+                'hint_text': recipe_hint_text,
+            }
 
         # Allow overrides without modifying the source
         if pillar:
