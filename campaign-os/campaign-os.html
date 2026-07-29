@@ -1896,15 +1896,21 @@ const HELP = (() => {
         meme — it gets killed or promoted to a Headline Playbook entry.</p>`
     },
     'campaigns': {
-      title: 'Brand surface',
+      title: 'Campaigns surface',
       body: `
-        <p>This surface is the <b>top-level partition</b> for everything. Each brand has
-        its own voice bible, hook bank, meme bank, palette, and image archetypes. All
-        data flows through the active brand — switching the brand switcher (top-left)
-        filters every other surface.</p>
-        <p><span class="hc-term">Brand Directory</span> (this panel) shows the 9-slot
-        directory for each brand: voice, palette, archetypes, typography, copy, examples.
-        When Drive is wired in, source images land in the <code>images/</code> slot.</p>
+        <p>This surface is the <b>top-level partition</b> for everything per brand.
+        The section header reads <i>Campaigns</i> and the top-nav tab labels it
+        <i>Brand</i> — both refer to the same view. Each card under this header
+        ladders to one of the per-brand data layers (brief, blueprint, plan,
+        history). The Brand Directory panel renders as one card inside this
+        surface, not as the surface itself.</p>
+        <p>Each brand has its own voice bible, hook bank, meme bank, palette,
+        and image archetypes. All data flows through the active brand —
+        switching the brand switcher (top-left) filters every other surface.</p>
+        <p><span class="hc-term">Brand Directory</span> card shows the 9-slot
+        directory for the active brand: voice, palette, archetypes, typography,
+        copy, examples. When Drive is wired in, source images land in the
+        <code>images/</code> slot.</p>
         <p><span class="hc-term">Add a brand</span> — copy any existing brand folder,
         rename, fill in voice + palette + archetypes. The brand switcher picks it up
         automatically on next refresh.</p>`
