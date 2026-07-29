@@ -562,13 +562,13 @@ a:hover{text-decoration:underline}
   <!-- ─── Sidebar ─────────────────────────────────────────── -->
   <aside class="side">
     <!-- Brand switcher (clickable dropdown, populated from /api/brands) -->
-    <div class="brand brand-switch" id="brand-switch" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false">
+    <div class="brand brand-switch" id="brand-switch" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false" data-help="Switch the active brand. Every surface (Brief, Review, Publish, Insights, Library, Campaigns) refilters to the brand you pick here. Pick Swing Shack for the golf brand, Stick for the apparel brand, Bag Drop for the accessories brand." data-help-title="Brand switcher">
       <div class="brand-mark" id="brand-mark">⛳</div>
       <div style="flex:1;min-width:0">
         <div class="brand-name" id="brand-name">Campaign OS</div>
         <div class="brand-sub" id="brand-sub">Loading brand…</div>
       </div>
-      <span class="brand-chev" aria-hidden="true">▾</span>
+      <span class="brand-chev" aria-hidden="true" data-help="Click to open the brand dropdown. Lists every brand registered in data/brands.json. Use this to scope the whole app to a single brand context.">▾</span>
       <div class="brand-dropdown" id="brand-dropdown" role="listbox" hidden></div>
     </div>
 
@@ -612,7 +612,7 @@ a:hover{text-decoration:underline}
 
     <!-- "Show all tools" toggle (lets power users expand the full nav) -->
     <div class="nav-section">
-      <div class="nav all-tools-toggle" id="all-tools-toggle"><span class="nav-icon">🧰</span> <span id="all-tools-toggle-label">Show all tools</span></div>
+      <div class="nav all-tools-toggle" id="all-tools-toggle" data-help="Reveal the full power-user nav: Trends, Ideas, Hook Bank, Meme Lord, Billboard Lab, Caption Studio, Image Gen, Headlines, CTAs, Hashtags & SEO, SEO, SEO Audit, Google Business, Reddit, FAQs, Postiz, Agents. The top-level nav stays focused on the daily workflow (Home, Review, Publish, Insights, Library, Brand); all-tools is the escape hatch for specialists." data-help-title="All tools toggle"><span class="nav-icon">🧰</span> <span id="all-tools-toggle-label">Show all tools</span></div>
     </div>
   </aside>
 
@@ -625,10 +625,10 @@ a:hover{text-decoration:underline}
       </div>
       <div class="search">
         <span class="search-ico">🔎</span>
-        <input id="search-input" placeholder="Search campaigns, hooks, captions, ideas…" autocomplete="off">
+        <input id="search-input" placeholder="Search campaigns, hooks, captions, ideas…" autocomplete="off" data-help="Fuzzy search across campaigns, hooks, captions, and ideas for the active brand. Results update as you type; Enter jumps to the top hit." data-help-title="Global search">
         <div class="search-results" id="search-results"></div>
       </div>
-      <div class="theme-switch" id="theme-switch" role="group" aria-label="Color theme">
+      <div class="theme-switch" id="theme-switch" role="group" aria-label="Color theme" data-help="Pick the color theme. Dark for low-light focus, Light for daytime, Auto to follow your system preference. Saved per browser." data-help-title="Theme">
         <button data-theme-val="dark" title="Dark theme"><span class="ico">🌙</span>Dark</button>
         <button data-theme-val="light" title="Light theme"><span class="ico">☀️</span>Light</button>
         <button data-theme-val="system" title="Follow system preference"><span class="ico">⚙️</span>Auto</button>
@@ -643,7 +643,7 @@ a:hover{text-decoration:underline}
       <!-- Today's recommendation: one concrete action -->
       <div class="card" id="brief-recommendation" style="margin-top:1rem;border:1px solid var(--ac);box-shadow:0 0 0 3px rgba(99,102,241,0.08)">
         <div class="card-h">
-          <h3>🎯 Do this right now</h3>
+          <h3 data-help="The single highest-leverage action for today across every brand surface. Ranked by recency, novelty, and unblock-value. Click the action to jump straight to the asset, brief, or campaign it points at." data-help-title="Do this right now">🎯 Do this right now</h3>
           <span class="muted" id="brief-recommendation-rationale" style="font-size:12px">—</span>
         </div>
         <div id="brief-recommendation-body">
@@ -3542,6 +3542,8 @@ async function renderSection(sec){
   // Brand must load first so the X-Brand header is set on subsequent fetches
   await loadBrandContext();
   attachExplainers();
+  // Wire universal hover tooltips on every [data-help] element (brand switcher, all-tools toggle, topbar chrome, etc.)
+  if (typeof HELP !== 'undefined' && HELP.autoAttach) HELP.autoAttach();
   // Default active section: brief. Restore from localStorage if present.
   let activeSec = 'brief';
   try { activeSec = localStorage.getItem('cos.activeSec') || 'brief'; } catch(_){}
@@ -3552,6 +3554,8 @@ async function renderSection(sec){
   go(activeSec);
   // Re-attach explainers whenever sections are re-rendered (since their section-h elements may be replaced)
   setInterval(() => attachExplainers(), 4000);
+  // Re-attach universal data-help tooltips when nav/chrome is re-rendered (brand switcher dropdown repopulates).
+  setInterval(() => { if (typeof HELP !== 'undefined' && HELP.autoAttach) HELP.autoAttach(); }, 4000);
 })();
 
 // ─── Section loaders ────────────────────────────────────────────
