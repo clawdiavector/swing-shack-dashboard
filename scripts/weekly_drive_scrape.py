@@ -61,6 +61,21 @@ def audit_brand(brand_id, folder_id, drive):
     bible_path = REPO / "data/brand-directory" / brand_id / "bible-visual.json"
     manifest_path = REPO / "data/brand-directory" / brand_id / "ingest-manifest.json"
 
+    # Audit: also detect "missed it" folders — Drive folders with content but no
+    # corresponding brand directory.
+    drive_root_items = drive.files().list(
+        q="mimeType='application/vnd.google-apps.folder' and trashed=false",
+        fields="files(id,name,owners)",
+        pageSize=100,
+    ).execute().get("files", [])
+    known_folders = set(BRAND_FOLDERS.values())
+    missed_folders = [
+        {"id": f["id"], "name": f["name"], "owners": [o.get("emailAddress") for o in f.get("owners", [])]}
+        for f in drive_root_items
+        if f["id"] not in known_folders
+        and any(name_part in f["name"].lower() for name_part in ["stick", "bag", "drop", "swing", "shack"])
+    ]
+
     # Discover Drive state
     files = walk_drive(drive, folder_id)
     print(f"  Drive files: {len(files)}", flush=True)
@@ -168,6 +183,7 @@ def audit_brand(brand_id, folder_id, drive):
         "re_dissected": re_dissected,
         "dissect_errors": dissect_errors,
         "tag_summary": tag_result,
+        "missed_folders_detected": missed_folders,
     }
     print(f"  → {summary['re_dissected']} re-dissected, {len(tag_result.get('products_found', {}))} products", flush=True)
     return summary
@@ -212,6 +228,13 @@ def main():
                 f.write(f"\n### Products detected ({len(products)})\n")
                 for p, c in sorted(products.items(), key=lambda x: -x[1]):
                     f.write(f"- {p}: {c}\n")
+            missed = s.get('missed_folders_detected', [])
+            if missed:
+                f.write(f"\n### Drive folders NOT yet indexed (audit)\n")
+                for mf in missed:
+                    owners = ", ".join(mf.get("owners", []))
+                    f.write(f"- **{mf['name']}** (`{mf['id']}`) owner={owners}\n")
+                f.write("\nThese folders match brand-related keywords but aren't in the BRAND_FOLDERS config. Add them if they should be ingested.\n")
     print(f"\nReport: {report_path}")
 
     # Git commit any new dissector outputs
