@@ -319,6 +319,8 @@ def health():
 # on the Morning Brief so Christelle sees the cumulative polish on her
 # morning coffee. Frontend only fetches on first brief render and caches.
 WHATS_NEW = [
+    {"ts": "2026-07-29T22:00:00Z", "tag": "chrome", "title": "Review queue: inline edit + confirm modals",
+     "body": "Edit caption on the Review queue now opens an inline modal with a full textarea (2200-char soft cap, live counter, optional Reset-to-AI-draft). Regenerate / Publish-now / Archive all use styled confirm modals instead of native browser prompts — no more ugly dialogs, no iOS Safari blocks."},
     {"ts": "2026-07-29T20:00:00Z", "tag": "chrome", "title": "Brand brief form — no more stacked prompts",
      "body": "Generate brief on Brand Directory now opens an inline form (Surface + Tone selects) instead of two stacked browser prompts. Mobile-safe, iOS Safari works, and runs with defaults immediately so the desktop one-click flow still works."},
     {"ts": "2026-07-29T18:10:00Z", "tag": "nav", "title": "30 sidebar tooltips",

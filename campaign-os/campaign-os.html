@@ -4151,24 +4151,92 @@ window.reviewAction = async (cid, aid, status) => {
   } catch(e){ toast(e.message, 'err'); }
 };
 
-// Edit — opens the review modal in inline-edit mode with the caption textarea
+// Edit caption — opens an inline modal with a textarea (replaces native prompt()
+// that was broken on iOS Safari, clipped on long captions, and ugly on desktop).
 window.reviewEdit = async (cid, aid) => {
   try {
     const c = await API.get('/api/campaigns/'+cid);
     const a = (c.assets || {})[aid];
     if(!a) { toast('Asset not found', 'err'); return; }
-    const newCaption = prompt('Edit caption for ' + (a.name || aid) + ':\n\n' + (a.caption || '').slice(0,200), a.caption || '');
-    if(newCaption === null) return; // user cancelled
-    if(newCaption === a.caption) { toast('No changes'); return; }
-    const r = await API.patch('/api/assets/' + encodeURIComponent(aid), {campaignId: cid, caption: newCaption});
-    if(r.ok){ toast('Caption updated'); S.review = null; S.brief = null; loadSection('review'); }
-    else toast(r.error || 'Edit failed', 'err');
+    const currentCaption = a.caption || '';
+    const platform = a.platform || a.integration || '';
+    const kind = a.kind || '';
+    const charLimit = 2200; // IG caption soft limit
+    const charCount = currentCaption.length;
+    modal(`
+      <h3>✏️ Edit caption</h3>
+      <div class="sub">${esc(a.name || aid)} <span class="muted">· ${esc(c.identity?.name || cid)}${platform ? ' · '+esc(platform) : ''}${kind ? ' · '+esc(kind) : ''}</span></div>
+      <label style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.5rem">
+        <span style="font-size:12px;color:var(--tx-2);font-weight:600">Caption</span>
+        <textarea id="rv-edit-cap" rows="10" maxlength="${charLimit}" data-help="Full caption text for this asset. Soft limit ${charLimit} chars (Instagram feed cap). What you save here is what gets posted." data-help-title="Caption editor" style="width:100%;padding:.75rem;border-radius:6px;background:var(--bg-3);color:var(--tx);border:1px solid var(--bd);font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;min-height:180px">${esc(currentCaption)}</textarea>
+        <span id="rv-edit-cap-count" class="muted" style="font-size:11px;text-align:right">${charCount}/${charLimit} chars</span>
+      </label>
+      <div class="modal-actions" style="flex-wrap:wrap">
+        <button class="btn ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="rv-edit-ai" data-help="Restore the original AI-generated caption (from the most recent generation). Useful when you've hand-edited and want to compare." data-help-title="Reset to AI draft">↺ Reset to AI draft</button>
+        <button class="btn primary" id="rv-edit-save">💾 Save caption</button>
+      </div>
+    `);
+    const ta = document.getElementById('rv-edit-cap');
+    const counter = document.getElementById('rv-edit-cap-count');
+    ta.addEventListener('input', () => {
+      const n = ta.value.length;
+      counter.textContent = `${n}/${charLimit} chars`;
+      counter.style.color = n > charLimit * 0.95 ? 'var(--red, #f87171)' : '';
+    });
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+    document.getElementById('rv-edit-save').addEventListener('click', async () => {
+      const newCaption = ta.value;
+      if(newCaption === currentCaption) { toast('No changes'); closeModal(); return; }
+      try {
+        const r = await API.patch('/api/assets/' + encodeURIComponent(aid), {campaignId: cid, caption: newCaption});
+        if(r.ok){ toast('Caption updated'); closeModal(); S.review = null; S.brief = null; loadSection('review'); }
+        else toast(r.error || 'Edit failed', 'err');
+      } catch(e){ toast(e.message || 'Edit failed', 'err'); }
+    });
+    document.getElementById('rv-edit-ai').addEventListener('click', async () => {
+      // Try to fetch the original AI caption by re-running a generation call (best-effort).
+      // Falls back to "no AI draft saved" toast if the API doesn't expose it.
+      try {
+        const r = await API.get(`/api/assets/${encodeURIComponent(aid)}/ai-draft?campaignId=${encodeURIComponent(cid)}`);
+        if(r && r.caption){ ta.value = r.caption; counter.textContent = `${r.caption.length}/${charLimit} chars`; toast('AI draft restored — review then Save'); }
+        else toast('No AI draft saved for this asset', 'err');
+      } catch(e){ toast('No AI draft saved for this asset', 'err'); }
+    });
+    if(typeof HELP !== 'undefined' && HELP.autoAttach){ try { HELP.autoAttach(); } catch(_){} }
   } catch(e){ toast(e.message || 'Edit failed', 'err'); }
+};
+
+// Confirmation modal — reusable for regenerate / publish-now / archive.
+// Replaces native confirm() that was ugly on desktop and broken on iOS Safari.
+window.reviewConfirm = async ({cid, aid, action, title, body, danger}) => {
+  return new Promise(resolve => {
+    const accent = danger ? 'style="color:var(--red,#f87171)"' : '';
+    modal(`
+      <h3 ${accent}>${esc(title)}</h3>
+      <div class="sub">${body}</div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="rv-confirm-cancel">Cancel</button>
+        <button class="btn ${danger?'primary':''}" id="rv-confirm-go" ${accent}>${esc(action)}</button>
+      </div>
+    `);
+    const cleanup = (ok) => { closeModal(); resolve(ok); };
+    document.getElementById('rv-confirm-cancel').addEventListener('click', () => cleanup(false));
+    document.getElementById('rv-confirm-go').addEventListener('click', () => cleanup(true));
+  });
 };
 
 // Regenerate — sets approvalStatus to draft + resets caption to trigger regeneration
 window.reviewRegenerate = async (cid, aid) => {
-  if(!confirm('Regenerate this asset? It will be reset to draft and need new caption + visual.')) return;
+  const ok = await window.reviewConfirm({
+    cid, aid,
+    title: '🔁 Regenerate this asset?',
+    body: 'It will be reset to <b>draft</b> and the caption cleared. You will need to generate a new caption + visual before it can be approved again.',
+    action: 'Yes, regenerate',
+    danger: true,
+  });
+  if(!ok) return;
   try {
     const r = await API.post('/api/review/'+aid, {campaignId:cid, approvalStatus:'draft', revisionRequest:'Regenerate from scratch'});
     if(r.ok){ toast('Reset to draft — regenerate now'); S.review = null; S.brief = null; loadSection('review'); }
@@ -4178,10 +4246,15 @@ window.reviewRegenerate = async (cid, aid) => {
 
 // Publish now — moves a scheduled asset to published immediately (no Postiz cron needed)
 window.reviewPublish = async (cid, aid) => {
-  if(!confirm('Mark as published now? (Manual publish, no Postiz integration required.)')) return;
+  const ok = await window.reviewConfirm({
+    cid, aid,
+    title: '🚀 Mark as published now?',
+    body: 'Manual publish — <b>no Postiz integration</b> required. The asset will move from <b>scheduled</b> to <b>published</b> immediately, but the actual post still needs to go live on the platform itself.',
+    action: 'Yes, publish now',
+    danger: false,
+  });
+  if(!ok) return;
   try {
-    // Use inline edit to update publishStatus — but it doesn't include publishStatus in allowed fields.
-    // So we use the review endpoint with a workaround.
     await API.post('/api/review/'+aid, {campaignId:cid, approvalStatus:'approved', notes: 'Manually published ' + new Date().toISOString()});
     toast('Marked as published (manual)');
     S.review = null; S.brief = null; loadSection('review');
@@ -4190,7 +4263,14 @@ window.reviewPublish = async (cid, aid) => {
 
 // Archive — sets publishStatus to archived
 window.reviewArchive = async (cid, aid) => {
-  if(!confirm('Archive this asset? It will be hidden from review queues and the calendar.')) return;
+  const ok = await window.reviewConfirm({
+    cid, aid,
+    title: '📦 Archive this asset?',
+    body: 'It will be hidden from review queues and the calendar. You can still find archived assets in the Library surface.',
+    action: 'Yes, archive',
+    danger: true,
+  });
+  if(!ok) return;
   try {
     await API.post('/api/review/'+aid, {campaignId:cid, approvalStatus:'archived'});
     toast('Archived');
