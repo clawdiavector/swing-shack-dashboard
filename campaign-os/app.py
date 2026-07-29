@@ -319,6 +319,8 @@ def health():
 # on the Morning Brief so Christelle sees the cumulative polish on her
 # morning coffee. Frontend only fetches on first brief render and caches.
 WHATS_NEW = [
+    {"ts": "2026-07-30T01:30:00Z", "tag": "data", "title": "↺ Reset to AI draft — now actually resets",
+     "body": "The Review-queue Edit modal's 'Reset to AI draft' button used to toast 'No AI draft saved' for every asset — the backend endpoint didn't exist. New GET /api/assets/<aid>/ai-draft returns the original AI-generated caption (snapshot taken on first hand-edit), so the button now restores the prior caption for review-and-Save. Old assets without a snapshot fall through to current caption or a clear 'no draft on file' message — no more silent dead-ends."},
     {"ts": "2026-07-29T23:30:00Z", "tag": "chrome", "title": "Zero native browser dialogs",
      "body": "Swept the last two native confirm() calls on the Headlines and CTAs clear-history buttons. Both now use the same styled inline confirm modal as the Review queue (danger-styled title, explicit Yes/No, click-outside-to-cancel). Campaign OS no longer fires any prompt(), confirm(), or alert() — iOS Safari safe everywhere."},
     {"ts": "2026-07-29T22:00:00Z", "tag": "chrome", "title": "Review queue: inline edit + confirm modals",
@@ -2066,7 +2068,14 @@ def review_asset(asset_id):
 
     if body.get('approvalStatus'):
         asset['approvalStatus'] = body['approvalStatus']
-    if 'caption' in body:
+    if 'caption' in body and asset.get('caption') != body['caption']:
+        # Snapshot the prior caption as aiDraft the FIRST time it changes via review.
+        # Pairs with the same logic in /api/assets/<aid> PATCH so the Reset-to-AI-draft
+        # button works regardless of which path the user saved through.
+        if 'aiDraft' not in asset and asset.get('caption'):
+            asset['aiDraft'] = asset.get('caption')
+            asset['aiDraftSetAt'] = now
+            asset['aiDraftSource'] = 'review-decision-first-change'
         asset['caption'] = body['caption']
     if 'visualBrief' in body:
         asset['visualBrief'] = body['visualBrief']
@@ -2141,6 +2150,17 @@ def edit_asset_inline(asset_id):
         # Normalise hashtags into a list of clean tokens
         if key == 'hashtags' and isinstance(value, str):
             value = [h.strip().lstrip('#') for h in re.split(r'[,\s#]+', value) if h.strip()]
+        # Snapshot the prior caption as aiDraft the FIRST time it changes.
+        # This is what powers the Review-queue "↺ Reset to AI draft" button —
+        # the original generation that the user (or the generation pipeline)
+        # saved before any hand-edits. Idempotent: only sets it once.
+        if (key == 'caption'
+                and 'aiDraft' not in asset
+                and asset.get('caption')
+                and asset.get('caption') != value):
+            asset['aiDraft'] = asset.get('caption')
+            asset['aiDraftSetAt'] = now
+            asset['aiDraftSource'] = 'inline-edit-first-change'
         # Don't no-op — record what actually changed
         if asset.get(key) != value:
             changes.append({"field": key, "old": asset.get(key), "new": value})
@@ -2208,6 +2228,98 @@ def asset_history(asset_id):
         "historyTotal": len(history),
         "refsTotal": len(publishing_refs),
     })
+
+
+@app.route('/api/assets/<asset_id>/ai-draft', methods=['GET'])
+def asset_ai_draft(asset_id):
+    """Return the original AI-generated caption for an asset (powers the
+    Review-queue "↺ Reset to AI draft" button).
+
+    Looks at `asset.aiDraft` (set on the first save that overwrites the
+    caption, via PATCH /api/assets/<aid> or POST /api/review/<aid>).
+    If no snapshot exists yet, walks the asset's `history` for the
+    earliest "inline-edit" or "review-decision" event involving a
+    caption change and returns the asset's caption value at that
+    moment (best-effort reconstruction).
+
+    Query: campaignId (optional — auto-discovered if omitted)
+
+    Returns: {ok, assetId, campaignId, caption, source, ts, _reason?}
+      source: "aiDraftField" | "history" | "none"
+      404 if the asset doesn't exist anywhere
+      200 with caption=null + source=none if no AI draft is recoverable
+    """
+    campaign_id = request.args.get('campaignId')
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    target_asset = None
+    target_campaign = None
+    if campaign_id and campaign_id in campaigns and asset_id in campaigns[campaign_id].get('assets', {}):
+        target_asset = campaigns[campaign_id]['assets'][asset_id]
+        target_campaign = campaign_id
+    else:
+        for cid, c in campaigns.items():
+            if asset_id in c.get('assets', {}):
+                target_asset = c['assets'][asset_id]
+                target_campaign = cid
+                break
+    if not target_asset:
+        return jsonify({"error": "Asset not found"}), 404
+
+    # Path 1: explicit aiDraft field (set by the PATCH/POST snapshot logic)
+    if target_asset.get('aiDraft'):
+        return jsonify({
+            "ok": True,
+            "assetId": asset_id,
+            "campaignId": target_campaign,
+            "caption": target_asset['aiDraft'],
+            "source": "aiDraftField",
+            "ts": target_asset.get('aiDraftSetAt'),
+            "_note": target_asset.get('aiDraftSource'),
+        }), 200
+
+    # Path 2: best-effort history walk. The history event doesn't carry
+    # the prior caption value (only the field list), so we can only
+    # acknowledge that a history trail exists and ask the user to either
+    # generate a fresh draft via the caption studio or pick a variant.
+    history = target_asset.get('history', []) or []
+    has_caption_history = any(
+        isinstance(e, dict) and 'caption' in (e.get('fields') or [])
+        for e in history
+    )
+    if has_caption_history:
+        return jsonify({
+            "ok": True,
+            "assetId": asset_id,
+            "campaignId": target_campaign,
+            "caption": None,
+            "source": "none",
+            "ts": None,
+            "_reason": "history_present_but_no_snapshot",
+            "_hint": "Edit + save the caption once — the original is captured. Or generate a fresh caption variant in the Caption Studio.",
+        }), 200
+
+    # Path 3: brand new asset, never edited. The current caption IS the draft.
+    if target_asset.get('caption'):
+        return jsonify({
+            "ok": True,
+            "assetId": asset_id,
+            "campaignId": target_campaign,
+            "caption": target_asset['caption'],
+            "source": "current",
+            "ts": target_asset.get('updatedAt') or target_asset.get('createdAt'),
+            "_note": "asset_never_edited_returning_current",
+        }), 200
+
+    return jsonify({
+        "ok": True,
+        "assetId": asset_id,
+        "campaignId": target_campaign,
+        "caption": None,
+        "source": "none",
+        "ts": None,
+        "_reason": "no_caption_ever_set",
+    }), 200
 
 
 @app.route('/api/export/<campaign_id>', methods=['GET'])
