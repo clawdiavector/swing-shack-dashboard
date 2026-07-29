@@ -1,0 +1,6 @@
+{
+  "name": "03-pages_read_engagement",
+  "description": "Read engagement metrics on Swing Shack Facebook page",
+  "http_status": 200,
+  "response": "{\"id\":\"198859063301219\",\"name\":\"Swing Shack\",\"fan_count\":436}"
+}

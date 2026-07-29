@@ -1,0 +1,6 @@
+{
+  "name": "08-instagram_manage_engagement",
+  "description": "Read engagement metrics on IG business account",
+  "http_status": 200,
+  "response": "{\"id\":\"17841456713897671\",\"username\":\"swingshack\",\"followers_count\":2473,\"follows_count\":177,\"media_count\":782}"
+}

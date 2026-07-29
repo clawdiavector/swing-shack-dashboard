@@ -1,0 +1,6 @@
+{
+  "name": "01-pages_show_list",
+  "description": "List of pages the user manages",
+  "http_status": 200,
+  "response": "{\"data\":[{\"id\":\"198859063301219\",\"name\":\"Swing Shack\",\"access_token\":\"EAAjT6eUgv8UBSMM8KF0z81deIZBxIsX9dOBE3IZCFB654VcqFaexBZCSrnknyI0tZAVe22AWve2ujaKoJIcdGjM5Ym9lLFbPASOVC1ZC618DPXLQeFLG3aFluTZBZB2PJ796HRjMCch9owZBSZAkPJRE1NloGE5ZBgeduK6MdrL8M3ZBT0uIFaYR6Wjf1c5YTZBZC5ZCOSxQZA990cUGhrPpMFtXYQfuixjhFVYHkfTxN86BHGsfQZDZD\"}],\"paging\":{\"cursors\":{\"before\":\"QVFIU0pEbEozel9WZAUtLbXNtN2F6amZAZARUVBdmtyUmk0VTdPM1NiaDVOc2cxbkxpQy04SC14NEV5a2k3Q3c3TS1JMmJjTUVyQ0ZAuWjBCZAHBNT1VtQW1jWWNn\",\"after\":\"QVFIU0pEbEozel9WZAUtLbXNtN2F6amZAZARUVBdmtyUmk0VTdPM1NiaDVOc2cxbkxpQy04SC14NEV5a2k3Q3c3TS1JMmJjTUVyQ0ZAuWjBCZAHBNT1VtQW1jWWNn\"}}}"
+}

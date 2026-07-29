@@ -1907,6 +1907,120 @@ const HELP = (() => {
         rename, fill in voice + palette + archetypes. The brand switcher picks it up
         automatically on next refresh.</p>`
     },
+    'seo': {
+      title: 'How the SEO Assistant surface reads audit + rankings + GEO + fixes',
+      body: `
+        <p>This page is the <span class="hc-term">SEO command centre</span> for the
+        active brand's website — four cards laid out as a 2x2 grid: <b>🔎 Audit
+        summary</b> (top-left), <b>📈 Rankings</b> (top-right), <b>🌍 GEO</b>
+        (bottom-left, generative-engine optimisation for AI summaries), and
+        <b>🛠️ Landing-page fixes</b> (bottom-right, ready-to-paste revenue-impact
+        edits). All four feed off one endpoint: <code>/api/intel/seo_assistant</code>
+        which joins the on-page audit, the Search Console keyword tracker, the
+        GEO rubric, and the landing-page-fixes library.</p>
+        <p><span class="hc-term">🔎 Audit summary card</span> surfaces the
+        site-wide health rollup. Each row carries <code>page</code> (URL slug),
+        <code>findings</code> (a per-page array of <code>type</code> + <code>severity</code>
+        + <code>message</code>), and a <code>status</code> flag. The current
+        snapshot reads <b>4 pages / 16 findings</b> — 8 high + 4 medium + 4 low
+        severity. <b>The same 4 issues recur on every page</b>
+        (<code>missing_meta_description</code>, <code>missing_h1</code>,
+        <code>title_too_short</code>, <code>missing_faq</code>) — that's a
+        site-template problem, not 16 individual page problems. Fix the
+        template once and the audit count drops from 16 to single digits
+        without touching content.</p>
+        <p><span class="hc-term">Severity ladder</span> is fixed by the audit
+        engine, not by you. <code>high</code> = blocks indexing or kills
+        click-through (no meta description, no H1, no schema). <code>medium</code>
+        = measurable ranking impact (titles under 30 chars, missing FAQ, thin
+        content depth). <code>low</code> = nice-to-have (alt-text gaps, FAQ
+        blocks missing, internal-link depth). The current audit shows 4 pages
+        with the <i>same</i> high-severity pair — fix the template, not the
+        pages.</p>
+        <p><span class="hc-term">📈 Rankings card</span> is the Google Search
+        Console ladder. Each row carries <code>keyword</code> (the search query),
+        <code>current_rank</code> (null = not indexed yet), <code>target_url</code>
+        (where it should land), and <code>search_intent</code> (commercial /
+        informational / mixed). The current tracker holds <b>10 tracked /
+        0 found / 10 quick_wins</b> — every tracked keyword returns
+        <code>"Not found in top results"</code>. That's actually the most
+        useful state to be in: <b>every row is a content gap to fill</b>,
+        none are stuck rankings to defend. The <code>quick_wins</code> list
+        duplicates the keyword set verbatim (it's the priority queue, not a
+        separate ranking).</p>
+        <p><span class="hc-term">🟢 Rising vs 🔴 Falling pills</span> are the
+        week-over-week delta tags. Empty today — Swing Shack has no keywords
+        ranked yet, so there's nothing to compare. Once a page starts ranking,
+        <code>rising</code> = Google's algorithm is rewarding something you
+        did (publish, backlink, content depth), <code>falling</code> = something
+        slipped (lost a backlink, a competitor improved, content went stale).
+        Rising + falling both empty on a new site is the expected state.</p>
+        <p><span class="hc-term">🌍 GEO card</span> scores
+        <span class="hc-term">generative-engine optimisation</span> — how well
+        the page shows up in AI summaries (ChatGPT, Perplexity, Google AI
+        Overviews). Each finding carries <code>type</code> (e.g.
+        <code>missing_price</code>, <code>no_qa_blocks</code>,
+        <code>missing_duration</code>), <code>severity</code>, and
+        <code>page</code>. The current snapshot reads
+        <code>geo_score: GOOD</code> with <b>0 high + 7 medium + 1 low</b>
+        issue, and <b>12 positive_signals</b> (entity clarity + schema
+        detection + 22K-char content depth on every page). The pattern
+        across GEO is the same as the audit: <code>no_qa_blocks</code> on all
+        4 pages (FAQ sections are missing everywhere), <code>missing_price</code>
+        on the 3 commercial pages (membership / coaching / club-fitting). One
+        FAQ block + one pricing block on each commercial page lifts every GEO
+        finding from medium to low without changing the audit numbers.</p>
+        <p><span class="hc-term">🛠️ Landing-page fixes card</span> is the
+        action queue. Each row carries <code>page</code>, <code>issue</code>
+        (e.g. <code>pricing_clarity</code>, <code>cta_weak</code>,
+        <code>intent_mismatch</code>, <code>friction</code>, <code>trust_gap</code>,
+        <code>faq_missing</code>, <code>hero_message</code>,
+        <code>awareness_gap</code>), <code>fix</code> (the ready-to-paste
+        edit), <code>expected_outcome</code> (a <code>+N%</code> projection —
+        <b>treat as directional, not committed</b>), <code>revenue_impact</code>
+        (high / medium / low), and <code>priority</code> (1-3). Current queue:
+        <b>8 fixes total / 4 priority-1 / 3 priority-2 / 1 priority-3</b>.
+        Priority-1 fixes cluster on <code>/membership</code> and
+        <code>/club-fitting</code> — pricing clarity + CTA + booking urgency
+        + form-friction. These four changes are the highest-leverage edits
+        you can ship today.</p>
+        <p><span class="hc-term">Diagnosis ladder</span> across the four cards —
+        start at <b>🔎 Audit</b> for template problems (one fix lifts every
+        page), drop to <b>🛠️ Fixes</b> for per-page revenue-impact edits,
+        cross-reference <b>📈 Rankings</b> to confirm the keyword set isn't
+        already defended by a competitor, and finish on <b>🌍 GEO</b> for AI
+        summary coverage. The cards are not independent — the same page-level
+        finding surfaces in 3 of 4 cards, so a single FAQ block kill list is
+        audit (missing_faq low), GEO (no_qa_blocks medium), and fixes
+        (faq_missing priority-2) at once.</p>
+        <p><b>How to use this page:</b> start with the audit count — if
+        <code>total_findings &gt; 2 × pages</code> (current: 16 findings / 4
+        pages = 4×) you have a template problem, not a content problem. Look
+        for the same <code>type</code> on every page and fix it once at the
+        template level. Then run the fixes queue top-to-bottom (P1 → P2 →
+        P3) — each priority-1 fix has a <code>revenue_impact: high</code> tag
+        and an <code>expected_outcome</code> projection. The GEO and Rankings
+        cards are validation, not action — GEO confirms the AI-summary shape
+        holds, Rankings confirms the keyword set isn't already defended.</p>
+        <p><b>Anti-pattern 1:</b> treating <code>expected_outcome: +N%</code>
+        as a committed number. The fixes library uses <code>best_practice</code>
+        evidence tags (industry heuristics), not measured lift from this site.
+        Treat them as <i>"this kind of change usually moves the needle"</i>,
+        not <i>"you'll see +12% next week"</i>. Measure before / after with
+        GA4 + Search Console on the touched pages.</p>
+        <p><b>Anti-pattern 2:</b> shipping per-page fixes when the audit shows
+        the same finding on every page. With 4 pages all showing
+        <code>missing_meta_description</code>, the right fix is to add the
+        meta description to the page template (one edit), not to write 4
+        individual meta descriptions. The audit count tells you which mode
+        you're in: site-wide template = bulk-edit, per-page = content-edit.</p>
+        <p><b>Anti-pattern 3:</b> reading <code>"Not found in top results"</code>
+        as a fail state. For a new tracker, zero found is the expected
+        starting state — every row in <code>quick_wins</code> is a content
+        gap to fill. The badge only becomes bad news when <code>found &gt; 0</code>
+        and <code>current_rank</code> drops (i.e. you're ranked but losing
+        ground). Until then, treat the empty column as a to-do list.</p>`
+    },
     'agents': {
       title: 'How the Agents & health surface reads the lane roster',
       body: `
@@ -3198,6 +3312,7 @@ function go(sec){
         'learning': 'meta',
         'trends': 'meta',
         'ideas': 'meta',
+        'seo': 'seo',
       };
       HELP.section(realSec, analyticsMap[realSec]);
     }
@@ -3212,6 +3327,7 @@ function go(sec){
           'learning': 'meta',
           'trends': 'meta',
           'ideas': 'meta',
+          'seo': 'seo',
         };
         HELP.section(realSec, analyticsMap[realSec]);
       }

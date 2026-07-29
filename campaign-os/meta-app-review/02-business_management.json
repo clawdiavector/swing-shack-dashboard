@@ -1,0 +1,6 @@
+{
+  "name": "02-business_management",
+  "description": "Business portfolios the user has access to",
+  "http_status": 200,
+  "response": "{\"data\":[{\"id\":\"637613695233232\",\"name\":\"Swing Shack\"}],\"paging\":{\"cursors\":{\"before\":\"QVFIU0xJU3UwUHk0bmJXc3oyLTY3NXZATU0E5amxhOXRPME1QNmJxbUhHUTNmMG5qLUlLdEw3bEs0aFY5el9TY01QY2x2anYwMnFQS1lITVlNV2F2N2FTaTB3\",\"after\":\"QVFIU0xJU3UwUHk0bmJXc3oyLTY3NXZATU0E5amxhOXRPME1QNmJxbUhHUTNmMG5qLUlLdEw3bEs0aFY5el9TY01QY2x2anYwMnFQS1lITVlNV2F2N2FTaTB3\"}}}"
+}
