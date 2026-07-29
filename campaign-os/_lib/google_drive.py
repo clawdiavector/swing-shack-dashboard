@@ -30,6 +30,11 @@ import os
 from pathlib import Path
 from typing import Any, Iterable
 
+# Tell oauthlib to allow http://localhost redirects (installed-app flow).
+# Without this, fetch_token() raises InsecureTransportError even though the
+# OAuth 2.0 spec explicitly exempts localhost for installed/Desktop apps.
+os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "***")
+
 # Defaults — overridden by env if present. We try the canonical OpenClaw
 # credentials location first (the one the setup-portal uses), then fall
 # back to the user-supplied env var.
@@ -265,14 +270,20 @@ You only do the dance once. After that, the API refreshes silently.
 """.strip()
 
 
-def setup_interactive(port: int = 8765) -> dict[str, Any]:
-    """Run the OAuth flow in a local browser, save the refresh token.
+def setup_interactive(port: int = 8765, method: str = "console") -> dict[str, Any]:
+    """Run the OAuth flow and save the refresh token.
 
-    This is the one-off setup. Opens a browser on http://localhost:<port>,
-    redirects through Google's OAuth screen, saves the resulting token to
-    DRIVE_TOKEN_PATH, and closes.
+    Three modes, in order of reliability:
+      - "console": prints the URL, waits for you to paste back the redirect URL.
+        This is the most reliable because there's no race between browser and
+        server. Works from anywhere — paste the URL on your phone if you want.
+      - "local": run_local_server — opens a browser tab. Race-prone on
+        machines with multiple Chrome profiles or background tabs (the
+        "mismatching_state" error we hit at 8766).
+      - "auto": try local first, fall back to console on mismatch.
 
-    Run this locally — don't expose the callback port publicly.
+    The resulting refresh token lands at DRIVE_TOKEN_PATH. You only do this
+    dance once; subsequent calls use the cached token.
     """
     from google_auth_oauthlib.flow import InstalledAppFlow
 
@@ -281,18 +292,79 @@ def setup_interactive(port: int = 8765) -> dict[str, Any]:
         return {"ok": False, "error": f"client secrets not found at {OAUTH_CLIENT_PATH}",
                 "instructions": oauth_instructions()}
 
-    # InstalledAppFlow expects 'installed' or 'web' key
     if "installed" not in client and "web" not in client:
         return {"ok": False,
                 "error": "client JSON is not 'installed' or 'web' type — did you download the right file?",
                 "instructions": oauth_instructions()}
 
     flow = InstalledAppFlow.from_client_secrets_file(str(OAUTH_CLIENT_PATH), SCOPES)
-    # run_local_server opens a browser on localhost:<port> for the redirect
-    creds = flow.run_local_server(port=port, open_browser=True,
-                                   prompt="consent", access_type="offline")
-    saved = _save_token(json.loads(creds.to_json()))
-    return {"ok": True, "token_saved": str(saved), "scopes": list(creds.scopes or [])}
+
+    # Force redirect_uri. The OAuth client JSON registers "http://localhost"
+    # but google-auth-oauthlib >=1.0 occasionally drops the redirect_uri param
+    # entirely when there's no port suffix, causing Google to return
+    # "Missing required parameter: redirect_uri". We pin to a stable port
+    # and explicitly set the public redirect_uri attribute on the flow.
+    redirect_uri = f"http://localhost:{port}"
+    flow.redirect_uri = redirect_uri
+
+    def _exchange(creds):
+        if not creds:
+            return {"ok": False, "error": "no credentials returned from flow"}
+        saved = _save_token(json.loads(creds.to_json()))
+        return {"ok": True, "token_saved": str(saved), "scopes": list(creds.scopes or [])}
+
+    if method == "console":
+        # Print URL, wait for paste-back. Race-free.
+        auth_url, _ = flow.authorization_url(
+            access_type="offline", prompt="consent", include_granted_scopes="true"
+        )
+        print(f"\n{'='*70}\nGOOGLE OAUTH — paste this URL into any browser:\n\n{auth_url}\n\n"
+              f"redirect_uri pinned to: {redirect_uri}\n"
+              f"You'll be redirected to http://localhost:{port}/?code=...&scope=...\n"
+              f"Paste the FULL redirect URL back here and press Enter.\n{'='*70}\n",
+              flush=True)
+        redirect_url = input("redirect_url> ").strip()
+        if not redirect_url:
+            return {"ok": False, "error": "no redirect URL pasted"}
+        try:
+            flow.fetch_token(authorization_response=redirect_url)
+        except Exception as e:
+            return {"ok": False, "error": f"fetch_token failed: {e}",
+                    "hint": "make sure you pasted the ENTIRE redirect URL including http://localhost"}
+        return _exchange(flow.credentials)
+
+    elif method == "local":
+        creds = flow.run_local_server(port=port, open_browser=True,
+                                       prompt="consent", access_type="offline")
+        return _exchange(creds)
+
+    elif method == "auto":
+        try:
+            creds = flow.run_local_server(port=port, open_browser=True,
+                                           prompt="consent", access_type="offline")
+            return _exchange(creds)
+        except Exception as e:
+            print(f"\n[!] local-server dance failed: {e}")
+            print(f"[!] falling back to console-paste mode.\n", flush=True)
+            # Re-create the flow so the state is fresh
+            flow = InstalledAppFlow.from_client_secrets_file(str(OAUTH_CLIENT_PATH), SCOPES)
+            auth_url, _ = flow.authorization_url(
+                access_type="offline", prompt="consent", include_granted_scopes="true"
+            )
+            print(f"GOOGLE OAUTH (fallback) — paste this URL into any browser:\n{auth_url}\n"
+                  f"Paste the FULL redirect URL back here:\n", flush=True)
+            redirect_url = input("redirect_url> ").strip()
+            if not redirect_url:
+                return {"ok": False, "error": "no redirect URL pasted"}
+            try:
+                flow.fetch_token(authorization_response=redirect_url)
+            except Exception as e2:
+                return {"ok": False, "error": f"fetch_token failed: {e2}"}
+            return _exchange(flow.credentials)
+
+    else:
+        return {"ok": False, "error": f"unknown method: {method}",
+                "hint": "use method='console', 'local', or 'auto'"}
 
 
 def status() -> dict[str, Any]:
