@@ -529,7 +529,10 @@ a:hover{text-decoration:underline}
 /* ─── Universal helper system: tooltips + "what does this do" panels ── */
 .help-tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--bg-3);color:var(--tx-2);font-size:10px;font-weight:700;margin-left:.35rem;cursor:help;vertical-align:middle;border:1px solid var(--bg-4);transition:background .15s ease}
 .help-tip:hover{background:var(--ac);color:var(--bg)}
-.help-tip[data-help]::after{content:attr(data-help)}
+/* NOTE: .help-tip[data-help]::after was removed because it clashed with the JS .help-pop
+   (the pseudo-element rendered inline at full text width, breaking any element that received
+   the .help-tip class via HELP.tip). The JS pop is the single source of truth for hover text.
+   For a manually-added help-tip icon, use HELP.tip() instead of inline content. */
 .help-pop{position:fixed;max-width:340px;min-width:220px;background:var(--bg-1);color:var(--tx);border:1px solid var(--bg-3);border-radius:8px;padding:.7rem .85rem;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.45);z-index:9999;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
 .help-pop.show{opacity:1;transform:translateY(0)}
 .help-pop .hp-title{font-weight:700;color:var(--ac);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem;display:block}
@@ -1466,7 +1469,7 @@ const HELP = (() => {
   };
 
   const tip = (target, payload) => {
-    target.classList.add('help-tip');
+    target.classList.add('has-help-tip');
     target.setAttribute('data-help', payload.help || '');
     target.addEventListener('mouseenter', () => showPop(target, payload));
     target.addEventListener('mouseleave', hidePop);
@@ -2954,7 +2957,7 @@ const HELP = (() => {
 
   // Auto-attach to any existing [data-help] elements
   const autoAttach = () => {
-    document.querySelectorAll('[data-help]:not(.help-tip)').forEach(el => {
+    document.querySelectorAll('[data-help]:not(.has-help-tip)').forEach(el => {
       const payload = {
         help: el.getAttribute('data-help') || '',
         title: el.getAttribute('data-help-title') || '',
