@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meme Lab — Swing Shack</title>
+<style>
+:root {
+  --bg: #0c0d10;
+  --panel: #16181c;
+  --panel-2: #1d2025;
+  --line: #2a2d33;
+  --text: #e8eaed;
+  --muted: #9aa0a6;
+  --accent: #c2f64f;
+  --accent-2: #4f8eff;
+  --warn: #ff6b6b;
+  --ok: #42b883;
+  --chip: #2a2d33;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+a { color: var(--accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+header .meta { color: var(--muted); font-size: 13px; }
+header .nav { display: flex; gap: 16px; }
+header .nav a { color: var(--muted); padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+header .nav a:hover { background: var(--panel-2); color: var(--text); text-decoration: none; }
+header .nav a.active { background: var(--accent); color: #0c0d10; }
+
+.layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 56px); }
+.sidebar { background: var(--panel); border-right: 1px solid var(--line); padding: 20px; overflow-y: auto; }
+.main { padding: 24px; overflow-y: auto; }
+
+.filter-group { margin-bottom: 24px; }
+.filter-group h3 { margin: 0 0 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; }
+.chip { display: inline-block; padding: 5px 11px; background: var(--chip); color: var(--text); border-radius: 14px; font-size: 12px; margin: 3px; cursor: pointer; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.chip.active { background: var(--accent); color: #0c0d10; border-color: var(--accent); }
+.chip .count { opacity: 0.7; margin-left: 6px; font-size: 11px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.tile { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+.tile .num { font-size: 24px; font-weight: 700; color: var(--accent); }
+.tile .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
+
+/* Meme grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+
+.mcard {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  display: flex;
+  flex-direction: column;
+}
+.mcard:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+/* Meme preview (SVG-based) */
+.mcard .preview {
+  aspect-ratio: 1/1;
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 16px;
+}
+.mcard .preview svg { width: 100%; height: 100%; }
+.mcard .preview .placeholder {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.mcard .preview .format-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0,0,0,0.7);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.mcard .preview .tier {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.7);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.tier.fresh_crowd_pleaser { color: var(--accent); }
+.tier.proven_classic { color: var(--ok); }
+.tier.risky_but_fits { color: var(--warn); }
+.tier.dated_pick { color: #999; }
+
+.mcard .info { padding: 12px 14px; flex: 1; }
+.mcard .name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.mcard .why { font-size: 12px; color: var(--muted); line-height: 1.45; margin-bottom: 8px; }
+.mcard .seeds { font-size: 11px; color: var(--accent-2); margin-bottom: 8px; }
+.mcard .seeds b { color: var(--text); }
+.mcard .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.mcard .meta span { padding: 2px 8px; background: var(--chip); border-radius: 10px; font-size: 10px; color: var(--muted); }
+.mcard .footer { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-top: 1px solid var(--line); }
+.mcard .footer button {
+  background: var(--accent);
+  color: #0c0d10;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mcard .footer button:hover { filter: brightness(1.1); }
+.mcard .footer .fits { font-size: 10px; color: var(--muted); }
+
+/* Modal */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-body { padding: 28px; }
+.modal-body .close { float: right; cursor: pointer; color: var(--muted); font-size: 28px; line-height: 1; }
+.modal h2 { margin: 0 0 4px; font-size: 22px; font-weight: 800; }
+.modal .sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+.modal .section { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.modal .section:last-child { border-bottom: none; }
+.modal .section h4 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; }
+.modal .preview-large {
+  background: #000;
+  border-radius: 8px;
+  aspect-ratio: 1/1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  padding: 20px;
+}
+.modal .preview-large svg { max-width: 100%; max-height: 100%; }
+.modal pre {
+  background: var(--panel-2);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  max-height: 200px;
+  overflow: auto;
+  color: var(--accent);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.modal .seeds-list { display: flex; flex-direction: column; gap: 6px; }
+.modal .seed { padding: 8px 12px; background: var(--panel-2); border-radius: 6px; font-size: 13px; cursor: pointer; }
+.modal .seed:hover { background: var(--chip); color: var(--accent); }
+.modal .seed.selected { background: var(--accent); color: #0c0d10; font-weight: 600; }
+.modal .btn { background: var(--accent); color: #0c0d10; border: none; padding: 12px 18px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px; width: 100%; }
+.modal .btn:hover { filter: brightness(1.1); }
+.modal .btn.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+
+.loading, .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+.spinner { width: 24px; height: 24px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { max-height: 40vh; }
+}
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+  .main { padding: 14px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Meme Lab <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;">/ 75 memes · Swing Shack</span></h1>
+  </div>
+  <div class="nav">
+    <a href="/">← Dashboard</a>
+    <a href="/visualizer">Visual Library →</a>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="filter-group">
+      <h3>Era</h3>
+      <div>
+        <span class="chip active" data-era="">All</span>
+        <span class="chip" data-era="current">Current</span>
+        <span class="chip" data-era="recent">Recent</span>
+        <span class="chip" data-era="classic">Classic</span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h3>Fatigue</h3>
+      <div>
+        <span class="chip active" data-fatigue="">All</span>
+        <span class="chip" data-fatigue="low">Low only</span>
+        <span class="chip" data-fatigue="high">Risky</span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h3>Still works</h3>
+      <div>
+        <span class="chip active" data-still="">All</span>
+        <span class="chip" data-still="true">Only still-works</span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h3>Voice</h3>
+      <div>
+        <span class="chip active" data-voice="">All brands</span>
+        <span class="chip" data-voice="swing-shack">Swing Shack</span>
+        <span class="chip" data-voice="stick">Stick</span>
+        <span class="chip" data-voice="bag-drop">Bag Drop</span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h3>Pillar</h3>
+      <div>
+        <span class="chip active" data-pillar="">All</span>
+        <span class="chip" data-pillar="education">Education</span>
+        <span class="chip" data-pillar="club-fitting">Club fitting</span>
+        <span class="chip" data-pillar="community">Community</span>
+        <span class="chip" data-pillar="events">Events</span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h3>Voice bible</h3>
+      <div id="voice-bible" style="font-size: 11px; color: var(--muted); line-height: 1.5;">
+        Loading…
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="tiles">
+      <div class="tile"><div class="num" id="tile-shown">—</div><div class="lbl">Showing</div></div>
+      <div class="tile"><div class="num" id="tile-total">—</div><div class="lbl">Total catalog</div></div>
+      <div class="tile"><div class="num" id="tile-fresh">—</div><div class="lbl">Fresh crowd-pleasers</div></div>
+      <div class="tile"><div class="num" id="tile-classic">—</div><div class="lbl">Proven classics</div></div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" style="display:none;">No memes match current filters.</div>
+  </main>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-body">
+      <span class="close" id="modal-close">×</span>
+      <h2 id="modal-title">—</h2>
+      <div class="sub" id="modal-sub">—</div>
+
+      <div class="preview-large" id="modal-preview"></div>
+
+      <div class="section">
+        <h4>Why it works</h4>
+        <div id="modal-why" style="font-size: 14px; line-height: 1.55;">—</div>
+      </div>
+
+      <div class="section">
+        <h4>Visual format</h4>
+        <div id="modal-format" style="font-size: 13px; color: var(--muted); line-height: 1.5;">—</div>
+      </div>
+
+      <div class="section">
+        <h4>Swing Shack adaptations (click to select)</h4>
+        <div class="seeds-list" id="modal-seeds"></div>
+      </div>
+
+      <div class="section">
+        <h4>Selected adaptation → Ideogram prompt</h4>
+        <pre id="modal-prompt">Select a seed above to build the prompt</pre>
+      </div>
+
+      <div style="display: grid; gap: 8px;">
+        <button class="btn" id="modal-generate">Generate image with this prompt</button>
+        <button class="btn secondary" onclick="document.getElementById('modal-bg').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = {
+  catalog: (params) => fetch('/api/intel/memes/catalog?' + new URLSearchParams(params)).then(r => r.json()),
+  preview: (id) => fetch('/api/intel/meme/' + encodeURIComponent(id) + '/preview').then(r => r.json()),
+  generate: (payload) => fetch('/api/intel/generate_image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).then(r => r.json()),
+};
+
+let state = {
+  memes: [],
+  filters: { era: '', fatigue: '', still: '', voice: '', pillar: '' },
+  selectedSeed: null,
+  selectedMeme: null,
+};
+
+// ── Meme visual preview generator (text-based, format-aware) ────────────
+// Each format gets a stylized SVG mock that explains the meme visually.
+function memePreviewSVG(meme) {
+  const fmt = meme.format || 'meme';
+  const w = 600, h = 600;
+  const colors = { bg: '#0a0a0a', text: '#fff', accent: '#c2f64f', blue: '#4f8eff' };
+  let body = '';
+
+  if (fmt === 'two-panel-comparison') {
+    body = `
+      <rect x="50" y="80" width="240" height="200" fill="#1a1a1a" rx="10"/>
+      <rect x="50" y="80" width="240" height="40" fill="${colors.accent}" rx="10"/>
+      <text x="170" y="108" fill="#000" font-size="20" font-weight="700" text-anchor="middle">NAH</text>
+      <text x="170" y="200" fill="${colors.text}" font-size="16" text-anchor="middle">${(meme.swingshack_fit_seeds?.[0] || 'Old way').substring(0, 22)}</text>
+      <rect x="310" y="320" width="240" height="200" fill="#1a1a1a" rx="10"/>
+      <rect x="310" y="320" width="240" height="40" fill="${colors.accent}" rx="10"/>
+      <text x="430" y="348" fill="#000" font-size="20" font-weight="700" text-anchor="middle">YEAH</text>
+      <text x="430" y="440" fill="${colors.text}" font-size="16" text-anchor="middle">${(meme.swingshack_fit_seeds?.[1] || 'Better way').substring(0, 22)}</text>
+      <text x="300" y="560" fill="${colors.muted || '#666'}" font-size="14" text-anchor="middle" fill-opacity="0.6">two-panel preference</text>
+    `;
+  } else if (fmt === 'distraction-boyfriend') {
+    body = `
+      <circle cx="180" cy="300" r="60" fill="#3a3a3a"/>
+      <text x="180" y="306" fill="${colors.text}" font-size="14" text-anchor="middle">jealous</text>
+      <circle cx="300" cy="300" r="60" fill="${colors.accent}"/>
+      <text x="300" y="306" fill="#000" font-size="14" text-anchor="middle" font-weight="700">YOU</text>
+      <circle cx="420" cy="300" r="60" fill="${colors.blue}"/>
+      <text x="420" y="306" fill="${colors.text}" font-size="14" text-anchor="middle">temptation</text>
+      <text x="180" y="400" fill="${colors.muted || '#666'}" font-size="11" text-anchor="middle">old choice</text>
+      <text x="420" y="400" fill="${colors.muted || '#666'}" font-size="11" text-anchor="middle">${(meme.swingshack_fit_seeds?.[0] || 'new shiny').substring(0, 18)}</text>
+      <text x="300" y="500" fill="${colors.muted || '#666'}" font-size="14" text-anchor="middle" fill-opacity="0.6">distraction template</text>
+    `;
+  } else if (fmt === 'expanding-brain') {
+    body = `
+      ${[1,2,3,4].map((i, idx) => `
+        <rect x="80" y="${100 + idx*100}" width="180" height="80" fill="#1a1a1a" rx="6"/>
+        <text x="170" y="${148 + idx*100}" fill="${colors.text}" font-size="13" text-anchor="middle">${(meme.swingshack_fit_seeds?.[idx] || `level ${idx+1}`).substring(0, 22)}</text>
+        <circle cx="450" cy="${140 + idx*100}" r="${15 + idx*8}" fill="${colors.accent}" fill-opacity="${0.9 - idx*0.2}"/>
+        <text x="450" y="${146 + idx*100}" fill="#000" font-size="14" font-weight="700" text-anchor="middle">${idx+1}</text>
+      `).join('')}
+      <text x="300" y="540" fill="#666" font-size="14" text-anchor="middle">expanding brain · 4 levels</text>
+    `;
+  } else if (fmt === 'this-is-fine') {
+    body = `
+      <rect x="0" y="0" width="${w}" height="${h}" fill="#1a1a1a"/>
+      <g transform="translate(300, 280)">
+        <rect x="-80" y="-20" width="160" height="100" fill="#5d3a1a"/>
+        <circle cx="-30" cy="-40" r="20" fill="#f5deb3"/>
+        <circle cx="30" cy="-40" r="20" fill="#f5deb3"/>
+        <rect x="-15" y="-45" width="30" height="20" fill="#daa520"/>
+        <text x="0" y="80" fill="${colors.text}" font-size="20" font-weight="700" text-anchor="middle">This is fine.</text>
+      </g>
+      <text x="300" y="540" fill="#666" font-size="14" text-anchor="middle">this-is-fine format</text>
+    `;
+  } else if (fmt === 'video-loop') {
+    body = `
+      <rect x="100" y="100" width="400" height="300" fill="#1a1a1a" rx="12"/>
+      <polygon points="280,210 280,290 350,250" fill="${colors.accent}"/>
+      <text x="300" y="450" fill="${colors.text}" font-size="16" text-anchor="middle">repeat loop · motion</text>
+      <text x="300" y="540" fill="#666" font-size="14" text-anchor="middle">video-loop format</text>
+    `;
+  } else if (fmt === 'pointing-spider') {
+    body = `
+      <circle cx="300" cy="280" r="80" fill="#222" stroke="${colors.accent}" stroke-width="3"/>
+      <text x="300" y="290" fill="${colors.text}" font-size="60" text-anchor="middle">🕷️</text>
+      <text x="300" y="430" fill="${colors.text}" font-size="18" text-anchor="middle">${(meme.swingshack_fit_seeds?.[0] || 'pointing at it').substring(0, 30)}</text>
+      <text x="300" y="540" fill="#666" font-size="14" text-anchor="middle">pointing-spider format</text>
+    `;
+  } else if (fmt === 'reaction-image') {
+    body = `
+      <rect x="100" y="100" width="400" height="350" fill="#2a2a2a" rx="12"/>
+      <circle cx="300" cy="240" r="60" fill="${colors.accent}"/>
+      <text x="300" y="248" fill="#000" font-size="50" text-anchor="middle" font-weight="700">!</text>
+      <text x="300" y="380" fill="${colors.text}" font-size="18" text-anchor="middle">${(meme.swingshack_fit_seeds?.[0] || 'reaction').substring(0, 30)}</text>
+      <text x="300" y="540" fill="#666" font-size="14" text-anchor="middle">reaction-image format</text>
+    `;
+  } else if (fmt === 'template-advice') {
+    body = `
+      <rect x="100" y="120" width="400" height="80" fill="#1a1a1a" rx="8"/>
+      <text x="300" y="170" fill="${colors.text}" font-size="20" font-weight="700" text-anchor="middle">${meme.format_hint?.substring(0, 30) || 'Template advice'}</text>
+      <rect x="100" y="220" width="400" height="80" fill="#1a1a1a" rx="8"/>
+      <text x="300" y="270" fill="${colors.accent}" font-size="18" text-anchor="middle">${(meme.swingshack_fit_seeds?.[0] || 'swing shack angle').substring(0, 30)}</text>
+      <rect x="100" y="320" width="400" height="80" fill="#1a1a1a" rx="8"/>
+      <text x="300" y="370" fill="${colors.text}" font-size="16" text-anchor="middle">${(meme.swingshack_fit_seeds?.[1] || '').substring(0, 30)}</text>
+      <text x="300" y="540" fill="#666" font-size="14" text-anchor="middle">template-advice format</text>
+    `;
+  } else if (fmt === 'screen-capture') {
+    body = `
+      <rect x="50" y="100" width="500" height="350" fill="#0a0a0a" stroke="#444" stroke-width="2" rx="8"/>
+      <rect x="50" y="100" width="500" height="30" fill="#222" rx="8"/>
+      <circle cx="80" cy="115" r="5" fill="#ff5f56"/>
+      <circle cx="100" cy="115" r="5" fill="#ffbd2e"/>
+      <circle cx="120" cy="115" r="5" fill="#27c93f"/>
+      <text x="300" y="290" fill="${colors.accent}" font-size="18" text-anchor="middle" font-family="monospace">[SCREENSHOT]</text>
+      <text x="300" y="380" fill="${colors.text}" font-size="14" text-anchor="middle">${(meme.swingshack_fit_seeds?.[0] || 'capture this').substring(0, 36)}</text>
+      <text x="300" y="540" fill="#666" font-size="14" text-anchor="middle">screen-capture format</text>
+    `;
+  } else {
+    // text-overlay / generic
+    body = `
+      <rect x="50" y="50" width="500" height="500" fill="#1a1a1a" rx="14"/>
+      <text x="300" y="200" fill="${colors.text}" font-size="22" font-weight="700" text-anchor="middle">${(meme.swingshack_fit_seeds?.[0] || 'text overlay').substring(0, 28)}</text>
+      <text x="300" y="280" fill="${colors.accent}" font-size="32" font-weight="800" text-anchor="middle">${meme.name?.substring(0, 22) || meme.id}</text>
+      <text x="300" y="360" fill="${colors.muted || '#888'}" font-size="14" text-anchor="middle" fill-opacity="0.6">${(meme.swingshack_fit_seeds?.[1] || '').substring(0, 32)}</text>
+      <text x="300" y="450" fill="${colors.muted || '#888'}" font-size="14" text-anchor="middle" fill-opacity="0.6">${meme.format_hint?.substring(0, 38) || ''}</text>
+      <text x="300" y="540" fill="#666" font-size="14" text-anchor="middle">${fmt}</text>
+    `;
+  }
+
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
+}
+
+// ── Load catalog ────────────────────────────────────────────────────────
+async function loadCatalog() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<div class="loading" style="grid-column: 1/-1;"><div class="spinner"></div>Loading meme catalog…</div>';
+
+  const params = {};
+  Object.entries(state.filters).forEach(([k, v]) => { if (v) params[k] = v; });
+  const data = await API.catalog(params);
+  state.memes = data.memes || [];
+
+  document.getElementById('tile-shown').textContent = state.memes.length;
+  document.getElementById('tile-total').textContent = data.total_in_catalog;
+  document.getElementById('tile-fresh').textContent = state.memes.filter(m => _tier(m) === 'fresh_crowd_pleaser').length;
+  document.getElementById('tile-classic').textContent = state.memes.filter(m => _tier(m) === 'proven_classic').length;
+  document.getElementById('voice-bible').textContent = data.voice_bible || 'swing-shack — direct, no fluff, lowercase. Pineapple Test: would a non-golfer get the joke?';
+  document.getElementById('empty').style.display = state.memes.length ? 'none' : 'block';
+
+  if (state.memes.length === 0) {
+    grid.innerHTML = '';
+    return;
+  }
+
+  grid.innerHTML = state.memes.map(m => {
+    const tier = _tier(m);
+    const sw = m.swingshack_fit_seeds || [];
+    return `
+      <div class="mcard" data-id="${m.id}">
+        <div class="preview">
+          <div class="format-label">${m.format || 'meme'}</div>
+          <div class="tier ${tier}">${tier.replace('_', ' ')}</div>
+          ${memePreviewSVG(m)}
+        </div>
+        <div class="info">
+          <div class="name">${m.name || m.id}</div>
+          <div class="why">${(m.why_it_works || '').substring(0, 110)}${(m.why_it_works || '').length > 110 ? '…' : ''}</div>
+          <div class="seeds"><b>${sw.length} adaptation${sw.length === 1 ? '' : 's'}:</b> ${sw.slice(0, 2).join(' · ')}${sw.length > 2 ? '…' : ''}</div>
+          <div class="meta">
+            <span>${m.era || '—'}</span>
+            <span>peak ${m.peak_year || '—'}</span>
+            <span>fatigue: ${m.fatigue_risk || '—'}</span>
+            ${m.still_works ? '<span style="color: var(--ok);">✓ still works</span>' : ''}
+          </div>
+        </div>
+        <div class="footer">
+          <button data-action="generate">Generate image →</button>
+          <div class="fits">${(m.voice_fit || []).slice(0,2).join(' · ')}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Click handlers
+  grid.querySelectorAll('.mcard').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.dataset.action === 'generate') {
+        e.stopPropagation();
+        openModal(card.dataset.id, true);
+      } else {
+        openModal(card.dataset.id, false);
+      }
+    });
+  });
+}
+
+function _tier(m) {
+  const fr = m.fatigue_risk || '';
+  const sw = m.still_works;
+  const era = m.era || '';
+  if (fr === 'low' && sw && era === 'current') return 'fresh_crowd_pleaser';
+  if (fr === 'low' && sw) return 'proven_classic';
+  if (fr === 'high') return 'risky_but_fits';
+  if (!sw) return 'dated_pick';
+  return 'safe_neutral';
+}
+
+// ── Modal ───────────────────────────────────────────────────────────────
+async function openModal(id, jumpToGenerate) {
+  const meme = state.memes.find(m => m.id === id);
+  if (!meme) return;
+
+  state.selectedMeme = meme;
+  state.selectedSeed = (meme.swingshack_fit_seeds || [])[0] || null;
+
+  document.getElementById('modal-title').textContent = meme.name || meme.id;
+  document.getElementById('modal-sub').textContent = `${meme.format || 'meme'} · ${meme.era || ''} · peak ${meme.peak_year || ''}`;
+  document.getElementById('modal-preview').innerHTML = memePreviewSVG(meme);
+  document.getElementById('modal-why').textContent = meme.why_it_works || '—';
+  document.getElementById('modal-format').textContent = meme.format_hint || meme.format || '—';
+
+  // Seeds
+  const seeds = meme.swingshack_fit_seeds || [];
+  document.getElementById('modal-seeds').innerHTML = seeds.length
+    ? seeds.map((s, i) => `<div class="seed ${i === 0 ? 'selected' : ''}" data-seed="${s}">${s}</div>`).join('')
+    : '<div style="color: var(--muted); font-size: 12px;">No Swing Shack adaptations catalogued</div>';
+  document.querySelectorAll('#modal-seeds .seed').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('#modal-seeds .seed').forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+      state.selectedSeed = el.dataset.seed;
+      updatePrompt();
+    });
+  });
+
+  updatePrompt();
+
+  if (jumpToGenerate) {
+    setTimeout(() => document.getElementById('modal-generate').click(), 100);
+  }
+
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function updatePrompt() {
+  const m = state.selectedMeme;
+  if (!m) return;
+  const seed = state.selectedSeed || m.swingshack_fit_seeds?.[0] || 'Swing Shack';
+  const prompt =
+`[MEME FORMAT: ${m.format || 'meme'}]
+[VISUAL: ${m.format_hint || ''}]
+[ADAPTATION: Replace original caption with Swing Shack context: "${seed}"]
+[VOICE: swing-shack — direct, no fluff, lowercase. Pineapple Test: would a non-golfer get the joke?]
+[STYLE: dark palette, high contrast, brand-aligned, single-accent colour #c2f64f]`;
+  document.getElementById('modal-prompt').textContent = prompt;
+}
+
+document.getElementById('modal-close').onclick = () => {
+  document.getElementById('modal-bg').classList.remove('open');
+};
+document.getElementById('modal-bg').onclick = (e) => {
+  if (e.target.id === 'modal-bg') e.currentTarget.classList.remove('open');
+};
+
+document.getElementById('modal-generate').onclick = async () => {
+  const prompt = document.getElementById('modal-prompt').textContent;
+  const btn = document.getElementById('modal-generate');
+  btn.textContent = 'Generating…';
+  btn.disabled = true;
+  try {
+    const result = await API.generate({
+      prompt,
+      brand: 'swing-shack',
+      type: 'meme',
+      source: 'meme-lab',
+    });
+    if (result.image_url || result.url) {
+      btn.textContent = '✓ Generated';
+      // Show the generated image
+      const preview = document.getElementById('modal-preview');
+      preview.innerHTML = `<img src="${result.image_url || result.url}" style="max-width:100%; max-height:100%; border-radius: 8px;" />`;
+    } else if (result.ok && result.scaffold) {
+      btn.textContent = '✓ Scaffold ready (no image yet)';
+    } else {
+      btn.textContent = '✓ Queued — ' + (result.message || 'check intel tab');
+    }
+  } catch (e) {
+    btn.textContent = '✗ Error — try again';
+    console.error(e);
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Generate image with this prompt'; }, 4000);
+};
+
+// ── Filter handlers ─────────────────────────────────────────────────────
+function attachChips(attr, onChange) {
+  document.querySelectorAll(`[data-${attr}]`).forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll(`[data-${attr}]`).forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      onChange(chip.dataset[attr]);
+    });
+  });
+}
+
+attachChips('era', v => { state.filters.era = v; loadCatalog(); });
+attachChips('fatigue', v => { state.filters.fatigue = v; loadCatalog(); });
+attachChips('still', v => { state.filters.still = v; loadCatalog(); });
+attachChips('voice', v => { state.filters.voice = v; loadCatalog(); });
+attachChips('pillar', v => { state.filters.pillar = v; loadCatalog(); });
+
+(async function init() {
+  // Auto-pick from query string
+  const qs = new URLSearchParams(window.location.search);
+  if (qs.has('voice')) state.filters.voice = qs.get('voice');
+  if (qs.has('pillar')) state.filters.pillar = qs.get('pillar');
+  await loadCatalog();
+})();
+</script>
+</body>
+</html>

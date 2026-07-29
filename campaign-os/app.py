@@ -770,6 +770,453 @@ def visual_dna_scrape_and_dissect(brand_id):
         return jsonify({"error": str(e)}), 500
 
 
+# ─── VISUAL LIBRARY (image serving + DNA breakdown for the UI) ──────────
+
+@app.route('/visualizer', methods=['GET'])
+def visualizer_page():
+    """GET /visualizer — Visual Library tab (122 SS images + DNA + filters)."""
+    return send_from_directory(os.path.dirname(__file__), 'visualizer.html')
+
+
+@app.route('/meme-lab', methods=['GET'])
+def meme_lab_page():
+    """GET /meme-lab — Meme Library tab (75 memes with adaptation previews)."""
+    return send_from_directory(os.path.dirname(__file__), 'meme-lab.html')
+
+
+@app.route('/brand-images/<brand_id>/<path:filename>', methods=['GET'])
+def brand_image_serve(brand_id, filename):
+    """GET /brand-images/<brand>/ — serve a brand-directory image.
+
+    Used by the Visual Library UI to display thumbnails. Safe: resolves to
+    a path inside the brand-directory and rejects traversal attempts.
+    """
+    from pathlib import Path as _P
+    base = (_P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images').resolve()
+    target = (base / filename).resolve()
+    try:
+        target.relative_to(base)
+    except ValueError:
+        return jsonify({"error": "path traversal denied"}), 403
+    if not target.exists() or not target.is_file():
+        return jsonify({"error": "not found", "path": str(target)}), 404
+    return send_from_directory(str(target.parent), target.name)
+
+
+@app.route('/api/visual-library/<brand_id>/images', methods=['GET'])
+def visual_library_images(brand_id):
+    """GET /api/visual-library/<brand>/images — full image roster with DNA preview.
+
+    Returns one entry per image with everything the Visual Library grid needs:
+    filename, url, dna score, palette, luminance, products, OCR snippet,
+    aspect ratio. Designed to render a full grid in one request.
+
+    Query params:
+      product   — filter to images tagged with this product
+      min_score — only images with brand-alignment score >= N (0.0-1.0)
+      sort      — score | filename | modified (default score desc)
+      limit     — cap results (default 200)
+    """
+    try:
+        from pathlib import Path as _P
+        import re
+        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
+        if not index_path.exists():
+            return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
+        idx = json.loads(index_path.read_text())
+        by_filename = idx.get("by_filename", {})
+
+        product_filter = request.args.get("product", "").strip()
+        min_score = float(request.args.get("min_score", "0") or "0")
+        sort_by = request.args.get("sort", "score")
+        limit = min(int(request.args.get("limit", "200") or "200"), 500)
+
+        out = []
+        for fn, meta in by_filename.items():
+            dna_path_str = meta.get("dna_path", "")
+            if not dna_path_str:
+                continue
+            dna_p = _P(dna_path_str)
+            if not dna_p.exists():
+                continue
+            try:
+                dna = json.loads(dna_p.read_text())
+            except Exception:
+                continue
+            # Extract features
+            products = dna.get("layer4_products", {}).get("products", [])
+            product_names = [p.get("name", "") if isinstance(p, dict) else str(p) for p in products]
+            palette = dna.get("layer9_palette", {}).get("dominant_colors", [])[:5]
+            palette_hex = [c.get("hex") for c in palette if c.get("hex")]
+            composition = dna.get("layer10_composition", {})
+            ocr = dna.get("layer6_ocr", {})
+            ocr_text = " ".join(ocr.get("lines", []) or [])[:200] if isinstance(ocr, dict) else ""
+            l1 = dna.get("layer1_metadata", {})
+            l7 = dna.get("layer7_typography", {})
+            l17 = dna.get("layer17_recipe", {})
+            # Apply filters
+            if product_filter and not any(product_filter.lower() in p.lower() for p in product_names):
+                continue
+            score = float(meta.get("score", 0) or 0)
+            if score < min_score:
+                continue
+            entry = {
+                "filename": fn,
+                "url": f"/brand-images/{brand_id}/{fn}",
+                "dna_url": f"/brand-images/{brand_id}/{fn.replace('.jpg', '.visual-dna.json').replace('.jpeg', '.visual-dna.json').replace('.png', '.visual-dna.json')}",
+                "score": round(score, 3),
+                "luminance": meta.get("luminance", ""),
+                "dominant": meta.get("dominant", ""),
+                "palette": palette_hex,
+                "palette_full": palette,
+                "products": product_names,
+                "aspect_ratio": l1.get("aspect_ratio"),
+                "orientation": l1.get("orientation"),
+                "width": l1.get("width_px"),
+                "height": l1.get("height_px"),
+                "ocr_snippet": ocr_text,
+                "typography": l7.get("fonts_detected", []) if isinstance(l7, dict) else [],
+                "composition": {
+                    "rule_of_thirds": composition.get("rule_of_thirds_score"),
+                    "focal_point": composition.get("focal_point"),
+                    "symmetry": composition.get("symmetry_score"),
+                } if composition else {},
+                "recipe": l17 if l17 else None,
+                "tagline": dna.get("layer8_compliance", {}).get("summary", "") if isinstance(dna.get("layer8_compliance"), dict) else "",
+            }
+            out.append(entry)
+
+        # Sort
+        if sort_by == "score":
+            out.sort(key=lambda x: x["score"], reverse=True)
+        elif sort_by == "filename":
+            out.sort(key=lambda x: x["filename"].lower())
+        elif sort_by == "modified":
+            out.sort(key=lambda x: x["filename"].lower(), reverse=True)
+        out = out[:limit]
+        return jsonify({
+            "brand": brand_id,
+            "total": len(out),
+            "filters": {"product": product_filter, "min_score": min_score, "sort": sort_by},
+            "products_available": sorted(set(p for e in out for p in e["products"])),
+            "images": out,
+        })
+    except Exception as e:
+        _app_log.exception("visual_library_images failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/visual-library/<brand_id>/stats', methods=['GET'])
+def visual_library_stats(brand_id):
+    """GET /api/visual-library/<brand>/stats — palette + product + score histograms.
+
+    Used to drive the filter chips and dashboard summary tiles in the
+    Visual Library tab.
+    """
+    try:
+        from pathlib import Path as _P
+        from collections import Counter
+        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
+        if not index_path.exists():
+            return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
+        idx = json.loads(index_path.read_text())
+        by_filename = idx.get("by_filename", {})
+
+        product_counts = Counter()
+        luminance_counts = Counter()
+        color_counts = Counter()
+        score_buckets = Counter()
+        orientation_counts = Counter()
+        for fn, meta in by_filename.items():
+            dna_path_str = meta.get("dna_path", "")
+            if not dna_path_str:
+                continue
+            dna_p = _P(dna_path_str)
+            if not dna_p.exists():
+                continue
+            try:
+                dna = json.loads(dna_p.read_text())
+            except Exception:
+                continue
+            for p in dna.get("layer4_products", {}).get("products", []):
+                pname = p.get("name", "?") if isinstance(p, dict) else str(p)
+                product_counts[pname] += 1
+            lm = meta.get("luminance", "?")
+            luminance_counts[lm] += 1
+            dom = meta.get("dominant", "?")
+            color_counts[dom] += 1
+            sc = float(meta.get("score", 0) or 0)
+            bucket = "high" if sc >= 0.8 else "mid" if sc >= 0.65 else "low"
+            score_buckets[bucket] += 1
+            ori = dna.get("layer1_metadata", {}).get("orientation", "?")
+            orientation_counts[ori] += 1
+
+        return jsonify({
+            "brand": brand_id,
+            "total_images": idx.get("image_count", len(by_filename)),
+            "tagged_count": idx.get("tagged_count", len(by_filename)),
+            "products": dict(product_counts.most_common()),
+            "luminance": dict(luminance_counts),
+            "top_dominant_colors": [{"hex": h, "count": c} for h, c in color_counts.most_common(20)],
+            "score_distribution": dict(score_buckets),
+            "orientations": dict(orientation_counts),
+        })
+    except Exception as e:
+        _app_log.exception("visual_library_stats failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/visual-library/<brand_id>/image/<path:filename>', methods=['GET'])
+def visual_library_image_detail(brand_id, filename):
+    """GET /api/visual-library/<brand>/image/ — full DNA for one image.
+
+    Returns every layer of the visual DNA file as a flat structure with
+    human-readable labels. Used by the per-image modal in the Visual Library.
+    """
+    try:
+        from pathlib import Path as _P
+        # Resolve actual DNA file (handles .jpg/.jpeg/.png)
+        for ext in (".jpg", ".jpeg", ".png"):
+            if filename.lower().endswith(ext):
+                stem = filename[: -len(ext)]
+                dna_filename = stem + ".visual-dna.json"
+                break
+        else:
+            dna_filename = filename + ".visual-dna.json"
+        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
+        idx = json.loads(index_path.read_text())
+        meta = idx.get("by_filename", {}).get(filename)
+        if not meta:
+            return jsonify({"error": f"image {filename} not in index"}), 404
+        dna_p = _P(meta.get("dna_path", ""))
+        if not dna_p.exists():
+            return jsonify({"error": "dna file missing on disk"}), 404
+        dna = json.loads(dna_p.read_text())
+        return jsonify({
+            "brand": brand_id,
+            "filename": filename,
+            "image_url": f"/brand-images/{brand_id}/{filename}",
+            "score": meta.get("score"),
+            "dna": dna,
+        })
+    except Exception as e:
+        _app_log.exception("visual_library_image_detail failed")
+        return jsonify({"error": str(e)}), 500
+
+
+# ─── MEME LAB (full catalog for UI) ─────────────────────────────────────
+
+@app.route('/api/intel/memes/catalog', methods=['GET'])
+def meme_catalog():
+    """GET /api/intel/memes/catalog — full meme knowledge base (75 entries).
+
+    Returns every meme in data/meme_knowledge.json with the fields the
+    Meme Lab UI needs: id, name, format, era, peak_year, mechanism,
+    why_it_works, swingshack_fit_seeds, voice_fit, pillar_fit,
+    format_hint, fatigue_risk, still_works.
+
+    Query params:
+      pillar      — filter to memes that fit a pillar (education|club-fitting|community|events)
+      voice       — filter to memes that fit a voice (swing-shack|stick|bag-drop)
+      era         — filter by era (classic|recent|current)
+      still_works — only memes that still work (still_works=true)
+      fatigue     — only low-fatigue memes (fatigue_risk=low)
+    """
+    try:
+        kb = _load_meme_knowledge()
+        memes = kb.get("memes") if isinstance(kb, dict) else kb
+        if not isinstance(memes, list):
+            memes = []
+
+        pillar = request.args.get("pillar", "").strip()
+        voice = request.args.get("voice", "").strip()
+        era = request.args.get("era", "").strip()
+        only_still_works = request.args.get("still_works", "").lower() in ("1", "true", "yes")
+        only_low_fatigue = request.args.get("fatigue", "").lower() in ("low", "1", "true", "yes")
+
+        filtered = []
+        for m in memes:
+            if not isinstance(m, dict):
+                continue
+            if pillar and pillar not in (m.get("pillar_fit") or []):
+                continue
+            if voice and voice not in (m.get("voice_fit") or []):
+                continue
+            if era and era != m.get("era"):
+                continue
+            if only_still_works and not m.get("still_works"):
+                continue
+            if only_low_fatigue and m.get("fatigue_risk") != "low":
+                continue
+            filtered.append(m)
+
+        # Sort: still_works desc, fatigue_risk low first, peak_year desc
+        fatigue_order = {"low": 0, "medium": 1, "high": 2, "": 3}
+        filtered.sort(key=lambda x: (
+            not x.get("still_works", False),
+            fatigue_order.get(x.get("fatigue_risk", ""), 9),
+            -int(x.get("peak_year", 0) or 0),
+        ))
+
+        return jsonify({
+            "ok": True,
+            "total": len(filtered),
+            "total_in_catalog": len(memes),
+            "voice_bible": kb.get("voice_bible", ""),
+            "filters": {"pillar": pillar, "voice": voice, "era": era,
+                        "still_works": only_still_works, "fatigue": only_low_fatigue},
+            "memes": filtered,
+        })
+    except Exception as e:
+        _app_log.exception("meme_catalog failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/intel/meme/<meme_id>/preview', methods=['GET'])
+def meme_preview(meme_id):
+    """GET /api/intel/meme/<id>/preview — adaptation scaffold for one meme.
+
+    Returns the meme entry plus an adaptation prompt pre-built for the
+    Ideogram image generator. UI can hand this off directly.
+    """
+    try:
+        kb = _load_meme_knowledge()
+        memes = kb.get("memes") if isinstance(kb, dict) else kb
+        meme = next((m for m in memes if isinstance(m, dict) and m.get("id") == meme_id), None)
+        if not meme:
+            return jsonify({"error": f"meme {meme_id} not found"}), 404
+
+        seeds = meme.get("swingshack_fit_seeds") or []
+        seeds = [s for s in seeds if s]
+        seed = seeds[0] if seeds else "Swing Shack"
+        # Build the Ideogram prompt scaffold
+        adaptation_prompt = (
+            f"[MEME FORMAT: {meme.get('format', 'meme')}]\n"
+            f"[VISUAL: {meme.get('format_hint', '')}]\n"
+            f"[ADAPTATION: Replace original caption with Swing Shack context: \"{seed}\"]\n"
+            f"[VOICE: swing-shack — direct, no fluff, lowercase. Pineapple Test: would a non-golfer get the joke?]\n"
+            f"[STYLE: dark palette, high contrast, brand-aligned, single-accent colour]"
+        )
+
+        return jsonify({
+            "ok": True,
+            "meme": meme,
+            "adaptation_prompt": adaptation_prompt,
+            "first_seed": seed,
+            "all_seeds": seeds,
+        })
+    except Exception as e:
+        _app_log.exception("meme_preview failed")
+        return jsonify({"error": str(e)}), 500
+
+
+# ─── REAL DATA + VISUAL DNA JOIN ────────────────────────────────────────
+# Joins page-level Meta engagement with the brand's image visual DNA index.
+# Tells you: which palettes/compositions are most-used, which score highest,
+# and (once App Review approves pages_read_user_content) which individual
+# posts correlate with which image DNA features.
+
+@app.route('/api/intel/visual-performance', methods=['GET'])
+def visual_performance_join():
+    """GET /api/intel/visual-performance — cross-reference Meta engagement with DNA.
+
+    Returns the current best-available join between real post data and
+    visual DNA features. With current scopes we can show:
+      - Page-level engagement trend (page_post_engagements, page_views_total)
+      - Image roster with DNA scores and palette distribution
+      - Top 10 images by brand-alignment score (the ones to clone)
+      - "Awaiting per-post engagement" honest placeholder for the join
+
+    Once App Review approves `pages_read_user_content`, this endpoint
+    auto-enriches each image with its closest-matching post's engagement.
+    """
+    try:
+        from pathlib import Path as _P
+        from collections import Counter
+        brand = request.args.get("brand", "swing-shack")
+        # Page-level Meta data
+        from _lib import meta_api as _meta
+        page_signal = {"available": False, "reason": "no token"}
+        try:
+            if _meta._page_credentials_present():
+                eng = _meta._graph_get(
+                    f"/{_meta.os.environ.get('META_PAGE_ID')}/insights",
+                    {"metric": "page_post_engagements,page_views_total", "period": "day"},
+                    use_page_token=True,
+                )
+                page_signal = {
+                    "available": True,
+                    "page_id": _meta.os.environ.get("META_PAGE_ID"),
+                    "engagements_30d": sum(
+                        v.get("value", 0)
+                        for d in eng.get("data", [])
+                        if d.get("name") == "page_post_engagements"
+                        for v in d.get("values", [])
+                    ),
+                    "views_30d": sum(
+                        v.get("value", 0)
+                        for d in eng.get("data", [])
+                        if d.get("name") == "page_views_total"
+                        for v in d.get("values", [])
+                    ),
+                    "raw": eng,
+                }
+        except Exception as me:
+            page_signal = {"available": False, "reason": str(me)[:200]}
+
+        # Visual DNA top scorers
+        idx = {"by_filename": {}, "image_count": 0}  # default if index missing
+        index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand / "visual-dna-index.json"
+        dna_top = []
+        if index_path.exists():
+            idx = json.loads(index_path.read_text())
+            by_filename = idx.get("by_filename", {})
+            scored = []
+            for fn, meta in by_filename.items():
+                sc = float(meta.get("score", 0) or 0)
+                scored.append({
+                    "filename": fn,
+                    "score": round(sc, 3),
+                    "url": f"/brand-images/{brand}/{fn}",
+                    "luminance": meta.get("luminance"),
+                    "dominant": meta.get("dominant"),
+                    "products": meta.get("by_product", []),
+                })
+            scored.sort(key=lambda x: x["score"], reverse=True)
+            dna_top = scored[:10]
+
+        # Per-post engagement placeholders — list recent posts that LOOK like
+        # they would join to images once App Review approves. We list posts
+        # the page token can already see (post slugs without engagement yet).
+        per_post_status = {
+            "available": False,
+            "reason": "Awaiting Meta App Review for `pages_read_user_content` scope",
+            "eta_after_approval": "Automatic — this endpoint will populate per-post metrics.",
+            "submission_evidence_url": "https://swing-shack-dashboard-production.up.railway.app/meta-app-review/",
+        }
+
+        return jsonify({
+            "ok": True,
+            "brand": brand,
+            "generated_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+            "page_signal": page_signal,
+            "visual_dna": {
+                "total_images": idx.get("image_count") if index_path.exists() else 0,
+                "top_scorers": dna_top,
+            },
+            "per_post_join": per_post_status,
+            "join_strategy": (
+                "When per-post data arrives, this endpoint will rank images by "
+                "the engagement their closest-matching FB post received. Today "
+                "the join is structural (palettes/compositions used) not "
+                "performance-weighted."
+            ),
+        })
+    except Exception as e:
+        _app_log.exception("visual_performance_join failed")
+        return jsonify({"error": str(e)}), 500
+
+
 # ─── META / INSTAGRAM / FACEBOOK READS ───────────────────────────────────
 # These endpoints read the connected Instagram Business account and Facebook
 # Page via the Graph API. They DO NOT publish, reply to comments, or send

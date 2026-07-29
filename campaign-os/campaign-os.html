@@ -581,6 +581,8 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="publish"><span class="nav-icon">🚀</span> Publish <span class="nav-badge muted" id="nav-publish-count">0</span></div>
       <div class="nav" data-go="insights"><span class="nav-icon">📈</span> Insights</div>
       <div class="nav" data-go="library"><span class="nav-icon">📚</span> Library</div>
+      <div class="nav" data-go="visualizer"><span class="nav-icon">🎨</span> Visual Library</div>
+      <div class="nav" data-go="memelab"><span class="nav-icon">😂</span> Meme Lab</div>
       <div class="nav" data-go="campaigns"><span class="nav-icon">🎯</span> Brand</div>
     </div>
 
@@ -3352,6 +3354,24 @@ try {
 } catch(_){}
 
 $$('.nav').forEach(n => n.addEventListener('click', () => go(n.dataset.go)));
+
+// External-route nav items (open full-page apps in same window)
+const EXTERNAL_ROUTES = {
+  visualizer: '/visualizer',
+  memelab: '/meme-lab',
+};
+$$('.nav').forEach(n => {
+  const target = EXTERNAL_ROUTES[n.dataset.go];
+  if (target) {
+    n.addEventListener('click', (e) => {
+      // Only navigate externally if the user hasn't suppressed via cmd-click
+      if (!e.metaKey && !e.ctrlKey) {
+        e.stopImmediatePropagation();
+        window.location.href = target;
+      }
+    }, true);
+  }
+});
 
 // ─── CREATE — intelligence grid (12+ generators, 1 surface) ───
 const _GENERATORS = [
