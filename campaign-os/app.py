@@ -532,6 +532,244 @@ def google_drive_list_folders():
         return jsonify({"error": str(e)}), 500
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Visual DNA — query + generation scaffold endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route('/api/visual-dna/<brand_id>/search', methods=['GET'])
+def visual_dna_search(brand_id):
+    """GET /api/visual-dna/<brand>/search — search the visual DNA index.
+
+    Query params (all optional):
+      q              — free-text against filename + OCR text + product tags
+      product        — filter by product name (Takomo, TrackMan, Srixon, etc.)
+      alignment      — 'high' (>=0.70), 'typical' (0.60-0.69), 'variants' (<0.60)
+      min_score      — float, e.g. 0.7
+      max_score      — float, e.g. 0.9
+      luminance      — 'dark' | 'mid' | 'light'
+      dominant_color — hex like #74cc46
+
+    Returns: list of matching images with full DNA preview.
+    """
+    try:
+        from _lib.visual_dna_query import search_images
+        results = search_images(
+            brand_id,
+            query=request.args.get('q'),
+            product=request.args.get('product'),
+            alignment=request.args.get('alignment'),
+            min_score=float(request.args.get('min_score')) if request.args.get('min_score') else None,
+            max_score=float(request.args.get('max_score')) if request.args.get('max_score') else None,
+            luminance=request.args.get('luminance'),
+            dominant_color=request.args.get('dominant_color'),
+        )
+        return jsonify({
+            "brand": brand_id,
+            "query": {
+                "q": request.args.get('q'),
+                "product": request.args.get('product'),
+                "alignment": request.args.get('alignment'),
+                "min_score": request.args.get('min_score'),
+                "max_score": request.args.get('max_score'),
+                "luminance": request.args.get('luminance'),
+                "dominant_color": request.args.get('dominant_color'),
+            },
+            "count": len(results),
+            "results": results,
+        })
+    except Exception as e:
+        _app_log.exception("visual_dna_search failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/visual-dna/<brand_id>/recipe', methods=['GET'])
+def visual_dna_recipe(brand_id):
+    """GET /api/visual-dna/<brand>/recipe?brief=<text>&n=5
+
+    Returns the top N Visual Recipes + an aggregated scaffold for the brief.
+    This is the auto-pull hook for the generation pipeline — pass the brief,
+    get back the templates to use as prompt scaffolding.
+    """
+    try:
+        from _lib.visual_dna_query import select_visual_recipes
+        brief = request.args.get('brief') or request.args.get('q') or ''
+        n = int(request.args.get('n') or 5)
+        if not brief:
+            return jsonify({"error": "missing 'brief' param"}), 400
+        result = select_visual_recipes(brand_id, brief, n=n)
+        return jsonify(result)
+    except Exception as e:
+        _app_log.exception("visual_dna_recipe failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/visual-dna/<brand_id>/index', methods=['GET'])
+def visual_dna_index(brand_id):
+    """GET /api/visual-dna/<brand>/index — full cross-image index.
+
+    Returns the rollup: by_alignment buckets, by_product, by_luminance,
+    by_dominant_color, per-filename records.
+    """
+    try:
+        from pathlib import Path
+        index_path = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
+        if not index_path.exists():
+            return jsonify({"error": f"no visual-dna index for brand {brand_id}"}), 404
+        return jsonify(json.loads(index_path.read_text()))
+    except Exception as e:
+        _app_log.exception("visual_dna_index failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/visual-dna/<brand_id>/products', methods=['GET'])
+def visual_dna_products(brand_id):
+    """GET /api/visual-dna/<brand>/products — distinct products detected + image counts."""
+    try:
+        from pathlib import Path
+        index_path = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
+        if not index_path.exists():
+            return jsonify({"error": f"no visual-dna index for brand {brand_id}"}), 404
+        idx = json.loads(index_path.read_text())
+        products = idx.get("by_product", {})
+        return jsonify({
+            "brand": brand_id,
+            "products": [{"name": k, "count": len(v), "images": v} for k, v in sorted(products.items(), key=lambda x: -len(x[1]))],
+            "total_distinct_products": len(products),
+        })
+    except Exception as e:
+        _app_log.exception("visual_dna_products failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/visual-dna/<brand_id>/scrape-and-dissect', methods=['POST'])
+def visual_dna_scrape_and_dissect(brand_id):
+    """POST /api/visual-dna/<brand>/scrape-and-dissect — re-walk Drive folder, ingest new, re-dissect.
+
+    Body: {"folder_id": "1n9pHD...", "brand": "swing-shack"}
+    Compares against existing ingest-manifest.json by md5 — only downloads new files.
+    Runs the dissector on new files only.
+    """
+    try:
+        from _lib.google_drive import connect, _DEFAULT_CREDENTIALS_DIRS
+        from googleapiclient.http import MediaIoBaseDownload
+        from pathlib import Path
+        import hashlib, json as jsonlib
+
+        body = request.get_json(force=True, silent=True) or {}
+        folder_id = body.get("folder_id")
+        if not folder_id:
+            return jsonify({"error": "missing folder_id"}), 400
+
+        drive = connect()
+        if not drive:
+            return jsonify({"error": "Drive not connected"}), 401
+
+        # Walk folder recursively
+        def walk(fid, rel=""):
+            items = drive.files().list(
+                q=f"'{fid}' in parents and trashed=false",
+                fields="files(id,name,mimeType,size,modifiedTime,md5Checksum)",
+                pageSize=200,
+            ).execute().get("files", [])
+            out = []
+            for f in items:
+                if f["mimeType"] == "application/vnd.google-apps.folder":
+                    out.extend(walk(f["id"], f"{rel}{f['name']}/"))
+                elif f["mimeType"].startswith("image/"):
+                    f["rel_path"] = f"{rel}{f['name']}"
+                    out.append(f)
+            return out
+
+        files = walk(folder_id)
+        images_dir = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "images"
+        images_dir.mkdir(parents=True, exist_ok=True)
+
+        # Existing manifest
+        manifest_path = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "ingest-manifest.json"
+        existing_md5 = set()
+        if manifest_path.exists():
+            existing = json.loads(manifest_path.read_text())
+            for entry in existing.get("images", {}).values():
+                if entry.get("md5"):
+                    existing_md5.add(entry["md5"])
+
+        # Drive md5 lookup
+        drive_md5_to_file = {f.get("md5Checksum", "").lower(): f for f in files if f.get("md5Checksum")}
+
+        new_count = 0
+        skipped = 0
+        errors = []
+        for f in files:
+            if f.get("md5Checksum") and f["md5Checksum"].lower() in existing_md5:
+                skipped += 1
+                continue
+            out = images_dir / f["name"]
+            try:
+                req = drive.files().get_media(fileId=f["id"])
+                with open(out, 'wb') as fh:
+                    dl = MediaIoBaseDownload(fh, req)
+                    done = False
+                    while not done:
+                        _, done = dl.next_chunk()
+                new_count += 1
+            except Exception as e:
+                errors.append({"file": f["name"], "error": str(e)})
+                if out.exists():
+                    out.unlink()
+
+        # Update manifest
+        manifest = {"brand": brand_id, "images": {}, "errors": []}
+        for f in files:
+            local_p = images_dir / f["name"]
+            if local_p.exists():
+                md5 = hashlib.md5(local_p.read_bytes()).hexdigest()
+                manifest["images"][f["name"]] = {
+                    "drive_id": f["id"],
+                    "size": f.get("size"),
+                    "md5": md5,
+                    "modified": f.get("modifiedTime"),
+                }
+        if errors:
+            manifest["errors"] = errors
+        manifest_path.write_text(json.dumps(manifest, indent=2))
+
+        # Re-dissect only NEW files
+        from _lib.image_dissector import dissect
+        bible_path = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "bible-visual.json"
+        if not bible_path.exists():
+            bible_path = None
+        re_dissected = 0
+        for f in files:
+            local_p = images_dir / f["name"]
+            dna_p = local_p.with_suffix(".visual-dna.json") if local_p.suffix == ".jpg" else local_p.parent / f"{local_p.stem}.visual-dna.json"
+            if not local_p.exists():
+                continue
+            # Re-dissect if new OR if dna missing
+            if f.get("md5Checksum") and f["md5Checksum"].lower() in existing_md5 and dna_p.exists():
+                continue
+            dna = dissect(local_p, bible_path)
+            dna_p.write_text(json.dumps(dna, indent=2))
+            re_dissected += 1
+
+        # Re-tag with products
+        from _lib.visual_dna_query import tag_directory
+        tag_result = tag_directory(brand_id)
+
+        return jsonify({
+            "brand": brand_id,
+            "folder_id": folder_id,
+            "drive_files_found": len(files),
+            "new_downloaded": new_count,
+            "skipped_existing": skipped,
+            "re_dissected": re_dissected,
+            "errors": errors[:5],
+            "tag_summary": tag_result,
+        })
+    except Exception as e:
+        _app_log.exception("visual_dna_scrape_and_dissect failed")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/campaigns', methods=['GET'])
 def list_campaigns():
     """GET /api/campaigns — list all campaigns, filtered by active brand.

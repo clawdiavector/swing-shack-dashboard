@@ -1076,5 +1076,78 @@
     "mid": 42,
     "light": 8
   },
-  "errors": []
+  "errors": [],
+  "by_product": {
+    "Jordan Bag": [
+      "JORDAN_BAG copy 4.jpg",
+      "JORDAN_BAG copy 3.jpg",
+      "JORDAN_BAG copy 5.jpg"
+    ],
+    "Zen Swing Stage": [
+      "zenstage-100.jpg",
+      "beginnerlessons-100.jpg",
+      "ladieslessons-100.jpg"
+    ],
+    "Vessel Bag": [
+      "VESSEL_BAG copy 3.jpg",
+      "VESSEL_BAG copy 2.jpg",
+      "VESSELBAG_STAFF copy 2.jpg",
+      "VESSELBAG_STAFF copy 3.jpg"
+    ],
+    "Mileseey": [
+      "mileseey.jpg",
+      "mileseey3 copy.jpg",
+      "mileseey2.jpg",
+      "mileseey3.jpg",
+      "mileseey4.jpg"
+    ],
+    "Callaway": [
+      "Quantammini1 copy.jpg",
+      "Quantammini1 copy 2.jpg",
+      "Quantammini1.jpg"
+    ],
+    "Callaway Quantum": [
+      "Quantammini1 copy.jpg",
+      "Quantammini1 copy 2.jpg",
+      "Quantammini1.jpg"
+    ],
+    "Vice Bag": [
+      "VICEBAG copy 2.jpg",
+      "VICEBAG copy 3.jpg"
+    ],
+    "GTS Putter": [
+      "ss_post_gts3fw.jpg",
+      "fitting_gts1.jpg",
+      "ss_story_gts2fw.jpg",
+      "beginnerlessons-100.jpg",
+      "ss_post_gts2fw.jpg",
+      "ss_story_gts3fw.jpg",
+      "fitting_gts3.jpg",
+      "fitting_gts_story.jpg",
+      "ladieslessons-100.jpg",
+      "fitting_gts_story2.jpg",
+      "ss_post_gts2.jpg",
+      "fitting_gts4.jpg",
+      "ss_story_gts3.jpg",
+      "fitting_gts_story3.jpg",
+      "ss_post_gts3.jpg",
+      "ss_story_gts2.jpg",
+      "fitting_gts2.jpg",
+      "fitting_gts_story4.jpg"
+    ],
+    "TrackMan": [
+      "beginnerlessons-100.jpg",
+      "ladieslessons-100.jpg"
+    ],
+    "Takomo": [
+      "takomo.png",
+      "wedgecomp2.jpg"
+    ],
+    "Srixon Bag": [
+      "SRIXON_BAG copy 3.jpg",
+      "SRIXON_BAG copy 2.jpg"
+    ]
+  },
+  "product_taxonomy_version": "2026-07-29.1",
+  "tagged_count": 122
 }

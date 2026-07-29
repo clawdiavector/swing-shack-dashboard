@@ -172,5 +172,13 @@
       "subject_cutout_possible": null,
       "hero_club_extractable": null
     }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Callaway",
+      "Callaway Quantum"
+    ],
+    "count": 2,
+    "source": "ocr+filename"
   }
 }

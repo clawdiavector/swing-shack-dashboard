@@ -172,5 +172,12 @@
       "subject_cutout_possible": null,
       "hero_club_extractable": null
     }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Jordan Bag"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
   }
 }

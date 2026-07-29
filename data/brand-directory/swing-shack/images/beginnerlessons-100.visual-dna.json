@@ -172,5 +172,14 @@
       "subject_cutout_possible": null,
       "hero_club_extractable": null
     }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "GTS Putter",
+      "TrackMan",
+      "Zen Swing Stage"
+    ],
+    "count": 3,
+    "source": "ocr+filename"
   }
 }
