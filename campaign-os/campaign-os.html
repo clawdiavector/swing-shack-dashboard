@@ -575,42 +575,44 @@ a:hover{text-decoration:underline}
       <div class="brand-dropdown" id="brand-dropdown" role="listbox" hidden></div>
     </div>
 
-    <!-- Top-level surfaces (8 instead of 24) -->
+    <!-- Top-level surfaces (10 instead of 24). Every item carries data-help so the
+         universal HELP.autoAttach() wires a hover tooltip explaining what the surface is. -->
     <div class="nav-section">
-      <div class="nav" data-go="brief" id="nav-home"><span class="nav-icon">🏠</span> Home <span class="nav-badge" id="nav-brief-count">0</span></div>
-      <div class="nav" data-go="review"><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
-      <div class="nav" data-go="calendar"><span class="nav-icon">📅</span> Calendar</div>
-      <div class="nav" data-go="create"><span class="nav-icon">🪄</span> Create</div>
-      <div class="nav" data-go="publish"><span class="nav-icon">🚀</span> Publish <span class="nav-badge muted" id="nav-publish-count">0</span></div>
-      <div class="nav" data-go="insights"><span class="nav-icon">📈</span> Insights</div>
-      <div class="nav" data-go="library"><span class="nav-icon">📚</span> Library</div>
-      <div class="nav" data-go="visualizer"><span class="nav-icon">🎨</span> Visual Library</div>
-      <div class="nav" data-go="memelab"><span class="nav-icon">😂</span> Meme Lab</div>
-      <div class="nav" data-go="campaigns"><span class="nav-icon">🎯</span> Brand</div>
+      <div class="nav" data-go="brief" id="nav-home" data-help-title="Home / Brief" data-help="The Morning Brief surface. One ranked list of the highest-leverage actions for today: which campaign needs copy, which asset needs review, what to publish next. The Do-this-right-now card is the single pick; everything below it is context."><span class="nav-icon">🏠</span> Home <span class="nav-badge" id="nav-brief-count">0</span></div>
+      <div class="nav" data-go="review" data-help-title="Review" data-help="Asset Review queue. Lists every draft copy, image, headline, and caption that needs human eyes before publish. Each row shows the asset, brand, status, and the reviewer action (approve, edit, reject). Backed by the asset-state-engine."><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
+      <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar view. Shows every planned post across all brands on a month grid. Click a day to see what is scheduled; click an entry to jump to the asset detail. Powers scheduling intent, not the actual publish action."><span class="nav-icon">📅</span> Calendar</div>
+      <div class="nav" data-go="create" data-help-title="Create" data-help="The Create hub. 13+ generators (Captions, Headlines, CTAs, Hashtags & SEO, Hooks, Memes, Billboards, Image briefs, FAQs) scoped to the active brand voice + tone. Generate, save to library, or push to Review queue."><span class="nav-icon">🪄</span> Create</div>
+      <div class="nav" data-go="publish" data-help-title="Publish" data-help="Publish queue: assets that have been approved and are ready to go live. Each entry shows platform target (IG, FB, GBP, Reddit, Postiz), scheduled time, and the final approved copy. One click routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish <span class="nav-badge muted" id="nav-publish-count">0</span></div>
+      <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, and Trends. Two explainer lenses (analytics + section). This is where you ask 'is the work paying off' — engagement, reach, conversions, and what to try next."><span class="nav-icon">📈</span> Insights</div>
+      <div class="nav" data-go="library" data-help-title="Library" data-help="Approved asset library. Every copy, image, headline, and caption that has been signed off lives here, scoped to the active brand. Filter by kind (caption / headline / image), score, or pillar. Use as the source-of-truth for what is shippable."><span class="nav-icon">📚</span> Library</div>
+      <div class="nav" data-go="visualizer" data-help-title="Visual Library" data-help="Brand image gallery. Visual assets (renders, photos, infographics) tagged by brand, pillar, and usage rights. Hover for the brief; click to inspect the source files."><span class="nav-icon">🎨</span> Visual Library</div>
+      <div class="nav" data-go="memelab" data-help-title="Meme Lab" data-help="Meme templates gallery + remix workspace. Pick a template, swap in brand voice, generate captions, save to Review. Useful for reactive, low-effort social posts that ride existing cultural momentum."><span class="nav-icon">😂</span> Meme Lab</div>
+      <div class="nav" data-go="campaigns" data-help-title="Brand / Campaigns" data-help="The Campaigns surface. Top-level partition for everything per brand. Lists active campaigns for the active brand; the Brand Directory panel renders here as one card inside this surface, not the surface itself."><span class="nav-icon">🎯</span> Brand</div>
     </div>
 
-    <!-- Power-user: hidden by default, expandable via "All tools" link -->
+    <!-- Power-user: hidden by default, expandable via "All tools" link.
+         Each item carries data-help so the universal HELP.autoAttach() wires a hover tooltip. -->
     <div class="nav-section" id="all-tools-section" hidden>
       <div class="nav-title">All tools</div>
-      <div class="nav" data-go="trends"><span class="nav-icon">📡</span> Trends</div>
-      <div class="nav" data-go="ideas"><span class="nav-icon">💡</span> Ideas</div>
-      <div class="nav" data-go="hooks"><span class="nav-icon">🪝</span> Hook Bank</div>
-      <div class="nav" data-go="memes"><span class="nav-icon">😂</span> Meme Lord</div>
-      <div class="nav" data-go="billboards"><span class="nav-icon">🪧</span> Billboard Lab</div>
-      <div class="nav" data-go="captions"><span class="nav-icon">✍️</span> Caption Studio</div>
-      <div class="nav" data-go="imagegen"><span class="nav-icon">🖼️</span> Image Gen</div>
-      <div class="nav" data-go="headlines"><span class="nav-icon">📰</span> Headlines</div>
-      <div class="nav" data-go="ctas"><span class="nav-icon">🎯</span> CTAs</div>
-      <div class="nav" data-go="hashtagseo"><span class="nav-icon">#️⃣</span> Hashtags & SEO</div>
-      <div class="nav" data-go="performance"><span class="nav-icon">📈</span> Performance</div>
-      <div class="nav" data-go="learning"><span class="nav-icon">🧠</span> Learning</div>
-      <div class="nav" data-go="seo"><span class="nav-icon">🔎</span> SEO</div>
-      <div class="nav" data-go="seo-audit"><span class="nav-icon">📋</span> SEO Audit</div>
-      <div class="nav" data-go="gbp"><span class="nav-icon">📍</span> Google Business</div>
-      <div class="nav" data-go="reddit"><span class="nav-icon">🗣️</span> Reddit</div>
-      <div class="nav" data-go="faqs"><span class="nav-icon">❓</span> FAQs</div>
-      <div class="nav" data-go="postiz"><span class="nav-icon">📮</span> Postiz</div>
-      <div class="nav" data-go="agents"><span class="nav-icon">🤖</span> Agents</div>
+      <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction on social and search for the active brand's pillars. Use it to ride a wave or react before competitors do."><span class="nav-icon">📡</span> Trends</div>
+      <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Backlog of raw content ideas for the active brand. Add via the Create surface or import from a hook bank. Promote the strong ones into campaigns."><span class="nav-icon">💡</span> Ideas</div>
+      <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks (first 1-2 lines) for the active brand. Sort by pillar, score, or platform. Drop one into a caption or headline to test."><span class="nav-icon">🪝</span> Hook Bank</div>
+      <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Heavy-weight meme workspace — distinct from Meme Lab. Same templates, deeper remix controls (custom captions, multi-panel, format conversion)."><span class="nav-icon">😂</span> Meme Lord</div>
+      <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator. Short, punchy, big-type messaging scoped to the active brand voice."><span class="nav-icon">🪧</span> Billboard Lab</div>
+      <div class="nav" data-go="captions" data-help-title="Caption Studio" data-help="Long-form caption generator. Voice + tone aware, supports IG / FB / LinkedIn lengths, includes hashtag and CTA blocks."><span class="nav-icon">✍️</span> Caption Studio</div>
+      <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs. Pick a brand, pillar, and style; get a structured prompt for Midjourney / DALL-E / ComfyUI. No direct render yet — wiring is gated on Google Drive access."><span class="nav-icon">🖼️</span> Image Gen</div>
+      <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Headline generator for ads, blog posts, and email subjects. Generate, recommend, or pull from history. Voice + pillar aware."><span class="nav-icon">📰</span> Headlines</div>
+      <div class="nav" data-go="ctas" data-help-title="CTAs" data-help="CTA generator. Voice + pillar + platform + category aware. ~40-CTA knowledge base ranked by funnel position (awareness, consideration, conversion)."><span class="nav-icon">🎯</span> CTAs</div>
+      <div class="nav" data-go="hashtagseo" data-help-title="Hashtags & SEO" data-help="Combined hashtag + SEO snippet generator. Picks platform-aware hashtag sets plus a meta description and slug for any blog / landing page."><span class="nav-icon">#️⃣</span> Hashtags & SEO</div>
+      <div class="nav" data-go="performance" data-help-title="Performance" data-help="Detailed performance view (distinct from Insights). Per-asset, per-platform lift over time. Use to retire underperformers and double down on winners."><span class="nav-icon">📈</span> Performance</div>
+      <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns. What worked, what didn't, and the hypothesis for the next test. Feeds the campaign planner."><span class="nav-icon">🧠</span> Learning</div>
+      <div class="nav" data-go="seo" data-help-title="SEO" data-help="SEO Assistant. Audit scores, keyword rankings, GEO (generative-engine optimisation) readiness, and prioritised fixes. Two explainer lenses (section + analytics)."><span class="nav-icon">🔎</span> SEO</div>
+      <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit. Same data as SEO Assistant but full-width. Use when fixing the priority actions listed on the SEO surface."><span class="nav-icon">📋</span> SEO Audit</div>
+      <div class="nav" data-go="gbp" data-help-title="Google Business" data-help="Google Business Profile workspace. Two-card view (Profile + services / Last post). Voice-aware GBP post generator. Not auto-published — read-only to the Publish lane."><span class="nav-icon">📍</span> Google Business</div>
+      <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit-aware tone, no-link soft-sell rules, anti-promotion patterns. Useful for organic community reach."><span class="nav-icon">🗣️</span> Reddit</div>
+      <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities miner. Suggests Q&A blocks for the active brand's pages — ladders directly into SEO Audit landing-page fixes (FAQPage schema)."><span class="nav-icon">❓</span> FAQs</div>
+      <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz integration status. OAuth status, connected social accounts, scheduled posts queue. Read-only here — actual publish happens via the Publish surface."><span class="nav-icon">📮</span> Postiz</div>
+      <div class="nav" data-go="agents" data-help-title="Agents" data-help="Agent fleet status + health. Shows each specialist (Copywriter, Retina, Publisher, etc.) and their last-run freshness. Section explainer covers the lane roster."><span class="nav-icon">🤖</span> Agents</div>
     </div>
 
     <!-- "Show all tools" toggle (lets power users expand the full nav) -->
