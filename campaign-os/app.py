@@ -319,6 +319,8 @@ def health():
 # on the Morning Brief so Christelle sees the cumulative polish on her
 # morning coffee. Frontend only fetches on first brief render and caches.
 WHATS_NEW = [
+    {"ts": "2026-07-29T20:00:00Z", "tag": "chrome", "title": "Brand brief form — no more stacked prompts",
+     "body": "Generate brief on Brand Directory now opens an inline form (Surface + Tone selects) instead of two stacked browser prompts. Mobile-safe, iOS Safari works, and runs with defaults immediately so the desktop one-click flow still works."},
     {"ts": "2026-07-29T18:10:00Z", "tag": "nav", "title": "30 sidebar tooltips",
      "body": "Hover any nav item (Home, Review, Brand, Trends, Ideas, Meme Lab…) for a one-line orientation. Replaces blank stare at the rail."},
     {"ts": "2026-07-29T16:37:00Z", "tag": "chrome", "title": "Brand switcher + all-tools tooltips",
@@ -327,8 +329,6 @@ WHATS_NEW = [
      "body": "Renamed the explainer title so it bridges the four labels (nav=Brand, header=Campaigns, tooltip, body) a reader was triangulating."},
     {"ts": "2026-07-29T13:55:00Z", "tag": "data", "title": "Visual library real-data join",
      "body": "Visual Library + Meme Lab now read live data instead of stub rows. Filters by brand + type + campaign."},
-    {"ts": "2026-07-29T12:20:00Z", "tag": "seo", "title": "SEO explainer expanded",
-     "body": "SEO surface now has a 4-section explainer with brand-specific examples; ladders to SEO Audit for the deep dive."},
 ]
 
 

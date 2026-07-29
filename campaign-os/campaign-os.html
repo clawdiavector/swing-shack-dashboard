@@ -6044,8 +6044,8 @@ async function renderBrandDirectoryPanel(){
                 ${ac.length} archetype${ac.length===1?'':'s'}: ${ac.slice(0,3).map(a=>`<code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;font-size:10.5px">${esc(a)}</code>`).join(' ')}${ac.length>3?'…':''}
               </div>
               <div class="btn-row" style="margin-top:.75rem">
-                <button class="btn ghost" data-bd-view="${esc(bid)}">📋 View details</button>
-                <button class="btn ghost" data-bd-brief="${esc(bid)}">🎨 Generate brief</button>
+                <button class="btn ghost" data-bd-view="${esc(bid)}" data-help="Read every brand slot: voice rules, palette swatches, archetype layers, headline bank, CTA bank. Read-only — for the canonical shortlist of what makes this brand this brand." data-help-title="View brand directory">📋 View details</button>
+                <button class="btn ghost" data-bd-brief="${esc(bid)}" data-help="Open the brand-brief form. Pick a surface (what shape the post is) and a tone (how the voice lands) — generates a structured brief that ladders to the image and copy generators. No more native prompt() dialogs." data-help-title="Generate brand brief">🎨 Generate brief</button>
               </div>
             </div>`;
         }).join('')}</div>
@@ -6095,41 +6095,97 @@ async function renderBrandDirectoryPanel(){
     });
 
     container.querySelectorAll('[data-bd-brief]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
+        // Inline form panel — replaces the stacked native prompt() dialogs.
+        // Mobile-safe, keyboard-friendly, and survives iOS Safari prompt blocking.
         const bid = btn.getAttribute('data-bd-brief');
-        const tone = prompt('Tone? (educational | confident | funny | sarcastic | relatable | warm)', 'confident') || 'confident';
-        const surface = prompt('Surface? (square-post | story | banner | quote | meme-3up | any)', 'square-post') || 'square-post';
         const detail = document.getElementById('brand-directory-detail');
-        detail.innerHTML = '<div class="muted" style="padding:1rem">Generating brief…</div>';
-        const brief = await API.get(`/api/brand-directory/${bid}/generate-brief?surface=${encodeURIComponent(surface)}&tone=${encodeURIComponent(tone)}`);
-        const arche = brief.archetype || {};
-        const archeLayers = (arche.layers || []).map(l => `<li><b>${esc(l.id||'')}</b> (${esc(l.kind||'')}) — ${esc(l.position||'')}${l.fill?' · '+esc(l.fill):''}${l.colour?' · '+esc(l.colour):''}</li>`).join('');
         detail.innerHTML = `
-          <div class="card">
-            <div class="card-h"><h3>🎨 Generate brief — ${esc(bid)} · ${esc(brief.tone)} · ${esc(brief.surface)}</h3>${brief.ready ? pill('on','ready') : pill('draft','partial')}</div>
-            <div class="grid">
-              <div class="card col-6"><div class="card-h"><h3>🖼️ Archetype</h3></div>
-                <div style="font-weight:600;margin-bottom:.25rem">${esc(arche.name||arche.id||'—')}</div>
-                <div class="muted" style="font-size:12px;margin-bottom:.5rem">${esc(arche.description||'')}</div>
-                <div class="muted" style="font-size:11px;margin-bottom:.5rem">canvas: <code>${esc(arche.canvas||'—')}</code></div>
-                <div style="font-size:12px;font-weight:600;margin:.5rem 0">Layers (${(arche.layers||[]).length}):</div>
-                <ul style="font-size:12px;padding-left:1.2rem;line-height:1.6">${archeLayers}</ul>
-              </div>
-              <div class="card col-6"><div class="card-h"><h3>🎨 Palette + Typography</h3></div>
-                <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc(JSON.stringify({palette: brief.palette, typography: brief.typography}, null, 2))}</pre>
-              </div>
-              <div class="card col-12"><div class="card-h"><h3>🎤 Voice anchor (first 400 chars)</h3></div>
-                <div style="font-size:12px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap">${esc(brief.voice_anchor||'—')}</div>
-              </div>
-              <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
-                <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc((brief.headlines_bank||'').slice(0, 2000))}</pre>
-              </div>
-              <div class="card col-6"><div class="card-h"><h3>🎯 CTAs bank</h3></div>
-                <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc((brief.ctas_bank||'').slice(0, 2000))}</pre>
-              </div>
+          <div class="card" id="bd-brief-form">
+            <div class="card-h">
+              <h3>🎨 Generate brief — ${esc(bid)}</h3>
+              <span class="muted" style="font-size:12px">Pick surface + tone → hit Generate</span>
             </div>
+            <div class="row gap-1" style="flex-wrap:wrap;margin-bottom:.75rem">
+              <label style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:.25rem;font-size:12px">
+                <span style="color:var(--tx-2);font-weight:600">Surface</span>
+                <select id="bd-brief-surface" class="mini-select" data-help="What shape the post is. 'square-post' = 1:1 IG feed (most common). 'story' = 9:16 vertical. 'banner' = wide horizontal hero. 'meme-3up' = three-panel grid. 'quote' = text-forward card. 'any' = pick whatever archetype fits best." data-help-title="Surface" style="padding:.5rem;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);font-size:13px">
+                  <option value="square-post">square-post (1:1 IG feed)</option>
+                  <option value="story">story (9:16 vertical)</option>
+                  <option value="banner">banner (wide horizontal)</option>
+                  <option value="meme-3up">meme-3up (three-panel grid)</option>
+                  <option value="quote">quote (text-forward card)</option>
+                  <option value="any">any (let the brand pick)</option>
+                </select>
+              </label>
+              <label style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:.25rem;font-size:12px">
+                <span style="color:var(--tx-2);font-weight:600">Tone</span>
+                <select id="bd-brief-tone" class="mini-select" data-help="How the voice lands. 'confident' is the default for Swing Shack. 'educational' = explainer / how-it-works. 'sarcastic' = Stick's edge. 'funny' / 'relatable' = community pillars. 'provocative' = bold callouts. 'warm' = member moments." data-help-title="Tone" style="padding:.5rem;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);font-size:13px">
+                  <option value="confident">confident</option>
+                  <option value="educational">educational</option>
+                  <option value="funny">funny</option>
+                  <option value="sarcastic">sarcastic</option>
+                  <option value="relatable">relatable</option>
+                  <option value="provocative">provocative</option>
+                  <option value="warm">warm</option>
+                </select>
+              </label>
+            </div>
+            <div class="btn-row">
+              <button class="btn primary" id="bd-brief-go">🎨 Generate brief</button>
+              <button class="btn ghost" id="bd-brief-cancel">Cancel</button>
+            </div>
+            <div id="bd-brief-result" style="margin-top:1rem"></div>
           </div>`;
         detail.scrollIntoView({behavior:'smooth', block:'start'});
+        // Re-attach help tooltips on the new controls (autoAttach runs once on load + every 4s)
+        if(typeof HELP !== 'undefined' && HELP.autoAttach){
+          try { HELP.autoAttach(); } catch(_){}
+        }
+        const runBrief = async () => {
+          const surface = document.getElementById('bd-brief-surface').value;
+          const tone = document.getElementById('bd-brief-tone').value;
+          const result = document.getElementById('bd-brief-result');
+          result.innerHTML = '<div class="muted" style="padding:1rem">Generating brief…</div>';
+          try {
+            const brief = await API.get(`/api/brand-directory/${bid}/generate-brief?surface=${encodeURIComponent(surface)}&tone=${encodeURIComponent(tone)}`);
+            const arche = brief.archetype || {};
+            const archeLayers = (arche.layers || []).map(l => `<li><b>${esc(l.id||'')}</b> (${esc(l.kind||'')}) — ${esc(l.position||'')}${l.fill?' · '+esc(l.fill):''}${l.colour?' · '+esc(l.colour):''}</li>`).join('');
+            result.innerHTML = `
+              <div class="card">
+                <div class="card-h"><h3>✅ ${esc(bid)} · ${esc(brief.tone)} · ${esc(brief.surface)}</h3>${brief.ready ? pill('on','ready') : pill('draft','partial')}</div>
+                <div class="grid">
+                  <div class="card col-6"><div class="card-h"><h3>🖼️ Archetype</h3></div>
+                    <div style="font-weight:600;margin-bottom:.25rem">${esc(arche.name||arche.id||'—')}</div>
+                    <div class="muted" style="font-size:12px;margin-bottom:.5rem">${esc(arche.description||'')}</div>
+                    <div class="muted" style="font-size:11px;margin-bottom:.5rem">canvas: <code>${esc(arche.canvas||'—')}</code></div>
+                    <div style="font-size:12px;font-weight:600;margin:.5rem 0">Layers (${(arche.layers||[]).length}):</div>
+                    <ul style="font-size:12px;padding-left:1.2rem;line-height:1.6">${archeLayers}</ul>
+                  </div>
+                  <div class="card col-6"><div class="card-h"><h3>🎨 Palette + Typography</h3></div>
+                    <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc(JSON.stringify({palette: brief.palette, typography: brief.typography}, null, 2))}</pre>
+                  </div>
+                  <div class="card col-12"><div class="card-h"><h3>🎤 Voice anchor (first 400 chars)</h3></div>
+                    <div style="font-size:12px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap">${esc(brief.voice_anchor||'—')}</div>
+                  </div>
+                  <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
+                    <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc((brief.headlines_bank||'').slice(0, 2000))}</pre>
+                  </div>
+                  <div class="card col-6"><div class="card-h"><h3>🎯 CTAs bank</h3></div>
+                    <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc((brief.ctas_bank||'').slice(0, 2000))}</pre>
+                  </div>
+                </div>
+              </div>`;
+            result.scrollIntoView({behavior:'smooth', block:'start'});
+          } catch(e) {
+            result.innerHTML = `<div class="card"><div class="muted">Brief generation failed: ${esc(e.message || e)}</div></div>`;
+          }
+        };
+        document.getElementById('bd-brief-go').addEventListener('click', runBrief);
+        document.getElementById('bd-brief-cancel').addEventListener('click', () => { detail.innerHTML = ''; });
+        // Run with defaults immediately so the user sees a result without picking anything
+        // (preserves the old "click once, get a result" experience for desktop users).
+        runBrief();
       });
     });
   } catch(e) {
