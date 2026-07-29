@@ -422,6 +422,116 @@ def brand_directory_refresh():
         return jsonify({"error": str(e)}), 500
 
 
+# ─── Google Drive ingestion ──────────────────────────────────────────
+from _lib import google_drive as _gdrive  # noqa: E402
+
+
+@app.route('/api/google-drive/status', methods=['GET'])
+def google_drive_status():
+    """GET /api/google-drive/status — current Drive auth + folder config state."""
+    try:
+        return jsonify(_gdrive.status())
+    except Exception as e:
+        _app_log.exception("google_drive_status failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/google-drive/ingest', methods=['POST'])
+def google_drive_ingest():
+    """POST /api/google-drive/ingest — pull brand folders from Drive into brand-directory.
+
+    Body (JSON): {
+        "mappings": [
+            {"brand_id": "swing-shack", "folder_name": "Swing Shack Brand Assets"},
+            {"brand_id": "stick",        "folder_name": "Stick Brand Assets"},
+            {"brand_id": "bag-drop",     "folder_name": "Bag Drop Brand Assets"}
+        ],
+        "subdir": "images/originals"   # default; "images/ads", "images/posts" also valid
+    }
+
+    For each mapping: find the Drive folder by name, list files, download images
+    to data/brand-directory/<brand_id>/<subdir>/, return per-brand manifest.
+    """
+    try:
+        body = request.get_json(force=True) or {}
+        mappings = body.get("mappings") or []
+        subdir = body.get("subdir") or "images/originals"
+
+        if not mappings:
+            return jsonify({
+                "error": "missing 'mappings' in body",
+                "expected_format": {
+                    "mappings": [
+                        {"brand_id": "swing-shack", "folder_name": "Swing Shack Brand Assets"}
+                    ],
+                    "subdir": "images/originals"
+                }
+            }), 400
+
+        drive = _gdrive.connect()
+        if not drive:
+            return jsonify({
+                "error": "Drive not connected. Upload OAuth client + complete the dance.",
+                "instructions": _gdrive.oauth_instructions(),
+            }), 401
+
+        results = []
+        for m in mappings:
+            brand_id = m.get("brand_id")
+            folder_name = m.get("folder_name")
+            if not brand_id or not folder_name:
+                results.append({"ok": False, "error": "missing brand_id or folder_name", "mapping": m})
+                continue
+            try:
+                r = _gdrive.ingest_brand_folder(drive, folder_name, brand_id, images_subdir=subdir)
+                results.append(r)
+            except Exception as e:
+                results.append({"ok": False, "error": str(e), "brand_id": brand_id, "folder_name": folder_name})
+
+        # Refresh the brand index so image_count updates
+        try:
+            _brand_dir.write_index()
+        except Exception as e:
+            _app_log.warning("brand index refresh after Drive ingest failed: %s", e)
+
+        return jsonify({
+            "ok": True,
+            "results": results,
+            "ingested_total": sum(len(r.get("downloaded", [])) for r in results),
+            "skipped_total": sum(len(r.get("skipped", [])) for r in results),
+        })
+    except Exception as e:
+        _app_log.exception("google_drive_ingest failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/google-drive/list-folders', methods=['GET'])
+def google_drive_list_folders():
+    """GET /api/google-drive/list-folders?q=Brand — search Drive folders by name substring.
+
+    Use this to discover the exact folder names before running /ingest.
+    """
+    try:
+        drive = _gdrive.connect()
+        if not drive:
+            return jsonify({
+                "error": "Drive not connected. Upload OAuth client + complete the dance.",
+            }), 401
+
+        q = (request.args.get("q") or "").strip()
+        # Escape single quotes for Drive query
+        q_escaped = q.replace("\\", "\\\\").replace("'", "\\'")
+        query = f"mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        if q_escaped:
+            query += f" and name contains '{q_escaped}'"
+
+        resp = drive.files().list(q=query, fields="files(id, name, modifiedTime)", pageSize=50).execute()
+        return jsonify({"ok": True, "query": q, "folders": resp.get("files", [])})
+    except Exception as e:
+        _app_log.exception("google_drive_list_folders failed")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/campaigns', methods=['GET'])
 def list_campaigns():
     """GET /api/campaigns — list all campaigns, filtered by active brand.

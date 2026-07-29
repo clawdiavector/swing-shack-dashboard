@@ -1,13 +1,13 @@
 {
   "schema": "https://clawdia.io/agents/publisher/v1",
-  "generated": "2026-04-22T09:41:05.276Z",
+  "generated": "2026-07-21T11:54:08.189Z",
   "mode": "DRY_RUN",
   "total": 57,
   "published": [
     {
-      "publish_id": "pub-7wotvmg7",
+      "publish_id": "pub-lnlgt730",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-mlu5ww77",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-001",
@@ -27,9 +27,9 @@
       "payload_size": 384
     },
     {
-      "publish_id": "pub-kxpsxlr9",
+      "publish_id": "pub-dawhsq5b",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-jc6egk51",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-002",
@@ -49,9 +49,9 @@
       "payload_size": 368
     },
     {
-      "publish_id": "pub-al0vxoe5",
+      "publish_id": "pub-eisux35m",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-eyntdt58",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-010",
@@ -71,9 +71,9 @@
       "payload_size": 367
     },
     {
-      "publish_id": "pub-hdvczcbq",
+      "publish_id": "pub-s5w5tpuq",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-3ngo0q7x",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-011",
@@ -93,9 +93,9 @@
       "payload_size": 355
     },
     {
-      "publish_id": "pub-b70l7795",
+      "publish_id": "pub-dz1722nz",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-5q8fhmw7",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-012",
@@ -115,9 +115,9 @@
       "payload_size": 352
     },
     {
-      "publish_id": "pub-d2diucys",
+      "publish_id": "pub-f4duhquc",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-kqu4lidi",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-016",
@@ -137,9 +137,9 @@
       "payload_size": 354
     },
     {
-      "publish_id": "pub-sde665kg",
+      "publish_id": "pub-anqv6o3e",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-n8769oa3",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-017",
@@ -159,9 +159,9 @@
       "payload_size": 369
     },
     {
-      "publish_id": "pub-7nt3hfpb",
+      "publish_id": "pub-zfi3erfx",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-7z32ws3m",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-019",
@@ -181,9 +181,9 @@
       "payload_size": 343
     },
     {
-      "publish_id": "pub-w8nx73rn",
+      "publish_id": "pub-r6fl3b2b",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-28rmngt4",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-003",
@@ -203,9 +203,9 @@
       "payload_size": 379
     },
     {
-      "publish_id": "pub-4ojtrj7r",
+      "publish_id": "pub-jc1wdp73",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-yln4wcfo",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-013",
@@ -225,9 +225,9 @@
       "payload_size": 336
     },
     {
-      "publish_id": "pub-z4xsufow",
+      "publish_id": "pub-h53zoqxa",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-wjckbcny",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-014",
@@ -247,9 +247,9 @@
       "payload_size": 356
     },
     {
-      "publish_id": "pub-r7knovpg",
+      "publish_id": "pub-xjza5u8e",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-y0h2ahgm",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-015",
@@ -269,9 +269,9 @@
       "payload_size": 363
     },
     {
-      "publish_id": "pub-t2manyh5",
+      "publish_id": "pub-ccqt1o2t",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-rd5x14j0",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-004",
@@ -291,9 +291,9 @@
       "payload_size": 375
     },
     {
-      "publish_id": "pub-sld6enpa",
+      "publish_id": "pub-4x6x4l5i",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-88rdulyn",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-005",
@@ -313,9 +313,9 @@
       "payload_size": 355
     },
     {
-      "publish_id": "pub-27wt7svh",
+      "publish_id": "pub-r57n5sr3",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-1sm0bpdo",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-018",
@@ -335,9 +335,9 @@
       "payload_size": 369
     },
     {
-      "publish_id": "pub-vltt0uw2",
+      "publish_id": "pub-793yfoee",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-jza28sny",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-006",
@@ -357,9 +357,9 @@
       "payload_size": 363
     },
     {
-      "publish_id": "pub-n3eac2ck",
+      "publish_id": "pub-841vnqzb",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-w2c9wos3",
       "item_type": "caption",
       "linked_blueprint_id": "bp-2026-04-22-007",
@@ -379,9 +379,9 @@
       "payload_size": 379
     },
     {
-      "publish_id": "pub-vnmyrqvt",
+      "publish_id": "pub-u94zliad",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-e7i6x2z5",
       "item_type": "caption",
       "linked_blueprint_id": "bp-plan-2026-04-22-001",
@@ -401,9 +401,9 @@
       "payload_size": 368
     },
     {
-      "publish_id": "pub-r2kqgwuu",
+      "publish_id": "pub-8rnmrm6q",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-en98qhm4",
       "item_type": "caption",
       "linked_blueprint_id": "bp-plan-2026-04-22-002",
@@ -423,9 +423,9 @@
       "payload_size": 369
     },
     {
-      "publish_id": "pub-fu1sx6j5",
+      "publish_id": "pub-rul85ffc",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "cap-2026-04-22-x3s9noqk",
       "item_type": "caption",
       "linked_blueprint_id": "bp-plan-2026-04-22-003",
@@ -445,9 +445,9 @@
       "payload_size": 350
     },
     {
-      "publish_id": "pub-pwhrnpo9",
+      "publish_id": "pub-gzhzch98",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-lo4rcwk9",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-001",
@@ -467,9 +467,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-lw3d8roh",
+      "publish_id": "pub-dosoicfl",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-sl3tc9dm",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-002",
@@ -489,9 +489,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-bkg0tgu5",
+      "publish_id": "pub-lue9llkp",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-e8oinqu6",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-010",
@@ -511,9 +511,9 @@
       "payload_size": 375
     },
     {
-      "publish_id": "pub-ot436mza",
+      "publish_id": "pub-aeydmbbx",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-7uhumdwv",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-011",
@@ -533,9 +533,9 @@
       "payload_size": 369
     },
     {
-      "publish_id": "pub-m5hntbgv",
+      "publish_id": "pub-1bktik0z",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-newchvkl",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-012",
@@ -555,9 +555,9 @@
       "payload_size": 350
     },
     {
-      "publish_id": "pub-y65p4qic",
+      "publish_id": "pub-thwxjn3h",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-9z3ztssj",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-016",
@@ -577,9 +577,9 @@
       "payload_size": 363
     },
     {
-      "publish_id": "pub-62bfkogo",
+      "publish_id": "pub-pyxjah69",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-h78c0c87",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-017",
@@ -599,9 +599,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-yfcmtvds",
+      "publish_id": "pub-3kg11fgs",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-aqnareij",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-019",
@@ -621,9 +621,9 @@
       "payload_size": 357
     },
     {
-      "publish_id": "pub-b5e0fnr6",
+      "publish_id": "pub-qlclt3ti",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-joujzack",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-003",
@@ -643,9 +643,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-u6t6pgs9",
+      "publish_id": "pub-x3nucjm6",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-524e2jg2",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-013",
@@ -665,9 +665,9 @@
       "payload_size": 345
     },
     {
-      "publish_id": "pub-g0xiwbxi",
+      "publish_id": "pub-8po8l7l0",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-tmlxu8xf",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-014",
@@ -687,9 +687,9 @@
       "payload_size": 359
     },
     {
-      "publish_id": "pub-yh9xh0dl",
+      "publish_id": "pub-mppgyjb7",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-09qqiiqk",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-015",
@@ -709,9 +709,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-clxj3i8n",
+      "publish_id": "pub-vxextyfw",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-q8z5lj98",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-004",
@@ -731,9 +731,9 @@
       "payload_size": 368
     },
     {
-      "publish_id": "pub-bz4i6l39",
+      "publish_id": "pub-ip68cna8",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-klyy23o3",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-005",
@@ -753,9 +753,9 @@
       "payload_size": 364
     },
     {
-      "publish_id": "pub-rkoe6jk5",
+      "publish_id": "pub-93vtb2mt",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-fo61hfyy",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-018",
@@ -775,9 +775,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-7n2vtmve",
+      "publish_id": "pub-zgznuuyj",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-46gp4a3t",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-006",
@@ -797,9 +797,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-wr3wcukb",
+      "publish_id": "pub-fcu6v3ib",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-s9xuyfnx",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-2026-04-22-007",
@@ -819,9 +819,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-p5bo0tby",
+      "publish_id": "pub-ysyxkyvk",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-bbav8kaz",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-plan-2026-04-22-001",
@@ -841,9 +841,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-nuijwn00",
+      "publish_id": "pub-o6q0ec9z",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-ud0nu935",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-plan-2026-04-22-002",
@@ -863,9 +863,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-jq29u5bp",
+      "publish_id": "pub-gsftrda4",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "ip-ibp8p0uv",
       "item_type": "image_prompt",
       "linked_blueprint_id": "bp-plan-2026-04-22-003",
@@ -885,9 +885,9 @@
       "payload_size": 364
     },
     {
-      "publish_id": "pub-qibu37oc",
+      "publish_id": "pub-uxcftbpq",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "vb-r06049s8",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-001",
@@ -907,9 +907,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-azzobwas",
+      "publish_id": "pub-29djp3us",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "vb-p5yzosgg",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-002",
@@ -929,9 +929,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-ojrjwae5",
+      "publish_id": "pub-krl8n4qh",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.188Z",
       "item_id": "vb-l2cqab8m",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-010",
@@ -951,9 +951,9 @@
       "payload_size": 375
     },
     {
-      "publish_id": "pub-dbo2akci",
+      "publish_id": "pub-m6t2nvz5",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-ztole3m5",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-011",
@@ -973,9 +973,9 @@
       "payload_size": 369
     },
     {
-      "publish_id": "pub-7y9ztep0",
+      "publish_id": "pub-qzkw4ide",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-x8vhtsj4",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-012",
@@ -995,9 +995,9 @@
       "payload_size": 350
     },
     {
-      "publish_id": "pub-3xevem20",
+      "publish_id": "pub-2m7mclkl",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.275Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-v1q4owu1",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-016",
@@ -1017,9 +1017,9 @@
       "payload_size": 363
     },
     {
-      "publish_id": "pub-4qn8ftix",
+      "publish_id": "pub-ue5287ko",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-c5slfcb9",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-017",
@@ -1039,9 +1039,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-noewifhr",
+      "publish_id": "pub-n2lnlm0y",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-r54i1oe8",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-019",
@@ -1061,9 +1061,9 @@
       "payload_size": 357
     },
     {
-      "publish_id": "pub-uqd8o9zc",
+      "publish_id": "pub-vqfinakh",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-mgigaatv",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-014",
@@ -1083,9 +1083,9 @@
       "payload_size": 359
     },
     {
-      "publish_id": "pub-sw9ibzyn",
+      "publish_id": "pub-sxme2p8z",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-xgue2dxv",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-015",
@@ -1105,9 +1105,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-q3uaq99c",
+      "publish_id": "pub-54w59q9e",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-mf7lvm2z",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-004",
@@ -1127,9 +1127,9 @@
       "payload_size": 368
     },
     {
-      "publish_id": "pub-giku43ra",
+      "publish_id": "pub-41evch6w",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-m2t9o25k",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-005",
@@ -1149,9 +1149,9 @@
       "payload_size": 364
     },
     {
-      "publish_id": "pub-a73kavxc",
+      "publish_id": "pub-4l0sfpps",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-3d252rau",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-006",
@@ -1171,9 +1171,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-3k3xaexo",
+      "publish_id": "pub-cosveep7",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-mf9tdkuh",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-2026-04-22-007",
@@ -1193,9 +1193,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-5frygr92",
+      "publish_id": "pub-swzks9go",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-ldmqy2oz",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-plan-2026-04-22-001",
@@ -1215,9 +1215,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-6bvlws16",
+      "publish_id": "pub-qkh0qjno",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-opr3fc5m",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-plan-2026-04-22-002",
@@ -1237,9 +1237,9 @@
       "payload_size": 377
     },
     {
-      "publish_id": "pub-ec2s91hr",
+      "publish_id": "pub-zrcj9jmp",
       "schema": "https://clawdia.io/agents/publisher/v1",
-      "generated": "2026-04-22T09:41:05.276Z",
+      "generated": "2026-07-21T11:54:08.189Z",
       "item_id": "vb-w3gz40da",
       "item_type": "visual_brief",
       "linked_blueprint_id": "bp-plan-2026-04-22-003",
