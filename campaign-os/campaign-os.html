@@ -1832,6 +1832,58 @@ const HELP = (() => {
         "users won't notice". A missing alt tag on a hero image is low severity
         for SEO but high severity for accessibility. Read the <i>finding message</i>,
         not just the pill.</p>`
+    },
+    'ctas': {
+      title: 'How the CTA Generator picks what converts',
+      body: `
+        <p>The CTA library is a <span class="hc-term">curated knowledge base</span>
+        of ~40 calls-to-action, ranked by lift over baseline. Each CTA is tagged
+        on three axes: <b>voice</b> (Swing Shack / Stick / Bag Drop), <b>category</b>
+        (Book / Learn / Discover / Social / Soft / UGC), and <b>platform</b>
+        (Instagram / TikTok / Facebook / Twitter / Google Business). Filters
+        narrow the pool; the generator returns CTAs that pass them.</p>
+        <p><span class="hc-term">🎙️ Voice</span> locks the tone: <b>⛳ Swing Shack</b>
+        CTAs read instructional (book the lesson, get the fitting, see the data),
+        <b>🚩 Stick</b> CTAs lean insider (tell your buddy, take the L, fix the
+        swing), <b>🫂 Bag Drop</b> CTAs read community-first (join the group,
+        share your build). A CTA mismatched to voice lands off-brand even when
+        the words are technically right.</p>
+        <p><span class="hc-term">🧱 Pillar</span> forces the CTA to ladder back to a
+        content pillar (Education / Club Fitting / Community / Events). A pillar-less
+        CTA is fine for a single post; pillar-locked CTAs compound across the
+        Calendar.</p>
+        <p><span class="hc-term">📦 Category</span> picks the <i>intent</i>: <b>Book</b>
+        = funnel-bottom (high friction, high value), <b>Learn</b> = mid-funnel
+        (commit to a lesson / article), <b>Discover</b> = top-funnel (browse a
+        product / page), <b>Social</b> = share / save / comment, <b>Soft</b> =
+        soft-sell brand-only, <b>UGC</b> = user-generated content prompts. The
+        category should match the post's depth, not just the post's topic.</p>
+        <p><span class="hc-term">📱 Platform</span> matters more than people think.
+        Twitter / X rewards short, dry CTAs (no emoji, under 30 chars, action
+        verb first). Instagram / TikTok reward save-friendly CTAs (promise the
+        reader comes back). Facebook / Google Business reward explicit "Book
+        now" CTAs (these audiences convert older).</p>
+        <p><span class="hc-term">⚡ Generate 5</span> returns 5 fresh CTAs under the
+        current filter. <span class="hc-term">🎯 Recommend</span> asks the system
+        to pick <b>the single best CTA</b> for the active filter pair — useful
+        when you have 30 seconds, not 5 minutes.</p>
+        <p><span class="hc-term">📜 History</span> holds every prior generation.
+        Past winners cluster by structure ("verb + object + urgency" beats
+        "noun phrase + emoji" in Swing Shack's data). <span class="hc-term">🗑
+        Clear history</span> wipes the panel — the audit log keeps a copy;
+        you can't lose a winner by clearing.</p>
+        <p><b>How to use this page:</b> pick voice + category + platform, click
+        Generate 5, drop the strongest CTA into the Caption you're drafting. If
+        no CTA lands after two runs, swap the category (voice is rarely the
+        problem; category usually is).</p>
+        <p><b>Anti-pattern:</b> generating in "any voice" and "any category" to see
+        what shows up. You'll get a generic mix that fits nothing. The filters
+        exist for a reason — one run with a locked filter beats three runs on
+        broad.</p>
+        <p><b>Anti-pattern 2:</b> pairing a Book-category CTA with a top-funnel
+        Education post. The funnel mismatch kills conversion. Book + bottom-funnel
+        (offer / price / lesson); Discover + top-funnel (post / reel / carousel).
+        Match the depth before you match the words.</p>`
     }
   };
 
