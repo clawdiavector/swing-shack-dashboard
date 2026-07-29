@@ -1487,6 +1487,126 @@ const HELP = (() => {
   };
 
   const EXPLAINERS = {
+    'postiz': {
+      title: 'How the Postiz surface mirrors the publishing queue',
+      body: `
+        <p>This page is the <span class="hc-term">canonical mirror</span> of
+        the Postiz queue — it's a <i>read-only</i> view of what the
+        <code>publisher</code> agent is sending to Postiz, not a place to
+        push content. The header note reads <i>"Live Postiz sync runs
+        via the truth_collector webhook. This view is the canonical
+        mirror"</i> — that means Postiz is the source of truth, this
+        page is what the agent has reconciled back. Every row carries the
+        schema stamp <code>https://clawdia.io/agents/publisher/v1</code>,
+        the agent's output contract for handoff.</p>
+        <p><span class="hc-term">📋 Queue</span> on the left shows the
+        pending pipeline. Each row is one <code>item_id</code> with its
+        <code>caption_preview</code> (first 80 chars), <code>platform</code>
+        (instagram in the current dataset), <code>status</code>
+        (currently <code>queued</code> across all rows), and the
+        <code>cta_type</code> ladder (booking 23 / awareness 7 in the
+        current dataset — booking CTAs dominate because every Swing Shack
+        post ladders to a club-fitting or coaching session). Item types
+        split between <code>caption</code> (20) and
+        <code>image_prompt</code> (10) — captions are the copy hand-off,
+        image_prompts are the visual-forge lane that gets pushed alongside
+        the text. <code>mode</code> is currently <code>immediate</code>
+        across the board — meaning the publisher agent is set to
+        immediate publish, not a scheduled slot.</p>
+        <p><span class="hc-term">🔗 Publishing references (canonical)</span>
+        on the right is the <b>platform-confirmed</b> hand-off record.
+        Each reference carries <code>postizId</code> (the Postiz post id,
+        e.g. <code>cmrypnzq802fspe0ynp1nu3vb</code>), <code>campaignId</code>
+        and <code>assetId</code> (the source campaign and asset the post
+        ladders from), <code>currentStatus</code> (e.g. <code>draft</code>),
+        <code>platformMediaId</code> (the IG media id once published),
+        <code>publishedAt</code> (timestamp), and a <code>provenance</code>
+        block that names the <b>chain</b> that handled the post
+        (e.g. <code>["publisher-reconciliation"]</code> with
+        <code>publishedVia: "reconciliation"</code> and a captured
+        <code>rawResponseRef</code> hash). The provenance block is what
+        makes this view auditable — every field can be traced back to
+        the webhook that captured it.</p>
+        <p><span class="hc-term">🔌 Integration id is the single
+        channel</span> — every row in the queue + published mirror
+        references <code>integration_id: cmnfoum2703e6ql0yiajgcg21</code>
+        (the IG integration slot Postiz knows about). If a new social
+        channel is added in Postiz, the agent picks up its
+        <code>integration_id</code> automatically and the
+        <code>platform</code> field on the queue expands. Right now the
+        queue is 100% instagram — that's the only channel the publisher
+        is wired to. Adding LinkedIn or Facebook would require a new
+        <code>integration_id</code> row, not an edit here.</p>
+        <p><span class="hc-term">📊 Status ladder</span> is what every
+        row walks through:
+        <code>queued</code> (waiting for the publisher agent),
+        <code>published_dry</code> (sent to Postiz but not yet
+        live on the platform — the live Postiz record exists, the IG
+        media id is still null), then <code>published</code> once the
+        <code>platformMediaId</code> is back. <code>scheduled_date</code>
+        is currently null across the queue because <code>mode</code> is
+        immediate — the moment a <code>schedule</code> field is filled
+        in, the row moves from <code>queued</code> into
+        <code>scheduled</code> and the publish timestamp moves from
+        null to a future date.</p>
+        <p><span class="hc-term">🔗 Linkage trail</span> is how a Postiz
+        row back-traces to the idea it came from. Every row carries
+        <code>linked_hook_id</code> (e.g.
+        <i>"that-slice-costing-you-yards-off-the-tee--trackman"</i>) and
+        <code>linked_blueprint_id</code> (e.g.
+        <i>"bp-2026-04-22-001"</i>) — the same identifiers used in
+        Captions / Headlines / Hook Bank. <code>recommendation_id</code>
+        is the source caption id (e.g.
+        <i>"cap-2026-04-22-mlu5ww77"</i>). If a queued row references a
+        retired hook or blueprint, the row is treated as orphan and
+        flagged in the next reconciliation pass.</p>
+        <p><span class="hc-term">📜 Publishing references schema</span>
+        sits at the top of the page. The current dataset shows
+        <code>count: 1</code> reference generated
+        <code>2026-07-24T10:02:18.660Z</code> from
+        <code>sourceCampaignFile</code> + <code>sourceCampaignSha256</code>
+        — the hash is what lets the agent prove the reference was built
+        from a specific snapshot of the campaign file, not a stale one.
+        <code>regenerationMode</code> governs whether references are
+        rebuilt from scratch or merged with existing ones — important
+        for not overwriting platform media ids Postiz has already
+        confirmed.</p>
+        <p><span class="hc-term">🚦 Summary line</span> in the section
+        header is the live status string from the API. The current
+        dataset reads <i>"Publishing refs: 1. Queue: 57. Scheduled: 0.
+        Published: 57."</i> — 57 in the queue (raw pool), 57 published
+        (mirrored back via webhook), 0 scheduled, 1 reference record.
+        The 57/57 split means <i>everything</i> the agent has queued has
+        been mirrored back as published — there are no orphans in the
+        current dataset. If you ever see <i>Queue: 60. Published: 55.</i>
+        that's 5 rows missing their reconciliation and a flag to check
+        the webhook.</p>
+        <p><b>How to use this page:</b> read the summary line first — it
+        tells you the reconciliation state at a glance. Scan the Queue
+        card for any rows without <code>linked_hook_id</code> (those are
+        orphan candidates). Click into Postiz (the
+        <code>postizId</code> link) to do final tweaks before a scheduled
+        post goes live. Use the Publishing references card to confirm
+        which posts have actually been mirrored back from Postiz — the
+        <code>provenance.chain</code> tells you which agent pass wrote
+        the row.</p>
+        <p><b>Anti-pattern 1:</b> editing content on this page expecting
+        it to propagate to Postiz. It won't — this view is
+        <i>canonical mirror</i>, not a write surface. Edit the
+        underlying caption in Captions / Headlines, or open the row in
+        Postiz directly. Any edit here is wiped on the next
+        truth_collector webhook pass.</p>
+        <p><b>Anti-pattern 2:</b> reading <code>status: "published_dry"</code>
+        as <i>"the post went live"</i>. Dry means the Postiz record
+        exists and the publisher agent considers it pushed — but the
+        <code>platformMediaId</code> is null and the IG media record
+        hasn't been created yet. Only when the <code>platformMediaId</code>
+        is back (and the status flips to <code>published</code>) is the
+        post actually live. The 30-second polling cadence on the
+        truth_collector webhook means the flip usually lands within a
+        minute, but for first-time posts it's worth a manual check
+        before treating <code>published_dry</code> as final.</p>`
+    },
     'billboards': {
       title: 'How the Billboard Lab turns hooks into placement-ready concepts',
       body: `
