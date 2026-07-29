@@ -1885,6 +1885,56 @@ const HELP = (() => {
         (offer / price / lesson); Discover + top-funnel (post / reel / carousel).
         Match the depth before you match the words.</p>`
     },
+    'faqs': {
+      title: 'How the FAQ miner picks questions worth answering',
+      body: `
+        <p>This page surfaces <span class="hc-term">questions real people actually
+        type</span> — pulled from search suggestions, customer emails, Reddit threads,
+        and review patterns. Each card is a question + a draft answer in the active
+        brand voice. Nothing here publishes — FAQs land in the SEO Audit "Fix Draft"
+        modal as copy-pasteable snippets you review before going near the CMS.</p>
+        <p><span class="hc-term">🎙️ Voice</span> shifts the answer register:
+        <b>⛳ Swing Shack</b> answers read instructional with proof-points ("yes, we
+        TrackMan-verify every fitting"); <b>🚩 Stick</b> answers read blunt and
+        insider ("just bring the wallet, leave the ego at home"); <b>🫂 Bag Drop</b>
+        answers read community-first ("the groupchat will tell you which fitter to
+        book"). The voice badge sits at the top of the page so you don't lose track
+        when you swap brands.</p>
+        <p><span class="hc-term">🧱 Pillar</span> filter narrows the question pool
+        to one of four buckets: <b>Education</b> (swing / grip / setup questions),
+        <b>Club Fitting</b> (equipment / build / shaft questions), <b>Community</b>
+        (event / outing / meetup questions), <b>Events</b> (lesson / tournament /
+        corporate days). Broad filters give broad questions; locked filters give
+        copy-paste-ready answers for the matching landing page.</p>
+        <p><span class="hc-term">🔗 Ladder into SEO Audit</span> — every FAQ on this
+        page is designed to answer a question the SEO Audit flagged as
+        <code>missing_faq</code> on a target page. If you see the same question
+        twice here AND a critical/medium finding on the related page in SEO Audit,
+        treat that pair as one fix — paste the answer into the page's FAQ block
+        (and add <code>FAQPage</code> schema), not into a stand-alone blog post.</p>
+        <p><span class="hc-term">✍️ Answer length</span> — keep answers 40-90 words.
+        Long enough to actually answer, short enough to scan. Anything over 120
+        words loses the SEO snippet slot (Google pulls the first ~50 words and a
+        <span class="hc-term">~160-character</span> snippet box).</p>
+        <p><span class="hc-term">📈 Rising questions</span> get a rising badge —
+        search volume is climbing. <span class="hc-warn">Cooling</span> questions
+        are still worth answering for existing-traffic pages, but don't anchor
+        new content on them.</p>
+        <p><b>How to use this page:</b> filter by the pillar of the page you're
+        working on, pick 3-5 questions, click each to expand the answer, copy the
+        answer + restructure into a question/answer block (H3 = Q, paragraph =
+        A). Add <code>FAQPage</code> schema in your CMS so Google can render the
+        rich result. Re-run the SEO Audit 24h later to confirm the
+        <code>missing_faq</code> finding cleared.</p>
+        <p><b>Anti-pattern:</b> running the FAQ miner with all four pillars on and
+        copying 20 answers into a single "FAQ" page. That's a wall of text
+        Google will treat as thin content. One FAQ block per landing page, each
+        block scoped to that page's pillar.</p>
+        <p><b>Anti-pattern 2:</b> pasting the brand-voice answer verbatim into the
+        CMS. Voice is great for social captions; the website answer is usually
+        a half-turn more neutral ("we recommend" → "we recommend" — not "your
+        swing sucks but here's why"). Review and tighten before publishing.</p>`
+    },
     'hashtagseo': {
       title: 'How the Hashtag & SEO Pack picks what to tag with',
       body: `
