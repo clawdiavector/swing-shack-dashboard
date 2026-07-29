@@ -934,6 +934,301 @@ def meta_post_full(media_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+# ─── META CREDENTIALS PORTAL ─────────────────────────────────────────────
+# Local-only route for safely ingesting Meta app credentials without them
+# ever touching Discord/chat. Form lives at GET /meta-portal.html (static file
+# served from campaign-os/meta-portal.html). Submit handler writes:
+#   - ~/.openclaw/workspace/credentials/meta-app.json    (chmod 600)
+#   - ~/.openclaw/workspace/credentials/meta-token.json  (chmod 600)
+#   - ~/.openclaw/workspace/credentials/meta.env         (chmod 600, sourced by
+#                                                         Campaign OS restart)
+# All writes happen on the local filesystem only — no remote calls. After
+# write, runs a live probe against Graph API to confirm the token works,
+# then signals the watcher to restart Campaign OS with the new env vars.
+
+CRED_DIR = os.path.expanduser('~/.openclaw/workspace/credentials')
+META_APP_FILE = os.path.join(CRED_DIR, 'meta-app.json')
+META_TOKEN_FILE = os.path.join(CRED_DIR, 'meta-token.json')
+META_ENV_FILE = os.path.join(CRED_DIR, 'meta.env')
+META_VERIFY_FILE = os.path.join(CRED_DIR, 'meta-verify-report.json')
+
+META_REQUIRED_KEYS = [
+    'META_APP_ID',
+    'META_APP_SECRET',
+    'META_PAGE_ID',
+    'META_INSTAGRAM_BUSINESS_ACCOUNT_ID',
+    'META_ACCESS_TOKEN',
+    'META_TOKEN_TYPE',
+]
+
+
+def _meta_verify_token(app_id, app_secret, access_token, page_id):
+    """Live probe against Graph API. Returns dict {ok, user, page, ig_account, error}."""
+    import urllib.request
+    import urllib.parse
+    import urllib.error
+    import ssl
+
+    out = {"ok": False, "checks": {}, "error": None, "ts": datetime.datetime.utcnow().isoformat() + 'Z'}
+    ctx = ssl.create_default_context()
+    api_base = 'https://graph.facebook.com/v25.0'
+
+    def _get(url):
+        req = urllib.request.Request(url, headers={'User-Agent': 'CampaignOS/1.0'})
+        try:
+            with urllib.request.urlopen(req, timeout=15, context=ctx) as resp:
+                return resp.status, json.loads(resp.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            body = e.read().decode('utf-8', errors='replace')
+            try:
+                body = json.loads(body)
+            except Exception:
+                pass
+            return e.code, body
+        except Exception as e:
+            return 0, {"error": {"message": str(e), "type": type(e).__name__}}
+
+    def _err_msg(s, body):
+        if isinstance(body, dict):
+            return f'{body.get("error", {}).get("message", body) if isinstance(body.get("error"), dict) else body.get("error", body)}'
+        return str(body)[:300]
+
+    # 1) /me — confirms token is alive
+    s, body = _get(f'{api_base}/me?fields=id,name&access_token={urllib.parse.quote(access_token)}')
+    out["checks"]["me"] = {"status": s, "body": body}
+    if s != 200 or not isinstance(body, dict):
+        out["error"] = f'/me returned HTTP {s}: {_err_msg(s, body)}'
+        return out
+
+    out["user"] = body
+
+    # 2) /{page_id}?fields=access_token,instagram_business_account — confirms page is reachable
+    s, body = _get(f'{api_base}/{page_id}?fields=id,name,access_token,instagram_business_account&access_token={urllib.parse.quote(access_token)}')
+    out["checks"]["page"] = {"status": s, "body": body}
+    if s == 200 and isinstance(body, dict):
+        out["page"] = body
+        # If page returned a long-lived page token, prefer it
+        page_token = body.get('access_token')
+        if page_token and isinstance(page_token, str) and len(page_token) > len(access_token):
+            out["page_token_available"] = True
+        ig = body.get('instagram_business_account') or {}
+        if isinstance(ig, dict) and ig.get('id'):
+            out["ig_account"] = ig
+            # 3) /{ig_id}?fields=id,username — confirms IG business account is reachable
+            s2, body2 = _get(f'{api_base}/{ig["id"]}?fields=id,username,media_count&access_token={urllib.parse.quote(access_token)}')
+            out["checks"]["ig"] = {"status": s2, "body": body2}
+            if s2 == 200 and isinstance(body2, dict):
+                out["ig_account"].update(body2)
+                out["ok"] = True
+            else:
+                out["error"] = f'IG account probe returned HTTP {s2}: {_err_msg(s2, body2)}'
+        else:
+            out["error"] = 'Page response did not include instagram_business_account — link your IG to the FB page in Meta Business Suite first'
+    else:
+        out["error"] = f'Page probe returned HTTP {s}: {_err_msg(s, body)}'
+
+    return out
+
+
+def _write_meta_creds(payload):
+    """Write creds to disk and the .env file. Returns dict with file paths."""
+    os.makedirs(CRED_DIR, mode=0o700, exist_ok=True)
+    app_payload = {
+        'app_id': payload['META_APP_ID'],
+        'app_secret': payload['META_APP_SECRET'],
+        'page_id': payload['META_PAGE_ID'],
+        'instagram_business_account_id': payload['META_INSTAGRAM_BUSINESS_ACCOUNT_ID'],
+        'token_type': payload.get('META_TOKEN_TYPE', 'user'),
+        'written_at': datetime.datetime.utcnow().isoformat() + 'Z',
+    }
+    token_payload = {
+        'access_token': payload['META_ACCESS_TOKEN'],
+        'token_type': payload.get('META_TOKEN_TYPE', 'user'),
+        'written_at': datetime.datetime.utcnow().isoformat() + 'Z',
+    }
+    with open(META_APP_FILE, 'w') as f:
+        json.dump(app_payload, f, indent=2)
+    os.chmod(META_APP_FILE, 0o600)
+    with open(META_TOKEN_FILE, 'w') as f:
+        json.dump(token_payload, f, indent=2)
+    os.chmod(META_TOKEN_FILE, 0o600)
+    # .env file — sourced by Campaign OS restart
+    env_lines = [
+        '# Generated by /api/meta/credentials portal — do not edit by hand',
+        f"export META_APP_ID='{payload['META_APP_ID']}'",
+        f"export META_APP_SECRET='{payload['META_APP_SECRET']}'",
+        f"export META_PAGE_ID='{payload['META_PAGE_ID']}'",
+        f"export META_INSTAGRAM_BUSINESS_ACCOUNT_ID='{payload['META_INSTAGRAM_BUSINESS_ACCOUNT_ID']}'",
+        f"export META_ACCESS_TOKEN='{payload['META_ACCESS_TOKEN']}'",
+        f"export META_TOKEN_TYPE='{payload.get('META_TOKEN_TYPE', 'user')}'",
+        f"export META_ACCESS_TOKEN_FILE='{META_TOKEN_FILE}'",
+        '',
+    ]
+    with open(META_ENV_FILE, 'w') as f:
+        f.write('\n'.join(env_lines))
+    os.chmod(META_ENV_FILE, 0o600)
+    return {
+        'app_file': META_APP_FILE,
+        'token_file': META_TOKEN_FILE,
+        'env_file': META_ENV_FILE,
+    }
+
+
+@app.route('/meta-portal', methods=['GET'])
+@app.route('/meta-portal.html', methods=['GET'])
+def meta_portal_form():
+    """GET /meta-portal — serve the credential submission form."""
+    return send_from_directory(os.path.dirname(__file__), 'meta-portal.html')
+
+
+@app.route('/api/meta/credentials', methods=['POST'])
+def meta_credentials_submit():
+    """POST /api/meta/credentials — accept form submission, write creds, verify live.
+
+    Body (JSON): { META_APP_ID, META_APP_SECRET, META_PAGE_ID,
+                   META_INSTAGRAM_BUSINESS_ACCOUNT_ID, META_ACCESS_TOKEN,
+                   META_TOKEN_TYPE }
+    """
+    try:
+        body = request.get_json(force=True, silent=False) or {}
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"invalid JSON body: {e}"}), 400
+
+    missing = [k for k in META_REQUIRED_KEYS if not body.get(k)]
+    if missing:
+        return jsonify({
+            "ok": False,
+            "error": f"missing required fields: {', '.join(missing)}",
+            "missing": missing,
+        }), 400
+
+    # Sanity: all numeric IDs must be digits
+    for k in ('META_APP_ID', 'META_PAGE_ID', 'META_INSTAGRAM_BUSINESS_ACCOUNT_ID'):
+        v = body[k].strip()
+        if not v.isdigit():
+            return jsonify({"ok": False, "error": f"{k} must be numeric, got {v[:8]}…"}), 400
+        body[k] = v
+
+    # Sanity: token must start with EAA (user/page/system_user token format)
+    tok = body['META_ACCESS_TOKEN'].strip()
+    if not tok.startswith(('EAA', 'EAB', 'EAAB')):
+        return jsonify({
+            "ok": False,
+            "error": f"META_ACCESS_TOKEN must start with EAA/EAB/EAAB (got prefix '{tok[:6]}…'). Are you sure this is the full token?",
+            "hint": "If this is a short-lived token from Graph API Explorer, click 'Generate Access Token' to get a long-lived one",
+        }), 400
+
+    # Write files
+    try:
+        files = _write_meta_creds(body)
+    except Exception as e:
+        _app_log.exception("meta_credentials_write_failed")
+        return jsonify({"ok": False, "error": f"write failed: {e}"}), 500
+
+    # Live verify against Graph API (also writes META_VERIFY_FILE)
+    verify = _meta_verify_token(
+        body['META_APP_ID'], body['META_APP_SECRET'], tok, body['META_PAGE_ID']
+    )
+    try:
+        with open(META_VERIFY_FILE, 'w') as f:
+            json.dump(verify, f, indent=2)
+        os.chmod(META_VERIFY_FILE, 0o600)
+    except Exception:
+        pass
+
+    # If verify OK, kick off a restart so Campaign OS picks up env vars
+    restart_pid = None
+    if verify.get("ok"):
+        try:
+            # Spawn detached restart that:
+            #   1. kills current Campaign OS (PID 7935)
+            #   2. waits for port 8000 to free
+            #   3. re-launches with meta.env sourced
+            restart_script = (
+                f"#!/bin/bash\n"
+                f"sleep 1\n"
+                f"kill 7935 2>/dev/null\n"
+                f"for i in 1 2 3 4 5 6 7 8 9 10; do\n"
+                f"  lsof -ti:8000 2>/dev/null | xargs kill -9 2>/dev/null\n"
+                f"  if ! lsof -ti:8000 >/dev/null 2>&1; then break; fi\n"
+                f"  sleep 1\n"
+                f"done\n"
+                f"cd /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard\n"
+                f"set -a\n"
+                f"source {META_ENV_FILE}\n"
+                f"set +a\n"
+                f"export DATA_DIR=./data\n"
+                f"nohup .venv/bin/python campaign-os/app.py > /tmp/flask.log 2>&1 &\n"
+                f"disown\n"
+                f"echo $! > /tmp/campaign-os.pid\n"
+                f"exit 0\n"
+            )
+            with open('/tmp/campaign-os-restart.sh', 'w') as f:
+                f.write(restart_script)
+            os.chmod('/tmp/campaign-os-restart.sh', 0o755)
+            subprocess.Popen(
+                ['/bin/bash', '/tmp/campaign-os-restart.sh'],
+                start_new_session=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            restart_pid = True
+        except Exception as e:
+            _app_log.exception("meta_credentials_restart_failed")
+            restart_pid = f"failed: {e}"
+
+    # Build user-facing summary
+    if verify.get("ok"):
+        user = verify.get('user', {})
+        page = verify.get('page', {})
+        ig = verify.get('ig_account', {})
+        verify_summary = (
+            f"✅ Token valid for user {user.get('name', '?')} (id {user.get('id', '?')}).\n"
+            f"✅ Page reachable: {page.get('name', '?')} (id {page.get('id', '?')}).\n"
+            f"✅ IG business account: @{ig.get('username', '?')} (id {ig.get('id', '?')}, {ig.get('media_count', '?')} posts).\n"
+            f"{'🔑 Page returned a longer-lived page token — consider using that next time.' if verify.get('page_token_available') else ''}\n"
+            f"🔄 Campaign OS is restarting to load the new env vars (will be back in ~5s)."
+        )
+    else:
+        verify_summary = (
+            f"❌ Verification failed: {verify.get('error', 'unknown error')}\n"
+            f"Check /api/meta/status in a few seconds for the full upstream response."
+        )
+
+    return jsonify({
+        "ok": True,
+        "files": files,
+        "verify": verify,
+        "verify_summary": verify_summary,
+        "restart_initiated": restart_pid,
+    }), 200
+
+
+@app.route('/api/meta/credentials/status', methods=['GET'])
+def meta_credentials_status():
+    """GET /api/meta/credentials/status — show last verify report + file mtimes."""
+    import stat as _stat
+    out = {"ok": True, "files": {}, "verify": None}
+    for label, path in [('app', META_APP_FILE), ('token', META_TOKEN_FILE), ('env', META_ENV_FILE), ('verify_report', META_VERIFY_FILE)]:
+        if os.path.exists(path):
+            st = os.stat(path)
+            out["files"][label] = {
+                "path": path,
+                "size": st.st_size,
+                "mtime": datetime.datetime.utcfromtimestamp(st.st_mtime).isoformat() + 'Z',
+                "mode": oct(_stat.S_IMODE(st.st_mode)),
+            }
+        else:
+            out["files"][label] = None
+    if os.path.exists(META_VERIFY_FILE):
+        try:
+            with open(META_VERIFY_FILE) as f:
+                out["verify"] = json.load(f)
+        except Exception:
+            out["verify"] = None
+    return jsonify(out), 200
+
+
 @app.route('/api/campaigns', methods=['GET'])
 def list_campaigns():
     """GET /api/campaigns — list all campaigns, filtered by active brand.
