@@ -2140,6 +2140,123 @@ const HELP = (() => {
         they vary by thread history. Treat "ready_for_qa" as the
         starting line, not the finish line.</p>`,
     },
+    'imagegen': {
+      title: 'How Image Generation prompt specs are built',
+      body: `
+        <p>This page returns a <span class="hc-term">provider-ready prompt
+        spec</span> — not an image. The agent reads the selected asset's
+        visual brief, pillar, and platform, then assembles a single prompt
+        shaped for one of four image providers (Ideogram, DALL-E, Midjourney,
+        Stable Diffusion). It is <b>read-only intelligence</b> at this point:
+        no API call is made, no image is downloaded, no account is touched.
+        You take the spec, paste it into the provider of your choice (or
+        trigger the real call once credentials are wired), and the image
+        comes back. Treat the panel like a recipe, not a kitchen.</p>
+        <p><span class="hc-term">🎛️ Generate controls</span> are three filters
+        that shape every spec: <b>Pillar</b> (Education / Club Fitting /
+        Community / Events), <b>Platform</b> (Instagram / TikTok / Twitter /
+        Facebook / Google Business), and <b>Provider</b> (Ideogram / DALL-E /
+        Midjourney / Stable Diffusion). The default is Ideogram — it gives
+        the most predictable text-safety behaviour for golf studio imagery.
+        Defaults to Instagram + Education when nothing is picked.</p>
+        <p><span class="hc-term">📐 Aspect ratio ladder</span> is the first
+        thing the platform filter controls. Instagram defaults to
+        <b>1:1 (1080x1080)</b>; TikTok defaults to <b>9:16 (1080x1920)</b>;
+        Facebook defaults to <b>1.91:1 (1200x630)</b> (link-card native);
+        Twitter defaults to <b>16:9 (1200x675)</b>; GMB defaults to
+        <b>1.78:1 (720x405)</b> (Google's photo post size).
+        The provider then appends its own flag (e.g. Ideogram
+        <code>--aspect-1-1</code>, Midjourney <code>--ar 1:1</code>). If the
+        rendered image comes back the wrong shape, the platform picker is
+        almost always the culprit — not the prompt.</p>
+        <p><span class="hc-term">🧱 Prompt parts</span> come from four sources,
+        joined together with <code>" | "</code> separators: (1) the
+        pillar's <b>example_prompt_fragment</b> (the house voice for that
+        pillar — golf instructor energy for Education, fitted-club energy for
+        Club Fitting), (2) the <b>subject line</b> built from the asset's
+        <code>hookText</code>, asset name, and <code>visualBrief</code>
+        fields, (3) the first <b>model hint</b> from the pillar's
+        <code>model_hints[]</code> array (e.g. <i>"indoor golf simulator,
+        Johannesburg, TrackMan launch monitor readings, clean studio
+        lighting"</i>), and (4) the pillar's <b>background composition</b>
+        from the <code>composition.background</code> slot. The four-part
+        structure is what makes the spec reusable across providers without
+        losing voice.</p>
+        <p><span class="hc-term">🚫 Negative prompt ladder</span> is what
+        keeps the image on-brand. Each pillar in
+        <code>asset-image-spec.json</code> carries a
+        <code>negative_prompts[]</code> array — the visual artefacts that
+        <i>don't</i> fit Swing Shack, Stick, or Bag Drop imagery
+        (cluttered background, blurry swing, watermark, outdated equipment,
+        people in the background, distorted text). They're joined with
+        <code>" | "</code> and surfaced in the right-hand panel. The provider
+        also appends its own <code>negative_hint</code> — Ideogram for
+        example adds <code>" --no text, watermark, signature"</code>. Skipping
+        the negative ladder is what produces off-brand renders the fastest.</p>
+        <p><span class="hc-term">🪝 Hook / Subject override</span> lets you
+        swap the subject line for one specific angle without regenerating
+        the whole spec. Type the override into the <b>Hook / Subject
+        override</b> input, click Re-generate, and only the subject changes
+        — pillar, platform, provider, negatives all stay locked. Useful when
+        the agent's default subject line misses the actual post angle (e.g.
+        the asset is tagged Education but the caption is about a junior
+        camp). A blank override means "use what the agent picked".</p>
+        <p><span class="hc-term">🎨 Color keywords</span> come from the pillar's
+        <code>color_keywords[]</code> array and are surfaced as a separate
+        panel — they get baked into the prompt at generation time so the
+        render leans toward brand palette without being a literal hex dump.
+        For Swing Shack that's typically turf-green, TrackMan-graphite,
+        studio-amber; for Stick it's high-contrast monochrome with neon
+        callouts; for Bag Drop it's lifestyle-warm with club-mix neutrals.
+        These are descriptive words, not hex codes — providers handle them
+        better that way.</p>
+        <p><span class="hc-term">🪪 Text safety zone</span> is a platform
+        constraint surfaced in the meta strip, and each platform reads
+        differently: Instagram — <i>"center 70% of frame — no critical text
+        in outer 15%"</i>; TikTok — <i>"top 30% and bottom 25% — middle
+        band is safest for text"</i>; Twitter — <i>"bottom third — title
+        and CTA, top 2/3 for visual"</i>; Facebook — <i>"center —
+        landscape framing with space for headline overlay"</i>; GMB —
+        <i>"full frame — prefer no overlaid text, let the image speak"</i>.
+        The provider doesn't know about overlays — it draws what you ask.
+        The platform config is the only thing that protects headlines and
+        CTAs from being cropped off by Instagram's UI or TikTok's caption
+        strip.</p>
+        <p><span class="hc-term">🖌️ Provider templates</span> are the four
+        ready-to-paste shapes in <code>asset-image-spec.json</code> under
+        <code>provider_templates</code>. Each one has a
+        <code>prompt_prefix</code>, <code>prompt_suffix</code>,
+        <code>negative_hint</code>, <code>style_presets[]</code> (Ideogram
+        uses REALISTIC + PROFESSIONAL_PHOTOGRAPHY + GOLF_LIFESTYLE; MJ uses
+        <code>--style raw</code>; DALL-E uses natural-language style hints),
+        and an <code>aspect_ratio_map</code> that translates the platform
+        ratio into the provider's own flag. To switch providers, change
+        <code>provider_default</code> at the top of the spec — no other
+        edits needed.</p>
+        <p><b>How to use this page:</b> pick the asset you're generating for
+        (the meta strip will surface asset name + campaign), pick the
+        pillar that matches the post angle, pick the platform you're
+        publishing to, leave the provider on Ideogram unless you have a
+        reason to swap. Click Generate Prompt. Read the spec top-to-bottom —
+        if the subject line doesn't match the post angle, type an override
+        in the Hook box and Re-generate. Copy the provider prompt, paste
+        into the image tool, render, save the asset into the campaign
+        folder. Repeat per asset. The spec is reusable across the campaign;
+        the render is per-asset.</p>
+        <p><b>Anti-pattern 1:</b> generating a spec with no platform picked.
+        You'll get a 1:1 square prompt that wastes the entire 9:16 real
+        estate on TikTok or the 16:9 horizontal space on Twitter. The
+        platform filter drives the aspect ratio flag — always pick a
+        platform, even if the post will live on multiple surfaces (in which
+        case generate twice, once per surface).</p>
+        <p><b>Anti-pattern 2:</b> treating the prompt spec as a finished
+        image. It's a recipe, not the meal. Pasting it into the wrong
+        provider, or into the right provider with a stale prompt_prefix
+        override, returns imagery that doesn't match the brief. The spec
+        works because every layer is locked (pillar → platform → provider
+        → negative ladder). Skip a layer and the render drifts off-brand
+        inside two generations.</p>`
+    },
     'hashtagseo': {
       title: 'How the Hashtag & SEO Pack picks what to tag with',
       body: `
