@@ -2,6 +2,7 @@
   "schema_version": "0.1",
   "directory": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images",
   "image_count": 122,
+  "framing": "Scores are style alignment, not quality grades. Every image is approved, in-use brand material. Higher scores = closer to brand canon; lower scores = variation / vendor presence / product shots. Use all 122 as reference; lean on top-scorers as Visual Recipe templates.",
   "by_filename": {
     "Artboard 1 copy 2.jpg": {
       "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1 copy 2.visual-dna.json",
@@ -858,8 +859,8 @@
       "dominant": "#646b5a"
     }
   },
-  "by_compliance": {
-    "pass": [
+  "by_alignment": {
+    "high": [
       "Artboard 1 copy 2.jpg",
       "Artboard 1 copy 3.jpg",
       "Artboard 1.jpg",
@@ -920,44 +921,27 @@
       "takomo.png",
       "zenstage-100.jpg"
     ],
-    "fail": [
-      "Artboard 1 copy.jpg",
-      "Artboard 2 copy.jpg",
+    "typical": [
       "Artboard 3.jpg",
       "Artboard 4.jpg",
-      "JORDAN_BAG copy 3.jpg",
       "JORDAN_BAG copy 4.jpg",
       "JORDAN_BAG copy 5.jpg",
-      "Quantammini1 copy 2.jpg",
-      "Quantammini1 copy.jpg",
       "RC1-100.jpg",
       "RC1.jpg",
       "SRIXON_BAG copy 2.jpg",
-      "SRIXON_BAG copy 3.jpg",
-      "VESSELBAG_STAFF copy 2.jpg",
       "VESSELBAG_STAFF copy 3.jpg",
-      "VESSEL_BAG copy 2.jpg",
       "VESSEL_BAG copy 3.jpg",
       "VICEBAG copy 2.jpg",
       "VICEBAG copy 3.jpg",
       "cf3 copy.jpg",
       "coachinpackages_post.jpg",
       "coachinpackages_story.jpg",
-      "fitting_gts_story2.jpg",
       "fitting_story3.jpg",
-      "fullrange copy 5-100.jpg",
-      "fullrange copy 6-100.jpg",
       "fullrange copy 7-100.jpg",
-      "ironfitting-100.jpg",
       "ladiesclinic2-100.jpg",
-      "mileseey2.jpg",
-      "mileseey3.jpg",
-      "mileseey4.jpg",
       "package1_story copy 2.jpg",
       "rc2-100.jpg",
       "rc2.jpg",
-      "rc3-100.jpg",
-      "rc3.jpg",
       "rc_static copy 2.jpg",
       "rc_static copy.jpg",
       "rc_static-100.jpg",
@@ -974,18 +958,36 @@
       "ss_story_gts2fw.jpg",
       "ss_story_gts3.jpg",
       "ss_story_gts3fw.jpg",
-      "ss_story_newport.jpg",
       "ss_story_phantom.jpg",
+      "wedgecomp1.jpg",
+      "wedgecomp2.jpg"
+    ],
+    "variants": [
+      "Artboard 1 copy.jpg",
+      "Artboard 2 copy.jpg",
+      "JORDAN_BAG copy 3.jpg",
+      "Quantammini1 copy 2.jpg",
+      "Quantammini1 copy.jpg",
+      "SRIXON_BAG copy 3.jpg",
+      "VESSELBAG_STAFF copy 2.jpg",
+      "VESSEL_BAG copy 2.jpg",
+      "fitting_gts_story2.jpg",
+      "fullrange copy 5-100.jpg",
+      "fullrange copy 6-100.jpg",
+      "ironfitting-100.jpg",
+      "mileseey2.jpg",
+      "mileseey3.jpg",
+      "mileseey4.jpg",
+      "rc3-100.jpg",
+      "rc3.jpg",
+      "ss_story_newport.jpg",
       "vice_irons copy 2-100.jpg",
       "vice_irons copy 3-100.jpg",
       "vice_irons copy 4-100.jpg",
       "vice_irons copy 5-100.jpg",
       "vice_irons copy-100.jpg",
-      "vice_irons-100.jpg",
-      "wedgecomp1.jpg",
-      "wedgecomp2.jpg"
-    ],
-    "unverified": []
+      "vice_irons-100.jpg"
+    ]
   },
   "by_dominant_color": {
     "#0b0d0e": 2,

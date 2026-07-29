@@ -495,8 +495,9 @@ def dissect_directory(images_dir: Path, bible_path: Path | None = None) -> dict[
         "schema_version": "0.1",
         "directory": str(images_dir),
         "image_count": len(files),
+        "framing": "Scores are style alignment, not quality grades. Every image is approved, in-use brand material. Higher scores = closer to brand canon; lower scores = variation / vendor presence / product shots. Use all 122 as reference; lean on top-scorers as Visual Recipe templates.",
         "by_filename": {},
-        "by_compliance": {"pass": [], "fail": [], "unverified": []},
+        "by_alignment": {"high": [], "typical": [], "variants": []},
         "by_dominant_color": {},
         "by_luminance": {"dark": 0, "mid": 0, "light": 0},
         "errors": [],
@@ -515,12 +516,15 @@ def dissect_directory(images_dir: Path, bible_path: Path | None = None) -> dict[
                 "dominant": dna.get("layer9_palette", {}).get("dominant_colors", [{}])[0].get("hex"),
             }
             if dna.get("layer8_compliance"):
-                if dna["layer8_compliance"]["passes"]:
-                    index["by_compliance"]["pass"].append(f.name)
+                score = dna["layer8_compliance"]["score"]
+                if score >= 0.70:
+                    index["by_alignment"]["high"].append(f.name)
+                elif score >= 0.60:
+                    index["by_alignment"]["typical"].append(f.name)
                 else:
-                    index["by_compliance"]["fail"].append(f.name)
+                    index["by_alignment"]["variants"].append(f.name)
             else:
-                index["by_compliance"]["unverified"].append(f.name)
+                index["by_alignment"]["typical"].append(f.name)
 
             lum = dna.get("layer9_palette", {}).get("luminance_category")
             if lum in index["by_luminance"]:

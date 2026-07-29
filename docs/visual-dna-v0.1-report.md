@@ -37,18 +37,20 @@ Extracts per image:
 
 Outputs `*.visual-dna.json` per image + cross-image `visual-dna-index.json`.
 
-## Results
+## Results — read as a reference index, NOT a quality grade
 
-### Compliance distribution
+**Important framing:** Every one of these 122 images is approved, in-use brand material. The compliance score doesn't grade them — it groups them by *style pattern* so future generation can pull recipes from the strongest examples and add variety from the edge cases.
 
-| Bucket | Count | % |
+### Style distribution across your 122 active assets
+
+| Compliance score | Count | What this means for generation |
 |---|---|---|
-| ✅ Pass (≥0.70) | 59 | 48% |
-| ⚠️ Close (0.60-0.69) | 39 | 32% |
-| ❌ Fail (<0.60) | 24 | 20% |
-| **Total** | **122** | **100%** |
+| **0.70+ (high alignment)** | 59 | Use as **Visual Recipe templates** — these are your brand canon. When generating a new SS post, copy their layer17 recipe first, then adapt. |
+| **0.60–0.69 (typical)** | 39 | Standard assets — they fit the brand but with some variation. Use as **secondary references** when the brief calls for less strict alignment. |
+| **<0.60 (variants)** | 24 | These add range: product-on-white shots, vendor-supplied colours, edge compositions. **Use deliberately** when the brief needs product clarity or vendor-presence (e.g. "Srixon bag feature"). Not flaws — variety. |
+| **Total** | **122** | The full distribution of what SS actually looks like in market. |
 
-Average score: **0.664**.
+Average: 0.664 — that's your brand's centre of gravity.
 
 ### Top performers
 
