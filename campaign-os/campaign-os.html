@@ -1907,6 +1907,127 @@ const HELP = (() => {
         rename, fill in voice + palette + archetypes. The brand switcher picks it up
         automatically on next refresh.</p>`
     },
+    'agents': {
+      title: 'How the Agents & health surface reads the lane roster',
+      body: `
+        <p>This page is the <span class="hc-term">operations console</span> for the
+        agent fleet — three cards stacked horizontally: <b>🤖 Agent runs</b>
+        (left, the lane roster), <b>🩺 System health</b> (right top, the data
+        freshness + confidence index), and <b>🔌 Integrations</b> (right bottom,
+        the connected services ladder). All three feed off a single API:
+        <code>/api/intel/agents</code> which joins three sub-systems — the agent
+        registry, the data-source freshness probe, and the integration health
+        table.</p>
+        <p><span class="hc-term">🤖 Agent runs card</span> is a flat list of every
+        agent lane in the roster. Each row carries <code>agent_id</code>
+        (the lane name, e.g. <code>pulse_keeper</code>, <code>data_harvester</code>,
+        <code>hook_smith</code>, <code>publisher</code>), a <code>runs</code>
+        counter (how many times this lane has executed in the recorded
+        history — e.g. <code>pulse_keeper</code> at 5 runs,
+        <code>hook_smith</code> at 3 runs, <code>blog_beast</code> at 3 runs),
+        and a <code>last_status</code> badge (<code>PASS</code>,
+        <code>PARTIAL</code>, <code>FAIL</code>). The current roster reads 23
+        lanes, 22 <code>PASS</code> + 1 <code>PARTIAL</code>
+        (<code>hook_smith</code>) — the PARTIAL badge means the lane ran but
+        didn't produce its full output, usually because one of its upstream
+        signals was missing or its input was empty. No lane is currently
+        <code>FAIL</code>, which means every lane's last attempt returned
+        without crashing.</p>
+        <p><span class="hc-term">Lane taxonomy</span> — the 23 lanes cluster
+        into five functional groups. <b>Keepers</b> are the persistent lanes
+        that run on a heartbeat (<code>pulse_keeper</code>, <code>data_harvester</code>,
+        <code>memory_keeper</code>, <code>taskmaster</code>). <b>Generators</b>
+        produce content assets (<code>content_architect</code>,
+        <code>hook_smith</code>, <code>idea_generator</code>,
+        <code>caption_closer</code>, <code>visual_forge</code>,
+        <code>cta_analyst</code>, <code>nudge_bot</code>).
+        <b>Distribution</b> moves content out the door
+        (<code>publisher</code>, <code>postback_logger</code>,
+        <code>schedule_captain</code>, <code>blog_beast</code>,
+        <code>reddit_ghost</code>). <b>QA + governance</b> gate the output
+        (<code>qa_inspector</code>, <code>brand_guard</code>,
+        <code>approval_captain</code>, <code>approval_runner</code>,
+        <code>live_action_auditor</code>). <b>Reporting</b> wraps the loop
+        (<code>insight_analyst</code>, <code>weekly_reporter</code>). When a
+        lane goes <code>PARTIAL</code> or <code>FAIL</code>, the failure
+        almost always propagates from one of its upstream generators — start
+        the diagnosis there.</p>
+        <p><span class="hc-term">🩺 System health card</span> is the fleet's
+        overall confidence dial. It surfaces three fields: <code>status</code>
+        (the current overall state, e.g. <code>ok</code>), <code>confidence</code>
+        (an integer 1–5, current value 3, meaning <i>"we have enough data to
+        make decisions but several sources are stale"</i>), and
+        <code>generated</code> (the timestamp the snapshot was assembled).
+        Underneath the three-field <code>code</code> block sits the data-sources
+        freshness table — one row per upstream file
+        (<code>ig-analytics.json</code>, <code>ga4-snapshot.json</code>,
+        <code>brand-directory/</code>, etc.), each with a <code>FRESH</code>
+        / <code>STALE</code> / <code>MISSING</code> badge and an
+        <code>age_label</code> ("5h ago", "999h ago"). The current snapshot
+        shows <b>5 FRESH + 1 MISSING</b> data sources — the MISSING entry is
+        the bottleneck dragging confidence from 4 down to 3. Bring that
+        file back online and the dial ticks up.</p>
+        <p><span class="hc-term">🔌 Integrations card</span> is the external
+        services ladder. Each row carries <code>integration</code> (the
+        service name, e.g. <code>Postiz (Social Publishing)</code>,
+        <code>Meta Ads Manager</code>, <code>GA4 Analytics</code>,
+        <code>Google Search Console</code>, <code>WhatsApp Business API</code>,
+        <code>Google Business Profile</code>), <code>auth_status</code>
+        (<code>active</code>, <code>active_but_unstable</code>,
+        <code>not_connected</code>), <code>connected</code> (boolean),
+        <code>hours_ago</code> / <code>days_ago</code> (when the credential
+        was last verified), <code>capabilities_unlocked</code> and
+        <code>capabilities_at_risk</code> (the features that integration
+        enables or threatens if it goes down), <code>evidence</code>
+        (the human-readable proof string the health check used, e.g.
+        <i>"API key present in credentials/. Live postback URL
+        configured."</i>), and a masked <code>api_key_prefix</code>
+        (e.g. <code>sk_live_...124326</code> — only the suffix is shown).
+        Current roster: 8 integrations, <b>1 connected + 1 degraded + 2
+        offline + 4 stale</b>. The <code>summary</code> line at the top of
+        the card shows the same numbers as a quick-glance readout.</p>
+        <p><span class="hc-term">🚦 Recommendations block</span> at the
+        bottom is what the system asks you to fix next. Each row carries
+        <code>api</code> (the integration slug, e.g. <code>meta_ads</code>,
+        <code>whatsapp_business</code>, <code>search_console</code>),
+        <code>priority</code> (1 = highest), <code>action</code> (the
+        human-readable fix, e.g. <i>"Fix Meta token refresh — set up
+        server-side OAuth for long-lived tokens"</i>), and <code>why</code>
+        (the reason, e.g. <i>"Token expires same-day. Current tokens die
+        within hours of issuing. Needs permanent refresh mechanism."</i>).
+        The current top-3 are all auth-related: Meta token refresh
+        (P1), WhatsApp Business API connection (P2), Google Search Console
+        connection (P3) — fixing P1 unlocks the publisher lane's ability to
+        actually post, fixing P3 unlocks real SEO click/impression data
+        instead of third-party proxy numbers.</p>
+        <p><b>How to use this page:</b> scan the System health card's
+        confidence dial first — if it's &lt; 3, defer any decision that depends
+        on the freshness of stale data sources. Then read the Agent runs
+        card for any <code>PARTIAL</code> / <code>FAIL</code> badges (currently
+        just <code>hook_smith</code>) and follow the upstream chain. Finally,
+        read the Integrations card's recommendations — P1 items block
+        publish, P2-P3 block data accuracy but not the user-facing flow.
+        Don't fix things in the wrong order; fixing P3 first won't move
+        confidence from 3 to 4 if P1 is the active bottleneck.</p>
+        <p><b>Anti-pattern 1:</b> re-running a <code>PARTIAL</code> lane
+        without checking the upstream signal. <code>hook_smith</code> at
+        <code>PARTIAL</code> means one of its inputs was thin — re-running
+        without fixing the input will produce the same partial output.
+        Diagnose the input first.</p>
+        <p><b>Anti-pattern 2:</b> trusting a <code>STALE</code> data
+        source as if it were <code>FRESH</code>. The freshness badges are
+        warnings — a 999h-ago row isn't just old, it's <i>missing</i>
+        in everything except file presence. Treat <code>STALE</code> as
+        <i>"don't make decisions on this number"</i>, not <i>"number is
+        old but probably close enough"</i>.</p>
+        <p><b>Anti-pattern 3:</b> rotating an integration credential
+        without first checking <code>capabilities_at_risk</code>. Every
+        row carries the list of features that credential unlocks; rotating
+        it while a publish is mid-flight can drop the postback. Always
+        re-verify <code>auth_status: active</code> + the
+        <code>evidence</code> line + the integration's recommendation
+        status before swapping tokens.</p>`
+    },
     'trends': {
       title: 'How the Trend Catcher scores signals',
       body: `
