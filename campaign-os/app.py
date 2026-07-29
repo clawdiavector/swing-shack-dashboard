@@ -313,6 +313,39 @@ def health():
     })
 
 
+# ─── What's New (last N nightshift improvements) ─────────────────────────
+# Static list of recent campaign-os improvements. Each tick appends an entry
+# at the top; oldest entries fall off the end. Shown as a "What's new" card
+# on the Morning Brief so Christelle sees the cumulative polish on her
+# morning coffee. Frontend only fetches on first brief render and caches.
+WHATS_NEW = [
+    {"ts": "2026-07-29T18:10:00Z", "tag": "nav", "title": "30 sidebar tooltips",
+     "body": "Hover any nav item (Home, Review, Brand, Trends, Ideas, Meme Lab…) for a one-line orientation. Replaces blank stare at the rail."},
+    {"ts": "2026-07-29T16:37:00Z", "tag": "chrome", "title": "Brand switcher + all-tools tooltips",
+     "body": "Hover the brand chevron, all-tools toggle, topbar search, theme switch, or Do-this-right-now for a one-line answer."},
+    {"ts": "2026-07-29T15:25:00Z", "tag": "copy", "title": "Campaigns surface label aligned",
+     "body": "Renamed the explainer title so it bridges the four labels (nav=Brand, header=Campaigns, tooltip, body) a reader was triangulating."},
+    {"ts": "2026-07-29T13:55:00Z", "tag": "data", "title": "Visual library real-data join",
+     "body": "Visual Library + Meme Lab now read live data instead of stub rows. Filters by brand + type + campaign."},
+    {"ts": "2026-07-29T12:20:00Z", "tag": "seo", "title": "SEO explainer expanded",
+     "body": "SEO surface now has a 4-section explainer with brand-specific examples; ladders to SEO Audit for the deep dive."},
+]
+
+
+@app.route('/api/whats-new', methods=['GET'])
+def whats_new():
+    """Return the recent nightshift improvement list.
+
+    Cached at the edge for 5 minutes (Cloudflare/Railway) — list is append-only
+    within a session and never changes mid-tick. Frontend caches in S.whatsNew
+    and only re-fetches if cache is older than 10 minutes.
+    """
+    resp = jsonify({"items": WHATS_NEW, "ts": datetime.datetime.utcnow().isoformat() + 'Z'})
+    resp.cache_control.public = True
+    resp.cache_control.max_age = 300
+    return resp
+
+
 # ─── Brand Directory (image + copy generator source-of-truth) ───────────
 from _lib import brand_directory as _brand_dir  # noqa: E402
 
