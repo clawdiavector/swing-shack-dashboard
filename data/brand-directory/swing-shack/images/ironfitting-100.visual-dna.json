@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ironfitting-100.jpg",
+  "layer1_metadata": {
+    "filename": "ironfitting-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1200,
+    "aspect_ratio": 0.9008,
+    "orientation": "portrait",
+    "file_size_bytes": 542381,
+    "modified": 1785312730.514726,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#3f3b35",
+        "rgb": [
+          63,
+          59,
+          53
+        ],
+        "share": 0.1704
+      },
+      {
+        "hex": "#010204",
+        "rgb": [
+          1,
+          2,
+          4
+        ],
+        "share": 0.1678
+      },
+      {
+        "hex": "#101012",
+        "rgb": [
+          16,
+          16,
+          18
+        ],
+        "share": 0.1447
+      },
+      {
+        "hex": "#181b20",
+        "rgb": [
+          24,
+          27,
+          32
+        ],
+        "share": 0.1309
+      },
+      {
+        "hex": "#282628",
+        "rgb": [
+          40,
+          38,
+          40
+        ],
+        "share": 0.1283
+      },
+      {
+        "hex": "#040506",
+        "rgb": [
+          4,
+          5,
+          6
+        ],
+        "share": 0.0938
+      },
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.0825
+      },
+      {
+        "hex": "#4c6371",
+        "rgb": [
+          76,
+          99,
+          113
+        ],
+        "share": 0.0817
+      }
+    ],
+    "mean_brightness": 32.0,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.901,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 17.6,
+    "brightness_bottom": 49.0,
+    "edge_density_grid": [
+      [
+        5.78,
+        7.87,
+        5.79
+      ],
+      [
+        3.19,
+        4.43,
+        7.46
+      ],
+      [
+        8.81,
+        8.55,
+        11.71
+      ]
+    ],
+    "subject_estimate_position": "bottom-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 7,
+    "text_preview": "HIT MORE GREENS WITH AN IRON FITTING"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 85,
+    "median_text_height_px": 42,
+    "likely_heading_text": "IRON FITTING",
+    "is_all_caps": true,
+    "sample_text_colour": "#171918"
+  },
+  "layer8_compliance": {
+    "score": 0.525,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": false
+    },
+    "off_brand_dominants": [
+      "#4c6371"
+    ],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#3f3b35",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom-right",
+      "ocr_text": "HIT MORE GREENS WITH AN IRON FITTING",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

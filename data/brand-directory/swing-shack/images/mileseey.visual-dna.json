@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey.jpg",
+  "layer1_metadata": {
+    "filename": "mileseey.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 1604070,
+    "modified": 1785312816.910566,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#1c2224",
+        "rgb": [
+          28,
+          34,
+          36
+        ],
+        "share": 0.1415
+      },
+      {
+        "hex": "#dbd7c8",
+        "rgb": [
+          219,
+          215,
+          200
+        ],
+        "share": 0.1401
+      },
+      {
+        "hex": "#7ed041",
+        "rgb": [
+          126,
+          208,
+          65
+        ],
+        "share": 0.1341
+      },
+      {
+        "hex": "#07090a",
+        "rgb": [
+          7,
+          9,
+          10
+        ],
+        "share": 0.1284
+      },
+      {
+        "hex": "#0f1314",
+        "rgb": [
+          15,
+          19,
+          20
+        ],
+        "share": 0.1217
+      },
+      {
+        "hex": "#333b39",
+        "rgb": [
+          51,
+          59,
+          57
+        ],
+        "share": 0.1134
+      },
+      {
+        "hex": "#54744b",
+        "rgb": [
+          84,
+          116,
+          75
+        ],
+        "share": 0.1109
+      },
+      {
+        "hex": "#95998f",
+        "rgb": [
+          149,
+          153,
+          143
+        ],
+        "share": 0.1099
+      }
+    ],
+    "mean_brightness": 88.3,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 44.4,
+    "brightness_bottom": 132.3,
+    "edge_density_grid": [
+      [
+        4.16,
+        12.9,
+        5.43
+      ],
+      [
+        3.95,
+        23.91,
+        6.4
+      ],
+      [
+        10.08,
+        14.35,
+        8.31
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 6,
+    "text_preview": "MILESEEY GOLF AVAILABLE FOR ORDER wis"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 48,
+    "median_text_height_px": 42,
+    "likely_heading_text": "GOLF AVAILABLE FOR",
+    "is_all_caps": true,
+    "sample_text_colour": "#feffff"
+  },
+  "layer8_compliance": {
+    "score": 0.875,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#1c2224",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "MILESEEY GOLF AVAILABLE FOR ORDER wis",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Mileseey"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

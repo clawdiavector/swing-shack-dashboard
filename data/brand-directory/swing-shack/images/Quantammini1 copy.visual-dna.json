@@ -1,0 +1,184 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Quantammini1 copy.jpg",
+  "layer1_metadata": {
+    "filename": "Quantammini1 copy.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 1318843,
+    "modified": 1785312804.103416,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#fbfcfb",
+        "rgb": [
+          251,
+          252,
+          251
+        ],
+        "share": 0.2071
+      },
+      {
+        "hex": "#0e1216",
+        "rgb": [
+          14,
+          18,
+          22
+        ],
+        "share": 0.1605
+      },
+      {
+        "hex": "#22292c",
+        "rgb": [
+          34,
+          41,
+          44
+        ],
+        "share": 0.1574
+      },
+      {
+        "hex": "#13191d",
+        "rgb": [
+          19,
+          25,
+          29
+        ],
+        "share": 0.1186
+      },
+      {
+        "hex": "#474f50",
+        "rgb": [
+          71,
+          79,
+          80
+        ],
+        "share": 0.1143
+      },
+      {
+        "hex": "#07090a",
+        "rgb": [
+          7,
+          9,
+          10
+        ],
+        "share": 0.0894
+      },
+      {
+        "hex": "#f7f9f9",
+        "rgb": [
+          247,
+          249,
+          249
+        ],
+        "share": 0.0826
+      },
+      {
+        "hex": "#adb3b3",
+        "rgb": [
+          173,
+          179,
+          179
+        ],
+        "share": 0.0701
+      }
+    ],
+    "mean_brightness": 107.3,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 52.9,
+    "brightness_bottom": 185.5,
+    "edge_density_grid": [
+      [
+        7.14,
+        9.65,
+        8.01
+      ],
+      [
+        4.17,
+        4.02,
+        7.28
+      ],
+      [
+        2.62,
+        5.16,
+        8.62
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 7,
+    "text_preview": "CALLAWAY QUANTUM MINI DRIVERS AVAILABLE FOR FITTINGS"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 40,
+    "median_text_height_px": 40,
+    "likely_heading_text": "CALLAWAY QUANTUM MINI",
+    "is_all_caps": true,
+    "sample_text_colour": "#ffffff"
+  },
+  "layer8_compliance": {
+    "score": 0.475,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#fbfcfb",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "top",
+      "ocr_text": "CALLAWAY QUANTUM MINI DRIVERS AVAILABLE FOR FITTINGS",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Callaway",
+      "Callaway Quantum"
+    ],
+    "count": 2,
+    "source": "ocr+filename"
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_post.jpg",
+  "layer1_metadata": {
+    "filename": "coaching_post.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 656661,
+    "modified": 1785314570.4958568,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#1e1c19",
+        "rgb": [
+          30,
+          28,
+          25
+        ],
+        "share": 0.1943
+      },
+      {
+        "hex": "#140f0a",
+        "rgb": [
+          20,
+          15,
+          10
+        ],
+        "share": 0.1441
+      },
+      {
+        "hex": "#0a0906",
+        "rgb": [
+          10,
+          9,
+          6
+        ],
+        "share": 0.1419
+      },
+      {
+        "hex": "#c2906c",
+        "rgb": [
+          194,
+          144,
+          108
+        ],
+        "share": 0.1125
+      },
+      {
+        "hex": "#070604",
+        "rgb": [
+          7,
+          6,
+          4
+        ],
+        "share": 0.1085
+      },
+      {
+        "hex": "#020201",
+        "rgb": [
+          2,
+          2,
+          1
+        ],
+        "share": 0.1071
+      },
+      {
+        "hex": "#302a1e",
+        "rgb": [
+          48,
+          42,
+          30
+        ],
+        "share": 0.0967
+      },
+      {
+        "hex": "#191815",
+        "rgb": [
+          25,
+          24,
+          21
+        ],
+        "share": 0.095
+      }
+    ],
+    "mean_brightness": 35.0,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 33.2,
+    "brightness_bottom": 30.5,
+    "edge_density_grid": [
+      [
+        6.49,
+        5.21,
+        5.74
+      ],
+      [
+        14.54,
+        15.42,
+        9.83
+      ],
+      [
+        8.77,
+        12.27,
+        8.77
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 21,
+    "text_preview": "YOUTUBE CAN'T SEE WHAT YOU'RE DOING WRONG STOP THE ENDLESS CYCLE OF SELF-DIAGNOSING. tm ae COACHING @ [sw)xc] BOOK ONLINE WWW.SWINGSHACK.CO.ZA"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 69,
+    "median_text_height_px": 42,
+    "likely_heading_text": "YOUTUBE CAN'T SEE",
+    "is_all_caps": true,
+    "sample_text_colour": "#e16f26"
+  },
+  "layer8_compliance": {
+    "score": 0.775,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#1e1c19",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "YOUTUBE CAN'T SEE WHAT YOU'RE DOING WRONG STOP THE ENDLESS CYCLE OF SELF-DIAGNOSING. tm ae COACHING @ [sw)xc] BOOK ONLINE WWW.SWINGSHACK.CO.ZA",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

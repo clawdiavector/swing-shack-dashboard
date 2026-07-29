@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf3 copy.jpg",
+  "layer1_metadata": {
+    "filename": "cf3 copy.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 721141,
+    "modified": 1785312692.616276,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#382f22",
+        "rgb": [
+          56,
+          47,
+          34
+        ],
+        "share": 0.1615
+      },
+      {
+        "hex": "#010101",
+        "rgb": [
+          1,
+          1,
+          1
+        ],
+        "share": 0.1522
+      },
+      {
+        "hex": "#67a5f0",
+        "rgb": [
+          103,
+          165,
+          240
+        ],
+        "share": 0.149
+      },
+      {
+        "hex": "#191817",
+        "rgb": [
+          25,
+          24,
+          23
+        ],
+        "share": 0.1346
+      },
+      {
+        "hex": "#262829",
+        "rgb": [
+          38,
+          40,
+          41
+        ],
+        "share": 0.1241
+      },
+      {
+        "hex": "#0b0a0c",
+        "rgb": [
+          11,
+          10,
+          12
+        ],
+        "share": 0.1129
+      },
+      {
+        "hex": "#030304",
+        "rgb": [
+          3,
+          3,
+          4
+        ],
+        "share": 0.1012
+      },
+      {
+        "hex": "#536376",
+        "rgb": [
+          83,
+          99,
+          118
+        ],
+        "share": 0.0644
+      }
+    ],
+    "mean_brightness": 50.1,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 39.1,
+    "brightness_bottom": 36.4,
+    "edge_density_grid": [
+      [
+        16.42,
+        17.85,
+        15.32
+      ],
+      [
+        16.29,
+        13.23,
+        11.67
+      ],
+      [
+        10.31,
+        7.22,
+        7.4
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 5,
+    "text_preview": "DID YOUKNOW? MAKEUP CAN FIX"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 202,
+    "median_text_height_px": 156,
+    "likely_heading_text": "MAKEUP",
+    "is_all_caps": true,
+    "sample_text_colour": "#64a3f0"
+  },
+  "layer8_compliance": {
+    "score": 0.675,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": false
+    },
+    "off_brand_dominants": [
+      "#536376"
+    ],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#382f22",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top",
+      "ocr_text": "DID YOUKNOW? MAKEUP CAN FIX",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

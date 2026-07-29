@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/RC1-100.jpg",
+  "layer1_metadata": {
+    "filename": "RC1-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1200,
+    "aspect_ratio": 0.9008,
+    "orientation": "portrait",
+    "file_size_bytes": 326242,
+    "modified": 1785312722.1309261,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#100e1d",
+        "rgb": [
+          16,
+          14,
+          29
+        ],
+        "share": 0.1936
+      },
+      {
+        "hex": "#070a1a",
+        "rgb": [
+          7,
+          10,
+          26
+        ],
+        "share": 0.1888
+      },
+      {
+        "hex": "#040617",
+        "rgb": [
+          4,
+          6,
+          23
+        ],
+        "share": 0.1693
+      },
+      {
+        "hex": "#060719",
+        "rgb": [
+          6,
+          7,
+          25
+        ],
+        "share": 0.1295
+      },
+      {
+        "hex": "#6e1f19",
+        "rgb": [
+          110,
+          31,
+          25
+        ],
+        "share": 0.0816
+      },
+      {
+        "hex": "#050719",
+        "rgb": [
+          5,
+          7,
+          25
+        ],
+        "share": 0.0796
+      },
+      {
+        "hex": "#030414",
+        "rgb": [
+          3,
+          4,
+          20
+        ],
+        "share": 0.079
+      },
+      {
+        "hex": "#45546c",
+        "rgb": [
+          69,
+          84,
+          108
+        ],
+        "share": 0.0784
+      }
+    ],
+    "mean_brightness": 29.8,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.901,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 20.0,
+    "brightness_bottom": 20.9,
+    "edge_density_grid": [
+      [
+        5.0,
+        2.21,
+        1.77
+      ],
+      [
+        5.57,
+        5.78,
+        4.82
+      ],
+      [
+        2.64,
+        2.53,
+        3.88
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 5,
+    "text_preview": "= swig RYDER CUP thc"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 214,
+    "median_text_height_px": 157,
+    "likely_heading_text": "=",
+    "is_all_caps": true,
+    "sample_text_colour": "#070918"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#100e1d",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "= swig RYDER CUP thc",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

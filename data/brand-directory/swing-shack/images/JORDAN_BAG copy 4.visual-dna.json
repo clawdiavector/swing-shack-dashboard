@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/JORDAN_BAG copy 4.jpg",
+  "layer1_metadata": {
+    "filename": "JORDAN_BAG copy 4.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 898632,
+    "modified": 1785312738.7896988,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#232427",
+        "rgb": [
+          35,
+          36,
+          39
+        ],
+        "share": 0.1437
+      },
+      {
+        "hex": "#dadbd4",
+        "rgb": [
+          218,
+          219,
+          212
+        ],
+        "share": 0.1412
+      },
+      {
+        "hex": "#15161a",
+        "rgb": [
+          21,
+          22,
+          26
+        ],
+        "share": 0.1347
+      },
+      {
+        "hex": "#1b1c1f",
+        "rgb": [
+          27,
+          28,
+          31
+        ],
+        "share": 0.1328
+      },
+      {
+        "hex": "#020202",
+        "rgb": [
+          2,
+          2,
+          2
+        ],
+        "share": 0.1273
+      },
+      {
+        "hex": "#9a9c96",
+        "rgb": [
+          154,
+          156,
+          150
+        ],
+        "share": 0.108
+      },
+      {
+        "hex": "#4f5051",
+        "rgb": [
+          79,
+          80,
+          81
+        ],
+        "share": 0.1064
+      },
+      {
+        "hex": "#0d0e12",
+        "rgb": [
+          13,
+          14,
+          18
+        ],
+        "share": 0.1058
+      }
+    ],
+    "mean_brightness": 70.2,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 69.1,
+    "brightness_bottom": 44.7,
+    "edge_density_grid": [
+      [
+        12.54,
+        23.73,
+        21.3
+      ],
+      [
+        11.0,
+        27.08,
+        18.88
+      ],
+      [
+        9.9,
+        11.66,
+        11.09
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 3,
+    "text_preview": "Sw)NG FOR ORDER"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 28,
+    "median_text_height_px": 28,
+    "likely_heading_text": "FOR ORDER",
+    "is_all_caps": true,
+    "sample_text_colour": "#030303"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#232427",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "Sw)NG FOR ORDER",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Jordan Bag"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

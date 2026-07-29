@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VESSEL_BAG copy 3.jpg",
+  "layer1_metadata": {
+    "filename": "VESSEL_BAG copy 3.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 841678,
+    "modified": 1785312732.5476308,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#1e201e",
+        "rgb": [
+          30,
+          32,
+          30
+        ],
+        "share": 0.147
+      },
+      {
+        "hex": "#181b19",
+        "rgb": [
+          24,
+          27,
+          25
+        ],
+        "share": 0.1424
+      },
+      {
+        "hex": "#2f2f2e",
+        "rgb": [
+          47,
+          47,
+          46
+        ],
+        "share": 0.1325
+      },
+      {
+        "hex": "#cbccb3",
+        "rgb": [
+          203,
+          204,
+          179
+        ],
+        "share": 0.1225
+      },
+      {
+        "hex": "#010101",
+        "rgb": [
+          1,
+          1,
+          1
+        ],
+        "share": 0.1202
+      },
+      {
+        "hex": "#62635c",
+        "rgb": [
+          98,
+          99,
+          92
+        ],
+        "share": 0.1182
+      },
+      {
+        "hex": "#141615",
+        "rgb": [
+          20,
+          22,
+          21
+        ],
+        "share": 0.1114
+      },
+      {
+        "hex": "#0a0c0c",
+        "rgb": [
+          10,
+          12,
+          12
+        ],
+        "share": 0.1058
+      }
+    ],
+    "mean_brightness": 56.3,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 55.7,
+    "brightness_bottom": 32.5,
+    "edge_density_grid": [
+      [
+        15.25,
+        21.13,
+        8.55
+      ],
+      [
+        13.69,
+        13.96,
+        9.43
+      ],
+      [
+        19.65,
+        12.67,
+        11.31
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 8,
+    "text_preview": "VESSEL os BAGS \u2014 AVAILABLE FOR ORDER swing!"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 47,
+    "median_text_height_px": 28,
+    "likely_heading_text": "BAGS AVAILABLE",
+    "is_all_caps": true,
+    "sample_text_colour": "#080607"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#1e201e",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top",
+      "ocr_text": "VESSEL os BAGS \u2014 AVAILABLE FOR ORDER swing!",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Vessel Bag"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

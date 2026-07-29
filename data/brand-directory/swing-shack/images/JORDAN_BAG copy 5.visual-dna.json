@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/JORDAN_BAG copy 5.jpg",
+  "layer1_metadata": {
+    "filename": "JORDAN_BAG copy 5.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 996039,
+    "modified": 1785312734.597371,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#444341",
+        "rgb": [
+          68,
+          67,
+          65
+        ],
+        "share": 0.1633
+      },
+      {
+        "hex": "#292928",
+        "rgb": [
+          41,
+          41,
+          40
+        ],
+        "share": 0.146
+      },
+      {
+        "hex": "#020202",
+        "rgb": [
+          2,
+          2,
+          2
+        ],
+        "share": 0.133
+      },
+      {
+        "hex": "#30302f",
+        "rgb": [
+          48,
+          48,
+          47
+        ],
+        "share": 0.1295
+      },
+      {
+        "hex": "#383836",
+        "rgb": [
+          56,
+          56,
+          54
+        ],
+        "share": 0.1282
+      },
+      {
+        "hex": "#0b0b0c",
+        "rgb": [
+          11,
+          11,
+          12
+        ],
+        "share": 0.118
+      },
+      {
+        "hex": "#1b1b1b",
+        "rgb": [
+          27,
+          27,
+          27
+        ],
+        "share": 0.0928
+      },
+      {
+        "hex": "#7a7d6f",
+        "rgb": [
+          122,
+          125,
+          111
+        ],
+        "share": 0.0893
+      }
+    ],
+    "mean_brightness": 47.4,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 57.2,
+    "brightness_bottom": 29.5,
+    "edge_density_grid": [
+      [
+        21.33,
+        48.39,
+        22.62
+      ],
+      [
+        12.16,
+        37.93,
+        20.17
+      ],
+      [
+        11.15,
+        11.31,
+        11.36
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 4,
+    "text_preview": "BAGS AVAILABLE FOR ORDER"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 47,
+    "median_text_height_px": 45,
+    "likely_heading_text": "BAGS AVAILABLE",
+    "is_all_caps": true,
+    "sample_text_colour": "#0a0a0a"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#444341",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top",
+      "ocr_text": "BAGS AVAILABLE FOR ORDER",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Jordan Bag"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

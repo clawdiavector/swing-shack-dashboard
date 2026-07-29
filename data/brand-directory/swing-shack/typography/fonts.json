@@ -1,0 +1,28 @@
+{
+  "schema": "https://campaign-os/brand-directory/typography/v1",
+  "brand_id": "swing-shack",
+  "version": "1.0",
+  "updated": "2026-07-28T20:10:00Z",
+  "primary": {
+    "family": "Inter",
+    "source": "Google Fonts (free, web-safe)",
+    "weights_available": [400, 500, 600, 700, 800],
+    "use_for": ["headlines", "body", "ui"]
+  },
+  "fallbacks": ["system-ui", "-apple-system", "Helvetica Neue", "Arial"],
+  "scale": [
+    {"name": "display", "size_px": 84, "weight": 800, "use_for": ["hero banners"]},
+    {"name": "h1", "size_px": 64, "weight": 800, "use_for": ["square post headline"]},
+    {"name": "h2", "size_px": 44, "weight": 700, "use_for": ["quote card", "subhead on banner"]},
+    {"name": "h3", "size_px": 32, "weight": 600, "use_for": ["story headline", "meme caption"]},
+    {"name": "body", "size_px": 18, "weight": 400, "use_for": ["body copy", "caption"]},
+    {"name": "caption", "size_px": 14, "weight": 500, "use_for": ["metadata", "footer"]}
+  ],
+  "pairing_rules": {
+    "banner_headline": {"family": "Inter", "weight": 800, "size": 84},
+    "banner_subhead": {"family": "Inter", "weight": 500, "size": 28},
+    "post_headline": {"family": "Inter", "weight": 700, "size": 64},
+    "cta_pill": {"family": "Inter", "weight": 700, "size": 20}
+  },
+  "source": "best-guess — needs Drive validation once folders are wired in to confirm what Swing Shack actually uses"
+}

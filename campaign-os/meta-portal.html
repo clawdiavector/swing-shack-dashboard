@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meta API credentials — Swing Shack Campaign OS</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #0c0a09;
+    color: #f5f5f4;
+    min-height: 100vh;
+    padding: 24px 16px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .sub { color: #a8a29e; font-size: 14px; line-height: 1.5; margin: 0 0 28px; }
+  .grid { display: grid; gap: 14px; }
+  fieldset { border: 1px solid #292524; border-radius: 10px; padding: 16px 18px; margin: 0; }
+  legend { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #d6d3d1; padding: 0 6px; }
+  label { display: block; font-size: 13px; color: #d6d3d1; margin: 12px 0 4px; }
+  label:first-child { margin-top: 0; }
+  input, select, textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: #1c1917;
+    border: 1px solid #44403c;
+    border-radius: 8px;
+    color: #fafaf9;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249,115,22,0.18);
+  }
+  .hint { font-size: 12px; color: #78716c; margin-top: 4px; line-height: 1.4; }
+  .row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 540px) { .row { grid-template-columns: 1fr; } }
+  .actions { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
+  button {
+    background: #f97316;
+    color: #0c0a09;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: #fb923c; }
+  button:disabled { background: #57534e; color: #a8a29e; cursor: not-allowed; }
+  .status {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    display: none;
+    white-space: pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .status.show { display: block; }
+  .status.ok    { background: #14532d; color: #d1fae5; border: 1px solid #166534; }
+  .status.bad   { background: #7f1d1d; color: #fee2e2; border: 1px solid #991b1b; }
+  .status.info  { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+  details { margin-top: 28px; }
+  details summary { cursor: pointer; color: #d6d3d1; font-size: 13px; padding: 6px 0; }
+  details code { background: #1c1917; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  .privacy { font-size: 12px; color: #78716c; margin-top: 22px; line-height: 1.5; }
+  .privacy strong { color: #a8a29e; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔌 Connect Meta (Facebook + Instagram)</h1>
+  <p class="sub">
+    Paste your Meta app credentials here. They land in <code style="background:#1c1917;padding:2px 6px;border-radius:4px;">~/.openclaw/workspace/credentials/</code>
+    with <code style="background:#1c1917;padding:2px 6px;border-radius:4px;">chmod 600</code> and are never logged, sent over the wire, or shared.
+    Once submitted, Heidi verifies against Graph API and Campaign OS auto-restarts to pick them up.
+  </p>
+
+  <form id="metaForm">
+    <fieldset>
+      <legend>App credentials (from developers.facebook.com/apps → Heidi → Settings → Basic)</legend>
+
+      <label for="META_APP_ID">App ID</label>
+      <input id="META_APP_ID" name="META_APP_ID" type="text" inputmode="numeric" pattern="[0-9]+" required placeholder="123456789012345">
+      <div class="hint">Numeric, ~15 digits. Visible at the top of Settings → Basic.</div>
+
+      <label for="META_APP_SECRET">App Secret</label>
+      <input id="META_APP_SECRET" name="META_APP_SECRET" type="password" required placeholder="••••••••••••••••••••••••••••••">
+      <div class="hint">Click "Show" next to App Secret, copy the long string. Treated as a password field.</div>
+
+      <label for="META_PAGE_ID">Facebook Page ID</label>
+      <input id="META_PAGE_ID" name="META_PAGE_ID" type="text" inputmode="numeric" pattern="[0-9]+" required placeholder="109876543210987">
+      <div class="hint">From Graph API Explorer query: <code>me/accounts?fields=id,name,instagram_business_account</code></div>
+
+      <label for="META_INSTAGRAM_BUSINESS_ACCOUNT_ID">Instagram Business Account ID</label>
+      <input id="META_INSTAGRAM_BUSINESS_ACCOUNT_ID" name="META_INSTAGRAM_BUSINESS_ACCOUNT_ID" type="text" inputmode="numeric" pattern="[0-9]+" required placeholder="17841234567890123">
+      <div class="hint">Same <code>me/accounts</code> response, under <code>instagram_business_account.id</code> for the Swing Shack page. Starts with 1784…</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Access token (from Graph API Explorer → Generate Access Token)</legend>
+
+      <label for="META_ACCESS_TOKEN">Long-lived access token</label>
+      <textarea id="META_ACCESS_TOKEN" name="META_ACCESS_TOKEN" rows="3" required placeholder="EAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..."></textarea>
+      <div class="hint">
+        Generate via Graph API Explorer after adding scopes: <code>pages_show_list</code>, <code>pages_read_engagement</code>,
+        <code>pages_read_user_content</code>, <code>instagram_basic</code>, <code>instagram_manage_insights</code>,
+        <code>business_management</code>. If you have a page-scoped long-lived token instead, use that — paste the whole string, do not truncate.
+      </div>
+
+      <label for="META_TOKEN_TYPE">Token type</label>
+      <select id="META_TOKEN_TYPE" name="META_TOKEN_TYPE" required>
+        <option value="user">User token (60-day, can be refreshed)</option>
+        <option value="page">Page token (long-lived, no expiry — preferred if available)</option>
+      </select>
+    </fieldset>
+
+    <div class="actions">
+      <button id="submitBtn" type="submit">Submit &amp; verify</button>
+      <span id="spinner" style="display:none;color:#a8a29e;font-size:13px;">⏳ Verifying against Graph API…</span>
+    </div>
+
+    <div id="status" class="status"></div>
+  </form>
+
+  <details>
+    <summary>Where do I find these values?</summary>
+    <p style="color:#a8a29e;font-size:13px;line-height:1.6;">
+      <strong>App ID + App Secret:</strong> developers.facebook.com → My Apps → <em>Heidi</em> → Settings → Basic.<br>
+      <strong>Page ID + IG Business ID:</strong> In Graph API Explorer, set query to
+      <code>me/accounts?fields=id,name,instagram_business_account</code> with a valid token, click Submit.<br>
+      <strong>Token:</strong> In Graph API Explorer, click <em>Generate Access Token</em> after adding the 6 scopes listed above.<br>
+      <strong>Page token (long-lived):</strong> In the <code>me/accounts</code> response, each page has its own <code>access_token</code> field — use that instead of the user token if you can.
+    </p>
+  </details>
+
+  <p class="privacy">
+    <strong>Privacy:</strong> Values POST to <code>http://localhost:8000/api/meta/credentials</code> over your local network only.
+    No third-party server, no telemetry. Files written to <code>~/.openclaw/workspace/credentials/</code> with <code>chmod 600</code>.
+    After submit, Heidi will restart Campaign OS to load the new env vars; the form will display the Graph API verification result.
+  </p>
+</div>
+
+<script>
+const form = document.getElementById('metaForm');
+const statusEl = document.getElementById('status');
+const spinner = document.getElementById('spinner');
+const btn = document.getElementById('submitBtn');
+
+function setStatus(msg, kind) {
+  statusEl.className = 'status show ' + (kind || 'info');
+  statusEl.textContent = msg;
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  btn.disabled = true;
+  spinner.style.display = 'inline';
+  setStatus('Submitting…', 'info');
+
+  const fd = new FormData(form);
+  const payload = {};
+  for (const [k, v] of fd.entries()) payload[k] = String(v).trim();
+
+  try {
+    const r = await fetch('/api/meta/credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) {
+      setStatus(
+        '✅ Saved.\n\n' +
+        'Credentials written to:\n' +
+        '  • ' + (data.app_file || '~/.openclaw/workspace/credentials/meta-app.json') + '\n' +
+        '  • ' + (data.token_file || '~/.openclaw/workspace/credentials/meta-token.json') + '\n\n' +
+        'Graph API verification:\n' +
+        (data.verify || '(verification pending — Heidi will report)'),
+        'ok'
+      );
+    } else {
+      setStatus(
+        '❌ ' + (data.error || ('HTTP ' + r.status)) + '\n\n' +
+        (data.upstream ? 'Upstream: ' + JSON.stringify(data.upstream, null, 2) + '\n\n' : '') +
+        (data.hint ? 'Hint: ' + data.hint : ''),
+        'bad'
+      );
+    }
+  } catch (err) {
+    setStatus('❌ Network error: ' + err.message, 'bad');
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,3000 @@
+{
+  "schema": "https://clawdia.io/agents/meme-lord/v2",
+  "version": "2.0",
+  "owner": "meme_lord",
+  "description": "Curated meme historian database — ~80 of the most viral memes of the last decade. Each entry carries era, peak year, format, mechanism (why it works), brand-fit scoring seeds, and adaptation prompts for Swing Shack (golf simulator, Johannesburg, coaching, club fitting).",
+  "updated": "2026-07-27T21:00:00Z",
+  "taxonomy": {
+    "formats": [
+      {
+        "id": "two-panel-comparison",
+        "label": "Two-panel comparison",
+        "examples": [
+          "Drake",
+          "Expectation vs Reality"
+        ]
+      },
+      {
+        "id": "distraction-boyfriend",
+        "label": "Distracted choice",
+        "examples": [
+          "Distracted Boyfriend",
+          "Woman Yelling at Cat"
+        ]
+      },
+      {
+        "id": "reaction-image",
+        "label": "Reaction",
+        "examples": [
+          "Disaster Girl",
+          "Roll Safe",
+          "Hide the Pain Harold"
+        ]
+      },
+      {
+        "id": "expanding-brain",
+        "label": "Expanding escalation",
+        "examples": [
+          "Expanding Brain",
+          "Galaxy Brain"
+        ]
+      },
+      {
+        "id": "this-is-fine",
+        "label": "Denial / fine",
+        "examples": [
+          "This is Fine",
+          "Everything is Fine"
+        ]
+      },
+      {
+        "id": "pointing-spider",
+        "label": "Pointing callout",
+        "examples": [
+          "Spider-Man Pointing",
+          "Change My Mind"
+        ]
+      },
+      {
+        "id": "template-advice",
+        "label": "Advice animal / template",
+        "examples": [
+          "Smug Wojak",
+          "Gigachad",
+          "Soyjak"
+        ]
+      },
+      {
+        "id": "video-loop",
+        "label": "Looping video / dance",
+        "examples": [
+          "Coffin Dance",
+          "Cupid Shuffle"
+        ]
+      },
+      {
+        "id": "screen-capture",
+        "label": "Screen capture / chat",
+        "examples": [
+          "I Can Has Cheezburger",
+          "LOLcats",
+          "Leet Speak"
+        ]
+      },
+      {
+        "id": "text-overlay",
+        "label": "Bold text overlay",
+        "examples": [
+          "Top text / Bottom text",
+          "Mocking SpongeBob"
+        ]
+      }
+    ],
+    "eras": [
+      {
+        "id": "classic",
+        "label": "Classic (pre-2015)",
+        "peak_window": "2007-2014"
+      },
+      {
+        "id": "mid",
+        "label": "Mid (2015-2019)",
+        "peak_window": "2015-2019"
+      },
+      {
+        "id": "recent",
+        "label": "Recent (2020-2023)",
+        "peak_window": "2020-2023"
+      },
+      {
+        "id": "current",
+        "label": "Current (2024+)",
+        "peak_window": "2024-2026"
+      }
+    ],
+    "mechanisms": [
+      {
+        "id": "self-deprecating",
+        "label": "Self-deprecating humour",
+        "best_for": "showing you're human, not corporate"
+      },
+      {
+        "id": "relatable-struggle",
+        "label": "Relatable struggle",
+        "best_for": "education pillars, naming the pain"
+      },
+      {
+        "id": "absurd-escalation",
+        "label": "Absurd escalation",
+        "best_for": "Reels, attention-grab hooks"
+      },
+      {
+        "id": "tribal-identity",
+        "label": "Tribal / in-group",
+        "best_for": "community posts, member social"
+      },
+      {
+        "id": "ironic-corporate",
+        "label": "Ironic corporate",
+        "best_for": "meme-marketing for younger audience"
+      },
+      {
+        "id": "before-after",
+        "label": "Before/after transformation",
+        "best_for": "TrackMan results, swing fixes"
+      },
+      {
+        "id": "callout-contrast",
+        "label": "Callout / contrast",
+        "best_for": "club fitting vs off-the-rack"
+      }
+    ]
+  },
+  "memes": [
+    {
+      "id": "distracted-boyfriend",
+      "name": "Distracted Boyfriend",
+      "format": "distraction-boyfriend",
+      "era": "classic",
+      "peak_year": 2017,
+      "origin": "Antonio Guillem / stock photo (2015), meme explosion 2017",
+      "why_it_works": "Universal temptation-vs-loyalty frame. Three clear labels map to anything competing for attention.",
+      "mechanism": "callout-contrast",
+      "tags": [
+        "choice",
+        "temptation",
+        "switching",
+        "loyalty",
+        "comparing"
+      ],
+      "swingshack_fit_seeds": [
+        "TrackMan data vs gut feel",
+        "Custom fitting vs off-rack",
+        "Indoor golf vs outdoor",
+        "Coach Cat vs YouTube lessons",
+        "R250 session vs wasted golf balls"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Three-column text overlay; left=current choice, middle=jealousy, right=temptation.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "drake-preference",
+      "name": "Drake Hotline Bling (Preference)",
+      "format": "two-panel-comparison",
+      "era": "classic",
+      "peak_year": 2016,
+      "origin": "Drake 'Hotline Bling' video still, meme explosion late 2015-2016",
+      "why_it_works": "Simple rejection/approval binary. The negative/positive contrast gives immediate punch.",
+      "mechanism": "callout-contrast",
+      "tags": [
+        "preference",
+        "no-yes",
+        "reject",
+        "prefer",
+        "choice"
+      ],
+      "swingshack_fit_seeds": [
+        "Outdoor range vs TrackMan",
+        "Generic lessons vs Coach Cat",
+        "Off-rack clubs vs fitted",
+        "Youtube swing fixes vs real data"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "Top panel = 'nah' (rejected), bottom panel = 'yeah' (preferred). Bold, short captions.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "woman-yelling-cat",
+      "name": "Woman Yelling at Cat",
+      "format": "distraction-boyfriend",
+      "era": "classic",
+      "peak_year": 2019,
+      "origin": "Smudge the cat + Taylor Armstrong RHOBH scene, 2019",
+      "why_it_works": "Combines an emotional woman with an indifferent cat — perfect for 'I'm upset, you're not listening' framing.",
+      "mechanism": "relatable-struggle",
+      "tags": [
+        "frustration",
+        "misunderstanding",
+        "explaining",
+        "not-listening",
+        "judging"
+      ],
+      "swingshack_fit_seeds": [
+        "Golfer explaining slice to partner",
+        "Coach Cat explaining swing to student",
+        "GMB reviews vs reality",
+        "Member feedback vs our data"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "education",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook",
+        "twitter"
+      ],
+      "format_hint": "Left = angry human (the complainer), right = smug cat (the oblivious target).",
+      "fatigue_risk": "medium",
+      "still_works": true
+    },
+    {
+      "id": "this-is-fine",
+      "name": "This Is Fine",
+      "format": "this-is-fine",
+      "era": "classic",
+      "peak_year": 2014,
+      "origin": "KC Green 'The Pile' webcomic, 2013",
+      "why_it_works": "Denial-as-comfort. Disaster around you + cheerful acceptance = universally relatable coping.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "denial",
+        "coping",
+        "burnout",
+        "fine",
+        "calm"
+      ],
+      "swingshack_fit_seeds": [
+        "Player shanking every ball but 'I'm fine'",
+        "Off-rack clubs but 'they're fine'",
+        "Group lesson but 'I get it'",
+        "Weather but 'I'll play through'"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "community",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Dog at café table engulfed in flames, calmly sipping coffee.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "expanding-brain",
+      "name": "Expanding Brain",
+      "format": "expanding-brain",
+      "era": "classic",
+      "peak_year": 2017,
+      "origin": "Brain meme series, 2017",
+      "why_it_works": "Escalation humour — each panel claims a 'smarter' tier. Perfect for 'here's the next level' content.",
+      "mechanism": "absurd-escalation",
+      "tags": [
+        "smarter",
+        "tier",
+        "escalation",
+        "galaxy-brain",
+        "level-up"
+      ],
+      "swingshack_fit_seeds": [
+        "Practice vs TrackMan session vs Custom fitting vs Membership",
+        "Range balls vs Real balls indoors",
+        "Outdoor game vs indoor data",
+        "Guess vs Measure"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "4 panels, each with progressively glowing brain. Caption escalates in 'depth'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "disaster-girl",
+      "name": "Disaster Girl",
+      "format": "reaction-image",
+      "era": "classic",
+      "peak_year": 2020,
+      "origin": "2005 photo of Zoë Roth, went viral 2020",
+      "why_it_works": "Evil smirk while watching chaos = perfect for 'I did this on purpose' energy.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "evil",
+        "smirk",
+        "chaos",
+        "watching",
+        "destroy"
+      ],
+      "swingshack_fit_seeds": [
+        "Me watching your swing and not telling you",
+        "When the slice is bad and I just nod",
+        "Coach Cat watching a 3-putt",
+        "Me watching someone buy off-rack clubs"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "community",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "Photo of girl with mischievous smirk in front of fire. Caption = 'innocent' framing of chaos.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "change-my-mind",
+      "name": "Steven Crowder 'Change My Mind'",
+      "format": "pointing-spider",
+      "era": "mid",
+      "peak_year": 2018,
+      "origin": "Steven Crowder segment, 2018",
+      "why_it_works": "Bold contrarian statement + invitation to argue. Used ironically for soft takes.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "contrarian",
+        "hot-take",
+        "opinion",
+        "argue",
+        "unpopular"
+      ],
+      "swingshack_fit_seeds": [
+        "'TrackMan sessions are worth it. Change my mind.'",
+        "'Off-rack clubs are a scam. Change my mind.'",
+        "'Indoor golf is real golf. Change my mind.'"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education"
+      ],
+      "platform_fit": [
+        "twitter",
+        "instagram"
+      ],
+      "format_hint": "Person at table with sign: bold one-line take. Caption invites argument.",
+      "fatigue_risk": "medium",
+      "still_works": true
+    },
+    {
+      "id": "roll-safe",
+      "name": "Roll Safe (Tap to Pray)",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "BBC 'Hood Documentary' still, 2016-2017",
+      "why_it_works": "Cunning 'clever' logic. Tap-the-head-hands = comedic genius gesture.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "clever",
+        "hack",
+        "logic",
+        "thinking",
+        "easy-out"
+      ],
+      "swingshack_fit_seeds": [
+        "Can't slice if you don't tee off",
+        "Fix your grip by ignoring it",
+        "Practice by watching YouTube",
+        "Get fit by buying new clubs every month"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "education",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Two Black men, one tapping head. Caption = 'clever' but obviously flawed logic.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "hide-the-pain-harold",
+      "name": "Hide the Pain Harold",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2018,
+      "origin": "András Arató stock photos, viral 2018",
+      "why_it_works": "The forced smile masking pain. Universal 'just get through it' energy.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "forced-smile",
+        "pain",
+        "enduring",
+        "tough",
+        "polite-suffering"
+      ],
+      "swingshack_fit_seeds": [
+        "'I'm fine playing in this weather'",
+        "'My handicap is fine'",
+        "'I'll fix that next round'",
+        "Member social but quietly in pain"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Older man smiling forced smile. Caption = understated suffering.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "spider-man-pointing",
+      "name": "Spider-Man Pointing at Spider-Man",
+      "format": "pointing-spider",
+      "era": "classic",
+      "peak_year": 2017,
+      "origin": "1967 Spider-Man cartoon, meme 2017",
+      "why_it_works": "Two identical things calling each other out. Perfect for hypocrisy, sameness, or 'we're the same picture'.",
+      "mechanism": "callout-contrast",
+      "tags": [
+        "same",
+        "hypocrisy",
+        "identical",
+        "copy",
+        "mirror"
+      ],
+      "swingshack_fit_seeds": [
+        "YouTubers vs Coach Cat, same advice?",
+        "Outdoor golfers vs indoor golfers",
+        "Generic lessons vs TrackMan data",
+        "Two members with the same slice"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Two Spider-Men pointing. Caption = two equivalent things.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "smug-wojak",
+      "name": "Smug Wojak",
+      "format": "template-advice",
+      "era": "mid",
+      "peak_year": 2020,
+      "origin": "Wojak / Feels Guy evolution, 2018-2020",
+      "why_it_works": "Self-satisfied grin = 'I know something you don't'. Perfect for humble-brag or 'actually...' content.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "smug",
+        "actually",
+        "knowing",
+        "smart",
+        "wink"
+      ],
+      "swingshack_fit_seeds": [
+        "'Actually, TrackMan measures smash factor'",
+        "'Actually, your swing path is 8° in-to-out'",
+        "'Actually, indoor golf is year-round'",
+        "'Actually, club fitting saves strokes'"
+      ],
+      "voice_fit": [
+        "stick",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Hand-drawn smug face. Caption = 'actually...' or smug correction.",
+      "fatigue_risk": "medium",
+      "still_works": true
+    },
+    {
+      "id": "mocking-spongebob",
+      "name": "Mocking SpongeBob",
+      "format": "text-overlay",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "SpongeBob alt text meme, 2017",
+      "why_it_works": "Alternating caps. The grammar alone screams sarcasm. Works in any short rebuttal.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "sarcasm",
+        "mimicry",
+        "alternating",
+        "mocking",
+        "reply"
+      ],
+      "swingshack_fit_seeds": [
+        "'YoU dOn'T nEeD tRaCkMaN'",
+        "'I'M a PrO gOlFeR'",
+        "'ThIs IsN'T rEaL gOlF'",
+        "'I cAn FiX iT mYsElF'"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "community",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter",
+        "tiktok"
+      ],
+      "format_hint": "SpongeBob + alt caps repeating what someone said. Caption = mock version of a hot take.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "i-can-has-cheezburger",
+      "name": "I Can Has Cheezburger? (LOLcat)",
+      "format": "screen-capture",
+      "era": "classic",
+      "peak_year": 2008,
+      "origin": "Happycat / Cheezburger site, 2007",
+      "why_it_works": "Cat + broken English. Innocence + grammar chaos = timeless cute humour.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "cat",
+        "cute",
+        "lolcat",
+        "broken-english",
+        "innocent"
+      ],
+      "swingshack_fit_seeds": [
+        "Kitten on the simulator",
+        "Cat watching TrackMan numbers",
+        "Coaching a beginner who hits it 50m",
+        "Member's first indoor golf experience"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community",
+        "events"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Cat photo + Impact font caption in broken English.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "success-kid",
+      "name": "Success Kid",
+      "format": "reaction-image",
+      "era": "classic",
+      "peak_year": 2011,
+      "origin": "2007 photo of Sammy Griner, viral 2011",
+      "why_it_works": "Fist-clenched baby = pure victory. Wins at any small triumph.",
+      "mechanism": "before-after",
+      "tags": [
+        "win",
+        "victory",
+        "small-triumph",
+        "yes",
+        "nailed-it"
+      ],
+      "swingshack_fit_seeds": [
+        "Fixed my slice",
+        "Hit a 250m drive",
+        "Beat my handicap",
+        "Got fitted and shot 79"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Baby with clenched fist + sand. Caption = 'I did the thing!'",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "bad-luck-brian",
+      "name": "Bad Luck Brian",
+      "format": "reaction-image",
+      "era": "classic",
+      "peak_year": 2012,
+      "origin": "2011 yearbook photo meme",
+      "why_it_works": "Awkward school photo + escalating bad luck = schadenfreude + relatability.",
+      "mechanism": "relatable-struggle",
+      "tags": [
+        "bad-luck",
+        "schadenfreude",
+        "school",
+        "epic-fail",
+        "oof"
+      ],
+      "swingshack_fit_seeds": [
+        "Bought new clubs, then shanked every shot",
+        "Booked a session, simulator crashed",
+        "Got a hole-in-one... at Topgolf, not us",
+        "Drove 45min, forgot clubs"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Awkward school photo + caption about worst possible luck.",
+      "fatigue_risk": "medium",
+      "still_works": true
+    },
+    {
+      "id": "first-world-problems",
+      "name": "First World Problems",
+      "format": "text-overlay",
+      "era": "classic",
+      "peak_year": 2012,
+      "origin": "2011 hashtag, viral 2012",
+      "why_it_works": "Petty luxury complaints. Self-aware privilege humour.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "petty",
+        "privilege",
+        "whining",
+        "first-world",
+        "small"
+      ],
+      "swingshack_fit_seeds": [
+        "My TrackMan numbers are TOO good now",
+        "My fitted driver is too accurate",
+        "I can't decide between two swing coaches",
+        "My simulator is too realistic"
+      ],
+      "voice_fit": [
+        "bag-drop",
+        "stick"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Image of luxury item + petty complaint caption.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "futurama-fry",
+      "name": "Futurama Fry (Not Sure If)",
+      "format": "screen-capture",
+      "era": "classic",
+      "peak_year": 2010,
+      "origin": "Futurama 'Not sure if' meme, 2009-2010",
+      "why_it_works": "Squinting, uncertain. Perfect for 'I'm not sure if...' sarcasm.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "unsure",
+        "suspicious",
+        "skeptical",
+        "squinting",
+        "really?"
+      ],
+      "swingshack_fit_seeds": [
+        "Not sure if my slice is the club or me",
+        "Not sure if TrackMan is worth it or just numbers",
+        "Not sure if Coach Cat is tough or mean"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "education",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Fry squinting. Caption = 'Not sure if...' setup.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "y-u-no",
+      "name": "Y U NO",
+      "format": "reaction-image",
+      "era": "classic",
+      "peak_year": 2011,
+      "origin": "Rage comic era, 2010-2011",
+      "why_it_works": "Visibly frustrated stick figure. Direct complaint energy.",
+      "mechanism": "relatable-struggle",
+      "tags": [
+        "frustration",
+        "rage",
+        "why",
+        "complaint",
+        "fail"
+      ],
+      "swingshack_fit_seeds": [
+        "Y U NO book a TrackMan session?",
+        "Y U NO get fitted?",
+        "Y U NO practice indoors when it's raining?",
+        "Y U NO post your swing?"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Stick figure with frustrated face. Caption = 'Y U NO ___?'",
+      "fatigue_risk": "medium",
+      "still_works": false
+    },
+    {
+      "id": "one-does-not-simply",
+      "name": "One Does Not Simply",
+      "format": "pointing-spider",
+      "era": "classic",
+      "peak_year": 2012,
+      "origin": "Boromir 'One does not simply walk into Mordor', 2010",
+      "why_it_works": "Boromir's serious face + absolute statement. Use for 'you think you can, but no'.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "serious",
+        "boromir",
+        "lord-of-the-rings",
+        "cannot",
+        "forbidden"
+      ],
+      "swingshack_fit_seeds": [
+        "One does not simply buy off-rack clubs",
+        "One does not simply fix a slice with new grips",
+        "One does not simply play golf in Joburg rain",
+        "One does not simply ignore TrackMan data"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Boromir serious face. Caption = 'One does not simply ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "confused-math-lady",
+      "name": "Confused Math Lady / Blonde Woman",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2018,
+      "origin": "Confused stock footage, viral 2018",
+      "why_it_works": "Head-scratching confusion = perfect for 'wait, what?' moments.",
+      "mechanism": "relatable-struggle",
+      "tags": [
+        "confused",
+        "math",
+        "wait-what",
+        "lost",
+        "calculating"
+      ],
+      "swingshack_fit_seeds": [
+        "When someone says they don't need TrackMan data",
+        "When handicap is 28 but you think you're scratch",
+        "When 'just swing easy' is your only tip",
+        "When you buy a driver for slice"
+      ],
+      "voice_fit": [
+        "stick",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Blonde woman scratching head. Caption = confused reaction.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "gigachad",
+      "name": "Gigachad",
+      "format": "template-advice",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "Sleek'N'Tears photoshops of Ernst Schmid, 2021",
+      "why_it_works": "Hyper-masculine ideal. Aspirational + ironic. Used for both sincere and sarcastic takes.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "alpha",
+        "chad",
+        "strong",
+        "ideal",
+        "aspirational"
+      ],
+      "swingshack_fit_seeds": [
+        "Me after Coach Cat fixed my slice",
+        "Me with my fitted clubs",
+        "Me with TrackMan data vs you guessing",
+        "Member with custom-fitted bag"
+      ],
+      "voice_fit": [
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Black-and-white muscular statue. Caption = 'Chad move' framing.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "coffin-dance",
+      "name": "Coffin Dance / Dancing Pallbearers",
+      "format": "video-loop",
+      "era": "recent",
+      "peak_year": 2020,
+      "origin": "Ghanaian pallbearers, viral 2020",
+      "why_it_works": "Dark humour + dance = perfectly morbid comedy. Used for 'RIP to your swing' jokes.",
+      "mechanism": "absurd-escalation",
+      "tags": [
+        "rip",
+        "death",
+        "dance",
+        "gallows",
+        "epitaph"
+      ],
+      "swingshack_fit_seeds": [
+        "RIP to your old swing",
+        "When your slice meets TrackMan data",
+        "When you buy off-rack clubs in 2026",
+        "When you ignore your coach"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "community",
+        "education"
+      ],
+      "platform_fit": [
+        "tiktok",
+        "instagram"
+      ],
+      "format_hint": "Loop of dancers carrying coffin + dance. Caption = 'RIP to ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "trade-offer",
+      "name": "Trade Offer (Minecraft Steve)",
+      "format": "video-loop",
+      "era": "mid",
+      "peak_year": 2015,
+      "origin": "Minecraft villager trading, 2015",
+      "why_it_works": "Two villagers offering each other emeralds. Used for absurd trade comparisons.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "trade",
+        "offer",
+        "exchange",
+        "minecraft",
+        "swap"
+      ],
+      "swingshack_fit_seeds": [
+        "Your old driver for fitted clubs",
+        "YouTube lessons for Coach Cat",
+        "Outdoor golf for indoor with data",
+        "Range balls for TrackMan"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "Minecraft villager trading UI. Two offers. Caption = swap.",
+      "fatigue_risk": "medium",
+      "still_works": true
+    },
+    {
+      "id": "stonks",
+      "name": "Stonks",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "Meme Stocks 2021, photoshopped 'Stonks' guy",
+      "why_it_works": "Meme-stocks vocabulary. Profit-go-up framing.",
+      "mechanism": "before-after",
+      "tags": [
+        "profit",
+        "gain",
+        "up",
+        "money",
+        "win"
+      ],
+      "swingshack_fit_seeds": [
+        "Stonks: TrackMan sessions",
+        "Stonks: Coach Cat membership",
+        "Stonks: Fitted clubs",
+        "Stonks: My new handicap"
+      ],
+      "voice_fit": [
+        "bag-drop",
+        "stick"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Meme-stocks guy + 'STONKS' text. Caption = profit/success framing.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "always-has-been",
+      "name": "Always Has Been (Astronaut)",
+      "format": "two-panel-comparison",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "2021 astronaut meme",
+      "why_it_works": "Wait-then-realization. Perfect for 'actually I knew this all along' or 'it's always been true'.",
+      "mechanism": "callout-contrast",
+      "tags": [
+        "wait",
+        "realization",
+        "always",
+        "oh",
+        "pretending"
+      ],
+      "swingshack_fit_seeds": [
+        "Indoor golf is real golf? Always has been.",
+        "TrackMan data matters? Always has been.",
+        "Club fitting works? Always has been.",
+        "Coach Cat is the move? Always has been."
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "Two astronauts. Second panel reveals 'always has been'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "stonks-down",
+      "name": "Not Stonks (Down arrow guy)",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "Meme stocks 2021",
+      "why_it_works": "Inverse of stonks. Loss framing.",
+      "mechanism": "before-after",
+      "tags": [
+        "loss",
+        "down",
+        "fail",
+        "reverse",
+        "red"
+      ],
+      "swingshack_fit_seeds": [
+        "Not stonks: ignoring TrackMan",
+        "Not stonks: off-rack clubs",
+        "Not stonks: 'just wing it' golf",
+        "Not stonks: skipped coaching"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Same guy + red arrow + 'NOT STONKS' text.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "bernie-asking",
+      "name": "Bernie Sanders Mittens",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "Inauguration 2021 photo by Brendan Smialowski",
+      "why_it_works": "Cold, judging, impatient. Perfect for 'seriously?' energy.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "cold",
+        "judging",
+        "waiting",
+        "impatient",
+        "seriously"
+      ],
+      "swingshack_fit_seeds": [
+        "Bernie waiting for you to book TrackMan",
+        "Bernie waiting for your swing to be fixed",
+        "Bernie waiting for fitted clubs",
+        "Bernie waiting in Joburg winter"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "community",
+        "events"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Bernie in mittens on chair. Caption = impatient/judging.",
+      "fatigue_risk": "medium",
+      "still_works": true
+    },
+    {
+      "id": "side-eye-chloe",
+      "name": "Side-Eye Chloe",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2018,
+      "origin": "2014 photo, viral 2018",
+      "why_it_works": "Disapproving side-eye. Universal 'I'm not buying it'.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "side-eye",
+        "suspicious",
+        "judging",
+        "really",
+        "no-way"
+      ],
+      "swingshack_fit_seeds": [
+        "When someone says they don't need fitting",
+        "When someone says they fix their slice with new grips",
+        "When 'just swing slower' is advice",
+        "When someone brags about a 36-handicap"
+      ],
+      "voice_fit": [
+        "stick",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "education",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Little girl looking side-eye. Caption = skeptical reaction.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "doge",
+      "name": "Doge (Much Wow)",
+      "format": "reaction-image",
+      "era": "classic",
+      "peak_year": 2013,
+      "origin": "2010 photo of Kabosu, viral 2013",
+      "why_it_works": "Inner monologue meme. Comic Sans + multicolour words = pure joy.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "doge",
+        "wow",
+        "much",
+        "very",
+        "comic-sans"
+      ],
+      "swingshack_fit_seeds": [
+        "Such swing. Very TrackMan. Wow.",
+        "Much data. So fitting. Wow.",
+        "Very slice. Such coach. Wow."
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Shiba Inu + Comic Sans + 'wow/such/much/very' inner monologue.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "nyan-cat",
+      "name": "Nyan Cat",
+      "format": "video-loop",
+      "era": "classic",
+      "peak_year": 2011,
+      "origin": "2011 YouTube video",
+      "why_it_works": "Endless loop + rainbow trail. Pure serotonin.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "cat",
+        "rainbow",
+        "loop",
+        "music",
+        "pop-tart"
+      ],
+      "swingshack_fit_seeds": [
+        "Loop of perfect shots",
+        "Endless swing practice",
+        "TrackMan graph going rainbow up",
+        "Member social highlight reel"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community",
+        "events"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook",
+        "tiktok"
+      ],
+      "format_hint": "Pixel cat with rainbow trail looping.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "harold-shipping",
+      "name": "Hide-the-Pain-Harold shipping face",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2019,
+      "origin": "András Arató (same as Harold), 2019",
+      "why_it_works": "Forced smile used for shipping + satisfaction masking pain.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "forced-smile",
+        "shipping",
+        "pain",
+        "release",
+        "endure"
+      ],
+      "swingshack_fit_seeds": [
+        "Shipping your old swing to retirement",
+        "Releasing your slice to the wild",
+        "When 'just one more session' is fine",
+        "Member social but secretly injured"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Harold + shipping label / 'release' framing.",
+      "fatigue_risk": "medium",
+      "still_works": true
+    },
+    {
+      "id": "galaxy-brain",
+      "name": "Galaxy Brain (Astrophysicist)",
+      "format": "expanding-brain",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "Cosmos / Neil deGrasse Tyson reaction images",
+      "why_it_works": "Tier-list escalation with real astrophysicist photos. Smart-pretender humour.",
+      "mechanism": "absurd-escalation",
+      "tags": [
+        "smart",
+        "tier",
+        "escalation",
+        "cosmos",
+        "science"
+      ],
+      "swingshack_fit_seeds": [
+        "Beginner → Tracker → TrackMan → Custom fitted → Coach Cat tier",
+        "Range balls → Real balls → Indoor simulator → TrackMan → Custom fit"
+      ],
+      "voice_fit": [
+        "bag-drop",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "Cosmos host photos + tier captions.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "biden-ice-cream",
+      "name": "Joe Biden Eating Ice Cream",
+      "format": "video-loop",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "2021 viral ice cream clip",
+      "why_it_works": "Innocent pleasure. 'Me enjoying ___' energy.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "pleasure",
+        "innocent",
+        "enjoying",
+        "treat",
+        "simple"
+      ],
+      "swingshack_fit_seeds": [
+        "Me eating ice cream while watching TrackMan data",
+        "Me enjoying fitted clubs for the first time",
+        "Me enjoying indoor golf in Joburg winter"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Biden licking ice cream. Caption = 'Me enjoying ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "pigeon-blinking",
+      "name": "Pigeon Blinking / Is This a Pigeon",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2018,
+      "origin": "1990s anime 'The Brave Fighter of Sun Fighbird', viral 2018",
+      "why_it_works": "Confusion-as-identification. 'Wait, is that ___?'.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "confused",
+        "misidentifying",
+        "wait",
+        "actually",
+        "no"
+      ],
+      "swingshack_fit_seeds": [
+        "*looks at my slice* Is this a swing?",
+        "*looks at TrackMan* Is this a score?",
+        "*looks at fitted driver* Is this golf?",
+        "*sees Coach Cat* Is this a friend?"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Anime man pointing at butterfly. Caption = 'Is this a ___?'",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "sad-pablo",
+      "name": "Pablo Escobar Crying (Sad Pablo)",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "Narcos / Pablo Escobar show still, 2017",
+      "why_it_works": "Wealthy-but-sad. 'Rich but crying' relatable dissonance.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "sad",
+        "wealth",
+        "crying",
+        "rich",
+        "drama"
+      ],
+      "swingshack_fit_seeds": [
+        "Bought new clubs, still slice",
+        "Won the long-drive comp, still can't putt",
+        "TrackMan session, found out I'm worse than I thought",
+        "Member social but lost ball"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "community",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Pablo Escobar crying. Caption = 'bought clubs but still bad'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "its-free-real-estate",
+      "name": "It's Free Real Estate",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2019,
+      "origin": "2019 meme of pointing woman, 'free real estate' joke",
+      "why_it_works": "Aggressive unsolicited advice framing. 'Hey, here's a free idea!'.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "advice",
+        "unsolicited",
+        "real-estate",
+        "tip",
+        "free"
+      ],
+      "swingshack_fit_seeds": [
+        "Hey, free real estate: get fitted for once",
+        "Free idea: book a TrackMan session",
+        "Free real estate: try indoor golf",
+        "Free advice: don't ignore Coach Cat"
+      ],
+      "voice_fit": [
+        "stick",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Woman pointing. Caption = 'Free real estate: ___'",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "surprised-pikachu",
+      "name": "Surprised Pikachu",
+      "format": "reaction-image",
+      "era": "classic",
+      "peak_year": 2018,
+      "origin": "Pokémon still, viral 2018",
+      "why_it_works": "Shock at obvious outcome. 'Why is everyone surprised?'.",
+      "mechanism": "relatable-struggle",
+      "tags": [
+        "shocked",
+        "obvious",
+        "really",
+        "huh",
+        "wait"
+      ],
+      "swingshack_fit_seeds": [
+        "Bought off-rack clubs, surprised they don't fit",
+        "Skipped lessons, surprised I'm not improving",
+        "Hit driver 250m but aimed at trees, surprised",
+        "Bought 5 drivers, surprised still slice"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Pikachu surprised face. Caption = predictable outcome.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "press-f",
+      "name": "Press F to Pay Respects",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "Call of Duty: Advanced Warfare prompt, viral 2017",
+      "why_it_works": "Gaming convention as meme. Universal 'RIP' framing.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "f",
+        "rip",
+        "respects",
+        "gaming",
+        "funeral"
+      ],
+      "swingshack_fit_seeds": [
+        "F to your old swing",
+        "F to your slice",
+        "F to off-rack clubs",
+        "F to your 'natural feel'"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "community",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter",
+        "tiktok"
+      ],
+      "format_hint": "CoD prompt + 'Press F'. Caption = 'F to ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "thinking-emoji",
+      "name": "🤔 Thinking Face",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "Emoji 2015, viral 2017",
+      "why_it_works": "Single-emoji sarcasm. 'Hmm, interesting' = actually no.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "thinking",
+        "sarcasm",
+        "hmm",
+        "really",
+        "skeptical"
+      ],
+      "swingshack_fit_seeds": [
+        "🤔 'just swing slower' advice",
+        "🤔 'off-rack clubs are fine'",
+        "🤔 'I don't need TrackMan'",
+        "🤔 'real golf is outdoor only'"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "education"
+      ],
+      "platform_fit": [
+        "twitter",
+        "instagram"
+      ],
+      "format_hint": "🤔 + sarcastic caption.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "chef-kiss",
+      "name": "Chef's Kiss (Italian Hand)",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2020,
+      "origin": "Italian chef gesture, viral 2020",
+      "why_it_works": "Perfect-execution energy. 'This is exactly right.'.",
+      "mechanism": "before-after",
+      "tags": [
+        "perfect",
+        "italian",
+        "kiss",
+        "flawless",
+        "yes"
+      ],
+      "swingshack_fit_seeds": [
+        "*chef's kiss* my new TrackMan numbers",
+        "*chef's kiss* my fitted clubs",
+        "*chef's kiss* my swing after Coach Cat",
+        "*chef's kiss* indoor golf"
+      ],
+      "voice_fit": [
+        "bag-drop",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Italian hand gesture + perfect outcome caption.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "this-is-the-way",
+      "name": "This Is The Way (Mandalorian)",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2020,
+      "origin": "Mandalorian 'This is the way', 2020",
+      "why_it_works": "Confident acceptance. 'We've always done it this way.'",
+      "mechanism": "tribal-identity",
+      "tags": [
+        "mandalorian",
+        "way",
+        "do-it",
+        "tribe",
+        "method"
+      ],
+      "swingshack_fit_seeds": [
+        "TrackMan sessions? This is the way.",
+        "Fitted clubs? This is the way.",
+        "Coach Cat? This is the way.",
+        "Indoor golf? This is the way."
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Mandalorian + 'This is the way' framing.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "i-am-the-one-who-knocks",
+      "name": "I Am The One Who Knocks (Walter White)",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2012,
+      "origin": "Breaking Bad S4, viral 2011-2012",
+      "why_it_works": "Confident threat energy. 'Don't mess with me.'",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "breaking-bad",
+        "knocks",
+        "walter-white",
+        "power",
+        "confident"
+      ],
+      "swingshack_fit_seeds": [
+        "I am the one who knocks off 8 strokes",
+        "I am the one who fixed my slice",
+        "I am the one who got fitted",
+        "I am the one who books TrackMan"
+      ],
+      "voice_fit": [
+        "bag-drop",
+        "stick"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Walter White intense stare. Caption = 'I am the one who ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "sad-cat",
+      "name": "Sad Keanu",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2010,
+      "origin": "2006 Paparazzi photo, viral 2010",
+      "why_it_works": "Quiet sadness. Adult loneliness.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "sad",
+        "lonely",
+        "quiet",
+        "keanu",
+        "melancholy"
+      ],
+      "swingshack_fit_seeds": [
+        "Sad Keanu reading my TrackMan numbers",
+        "Sad Keanu holding off-rack clubs",
+        "Sad Keanu on the 18th at Huddle Park in winter"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Keanu Reeves sitting on bench + melancholic caption.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "deal-with-it",
+      "name": "Deal With It (Glasses Drop)",
+      "format": "reaction-image",
+      "era": "classic",
+      "peak_year": 2012,
+      "origin": "2010 meme template with sunglasses",
+      "why_it_works": "Unapologetic truth. 'It's just the way it is.'",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "deal-with-it",
+        "glasses",
+        "fact",
+        "truth",
+        "unapologetic"
+      ],
+      "swingshack_fit_seeds": [
+        "TrackMan is the only honest score: deal with it",
+        "Coach Cat doesn't lie: deal with it",
+        "Off-rack clubs are a flex tax: deal with it",
+        "Indoor golf in Joburg is smart: deal with it"
+      ],
+      "voice_fit": [
+        "stick",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Pixel glasses falling. Caption = fact framing.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "sad-hamster-eating",
+      "name": "Sad Hamster Eating Watermelon",
+      "format": "video-loop",
+      "era": "recent",
+      "peak_year": 2022,
+      "origin": "2022 viral hamster eating",
+      "why_it_works": "Pure wholesomeness. Eating joyfully despite sadness.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "cute",
+        "eating",
+        "hamster",
+        "joy",
+        "sad"
+      ],
+      "swingshack_fit_seeds": [
+        "Me eating lunch after shanking 9 balls",
+        "Me in 9th hole after 5 lost balls",
+        "Member social snack break"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community",
+        "events"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "Hamster eating tiny watermelon. Caption = 'me enjoying ___ after ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "rickroll",
+      "name": "Rickroll (Never Gonna Give You Up)",
+      "format": "video-loop",
+      "era": "classic",
+      "peak_year": 2008,
+      "origin": "Rick Astley 1987 song, bait-and-switch meme 2008+",
+      "why_it_works": "Universal bait-and-switch. So overused it's still funny.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "rickroll",
+        "astley",
+        "bait",
+        "switch",
+        "give-you-up"
+      ],
+      "swingshack_fit_seeds": [
+        "(Use sparingly — bait captions like 'secret swing tip')"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "twitter",
+        "instagram"
+      ],
+      "format_hint": "Surprise music video link.",
+      "fatigue_risk": "high",
+      "still_works": false
+    },
+    {
+      "id": "spongebob-imagination",
+      "name": "SpongeBob Imagination (Squidward)",
+      "format": "screen-capture",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "SpongeBob episode 'Opposite Day', 2017",
+      "why_it_works": "Squidward in window vs SpongeBob outdoors. 'Imagining vs reality.'",
+      "mechanism": "before-after",
+      "tags": [
+        "imagination",
+        "spongebob",
+        "fantasy",
+        "vs-reality",
+        "lonely"
+      ],
+      "swingshack_fit_seeds": [
+        "My swing in my head vs my swing on TrackMan",
+        "Me playing Pebble Beach in my head vs Joburg indoor",
+        "My fitted clubs fantasy vs off-rack reality"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Squidward in window, SpongeBob outside.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "excuseme-sir",
+      "name": "Excuse Me Sir (Polite Cat)",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2019,
+      "origin": "2019 cat interrupting photos",
+      "why_it_works": "Polite interruption. 'Pardon me, but ___'.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "polite",
+        "cat",
+        "interrupting",
+        "excuse-me",
+        "but"
+      ],
+      "swingshack_fit_seeds": [
+        "Excuse me sir, that's off-rack",
+        "Excuse me sir, your slice is showing",
+        "Excuse me sir, you forgot to book TrackMan"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Cat with raised paw. Caption = 'Excuse me sir, ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "team-rocket",
+      "name": "Prepare For Trouble (Team Rocket)",
+      "format": "pointing-spider",
+      "era": "classic",
+      "peak_year": 2014,
+      "origin": "Pokémon 'Prepare for trouble, and make it double', 1998",
+      "why_it_works": "Iconic duo + pun energy. 'Prepare for ___'.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "pokemon",
+        "rocket",
+        "jessie-james",
+        "trouble",
+        "double"
+      ],
+      "swingshack_fit_seeds": [
+        "Prepare for trouble, and make it double-bogey",
+        "Prepare for fitting, and make it custom",
+        "Prepare for TrackMan, and make it honest"
+      ],
+      "voice_fit": [
+        "stick",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Jessie + James pose. Caption = 'Prepare for ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "dwayne-rock",
+      "name": "Dwayne 'The Rock' Johnson Eyebrow",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "Various Rock photos, viral 2017",
+      "why_it_works": "Confident eyebrow raise. 'Oh yeah?' energy.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "rock",
+        "eyebrow",
+        "confident",
+        "oh-yeah",
+        "smirk"
+      ],
+      "swingshack_fit_seeds": [
+        "*eyebrow* You bought off-rack?",
+        "*eyebrow* YouTube lessons?",
+        "*eyebrow* Skipped TrackMan?",
+        "*eyebrow* 'I have a natural swing'"
+      ],
+      "voice_fit": [
+        "stick",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Rock eyebrow raise + caption = 'did you really ___?'",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "anakin-padme",
+      "name": "Anakin/Padme 4-Panel (So this is how liberty dies)",
+      "format": "screen-capture",
+      "era": "classic",
+      "peak_year": 2017,
+      "origin": "Revenge of the Sith, viral 2017",
+      "why_it_works": "4-panel escalating dialogue. Setup-punchline-perfection-betrayal.",
+      "mechanism": "absurd-escalation",
+      "tags": [
+        "star-wars",
+        "anakin",
+        "padme",
+        "liberty",
+        "dies"
+      ],
+      "swingshack_fit_seeds": [
+        "So this is how slices die — with thunderous applause",
+        "So this is how off-rack clubs die",
+        "So this is how TrackMan dies — never"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "4 panels + escalating Padme/Anakin dialogue.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "the-rock-driving",
+      "name": "The Rock Driving Tiny Car",
+      "format": "video-loop",
+      "era": "recent",
+      "peak_year": 2022,
+      "origin": "Dwayne Johnson Instagram 2022",
+      "why_it_works": "Big man, small car. Wholesome absurdity.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "rock",
+        "driving",
+        "tiny-car",
+        "absurd",
+        "wholesome"
+      ],
+      "swingshack_fit_seeds": [
+        "Me trying to drive my slice straight",
+        "Me trying to fit into a small cubicle after TrackMan",
+        "Member social golf cart moment"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "Dwayne Johnson in tiny car + caption = 'me trying ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "pikachu-think",
+      "name": "Pikachu Brain (Thinking Pikachu)",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2019,
+      "origin": "Pokémon Detective Pikachu, 2019",
+      "why_it_works": "Confused Pikachu. 'Hmm, I'm not sure that's right.'",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "pikachu",
+        "thinking",
+        "confused",
+        "hmm",
+        "really"
+      ],
+      "swingshack_fit_seeds": [
+        "*thinking Pikachu* 'just swing easier'",
+        "*thinking Pikachu* off-rack clubs for a 28-handicap",
+        "*thinking Pikachu* skipping Coach Cat"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Pikachu with squint face. Caption = skeptical reaction.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "picard-facepalm",
+      "name": "Picard Facepalm",
+      "format": "reaction-image",
+      "era": "classic",
+      "peak_year": 2010,
+      "origin": "Star Trek TNG, viral 2010",
+      "why_it_works": "Classic exasperation. 'I can't with this.'",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "picard",
+        "facepalm",
+        "star-trek",
+        "really",
+        "exasperation"
+      ],
+      "swingshack_fit_seeds": [
+        "Picard when someone says 'golf is just swinging'",
+        "Picard when someone buys 5 drivers for a slice",
+        "Picard when someone skips fitting"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Picard facepalm + caption = 'when ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "goat-screaming",
+      "name": "Goat Screaming (Singing Goat)",
+      "format": "video-loop",
+      "era": "mid",
+      "peak_year": 2015,
+      "origin": "2015 YouTube goat screaming",
+      "why_it_works": "Pure scream energy. 'Yelling into the void.'",
+      "mechanism": "absurd-escalation",
+      "tags": [
+        "goat",
+        "scream",
+        "yell",
+        "chaos",
+        "sound"
+      ],
+      "swingshack_fit_seeds": [
+        "Me after 3 shanks in a row",
+        "Me watching a member use wrong tees",
+        "Me when simulator crashes mid-session"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "tiktok",
+        "instagram"
+      ],
+      "format_hint": "Goat screaming + 'me ___' caption.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "two-buttons",
+      "name": "Two Buttons (Difficult Choice)",
+      "format": "two-panel-comparison",
+      "era": "classic",
+      "peak_year": 2015,
+      "origin": "Jake Clark 2015 drawing",
+      "why_it_works": "Two tempting choices. 'I want both.'",
+      "mechanism": "tribal-identity",
+      "tags": [
+        "choice",
+        "two-buttons",
+        "tempting",
+        "decision",
+        "tough"
+      ],
+      "swingshack_fit_seeds": [
+        "TrackMan session OR coaching session",
+        "Fitted driver OR fitted irons",
+        "Range balls OR TrackMan numbers",
+        "Lesson OR simulator session"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Two buttons. Caption = two tempting options.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "discount-mona-lisa",
+      "name": "Discount Mona Lisa",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2020,
+      "origin": "Leonardo Da Vinci restoration fail, 2020",
+      "why_it_works": "Bad-but-confident. 'I tried my best.'",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "art",
+        "mona-lisa",
+        "fail",
+        "tried",
+        "fix"
+      ],
+      "swingshack_fit_seeds": [
+        "My swing on a good day",
+        "My fitted clubs at Topgolf vs Swing Shack",
+        "Me trying to coach myself via YouTube"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Badly restored painting. Caption = 'me trying ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "homer-bush",
+      "name": "Homer Simpson Backing Into Bushes",
+      "format": "video-loop",
+      "era": "classic",
+      "peak_year": 2014,
+      "origin": "The Simpsons 1989, meme 2014",
+      "why_it_works": "Hiding from problems. 'Out of sight, out of mind.'",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "homer",
+        "simpsons",
+        "hide",
+        "avoid",
+        "ignore"
+      ],
+      "swingshack_fit_seeds": [
+        "Me avoiding my TrackMan data",
+        "Me hiding from Coach Cat",
+        "Me dodging the practice tee"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Homer backing into bushes + caption = 'me avoiding ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "confused-grandpa",
+      "name": "Confused Grandpa (Tech Support)",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "Old man confused at computer meme",
+      "why_it_works": "Out-of-depth confusion. Adult-helping-adult moment.",
+      "mechanism": "relatable-struggle",
+      "tags": [
+        "confused",
+        "tech",
+        "grandpa",
+        "lost",
+        "huh"
+      ],
+      "swingshack_fit_seeds": [
+        "Me reading TrackMan data first time",
+        "Me hearing about swing tempo",
+        "Me learning new clubs",
+        "Member social explaining TrackMan"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Old man at computer + caption = confused by golf tech.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "no-bitches",
+      "name": "No Bitches?",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2016,
+      "origin": "SpongeBob 'No spongebob' / various rage comic era",
+      "why_it_works": "Direct absence call-out. 'Where are they?'.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "where",
+        "no-one",
+        "missing",
+        "lone",
+        "alone"
+      ],
+      "swingshack_fit_seeds": [
+        "Booked TrackMan at 6am... no bitches?",
+        "Tuesday night range session... no bitches?",
+        "Solo round at Randpark... no bitches?"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Long panel + 'No ___?' caption.",
+      "fatigue_risk": "high",
+      "still_works": false
+    },
+    {
+      "id": "pensive-pose",
+      "name": "Pensive Wojak",
+      "format": "template-advice",
+      "era": "mid",
+      "peak_year": 2020,
+      "origin": "Wojak evolution, 2020",
+      "why_it_works": "Reflective sadness. 'Why am I like this?'",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "thinking",
+        "wojak",
+        "sad",
+        "reflective",
+        "alone"
+      ],
+      "swingshack_fit_seeds": [
+        "Me watching my TrackMan swing path",
+        "Me reflecting on off-rack clubs",
+        "Me thinking about my 3-putt rate"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Wojak face + reflective caption.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "matrix-morphius",
+      "name": "Matrix Morpheus (Red/Blue Pill)",
+      "format": "two-panel-comparison",
+      "era": "classic",
+      "peak_year": 2017,
+      "origin": "The Matrix 1999, viral 2017",
+      "why_it_works": "Two choices, one reveals truth. 'What if I told you ___'.",
+      "mechanism": "callout-contrast",
+      "tags": [
+        "matrix",
+        "morpheus",
+        "red-pill",
+        "blue-pill",
+        "truth"
+      ],
+      "swingshack_fit_seeds": [
+        "What if I told you... off-rack clubs are a flex tax",
+        "What if I told you... TrackMan is honest",
+        "What if I told you... Coach Cat is the move"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Morpheus offering pills. Caption = 'What if I told you ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "kermit-sipping-tea",
+      "name": "Kermit Sipping Tea (But That's None of My Business)",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2014,
+      "origin": "Kermit sipping tea, viral 2014",
+      "why_it_works": "Polite shade. 'I'm just saying... but never mind.'",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "kermit",
+        "tea",
+        "shade",
+        "polite",
+        "business"
+      ],
+      "swingshack_fit_seeds": [
+        "But that's none of my business... your clubs are off-rack",
+        "But that's none of my business... you skipped TrackMan",
+        "But that's none of my business... you're 28-handicap"
+      ],
+      "voice_fit": [
+        "stick"
+      ],
+      "pillar_fit": [
+        "education",
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Kermit sipping tea + caption + '...but that's none of my business'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "toddler-fist",
+      "name": "Tough Toddler (Cross-Arms)",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "Tough-looking toddler photos, 2021",
+      "why_it_works": "Tiny tough energy. 'Don't mess with me, I have opinions.'",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "tough",
+        "toddler",
+        "crossed-arms",
+        "attitude",
+        "small"
+      ],
+      "swingshack_fit_seeds": [
+        "Me being told 'just swing slower' by a 14-handicap",
+        "Member social energy",
+        "Me defending TrackMan at the bar"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Toddler with crossed arms. Caption = 'me being told ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "kim-k-crying",
+      "name": "Kim Kardashian Crying (Kanye 'You Broke My Heart!')",
+      "format": "screen-capture",
+      "era": "mid",
+      "peak_year": 2018,
+      "origin": "KUWTK 2018 clip",
+      "why_it_works": "Over-the-top melodramatic crying. 'My life is ruined.'",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "kim-k",
+        "cry",
+        "kanye",
+        "drama",
+        "first-world"
+      ],
+      "swingshack_fit_seeds": [
+        "When my slice doesn't go away after one lesson",
+        "When Coach Cat makes me drop my driver",
+        "When my fitted clubs arrive and I shoot worse first round"
+      ],
+      "voice_fit": [
+        "bag-drop",
+        "stick"
+      ],
+      "pillar_fit": [
+        "community",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Kim K crying + 'when ___' caption.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "owl-thumbs-up",
+      "name": "Owl Thumbs Up (Stoner Owl)",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2017,
+      "origin": "2017 viral owl image",
+      "why_it_works": "Wholesome approval. 'I agree, totally.'",
+      "mechanism": "tribal-identity",
+      "tags": [
+        "owl",
+        "thumbs-up",
+        "agree",
+        "yes",
+        "wholesome"
+      ],
+      "swingshack_fit_seeds": [
+        "Owl approving your fitted clubs",
+        "Owl approving TrackMan session",
+        "Owl approving Coach Cat",
+        "Owl approving indoor golf"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "facebook"
+      ],
+      "format_hint": "Owl thumbs up + caption = approval.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "butter-dog",
+      "name": "Butter Dog (Peanut Butter Dog)",
+      "format": "video-loop",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "2021 dog with peanut butter on face",
+      "why_it_works": "Trying-not-to-laugh energy. Holding-it-together.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "dog",
+        "butter",
+        "trying",
+        "stuck",
+        "face"
+      ],
+      "swingshack_fit_seeds": [
+        "Me at a wedding while friends talk golf",
+        "Me in a meeting when someone says 'golf is just swinging'",
+        "Member social energy"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "Dog with peanut butter face. Caption = 'me trying not to ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "andy-dufresne",
+      "name": "Andy Dufresne Poster (Shawshank)",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "Shawshank Redemption 1994, poster meme 2021",
+      "why_it_works": "Hopeful-prisoner energy. 'Wishing I was anywhere but here.'",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "shawshank",
+        "andy",
+        "poster",
+        "hope",
+        "escaping"
+      ],
+      "swingshack_fit_seeds": [
+        "Me staring at my TrackMan data wishing for a smaller slice",
+        "Member social waiting for next session",
+        "Me in a Huddle Park queue in winter"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Andy poster + caption = wishing energy.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "cat-judging-camera",
+      "name": "Cat Judging Camera",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2022,
+      "origin": "2022 viral cat",
+      "why_it_works": "Cat judging you. Universal disapproval from a cat.",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "cat",
+        "judging",
+        "really",
+        "approval",
+        "no"
+      ],
+      "swingshack_fit_seeds": [
+        "Cat judging your off-rack clubs",
+        "Cat judging your slice",
+        "Cat judging your YouTube coach"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "club-fitting",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Cat with judgemental stare. Caption = 'cat when ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "tom-hanks-cast-away",
+      "name": "Tom Hanks Cast Away (Wilson)",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2015,
+      "origin": "Cast Away 2000, viral 2015",
+      "why_it_works": "Talking to an inanimate object. 'Are you even listening?'",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "cast-away",
+        "wilson",
+        "alone",
+        "talking",
+        "isolation"
+      ],
+      "swingshack_fit_seeds": [
+        "Me explaining my slice to my dog",
+        "Me talking to TrackMan after a bad shot",
+        "Me in the simulator alone at 7am"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Tom Hanks + Wilson ball. Caption = 'me talking to ___ about ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "where-gone",
+      "name": "Where They At? (Searching Man)",
+      "format": "reaction-image",
+      "era": "mid",
+      "peak_year": 2018,
+      "origin": "Distracted search meme",
+      "why_it_works": "Lost-looking. 'Where's ___?'",
+      "mechanism": "relatable-struggle",
+      "tags": [
+        "lost",
+        "search",
+        "where",
+        "where-gone",
+        "looking"
+      ],
+      "swingshack_fit_seeds": [
+        "Where's my swing path?",
+        "Where's my TrackMan data?",
+        "Where's the closest golf store in Joburg?",
+        "Where's Coach Cat when I need her?"
+      ],
+      "voice_fit": [
+        "swing-shack",
+        "stick"
+      ],
+      "pillar_fit": [
+        "community",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Searching man. Caption = 'where's ___?'",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "this-is-bagel",
+      "name": "This Is Bagel",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2022,
+      "origin": "Distracted meme template 2022",
+      "why_it_works": "Stating the obvious. 'Yes. This is a bagel.'",
+      "mechanism": "ironic-corporate",
+      "tags": [
+        "bagel",
+        "obvious",
+        "stating",
+        "really",
+        "yes"
+      ],
+      "swingshack_fit_seeds": [
+        "This is TrackMan data.",
+        "This is fitted clubs.",
+        "This is Coach Cat.",
+        "This is indoor golf."
+      ],
+      "voice_fit": [
+        "stick",
+        "bag-drop"
+      ],
+      "pillar_fit": [
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Distracted template. Caption = obvious statement.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "nodding-cat",
+      "name": "Nodding Cat (Robert Siegel Cat)",
+      "format": "video-loop",
+      "era": "recent",
+      "peak_year": 2020,
+      "origin": "2020 viral cat nodding",
+      "why_it_works": "Agreement energy. 'Yes, exactly. Keep going.'",
+      "mechanism": "tribal-identity",
+      "tags": [
+        "nodding",
+        "agree",
+        "yes",
+        "exactly",
+        "cat"
+      ],
+      "swingshack_fit_seeds": [
+        "Cat nodding at your swing tip",
+        "Cat nodding at TrackMan data",
+        "Cat nodding at Coach Cat's lesson"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community",
+        "education"
+      ],
+      "platform_fit": [
+        "instagram",
+        "tiktok"
+      ],
+      "format_hint": "Cat nodding. Caption = 'me listening to ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "soft-cry-rainbow",
+      "name": "SpongeBob Rainbow (Soft Cry)",
+      "format": "screen-capture",
+      "era": "recent",
+      "peak_year": 2020,
+      "origin": "SpongeBob 'I don't need it' meme 2020",
+      "why_it_works": "Pretending-to-be-fine crying. Rainbow + tears = pretty sadness.",
+      "mechanism": "self-deprecating",
+      "tags": [
+        "rainbow",
+        "spongebob",
+        "soft-cry",
+        "fine",
+        "denial"
+      ],
+      "swingshack_fit_seeds": [
+        "'I don't need TrackMan I can figure it out' (rainbow cry)",
+        "'I don't need Coach Cat, my brother can help'",
+        "'I don't need fitted clubs, off-rack works'"
+      ],
+      "voice_fit": [
+        "stick",
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "education",
+        "club-fitting"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "SpongeBob crying rainbow. Caption = denial framing.",
+      "fatigue_risk": "low",
+      "still_works": true
+    },
+    {
+      "id": "harry-maguire",
+      "name": "Harry Maguire Looking Confused",
+      "format": "reaction-image",
+      "era": "recent",
+      "peak_year": 2021,
+      "origin": "Football still, viral 2021",
+      "why_it_works": "Lost-on-pitch energy. Confused but committed.",
+      "mechanism": "relatable-struggle",
+      "tags": [
+        "maguire",
+        "football",
+        "confused",
+        "lost",
+        "huh"
+      ],
+      "swingshack_fit_seeds": [
+        "Me at the range watching my TrackMan data",
+        "Me at member social not knowing the rules",
+        "Me on the 1st tee"
+      ],
+      "voice_fit": [
+        "swing-shack"
+      ],
+      "pillar_fit": [
+        "community"
+      ],
+      "platform_fit": [
+        "instagram",
+        "twitter"
+      ],
+      "format_hint": "Harry Maguire looking confused. Caption = 'me at ___'.",
+      "fatigue_risk": "low",
+      "still_works": true
+    }
+  ],
+  "stats": {
+    "total_memes": 75,
+    "by_era": {
+      "classic": 25,
+      "mid": 28,
+      "recent": 22
+    },
+    "by_format": {
+      "distraction-boyfriend": 2,
+      "two-panel-comparison": 4,
+      "this-is-fine": 1,
+      "expanding-brain": 2,
+      "reaction-image": 40,
+      "pointing-spider": 4,
+      "template-advice": 3,
+      "text-overlay": 2,
+      "screen-capture": 6,
+      "video-loop": 11
+    },
+    "by_mechanism": {
+      "callout-contrast": 5,
+      "relatable-struggle": 8,
+      "self-deprecating": 20,
+      "absurd-escalation": 5,
+      "ironic-corporate": 28,
+      "before-after": 5,
+      "tribal-identity": 4
+    },
+    "still_works_true": 72,
+    "still_works_false": 3
+  },
+  "voice_bible": {
+    "swing-shack": {
+      "label": "Swing Shack (default)",
+      "tone": "confident, warm, lightly sarcastic",
+      "audience": "Members, Joburg golfers, indoor-curious",
+      "do": [
+        "Use 'we' not 'you'",
+        "Name the data",
+        "Acknowledge the weather",
+        "Lean into TrackMan"
+      ],
+      "dont": [
+        "Don't lecture",
+        "Don't shame beginners",
+        "Don't overuse emojis"
+      ]
+    },
+    "stick": {
+      "label": "Stick (edgy)",
+      "tone": "dry, ironic, slightly savage",
+      "audience": "Younger golfers, TikTok audience",
+      "do": [
+        "Undercut the take",
+        "Use sarcasm sparingly",
+        "Punch the obvious"
+      ],
+      "dont": [
+        "Don't punch down on beginners",
+        "Don't be mean to Coach Cat",
+        "Don't overexplain"
+      ]
+    },
+    "bag-drop": {
+      "label": "Bag Drop (premium)",
+      "tone": "aspirational, clean, confident",
+      "audience": "Premium members, club-fitting leads",
+      "do": [
+        "Lead with outcome",
+        "Show numbers",
+        "Imply status"
+      ],
+      "dont": [
+        "Don't use sarcasm here",
+        "Don't be too cute",
+        "Don't skip the data"
+      ]
+    }
+  }
+}

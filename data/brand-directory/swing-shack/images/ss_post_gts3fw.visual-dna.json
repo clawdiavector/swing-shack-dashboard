@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_gts3fw.jpg",
+  "layer1_metadata": {
+    "filename": "ss_post_gts3fw.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 1193560,
+    "modified": 1785312787.388529,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#070a0a",
+        "rgb": [
+          7,
+          10,
+          10
+        ],
+        "share": 0.195
+      },
+      {
+        "hex": "#121516",
+        "rgb": [
+          18,
+          21,
+          22
+        ],
+        "share": 0.1515
+      },
+      {
+        "hex": "#34393a",
+        "rgb": [
+          52,
+          57,
+          58
+        ],
+        "share": 0.1331
+      },
+      {
+        "hex": "#e5e5e6",
+        "rgb": [
+          229,
+          229,
+          230
+        ],
+        "share": 0.1286
+      },
+      {
+        "hex": "#1e2223",
+        "rgb": [
+          30,
+          34,
+          35
+        ],
+        "share": 0.1278
+      },
+      {
+        "hex": "#a4a9aa",
+        "rgb": [
+          164,
+          169,
+          170
+        ],
+        "share": 0.1275
+      },
+      {
+        "hex": "#616768",
+        "rgb": [
+          97,
+          103,
+          104
+        ],
+        "share": 0.1088
+      },
+      {
+        "hex": "#030505",
+        "rgb": [
+          3,
+          5,
+          5
+        ],
+        "share": 0.0278
+      }
+    ],
+    "mean_brightness": 79.6,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 25.1,
+    "brightness_bottom": 146.1,
+    "edge_density_grid": [
+      [
+        4.38,
+        11.4,
+        3.97
+      ],
+      [
+        4.42,
+        11.99,
+        4.57
+      ],
+      [
+        3.92,
+        7.97,
+        5.23
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 10,
+    "text_preview": "GIS3 FAIRWAY 15.0 AVAILABLE @ swlNe DM US FOR DETAILS"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 49,
+    "median_text_height_px": 32,
+    "likely_heading_text": "GIS3 FAIRWAY 15.0",
+    "is_all_caps": true,
+    "sample_text_colour": "#060808"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#070a0a",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "GIS3 FAIRWAY 15.0 AVAILABLE @ swlNe DM US FOR DETAILS",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "GTS Putter"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

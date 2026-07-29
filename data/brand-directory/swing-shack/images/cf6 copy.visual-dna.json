@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf6 copy.jpg",
+  "layer1_metadata": {
+    "filename": "cf6 copy.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 705257,
+    "modified": 1785312698.358638,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#3d2b1e",
+        "rgb": [
+          61,
+          43,
+          30
+        ],
+        "share": 0.1611
+      },
+      {
+        "hex": "#d57738",
+        "rgb": [
+          213,
+          119,
+          56
+        ],
+        "share": 0.1406
+      },
+      {
+        "hex": "#040707",
+        "rgb": [
+          4,
+          7,
+          7
+        ],
+        "share": 0.1351
+      },
+      {
+        "hex": "#0c0c0b",
+        "rgb": [
+          12,
+          12,
+          11
+        ],
+        "share": 0.1285
+      },
+      {
+        "hex": "#1b1510",
+        "rgb": [
+          27,
+          21,
+          16
+        ],
+        "share": 0.1257
+      },
+      {
+        "hex": "#020202",
+        "rgb": [
+          2,
+          2,
+          2
+        ],
+        "share": 0.1174
+      },
+      {
+        "hex": "#262421",
+        "rgb": [
+          38,
+          36,
+          33
+        ],
+        "share": 0.1118
+      },
+      {
+        "hex": "#694f3a",
+        "rgb": [
+          105,
+          79,
+          58
+        ],
+        "share": 0.0799
+      }
+    ],
+    "mean_brightness": 41.9,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 43.5,
+    "brightness_bottom": 34.8,
+    "edge_density_grid": [
+      [
+        7.04,
+        15.21,
+        15.48
+      ],
+      [
+        11.01,
+        13.88,
+        7.1
+      ],
+      [
+        6.75,
+        8.73,
+        7.42
+      ]
+    ],
+    "subject_estimate_position": "top-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 3,
+    "text_preview": ">UTTER MIGHT BE"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 206,
+    "median_text_height_px": 206,
+    "likely_heading_text": ">UTTER MIGHT BE",
+    "is_all_caps": true,
+    "sample_text_colour": "#e27226"
+  },
+  "layer8_compliance": {
+    "score": 0.775,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#3d2b1e",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top-right",
+      "ocr_text": ">UTTER MIGHT BE",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

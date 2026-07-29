@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 4-100.jpg",
+  "layer1_metadata": {
+    "filename": "fullrange copy 4-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 392697,
+    "modified": 1785312830.4308069,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#19201c",
+        "rgb": [
+          25,
+          32,
+          28
+        ],
+        "share": 0.1481
+      },
+      {
+        "hex": "#737470",
+        "rgb": [
+          115,
+          116,
+          112
+        ],
+        "share": 0.1373
+      },
+      {
+        "hex": "#050b06",
+        "rgb": [
+          5,
+          11,
+          6
+        ],
+        "share": 0.1336
+      },
+      {
+        "hex": "#333434",
+        "rgb": [
+          51,
+          52,
+          52
+        ],
+        "share": 0.1266
+      },
+      {
+        "hex": "#0c140e",
+        "rgb": [
+          12,
+          20,
+          14
+        ],
+        "share": 0.125
+      },
+      {
+        "hex": "#000100",
+        "rgb": [
+          0,
+          1,
+          0
+        ],
+        "share": 0.1249
+      },
+      {
+        "hex": "#020503",
+        "rgb": [
+          2,
+          5,
+          3
+        ],
+        "share": 0.1076
+      },
+      {
+        "hex": "#adaca6",
+        "rgb": [
+          173,
+          172,
+          166
+        ],
+        "share": 0.0969
+      }
+    ],
+    "mean_brightness": 49.6,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 27.5,
+    "brightness_bottom": 33.5,
+    "edge_density_grid": [
+      [
+        3.71,
+        1.45,
+        4.29
+      ],
+      [
+        9.83,
+        20.08,
+        13.84
+      ],
+      [
+        3.68,
+        18.67,
+        4.67
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 8,
+    "text_preview": "_LAGOLF _ PUTTERS NOW AVAILABLE @ SWING SHACK"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 101,
+    "median_text_height_px": 31,
+    "likely_heading_text": "_LAGOLF",
+    "is_all_caps": true,
+    "sample_text_colour": "#ffffff"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#19201c",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "_LAGOLF _ PUTTERS NOW AVAILABLE @ SWING SHACK",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

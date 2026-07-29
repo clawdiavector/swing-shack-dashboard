@@ -1,0 +1,54 @@
+{
+  "brand": "stick",
+  "ingestions": [
+    {
+      "date": "2026-07-29",
+      "method": "google_drive_oauth",
+      "auth_account": "christellew@fivefriday.com",
+      "scope": "drive.readonly",
+      "asset_class": "ball_fitting_campaign",
+      "files": [
+        {
+          "name": "stick_ballfittingpost_4.jpg",
+          "size": "537606"
+        },
+        {
+          "name": "stick_ballfittingstory copy 3.jpg",
+          "size": "658304"
+        },
+        {
+          "name": "stick_ballfittingpost_2.jpg",
+          "size": "524252"
+        },
+        {
+          "name": "stick_ballfittingpost_1.jpg",
+          "size": "519201"
+        },
+        {
+          "name": "stick_ballfittingstory copy 4.jpg",
+          "size": "720742"
+        },
+        {
+          "name": "stick_ballfittingstory copy 2.jpg",
+          "size": "708102"
+        },
+        {
+          "name": "stick_ballfittingstory copy.jpg",
+          "size": "700074"
+        },
+        {
+          "name": "stick_ballfittingpost_3.jpg",
+          "size": "479359"
+        },
+        {
+          "name": "stick_ballfittingstory.jpg",
+          "size": "682525"
+        },
+        {
+          "name": "stick_ballfittingpost.jpg",
+          "size": "500144"
+        }
+      ]
+    }
+  ]
+}

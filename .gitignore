@@ -5,3 +5,17 @@ node_modules/
 .DS_Store
 __pycache__/
 *.pyc
+.venv/
+
+# Local secrets (Step 73). The canonical credential directory lives outside
+# this repository (clients/swing-shack/credentials/) so it does not need
+# to be ignored here. These patterns catch accidental in-repo copies.
+*.local.json
+.env
+.env.*
+
+# Brand directory: keep dissector outputs but exclude raw image files
+# (they live in Google Drive as source of truth)
+data/brand-directory/*/images/*.jpg
+data/brand-directory/*/images/*.jpeg
+data/brand-directory/*/images/*.png

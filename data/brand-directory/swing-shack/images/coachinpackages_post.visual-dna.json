@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coachinpackages_post.jpg",
+  "layer1_metadata": {
+    "filename": "coachinpackages_post.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 1899513,
+    "modified": 1785314587.7065291,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#131514",
+        "rgb": [
+          19,
+          21,
+          20
+        ],
+        "share": 0.2104
+      },
+      {
+        "hex": "#0a0c0d",
+        "rgb": [
+          10,
+          12,
+          13
+        ],
+        "share": 0.1749
+      },
+      {
+        "hex": "#090a0b",
+        "rgb": [
+          9,
+          10,
+          11
+        ],
+        "share": 0.1308
+      },
+      {
+        "hex": "#89c2a1",
+        "rgb": [
+          137,
+          194,
+          161
+        ],
+        "share": 0.1225
+      },
+      {
+        "hex": "#0d0e0e",
+        "rgb": [
+          13,
+          14,
+          14
+        ],
+        "share": 0.1189
+      },
+      {
+        "hex": "#0f1211",
+        "rgb": [
+          15,
+          18,
+          17
+        ],
+        "share": 0.1115
+      },
+      {
+        "hex": "#29322d",
+        "rgb": [
+          41,
+          50,
+          45
+        ],
+        "share": 0.0826
+      },
+      {
+        "hex": "#050607",
+        "rgb": [
+          5,
+          6,
+          7
+        ],
+        "share": 0.0485
+      }
+    ],
+    "mean_brightness": 37.8,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 43.1,
+    "brightness_bottom": 33.2,
+    "edge_density_grid": [
+      [
+        10.79,
+        7.69,
+        4.54
+      ],
+      [
+        15.76,
+        11.45,
+        11.93
+      ],
+      [
+        9.37,
+        9.02,
+        6.31
+      ]
+    ],
+    "subject_estimate_position": "left"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 23,
+    "text_preview": "COACHING PACKAGES 1X SESSION R &20 3X SESSIONS R2350 5X SESSIONS R 3850 FOX SESSIGINS R 7200 BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 86,
+    "median_text_height_px": 51,
+    "likely_heading_text": "COACHING PACKAGES",
+    "is_all_caps": true,
+    "sample_text_colour": "#090b0b"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#131514",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "left",
+      "ocr_text": "COACHING PACKAGES 1X SESSION R &20 3X SESSIONS R2350 5X SESSIONS R 3850 FOX SESSIGINS R 7200 BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

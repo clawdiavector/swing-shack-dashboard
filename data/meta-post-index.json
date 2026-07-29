@@ -1,0 +1,29 @@
+{
+  "generated": "2026-07-29T10:09:18.135313+00:00",
+  "count": 0,
+  "unresolved_count": 1,
+  "by_asset_id": {},
+  "by_media_id": {},
+  "unresolved": [
+    {
+      "publishing_id": "pub-cxrcx1wc",
+      "asset_id": "use-the-right-equipment-mq5l90bk-feed-post-04",
+      "campaign_id": "use-the-right-equipment-mq5l90bk",
+      "postiz_post_id": "cmrypnzq802fspe0ynp1nu3vb",
+      "platform_media_id": null,
+      "channel": "instagram",
+      "current_status": "draft",
+      "release_url": null,
+      "published_at": null,
+      "media_id_source": null
+    }
+  ],
+  "_meta": {
+    "source_files": [
+      "data/publishing-references.json",
+      "data/events/postiz/*.json"
+    ],
+    "schema_version": "1.0",
+    "purpose": "asset_id \u2192 platform_media_id lookup for truth_collector.fetch_meta_engagement and /api/meta/posts/<id>/insights callers"
+  }
+}

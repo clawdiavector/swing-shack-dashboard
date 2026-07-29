@@ -1,0 +1,62 @@
+{
+  "schema": "https://campaign-os/brand-directory/index/v1",
+  "version": "1.0",
+  "updated": "2026-07-28T18:10:22.913790+00:00",
+  "total_brands": 3,
+  "total_ready": 3,
+  "brands": {
+    "bag-drop": {
+      "ready": true,
+      "gates": {
+        "tone_rules": true,
+        "palette": true,
+        "archetypes": true,
+        "ctas": true
+      },
+      "image_count": 0,
+      "primary_color": "#F4A261",
+      "accent_color": "#264653",
+      "archetype_ids": [
+        "bagdrop-member-moment",
+        "bagdrop-thursday-invite",
+        "bagdrop-quote-warmth"
+      ]
+    },
+    "stick": {
+      "ready": true,
+      "gates": {
+        "tone_rules": true,
+        "palette": true,
+        "archetypes": true,
+        "ctas": true
+      },
+      "image_count": 0,
+      "primary_color": "#1B1B1B",
+      "accent_color": "#FF3D00",
+      "archetype_ids": [
+        "stick-callout",
+        "stick-meme-3up",
+        "stick-tweet-card"
+      ]
+    },
+    "swing-shack": {
+      "ready": true,
+      "gates": {
+        "tone_rules": true,
+        "palette": true,
+        "archetypes": true,
+        "ctas": true
+      },
+      "image_count": 0,
+      "primary_color": "#0F766E",
+      "accent_color": "#F59E0B",
+      "archetype_ids": [
+        "square-post-v1",
+        "story-banner",
+        "course-shot-banner",
+        "grid-3up-meme",
+        "quote-card"
+      ]
+    }
+  }
+}

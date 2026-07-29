@@ -1,0 +1,193 @@
+{
+  "version": "v1.0",
+  "updated": "2026-07-28",
+  "description": "Hashtag & SEO Pack engine — curated hashtag banks by pillar/voice/platform plus SEO templates, slug rules, alt-text patterns, and meta-description scaffolds. Pure read-only intelligence; no external calls; safe during rest-mode.",
+  "brand": {
+    "name": "Swing Shack",
+    "city": "Johannesburg",
+    "region": "Randburg / Gauteng",
+    "url": "https://swingshack.co.za",
+    "tagline": "Book the bay. Fix the swing. Hit the pins.",
+    "primary_keywords": [
+      "indoor golf johannesburg",
+      "golf simulator johannesburg",
+      "club fitting johannesburg",
+      "trackman johannesburg",
+      "golf lessons randburg",
+      "golf practice johannesburg",
+      "custom clubs johannesburg",
+      "indoor golf randburg"
+    ]
+  },
+  "voices": {
+    "swing-shack": {
+      "label": "Swing Shack",
+      "tone": "warm, expert, welcoming",
+      "emoji_budget": "0-2 per post",
+      "hashtag_count_target": 5,
+      "vocabulary_seed": ["bay", "swing", "tee", "shot", "lesson", "fitting"]
+    },
+    "stick": {
+      "label": "Stick",
+      "tone": "sarcastic, dry, hand-of-god",
+      "emoji_budget": "0-1 per post",
+      "hashtag_count_target": 4,
+      "vocabulary_seed": ["yips", "shank", "chunk", "blade", "duff"]
+    },
+    "bag-drop": {
+      "label": "Bag Drop",
+      "tone": "laid-back, irreverent, member-to-member",
+      "emoji_budget": "1-3 per post",
+      "hashtag_count_target": 6,
+      "vocabulary_seed": ["nines", "loop", "bounce", "waggle", "press"]
+    }
+  },
+  "pillars": {
+    "education": {
+      "label": "Education",
+      "core": ["#golftips", "#golfswing", "#golflesson", "#swingtips", "#trackman", "#golffix"],
+      "long_tail": ["#beginnergolftips", "#fixmyswing", "#trackmanrangenz", "#swingbreakdown", "#shortgamebasics"],
+      "local": ["#joburggolfer", "#randburggolf", "#gautenggolf", "#jhbgolfer", "#golfsouthafrica"],
+      "community": ["#ssfamily", "#swingshacktips", "#swingshackacademy"]
+    },
+    "club-fitting": {
+      "label": "Club Fitting",
+      "core": ["#clubfitting", "#customfit", "#golfclubs", "#trackman", "#shaftfitting"],
+      "long_tail": ["#clubfitterjhb", "#fittheclubsnotthegolfer", "#shaftup", "#grindoftheweek", "#loftandlies"],
+      "local": ["#customclubsjohannesburg", "#clubfittingrandburg", "#jhbclubfitter", "#joburggolfclubs"],
+      "community": ["#ssfit", "#swingshackfit", "#builtforyou", "#bespokegolfjhb"]
+    },
+    "community": {
+      "label": "Community",
+      "core": ["#golfcommunity", "#golfclub", "#golflife", "#golfmemes", "#golfgroup"],
+      "long_tail": ["#playwhereyoubelong", "#membersonlybay", "#golfnightjhb", "#leagueszn", "#bagdropgang"],
+      "local": ["#joburggolfers", "#randburggolfers", "#gautenglinks", "#jhbgolflife"],
+      "community": ["#ssfamily", "#swingshackfamily", "#welcomehome", "#yourbayisready"]
+    },
+    "events": {
+      "label": "Events",
+      "core": ["#golftournament", "#golfevent", "#closesttopin", "#longestdrive", "#golfleague"],
+      "long_tail": ["#suppertournament", "#golfsocial", "#staggeredstart", "#scrambleformat", "#charitygolf"],
+      "local": ["#jhbgolftournament", "#randburggolfevent", "#joburggolfsocial", "#golfeventsgauteng"],
+      "community": ["#ssevent", "#swingshackevents", "#seeuattheshack", "#bookyourbay"]
+    }
+  },
+  "platforms": {
+    "instagram": {
+      "label": "Instagram",
+      "hashtag_count_max": 30,
+      "hashtag_count_recommended": 8,
+      "placement": "first_comment",
+      "tips": ["Mix 4 core + 2 long-tail + 2 local", "Avoid banned/broken tags", "Rotate 30% per post"]
+    },
+    "tiktok": {
+      "label": "TikTok",
+      "hashtag_count_max": 6,
+      "hashtag_count_recommended": 4,
+      "placement": "inline_caption",
+      "tips": ["Lean into trending + niche", "Use 1 platform tag + 1 pillar + 1 local + 1 brand"]
+    },
+    "facebook": {
+      "label": "Facebook",
+      "hashtag_count_max": 5,
+      "hashtag_count_recommended": 3,
+      "placement": "inline_caption",
+      "tips": ["Older skew — prefer plain language", "Locality tags outperform niche", "Skip generic #golf unless regional"]
+    },
+    "twitter": {
+      "label": "X / Twitter",
+      "hashtag_count_max": 3,
+      "hashtag_count_recommended": 2,
+      "placement": "inline_post",
+      "tips": ["Hashtags are reach-killers here — use sparingly", "Brand + 1 trending signal only"]
+    },
+    "gmb": {
+      "label": "Google Business Profile",
+      "hashtag_count_max": 0,
+      "hashtag_count_recommended": 0,
+      "placement": "n/a",
+      "tips": ["Google penalises hashtag stuffing in GMB posts", "Use natural-language keyword phrases instead"]
+    }
+  },
+  "trending_signals": [
+    {"tag": "#trackmanrangenz", "lift": "+18%", "pillar": "education", "note": "rising post-2025 SA simulator boom"},
+    {"tag": "#suppertournament", "lift": "+12%", "pillar": "events", "note": "stable since 2024 — high conversion"},
+    {"tag": "#clubfitterjhb", "lift": "+24%", "pillar": "club-fitting", "note": "low-volume but high-intent"},
+    {"tag": "#leagueszn", "lift": "+9%", "pillar": "community", "note": "seasonal — peaks Aug-Nov (SA summer)"},
+    {"tag": "#bagdropgang", "lift": "+6%", "pillar": "community", "note": "voice-fit for bag-drop only"},
+    {"tag": "#staggeredstart", "lift": "+5%", "pillar": "events", "note": "format tag, evergreen"},
+    {"tag": "#builtforyou", "lift": "+11%", "pillar": "club-fitting", "note": "brand-voice fit, recurring"}
+  ],
+  "banned": [
+    {"tag": "#instagolf", "reason": "shadowbanned — IG spam filter"},
+    {"tag": "#golfgirls", "reason": "off-brand audience"},
+    {"tag": "#porngolf", "reason": "competitor spam"},
+    {"tag": "#foryou", "reason": "TikTok — algorithm-distressed"}
+  ],
+  "seo_templates": {
+    "page_titles": {
+      "education": "TrackMan Lessons in Johannesburg | Swing Shack",
+      "club-fitting": "Custom Club Fitting — Johannesburg | Swing Shack",
+      "community": "Members Bay & Leagues | Swing Shack Randburg",
+      "events": "Golf Tournaments & Socials in Randburg | Swing Shack"
+    },
+    "meta_descriptions": {
+      "education": "TrackMan-led golf lessons in Johannesburg and Randburg. 60-minute bays, expert coaches, video swing review. Book your lesson at Swing Shack.",
+      "club-fitting": "TrackMan club fitting in Johannesburg — shaft, loft and lie, grip and length tailored to your swing. Swing Shack Randburg. Book a fitting.",
+      "community": "Swing Shack is a members-first indoor golf bay in Randburg. Leagues, social nights, and a home for JHB golfers. Book the bay.",
+      "events": "Closest-to-the-pin nights, long-drive comps, scramble tournaments and corporate socials at Swing Shack Randburg. See upcoming events."
+    },
+    "h1": {
+      "education": "TrackMan lessons that actually move the needle",
+      "club-fitting": "Fittings built around your swing, not the catalogue",
+      "community": "The home bay for Randburg golfers",
+      "events": "Tournaments, socials, and the occasional long-drive comp"
+    },
+    "slug_rules": [
+      "lowercase, hyphen-separated",
+      "max 60 chars",
+      "lead with city or pillar",
+      "no stopwords (the, a, and, of, in)",
+      "include primary keyword in first 30 chars"
+    ],
+    "slug_examples": {
+      "education": "indoor-golf-lessons-johannesburg",
+      "club-fitting": "club-fitting-johannesburg-trackman",
+      "community": "swing-shack-members-bay-randburg",
+      "events": "golf-tournaments-randburg-swing-shack"
+    },
+    "alt_text_rules": [
+      "describe the photo, not the brand",
+      "include one keyword naturally",
+      "never start with 'image of' or 'photo of'",
+      "max 125 characters",
+      "subject + action + setting"
+    ],
+    "alt_text_examples": {
+      "education": "golfer mid-downswing on TrackMan simulator at Swing Shack Randburg",
+      "club-fitting": "trackman launch monitor showing club-head speed during fitting session",
+      "community": "four golfers watching a long-drive attempt on the bay simulator",
+      "events": "closest-to-the-pin trophy on the bar at Swing Shack Randburg"
+    },
+    "og_description": {
+      "education": "TrackMan lessons that fix the slice, the chunk, the yip. Book the bay at Swing Shack Randburg.",
+      "club-fitting": "Fittings built around your swing — shaft, head, length, lie. Book a fitting at Swing Shack.",
+      "community": "A members-first indoor golf bay in Randburg. Leagues, socials, and the bag-drop life.",
+      "events": "Closest-to-the-pin nights, long-drive comps and scramble tournaments. See the Swing Shack calendar."
+    },
+    "schema_types": {
+      "education": "LocalBusiness + Service + FAQPage",
+      "club-fitting": "LocalBusiness + Service + Product",
+      "community": "LocalBusiness + Organization + EventSeries",
+      "events": "LocalBusiness + Event + FAQPage"
+    }
+  },
+  "stats": {
+    "tags_total": 78,
+    "pillars": 4,
+    "voices": 3,
+    "platforms": 5,
+    "trending_signals": 7,
+    "banned_tags": 4
+  }
+}

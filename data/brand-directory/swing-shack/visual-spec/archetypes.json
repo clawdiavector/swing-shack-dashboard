@@ -1,0 +1,89 @@
+{
+  "schema": "https://campaign-os/brand-directory/visual-archetypes/v1",
+  "brand_id": "swing-shack",
+  "version": "1.0",
+  "updated": "2026-07-28T20:10:00Z",
+  "canvas": {
+    "primary_unit": "instagram_square_1080",
+    "aspect": "1:1",
+    "safe_area": "central 90% (avoid 5% edges for IG cropping)"
+  },
+  "archetypes": [
+    {
+      "id": "square-post-v1",
+      "name": "Square Post — Data Headline",
+      "description": "Single-shot TrackMan insight post. Data-led, no people, clean.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "solid_or_subtle_gradient", "fill": "primary", "weight": 0.85},
+        {"id": "subtle_track", "kind": "decorative", "element": "TrackMan ball-flight trail (curved line, low opacity)", "position": "mid-canvas", "opacity": 0.18, "colour": "accent"},
+        {"id": "headline", "kind": "text", "position": "centre", "max_lines": 2, "weight": 700, "size_px": 64, "colour": "neutral_light", "alignment": "centre"},
+        {"id": "subhead", "kind": "text_optional", "position": "below headline", "max_lines": 1, "weight": 500, "size_px": 28, "colour": "accent", "alignment": "centre"},
+        {"id": "logo_mark", "kind": "logo", "position": "bottom-right", "size": "small (60px)", "colour_treatment": "mono_light"},
+        {"id": "cta_pill", "kind": "button_or_url", "position": "bottom-centre", "shape": "pill", "fill": "accent", "text_colour": "neutral_dark", "max_chars": 28}
+      ],
+      "example_prompt_seed": "TrackMan insight post on attack angle. Teal background, amber CTA.",
+      "use_cases": ["educational", "confident", "data_led"]
+    },
+    {
+      "id": "story-banner",
+      "name": "Story Banner — Member Energy",
+      "description": "Vertical 9:16. Headline at top, hero photo mid-canvas, CTA at bottom.",
+      "canvas": "instagram_story_1080x1920",
+      "layers": [
+        {"id": "background", "kind": "gradient", "fill": "primary → neutral_dark", "weight": 0.85},
+        {"id": "hero_photo", "kind": "image", "position": "centre-vertical", "treatment": "soft top + bottom fade to background", "opacity": 1.0},
+        {"id": "headline", "kind": "text", "position": "top-centre", "max_lines": 2, "weight": 800, "size_px": 72, "colour": "neutral_light", "alignment": "centre", "padding_top": 120},
+        {"id": "subhead", "kind": "text_optional", "position": "below headline", "weight": 500, "size_px": 32, "colour": "accent", "alignment": "centre"},
+        {"id": "cta_pill", "kind": "button_or_url", "position": "bottom-centre", "shape": "pill", "fill": "accent", "text_colour": "neutral_dark", "max_chars": 24, "padding_bottom": 160}
+      ],
+      "example_prompt_seed": "Member energy story. Sim bay hero shot, teal gradient overlay.",
+      "use_cases": ["member_led", "promo", "social_proof"]
+    },
+    {
+      "id": "course-shot-banner",
+      "name": "Course Shot — Real-Location Hero",
+      "description": "Hero shot of a real course / driving range / sim bay. Used for membership hero panels, landing page headers, email headers.",
+      "canvas": "wide_banner_1920x720",
+      "layers": [
+        {"id": "background", "kind": "image", "treatment": "dim 35%, vignette"},
+        {"id": "overlay_gradient", "kind": "gradient", "fill": "linear: transparent → neutral_dark", "weight": 0.4},
+        {"id": "headline", "kind": "text", "position": "left-third", "max_lines": 2, "weight": 800, "size_px": 84, "colour": "neutral_light", "alignment": "left"},
+        {"id": "subhead", "kind": "text_optional", "position": "left-third, below headline", "weight": 500, "size_px": 28, "colour": "accent", "alignment": "left"},
+        {"id": "cta_pill", "kind": "button_or_url", "position": "left-third, bottom", "fill": "accent", "text_colour": "neutral_dark", "max_chars": 28}
+      ],
+      "example_prompt_seed": "Driving range at golden hour, swing shack overlay headline.",
+      "use_cases": ["landing_hero", "email_header", "membership_led"]
+    },
+    {
+      "id": "grid-3up-meme",
+      "name": "Meme Grid 3-Up",
+      "description": "3-panel meme format. Top panel = setup, middle = twist, bottom = payoff.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "panel_1", "kind": "image_or_solid", "fill": "primary", "caption_position": "top", "caption_weight": 600, "caption_size_px": 32},
+        {"id": "panel_2", "kind": "image_or_solid", "fill": "primary", "caption_position": "middle", "caption_weight": 600, "caption_size_px": 32},
+        {"id": "panel_3", "kind": "image_or_solid", "fill": "accent", "caption_position": "bottom", "caption_weight": 800, "caption_size_px": 36, "caption_colour": "neutral_dark"}
+      ],
+      "caption_colour_default": "neutral_light",
+      "example_prompt_seed": "3-up meme about off-rack clubs. Setup | twist | CTA.",
+      "use_cases": ["meme_lord", "relatable", "funny"]
+    },
+    {
+      "id": "quote-card",
+      "name": "Quote Card — Coach Voice",
+      "description": "Big single-quote card. Coach voice on TrackMan insight or fitting truth.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "solid", "fill": "neutral_dark"},
+        {"id": "accent_rule", "kind": "decorative", "element": "thin amber rule", "position": "above quote", "width": 80, "height": 4, "colour": "accent"},
+        {"id": "quote_text", "kind": "text", "position": "centre", "max_lines": 4, "weight": 600, "size_px": 44, "colour": "neutral_light", "alignment": "centre", "max_chars_per_line": 28},
+        {"id": "attribution", "kind": "text", "position": "below quote", "weight": 500, "size_px": 18, "colour": "accent", "alignment": "centre"}
+      ],
+      "example_prompt_seed": "Coach quote on attack angle. Midnight background, amber rule.",
+      "use_cases": ["educational", "confident", "coach_credibility"]
+    }
+  ],
+  "fallback_when_no_image_gen": "produce copy-only deliverables (headline + caption + CTA + archetype spec). Image gen slot waits for Drive wiring.",
+  "source": "best-guess from brand voice + common golf social patterns; needs Drive validation once folders are wired in"
+}

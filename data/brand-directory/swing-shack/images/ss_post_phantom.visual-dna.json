@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_phantom.jpg",
+  "layer1_metadata": {
+    "filename": "ss_post_phantom.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 1453739,
+    "modified": 1785312764.528629,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#060808",
+        "rgb": [
+          6,
+          8,
+          8
+        ],
+        "share": 0.3996
+      },
+      {
+        "hex": "#181c1d",
+        "rgb": [
+          24,
+          28,
+          29
+        ],
+        "share": 0.2761
+      },
+      {
+        "hex": "#7b8686",
+        "rgb": [
+          123,
+          134,
+          134
+        ],
+        "share": 0.1856
+      },
+      {
+        "hex": "#0c0b0b",
+        "rgb": [
+          12,
+          11,
+          11
+        ],
+        "share": 0.0688
+      },
+      {
+        "hex": "#030505",
+        "rgb": [
+          3,
+          5,
+          5
+        ],
+        "share": 0.045
+      },
+      {
+        "hex": "#060909",
+        "rgb": [
+          6,
+          9,
+          9
+        ],
+        "share": 0.0149
+      },
+      {
+        "hex": "#060707",
+        "rgb": [
+          6,
+          7,
+          7
+        ],
+        "share": 0.0096
+      },
+      {
+        "hex": "#060809",
+        "rgb": [
+          6,
+          8,
+          9
+        ],
+        "share": 0.0003
+      }
+    ],
+    "mean_brightness": 43.9,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 21.2,
+    "brightness_bottom": 68.4,
+    "edge_density_grid": [
+      [
+        4.47,
+        9.89,
+        4.2
+      ],
+      [
+        3.9,
+        15.7,
+        5.44
+      ],
+      [
+        10.62,
+        28.44,
+        26.89
+      ]
+    ],
+    "subject_estimate_position": "bottom"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 13,
+    "text_preview": "ee ovr SCOTTY CAMERON PHANTOM 5.5 AVAILABLE @ iswiye DM US FOR DETAILS"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 49,
+    "median_text_height_px": 32,
+    "likely_heading_text": "PHANTOM 5.5",
+    "is_all_caps": true,
+    "sample_text_colour": "#060808"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#060808",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom",
+      "ocr_text": "ee ovr SCOTTY CAMERON PHANTOM 5.5 AVAILABLE @ iswiye DM US FOR DETAILS",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

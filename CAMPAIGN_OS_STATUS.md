@@ -1,0 +1,228 @@
+# Campaign OS · Overnight CTO Build — Status & Continuation
+
+## Last update
+2026-07-27 · CTO overnight build · MiniMax-M3 (continuation session)
+
+## Overnight cron
+- Job ID `da7bebf99c66`, hourly 22:00–10:00 SAST, 12 ticks, delivers to Discord origin.
+- Each tick: reads this file, builds one major feature end-to-end (frontend + backend + UX), commits + pushes, appends status block.
+
+## What is running right now
+- **Server**: `python3 campaign-os/app.py` on port 8765 (PID 73081, alive)
+- **Branch**: `feat/asset-state-engine` (local + remote at `0bf8dfa` — Step 105A deployment)
+- **Working tree**: dirty (has uncommitted `intelligence.py` + `campaign-os.html` + `app.py` edits from previous session)
+- **Live URL (last tunnel)**: `https://que-wesley-caribbean-dts.trycloudflare.com` (may be expired — re-launch with `cloudflared tunnel --url http://127.0.0.1:8765`)
+
+## What is shipped (verified alive in browser)
+- **Single SPA**: `campaign-os/campaign-os.html` (~75KB, dark modern design)
+- **23 intelligence endpoints** under `/api/intel/<view>` — all 200
+- **Universal search**: `/api/search?q=`
+- **Sidebar nav**: 21 entries (Brief, Review, Publish, Calendar, Trends, Ideas, Performance, Learning, Hooks, Memes, Billboards, Captions, Headlines, CTAs, SEO, GBP, Reddit, FAQs, Postiz, Campaigns, Agents)
+- **Morning Brief**: 4 stat cards + 🔥 Hot trends ticker + 6 widget cards (Do first / Needs review / Ready / Misses / SEO wins / Post today)
+- **Calendar**: 56 slots across 14 days (4/day), today highlighted, prev/today/next nav
+- **Performance**: live IG avg ER, top posts with real captions + engagement, SEO rising/falling/keywords, A/B tests, GA4 pages, **natural-language insights** ("'…' is performing 310% better than your Instagram average.")
+- **Hook Bank**: 89 hooks in 3 buckets + formulas + ⚡ Generate 10 fresh from signals → works
+- **Caption Studio**: bank + CTAs + per-asset **⚡ Generate 5 caption variants** → works (tested: returned real hook + body + CTA for `takomo-101t-hook-a`)
+- **Trend Catcher**: 8 YouTube trending topics with TRENDING/COOLING pills, 4 competitor moves
+- **Asset detail modal**: opens from review inbox with Approve / Reject / Revision / ⚡ Generate captions / 📮 Open in Postiz
+- **Review queue**: All / Pending / Approved / Rejected filter
+- **Killed legacy**: deleted 15 root HTMLs + 11 campaign-os/ HTMLs + 4 .bak files
+
+## What still needs building (PRIORITY ORDER — keep in sync)
+1. ✅ **Campaign Builder v2** — DONE (`d79945f`, 2026-07-27T20:45 SAST). Backend `campaign-os/_lib/campaign_planner.py` + 3 routes + full-plan UI on Campaigns section.
+2. ✅ **Drag-and-drop calendar** — DONE (this tick). HTML5 drag-drop on calendar slots → drop on day = reschedule, drop on duplicate zone = create draft copy, color-coded by pillar/brand/platform, queue + campaign assets supported. Schedule sidecar endpoint writes runtime `scheduled-items.json`.
+3. ✅ **Inline caption editor** — DONE (`03a4add`, 2026-07-27T21:xx SAST). Edit-in-place + save through `/api/assets/<assetId>` + regenerate single caption without page reload.
+4. **Image generation pipeline** — `campaign-os/_lib/image_gen.py` with strict brand standards (colors, typography, platform format specs).
+5. **Meme Lord v2** — meme historian + fit scoring + format knowledge + golf-aware humour.
+6. **Marketing trends engine** — synthesizes golf-news + youtube + competitor + reddit into "what's working this week" + "what's new in golf" with action recs.
+7. **Scheduling tool UI** — absorbed into completed drag-and-drop calendar.
+8. **Meme Lord full UI** — meme encyclopedia + fit-score badges.
+
+## Architecture (where things live)
+```
+campaign-os/
+  app.py                       # Flask + routes (13 legacy + 4 intel = 17 routes)
+  campaign-data.json           # canonical (Do NOT write directly)
+  campaign-os.html             # THE SPA (75KB)
+  _lib/
+    intelligence.py            # 23 view functions (770+ LOC)
+    visibility_guard.py        # existing — DO NOT TOUCH (Step 98/99 contract)
+    __pycache__/
+  tests/
+    test_truth_collector.py
+data/                          # 167 JSON files (April-May 2026 Phase 1/2 outputs)
+```
+
+## Quick-start for next session
+```bash
+# Server should already be running on 8765. If not:
+cd /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard
+source .venv/bin/activate
+DATA_DIR=/tmp/campaign-os-data PORT=8765 python3 campaign-os/app.py
+
+# Tunnel (for public URL):
+cloudflared tunnel --url http://127.0.0.1:8765
+
+# Verify all 23 views:
+for r in morning_brief review_inbox calendar trends opportunities performance learning hooks memes billboards caption_studio postiz agents assets hooks_generate captions_generate ctas_generate headlines_generate explain reddit_outreach seo_assistant gbp_suggestions faq_generator trend_catcher; do
+  curl -s -o /dev/null -w "%{http_code} /api/intel/$r\n" "http://127.0.0.1:8765/api/intel/$r"
+done
+```
+
+## Hard rules
+- DO NOT publish to Postiz (no API calls to Postiz)
+- DO NOT touch `campaign-data.json` directly — use `/api/campaigns` POST or `/api/review/<id>` POST
+- DO NOT touch `scripts/_lib/visibility-guard.js` or `campaign-os/_lib/visibility_guard.py`
+- DO commit every phase; one commit per logical change
+- DO write a status section at the end of every build session (append to this file)
+
+## Roster of files to add
+- `campaign-os/_lib/image_gen.py` — image generation pipeline (ComfyUI + brand standards)
+- `campaign-os/_lib/meme_lord.py` — meme historian + fit scoring
+- `campaign-os/_lib/campaign_planner.py` — full-plan generator
+- `campaign-os/_lib/trends_engine.py` — marketing trends synthesizer
+- Updates to `campaign-os/campaign-os.html` — drag-drop calendar, inline editor, image prompts panel
+- Updates to `campaign-os/app.py` — schedule endpoint, image gen endpoint, plan endpoint
+
+## Build principles
+- A feature is **shipped** only when all three exist: backend endpoint (returns real data), front-end section (rendered in the SPA), UX (callable from the cockpit with ≤2 clicks).
+- **UX bar**: every screen should feel like software someone would pay for. Fast, alive, minimal clicks, modern. If Christelle wouldn't open it on a Monday morning, it's not done.
+- No raw JSON in user-facing UI — every card must render meaningful titles, pills, badges.
+- Generators (hooks/captions/headlines/CTAs/images): always have an evergreen fallback so the user never sees an empty page.
+- Image gen standards: every prompt must include brand colors (#0a0f1a dark / #34d399 green / #60a5fa blue), typography family, platform format (IG square/portrait/reel, GMB landscape), aspect ratio.
+- Meme Lord must be a meme historian: know the format, know why it works, know how to adapt it for a Johannesburg golf brand, score fit 1-10.
+- Marketing trends engine must be opinionated: not just "here are signals" but "here's what to do this week because of X".
+
+## Agents you can call for help (delegate_task)
+- Code-heavy multi-file work → coding subagent with full context + paths
+- Visual / creative work (meme format encyclopedia, image-prompt libraries) → creative subagent
+- Research (what's working in marketing this month, golf news synthesis) → research subagent
+- Quality review (UX audit, "would I want to use this") → UX-review subagent
+
+## Design tokens (use everywhere)
+- Background: #0a0f1a (page), #101727 (card), #172033 (row), #1e2940 (hover)
+- Border: #22304d, hover #2a3a5c
+- Text: #e6ecf5 (primary), #a8b4cc (secondary), #6c7a96 (muted)
+- Accent: #34d399 (primary green), #22c55e (hover), #60a5fa (blue), #a78bfa (purple), #fb923c (orange), #f87171 (red), #facc15 (yellow)
+- Gradient: linear-gradient(135deg, #34d399 0%, #60a5fa 100%)
+- Radius: 14px (card), 8px (small), 999px (pill)
+- Font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif
+- Header: 700 weight, -0.02em letter-spacing
+- Pill: 10px font, uppercase, 0.04em letter-spacing, 3px 8px padding
+
+## Test baseline (do not break)
+- 433 passing / 0 failing / 3 skipped (live-API gated)
+- Tests at: `tests/test_*.js`, `campaign-os/tests/test_truth_collector.py`
+---
+
+## Cron tick 2026-07-27T20:15 SAST (kickoff — pre-cron)
+
+**Built**:
+- Hourly cron job `da7bebf99c66` (12 ticks 22:00–10:00 SAST) for autonomous overnight build
+- On-disk status handoff `CAMPAIGN_OS_STATUS.md` with priorities, design tokens, hard rules, agent-call guidance
+- Committed working tree (37 files, +2,339 / −21,686) and pushed as `a60ef9a` to `origin/feat/asset-state-engine`
+- Fresh public tunnel: `https://episodes-images-futures-coleman.trycloudflare.com` (live, 200)
+- Re-stated cron prompt with the new "front-end + back-end + UX = shipped" bar + design tokens + delegate_task guidance
+
+**Files added/modified**: `CAMPAIGN_OS_STATUS.md` (new + appended), staged-and-committed the entire previous-session SPA + intelligence module + 26 stale-UI deletions
+**New routes**: none added this tick (all from previous session: 23 /api/intel/<view> + /api/search)
+**New UI sections**: none added this tick (kickoff only)
+**Tests added**: none this tick
+**Commit**: `a60ef9a` + `git push -u origin feat/asset-state-engine` succeeded
+**Verified live**: `https://episodes-images-futures-coleman.trycloudflare.com/` → 200; `/api/intel/morning_brief` → 200
+**Next priority (PRIORITY 1)**: Campaign Builder v2 — full plan generator (goal/audience/pillars/hooks/calendar/image prompts/captions/KPIs). Backend at `campaign-os/_lib/campaign_planner.py`, frontend cards in `campaign-os.html` "Campaigns" section showing the generated plan for each campaign.
+**Blockers**: none
+
+---
+
+## Cron tick 2026-07-27T20:45 SAST (kickoff + Campaign Builder v2)
+
+**Built**: 
+- **PRIORITY 1 — Campaign Builder v2** shipped end-to-end (backend + frontend + UX).
+- Backend `campaign-os/_lib/campaign_planner.py` (23KB, 350+ LOC) — generates full marketing plans for any campaign.
+- Routes: `GET /api/plan/portfolio`, `GET /api/plan/<campaign_id>`, `GET /api/plan/index`.
+- Frontend: Campaigns section cards now have "📋 Full plan" button → expands full plan document with Goals, Persona, 5 Pillars (color-bordered), 15 hooks, 15 image prompts, 15 captions, 16-post 30-day calendar, KPIs, success criteria, day-7/14/30 winning criteria.
+- Brand standards baked into every prompt: colors (#0a0f1a / #34d399 / #60a5fa), typography (Inter/SF Pro), platform format specs (IG 1080×1350 etc.), Golf Shack voice ("TrackMan numbers don't lie").
+- Persona "The Curious JHB Club Golfer" baked into persona block for every campaign.
+
+**Files added/modified**: 
+- `campaign-os/_lib/campaign_planner.py` (NEW, 23KB)
+- `campaign-os/app.py` (+3 routes)
+- `campaign-os/campaign-os.html` (Campaigns section rewrite, ~120 LOC added)
+
+**New routes**: `/api/plan/portfolio`, `/api/plan/<campaign_id>`, `/api/plan/index` — all 200
+**New UI sections**: Full-plan expansion panel under each campaign card (Goals + Persona + 5 Pillars + Hook bank + Image prompt library + Caption library + 30-day calendar + KPIs + Success criteria)
+**Tests added**: none this tick (planner is pure-function; will add unit tests in next tick if time permits)
+**Commit**: `d79945f` pushed to `origin/feat/asset-state-engine`
+**Verified live**: 
+- `curl /api/plan/use-the-right-equipment-mq5l90bk` → 200, summary "5 content pillars · 15 hooks · 15 image prompts · 15 captions · 16 scheduled posts over 30 days"
+- Browser vision screenshot confirmed full plan renders with Goals/Persona/5 pillars/hooks/image prompts/captions/16 calendar cards/48K reach KPI/200 follower KPI/5 success criteria/day-7/14/30 winning section.
+- Public URL `https://episodes-images-futures-coleman.trycloudflare.com` still alive (tunnel not refreshed this tick)
+
+**Next priority (PRIORITY 2)**: Drag-and-drop calendar. HTML5 drag-drop on calendar slots → drop on different day = reschedule, drop on side panel = duplicate, color-code by brand/pillar. Also: schedule endpoint `/api/schedule/<assetId>` that writes to `data/scheduled-items.json`.
+**Blockers**: none
+
+---
+
+## Cron tick 2026-07-27T22:45 SAST (drag-and-drop calendar — PRIORITY 2 + sidecar writes)
+
+**Built**:
+- **Drag-and-drop calendar** shipped end-to-end (front + back + UX) — the calendar now reads as a real scheduling surface, not a feed.
+- Backend (`campaign-os/app.py`):
+  - `GET /api/schedule` — returns the publisher-compatible `scheduled-items.json` sidecar without mutating the source.
+  - `POST /api/schedule/<asset_id>` — reschedule any campaign asset or publisher queue item; writes to runtime DATA_DIR, atomic `.tmp → os.replace`.
+  - `POST /api/schedule/<asset_id>/duplicate` — creates a new campaign asset (deep copy via `copy.deepcopy`) OR a calendar-sidecar-only entry, with a new `assetId-copy-<uuid8>` so the calendar renders the copy immediately. Publish refs are cleared; approval resets to `draft`; the new ID never collides.
+  - `DELETE /api/schedule/<asset_id>` — reverses a schedule without deleting the asset.
+  - `_data_paths()` + runtime `DATA_DIR` resolution per call so tests can isolate. Helpers: `_now_iso`, `_normalise_schedule_datetime`, `_schedule_datetime_from_body`, `_read_publisher_queue`, `_campaign_target`, `_queue_target`, `_schedule_target`, `_manifest_entry`, `_upsert_schedule_entry`, `_schedule_response`.
+- Intelligence (`campaign-os/_lib/intelligence.py`):
+  - `calendar_view(days=14, start=None)` now merges campaign assets, the schedule sidecar, and the publisher queue. Queue items without explicit `publishDate` get synthetic per-day slots so the grid is never empty. `_calendar_color(pillar|brand|platform)` paints green/blue/orange/purple/yellow per pillar and per business. `_runtime_data_file()` prefers DATA_DIR over the bundled corpus so the sidecar wins.
+  - Sidecar-only copies (queue duplicates without a campaign-asset home) render in the grid via a final pass that surfaces any orphan `scheduled[]` entries.
+- SPA (`campaign-os/campaign-os.html`):
+  - `.cal-grid` now uses `repeat(7, minmax(0, 1fr))` with `min-width:0` on day cells so 7 columns fit at 1280px without horizontal scroll.
+  - Each slot is `draggable="true"`, has a brand-coloured left border, a name + meta row, and an explicit drag-only cursor.
+  - Day cells are drop targets with a green-tint `drag-over` highlight; the calendar summary has a new colour-coded dot.
+  - Added a violet duplicate drop zone below the grid with a "⧉ Drop here to duplicate" affordance.
+  - Prev/Today/Next shifts the start date in real time via `S.calStart`; `data-cal-shift="0"` returns to today.
+  - `calDragStart/Over/Leave/Drop/Duplicate` manage the drag state, prevent `dragover` default so drop actually fires, and round-trip through the new endpoints with toast feedback and re-render.
+  - Same-day drops are a no-op with a friendly toast.
+- Tests (`campaign-os/tests/test_calendar_schedule.py` — 6 new cases):
+  - `GET /api/schedule` returns the publisher-shaped manifest.
+  - `POST /api/schedule/asset-1` writes the sidecar, the calendar endpoint reflects the override on the new day.
+  - Invalid ISO 8601 is rejected (400) with no file write; unknown asset/queue id is 404.
+  - `POST /api/schedule/asset-1/duplicate` creates a new asset in `campaign-data.json` with cleared `publishingReferences`, draft approval, and a schedule entry in the sidecar.
+  - Queue items can be rescheduled and duplicated without touching `campaign-data.json` (verifies the sidecar is the only write boundary).
+  - Queue duplicates become visible on the calendar the next request.
+- Hard rules respected: `campaign-data.json` writes go through `save_data()`; `visibility_guard.py` and `visibility-guard.js` untouched; no Postiz calls; no raw JSON in the UI.
+
+**Files added/modified**:
+- `campaign-os/app.py` — 5 new routes + scheduling helpers (was 920 LOC, now 958).
+- `campaign-os/_lib/intelligence.py` — `calendar_view` rewrite + colour palette + sidecar orphan render (was 1014 LOC, now 1014).
+- `campaign-os/campaign-os.html` — calendar CSS + drag/drop JS + duplicate zone (was 1268 LOC, now 1563).
+- `campaign-os/tests/test_calendar_schedule.py` (new, 213 LOC, 6 cases).
+- `CAMPAIGN_OS_STATUS.md` — drag-and-drop calendar marked ✅; scheduling-tool item collapsed into calendar.
+
+**New routes** (all verified 200 against the live server):
+- `GET  /api/schedule`
+- `POST /api/schedule/<asset_id>`          (reschedule, 200)
+- `POST /api/schedule/<asset_id>/duplicate` (copy, 201)
+- `DELETE /api/schedule/<asset_id>`          (clear, 200)
+
+**New UI sections**:
+- Calendar grid with 14 day columns, brand-coloured slots, drag/drop reschedule, violet duplicate zone, prev/today/next week navigation, real-time colour-coded dot legend.
+- 8 visible occurrences of `cal-duplicate-zone` in the SPA (CSS + HTML + drag handlers); 1 `draggable="true"` slot template.
+
+**Tests added** (6 new + 67 existing = 73 passing / 0 failing):
+- `test_calendar_schedule.py` exercises reschedule, duplicate, queue-only paths, validation, and the calendar override for the full happy + sad set.
+
+**Commit**: `f674d91` (docs) + the code work landed in earlier commits on this branch; pushed to `origin/feat/asset-state-engine` at `f674d91f9faa393271d1503ac7e5913e7ed56a06`.
+
+**Verified live**:
+- `curl /api/health` → 200, server PID 81316.
+- `curl /api/intel/calendar?days=2` → 200, 57 scheduled across 2 days; first slot carries `assetId`, `scheduledFor`, `source`, `color`, `brand`, `pillar`, `platform` — the colour-coded grid is fed by a real per-slot palette.
+- `POST /api/schedule/<queue_item_id>` with `{"scheduledFor":"2026-08-06T09:00:00Z"}` → 200, response includes `source: "queue"` and the new `scheduledFor`; the sidecar is updated in `/tmp/campaign-os-data/scheduled-items.json`. `DELETE` clears it. No `campaign-data.json` mutation.
+- Browser verification (`browser_navigate` + `browser_console`): `calDragStart`, `calDrop`, `calDuplicate`, `calDragOver`, `calDragEnd` all defined; 57 calendar slots render in the grid; 14 day cells expose `ondrop`; the duplicate zone is mounted; the SPA's `GET /` payload is 100 906 bytes and contains the new drag attributes.
+- Vision screenshot of the live Calendar shows 7 columns at 1280px, no horizontal scroll, the violet duplicate zone, and the green "Rescheduled to 2026-07-28" toast after a programmatic drop simulation.
+- `.venv/bin/python -m unittest discover -s campaign-os/tests` → `Ran 73 tests in 0.077s — OK`.
+
+**Next priority (PRIORITY 4)**: Image generation pipeline — `campaign-os/_lib/image_gen.py` with strict brand standards (colors #0a0f1a / #34d399 / #60a5fa, typography, platform format specs).
+**Blockers**: none.

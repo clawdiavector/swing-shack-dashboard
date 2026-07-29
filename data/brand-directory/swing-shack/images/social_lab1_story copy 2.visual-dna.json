@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/social_lab1_story copy 2.jpg",
+  "layer1_metadata": {
+    "filename": "social_lab1_story copy 2.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 470908,
+    "modified": 1785312691.1427643,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.2028
+      },
+      {
+        "hex": "#8b8d63",
+        "rgb": [
+          139,
+          141,
+          99
+        ],
+        "share": 0.1613
+      },
+      {
+        "hex": "#505236",
+        "rgb": [
+          80,
+          82,
+          54
+        ],
+        "share": 0.1324
+      },
+      {
+        "hex": "#6f6a44",
+        "rgb": [
+          111,
+          106,
+          68
+        ],
+        "share": 0.1309
+      },
+      {
+        "hex": "#1d1e15",
+        "rgb": [
+          29,
+          30,
+          21
+        ],
+        "share": 0.1226
+      },
+      {
+        "hex": "#383727",
+        "rgb": [
+          56,
+          55,
+          39
+        ],
+        "share": 0.1165
+      },
+      {
+        "hex": "#b9c28b",
+        "rgb": [
+          185,
+          194,
+          139
+        ],
+        "share": 0.083
+      },
+      {
+        "hex": "#0c0b08",
+        "rgb": [
+          12,
+          11,
+          8
+        ],
+        "share": 0.0506
+      }
+    ],
+    "mean_brightness": 69.0,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 42.8,
+    "brightness_bottom": 110.8,
+    "edge_density_grid": [
+      [
+        7.03,
+        7.43,
+        8.02
+      ],
+      [
+        9.35,
+        9.18,
+        3.14
+      ],
+      [
+        3.74,
+        5.45,
+        5.68
+      ]
+    ],
+    "subject_estimate_position": "left"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 14,
+    "text_preview": "WIN A LAB O2Z.1 R500 ENTRY \u2014 R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 84,
+    "median_text_height_px": 39,
+    "likely_heading_text": "WIN A LAB",
+    "is_all_caps": true,
+    "sample_text_colour": "#f1f1f1"
+  },
+  "layer8_compliance": {
+    "score": 0.875,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "left",
+      "ocr_text": "WIN A LAB O2Z.1 R500 ENTRY \u2014 R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

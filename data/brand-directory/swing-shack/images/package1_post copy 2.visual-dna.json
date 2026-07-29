@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_post copy 2.jpg",
+  "layer1_metadata": {
+    "filename": "package1_post copy 2.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 1808048,
+    "modified": 1785314589.212447,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#131414",
+        "rgb": [
+          19,
+          20,
+          20
+        ],
+        "share": 0.1938
+      },
+      {
+        "hex": "#0a0c0d",
+        "rgb": [
+          10,
+          12,
+          13
+        ],
+        "share": 0.1596
+      },
+      {
+        "hex": "#070a0a",
+        "rgb": [
+          7,
+          10,
+          10
+        ],
+        "share": 0.1482
+      },
+      {
+        "hex": "#c68665",
+        "rgb": [
+          198,
+          134,
+          101
+        ],
+        "share": 0.1153
+      },
+      {
+        "hex": "#0f0f0e",
+        "rgb": [
+          15,
+          15,
+          14
+        ],
+        "share": 0.1061
+      },
+      {
+        "hex": "#0b0d0d",
+        "rgb": [
+          11,
+          13,
+          13
+        ],
+        "share": 0.0955
+      },
+      {
+        "hex": "#30271e",
+        "rgb": [
+          48,
+          39,
+          30
+        ],
+        "share": 0.0937
+      },
+      {
+        "hex": "#0f1212",
+        "rgb": [
+          15,
+          18,
+          18
+        ],
+        "share": 0.0878
+      }
+    ],
+    "mean_brightness": 34.0,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 35.4,
+    "brightness_bottom": 30.9,
+    "edge_density_grid": [
+      [
+        10.64,
+        6.7,
+        5.86
+      ],
+      [
+        9.97,
+        11.85,
+        7.23
+      ],
+      [
+        9.26,
+        8.92,
+        6.44
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 20,
+    "text_preview": "swiNs MONTHLY PACKAGES BIRDIE HUNTER 1 LESSON & UNLIMITED PRACTICE R 2300 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 101,
+    "median_text_height_px": 42,
+    "likely_heading_text": "BIRDIE HUNTER R",
+    "is_all_caps": true,
+    "sample_text_colour": "#0a0c0c"
+  },
+  "layer8_compliance": {
+    "score": 0.775,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#131414",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "swiNs MONTHLY PACKAGES BIRDIE HUNTER 1 LESSON & UNLIMITED PRACTICE R 2300 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ladiesclinic-100.jpg",
+  "layer1_metadata": {
+    "filename": "ladiesclinic-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 404438,
+    "modified": 1785312709.4309099,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#191b1a",
+        "rgb": [
+          25,
+          27,
+          26
+        ],
+        "share": 0.3387
+      },
+      {
+        "hex": "#151513",
+        "rgb": [
+          21,
+          21,
+          19
+        ],
+        "share": 0.1533
+      },
+      {
+        "hex": "#121412",
+        "rgb": [
+          18,
+          20,
+          18
+        ],
+        "share": 0.1216
+      },
+      {
+        "hex": "#874797",
+        "rgb": [
+          135,
+          71,
+          151
+        ],
+        "share": 0.1138
+      },
+      {
+        "hex": "#241c23",
+        "rgb": [
+          36,
+          28,
+          35
+        ],
+        "share": 0.0873
+      },
+      {
+        "hex": "#0f0f0d",
+        "rgb": [
+          15,
+          15,
+          13
+        ],
+        "share": 0.0802
+      },
+      {
+        "hex": "#2f1f31",
+        "rgb": [
+          47,
+          31,
+          49
+        ],
+        "share": 0.0581
+      },
+      {
+        "hex": "#1d171c",
+        "rgb": [
+          29,
+          23,
+          28
+        ],
+        "share": 0.047
+      }
+    ],
+    "mean_brightness": 41.5,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 31.5,
+    "brightness_bottom": 36.6,
+    "edge_density_grid": [
+      [
+        8.91,
+        1.98,
+        1.27
+      ],
+      [
+        6.95,
+        7.89,
+        1.8
+      ],
+      [
+        6.2,
+        7.61,
+        7.68
+      ]
+    ],
+    "subject_estimate_position": "top-left"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 15,
+    "text_preview": "swig INVITES YOU TO OUR FRIDAY, 12 SEPTEMBER - 18:00 HOSTED BY CATHERINE LAU )"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 66,
+    "median_text_height_px": 46,
+    "likely_heading_text": "-",
+    "is_all_caps": true,
+    "sample_text_colour": "#ffffff"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#191b1a",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "top-left",
+      "ocr_text": "swig INVITES YOU TO OUR FRIDAY, 12 SEPTEMBER - 18:00 HOSTED BY CATHERINE LAU )",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

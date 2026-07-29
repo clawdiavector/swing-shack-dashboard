@@ -1,0 +1,39 @@
+{
+  "schema": "https://campaign-os/brand-directory/palette/v1",
+  "brand_id": "stick",
+  "version": "1.0",
+  "updated": "2026-07-28T20:10:00Z",
+  "palette": {
+    "primary": {
+      "hex": "#1B1B1B",
+      "name": "true black",
+      "usage": "backgrounds, dominant colour"
+    },
+    "accent": {
+      "hex": "#FF3D00",
+      "name": "signal red",
+      "usage": "emphasis, CTA pills, key callouts"
+    },
+    "neutral_dark": {
+      "hex": "#0A0A0A",
+      "name": "deep black",
+      "usage": "alternate backgrounds"
+    },
+    "neutral_light": {
+      "hex": "#FFFFFF",
+      "name": "paper white",
+      "usage": "text on black, headlines"
+    },
+    "neutral_mid": {
+      "hex": "#9CA3AF",
+      "name": "concrete",
+      "usage": "secondary text, captions"
+    }
+  },
+  "contrast_checks": [
+    {"pair": ["primary", "neutral_light"], "ratio_estimate": 19.6, "wcag": "AAA pass"},
+    {"pair": ["accent", "primary"], "ratio_estimate": 5.1, "wcag": "AA pass"},
+    {"pair": ["accent", "neutral_light"], "ratio_estimate": 3.9, "wcag": "AA pass for large text"}
+  ],
+  "source": "best-guess — Stick voice reads as high-contrast / black / red / signal. Needs Drive validation once folders wired in."
+}

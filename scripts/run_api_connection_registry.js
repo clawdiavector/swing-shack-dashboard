@@ -1,4 +1,5 @@
 const fs=require('fs'),path=require('path');
+const { loadPostizApiKey } = require('./_lib/postiz-credentials');
 const DATA='/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data';
 const r=n=>{try{return JSON.parse(fs.readFileSync(path.join(DATA,n),'utf8'));}catch{return null;}};
 const now=new Date();
@@ -8,7 +9,18 @@ const CRED_BASE='/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-das
 const CRED_CLIENT='/Users/fivefriday/.openclaw-instance2/workspace/clients/swing-shack/credentials';
 const cred=(f)=>{try{return JSON.parse(fs.readFileSync(path.join(CRED_BASE,f),'utf8'));}catch{try{return JSON.parse(fs.readFileSync(path.join(CRED_CLIENT,f),'utf8'));}catch{return null;}}};
 
-const postizCred={api_key:'265b40afbdb241d358f4244d5d1798a2fde6e220b79ffc329a8845b927124326',connected:true};
+// Postiz credential loaded via shared helper. Never stored as literal.
+let postizApiKey=null, postizKeySource='missing', postizKeyLength=0;
+try {
+  const c = loadPostizApiKey();
+  postizApiKey = c.apiKey;
+  postizKeySource = c.source;
+  postizKeyLength = c.length;
+  console.log('[run_api_connection_registry] Postiz credential loaded: source='+postizKeySource+', length='+postizKeyLength);
+} catch (e) {
+  console.error('[run_api_connection_registry] '+e.message);
+}
+const postizCred={api_key:postizApiKey,connected:!!postizApiKey};
 const metaCred=cred('meta-token.json')||cred('instagram-api-token.json')||cred('swing-shack-meta-token.json');
 const ga4Cred=cred('google-service-account.json');
 const whatsAppCred=cred('whatsapp-business.json')||cred('whatsapp_business.json');

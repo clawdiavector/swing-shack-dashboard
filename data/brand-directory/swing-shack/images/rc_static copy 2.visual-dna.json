@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_static copy 2.jpg",
+  "layer1_metadata": {
+    "filename": "rc_static copy 2.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1921,
+    "aspect_ratio": 0.5627,
+    "orientation": "portrait",
+    "file_size_bytes": 877044,
+    "modified": 1785312685.411346,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000918",
+        "rgb": [
+          0,
+          9,
+          24
+        ],
+        "share": 0.2535
+      },
+      {
+        "hex": "#1a1414",
+        "rgb": [
+          26,
+          20,
+          20
+        ],
+        "share": 0.1917
+      },
+      {
+        "hex": "#09101b",
+        "rgb": [
+          9,
+          16,
+          27
+        ],
+        "share": 0.1532
+      },
+      {
+        "hex": "#000816",
+        "rgb": [
+          0,
+          8,
+          22
+        ],
+        "share": 0.0975
+      },
+      {
+        "hex": "#000614",
+        "rgb": [
+          0,
+          6,
+          20
+        ],
+        "share": 0.0957
+      },
+      {
+        "hex": "#535161",
+        "rgb": [
+          83,
+          81,
+          97
+        ],
+        "share": 0.0742
+      },
+      {
+        "hex": "#441e1e",
+        "rgb": [
+          68,
+          30,
+          30
+        ],
+        "share": 0.0712
+      },
+      {
+        "hex": "#040a14",
+        "rgb": [
+          4,
+          10,
+          20
+        ],
+        "share": 0.063
+      }
+    ],
+    "mean_brightness": 27.2,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.563,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 20.7,
+    "brightness_bottom": 18.8,
+    "edge_density_grid": [
+      [
+        4.79,
+        3.66,
+        5.31
+      ],
+      [
+        7.83,
+        10.15,
+        11.0
+      ],
+      [
+        3.54,
+        6.69,
+        8.8
+      ]
+    ],
+    "subject_estimate_position": "right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 23,
+    "text_preview": "=] RYDER CUP 27 & 28 SEPTEMBER SATURDAY 27 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 28 SEPTEMBER INDIVIDUAL MATCHES DM US FOR MORE INFO"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 89,
+    "median_text_height_px": 53,
+    "likely_heading_text": "RYDER CUP",
+    "is_all_caps": true,
+    "sample_text_colour": "#29261d"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#000918",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "right",
+      "ocr_text": "=] RYDER CUP 27 & 28 SEPTEMBER SATURDAY 27 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 28 SEPTEMBER INDIVIDUAL MATCHES DM US FOR MORE INFO",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "_fixture": true,
+  "_note": "SYNTHETIC Postiz response in PUBLISHED state. Used ONLY in test/verification mode. The post ID starts with cmFIXTURE so the truth_collector guard can detect and reject it. This fixture carries releaseURL+releaseId so resolution tests can verify the permalink-extraction path.",
+  "_captured_from": "live GET /public/v1/posts response shape on 2026-07-22 (real Postiz API)",
+  "id": "cmFIXTURE00000000000000000002",
+  "content": "Test fixture content for Stage 2 verification",
+  "publishDate": "2026-07-22T13:00:00.000Z",
+  "releaseURL": "https://www.instagram.com/p/FIXTURE0000000000000000000/",
+  "releaseId": "FIXTURE0000000000000000000",
+  "state": "PUBLISHED",
+  "intervalInDays": null,
+  "group": "fixture-group-uuid-0000-0000-0000-000000000000",
+  "creationMethod": "API",
+  "tags": [],
+  "integration": {
+    "id": "cmnfoum2703e6ql0yiajgcg21",
+    "providerIdentifier": "instagram",
+    "name": "Swing Shack",
+    "picture": "https://uploads.postiz.com/5mmVZhesOp.jpg"
+  }
+}

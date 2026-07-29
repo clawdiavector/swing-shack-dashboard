@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/wedgecomp2.jpg",
+  "layer1_metadata": {
+    "filename": "wedgecomp2.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1921,
+    "height_px": 1080,
+    "aspect_ratio": 1.7787,
+    "orientation": "landscape",
+    "file_size_bytes": 610336,
+    "modified": 1785314556.6027396,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#f6f6f6",
+        "rgb": [
+          246,
+          246,
+          246
+        ],
+        "share": 0.3842
+      },
+      {
+        "hex": "#c3c1c2",
+        "rgb": [
+          195,
+          193,
+          194
+        ],
+        "share": 0.2095
+      },
+      {
+        "hex": "#987aad",
+        "rgb": [
+          152,
+          122,
+          173
+        ],
+        "share": 0.1581
+      },
+      {
+        "hex": "#dddcdd",
+        "rgb": [
+          221,
+          220,
+          221
+        ],
+        "share": 0.1113
+      },
+      {
+        "hex": "#f1f1f1",
+        "rgb": [
+          241,
+          241,
+          241
+        ],
+        "share": 0.0536
+      },
+      {
+        "hex": "#f8f9f8",
+        "rgb": [
+          248,
+          249,
+          248
+        ],
+        "share": 0.0399
+      },
+      {
+        "hex": "#f6f6f7",
+        "rgb": [
+          246,
+          246,
+          247
+        ],
+        "share": 0.023
+      },
+      {
+        "hex": "#f6f6f5",
+        "rgb": [
+          246,
+          246,
+          245
+        ],
+        "share": 0.0204
+      }
+    ],
+    "mean_brightness": 213.7,
+    "luminance_category": "light"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.779,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 180.4,
+    "brightness_bottom": 225.0,
+    "edge_density_grid": [
+      [
+        8.45,
+        8.27,
+        6.04
+      ],
+      [
+        15.21,
+        8.97,
+        3.76
+      ],
+      [
+        10.15,
+        8.24,
+        9.16
+      ]
+    ],
+    "subject_estimate_position": "left"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 40,
+    "text_preview": "WIN A SET OF CUSTOM FITTED TAKOMO OR VICE WEDGES 1 DECEMBER - 28 FEBRUARY R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED +5 - 25 HANDICAP COMP : STROKE NET SAND RIVER PAR 3 COURSE ENTER IN STORE"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 81,
+    "median_text_height_px": 34,
+    "likely_heading_text": "WIN A SET",
+    "is_all_caps": true,
+    "sample_text_colour": "#904cf9"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": true,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#f6f6f6",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "left",
+      "ocr_text": "WIN A SET OF CUSTOM FITTED TAKOMO OR VICE WEDGES 1 DECEMBER - 28 FEBRUARY R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED +5 - 25 HANDICAP COMP : STROKE NET SAND RIVER PAR 3 COURSE ENTER IN STORE",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Takomo"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

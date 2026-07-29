@@ -1,0 +1,185 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ladieslessons-100.jpg",
+  "layer1_metadata": {
+    "filename": "ladieslessons-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 462507,
+    "modified": 1785312712.8648741,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#070707",
+        "rgb": [
+          7,
+          7,
+          7
+        ],
+        "share": 0.2533
+      },
+      {
+        "hex": "#605854",
+        "rgb": [
+          96,
+          88,
+          84
+        ],
+        "share": 0.1719
+      },
+      {
+        "hex": "#413d42",
+        "rgb": [
+          65,
+          61,
+          66
+        ],
+        "share": 0.1333
+      },
+      {
+        "hex": "#292d2e",
+        "rgb": [
+          41,
+          45,
+          46
+        ],
+        "share": 0.1311
+      },
+      {
+        "hex": "#111114",
+        "rgb": [
+          17,
+          17,
+          20
+        ],
+        "share": 0.1209
+      },
+      {
+        "hex": "#06070b",
+        "rgb": [
+          6,
+          7,
+          11
+        ],
+        "share": 0.0758
+      },
+      {
+        "hex": "#b6b295",
+        "rgb": [
+          182,
+          178,
+          149
+        ],
+        "share": 0.0726
+      },
+      {
+        "hex": "#050507",
+        "rgb": [
+          5,
+          5,
+          7
+        ],
+        "share": 0.0411
+      }
+    ],
+    "mean_brightness": 51.9,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 49.8,
+    "brightness_bottom": 51.7,
+    "edge_density_grid": [
+      [
+        5.01,
+        2.36,
+        5.11
+      ],
+      [
+        4.53,
+        3.14,
+        7.06
+      ],
+      [
+        4.88,
+        9.42,
+        17.17
+      ]
+    ],
+    "subject_estimate_position": "bottom-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 23,
+    "text_preview": "LADIES LESSONS CATHERINE LAU PGA PROFESSIONAL TRACKMAN LAUNCH MONI! TORS ZEN SWING STAGE CLUB FITTING BOOK ONLINE OR MESSAGE US FOR MORE INFO"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 74,
+    "median_text_height_px": 41,
+    "likely_heading_text": "LADIES LESSONS",
+    "is_all_caps": true,
+    "sample_text_colour": "#ffffff"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#070707",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom-right",
+      "ocr_text": "LADIES LESSONS CATHERINE LAU PGA PROFESSIONAL TRACKMAN LAUNCH MONI! TORS ZEN SWING STAGE CLUB FITTING BOOK ONLINE OR MESSAGE US FOR MORE INFO",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "GTS Putter",
+      "TrackMan",
+      "Zen Swing Stage"
+    ],
+    "count": 3,
+    "source": "ocr+filename"
+  }
+}

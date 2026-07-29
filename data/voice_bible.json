@@ -1,0 +1,98 @@
+{
+  "schema": "https://clawdia.io/caption-studio/voice-bible/v1",
+  "version": "1.0",
+  "owner": "caption_studio_v2",
+  "description": "Voice personas for Swing Shack content. Each voice carries tone templates, CTA defaults, allowed tones, and meme fit signals drawn from meme_knowledge.json voice_fit tags. Used by Caption Studio v2 to generate voice-aware captions.",
+  "updated": "2026-07-28T00:00:00Z",
+  "voices": {
+    "swing-shack": {
+      "id": "swing-shack",
+      "label": "Swing Shack",
+      "description": "Data-driven coach voice. Confident, educational, no-nonsense. References TrackMan data, fitting truth, evidence-based results.",
+      "personality": "data-driven coach, confident, educational, no-nonsense",
+      "template_prefix": "⛳ Here's the data-backed truth:",
+      "template_suffix": "TrackMan doesn't lie.",
+      "cta_default": "Book your session → swingshack.co.za",
+      "cta_alternatives": [
+        "Book a TrackMan session → swingshack.co.za",
+        "Get fitted — your clubs aren't random",
+        "Try the 30-min data session → swingshack.co.za"
+      ],
+      "allowed_tones": ["educational", "confident", "funny", "relatable", "provocative"],
+      "meme_fit": ["swing-shack"],
+      "example_caption": "Your slice isn't a mystery — TrackMan shows the exact cause in 30 minutes.",
+      "callout_style": "fact-based, coach voice, references data",
+      "hashtag_suggestions": ["#TrackManTuesday", "#DataDrivenGolf", "#SwingShack"]
+    },
+    "stick": {
+      "id": "stick",
+      "label": "Stick",
+      "description": "Sarcastic, golf insider voice. Calls out bad habits, off-rack clubs, range myths. Meme-aware, provokes thought with irony.",
+      "personality": "sarcastic, golf insider, calling out bad habits, meme-aware",
+      "template_prefix": "🚩 Reality check:",
+      "template_suffix": "Not sure why you'd do it any other way.",
+      "cta_default": "Get fitted. Your game deserves better.",
+      "cta_alternatives": [
+        "Stop guessing. Get fitted.",
+        "Your clubs deserve better than you.",
+        "Book a fitting before your next round → swingshack.co.za"
+      ],
+      "allowed_tones": ["sarcastic", "funny", "confident", "relatable", "provocative"],
+      "meme_fit": ["stick"],
+      "example_caption": "Off-rack clubs. The budget option that costs you strokes. Change my mind.",
+      "callout_style": "contrarian, calling out, meme-reference",
+      "hashtag_suggestions": ["#OffRackProblems", "#ClubTruth", "#FittingFirst"]
+    },
+    "bag-drop": {
+      "id": "bag-drop",
+      "label": "Bag Drop",
+      "description": "Community-first, member energy voice. Fun, supportive, relatable. Refers to the Bag Drop service, member social, shared golfer experience.",
+      "personality": "community-first, fun, supportive, member energy",
+      "template_prefix": "🫂 Fair warning:",
+      "template_suffix": "You'll never go back.",
+      "cta_default": "Drop your bag with us → swingshack.co.za",
+      "cta_alternatives": [
+        "Leave your bag at Swing Shack — play lighter",
+        "Member social every Thursday — join us",
+        "Book your drop → swingshack.co.za"
+      ],
+      "allowed_tones": ["funny", "relatable", "educational", "confident"],
+      "meme_fit": ["bag-drop"],
+      "example_caption": "When your mate says 'I'll fix it myself' — we've all been there. Almost.",
+      "callout_style": "warm, community, relatable scenario",
+      "hashtag_suggestions": ["#BagDropJHB", "#SwingShackMembers", "#GolfCommunity"]
+    }
+  },
+  "tones": {
+    "educational": {
+      "label": "Educational",
+      "description": "Teaches something. Hook + insight + CTA.",
+      "template": "{prefix} {hook}. {body}. {suffix} {cta}"
+    },
+    "confident": {
+      "label": "Confident",
+      "description": "Bold statement. Asserts a truth.",
+      "template": "{prefix} {hook}. {body}. {cta}"
+    },
+    "funny": {
+      "label": "Funny",
+      "description": "Humor-driven. Relatable or absurd.",
+      "template": "{prefix} {hook}. {body}. {suffix} {cta}"
+    },
+    "relatable": {
+      "label": "Relatable",
+      "description": "You've been there. Empathy-driven.",
+      "template": "{prefix} {hook}. {body}. {suffix} {cta}"
+    },
+    "provocative": {
+      "label": "Provocative",
+      "description": "Makes you stop scrolling. Bold claim.",
+      "template": "{prefix} {hook}. {body}. {suffix} {cta}"
+    },
+    "sarcastic": {
+      "label": "Sarcastic",
+      "description": "Ironic. Calls out the obvious.",
+      "template": "{prefix} {hook}. {body}. {suffix} {cta}"
+    }
+  }
+}

@@ -1,0 +1,259 @@
+{
+  "schema": "https://clawdia.io/agents/publisher/v1",
+  "runId": "run-hir63yf8",
+  "startedAt": "2026-07-24T10:02:18.843Z",
+  "completedAt": "2026-07-24T10:02:18.730Z",
+  "mode": "live",
+  "fixture": false,
+  "actor": "publisher",
+  "credentialLength": 64,
+  "source": "Step 95 PHASE 3 \u2014 actual reconciliation run. Detected the planted prior-reconciliation record via findPriorDraftForAsset, used responseFromReconciliation to synthesise the response, skipped upload + create calls, wrote the canonical publishing reference via appendReferenceToCanonical, recorded the publish-draft-created event via derivePublishingStateAfterPostiz.",
+  "itemsConsidered": 58,
+  "itemsProcessed": 1,
+  "successes": [
+    {
+      "publishingId": "pub-cxrcx1wc",
+      "postizPostId": "cmrypnzq802fspe0ynp1nu3vb",
+      "assetId": "use-the-right-equipment-mq5l90bk-feed-post-04",
+      "campaignId": "use-the-right-equipment-mq5l90bk",
+      "rawResponseHash": "540937ba93258fdf9d533e3c9330668a1db83a61970d1dec4a4074a9b1b787c4",
+      "indexRegenerated": true,
+      "stateEngineChanged": false,
+      "stateEngineFields": [],
+      "stateEngineError": null,
+      "reconciled": true,
+      "reconciledFromOrphan": "cmrypnzq802fspe0ynp1nu3vb"
+    }
+  ],
+  "failures": [],
+  "skips": [
+    {
+      "item_id": "cap-2026-04-22-00000000",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000001",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000002",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000003",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000004",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000005",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000006",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000007",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000008",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000009",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000010",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000011",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000012",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000013",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000014",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000015",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000016",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000017",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000018",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000019",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000020",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000021",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000022",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000023",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000024",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000025",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000026",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000027",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000028",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000029",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000030",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000031",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000032",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000033",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000034",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000035",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000036",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000037",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000038",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000039",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000040",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000041",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000042",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000043",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000044",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000045",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000046",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000047",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000048",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000049",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000050",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000051",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000052",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000053",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000054",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000055",
+      "reason": "asset_not_found_in_canonical"
+    },
+    {
+      "item_id": "cap-2026-04-22-00000056",
+      "reason": "asset_not_found_in_canonical"
+    }
+  ]
+}

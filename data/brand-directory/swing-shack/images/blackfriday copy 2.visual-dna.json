@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy 2.jpg",
+  "layer1_metadata": {
+    "filename": "blackfriday copy 2.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1920,
+    "aspect_ratio": 0.563,
+    "orientation": "portrait",
+    "file_size_bytes": 332388,
+    "modified": 1785314607.0254648,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#3a3a3a",
+        "rgb": [
+          58,
+          58,
+          58
+        ],
+        "share": 0.708
+      },
+      {
+        "hex": "#665547",
+        "rgb": [
+          102,
+          85,
+          71
+        ],
+        "share": 0.0791
+      },
+      {
+        "hex": "#92a6c1",
+        "rgb": [
+          146,
+          166,
+          193
+        ],
+        "share": 0.0737
+      },
+      {
+        "hex": "#373637",
+        "rgb": [
+          55,
+          54,
+          55
+        ],
+        "share": 0.0624
+      },
+      {
+        "hex": "#3a3a3b",
+        "rgb": [
+          58,
+          58,
+          59
+        ],
+        "share": 0.0252
+      },
+      {
+        "hex": "#3a3a39",
+        "rgb": [
+          58,
+          58,
+          57
+        ],
+        "share": 0.0221
+      },
+      {
+        "hex": "#393a3a",
+        "rgb": [
+          57,
+          58,
+          58
+        ],
+        "share": 0.0158
+      },
+      {
+        "hex": "#3c3a39",
+        "rgb": [
+          60,
+          58,
+          57
+        ],
+        "share": 0.0138
+      }
+    ],
+    "mean_brightness": 71.2,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.563,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 85.2,
+    "brightness_bottom": 62.4,
+    "edge_density_grid": [
+      [
+        8.63,
+        5.03,
+        7.28
+      ],
+      [
+        4.87,
+        3.73,
+        3.69
+      ],
+      [
+        2.99,
+        1.91,
+        3.91
+      ]
+    ],
+    "subject_estimate_position": "top-left"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 20,
+    "text_preview": "[sw)Ng| BLD AY SALE 17 - 30 NOVEMBER 10% OFF ANTE MEMBER Si ff P DM US FOR MORE INFO"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 331,
+    "median_text_height_px": 64,
+    "likely_heading_text": "BLD",
+    "is_all_caps": true,
+    "sample_text_colour": "#3a3a3a"
+  },
+  "layer8_compliance": {
+    "score": 0.775,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#3a3a3a",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top-left",
+      "ocr_text": "[sw)Ng| BLD AY SALE 17 - 30 NOVEMBER 10% OFF ANTE MEMBER Si ff P DM US FOR MORE INFO",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

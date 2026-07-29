@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/juniorlessons-100.jpg",
+  "layer1_metadata": {
+    "filename": "juniorlessons-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 448962,
+    "modified": 1785312714.734776,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#070808",
+        "rgb": [
+          7,
+          8,
+          8
+        ],
+        "share": 0.254
+      },
+      {
+        "hex": "#433f34",
+        "rgb": [
+          67,
+          63,
+          52
+        ],
+        "share": 0.164
+      },
+      {
+        "hex": "#0e1b1d",
+        "rgb": [
+          14,
+          27,
+          29
+        ],
+        "share": 0.1637
+      },
+      {
+        "hex": "#21221c",
+        "rgb": [
+          33,
+          34,
+          28
+        ],
+        "share": 0.1158
+      },
+      {
+        "hex": "#0d1110",
+        "rgb": [
+          13,
+          17,
+          16
+        ],
+        "share": 0.1111
+      },
+      {
+        "hex": "#040c0c",
+        "rgb": [
+          4,
+          12,
+          12
+        ],
+        "share": 0.0923
+      },
+      {
+        "hex": "#aca79d",
+        "rgb": [
+          172,
+          167,
+          157
+        ],
+        "share": 0.0747
+      },
+      {
+        "hex": "#070605",
+        "rgb": [
+          7,
+          6,
+          5
+        ],
+        "share": 0.0244
+      }
+    ],
+    "mean_brightness": 41.6,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 44.0,
+    "brightness_bottom": 41.2,
+    "edge_density_grid": [
+      [
+        6.81,
+        2.16,
+        4.82
+      ],
+      [
+        2.14,
+        2.96,
+        7.0
+      ],
+      [
+        3.06,
+        9.26,
+        16.85
+      ]
+    ],
+    "subject_estimate_position": "bottom-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 22,
+    "text_preview": "1 JUNIOR LESSONS CATHERINE LAU PGA PROFESSIONAL A A | Ay NAN LAU LHING BOOK ONLINE OR MESSAGE US FOR MORE INFO"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 84,
+    "median_text_height_px": 41,
+    "likely_heading_text": "JUNIOR LESSONS BOOK",
+    "is_all_caps": true,
+    "sample_text_colour": "#ffffff"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#070808",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "bottom-right",
+      "ocr_text": "1 JUNIOR LESSONS CATHERINE LAU PGA PROFESSIONAL A A | Ay NAN LAU LHING BOOK ONLINE OR MESSAGE US FOR MORE INFO",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}
