@@ -1935,6 +1935,48 @@ const HELP = (() => {
         a half-turn more neutral ("we recommend" → "we recommend" — not "your
         swing sucks but here's why"). Review and tighten before publishing.</p>`
     },
+    'library': {
+      title: 'How the Library search works',
+      body: `
+        <p>This page is the <span class="hc-term">one search box over
+        everything Campaign OS knows</span>. Campaigns, assets, hooks, captions,
+        posts, and the supporting knowledge files are all indexed by substring
+        match. Type a phrase, get ranked hits across the active brand first.</p>
+        <p><span class="hc-term">🎛️ Kind filter</span> (dropdown right of the
+        box) narrows the pool to one bucket: <b>All</b>, <b>Campaigns</b>,
+        <b>Assets</b>, <b>Hooks</b>, <b>Captions</b>, <b>Posts</b>, or
+        <b>Knowledge</b>. A locked filter cuts noise fast — if you only want
+        hooks, "All" + 30 results is mostly wrong shape.</p>
+        <p><span class="hc-term">🎯 Brand scope</span> — the X-Brand header on the
+        page dictates what's searchable. Switching the brand switcher (top-left)
+        to Stick only returns Stick-scoped assets, hooks, captions and posts.
+        Cross-brand search is not a thing here; if you need it, drop the brand
+        filter and reopen Library.</p>
+        <p><span class="hc-term">📊 Scoring</span> ranks hits so the useful ones
+        float to the top. <b>100</b> = campaign name or ID exact match,
+        <b>80</b> = asset name / caption / visual-brief hit, <b>50</b> = a hit
+        inside any data file (knowledge bundles, IG analytics, post logs,
+        opportunities, etc.). If your top result is a stringified blob like
+        <code>{'id': '18164214061409872', ...}</code>, that's an analytics-row
+        hit, not a real caption — open a higher-scoring match instead.</p>
+        <p><span class="hc-term">⏱️ Debounce</span> is 250ms after the last
+        keystroke. Type, pause, results land. There's no submit button; the box
+        is always live.</p>
+        <p><b>How to use this page:</b> search by <b>name</b> first (campaign id,
+        asset name, hook title) — substring match is exact-letter, so partial
+        words still hit ("track" finds "TrackMan"). Then narrow with Kind. If
+        you're hunting for a hook you wrote last week and can't remember which
+        pillar, "All" + brand-scoped is the right call.</p>
+        <p><b>Anti-pattern 1:</b> searching by a <b>common word</b> like "the"
+        or "golf" with All + no brand filter. You'll get 100 hits across every
+        data file and the top 30 will be lossy. Search by something specific:
+        a phrase from the caption, a campaign id, an asset name fragment.</p>
+        <p><b>Anti-pattern 2:</b> using Library as a <b>source-of-truth</b>
+        instead of the originating surface. The search index is a read-only
+        mirror — to edit a caption, you re-generate it in Caption Studio; to
+        edit a hook, you re-generate it in the Hook bank. The Library result
+        just tells you where the canonical version lives.</p>`
+    },
     'hashtagseo': {
       title: 'How the Hashtag & SEO Pack picks what to tag with',
       body: `
