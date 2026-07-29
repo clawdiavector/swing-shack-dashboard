@@ -66,18 +66,69 @@ def _read_meta_access_token() -> Optional[str]:
     return None
 
 
+def _read_meta_page_token() -> Optional[str]:
+    """Read Meta Page-scoped access token (preferred for FB-page endpoints).
+
+    The page-scoped token inherits Page-level scopes (pages_show_list,
+    pages_read_engagement, pages_read_user_content, read_insights) and works
+    with /{page_id}/posts, /{post_id}/comments, /{post_id}/insights, etc.
+
+    Falls back to the user token if a page-scoped one isn't saved. Note that
+    the user token may NOT be accepted by page endpoints (returns
+    "Page access token required" error code 190 subcode 2069032), so this
+    fallback is best-effort.
+
+    Sources checked in order:
+      1. META_PAGE_ACCESS_TOKEN_FILE — JSON file with {"access_token": "..."}
+      2. META_PAGE_ACCESS_TOKEN — raw env value
+      3. META_PAGE_TOKEN_FILE — alias
+      4. Fall back to user token (_read_meta_access_token)
+    """
+    for env_key in ("META_PAGE_ACCESS_TOKEN_FILE", "META_PAGE_TOKEN_FILE"):
+        path = os.environ.get(env_key)
+        if path:
+            try:
+                with open(path) as f:
+                    data = json.load(f)
+                tok = data.get("access_token") or data.get("token")
+                if tok:
+                    return str(tok).strip()
+            except Exception as e:
+                _LOG.warning("could not read %s=%s: %s", env_key, path, e)
+    for env_key in ("META_PAGE_ACCESS_TOKEN", "META_PAGE_TOKEN"):
+        raw = os.environ.get(env_key)
+        if raw and raw.strip():
+            return raw.strip()
+    # Fallback: user token. May not work for page endpoints (Meta requires
+    # page-scoped token post-2024 for /{page_id}/posts).
+    return _read_meta_access_token()
+
+
 # ── Low-level Graph API caller ────────────────────────────────────────────────
 
-def _graph_get(path: str, params: Optional[dict] = None, timeout: int = 15) -> dict:
+def _graph_get(path: str, params: Optional[dict] = None, timeout: int = 15, use_page_token: bool = False) -> dict:
     """Make a GET request to the Meta Graph API. Returns parsed JSON.
+
+    Args:
+      path: Graph API path (e.g. "/me/accounts", "/{page_id}/posts")
+      params: query string parameters
+      timeout: request timeout in seconds
+      use_page_token: if True, use the page-scoped token (META_PAGE_ACCESS_TOKEN[_FILE])
+        instead of the user token. Required for endpoints like /{page_id}/posts
+        and /{post_id}/comments which reject user tokens post-2024.
 
     Raises:
       MetaAuthError: token missing or 401/403 from upstream
       MetaUpstreamError: other 4xx/5xx from upstream
       MetaNetworkError: connection/timeout failure
     """
-    token = _read_meta_access_token()
+    if use_page_token:
+        token = _read_meta_page_token()
+    else:
+        token = _read_meta_access_token()
     if not token:
+        if use_page_token:
+            raise MetaAuthError("META_PAGE_ACCESS_TOKEN (or _FILE) not configured — and user token fallback also missing")
         raise MetaAuthError("META_ACCESS_TOKEN (or META_ACCESS_TOKEN_FILE) not configured")
     merged = dict(params or {})
     merged["access_token"] = token
@@ -240,3 +291,193 @@ class MetaUpstreamError(Exception):
 class MetaNetworkError(Exception):
     """Connection/timeout/parse failure."""
     pass
+
+
+# ── Facebook Page-side equivalents (work with the 5 currently-approved scopes) ──
+#
+# Why these exist separately: the IG-side functions above need `instagram_basic`,
+# `instagram_manage_insights`, and `pages_read_user_content` (App Review pending).
+# The FB-page functions below only need `pages_show_list`, `pages_read_engagement`,
+# `pages_read_user_content`, `read_insights`, `business_management` — all already
+# granted. They expose Swing Shack's Facebook Page posts, post insights, and
+# post comments so the dashboard has live data while App Review is pending.
+#
+# Once IG scopes are approved, both function families coexist — the SPA can
+# render IG and FB data side-by-side from a single dashboard view.
+
+def _page_credentials_present() -> bool:
+    """True if META_APP_ID + token + META_PAGE_ID are set.
+
+    Unlike meta_credentials_present(), this does NOT require an IG business
+    account id — the FB-page endpoints work with just the page id.
+    """
+    if not os.environ.get("META_APP_ID"):
+        return False
+    if not _read_meta_access_token():
+        return False
+    if not os.environ.get("META_PAGE_ID"):
+        return False
+    return True
+
+
+def list_page_posts(limit: int = 25, fields: Optional[list[str]] = None) -> dict:
+    """GET /{page_id}/posts — list recent Facebook Page posts.
+
+    Requires scope: pages_read_engagement, pages_show_list.
+
+    Returns:
+      {
+        "data": [{ id, message, created_time, permalink_url,
+                   reactions.summary, comments.summary, shares, ... }],
+        "paging": { cursors, next },
+        "_meta": { page_id, fetched, endpoint }
+      }
+    """
+    if not _page_credentials_present():
+        raise MetaAuthError(
+            "FB-page credentials not configured — set META_APP_ID, META_PAGE_ID, "
+            "META_ACCESS_TOKEN[_FILE]"
+        )
+    page_id = os.environ.get("META_PAGE_ID", "").strip()
+    if not page_id.isdigit():
+        raise ValueError(f"META_PAGE_ID must be numeric, got: {page_id!r}")
+    default_fields = [
+        "id",
+        "message",
+        "created_time",
+        "permalink_url",
+        "full_picture",
+        "reactions.limit(0).summary(true)",
+        "comments.limit(0).summary(true)",
+        "shares",
+        "status_type",
+        "is_published",
+    ]
+    fields = fields or default_fields
+    params = {
+        "fields": ",".join(fields),
+        "limit": min(int(limit), 100),
+    }
+    out = _graph_get(f"/{page_id}/posts", params, use_page_token=True)
+    out["_meta"] = {
+        "page_id": page_id,
+        "fetched": len(out.get("data", [])),
+        "endpoint": f"/{page_id}/posts",
+        "source": "facebook_page",
+    }
+    return out
+
+
+def get_page_post_insights(post_id: str) -> dict:
+    """GET /{post_id}/insights?metric=... — engagement metrics for one FB post.
+
+    Requires scope: read_insights, pages_read_engagement.
+
+    Returns:
+      {
+        "_flat": { impressions, reach, engaged_users, reactions_by_type_total,
+                   post_clicks, ... },
+        "data": [ raw upstream per-metric blocks ],
+        "_meta": { post_id, metrics_requested, fetched, endpoint, source }
+      }
+    """
+    if not _page_credentials_present():
+        raise MetaAuthError("FB-page credentials not configured")
+    if not post_id or not str(post_id).isdigit():
+        raise ValueError(f"FB post_id must be numeric, got: {post_id!r}")
+    # Standard post-level insight metrics available to pages with read_insights.
+    # Note: not all metrics are valid for every post type (e.g. video has video_views).
+    metrics = [
+        "post_impressions",
+        "post_impressions_unique",   # = reach
+        "post_engaged_users",
+        "post_reactions_by_type_total",
+    ]
+    params = {"metric": ",".join(metrics)}
+    try:
+        out = _graph_get(f"/{post_id}/insights", params, use_page_token=True)
+    except MetaUpstreamError as e:
+        # Some posts (e.g. shared posts, events) don't support insights — fall
+        # back to a minimal metric set so the dashboard still has something.
+        if e.code in (100, 400):
+            fallback_metrics = ["post_impressions", "post_impressions_unique", "post_engaged_users"]
+            params = {"metric": ",".join(fallback_metrics)}
+            out = _graph_get(f"/{post_id}/insights", params, use_page_token=True)
+            out["_meta"] = {
+                "post_id": post_id,
+                "metrics_requested": fallback_metrics,
+                "fetched": len(out.get("data", [])),
+                "endpoint": f"/{post_id}/insights",
+                "source": "facebook_page",
+                "fallback_used": True,
+                "fallback_reason": str(e),
+            }
+            return _flatten_page_insights(out)
+        raise
+    # Flatten into a dict for easy SPA consumption
+    out = _flatten_page_insights(out)
+    out["_meta"] = {
+        "post_id": post_id,
+        "metrics_requested": metrics,
+        "fetched": len(out.get("data", [])),
+        "endpoint": f"/{post_id}/insights",
+        "source": "facebook_page",
+    }
+    return out
+
+
+def _flatten_page_insights(out: dict) -> dict:
+    """Flatten /{post_id}/insights response into _flat + computed engagement_rate."""
+    flat: dict[str, Any] = {}
+    for entry in out.get("data", []):
+        name = entry.get("name", "?")
+        values = entry.get("values", [])
+        if values and isinstance(values, list) and values:
+            v = values[0].get("value")
+            flat[name] = v
+    # Compute engagement rate = engaged_users / reach
+    er = None
+    try:
+        reach = flat.get("post_impressions_unique") or flat.get("reach")
+        engaged = flat.get("post_engaged_users")
+        if reach and engaged is not None and reach > 0:
+            er = round((engaged / reach) * 100, 3)
+    except Exception:
+        er = None
+    flat["engagement_rate"] = er
+    # Friendly aliases so SPA code is uniform across IG + FB
+    flat["impressions"] = flat.get("post_impressions")
+    flat["reach"] = flat.get("post_impressions_unique")
+    flat["engaged_users"] = flat.get("post_engaged_users")
+    out["_flat"] = flat
+    return out
+
+
+def get_page_post_comments(post_id: str, limit: int = 50) -> dict:
+    """GET /{post_id}/comments — comments on a single Facebook Page post.
+
+    Requires scope: pages_read_user_content.
+
+    Returns:
+      {
+        "data": [{ id, message, from{id,name}, created_time, like_count, ... }],
+        "paging": { cursors, next },
+        "_meta": { post_id, fetched, endpoint, source }
+      }
+    """
+    if not _page_credentials_present():
+        raise MetaAuthError("FB-page credentials not configured")
+    if not post_id or not str(post_id).isdigit():
+        raise ValueError(f"FB post_id must be numeric, got: {post_id!r}")
+    params = {
+        "fields": "id,message,from{id,name},created_time,like_count,comment_count,permalink_url",
+        "limit": min(int(limit), 100),
+    }
+    out = _graph_get(f"/{post_id}/comments", params, use_page_token=True)
+    out["_meta"] = {
+        "post_id": post_id,
+        "fetched": len(out.get("data", [])),
+        "endpoint": f"/{post_id}/comments",
+        "source": "facebook_page",
+    }
+    return out
