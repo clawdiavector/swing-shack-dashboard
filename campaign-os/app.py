@@ -949,6 +949,7 @@ def meta_post_full(media_id):
 CRED_DIR = os.path.expanduser('~/.openclaw/workspace/credentials')
 META_APP_FILE = os.path.join(CRED_DIR, 'meta-app.json')
 META_TOKEN_FILE = os.path.join(CRED_DIR, 'meta-token.json')
+META_PAGE_TOKEN_FILE = os.path.join(CRED_DIR, 'meta-page-token.json')
 META_ENV_FILE = os.path.join(CRED_DIR, 'meta.env')
 META_VERIFY_FILE = os.path.join(CRED_DIR, 'meta-verify-report.json')
 
@@ -1107,6 +1108,20 @@ def meta_portal_form():
     return send_from_directory(os.path.dirname(__file__), 'meta-portal.html')
 
 
+@app.route('/privacy', methods=['GET'])
+@app.route('/privacy.html', methods=['GET'])
+def privacy_policy():
+    """GET /privacy — Privacy Policy (required for Meta App Review)."""
+    return send_from_directory(os.path.dirname(__file__), 'privacy.html')
+
+
+@app.route('/terms', methods=['GET'])
+@app.route('/terms.html', methods=['GET'])
+def terms_of_service():
+    """GET /terms — Terms of Service (required for Meta App Review)."""
+    return send_from_directory(os.path.dirname(__file__), 'terms.html')
+
+
 @app.route('/api/meta/credentials', methods=['POST'])
 def meta_credentials_submit():
     """POST /api/meta/credentials — accept form submission, write creds, verify live.
@@ -1161,6 +1176,40 @@ def meta_credentials_submit():
         os.chmod(META_VERIFY_FILE, 0o600)
     except Exception:
         pass
+
+    # If the page probe returned a page-scoped access token, save it too so
+    # FB-page endpoints (/api/meta/page-posts etc) can use it. User tokens are
+    # rejected for /{page_id}/posts post-2024.
+    page_token_saved = False
+    page = verify.get('page') or {}
+    page_token = page.get('access_token') if isinstance(page, dict) else None
+    if isinstance(page_token, str) and page_token.startswith(('EAA', 'EAB', 'EAAB')):
+        try:
+            page_payload = {
+                'access_token': page_token,
+                'source': 'meta-credentials-portal',
+                'page_id': page.get('id', body['META_PAGE_ID']),
+                'page_name': page.get('name', ''),
+                'written_at': datetime.datetime.utcnow().isoformat() + 'Z',
+            }
+            with open(META_PAGE_TOKEN_FILE, 'w') as f:
+                json.dump(page_payload, f, indent=2)
+            os.chmod(META_PAGE_TOKEN_FILE, 0o600)
+            # Append META_PAGE_ACCESS_TOKEN_FILE to meta.env if not already present
+            try:
+                env_lines = open(META_ENV_FILE).read().splitlines() if os.path.exists(META_ENV_FILE) else []
+                if not any('META_PAGE_ACCESS_TOKEN_FILE' in ln for ln in env_lines):
+                    env_lines.append('')
+                    env_lines.append('# Page-scoped token (preferred for FB-page endpoints)')
+                    env_lines.append(f"export META_PAGE_ACCESS_TOKEN_FILE='{META_PAGE_TOKEN_FILE}'")
+                    with open(META_ENV_FILE, 'w') as f:
+                        f.write('\n'.join(env_lines) + '\n')
+                    os.chmod(META_ENV_FILE, 0o600)
+            except Exception:
+                pass
+            page_token_saved = True
+        except Exception as e:
+            _app_log.warning("could not save page token: %s", e)
 
     # If verify OK, kick off a restart so Campaign OS picks up env vars
     restart_pid = None
@@ -1227,6 +1276,7 @@ def meta_credentials_submit():
         "verify": verify,
         "verify_summary": verify_summary,
         "restart_initiated": restart_pid,
+        "page_token_saved": page_token_saved,
     }), 200
 
 
@@ -1253,6 +1303,161 @@ def meta_credentials_status():
         except Exception:
             out["verify"] = None
     return jsonify(out), 200
+
+
+# ─── META FACEBOOK PAGE-SIDE STATS ───────────────────────────────────────────
+# These three endpoints give the dashboard real data TODAY using only the
+# 5 scopes currently granted (no App Review pending). They mirror the
+# Instagram-side equivalents above so the SPA can render both side-by-side.
+# Once App Review for instagram_basic + instagram_manage_insights lands,
+# both function families coexist — the SPA picks whichever has data.
+
+@app.route('/api/meta/page-posts', methods=['GET'])
+def meta_page_list_posts():
+    """GET /api/meta/page-posts?limit=25 — recent Facebook Page posts.
+
+    Requires scopes: pages_show_list, pages_read_engagement.
+    Works with the currently-approved 5-scope token. No App Review needed.
+    """
+    try:
+        from _lib import meta_api as _meta
+        limit = int(request.args.get('limit', 25))
+        out = _meta.list_page_posts(limit=limit)
+        out['ok'] = True
+        return jsonify(out), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except _meta.MetaAuthError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "hint": "ask Heidi to verify META_APP_ID + META_PAGE_ID + META_ACCESS_TOKEN[_FILE] are set",
+        }), 503
+    except _meta.MetaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _meta.MetaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("meta_page_list_posts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/page-posts/<post_id>/insights', methods=['GET'])
+def meta_page_post_insights(post_id):
+    """GET /api/meta/page-posts/<post_id>/insights — engagement for one FB post.
+
+    Requires scopes: read_insights, pages_read_engagement.
+    Returns flattened metrics + computed engagement_rate.
+    """
+    try:
+        from _lib import meta_api as _meta
+        out = _meta.get_page_post_insights(post_id)
+        out['ok'] = True
+        return jsonify(out), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except _meta.MetaAuthError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "hint": "ask Heidi to verify META_PAGE_ID + META_ACCESS_TOKEN[_FILE] are set",
+        }), 503
+    except _meta.MetaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _meta.MetaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("meta_page_post_insights failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/page-posts/<post_id>/comments', methods=['GET'])
+def meta_page_post_comments(post_id):
+    """GET /api/meta/page-posts/<post_id>/comments — comments on one FB post.
+
+    Requires scope: pages_read_user_content.
+    """
+    try:
+        from _lib import meta_api as _meta
+        limit = int(request.args.get('limit', 50))
+        out = _meta.get_page_post_comments(post_id, limit=limit)
+        out['ok'] = True
+        return jsonify(out), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except _meta.MetaAuthError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "hint": "ask Heidi to verify META_PAGE_ID + META_ACCESS_TOKEN[_FILE] are set",
+        }), 503
+    except _meta.MetaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _meta.MetaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("meta_page_post_comments failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/page-insights', methods=['GET'])
+def meta_page_aggregate_insights():
+    """GET /api/meta/page-insights?period=day|week|days_28 — page-level aggregate.
+
+    Requires scope: read_insights.
+    Optional query: ?metric=page_post_engagements,page_views_total (default = both).
+
+    Note: only certain metric names are valid for a page with read_insights
+    WITHOUT also having pages_read_engagement (which requires App Review).
+    Working set as of 2026-07: page_post_engagements, page_views_total,
+    page_video_views, page_consumptions, page_consumptions_unique,
+    page_impressions_viral, page_impressions_paid, etc.
+    """
+    try:
+        from _lib import meta_api as _meta
+        if not _meta._page_credentials_present():
+            raise _meta.MetaAuthError("FB-page credentials not configured")
+        page_id = os.environ.get("META_PAGE_ID", "").strip()
+        period = request.args.get('period', 'day')
+        # Default to metrics that work with read_insights only (no App Review)
+        # Confirmed working set as of 2026-07-29 with the 5 currently-approved scopes.
+        default_metrics = [
+            "page_post_engagements",
+            "page_views_total",
+        ]
+        metric_param = request.args.get('metric')
+        metrics = metric_param.split(',') if metric_param else default_metrics
+        params = {
+            "metric": ",".join(m.strip() for m in metrics if m.strip()),
+            "period": period,
+        }
+        out = _meta._graph_get(f"/{page_id}/insights", params, use_page_token=True)
+        out["_meta"] = {
+            "page_id": page_id,
+            "period": period,
+            "metrics_requested": metrics,
+            "endpoint": f"/{page_id}/insights",
+            "source": "facebook_page",
+        }
+        out['ok'] = True
+        return jsonify(out), 200
+    except _meta.MetaAuthError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "hint": "ask Heidi to verify META_PAGE_ID + META_ACCESS_TOKEN[_FILE] are set",
+        }), 503
+    except _meta.MetaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _meta.MetaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("meta_page_aggregate_insights failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/campaigns', methods=['GET'])
