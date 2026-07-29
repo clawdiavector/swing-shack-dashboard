@@ -1461,6 +1461,126 @@ const HELP = (() => {
   };
 
   const EXPLAINERS = {
+    'billboards': {
+      title: 'How the Billboard Lab turns hooks into placement-ready concepts',
+      body: `
+        <p>This page is the <span class="hc-term">placement surface</span> for
+        hero / billboard / banner work — the big creative that lives on a
+        sign, a hero banner, a print spread, or a top-of-funnel digital
+        billboard. It reads from two data files: <code>content-ideas.json</code>
+        (the <code>billboards[]</code> array, which holds narrative concepts
+        and <code>visual-briefs.json</code> (the <code>briefs[]</code> array,
+        which holds the structured visual specs the design agent built).
+        Both are <b>read-only intelligence</b> at this point: nothing here
+        calls a design tool, opens a Canva file, or pushes to a printer.
+        Generate pulls <i>text</i> concepts only; visuals stay in the
+        visual-briefs panel for human review.</p>
+        <p><span class="hc-term">🪧 Concepts</span> on the left is the
+        headline-and-narrative card. Each row comes from
+        <code>content-ideas.json → billboards[]</code> and carries the
+        concept <code>title</code>, the <code>hook_text</code> it ladders
+        from, the pillar, and the target placement. Concepts that perform
+        well in the caption / post tests are the candidates that get
+        promoted up here — the billboard lab is <i>downstream</i> of the
+        social proof, not upstream of it. If the list is empty, run a
+        caption or headline batch first, mark what worked, and the system
+        will surface concepts from those winning hooks.</p>
+        <p><span class="hc-term">🎨 Visual briefs</span> on the right is the
+        structured spec for the design hand-off. Each row is one brief
+        from <code>visual-briefs.json</code>, all stamped with schema
+        <code>https://clawdia.io/agents/visual-forge/v1</code> (the
+        visual-forge agent's output contract). Fields the agent fills in:
+        <b>layout</b> (e.g. <code>data-card-dark</code>,
+        <code>10-slide-carousel</code>, <code>thumbnail-ready</code>,
+        <code>blog-hero</code>), <b>visual_type</b> (<code>data-card</code>,
+        <code>blog-image</code>, <code>carousel</code>,
+        <code>reel-concept</code>), <b>format_type</b> (<code>static</code>,
+        <code>carousel</code>, <code>short_script</code>, <code>blog</code>,
+        <code>reel</code>), <b>brief.headline</b> and <b>subhead</b>,
+        <b>brief.bg</b> (background colour), <b>brief.mood</b>
+        (e.g. <i>"data-driven, premium, serious"</i>), <b>brief.fonts</b>
+        (e.g. <i>"Space Grotesk or DM Sans bold"</i>), and the
+        <b>brief.cta</b> field that ladders into the same CTA ladder
+        Captions / Headlines / CTAs all share.</p>
+        <p><span class="hc-term">📐 Layout ladder</span> is what the design
+        agent picks first. There are four canonical layouts:
+        <code>data-card-dark</code> (a single stat-forward card with bg
+        <code>#0a0f1a</code>, used for club-fitting stat tiles and TrackMan
+        number callouts), <code>10-slide-carousel</code> (the educational
+        pillar's default — 10 slides per carousel, one idea per slide),
+        <code>thumbnail-ready</code> (square 1:1 with a strong top-third
+        focal point, used for hero banners and reel covers), and
+        <code>blog-hero</code> (16:9 horizontal with the headline on the
+        left and the visual on the right). Each layout maps to a specific
+        pillar + format_type pair, and the agent writes the spec to that
+        mapping rather than improvising. Picking the layout <i>first</i>
+        is what keeps every brief inside a single visual system.</p>
+        <p><span class="hc-term">🧱 Stats and data zones</span> show up
+        only on data-card briefs (the club-fitting / TrackMan lane). When
+        <code>brief.stats[]</code> is populated, each stat carries a
+        <b>label</b> (e.g. <i>"YOUR SWING SPEED"</i>), a <b>value</b>
+        (e.g. <i>"83 MPH"</i>), and a <b>benchmark</b> (e.g. <i>"PGA
+        Avg: 112"</i>). The benchmark is what makes the card
+        <i>premium</i> — it's the social-proof layer that distinguishes a
+        TrackMan brief from a generic golf image. Briefs without
+        <code>stats[]</code> are still valid (educational / community /
+        events pillars usually skip them), but if a Club Fitting brief
+        comes back without stats, it's a flag to check what data the
+        agent had access to.</p>
+        <p><span class="hc-term">🪝 Hook-to-brief link</span> is the
+        traceability trail: every visual brief carries
+        <code>linked_hook_id</code> (e.g.
+        <i>"that-slice-costing-you-yards-off-the-tee--trackman"</i>) and
+        <code>linked_blueprint_id</code> (e.g.
+        <i>"bp-2026-04-22-001"</i>). The hook id is what the brief is
+        visually arguing; the blueprint id is the content blueprint the
+        brief was generated from. Click the linked hook in any row to
+        trace the brief back to the original idea. If a brief references a
+        hook that's been deleted or retired, the link stays but the row
+        is treated as <i>orphan</i> — flagged in the next status pass.</p>
+        <p><span class="hc-term">📊 Confidence and status</span> sit at
+        the bottom of each brief. <code>confidence</code> (0-100) is the
+        agent's self-rating on how well the brief matches the source hook
+        + pillar + format — a brief at <code>confidence: 100</code> with
+        <code>status: "draft"</code> is ready to hand off. <code>status</code>
+        moves through <code>draft</code> → <code>qa</code> →
+        <code>approved</code> → <code>rendered</code>; until the status
+        flips off <code>draft</code>, the visual-forge pipeline hasn't
+        touched it. <code>ready_for_qa</code> is the boolean shortcut —
+        true means the brief has all required fields and the design
+        agent considers it complete enough to send to a human reviewer.</p>
+        <p><span class="hc-term">🪄 Generate 5 headline concepts</span> at
+        the top of the page calls <code>POST /api/intel/generate_headlines</code>
+        with <code>n: 5</code>, which runs the headline generator with the
+        current voice + pillar selection from the Headlines page
+        (or the platform default if nothing's been picked) and prepends
+        the new batch to the Concepts list. It does <b>not</b> touch the
+        Visual briefs panel — those are owned by the visual-forge agent,
+        not the headline generator. Use Generate when the Concepts list
+        is empty or when you want a fresh batch to mix with the
+        existing winners.</p>
+        <p><b>How to use this page:</b> pick a winning hook from Captions
+        / Headlines. Run Generate 5 here to seed the Concepts list. Pick
+        the strongest concept. Find the matching visual brief on the
+        right (filter by <code>linked_hook_id</code>). Check the brief's
+        confidence + status + ready_for_qa fields. If green, hand the
+        brief to the design tool. If red, regenerate the headline and
+        re-run. The Concepts panel is the <i>argument</i>; the Visual
+        briefs panel is the <i>execution</i>.</p>
+        <p><b>Anti-pattern 1:</b> generating billboard concepts without a
+        tested hook upstream. The Billboard Lab is downstream of social
+        proof, not upstream of it — pushing a concept here without a
+        caption / headline test means the agent is guessing which
+        narrative wins. Run a captions batch first, see what the data
+        says, then promote the winning hook up here.</p>
+        <p><b>Anti-pattern 2:</b> treating the Visual briefs panel as a
+        final design. The brief is the spec, not the render. Even at
+        <code>confidence: 100</code>, the brief still needs the design
+        tool to actually produce the image — the brief tells the tool
+        <i>what to draw</i>, the tool draws it. If the design output
+        doesn't match the brief, the brief is correct and the tool is
+        wrong; don't edit the spec to match a bad render.</p>`
+    },
     'brief': {
       title: 'What this page is',
       body: `
