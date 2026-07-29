@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-07-28T16:00:08.151Z",
+  "lastUpdated": "2026-07-29T04:00:04.877Z",
   "source": "automated",
   "website": {
-    "activeUsers": 691,
-    "sessions": 918,
-    "pageViews": 1492,
-    "avgSessionSeconds": 113.08830370479303,
-    "bounceRate": 0.5784313725490197,
+    "activeUsers": 609,
+    "sessions": 814,
+    "pageViews": 1353,
+    "avgSessionSeconds": 115.22375802211303,
+    "bounceRate": 0.6031941031941032,
     "topPages": [
       {
         "path": "/",
-        "views": 712
+        "views": 612
       },
       {
         "path": "/bookings/",
-        "views": 337
+        "views": 314
       },
       {
         "path": "/customer-portal/",
-        "views": 186
+        "views": 176
       },
       {
         "path": "/club-fitting/",
-        "views": 93
+        "views": 90
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 81
+        "views": 86
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
@@ -37,54 +37,54 @@
         "views": 15
       },
       {
+        "path": "/membership/",
+        "views": 10
+      },
+      {
         "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
-        "views": 13
+        "views": 10
       },
       {
         "path": "/404.html",
-        "views": 11
-      },
-      {
-        "path": "/membership/",
-        "views": 10
+        "views": 9
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 388
-      },
-      {
-        "source": "fb",
-        "sessions": 182
+        "sessions": 367
       },
       {
         "source": "(direct)",
-        "sessions": 165
+        "sessions": 152
+      },
+      {
+        "source": "fb",
+        "sessions": 119
       },
       {
         "source": "clublab.app",
-        "sessions": 75
+        "sessions": 74
       },
       {
         "source": "(not set)",
-        "sessions": 33
+        "sessions": 49
       },
       {
         "source": "instagram",
-        "sessions": 23
-      },
-      {
-        "source": "bing",
-        "sessions": 19
+        "sessions": 20
       },
       {
         "source": "ig",
-        "sessions": 16
+        "sessions": 15
+      },
+      {
+        "source": "bing",
+        "sessions": 14
       },
       {
         "source": "an",
-        "sessions": 12
+        "sessions": 10
       },
       {
         "source": "facebook.com",
@@ -94,47 +94,47 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 634
+        "sessions": 560
       },
       {
         "device": "desktop",
-        "sessions": 276
+        "sessions": 251
       },
       {
         "device": "tablet",
-        "sessions": 8
+        "sessions": 3
       }
     ]
   },
   "searchConsole": [
     {
       "query": "swing shack",
-      "clicks": 206,
-      "impressions": 449,
-      "position": "2.8"
+      "clicks": 198,
+      "impressions": 437,
+      "position": "2.9"
     },
     {
       "query": "swingshack",
-      "clicks": 84,
-      "impressions": 142,
+      "clicks": 81,
+      "impressions": 138,
       "position": "2.2"
     },
     {
       "query": "takomo irons south africa",
-      "clicks": 72,
-      "impressions": 300,
+      "clicks": 69,
+      "impressions": 279,
       "position": "2.0"
     },
     {
       "query": "takomo south africa",
-      "clicks": 30,
-      "impressions": 97,
+      "clicks": 28,
+      "impressions": 94,
       "position": "2.5"
     },
     {
       "query": "takomo irons",
       "clicks": 19,
-      "impressions": 316,
+      "impressions": 315,
       "position": "3.5"
     },
     {
@@ -145,8 +145,8 @@
     },
     {
       "query": "golf simulator",
-      "clicks": 15,
-      "impressions": 1086,
+      "clicks": 14,
+      "impressions": 1034,
       "position": "6.6"
     },
     {
@@ -158,14 +158,14 @@
     {
       "query": "golf simulator johannesburg",
       "clicks": 8,
-      "impressions": 97,
+      "impressions": 94,
       "position": "2.1"
     },
     {
       "query": "indoor golf",
       "clicks": 8,
-      "impressions": 234,
-      "position": "5.6"
+      "impressions": 220,
+      "position": "5.7"
     }
   ],
   "instagram": {}
