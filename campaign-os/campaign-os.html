@@ -1056,7 +1056,7 @@ a:hover{text-decoration:underline}
           </select>
           <label class="muted" style="font-size:11px;margin-left:1rem">Count</label>
           <input id="head-count" type="number" min="3" max="12" value="5" class="mini-select" style="width:5rem">
-          <button class="link-btn" id="head-clear-history" style="margin-left:auto">🗑 Clear history</button>
+          <button class="link-btn" id="head-clear-history" data-help="Wipe the localStorage history of generated headline batches. Does not touch campaigns or assets. Asks for confirmation because it's not undoable." data-help-title="Clear headline history" style="margin-left:auto">🗑 Clear history</button>
         </div>
       </div>
       <!-- Newly generated -->
@@ -1112,7 +1112,7 @@ a:hover{text-decoration:underline}
             <option value="soft">Soft</option>
             <option value="ugc">UGC</option>
           </select>
-          <button class="link-btn" id="cta-clear-history" style="margin-left:auto">🗑 Clear history</button>
+          <button class="link-btn" id="cta-clear-history" data-help="Wipe the localStorage history of generated CTA batches. Does not touch campaigns or assets. Asks for confirmation because it's not undoable." data-help-title="Clear CTA history" style="margin-left:auto">🗑 Clear history</button>
         </div>
       </div>
       <!-- Newly generated -->
@@ -5247,8 +5247,15 @@ async function _recommendHeadlines(){
 }
 $('#head-gen').addEventListener('click', _generateHeadlines);
 $('#head-recommend').addEventListener('click', _recommendHeadlines);
-$('#head-clear-history').addEventListener('click', () => {
-  if(!confirm('Clear all headline history?')) return;
+$('#head-clear-history').addEventListener('click', async () => {
+  // Inline confirm modal (replaces native confirm() — broken on iOS Safari).
+  const ok = await window.reviewConfirm({
+    title: '🗑 Clear all headline history?',
+    body: 'This wipes the localStorage history of generated headline batches. It does <b>not</b> touch campaigns, assets, or your saved voice/pillar picks. This is not undoable.',
+    action: 'Yes, clear',
+    danger: true,
+  });
+  if(!ok) return;
   HEAD_STATE.history = [];
   _saveHeadHistory();
   _renderHeadHistory();
@@ -5447,8 +5454,15 @@ async function _recommendCtas(){
 }
 $('#cta-gen').addEventListener('click', _generateCtas);
 $('#cta-recommend').addEventListener('click', _recommendCtas);
-$('#cta-clear-history').addEventListener('click', () => {
-  if(!confirm('Clear all CTA history?')) return;
+$('#cta-clear-history').addEventListener('click', async () => {
+  // Inline confirm modal (replaces native confirm() — broken on iOS Safari).
+  const ok = await window.reviewConfirm({
+    title: '🗑 Clear all CTA history?',
+    body: 'This wipes the localStorage history of generated CTA batches. It does <b>not</b> touch campaigns, assets, or your saved voice/pillar/platform/category picks. This is not undoable.',
+    action: 'Yes, clear',
+    danger: true,
+  });
+  if(!ok) return;
   CTA_STATE.history = [];
   _saveCtaHistory();
   _renderCtaHistory();
