@@ -239,6 +239,7 @@ def main():
 
     # Git commit any new dissector outputs
     import subprocess
+    pushed = False
     try:
         subprocess.run(["git", "add", "-A"], cwd=str(REPO), check=False)
         # Only commit if there are changes
@@ -252,8 +253,21 @@ def main():
                 f"chore(weekly-scrape): {today} new dissector outputs"
             ], cwd=str(REPO), check=False)
             print("Committed new dissector outputs to git")
+            # Push so Railway rebuilds and endpoints go live
+            push_result = subprocess.run(
+                ["git", "push", "origin", "HEAD"],
+                cwd=str(REPO),
+                capture_output=True, text=True, check=False,
+            )
+            if push_result.returncode == 0:
+                pushed = True
+                print(f"Pushed to remote: {push_result.stdout.strip()[:200]}")
+            else:
+                print(f"git push FAILED: {push_result.stderr.strip()[:200]}")
     except Exception as e:
-        print(f"git commit skipped: {e}")
+        print(f"git commit/push skipped: {e}")
+
+    print(f"\n## Git\n- committed: {'yes' if 'Committed' in str(locals().get('push_result', '')) or pushed else 'no'}\n- pushed: {'yes' if pushed else 'no'}")
 
 
 if __name__ == "__main__":
