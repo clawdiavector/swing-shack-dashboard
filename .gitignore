@@ -13,3 +13,9 @@ __pycache__/
 *.local.json
 .env
 .env.*
+
+# Brand directory: keep dissector outputs but exclude raw image files
+# (they live in Google Drive as source of truth)
+data/brand-directory/*/images/*.jpg
+data/brand-directory/*/images/*.jpeg
+data/brand-directory/*/images/*.png

@@ -1,0 +1,1078 @@
+{
+  "schema_version": "0.1",
+  "directory": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images",
+  "image_count": 122,
+  "by_filename": {
+    "Artboard 1 copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1 copy 2.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0b0d0e"
+    },
+    "Artboard 1 copy 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1 copy 3.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0b0d0e"
+    },
+    "Artboard 1 copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1 copy.visual-dna.json",
+      "score": 0.5588,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#090c0c"
+    },
+    "Artboard 1.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1.visual-dna.json",
+      "score": 0.7353,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#090d11"
+    },
+    "Artboard 2 copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 2 copy.visual-dna.json",
+      "score": 0.525,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#85a6a7"
+    },
+    "Artboard 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 2.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#080b0b"
+    },
+    "Artboard 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 3.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#090c0d"
+    },
+    "Artboard 4.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 4.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#090c0d"
+    },
+    "JORDAN_BAG copy 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/JORDAN_BAG copy 3.visual-dna.json",
+      "score": 0.5588,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#171a1a"
+    },
+    "JORDAN_BAG copy 4.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/JORDAN_BAG copy 4.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#232427"
+    },
+    "JORDAN_BAG copy 5.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/JORDAN_BAG copy 5.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#444341"
+    },
+    "Quantammini1 copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Quantammini1 copy 2.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#f9fbfa"
+    },
+    "Quantammini1 copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Quantammini1 copy.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#fbfcfb"
+    },
+    "Quantammini1.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Quantammini1.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0a0d0e"
+    },
+    "RC1-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/RC1-100.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#100e1d"
+    },
+    "RC1.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/RC1.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#100e1d"
+    },
+    "SRIXON_BAG copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/SRIXON_BAG copy 2.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#615c61"
+    },
+    "SRIXON_BAG copy 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/SRIXON_BAG copy 3.visual-dna.json",
+      "score": 0.525,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#262621"
+    },
+    "VESSELBAG_STAFF copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VESSELBAG_STAFF copy 2.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#131518"
+    },
+    "VESSELBAG_STAFF copy 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VESSELBAG_STAFF copy 3.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#1d201f"
+    },
+    "VESSEL_BAG copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VESSEL_BAG copy 2.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#222223"
+    },
+    "VESSEL_BAG copy 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VESSEL_BAG copy 3.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#1e201e"
+    },
+    "VICEBAG copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VICEBAG copy 2.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#2b2c25"
+    },
+    "VICEBAG copy 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VICEBAG copy 3.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#31322a"
+    },
+    "beginnerlessons-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/beginnerlessons-100.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#070707"
+    },
+    "blackfriday copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy 2.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#3a3a3a"
+    },
+    "blackfriday copy 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy 3.visual-dna.json",
+      "score": 0.875,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#3a3a3a"
+    },
+    "blackfriday copy 4.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy 4.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#3a3a3a"
+    },
+    "blackfriday copy 5.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy 5.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#3a3a3a"
+    },
+    "blackfriday copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#171516"
+    },
+    "cf1 copy 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf1 copy 3.visual-dna.json",
+      "score": 0.7353,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#2a282a"
+    },
+    "cf2 copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf2 copy.visual-dna.json",
+      "score": 0.7353,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#29221e"
+    },
+    "cf3 copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf3 copy.visual-dna.json",
+      "score": 0.675,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#382f22"
+    },
+    "cf4 copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf4 copy.visual-dna.json",
+      "score": 0.7353,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#070706"
+    },
+    "cf5 copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf5 copy.visual-dna.json",
+      "score": 0.7353,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#2e2a28"
+    },
+    "cf6 copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf6 copy.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#3d2b1e"
+    },
+    "coaching_post.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_post.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#1e1c19"
+    },
+    "coaching_post2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_post2.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#1e1b19"
+    },
+    "coaching_story.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_story.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0a0906"
+    },
+    "coaching_story2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_story2.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0a0906"
+    },
+    "coachinpackages_post.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coachinpackages_post.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#131514"
+    },
+    "coachinpackages_story.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coachinpackages_story.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#101213"
+    },
+    "fitting_discount_post.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_discount_post.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0e1012"
+    },
+    "fitting_discount_story.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_discount_story.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0a0c0d"
+    },
+    "fitting_gts1.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts1.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#070909"
+    },
+    "fitting_gts2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts2.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#060808"
+    },
+    "fitting_gts3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts3.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#060809"
+    },
+    "fitting_gts4.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts4.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#060809"
+    },
+    "fitting_gts_story.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts_story.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#060808"
+    },
+    "fitting_gts_story2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts_story2.visual-dna.json",
+      "score": 0.5588,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#060808"
+    },
+    "fitting_gts_story3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts_story3.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#060808"
+    },
+    "fitting_gts_story4.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts_story4.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#060808"
+    },
+    "fitting_post1.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_post1.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#1c1c1a"
+    },
+    "fitting_post2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_post2.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#1f1d1d"
+    },
+    "fitting_story1.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_story1.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#222527"
+    },
+    "fitting_story3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_story3.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#1f1b1a"
+    },
+    "frame1.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/frame1.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0a0c0c"
+    },
+    "fullrange copy 2-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 2-100.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#434444"
+    },
+    "fullrange copy 3-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 3-100.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#47494e"
+    },
+    "fullrange copy 4-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 4-100.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#19201c"
+    },
+    "fullrange copy 5-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 5-100.visual-dna.json",
+      "score": 0.375,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#3b6176"
+    },
+    "fullrange copy 6-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 6-100.visual-dna.json",
+      "score": 0.5588,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#000000"
+    },
+    "fullrange copy 7-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 7-100.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#0a0a0c"
+    },
+    "fullrange copy 8-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 8-100.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#000000"
+    },
+    "fullrange copy-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy-100.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#1e2621"
+    },
+    "ironfitting-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ironfitting-100.visual-dna.json",
+      "score": 0.525,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#3f3b35"
+    },
+    "juniorlessons-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/juniorlessons-100.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#070808"
+    },
+    "ladiesclinic-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ladiesclinic-100.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#191b1a"
+    },
+    "ladiesclinic2-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ladiesclinic2-100.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#2a2725"
+    },
+    "ladieslessons-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ladieslessons-100.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#070707"
+    },
+    "membership_post.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/membership_post.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0d0f0f"
+    },
+    "membership_story.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/membership_story.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0d0f0f"
+    },
+    "mileseey.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey.visual-dna.json",
+      "score": 0.875,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#1c2224"
+    },
+    "mileseey2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey2.visual-dna.json",
+      "score": 0.525,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#71c62d"
+    },
+    "mileseey3 copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey3 copy.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#0b1012"
+    },
+    "mileseey3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey3.visual-dna.json",
+      "score": 0.525,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#205d14"
+    },
+    "mileseey4.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey4.visual-dna.json",
+      "score": 0.525,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#559529"
+    },
+    "package1_post copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_post copy 2.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#131414"
+    },
+    "package1_post copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_post copy.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#10110e"
+    },
+    "package1_post.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_post.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#121414"
+    },
+    "package1_story copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_story copy 2.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#0a0c0c"
+    },
+    "package1_story copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_story copy.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#101214"
+    },
+    "package1_story.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_story.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#111312"
+    },
+    "puttefitting-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/puttefitting-100.visual-dna.json",
+      "score": 0.775,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#2d2c23"
+    },
+    "rc2-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc2-100.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#060818"
+    },
+    "rc2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc2.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#060818"
+    },
+    "rc3-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc3-100.visual-dna.json",
+      "score": 0.525,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#191b20"
+    },
+    "rc3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc3.visual-dna.json",
+      "score": 0.525,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#191b20"
+    },
+    "rc_static copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_static copy 2.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#000918"
+    },
+    "rc_static copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_static copy.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#000918"
+    },
+    "rc_static-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_static-100.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#050718"
+    },
+    "rc_static.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_static.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#050718"
+    },
+    "rc_story-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_story-100.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#050717"
+    },
+    "rc_story.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_story.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#050717"
+    },
+    "social_lab1_story copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/social_lab1_story copy 2.visual-dna.json",
+      "score": 0.875,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#000000"
+    },
+    "social_lab1_story copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/social_lab1_story copy.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#000000"
+    },
+    "ss_post_gts2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_gts2.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#080a0a"
+    },
+    "ss_post_gts2fw.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_gts2fw.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#080a0a"
+    },
+    "ss_post_gts3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_gts3.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#080a0a"
+    },
+    "ss_post_gts3fw.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_gts3fw.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#070a0a"
+    },
+    "ss_post_newport.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_newport.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#060808"
+    },
+    "ss_post_phantom.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_phantom.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#060808"
+    },
+    "ss_post_t250.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_t250.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#090b0b"
+    },
+    "ss_post_vokey.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_vokey.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#070909"
+    },
+    "ss_story_gts2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_gts2.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#070909"
+    },
+    "ss_story_gts2fw.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_gts2fw.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#070909"
+    },
+    "ss_story_gts3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_gts3.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#070909"
+    },
+    "ss_story_gts3fw.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_gts3fw.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "mid",
+      "dominant": "#070909"
+    },
+    "ss_story_newport.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_newport.visual-dna.json",
+      "score": 0.575,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#060808"
+    },
+    "ss_story_phantom.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_phantom.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "dark",
+      "dominant": "#060808"
+    },
+    "ss_story_t250.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_t250.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#080a0a"
+    },
+    "ss_story_vokey.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_vokey.visual-dna.json",
+      "score": 0.725,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#060808"
+    },
+    "takomo.png": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/takomo.visual-dna.json",
+      "score": 0.7353,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#060706"
+    },
+    "vice_irons copy 2-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy 2-100.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "light",
+      "dominant": "#f8f8f8"
+    },
+    "vice_irons copy 3-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy 3-100.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "light",
+      "dominant": "#f8f8f8"
+    },
+    "vice_irons copy 4-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy 4-100.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "light",
+      "dominant": "#f8f8f8"
+    },
+    "vice_irons copy 5-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy 5-100.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "light",
+      "dominant": "#f8f8f8"
+    },
+    "vice_irons copy-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy-100.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "light",
+      "dominant": "#f8f8f8"
+    },
+    "vice_irons-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons-100.visual-dna.json",
+      "score": 0.475,
+      "passes": false,
+      "luminance": "light",
+      "dominant": "#f8f8f8"
+    },
+    "wedgecomp1.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/wedgecomp1.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "light",
+      "dominant": "#f6f6f6"
+    },
+    "wedgecomp2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/wedgecomp2.visual-dna.json",
+      "score": 0.625,
+      "passes": false,
+      "luminance": "light",
+      "dominant": "#f6f6f6"
+    },
+    "zenstage-100.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/zenstage-100.visual-dna.json",
+      "score": 0.7353,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#646b5a"
+    }
+  },
+  "by_compliance": {
+    "pass": [
+      "Artboard 1 copy 2.jpg",
+      "Artboard 1 copy 3.jpg",
+      "Artboard 1.jpg",
+      "Artboard 2.jpg",
+      "Quantammini1.jpg",
+      "beginnerlessons-100.jpg",
+      "blackfriday copy 2.jpg",
+      "blackfriday copy 3.jpg",
+      "blackfriday copy 4.jpg",
+      "blackfriday copy 5.jpg",
+      "blackfriday copy.jpg",
+      "cf1 copy 3.jpg",
+      "cf2 copy.jpg",
+      "cf4 copy.jpg",
+      "cf5 copy.jpg",
+      "cf6 copy.jpg",
+      "coaching_post.jpg",
+      "coaching_post2.jpg",
+      "coaching_story.jpg",
+      "coaching_story2.jpg",
+      "fitting_discount_post.jpg",
+      "fitting_discount_story.jpg",
+      "fitting_gts1.jpg",
+      "fitting_gts2.jpg",
+      "fitting_gts3.jpg",
+      "fitting_gts4.jpg",
+      "fitting_gts_story.jpg",
+      "fitting_gts_story3.jpg",
+      "fitting_gts_story4.jpg",
+      "fitting_post1.jpg",
+      "fitting_post2.jpg",
+      "fitting_story1.jpg",
+      "frame1.jpg",
+      "fullrange copy 2-100.jpg",
+      "fullrange copy 3-100.jpg",
+      "fullrange copy 4-100.jpg",
+      "fullrange copy 8-100.jpg",
+      "fullrange copy-100.jpg",
+      "juniorlessons-100.jpg",
+      "ladiesclinic-100.jpg",
+      "ladieslessons-100.jpg",
+      "membership_post.jpg",
+      "membership_story.jpg",
+      "mileseey.jpg",
+      "mileseey3 copy.jpg",
+      "package1_post copy 2.jpg",
+      "package1_post copy.jpg",
+      "package1_post.jpg",
+      "package1_story copy.jpg",
+      "package1_story.jpg",
+      "puttefitting-100.jpg",
+      "social_lab1_story copy 2.jpg",
+      "social_lab1_story copy.jpg",
+      "ss_post_t250.jpg",
+      "ss_post_vokey.jpg",
+      "ss_story_t250.jpg",
+      "ss_story_vokey.jpg",
+      "takomo.png",
+      "zenstage-100.jpg"
+    ],
+    "fail": [
+      "Artboard 1 copy.jpg",
+      "Artboard 2 copy.jpg",
+      "Artboard 3.jpg",
+      "Artboard 4.jpg",
+      "JORDAN_BAG copy 3.jpg",
+      "JORDAN_BAG copy 4.jpg",
+      "JORDAN_BAG copy 5.jpg",
+      "Quantammini1 copy 2.jpg",
+      "Quantammini1 copy.jpg",
+      "RC1-100.jpg",
+      "RC1.jpg",
+      "SRIXON_BAG copy 2.jpg",
+      "SRIXON_BAG copy 3.jpg",
+      "VESSELBAG_STAFF copy 2.jpg",
+      "VESSELBAG_STAFF copy 3.jpg",
+      "VESSEL_BAG copy 2.jpg",
+      "VESSEL_BAG copy 3.jpg",
+      "VICEBAG copy 2.jpg",
+      "VICEBAG copy 3.jpg",
+      "cf3 copy.jpg",
+      "coachinpackages_post.jpg",
+      "coachinpackages_story.jpg",
+      "fitting_gts_story2.jpg",
+      "fitting_story3.jpg",
+      "fullrange copy 5-100.jpg",
+      "fullrange copy 6-100.jpg",
+      "fullrange copy 7-100.jpg",
+      "ironfitting-100.jpg",
+      "ladiesclinic2-100.jpg",
+      "mileseey2.jpg",
+      "mileseey3.jpg",
+      "mileseey4.jpg",
+      "package1_story copy 2.jpg",
+      "rc2-100.jpg",
+      "rc2.jpg",
+      "rc3-100.jpg",
+      "rc3.jpg",
+      "rc_static copy 2.jpg",
+      "rc_static copy.jpg",
+      "rc_static-100.jpg",
+      "rc_static.jpg",
+      "rc_story-100.jpg",
+      "rc_story.jpg",
+      "ss_post_gts2.jpg",
+      "ss_post_gts2fw.jpg",
+      "ss_post_gts3.jpg",
+      "ss_post_gts3fw.jpg",
+      "ss_post_newport.jpg",
+      "ss_post_phantom.jpg",
+      "ss_story_gts2.jpg",
+      "ss_story_gts2fw.jpg",
+      "ss_story_gts3.jpg",
+      "ss_story_gts3fw.jpg",
+      "ss_story_newport.jpg",
+      "ss_story_phantom.jpg",
+      "vice_irons copy 2-100.jpg",
+      "vice_irons copy 3-100.jpg",
+      "vice_irons copy 4-100.jpg",
+      "vice_irons copy 5-100.jpg",
+      "vice_irons copy-100.jpg",
+      "vice_irons-100.jpg",
+      "wedgecomp1.jpg",
+      "wedgecomp2.jpg"
+    ],
+    "unverified": []
+  },
+  "by_dominant_color": {
+    "#0b0d0e": 2,
+    "#090c0c": 1,
+    "#090d11": 1,
+    "#85a6a7": 1,
+    "#080b0b": 1,
+    "#090c0d": 2,
+    "#171a1a": 1,
+    "#232427": 1,
+    "#444341": 1,
+    "#f9fbfa": 1,
+    "#fbfcfb": 1,
+    "#0a0d0e": 1,
+    "#100e1d": 2,
+    "#615c61": 1,
+    "#262621": 1,
+    "#131518": 1,
+    "#1d201f": 1,
+    "#222223": 1,
+    "#1e201e": 1,
+    "#2b2c25": 1,
+    "#31322a": 1,
+    "#070707": 2,
+    "#3a3a3a": 4,
+    "#171516": 1,
+    "#2a282a": 1,
+    "#29221e": 1,
+    "#382f22": 1,
+    "#070706": 1,
+    "#2e2a28": 1,
+    "#3d2b1e": 1,
+    "#1e1c19": 1,
+    "#1e1b19": 1,
+    "#0a0906": 2,
+    "#131514": 1,
+    "#101213": 1,
+    "#0e1012": 1,
+    "#0a0c0d": 1,
+    "#070909": 6,
+    "#060808": 10,
+    "#060809": 2,
+    "#1c1c1a": 1,
+    "#1f1d1d": 1,
+    "#222527": 1,
+    "#1f1b1a": 1,
+    "#0a0c0c": 2,
+    "#434444": 1,
+    "#47494e": 1,
+    "#19201c": 1,
+    "#3b6176": 1,
+    "#000000": 4,
+    "#0a0a0c": 1,
+    "#1e2621": 1,
+    "#3f3b35": 1,
+    "#070808": 1,
+    "#191b1a": 1,
+    "#2a2725": 1,
+    "#0d0f0f": 2,
+    "#1c2224": 1,
+    "#71c62d": 1,
+    "#0b1012": 1,
+    "#205d14": 1,
+    "#559529": 1,
+    "#131414": 1,
+    "#10110e": 1,
+    "#121414": 1,
+    "#101214": 1,
+    "#111312": 1,
+    "#2d2c23": 1,
+    "#060818": 2,
+    "#191b20": 2,
+    "#000918": 2,
+    "#050718": 2,
+    "#050717": 2,
+    "#080a0a": 4,
+    "#070a0a": 1,
+    "#090b0b": 1,
+    "#060706": 1,
+    "#f8f8f8": 6,
+    "#f6f6f6": 2,
+    "#646b5a": 1
+  },
+  "by_luminance": {
+    "dark": 72,
+    "mid": 42,
+    "light": 8
+  },
+  "errors": []
+}

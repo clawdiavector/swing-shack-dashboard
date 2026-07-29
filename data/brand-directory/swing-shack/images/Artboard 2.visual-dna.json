@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 2.jpg",
+  "layer1_metadata": {
+    "filename": "Artboard 2.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1082,
+    "height_px": 1201,
+    "aspect_ratio": 0.9009,
+    "orientation": "portrait",
+    "file_size_bytes": 1392619,
+    "modified": 1785312824.576686,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#080b0b",
+        "rgb": [
+          8,
+          11,
+          11
+        ],
+        "share": 0.156
+      },
+      {
+        "hex": "#0d0f0e",
+        "rgb": [
+          13,
+          15,
+          14
+        ],
+        "share": 0.1396
+      },
+      {
+        "hex": "#b6c3c1",
+        "rgb": [
+          182,
+          195,
+          193
+        ],
+        "share": 0.1376
+      },
+      {
+        "hex": "#e2efee",
+        "rgb": [
+          226,
+          239,
+          238
+        ],
+        "share": 0.1356
+      },
+      {
+        "hex": "#4f3016",
+        "rgb": [
+          79,
+          48,
+          22
+        ],
+        "share": 0.1348
+      },
+      {
+        "hex": "#050707",
+        "rgb": [
+          5,
+          7,
+          7
+        ],
+        "share": 0.1208
+      },
+      {
+        "hex": "#26160e",
+        "rgb": [
+          38,
+          22,
+          14
+        ],
+        "share": 0.0934
+      },
+      {
+        "hex": "#92774c",
+        "rgb": [
+          146,
+          119,
+          76
+        ],
+        "share": 0.0821
+      }
+    ],
+    "mean_brightness": 81.0,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.901,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 124.2,
+    "brightness_bottom": 40.0,
+    "edge_density_grid": [
+      [
+        4.22,
+        12.62,
+        7.13
+      ],
+      [
+        6.38,
+        8.82,
+        9.41
+      ],
+      [
+        4.11,
+        11.93,
+        5.33
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 3,
+    "text_preview": "AVODA @ [swiss"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 80,
+    "median_text_height_px": 80,
+    "likely_heading_text": "AVODA @",
+    "is_all_caps": true,
+    "sample_text_colour": "#0a0d0d"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#080b0b",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top",
+      "ocr_text": "AVODA @ [swiss",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

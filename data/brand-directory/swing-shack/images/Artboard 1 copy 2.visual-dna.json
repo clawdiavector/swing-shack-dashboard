@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1 copy 2.jpg",
+  "layer1_metadata": {
+    "filename": "Artboard 1 copy 2.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1920,
+    "aspect_ratio": 0.563,
+    "orientation": "portrait",
+    "file_size_bytes": 1116052,
+    "modified": 1785312821.74536,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#0b0d0e",
+        "rgb": [
+          11,
+          13,
+          14
+        ],
+        "share": 0.191
+      },
+      {
+        "hex": "#060809",
+        "rgb": [
+          6,
+          8,
+          9
+        ],
+        "share": 0.1666
+      },
+      {
+        "hex": "#2c3539",
+        "rgb": [
+          44,
+          53,
+          57
+        ],
+        "share": 0.1497
+      },
+      {
+        "hex": "#121617",
+        "rgb": [
+          18,
+          22,
+          23
+        ],
+        "share": 0.1442
+      },
+      {
+        "hex": "#272f31",
+        "rgb": [
+          39,
+          47,
+          49
+        ],
+        "share": 0.1083
+      },
+      {
+        "hex": "#1c2224",
+        "rgb": [
+          28,
+          34,
+          36
+        ],
+        "share": 0.1056
+      },
+      {
+        "hex": "#91b57c",
+        "rgb": [
+          145,
+          181,
+          124
+        ],
+        "share": 0.0913
+      },
+      {
+        "hex": "#2b3437",
+        "rgb": [
+          43,
+          52,
+          55
+        ],
+        "share": 0.0434
+      }
+    ],
+    "mean_brightness": 41.8,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.563,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 60.5,
+    "brightness_bottom": 17.7,
+    "edge_density_grid": [
+      [
+        3.87,
+        2.87,
+        3.4
+      ],
+      [
+        5.48,
+        11.41,
+        5.51
+      ],
+      [
+        3.25,
+        1.83,
+        2.71
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 7,
+    "text_preview": "AVOIDA @ [sw)xg COME AND CLT HITED"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 120,
+    "median_text_height_px": 111,
+    "likely_heading_text": "@ COME AND",
+    "is_all_caps": true,
+    "sample_text_colour": "#181d1f"
+  },
+  "layer8_compliance": {
+    "score": 0.775,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#0b0d0e",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "AVOIDA @ [sw)xg COME AND CLT HITED",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

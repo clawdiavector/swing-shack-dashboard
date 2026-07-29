@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/puttefitting-100.jpg",
+  "layer1_metadata": {
+    "filename": "puttefitting-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1080,
+    "height_px": 1200,
+    "aspect_ratio": 0.9,
+    "orientation": "portrait",
+    "file_size_bytes": 523970,
+    "modified": 1785312724.0509663,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#2d2c23",
+        "rgb": [
+          45,
+          44,
+          35
+        ],
+        "share": 0.1516
+      },
+      {
+        "hex": "#181711",
+        "rgb": [
+          24,
+          23,
+          17
+        ],
+        "share": 0.1461
+      },
+      {
+        "hex": "#101210",
+        "rgb": [
+          16,
+          18,
+          16
+        ],
+        "share": 0.1228
+      },
+      {
+        "hex": "#0c0c0b",
+        "rgb": [
+          12,
+          12,
+          11
+        ],
+        "share": 0.1211
+      },
+      {
+        "hex": "#977e39",
+        "rgb": [
+          151,
+          126,
+          57
+        ],
+        "share": 0.12
+      },
+      {
+        "hex": "#040404",
+        "rgb": [
+          4,
+          4,
+          4
+        ],
+        "share": 0.118
+      },
+      {
+        "hex": "#514e30",
+        "rgb": [
+          81,
+          78,
+          48
+        ],
+        "share": 0.1136
+      },
+      {
+        "hex": "#1f231b",
+        "rgb": [
+          31,
+          35,
+          27
+        ],
+        "share": 0.1069
+      }
+    ],
+    "mean_brightness": 39.1,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 34.4,
+    "brightness_bottom": 64.8,
+    "edge_density_grid": [
+      [
+        6.77,
+        8.89,
+        7.01
+      ],
+      [
+        3.7,
+        2.3,
+        4.11
+      ],
+      [
+        7.72,
+        7.42,
+        7.09
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 6,
+    "text_preview": "DROP MORE PUTTS WITHA PUTTER FITTING"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 87,
+    "median_text_height_px": 42,
+    "likely_heading_text": "PUTTER FITTING",
+    "is_all_caps": true,
+    "sample_text_colour": "#090806"
+  },
+  "layer8_compliance": {
+    "score": 0.775,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#2d2c23",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "top",
+      "ocr_text": "DROP MORE PUTTS WITHA PUTTER FITTING",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

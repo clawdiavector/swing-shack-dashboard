@@ -1,0 +1,178 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/SRIXON_BAG copy 3.jpg",
+  "layer1_metadata": {
+    "filename": "SRIXON_BAG copy 3.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 872462,
+    "modified": 1785312736.6897151,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#262621",
+        "rgb": [
+          38,
+          38,
+          33
+        ],
+        "share": 0.1818
+      },
+      {
+        "hex": "#6a645f",
+        "rgb": [
+          106,
+          100,
+          95
+        ],
+        "share": 0.1323
+      },
+      {
+        "hex": "#292e33",
+        "rgb": [
+          41,
+          46,
+          51
+        ],
+        "share": 0.126
+      },
+      {
+        "hex": "#020202",
+        "rgb": [
+          2,
+          2,
+          2
+        ],
+        "share": 0.118
+      },
+      {
+        "hex": "#c2c2a9",
+        "rgb": [
+          194,
+          194,
+          169
+        ],
+        "share": 0.1177
+      },
+      {
+        "hex": "#101213",
+        "rgb": [
+          16,
+          18,
+          19
+        ],
+        "share": 0.1148
+      },
+      {
+        "hex": "#3b3837",
+        "rgb": [
+          59,
+          56,
+          55
+        ],
+        "share": 0.1104
+      },
+      {
+        "hex": "#1c1e1f",
+        "rgb": [
+          28,
+          30,
+          31
+        ],
+        "share": 0.099
+      }
+    ],
+    "mean_brightness": 62.0,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 62.1,
+    "brightness_bottom": 40.8,
+    "edge_density_grid": [
+      [
+        6.59,
+        21.62,
+        27.94
+      ],
+      [
+        3.81,
+        31.57,
+        23.75
+      ],
+      [
+        9.08,
+        8.68,
+        8.56
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 5,
+    "text_preview": "swig BAGS AVAILABLE FOR ORDER"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 47,
+    "median_text_height_px": 45,
+    "likely_heading_text": "BAGS AVAILABLE",
+    "is_all_caps": true,
+    "sample_text_colour": "#0a0a0a"
+  },
+  "layer8_compliance": {
+    "score": 0.525,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": false
+    },
+    "off_brand_dominants": [
+      "#c2c2a9"
+    ],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#262621",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "swig BAGS AVAILABLE FOR ORDER",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

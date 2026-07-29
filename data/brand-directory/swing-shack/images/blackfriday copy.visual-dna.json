@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy.jpg",
+  "layer1_metadata": {
+    "filename": "blackfriday copy.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1920,
+    "aspect_ratio": 0.563,
+    "orientation": "portrait",
+    "file_size_bytes": 516492,
+    "modified": 1785312638.7077336,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#171516",
+        "rgb": [
+          23,
+          21,
+          22
+        ],
+        "share": 0.1783
+      },
+      {
+        "hex": "#110f10",
+        "rgb": [
+          17,
+          15,
+          16
+        ],
+        "share": 0.1466
+      },
+      {
+        "hex": "#131213",
+        "rgb": [
+          19,
+          18,
+          19
+        ],
+        "share": 0.1349
+      },
+      {
+        "hex": "#080707",
+        "rgb": [
+          8,
+          7,
+          7
+        ],
+        "share": 0.1266
+      },
+      {
+        "hex": "#0c0b0c",
+        "rgb": [
+          12,
+          11,
+          12
+        ],
+        "share": 0.1147
+      },
+      {
+        "hex": "#9295a2",
+        "rgb": [
+          146,
+          149,
+          162
+        ],
+        "share": 0.1069
+      },
+      {
+        "hex": "#030202",
+        "rgb": [
+          3,
+          2,
+          2
+        ],
+        "share": 0.0998
+      },
+      {
+        "hex": "#272621",
+        "rgb": [
+          39,
+          38,
+          33
+        ],
+        "share": 0.0922
+      }
+    ],
+    "mean_brightness": 34.8,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.563,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 45.8,
+    "brightness_bottom": 30.5,
+    "edge_density_grid": [
+      [
+        9.44,
+        6.13,
+        7.31
+      ],
+      [
+        9.55,
+        5.72,
+        2.81
+      ],
+      [
+        6.71,
+        5.7,
+        4.66
+      ]
+    ],
+    "subject_estimate_position": "left"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 31,
+    "text_preview": "swig 20% OFF SELEC JED Oita. 10% OFF GRIPDRIP GRIPS 10% OFF LESSONS & FITTINGS 10% OFF 2026 MEMBERSHIP *MEMBER DISCOUNTS APPLY ON TOP OF ABOVE DM US FOR MORE INFO"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 54,
+    "median_text_height_px": 51,
+    "likely_heading_text": "20% OFF SELEC",
+    "is_all_caps": true,
+    "sample_text_colour": "#ffffff"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#171516",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "left",
+      "ocr_text": "swig 20% OFF SELEC JED Oita. 10% OFF GRIPDRIP GRIPS 10% OFF LESSONS & FITTINGS 10% OFF 2026 MEMBERSHIP *MEMBER DISCOUNTS APPLY ON TOP OF ABOVE DM US FOR MORE INFO",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

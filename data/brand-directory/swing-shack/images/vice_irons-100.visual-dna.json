@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons-100.jpg",
+  "layer1_metadata": {
+    "filename": "vice_irons-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1200,
+    "aspect_ratio": 0.9008,
+    "orientation": "portrait",
+    "file_size_bytes": 291085,
+    "modified": 1785312845.1854558,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#f8f8f8",
+        "rgb": [
+          248,
+          248,
+          248
+        ],
+        "share": 0.5543
+      },
+      {
+        "hex": "#a5a6a6",
+        "rgb": [
+          165,
+          166,
+          166
+        ],
+        "share": 0.0959
+      },
+      {
+        "hex": "#dbdbdb",
+        "rgb": [
+          219,
+          219,
+          219
+        ],
+        "share": 0.0853
+      },
+      {
+        "hex": "#cecfcf",
+        "rgb": [
+          206,
+          207,
+          207
+        ],
+        "share": 0.0852
+      },
+      {
+        "hex": "#444544",
+        "rgb": [
+          68,
+          69,
+          68
+        ],
+        "share": 0.0741
+      },
+      {
+        "hex": "#fcfcfc",
+        "rgb": [
+          252,
+          252,
+          252
+        ],
+        "share": 0.0541
+      },
+      {
+        "hex": "#f9f8f9",
+        "rgb": [
+          249,
+          248,
+          249
+        ],
+        "share": 0.0256
+      },
+      {
+        "hex": "#ececec",
+        "rgb": [
+          236,
+          236,
+          236
+        ],
+        "share": 0.0255
+      }
+    ],
+    "mean_brightness": 218.2,
+    "luminance_category": "light"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.901,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 231.0,
+    "brightness_bottom": 207.3,
+    "edge_density_grid": [
+      [
+        9.76,
+        5.18,
+        2.98
+      ],
+      [
+        2.92,
+        13.68,
+        12.02
+      ],
+      [
+        10.31,
+        8.54,
+        6.23
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 3,
+    "text_preview": "@ SWING SHACK"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 51,
+    "median_text_height_px": 51,
+    "likely_heading_text": "@ SWING SHACK",
+    "is_all_caps": true,
+    "sample_text_colour": "#f9f9f9"
+  },
+  "layer8_compliance": {
+    "score": 0.475,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#f8f8f8",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "@ SWING SHACK",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

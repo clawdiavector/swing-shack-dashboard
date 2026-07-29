@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/wedgecomp1.jpg",
+  "layer1_metadata": {
+    "filename": "wedgecomp1.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1080,
+    "height_px": 1080,
+    "aspect_ratio": 1.0,
+    "orientation": "square",
+    "file_size_bytes": 352818,
+    "modified": 1785312596.3901858,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#f6f6f6",
+        "rgb": [
+          246,
+          246,
+          246
+        ],
+        "share": 0.38
+      },
+      {
+        "hex": "#c2c0c2",
+        "rgb": [
+          194,
+          192,
+          194
+        ],
+        "share": 0.2145
+      },
+      {
+        "hex": "#8875a6",
+        "rgb": [
+          136,
+          117,
+          166
+        ],
+        "share": 0.1632
+      },
+      {
+        "hex": "#dadadb",
+        "rgb": [
+          218,
+          218,
+          219
+        ],
+        "share": 0.1024
+      },
+      {
+        "hex": "#f1f1f1",
+        "rgb": [
+          241,
+          241,
+          241
+        ],
+        "share": 0.0633
+      },
+      {
+        "hex": "#f9f9f9",
+        "rgb": [
+          249,
+          249,
+          249
+        ],
+        "share": 0.039
+      },
+      {
+        "hex": "#f5f6f6",
+        "rgb": [
+          245,
+          246,
+          246
+        ],
+        "share": 0.022
+      },
+      {
+        "hex": "#f7f6f6",
+        "rgb": [
+          247,
+          246,
+          246
+        ],
+        "share": 0.0156
+      }
+    ],
+    "mean_brightness": 210.3,
+    "luminance_category": "light"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 1.0,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 176.8,
+    "brightness_bottom": 218.0,
+    "edge_density_grid": [
+      [
+        9.48,
+        9.85,
+        9.19
+      ],
+      [
+        19.6,
+        9.38,
+        3.29
+      ],
+      [
+        12.63,
+        8.67,
+        9.47
+      ]
+    ],
+    "subject_estimate_position": "left"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 20,
+    "text_preview": "WIN A SET OF FITTED WEDGES 1 DECEMBER - 28 FEBRUARY R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 81,
+    "median_text_height_px": 45,
+    "likely_heading_text": "WIN A SET",
+    "is_all_caps": true,
+    "sample_text_colour": "#8f4bfa"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": true,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#f6f6f6",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "left",
+      "ocr_text": "WIN A SET OF FITTED WEDGES 1 DECEMBER - 28 FEBRUARY R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

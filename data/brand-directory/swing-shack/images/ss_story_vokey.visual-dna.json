@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_vokey.jpg",
+  "layer1_metadata": {
+    "filename": "ss_story_vokey.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1921,
+    "aspect_ratio": 0.5627,
+    "orientation": "portrait",
+    "file_size_bytes": 1235576,
+    "modified": 1785312773.098123,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#060808",
+        "rgb": [
+          6,
+          8,
+          8
+        ],
+        "share": 0.2591
+      },
+      {
+        "hex": "#ffffff",
+        "rgb": [
+          255,
+          255,
+          255
+        ],
+        "share": 0.1489
+      },
+      {
+        "hex": "#c6d1d1",
+        "rgb": [
+          198,
+          209,
+          209
+        ],
+        "share": 0.1329
+      },
+      {
+        "hex": "#4a5253",
+        "rgb": [
+          74,
+          82,
+          83
+        ],
+        "share": 0.1231
+      },
+      {
+        "hex": "#eaefef",
+        "rgb": [
+          234,
+          239,
+          239
+        ],
+        "share": 0.1164
+      },
+      {
+        "hex": "#1c2021",
+        "rgb": [
+          28,
+          32,
+          33
+        ],
+        "share": 0.1016
+      },
+      {
+        "hex": "#899696",
+        "rgb": [
+          137,
+          150,
+          150
+        ],
+        "share": 0.098
+      },
+      {
+        "hex": "#020404",
+        "rgb": [
+          2,
+          4,
+          4
+        ],
+        "share": 0.0199
+      }
+    ],
+    "mean_brightness": 121.7,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.563,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 18.6,
+    "brightness_bottom": 204.3,
+    "edge_density_grid": [
+      [
+        2.89,
+        7.28,
+        3.06
+      ],
+      [
+        3.17,
+        7.59,
+        3.24
+      ],
+      [
+        6.15,
+        11.46,
+        8.02
+      ]
+    ],
+    "subject_estimate_position": "bottom"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 11,
+    "text_preview": "\u2014\u2014_ // / -\u2014- VOKEY DESIGN VOKEY WEDGES AVAILABLE @ swe"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 49,
+    "median_text_height_px": 30,
+    "likely_heading_text": "VOKEY WEDGES",
+    "is_all_caps": true,
+    "sample_text_colour": "#1b2021"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#060808",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom",
+      "ocr_text": "\u2014\u2014_ // / -\u2014- VOKEY DESIGN VOKEY WEDGES AVAILABLE @ swe",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

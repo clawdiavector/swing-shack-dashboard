@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 8-100.jpg",
+  "layer1_metadata": {
+    "filename": "fullrange copy 8-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 243920,
+    "modified": 1785312831.5972037,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.2202
+      },
+      {
+        "hex": "#222022",
+        "rgb": [
+          34,
+          32,
+          34
+        ],
+        "share": 0.1538
+      },
+      {
+        "hex": "#090708",
+        "rgb": [
+          9,
+          7,
+          8
+        ],
+        "share": 0.1526
+      },
+      {
+        "hex": "#070606",
+        "rgb": [
+          7,
+          6,
+          6
+        ],
+        "share": 0.148
+      },
+      {
+        "hex": "#010101",
+        "rgb": [
+          1,
+          1,
+          1
+        ],
+        "share": 0.1212
+      },
+      {
+        "hex": "#050304",
+        "rgb": [
+          5,
+          3,
+          4
+        ],
+        "share": 0.109
+      },
+      {
+        "hex": "#616263",
+        "rgb": [
+          97,
+          98,
+          99
+        ],
+        "share": 0.0945
+      },
+      {
+        "hex": "#000101",
+        "rgb": [
+          0,
+          1,
+          1
+        ],
+        "share": 0.0006
+      }
+    ],
+    "mean_brightness": 20.8,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 20.7,
+    "brightness_bottom": 13.5,
+    "edge_density_grid": [
+      [
+        3.32,
+        18.45,
+        3.17
+      ],
+      [
+        2.85,
+        5.17,
+        2.86
+      ],
+      [
+        3.28,
+        4.59,
+        3.31
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 9,
+    "text_preview": "(2) L.A.B. GOLF PUTTERS NOW AVAILABLE @ SWING SHACK"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 57,
+    "median_text_height_px": 34,
+    "likely_heading_text": "PUTTERS AVAILABLE",
+    "is_all_caps": true,
+    "sample_text_colour": "#fefefe"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "top",
+      "ocr_text": "(2) L.A.B. GOLF PUTTERS NOW AVAILABLE @ SWING SHACK",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

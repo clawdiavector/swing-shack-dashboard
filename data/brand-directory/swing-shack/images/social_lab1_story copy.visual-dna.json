@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/social_lab1_story copy.jpg",
+  "layer1_metadata": {
+    "filename": "social_lab1_story copy.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1921,
+    "aspect_ratio": 0.5627,
+    "orientation": "portrait",
+    "file_size_bytes": 509077,
+    "modified": 1785312689.355008,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "share": 0.4304
+      },
+      {
+        "hex": "#6b6640",
+        "rgb": [
+          107,
+          102,
+          64
+        ],
+        "share": 0.1456
+      },
+      {
+        "hex": "#43402d",
+        "rgb": [
+          67,
+          64,
+          45
+        ],
+        "share": 0.1215
+      },
+      {
+        "hex": "#1f1f17",
+        "rgb": [
+          31,
+          31,
+          23
+        ],
+        "share": 0.1171
+      },
+      {
+        "hex": "#a2a87b",
+        "rgb": [
+          162,
+          168,
+          123
+        ],
+        "share": 0.1057
+      },
+      {
+        "hex": "#090907",
+        "rgb": [
+          9,
+          9,
+          7
+        ],
+        "share": 0.0635
+      },
+      {
+        "hex": "#000100",
+        "rgb": [
+          0,
+          1,
+          0
+        ],
+        "share": 0.0159
+      },
+      {
+        "hex": "#000001",
+        "rgb": [
+          0,
+          0,
+          1
+        ],
+        "share": 0.0002
+      }
+    ],
+    "mean_brightness": 41.9,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.563,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 27.8,
+    "brightness_bottom": 91.9,
+    "edge_density_grid": [
+      [
+        5.69,
+        5.07,
+        5.61
+      ],
+      [
+        4.73,
+        6.76,
+        3.31
+      ],
+      [
+        2.85,
+        3.87,
+        3.2
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 19,
+    "text_preview": "WIN A LAB Oz. 1 1 SEPTEMBER - 31 OCTOBER R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 147,
+    "median_text_height_px": 47,
+    "likely_heading_text": "LAB Oz. 1",
+    "is_all_caps": false,
+    "sample_text_colour": "#f1f1f1"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": true,
+      "headings_all_caps": false,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#000000",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "WIN A LAB Oz. 1 1 SEPTEMBER - 31 OCTOBER R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED",
+      "all_caps_detected": false
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

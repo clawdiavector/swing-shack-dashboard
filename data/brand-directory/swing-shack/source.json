@@ -1,0 +1,16 @@
+{
+  "brand": "swing-shack",
+  "ingestions": [
+    {
+      "date": "2026-07-29",
+      "method": "google_drive_oauth",
+      "auth_account": "christellew@fivefriday.com",
+      "scope": "drive.readonly",
+      "asset_class": "full_swing_shack_brand_directory",
+      "folder_id": "1n9pHD6hwr7oEfRBAGBriRrsqv_I-qGge",
+      "files_downloaded": 0,
+      "files_skipped": 0,
+      "files_errored": 122
+    }
+  ]
+}

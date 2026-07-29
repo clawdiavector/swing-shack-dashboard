@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_post2.jpg",
+  "layer1_metadata": {
+    "filename": "coaching_post2.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 607339,
+    "modified": 1785312604.5038893,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#1e1b19",
+        "rgb": [
+          30,
+          27,
+          25
+        ],
+        "share": 0.1666
+      },
+      {
+        "hex": "#070604",
+        "rgb": [
+          7,
+          6,
+          4
+        ],
+        "share": 0.1376
+      },
+      {
+        "hex": "#14100b",
+        "rgb": [
+          20,
+          16,
+          11
+        ],
+        "share": 0.1371
+      },
+      {
+        "hex": "#0b0906",
+        "rgb": [
+          11,
+          9,
+          6
+        ],
+        "share": 0.1298
+      },
+      {
+        "hex": "#8cb376",
+        "rgb": [
+          140,
+          179,
+          118
+        ],
+        "share": 0.121
+      },
+      {
+        "hex": "#26261d",
+        "rgb": [
+          38,
+          38,
+          29
+        ],
+        "share": 0.1078
+      },
+      {
+        "hex": "#020101",
+        "rgb": [
+          2,
+          1,
+          1
+        ],
+        "share": 0.1035
+      },
+      {
+        "hex": "#191815",
+        "rgb": [
+          25,
+          24,
+          21
+        ],
+        "share": 0.0966
+      }
+    ],
+    "mean_brightness": 35.7,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 34.9,
+    "brightness_bottom": 30.6,
+    "edge_density_grid": [
+      [
+        6.2,
+        4.87,
+        5.78
+      ],
+      [
+        13.3,
+        14.14,
+        10.62
+      ],
+      [
+        8.73,
+        12.22,
+        8.7
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 21,
+    "text_preview": "BUY FEWER GOLF BALLS INVEST IN A SWING THAT KEEPS THEM OUT OF THE WOODS. COACHING @ [swjxc| BOOK ONLINE WWW.SWINGSHACK.CO.ZA"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 100,
+    "median_text_height_px": 30,
+    "likely_heading_text": "BUY FEWER GOLF",
+    "is_all_caps": true,
+    "sample_text_colour": "#2c212f"
+  },
+  "layer8_compliance": {
+    "score": 0.775,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": true,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#1e1b19",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "BUY FEWER GOLF BALLS INVEST IN A SWING THAT KEEPS THEM OUT OF THE WOODS. COACHING @ [swjxc| BOOK ONLINE WWW.SWINGSHACK.CO.ZA",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

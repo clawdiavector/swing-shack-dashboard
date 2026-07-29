@@ -1,0 +1,90 @@
+{
+  "brand": "swing-shack",
+  "source": "christellew@fivefriday.com paste 2026-07-29",
+  "source_doc_id": "10O9wy6HGOsYeX8UvipaGWRk26mObFZN5",
+  "source_doc_target_id": "1VkK7L72sOVWyF3nqLGyN92cw-hFKNc4wH0Z6m5p9f4w",
+  "source_status": "shortcut target unreadable to current auth; bible pasted by Christelle",
+  "version": "2026-07-29.1",
+  "summary": "Dark backgrounds (flat or gradient), thin white border at 20% opacity, OR image-bg with dark-faded overlay + light/accent text. Headings ALL CAPS.",
+
+  "colors": {
+    "dark":       ["#000000", "#191919"],
+    "accent":     ["#74cc46", "#e17026", "#63a3ef", "#8f4bf9"],
+    "light":      ["#ffffff"],
+    "function": {
+      "background_dark": ["#000000", "#191919"],
+      "text_light":      ["#ffffff"],
+      "accent_highlight":["#74cc46", "#e17026", "#63a3ef", "#8f4bf9"]
+    },
+    "notes": "Accent colours used 'where needed' — i.e. for CTAs, highlights, key words. Background MUST be one of the two dark colours (flat or gradient between them)."
+  },
+
+  "borders": {
+    "white_border_opacity": 0.20,
+    "stroke_width_px_relative": "thin (visual ratio ~1px per 1080px image, i.e. ~0.1% of width)"
+  },
+
+  "treatments": {
+    "type_a": {
+      "name": "flat_or_gradient_dark_background",
+      "background": "flat or gradient of #000000 ↔ #191919",
+      "border": "thin white at 20% opacity, around image edge",
+      "text": "white or accent colour over dark background"
+    },
+    "type_b": {
+      "name": "image_with_dark_fade_overlay",
+      "background": "photographic image",
+      "overlay": "gradient of dark colour faded over image",
+      "text": "light or accent colour above overlay",
+      "accent_use": "where needed (CTAs, headlines, key concepts)"
+    }
+  },
+
+  "typography": {
+    "headings": {
+      "family": "Avenir Next",
+      "weight": "Heavy",
+      "style": "Italic",
+      "case": "ALL CAPS",
+      "use": "page titles, section titles, hero text"
+    },
+    "body": {
+      "family": "Avenir Next",
+      "weight": "(not specified; default to Regular or Demi)",
+      "style": "Italic",
+      "case": "sentence",
+      "use": "captions, descriptions, body copy"
+    },
+    "compliance_rules": [
+      "Headings MUST be ALL CAPS",
+      "Headings MUST be Avenir Next Heavy Italic",
+      "Body MUST be Avenir Next Italic"
+    ]
+  },
+
+  "compliance_score": {
+    "weights": {
+      "background_is_dark_or_dark_over_image": 0.25,
+      "accent_colour_present_where_needed":    0.15,
+      "white_border_or_white_text_present":    0.10,
+      "headings_all_caps":                     0.15,
+      "headings_font_avenir_next_heavy_italic":0.15,
+      "body_font_avenir_next_italic":          0.10,
+      "no_off_brand_background_colours":       0.10
+    },
+    "passing_threshold": 0.70
+  },
+
+  "voice_refs": {
+    "see_also": "data/voice_bible.json",
+    "note": "Voice bible governs copy; this file governs visuals."
+  },
+
+  "open_questions": [
+    "Body font weight not specified — confirm: Regular Italic or Demi Italic?",
+    "Is the white border mandatory or recommended?",
+    "Are dark colours interchangeable or do specific layouts use one vs the other?",
+    "Do gradients always run vertical (top-to-bottom) or any direction?",
+    "Accent colour rule — 'where needed' is ambiguous. Frequency cap per image? Single accent per layout or multi?"
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ladiesclinic2-100.jpg",
+  "layer1_metadata": {
+    "filename": "ladiesclinic2-100.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 351443,
+    "modified": 1785312711.0544147,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#2a2725",
+        "rgb": [
+          42,
+          39,
+          37
+        ],
+        "share": 0.228
+      },
+      {
+        "hex": "#262521",
+        "rgb": [
+          38,
+          37,
+          33
+        ],
+        "share": 0.1812
+      },
+      {
+        "hex": "#24221f",
+        "rgb": [
+          36,
+          34,
+          31
+        ],
+        "share": 0.1423
+      },
+      {
+        "hex": "#21211e",
+        "rgb": [
+          33,
+          33,
+          30
+        ],
+        "share": 0.1319
+      },
+      {
+        "hex": "#292624",
+        "rgb": [
+          41,
+          38,
+          36
+        ],
+        "share": 0.1253
+      },
+      {
+        "hex": "#3a3836",
+        "rgb": [
+          58,
+          56,
+          54
+        ],
+        "share": 0.0921
+      },
+      {
+        "hex": "#181717",
+        "rgb": [
+          24,
+          23,
+          23
+        ],
+        "share": 0.0612
+      },
+      {
+        "hex": "#432347",
+        "rgb": [
+          67,
+          35,
+          71
+        ],
+        "share": 0.0381
+      }
+    ],
+    "mean_brightness": 42.1,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 41.2,
+    "brightness_bottom": 37.1,
+    "edge_density_grid": [
+      [
+        4.63,
+        5.67,
+        4.76
+      ],
+      [
+        7.55,
+        7.87,
+        1.5
+      ],
+      [
+        7.3,
+        3.59,
+        2.17
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 27,
+    "text_preview": "HS THE PERFECT CHANCE TO LEARN, CONNECT, AND HAVE FUN ON THE RANGE. SPOTS ARE LIMITED. BOOK YOURS TODAY! BOOK ONLINE @ SWINGSHACK.CO.ZA OR DM US \u00bb"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 137,
+    "median_text_height_px": 46,
+    "likely_heading_text": "\u00bb",
+    "is_all_caps": true,
+    "sample_text_colour": "#161719"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#2a2725",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "centre",
+      "ocr_text": "HS THE PERFECT CHANCE TO LEARN, CONNECT, AND HAVE FUN ON THE RANGE. SPOTS ARE LIMITED. BOOK YOURS TODAY! BOOK ONLINE @ SWINGSHACK.CO.ZA OR DM US \u00bb",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

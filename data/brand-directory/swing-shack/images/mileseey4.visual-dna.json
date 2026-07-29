@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey4.jpg",
+  "layer1_metadata": {
+    "filename": "mileseey4.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 1851623,
+    "modified": 1785312808.511873,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#559529",
+        "rgb": [
+          85,
+          149,
+          41
+        ],
+        "share": 0.211
+      },
+      {
+        "hex": "#0d1218",
+        "rgb": [
+          13,
+          18,
+          24
+        ],
+        "share": 0.1549
+      },
+      {
+        "hex": "#332e28",
+        "rgb": [
+          51,
+          46,
+          40
+        ],
+        "share": 0.1321
+      },
+      {
+        "hex": "#07090a",
+        "rgb": [
+          7,
+          9,
+          10
+        ],
+        "share": 0.1234
+      },
+      {
+        "hex": "#171f25",
+        "rgb": [
+          23,
+          31,
+          37
+        ],
+        "share": 0.1115
+      },
+      {
+        "hex": "#345a26",
+        "rgb": [
+          52,
+          90,
+          38
+        ],
+        "share": 0.1023
+      },
+      {
+        "hex": "#5c633e",
+        "rgb": [
+          92,
+          99,
+          62
+        ],
+        "share": 0.0918
+      },
+      {
+        "hex": "#84c05b",
+        "rgb": [
+          132,
+          192,
+          91
+        ],
+        "share": 0.073
+      }
+    ],
+    "mean_brightness": 60.1,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 40.5,
+    "brightness_bottom": 92.9,
+    "edge_density_grid": [
+      [
+        4.37,
+        9.48,
+        4.75
+      ],
+      [
+        12.89,
+        10.54,
+        7.52
+      ],
+      [
+        13.55,
+        13.42,
+        17.3
+      ]
+    ],
+    "subject_estimate_position": "bottom-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 5,
+    "text_preview": "MILESEEY GOLF AVAILABLE FOR ORDER"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 48,
+    "median_text_height_px": 42,
+    "likely_heading_text": "GOLF AVAILABLE FOR",
+    "is_all_caps": true,
+    "sample_text_colour": "#808482"
+  },
+  "layer8_compliance": {
+    "score": 0.525,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": false,
+      "accent_present": true,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#559529",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom-right",
+      "ocr_text": "MILESEEY GOLF AVAILABLE FOR ORDER",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

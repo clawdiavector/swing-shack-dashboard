@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_story.jpg",
+  "layer1_metadata": {
+    "filename": "rc_story.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1921,
+    "aspect_ratio": 0.5627,
+    "orientation": "portrait",
+    "file_size_bytes": 691110,
+    "modified": 1785312700.3798914,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#050717",
+        "rgb": [
+          5,
+          7,
+          23
+        ],
+        "share": 0.1794
+      },
+      {
+        "hex": "#0f121e",
+        "rgb": [
+          15,
+          18,
+          30
+        ],
+        "share": 0.1698
+      },
+      {
+        "hex": "#030513",
+        "rgb": [
+          3,
+          5,
+          19
+        ],
+        "share": 0.1613
+      },
+      {
+        "hex": "#341b1b",
+        "rgb": [
+          52,
+          27,
+          27
+        ],
+        "share": 0.1427
+      },
+      {
+        "hex": "#14070c",
+        "rgb": [
+          20,
+          7,
+          12
+        ],
+        "share": 0.1142
+      },
+      {
+        "hex": "#51576b",
+        "rgb": [
+          81,
+          87,
+          107
+        ],
+        "share": 0.0895
+      },
+      {
+        "hex": "#02010b",
+        "rgb": [
+          2,
+          1,
+          11
+        ],
+        "share": 0.0722
+      },
+      {
+        "hex": "#3f211f",
+        "rgb": [
+          63,
+          33,
+          31
+        ],
+        "share": 0.0708
+      }
+    ],
+    "mean_brightness": 31.9,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.563,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 19.5,
+    "brightness_bottom": 29.4,
+    "edge_density_grid": [
+      [
+        4.41,
+        3.75,
+        5.25
+      ],
+      [
+        8.37,
+        9.28,
+        7.2
+      ],
+      [
+        4.66,
+        5.16,
+        3.52
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 30,
+    "text_preview": "=| RYDER CUP 27 & 28 SEPTEMBER 10 PLAYERS PER [TEAM SATURDAY 25 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 26 SEPTEMBER INDIVIDUAL MATCHES R250 ENTRY PER PLAYER DM US JO ENTER"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 89,
+    "median_text_height_px": 53,
+    "likely_heading_text": "RYDER CUP",
+    "is_all_caps": true,
+    "sample_text_colour": "#090911"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#050717",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "=| RYDER CUP 27 & 28 SEPTEMBER 10 PLAYERS PER [TEAM SATURDAY 25 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 26 SEPTEMBER INDIVIDUAL MATCHES R250 ENTRY PER PLAYER DM US JO ENTER",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

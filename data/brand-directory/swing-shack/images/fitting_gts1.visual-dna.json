@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts1.jpg",
+  "layer1_metadata": {
+    "filename": "fitting_gts1.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1350,
+    "aspect_ratio": 0.8007,
+    "orientation": "portrait",
+    "file_size_bytes": 1265760,
+    "modified": 1785312791.3027012,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#070909",
+        "rgb": [
+          7,
+          9,
+          9
+        ],
+        "share": 0.2322
+      },
+      {
+        "hex": "#b4c4c0",
+        "rgb": [
+          180,
+          196,
+          192
+        ],
+        "share": 0.2042
+      },
+      {
+        "hex": "#293233",
+        "rgb": [
+          41,
+          50,
+          51
+        ],
+        "share": 0.1258
+      },
+      {
+        "hex": "#15191a",
+        "rgb": [
+          21,
+          25,
+          26
+        ],
+        "share": 0.1196
+      },
+      {
+        "hex": "#5c6764",
+        "rgb": [
+          92,
+          103,
+          100
+        ],
+        "share": 0.1154
+      },
+      {
+        "hex": "#d8e0dc",
+        "rgb": [
+          216,
+          224,
+          220
+        ],
+        "share": 0.0903
+      },
+      {
+        "hex": "#96a9a5",
+        "rgb": [
+          150,
+          169,
+          165
+        ],
+        "share": 0.084
+      },
+      {
+        "hex": "#020404",
+        "rgb": [
+          2,
+          4,
+          4
+        ],
+        "share": 0.0285
+      }
+    ],
+    "mean_brightness": 96.0,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.801,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 31.7,
+    "brightness_bottom": 140.7,
+    "edge_density_grid": [
+      [
+        3.43,
+        7.45,
+        3.77
+      ],
+      [
+        6.76,
+        12.14,
+        6.07
+      ],
+      [
+        7.77,
+        7.62,
+        5.41
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 5,
+    "text_preview": "ai > AVAILABLE FOR FITTING"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 53,
+    "median_text_height_px": 53,
+    "likely_heading_text": "AVAILABLE FOR FITTING",
+    "is_all_caps": true,
+    "sample_text_colour": "#ffffff"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#070909",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "ai > AVAILABLE FOR FITTING",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

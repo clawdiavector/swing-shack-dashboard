@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_discount_story.jpg",
+  "layer1_metadata": {
+    "filename": "fitting_discount_story.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1921,
+    "aspect_ratio": 0.5627,
+    "orientation": "portrait",
+    "file_size_bytes": 1205606,
+    "modified": 1785312636.9256928,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#0a0c0d",
+        "rgb": [
+          10,
+          12,
+          13
+        ],
+        "share": 0.1953
+      },
+      {
+        "hex": "#111213",
+        "rgb": [
+          17,
+          18,
+          19
+        ],
+        "share": 0.1942
+      },
+      {
+        "hex": "#0d1011",
+        "rgb": [
+          13,
+          16,
+          17
+        ],
+        "share": 0.1711
+      },
+      {
+        "hex": "#0c0e0f",
+        "rgb": [
+          12,
+          14,
+          15
+        ],
+        "share": 0.1156
+      },
+      {
+        "hex": "#07090a",
+        "rgb": [
+          7,
+          9,
+          10
+        ],
+        "share": 0.1
+      },
+      {
+        "hex": "#766e56",
+        "rgb": [
+          118,
+          110,
+          86
+        ],
+        "share": 0.0976
+      },
+      {
+        "hex": "#090c0d",
+        "rgb": [
+          9,
+          12,
+          13
+        ],
+        "share": 0.069
+      },
+      {
+        "hex": "#0b0d0e",
+        "rgb": [
+          11,
+          13,
+          14
+        ],
+        "share": 0.0572
+      }
+    ],
+    "mean_brightness": 27.5,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.563,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 20.3,
+    "brightness_bottom": 26.2,
+    "edge_density_grid": [
+      [
+        2.23,
+        6.0,
+        2.75
+      ],
+      [
+        6.22,
+        7.62,
+        6.18
+      ],
+      [
+        3.68,
+        6.62,
+        4.34
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 21,
+    "text_preview": "15% OFF ALL FITTINGS UNTIL END OF MAY *MEMBER DISCOUNT APPLIES ON TOP OF ABOVE USE CODE FITTING15 ONLINE TO CLAIM"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 130,
+    "median_text_height_px": 51,
+    "likely_heading_text": "ALL FITTINGS",
+    "is_all_caps": true,
+    "sample_text_colour": "#fefefe"
+  },
+  "layer8_compliance": {
+    "score": 0.725,
+    "passes": true,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": true,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#0a0c0d",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "15% OFF ALL FITTINGS UNTIL END OF MAY *MEMBER DISCOUNT APPLIES ON TOP OF ABOVE USE CODE FITTING15 ONLINE TO CLAIM",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}

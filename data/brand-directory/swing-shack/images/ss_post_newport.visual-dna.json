@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_newport.jpg",
+  "layer1_metadata": {
+    "filename": "ss_post_newport.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 1514402,
+    "modified": 1785312768.646962,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#060808",
+        "rgb": [
+          6,
+          8,
+          8
+        ],
+        "share": 0.4093
+      },
+      {
+        "hex": "#1a1f20",
+        "rgb": [
+          26,
+          31,
+          32
+        ],
+        "share": 0.2176
+      },
+      {
+        "hex": "#9dadad",
+        "rgb": [
+          157,
+          173,
+          173
+        ],
+        "share": 0.2173
+      },
+      {
+        "hex": "#090a0a",
+        "rgb": [
+          9,
+          10,
+          10
+        ],
+        "share": 0.0838
+      },
+      {
+        "hex": "#030505",
+        "rgb": [
+          3,
+          5,
+          5
+        ],
+        "share": 0.0503
+      },
+      {
+        "hex": "#060707",
+        "rgb": [
+          6,
+          7,
+          7
+        ],
+        "share": 0.0129
+      },
+      {
+        "hex": "#06090a",
+        "rgb": [
+          6,
+          9,
+          10
+        ],
+        "share": 0.0089
+      },
+      {
+        "hex": "#060807",
+        "rgb": [
+          6,
+          8,
+          7
+        ],
+        "share": 0.0001
+      }
+    ],
+    "mean_brightness": 53.9,
+    "luminance_category": "dark"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 21.9,
+    "brightness_bottom": 94.6,
+    "edge_density_grid": [
+      [
+        5.55,
+        9.88,
+        5.32
+      ],
+      [
+        10.98,
+        19.78,
+        5.77
+      ],
+      [
+        9.11,
+        31.12,
+        35.86
+      ]
+    ],
+    "subject_estimate_position": "bottom-right"
+  },
+  "layer6_ocr": {
+    "available": true,
+    "word_count": 13,
+    "text_preview": "ee ovr SCOTTY CAMERON NEWPORT SUPER SELECI AVAILABLE @) DM US FOR DETAILS"
+  },
+  "layer7_typography": {
+    "detected": true,
+    "max_text_height_px": 49,
+    "median_text_height_px": 32,
+    "likely_heading_text": "NEWPORT SUPER SELECI",
+    "is_all_caps": true,
+    "sample_text_colour": "#060808"
+  },
+  "layer8_compliance": {
+    "score": 0.625,
+    "passes": false,
+    "threshold": 0.7,
+    "checks": {
+      "background_dark": true,
+      "accent_present": false,
+      "white_text_or_border_present": false,
+      "headings_all_caps": true,
+      "headings_font_avenir_next_heavy_italic": null,
+      "body_font_avenir_next_italic": null,
+      "no_off_brand_dominant_colours": true
+    },
+    "off_brand_dominants": [],
+    "notes": "Font detection requires CV model \u2014 currently assigned partial credit. Heading ALL CAPS is detected via OCR + case check."
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "dark_background",
+      "background_colour_dominant": "#060808",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom-right",
+      "ocr_text": "ee ovr SCOTTY CAMERON NEWPORT SUPER SELECI AVAILABLE @) DM US FOR DETAILS",
+      "all_caps_detected": true
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": true,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  }
+}
