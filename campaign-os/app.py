@@ -770,6 +770,170 @@ def visual_dna_scrape_and_dissect(brand_id):
         return jsonify({"error": str(e)}), 500
 
 
+# ─── META / INSTAGRAM / FACEBOOK READS ───────────────────────────────────
+# These endpoints read the connected Instagram Business account and Facebook
+# Page via the Graph API. They DO NOT publish, reply to comments, or send
+# DMs. Truth-before-cleverness: every response surfaces a real upstream
+# payload (or an explicit, structured 401/403/5xx with the upstream message).
+# When credentials are missing, the routes return 503 with a clear "what to
+# set" payload so the SPA can render an honest empty-state.
+
+@app.route('/api/meta/status', methods=['GET'])
+def meta_status():
+    """GET /api/meta/status — are Meta credentials configured + reachable?
+
+    Returns { ok, configured, ig_account_id, page_id, app_id_present, reason }
+    — never leaks the access_token value.
+    """
+    try:
+        from _lib import meta_api as _meta
+        configured = _meta.meta_credentials_present()
+        out = {
+            "ok": True,
+            "configured": configured,
+            "ig_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID") or None,
+            "page_id": os.environ.get("META_PAGE_ID") or None,
+            "app_id_present": bool(os.environ.get("META_APP_ID")),
+            "token_resolved": bool(_meta._read_meta_access_token()),
+            "reason": None if configured else "set META_APP_ID + META_ACCESS_TOKEN[_FILE] + META_INSTAGRAM_BUSINESS_ACCOUNT_ID",
+        }
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("meta_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/posts', methods=['GET'])
+def meta_list_posts():
+    """GET /api/meta/posts — list recent Instagram media for the connected account.
+
+    Query params:
+      limit=<int>      — max posts to return (default 25, max 100)
+      fields=<csv>     — override the default fields list
+
+    Response shape:
+      {
+        data: [{ id, caption, media_type, permalink, timestamp, media_url, ... }],
+        paging: { cursors, next },
+        _meta: { ig_account_id, fetched, endpoint }
+      }
+    """
+    try:
+        from _lib import meta_api as _meta
+        limit = int(request.args.get('limit', 25))
+        fields_csv = request.args.get('fields')
+        fields = [f.strip() for f in fields_csv.split(',')] if fields_csv else None
+        out = _meta.list_recent_posts(limit=limit, fields=fields)
+        out['ok'] = True
+        return jsonify(out), 200
+    except _meta.MetaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "hint": "ask Heidi to spin up /meta portal"}), 503
+    except _meta.MetaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _meta.MetaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("meta_list_posts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/posts/<media_id>/comments', methods=['GET'])
+def meta_post_comments(media_id):
+    """GET /api/meta/posts/<media_id>/comments — read comment text + usernames.
+
+    Path params:
+      media_id — numeric IG media id (e.g. 17990000000000001)
+
+    Query params:
+      limit=<int> — max comments (default 50, max 100)
+
+    Response: { data: [{ id, text, username, timestamp, like_count }], paging, _meta }
+    """
+    try:
+        from _lib import meta_api as _meta
+        limit = int(request.args.get('limit', 50))
+        out = _meta.get_post_comments(media_id, limit=limit)
+        out['ok'] = True
+        return jsonify(out), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except _meta.MetaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "hint": "ask Heidi to spin up /meta portal"}), 503
+    except _meta.MetaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _meta.MetaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("meta_post_comments failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/posts/<media_id>/insights', methods=['GET'])
+def meta_post_insights(media_id):
+    """GET /api/meta/posts/<media_id>/insights — read engagement metrics for one post.
+
+    Path params:
+      media_id — numeric IG media id
+
+    Response:
+      {
+        _flat: { impressions, reach, saved, likes, comments, shares, engagement_rate },
+        data: [raw upstream per-metric blocks],
+        _meta: { media_id, metrics_requested, fetched }
+      }
+    """
+    try:
+        from _lib import meta_api as _meta
+        out = _meta.get_post_insights(media_id)
+        out['ok'] = True
+        return jsonify(out), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except _meta.MetaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "hint": "ask Heidi to spin up /meta portal"}), 503
+    except _meta.MetaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _meta.MetaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("meta_post_insights failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/posts/<media_id>/full', methods=['GET'])
+def meta_post_full(media_id):
+    """GET /api/meta/posts/<media_id>/full — one call, returns post + comments + insights.
+
+    Convenience route for the SPA's "show me this post" panel. Parallel
+    upstream calls (3) so the user sees everything in one round-trip.
+    """
+    try:
+        from _lib import meta_api as _meta
+        post_resp = _meta.list_recent_posts(limit=50)  # small to find the post
+        target = next((p for p in post_resp.get("data", []) if str(p.get("id")) == str(media_id)), None)
+        comments = _meta.get_post_comments(media_id, limit=50)
+        insights = _meta.get_post_insights(media_id)
+        return jsonify({
+            "ok": True,
+            "post": target,
+            "comments": comments.get("data", []),
+            "comments_meta": comments.get("_meta"),
+            "insights": insights.get("_flat"),
+            "insights_raw": insights.get("data"),
+        }), 200
+    except _meta.MetaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "hint": "ask Heidi to spin up /meta portal"}), 503
+    except _meta.MetaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _meta.MetaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("meta_post_full failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/campaigns', methods=['GET'])
 def list_campaigns():
     """GET /api/campaigns — list all campaigns, filtered by active brand.
