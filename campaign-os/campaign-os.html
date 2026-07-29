@@ -2052,6 +2052,94 @@ const HELP = (() => {
         too). Respect the avoid-list or override it with a new data
         point — don't override it on vibes.</p>`,
     },
+    'reddit': {
+      title: 'How Reddit Outreach opportunities and replies are picked',
+      body: `
+        <p>This page is the <span class="hc-term">two-card Reddit Outreach
+        view</span>: a Pain Points card (the threads where your brand has
+        something useful to add) and a Replies card (draft replies the
+        agent has prepared, pre-typed for human approval before they ever
+        touch Reddit). It is read-only intelligence — nothing on this
+        page posts to a subreddit by itself. To push a reply live, it
+        ladders into the Publishing surface with a clear "human posts
+        this" hand-off, because Reddit's anti-spam stance punishes any
+        account that looks like a brand posting on its own behalf.</p>
+        <p><span class="hc-term">🎯 Pain points</span> pulls from
+        <code>reddit-opportunities.json</code>: <b>thread_topic</b> (the
+        question or complaint surfaceing right now), <b>trend_pain_point</b>
+        (the upstream signal that elevated it), <b>subreddit</b> (where it
+        lives — r/golf, r/golftips, r/BagDrop, etc.), <b>suggested_angle</b>
+        (the conversational hook, not a sales pitch), <b>urgency</b>
+        (high / medium / low), <b>timing</b> (the window a reply still
+        ranks), <b>status</b> (opportunity_identified → drafted →
+        approved → posted), <b>owner</b> (the agent that surfaced it —
+        <code>reddit_ghost</code>), and <b>ready_for_qa</b>. The card
+        renders the first ~12 — total volume lives in
+        <code>by_urgency</code> (e.g. high: 2, medium: 3, low: 0).</p>
+        <p><span class="hc-term">💬 Replies</span> pulls from
+        <code>reddit-replies.json</code>: one <b>reply</b> draft per
+        opportunity, tagged with <b>by_sentiment</b> (high_trust /
+        medium_trust / low_trust). Trust here is about whether the
+        thread's tone will tolerate a brand-adjacent voice — a thread
+        full of bitter slicers wants a peer reply, not a clinic promo.
+        Drafts are pre-shaped to read like a knowledgeable golfer who
+        happens to run a TrackMan studio, not a service trying to win
+        the comment thread.</p>
+        <p><span class="hc-term">🛡 Subreddit rules first</span> is the
+        core Reddit rule — and it has no Instagram equivalent. Each
+        subreddit has its own posting and self-promo rules. r/golf
+        tolerates occasional TrackMan discussion from a verified
+        instructor; r/golftips is stricter; r/BagDrop (when it exists)
+        rewards build posts and burns obvious ads. The opportunity card
+        surfaces <b>subreddit</b> on every row precisely so a human can
+        check the rules before approving the draft. A reply that breaks
+        subreddit norms gets the account shadowbanned within hours, and
+        the agent loses the channel for every future opportunity.</p>
+        <p><span class="hc-term">⏱ Karma-driven timing</span> is the
+        second Reddit-specific rule. Threads rise and fall inside a
+        24-48 hour window after surfacing on r/all or in your
+        subscription. A reply 4 days late lands on a cold thread where
+        the OP never logs back in. The <b>urgency: high</b> tag means
+        reply inside 24h; <b>medium</b> means inside the week. Posting
+        outside that window is technically fine, but the engagement
+        signal is gone — and a barren reply is what Reddit
+        anti-spam remembers longest.</p>
+        <p><span class="hc-term">🤖 No direct promotion in replies</span>
+        is the rule that decides whether a draft survives QA. Reddit
+        users detect "you should visit X studio" inside 12 words.
+        Replies that name the business, link the booking page, or talk
+        about TrackMan as a service (not as a concept) get flagged and
+        downranked. The good reply talks about the swing idea, the
+        numbers, or the drill — and lets the profile or bio do the
+        commercial work. The "ready_for_qa" flag is the agent's
+        admission that the draft meets this bar; humans still need to
+        read once before approving.</p>
+        <p><b>How to use this page:</b> open the Pain Points card, sort
+        by urgency, click the highest-urgency thread first. Read the
+        subreddit + thread topic + suggested angle together — if the
+        angle doesn't fit the thread's actual conversation, regenerate
+        or skip it. Open the matching reply in the Replies card, read
+        it as if you're a golfer who runs a studio (not a brand trying
+        to win clicks). If it doesn't read that way, edit or kill it.
+        Approve → push to Publishing → paste into Reddit <i>while
+        logged into the personal-account persona</i>, not a business
+        account. Track outcomes in the Engagement panel — upvotes and
+        comment replies are the only signals that matter; views on
+        Reddit are vanity.</p>
+        <p><b>Anti-pattern 1:</b> cross-posting the same reply into
+        every subreddit where the topic surfaces. Reddit cross-posts
+        are tracked; the same reply in 4 subs inside an hour reads as
+        spam and gets the account flagged globally. One subreddit,
+        one opportunity, one reply per cycle — even when the question
+        is identical. Reply once, wait for the cycle to age out, then
+        evaluate the next subreddit.</p>
+        <p><b>Anti-pattern 2:</b> skipping the subreddit rule check and
+        trusting the agent's "ready_for_qa" flag blindly. The agent
+        checks tone and trust signals, not each subreddit's posted
+        rules — those are a human judgement because they change and
+        they vary by thread history. Treat "ready_for_qa" as the
+        starting line, not the finish line.</p>`,
+    },
     'hashtagseo': {
       title: 'How the Hashtag & SEO Pack picks what to tag with',
       body: `
