@@ -1977,6 +1977,81 @@ const HELP = (() => {
         edit a hook, you re-generate it in the Hook bank. The Library result
         just tells you where the canonical version lives.</p>`
     },
+    'gbp': {
+      title: 'How the Google Business surfaces are picked and packaged',
+      body: `
+        <p>This page is the <span class="hc-term">two-card GBP view</span>: a
+        Profile &amp; Services card (who you are, where you serve, what you
+        offer, what people search for) and a Last Post card (the most recent
+        generated Google Business post draft with the angle that won and the
+        signals that justified it). It is read-only intelligence — nothing
+        here posts to Google automatically. To push the draft live, it
+        ladders into the Publishing surface, then through Postiz, then into
+        the GBP API.</p>
+        <p><span class="hc-term">📋 Profile &amp; services</span> pulls from
+        <code>gbp-input.json</code>: business name, city + region + country,
+        full address and service area radius, services list, and the
+        <b>SEO opportunities</b> array (the search queries people in your
+        radius actually type). High-intent volume = the query has a clear
+        "I'm buying" or "I'm booking" intent behind it; medium-intent is
+        awareness with research steps; low-intent (when present) is
+        classification noise. Profile fields write to GBP via the GBP API;
+        the panel reflects what <i>would</i> go up, not what's live now.</p>
+        <p><span class="hc-term">📝 Last post</span> surfaces the most recent
+        generated GBP draft: chosen angle, why that angle wins, the SEO
+        signals used, the geo signals used, post type (STANDARD / OFFER /
+        EVENT), CTA type (BOOK / CALL / LEARN_MORE / ORDER), headline, body,
+        button URL, and an image brief. The "what learning was applied"
+        field is the historical wins the agent reused (price transparency
+        3x clicks, POV format 3:1 over carousel, etc.); the "what was
+        avoided" field is the historical losers it steered around
+        (equipment posts at score 31, generic service descriptions
+        without pricing). Read both before publishing — they're the
+        audit trail.</p>
+        <p><span class="hc-term">🔍 Search radius, not demographics</span>
+        is the core GBP targeting rule. Where Instagram and Facebook let
+        you target an age range or an interest, GBP ranks your post and
+        profile by <b>physical proximity to the business address</b> (the
+        service_area field sets the max radius). Local SEO lives or dies
+        here: a post mentioning "Johannesburg" rises for queries from
+        inside the radius, a post mentioning "South Africa" widens the
+        reach but lowers the local pack ranking.</p>
+        <p><span class="hc-term">📍 NO hashtags on GBP</span>. The Google
+        Business Profile API strips or ignores the Instagram-style
+        hashtag block. Every GBP post is plain text + a button. If the
+        draft comes back with hashtags, that's a copy-paste bug from a
+        different surface — strip them before pushing live. SEO keywords
+        inside the body copy are fine and contribute to the local pack
+        ranking.</p>
+        <p><span class="hc-term">⭐ Reviews, not likes</span> is the
+        engagement signal GBP actually weighs. GBP posts don't get
+        "likes" — they get clicks to the website, direction requests, and
+        phone calls. The CTA type ("BOOK" / "CALL" / "ORDER") is what
+        GBP counts toward ranking. A post with no CTA button gives GBP
+        no signal at all and ranks lower than a dull post with a
+        strongly-typed button.</p>
+        <p><b>How to use this page:</b> read the chosen angle first — if
+        the "why this angle wins" doesn't reference a current local
+        signal (event, season, search spike), reject and regenerate.
+        Then sanity-check the headline against the post type (an EVENT
+        post must name a date; an OFFER post must include a price or
+        discount window). Confirm the button URL is the live booking
+        page, not a redirect. Push to Publishing when green. Re-check
+        the GBP Insights panel 7 days later for calls / direction
+        requests / website clicks — those are the only metrics that
+        matter; impressions and views are vanity.</p>
+        <p><b>Anti-pattern 1:</b> treating GBP like an Instagram
+        caption. Repurposing a sticky Instagram caption into a GBP post
+        strips the GEO keyword, drops the CTA type, and demotes the
+        local pack rank. GBP copy is its own format: tight, locally
+        keyed, plain text, with one button. Don't cross-post.</p>
+        <p><b>Anti-pattern 2:</b> ignoring the "what was avoided"
+        history field. If the agent flagged that equipment posts score
+        31 and you push one anyway, you've burned the historical signal
+        for everyone (the next regenerated post will forget the lesson
+        too). Respect the avoid-list or override it with a new data
+        point — don't override it on vibes.</p>`,
+    },
     'hashtagseo': {
       title: 'How the Hashtag & SEO Pack picks what to tag with',
       body: `
