@@ -6425,12 +6425,12 @@ async function renderBrandDirectoryPanel(){
     const ids = Object.keys(brands);
     const total = idx.total_brands || ids.length;
     const ready = idx.total_ready || 0;
-    const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop'};
+    const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop','takomo':'Takomo'};
 
     container.innerHTML = `
       <div class="card">
         <div class="card-h">
-          <h3>📂 Brand Directory <span style="font-size:11px;color:var(--tx-3);font-weight:500;margin-left:.5rem">9-slot directory · image + copy generator source</span></h3>
+          <h3 data-help="The Brand Directory is the source-of-truth for every brand Voice + Visuals. 9 structured slots per brand (voice, palette, visual-spec, typography, copy, examples, images, source, readme). The image generator reads palette + archetypes; the copy generator reads voice + headlines + CTAs. Click a brand card to view details (read-only directory) or generate a brief (ladders to image + copy generation)." data-help-title="Brand Directory">📂 Brand Directory <span style="font-size:11px;color:var(--tx-3);font-weight:500;margin-left:.5rem">9-slot directory · image + copy generator source</span></h3>
           <span class="muted" style="font-size:12px">${ready}/${total} brands ready (all 4 gate files)</span>
         </div>
         <div style="font-size:12px;color:var(--tx-2);margin-bottom:.75rem">
@@ -6449,17 +6449,19 @@ async function renderBrandDirectoryPanel(){
           const palette = b.primary_color ? `<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:11px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${b.primary_color};border:1px solid var(--bg-3)"></span>${b.primary_color}</span>` : '';
           const accent = b.accent_color ? `<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:11px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${b.accent_color};border:1px solid var(--bg-3)"></span>${b.accent_color}</span>` : '';
           const label = labelMap[bid] || bid;
+          const tagline = b.tagline ? `<div class="muted" style="font-size:12px;line-height:1.45;margin:.4rem 0 .25rem;font-style:italic">${esc(b.tagline)}</div>` : `<div class="muted" style="font-size:11px;line-height:1.4;margin:.4rem 0 .25rem;opacity:.6">- no one-pager yet -</div>`;
           return `
             <div class="card col-4">
               <div class="card-h"><h3>${esc(label)}</h3>${b.ready ? pill('on','ready') : pill('draft','partial')}</div>
               <div style="margin-bottom:.5rem">${gatePills}</div>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">${palette}${accent}</div>
+              ${tagline}
               <div class="muted" style="font-size:11.5px;line-height:1.5">
                 ${ac.length} archetype${ac.length===1?'':'s'}: ${ac.slice(0,3).map(a=>`<code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;font-size:10.5px">${esc(a)}</code>`).join(' ')}${ac.length>3?'…':''}
               </div>
               <div class="btn-row" style="margin-top:.75rem">
                 <button class="btn ghost" data-bd-view="${esc(bid)}" data-help="Read every brand slot: voice rules, palette swatches, archetype layers, headline bank, CTA bank. Read-only — for the canonical shortlist of what makes this brand this brand." data-help-title="View brand directory">📋 View details</button>
-                <button class="btn ghost" data-bd-brief="${esc(bid)}" data-help="Open the brand-brief form. Pick a surface (what shape the post is) and a tone (how the voice lands) — generates a structured brief that ladders to the image and copy generators. No more native prompt() dialogs." data-help-title="Generate brand brief">🎨 Generate brief</button>
+                <button class="btn ghost" data-bd-brief="${esc(bid)}" data-help="Open the brand-brief form. Pick a surface (what shape the post is) and a tone (how the voice lands), generates a structured brief that ladders to the image and copy generators. No more native prompt() dialogs." data-help-title="Generate brand brief">🎨 Generate brief</button>
               </div>
             </div>`;
         }).join('')}</div>
