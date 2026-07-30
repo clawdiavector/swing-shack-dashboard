@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Campaign OS · Swing Shack</title>
 <meta name="theme-color" content="#0a0f1a" id="meta-theme-color">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
 <style>
 /* ─── Reset + base ─────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -3243,7 +3246,7 @@ function renderBrandDirectoryTypographyCard(typography){
     ? `
       <div style="margin-bottom:.6rem">
         <div style="font-size:11px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem">Primary</div>
-        <div style="font-family:${esc(primary.family || 'Inter')}, system-ui, sans-serif;font-size:18px;font-weight:700;color:var(--tx);line-height:1.2">${esc(primary.family || '-')}</div>
+        <div style="font-family:'${esc(primary.family || 'Inter')}', system-ui, sans-serif;font-size:32px;font-weight:${esc(primary.weights_available?.[0] || '700')};color:var(--tx);line-height:1.1;letter-spacing:-.01em">${esc(primary.family || '-')}</div>
         ${primary.source ? `<div class="muted" style="font-size:11px;margin-top:.15rem">source: ${esc(primary.source)}</div>` : ''}
         ${weights.length ? `<div class="muted" style="font-size:11px;margin-top:.15rem">weights: ${weights.map(w => esc(w)).join(' · ')}</div>` : ''}
         ${useFor.length ? `<div class="muted" style="font-size:11px;margin-top:.15rem">used for: ${useFor.map(u => esc(u)).join(', ')}</div>` : ''}
@@ -3254,15 +3257,15 @@ function renderBrandDirectoryTypographyCard(typography){
   const rulesBlock = rules.length
     ? `
       <div style="font-size:11px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.04em;margin:.4rem 0 .3rem">Pairing rules (${rules.length})</div>
-      <ul style="list-style:none;padding:0;margin:0;font-size:12px;display:flex;flex-direction:column;gap:.3rem;max-height:180px;overflow:auto">
+      <ul style="list-style:none;padding:0;margin:0;font-size:12px;display:flex;flex-direction:column;gap:.4rem;max-height:240px;overflow:auto">
         ${rules.map(([k, r]) => {
-          const fam = r && r.family ? esc(r.family) : '';
+          const fam = r && r.family ? String(r.family) : '';
           const sz = r && r.size ? esc(r.size) : '';
           const wt = r && r.weight ? esc(r.weight) : '';
           const label = k.replace(/_/g, ' ');
-          return `<li style="display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dashed var(--bd);padding-bottom:.25rem">
-            <span style="font-weight:600;color:var(--tx)">${esc(label)}</span>
-            <span class="muted" style="font-size:11px;text-align:right">${fam}${sz ? ` · ${sz}px` : ''}${wt ? ` · ${wt}` : ''}</span>
+          return `<li style="border-bottom:1px dashed var(--bd);padding-bottom:.35rem">
+            <div style="font-family:'${esc(fam || primary?.family || 'Inter')}', system-ui, sans-serif;font-weight:${wt || '700'};color:var(--tx);font-size:${sz ? (parseFloat(sz) >= 40 ? '24px' : (parseFloat(sz) >= 24 ? '18px' : '14px')) : '14px'};line-height:1.15;letter-spacing:-.005em">${esc(label)}</div>
+            <div class="muted" style="font-size:10.5px;margin-top:.1rem">${esc(fam || '-')}${sz ? ` · ${sz}px` : ''}${wt ? ` · ${wt}` : ''}</div>
           </li>`;
         }).join('')}
       </ul>`
