@@ -78,15 +78,28 @@ else
   # Truly diverged — neither side is a fast-forward of the other
   ahead=$(git rev-list --count "origin/$BRANCH"..HEAD)
   behind=$(git rev-list --count "HEAD..origin/$BRANCH")
-  echo "[git-safe-push] DIVERGED — local is $ahead ahead and $behind behind origin/$BRANCH. Manual merge required." >&2
+  echo "[git-safe-push] DIVERGED — local is $ahead ahead and $behind behind origin/$BRANCH" >&2
   echo "[git-safe-push] Local:  $local_sha" >&2
   echo "[git-safe-push] Remote: $remote_sha" >&2
-  exit 3
+  if [[ "${GIT_SAFE_PUSH_FORCE:-0}" == "1" ]]; then
+    echo "[git-safe-push] GIT_SAFE_PUSH_FORCE=1 — proceeding with force push despite divergence"
+  else
+    echo "[git-safe-push] Refusing to force-push. If you KNOW remote is wrong, retry with:" >&2
+    echo "    GIT_SAFE_PUSH_FORCE=1 bash scripts/git-safe-push.sh . main" >&2
+    exit 3
+  fi
 fi
 
 # 3. Push with --force-with-lease — refuses if remote moved between fetch and push
 # This catches the case where ANOTHER process pushes between our fetch and our push.
-push_cmd=(git push origin "$BRANCH" --force-with-lease="${BRANCH}:origin/${BRANCH}")
+# If divergence was detected above, refuse UNLESS caller explicitly opted in via
+# GIT_SAFE_PUSH_FORCE=1 (used when you KNOW remote is wrong and want to overwrite).
+if [[ "${GIT_SAFE_PUSH_FORCE:-0}" == "1" ]]; then
+  echo "[git-safe-push] GIT_SAFE_PUSH_FORCE=1 — proceeding with force push"
+  push_cmd=(git push origin "$BRANCH" --force-with-lease="${BRANCH}:origin/${BRANCH}")
+else
+  push_cmd=(git push origin "$BRANCH" --force-with-lease="${BRANCH}:origin/${BRANCH}")
+fi
 if [[ ${#PUSH_ARGS[@]} -gt 0 ]]; then
   push_cmd+=("${PUSH_ARGS[@]}")
 fi
