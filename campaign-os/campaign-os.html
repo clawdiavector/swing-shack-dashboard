@@ -6451,7 +6451,7 @@ async function renderBrandDirectoryPanel(){
           const label = labelMap[bid] || bid;
           const tagline = b.tagline ? `<div class="muted" style="font-size:12px;line-height:1.45;margin:.4rem 0 .25rem;font-style:italic">${esc(b.tagline)}</div>` : `<div class="muted" style="font-size:11px;line-height:1.4;margin:.4rem 0 .25rem;opacity:.6">- no one-pager yet -</div>`;
           return `
-            <div class="card col-4">
+            <div class="card col-3">
               <div class="card-h"><h3>${esc(label)}</h3>${b.ready ? pill('on','ready') : pill('draft','partial')}</div>
               <div style="margin-bottom:.5rem">${gatePills}</div>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">${palette}${accent}</div>
