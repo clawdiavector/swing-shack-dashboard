@@ -4484,7 +4484,32 @@ async function renderPublish(){
   $('#pub-pub-count').textContent = (S.postiz.published||[]).length;
   $('#pub-fail-count').textContent = '0';
 
-  const row = it => `<li class="li"><div class="li-body"><div class="li-title">${esc((it.caption||it.name||'').slice(0,80))}</div><div class="li-meta">${esc(it.platform||'')} · ${esc(it.publishStatus||it.status||'')}</div></div></li>`;
+  // Pick the best title field — caption_preview is the real hook text from the postiz payload.
+  // Falls back through caption / name / linked_hook_id so legacy shapes still render.
+  const pickTitle = it => {
+    const raw = (it.caption_preview || it.caption || it.name || it.linked_hook_id || '(no caption)');
+    // Caption preview often contains line breaks; flatten so it fits one row.
+    return String(raw).replace(/\s+/g, ' ').trim().slice(0, 90);
+  };
+  // Pick the most useful timestamp: scheduled (if set), else generated.
+  const pickDate = it => it.scheduled_date || it.generated || it.publish_timestamp || null;
+  const fmtDate = iso => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const ymd = d.toISOString().slice(0, 10);
+      return ymd;
+    } catch(_){ return ''; }
+  };
+  const row = it => {
+    const platform = (it.platform || '').toLowerCase();
+    const status = it.publishStatus || it.status || '—';
+    const cta = it.cta_type ? pill('on', it.cta_type) : '';
+    const statusPill = pill(status === 'published_dry' ? 'on' : status === 'queued' ? 'draft' : 'live', status.replace(/_/g, ' '));
+    const dateStr = fmtDate(pickDate(it));
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(pickTitle(it))}</div><div class="li-meta">${pill('live', platform || 'unknown')} ${cta} ${statusPill}${dateStr ? ` · <span class="muted">${esc(dateStr)}</span>` : ''}</div></div></li>`;
+  };
 
   $('#pub-drafts').innerHTML = (p.queue||[]).slice(0,20).map(row).join('') || '<div class="empty">No drafts</div>';
   $('#pub-sched').innerHTML = (p.scheduled||[]).slice(0,20).map(row).join('') || '<div class="empty">Nothing scheduled</div>';
