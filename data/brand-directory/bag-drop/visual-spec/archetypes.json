@@ -1,8 +1,8 @@
 {
   "schema": "https://campaign-os/brand-directory/visual-archetypes/v1",
   "brand_id": "bag-drop",
-  "version": "1.0",
-  "updated": "2026-07-28T20:10:00Z",
+  "version": "1.1",
+  "updated": "2026-07-30T04:15:00Z",
   "canvas": {
     "primary_unit": "instagram_square_1080",
     "aspect": "1:1",
@@ -50,6 +50,38 @@
       ],
       "example_prompt_seed": "Bag Drop warmth quote. Cream bg, navy text.",
       "use_cases": ["relatable", "warm", "community"]
+    },
+    {
+      "id": "bagdrop-story-member",
+      "name": "Bag Drop — Member Story 9:16",
+      "description": "Vertical 9:16 story. Headline at top, hero moment mid-canvas, soft CTA at bottom. Warmth-first, member-led, no sarcasm.",
+      "canvas": "instagram_story_1080x1920",
+      "layers": [
+        {"id": "background", "kind": "gradient", "fill": "primary → neutral_light", "weight": 0.85},
+        {"id": "accent_rule", "kind": "decorative", "element": "thin deep-teal rule above headline", "position": "above headline", "width": 60, "height": 4, "colour": "accent"},
+        {"id": "headline", "kind": "text", "position": "top-centre", "max_lines": 2, "weight": 800, "size_px": 72, "colour": "accent", "alignment": "centre", "padding_top": 140},
+        {"id": "subhead", "kind": "text_optional", "position": "below headline", "weight": 500, "size_px": 32, "colour": "neutral_dark", "alignment": "centre"},
+        {"id": "hero_moment", "kind": "image", "position": "centre-vertical", "treatment": "soft top + bottom fade to gradient", "opacity": 1.0},
+        {"id": "cta_pill", "kind": "button_or_url", "position": "bottom-centre", "shape": "pill", "fill": "accent", "text_colour": "neutral_light", "max_chars": 22, "padding_bottom": 180}
+      ],
+      "example_prompt_seed": "Bag Drop member story. Warm orange gradient, navy headline, member-moment hero photo.",
+      "use_cases": ["member_led", "warm", "community"]
+    },
+    {
+      "id": "bagdrop-service-trio",
+      "name": "Bag Drop — Service Trio (3-up)",
+      "description": "3-panel vertical stack. Each panel = one service step (Drop | Practice | Play). Warm icons + short labels, no sarcasm, member-led.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "solid", "fill": "neutral_light"},
+        {"id": "header", "kind": "text", "position": "top-centre", "weight": 800, "size_px": 56, "colour": "accent", "alignment": "centre", "max_lines": 1, "padding_top": 64},
+        {"id": "panel_1", "kind": "solid", "fill": "primary", "caption_position": "centre", "caption_weight": 700, "size_px": 36, "caption_colour": "accent", "label": "Drop", "icon_hint": "bag silhouette"},
+        {"id": "panel_2", "kind": "solid", "fill": "primary", "caption_position": "centre", "caption_weight": 700, "size_px": 36, "caption_colour": "accent", "label": "Practice", "icon_hint": "bay silhouette"},
+        {"id": "panel_3", "kind": "solid", "fill": "accent", "caption_position": "centre", "caption_weight": 800, "size_px": 40, "caption_colour": "neutral_light", "label": "Play", "icon_hint": "flag silhouette"},
+        {"id": "sub_caption", "kind": "text", "position": "bottom-centre", "weight": 500, "size_px": 22, "colour": "neutral_mid", "alignment": "centre", "padding_bottom": 48}
+      ],
+      "example_prompt_seed": "Bag Drop service trio: Drop | Practice | Play. Warm orange panels, navy labels.",
+      "use_cases": ["educational", "confident", "service_explainer"]
     }
   ],
   "fallback_when_no_image_gen": "produce copy-only deliverables (headline + caption + archetype spec). Image gen slot waits for Drive wiring.",

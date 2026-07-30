@@ -1,7 +1,7 @@
 {
   "schema": "https://campaign-os/brand-directory/index/v1",
-  "version": "1.1",
-  "updated": "2026-07-30T01:45:00Z",
+  "version": "1.2",
+  "updated": "2026-07-30T04:15:00Z",
   "total_brands": 3,
   "total_ready": 3,
   "brands": {
@@ -17,9 +17,11 @@
       "primary_color": "#F4A261",
       "accent_color": "#264653",
       "archetype_ids": [
-        "bagdrop-member-moment",
-        "bagdrop-thursday-invite",
-        "bagdrop-quote-warmth"
+          "bagdrop-member-moment",
+          "bagdrop-thursday-invite",
+          "bagdrop-quote-warmth",
+          "bagdrop-story-member",
+          "bagdrop-service-trio"
       ]
     },
     "stick": {
