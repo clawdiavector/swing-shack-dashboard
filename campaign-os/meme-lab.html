@@ -48,7 +48,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 .tile .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
 
 /* Meme grid */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
 
 .mcard {
   background: var(--panel-2);
@@ -73,6 +73,14 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
   padding: 16px;
 }
 .mcard .preview svg { width: 100%; height: 100%; }
+.mcard .preview .meme-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #0a0a0a;
+  display: block;
+}
 .mcard .preview .placeholder {
   text-align: center;
   color: var(--muted);
@@ -459,12 +467,17 @@ async function loadCatalog() {
   grid.innerHTML = state.memes.map(m => {
     const tier = _tier(m);
     const sw = m.swingshack_fit_seeds || [];
+    // Use the real meme template image if we have one (74/75 as of 2026-07-30),
+    // otherwise fall back to the format-aware SVG mock so the card isn't blank.
+    const preview = m.image_url
+      ? `<img src="${m.image_url}" alt="${m.name}" class="meme-img" onerror="this.outerHTML=memePreviewSVG(${JSON.stringify(m).replace(/"/g, '&quot;')})"/>`
+      : memePreviewSVG(m);
     return `
       <div class="mcard" data-id="${m.id}">
         <div class="preview">
           <div class="format-label">${m.format || 'meme'}</div>
           <div class="tier ${tier}">${tier.replace('_', ' ')}</div>
-          ${memePreviewSVG(m)}
+          ${preview}
         </div>
         <div class="info">
           <div class="name">${m.name || m.id}</div>
