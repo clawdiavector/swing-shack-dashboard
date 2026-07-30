@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.1",
+  "filename": "takomo.png",
+  "layer1_metadata": {
+    "filename": "takomo.png",
+    "width_px": 1080,
+    "height_px": 1280,
+    "aspect_ratio": 0.844,
+    "orientation": "portrait",
+    "format": "png",
+    "size_bytes": 0
+  },
+  "layer2_source": {
+    "brand": "takomo",
+    "source": "manual",
+    "ingested_at": "2026-07-30T00:00:00Z"
+  },
+  "layer3_subject": {
+    "subject_kind": "product",
+    "subject_label": "Takomo 101T irons",
+    "description": "Portrait product shot of Takomo 101T golf club head, dark moody backdrop, single overhead light",
+    "tags": ["takomo", "golf club", "iron", "product shot", "dark background", "studio"]
+  },
+  "layer4_products": {
+    "products": [
+      {"name": "Takomo 101T", "kind": "iron", "confidence": 0.95}
+    ]
+  },
+  "layer5_brand": {
+    "brand_id": "takomo",
+    "brand_name": "Takomo",
+    "alignment_score": 0.92
+  },
+  "layer6_ocr": {
+    "lines": ["TAKOMO", "101T"],
+    "snippet": "TAKOMO 101T"
+  },
+  "layer7_typography": {
+    "fonts_detected": ["sans-serif"],
+    "all_caps": true
+  },
+  "layer8_compliance": {
+    "summary": "Takomo 101T product hero, dark studio palette"
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {"hex": "#0a0b0a", "name": "near-black", "pct": 0.45},
+      {"hex": "#f5f5f5", "name": "off-white", "pct": 0.20},
+      {"hex": "#c2a878", "name": "warm-brass", "pct": 0.12},
+      {"hex": "#1a1a1a", "name": "charcoal", "pct": 0.10},
+      {"hex": "#3a3a3a", "name": "graphite", "pct": 0.08}
+    ],
+    "luminance_label": "dark"
+  },
+  "layer10_composition": {
+    "focal_point": "center",
+    "rule_of_thirds_score": 0.85,
+    "symmetry_score": 0.90,
+    "primary_subject_position": "center"
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "all_caps_detected": true,
+      "background_colour_dominant": "#0a0b0a",
+      "background_type": "studio-dark",
+      "gradient_direction": "top-to-bottom darkening",
+      "ocr_text": "TAKOMO 101T",
+      "primary_subject_position": "center"
+    },
+    "manual_fields_required": ["headline", "cta"],
+    "reusability": {
+      "headline_safe": true,
+      "cta_safe": true
+    }
+  }
+}

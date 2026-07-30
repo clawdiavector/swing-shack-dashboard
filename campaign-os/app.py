@@ -1005,6 +1005,172 @@ def visual_library_stats(brand_id):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/visual-library/search', methods=['GET'])
+def visual_library_search():
+    """GET /api/visual-library/search — image-only search across brand-directory images.
+
+    Query params:
+      q=<text>       — required, 2+ chars. Matches filename, OCR text, products, palette hex.
+      brand=<id>     — optional, restrict to one brand (e.g. swing-shack, takomo). If omitted
+                       or "all", searches every brand that has a visual-dna-index.json.
+      product=<name> — optional, restrict to images tagged with this product.
+      min_score=<n>  — optional, only images with score >= N.
+      limit=<n>      — default 60, max 200.
+
+    Returns:
+      {ok, query, brand, count, results: [{brand, filename, url, score, products, ocr, palette, thumbnail_url}], total}
+    """
+    try:
+        from pathlib import Path as _P
+        q = (request.args.get('q') or '').strip()
+        if len(q) < 2:
+            return jsonify({"ok": False, "error": "q must be 2+ chars", "results": [], "count": 0}), 400
+        brand_filter = (request.args.get('brand') or '').strip().lower()
+        product_filter = (request.args.get('product') or '').strip().lower()
+        try:
+            min_score = float(request.args.get('min_score') or 0)
+        except ValueError:
+            min_score = 0.0
+        try:
+            limit = min(int(request.args.get('limit') or 60), 200)
+        except ValueError:
+            limit = 60
+        needle = q.lower()
+
+        brand_root = _P(os.path.join(BUNDLED_DATA_DIR, 'brand-directory'))
+        if not brand_root.exists():
+            return jsonify({"ok": False, "error": "brand-directory missing", "results": [], "count": 0}), 500
+
+        # Decide which brands to search
+        if brand_filter and brand_filter != 'all':
+            brand_dirs = [brand_root / brand_filter] if (brand_root / brand_filter).is_dir() else []
+        else:
+            brand_dirs = sorted([p for p in brand_root.iterdir() if p.is_dir()])
+
+        results = []
+        seen = set()
+        for brand_dir in brand_dirs:
+            bid = brand_dir.name
+            idx_path = brand_dir / 'visual-dna-index.json'
+            if not idx_path.exists():
+                continue
+            try:
+                idx = json.loads(idx_path.read_text())
+            except Exception:
+                continue
+            for fn, meta in (idx.get('by_filename') or {}).items():
+                dna_path_str = (meta or {}).get('dna_path', '')
+                if not dna_path_str or not os.path.exists(dna_path_str):
+                    continue
+                try:
+                    dna = json.loads(open(dna_path_str).read())
+                except Exception:
+                    continue
+                # Build search blob
+                prods_raw = dna.get('layer4_products', {}) or {}
+                # Handle BOTH schemas: products=[{name:...}] OR detected_brands=["..."]
+                prod_names = []
+                if isinstance(prods_raw.get('products'), list):
+                    for p in prods_raw['products']:
+                        if isinstance(p, dict):
+                            n = p.get('name') or p.get('label') or ''
+                            if n: prod_names.append(str(n))
+                        elif p:
+                            prod_names.append(str(p))
+                if not prod_names and isinstance(prods_raw.get('detected_brands'), list):
+                    for p in prods_raw['detected_brands']:
+                        if isinstance(p, dict):
+                            n = p.get('name') or p.get('label') or ''
+                            if n: prod_names.append(str(n))
+                        elif p:
+                            prod_names.append(str(p))
+                ocr_raw = dna.get('layer6_ocr', {}) or {}
+                ocr_lines = ocr_raw.get('lines') or ([ocr_raw['text_preview']] if ocr_raw.get('text_preview') else [])
+                ocr_text = ' '.join([str(x) for x in ocr_lines if x])
+                palette = ((dna.get('layer9_palette', {}) or {}).get('dominant_colors', []) or [])
+                palette_hex = [c.get('hex', '') for c in palette if isinstance(c, dict)]
+                score = float((meta or {}).get('score', 0) or 0)
+                if score < min_score:
+                    continue
+                # Product filter early
+                if product_filter and not any(product_filter in p.lower() for p in prod_names):
+                    continue
+                blob = ' '.join([
+                    fn, bid,
+                    ' '.join(prod_names),
+                    ocr_text,
+                    ' '.join(palette_hex),
+                ]).lower()
+                if needle not in blob:
+                    continue
+                # Scoring: filename hit > product hit > OCR > palette
+                s = 60
+                if needle in fn.lower():
+                    s += 25
+                if any(needle in p.lower() for p in prod_names):
+                    s += 10
+                if needle in ocr_text.lower():
+                    s += 5
+                key = f"{bid}/{fn}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                results.append({
+                    'brand': bid,
+                    'filename': fn,
+                    'url': f"/brand-images/{bid}/{fn}",
+                    'thumbnail_url': f"/brand-images/{bid}/{fn}",
+                    'score': round(score, 3),
+                    'products': prod_names[:5],
+                    'ocr_snippet': ocr_text[:140],
+                    'palette': palette_hex[:5],
+                    'relevance': s,
+                })
+        # Sort by relevance desc, then score desc
+        results.sort(key=lambda r: (-(r.get('relevance', 0)), -(r.get('score', 0))))
+        return jsonify({
+            'ok': True,
+            'query': q,
+            'brand': brand_filter or 'all',
+            'count': len(results),
+            'results': results[:limit],
+            'total': len(results),
+        })
+    except Exception as e:
+        _app_log.exception("visual_library_search failed")
+        return jsonify({"ok": False, "error": str(e), "results": [], "count": 0}), 500
+
+
+@app.route('/api/visual-library/brands', methods=['GET'])
+def visual_library_brands():
+    """GET /api/visual-library/brands — list every brand with an index + counts."""
+    try:
+        from pathlib import Path as _P
+        brand_root = _P(os.path.join(BUNDLED_DATA_DIR, 'brand-directory'))
+        if not brand_root.exists():
+            return jsonify({'brands': []})
+        out = []
+        for brand_dir in sorted([p for p in brand_root.iterdir() if p.is_dir()]):
+            bid = brand_dir.name
+            idx_path = brand_dir / 'visual-dna-index.json'
+            if not idx_path.exists():
+                continue
+            try:
+                idx = json.loads(idx_path.read_text())
+            except Exception:
+                continue
+            by_fn = idx.get('by_filename', {}) or {}
+            out.append({
+                'brand': bid,
+                'image_count': len(by_fn),
+                'indexed': True,
+            })
+        return jsonify({'ok': True, 'brands': out, 'count': len(out)})
+    except Exception as e:
+        _app_log.exception("visual_library_brands failed")
+        return jsonify({'ok': False, 'error': str(e), 'brands': []}), 500
+
+
 @app.route('/api/visual-library/<brand_id>/image/<path:filename>', methods=['GET'])
 def visual_library_image_detail(brand_id, filename):
     """GET /api/visual-library/<brand>/image/ — full DNA for one image.

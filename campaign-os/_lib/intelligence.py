@@ -1079,6 +1079,96 @@ def universal_search(q: str, limit: int = 30) -> Dict[str, Any]:
                     title = str(it)[:80]
                 results.append({"kind": fname, "id": str(it.get("id") or it.get("assetId") or it.get("post_id") or ""), "title": title[:120], "score": 50})
 
+    # Brand-directory images (filename + OCR + products + palette) — search across ALL brands
+    try:
+        from pathlib import Path as _P
+        # Honor runtime DATA_DIR override (Flask env var) AND bundled location (tests/CLI)
+        runtime_data_dir = os.environ.get('DATA_DIR') or DATA_DIR
+        bd_candidates = [
+            _P(os.path.join(runtime_data_dir, 'brand-directory')),
+            _P(os.path.join(DATA_DIR, 'brand-directory')),
+        ]
+        brand_dirs = []
+        seen_dirs = set()
+        for root in bd_candidates:
+            if not root.exists():
+                continue
+            for brand_dir in sorted([p for p in root.iterdir() if p.is_dir()]):
+                key = (str(brand_dir), brand_dir.name)
+                if key in seen_dirs:
+                    continue
+                seen_dirs.add(key)
+                brand_dirs.append(brand_dir)
+        if not brand_dirs:
+            pass
+        else:
+            for brand_dir in brand_dirs:
+                brand_id = brand_dir.name
+                idx_path = brand_dir / "visual-dna-index.json"
+                if not idx_path.exists():
+                    continue
+                try:
+                    idx = json.loads(idx_path.read_text())
+                except Exception:
+                    continue
+                by_fn = idx.get("by_filename", {}) or {}
+                for fn, meta in list(by_fn.items())[:300]:
+                    dna_path_str = (meta or {}).get("dna_path", "")
+                    if not dna_path_str or not os.path.exists(dna_path_str):
+                        continue
+                    try:
+                        dna = json.loads(open(dna_path_str).read())
+                    except Exception:
+                        continue
+                    # Products: handle BOTH schemas (products[] / detected_brands[])
+                    prods_raw = dna.get("layer4_products", {}) or {}
+                    prod_names = prods_raw.get("products") or prods_raw.get("detected_brands") or []
+                    if isinstance(prod_names, list):
+                        prod_names = [str(p.get("name", p)) if isinstance(p, dict) else str(p) for p in prod_names]
+                    else:
+                        prod_names = []
+                    # OCR: handle BOTH schemas (lines[] / text_preview)
+                    ocr_raw = dna.get("layer6_ocr", {}) or {}
+                    if isinstance(ocr_raw.get("lines"), list) and ocr_raw["lines"]:
+                        ocr_lines = ocr_raw["lines"]
+                    elif ocr_raw.get("text_preview"):
+                        ocr_lines = [ocr_raw["text_preview"]]
+                    else:
+                        ocr_lines = []
+                    ocr_text = " ".join([str(x) for x in ocr_lines if x])
+                    # Palette
+                    palette = ((dna.get("layer9_palette", {}) or {}).get("dominant_colors", []) or [])
+                    palette_hex = " ".join([c.get("hex", "") for c in palette if isinstance(c, dict)])
+                    blob = " ".join([
+                        fn, brand_id,
+                        " ".join(prod_names),
+                        ocr_text,
+                        palette_hex,
+                    ]).lower()
+                    if needle in blob:
+                        # Score: filename match > product match > OCR match
+                        s = 60
+                        if needle in fn.lower():
+                            s += 25
+                        if any(needle in p.lower() for p in prod_names):
+                            s += 10
+                        if needle in ocr_text.lower():
+                            s += 5
+                        first_ocr = (ocr_lines[0] if ocr_lines else "")[:80]
+                        results.append({
+                            "kind": "image",
+                            "id": f"{brand_id}/{fn}",
+                            "brand": brand_id,
+                            "title": fn,
+                            "subtitle": first_ocr or (prod_names[0] if prod_names else brand_id),
+                            "url": f"/brand-images/{brand_id}/{fn}",
+                            "score": s,
+                        })
+    except Exception as _e:
+        # Never let image-search crash the whole search
+        import logging as _logging
+        _logging.getLogger(__name__).debug(f"image search skipped: {_e}")
+
     results.sort(key=lambda r: -(r.get("score", 0)))
     return {"ok": True, "ts": _now_iso(), "query": q, "count": len(results), "results": results[:limit]}
 

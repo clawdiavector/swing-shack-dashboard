@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1",
+  "directory": "data/brand-directory/takomo",
+  "image_count": 1,
+  "tagged_count": 1,
+  "product_taxonomy_version": "2026-07-30",
+  "framing": "studio product photography, dark backdrop, single subject",
+  "by_filename": {
+    "takomo.png": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/takomo/images/takomo.visual-dna.json",
+      "score": 0.92,
+      "passes": true,
+      "luminance": "dark",
+      "dominant": "#0a0b0a",
+      "tags": ["takomo", "101T", "iron", "product", "studio", "dark"]
+    }
+  },
+  "by_alignment": {
+    "high": ["takomo.png"],
+    "typical": [],
+    "variants": []
+  },
+  "by_dominant_color": {
+    "#0a0b0a": ["takomo.png"]
+  },
+  "by_luminance": {
+    "dark": ["takomo.png"]
+  },
+  "by_product": {
+    "Takomo 101T": ["takomo.png"]
+  },
+  "errors": []
+}
