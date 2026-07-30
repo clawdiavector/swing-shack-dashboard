@@ -1,8 +1,8 @@
 {
   "schema": "https://campaign-os/brand-directory/visual-archetypes/v1",
   "brand_id": "stick",
-  "version": "1.0",
-  "updated": "2026-07-28T20:10:00Z",
+  "version": "1.1",
+  "updated": "2026-07-30T01:45:00Z",
   "canvas": {
     "primary_unit": "instagram_square_1080",
     "aspect": "1:1",
@@ -49,6 +49,42 @@
       ],
       "example_prompt_seed": "Stick tweet card: range balls denial. Black bg, white quote.",
       "use_cases": ["sarcastic", "relatable"]
+    },
+    {
+      "id": "stick-split-2up",
+      "name": "Stick Split 2-Up — Expectation vs Reality",
+      "description": "Two-panel side-by-side comparison. Left = the golfer's expectation (often naive), right = the sarcastic reality. Classic Stick irony format.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "divider", "kind": "decorative", "element": "thick red vertical rule", "position": "centre", "width": 6, "height": "100%", "colour": "accent"},
+        {"id": "panel_left_label", "kind": "text", "position": "top-left", "max_lines": 1, "weight": 700, "size_px": 22, "colour": "accent", "alignment": "left", "padding": 24},
+        {"id": "panel_left_body", "kind": "text", "position": "centre-left", "max_lines": 4, "weight": 600, "size_px": 32, "colour": "neutral_light", "alignment": "centre", "max_chars_per_line": 14},
+        {"id": "panel_right_label", "kind": "text", "position": "top-right", "max_lines": 1, "weight": 700, "size_px": 22, "colour": "accent", "alignment": "right", "padding": 24},
+        {"id": "panel_right_body", "kind": "text", "position": "centre-right", "max_lines": 4, "weight": 900, "size_px": 32, "colour": "neutral_light", "alignment": "centre", "max_chars_per_line": 14},
+        {"id": "logo_mark", "kind": "logo", "position": "bottom-centre", "size": "small (60px)", "colour_treatment": "mono_light"}
+      ],
+      "caption_colour_default": "neutral_light",
+      "example_prompt_seed": "Stick split 2-up: 'I warmed up' vs 'Topped 3 in a row'. Black bg, red divider, white text.",
+      "use_cases": ["sarcastic", "funny", "relatable"]
+    },
+    {
+      "id": "stick-thread-card",
+      "name": "Stick Thread Card — 4-Panel Build",
+      "description": "Vertical 4-line sequence. Each line is the next beat of the joke. Reads like a Twitter thread compressed into one image. Use when the sarcasm needs 2-3 lines to land.",
+      "canvas": "instagram_story_1080x1920",
+      "layers": [
+        {"id": "background", "kind": "solid", "fill": "primary"},
+        {"id": "thread_line_1", "kind": "text", "position": "top", "max_lines": 1, "weight": 600, "size_px": 36, "colour": "neutral_light", "alignment": "centre", "padding_top": 200},
+        {"id": "thread_separator_1", "kind": "decorative", "element": "thin red rule", "position": "below line 1", "width": 80, "height": 3, "colour": "accent"},
+        {"id": "thread_line_2", "kind": "text", "position": "upper-middle", "max_lines": 1, "weight": 600, "size_px": 36, "colour": "neutral_light", "alignment": "centre"},
+        {"id": "thread_separator_2", "kind": "decorative", "element": "thin red rule", "position": "below line 2", "width": 80, "height": 3, "colour": "accent"},
+        {"id": "thread_line_3", "kind": "text", "position": "lower-middle", "max_lines": 1, "weight": 700, "size_px": 38, "colour": "neutral_light", "alignment": "centre"},
+        {"id": "thread_separator_3", "kind": "decorative", "element": "thin red rule", "position": "below line 3", "width": 80, "height": 3, "colour": "accent"},
+        {"id": "thread_punchline", "kind": "text", "position": "bottom", "max_lines": 1, "weight": 900, "size_px": 44, "colour": "accent", "alignment": "centre", "padding_bottom": 240},
+        {"id": "logo_mark", "kind": "logo", "position": "bottom-right", "size": "small (60px)", "colour_treatment": "mono_light"}
+      ],
+      "example_prompt_seed": "Stick 4-panel thread: 'Bought new wedges' / 'Bucket of range balls' / 'Same swing thought' / 'Surprised face'. Black bg, red separators, white lines, red punchline.",
+      "use_cases": ["sarcastic", "relatable", "provocative"]
     }
   ],
   "fallback_when_no_image_gen": "produce copy-only deliverables (headline + caption + archetype spec). Image gen slot waits for Drive wiring.",
