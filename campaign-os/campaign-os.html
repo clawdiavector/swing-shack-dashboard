@@ -560,6 +560,8 @@ a:hover{text-decoration:underline}
 .help-collapsible summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ac);padding:.5rem .75rem;background:var(--bg-2);border:1px solid var(--bg-3);border-radius:6px;list-style:none;user-select:none}
 .help-collapsible summary::before{content:"📖";margin-right:.5rem}
 .help-collapsible summary::-webkit-details-marker{display:none}
+/* Hide body when collapsed so the explainer panel doesn't permanently overlap nav */
+.help-collapsible:not([open]) .hc-body{display:none}
 .help-collapsible[open] summary{border-radius:6px 6px 0 0;border-bottom:none}
 .help-collapsible .hc-body{padding:.85rem 1rem;border:1px solid var(--bg-3);border-top:none;border-radius:0 0 6px 6px;font-size:12.5px;line-height:1.6;color:var(--tx-2);background:var(--bg-1)}
 .help-collapsible .hc-body p{margin:0 0 .65rem}
@@ -6389,10 +6391,10 @@ async function renderBrandDirectoryPanel(){
                     <div style="font-size:12px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap">${esc(brief.voice_anchor||'—')}</div>
                   </div>
                   <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
-                    <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc((brief.headlines_bank||'').slice(0, 2000))}</pre>
+                    <div class="hc-body" style="overflow:auto;max-height:300px"><div class="md-body">${md((brief.headlines_bank||'').slice(0, 2000))}</div></div>
                   </div>
                   <div class="card col-6"><div class="card-h"><h3>🎯 CTAs bank</h3></div>
-                    <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc((brief.ctas_bank||'').slice(0, 2000))}</pre>
+                    <div class="hc-body" style="overflow:auto;max-height:300px"><div class="md-body">${md((brief.ctas_bank||'').slice(0, 2000))}</div></div>
                   </div>
                 </div>
               </div>`;
