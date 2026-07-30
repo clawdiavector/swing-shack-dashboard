@@ -3221,6 +3221,60 @@ function renderBriefStyleGuide(brief){
       </div>
     </div>`;
 }
+
+// Render the brand-directory detail panel's Typography card.
+// Returns a col-6 card matching the existing Palette/Archetypes side-by-side
+// grid. Surfaces primary family, fallbacks, source, weights, and the
+// pairing_rules dict (banner_headline / banner_subhead / cta_pill / etc).
+// Graceful-empty for 4 live shapes: undefined, null, {}, {primary:null}.
+// Per pitfall #51: defensive parse must handle every shape the API returns.
+function renderBrandDirectoryTypographyCard(typography){
+  const t = typography && typeof typography === 'object' && Object.keys(typography).length > 0 ? typography : null;
+  if(!t){
+    return '';  // Render nothing, the grid collapses; other cards stay col-6.
+  }
+  const primary = t.primary && typeof t.primary === 'object' ? t.primary : null;
+  const fallbacks = Array.isArray(t.fallbacks) ? t.fallbacks : [];
+  const rules = t.pairing_rules && typeof t.pairing_rules === 'object' ? Object.entries(t.pairing_rules) : [];
+  const weights = Array.isArray(primary?.weights_available) ? primary.weights_available : [];
+  const useFor = Array.isArray(primary?.use_for) ? primary.use_for : [];
+
+  const primaryBlock = primary
+    ? `
+      <div style="margin-bottom:.6rem">
+        <div style="font-size:11px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem">Primary</div>
+        <div style="font-family:${esc(primary.family || 'Inter')}, system-ui, sans-serif;font-size:18px;font-weight:700;color:var(--tx);line-height:1.2">${esc(primary.family || '-')}</div>
+        ${primary.source ? `<div class="muted" style="font-size:11px;margin-top:.15rem">source: ${esc(primary.source)}</div>` : ''}
+        ${weights.length ? `<div class="muted" style="font-size:11px;margin-top:.15rem">weights: ${weights.map(w => esc(w)).join(' · ')}</div>` : ''}
+        ${useFor.length ? `<div class="muted" style="font-size:11px;margin-top:.15rem">used for: ${useFor.map(u => esc(u)).join(', ')}</div>` : ''}
+      </div>
+      ${fallbacks.length ? `<div class="muted" style="font-size:11px;margin-bottom:.6rem">fallbacks: <code>${fallbacks.map(f => esc(f)).join(', ')}</code></div>` : ''}`
+    : `<div class="muted" style="font-size:12px;margin-bottom:.6rem">No primary family set.</div>`;
+
+  const rulesBlock = rules.length
+    ? `
+      <div style="font-size:11px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.04em;margin:.4rem 0 .3rem">Pairing rules (${rules.length})</div>
+      <ul style="list-style:none;padding:0;margin:0;font-size:12px;display:flex;flex-direction:column;gap:.3rem;max-height:180px;overflow:auto">
+        ${rules.map(([k, r]) => {
+          const fam = r && r.family ? esc(r.family) : '';
+          const sz = r && r.size ? esc(r.size) : '';
+          const wt = r && r.weight ? esc(r.weight) : '';
+          const label = k.replace(/_/g, ' ');
+          return `<li style="display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dashed var(--bd);padding-bottom:.25rem">
+            <span style="font-weight:600;color:var(--tx)">${esc(label)}</span>
+            <span class="muted" style="font-size:11px;text-align:right">${fam}${sz ? ` · ${sz}px` : ''}${wt ? ` · ${wt}` : ''}</span>
+          </li>`;
+        }).join('')}
+      </ul>`
+    : '';
+
+  return `
+    <div class="card col-6">
+      <div class="card-h"><h3>🔤 Typography</h3></div>
+      ${primaryBlock}
+      ${rulesBlock}
+    </div>`;
+}
 const THEME_DEFAULT = 'dark';
 const THEME_VALID = new Set(['dark', 'light', 'system']);
 const THEME_STATE = { value: THEME_DEFAULT, systemPref: 'dark' };
@@ -6492,6 +6546,7 @@ async function renderBrandDirectoryPanel(){
               <div class="card col-6"><div class="card-h"><h3>🖼️ Archetypes (${arche.length})</h3></div>
                 <ul class="list">${arche.map(a => `<li class="li"><div class="li-body"><div class="li-title">${esc(a.name||a.id)}</div><div class="li-meta muted">${esc((a.description||'').slice(0,120))}…</div></div></li>`).join('')}</ul>
               </div>
+              ${renderBrandDirectoryTypographyCard(data.typography)}
               <div class="card col-12"><div class="card-h"><h3>🎤 Voice — tone rules</h3></div>
                 <details class="help-collapsible"><summary>Read tone rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.tone_rules||'—')}</div></div></details>
               </div>
