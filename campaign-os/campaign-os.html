@@ -1929,6 +1929,18 @@ const HELP = (() => {
         directory for the active brand: voice, palette, archetypes, typography,
         copy, examples. When Drive is wired in, source images land in the
         <code>images/</code> slot.</p>
+        <p><span class="hc-term">Why the 9 slots matter</span> — the directory is
+        the source of truth for both generators. The <b>image generator</b> reads
+        <code>palette</code> + <code>archetypes</code> (every archetype lists
+        its <code>canvas</code>, layers, and fills — the generator fills those
+        slots, it doesn't compose freeform). The <b>copy generator</b> reads
+        <code>voice</code> + <code>copy/headlines</code> + <code>copy/ctas</code>
+        to bias every caption. So when you see "<b>5 archetypes</b>" on a card,
+        that's the number of post-shapes the image generator can produce for
+        that brand today; "<b>tone rules</b> on" means the copy generator is
+        already constrained. Empty slots → generators fall back to a generic
+        template; filled slots → generators produce on-brand output without a
+        human review pass.</p>
         <p><span class="hc-term">Add a brand</span> — copy any existing brand folder,
         rename, fill in voice + palette + archetypes. The brand switcher picks it up
         automatically on next refresh.</p>`
