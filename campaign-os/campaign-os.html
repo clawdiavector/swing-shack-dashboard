@@ -560,6 +560,8 @@ a:hover{text-decoration:underline}
 .help-collapsible summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ac);padding:.5rem .75rem;background:var(--bg-2);border:1px solid var(--bg-3);border-radius:6px;list-style:none;user-select:none}
 .help-collapsible summary::before{content:"📖";margin-right:.5rem}
 .help-collapsible summary::-webkit-details-marker{display:none}
+/* Hide body when collapsed so the explainer panel doesn't permanently overlap nav */
+.help-collapsible:not([open]) .hc-body{display:none}
 .help-collapsible[open] summary{border-radius:6px 6px 0 0;border-bottom:none}
 .help-collapsible .hc-body{padding:.85rem 1rem;border:1px solid var(--bg-3);border-top:none;border-radius:0 0 6px 6px;font-size:12.5px;line-height:1.6;color:var(--tx-2);background:var(--bg-1)}
 .help-collapsible .hc-body p{margin:0 0 .65rem}
