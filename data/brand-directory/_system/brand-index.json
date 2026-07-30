@@ -1,9 +1,9 @@
 {
   "schema": "https://campaign-os/brand-directory/index/v1",
-  "version": "1.2",
-  "updated": "2026-07-30T04:15:00Z",
-  "total_brands": 3,
-  "total_ready": 3,
+  "version": "1.0",
+  "updated": "2026-07-30T14:30:27.699859+00:00",
+  "total_brands": 4,
+  "total_ready": 4,
   "brands": {
     "bag-drop": {
       "ready": true,
@@ -17,11 +17,11 @@
       "primary_color": "#F4A261",
       "accent_color": "#264653",
       "archetype_ids": [
-          "bagdrop-member-moment",
-          "bagdrop-thursday-invite",
-          "bagdrop-quote-warmth",
-          "bagdrop-story-member",
-          "bagdrop-service-trio"
+        "bagdrop-member-moment",
+        "bagdrop-thursday-invite",
+        "bagdrop-quote-warmth",
+        "bagdrop-story-member",
+        "bagdrop-service-trio"
       ]
     },
     "stick": {
@@ -32,7 +32,7 @@
         "archetypes": true,
         "ctas": true
       },
-      "image_count": 0,
+      "image_count": 10,
       "primary_color": "#1B1B1B",
       "accent_color": "#FF3D00",
       "archetype_ids": [
@@ -51,7 +51,7 @@
         "archetypes": true,
         "ctas": true
       },
-      "image_count": 0,
+      "image_count": 121,
       "primary_color": "#0F766E",
       "accent_color": "#F59E0B",
       "archetype_ids": [
@@ -60,6 +60,22 @@
         "course-shot-banner",
         "grid-3up-meme",
         "quote-card"
+      ]
+    },
+    "takomo": {
+      "ready": true,
+      "gates": {
+        "tone_rules": true,
+        "palette": true,
+        "archetypes": true,
+        "ctas": true
+      },
+      "image_count": 1,
+      "primary_color": "#0A0B0A",
+      "accent_color": "#C2A878",
+      "archetype_ids": [
+        "takomo-product-hero",
+        "takomo-spec-card"
       ]
     }
   }
