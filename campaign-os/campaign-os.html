@@ -1498,13 +1498,33 @@ const HELP = (() => {
     if (popEl) popEl.classList.remove('show');
   };
 
+  // Safety net: any click outside the pop dismisses it. Without this, the pop
+  // can persist after navigation events that don't fire focus/blur (SPA section
+  // switches, brand-switcher clicks, etc.). This is the single line that fixes
+  // the "tooltip never closes" bug reported by users on 2026-07-30.
+  document.addEventListener('click', (e) => {
+    if (popEl && popEl.classList.contains('show') && !popEl.contains(e.target)) {
+      hidePop();
+    }
+  }, true);
+  // Also hide on Escape key for keyboard users.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hidePop();
+  });
+
   const tip = (target, payload) => {
     target.classList.add('has-help-tip');
     target.setAttribute('data-help', payload.help || '');
     target.addEventListener('mouseenter', () => showPop(target, payload));
     target.addEventListener('mouseleave', hidePop);
-    target.addEventListener('focus', () => showPop(target, payload));
-    target.addEventListener('blur', hidePop);
+    // Keyboard users can still get the tooltip via a separate explicit focus
+    // — but only on the dedicated help-tip icon (which has tabindex="0"),
+    // never on hover-only sidebar nav items. This prevents the pop from
+    // sticking around after a click navigates within the SPA.
+    if (target.classList.contains('help-tip') || target.getAttribute('role') === 'button' && target.classList.contains('help-tip')) {
+      target.addEventListener('focus', () => showPop(target, payload));
+      target.addEventListener('blur', hidePop);
+    }
   };
 
   const banner = (html) => {
