@@ -114,13 +114,22 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 <body>
 <header>
   <div>
-    <h1>Visual Library <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;">/ Swing Shack</span></h1>
+    <h1>Visual Library <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;" id="brand-label">/ Swing Shack</span></h1>
   </div>
   <div class="nav">
     <a href="/">← Dashboard</a>
     <a href="/meme-lab">Meme Lab →</a>
   </div>
 </header>
+
+<div class="search-bar" style="background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+  <select id="brand-select" style="background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-size: 13px; min-width: 140px;">
+    <option value="">Loading brands…</option>
+  </select>
+  <input id="img-search-input" type="text" placeholder="Search images by filename, OCR text, product, or palette…" style="flex: 1; min-width: 240px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-size: 13px;" />
+  <button class="btn-clear" id="img-search-clear" style="background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">Clear</button>
+  <span id="img-search-status" style="color: var(--muted); font-size: 12px; min-width: 110px; text-align: right;"></span>
+</div>
 
 <div class="layout">
   <aside class="sidebar">
@@ -248,12 +257,20 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 </div>
 
 <script>
+const STATE = {
+  brand: 'swing-shack',
+  q: '',
+  products: {},
+};
+
 const API = {
-  stats: () => fetch('/api/visual-library/swing-shack/stats').then(r => r.json()),
-  images: (params) => fetch('/api/visual-library/swing-shack/images?' + new URLSearchParams(params)).then(r => r.json()),
-  detail: (filename) => fetch('/api/visual-library/swing-shack/image/' + encodeURIComponent(filename)).then(r => r.json()),
-  perf: () => fetch('/api/intel/visual-performance?brand=swing-shack').then(r => r.json()),
-  recipe: (brief) => fetch('/api/visual-dna/swing-shack/recipe?brief=' + encodeURIComponent(brief) + '&n=3').then(r => r.json()),
+  brands: () => fetch('/api/visual-library/brands').then(r => r.json()),
+  stats: (brand) => fetch('/api/visual-library/' + encodeURIComponent(brand || STATE.brand) + '/stats').then(r => r.json()),
+  images: (params, brand) => fetch('/api/visual-library/' + encodeURIComponent(brand || STATE.brand) + '/images?' + new URLSearchParams(params)).then(r => r.json()),
+  search: (params) => fetch('/api/visual-library/search?' + new URLSearchParams(params)).then(r => r.json()),
+  detail: (filename, brand) => fetch('/api/visual-library/' + encodeURIComponent(brand || STATE.brand) + '/image/' + encodeURIComponent(filename)).then(r => r.json()),
+  perf: (brand) => fetch('/api/intel/visual-performance?brand=' + encodeURIComponent(brand || STATE.brand)).then(r => r.json()),
+  recipe: (brief, brand) => fetch('/api/visual-dna/' + encodeURIComponent(brand || STATE.brand) + '/recipe?brief=' + encodeURIComponent(brief) + '&n=3').then(r => r.json()),
 };
 
 let state = {
@@ -347,14 +364,15 @@ async function loadImages() {
 }
 
 // ── Modal ───────────────────────────────────────────────────────────────
-async function openModal(filename) {
+async function openModal(filename, brand) {
   const modal = document.getElementById('modal-bg');
+  const useBrand = brand || STATE.brand;
   modal.classList.add('open');
   document.getElementById('modal-title').textContent = filename;
-  document.getElementById('modal-filename').textContent = filename;
-  document.getElementById('modal-img').src = '/brand-images/swing-shack/' + encodeURIComponent(filename);
+  document.getElementById('modal-filename').textContent = filename + ' · ' + useBrand;
+  document.getElementById('modal-img').src = '/brand-images/' + encodeURIComponent(useBrand) + '/' + encodeURIComponent(filename);
 
-  const detail = await API.detail(filename);
+  const detail = await API.detail(filename, useBrand);
   if (!detail.dna) {
     console.warn('no dna for', filename, detail);
     return;
@@ -415,7 +433,9 @@ function attachScoreChips() {
       chip.classList.add('active');
       const v = chip.dataset.score;
       state.filters.min_score = v === 'all' ? 0 : parseFloat(v);
-      loadImages();
+      STATE.q = '';
+      document.getElementById('img-search-input').value = '';
+      runGrid();
     });
   });
 }
@@ -426,7 +446,9 @@ function attachLuminanceChips() {
       document.querySelectorAll('[data-lum]').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       state.filters.luminance = chip.dataset.lum;
-      loadImages();
+      STATE.q = '';
+      document.getElementById('img-search-input').value = '';
+      runGrid();
     });
   });
 }
@@ -437,21 +459,157 @@ function attachProductChips() {
       document.querySelectorAll('[data-product]').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       state.filters.product = chip.dataset.product;
-      loadImages();
+      STATE.q = '';
+      document.getElementById('img-search-input').value = '';
+      runGrid();
     });
   });
 }
 
 document.getElementById('sort').addEventListener('change', (e) => {
   state.filters.sort = e.target.value;
-  loadImages();
+  runGrid();
 });
+
+// ── Brand loader ────────────────────────────────────────────────────────
+async function loadBrands() {
+  try {
+    const r = await API.brands();
+    const sel = document.getElementById('brand-select');
+    const brands = (r.brands || []);
+    if (!brands.length) {
+      sel.innerHTML = '<option value="">No indexed brands</option>';
+      return;
+    }
+    sel.innerHTML = brands.map(b => `<option value="${b.brand}">${b.brand} (${b.image_count})</option>`).join('');
+    sel.value = STATE.brand;
+    document.getElementById('brand-label').textContent = '/ ' + (brands.find(b => b.brand === STATE.brand)?.brand || STATE.brand);
+    sel.addEventListener('change', async (e) => {
+      STATE.brand = e.target.value;
+      STATE.q = '';
+      document.getElementById('img-search-input').value = '';
+      document.getElementById('brand-label').textContent = '/ ' + STATE.brand;
+      await loadStats();
+      runGrid();
+    });
+  } catch (e) {
+    console.warn('brands load failed', e);
+    document.getElementById('brand-select').innerHTML = '<option value="">Error</option>';
+  }
+}
+
+// ── Search (uses dedicated /api/visual-library/search) ──────────────────
+let searchTimer = null;
+function attachSearch() {
+  const inp = document.getElementById('img-search-input');
+  inp.addEventListener('input', (e) => {
+    STATE.q = e.target.value.trim();
+    clearTimeout(searchTimer);
+    if (!STATE.q) {
+      document.getElementById('img-search-status').textContent = '';
+      runGrid();
+      return;
+    }
+    document.getElementById('img-search-status').textContent = 'Searching…';
+    searchTimer = setTimeout(runGrid, 220);
+  });
+  document.getElementById('img-search-clear').addEventListener('click', () => {
+    STATE.q = '';
+    inp.value = '';
+    document.getElementById('img-search-status').textContent = '';
+    runGrid();
+  });
+}
+
+// ── Unified grid loader (search + filters) ──────────────────────────────
+async function runGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<div class="loading" style="grid-column: 1/-1;"><div class="spinner"></div>Loading images…</div>';
+
+  let images = [];
+  if (STATE.q && STATE.q.length >= 2) {
+    // Dedicated image search across all brands
+    const params = { q: STATE.q, limit: 60 };
+    // If user picked a brand, restrict to it; otherwise "all"
+    params.brand = STATE.brand || 'all';
+    if (state.filters.product) params.product = state.filters.product;
+    if (state.filters.min_score) params.min_score = state.filters.min_score;
+    try {
+      const r = await API.search(params);
+      const results = r.results || [];
+      document.getElementById('img-search-status').textContent =
+        results.length ? `${results.length} match${results.length === 1 ? '' : 'es'}` : 'No matches';
+      // Map search hits into the same shape the grid renderer expects
+      images = results.map(hit => ({
+        filename: hit.filename,
+        url: hit.url,
+        score: hit.score,
+        products: hit.products || [],
+        palette: hit.palette || [],
+        luminance: '',
+        ocr_snippet: hit.ocr_snippet || '',
+        _brand: hit.brand,
+      }));
+    } catch (e) {
+      console.error('search failed', e);
+      document.getElementById('img-search-status').textContent = 'Search error';
+      images = [];
+    }
+  } else {
+    // Standard per-brand list with chip filters
+    const params = {};
+    if (state.filters.product) params.product = state.filters.product;
+    if (state.filters.min_score) params.min_score = state.filters.min_score;
+    params.sort = state.filters.sort;
+    if (state.filters.luminance !== 'all') params.lum = state.filters.luminance;
+    const data = await API.images(params, STATE.brand);
+    images = (data.images || []).map(img => ({ ...img, _brand: STATE.brand }));
+    document.getElementById('img-search-status').textContent = '';
+  }
+
+  state.images = images;
+  document.getElementById('tile-shown').textContent = images.length;
+  document.getElementById('empty').style.display = images.length ? 'none' : 'block';
+
+  if (!images.length) {
+    grid.innerHTML = '';
+    return;
+  }
+
+  grid.innerHTML = images.map(img => {
+    const palette = (img.palette || []).slice(0, 5);
+    const paletteHtml = palette.map(c => `<div style="background:${c}"></div>`).join('');
+    const prodTag = (img.products && img.products[0]) ? img.products[0] : (img.luminance || '—');
+    const brandTag = img._brand && img._brand !== STATE.brand
+      ? `<span style="color: var(--accent); font-size: 10px; margin-left: 6px;">· ${img._brand}</span>`
+      : '';
+    return `
+      <div class="card" data-filename="${img.filename}" data-brand="${img._brand}">
+        <div class="imgwrap">
+          <img src="${img.url}" alt="${img.filename}">
+          <div class="score">${img.score || '—'}</div>
+        </div>
+        <div class="info">
+          <div class="fname">${img.filename}${brandTag}</div>
+          <div class="tags">${prodTag}</div>
+          <div class="palette">${paletteHtml}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Attach click handlers — pass brand so modal hits the right endpoint
+  grid.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => openModal(card.dataset.filename, card.dataset.brand));
+  });
+}
 
 // ── Init ────────────────────────────────────────────────────────────────
 (async function init() {
   attachScoreChips();
   attachLuminanceChips();
-  await Promise.all([loadEngagement(), loadStats(), loadImages()]);
+  attachSearch();
+  await loadBrands();
+  await Promise.all([loadEngagement(), loadStats(), runGrid()]);
 })();
 </script>
 </body>

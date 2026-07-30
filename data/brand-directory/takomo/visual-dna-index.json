@@ -1,36 +1,33 @@
 {
-  "schema_version": "1.0",
-  "directory": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/takomo/images",
+  "schema_version": "0.1",
+  "directory": "data/brand-directory/takomo",
   "image_count": 1,
-  "framing": "1 image (Takomo 101T portrait hero)",
+  "tagged_count": 1,
+  "product_taxonomy_version": "2026-07-30",
+  "framing": "studio product photography, dark backdrop, single subject",
   "by_filename": {
     "takomo.png": {
       "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/takomo/images/takomo.visual-dna.json",
-      "dominant": "#060706",
-      "luminance": "mid",
+      "score": 0.92,
       "passes": true,
-      "score": 0.5
+      "luminance": "dark",
+      "dominant": "#0a0b0a",
+      "tags": ["takomo", "101T", "iron", "product", "studio", "dark"]
     }
   },
   "by_alignment": {
-    "mid": [
-      "takomo.png"
-    ]
+    "high": ["takomo.png"],
+    "typical": [],
+    "variants": []
   },
   "by_dominant_color": {
-    "#060706": [
-      "takomo.png"
-    ]
+    "#0a0b0a": ["takomo.png"]
   },
   "by_luminance": {
-    "mid": [
-      "takomo.png"
-    ]
+    "dark": ["takomo.png"]
   },
   "by_product": {
-    "takomo-101t": [
-      "takomo.png"
-    ]
+    "Takomo 101T": ["takomo.png"]
   },
   "errors": []
 }
