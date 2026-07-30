@@ -810,6 +810,7 @@ a:hover{text-decoration:underline}
         <div class="card col-6"><div class="card-h"><h3>🌐 Top pages by sessions</h3></div><div id="perf-pages"></div></div>
         <div class="card col-12"><div class="card-h"><h3>💡 Insights</h3></div><div id="perf-insights"></div></div>
       </div>
+      <!-- Weekly Report card is rendered by renderWeeklyReport() inside the Insights section. No static stub here — renderInsights clones sec-performance into sec-insights, so a static stub would duplicate. -->
       <!-- "Connect analytics" CTA — only visible when data sources are empty -->
       <div id="perf-connect-cta" style="display:none;margin-top:1rem"></div>
       <!-- Why-explain panel — answers "why did this post work/fail" with real evidence -->
@@ -3693,6 +3694,86 @@ async function renderInsights(){
   // Also re-bind event handlers that renderPerformance attached (since cloneNode doesn't carry them)
   // For simplicity, we re-run renderInsights-bind for performance widgets if they exist
   if(typeof bindPerformanceHandlers === 'function') bindPerformanceHandlers();
+  // ── Weekly Report (auto-generated from data/, exports to markdown) ───
+  await renderWeeklyReport(targetSec);
+}
+
+// ─── WEEKLY REPORT ────────────────────────────────────────────────────
+async function renderWeeklyReport(targetSec){
+  let w = null;
+  try { w = await API.get('/api/intel/weekly_report'); } catch(e){ console.warn('weekly_report load failed', e); return; }
+  if(!w || !w.ok){
+    targetSec.appendChild(Object.assign(document.createElement('div'), {className: 'empty', textContent: 'Weekly report unavailable'}));
+    return;
+  }
+  const k = w.headline_kpis || {};
+  const wow = w.week_on_week || {};
+  const fmtPct = (v) => v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(1) + '%';
+  const fmtNum = (v) => v == null ? '—' : v;
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.style.marginTop = '1rem';
+  card.innerHTML = `
+    <div class="card-h" style="display:flex;align-items:center;gap:.5rem">
+      <h3>📅 Weekly marketing report</h3>
+      <span class="h-meta" id="weekly-week-label-inline" style="margin-left:auto;font-size:11px"></span>
+      <button class="btn-mini" id="weekly-export-btn-inline" title="Download as markdown">⬇️ Export</button>
+    </div>
+    <div class="muted" style="font-size:13px;line-height:1.4;margin-bottom:.5rem">${esc(w.headline || '')}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:.75rem">
+      <div class="stat" style="background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem"><div class="stat-val">${fmtNum(k.published)}</div><div class="stat-lbl">Published</div></div>
+      <div class="stat" style="background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem"><div class="stat-val">${fmtNum(k.failed)}</div><div class="stat-lbl">Failed</div></div>
+      <div class="stat" style="background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem"><div class="stat-val">${k.win_rate_pct == null ? '—' : k.win_rate_pct + '%'}</div><div class="stat-lbl">Win rate</div></div>
+      <div class="stat" style="background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem"><div class="stat-val">${fmtNum(k.agent_runs)}</div><div class="stat-lbl">Agent runs (${k.agent_pass_rate_pct == null ? '—' : k.agent_pass_rate_pct + '% pass'})</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:.75rem">
+      <div>
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">📱 Platforms</div>
+        <div style="font-size:12.5px">${Object.keys(w.platforms||{}).length
+          ? Object.entries(w.platforms).sort((a,b)=>b[1]-a[1]).map(([p,c])=>`<span class="pill ${p==='instagram'?'live':p==='facebook'?'warn':'on'}" style="margin-right:.35rem">${esc(p)}: ${c}</span>`).join('')
+          : '<span class="muted">No publishes this week</span>'}</div>
+      </div>
+      <div>
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">🔝 Top hooks used</div>
+        <ul class="list" style="margin:0;font-size:12.5px">${(w.top_hooks||[]).length
+          ? w.top_hooks.map(h => `<li class="li"><div class="li-body"><div class="li-title">${esc((h.text||h.hook_id||'').slice(0,80))}</div><div class="li-meta">${h.uses} use${h.uses===1?'':'s'}</div></div></li>`).join('')
+          : '<li class="empty">No hooks used this week</li>'}</ul>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:.75rem">
+      <div>
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">📈 SEO movers</div>
+        <ul class="list" style="margin:0;font-size:12.5px">${(w.seo_movers||[]).length
+          ? w.seo_movers.map(m => `<li class="li"><div class="li-body"><div class="li-title">${m.direction==='rising'?'↑':'↓'} ${esc(m.keyword||'')}</div>${m.rank!=null?`<div class="li-meta">rank ${m.rank}</div>`:''}</div></li>`).join('')
+          : '<li class="empty">No SEO movements this week</li>'}</ul>
+      </div>
+      <div>
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">⚠️ Failures</div>
+        <ul class="list" style="margin:0;font-size:12.5px">${(w.failures||[]).length
+          ? w.failures.map(f => `<li class="li"><div class="li-body"><div class="li-title">${esc(f.item_id||'?')}</div><div class="li-meta">${esc((f.reason||'').slice(0,80))}</div></div></li>`).join('')
+          : '<li class="empty">No failures 🎉</li>'}</ul>
+      </div>
+    </div>
+    <div class="muted" style="font-size:11px;margin-top:.5rem">
+      <span style="margin-right:1rem">📊 WoW: <b>${fmtNum(wow.published?.current)} published</b> (${fmtPct(wow.published?.pct_change)} vs last week)</span>
+      <span style="margin-right:1rem">Win rate: ${fmtNum(wow.win_rate_pct?.current)}${wow.win_rate_pct?.current!=null?'%':''} (prev ${fmtNum(wow.win_rate_pct?.previous)}${wow.win_rate_pct?.previous!=null?'%':''})</span>
+      <span>Agent runs: ${fmtNum(wow.agent_runs?.current)} (${fmtPct(wow.agent_runs?.pct_change)})</span>
+    </div>
+  `;
+  targetSec.appendChild(card);
+  const labelEl = card.querySelector('#weekly-week-label-inline');
+  if(labelEl) labelEl.textContent = `${(w.week_start||'').slice(0,10)} → ${(w.week_end||'').slice(0,10)}`;
+  const exportBtn = card.querySelector('#weekly-export-btn-inline');
+  if(exportBtn) exportBtn.onclick = () => {
+    const a = document.createElement('a');
+    a.href = '/api/intel/weekly_report/export';
+    a.download = `weekly-report-${(w.week_end||'').slice(0,10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('Weekly report exported');
+  };
 }
 
 // ─── LIBRARY — universal search (placeholder for now; uses FAQ list as starting content) ───
@@ -4903,9 +4984,15 @@ async function renderPerformance(){
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.test_name||it.name||it.test_id||'Test')}</div><div class="li-meta">${winner?`winner: ${esc(winner)}`:''} · status: ${esc(it.status||'')}</div></div></li>`;
   }).join('') || '<div class="empty">No A/B tests</div>';
 
-  $('#perf-pages').innerHTML = safeList(p.ga4?.pages, 10).map(it => `
-    <li class="li"><div class="li-body"><div class="li-title">${esc(it.path||it.page||it.url||'')}</div><div class="li-meta">${(it.sessions||0).toLocaleString()} sessions · ${(it.engagement_rate||0).toFixed(1)}% ER</div></div></li>
-  `).join('') || (gaEmpty ? '<div class="empty" style="padding:1.25rem">🔍 GA4 not connected yet. Once you drop a service-account JSON into setup-portal <code>/ga4</code>, this card shows top pages by sessions and engagement-rate for swingshack.co.za.</div>' : '<div class="empty">No GA4 data</div>');
+  $('#perf-pages').innerHTML = safeList(p.ga4?.pages, 10).map(it => {
+    // API returns engagement rate as a percent string like "73.7%" — older shape used a numeric `engagement_rate`.
+    // Parse defensively so the row shows the real ER instead of a 0.0% fallback.
+    const rawEr = it.engRate || it.engagement_rate || it.engagementRate;
+    const erPct = rawEr === undefined || rawEr === null ? null
+      : (typeof rawEr === 'string' ? parseFloat(rawEr.replace('%','')) : Number(rawEr));
+    const erText = (erPct === null || isNaN(erPct)) ? 'ER —' : `${erPct.toFixed(1)}% ER`;
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.path||it.page||it.url||'')}</div><div class="li-meta">${(it.sessions||0).toLocaleString()} sessions · ${erText}</div></div></li>`;
+  }).join('') || (gaEmpty ? '<div class="empty" style="padding:1.25rem">🔍 GA4 not connected yet. Once you drop a service-account JSON into setup-portal <code>/ga4</code>, this card shows top pages by sessions and engagement-rate for swingshack.co.za.</div>' : '<div class="empty">No GA4 data</div>');
 
   $('#perf-insights').innerHTML = safeList(e.insights, 12).map(i => `
     <div class="review" style="border-left:3px solid var(--ac);padding-left:.6rem">

@@ -13,7 +13,7 @@ import subprocess
 import shutil
 import uuid
 import logging
-from flask import Flask, jsonify, request, send_from_directory, g
+from flask import Flask, jsonify, request, send_from_directory, g, Response
 from flask_cors import CORS
 
 app = Flask(__name__, static_folder='.')
@@ -2767,6 +2767,7 @@ try:
         reddit_outreach, gbp_suggestions, seo_assistant, faq_generator,
         trend_catcher, opportunities_view, postiz_overview, assets_view,
         agents_view, explain_performance, universal_search,
+        weekly_report,
     )
     _INTELLIGENCE_AVAILABLE = True
 except ImportError as _intel_err:
@@ -2815,6 +2816,137 @@ def intel_dispatch(name):
         return trends_v2()
     payload, status = _intel(name)
     return jsonify(payload), status
+
+
+@app.route('/api/intel/weekly_report/export', methods=['GET'])
+def weekly_report_export():
+    """GET /api/intel/weekly_report/export — markdown export of the weekly report.
+
+    Returns the weekly report as markdown so it can be downloaded/printed
+    or pasted into a Slack/email. Reads the same data as the JSON view.
+    """
+    if not _INTELLIGENCE_AVAILABLE or weekly_report is None:
+        return jsonify({"ok": False, "error": "Intelligence module unavailable"}), 503
+    try:
+        _intel_module.set_request_brand(get_brand_id())
+        data = weekly_report(brand=get_brand_id())
+        kpis = data.get("headline_kpis", {})
+        wow = data.get("week_on_week", {})
+
+        md_lines = [
+            f"# Weekly Marketing Report — {data.get('week_start', '?')[:10]} to {data.get('week_end', '?')[:10]}",
+            "",
+            f"**Brand:** {data.get('brand') or 'all'}",
+            "",
+            "## Headline",
+            f"- {data.get('headline', '')}",
+            "",
+            "## Numbers",
+            f"- **Published:** {kpis.get('published', 0)}",
+            f"- **Failed:** {kpis.get('failed', 0)}",
+            f"- **Win rate:** {kpis.get('win_rate_pct') if kpis.get('win_rate_pct') is not None else '—'}",
+            f"- **Agent runs:** {kpis.get('agent_runs', 0)}",
+            f"- **Agent pass rate:** {kpis.get('agent_pass_rate_pct') if kpis.get('agent_pass_rate_pct') is not None else '—'}",
+            "",
+        ]
+
+
+
+        # Platforms
+        platforms = data.get("platforms") or {}
+        if platforms:
+            md_lines.append("## Platforms")
+            for plat, cnt in sorted(platforms.items(), key=lambda x: -x[1]):
+                md_lines.append(f"- **{plat}:** {cnt}")
+            md_lines.append("")
+
+        # By day
+        by_day = data.get("by_day") or {}
+        if any(by_day.values()):
+            md_lines.append("## By day")
+            for day, cnt in by_day.items():
+                if cnt:
+                    md_lines.append(f"- **{day}:** {cnt}")
+            md_lines.append("")
+
+        # Top hooks
+        top_hooks = data.get("top_hooks") or []
+        if top_hooks:
+            md_lines.append("## Top hooks used")
+            for h in top_hooks:
+                text = h.get("text") or h.get("hook_id")
+                md_lines.append(f"- {text} ({h.get('uses', 0)} uses)")
+            md_lines.append("")
+
+        # Top CTAs
+        top_ctas = data.get("top_ctas") or []
+        if top_ctas:
+            md_lines.append("## Top CTAs")
+            for c in top_ctas:
+                md_lines.append(f"- {c.get('cta', '')} ({c.get('uses', 0)} uses)")
+            md_lines.append("")
+
+        # SEO movers
+        movers = data.get("seo_movers") or []
+        if movers:
+            md_lines.append("## SEO movers")
+            for m in movers:
+                direction = m.get("direction", "")
+                arrow = "↑" if direction == "rising" else "↓" if direction == "falling" else "·"
+                rank = m.get("rank")
+                rank_str = f" (rank {rank})" if rank is not None else ""
+                md_lines.append(f"- {arrow} {m.get('keyword', '')}{rank_str}")
+            md_lines.append("")
+
+        # Failures
+        failures = data.get("failures") or []
+        if failures:
+            md_lines.append("## Failures")
+            for f in failures:
+                md_lines.append(f"- {f.get('item_id', '?')} — {f.get('reason', 'no reason')}")
+            md_lines.append("")
+
+        # Agent breakdown
+        agent_breakdown = data.get("agent_breakdown") or {}
+        if agent_breakdown:
+            md_lines.append("## Agents")
+            for aid, summary in sorted(agent_breakdown.items()):
+                md_lines.append(f"- **{aid}** — {summary.get('total', 0)} runs, {summary.get('passed', 0)} passed, {summary.get('failed', 0)} failed ({summary.get('pass_rate_pct')}% pass)")
+            md_lines.append("")
+
+        # WoW
+        md_lines.append("## Week-on-week")
+        for k, v in wow.items():
+            curr = v.get("current")
+            prev = v.get("previous")
+            pct = v.get("pct_change")
+            curr_str = "—" if curr is None else (f"{curr}%" if "rate" in k else str(curr))
+            prev_str = "—" if prev is None else (f"{prev}%" if "rate" in k else str(prev))
+            pct_str = f" ({'+' if pct and pct > 0 else ''}{pct}%)" if pct is not None else ""
+            md_lines.append(f"- **{k}:** {curr_str} (prev: {prev_str}){pct_str}")
+        md_lines.append("")
+
+        md = "\n".join(md_lines)
+
+        # Persist to data/weekly-report.md for the next time someone reads it
+        try:
+            export_path = data.get("export_path")
+            if export_path:
+                os.makedirs(os.path.dirname(export_path), exist_ok=True)
+                with open(export_path, "w", encoding="utf-8") as f:
+                    f.write(md)
+        except OSError as exc:
+            _app_log.warning("weekly_report.md write failed: %s", exc)
+
+        return Response(md, mimetype="text/markdown", headers={"Content-Disposition": "attachment; filename=weekly-report.md"})
+    except Exception as exc:
+        _app_log.exception("weekly_report_export failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    finally:
+        try:
+            _intel_module.clear_request_brand()
+        except Exception:
+            pass
 
 
 @app.route('/api/today/panel', methods=['GET'])
