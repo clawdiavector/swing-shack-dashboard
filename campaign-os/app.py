@@ -1661,7 +1661,7 @@ def _meta_verify_token(app_id, app_secret, access_token, page_id):
     if s == 200 and isinstance(body, dict):
         perms_list = body.get('data') if isinstance(body.get('data'), list) else []
         granted = {p['permission'] for p in perms_list if isinstance(p, dict) and p.get('status') == 'granted'}
-        required_ig = {'instagram_basic', 'instagram_manage_insights', 'pages_read_user_content'}
+        required_ig = {'instagram_basic', 'instagram_manage_insights', 'instagram_business_manage_insights', 'pages_read_user_content'}
         required_pages = {'pages_show_list', 'pages_read_engagement', 'business_management'}
         missing_ig = required_ig - granted
         missing_pages = required_pages - granted
@@ -1672,9 +1672,10 @@ def _meta_verify_token(app_id, app_secret, access_token, page_id):
             missing = sorted(missing_ig) + sorted(missing_pages)
             out["error"] = (
                 f'Token is missing required scopes: {", ".join(missing)}. '
-                f'Re-generate the token in Graph API Explorer and tick ALL 6 boxes: '
+                f'Re-generate the token in Graph API Explorer and tick ALL 7 boxes: '
                 f'pages_show_list, pages_read_engagement, pages_read_user_content, '
-                f'instagram_basic, instagram_manage_insights, business_management.'
+                f'instagram_basic, instagram_manage_insights, instagram_business_manage_insights, '
+                f'business_management.'
             )
             return out
     else:

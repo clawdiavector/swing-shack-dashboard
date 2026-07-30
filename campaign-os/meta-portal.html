@@ -114,7 +114,12 @@
       <div class="hint">
         Generate via Graph API Explorer after adding scopes: <code>pages_show_list</code>, <code>pages_read_engagement</code>,
         <code>pages_read_user_content</code>, <code>instagram_basic</code>, <code>instagram_manage_insights</code>,
-        <code>business_management</code>. If you have a page-scoped long-lived token instead, use that — paste the whole string, do not truncate.
+        <code>instagram_business_manage_insights</code>, <code>business_management</code>. If you have a page-scoped
+        long-lived token instead, use that — paste the whole string, do not truncate.
+        <br><br>
+        <a id="gaelink" href="#" target="_blank" rel="noopener" style="display:inline-block;background:var(--accent);color:#0c0d10;padding:8px 14px;border-radius:6px;font-weight:700;text-decoration:none;">
+          ⚡ Open Graph API Explorer with all 7 scopes pre-checked →
+        </a>
       </div>
 
       <label for="META_TOKEN_TYPE">Token type</label>
@@ -202,7 +207,29 @@ form.addEventListener('submit', async (e) => {
     btn.disabled = false;
     spinner.style.display = 'none';
   }
-});
+}
+
+// ─── Graph API Explorer deep-link with all 7 scopes pre-checked ─────
+// https://developers.facebook.com/tools/explorer/?method=GET&path=me&version=v25.0
+// Plus a `scopes` query param the Explorer recognizes: comma-separated
+const APP_ID = '2484801338654661';
+const SCOPES = [
+  'pages_show_list',
+  'pages_read_engagement',
+  'pages_read_user_content',
+  'instagram_basic',
+  'instagram_manage_insights',
+  'instagram_business_manage_insights',
+  'business_management',
+].join(',');
+const GAE_URL =
+  'https://developers.facebook.com/tools/explorer/' +
+  '?method=GET&path=me%2Faccounts%3Ffields%3Did%2Cname%2Cinstagram_business_account&version=v25.0' +
+  '&app_id=' + APP_ID +
+  '&scopes=' + encodeURIComponent(SCOPES);
+const gaelink = document.getElementById('gaelink');
+if (gaelink) gaelink.href = GAE_URL;
+console.log('Graph API Explorer deep-link:', GAE_URL);
 </script>
 </body>
 </html>
