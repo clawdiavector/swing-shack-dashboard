@@ -138,9 +138,10 @@ def morning_brief() -> Dict[str, Any]:
     seo = _read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {}
     quick_wins = seo.get("quick_wins", [])[:3] if isinstance(seo, dict) else []
 
-    # Today's content ideas
+    # Today's content ideas — drop stale (>14 days old or used) so the
+    # Brief doesn't surface ghost hooks from old campaigns.
     ideas = _read_json(os.path.join(DATA_DIR, "content-ideas.json")) or {}
-    post_today = ideas.get("post_today", []) if isinstance(ideas, dict) else []
+    post_today = _filter_fresh_ideas(ideas.get("post_today", []) if isinstance(ideas, dict) else [])
 
     # ─── Recommended action: one concrete thing to do NOW ──────────────
     recommended_action = None
@@ -991,7 +992,7 @@ def opportunities_view() -> Dict[str, Any]:
         "ok": True,
         "ts": _now_iso(),
         "ideas": (ideas.get("ideas", []) if isinstance(ideas, dict) else [])[:30],
-        "post_today": (ideas.get("post_today", []) if isinstance(ideas, dict) else [])[:10],
+        "post_today": _filter_fresh_ideas(ideas.get("post_today", []) if isinstance(ideas, dict) else [])[:10],
         "this_week": (ideas.get("this_week", []) if isinstance(ideas, dict) else [])[:10],
         "reels": (ideas.get("reels", []) if isinstance(ideas, dict) else [])[:10],
         "missed": (missed.get("opportunities", []) if isinstance(missed, dict) else [])[:20],
@@ -1326,6 +1327,42 @@ def _parse_iso_date(s: Any) -> Optional[datetime.datetime]:
         return datetime.datetime.fromisoformat(s)
     except (ValueError, TypeError):
         return None
+
+
+def _filter_fresh_ideas(items: Any, days: int = 14) -> list:
+    """Drop stale content ideas from a `post_today` / `this_week` style list.
+
+    Items are kept if ALL of:
+      - dict shape
+      - used is False / missing
+      - idea_id date prefix (YYYY-MM-DD) is within the last `days` days,
+        OR idea_id has no date prefix (trust the priority tagging).
+
+    Items with no date prefix are kept; items with a date prefix older than
+    `days` are dropped silently. Always returns a list.
+    """
+    import re as _re
+    if not isinstance(items, list):
+        return []
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cutoff = now - datetime.timedelta(days=days)
+    out = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if item.get("used"):
+            continue
+        iid = item.get("idea_id", "") or ""
+        m = _re.search(r"(\d{4})-(\d{2})-(\d{2})", iid)
+        if m:
+            try:
+                d = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), tzinfo=datetime.timezone.utc)
+                if d < cutoff:
+                    continue
+            except (ValueError, TypeError):
+                pass
+        out.append(item)
+    return out
 
 
 def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
