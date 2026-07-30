@@ -566,6 +566,21 @@ a:hover{text-decoration:underline}
 .help-collapsible .hc-body p:last-child{margin:0}
 .help-collapsible .hc-body .hc-term{font-weight:700;color:var(--tx)}
 .help-collapsible .hc-body .hc-good{color:var(--green)}
+/* Markdown-rendered brand read-panels (readme / tone_rules / do_say_dont_say /
+   headlines / ctas / examples). Mounted by the `md()` helper. */
+.md-body{font-size:13px;line-height:1.55;color:var(--tx-2)}
+.md-body p{margin:0 0 .6rem}
+.md-body p:last-child{margin:0}
+.md-body h3,.md-body h4,.md-body h5{margin:.75rem 0 .5rem;font-weight:700;color:var(--tx);line-height:1.3}
+.md-body h3{font-size:15px;border-top:1px solid var(--bg-3);padding-top:.6rem}
+.md-body h3:first-child{border-top:none;padding-top:0;margin-top:0}
+.md-body h4{font-size:13.5px;color:var(--ac)}
+.md-body h5{font-size:12.5px;font-style:italic;color:var(--tx-2)}
+.md-body ul,.md-body ol{margin:.4rem 0 .6rem;padding-left:1.4rem}
+.md-body li{margin-bottom:.25rem}
+.md-body strong{color:var(--tx);font-weight:700}
+.md-body em{color:var(--tx-2)}
+.md-body code{background:var(--bg-2);padding:1px 5px;border-radius:4px;font-size:12px;color:var(--ac);font-family:ui-monospace,SF Mono,Menlo,monospace}
 .help-collapsible .hc-body .hc-bad{color:var(--red)}
 .help-collapsible .hc-body .hc-warn{color:var(--ac)}
 .help-collapsible .hc-body ul{margin:.35rem 0 .65rem;padding-left:1.2rem}
@@ -3032,7 +3047,78 @@ const API = {
 
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ─── SAFE MARKDOWN RENDERER ───────────────────────────────────────────
+// Renders the brand read-style panels (readme / tone_rules /
+// do_say_dont_say / headlines / ctas / examples). Input is plain text
+// from JSON files. We escape first, then apply a tiny, allow-listed
+// markdown subset: # / ## / ###, **bold**, *italic*, `code`, - bullets,
+// 1. numbered, blank-line paragraphs. Nothing in the input can break
+// out of the panel because the only HTML tags injected are on the
+// allow-list above.
+const md = (raw) => {
+  // 1) escape any pre-existing HTML so the layer below can safely
+  //    inject <h*>, <strong>, <em>, <code>, <ul>, <li>, <ol>, <p>.
+  let s = esc(String(raw ?? ''));
+  // 2) protect inline code spans — their contents must survive the
+  //    bold/italic pass below without being rewritten.
+  const codeStore = [];
+  s = s.replace(/`([^`]+)`/g, (_, inner) => {
+    const i = codeStore.push(inner) - 1;
+    return '\u0001CODE' + i + '\u0001';
+  });
+  // 3) bold (must run before italic — `**x**` is not eaten as `*x*`).
+  s = s.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+  // 4) italic (single asterisk, non-greedy, no newline, bordered by
+  //    whitespace/punctuation so we do not match the middle of words).
+  s = s.replace(/(^|[\s(])\*([^*\n]+?)\*([\s).,!?;:]|$)/g, '$1<em>$2</em>$3');
+  // 5) restore protected code spans as <code>...</code>.
+  s = s.replace(/\u0001CODE(\d+)\u0001/g, (_, i) => '<code>' + codeStore[+i] + '</code>');
+  // 6) block-level: walk lines, emit headings / lists / paragraphs.
+  const lines = s.split('\n');
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { i++; continue; }
+    const h = line.match(/^(#{1,3})\s+(.+?)\s*#*\s*$/);
+    if (h) {
+      const lvl = h[1].length;
+      out.push('<h' + (lvl + 2) + '>' + h[2] + '</h' + (lvl + 2) + '>');
+      i++;
+      continue;
+    }
+    if (/^[-*]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^[-*]\s+/.test(lines[i])) {
+        items.push('<li>' + lines[i].replace(/^[-*]\s+/, '') + '</li>');
+        i++;
+      }
+      out.push('<ul>' + items.join('') + '</ul>');
+      continue;
+    }
+    if (/^\d+\.\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
+        items.push('<li>' + lines[i].replace(/^\d+\.\s+/, '') + '</li>');
+        i++;
+      }
+      out.push('<ol>' + items.join('') + '</ol>');
+      continue;
+    }
+    const para = [];
+    while (i < lines.length && lines[i].trim()
+           && !/^#{1,3}\s+/.test(lines[i])
+           && !/^[-*]\s+/.test(lines[i])
+           && !/^\d+\.\s+/.test(lines[i])) {
+      para.push(lines[i]);
+      i++;
+    }
+    out.push('<p>' + para.join(' ') + '</p>');
+  }
+  return out.join('');
+};
 
 // ─── THEME controller ───────────────────────────────────────────
 const THEME_KEY = 'swing-shack:theme';
@@ -6172,7 +6258,7 @@ async function renderBrandDirectoryPanel(){
         detail.innerHTML = `
           <div class="card">
             <div class="card-h"><h3>📋 ${esc(labelMap[bid]||bid)} — full directory</h3>${data.ready ? pill('on','ready') : pill('draft','partial')}</div>
-            ${readme ? `<details class="help-collapsible" style="margin-bottom:1rem"><summary>📄 Brand one-pager (README)</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:300px;overflow:auto">${esc(readme)}…</div></details>` : ''}
+            ${readme ? `<details class="help-collapsible" style="margin-bottom:1rem"><summary>📄 Brand one-pager (README)</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(readme)}</div></div></details>` : ''}
             <div class="grid">
               <div class="card col-6"><div class="card-h"><h3>🎨 Palette</h3></div>
                 <table style="width:100%;font-size:12px;border-collapse:collapse">
@@ -6183,23 +6269,23 @@ async function renderBrandDirectoryPanel(){
                 <ul class="list">${arche.map(a => `<li class="li"><div class="li-body"><div class="li-title">${esc(a.name||a.id)}</div><div class="li-meta muted">${esc((a.description||'').slice(0,120))}…</div></div></li>`).join('')}</ul>
               </div>
               <div class="card col-12"><div class="card-h"><h3>🎤 Voice — tone rules</h3></div>
-                <details class="help-collapsible"><summary>Read tone rules</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc((data.voice?.tone_rules||'—').slice(0, 2500))}…</div></details>
+                <details class="help-collapsible"><summary>Read tone rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.tone_rules||'—')}</div></div></details>
               </div>
               <div class="card col-12"><div class="card-h"><h3>📝 Do say / Don't say</h3></div>
-                <details class="help-collapsible"><summary>Read vocabulary</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc((data.voice?.do_say_dont_say||'—').slice(0, 2500))}…</div></details>
+                <details class="help-collapsible"><summary>Read vocabulary</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.do_say_dont_say||'—')}</div></div></details>
               </div>
               <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
-                <details class="help-collapsible"><summary>Read headline bank</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc((data.copy?.headlines||'—').slice(0, 2500))}…</div></details>
+                <details class="help-collapsible"><summary>Read headline bank</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.copy?.headlines||'—')}</div></div></details>
               </div>
               <div class="card col-6"><div class="card-h"><h3>🎯 CTA bank</h3></div>
-                <details class="help-collapsible"><summary>Read CTA bank</summary><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc((data.copy?.ctas||'—').slice(0, 2500))}…</div></details>
+                <details class="help-collapsible"><summary>Read CTA bank</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.copy?.ctas||'—')}</div></div></details>
               </div>
               ${(data.examples?.good || data.examples?.bad || data.examples?.inspiration) ? `
               <div class="card col-12"><div class="card-h"><h3>📚 Examples — do / don't</h3><span class="muted" style="font-size:11.5px">${data.examples?.good ? '✅ good' : ''}${data.examples?.bad ? '  ❌ bad' : ''}${data.examples?.inspiration ? '  📌 inspiration' : ''}</span></div>
                 <div class="grid">
-                  ${data.examples?.good ? `<div class="card col-4"><div class="card-h"><h3>✅ Good (nailed the brand)</h3></div><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc(data.examples.good.slice(0, 2500))}</div></div>` : ''}
-                  ${data.examples?.bad ? `<div class="card col-4"><div class="card-h"><h3>❌ Bad (missed the brand)</h3></div><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc(data.examples.bad.slice(0, 2500))}</div></div>` : ''}
-                  ${data.examples?.inspiration ? `<div class="card col-4"><div class="card-h"><h3>📌 Inspiration (do not copy)</h3></div><div class="hc-body" style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;max-height:400px;overflow:auto">${esc(data.examples.inspiration.slice(0, 1500))}</div></div>` : ''}
+                  ${data.examples?.good ? `<div class="card col-4"><div class="card-h"><h3>✅ Good (nailed the brand)</h3></div><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.examples.good)}</div></div>` : ''}
+                  ${data.examples?.bad ? `<div class="card col-4"><div class="card-h"><h3>❌ Bad (missed the brand)</h3></div><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.examples.bad)}</div></div>` : ''}
+                  ${data.examples?.inspiration ? `<div class="card col-4"><div class="card-h"><h3>📌 Inspiration (do not copy)</h3></div><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.examples.inspiration)}</div></div>` : ''}
                 </div>
               </div>` : ''}
             </div>
