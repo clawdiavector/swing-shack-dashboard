@@ -1315,6 +1315,240 @@ def assets_view() -> Dict[str, Any]:
     return {"ok": True, "ts": _now_iso(), "assets": out, "count": len(out)}
 
 
+# ─── WEEKLY REPORT ──────────────────────────────────────────────────────
+
+def _parse_iso_date(s: Any) -> Optional[datetime.datetime]:
+    """Best-effort ISO date parser. Returns None if unparseable."""
+    if not isinstance(s, str) or not s.strip():
+        return None
+    s = s.strip().replace("Z", "+00:00")
+    try:
+        return datetime.datetime.fromisoformat(s)
+    except (ValueError, TypeError):
+        return None
+
+
+def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
+    """Aggregate everything that happened in the last 7 days into a single
+    'weekly marketing report' payload. Mirrors the structure of the weekly
+    markdown report that `weekly_reporter` writes, but JSON so the Insights
+    section can render live + export.
+
+    Sections:
+      - headline: published count, failed, win rate, agent runs, pass rate
+      - top_hooks: best-performing hooks from this week's published items
+      - top_ctas: CTAs used, sorted by usage
+      - top_platforms: {instagram: N, facebook: M, ...}
+      - published_by_day: {Mon: N, Tue: N, ...}
+      - top_seo_movers: rising keywords from seo-rankings.json
+      - failures: items that failed to publish this week
+      - agent_runs: per-agent pass/fail breakdown
+      - week_on_week: delta vs previous 7 days for headline metrics
+      - exports: pointer to the markdown export path
+    """
+    now = datetime.datetime.now(datetime.timezone.utc)
+    week_start = now - datetime.timedelta(days=7)
+    prev_start = now - datetime.timedelta(days=14)
+
+    # ── Published items ───────────────────────────────────────────────
+    pub_data = _read_json(os.path.join(DATA_DIR, "published-items.json")) or {}
+    all_published = pub_data.get("published", []) if isinstance(pub_data, dict) else []
+    if not isinstance(all_published, list):
+        all_published = []
+
+    def _in_week(item_ts: Any) -> bool:
+        d = _parse_iso_date(item_ts)
+        if d is None:
+            return False
+        # Normalize to UTC for comparison
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=datetime.timezone.utc)
+        return week_start <= d <= now
+
+    def _in_prev(item_ts: Any) -> bool:
+        d = _parse_iso_date(item_ts)
+        if d is None:
+            return False
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=datetime.timezone.utc)
+        return prev_start <= d < week_start
+
+    this_week = [p for p in all_published if isinstance(p, dict) and _in_week(p.get("generated") or p.get("published_at"))]
+    prev_week = [p for p in all_published if isinstance(p, dict) and _in_prev(p.get("generated") or p.get("published_at"))]
+
+    # ── Failures ──────────────────────────────────────────────────────
+    fail_data = _read_json(os.path.join(DATA_DIR, "publish-failures.json")) or {}
+    all_failures = []
+    if isinstance(fail_data, dict):
+        for key in ("failures", "failed", "items"):
+            v = fail_data.get(key)
+            if isinstance(v, list):
+                all_failures = v
+                break
+    elif isinstance(fail_data, list):
+        all_failures = fail_data
+    week_failures = [f for f in all_failures if isinstance(f, dict) and _in_week(f.get("ts") or f.get("failed_at") or f.get("generated"))]
+    prev_failures = [f for f in all_failures if isinstance(f, dict) and _in_prev(f.get("ts") or f.get("failed_at") or f.get("generated"))]
+
+    # ── Headline KPIs ─────────────────────────────────────────────────
+    published_count = len(this_week)
+    failed_count = len(week_failures)
+    attempts = published_count + failed_count
+    win_rate_pct = round((published_count / attempts) * 100, 1) if attempts > 0 else None
+    prev_published = len(prev_week)
+    prev_failed = len(prev_failures)
+    prev_attempts = prev_published + prev_failed
+    prev_win_rate = round((prev_published / prev_attempts) * 100, 1) if prev_attempts > 0 else None
+
+    # ── Platforms + days breakdown ────────────────────────────────────
+    platforms = {}
+    by_day = {"Mon": 0, "Tue": 0, "Wed": 0, "Thu": 0, "Fri": 0, "Sat": 0, "Sun": 0}
+    weekday_keys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    for p in this_week:
+        plat = p.get("platform") or "instagram"
+        platforms[plat] = platforms.get(plat, 0) + 1
+        ts = _parse_iso_date(p.get("generated") or p.get("published_at"))
+        if ts:
+            by_day[weekday_keys[ts.weekday()]] += 1
+
+    # ── Top hooks (from published items that have a linked_hook_id) ───
+    hook_counts = {}
+    for p in this_week:
+        hid = p.get("linked_hook_id")
+        if hid:
+            hook_counts[hid] = hook_counts.get(hid, 0) + 1
+    top_hooks = sorted(hook_counts.items(), key=lambda x: -x[1])[:5]
+
+    # Cross-reference hook-bank for hook text
+    hook_bank = _read_json(os.path.join(DATA_DIR, "hook-bank.json")) or {}
+    hook_lookup = {}
+    for bucket_key in ("proven_and_trending", "trending_but_unproven", "watched"):
+        bucket = hook_bank.get(bucket_key, []) if isinstance(hook_bank, dict) else []
+        if isinstance(bucket, list):
+            for h in bucket:
+                if isinstance(h, dict):
+                    hid = h.get("hook_id")
+                    if hid:
+                        hook_lookup[hid] = h.get("hook_text") or h.get("text") or hid
+    top_hooks_rich = [
+        {"hook_id": hid, "uses": cnt, "text": hook_lookup.get(hid, "")}
+        for hid, cnt in top_hooks
+    ]
+
+    # ── Top CTAs ──────────────────────────────────────────────────────
+    cta_counts = {}
+    for p in this_week:
+        cta = p.get("linked_cta") or p.get("cta")
+        if cta:
+            cta_counts[cta] = cta_counts.get(cta, 0) + 1
+    top_ctas = sorted(cta_counts.items(), key=lambda x: -x[1])[:5]
+    top_ctas_rich = [{"cta": cta, "uses": cnt} for cta, cnt in top_ctas]
+
+    # ── SEO movers ────────────────────────────────────────────────────
+    seo = _read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {}
+    rising = seo.get("rising_keywords", []) if isinstance(seo, dict) else []
+    falling = seo.get("falling_keywords", []) if isinstance(seo, dict) else []
+    if not isinstance(rising, list):
+        rising = []
+    if not isinstance(falling, list):
+        falling = []
+    seo_movers = []
+    for r in rising[:5]:
+        if isinstance(r, dict):
+            seo_movers.append({"keyword": r.get("keyword"), "direction": "rising", "rank": r.get("current_rank") or r.get("rank")})
+        elif isinstance(r, str):
+            seo_movers.append({"keyword": r, "direction": "rising"})
+    for f in falling[:3]:
+        if isinstance(f, dict):
+            seo_movers.append({"keyword": f.get("keyword"), "direction": "falling", "rank": f.get("current_rank") or f.get("rank")})
+        elif isinstance(f, str):
+            seo_movers.append({"keyword": f, "direction": "falling"})
+
+    # ── Agent runs (last 7 days) ──────────────────────────────────────
+    agent_data = _read_json(os.path.join(DATA_DIR, "agent-runs.json")) or {}
+    agents_raw = agent_data.get("agents", {}) if isinstance(agent_data, dict) else {}
+    if not isinstance(agents_raw, dict):
+        agents_raw = {}
+    agent_summary = {}
+    for agent_id, runs in agents_raw.items():
+        if not isinstance(runs, list):
+            continue
+        week_runs = [r for r in runs if isinstance(r, dict) and _in_week(r.get("run_at"))]
+        if not week_runs:
+            continue
+        passed = sum(1 for r in week_runs if (r.get("status") or "").upper() in ("PASS", "OK", "SUCCESS"))
+        failed = sum(1 for r in week_runs if (r.get("status") or "").upper() in ("FAIL", "ERROR", "FAILED"))
+        partial = len(week_runs) - passed - failed
+        agent_summary[agent_id] = {
+            "total": len(week_runs),
+            "passed": passed,
+            "failed": failed,
+            "partial": partial,
+            "pass_rate_pct": round((passed / len(week_runs)) * 100, 1) if week_runs else None,
+        }
+    total_agent_runs = sum(a["total"] for a in agent_summary.values())
+    total_agent_passed = sum(a["passed"] for a in agent_summary.values())
+    total_agent_pass_rate = round((total_agent_passed / total_agent_runs) * 100, 1) if total_agent_runs else None
+
+    # ── Week-on-week deltas ───────────────────────────────────────────
+    def _delta(curr, prev):
+        if curr is None or prev in (None, 0):
+            return {"current": curr, "previous": prev, "delta": None, "pct_change": None}
+        delta = curr - prev
+        pct = round((delta / prev) * 100, 1)
+        return {"current": curr, "previous": prev, "delta": delta, "pct_change": pct}
+
+    wow = {
+        "published": _delta(published_count, prev_published),
+        "failed": _delta(failed_count, prev_failed),
+        "win_rate_pct": _delta(win_rate_pct, prev_win_rate),
+        "agent_runs": _delta(total_agent_runs, sum(a.get("total", 0) for a in agent_summary.values()) - total_agent_runs),
+    }
+
+    # ── Markdown export path ──────────────────────────────────────────
+    md_path = os.path.join(DATA_DIR, "weekly-report.md")
+
+    # ── Build summary headline (1 sentence) ───────────────────────────
+    if published_count == 0 and failed_count == 0:
+        headline = f"Quiet week — {total_agent_runs} agent runs, no publishes attempted."
+    else:
+        wr = f"{win_rate_pct}%" if win_rate_pct is not None else "—"
+        headline = f"{published_count} published, {failed_count} failed, {wr} win rate."
+
+    return {
+        "ok": True,
+        "ts": _now_iso(),
+        "week_start": week_start.isoformat(),
+        "week_end": now.isoformat(),
+        "brand": brand,
+        "headline": headline,
+        "headline_kpis": {
+            "published": published_count,
+            "failed": failed_count,
+            "win_rate_pct": win_rate_pct,
+            "agent_runs": total_agent_runs,
+            "agent_pass_rate_pct": total_agent_pass_rate,
+        },
+        "platforms": platforms,
+        "by_day": by_day,
+        "top_hooks": top_hooks_rich,
+        "top_ctas": top_ctas_rich,
+        "seo_movers": seo_movers,
+        "failures": [
+            {
+                "item_id": f.get("item_id") or f.get("id"),
+                "platform": f.get("platform"),
+                "reason": f.get("error") or f.get("reason") or f.get("message"),
+                "ts": f.get("ts") or f.get("failed_at") or f.get("generated"),
+            }
+            for f in week_failures[:10]
+        ],
+        "agent_breakdown": agent_summary,
+        "week_on_week": wow,
+        "export_path": md_path,
+    }
+
+
 # ─── INDEX ─────────────────────────────────────────────────────────────
 
 INTELLIGENCE_FUNCS = {
@@ -1342,6 +1576,7 @@ INTELLIGENCE_FUNCS = {
     "agents": agents_view,
     "explain": explain_performance,
     "image_generate": lambda: generate_image(None),
+    "weekly_report": weekly_report,
 }
 
 

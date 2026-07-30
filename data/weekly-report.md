@@ -1,25 +1,19 @@
-# Weekly Report — 2026-04-15 to 2026-04-22
+# Weekly Marketing Report — 2026-07-23 to 2026-07-30
 
-## Headline Numbers
-- **Published:** 0 (0% win rate)
-- **Failed:** 0 | **Alerts:** 0 critical
-- **Agent runs:** 38 (29 passed, 9 failed)
-- **Used items marked:** 0
+**Brand:** swing-shack
 
-## Top Performers
-- **Hook:** n/a (0 publishes)
-- **CTA:** n/a
-- **Service:** n/a
+## Headline
+- Quiet week — 0 agent runs, no publishes attempted.
 
-## Biggest Leak
-None detected
+## Numbers
+- **Published:** 0
+- **Failed:** 0
+- **Win rate:** —
+- **Agent runs:** 0
+- **Agent pass rate:** —
 
-## Owner Workload
-No owner data this week.
-
-## Alerts
-No critical alerts this week.
-
-## Week-on-Week
-- Published: +100% vs last week
-- Recommendations: +100% vs last week
+## Week-on-week
+- **published:** 0 (prev: 57) (-100.0%)
+- **failed:** 0 (prev: 0)
+- **win_rate_pct:** — (prev: 100.0%)
+- **agent_runs:** 0 (prev: 0)
