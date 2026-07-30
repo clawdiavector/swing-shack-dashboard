@@ -3142,6 +3142,84 @@ const md = (raw) => {
 
 // ─── THEME controller ───────────────────────────────────────────
 const THEME_KEY = 'swing-shack:theme';
+
+// Render the brand brief's palette + typography as a structured style guide.
+// Replaces a raw <pre> JSON dump with swatches and type pairing rows, with
+// graceful empty states for brands that haven't filled those slots yet.
+function renderBriefStyleGuide(brief){
+  const palette = brief && brief.palette && typeof brief.palette === 'object' ? brief.palette : null;
+  const typography = brief && brief.typography && typeof brief.typography === 'object' ? brief.typography : null;
+  const palEntries = palette ? Object.entries(palette).filter(([,v]) => v && typeof v === 'object') : [];
+  const paletteBlock = !palette
+    ? `<div class="muted" style="font-size:12px;padding:.5rem 0">No palette set yet for this brand.</div>`
+    : !palEntries.length
+    ? `<div class="muted" style="font-size:12px;padding:.5rem 0">Palette slot is empty.</div>`
+    : `<div class="bd-swatches" role="list" style="display:flex;flex-direction:column;gap:.5rem;max-height:220px;overflow:auto;padding-right:.25rem">${palEntries.map(([key, c]) => {
+        const hex = c.hex || c.color || '';
+        const safeHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex) ? hex : '#888888';
+        const name = c.name ? esc(c.name) : '';
+        const usage = c.usage ? esc(c.usage) : '';
+        const fallback = key.replace(/_/g, ' ');
+        return `
+          <div role="listitem" style="display:flex;align-items:center;gap:.6rem;font-size:12px;line-height:1.35">
+            <span aria-hidden="true" style="flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:${esc(safeHex)};border:1px solid var(--bd);box-shadow:inset 0 0 0 2px var(--bg-1)"></span>
+            <div style="min-width:0;flex:1">
+              <div style="font-weight:600;color:var(--tx)">${name || esc(fallback)}</div>
+              <div class="muted" style="font-size:11px">${usage}</div>
+            </div>
+            <code style="flex:0 0 auto;font-size:11px;background:var(--bg-3);padding:2px 6px;border-radius:4px;color:var(--tx-2)">${esc(safeHex)}</code>
+          </div>`;
+      }).join('')}</div>`;
+
+  // Typography: show primary family + each pairing rule as a labelled row.
+  let typoRows = '';
+  if(typography){
+    const primary = typography.primary && typeof typography.primary === 'object' ? typography.primary : null;
+    if(primary){
+      const fam = primary.family ? esc(primary.family) : '';
+      const src = primary.source ? esc(primary.source) : '';
+      const fb = Array.isArray(typography.fallbacks) && typography.fallbacks.length ? esc(typography.fallbacks.join(', ')) : '';
+      typoRows += `
+        <div style="font-size:12px;line-height:1.5;margin-bottom:.5rem">
+          <div style="font-weight:600;color:var(--tx)">Primary${fam ? ` · ${fam}` : ''}</div>
+          ${fb ? `<div class="muted" style="font-size:11px">fallbacks: <code>${fb}</code></div>` : ''}
+          ${src ? `<div class="muted" style="font-size:11px">source: ${src}</div>` : ''}
+        </div>`;
+    }
+    const rules = typography.pairing_rules && typeof typography.pairing_rules === 'object'
+      ? Object.entries(typography.pairing_rules) : [];
+    if(rules.length){
+      typoRows += `<div style="font-size:11px;font-weight:600;color:var(--tx-2);margin:.5rem 0 .25rem">Pairing rules</div>`;
+      typoRows += `<ul style="list-style:none;padding:0;margin:0;font-size:12px;display:flex;flex-direction:column;gap:.35rem;max-height:160px;overflow:auto">${rules.map(([k, r]) => {
+        const fam = r && r.family ? esc(r.family) : '';
+        const sz = r && r.size ? esc(r.size) : '';
+        const wt = r && r.weight ? esc(r.weight) : '';
+        const label = k.replace(/_/g, ' ');
+        return `<li style="display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dashed var(--bd);padding-bottom:.25rem">
+          <span style="font-weight:600;color:var(--tx)">${esc(label)}</span>
+          <span class="muted" style="font-size:11px;text-align:right">${fam}${sz?` · ${sz}px`:''}${wt?` · ${wt}`:''}</span>
+        </li>`;
+      }).join('')}</ul>`;
+    }
+  }
+  const typoBlock = !typography
+    ? `<div class="muted" style="font-size:12px">No typography set yet for this brand.</div>`
+    : !typoRows
+    ? `<div class="muted" style="font-size:12px">Typography slot is empty.</div>`
+    : typoRows;
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:.75rem">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--tx-2);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.04em">Palette</div>
+        ${paletteBlock}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--tx-2);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.04em">Typography</div>
+        ${typoBlock}
+      </div>
+    </div>`;
+}
 const THEME_DEFAULT = 'dark';
 const THEME_VALID = new Set(['dark', 'light', 'system']);
 const THEME_STATE = { value: THEME_DEFAULT, systemPref: 'dark' };
@@ -6383,7 +6461,7 @@ async function renderBrandDirectoryPanel(){
                     <ul style="font-size:12px;padding-left:1.2rem;line-height:1.6">${archeLayers}</ul>
                   </div>
                   <div class="card col-6"><div class="card-h"><h3>🎨 Palette + Typography</h3></div>
-                    <pre style="white-space:pre-wrap;font-size:11.5px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:300px;overflow:auto">${esc(JSON.stringify({palette: brief.palette, typography: brief.typography}, null, 2))}</pre>
+                    ${renderBriefStyleGuide(brief)}
                   </div>
                   <div class="card col-12"><div class="card-h"><h3>🎤 Voice anchor (first 400 chars)</h3></div>
                     <div style="font-size:12px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap">${esc(brief.voice_anchor||'—')}</div>
