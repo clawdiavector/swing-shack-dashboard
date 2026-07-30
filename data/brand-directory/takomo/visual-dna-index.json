@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "directory": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/takomo/images",
+  "image_count": 1,
+  "framing": "1 image (Takomo 101T portrait hero)",
+  "by_filename": {
+    "takomo.png": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/takomo/images/takomo.visual-dna.json",
+      "dominant": "#060706",
+      "luminance": "mid",
+      "passes": true,
+      "score": 0.5
+    }
+  },
+  "by_alignment": {
+    "mid": [
+      "takomo.png"
+    ]
+  },
+  "by_dominant_color": {
+    "#060706": [
+      "takomo.png"
+    ]
+  },
+  "by_luminance": {
+    "mid": [
+      "takomo.png"
+    ]
+  },
+  "by_product": {
+    "takomo-101t": [
+      "takomo.png"
+    ]
+  },
+  "errors": []
+}

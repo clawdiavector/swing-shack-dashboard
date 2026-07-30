@@ -1,0 +1,34 @@
+{
+  "schema": "https://campaign-os/brand-directory/voice/v1",
+  "version": "1.0",
+  "brand": "takomo",
+  "updated": "2026-07-30T10:45:00Z",
+  "voice_bible": {
+    "id": "takomo",
+    "label": "Takomo",
+    "summary": "Premium Japanese-engineered golf clubs. The 101T series blends forged feel with distance technology. Speak with quiet confidence \u2014 never hype, never discount.",
+    "tone_options": [
+      "premium",
+      "technical",
+      "aspirational",
+      "understated"
+    ],
+    "do": [
+      "Lead with craft and engineering",
+      "Use spec-forward language (forged, COG, MOI, workability)",
+      "Acknowledge the player \u2014 every sentence earns its place",
+      "Pair product claims with player benefit"
+    ],
+    "dont": [
+      "Don't shout",
+      "Don't compare to other brands by name",
+      "Don't use generic golf clich\u00e9s",
+      "Don't discount or run promotions in voice (sales is a separate lane)"
+    ],
+    "sample_lines": [
+      "Forged. Then refined. Then played.",
+      "101T \u2014 the iron that finally gets it.",
+      "Feel where it matters. Distance where it counts."
+    ]
+  }
+}

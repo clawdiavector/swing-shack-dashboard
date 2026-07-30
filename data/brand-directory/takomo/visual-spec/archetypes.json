@@ -1,0 +1,21 @@
+{
+  "schema": "https://campaign-os/brand-directory/visual-spec/archetypes/v1",
+  "version": "1.0",
+  "brand": "takomo",
+  "updated": "2026-07-30T10:46:00Z",
+  "archetypes": [
+    {
+      "id": "takomo-hero-portrait",
+      "name": "Hero portrait",
+      "ratio": "4:5",
+      "use": "Single product hero \u2014 face of a 101T iron against dark backdrop, brass accent highlight"
+    },
+    {
+      "id": "takomo-spec-card",
+      "name": "Spec card",
+      "ratio": "1:1",
+      "use": "3-up specs (loft / COG / MOI) with product silhouette"
+    }
+  ],
+  "note": "Initial seed \u2014 2 archetypes. Add more as design library grows."
+}

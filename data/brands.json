@@ -2,18 +2,18 @@
   "schema": "https://campaign-os/brands/v1",
   "version": "1.0",
   "owner": "campaign-os",
-  "description": "Brand registry for Campaign OS. Each brand has its own voice bible, hooks bank, meme bank, FAQ templates, GBP templates, and asset namespace. Brand is the top-level partition — everything else (campaigns, hooks, memes, captions) belongs to exactly one brand. To onboard a new brand: copy any existing brand block, give it a unique id, fill in the voice/positioning/visual fields, and Campaign OS will isolate its data automatically.",
-  "updated": "2026-07-28T12:00:00Z",
+  "description": "Brand registry for Campaign OS. Each brand has its own voice bible, hooks bank, meme bank, FAQ templates, GBP templates, and asset namespace. Brand is the top-level partition \u2014 everything else (campaigns, hooks, memes, captions) belongs to exactly one brand. To onboard a new brand: copy any existing brand block, give it a unique id, fill in the voice/positioning/visual fields, and Campaign OS will isolate its data automatically.",
+  "updated": "2026-07-30T10:45:00Z",
   "default_brand_id": "swing-shack",
   "brands": {
     "swing-shack": {
       "id": "swing-shack",
       "display_name": "Swing Shack",
       "tagline": "Johannesburg's home of better golf.",
-      "positioning": "Premium indoor golf experience in Johannesburg — TrackMan, fittings, coaching, memberships.",
+      "positioning": "Premium indoor golf experience in Johannesburg \u2014 TrackMan, fittings, coaching, memberships.",
       "voice_id": "swing-shack",
       "voice_label": "Swing Shack",
-      "audience": "Golfers in JHB aged 28–55 who care about getting better, not just looking good.",
+      "audience": "Golfers in JHB aged 28\u201355 who care about getting better, not just looking good.",
       "primary_color": "#0F766E",
       "accent_color": "#F59E0B",
       "logo_url": null,
@@ -22,7 +22,14 @@
       "facebook_page": null,
       "gbp_location_id": null,
       "voice_bible_ref": "data/voice_bible.json#voices/swing-shack",
-      "tone_options": ["confident", "provocative", "educational", "sarcastic", "funny", "relatable"],
+      "tone_options": [
+        "confident",
+        "provocative",
+        "educational",
+        "sarcastic",
+        "funny",
+        "relatable"
+      ],
       "pillar_defaults": [
         "TrackMan Intelligence",
         "Fitting Education",
@@ -30,10 +37,15 @@
         "Coach Credibility",
         "Performance Proof"
       ],
-      "campaign_ids": ["trackman-intelligence", "takomo-101t", "winter-golf", "use-the-right-equipment-mq5l90bk"],
+      "campaign_ids": [
+        "trackman-intelligence",
+        "takomo-101t",
+        "winter-golf",
+        "use-the-right-equipment-mq5l90bk"
+      ],
       "active": true,
       "order": 1,
-      "icon": "⛳",
+      "icon": "\u26f3",
       "short_label": "SS"
     },
     "stick": {
@@ -57,7 +69,7 @@
       "campaign_ids": [],
       "active": true,
       "order": 2,
-      "icon": "🪵",
+      "icon": "\ud83e\udeb5",
       "short_label": "ST"
     },
     "bag-drop": {
@@ -81,8 +93,44 @@
       "campaign_ids": [],
       "active": true,
       "order": 3,
-      "icon": "🎒",
+      "icon": "\ud83c\udf92",
       "short_label": "BD"
+    },
+    "takomo": {
+      "id": "takomo",
+      "display_name": "Takomo",
+      "tagline": "Takomo 101T \u2014 the iron that finally gets it.",
+      "positioning": "Premium Japanese-engineered golf clubs available at Swing Shack. The 101T series blends forged feel with distance technology.",
+      "voice_id": "takomo",
+      "voice_label": "Takomo",
+      "audience": "Mid-handicap golfers (8-18) who want feel without giving up distance.",
+      "primary_color": "#060706",
+      "accent_color": "#75742E",
+      "logo_url": null,
+      "website": "https://swingshack.co.za/takomo",
+      "instagram_handle": null,
+      "facebook_page": null,
+      "gbp_location_id": null,
+      "voice_bible_ref": "data/voice_bible.json#voices/takomo",
+      "tone_options": [
+        "premium",
+        "technical",
+        "aspirational",
+        "understated"
+      ],
+      "pillar_defaults": [
+        "Forged feel",
+        "Distance technology",
+        "Player fitment",
+        "Japanese craftsmanship"
+      ],
+      "campaign_ids": [
+        "takomo-101t"
+      ],
+      "active": true,
+      "order": 4,
+      "icon": "\u26f3",
+      "short_label": "TK"
     }
   },
   "notes": {

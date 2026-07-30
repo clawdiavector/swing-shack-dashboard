@@ -1,9 +1,9 @@
 {
   "schema": "https://campaign-os/brand-directory/index/v1",
   "version": "1.2",
-  "updated": "2026-07-30T04:15:00Z",
-  "total_brands": 3,
-  "total_ready": 3,
+  "updated": "2026-07-30T10:46:00Z",
+  "total_brands": 4,
+  "total_ready": 4,
   "brands": {
     "bag-drop": {
       "ready": true,
@@ -17,11 +17,11 @@
       "primary_color": "#F4A261",
       "accent_color": "#264653",
       "archetype_ids": [
-          "bagdrop-member-moment",
-          "bagdrop-thursday-invite",
-          "bagdrop-quote-warmth",
-          "bagdrop-story-member",
-          "bagdrop-service-trio"
+        "bagdrop-member-moment",
+        "bagdrop-thursday-invite",
+        "bagdrop-quote-warmth",
+        "bagdrop-story-member",
+        "bagdrop-service-trio"
       ]
     },
     "stick": {
@@ -61,6 +61,20 @@
         "grid-3up-meme",
         "quote-card"
       ]
+    },
+    "takomo": {
+      "ready": true,
+      "gates": {
+        "tone_rules": true,
+        "palette": true,
+        "archetypes": true,
+        "ctas": true
+      },
+      "image_count": 1,
+      "primary_color": "#060706",
+      "accent_color": "#75742E",
+      "archetype_ids": [],
+      "note": "Takomo 101T brand \u2014 seeded from swing-shack/images/takomo.png + DNA. Voice/palette/spec files created. Archetypes and CTAs are placeholder; flesh out as design progresses."
     }
   }
 }
