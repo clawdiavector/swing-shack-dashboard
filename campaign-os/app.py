@@ -882,19 +882,43 @@ def visual_library_images(brand_id):
                 dna = json.loads(dna_p.read_text())
             except Exception:
                 continue
-            # Extract features
-            products = dna.get("layer4_products", {}).get("products", [])
-            product_names = [p.get("name", "") if isinstance(p, dict) else str(p) for p in products]
+            # Extract features — schema fallback for layer4_products
+            l4 = dna.get("layer4_products", {}) or {}
+            raw_products = l4.get("products")
+            raw_brands = l4.get("detected_brands")
+            products = raw_products if raw_products is not None else (raw_brands or [])
+            if raw_products:
+                product_names = [p.get("name", "") if isinstance(p, dict) else str(p) for p in raw_products]
+            elif raw_brands:
+                product_names = []
+                for b in raw_brands:
+                    if isinstance(b, str):
+                        product_names.append(b)
+                    elif isinstance(b, dict):
+                        bn = b.get("name") or b.get("label") or b.get("brand") or ""
+                        if bn:
+                            product_names.append(str(bn))
+            else:
+                product_names = []
             palette = dna.get("layer9_palette", {}).get("dominant_colors", [])[:5]
             palette_hex = [c.get("hex") for c in palette if c.get("hex")]
             composition = dna.get("layer10_composition", {})
+            # Schema fallback for OCR: lines[] or text_preview
             ocr = dna.get("layer6_ocr", {})
-            ocr_text = " ".join(ocr.get("lines", []) or [])[:200] if isinstance(ocr, dict) else ""
+            if isinstance(ocr, dict):
+                ocr_lines = ocr.get("lines") or []
+                if not ocr_lines:
+                    tp = ocr.get("text_preview")
+                    if isinstance(tp, str):
+                        ocr_lines = [tp]
+                ocr_text = " ".join(ocr_lines)[:200]
+            else:
+                ocr_text = ""
             l1 = dna.get("layer1_metadata", {})
             l7 = dna.get("layer7_typography", {})
             l17 = dna.get("layer17_recipe", {})
             # Apply filters
-            if product_filter and not any(product_filter.lower() in p.lower() for p in product_names):
+            if product_filter and not any(product_filter.lower() in (p or "").lower() for p in product_names):
                 continue
             score = float(meta.get("score", 0) or 0)
             if score < min_score:
@@ -977,9 +1001,24 @@ def visual_library_stats(brand_id):
                 dna = json.loads(dna_p.read_text())
             except Exception:
                 continue
-            for p in dna.get("layer4_products", {}).get("products", []):
-                pname = p.get("name", "?") if isinstance(p, dict) else str(p)
-                product_counts[pname] += 1
+            # Schema fallback: dissector may emit `products` (list of dicts) or
+            # `detected_brands` (list of strings) — handle both.
+            l4 = dna.get("layer4_products", {}) or {}
+            raw_products = l4.get("products")
+            raw_brands = l4.get("detected_brands")
+            if raw_products:
+                for p in raw_products:
+                    pname = p.get("name", "?") if isinstance(p, dict) else str(p)
+                    if pname and pname != "?":
+                        product_counts[pname] += 1
+            elif raw_brands:
+                for b in raw_brands:
+                    if isinstance(b, str) and b.strip():
+                        product_counts[b.strip()] += 1
+                    elif isinstance(b, dict):
+                        bn = b.get("name") or b.get("label") or b.get("brand")
+                        if bn:
+                            product_counts[str(bn)] += 1
             lm = meta.get("luminance", "?")
             luminance_counts[lm] += 1
             dom = meta.get("dominant", "?")
