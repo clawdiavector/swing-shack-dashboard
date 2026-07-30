@@ -1,0 +1,45 @@
+{
+  "name": "10-instagram_business_manage_insights",
+  "description": "Read IG business account insights — TEST CALL BLOCKED by token expiry + missing scope",
+  "http_status": 400,
+  "response": "{\"error\":{\"message\":\"Error validating access token: Session has expired on Wednesday, 29-Jul-26 08:00:00 PDT. The current time is Thursday, 30-Jul-26 05:01:30 PDT.\",\"type\":\"OAuthException\",\"code\":190,\"error_subcode\":463,\"fbtrace_id\":\"Ag_LQKQrD6QdUfdpC0Be5n_\"}}",
+  "diagnostic": {
+    "endpoint_intended": "GET https://graph.facebook.com/v25.0/17841456713897671/insights?metric=impressions,reach,profile_views,website_clicks&period=day",
+    "token_state_at_2026-07-30T13:03Z": {
+      "app_id": "2484801338654661",
+      "app_name": "Heidi",
+      "user_id": "1027544540167982",
+      "is_valid": false,
+      "expires_at_unix": 1785337200,
+      "expires_at_human": "2026-07-29 13:00 UTC (expired ~24h before test)",
+      "scopes_granted": [
+        "read_insights",
+        "pages_show_list",
+        "business_management",
+        "instagram_basic",
+        "instagram_manage_comments",
+        "instagram_manage_insights",
+        "instagram_content_publish",
+        "pages_read_engagement",
+        "instagram_manage_engagement",
+        "public_profile"
+      ],
+      "scopes_required_but_missing": ["instagram_business_manage_insights"],
+      "missing_count": 1,
+      "naming_confusion_note": "The granted scope 'instagram_manage_insights' is the LEGACY IG-side read-only insights scope. The newer 'instagram_business_manage_insights' is the Meta Business Suite-level equivalent that App Review wants. They grant access to overlapping but distinct endpoints."
+    },
+    "two_blockers": [
+      "BLOCKER 1 — Token expired: cannot run any test call until re-auth completes",
+      "BLOCKER 2 — Scope not requested: current OAuth flow does NOT request instagram_business_manage_insights. The form at /meta-portal needs that scope added to the auth dialog."
+    ]
+  },
+  "next_steps": [
+    "1. Add instagram_business_manage_insights to the OAuth scope list in campaign-os/app.py meta-portal handler",
+    "2. Christelle re-auths at /meta-portal to get a fresh token with the new scope",
+    "3. Re-run: curl 'https://graph.facebook.com/v25.0/17841456713897671/insights?metric=impressions,reach&period=day&access_token=$META_ACCESS_TOKEN'",
+    "4. The endpoint may also accept: curl 'https://graph.facebook.com/v25.0/17841456713897671/insights?metric=profile_views,website_clicks&period=days_28&access_token=$META_ACCESS_TOKEN'",
+    "5. If app is in 'Development' mode, Meta allows the scope for admins/developers/testers without App Review",
+    "6. If app is in 'Live' mode, submit App Review for instagram_business_manage_insights with this evidence file"
+  ],
+  "campaign_os_context": "Used by /api/intel/ig-insights for daily + 28-day rolling IG metrics. Currently falls back to the legacy instagram_manage_insights endpoint (06-instagram_manage_insights.json) which only covers basic reach + profile_views + website_clicks."
+}

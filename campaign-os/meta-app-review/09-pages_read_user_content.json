@@ -1,0 +1,43 @@
+{
+  "name": "09-pages_read_user_content",
+  "description": "Read page posts + post messages — TEST CALL BLOCKED by token expiry + missing scope",
+  "http_status": 400,
+  "response": "{\"error\":{\"message\":\"Error validating access token: Session has expired on Wednesday, 29-Jul-26 08:00:00 PDT. The current time is Thursday, 30-Jul-26 05:01:30 PDT.\",\"type\":\"OAuthException\",\"code\":190,\"error_subcode\":463,\"fbtrace_id\":\"AKOSKWt9E5V0AmsgUKQKnUu\"}}",
+  "diagnostic": {
+    "endpoint_intended": "GET https://graph.facebook.com/v25.0/198859063301219/posts?fields=id,message,permalink_url,created_time,from&limit=3",
+    "token_state_at_2026-07-30T13:03Z": {
+      "app_id": "2484801338654661",
+      "app_name": "Heidi",
+      "user_id": "1027544540167982",
+      "is_valid": false,
+      "expires_at_unix": 1785337200,
+      "expires_at_human": "2026-07-29 13:00 UTC (expired ~24h before test)",
+      "scopes_granted": [
+        "read_insights",
+        "pages_show_list",
+        "business_management",
+        "instagram_basic",
+        "instagram_manage_comments",
+        "instagram_manage_insights",
+        "instagram_content_publish",
+        "pages_read_engagement",
+        "instagram_manage_engagement",
+        "public_profile"
+      ],
+      "scopes_required_but_missing": ["pages_read_user_content"],
+      "missing_count": 1
+    },
+    "two_blockers": [
+      "BLOCKER 1 — Token expired: cannot run any test call until re-auth completes",
+      "BLOCKER 2 — Scope not requested: even a fresh token via current OAuth flow would still lack pages_read_user_content. This scope must be ADDED to the OAuth dialog config (campaign-os/app.py OAuth portal form) AND approved by Meta (or be in Development mode for app admin)."
+    ]
+  },
+  "next_steps": [
+    "1. Add pages_read_user_content to the OAuth scope list in campaign-os/app.py meta-portal handler (search for 'pages_read_engagement' near line 1820 and add 'pages_read_user_content' alongside it)",
+    "2. Christelle re-auths at /meta-portal to get a fresh token with the new scope",
+    "3. Re-run: curl 'https://graph.facebook.com/v25.0/198859063301219/posts?fields=id,message,permalink_url,created_time,from&limit=3&access_token=$META_ACCESS_TOKEN'",
+    "4. If app is in 'Development' mode, Meta allows the scope for admins/developers/testers without App Review — the test call should succeed for Christelle's own user",
+    "5. If app is in 'Live' mode, submit App Review for pages_read_user_content with this evidence file + a screen recording of step 3"
+  ],
+  "campaign_os_context": "This endpoint is consumed by /api/intel/posts-with-dna (per-post engagement join) and the Review Queue's per-post metrics. See campaign-os/_lib/meta_api.py:459. Currently returns aggregate-only because this scope is missing."
+}
