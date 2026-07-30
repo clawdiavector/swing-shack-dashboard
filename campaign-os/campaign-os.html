@@ -3663,7 +3663,19 @@ async function renderInsights(){
   targetSec.innerHTML = '';
   Array.from(sourceSec.children).forEach(child => {
     if(child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE'){
-      targetSec.appendChild(child.cloneNode(true));
+      const clone = child.cloneNode(true);
+      // Rewrite the first section-h inside this clone so the body matches the tab.
+      // Without this, the Insights tab shows 'Performance' as its H2 (because we
+      // clone the whole performance block), which confuses users — they think
+      // they're on the wrong tab.
+      const sh = clone.classList && clone.classList.contains('section-h') ? clone : clone.querySelector?.('.section-h');
+      if(sh){
+        const h2 = sh.querySelector('h2');
+        const sub = sh.querySelector('.sub');
+        if(h2) h2.textContent = 'Insights';
+        if(sub) sub.textContent = 'Performance signals + what Campaign OS is learning · same data, smarter lens';
+      }
+      targetSec.appendChild(clone);
     }
   });
   // Append the Learning strip
