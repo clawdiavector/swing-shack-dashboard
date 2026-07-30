@@ -5876,7 +5876,7 @@ async function renderSeoAudit(){
   if(!S._saBound){
     S._saBound = true;
     ['sa-page-filter','sa-type-filter','sa-sev-filter'].forEach(id => {
-      $(id).addEventListener('change', () => {
+      $('#'+id).addEventListener('change', () => {
         SA_STATE.page = $('#sa-page-filter').value;
         SA_STATE.type = $('#sa-type-filter').value;
         SA_STATE.severity = $('#sa-sev-filter').value;
