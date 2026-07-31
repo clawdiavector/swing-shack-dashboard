@@ -3502,9 +3502,17 @@ function renderBrandDirectoryContrastCard(paletteFull, palette){
   const footer = pf.source
     ? `<div class="muted" style="font-size:10.5px;margin-top:.4rem;font-style:italic">source: ${esc(pf.source)}</div>`
     : '';
+  // Per pitfall #62: the card header is the highest-ROI spot for a panel-header
+  // tooltip. The pass/fail pills only make sense to a non-technical reader once
+  // they know "WCAG AA = readable for body text, AAA = readable even for small text,
+  // AA Large only = ok for headlines 18px+. Ratio >= 4.5:1 AA, >= 7:1 AAA."
+  // No em-dash in the tooltip body (standing punctuation rule); a colon separates
+  // each verdict definition.
+  const headerHelp = 'WCAG = Web Content Accessibility Guidelines. The pill verdict tells you which combinations of the brand palette pass for body text. Here is the rule: AAA = highest contrast (best for any text size). AA = readable for body copy (ratio >= 4.5:1). AA Large only = readable only for 18pt+ (ratio 3:1 to 4.5:1). Below AA Large = the combo is not safe for any text. The ratio number (e.g. 7.2:1) is the actual contrast measured between the two palette colors shown. Higher = more legible. Any row marked blocked means do not put text in that combo on the brand.';
+  const headerWhy = 'Why this helps: if you are choosing two palette colors for a CTA card or a hero block, this card tells you in one glance which combos are safe for body copy and which are blocked. Without it you would have to open the palette file and compute ratios by hand.';
   return `
     <div class="card col-6">
-      <div class="card-h"><h3>🔆 Contrast checks (${checks.length})</h3><span class="muted" style="font-size:11.5px">WCAG text-on-color ratios from palette_full</span></div>
+      <div class="card-h"><h3 data-help="${esc(headerHelp)}" data-help-title="Contrast checks (WCAG)" data-help-why="${esc(headerWhy)}" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🔆 Contrast checks (${checks.length})</h3><span class="muted" style="font-size:11.5px">WCAG text-on-color ratios from palette_full</span></div>
       ${summary}
       ${table}
       ${footer}
