@@ -3434,6 +3434,83 @@ function renderBrandDirectoryTypographyCard(typography){
       ${rulesBlock}
     </div>`;
 }
+
+// Render the brand-directory detail panel's Contrast checks card.
+// Returns a col-6 card matching the Palette side-by-side grid. Reads
+// palette_full.contrast_checks (the API ghost slot from pitfall #44) which
+// the Brand Directory loader has been returning since commit 875e6a3
+// (Taxonomy: keys with ratio_estimate + WCAG verdict).
+// Per pitfall #51: defensive parse for 4 live shapes (4/3/3/5 rows across
+// swing-shack, stick, bag-drop, takomo). Maps WCAG string → pill kind so the
+// card reads at a glance without hovering each row. Per pitfall #50:
+// hex values are regex-validated before CSS interpolation.
+function renderBrandDirectoryContrastCard(paletteFull, palette){
+  const pf = paletteFull && typeof paletteFull === 'object' ? paletteFull : {};
+  const checks = Array.isArray(pf.contrast_checks) ? pf.contrast_checks : [];
+  if(checks.length === 0){
+    return '';  // Render nothing, the grid collapses; other cards stay col-6.
+  }
+  const pal = palette && typeof palette === 'object' ? palette : {};
+  const safeHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+  const swatch = (key) => {
+    const entry = pal[key];
+    if(!entry || typeof entry !== 'object') return '<span class="muted">—</span>';
+    const hex = safeHex.test(entry.hex || '') ? entry.hex : '#888888';
+    return `<span style="display:inline-flex;align-items:center;gap:.3rem"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${esc(hex)};border:1px solid var(--bg-3);vertical-align:middle"></span><code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;font-size:10.5px">${esc(hex)}</code></span>`;
+  };
+  const wcagPill = (verdict) => {
+    const v = String(verdict || '').toLowerCase();
+    if(/^aaa/.test(v)) return pill('on', verdict);
+    if(/aa pass/.test(v)) return pill('on', verdict);
+    if(/fail/.test(v)) return pill('blocked', verdict);
+    return pill('review', verdict);  // "AA pass for large text" + partial passes
+  };
+  const passCount = checks.filter(c => /pass/i.test(c.wcag || '')).length;
+  const failCount = checks.filter(c => /fail/i.test(c.wcag || '')).length;
+  const summary = `
+    <div class="muted" style="font-size:11.5px;margin-bottom:.5rem">
+      <b style="color:var(--tx);font-weight:700">${passCount}</b> pass / <b style="color:var(--tx);font-weight:700">${failCount}</b> fail / ${checks.length} checked
+      <span style="margin-left:.4rem">(${passCount === checks.length ? 'all combos accessible' : (failCount > 0 ? 'some combos need care' : 'mixed')})</span>
+    </div>`;
+  const table = `
+    <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead>
+        <tr style="border-bottom:1px solid var(--bd);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx-2)">
+          <th style="text-align:left;padding:4px 6px;font-weight:600">Pair</th>
+          <th style="text-align:right;padding:4px 6px;font-weight:600;width:64px">Ratio</th>
+          <th style="text-align:left;padding:4px 6px;font-weight:600">Verdict</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${checks.map(c => {
+          const pair = Array.isArray(c.pair) ? c.pair : [];
+          const ratio = (typeof c.ratio_estimate === 'number') ? c.ratio_estimate.toFixed(1) : (c.ratio_estimate || '—');
+          return `<tr style="border-bottom:1px dashed var(--bd)">
+            <td style="padding:5px 6px">
+              <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">
+                ${swatch(pair[0] || '')}
+                <span class="muted" style="font-size:10.5px">on</span>
+                ${swatch(pair[1] || '')}
+              </div>
+            </td>
+            <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums"><b>${esc(ratio)}</b><span class="muted" style="font-size:10px">:1</span></td>
+            <td style="padding:5px 6px">${wcagPill(c.wcag || '—')}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  const footer = pf.source
+    ? `<div class="muted" style="font-size:10.5px;margin-top:.4rem;font-style:italic">source: ${esc(pf.source)}</div>`
+    : '';
+  return `
+    <div class="card col-6">
+      <div class="card-h"><h3>🔆 Contrast checks (${checks.length})</h3><span class="muted" style="font-size:11.5px">WCAG text-on-color ratios from palette_full</span></div>
+      ${summary}
+      ${table}
+      ${footer}
+    </div>`;
+}
+
 const THEME_DEFAULT = 'dark';
 const THEME_VALID = new Set(['dark', 'light', 'system']);
 const THEME_STATE = { value: THEME_DEFAULT, systemPref: 'dark' };
@@ -6706,6 +6783,7 @@ async function renderBrandDirectoryPanel(){
                 <ul class="list">${arche.map(a => `<li class="li"><div class="li-body"><div class="li-title">${esc(a.name||a.id)}</div><div class="li-meta muted">${esc((a.description||'').slice(0,120))}…</div></div></li>`).join('')}</ul>
               </div>
               ${renderBrandDirectoryTypographyCard(data.typography)}
+              ${renderBrandDirectoryContrastCard(data.palette_full, data.palette)}
               <div class="card col-12"><div class="card-h"><h3>🎤 Voice — tone rules</h3></div>
                 <details class="help-collapsible"><summary>Read tone rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.tone_rules||'—')}</div></div></details>
               </div>
