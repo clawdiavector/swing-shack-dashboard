@@ -1679,13 +1679,53 @@ def visual_library_generate(brand_id):
             return jsonify({"ok": False, "error": f"OpenAI {api_resp.status_code}", "detail": err_body}), 502
 
         api_data = api_resp.json()
+        save = body.get("save", False)
+        # Resolve save dir for this brand
+        try:
+            save_dir = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images")
+        except Exception:
+            save_dir = None
+
         images = []
-        for item in api_data.get("data", []):
-            images.append({
+        for i, item in enumerate(api_data.get("data", [])):
+            entry = {
                 "url": item.get("url"),
-                "b64_json_length": len(item.get("b64_json", "")) if item.get("b64_json") else 0,
                 "revised_prompt": item.get("revised_prompt", ""),
-            })
+            }
+            b64 = item.get("b64_json") or ""
+            if b64:
+                entry["b64_json_length"] = len(b64)
+                # Build a data: URL so the visualizer can preview inline (URLs may expire)
+                entry["dataUrl"] = "data:image/png;base64," + b64
+            # Save to disk if save=true
+            if save and save_dir and b64:
+                try:
+                    os.makedirs(save_dir, exist_ok=True)
+                    import base64 as _b64, time as _t
+                    ts = int(_t.time())
+                    fname = f"gen-{brand_id}-{ts}-{i+1}.png"
+                    fpath = os.path.join(save_dir, fname)
+                    with open(fpath, "wb") as fh:
+                        fh.write(_b64.b64decode(b64))
+                    # Write a tiny sidecar metadata so the file shows up in stats
+                    sidecar = fpath + ".meta.json"
+                    with open(sidecar, "w") as fh:
+                        json.dump({
+                            "brand_id": brand_id,
+                            "prompt": prompt,
+                            "enhanced_prompt": enhanced_prompt,
+                            "revised_prompt": entry["revised_prompt"],
+                            "model": "gpt-image-1",
+                            "quality": quality,
+                            "size": size,
+                            "ts": ts,
+                        }, fh)
+                    entry["saved"] = True
+                    entry["saved_path"] = fpath
+                except Exception as save_err:
+                    _app_log.warning("save failed: %s", save_err)
+                    entry["saved"] = False
+            images.append(entry)
 
         return jsonify({
             "ok": True,

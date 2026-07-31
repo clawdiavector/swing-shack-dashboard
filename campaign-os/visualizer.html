@@ -235,6 +235,37 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
       <div class="tile"><div class="num" id="tile-scored">—</div><div class="lbl">High-score</div></div>
     </div>
 
+    <!-- GENERATE — live image generator (gpt-image-1, recipe-informed). Outputs persist to Library "Recently generated". -->
+    <div class="card" style="margin-bottom: 16px;">
+      <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--accent);">🖼️ Generate image (live renders via gpt-image-1)</h3>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: end;">
+        <div style="flex: 1; min-width: 200px;">
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;">Prompt</label>
+          <input type="text" id="gen-prompt" placeholder="e.g. premium putter on the green at sunset" style="width: 100%; padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;">Quality</label>
+          <select id="gen-quality" style="padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;">
+            <option value="low">low</option>
+            <option value="medium" selected>medium</option>
+            <option value="high">high</option>
+            <option value="auto">auto</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;">Size</label>
+          <select id="gen-size" style="padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;">
+            <option value="1024x1024" selected>1024×1024</option>
+            <option value="1024x1792">1024×1792 portrait</option>
+            <option value="1792x1024">1792×1024 landscape</option>
+          </select>
+        </div>
+        <button class="btn" id="gen-submit" style="background: var(--accent); color: #0c0d10; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer;">Generate →</button>
+      </div>
+      <div id="gen-status" style="margin-top: 8px; font-size: 12px; color: var(--muted);"></div>
+      <div id="gen-output" style="margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;"></div>
+    </div>
+
     <div class="grid" id="grid"></div>
 
     <div class="empty" id="empty" style="display:none;">No images match current filters.</div>
@@ -698,6 +729,64 @@ document.getElementById('sort').addEventListener('change', (e) => {
   state.filters.sort = e.target.value;
   runGrid();
 });
+
+// ── Generate image (live gpt-image-1) ──────────────────────────
+async function runGenerate() {
+  const promptInput = document.getElementById('gen-prompt');
+  const prompt = (promptInput?.value || '').trim();
+  if (!prompt) { document.getElementById('gen-status').textContent = 'Type a prompt first.'; return; }
+  const quality = document.getElementById('gen-quality').value;
+  const size = document.getElementById('gen-size').value;
+  const status = document.getElementById('gen-status');
+  const out = document.getElementById('gen-output');
+  const btn = document.getElementById('gen-submit');
+  btn.disabled = true;
+  status.textContent = '⏳ Rendering via gpt-image-1 (30-90s)…';
+  out.innerHTML = '';
+  try {
+    const r = await fetch('/api/visual-library/' + encodeURIComponent(STATE.brand) + '/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ prompt: prompt, quality: quality, size: size, save: true })
+    }).then(r => r.json());
+    if (!r.ok) { status.textContent = '❌ ' + (r.error || 'Generation failed'); btn.disabled = false; return; }
+    const imgs = r.images || [];
+    if (imgs.length === 0) { status.textContent = '⚠️ No images in response.'; btn.disabled = false; return; }
+    // Render each — b64 from server or url
+    let html = '';
+    for (const im of imgs) {
+      const src = im.dataUrl || (im.url ? im.url : '');
+      if (!src) continue;
+      html += `<div class="card"><div class="imgwrap"><img src="${src}" alt="${(im.prompt||prompt).slice(0,40)}"/></div><div class="info" style="font-size:11px;color:var(--muted)">${im.saved ? 'saved' : 'preview'} · ${im.revised_prompt ? im.revised_prompt.slice(0,80) : prompt.slice(0,80)}</div></div>`;
+      // Mirror to sessionStorage (cheap, works across the same browser tab)
+      try {
+        const key = 'cos_generated_outputs';
+        const cur = JSON.parse(sessionStorage.getItem(key) || '[]');
+        cur.unshift({ prompt: prompt, dataUrl: src, ts: Date.now(), brand: STATE.brand, revised_prompt: im.revised_prompt || '', saved: !!im.saved });
+        sessionStorage.setItem(key, JSON.stringify(cur.slice(0, 50)));
+      } catch(_){}
+    }
+    out.innerHTML = html;
+    status.textContent = `✅ ${imgs.length} generated · ${imgs.filter(i=>i.saved).length} saved to disk`;
+  } catch(e) {
+    status.textContent = '❌ Network error';
+  }
+  btn.disabled = false;
+}
+document.getElementById('gen-submit').addEventListener('click', runGenerate);
+document.getElementById('gen-prompt')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') runGenerate(); });
+
+// ── Restore previously generated (this browser, this tab) ──────────
+async function restoreGeneratedOutputs() {
+  try {
+    const cur = JSON.parse(sessionStorage.getItem('cos_generated_outputs') || '[]');
+    const out = document.getElementById('gen-output');
+    if (!out || cur.length === 0) return;
+    out.innerHTML = cur.slice(0, 12).map(im => `
+      <div class="card"><div class="imgwrap"><img src="${im.dataUrl}" alt="${(im.prompt||'').slice(0,40)}"/></div><div class="info" style="font-size:11px;color:var(--muted)">${im.prompt.slice(0,40)}</div></div>
+    `).join('');
+  } catch(_){}
+}
 
 // ── Brand loader ────────────────────────────────────────────────────────
 async function loadBrands() {

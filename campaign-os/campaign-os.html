@@ -544,6 +544,23 @@ a:hover{text-decoration:underline}
 .gen-meta{font-size:10px;color:var(--tx-3);background:var(--bg-3);padding:2px 6px;border-radius:var(--r-p);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 @media (max-width:900px){.quick-launch-grid{grid-template-columns:1fr}}
 
+/* Library tabs + thumb grid */
+.lib-tab{padding:.5rem 1rem;background:var(--bg-2);color:var(--tx-2);border:1px solid var(--bd);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t);font-family:inherit}
+.lib-tab:hover{background:var(--bg-3);color:var(--tx)}
+.lib-tab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.75rem}
+.lib-thumb{display:block;background:var(--bg-2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .15s,border-color .15s}
+.lib-thumb:hover{transform:translateY(-2px);border-color:var(--ac)}
+.lib-thumb img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.lib-thumb.lib-text{padding:.75rem;min-height:120px;display:flex;flex-direction:column;justify-content:center}
+.lib-thumb-meta{padding:.5rem .6rem;font-size:11px;color:var(--tx-2);background:var(--bg-2);line-height:1.3}
+.lib-thumb-sub{font-size:10px;color:var(--tx-3);margin-top:.25rem}
+.empty-card{padding:1.5rem;border:1px dashed var(--bd);border-radius:8px;text-align:center}
+.mini-link{color:var(--ac);font-size:12px;font-weight:600;text-decoration:none;cursor:pointer}
+.mini-link:hover{text-decoration:underline}
+.nav-link{text-decoration:none}
+@media (max-width:600px){.lib-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}}
+
 /* ─── Misc ───────────────────────────────────────────────────── */
 .muted{color:var(--tx-3)}
 .row{display:flex;align-items:center;gap:.75rem}
@@ -621,49 +638,53 @@ a:hover{text-decoration:underline}
       <div class="brand-dropdown" id="brand-dropdown" role="listbox" hidden></div>
     </div>
 
-    <!-- Top-level surfaces (10 instead of 24). Every item carries data-help so the
-         universal HELP.autoAttach() wires a hover tooltip explaining what the surface is. -->
+    <!-- Simplified top-level nav (5 items — the daily essentials).
+         Power tools live behind "+ More" so they're one tap away, not constantly in the way. -->
     <div class="nav-section">
-      <div class="nav" data-go="brief" id="nav-home" data-help-title="Home / Brief" data-help="The Morning Brief surface. One ranked list of the highest-leverage actions for today: which campaign needs copy, which asset needs review, what to publish next. The Do-this-right-now card is the single pick; everything below it is context."><span class="nav-icon">🏠</span> Home <span class="nav-badge" id="nav-brief-count">0</span></div>
-      <div class="nav" data-go="review" data-help-title="Review" data-help="Asset Review queue. Lists every draft copy, image, headline, and caption that needs human eyes before publish. Each row shows the asset, brand, status, and the reviewer action (approve, edit, reject). Backed by the asset-state-engine."><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
-      <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar view. Shows every planned post across all brands on a month grid. Click a day to see what is scheduled; click an entry to jump to the asset detail. Powers scheduling intent, not the actual publish action."><span class="nav-icon">📅</span> Calendar</div>
-      <div class="nav" data-go="create" data-help-title="Create" data-help="The Create hub. 13+ generators (Captions, Headlines, CTAs, Hashtags & SEO, Hooks, Memes, Billboards, Image briefs, FAQs) scoped to the active brand voice + tone. Generate, save to library, or push to Review queue."><span class="nav-icon">🪄</span> Create</div>
-      <div class="nav" data-go="publish" data-help-title="Publish" data-help="Publish queue: assets that have been approved and are ready to go live. Each entry shows platform target (IG, FB, GBP, Reddit, Postiz), scheduled time, and the final approved copy. One click routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish <span class="nav-badge muted" id="nav-publish-count">0</span></div>
-      <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, and Trends. Two explainer lenses (analytics + section). This is where you ask 'is the work paying off' — engagement, reach, conversions, and what to try next."><span class="nav-icon">📈</span> Insights</div>
-      <div class="nav" data-go="library" data-help-title="Library" data-help="Approved asset library. Every copy, image, headline, and caption that has been signed off lives here, scoped to the active brand. Filter by kind (caption / headline / image), score, or pillar. Use as the source-of-truth for what is shippable."><span class="nav-icon">📚</span> Library</div>
-      <div class="nav" data-go="visualizer" data-help-title="Visual Library" data-help="Brand image gallery. Visual assets (renders, photos, infographics) tagged by brand, pillar, and usage rights. Hover for the brief; click to inspect the source files."><span class="nav-icon">🎨</span> Visual Library</div>
-      <div class="nav" data-go="memelab" data-help-title="Meme Lab" data-help="Meme templates gallery + remix workspace. Pick a template, swap in brand voice, generate captions, save to Review. Useful for reactive, low-effort social posts that ride existing cultural momentum."><span class="nav-icon">😂</span> Meme Lab</div>
-      <div class="nav" data-go="campaigns" data-help-title="Brand / Campaigns" data-help="The Campaigns surface. Top-level partition for everything per brand. Lists active campaigns for the active brand; the Brand Directory panel renders here as one card inside this surface, not the surface itself."><span class="nav-icon">🎯</span> Brand</div>
+      <div class="nav" data-go="brief" id="nav-home"><span class="nav-icon">🏠</span> Today</div>
+      <div class="nav" data-go="review"><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
+      <div class="nav" data-go="library"><span class="nav-icon">📚</span> Library</div>
+      <div class="nav" data-go="create"><span class="nav-icon">🪄</span> Create</div>
+      <div class="nav" data-go="campaigns"><span class="nav-icon">🎯</span> Brand</div>
     </div>
 
-    <!-- Power-user: hidden by default, expandable via "All tools" link.
-         Each item carries data-help so the universal HELP.autoAttach() wires a hover tooltip. -->
+    <!-- Quick links (sub-nav under primary items) -->
+    <div class="nav-section nav-sub">
+      <div class="nav-title">Quick links</div>
+      <a class="nav nav-link" href="/visualizer" data-help-title="Visual Library" data-help="Full visual library: 122+ brand images, filter by color/brand/mood, discover by element, generate new images with the recipe-informed gpt-image-1 pipeline."><span class="nav-icon">🎨</span> Visual Library</a>
+      <a class="nav nav-link" href="/meme-lab" data-help-title="Meme Lab" data-help="Meme templates gallery + remix workspace. Browse existing meme formats, remix them with your brand voice, save to Review queue."><span class="nav-icon">😂</span> Meme Lab</a>
+      <a class="nav nav-link" href="/cockpit-operational" data-help-title="Operational Cockpit" data-help="Read-only operational dashboard: campaign status, scheduled items, raw telemetry. Use for quick health checks."><span class="nav-icon">🛩️</span> Cockpit</a>
+    </div>
+
+    <!-- Power tools: hidden by default. Expand "+ More" to see all 18 sub-tools. -->
+    <div class="nav-section">
+      <div class="nav all-tools-toggle" id="all-tools-toggle"><span class="nav-icon">🧰</span> <span id="all-tools-toggle-label">+ More tools</span></div>
+    </div>
+
     <div class="nav-section" id="all-tools-section" hidden>
       <div class="nav-title">All tools</div>
-      <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction on social and search for the active brand's pillars. Use it to ride a wave or react before competitors do."><span class="nav-icon">📡</span> Trends</div>
-      <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Backlog of raw content ideas for the active brand. Add via the Create surface or import from a hook bank. Promote the strong ones into campaigns."><span class="nav-icon">💡</span> Ideas</div>
-      <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks (first 1-2 lines) for the active brand. Sort by pillar, score, or platform. Drop one into a caption or headline to test."><span class="nav-icon">🪝</span> Hook Bank</div>
-      <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Heavy-weight meme workspace — distinct from Meme Lab. Same templates, deeper remix controls (custom captions, multi-panel, format conversion)."><span class="nav-icon">😂</span> Meme Lord</div>
-      <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator. Short, punchy, big-type messaging scoped to the active brand voice."><span class="nav-icon">🪧</span> Billboard Lab</div>
-      <div class="nav" data-go="captions" data-help-title="Caption Studio" data-help="Long-form caption generator. Voice + tone aware, supports IG / FB / LinkedIn lengths, includes hashtag and CTA blocks."><span class="nav-icon">✍️</span> Caption Studio</div>
-      <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs. Pick a brand, pillar, and style; get a structured prompt for Midjourney / DALL-E / ComfyUI. No direct render yet — wiring is gated on Google Drive access."><span class="nav-icon">🖼️</span> Image Gen</div>
-      <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Headline generator for ads, blog posts, and email subjects. Generate, recommend, or pull from history. Voice + pillar aware."><span class="nav-icon">📰</span> Headlines</div>
-      <div class="nav" data-go="ctas" data-help-title="CTAs" data-help="CTA generator. Voice + pillar + platform + category aware. ~40-CTA knowledge base ranked by funnel position (awareness, consideration, conversion)."><span class="nav-icon">🎯</span> CTAs</div>
-      <div class="nav" data-go="hashtagseo" data-help-title="Hashtags & SEO" data-help="Combined hashtag + SEO snippet generator. Picks platform-aware hashtag sets plus a meta description and slug for any blog / landing page."><span class="nav-icon">#️⃣</span> Hashtags & SEO</div>
-      <div class="nav" data-go="performance" data-help-title="Performance" data-help="Detailed performance view (distinct from Insights). Per-asset, per-platform lift over time. Use to retire underperformers and double down on winners."><span class="nav-icon">📈</span> Performance</div>
-      <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns. What worked, what didn't, and the hypothesis for the next test. Feeds the campaign planner."><span class="nav-icon">🧠</span> Learning</div>
-      <div class="nav" data-go="seo" data-help-title="SEO" data-help="SEO Assistant. Audit scores, keyword rankings, GEO (generative-engine optimisation) readiness, and prioritised fixes. Two explainer lenses (section + analytics)."><span class="nav-icon">🔎</span> SEO</div>
-      <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit. Same data as SEO Assistant but full-width. Use when fixing the priority actions listed on the SEO surface."><span class="nav-icon">📋</span> SEO Audit</div>
-      <div class="nav" data-go="gbp" data-help-title="Google Business" data-help="Google Business Profile workspace. Two-card view (Profile + services / Last post). Voice-aware GBP post generator. Not auto-published — read-only to the Publish lane."><span class="nav-icon">📍</span> Google Business</div>
-      <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit-aware tone, no-link soft-sell rules, anti-promotion patterns. Useful for organic community reach."><span class="nav-icon">🗣️</span> Reddit</div>
-      <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities miner. Suggests Q&A blocks for the active brand's pages — ladders directly into SEO Audit landing-page fixes (FAQPage schema)."><span class="nav-icon">❓</span> FAQs</div>
-      <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz integration status. OAuth status, connected social accounts, scheduled posts queue. Read-only here — actual publish happens via the Publish surface."><span class="nav-icon">📮</span> Postiz</div>
-      <div class="nav" data-go="agents" data-help-title="Agents" data-help="Agent fleet status + health. Shows each specialist (Copywriter, Retina, Publisher, etc.) and their last-run freshness. Section explainer covers the lane roster."><span class="nav-icon">🤖</span> Agents</div>
-    </div>
-
-    <!-- "Show all tools" toggle (lets power users expand the full nav) -->
-    <div class="nav-section">
-      <div class="nav all-tools-toggle" id="all-tools-toggle" data-help="Reveal the full power-user nav: Trends, Ideas, Hook Bank, Meme Lord, Billboard Lab, Caption Studio, Image Gen, Headlines, CTAs, Hashtags & SEO, SEO, SEO Audit, Google Business, Reddit, FAQs, Postiz, Agents. The top-level nav stays focused on the daily workflow (Home, Review, Publish, Insights, Library, Brand); all-tools is the escape hatch for specialists." data-help-title="All tools toggle"><span class="nav-icon">🧰</span> <span id="all-tools-toggle-label">Show all tools</span></div>
+      <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar — month grid of every planned post across all brands."><span class="nav-icon">📅</span> Calendar</div>
+      <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
+      <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
+      <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
+      <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Raw content backlog for the active brand."><span class="nav-icon">💡</span> Ideas</div>
+      <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks ranked by what wins for this brand."><span class="nav-icon">🪝</span> Hook Bank</div>
+      <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme workspace — templates, custom captions, format conversion."><span class="nav-icon">😂</span> Meme Lord</div>
+      <div class="nav" data-go="captions" data-help-title="Caption Studio" data-help="Voice-aware captions. IG / FB / LinkedIn lengths."><span class="nav-icon">✍️</span> Caption Studio</div>
+      <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Bold, provocative headlines per pillar."><span class="nav-icon">📰</span> Headlines</div>
+      <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs (Midjourney, DALL-E, ComfyUI). Renders live via gpt-image-1."><span class="nav-icon">🖼️</span> Image Gen</div>
+      <div class="nav" data-go="ctas" data-help-title="CTAs" data-help="CTA generator. ~40 CTAs ranked by funnel position."><span class="nav-icon">🎯</span> CTAs</div>
+      <div class="nav" data-go="hashtagseo" data-help-title="Hashtags + SEO" data-help="Hashtag sets + SEO meta descriptions per platform."><span class="nav-icon">#️⃣</span> Hashtags + SEO</div>
+      <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
+      <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
+      <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
+      <div class="nav" data-go="seo" data-help-title="SEO" data-help="Audit scores, keyword rankings, GEO readiness."><span class="nav-icon">🔎</span> SEO</div>
+      <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
+      <div class="nav" data-go="gbp" data-help-title="Google Business" data-help="GBP workspace — voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
+      <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit tone, no-link soft-sell."><span class="nav-icon">🗣️</span> Reddit</div>
+      <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
+      <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
+      <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness."><span class="nav-icon">🤖</span> Agents</div>
     </div>
   </aside>
 
@@ -3802,7 +3823,10 @@ try {
   }
 } catch(_){}
 
-$$('.nav').forEach(n => n.addEventListener('click', () => go(n.dataset.go)));
+$$('.nav').forEach(n => {
+  // Only bind go() on items with a data-go attribute (links and the toggle are skipped)
+  if (n.dataset.go) n.addEventListener('click', () => go(n.dataset.go));
+});
 
 // External-route nav items (open full-page apps in same window)
 const EXTERNAL_ROUTES = {
@@ -3824,9 +3848,14 @@ $$('.nav').forEach(n => {
 
 // ─── CREATE — intelligence grid (12+ generators, 1 surface) ───
 const _GENERATORS = [
+  // ── External apps (full-page) — show as quick-access cards inside Create grid ──
+  {id: 'visualizer', icon: '🎨', label: 'Visual Library', desc: 'Browse 122+ brand images. Discover by colour, brand, mood. Generate new images with the recipe pipeline.', sec: '/visualizer', external: true, count: '122 images'},
+  {id: 'memelab', icon: '😂', label: 'Meme Lab', desc: 'Browse existing meme templates + remix with brand voice.', sec: '/meme-lab', external: true, count: 'templates'},
+  {id: 'imagegen', icon: '🖼️', label: 'Generate Image', desc: 'Live renders via gpt-image-1, recipe-informed. Saving to visual library automatically.', sec: 'imagegen', count: 'live'},
+  // ── Generators (in-shell) ──
+  {id: 'captions', icon: '✍️', label: 'Caption Studio', desc: 'Voice-aware captions. Pick voice + tone + asset.', sec: 'captions', count: 'voice bible'},
   {id: 'hooks', icon: '🪝', label: 'Hook Bank', desc: 'Tested hooks ranked by what wins for this brand.', sec: 'hooks', count: '~80 hooks'},
   {id: 'memes', icon: '😂', label: 'Meme Lord', desc: 'Memes that fit the brand voice. Recent over classic.', sec: 'memes', count: '~150 memes'},
-  {id: 'captions', icon: '✍️', label: 'Caption Studio', desc: 'Voice-aware captions. Pick voice + tone + asset.', sec: 'captions', count: 'voice bible'},
   {id: 'headlines', icon: '📰', label: 'Headlines', desc: 'Bold, provocative, shareable headlines per pillar.', sec: 'headlines', count: 'per pillar'},
   {id: 'ctas', icon: '🎯', label: 'CTAs', desc: 'Brand-scoped CTAs ranked by what converts.', sec: 'ctas', count: '~40 CTAs'},
   {id: 'hashtagseo', icon: '#️⃣', label: 'Hashtags + SEO', desc: 'Hashtag sets + SEO meta for each platform.', sec: 'hashtagseo', count: 'per platform'},
@@ -3836,7 +3865,6 @@ const _GENERATORS = [
   {id: 'seo', icon: '🔎', label: 'SEO Assistant', desc: 'SEO recommendations + landing-page fixes.', sec: 'seo', count: 'audit-driven'},
   {id: 'gbp', icon: '📍', label: 'Google Business', desc: 'GBP post suggestions + templates.', sec: 'gbp', count: 'per location'},
   {id: 'reddit', icon: '🗣️', label: 'Reddit Outreach', desc: 'Threads where your brand can contribute.', sec: 'reddit', count: 'per thread'},
-  {id: 'imagegen', icon: '🖼️', label: 'Image Prompts', desc: 'Per-asset prompts: layers (background → logo → headline → hero).', sec: 'imagegen', count: 'per asset'},
   {id: 'billboards', icon: '🪧', label: 'Billboard Lab', desc: 'Headlines + visual briefs for billboards / hero / campaign.', sec: 'billboards', count: 'per concept'},
   {id: 'seo-audit', icon: '📋', label: 'SEO Audit', desc: 'Deep-dive on seo-audit.json. Per-page issues + drafts.', sec: 'seo-audit', count: 'per page'},
 ];
@@ -3845,8 +3873,8 @@ async function renderCreate(){
   const ctx = S.brandContext || (await loadBrandContext());
   const bid = ctx?.brand_id || 'swing-shack';
   const brand = ctx?.brand || {};
-  // Quick launch: top 3 most useful for active brand
-  const quick = ['captions', 'memes', 'hooks'];
+  // Quick launch: 3 most useful for active brand — Visual Library first (most visible surface)
+  const quick = ['visualizer', 'captions', 'imagegen'];
   $('#create-quick-context').textContent = `${brand.display_name || bid} · ${ctx?.asset_count || 0} assets`;
   $('#create-quick-grid').innerHTML = quick.map(gid => {
     const g = _GENERATORS.find(x => x.id === gid);
@@ -3862,16 +3890,21 @@ async function renderCreate(){
   // All generators grid
   $('#create-gen-count').textContent = `${_GENERATORS.length} generators · ${ctx?.tone_options?.length || 0} tones available`;
   $('#create-gen-grid').innerHTML = _GENERATORS.map(g => `
-    <button class="gen-card" data-gen="${esc(g.id)}" data-section="${esc(g.sec)}">
+    <button class="gen-card" data-gen="${esc(g.id)}" data-section="${esc(g.sec)}"${g.external ? ' data-external="1"' : ''}>
       <div class="gen-ico">${g.icon}</div>
       <div class="gen-label">${esc(g.label)}</div>
       <div class="gen-desc">${esc(g.desc)}</div>
       <div class="gen-meta">${esc(g.count)}</div>
     </button>
   `).join('');
-  // Bind clicks
+  // Bind clicks (external items navigate to a different page; others switch tabs)
   $$('#create-gen-grid .gen-card, #create-quick-grid .quick-launch-card').forEach(el => {
     el.addEventListener('click', () => {
+      if (el.dataset.external === '1') {
+        // External route — navigate to a different page
+        window.location.href = el.dataset.section;
+        return;
+      }
       const sec = el.dataset.section || el.dataset.quick;
       go(sec);
     });
@@ -4008,49 +4041,185 @@ async function renderWeeklyReport(targetSec){
 async function renderLibrary(){
   const sec = $('#sec-library');
   if(!sec) return;
+  const brand = window.S?.brand || (window.S = window.S || {});
+  const bid = (window.S?.brand_id) || 'swing-shack';
   let html = `
     <div class="section-h">
       <h2>Library</h2>
-      <span class="sub">Universal search across campaigns, assets, hooks, captions, posts, knowledge</span>
+      <span class="sub">Everything you've already made — approved captions, generated memes, generated images. Search or filter.</span>
     </div>
+
+    <!-- Three quick-access tiles: Visual Library + Meme Lab + Search -->
+    <div class="quick-launch-grid" style="margin-bottom:1rem">
+      <a class="quick-launch-card" href="/visualizer" style="text-decoration:none">
+        <div class="quick-launch-ico">🎨</div>
+        <div class="quick-launch-body">
+          <div class="quick-launch-label">Visual Library</div>
+          <div class="quick-launch-desc">Browse all 122+ brand images by colour, brand, mood. Generate new ones.</div>
+        </div>
+      </a>
+      <a class="quick-launch-card" href="/meme-lab" style="text-decoration:none">
+        <div class="quick-launch-ico">😂</div>
+        <div class="quick-launch-body">
+          <div class="quick-launch-label">Meme Lab</div>
+          <div class="quick-launch-desc">Browse meme templates + remix with your brand voice.</div>
+        </div>
+      </a>
+      <button class="quick-launch-card" id="lib-search-trigger" type="button">
+        <div class="quick-launch-ico">🔎</div>
+        <div class="quick-launch-body">
+          <div class="quick-launch-label">Search everything</div>
+          <div class="quick-launch-desc">Universal search: captions, hooks, posts, campaigns, knowledge.</div>
+        </div>
+      </button>
+    </div>
+
+    <!-- Tabs: by kind. Default = "Generated" showing what you've already made. -->
+    <div class="row gap-1" style="margin-bottom:1rem;flex-wrap:wrap" id="lib-tabs">
+      <button class="lib-tab on" data-lib-tab="generated">🆕 Recently generated</button>
+      <button class="lib-tab" data-lib-tab="approved">✅ Approved assets</button>
+      <button class="lib-tab" data-lib-tab="captions">✍️ Captions</button>
+      <button class="lib-tab" data-lib-tab="hooks">🪝 Hooks</button>
+      <button class="lib-tab" data-lib-tab="memes">😂 Memes</button>
+      <button class="lib-tab" data-lib-tab="images">🖼️ Images</button>
+    </div>
+
     <div class="card">
-      <div class="card-h"><h3>🔎 Search</h3></div>
-      <div class="row gap-1" style="margin-bottom:1rem">
-        <input id="lib-search-input" type="text" placeholder="Search everything…" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;font-size:13px" />
-        <select id="lib-search-kind" class="mini-select">
-          <option value="">All</option>
-          <option value="campaign">Campaigns</option>
-          <option value="asset">Assets</option>
-          <option value="hook">Hooks</option>
-          <option value="caption">Captions</option>
-          <option value="post">Posts</option>
-          <option value="knowledge">Knowledge</option>
-        </select>
-      </div>
-      <div id="lib-search-results" class="muted">Type to search across everything.</div>
+      <div id="lib-pane" style="min-height:200px"></div>
     </div>
   `;
   sec.innerHTML = html;
-  // Bind search
-  const inp = $('#lib-search-input');
-  const sel = $('#lib-search-kind');
-  let timer = null;
-  async function runSearch(){
-    const q = (inp.value || '').trim();
-    if(!q){ $('#lib-search-results').innerHTML = '<span class="muted">Type to search.</span>'; return; }
-    $('#lib-search-results').innerHTML = '<div class="muted">Searching…</div>';
-    try {
-      const r = await API.get('/api/search?q=' + encodeURIComponent(q) + (sel.value ? '&kind=' + encodeURIComponent(sel.value) : ''));
-      const items = (r.results || r.items || r.hits || []).slice(0, 30);
-      $('#lib-search-results').innerHTML = items.length
-        ? `<ul class="list">${items.map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.title || it.name || it.headline || it.text || it.caption || JSON.stringify(it).slice(0,80))}</div><div class="li-meta">${esc(it.kind || it.type || '')}${it.campaignId?' · '+esc(it.campaignId):''}</div></div></li>`).join('')}</ul>`
-        : '<div class="empty">No results.</div>';
-    } catch(e){
-      $('#lib-search-results').innerHTML = '<div class="empty">Search failed.</div>';
+
+  // Wire tab clicks
+  $$('#lib-tabs .lib-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#lib-tabs .lib-tab').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      loadLibPane(btn.dataset.libTab, bid);
+    });
+  });
+  $('#lib-search-trigger').addEventListener('click', () => {
+    // Switch to "captions" tab and focus the search input there
+    $$('#lib-tabs .lib-tab').forEach(b => b.classList.remove('on'));
+    const captionsTab = $$('#lib-tabs .lib-tab').find(b => b.dataset.libTab === 'captions');
+    if(captionsTab){ captionsTab.classList.add('on'); loadLibPane('captions', bid, true); }
+  });
+  // Initial pane
+  loadLibPane('generated', bid);
+}
+
+// Loads a kind-tab pane into #lib-pane
+async function loadLibPane(kind, bid, focusSearch){
+  const pane = $('#lib-pane');
+  if(!pane) return;
+  pane.innerHTML = '<div class="muted">Loading…</div>';
+  try {
+    if(kind === 'generated'){
+      // Show recently generated memes + images from /api/visual-library + any new gen outputs
+      const [memes, images] = await Promise.all([
+        fetch('/api/intel/memes/catalog').then(r => r.json()).catch(() => ({ok:false, memes:[]})),
+        fetch('/api/visual-library/' + bid + '/images?limit=24').then(r => r.json()).catch(() => ({ok:false, images:[]})),
+      ]);
+      const memeList = memes.memes || memes.items || [];
+      const imageList = (images.images || []).slice(0, 16);
+      const generated = (typeof window !== 'undefined' && window._generatedOutputs) || [];
+      pane.innerHTML = `
+        <div style="margin-bottom:1.5rem">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <h4 style="margin:0">🖼️ Generated images (this session: ${generated.length})</h4>
+            <a href="/visualizer" class="mini-link">Open Visual Library →</a>
+          </div>
+          ${generated.length === 0 ? `
+            <div class="empty-card">
+              <div class="muted">No images generated this session yet.</div>
+              <div style="margin-top:.6rem"><a class="mini-link" href="/visualizer">Generate one →</a></div>
+            </div>
+          ` : `
+            <div class="lib-grid">
+              ${generated.slice(0, 12).map(g => `
+                <div class="lib-thumb">
+                  <img src="${esc(g.dataUrl || '')}" alt="generated" loading="lazy" />
+                  <div class="lib-thumb-meta">${esc(g.prompt || '').slice(0,40)}</div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+        <div style="margin-bottom:1.5rem">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <h4 style="margin:0">📚 Visual library preview (${imageList.length} of ${images.total || '?'})</h4>
+            <a href="/visualizer" class="mini-link">Open Visual Library →</a>
+          </div>
+          ${imageList.length === 0 ? '<div class="muted">No images indexed yet.</div>' : `
+            <div class="lib-grid">
+              ${imageList.slice(0, 8).map(im => `
+                <a class="lib-thumb" href="/visualizer">
+                  <img src="/api/visual-library/${bid}/image/${encodeURIComponent(im.filename || im.path || '')}" alt="${esc(im.filename || '')}" loading="lazy" />
+                </a>
+              `).join('')}
+            </div>
+          `}
+        </div>
+        <div>
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <h4 style="margin:0">😂 Memes catalog (${memeList.length})</h4>
+            <a href="/meme-lab" class="mini-link">Open Meme Lab →</a>
+          </div>
+          <div class="muted" style="font-size:12px">Browse ${memeList.length} meme templates in Meme Lab. Click any to remix with brand voice.</div>
+        </div>
+      `;
+    } else if(kind === 'approved'){
+      const r = await API.get('/api/assets?status=approved&brand=' + bid);
+      const items = (r.assets || r.items || []).slice(0, 60);
+      pane.innerHTML = items.length ? `
+        <div class="lib-grid">${items.map(a => `
+          <div class="lib-thumb lib-text">
+            <div class="lib-thumb-meta"><b>${esc(a.title || a.name || a.id)}</b></div>
+            <div class="lib-thumb-sub">${esc(a.kind || a.type || 'asset')} · ${esc(a.pillar || '')}</div>
+          </div>
+        `).join('')}</div>
+      ` : '<div class="empty-card muted">No approved assets yet. Approve something from Review →</div>';
+    } else if(kind === 'captions' || kind === 'hooks' || kind === 'memes'){
+      pane.innerHTML = `
+        <input id="lib-search-input" type="text" placeholder="Search ${kind}… (try a keyword)" style="width:100%;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:1rem"/>
+        <div id="lib-search-results"><span class="muted">Type to search.</span></div>
+      `;
+      const inp = $('#lib-search-input'); if(!inp) return;
+      if (focusSearch) setTimeout(() => inp.focus(), 50);
+      let timer = null;
+      inp.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+          const q = (inp.value || '').trim();
+          const out = $('#lib-search-results');
+          if(!q){ out.innerHTML = '<span class="muted">Type to search.</span>'; return; }
+          out.innerHTML = '<div class="muted">Searching…</div>';
+          try {
+            const r = await API.get('/api/search?q=' + encodeURIComponent(q) + '&kind=' + kind);
+            const items = (r.results || r.items || r.hits || []).slice(0, 30);
+            out.innerHTML = items.length
+              ? `<ul class="list">${items.map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.title || it.name || it.headline || it.text || it.caption || '')}</div><div class="li-meta">${esc(it.kind || '')}${it.brand?' · '+esc(it.brand):''}</div></div></li>`).join('')}</ul>`
+              : '<div class="empty">No results.</div>';
+          } catch(e){ out.innerHTML = '<div class="empty">Search failed.</div>'; }
+        }, 250);
+      });
+    } else if(kind === 'images'){
+      const r = await fetch('/api/visual-library/' + bid + '/images?limit=60').then(r => r.json()).catch(() => ({ok:false, images:[]}));
+      const list = r.images || [];
+      pane.innerHTML = `
+        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
+          <span class="muted">${list.length} of ${r.total || list.length} images</span>
+          <a class="mini-link" href="/visualizer">Open Visual Library →</a>
+        </div>
+        <div class="lib-grid">${list.map(im => `
+          <a class="lib-thumb" href="/visualizer">
+            <img src="/api/visual-library/${bid}/image/${encodeURIComponent(im.filename || im.path || '')}" alt="${esc(im.filename || '')}" loading="lazy" />
+            <div class="lib-thumb-meta">${esc(im.filename || '').slice(0,40)}</div>
+          </a>
+        `).join('')}</div>
+      `;
     }
-  }
-  inp.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(runSearch, 250); });
-  sel.addEventListener('change', runSearch);
+  } catch(e){ pane.innerHTML = '<div class="empty-card">Failed to load.</div>'; console.warn(e); }
 }
 
 // Map section-id → render function (used by brand switcher to re-render the active section)
