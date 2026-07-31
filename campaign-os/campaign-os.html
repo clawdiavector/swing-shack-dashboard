@@ -6712,6 +6712,9 @@ async function renderBrandDirectoryPanel(){
               <div class="card col-12"><div class="card-h"><h3>📝 Do say / Don't say</h3></div>
                 <details class="help-collapsible"><summary>Read vocabulary</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.do_say_dont_say||'—')}</div></div></details>
               </div>
+              <div class="card col-12"><div class="card-h"><h3>✏️ Punctuation rules</h3><span class="muted" style="font-size:11.5px">em-dash ban · sentence terminators · spec formats · capitalisation</span></div>
+                <details class="help-collapsible"><summary>Read punctuation rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.punctuation||'—')}</div></div></details>
+              </div>
               <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
                 <details class="help-collapsible"><summary>Read headline bank</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.copy?.headlines||'—')}</div></div></details>
               </div>
