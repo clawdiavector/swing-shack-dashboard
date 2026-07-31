@@ -187,6 +187,44 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
         <a href="https://swing-shack-dashboard-production.up.railway.app/meta-app-review/" target="_blank" style="display: inline-block; margin-top: 6px;">View evidence →</a>
       </div>
     </div>
+
+    <div class="filter-group" id="discover-panel">
+      <h3>Discover by element</h3>
+      <div style="font-size: 11px; color: var(--muted); margin-bottom: 6px;">Click any element to filter the gallery</div>
+      <div style="margin-bottom: 8px;">
+        <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;"><b>Colors</b></div>
+        <div id="discover-colors" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+      <div style="margin-bottom: 8px;">
+        <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;"><b>Brands</b></div>
+        <div id="discover-brands" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+      <div style="margin-bottom: 8px;">
+        <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;"><b>Mood</b></div>
+        <div id="discover-moods" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+      <div>
+        <input id="discover-text" type="text" placeholder="Text in image (e.g. 'zen', 'putter', 'Mizuno')" style="width: 100%; padding: 6px 8px; background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 12px; margin-bottom: 4px;" />
+        <button id="discover-btn" class="btn-clear" style="width: 100%; background: var(--accent, #5b8def); color: #fff; border: none; padding: 6px; border-radius: 4px; font-size: 12px; cursor: pointer;">Discover</button>
+      </div>
+    </div>
+
+    <div class="filter-group" id="recipe-panel">
+      <h3>Brand recipe</h3>
+      <div id="recipe-summary" style="font-size: 12px; line-height: 1.5; color: var(--muted);">Loading brand DNA...</div>
+      <button id="refresh-recipe" class="btn-clear" style="width: 100%; background: transparent; color: var(--accent, #5b8def); border: 1px solid var(--line); padding: 6px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 6px;">Refresh recipe</button>
+    </div>
+
+    <div class="filter-group" id="generate-panel">
+      <h3>Generate image</h3>
+      <textarea id="gen-prompt" placeholder="Describe the image you want (e.g. 'Mizuno iron close-up, yellow accent')" style="width: 100%; min-height: 50px; padding: 6px 8px; background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 12px; resize: vertical; margin-bottom: 4px;"></textarea>
+      <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+        <input id="gen-ref-color" type="text" placeholder="color" style="flex: 1; padding: 6px 8px; background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 11px;" />
+        <input id="gen-ref-brand" type="text" placeholder="brand" style="flex: 1; padding: 6px 8px; background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 11px;" />
+      </div>
+      <button id="gen-btn" class="btn-clear" style="width: 100%; background: var(--accent, #5b8def); color: #fff; border: none; padding: 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">Generate (gpt-image-1)</button>
+      <div id="gen-result" style="margin-top: 8px;"></div>
+    </div>
   </aside>
 
   <main class="main">
@@ -195,6 +233,37 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
       <div class="tile"><div class="num" id="tile-shown">—</div><div class="lbl">Filtered</div></div>
       <div class="tile"><div class="num" id="tile-products">—</div><div class="lbl">Products</div></div>
       <div class="tile"><div class="num" id="tile-scored">—</div><div class="lbl">High-score</div></div>
+    </div>
+
+    <!-- GENERATE — live image generator (gpt-image-1, recipe-informed). Outputs persist to Library "Recently generated". -->
+    <div class="card" style="margin-bottom: 16px;">
+      <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--accent);">🖼️ Generate image (live renders via gpt-image-1)</h3>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: end;">
+        <div style="flex: 1; min-width: 200px;">
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;">Prompt</label>
+          <input type="text" id="gen-prompt" placeholder="e.g. premium putter on the green at sunset" style="width: 100%; padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;">Quality</label>
+          <select id="gen-quality" style="padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;">
+            <option value="low">low</option>
+            <option value="medium" selected>medium</option>
+            <option value="high">high</option>
+            <option value="auto">auto</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;">Size</label>
+          <select id="gen-size" style="padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;">
+            <option value="1024x1024" selected>1024×1024</option>
+            <option value="1024x1792">1024×1792 portrait</option>
+            <option value="1792x1024">1792×1024 landscape</option>
+          </select>
+        </div>
+        <button class="btn" id="gen-submit" style="background: var(--accent); color: #0c0d10; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer;">Generate →</button>
+      </div>
+      <div id="gen-status" style="margin-top: 8px; font-size: 12px; color: var(--muted);"></div>
+      <div id="gen-output" style="margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;"></div>
     </div>
 
     <div class="grid" id="grid"></div>
@@ -271,6 +340,14 @@ const API = {
   detail: (filename, brand) => fetch('/api/visual-library/' + encodeURIComponent(brand || STATE.brand) + '/image/' + encodeURIComponent(filename)).then(r => r.json()),
   perf: (brand) => fetch('/api/intel/visual-performance?brand=' + encodeURIComponent(brand || STATE.brand)).then(r => r.json()),
   recipe: (brief, brand) => fetch('/api/visual-dna/' + encodeURIComponent(brand || STATE.brand) + '/recipe?brief=' + encodeURIComponent(brief) + '&n=3').then(r => r.json()),
+  // Element-level discovery (NEW)
+  discover: (params, brand) => fetch('/api/visual-library/' + encodeURIComponent(brand || STATE.brand) + '/discover?' + new URLSearchParams(params)).then(r => r.json()),
+  brandRecipe: (brand) => fetch('/api/visual-library/' + encodeURIComponent(brand || STATE.brand) + '/recipe').then(r => r.json()),
+  generate: (body, brand) => fetch('/api/visual-library/' + encodeURIComponent(brand || STATE.brand) + '/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).then(r => r.json()),
 };
 
 let state = {
@@ -315,6 +392,188 @@ async function loadStats() {
   document.getElementById('product-chips').innerHTML =
     `<span class="chip active" data-product="">All</span>` + chips;
   attachProductChips();
+
+  // NEW: Element-level discover chips
+  await loadDiscoverChips();
+  // NEW: Brand recipe card
+  await loadBrandRecipe();
+  // NEW: Generate button handler
+  attachGenerateButton();
+}
+
+// ── Element-level discovery: color/brand/mood chips ────────────────────
+async function loadDiscoverChips() {
+  try {
+    const resp = await fetch('/api/visual-library/_system/all-elements.json');
+    if (!resp.ok) return;
+    const allIdx = await resp.json();
+    const brandIdx = allIdx[STATE.brand];
+    if (!brandIdx) return;
+
+    const byColor = brandIdx.by_color || {};
+    const byBrand = brandIdx.by_brand || {};
+    const byMood = brandIdx.by_mood || {};
+
+    const COLOR_HEX = {
+      red: '#e74c3c', orange: '#ff7f50', yellow: '#f1c40f',
+      green: '#27ae60', teal: '#16a085', blue: '#3498db',
+      purple: '#8e44ad', pink: '#e91e63', brown: '#8b4513',
+      black: '#222', white: '#fff', gray: '#888', silver: '#bbb', gold: '#d4af37',
+    };
+    const colorChips = Object.keys(byColor).sort().slice(0, 12).map(c =>
+      `<span class="chip" data-discover-color="${c}" style="border-color:${COLOR_HEX[c] || '#888'}">${c} <span class="count">${byColor[c].length}</span></span>`
+    ).join('');
+    document.getElementById('discover-colors').innerHTML = colorChips ||
+      '<span style="font-size:11px;color:var(--muted)">no colors</span>';
+
+    const brandChips = Object.keys(byBrand).sort().slice(0, 10).map(b =>
+      `<span class="chip" data-discover-brand="${b}">${b} <span class="count">${byBrand[b].length}</span></span>`
+    ).join('');
+    document.getElementById('discover-brands').innerHTML = brandChips ||
+      '<span style="font-size:11px;color:var(--muted)">no brands</span>';
+
+    const moodChips = Object.keys(byMood).sort().map(m =>
+      `<span class="chip" data-discover-mood="${m}">${m} <span class="count">${byMood[m].length}</span></span>`
+    ).join('');
+    document.getElementById('discover-moods').innerHTML = moodChips ||
+      '<span style="font-size:11px;color:var(--muted)">no moods</span>';
+
+    // Wire up clicks
+    document.querySelectorAll('[data-discover-color]').forEach(el => {
+      el.addEventListener('click', () => runDiscover({ color: el.dataset.discoverColor, limit: 60 }));
+    });
+    document.querySelectorAll('[data-discover-brand]').forEach(el => {
+      el.addEventListener('click', () => runDiscover({ brand: el.dataset.discoverBrand, limit: 60 }));
+    });
+    document.querySelectorAll('[data-discover-mood]').forEach(el => {
+      el.addEventListener('click', () => runDiscover({ mood: el.dataset.discoverMood, limit: 60 }));
+    });
+    document.getElementById('discover-btn').addEventListener('click', () => {
+      const text = document.getElementById('discover-text').value.trim();
+      runDiscover({ text, limit: 60 });
+    });
+  } catch (e) {
+    console.warn('loadDiscoverChips failed:', e);
+  }
+}
+
+async function runDiscover(params) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<div class="loading" style="grid-column:1/-1"><div class="spinner"></div>Discovering...</div>';
+  const data = await API.discover(params);
+  state.images = data.results || [];
+  document.getElementById('tile-shown').textContent = state.images.length;
+  document.getElementById('empty').style.display = state.images.length ? 'none' : 'block';
+  document.getElementById('img-search-status').textContent = `${data.count} matched`;
+  if (state.images.length === 0) { grid.innerHTML = ''; return; }
+  // Normalize discover-shape to render-shape (filename, url, score, palette, products)
+  const normalized = state.images.map(r => ({
+    filename: r.filename,
+    url: '/brand-images/' + encodeURIComponent(STATE.brand) + '/' + encodeURIComponent(r.filename),
+    score: r.quality_score || 0,
+    palette: [],
+    products: r.brands || [],
+    luminance: '',
+    discover_meta: r,
+  }));
+  grid.innerHTML = normalized.map(renderImageCard).join('');
+  grid.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => openModal(card.dataset.filename));
+  });
+}
+
+function renderImageCard(img) {
+  const palette = (img.palette || []).slice(0, 5);
+  const paletteHtml = palette.map(c => `<div style="background:${c}"></div>`).join('');
+  const prodTag = (img.products && img.products[0]) ? img.products[0] : (img.luminance || '—');
+  return `
+      <div class="card" data-filename="${img.filename}">
+        <div class="imgwrap">
+          <img src="${img.url}" alt="${img.filename}">
+          <div class="score">${img.score}</div>
+        </div>
+        <div class="info">
+          <div class="fname">${img.filename}</div>
+          <div class="tags">${prodTag}</div>
+          <div class="palette">${paletteHtml}</div>
+        </div>
+      </div>`;
+}
+
+// ── Brand recipe card ──────────────────────────────────────────────────
+async function loadBrandRecipe() {
+  try {
+    const r = await API.brandRecipe();
+    if (!r.ok) {
+      document.getElementById('recipe-summary').textContent = 'No recipe yet.';
+      return;
+    }
+    const recipe = r.recipe || {};
+    const top = arr => (arr || []).slice(0, 3).map(c => c.name).join(', ');
+    document.getElementById('recipe-summary').innerHTML = `
+      <div style="font-size: 12px; line-height: 1.5;">
+        <div><b>Palette:</b> ${top(recipe.palette?.top_performers)}</div>
+        <div><b>Mood:</b> ${top(recipe.mood?.top_performers)}</div>
+        <div><b>Products:</b> ${top(recipe.products?.top_performers)}</div>
+        <div><b>Objects:</b> ${top(recipe.objects?.top_performers)}</div>
+        <div style="margin-top: 4px; color: var(--muted); font-size: 11px;">
+          Quality: avg <b>${recipe.quality?.avg || 0}/100</b> · ${recipe.quality?.high_count || 0} high-score
+        </div>
+        <div style="margin-top: 4px; color: var(--muted); font-size: 11px;">
+          ${(recipe.style_clusters || []).length} style clusters
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    document.getElementById('recipe-summary').textContent = 'Recipe unavailable';
+  }
+  document.getElementById('refresh-recipe').addEventListener('click', loadBrandRecipe);
+}
+
+// ── Image generator ────────────────────────────────────────────────────
+function attachGenerateButton() {
+  document.getElementById('gen-btn').addEventListener('click', async () => {
+    const prompt = document.getElementById('gen-prompt').value.trim();
+    const refColor = document.getElementById('gen-ref-color').value.trim();
+    const refBrand = document.getElementById('gen-ref-brand').value.trim();
+    if (!prompt) {
+      alert('Type a prompt first');
+      return;
+    }
+    const result = document.getElementById('gen-result');
+    result.innerHTML = '<div style="font-size:11px;color:var(--muted)">Generating (10-30s)...</div>';
+    const body = { prompt, quality: 'high' };
+    if (refColor) body.reference_color = refColor;
+    if (refBrand) body.reference_brand = refBrand;
+    const data = await API.generate(body);
+    if (!data.ok) {
+      result.innerHTML = '<div style="color:var(--err);font-size:11px">' + (data.error || 'Generation failed') + '</div>';
+      return;
+    }
+    const summary = data.brand_recipe_applied || {};
+    const refs = data.user_references || {};
+    let refsHtml = '';
+    if (refs.color || refs.brand || refs.mood) {
+      refsHtml = '<div style="font-size:10px;color:var(--muted);margin-top:4px">Refs: ' +
+        [refs.color && 'color: ' + refs.color, refs.brand && 'brand: ' + refs.brand, refs.mood && 'mood: ' + refs.mood].filter(Boolean).join(' · ') + '</div>';
+    }
+    let recipeHtml = '';
+    if (summary.primary_color) {
+      recipeHtml = '<div style="font-size:10px;color:var(--muted);margin-top:2px">Recipe DNA: ' + summary.primary_color + ' / ' + summary.primary_mood + ' / ' + summary.primary_object + '</div>';
+    }
+    let imgsHtml = '';
+    for (const img of (data.images || [])) {
+      // gpt-image-1 returns b64, no URL
+      imgsHtml += '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + (img.url ? '<a href="' + img.url + '" target="_blank">Open image</a>' : '(b64 ' + img.b64_json_length + ' chars)') + '</div>';
+    }
+    result.innerHTML = '<div style="background:var(--panel-2);padding:8px;border-radius:4px">' +
+      '<div style="color:var(--success);font-size:12px;font-weight:600">Image generated</div>' +
+      '<div style="font-size:10px;color:var(--muted);margin-top:4px">Model: ' + (data.model || 'gpt-image-1') + '</div>' +
+      refsHtml + recipeHtml + imgsHtml +
+      '<div style="font-size:10px;color:var(--muted);margin-top:4px;word-break:break-word">Prompt: ' + (data.prompt_used || '').slice(0, 200) + '...</div>' +
+      '</div>';
+    document.getElementById('gen-prompt').value = '';
+  });
 }
 
 // ── Load images ─────────────────────────────────────────────────────────
@@ -346,7 +605,7 @@ async function loadImages() {
     return `
       <div class="card" data-filename="${img.filename}">
         <div class="imgwrap">
-          <img src="${img.url}" alt="${img.filename}" loading="lazy">
+          <img src="${img.url}" alt="${img.filename}">
           <div class="score">${img.score}</div>
         </div>
         <div class="info">
@@ -470,6 +729,64 @@ document.getElementById('sort').addEventListener('change', (e) => {
   state.filters.sort = e.target.value;
   runGrid();
 });
+
+// ── Generate image (live gpt-image-1) ──────────────────────────
+async function runGenerate() {
+  const promptInput = document.getElementById('gen-prompt');
+  const prompt = (promptInput?.value || '').trim();
+  if (!prompt) { document.getElementById('gen-status').textContent = 'Type a prompt first.'; return; }
+  const quality = document.getElementById('gen-quality').value;
+  const size = document.getElementById('gen-size').value;
+  const status = document.getElementById('gen-status');
+  const out = document.getElementById('gen-output');
+  const btn = document.getElementById('gen-submit');
+  btn.disabled = true;
+  status.textContent = '⏳ Rendering via gpt-image-1 (30-90s)…';
+  out.innerHTML = '';
+  try {
+    const r = await fetch('/api/visual-library/' + encodeURIComponent(STATE.brand) + '/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ prompt: prompt, quality: quality, size: size, save: true })
+    }).then(r => r.json());
+    if (!r.ok) { status.textContent = '❌ ' + (r.error || 'Generation failed'); btn.disabled = false; return; }
+    const imgs = r.images || [];
+    if (imgs.length === 0) { status.textContent = '⚠️ No images in response.'; btn.disabled = false; return; }
+    // Render each — b64 from server or url
+    let html = '';
+    for (const im of imgs) {
+      const src = im.dataUrl || (im.url ? im.url : '');
+      if (!src) continue;
+      html += `<div class="card"><div class="imgwrap"><img src="${src}" alt="${(im.prompt||prompt).slice(0,40)}"/></div><div class="info" style="font-size:11px;color:var(--muted)">${im.saved ? 'saved' : 'preview'} · ${im.revised_prompt ? im.revised_prompt.slice(0,80) : prompt.slice(0,80)}</div></div>`;
+      // Mirror to sessionStorage (cheap, works across the same browser tab)
+      try {
+        const key = 'cos_generated_outputs';
+        const cur = JSON.parse(sessionStorage.getItem(key) || '[]');
+        cur.unshift({ prompt: prompt, dataUrl: src, ts: Date.now(), brand: STATE.brand, revised_prompt: im.revised_prompt || '', saved: !!im.saved });
+        sessionStorage.setItem(key, JSON.stringify(cur.slice(0, 50)));
+      } catch(_){}
+    }
+    out.innerHTML = html;
+    status.textContent = `✅ ${imgs.length} generated · ${imgs.filter(i=>i.saved).length} saved to disk`;
+  } catch(e) {
+    status.textContent = '❌ Network error';
+  }
+  btn.disabled = false;
+}
+document.getElementById('gen-submit').addEventListener('click', runGenerate);
+document.getElementById('gen-prompt')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') runGenerate(); });
+
+// ── Restore previously generated (this browser, this tab) ──────────
+async function restoreGeneratedOutputs() {
+  try {
+    const cur = JSON.parse(sessionStorage.getItem('cos_generated_outputs') || '[]');
+    const out = document.getElementById('gen-output');
+    if (!out || cur.length === 0) return;
+    out.innerHTML = cur.slice(0, 12).map(im => `
+      <div class="card"><div class="imgwrap"><img src="${im.dataUrl}" alt="${(im.prompt||'').slice(0,40)}"/></div><div class="info" style="font-size:11px;color:var(--muted)">${im.prompt.slice(0,40)}</div></div>
+    `).join('');
+  } catch(_){}
+}
 
 // ── Brand loader ────────────────────────────────────────────────────────
 async function loadBrands() {

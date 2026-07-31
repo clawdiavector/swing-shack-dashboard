@@ -1,0 +1,17 @@
+{
+  "schema": "https://campaign-os/brand-directory/visual-spec/v1",
+  "version": "1.0",
+  "brand": "takomo",
+  "updated": "2026-07-30T10:45:00Z",
+  "aspect_ratios": [
+    "1:1",
+    "4:5",
+    "9:16"
+  ],
+  "typography": {
+    "headline": "sans-serif bold",
+    "body": "sans-serif"
+  },
+  "archetypes": [],
+  "note": "Initial seed. Archetypes pending \u2014 needs design pass."
+}

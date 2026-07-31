@@ -13,12 +13,96 @@ import subprocess
 import shutil
 import uuid
 import logging
-from flask import Flask, jsonify, request, send_from_directory, g, Response
+import hashlib
+from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response
 from flask_cors import CORS
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
 _app_log = logging.getLogger("campaign-os")
+
+# ─── AUTH ────────────────────────────────────────────────────────────────
+# Single shared password gate. Password is read from CAMPAIGN_OS_PASSWORD env var.
+# On Railway, set this in the dashboard; locally it falls back to a dev password.
+# Sessions are signed cookies (itsdangerous) — no DB needed.
+SHARED_PASSWORD = os.environ.get('CAMPAIGN_OS_PASSWORD') or 'swing-shack-dev-2026'
+SESSION_SECRET = os.environ.get('CAMPAIGN_OS_SECRET') or 'campaign-os-dev-secret-change-me'
+SESSION_COOKIE = 'cos_session'
+SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+_serializer = URLSafeTimedSerializer(SESSION_SECRET)
+
+# Routes that never require auth (login + the static asset paths needed to render login)
+PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/favicon.ico'}
+
+
+def _is_authed():
+    """Check request cookie for a valid signed session token."""
+    token = request.cookies.get(SESSION_COOKIE)
+    if not token:
+        return False
+    try:
+        _serializer.loads(token, max_age=SESSION_MAX_AGE)
+        return True
+    except (BadSignature, SignatureExpired):
+        return False
+
+
+@app.before_request
+def _gate():
+    """Redirect unauthed requests to /login. Allow public routes + static asset paths."""
+    path = request.path or '/'
+    if path in PUBLIC_ROUTES:
+        return None
+    # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
+    # These live next to login.html in the same dir, but they shouldn't reveal data.
+    if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
+        return None
+    if _is_authed():
+        return None
+    # API requests get 401 JSON; browser requests get a redirect to login
+    if path.startswith('/api/'):
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    return redirect(url_for('login_page', next=path))
+
+
+@app.route('/login', methods=['GET'])
+def login_page():
+    if _is_authed():
+        return redirect(url_for('index'))
+    resp = make_response(send_from_directory('.', 'login.html'))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return resp
+
+
+@app.route('/login', methods=['POST'])
+def login_submit():
+    pw = request.form.get('password') or ''
+    if not pw:
+        # also accept JSON for fetch() fallback
+        try:
+            data = request.get_json(silent=True) or {}
+            pw = data.get('password') or ''
+        except Exception:
+            pass
+    # constant-time-ish compare (string compare is fine for shared password)
+    if not pw or hashlib.sha256(pw.encode()).hexdigest() != hashlib.sha256(SHARED_PASSWORD.encode()).hexdigest():
+        return jsonify({'ok': False, 'error': 'Wrong password. Try again.'}), 401
+    token = _serializer.dumps({'authed': True})
+    next_url = request.args.get('next') or request.form.get('next') or '/'
+    if not next_url.startswith('/'):
+        next_url = '/'
+    resp = make_response(jsonify({'ok': True, 'next': next_url}))
+    resp.set_cookie(SESSION_COOKIE, token, max_age=SESSION_MAX_AGE, httponly=True, samesite='Lax', path='/')
+    return resp
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    resp = make_response(redirect(url_for('login_page')))
+    resp.set_cookie(SESSION_COOKIE, '', max_age=0, path='/')
+    return resp
+
 
 def _data_paths():
     """Resolve runtime DATA_DIR + canonical file paths at call time.
@@ -1210,6 +1294,23 @@ def visual_library_brands():
         return jsonify({'ok': False, 'error': str(e), 'brands': []}), 500
 
 
+@app.route('/api/visual-library/<path:filename>', methods=['GET'])
+def visual_library_static_json(filename):
+    """GET /api/visual-library/<path> — serve system JSON files (e.g. all-elements.json)."""
+    from pathlib import Path as _P
+    if '..' in filename or filename.startswith('/'):
+        return jsonify({"ok": False, "error": "bad path"}), 400
+    target = _P(BUNDLED_DATA_DIR) / 'brand-directory' / filename
+    if not target.exists() or not target.is_file():
+        return jsonify({"ok": False, "error": f"not found: {filename}"}), 404
+    try:
+        if filename.endswith('.json'):
+            data = json.loads(target.read_text())
+            return jsonify(data)
+        return app.send_static_file(str(target)) if hasattr(app, 'send_static_file') else (target.read_text(), 200, {'Content-Type': 'application/json'})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 # ============================================================================
 # ELEMENT-LEVEL DISCOVERY — find images by any visible element
 # ============================================================================
@@ -1535,17 +1636,19 @@ def visual_library_generate(brand_id):
         prompt_parts.append("professional product photography, clean composition, golf industry")
         enhanced_prompt = ". ".join(prompt_parts)
 
-        # Load OpenAI key from canonical env file
-        env_file = "/Users/fivefriday/.openclaw/workspace/credentials/openai.env"
-        api_key = None
-        if os.path.exists(env_file):
-            for line in open(env_file):
-                if line.startswith("export OPENAI_API_KEY="):
-                    api_key = line.split(chr(39))[1]
-                    break
+        # Load OpenAI key from env var (works on Railway) or fallback to local env file
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            # Fallback for local dev: read from canonical env file
+            env_file = os.environ.get("OPENAI_ENV_FILE", "/Users/fivefriday/.openclaw/workspace/credentials/openai.env")
+            if os.path.exists(env_file):
+                for line in open(env_file):
+                    if line.startswith("export OPENAI_API_KEY="):
+                        api_key = line.split(chr(39))[1]
+                        break
 
         if not api_key:
-            return jsonify({"ok": False, "error": "OpenAI API key not configured. Submit via /openai-portal or place env file at /Users/fivefriday/.openclaw/workspace/credentials/openai.env"}), 503
+            return jsonify({"ok": False, "error": "OpenAI API key not configured. Set OPENAI_API_KEY env var on Railway, or submit via /openai-portal for local dev."}), 503
 
         # Call OpenAI gpt-image-1 (latest stable)
         import requests as _req
@@ -1576,13 +1679,53 @@ def visual_library_generate(brand_id):
             return jsonify({"ok": False, "error": f"OpenAI {api_resp.status_code}", "detail": err_body}), 502
 
         api_data = api_resp.json()
+        save = body.get("save", False)
+        # Resolve save dir for this brand
+        try:
+            save_dir = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images")
+        except Exception:
+            save_dir = None
+
         images = []
-        for item in api_data.get("data", []):
-            images.append({
+        for i, item in enumerate(api_data.get("data", [])):
+            entry = {
                 "url": item.get("url"),
-                "b64_json_length": len(item.get("b64_json", "")) if item.get("b64_json") else 0,
                 "revised_prompt": item.get("revised_prompt", ""),
-            })
+            }
+            b64 = item.get("b64_json") or ""
+            if b64:
+                entry["b64_json_length"] = len(b64)
+                # Build a data: URL so the visualizer can preview inline (URLs may expire)
+                entry["dataUrl"] = "data:image/png;base64," + b64
+            # Save to disk if save=true
+            if save and save_dir and b64:
+                try:
+                    os.makedirs(save_dir, exist_ok=True)
+                    import base64 as _b64, time as _t
+                    ts = int(_t.time())
+                    fname = f"gen-{brand_id}-{ts}-{i+1}.png"
+                    fpath = os.path.join(save_dir, fname)
+                    with open(fpath, "wb") as fh:
+                        fh.write(_b64.b64decode(b64))
+                    # Write a tiny sidecar metadata so the file shows up in stats
+                    sidecar = fpath + ".meta.json"
+                    with open(sidecar, "w") as fh:
+                        json.dump({
+                            "brand_id": brand_id,
+                            "prompt": prompt,
+                            "enhanced_prompt": enhanced_prompt,
+                            "revised_prompt": entry["revised_prompt"],
+                            "model": "gpt-image-1",
+                            "quality": quality,
+                            "size": size,
+                            "ts": ts,
+                        }, fh)
+                    entry["saved"] = True
+                    entry["saved_path"] = fpath
+                except Exception as save_err:
+                    _app_log.warning("save failed: %s", save_err)
+                    entry["saved"] = False
+            images.append(entry)
 
         return jsonify({
             "ok": True,
@@ -2097,7 +2240,7 @@ def _meta_verify_token(app_id, app_secret, access_token, page_id):
     if s == 200 and isinstance(body, dict):
         perms_list = body.get('data') if isinstance(body.get('data'), list) else []
         granted = {p['permission'] for p in perms_list if isinstance(p, dict) and p.get('status') == 'granted'}
-        required_ig = {'instagram_basic', 'instagram_manage_insights', 'pages_read_user_content'}
+        required_ig = {'instagram_basic', 'instagram_manage_insights', 'instagram_business_manage_insights', 'pages_read_user_content'}
         required_pages = {'pages_show_list', 'pages_read_engagement', 'business_management'}
         missing_ig = required_ig - granted
         missing_pages = required_pages - granted
@@ -2108,9 +2251,10 @@ def _meta_verify_token(app_id, app_secret, access_token, page_id):
             missing = sorted(missing_ig) + sorted(missing_pages)
             out["error"] = (
                 f'Token is missing required scopes: {", ".join(missing)}. '
-                f'Re-generate the token in Graph API Explorer and tick ALL 6 boxes: '
+                f'Re-generate the token in Graph API Explorer and tick ALL 7 boxes: '
                 f'pages_show_list, pages_read_engagement, pages_read_user_content, '
-                f'instagram_basic, instagram_manage_insights, business_management.'
+                f'instagram_basic, instagram_manage_insights, instagram_business_manage_insights, '
+                f'business_management.'
             )
             return out
     else:
