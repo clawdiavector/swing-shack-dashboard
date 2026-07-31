@@ -743,15 +743,15 @@ a:hover{text-decoration:underline}
         </div>
       </div>
       <div class="card">
-        <div class="card-h"><h3>⏳ Pending</h3><span class="h-meta">Click an item to open</span></div>
+        <div class="card-h"><h3 data-help="Drafts the agent has produced but you have not reviewed yet. Click any item to open the review modal where you can approve, reject, or send back for revision. Empty state means the inbox is clean." data-help-title="Pending review queue">⏳ Pending</h3><span class="h-meta">Click an item to open</span></div>
         <div id="review-pending"></div>
       </div>
       <div class="card" style="margin-top:1rem">
-        <div class="card-h"><h3>✓ Approved (ready to publish)</h3></div>
+        <div class="card-h"><h3 data-help="You said yes, these are ready to publish. The next step is the Publishing pipeline below: pick a date or push to Postiz now. Until then the copy sits here, unposted." data-help-title="Approved &amp; waiting to publish">✓ Approved (ready to publish)</h3></div>
         <div id="review-approved"></div>
       </div>
       <div class="card" style="margin-top:1rem">
-        <div class="card-h"><h3>✗ Rejected</h3></div>
+        <div class="card-h"><h3 data-help="Drafts you marked as not-ready. Kept here so you can revisit the rationale or re-open them if your mind changes. Nothing in this column will ever be published." data-help-title="Rejected drafts (archived)">✗ Rejected</h3></div>
         <div id="review-rejected"></div>
       </div>
     </section>
@@ -760,10 +760,10 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-publish">
       <div class="section-h"><h2>Publishing pipeline</h2><span class="sub" id="publish-summary">—</span></div>
       <div class="grid">
-        <div class="card col-6"><div class="card-h"><h3>📮 Drafts</h3><span class="h-meta" id="pub-drafts-count">—</span></div><div id="pub-drafts"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🗓️ Scheduled</h3><span class="h-meta" id="pub-sched-count">—</span></div><div id="pub-sched"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>✓ Published</h3><span class="h-meta" id="pub-pub-count">—</span></div><div id="pub-pub"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🚨 Failed</h3><span class="h-meta" id="pub-fail-count">—</span></div><div id="pub-fail"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Approved copy that is sitting in Postiz with no future publish time yet. Open the card to set a date or push live immediately. This is the staging area between Approved and Scheduled." data-help-title="Drafts (waiting on a date)">📮 Drafts</h3><span class="h-meta" id="pub-drafts-count">—</span></div><div id="pub-drafts"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Has a future publish time set in Postiz. The auto-publisher will fire at that time. Edit or cancel from the card body. Past-time scheduled items should be in Published by now. If any linger, they stalled." data-help-title="Scheduled (future publish time)">🗓️ Scheduled</h3><span class="h-meta" id="pub-sched-count">—</span></div><div id="pub-sched"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Went live. Each row carries the published URL and the platform it went to. Use this to spot-check that captions, hashtags, and links landed correctly. Anything broken here is the highest-urgency cleanup." data-help-title="Published (live with URL)">✓ Published</h3><span class="h-meta" id="pub-pub-count">—</span></div><div id="pub-pub"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="The auto-publish hit an error (rejected by the platform API, auth expired, bad media URL). Click the row to see the error reason and retry. Failed items are NOT retried automatically." data-help-title="Failed publishes (need manual retry)">🚨 Failed</h3><span class="h-meta" id="pub-fail-count">—</span></div><div id="pub-fail"></div></div>
       </div>
     </section>
 
@@ -824,13 +824,13 @@ a:hover{text-decoration:underline}
       <div class="grid">
         <div class="card col-12"><div class="card-h"><h3>🆕 Just generated</h3></div><div id="ideas-fresh"></div></div>
         <div class="card col-6"><div class="card-h"><h3>💡 Content ideas</h3><span class="h-meta" id="ideas-total">—</span></div><div id="ideas-list"></div></div>
-        <div class="card col-3"><div class="card-h"><h3>🚀 Post today</h3></div><div id="ideas-today"></div></div>
-        <div class="card col-3"><div class="card-h"><h3>📆 This week</h3></div><div id="ideas-week"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>⚠️ Missed opportunities</h3></div><div id="ideas-missed"></div></div>
-        <div class="card col-3"><div class="card-h"><h3>💸 Upsells</h3></div><div id="ideas-upsell"></div></div>
-        <div class="card col-3"><div class="card-h"><h3>📦 Bundles</h3></div><div id="ideas-bundles"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🪠 Funnel leaks</h3></div><div id="ideas-funnel"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🌐 Landing-page fixes</h3></div><div id="ideas-landing"></div></div>
+        <div class="card col-3"><div class="card-h"><h3 data-help="Highest-urgency content ideas the agent generated for today. Start here every morning: pick one, turn it into a brief or jump straight to the asset. Tied to the brand voice bible and current trend signals." data-help-title="Post today (pick one)">🚀 Post today</h3></div><div id="ideas-today"></div></div>
+        <div class="card col-3"><div class="card-h"><h3 data-help="Medium-urgency ideas worth batching into this week. Less time-sensitive than Post today, more time-relevant than the back catalog. Good for filling the next 2-5 days of the calendar." data-help-title="This week (batch queue)">📆 This week</h3></div><div id="ideas-week"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Trends that already peaked and the brand did not post. The cost of a missed opportunity compounds: the next time the trend recycles, the brand is late again. Pick one retroactively and rewrite with fresh angles." data-help-title="Missed opportunities (retros)">⚠️ Missed opportunities</h3></div><div id="ideas-missed"></div></div>
+        <div class="card col-3"><div class="card-h"><h3 data-help="Content angles tied to higher-margin offerings. Every brand has a tier of products or services where the upside is biggest. This column surfaces the ideas most likely to lift AOV and repeat purchase." data-help-title="Upsells (high-margin angles)">💸 Upsells</h3></div><div id="ideas-upsell"></div></div>
+        <div class="card col-3"><div class="card-h"><h3 data-help="Cross-sell and package ideas. Two or more products presented together, framed as a bundle. Bundle content usually outperforms single-product content on save-rate and CTR." data-help-title="Bundles (cross-sell angles)">📦 Bundles</h3></div><div id="ideas-bundles"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Pages that get traffic but fail to convert. The funnel leaks are the highest-ROI fixes: small copy changes on a high-traffic page beat big campaigns on a low-traffic page every time." data-help-title="Funnel leaks (highest-ROI fixes)">🪠 Funnel leaks</h3></div><div id="ideas-funnel"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="SEO and on-page copy fixes. Title tags, meta descriptions, H1, schema. These are the cheapest changes to ship and they compound: every blog post you have ever written benefits when you fix the page underneath it." data-help-title="Landing-page fixes (SEO)">🌐 Landing-page fixes</h3></div><div id="ideas-landing"></div></div>
       </div>
     </section>
 
