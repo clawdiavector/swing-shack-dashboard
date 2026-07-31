@@ -13,12 +13,96 @@ import subprocess
 import shutil
 import uuid
 import logging
-from flask import Flask, jsonify, request, send_from_directory, g, Response
+import hashlib
+from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response
 from flask_cors import CORS
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
 _app_log = logging.getLogger("campaign-os")
+
+# ─── AUTH ────────────────────────────────────────────────────────────────
+# Single shared password gate. Password is read from CAMPAIGN_OS_PASSWORD env var.
+# On Railway, set this in the dashboard; locally it falls back to a dev password.
+# Sessions are signed cookies (itsdangerous) — no DB needed.
+SHARED_PASSWORD = os.environ.get('CAMPAIGN_OS_PASSWORD') or 'swing-shack-dev-2026'
+SESSION_SECRET = os.environ.get('CAMPAIGN_OS_SECRET') or 'campaign-os-dev-secret-change-me'
+SESSION_COOKIE = 'cos_session'
+SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+_serializer = URLSafeTimedSerializer(SESSION_SECRET)
+
+# Routes that never require auth (login + the static asset paths needed to render login)
+PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/favicon.ico'}
+
+
+def _is_authed():
+    """Check request cookie for a valid signed session token."""
+    token = request.cookies.get(SESSION_COOKIE)
+    if not token:
+        return False
+    try:
+        _serializer.loads(token, max_age=SESSION_MAX_AGE)
+        return True
+    except (BadSignature, SignatureExpired):
+        return False
+
+
+@app.before_request
+def _gate():
+    """Redirect unauthed requests to /login. Allow public routes + static asset paths."""
+    path = request.path or '/'
+    if path in PUBLIC_ROUTES:
+        return None
+    # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
+    # These live next to login.html in the same dir, but they shouldn't reveal data.
+    if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
+        return None
+    if _is_authed():
+        return None
+    # API requests get 401 JSON; browser requests get a redirect to login
+    if path.startswith('/api/'):
+        return jsonify({'ok': False, 'error': 'authentication required'}), 401
+    return redirect(url_for('login_page', next=path))
+
+
+@app.route('/login', methods=['GET'])
+def login_page():
+    if _is_authed():
+        return redirect(url_for('index'))
+    resp = make_response(send_from_directory('.', 'login.html'))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return resp
+
+
+@app.route('/login', methods=['POST'])
+def login_submit():
+    pw = request.form.get('password') or ''
+    if not pw:
+        # also accept JSON for fetch() fallback
+        try:
+            data = request.get_json(silent=True) or {}
+            pw = data.get('password') or ''
+        except Exception:
+            pass
+    # constant-time-ish compare (string compare is fine for shared password)
+    if not pw or hashlib.sha256(pw.encode()).hexdigest() != hashlib.sha256(SHARED_PASSWORD.encode()).hexdigest():
+        return jsonify({'ok': False, 'error': 'Wrong password. Try again.'}), 401
+    token = _serializer.dumps({'authed': True})
+    next_url = request.args.get('next') or request.form.get('next') or '/'
+    if not next_url.startswith('/'):
+        next_url = '/'
+    resp = make_response(jsonify({'ok': True, 'next': next_url}))
+    resp.set_cookie(SESSION_COOKIE, token, max_age=SESSION_MAX_AGE, httponly=True, samesite='Lax', path='/')
+    return resp
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    resp = make_response(redirect(url_for('login_page')))
+    resp.set_cookie(SESSION_COOKIE, '', max_age=0, path='/')
+    return resp
+
 
 def _data_paths():
     """Resolve runtime DATA_DIR + canonical file paths at call time.
@@ -1552,17 +1636,19 @@ def visual_library_generate(brand_id):
         prompt_parts.append("professional product photography, clean composition, golf industry")
         enhanced_prompt = ". ".join(prompt_parts)
 
-        # Load OpenAI key from canonical env file
-        env_file = "/Users/fivefriday/.openclaw/workspace/credentials/openai.env"
-        api_key = None
-        if os.path.exists(env_file):
-            for line in open(env_file):
-                if line.startswith("export OPENAI_API_KEY="):
-                    api_key = line.split(chr(39))[1]
-                    break
+        # Load OpenAI key from env var (works on Railway) or fallback to local env file
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            # Fallback for local dev: read from canonical env file
+            env_file = os.environ.get("OPENAI_ENV_FILE", "/Users/fivefriday/.openclaw/workspace/credentials/openai.env")
+            if os.path.exists(env_file):
+                for line in open(env_file):
+                    if line.startswith("export OPENAI_API_KEY="):
+                        api_key = line.split(chr(39))[1]
+                        break
 
         if not api_key:
-            return jsonify({"ok": False, "error": "OpenAI API key not configured. Submit via /openai-portal or place env file at /Users/fivefriday/.openclaw/workspace/credentials/openai.env"}), 503
+            return jsonify({"ok": False, "error": "OpenAI API key not configured. Set OPENAI_API_KEY env var on Railway, or submit via /openai-portal for local dev."}), 503
 
         # Call OpenAI gpt-image-1 (latest stable)
         import requests as _req
