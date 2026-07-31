@@ -1210,6 +1210,23 @@ def visual_library_brands():
         return jsonify({'ok': False, 'error': str(e), 'brands': []}), 500
 
 
+@app.route('/api/visual-library/<path:filename>', methods=['GET'])
+def visual_library_static_json(filename):
+    """GET /api/visual-library/<path> — serve system JSON files (e.g. all-elements.json)."""
+    from pathlib import Path as _P
+    if '..' in filename or filename.startswith('/'):
+        return jsonify({"ok": False, "error": "bad path"}), 400
+    target = _P(BUNDLED_DATA_DIR) / 'brand-directory' / filename
+    if not target.exists() or not target.is_file():
+        return jsonify({"ok": False, "error": f"not found: {filename}"}), 404
+    try:
+        if filename.endswith('.json'):
+            data = json.loads(target.read_text())
+            return jsonify(data)
+        return app.send_static_file(str(target)) if hasattr(app, 'send_static_file') else (target.read_text(), 200, {'Content-Type': 'application/json'})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 # ============================================================================
 # ELEMENT-LEVEL DISCOVERY — find images by any visible element
 # ============================================================================
