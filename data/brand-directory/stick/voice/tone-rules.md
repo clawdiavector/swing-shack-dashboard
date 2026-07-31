@@ -47,7 +47,7 @@ the meme side of Swing Shack. Below is how that translates per tone for Stick sp
 **Aim:** Name the situation. The reader recognises it instantly.
 - One sentence. Specific.
 
-✅ "When your mate says 'I'll fix it myself' — we've all been there. Almost."
+✅ "When your mate says 'I'll fix it myself'. We've all been there. Almost."
 ✅ "You changed your grip. Twice. The slice didn't notice."
 ❌ "We know what it's like out there." (vague)
 

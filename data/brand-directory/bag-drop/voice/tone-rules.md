@@ -9,7 +9,7 @@ translates per tone for Bag Drop specifically.
 - Acknowledge the awkward / warm / funny part of being a golfer with people.
 - The reader is part of the group, not the subject.
 
-✅ "When your mate says 'I'll fix it myself' — we've all been there. Almost."
+✅ "When your mate says 'I'll fix it myself'. We've all been there. Almost."
 ✅ "The bag that lives at Swing Shack. The one you forgot was yours."
 ❌ "We are a community of golfers." (corporate, not warm)
 ❌ "Join the Bag Drop family." (corporate)

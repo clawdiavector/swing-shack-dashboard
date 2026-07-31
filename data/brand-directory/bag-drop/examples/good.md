@@ -10,7 +10,7 @@
 - Tone: relatable, confident.
 - No em dashes, no banned phrases.
 
-### "When your mate says 'I'll fix it myself' — we've all been there. Almost."
+### "When your mate says 'I'll fix it myself'. We've all been there. Almost."
 **Why this worked:**
 - Opens with the moment every member has seen on a Thursday.
 - The "Almost." lands the joke without sarcasm.

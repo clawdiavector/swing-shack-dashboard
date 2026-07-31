@@ -2,8 +2,8 @@
 
 ## Hard CTAs (action + URL)
 1. `Drop your bag with us → swingshack.co.za`
-2. `Leave your bag at Swing Shack — play lighter`
-3. `Member social every Thursday — join us`
+2. `Leave your bag at Swing Shack. Play lighter`
+3. `Member social every Thursday. Join us`
 4. `Book your drop → swingshack.co.za`
 
 ## Soft CTAs (no URL, awareness-only)

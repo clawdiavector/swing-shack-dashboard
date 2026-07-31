@@ -3,7 +3,7 @@
 ## Hard CTAs (action + URL)
 1. `Book your session → swingshack.co.za`
 2. `Book a TrackMan session → swingshack.co.za`
-3. `Get fitted — your clubs aren't random`
+3. `Get fitted. Your clubs aren't random.`
 4. `Try the 30-min data session → swingshack.co.za`
 5. `Book a driver fitting → swingshack.co.za`
 6. `Member bay waiting → swingshack.co.za`
