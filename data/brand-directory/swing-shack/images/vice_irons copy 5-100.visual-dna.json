@@ -177,5 +177,98 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "white",
+      "gray"
+    ],
+    "brands": [
+      "Vice"
+    ],
+    "objects": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "clean"
+    ],
+    "text": "FULL WEDGE RANGE COME AND SEE WHAT THE HYPE IS ABOUT FULL WEDGE RANGE",
+    "quality_score": 45
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "clean"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#9a9c9b"
+  },
+  "layer12_scene": {
+    "luminance": "light",
+    "type": "outdoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Vice"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Vice"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        6.38,
+        6.17,
+        5.76
+      ],
+      [
+        13.44,
+        21.6,
+        5.59
+      ],
+      [
+        10.39,
+        15.27,
+        6.63
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 45,
+    "components": {
+      "compliance": 0.475,
+      "sharpness_proxy": 10.136666666666665
+    }
   }
 }

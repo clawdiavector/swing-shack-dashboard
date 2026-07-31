@@ -179,5 +179,102 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "gray",
+      "black",
+      "silver"
+    ],
+    "brands": [
+      "Jordan Bag",
+      "Jordan"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "BAGS AVAILABLE FOR ORDER BAGS AVAILABLE",
+    "quality_score": 59
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-caps",
+    "color": "#0a0a0a"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Jordan Bag",
+      "Jordan"
+    ],
+    "count": 2
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Jordan Bag",
+      "Jordan"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        21.33,
+        48.39,
+        22.62
+      ],
+      [
+        12.16,
+        37.93,
+        20.17
+      ],
+      [
+        11.15,
+        11.31,
+        11.36
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top"
+  },
+  "layer18_quality": {
+    "score": 59,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 21.824444444444445
+    }
   }
 }

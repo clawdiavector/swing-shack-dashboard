@@ -179,5 +179,93 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "gray",
+      "black",
+      "blue"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "right-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "HIT MORE GREENS WITH AN IRON FITTING IRON FITTING",
+    "quality_score": 48
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#171918"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        5.78,
+        7.87,
+        5.79
+      ],
+      [
+        3.19,
+        4.43,
+        7.46
+      ],
+      [
+        8.81,
+        8.55,
+        11.71
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom-right"
+  },
+  "layer18_quality": {
+    "score": 48,
+    "components": {
+      "compliance": 0.525,
+      "sharpness_proxy": 7.065555555555557
+    }
   }
 }

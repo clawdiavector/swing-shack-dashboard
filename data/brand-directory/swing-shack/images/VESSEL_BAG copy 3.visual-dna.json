@@ -179,5 +179,103 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "black",
+      "silver",
+      "gray"
+    ],
+    "brands": [
+      "Vessel Bag",
+      "Vessel"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "VESSEL os BAGS \u2014 AVAILABLE FOR ORDER swing! BAGS AVAILABLE",
+    "quality_score": 57
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#080607"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Vessel Bag",
+      "Vessel"
+    ],
+    "count": 2
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Vessel Bag",
+      "Vessel"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        15.25,
+        21.13,
+        8.55
+      ],
+      [
+        13.69,
+        13.96,
+        9.43
+      ],
+      [
+        19.65,
+        12.67,
+        11.31
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top"
+  },
+  "layer18_quality": {
+    "score": 57,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 13.96
+    }
   }
 }

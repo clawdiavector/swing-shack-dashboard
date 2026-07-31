@@ -177,5 +177,92 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "black",
+      "silver",
+      "orange",
+      "brown"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "swiNs MONTHLY PACKAGES BIRDIE HUNTER 1 LESSON & UNLIMITED PRACTICE R 2300 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA BIRDIE HUNTER R",
+    "quality_score": 66
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#0a0c0c"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        10.64,
+        6.7,
+        5.86
+      ],
+      [
+        9.97,
+        11.85,
+        7.23
+      ],
+      [
+        9.26,
+        8.92,
+        6.44
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 66,
+    "components": {
+      "compliance": 0.775,
+      "sharpness_proxy": 8.54111111111111
+    }
   }
 }

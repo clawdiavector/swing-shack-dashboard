@@ -1,0 +1,4009 @@
+{
+  "swing-shack": {
+    "brand": "swing-shack",
+    "indexed_count": 122,
+    "by_filename": {
+      "Artboard 1 copy 2": {
+        "filename": "Artboard 1 copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1 copy 2.visual-dna.json",
+        "colors": [
+          "silver",
+          "green"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "AVOIDA @ [sw)xg COME AND CLT HITED @ COME AND",
+        "quality_score": 65
+      },
+      "Artboard 1 copy 3": {
+        "filename": "Artboard 1 copy 3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1 copy 3.visual-dna.json",
+        "colors": [
+          "silver",
+          "green"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "fyuwale COME AND CLT HITED COME AND CLT",
+        "quality_score": 65
+      },
+      "Artboard 1 copy": {
+        "filename": "Artboard 1 copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1 copy.visual-dna.json",
+        "colors": [
+          "silver",
+          "orange",
+          "gray",
+          "brown"
+        ],
+        "brands": [],
+        "objects": [],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "",
+        "quality_score": 50
+      },
+      "Artboard 1": {
+        "filename": "Artboard 1",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 1.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "red"
+        ],
+        "brands": [],
+        "objects": [],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "",
+        "quality_score": 64
+      },
+      "Artboard 2 copy": {
+        "filename": "Artboard 2 copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 2 copy.visual-dna.json",
+        "colors": [
+          "silver",
+          "green",
+          "teal"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "@ swine | @",
+        "quality_score": 50
+      },
+      "Artboard 2": {
+        "filename": "Artboard 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 2.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "white",
+          "orange",
+          "brown"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "AVODA @ [swiss AVODA @",
+        "quality_score": 62
+      },
+      "Artboard 3": {
+        "filename": "Artboard 3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 3.visual-dna.json",
+        "colors": [
+          "silver",
+          "teal"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "@ [swiss @",
+        "quality_score": 55
+      },
+      "Artboard 4": {
+        "filename": "Artboard 4",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Artboard 4.visual-dna.json",
+        "colors": [
+          "silver",
+          "teal",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "@ [swe @",
+        "quality_score": 55
+      },
+      "JORDAN_BAG copy 3": {
+        "filename": "JORDAN_BAG copy 3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/JORDAN_BAG copy 3.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "black"
+        ],
+        "brands": [
+          "Jordan Bag",
+          "Jordan"
+        ],
+        "objects": [
+          "product"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "",
+        "quality_score": 53
+      },
+      "JORDAN_BAG copy 4": {
+        "filename": "JORDAN_BAG copy 4",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/JORDAN_BAG copy 4.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "black"
+        ],
+        "brands": [
+          "Jordan Bag",
+          "Jordan"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "Sw)NG FOR ORDER FOR ORDER",
+        "quality_score": 57
+      },
+      "JORDAN_BAG copy 5": {
+        "filename": "JORDAN_BAG copy 5",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/JORDAN_BAG copy 5.visual-dna.json",
+        "colors": [
+          "gray",
+          "black",
+          "silver"
+        ],
+        "brands": [
+          "Jordan Bag",
+          "Jordan"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "BAGS AVAILABLE FOR ORDER BAGS AVAILABLE",
+        "quality_score": 59
+      },
+      "Quantammini1 copy 2": {
+        "filename": "Quantammini1 copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Quantammini1 copy 2.visual-dna.json",
+        "colors": [
+          "white",
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "Callaway",
+          "Callaway Quantum"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "CALLAWAY QUANTUM MINI DRIVERS AVAILABLE FOR FITTINGS CALLAWAY QUANTUM",
+        "quality_score": 44
+      },
+      "Quantammini1 copy": {
+        "filename": "Quantammini1 copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Quantammini1 copy.visual-dna.json",
+        "colors": [
+          "white",
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "Callaway",
+          "Callaway Quantum"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "CALLAWAY QUANTUM MINI DRIVERS AVAILABLE FOR FITTINGS CALLAWAY QUANTUM MINI",
+        "quality_score": 44
+      },
+      "Quantammini1": {
+        "filename": "Quantammini1",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/Quantammini1.visual-dna.json",
+        "colors": [
+          "silver",
+          "green"
+        ],
+        "brands": [
+          "Callaway",
+          "Callaway Quantum"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "CALLAWAY QUANTUM MINI DRIVERS swig] CALLAWAY QUANTUM MINI",
+        "quality_score": 62
+      },
+      "RC1-100": {
+        "filename": "RC1-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/RC1-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "red",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "= swig RYDER CUP thc =",
+        "quality_score": 54
+      },
+      "RC1": {
+        "filename": "RC1",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/RC1.visual-dna.json",
+        "colors": [
+          "silver",
+          "red",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "= swig RYDER CUP Zkiece =",
+        "quality_score": 54
+      },
+      "SRIXON_BAG copy 2": {
+        "filename": "SRIXON_BAG copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/SRIXON_BAG copy 2.visual-dna.json",
+        "colors": [
+          "gray",
+          "silver",
+          "black"
+        ],
+        "brands": [
+          "Srixon Bag",
+          "Srixon"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "SRIXON BAGS AVAILABLE FOR ORDER BAGS AVAILABLE",
+        "quality_score": 57
+      },
+      "SRIXON_BAG copy 3": {
+        "filename": "SRIXON_BAG copy 3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/SRIXON_BAG copy 3.visual-dna.json",
+        "colors": [
+          "silver",
+          "black",
+          "gray"
+        ],
+        "brands": [
+          "Srixon Bag",
+          "Srixon"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "swig BAGS AVAILABLE FOR ORDER BAGS AVAILABLE",
+        "quality_score": 50
+      },
+      "VESSELBAG_STAFF copy 2": {
+        "filename": "VESSELBAG_STAFF copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VESSELBAG_STAFF copy 2.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "black"
+        ],
+        "brands": [
+          "Vessel Bag",
+          "Vessel"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "Vj VESSEL BAGS AVAILABLE FOR ORDER Vj BAGS AVAILABLE",
+        "quality_score": 46
+      },
+      "VESSELBAG_STAFF copy 3": {
+        "filename": "VESSELBAG_STAFF copy 3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VESSELBAG_STAFF copy 3.visual-dna.json",
+        "colors": [
+          "black",
+          "gray",
+          "silver"
+        ],
+        "brands": [
+          "Vessel Bag",
+          "Vessel"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "Vj VESSEL a. BAGS ~ || AVAILABLE FOR ORDER BAGS AVAILABLE",
+        "quality_score": 59
+      },
+      "VESSEL_BAG copy 2": {
+        "filename": "VESSEL_BAG copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VESSEL_BAG copy 2.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "Vessel Bag",
+          "Vessel"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "Y; (Fs 2 Vj Os We VESSEL i ee BAGS AVAILABLE FOR ORDER Vj",
+        "quality_score": 46
+      },
+      "VESSEL_BAG copy 3": {
+        "filename": "VESSEL_BAG copy 3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VESSEL_BAG copy 3.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "Vessel Bag",
+          "Vessel"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "VESSEL os BAGS \u2014 AVAILABLE FOR ORDER swing! BAGS AVAILABLE",
+        "quality_score": 57
+      },
+      "VICEBAG copy 2": {
+        "filename": "VICEBAG copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VICEBAG copy 2.visual-dna.json",
+        "colors": [
+          "silver",
+          "black"
+        ],
+        "brands": [
+          "Vice Bag",
+          "Vice"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "GOLF BAGS AVAILABLE FOR ORDER BAGS AVAILABLE",
+        "quality_score": 56
+      },
+      "VICEBAG copy 3": {
+        "filename": "VICEBAG copy 3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/VICEBAG copy 3.visual-dna.json",
+        "colors": [
+          "silver"
+        ],
+        "brands": [
+          "Vice Bag",
+          "Vice"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "| = BAGS AVAILABLE FOR ORDER i ! |",
+        "quality_score": 57
+      },
+      "beginnerlessons-100": {
+        "filename": "beginnerlessons-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/beginnerlessons-100.visual-dna.json",
+        "colors": [
+          "black",
+          "silver"
+        ],
+        "brands": [
+          "GTS Putter",
+          "TrackMan",
+          "Zen Swing Stage",
+          "Trackman",
+          "Zen Swing"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "BEGINNER LESSONS CATHERINE LAU PGA PROFESSIONAL TRACKMAN LAUNCH MONI TORS ZEN SWING STAGE CLUB FI THI NG BOOK ONLINE OR MESSAGE US FOR MORE INFO BEGINNER LESSONS MONI",
+        "quality_score": 63
+      },
+      "blackfriday copy 2": {
+        "filename": "blackfriday copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy 2.visual-dna.json",
+        "colors": [
+          "gray",
+          "orange",
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "[sw)Ng| BLD AY SALE 17 - 30 NOVEMBER 10% OFF ANTE MEMBER Si ff P DM US FOR MORE INFO BLD",
+        "quality_score": 65
+      },
+      "blackfriday copy 3": {
+        "filename": "blackfriday copy 3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy 3.visual-dna.json",
+        "colors": [
+          "gray",
+          "orange",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "swig 10% OFF LESSONS & FITTINGS DM US FOR MORE INFO 10% OFF LESSONS",
+        "quality_score": 72
+      },
+      "blackfriday copy 4": {
+        "filename": "blackfriday copy 4",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy 4.visual-dna.json",
+        "colors": [
+          "gray",
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "[sw)NG| BLD AY SALE 17 - 30 NOVEMBER 20% OFF See Ne PO iaies DM US FOR MORE INFO AY SALE",
+        "quality_score": 65
+      },
+      "blackfriday copy 5": {
+        "filename": "blackfriday copy 5",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy 5.visual-dna.json",
+        "colors": [
+          "gray",
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "BLD AY SHE 17 - 30 NOVEMBER 10% OFF GoD PRS eeiec DM US FOR MORE INFO AY SHE",
+        "quality_score": 65
+      },
+      "blackfriday copy": {
+        "filename": "blackfriday copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/blackfriday copy.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "swig 20% OFF SELEC JED Oita. 10% OFF GRIPDRIP GRIPS 10% OFF LESSONS & FITTINGS 10% OFF 2026 MEMBERSHIP *MEMBER DISCOUNTS APPLY ON TOP OF ABOVE DM US FOR MORE INFO 20% OFF SELEC",
+        "quality_score": 62
+      },
+      "cf1 copy 3": {
+        "filename": "cf1 copy 3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf1 copy 3.visual-dna.json",
+        "colors": [
+          "gray",
+          "silver",
+          "black",
+          "green"
+        ],
+        "brands": [],
+        "objects": [],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "",
+        "quality_score": 64
+      },
+      "cf2 copy": {
+        "filename": "cf2 copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf2 copy.visual-dna.json",
+        "colors": [
+          "silver",
+          "orange",
+          "black"
+        ],
+        "brands": [],
+        "objects": [],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "",
+        "quality_score": 63
+      },
+      "cf3 copy": {
+        "filename": "cf3 copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf3 copy.visual-dna.json",
+        "colors": [
+          "brown",
+          "black",
+          "blue",
+          "gray",
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "DID YOUKNOW? MAKEUP CAN FIX MAKEUP",
+        "quality_score": 60
+      },
+      "cf4 copy": {
+        "filename": "cf4 copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf4 copy.visual-dna.json",
+        "colors": [
+          "silver",
+          "purple",
+          "black"
+        ],
+        "brands": [],
+        "objects": [],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious",
+          "playful"
+        ],
+        "text": "",
+        "quality_score": 63
+      },
+      "cf5 copy": {
+        "filename": "cf5 copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf5 copy.visual-dna.json",
+        "colors": [
+          "silver",
+          "green"
+        ],
+        "brands": [],
+        "objects": [],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "",
+        "quality_score": 64
+      },
+      "cf6 copy": {
+        "filename": "cf6 copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/cf6 copy.visual-dna.json",
+        "colors": [
+          "brown",
+          "orange",
+          "silver",
+          "black"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": ">UTTER MIGHT BE >UTTER MIGHT BE",
+        "quality_score": 66
+      },
+      "coaching_post": {
+        "filename": "coaching_post",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_post.visual-dna.json",
+        "colors": [
+          "silver",
+          "orange",
+          "brown"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "YOUTUBE CAN'T SEE WHAT YOU'RE DOING WRONG STOP THE ENDLESS CYCLE OF SELF-DIAGNOSING. tm ae COACHING @ [sw)xc] BOOK ONLINE WWW.SWINGSHACK.CO.ZA YOUTUBE CAN'T SEE",
+        "quality_score": 66
+      },
+      "coaching_post2": {
+        "filename": "coaching_post2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_post2.visual-dna.json",
+        "colors": [
+          "silver",
+          "green"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "BUY FEWER GOLF BALLS INVEST IN A SWING THAT KEEPS THEM OUT OF THE WOODS. COACHING @ [swjxc| BOOK ONLINE WWW.SWINGSHACK.CO.ZA BUY FEWER GOLF",
+        "quality_score": 66
+      },
+      "coaching_story": {
+        "filename": "coaching_story",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_story.visual-dna.json",
+        "colors": [
+          "silver",
+          "orange"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "YOUTUBE CAN'T SEE WHAT YOU'RE DOING WRONG STOP THE ENDLESS CYCLE OF SELF-DIAGNOSING. COACHING @ [sw/jxc| BOOK ONLINE WWW.SWINGSHACK.CO.ZA YOUTUBE CAN'T SEE",
+        "quality_score": 66
+      },
+      "coaching_story2": {
+        "filename": "coaching_story2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coaching_story2.visual-dna.json",
+        "colors": [
+          "silver",
+          "green"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "BUY FEWER GOLF BALLS INVEST IN A SWING THAT KEEPS THEM OUT OF THE WOODS. = ~orees aacrerncenss COACHING @ [su] BOOK ONLINE WWW.SWINGSHACK.CO.ZA BUY FEWER GOLF",
+        "quality_score": 66
+      },
+      "coachinpackages_post": {
+        "filename": "coachinpackages_post",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coachinpackages_post.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "green"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "COACHING PACKAGES 1X SESSION R &20 3X SESSIONS R2350 5X SESSIONS R 3850 FOX SESSIGINS R 7200 BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA COACHING PACKAGES",
+        "quality_score": 56
+      },
+      "coachinpackages_story": {
+        "filename": "coachinpackages_story",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/coachinpackages_story.visual-dna.json",
+        "colors": [
+          "silver",
+          "green"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "COACHING PACKAGES 1X SESSION R &20 5X SESSIONS R 2350 5X SESSIONS R 3850 10X SESSIONS R 7200 BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA COACHING PACKAGES",
+        "quality_score": 55
+      },
+      "fitting_discount_post": {
+        "filename": "fitting_discount_post",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_discount_post.visual-dna.json",
+        "colors": [
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "swig 15% OFF ALL FITTINGS UNTIL END OF MAY *MEMBER DISCOUNT APPLIES ON TOP OF ABOVE USE CODE FITTING15 ONLINE TO CLAIM ALL",
+        "quality_score": 62
+      },
+      "fitting_discount_story": {
+        "filename": "fitting_discount_story",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_discount_story.visual-dna.json",
+        "colors": [
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "15% OFF ALL FITTINGS UNTIL END OF MAY *MEMBER DISCOUNT APPLIES ON TOP OF ABOVE USE CODE FITTING15 ONLINE TO CLAIM ALL FITTINGS",
+        "quality_score": 62
+      },
+      "fitting_gts1": {
+        "filename": "fitting_gts1",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts1.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "ai > AVAILABLE FOR FITTING AVAILABLE FOR FITTING",
+        "quality_score": 62
+      },
+      "fitting_gts2": {
+        "filename": "fitting_gts2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts2.visual-dna.json",
+        "colors": [
+          "silver",
+          "white"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "aoi> AVAILABLE FOR FITTING AVAILABLE FOR FITTING",
+        "quality_score": 62
+      },
+      "fitting_gts3": {
+        "filename": "fitting_gts3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts3.visual-dna.json",
+        "colors": [
+          "silver",
+          "white",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "\u2014 7 a AVAILABLE FOR FITTING @ sw)e| AVAILABLE FOR FITTING",
+        "quality_score": 62
+      },
+      "fitting_gts4": {
+        "filename": "fitting_gts4",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts4.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "aoi> AVAILABLE FOR FITTING AVAILABLE FOR FITTING",
+        "quality_score": 62
+      },
+      "fitting_gts_story": {
+        "filename": "fitting_gts_story",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts_story.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "fas > AVAILABLE FOR FITTING AVAILABLE FOR FITTING",
+        "quality_score": 62
+      },
+      "fitting_gts_story2": {
+        "filename": "fitting_gts_story2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts_story2.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "",
+        "quality_score": 50
+      },
+      "fitting_gts_story3": {
+        "filename": "fitting_gts_story3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts_story3.visual-dna.json",
+        "colors": [
+          "silver",
+          "white",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "\u2014 7 a> AVAILABLE FOR FITTING @ AVAILABLE FOR FITTING",
+        "quality_score": 62
+      },
+      "fitting_gts_story4": {
+        "filename": "fitting_gts_story4",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_gts_story4.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "\u2014_7 >> AVAILABLE FOR FITTING AVAILABLE FOR FITTING",
+        "quality_score": 62
+      },
+      "fitting_post1": {
+        "filename": "fitting_post1",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_post1.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "OFF-THE-RACK IS FOR GROCERIES GET EQUIPMENT BUILT FOR YOU = CLUB FITTING @ BOOK ONLINE WWW.SWINGSHACK. CO.ZA OFF-THE-RACK IS FOR",
+        "quality_score": 66
+      },
+      "fitting_post2": {
+        "filename": "fitting_post2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_post2.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "purple"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious",
+          "playful"
+        ],
+        "text": "YOU WOULDN'T rgd A seen N SOMEON ELSE \u2018'S SHOES wm: se CLUB FITTING @ [swjxc] BOOK ONLINE WWW.SWINGSHACK.CO.ZA ELSE SHOES",
+        "quality_score": 66
+      },
+      "fitting_story1": {
+        "filename": "fitting_story1",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_story1.visual-dna.json",
+        "colors": [
+          "silver",
+          "black",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "OFF-THE-RACK IS FOR GROCERIES GET EQUIPMENT BUILT FOR YOU = CLUB FITTING @ (swjnc| BOOK ONLINE WWW.SWINGSHACK.CO.ZA OFF-THE-RACK IS FOR",
+        "quality_score": 66
+      },
+      "fitting_story3": {
+        "filename": "fitting_story3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fitting_story3.visual-dna.json",
+        "colors": [
+          "silver",
+          "purple"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "playful"
+        ],
+        "text": "YOU WOULDN'T Hoa 9 A epee N SOMEON ELSE \u2018S SHOES = pease a red CLUB FITTING @ (sw BOOK ONLINE WWW.SWINGSHACK.CO.ZA ELSE SHOES",
+        "quality_score": 55
+      },
+      "frame1": {
+        "filename": "frame1",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/frame1.visual-dna.json",
+        "colors": [
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "15% OFF ALL FITTINGS UNTIL END OF MAY ALL FITTINGS",
+        "quality_score": 61
+      },
+      "fullrange copy 2-100": {
+        "filename": "fullrange copy 2-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 2-100.visual-dna.json",
+        "colors": [
+          "gray",
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "NOW AVAILABLE @ SWING SHACK LA GOLF PUTTERS LA GOLF PUTTERS",
+        "quality_score": 63
+      },
+      "fullrange copy 3-100": {
+        "filename": "fullrange copy 3-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 3-100.visual-dna.json",
+        "colors": [
+          "gray",
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "LA GOLF _PUTTERS | Ria AICASLE LA",
+        "quality_score": 62
+      },
+      "fullrange copy 4-100": {
+        "filename": "fullrange copy 4-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 4-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "_LAGOLF _ PUTTERS NOW AVAILABLE @ SWING SHACK _LAGOLF",
+        "quality_score": 62
+      },
+      "fullrange copy 5-100": {
+        "filename": "fullrange copy 5-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 5-100.visual-dna.json",
+        "colors": [
+          "blue",
+          "gray",
+          "black",
+          "silver",
+          "teal"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "PUTTERS NOW AVAILABLE @ SWING SHACK PUTTERS",
+        "quality_score": 38
+      },
+      "fullrange copy 6-100": {
+        "filename": "fullrange copy 6-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 6-100.visual-dna.json",
+        "colors": [
+          "black",
+          "silver"
+        ],
+        "brands": [],
+        "objects": [],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "",
+        "quality_score": 50
+      },
+      "fullrange copy 7-100": {
+        "filename": "fullrange copy 7-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 7-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "PUTTERS NOW AVAILABLE @ SWING SHACK NOW AVAILABLE",
+        "quality_score": 55
+      },
+      "fullrange copy 8-100": {
+        "filename": "fullrange copy 8-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy 8-100.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "(2) L.A.B. GOLF PUTTERS NOW AVAILABLE @ SWING SHACK PUTTERS AVAILABLE",
+        "quality_score": 62
+      },
+      "fullrange copy-100": {
+        "filename": "fullrange copy-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/fullrange copy-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "black",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "_LAGOLF \u2014 PUTTERS NOW AVAILABLE @ SWING SHACK _LAGOLF",
+        "quality_score": 63
+      },
+      "ironfitting-100": {
+        "filename": "ironfitting-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ironfitting-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "black",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "HIT MORE GREENS WITH AN IRON FITTING IRON FITTING",
+        "quality_score": 48
+      },
+      "juniorlessons-100": {
+        "filename": "juniorlessons-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/juniorlessons-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "1 JUNIOR LESSONS CATHERINE LAU PGA PROFESSIONAL A A | Ay NAN LAU LHING BOOK ONLINE OR MESSAGE US FOR MORE INFO JUNIOR LESSONS BOOK",
+        "quality_score": 62
+      },
+      "ladiesclinic-100": {
+        "filename": "ladiesclinic-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ladiesclinic-100.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "purple"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious",
+          "playful"
+        ],
+        "text": "swig INVITES YOU TO OUR FRIDAY, 12 SEPTEMBER - 18:00 HOSTED BY CATHERINE LAU ) -",
+        "quality_score": 62
+      },
+      "ladiesclinic2-100": {
+        "filename": "ladiesclinic2-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ladiesclinic2-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "black",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "HS THE PERFECT CHANCE TO LEARN, CONNECT, AND HAVE FUN ON THE RANGE. SPOTS ARE LIMITED. BOOK YOURS TODAY! BOOK ONLINE @ SWINGSHACK.CO.ZA OR DM US \u00bb \u00bb",
+        "quality_score": 55
+      },
+      "ladieslessons-100": {
+        "filename": "ladieslessons-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ladieslessons-100.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter",
+          "TrackMan",
+          "Zen Swing Stage",
+          "Trackman",
+          "Zen Swing"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "LADIES LESSONS CATHERINE LAU PGA PROFESSIONAL TRACKMAN LAUNCH MONI! TORS ZEN SWING STAGE CLUB FITTING BOOK ONLINE OR MESSAGE US FOR MORE INFO LADIES LESSONS",
+        "quality_score": 62
+      },
+      "membership_post": {
+        "filename": "membership_post",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/membership_post.visual-dna.json",
+        "colors": [
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "[swlc] 2026 MEMBERSHIP R2475 FOR THE REST OF THE YEAR 4X FREE PRACTICE SESSIONS PER MONTH 15% OFF SELECTED BALLS AND GLOVES 15% OFF COACHING SESSIONS 25% OFF FITTINGS FREE MONTHLY WORKSHOPS DM US FOR DETAILS WWW.SWINGSHACK.CO.ZA R2475",
+        "quality_score": 67
+      },
+      "membership_story": {
+        "filename": "membership_story",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/membership_story.visual-dna.json",
+        "colors": [
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "[swlc] 2026 MEMBERSHIP R2475 FOR THE REST OF PHEYEAR 4X FREE PRACTICE SESSIONS PER MONTH 15% OFF SELECTED BALLS AND GLOVES 15% OFF COACHING SESSIONS 25% OFF FITTINGS FREE MONTHLY WORKSHOPS DM US FOR DETAILS WWW.SWINGSHACK.CO.ZA R2475",
+        "quality_score": 66
+      },
+      "mileseey": {
+        "filename": "mileseey",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "green"
+        ],
+        "brands": [
+          "Mileseey"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "MILESEEY GOLF AVAILABLE FOR ORDER wis GOLF AVAILABLE FOR",
+        "quality_score": 73
+      },
+      "mileseey2": {
+        "filename": "mileseey2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey2.visual-dna.json",
+        "colors": [
+          "green",
+          "silver"
+        ],
+        "brands": [
+          "Mileseey"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "MILESEEY GOLF AVAILABLE FOR ORDER swe} GOLF AVAILABLE FOR",
+        "quality_score": 48
+      },
+      "mileseey3 copy": {
+        "filename": "mileseey3 copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey3 copy.visual-dna.json",
+        "colors": [
+          "silver",
+          "green"
+        ],
+        "brands": [
+          "Mileseey"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "MILESEEY GOLF AVAILABLE FOR ORDER ~\u00bb iad ad wi ad = = _ Ss c a wu = w a GOLF AVAILABLE FOR",
+        "quality_score": 66
+      },
+      "mileseey3": {
+        "filename": "mileseey3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey3.visual-dna.json",
+        "colors": [
+          "green",
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "Mileseey"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "MILESEEY GOLF AVAILABLE FOR ORDER GOLF AVAILABLE FOR",
+        "quality_score": 48
+      },
+      "mileseey4": {
+        "filename": "mileseey4",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/mileseey4.visual-dna.json",
+        "colors": [
+          "green",
+          "silver"
+        ],
+        "brands": [
+          "Mileseey"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "MILESEEY GOLF AVAILABLE FOR ORDER GOLF AVAILABLE FOR",
+        "quality_score": 49
+      },
+      "package1_post copy 2": {
+        "filename": "package1_post copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_post copy 2.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "orange",
+          "brown"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "swiNs MONTHLY PACKAGES BIRDIE HUNTER 1 LESSON & UNLIMITED PRACTICE R 2300 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA BIRDIE HUNTER R",
+        "quality_score": 66
+      },
+      "package1_post copy": {
+        "filename": "package1_post copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_post copy.visual-dna.json",
+        "colors": [
+          "silver",
+          "black",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "MONTHLY FACKAGES I DABBLE UNLIMITED PRACTICE R 1800 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA I DABBLE R",
+        "quality_score": 66
+      },
+      "package1_post": {
+        "filename": "package1_post",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_post.visual-dna.json",
+        "colors": [
+          "silver",
+          "green",
+          "black"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "swlNe MONTHLY PACKAGES | AM GOLF WEEKLY LESSON & UNLIMITED PRACTICE R 2850 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA | AM GOLF",
+        "quality_score": 66
+      },
+      "package1_story copy 2": {
+        "filename": "package1_story copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_story copy 2.visual-dna.json",
+        "colors": [
+          "silver",
+          "orange",
+          "black"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "swig) MONTHLY PACKAGES BIRDIE HUNTER 1 LESSON & UNLIMITED PRACTICE R 2300 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA BIRDIE HUNTER R",
+        "quality_score": 55
+      },
+      "package1_story copy": {
+        "filename": "package1_story copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_story copy.visual-dna.json",
+        "colors": [
+          "silver",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "swe) MONTHLY PACKAGES I DABBLE UNLIMITED PRACTICE R 1800 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA I DABBLE R",
+        "quality_score": 65
+      },
+      "package1_story": {
+        "filename": "package1_story",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/package1_story.visual-dna.json",
+        "colors": [
+          "silver",
+          "black",
+          "green"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "swe) MONT Tiga cAGieS | AM GOLF WEEKLY LESSON & UNLIMITED PRACTICE R2 850 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA | AM GOLF",
+        "quality_score": 65
+      },
+      "puttefitting-100": {
+        "filename": "puttefitting-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/puttefitting-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "black",
+          "orange",
+          "yellow"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "DROP MORE PUTTS WITHA PUTTER FITTING PUTTER FITTING",
+        "quality_score": 65
+      },
+      "rc2-100": {
+        "filename": "rc2-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc2-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "10 PLAYERS PER 7EAM SATURDAY 25 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 26 SEPTEMBER INDIVIDUAL MATCHES R250 ENTRY PER PLAYER 10 PLAYERS PER",
+        "quality_score": 55
+      },
+      "rc2": {
+        "filename": "rc2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc2.visual-dna.json",
+        "colors": [
+          "silver",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "10 PLAYERS PER 7EAM SATURDAY 27 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 28 SEPTEMBER INDIVIDUAL MATCHES R250 ENTRY PER PLAYER 10 PLAYERS PER",
+        "quality_score": 55
+      },
+      "rc3-100": {
+        "filename": "rc3-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc3-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "red",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "ARE YOU READY? DM US TO ENTER & SELECT YOUR TEAM ARE YOU READY?",
+        "quality_score": 47
+      },
+      "rc3": {
+        "filename": "rc3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc3.visual-dna.json",
+        "colors": [
+          "silver",
+          "red",
+          "blue"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "ARE YOU READY? DM US TO ENTER & SELECT YOUR TEAM ARE YOU READY?",
+        "quality_score": 47
+      },
+      "rc_static copy 2": {
+        "filename": "rc_static copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_static copy 2.visual-dna.json",
+        "colors": [
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "=] RYDER CUP 27 & 28 SEPTEMBER SATURDAY 27 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 28 SEPTEMBER INDIVIDUAL MATCHES DM US FOR MORE INFO RYDER CUP",
+        "quality_score": 55
+      },
+      "rc_static copy": {
+        "filename": "rc_static copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_static copy.visual-dna.json",
+        "colors": [
+          "silver",
+          "red"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "= RYDER CUP | 27 & 28 SEPTEMBER SATURDAY 27 SEPTEMBER ALTERNATE SHOT | SCRAMBLE SUNDAY 28 SEPTEMBER INDIVIDUAL MATCHES DM US FOR MORE INFO = RYDER CUP",
+        "quality_score": 55
+      },
+      "rc_static-100": {
+        "filename": "rc_static-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_static-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "blue",
+          "red"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "\u2018st. RYDER'CUP_ 25 & 26 SEPTEMBER 10 PLAYERS PER JEAM SATURDAY 25 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 26 SEPTEMBER INDIVIDUAL MATCHES R250 ENTRY PER PLAYER 10 PLAYERS PER",
+        "quality_score": 55
+      },
+      "rc_static": {
+        "filename": "rc_static",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_static.visual-dna.json",
+        "colors": [
+          "silver",
+          "blue",
+          "red"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "\u2018st. RYDER CUP. 17 & 28 SEPTEMBER 10 PLAYERS PER JEAM SATURDAY 27 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 28 SEPTEMBER INDIVIDUAL MATCHES R250 ENTRY PER PLAYER 10 PLAYERS PER",
+        "quality_score": 55
+      },
+      "rc_story-100": {
+        "filename": "rc_story-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_story-100.visual-dna.json",
+        "colors": [
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "\u00ab=| RYDER CUP 25 & 26 SEPTEMBER 10 PLAYERS PER [TEAM SATURDAY 25 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 26 SEPTEMBER INDIVIDUAL MATCHES R250 ENTRY PER PLAYER DM US JO ENTER RYDER CUP",
+        "quality_score": 55
+      },
+      "rc_story": {
+        "filename": "rc_story",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/rc_story.visual-dna.json",
+        "colors": [
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "=| RYDER CUP 27 & 28 SEPTEMBER 10 PLAYERS PER [TEAM SATURDAY 25 SEPTEMBER ALTERNATE SHOT SCRAMBLE SUNDAY 26 SEPTEMBER INDIVIDUAL MATCHES R250 ENTRY PER PLAYER DM US JO ENTER RYDER CUP",
+        "quality_score": 55
+      },
+      "social_lab1_story copy 2": {
+        "filename": "social_lab1_story copy 2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/social_lab1_story copy 2.visual-dna.json",
+        "colors": [
+          "black",
+          "silver",
+          "yellow"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "WIN A LAB O2Z.1 R500 ENTRY \u2014 R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED WIN A LAB",
+        "quality_score": 72
+      },
+      "social_lab1_story copy": {
+        "filename": "social_lab1_story copy",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/social_lab1_story copy.visual-dna.json",
+        "colors": [
+          "black",
+          "yellow",
+          "silver"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "WIN A LAB Oz. 1 1 SEPTEMBER - 31 OCTOBER R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED LAB Oz. 1",
+        "quality_score": 61
+      },
+      "ss_post_gts2": {
+        "filename": "ss_post_gts2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_gts2.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "Taheint GIS2 DRIVER 9.0 AVAILABLE @ swlNe DM US FOR DETAILS GIS2 DRIVER 9.0",
+        "quality_score": 55
+      },
+      "ss_post_gts2fw": {
+        "filename": "ss_post_gts2fw",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_gts2fw.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "GIS2 FAIRWAY 15.0 AVAILABLE @ DM US FOR DETAILS GIS2 FAIRWAY 15.0",
+        "quality_score": 55
+      },
+      "ss_post_gts3": {
+        "filename": "ss_post_gts3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_gts3.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "Tae heint GIS3 DRIVER 10.5 AVAILABLE @ DM US FOR DETAILS GIS3 DRIVER 10.5",
+        "quality_score": 55
+      },
+      "ss_post_gts3fw": {
+        "filename": "ss_post_gts3fw",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_gts3fw.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "GIS3 FAIRWAY 15.0 AVAILABLE @ swlNe DM US FOR DETAILS GIS3 FAIRWAY 15.0",
+        "quality_score": 55
+      },
+      "ss_post_newport": {
+        "filename": "ss_post_newport",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_newport.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "Scotty Cameron"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "ee ovr SCOTTY CAMERON NEWPORT SUPER SELECI AVAILABLE @) DM US FOR DETAILS NEWPORT SUPER SELECI",
+        "quality_score": 57
+      },
+      "ss_post_phantom": {
+        "filename": "ss_post_phantom",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_phantom.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "black"
+        ],
+        "brands": [
+          "Scotty Cameron"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "ee ovr SCOTTY CAMERON PHANTOM 5.5 AVAILABLE @ iswiye DM US FOR DETAILS PHANTOM 5.5",
+        "quality_score": 56
+      },
+      "ss_post_t250": {
+        "filename": "ss_post_t250",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_t250.visual-dna.json",
+        "colors": [
+          "silver",
+          "white",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "Tae heint 1250 IRON SET - S300 - 4-PW AVAILABLE @ DM US FOR DETAILS -",
+        "quality_score": 62
+      },
+      "ss_post_vokey": {
+        "filename": "ss_post_vokey",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_post_vokey.visual-dna.json",
+        "colors": [
+          "silver",
+          "white",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "ES AVAILABLE @ [Sw/NG] ES",
+        "quality_score": 62
+      },
+      "ss_story_gts2": {
+        "filename": "ss_story_gts2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_gts2.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "Tahaint GIS? DRIVER 9.0 AVAILABLE @ iswiyg DM US FOR DETAILS GIS? DRIVER 9.0",
+        "quality_score": 55
+      },
+      "ss_story_gts2fw": {
+        "filename": "ss_story_gts2fw",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_gts2fw.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "GIS? FAIRWAY 15.0 AVAILABLE @ DM US FOR DETAILS FAIRWAY 15.0",
+        "quality_score": 55
+      },
+      "ss_story_gts3": {
+        "filename": "ss_story_gts3",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_gts3.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "Tahaint GIS3 DRIVER 10.5 AVAILABLE @) DM US FOR DETAILS GIS3 DRIVER 10.5",
+        "quality_score": 55
+      },
+      "ss_story_gts3fw": {
+        "filename": "ss_story_gts3fw",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_gts3fw.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "GTS Putter"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "GIS3 FAIRWAY 15.0 AVAILABLE @ DM US FOR DETAILS GIS3 FAIRWAY 15.0",
+        "quality_score": 55
+      },
+      "ss_story_newport": {
+        "filename": "ss_story_newport",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_newport.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray"
+        ],
+        "brands": [
+          "Scotty Cameron"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional"
+        ],
+        "text": "ee ov Aa SCOTTY CAMERON NEWPORT SUPER SELECI AVAILABLE ) DM US FOR DETAILS MAY Pi | i sn ef NEWPORT SUPER SELECI",
+        "quality_score": 53
+      },
+      "ss_story_phantom": {
+        "filename": "ss_story_phantom",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_phantom.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "black"
+        ],
+        "brands": [
+          "Scotty Cameron"
+        ],
+        "objects": [
+          "product",
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "efe oy Aa SCOTTY CAMERON PHANTOM 5.5 AVAILABLE @ iswive DM US FOR DETAILS PHANTOM 5.5",
+        "quality_score": 56
+      },
+      "ss_story_t250": {
+        "filename": "ss_story_t250",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_t250.visual-dna.json",
+        "colors": [
+          "silver",
+          "gray",
+          "white"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "Tatheiat: 1250 IRON SET - S300 - 4-PW AVAILABLE @ swlN DM US FOR DETAILS <=aSa9yo03 -",
+        "quality_score": 62
+      },
+      "ss_story_vokey": {
+        "filename": "ss_story_vokey",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/ss_story_vokey.visual-dna.json",
+        "colors": [
+          "silver",
+          "white",
+          "gray"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay"
+        ],
+        "composition_tags": [
+          "portrait",
+          "low-detail"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "\u2014\u2014_ // / -\u2014- VOKEY DESIGN VOKEY WEDGES AVAILABLE @ swe VOKEY WEDGES",
+        "quality_score": 62
+      },
+      "takomo": {
+        "filename": "takomo",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/takomo.visual-dna.json",
+        "colors": [
+          "silver",
+          "yellow",
+          "gray"
+        ],
+        "brands": [
+          "Takomo"
+        ],
+        "objects": [
+          "product"
+        ],
+        "composition_tags": [
+          "right-aligned",
+          "square"
+        ],
+        "mood": [
+          "neutral"
+        ],
+        "text": "",
+        "quality_score": 70
+      },
+      "vice_irons copy 2-100": {
+        "filename": "vice_irons copy 2-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy 2-100.visual-dna.json",
+        "colors": [
+          "white",
+          "gray",
+          "black"
+        ],
+        "brands": [
+          "Vice"
+        ],
+        "objects": [
+          "product",
+          "text-overlay",
+          "minimal"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "clean",
+          "luxurious"
+        ],
+        "text": "@ SWING SHACK SHACK",
+        "quality_score": 44
+      },
+      "vice_irons copy 3-100": {
+        "filename": "vice_irons copy 3-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy 3-100.visual-dna.json",
+        "colors": [
+          "white",
+          "gray",
+          "black"
+        ],
+        "brands": [
+          "Vice"
+        ],
+        "objects": [
+          "product",
+          "text-overlay",
+          "minimal"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "clean",
+          "luxurious"
+        ],
+        "text": "COME AND SEE WHAT THE HYPE IS ABOUT COME AND SEE",
+        "quality_score": 45
+      },
+      "vice_irons copy 4-100": {
+        "filename": "vice_irons copy 4-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy 4-100.visual-dna.json",
+        "colors": [
+          "white",
+          "gray"
+        ],
+        "brands": [
+          "Vice"
+        ],
+        "objects": [
+          "product",
+          "text-overlay",
+          "minimal"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "clean"
+        ],
+        "text": "GOLF AVAILABLE \u00a7 @ SWING SHACK : \u00a7",
+        "quality_score": 46
+      },
+      "vice_irons copy 5-100": {
+        "filename": "vice_irons copy 5-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy 5-100.visual-dna.json",
+        "colors": [
+          "white",
+          "gray"
+        ],
+        "brands": [
+          "Vice"
+        ],
+        "objects": [
+          "product",
+          "text-overlay",
+          "minimal"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "clean"
+        ],
+        "text": "FULL WEDGE RANGE COME AND SEE WHAT THE HYPE IS ABOUT FULL WEDGE RANGE",
+        "quality_score": 45
+      },
+      "vice_irons copy-100": {
+        "filename": "vice_irons copy-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons copy-100.visual-dna.json",
+        "colors": [
+          "white",
+          "gray"
+        ],
+        "brands": [
+          "Vice"
+        ],
+        "objects": [
+          "product",
+          "text-overlay",
+          "minimal"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "clean"
+        ],
+        "text": "COME AND SEE WHAT THE HYPE IS ABOUT COME AND SEE",
+        "quality_score": 45
+      },
+      "vice_irons-100": {
+        "filename": "vice_irons-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/vice_irons-100.visual-dna.json",
+        "colors": [
+          "white",
+          "gray"
+        ],
+        "brands": [
+          "Vice"
+        ],
+        "objects": [
+          "product",
+          "text-overlay",
+          "minimal"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "clean"
+        ],
+        "text": "@ SWING SHACK @ SWING SHACK",
+        "quality_score": 45
+      },
+      "wedgecomp1": {
+        "filename": "wedgecomp1",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/wedgecomp1.visual-dna.json",
+        "colors": [
+          "white",
+          "gray",
+          "purple"
+        ],
+        "brands": [],
+        "objects": [
+          "text-overlay",
+          "minimal"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "clean",
+          "playful"
+        ],
+        "text": "WIN A SET OF FITTED WEDGES 1 DECEMBER - 28 FEBRUARY R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED WIN A SET",
+        "quality_score": 56
+      },
+      "wedgecomp2": {
+        "filename": "wedgecomp2",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/wedgecomp2.visual-dna.json",
+        "colors": [
+          "white",
+          "gray",
+          "purple"
+        ],
+        "brands": [
+          "Takomo",
+          "Vice"
+        ],
+        "objects": [
+          "product",
+          "text-overlay",
+          "minimal"
+        ],
+        "composition_tags": [
+          "left-aligned",
+          "landscape",
+          "low-detail"
+        ],
+        "mood": [
+          "clean",
+          "playful"
+        ],
+        "text": "WIN A SET OF CUSTOM FITTED TAKOMO OR VICE WEDGES 1 DECEMBER - 28 FEBRUARY R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED +5 - 25 HANDICAP COMP : STROKE NET SAND RIVER PAR 3 COURSE ENTER IN STORE WIN A SET",
+        "quality_score": 55
+      },
+      "zenstage-100": {
+        "filename": "zenstage-100",
+        "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/swing-shack/images/zenstage-100.visual-dna.json",
+        "colors": [
+          "silver",
+          "black",
+          "green"
+        ],
+        "brands": [
+          "Zen Swing Stage"
+        ],
+        "objects": [
+          "product"
+        ],
+        "composition_tags": [
+          "square",
+          "low-detail"
+        ],
+        "mood": [
+          "calm",
+          "professional",
+          "luxurious"
+        ],
+        "text": "",
+        "quality_score": 64
+      }
+    },
+    "by_color": {
+      "silver": [
+        "Artboard 1 copy 2",
+        "Artboard 1 copy 3",
+        "Artboard 1 copy",
+        "Artboard 1",
+        "Artboard 2 copy",
+        "Artboard 2",
+        "Artboard 3",
+        "Artboard 4",
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5",
+        "Quantammini1 copy 2",
+        "Quantammini1 copy",
+        "Quantammini1",
+        "RC1-100",
+        "RC1",
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3",
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3",
+        "VICEBAG copy 2",
+        "VICEBAG copy 3",
+        "beginnerlessons-100",
+        "blackfriday copy 2",
+        "blackfriday copy 4",
+        "blackfriday copy 5",
+        "blackfriday copy",
+        "cf1 copy 3",
+        "cf2 copy",
+        "cf3 copy",
+        "cf4 copy",
+        "cf5 copy",
+        "cf6 copy",
+        "coaching_post",
+        "coaching_post2",
+        "coaching_story",
+        "coaching_story2",
+        "coachinpackages_post",
+        "coachinpackages_story",
+        "fitting_discount_post",
+        "fitting_discount_story",
+        "fitting_gts1",
+        "fitting_gts2",
+        "fitting_gts3",
+        "fitting_gts4",
+        "fitting_gts_story",
+        "fitting_gts_story2",
+        "fitting_gts_story3",
+        "fitting_gts_story4",
+        "fitting_post1",
+        "fitting_post2",
+        "fitting_story1",
+        "fitting_story3",
+        "frame1",
+        "fullrange copy 2-100",
+        "fullrange copy 3-100",
+        "fullrange copy 4-100",
+        "fullrange copy 5-100",
+        "fullrange copy 6-100",
+        "fullrange copy 7-100",
+        "fullrange copy 8-100",
+        "fullrange copy-100",
+        "ironfitting-100",
+        "juniorlessons-100",
+        "ladiesclinic-100",
+        "ladiesclinic2-100",
+        "ladieslessons-100",
+        "membership_post",
+        "membership_story",
+        "mileseey",
+        "mileseey2",
+        "mileseey3 copy",
+        "mileseey3",
+        "mileseey4",
+        "package1_post copy 2",
+        "package1_post copy",
+        "package1_post",
+        "package1_story copy 2",
+        "package1_story copy",
+        "package1_story",
+        "puttefitting-100",
+        "rc2-100",
+        "rc2",
+        "rc3-100",
+        "rc3",
+        "rc_static copy 2",
+        "rc_static copy",
+        "rc_static-100",
+        "rc_static",
+        "rc_story-100",
+        "rc_story",
+        "social_lab1_story copy 2",
+        "social_lab1_story copy",
+        "ss_post_gts2",
+        "ss_post_gts2fw",
+        "ss_post_gts3",
+        "ss_post_gts3fw",
+        "ss_post_newport",
+        "ss_post_phantom",
+        "ss_post_t250",
+        "ss_post_vokey",
+        "ss_story_gts2",
+        "ss_story_gts2fw",
+        "ss_story_gts3",
+        "ss_story_gts3fw",
+        "ss_story_newport",
+        "ss_story_phantom",
+        "ss_story_t250",
+        "ss_story_vokey",
+        "takomo",
+        "zenstage-100"
+      ],
+      "green": [
+        "Artboard 1 copy 2",
+        "Artboard 1 copy 3",
+        "Artboard 2 copy",
+        "Quantammini1",
+        "cf1 copy 3",
+        "cf5 copy",
+        "coaching_post2",
+        "coaching_story2",
+        "coachinpackages_post",
+        "coachinpackages_story",
+        "mileseey",
+        "mileseey2",
+        "mileseey3 copy",
+        "mileseey3",
+        "mileseey4",
+        "package1_post",
+        "package1_story",
+        "zenstage-100"
+      ],
+      "orange": [
+        "Artboard 1 copy",
+        "Artboard 2",
+        "blackfriday copy 2",
+        "blackfriday copy 3",
+        "cf2 copy",
+        "cf6 copy",
+        "coaching_post",
+        "coaching_story",
+        "package1_post copy 2",
+        "package1_story copy 2",
+        "puttefitting-100"
+      ],
+      "gray": [
+        "Artboard 1 copy",
+        "Artboard 1",
+        "Artboard 2",
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5",
+        "Quantammini1 copy 2",
+        "Quantammini1 copy",
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3",
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3",
+        "blackfriday copy 2",
+        "blackfriday copy 3",
+        "blackfriday copy 4",
+        "blackfriday copy 5",
+        "blackfriday copy",
+        "cf1 copy 3",
+        "cf3 copy",
+        "fitting_gts1",
+        "fitting_gts3",
+        "fitting_gts4",
+        "fitting_gts_story",
+        "fitting_gts_story2",
+        "fitting_gts_story3",
+        "fitting_gts_story4",
+        "fullrange copy 2-100",
+        "fullrange copy 3-100",
+        "fullrange copy 4-100",
+        "fullrange copy 5-100",
+        "fullrange copy 7-100",
+        "fullrange copy 8-100",
+        "fullrange copy-100",
+        "ironfitting-100",
+        "juniorlessons-100",
+        "ladiesclinic2-100",
+        "ladieslessons-100",
+        "mileseey",
+        "mileseey3",
+        "ss_post_gts2",
+        "ss_post_gts2fw",
+        "ss_post_gts3",
+        "ss_post_gts3fw",
+        "ss_post_newport",
+        "ss_post_phantom",
+        "ss_post_t250",
+        "ss_post_vokey",
+        "ss_story_gts2",
+        "ss_story_gts2fw",
+        "ss_story_gts3",
+        "ss_story_gts3fw",
+        "ss_story_newport",
+        "ss_story_phantom",
+        "ss_story_t250",
+        "ss_story_vokey",
+        "takomo",
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "vice_irons copy 4-100",
+        "vice_irons copy 5-100",
+        "vice_irons copy-100",
+        "vice_irons-100",
+        "wedgecomp1",
+        "wedgecomp2"
+      ],
+      "brown": [
+        "Artboard 1 copy",
+        "Artboard 2",
+        "cf3 copy",
+        "cf6 copy",
+        "coaching_post",
+        "package1_post copy 2"
+      ],
+      "red": [
+        "Artboard 1",
+        "RC1-100",
+        "RC1",
+        "rc3-100",
+        "rc3",
+        "rc_static copy",
+        "rc_static-100",
+        "rc_static"
+      ],
+      "teal": [
+        "Artboard 2 copy",
+        "Artboard 3",
+        "Artboard 4",
+        "fullrange copy 5-100"
+      ],
+      "white": [
+        "Artboard 2",
+        "Quantammini1 copy 2",
+        "Quantammini1 copy",
+        "fitting_gts2",
+        "fitting_gts3",
+        "fitting_gts_story3",
+        "ss_post_t250",
+        "ss_post_vokey",
+        "ss_story_t250",
+        "ss_story_vokey",
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "vice_irons copy 4-100",
+        "vice_irons copy 5-100",
+        "vice_irons copy-100",
+        "vice_irons-100",
+        "wedgecomp1",
+        "wedgecomp2"
+      ],
+      "blue": [
+        "Artboard 4",
+        "RC1-100",
+        "RC1",
+        "blackfriday copy 3",
+        "cf3 copy",
+        "fitting_post1",
+        "fitting_story1",
+        "fullrange copy 5-100",
+        "ironfitting-100",
+        "package1_post copy",
+        "package1_story copy",
+        "rc2-100",
+        "rc2",
+        "rc3-100",
+        "rc3",
+        "rc_static-100",
+        "rc_static"
+      ],
+      "black": [
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5",
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3",
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3",
+        "VICEBAG copy 2",
+        "beginnerlessons-100",
+        "blackfriday copy",
+        "cf1 copy 3",
+        "cf2 copy",
+        "cf3 copy",
+        "cf4 copy",
+        "cf6 copy",
+        "coachinpackages_post",
+        "fitting_post1",
+        "fitting_post2",
+        "fitting_story1",
+        "fullrange copy 5-100",
+        "fullrange copy 6-100",
+        "fullrange copy 8-100",
+        "fullrange copy-100",
+        "ironfitting-100",
+        "ladiesclinic-100",
+        "ladiesclinic2-100",
+        "ladieslessons-100",
+        "package1_post copy 2",
+        "package1_post copy",
+        "package1_post",
+        "package1_story copy 2",
+        "package1_story",
+        "puttefitting-100",
+        "social_lab1_story copy 2",
+        "social_lab1_story copy",
+        "ss_post_phantom",
+        "ss_story_phantom",
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "zenstage-100"
+      ],
+      "purple": [
+        "cf4 copy",
+        "fitting_post2",
+        "fitting_story3",
+        "ladiesclinic-100",
+        "wedgecomp1",
+        "wedgecomp2"
+      ],
+      "yellow": [
+        "puttefitting-100",
+        "social_lab1_story copy 2",
+        "social_lab1_story copy",
+        "takomo"
+      ]
+    },
+    "by_brand": {
+      "Jordan Bag": [
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5"
+      ],
+      "Jordan": [
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5"
+      ],
+      "Callaway": [
+        "Quantammini1 copy 2",
+        "Quantammini1 copy",
+        "Quantammini1"
+      ],
+      "Callaway Quantum": [
+        "Quantammini1 copy 2",
+        "Quantammini1 copy",
+        "Quantammini1"
+      ],
+      "Srixon Bag": [
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3"
+      ],
+      "Srixon": [
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3"
+      ],
+      "Vessel Bag": [
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3"
+      ],
+      "Vessel": [
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3"
+      ],
+      "Vice Bag": [
+        "VICEBAG copy 2",
+        "VICEBAG copy 3"
+      ],
+      "Vice": [
+        "VICEBAG copy 2",
+        "VICEBAG copy 3",
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "vice_irons copy 4-100",
+        "vice_irons copy 5-100",
+        "vice_irons copy-100",
+        "vice_irons-100",
+        "wedgecomp2"
+      ],
+      "GTS Putter": [
+        "beginnerlessons-100",
+        "fitting_gts1",
+        "fitting_gts2",
+        "fitting_gts3",
+        "fitting_gts4",
+        "fitting_gts_story",
+        "fitting_gts_story2",
+        "fitting_gts_story3",
+        "fitting_gts_story4",
+        "ladieslessons-100",
+        "ss_post_gts2",
+        "ss_post_gts2fw",
+        "ss_post_gts3",
+        "ss_post_gts3fw",
+        "ss_story_gts2",
+        "ss_story_gts2fw",
+        "ss_story_gts3",
+        "ss_story_gts3fw"
+      ],
+      "TrackMan": [
+        "beginnerlessons-100",
+        "ladieslessons-100"
+      ],
+      "Zen Swing Stage": [
+        "beginnerlessons-100",
+        "ladieslessons-100",
+        "zenstage-100"
+      ],
+      "Trackman": [
+        "beginnerlessons-100",
+        "ladieslessons-100"
+      ],
+      "Zen Swing": [
+        "beginnerlessons-100",
+        "ladieslessons-100"
+      ],
+      "Mileseey": [
+        "mileseey",
+        "mileseey2",
+        "mileseey3 copy",
+        "mileseey3",
+        "mileseey4"
+      ],
+      "Scotty Cameron": [
+        "ss_post_newport",
+        "ss_post_phantom",
+        "ss_story_newport",
+        "ss_story_phantom"
+      ],
+      "Takomo": [
+        "takomo",
+        "wedgecomp2"
+      ]
+    },
+    "by_object": {
+      "text-overlay": [
+        "Artboard 1 copy 2",
+        "Artboard 1 copy 3",
+        "Artboard 2 copy",
+        "Artboard 2",
+        "Artboard 3",
+        "Artboard 4",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5",
+        "Quantammini1 copy 2",
+        "Quantammini1 copy",
+        "Quantammini1",
+        "RC1-100",
+        "RC1",
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3",
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3",
+        "VICEBAG copy 2",
+        "VICEBAG copy 3",
+        "beginnerlessons-100",
+        "blackfriday copy 2",
+        "blackfriday copy 3",
+        "blackfriday copy 4",
+        "blackfriday copy 5",
+        "blackfriday copy",
+        "cf3 copy",
+        "cf6 copy",
+        "coaching_post",
+        "coaching_post2",
+        "coaching_story",
+        "coaching_story2",
+        "coachinpackages_post",
+        "coachinpackages_story",
+        "fitting_discount_post",
+        "fitting_discount_story",
+        "fitting_gts1",
+        "fitting_gts2",
+        "fitting_gts3",
+        "fitting_gts4",
+        "fitting_gts_story",
+        "fitting_gts_story3",
+        "fitting_gts_story4",
+        "fitting_post1",
+        "fitting_post2",
+        "fitting_story1",
+        "fitting_story3",
+        "frame1",
+        "fullrange copy 2-100",
+        "fullrange copy 3-100",
+        "fullrange copy 4-100",
+        "fullrange copy 5-100",
+        "fullrange copy 7-100",
+        "fullrange copy 8-100",
+        "fullrange copy-100",
+        "ironfitting-100",
+        "juniorlessons-100",
+        "ladiesclinic-100",
+        "ladiesclinic2-100",
+        "ladieslessons-100",
+        "membership_post",
+        "membership_story",
+        "mileseey",
+        "mileseey2",
+        "mileseey3 copy",
+        "mileseey3",
+        "mileseey4",
+        "package1_post copy 2",
+        "package1_post copy",
+        "package1_post",
+        "package1_story copy 2",
+        "package1_story copy",
+        "package1_story",
+        "puttefitting-100",
+        "rc2-100",
+        "rc2",
+        "rc3-100",
+        "rc3",
+        "rc_static copy 2",
+        "rc_static copy",
+        "rc_static-100",
+        "rc_static",
+        "rc_story-100",
+        "rc_story",
+        "social_lab1_story copy 2",
+        "social_lab1_story copy",
+        "ss_post_gts2",
+        "ss_post_gts2fw",
+        "ss_post_gts3",
+        "ss_post_gts3fw",
+        "ss_post_newport",
+        "ss_post_phantom",
+        "ss_post_t250",
+        "ss_post_vokey",
+        "ss_story_gts2",
+        "ss_story_gts2fw",
+        "ss_story_gts3",
+        "ss_story_gts3fw",
+        "ss_story_newport",
+        "ss_story_phantom",
+        "ss_story_t250",
+        "ss_story_vokey",
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "vice_irons copy 4-100",
+        "vice_irons copy 5-100",
+        "vice_irons copy-100",
+        "vice_irons-100",
+        "wedgecomp1",
+        "wedgecomp2"
+      ],
+      "product": [
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5",
+        "Quantammini1 copy 2",
+        "Quantammini1 copy",
+        "Quantammini1",
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3",
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3",
+        "VICEBAG copy 2",
+        "VICEBAG copy 3",
+        "beginnerlessons-100",
+        "fitting_gts1",
+        "fitting_gts2",
+        "fitting_gts3",
+        "fitting_gts4",
+        "fitting_gts_story",
+        "fitting_gts_story2",
+        "fitting_gts_story3",
+        "fitting_gts_story4",
+        "ladieslessons-100",
+        "mileseey",
+        "mileseey2",
+        "mileseey3 copy",
+        "mileseey3",
+        "mileseey4",
+        "ss_post_gts2",
+        "ss_post_gts2fw",
+        "ss_post_gts3",
+        "ss_post_gts3fw",
+        "ss_post_newport",
+        "ss_post_phantom",
+        "ss_story_gts2",
+        "ss_story_gts2fw",
+        "ss_story_gts3",
+        "ss_story_gts3fw",
+        "ss_story_newport",
+        "ss_story_phantom",
+        "takomo",
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "vice_irons copy 4-100",
+        "vice_irons copy 5-100",
+        "vice_irons copy-100",
+        "vice_irons-100",
+        "wedgecomp2",
+        "zenstage-100"
+      ],
+      "minimal": [
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "vice_irons copy 4-100",
+        "vice_irons copy 5-100",
+        "vice_irons copy-100",
+        "vice_irons-100",
+        "wedgecomp1",
+        "wedgecomp2"
+      ]
+    },
+    "by_mood": {
+      "calm": [
+        "Artboard 1 copy 2",
+        "Artboard 1 copy 3",
+        "Artboard 1",
+        "Artboard 2 copy",
+        "Artboard 3",
+        "Artboard 4",
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5",
+        "Quantammini1",
+        "RC1-100",
+        "RC1",
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3",
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3",
+        "VICEBAG copy 2",
+        "VICEBAG copy 3",
+        "beginnerlessons-100",
+        "blackfriday copy 2",
+        "blackfriday copy 3",
+        "blackfriday copy 4",
+        "blackfriday copy 5",
+        "blackfriday copy",
+        "cf1 copy 3",
+        "cf2 copy",
+        "cf3 copy",
+        "cf4 copy",
+        "cf5 copy",
+        "cf6 copy",
+        "coaching_post",
+        "coaching_post2",
+        "coaching_story",
+        "coaching_story2",
+        "coachinpackages_post",
+        "coachinpackages_story",
+        "fitting_discount_post",
+        "fitting_discount_story",
+        "fitting_gts2",
+        "fitting_gts_story2",
+        "fitting_post1",
+        "fitting_post2",
+        "fitting_story1",
+        "fitting_story3",
+        "frame1",
+        "fullrange copy 2-100",
+        "fullrange copy 3-100",
+        "fullrange copy 4-100",
+        "fullrange copy 5-100",
+        "fullrange copy 6-100",
+        "fullrange copy 7-100",
+        "fullrange copy 8-100",
+        "fullrange copy-100",
+        "ironfitting-100",
+        "juniorlessons-100",
+        "ladiesclinic-100",
+        "ladiesclinic2-100",
+        "ladieslessons-100",
+        "membership_post",
+        "membership_story",
+        "mileseey3 copy",
+        "mileseey3",
+        "mileseey4",
+        "package1_post copy 2",
+        "package1_post copy",
+        "package1_post",
+        "package1_story copy 2",
+        "package1_story copy",
+        "package1_story",
+        "puttefitting-100",
+        "rc2-100",
+        "rc2",
+        "rc3-100",
+        "rc3",
+        "rc_static copy 2",
+        "rc_static copy",
+        "rc_static-100",
+        "rc_static",
+        "rc_story-100",
+        "rc_story",
+        "social_lab1_story copy 2",
+        "social_lab1_story copy",
+        "ss_post_gts2",
+        "ss_post_gts3",
+        "ss_post_gts3fw",
+        "ss_post_newport",
+        "ss_post_phantom",
+        "ss_story_gts2",
+        "ss_story_gts2fw",
+        "ss_story_gts3",
+        "ss_story_gts3fw",
+        "ss_story_newport",
+        "ss_story_phantom",
+        "zenstage-100"
+      ],
+      "professional": [
+        "Artboard 1 copy 2",
+        "Artboard 1 copy 3",
+        "Artboard 1",
+        "Artboard 2 copy",
+        "Artboard 3",
+        "Artboard 4",
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5",
+        "Quantammini1",
+        "RC1-100",
+        "RC1",
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3",
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3",
+        "VICEBAG copy 2",
+        "VICEBAG copy 3",
+        "beginnerlessons-100",
+        "blackfriday copy 2",
+        "blackfriday copy 3",
+        "blackfriday copy 4",
+        "blackfriday copy 5",
+        "blackfriday copy",
+        "cf1 copy 3",
+        "cf2 copy",
+        "cf3 copy",
+        "cf4 copy",
+        "cf5 copy",
+        "cf6 copy",
+        "coaching_post",
+        "coaching_post2",
+        "coaching_story",
+        "coaching_story2",
+        "coachinpackages_post",
+        "coachinpackages_story",
+        "fitting_discount_post",
+        "fitting_discount_story",
+        "fitting_gts2",
+        "fitting_gts_story2",
+        "fitting_post1",
+        "fitting_post2",
+        "fitting_story1",
+        "fitting_story3",
+        "frame1",
+        "fullrange copy 2-100",
+        "fullrange copy 3-100",
+        "fullrange copy 4-100",
+        "fullrange copy 5-100",
+        "fullrange copy 6-100",
+        "fullrange copy 7-100",
+        "fullrange copy 8-100",
+        "fullrange copy-100",
+        "ironfitting-100",
+        "juniorlessons-100",
+        "ladiesclinic-100",
+        "ladiesclinic2-100",
+        "ladieslessons-100",
+        "membership_post",
+        "membership_story",
+        "mileseey3 copy",
+        "mileseey3",
+        "mileseey4",
+        "package1_post copy 2",
+        "package1_post copy",
+        "package1_post",
+        "package1_story copy 2",
+        "package1_story copy",
+        "package1_story",
+        "puttefitting-100",
+        "rc2-100",
+        "rc2",
+        "rc3-100",
+        "rc3",
+        "rc_static copy 2",
+        "rc_static copy",
+        "rc_static-100",
+        "rc_static",
+        "rc_story-100",
+        "rc_story",
+        "social_lab1_story copy 2",
+        "social_lab1_story copy",
+        "ss_post_gts2",
+        "ss_post_gts3",
+        "ss_post_gts3fw",
+        "ss_post_newport",
+        "ss_post_phantom",
+        "ss_story_gts2",
+        "ss_story_gts2fw",
+        "ss_story_gts3",
+        "ss_story_gts3fw",
+        "ss_story_newport",
+        "ss_story_phantom",
+        "zenstage-100"
+      ],
+      "neutral": [
+        "Artboard 1 copy",
+        "Artboard 2",
+        "Quantammini1 copy 2",
+        "Quantammini1 copy",
+        "fitting_gts1",
+        "fitting_gts3",
+        "fitting_gts4",
+        "fitting_gts_story",
+        "fitting_gts_story3",
+        "fitting_gts_story4",
+        "mileseey",
+        "mileseey2",
+        "ss_post_gts2fw",
+        "ss_post_t250",
+        "ss_post_vokey",
+        "ss_story_t250",
+        "ss_story_vokey",
+        "takomo"
+      ],
+      "luxurious": [
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5",
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3",
+        "VESSELBAG_STAFF copy 2",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 2",
+        "VESSEL_BAG copy 3",
+        "VICEBAG copy 2",
+        "beginnerlessons-100",
+        "blackfriday copy",
+        "cf1 copy 3",
+        "cf2 copy",
+        "cf3 copy",
+        "cf4 copy",
+        "cf6 copy",
+        "coachinpackages_post",
+        "fitting_post1",
+        "fitting_post2",
+        "fitting_story1",
+        "fullrange copy 5-100",
+        "fullrange copy 6-100",
+        "fullrange copy 8-100",
+        "fullrange copy-100",
+        "ironfitting-100",
+        "ladiesclinic-100",
+        "ladiesclinic2-100",
+        "ladieslessons-100",
+        "package1_post copy 2",
+        "package1_post copy",
+        "package1_post",
+        "package1_story copy 2",
+        "package1_story",
+        "puttefitting-100",
+        "social_lab1_story copy 2",
+        "social_lab1_story copy",
+        "ss_post_phantom",
+        "ss_story_phantom",
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "zenstage-100"
+      ],
+      "playful": [
+        "cf4 copy",
+        "fitting_post2",
+        "fitting_story3",
+        "ladiesclinic-100",
+        "wedgecomp1",
+        "wedgecomp2"
+      ],
+      "clean": [
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "vice_irons copy 4-100",
+        "vice_irons copy 5-100",
+        "vice_irons copy-100",
+        "vice_irons-100",
+        "wedgecomp1",
+        "wedgecomp2"
+      ]
+    },
+    "by_quality": {
+      "high": [],
+      "mid": [
+        "Artboard 1 copy 2",
+        "Artboard 1 copy 3",
+        "Artboard 1 copy",
+        "Artboard 1",
+        "Artboard 2 copy",
+        "Artboard 2",
+        "Artboard 3",
+        "Artboard 4",
+        "JORDAN_BAG copy 3",
+        "JORDAN_BAG copy 4",
+        "JORDAN_BAG copy 5",
+        "Quantammini1",
+        "RC1-100",
+        "RC1",
+        "SRIXON_BAG copy 2",
+        "SRIXON_BAG copy 3",
+        "VESSELBAG_STAFF copy 3",
+        "VESSEL_BAG copy 3",
+        "VICEBAG copy 2",
+        "VICEBAG copy 3",
+        "beginnerlessons-100",
+        "blackfriday copy 2",
+        "blackfriday copy 3",
+        "blackfriday copy 4",
+        "blackfriday copy 5",
+        "blackfriday copy",
+        "cf1 copy 3",
+        "cf2 copy",
+        "cf3 copy",
+        "cf4 copy",
+        "cf5 copy",
+        "cf6 copy",
+        "coaching_post",
+        "coaching_post2",
+        "coaching_story",
+        "coaching_story2",
+        "coachinpackages_post",
+        "coachinpackages_story",
+        "fitting_discount_post",
+        "fitting_discount_story",
+        "fitting_gts1",
+        "fitting_gts2",
+        "fitting_gts3",
+        "fitting_gts4",
+        "fitting_gts_story",
+        "fitting_gts_story2",
+        "fitting_gts_story3",
+        "fitting_gts_story4",
+        "fitting_post1",
+        "fitting_post2",
+        "fitting_story1",
+        "fitting_story3",
+        "frame1",
+        "fullrange copy 2-100",
+        "fullrange copy 3-100",
+        "fullrange copy 4-100",
+        "fullrange copy 6-100",
+        "fullrange copy 7-100",
+        "fullrange copy 8-100",
+        "fullrange copy-100",
+        "juniorlessons-100",
+        "ladiesclinic-100",
+        "ladiesclinic2-100",
+        "ladieslessons-100",
+        "membership_post",
+        "membership_story",
+        "mileseey",
+        "mileseey3 copy",
+        "package1_post copy 2",
+        "package1_post copy",
+        "package1_post",
+        "package1_story copy 2",
+        "package1_story copy",
+        "package1_story",
+        "puttefitting-100",
+        "rc2-100",
+        "rc2",
+        "rc_static copy 2",
+        "rc_static copy",
+        "rc_static-100",
+        "rc_static",
+        "rc_story-100",
+        "rc_story",
+        "social_lab1_story copy 2",
+        "social_lab1_story copy",
+        "ss_post_gts2",
+        "ss_post_gts2fw",
+        "ss_post_gts3",
+        "ss_post_gts3fw",
+        "ss_post_newport",
+        "ss_post_phantom",
+        "ss_post_t250",
+        "ss_post_vokey",
+        "ss_story_gts2",
+        "ss_story_gts2fw",
+        "ss_story_gts3",
+        "ss_story_gts3fw",
+        "ss_story_newport",
+        "ss_story_phantom",
+        "ss_story_t250",
+        "ss_story_vokey",
+        "takomo",
+        "wedgecomp1",
+        "wedgecomp2",
+        "zenstage-100"
+      ],
+      "low": [
+        "Quantammini1 copy 2",
+        "Quantammini1 copy",
+        "VESSELBAG_STAFF copy 2",
+        "VESSEL_BAG copy 2",
+        "fullrange copy 5-100",
+        "ironfitting-100",
+        "mileseey2",
+        "mileseey3",
+        "mileseey4",
+        "rc3-100",
+        "rc3",
+        "vice_irons copy 2-100",
+        "vice_irons copy 3-100",
+        "vice_irons copy 4-100",
+        "vice_irons copy 5-100",
+        "vice_irons copy-100",
+        "vice_irons-100"
+      ]
+    }
+  }
+}

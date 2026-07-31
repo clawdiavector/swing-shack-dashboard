@@ -179,5 +179,105 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "white",
+      "gray",
+      "purple"
+    ],
+    "brands": [
+      "Takomo",
+      "Vice"
+    ],
+    "objects": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ],
+    "composition_tags": [
+      "left-aligned",
+      "landscape",
+      "low-detail"
+    ],
+    "mood": [
+      "clean",
+      "playful"
+    ],
+    "text": "WIN A SET OF CUSTOM FITTED TAKOMO OR VICE WEDGES 1 DECEMBER - 28 FEBRUARY R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED +5 - 25 HANDICAP COMP : STROKE NET SAND RIVER PAR 3 COURSE ENTER IN STORE WIN A SET",
+    "quality_score": 55
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "clean",
+      "playful"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#904cf9"
+  },
+  "layer12_scene": {
+    "luminance": "light",
+    "type": "outdoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Takomo",
+      "Vice"
+    ],
+    "count": 2
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Takomo",
+      "Vice"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        8.45,
+        8.27,
+        6.04
+      ],
+      [
+        15.21,
+        8.97,
+        3.76
+      ],
+      [
+        10.15,
+        8.24,
+        9.16
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "left"
+  },
+  "layer18_quality": {
+    "score": 55,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 8.694444444444443
+    }
   }
 }

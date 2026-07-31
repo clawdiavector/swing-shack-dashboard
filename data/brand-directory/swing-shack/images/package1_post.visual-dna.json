@@ -177,5 +177,91 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "green",
+      "black"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "swlNe MONTHLY PACKAGES | AM GOLF WEEKLY LESSON & UNLIMITED PRACTICE R 2850 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA | AM GOLF",
+    "quality_score": 66
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#6fff0c"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        10.83,
+        7.14,
+        4.54
+      ],
+      [
+        10.05,
+        13.69,
+        6.87
+      ],
+      [
+        9.86,
+        9.61,
+        6.77
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 66,
+    "components": {
+      "compliance": 0.775,
+      "sharpness_proxy": 8.817777777777778
+    }
   }
 }

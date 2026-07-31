@@ -177,5 +177,100 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "gray",
+      "black"
+    ],
+    "brands": [
+      "Scotty Cameron"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "ee ovr SCOTTY CAMERON PHANTOM 5.5 AVAILABLE @ iswiye DM US FOR DETAILS PHANTOM 5.5",
+    "quality_score": 56
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#060808"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Scotty Cameron"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Scotty Cameron"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        4.47,
+        9.89,
+        4.2
+      ],
+      [
+        3.9,
+        15.7,
+        5.44
+      ],
+      [
+        10.62,
+        28.44,
+        26.89
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom"
+  },
+  "layer18_quality": {
+    "score": 56,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 12.172222222222222
+    }
   }
 }

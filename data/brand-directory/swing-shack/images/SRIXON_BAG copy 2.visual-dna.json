@@ -179,5 +179,103 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "gray",
+      "silver",
+      "black"
+    ],
+    "brands": [
+      "Srixon Bag",
+      "Srixon"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "SRIXON BAGS AVAILABLE FOR ORDER BAGS AVAILABLE",
+    "quality_score": 57
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-caps",
+    "color": "#040605"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Srixon Bag",
+      "Srixon"
+    ],
+    "count": 2
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Srixon Bag",
+      "Srixon"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        10.43,
+        10.44,
+        18.1
+      ],
+      [
+        13.09,
+        33.89,
+        11.75
+      ],
+      [
+        11.71,
+        9.67,
+        7.34
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 57,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 14.046666666666667
+    }
   }
 }

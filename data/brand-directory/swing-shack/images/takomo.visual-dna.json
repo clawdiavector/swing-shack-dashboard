@@ -174,5 +174,93 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "yellow",
+      "gray"
+    ],
+    "brands": [
+      "Takomo"
+    ],
+    "objects": [
+      "product"
+    ],
+    "composition_tags": [
+      "right-aligned",
+      "square"
+    ],
+    "mood": [
+      "neutral"
+    ],
+    "text": "",
+    "quality_score": 70
+  },
+  "layer2_subject": {
+    "categories": [
+      "product"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "neutral"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": false,
+    "weight": "unknown",
+    "color": ""
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Takomo"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Takomo"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        36.87,
+        18.92,
+        17.31
+      ],
+      [
+        48.69,
+        30.67,
+        10.78
+      ],
+      [
+        53.57,
+        36.74,
+        58.08
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom-right"
+  },
+  "layer18_quality": {
+    "score": 70,
+    "components": {
+      "compliance": 0.7353,
+      "sharpness_proxy": 34.62555555555556
+    }
   }
 }

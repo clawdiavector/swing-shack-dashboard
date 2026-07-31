@@ -177,5 +177,98 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "white",
+      "gray"
+    ],
+    "brands": [
+      "Vice"
+    ],
+    "objects": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "clean"
+    ],
+    "text": "GOLF AVAILABLE \u00a7 @ SWING SHACK : \u00a7",
+    "quality_score": 46
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "clean"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#464646"
+  },
+  "layer12_scene": {
+    "luminance": "light",
+    "type": "outdoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Vice"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Vice"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        9.75,
+        11.12,
+        3.28
+      ],
+      [
+        2.38,
+        44.57,
+        20.08
+      ],
+      [
+        10.34,
+        8.12,
+        7.2
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 46,
+    "components": {
+      "compliance": 0.475,
+      "sharpness_proxy": 12.982222222222223
+    }
   }
 }

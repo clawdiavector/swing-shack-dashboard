@@ -177,5 +177,87 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "portrait",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional"
+    ],
+    "text": "[swlc] 2026 MEMBERSHIP R2475 FOR THE REST OF PHEYEAR 4X FREE PRACTICE SESSIONS PER MONTH 15% OFF SELECTED BALLS AND GLOVES 15% OFF COACHING SESSIONS 25% OFF FITTINGS FREE MONTHLY WORKSHOPS DM US FOR DETAILS WWW.SWINGSHACK.CO.ZA R2475",
+    "quality_score": 66
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#6ffe0f"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        6.23,
+        5.95,
+        7.53
+      ],
+      [
+        9.96,
+        16.11,
+        10.51
+      ],
+      [
+        7.15,
+        6.94,
+        5.08
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 66,
+    "components": {
+      "compliance": 0.775,
+      "sharpness_proxy": 8.384444444444444
+    }
   }
 }

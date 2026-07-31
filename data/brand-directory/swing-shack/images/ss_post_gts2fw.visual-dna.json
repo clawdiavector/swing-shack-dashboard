@@ -179,5 +179,95 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "gray"
+    ],
+    "brands": [
+      "GTS Putter"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "neutral"
+    ],
+    "text": "GIS2 FAIRWAY 15.0 AVAILABLE @ DM US FOR DETAILS GIS2 FAIRWAY 15.0",
+    "quality_score": 55
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "neutral"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#060808"
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "GTS Putter"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "GTS Putter"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        3.99,
+        11.46,
+        3.58
+      ],
+      [
+        5.4,
+        11.4,
+        4.88
+      ],
+      [
+        4.33,
+        7.87,
+        4.32
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top"
+  },
+  "layer18_quality": {
+    "score": 55,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 6.358888888888888
+    }
   }
 }
