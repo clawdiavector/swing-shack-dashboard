@@ -641,7 +641,7 @@ a:hover{text-decoration:underline}
     <!-- Simplified top-level nav (5 items — the daily essentials).
          Power tools live behind "+ More" so they're one tap away, not constantly in the way. -->
     <div class="nav-section">
-      <div class="nav" data-go="brief" id="nav-home"><span class="nav-icon">🏠</span> Today</div>
+      <div class="nav" data-go="brief" id="nav-home"><span class="nav-icon">🏠</span> Today <span class="nav-badge" id="nav-home-count" hidden>0</span></div>
       <div class="nav" data-go="review"><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
       <div class="nav" data-go="library"><span class="nav-icon">📚</span> Library</div>
       <div class="nav" data-go="create"><span class="nav-icon">🪄</span> Create</div>
@@ -4760,9 +4760,20 @@ async function renderBrief(){
     </div>
   ` : '';
 
-  $('#nav-brief-count').textContent = dofirst.length + review.length;
-  $('#nav-review-count').textContent = review.length;
-  $('#nav-publish-count').textContent = publish.length;
+  const homeCount = dofirst.length + review.length;
+  const homeBadge = $('#nav-home-count');
+  if(homeBadge){
+    if(homeCount > 0){
+      homeBadge.textContent = homeCount;
+      homeBadge.hidden = false;
+    } else {
+      homeBadge.hidden = true;
+    }
+  }
+  const reviewBadge = $('#nav-review-count');
+  if(reviewBadge){ reviewBadge.textContent = review.length; }
+  const publishBadge = $('#nav-publish-count');
+  if(publishBadge){ publishBadge.textContent = publish.length; }
 
   // Hot trends ticker (top 3 from reddit + youtube + news)
   const trends = S.trends || {};
