@@ -177,5 +177,87 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "white",
+      "gray"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "neutral"
+    ],
+    "text": "ES AVAILABLE @ [Sw/NG] ES",
+    "quality_score": 62
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "neutral"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#060808"
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "outdoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        3.56,
+        11.97,
+        3.49
+      ],
+      [
+        3.79,
+        9.78,
+        3.17
+      ],
+      [
+        7.68,
+        14.53,
+        11.0
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom"
+  },
+  "layer18_quality": {
+    "score": 62,
+    "components": {
+      "compliance": 0.725,
+      "sharpness_proxy": 7.663333333333333
+    }
   }
 }

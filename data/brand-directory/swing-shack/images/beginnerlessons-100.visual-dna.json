@@ -181,5 +181,112 @@
     ],
     "count": 3,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "black",
+      "silver"
+    ],
+    "brands": [
+      "GTS Putter",
+      "TrackMan",
+      "Zen Swing Stage",
+      "Trackman",
+      "Zen Swing"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "right-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "BEGINNER LESSONS CATHERINE LAU PGA PROFESSIONAL TRACKMAN LAUNCH MONI TORS ZEN SWING STAGE CLUB FI THI NG BOOK ONLINE OR MESSAGE US FOR MORE INFO BEGINNER LESSONS MONI",
+    "quality_score": 63
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#ffffff"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "GTS Putter",
+      "TrackMan",
+      "Zen Swing Stage",
+      "Trackman",
+      "Zen Swing"
+    ],
+    "count": 5
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "GTS Putter",
+      "TrackMan",
+      "Zen Swing Stage",
+      "Trackman",
+      "Zen Swing"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        10.25,
+        7.05,
+        8.26
+      ],
+      [
+        16.97,
+        7.93,
+        9.93
+      ],
+      [
+        10.34,
+        9.38,
+        17.19
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom-right"
+  },
+  "layer18_quality": {
+    "score": 63,
+    "components": {
+      "compliance": 0.725,
+      "sharpness_proxy": 10.81111111111111
+    }
   }
 }

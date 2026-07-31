@@ -177,5 +177,89 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "gray"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "right-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional"
+    ],
+    "text": "1 JUNIOR LESSONS CATHERINE LAU PGA PROFESSIONAL A A | Ay NAN LAU LHING BOOK ONLINE OR MESSAGE US FOR MORE INFO JUNIOR LESSONS BOOK",
+    "quality_score": 62
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#ffffff"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        6.81,
+        2.16,
+        4.82
+      ],
+      [
+        2.14,
+        2.96,
+        7.0
+      ],
+      [
+        3.06,
+        9.26,
+        16.85
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom-right"
+  },
+  "layer18_quality": {
+    "score": 62,
+    "components": {
+      "compliance": 0.725,
+      "sharpness_proxy": 6.117777777777778
+    }
   }
 }

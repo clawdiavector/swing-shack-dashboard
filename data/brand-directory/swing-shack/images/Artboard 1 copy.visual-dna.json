@@ -172,5 +172,82 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "orange",
+      "gray",
+      "brown"
+    ],
+    "brands": [],
+    "objects": [],
+    "composition_tags": [
+      "portrait",
+      "low-detail"
+    ],
+    "mood": [
+      "neutral"
+    ],
+    "text": "",
+    "quality_score": 50
+  },
+  "layer2_subject": {
+    "categories": [],
+    "primary": "unknown"
+  },
+  "layer3_mood": {
+    "tags": [
+      "neutral"
+    ]
+  },
+  "layer5_objects": {
+    "tags": []
+  },
+  "layer11_fonts": {
+    "detected": false,
+    "weight": "unknown",
+    "color": ""
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        5.53,
+        12.27,
+        6.33
+      ],
+      [
+        7.46,
+        8.29,
+        10.15
+      ],
+      [
+        3.9,
+        7.54,
+        4.43
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top"
+  },
+  "layer18_quality": {
+    "score": 50,
+    "components": {
+      "compliance": 0.5588,
+      "sharpness_proxy": 7.322222222222223
+    }
   }
 }

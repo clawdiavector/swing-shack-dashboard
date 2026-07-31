@@ -1,0 +1,34 @@
+{
+  "schema": "https://campaign-os/brand-directory/typography/v1",
+  "brand_id": "stick",
+  "version": "1.0",
+  "updated": "2026-07-30T23:10:00Z",
+  "primary": {
+    "family": "Anton",
+    "source": "Google Fonts (free, web-safe)",
+    "weights_available": [400],
+    "use_for": ["headlines", "callout", "meme panels"]
+  },
+  "secondary": {
+    "family": "Inter",
+    "source": "Google Fonts (free, web-safe)",
+    "weights_available": [400, 500, 700, 800],
+    "use_for": ["body", "captions", "ui"]
+  },
+  "fallbacks": ["Impact", "system-ui", "-apple-system", "Helvetica Neue", "Arial"],
+  "scale": [
+    {"name": "display", "size_px": 96, "weight": 400, "use_for": ["meme top-line callout", "tweet-card banner"]},
+    {"name": "h1", "size_px": 72, "weight": 400, "use_for": ["callout headline", "split-2up headline"]},
+    {"name": "h2", "size_px": 48, "weight": 400, "use_for": ["meme-3up header", "thread-card title"]},
+    {"name": "h3", "size_px": 32, "weight": 700, "use_for": ["subhead on meme", "lower-third caption"]},
+    {"name": "body", "size_px": 18, "weight": 400, "use_for": ["caption copy", "supporting line"]},
+    {"name": "caption", "size_px": 14, "weight": 500, "use_for": ["footer punchline", "metadata"]}
+  ],
+  "pairing_rules": {
+    "callout_headline": {"family": "Anton", "weight": 400, "size": 96},
+    "tweet_card_top": {"family": "Anton", "weight": 400, "size": 72},
+    "meme_punchline": {"family": "Anton", "weight": 400, "size": 32},
+    "cta_pill": {"family": "Inter", "weight": 800, "size": 20}
+  },
+  "source": "best-guess — Stick voice is sarcastic, high-contrast, meme-aware. Anton is the canonical display font for the genre (Impact alternative that is Free for commercial use). Inter handles body+CTA. Needs Drive validation once folders wired in to confirm."
+}

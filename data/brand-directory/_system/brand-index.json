@@ -1,7 +1,7 @@
 {
   "schema": "https://campaign-os/brand-directory/index/v1",
-  "version": "1.2",
-  "updated": "2026-07-30T10:46:00Z",
+  "version": "1.0",
+  "updated": "2026-07-30T14:30:27.699859+00:00",
   "total_brands": 4,
   "total_ready": 4,
   "brands": {
@@ -32,7 +32,7 @@
         "archetypes": true,
         "ctas": true
       },
-      "image_count": 0,
+      "image_count": 10,
       "primary_color": "#1B1B1B",
       "accent_color": "#FF3D00",
       "archetype_ids": [
@@ -51,7 +51,7 @@
         "archetypes": true,
         "ctas": true
       },
-      "image_count": 0,
+      "image_count": 121,
       "primary_color": "#0F766E",
       "accent_color": "#F59E0B",
       "archetype_ids": [
@@ -71,10 +71,12 @@
         "ctas": true
       },
       "image_count": 1,
-      "primary_color": "#060706",
-      "accent_color": "#75742E",
-      "archetype_ids": [],
-      "note": "Takomo 101T brand \u2014 seeded from swing-shack/images/takomo.png + DNA. Voice/palette/spec files created. Archetypes and CTAs are placeholder; flesh out as design progresses."
+      "primary_color": "#0A0B0A",
+      "accent_color": "#C2A878",
+      "archetype_ids": [
+        "takomo-product-hero",
+        "takomo-spec-card"
+      ]
     }
   }
 }

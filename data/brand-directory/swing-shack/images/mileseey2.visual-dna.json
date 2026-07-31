@@ -179,5 +179,95 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "green",
+      "silver"
+    ],
+    "brands": [
+      "Mileseey"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "neutral"
+    ],
+    "text": "MILESEEY GOLF AVAILABLE FOR ORDER swe} GOLF AVAILABLE FOR",
+    "quality_score": 48
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "neutral"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-caps",
+    "color": "#7c8080"
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Mileseey"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Mileseey"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        3.51,
+        8.8,
+        4.11
+      ],
+      [
+        4.4,
+        10.55,
+        3.28
+      ],
+      [
+        8.77,
+        14.3,
+        10.83
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom"
+  },
+  "layer18_quality": {
+    "score": 48,
+    "components": {
+      "compliance": 0.525,
+      "sharpness_proxy": 7.616666666666666
+    }
   }
 }

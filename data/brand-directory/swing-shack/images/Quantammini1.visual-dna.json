@@ -180,5 +180,101 @@
     ],
     "count": 2,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "green"
+    ],
+    "brands": [
+      "Callaway",
+      "Callaway Quantum"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "right-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional"
+    ],
+    "text": "CALLAWAY QUANTUM MINI DRIVERS swig] CALLAWAY QUANTUM MINI",
+    "quality_score": 62
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-caps",
+    "color": "#ffffff"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Callaway",
+      "Callaway Quantum"
+    ],
+    "count": 2
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Callaway",
+      "Callaway Quantum"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        4.84,
+        5.26,
+        5.5
+      ],
+      [
+        3.41,
+        7.03,
+        4.61
+      ],
+      [
+        4.97,
+        8.54,
+        10.52
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom-right"
+  },
+  "layer18_quality": {
+    "score": 62,
+    "components": {
+      "compliance": 0.725,
+      "sharpness_proxy": 6.075555555555555
+    }
   }
 }

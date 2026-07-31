@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Campaign OS · Swing Shack</title>
 <meta name="theme-color" content="#0a0f1a" id="meta-theme-color">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
 <style>
 /* ─── Reset + base ─────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -3162,6 +3165,162 @@ const THEME_KEY = 'swing-shack:theme';
 // Render the brand brief's palette + typography as a structured style guide.
 // Replaces a raw <pre> JSON dump with swatches and type pairing rows, with
 // graceful empty states for brands that haven't filled those slots yet.
+// Extract the first N headlines from a markdown headline bank.
+// Format: lines starting with `- \`text\` [tone:tag]...` (swing-shack/stick style).
+// Falls back to lines starting with `- ` or `1. ` if no backticks are present.
+function _extractHeadlinesFromBank(mdText, maxN){
+  const out = [];
+  if(!mdText || typeof mdText !== 'string') return out;
+  const lines = mdText.split(/\r?\n/);
+  for(const line of lines){
+    if(out.length >= maxN) break;
+    const t = line.trim();
+    if(!t) continue;
+    // Match `- \`headline text\` [tags...]` or `- headline text [tags...]`
+    let m = t.match(/^[-*]\s+`([^`]+)`/);
+    if(!m){
+      m = t.match(/^[-*]\s+([^[]+?)(?:\s+\[.*\])?\s*$/);
+    }
+    // Also match numbered list: `1. \`book your session → url\``
+    if(!m){
+      m = t.match(/^\d+\.\s+`([^`]+)`/);
+    }
+    if(m && m[1]){
+      const txt = m[1].trim();
+      // Skip section headers (all caps, no spaces / too short)
+      if(txt.length < 8 || txt.length > 220) continue;
+      // Skip lines that are clearly URLs by themselves
+      if(/^https?:\/\//i.test(txt)) continue;
+      out.push(txt);
+    }
+  }
+  return out;
+}
+
+// Render a "Preview in brand font" card that shows the first N headlines
+// rendered in the brand's headline pairing rule, plus the first M CTAs in
+// the CTA pairing rule. This makes the typography slot immediately useful
+// at the moment the user is reading copy to ship — they SEE what the
+// headline will look like in Anton / Fraunces / Space Grotesk / Inter,
+// not just the font name in a spec list.
+//
+// Pairing-rule lookup order (defensive — covers the rules each brand uses):
+//   headline: post_headline → banner_headline → callout_headline →
+//             tweet_card_top → meme_punchline → first scale item → primary
+//   cta:      cta_pill → primary
+// Per pitfall #50: family name is escaped before interpolation.
+function renderBriefPreview(brief){
+  const typography = brief && brief.typography && typeof brief.typography === 'object' ? brief.typography : null;
+  if(!typography) return '';
+  const rules = typography.pairing_rules && typeof typography.pairing_rules === 'object'
+    ? typography.pairing_rules : {};
+  const primary = typography.primary && typeof typography.primary === 'object' ? typography.primary : null;
+  const secondary = typography.secondary && typeof typography.secondary === 'object' ? typography.secondary : null;
+  const fallbackChain = Array.isArray(typography.fallbacks) ? typography.fallbacks.join(', ') : 'system-ui, sans-serif';
+
+  // Pick a headline pairing rule.
+  const headlineKeys = ['post_headline','banner_headline','callout_headline','tweet_card_top','meme_punchline'];
+  let headlineRule = null;
+  for(const k of headlineKeys){
+    if(rules[k] && rules[k].family){
+      headlineRule = rules[k];
+      break;
+    }
+  }
+  if(!headlineRule){
+    // Fall back to the first scale item that has a family/size.
+    const scale = Array.isArray(typography.scale) ? typography.scale : [];
+    for(const s of scale){
+      if(s && s.size_px && (s.name === 'display' || s.name === 'h1')){
+        headlineRule = { family: primary?.family || 'Inter', size: s.size_px, weight: s.weight || 700 };
+        break;
+      }
+    }
+  }
+  if(!headlineRule && primary){
+    headlineRule = { family: primary.family, size: 64, weight: primary.weights_available?.[0] || 700 };
+  }
+  if(!headlineRule) return '';
+
+  // Pick a CTA pairing rule.
+  const ctaRule = rules.cta_pill && rules.cta_pill.family
+    ? rules.cta_pill
+    : (secondary ? { family: secondary.family, size: 20, weight: 700 } : { ...headlineRule, size: 20 });
+
+  // Pick a body scale for the byline.
+  const scale = Array.isArray(typography.scale) ? typography.scale : [];
+  const bodyScale = scale.find(s => s && s.name === 'body') || { size_px: 18, weight: 400 };
+  const bodyFamily = secondary?.family || primary?.family || 'Inter';
+
+  const headlines = _extractHeadlinesFromBank(brief.headlines_bank || '', 3);
+  const ctas = _extractHeadlinesFromBank(brief.ctas_bank || '', 2);
+
+  // Sizing rule: spec size 96px → 32px in card; 64-80 → 24px; 28-44 → 18px; <24 → 14px.
+  const headlineSpecSize = parseFloat(headlineRule.size) || 64;
+  const headlineCardSize = headlineSpecSize >= 80 ? 32 : (headlineSpecSize >= 56 ? 24 : (headlineSpecSize >= 28 ? 18 : 14));
+  const ctaSpecSize = parseFloat(ctaRule.size) || 20;
+  const ctaCardSize = ctaSpecSize >= 56 ? 24 : (ctaSpecSize >= 28 ? 18 : 14);
+  const bodyCardSize = parseFloat(bodyScale.size_px) >= 24 ? 16 : 14;
+
+  const headlineFam = String(headlineRule.family || 'Inter');
+  const ctaFam = String(ctaRule.family || headlineFam);
+  const headlineWt = headlineRule.weight || 700;
+  const ctaWt = ctaRule.weight || 700;
+  const bodyWt = bodyScale.weight || 400;
+
+  const headlineFallback = `'${esc(headlineFam)}', ${fallbackFallbackChain(fallbackChain, headlineFam)}`;
+  const ctaFallback = `'${esc(ctaFam)}', ${fallbackFallbackChain(fallbackChain, ctaFam)}`;
+  const bodyFallback = `'${esc(bodyFamily)}', ${fallbackFallbackChain(fallbackChain, bodyFamily)}`;
+
+  if(!headlines.length && !ctas.length) return '';
+
+  const headlineBlock = headlines.length
+    ? `<div style="margin-bottom:.75rem">
+        <div style="font-size:10.5px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">3 headlines in brand font (${esc(headlineFam)} · ${headlineSpecSize}px spec)</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          ${headlines.slice(0,3).map((h, i) => `
+            <div style="font-family:${headlineFallback};font-weight:${headlineWt};font-size:${headlineCardSize}px;line-height:1.1;letter-spacing:-.01em;color:var(--tx);background:var(--bg-2);border-left:3px solid var(--ac);padding:.5rem .75rem;border-radius:4px">
+              ${esc(h)}
+            </div>`).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const ctaBlock = ctas.length
+    ? `<div>
+        <div style="font-size:10.5px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">2 CTAs in brand font (${esc(ctaFam)} · ${ctaSpecSize}px spec)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+          ${ctas.slice(0,2).map(c => `
+            <span style="font-family:${ctaFallback};font-weight:${ctaWt};font-size:${ctaCardSize}px;background:var(--ac);color:var(--bg-1);padding:.4rem .9rem;border-radius:999px;letter-spacing:-.005em;display:inline-block">
+              ${esc(c)}
+            </span>`).join('')}
+        </div>
+      </div>`
+    : '';
+
+  return `
+    <div class="card col-12">
+      <div class="card-h">
+        <h3>👁️ Preview in brand font</h3>
+        <span class="muted" style="font-size:11px;margin-left:auto">headlines + CTAs rendered with the brand's pairing rules</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx-2);margin-bottom:.6rem;font-family:${bodyFallback};font-weight:${bodyWt};font-size:${bodyCardSize}px;line-height:1.45">
+        This is what your copy will look like the moment it lands on the brand's surface. The headlines use the brand's headline pairing rule (${esc(headlineFam)} at ${headlineSpecSize}px spec), the CTAs use the CTA pairing rule (${esc(ctaFam)} at ${ctaSpecSize}px spec).
+      </div>
+      ${headlineBlock}
+      ${ctaBlock}
+    </div>`;
+}
+
+// Build a quote-safe fallback chain for inline CSS font-family values.
+// Quote each name (handles fonts with spaces like "JetBrains Mono") and
+// produce a single comma-separated list. Used by renderBriefPreview.
+function fallbackFallbackChain(fallbackStr, primary){
+  if(!fallbackStr) return 'system-ui, sans-serif';
+  const parts = String(fallbackStr).split(',').map(s => s.trim()).filter(Boolean);
+  return parts.map(p => `'${p.replace(/'/g, '')}'`).join(', ');
+}
+
 function renderBriefStyleGuide(brief){
   const palette = brief && brief.palette && typeof brief.palette === 'object' ? brief.palette : null;
   const typography = brief && brief.typography && typeof brief.typography === 'object' ? brief.typography : null;
@@ -3234,6 +3393,60 @@ function renderBriefStyleGuide(brief){
         <div style="font-size:11px;font-weight:600;color:var(--tx-2);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.04em">Typography</div>
         ${typoBlock}
       </div>
+    </div>`;
+}
+
+// Render the brand-directory detail panel's Typography card.
+// Returns a col-6 card matching the existing Palette/Archetypes side-by-side
+// grid. Surfaces primary family, fallbacks, source, weights, and the
+// pairing_rules dict (banner_headline / banner_subhead / cta_pill / etc).
+// Graceful-empty for 4 live shapes: undefined, null, {}, {primary:null}.
+// Per pitfall #51: defensive parse must handle every shape the API returns.
+function renderBrandDirectoryTypographyCard(typography){
+  const t = typography && typeof typography === 'object' && Object.keys(typography).length > 0 ? typography : null;
+  if(!t){
+    return '';  // Render nothing, the grid collapses; other cards stay col-6.
+  }
+  const primary = t.primary && typeof t.primary === 'object' ? t.primary : null;
+  const fallbacks = Array.isArray(t.fallbacks) ? t.fallbacks : [];
+  const rules = t.pairing_rules && typeof t.pairing_rules === 'object' ? Object.entries(t.pairing_rules) : [];
+  const weights = Array.isArray(primary?.weights_available) ? primary.weights_available : [];
+  const useFor = Array.isArray(primary?.use_for) ? primary.use_for : [];
+
+  const primaryBlock = primary
+    ? `
+      <div style="margin-bottom:.6rem">
+        <div style="font-size:11px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem">Primary</div>
+        <div style="font-family:'${esc(primary.family || 'Inter')}', system-ui, sans-serif;font-size:32px;font-weight:${esc(primary.weights_available?.[0] || '700')};color:var(--tx);line-height:1.1;letter-spacing:-.01em">${esc(primary.family || '-')}</div>
+        ${primary.source ? `<div class="muted" style="font-size:11px;margin-top:.15rem">source: ${esc(primary.source)}</div>` : ''}
+        ${weights.length ? `<div class="muted" style="font-size:11px;margin-top:.15rem">weights: ${weights.map(w => esc(w)).join(' · ')}</div>` : ''}
+        ${useFor.length ? `<div class="muted" style="font-size:11px;margin-top:.15rem">used for: ${useFor.map(u => esc(u)).join(', ')}</div>` : ''}
+      </div>
+      ${fallbacks.length ? `<div class="muted" style="font-size:11px;margin-bottom:.6rem">fallbacks: <code>${fallbacks.map(f => esc(f)).join(', ')}</code></div>` : ''}`
+    : `<div class="muted" style="font-size:12px;margin-bottom:.6rem">No primary family set.</div>`;
+
+  const rulesBlock = rules.length
+    ? `
+      <div style="font-size:11px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.04em;margin:.4rem 0 .3rem">Pairing rules (${rules.length})</div>
+      <ul style="list-style:none;padding:0;margin:0;font-size:12px;display:flex;flex-direction:column;gap:.4rem;max-height:240px;overflow:auto">
+        ${rules.map(([k, r]) => {
+          const fam = r && r.family ? String(r.family) : '';
+          const sz = r && r.size ? esc(r.size) : '';
+          const wt = r && r.weight ? esc(r.weight) : '';
+          const label = k.replace(/_/g, ' ');
+          return `<li style="border-bottom:1px dashed var(--bd);padding-bottom:.35rem">
+            <div style="font-family:'${esc(fam || primary?.family || 'Inter')}', system-ui, sans-serif;font-weight:${wt || '700'};color:var(--tx);font-size:${sz ? (parseFloat(sz) >= 40 ? '24px' : (parseFloat(sz) >= 24 ? '18px' : '14px')) : '14px'};line-height:1.15;letter-spacing:-.005em">${esc(label)}</div>
+            <div class="muted" style="font-size:10.5px;margin-top:.1rem">${esc(fam || '-')}${sz ? ` · ${sz}px` : ''}${wt ? ` · ${wt}` : ''}</div>
+          </li>`;
+        }).join('')}
+      </ul>`
+    : '';
+
+  return `
+    <div class="card col-6">
+      <div class="card-h"><h3>🔤 Typography</h3></div>
+      ${primaryBlock}
+      ${rulesBlock}
     </div>`;
 }
 const THEME_DEFAULT = 'dark';
@@ -6440,12 +6653,12 @@ async function renderBrandDirectoryPanel(){
     const ids = Object.keys(brands);
     const total = idx.total_brands || ids.length;
     const ready = idx.total_ready || 0;
-    const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop'};
+    const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop','takomo':'Takomo'};
 
     container.innerHTML = `
       <div class="card">
         <div class="card-h">
-          <h3>📂 Brand Directory <span style="font-size:11px;color:var(--tx-3);font-weight:500;margin-left:.5rem">9-slot directory · image + copy generator source</span></h3>
+          <h3 data-help="The Brand Directory is the source-of-truth for every brand Voice + Visuals. 9 structured slots per brand (voice, palette, visual-spec, typography, copy, examples, images, source, readme). The image generator reads palette + archetypes; the copy generator reads voice + headlines + CTAs. Click a brand card to view details (read-only directory) or generate a brief (ladders to image + copy generation)." data-help-title="Brand Directory">📂 Brand Directory <span style="font-size:11px;color:var(--tx-3);font-weight:500;margin-left:.5rem">9-slot directory · image + copy generator source</span></h3>
           <span class="muted" style="font-size:12px">${ready}/${total} brands ready (all 4 gate files)</span>
         </div>
         <div style="font-size:12px;color:var(--tx-2);margin-bottom:.75rem">
@@ -6464,17 +6677,19 @@ async function renderBrandDirectoryPanel(){
           const palette = b.primary_color ? `<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:11px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${b.primary_color};border:1px solid var(--bg-3)"></span>${b.primary_color}</span>` : '';
           const accent = b.accent_color ? `<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:11px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${b.accent_color};border:1px solid var(--bg-3)"></span>${b.accent_color}</span>` : '';
           const label = labelMap[bid] || bid;
+          const tagline = b.tagline ? `<div class="muted" style="font-size:12px;line-height:1.45;margin:.4rem 0 .25rem;font-style:italic">${esc(b.tagline)}</div>` : `<div class="muted" style="font-size:11px;line-height:1.4;margin:.4rem 0 .25rem;opacity:.6">- no one-pager yet -</div>`;
           return `
-            <div class="card col-4">
+            <div class="card col-3">
               <div class="card-h"><h3>${esc(label)}</h3>${b.ready ? pill('on','ready') : pill('draft','partial')}</div>
               <div style="margin-bottom:.5rem">${gatePills}</div>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">${palette}${accent}</div>
+              ${tagline}
               <div class="muted" style="font-size:11.5px;line-height:1.5">
                 ${ac.length} archetype${ac.length===1?'':'s'}: ${ac.slice(0,3).map(a=>`<code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;font-size:10.5px">${esc(a)}</code>`).join(' ')}${ac.length>3?'…':''}
               </div>
               <div class="btn-row" style="margin-top:.75rem">
                 <button class="btn ghost" data-bd-view="${esc(bid)}" data-help="Read every brand slot: voice rules, palette swatches, archetype layers, headline bank, CTA bank. Read-only — for the canonical shortlist of what makes this brand this brand." data-help-title="View brand directory">📋 View details</button>
-                <button class="btn ghost" data-bd-brief="${esc(bid)}" data-help="Open the brand-brief form. Pick a surface (what shape the post is) and a tone (how the voice lands) — generates a structured brief that ladders to the image and copy generators. No more native prompt() dialogs." data-help-title="Generate brand brief">🎨 Generate brief</button>
+                <button class="btn ghost" data-bd-brief="${esc(bid)}" data-help="Open the brand-brief form. Pick a surface (what shape the post is) and a tone (how the voice lands), generates a structured brief that ladders to the image and copy generators. No more native prompt() dialogs." data-help-title="Generate brand brief">🎨 Generate brief</button>
               </div>
             </div>`;
         }).join('')}</div>
@@ -6505,11 +6720,15 @@ async function renderBrandDirectoryPanel(){
               <div class="card col-6"><div class="card-h"><h3>🖼️ Archetypes (${arche.length})</h3></div>
                 <ul class="list">${arche.map(a => `<li class="li"><div class="li-body"><div class="li-title">${esc(a.name||a.id)}</div><div class="li-meta muted">${esc((a.description||'').slice(0,120))}…</div></div></li>`).join('')}</ul>
               </div>
+              ${renderBrandDirectoryTypographyCard(data.typography)}
               <div class="card col-12"><div class="card-h"><h3>🎤 Voice — tone rules</h3></div>
                 <details class="help-collapsible"><summary>Read tone rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.tone_rules||'—')}</div></div></details>
               </div>
               <div class="card col-12"><div class="card-h"><h3>📝 Do say / Don't say</h3></div>
                 <details class="help-collapsible"><summary>Read vocabulary</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.do_say_dont_say||'—')}</div></div></details>
+              </div>
+              <div class="card col-12"><div class="card-h"><h3>✏️ Punctuation rules</h3><span class="muted" style="font-size:11.5px">em-dash ban · sentence terminators · spec formats · capitalisation</span></div>
+                <details class="help-collapsible"><summary>Read punctuation rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.punctuation||'—')}</div></div></details>
               </div>
               <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
                 <details class="help-collapsible"><summary>Read headline bank</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.copy?.headlines||'—')}</div></div></details>
@@ -6605,6 +6824,7 @@ async function renderBrandDirectoryPanel(){
                   <div class="card col-12"><div class="card-h"><h3>🎤 Voice anchor (first 400 chars)</h3></div>
                     <div style="font-size:12px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap">${esc(brief.voice_anchor||'—')}</div>
                   </div>
+                  ${renderBriefPreview(brief)}
                   <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
                     <div class="hc-body" style="overflow:auto;max-height:300px"><div class="md-body">${md((brief.headlines_bank||'').slice(0, 2000))}</div></div>
                   </div>

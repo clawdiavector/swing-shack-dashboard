@@ -1,21 +1,46 @@
 {
-  "schema": "https://campaign-os/brand-directory/visual-spec/archetypes/v1",
+  "schema": "https://campaign-os/brand-directory/visual-archetypes/v1",
+  "brand_id": "takomo",
   "version": "1.0",
-  "brand": "takomo",
-  "updated": "2026-07-30T10:46:00Z",
+  "updated": "2026-07-30T14:30:00Z",
+  "canvas": {
+    "primary_unit": "instagram_square_1080",
+    "aspect": "1:1",
+    "safe_area": "central 90% (avoid 5% edges for IG cropping)"
+  },
   "archetypes": [
     {
-      "id": "takomo-hero-portrait",
-      "name": "Hero portrait",
-      "ratio": "4:5",
-      "use": "Single product hero \u2014 face of a 101T iron against dark backdrop, brass accent highlight"
+      "id": "takomo-product-hero",
+      "name": "Takomo — Product Hero Studio Shot",
+      "description": "Single-subject product hero. Forge black backdrop, centered iron / head, single overhead light, brass accent rule under headline. The archetype the takomo-101t visual-dna was extracted from.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "solid_or_gradient", "fill": "primary", "weight": 0.85, "treatment": "subtle top-to-bottom darkening gradient"},
+        {"id": "hero_product", "kind": "image", "position": "centre", "treatment": "single subject, sharp focus, soft top + bottom fade to background", "max_subject_share": 0.55},
+        {"id": "accent_rule", "kind": "decorative", "element": "thin warm-brass rule above headline", "position": "above headline", "width": 80, "height": 3, "colour": "accent"},
+        {"id": "headline", "kind": "text", "position": "lower-third", "max_lines": 2, "weight": 700, "size_px": 54, "colour": "neutral_light", "alignment": "centre", "padding_bottom": 180},
+        {"id": "subhead", "kind": "text_optional", "position": "below headline", "max_lines": 1, "weight": 500, "size_px": 24, "colour": "accent", "alignment": "centre"},
+        {"id": "logo_mark", "kind": "logo", "position": "bottom-right", "size": "small (60px)", "colour_treatment": "mono_brass"}
+      ],
+      "example_prompt_seed": "Takomo 101T iron hero: forge black backdrop, single overhead light, brass rule, 'Forged for the strike'.",
+      "use_cases": ["product", "spec_led", "premium"]
     },
     {
       "id": "takomo-spec-card",
-      "name": "Spec card",
-      "ratio": "1:1",
-      "use": "3-up specs (loft / COG / MOI) with product silhouette"
+      "name": "Takomo — Spec Card",
+      "description": "Forge black backdrop, single-column spec list (loft / lie / length / shaft / grip) in brass + alloy white, with the iron head as a small bottom-right hero. Built for 'what makes this iron different' education posts.",
+      "canvas": "instagram_square_1080",
+      "layers": [
+        {"id": "background", "kind": "solid", "fill": "primary", "weight": 0.95},
+        {"id": "headline", "kind": "text", "position": "top-centre", "max_lines": 2, "weight": 700, "size_px": 44, "colour": "neutral_light", "alignment": "centre", "padding_top": 100},
+        {"id": "spec_list", "kind": "text", "position": "centre", "weight": 500, "size_px": 26, "line_height_em": 1.6, "colour": "neutral_light", "alignment": "left", "max_chars_per_line": 22, "label_colour": "accent", "label_kind": "rail"},
+        {"id": "hero_product", "kind": "image", "position": "bottom-right", "treatment": "small inset, soft edge fade", "max_subject_share": 0.20},
+        {"id": "logo_mark", "kind": "logo", "position": "bottom-left", "size": "small (60px)", "colour_treatment": "mono_brass"}
+      ],
+      "example_prompt_seed": "Takomo 101T spec card: loft 28° | lie 59° | length 39\" | shaft DG S300 | grip Tour Velvet. Black backdrop, brass label rail.",
+      "use_cases": ["educational", "spec_led", "review"]
     }
   ],
-  "note": "Initial seed \u2014 2 archetypes. Add more as design library grows."
+  "fallback_when_no_image_gen": "produce copy-only deliverables (headline + caption + CTA + archetype spec). The product hero archetype is the priority for any post that pairs copy with an existing club photo (the takomo-101t campaign has 1 brand image already).",
+  "source": "best-guess from takomo-101t visual-dna (single dark studio product shot, centered subject, brass accent) and common premium club-maker social patterns (Sub 70, PXG, Takomo). Needs Drive validation once folders are wired in."
 }

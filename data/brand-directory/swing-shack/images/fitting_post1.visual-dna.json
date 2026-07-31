@@ -177,5 +177,92 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "black",
+      "silver",
+      "blue"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "right-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "OFF-THE-RACK IS FOR GROCERIES GET EQUIPMENT BUILT FOR YOU = CLUB FITTING @ BOOK ONLINE WWW.SWINGSHACK. CO.ZA OFF-THE-RACK IS FOR",
+    "quality_score": 66
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#64a3f0"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        8.14,
+        8.79,
+        13.25
+      ],
+      [
+        12.71,
+        12.88,
+        10.79
+      ],
+      [
+        8.93,
+        12.56,
+        9.29
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top-right"
+  },
+  "layer18_quality": {
+    "score": 66,
+    "components": {
+      "compliance": 0.775,
+      "sharpness_proxy": 10.815555555555555
+    }
   }
 }

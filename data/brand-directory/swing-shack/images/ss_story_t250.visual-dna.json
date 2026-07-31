@@ -177,5 +177,87 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "gray",
+      "white"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "portrait",
+      "low-detail"
+    ],
+    "mood": [
+      "neutral"
+    ],
+    "text": "Tatheiat: 1250 IRON SET - S300 - 4-PW AVAILABLE @ swlN DM US FOR DETAILS <=aSa9yo03 -",
+    "quality_score": 62
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "neutral"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#111515"
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "outdoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        4.32,
+        6.01,
+        3.81
+      ],
+      [
+        6.15,
+        9.72,
+        3.22
+      ],
+      [
+        3.65,
+        3.88,
+        6.25
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 62,
+    "components": {
+      "compliance": 0.725,
+      "sharpness_proxy": 5.223333333333333
+    }
   }
 }

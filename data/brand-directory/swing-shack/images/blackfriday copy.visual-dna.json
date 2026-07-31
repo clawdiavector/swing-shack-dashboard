@@ -177,5 +177,92 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "black",
+      "silver",
+      "gray"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "left-aligned",
+      "portrait",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "swig 20% OFF SELEC JED Oita. 10% OFF GRIPDRIP GRIPS 10% OFF LESSONS & FITTINGS 10% OFF 2026 MEMBERSHIP *MEMBER DISCOUNTS APPLY ON TOP OF ABOVE DM US FOR MORE INFO 20% OFF SELEC",
+    "quality_score": 62
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-caps",
+    "color": "#ffffff"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        9.44,
+        6.13,
+        7.31
+      ],
+      [
+        9.55,
+        5.72,
+        2.81
+      ],
+      [
+        6.71,
+        5.7,
+        4.66
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "left"
+  },
+  "layer18_quality": {
+    "score": 62,
+    "components": {
+      "compliance": 0.725,
+      "sharpness_proxy": 6.447777777777778
+    }
   }
 }

@@ -1,0 +1,34 @@
+{
+  "schema": "https://campaign-os/brand-directory/typography/v1",
+  "brand_id": "bag-drop",
+  "version": "1.0",
+  "updated": "2026-07-30T23:10:00Z",
+  "primary": {
+    "family": "Fraunces",
+    "source": "Google Fonts (free, web-safe)",
+    "weights_available": [400, 600, 700, 900],
+    "use_for": ["headlines", "warmth", "hero"]
+  },
+  "secondary": {
+    "family": "Inter",
+    "source": "Google Fonts (free, web-safe)",
+    "weights_available": [400, 500, 600, 700],
+    "use_for": ["body", "captions", "ui"]
+  },
+  "fallbacks": ["Georgia", "system-ui", "-apple-system", "Helvetica Neue", "Arial"],
+  "scale": [
+    {"name": "display", "size_px": 80, "weight": 900, "use_for": ["hero banner headline", "member-moment banner"]},
+    {"name": "h1", "size_px": 56, "weight": 700, "use_for": ["thursday-invite headline", "story-moment card"]},
+    {"name": "h2", "size_px": 40, "weight": 600, "use_for": ["quote-warmth title", "service-trio card"]},
+    {"name": "h3", "size_px": 28, "weight": 700, "use_for": ["subhead on card", "story secondary line"]},
+    {"name": "body", "size_px": 18, "weight": 400, "use_for": ["caption copy", "supporting warm line"]},
+    {"name": "caption", "size_px": 14, "weight": 500, "use_for": ["metadata", "footer"]}
+  ],
+  "pairing_rules": {
+    "banner_headline": {"family": "Fraunces", "weight": 900, "size": 80},
+    "banner_subhead": {"family": "Fraunces", "weight": 400, "size": 28},
+    "post_headline": {"family": "Fraunces", "weight": 700, "size": 56},
+    "cta_pill": {"family": "Inter", "weight": 700, "size": 20}
+  },
+  "source": "best-guess — Bag Drop voice is community-first, warm, supportive. Fraunces brings the serif warmth that ladder to the warm orange palette; Inter keeps UI / CTA consistent with the rest of the fleet. Needs Drive validation once folders wired in."
+}

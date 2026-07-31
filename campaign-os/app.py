@@ -1210,6 +1210,403 @@ def visual_library_brands():
         return jsonify({'ok': False, 'error': str(e), 'brands': []}), 500
 
 
+# ============================================================================
+# ELEMENT-LEVEL DISCOVERY — find images by any visible element
+# ============================================================================
+
+@app.route('/api/visual-library/<brand_id>/discover', methods=['GET'])
+def visual_library_discover(brand_id):
+    """GET /api/visual-library/<brand>/discover — element-level multi-field search.
+
+    Query params (all optional, AND-combined across categories, OR within):
+      color=<name>       — yellow, blue, white, black, gold, etc. (matches anywhere in image)
+      brand=<name>       — Callaway, Mizuno, Takomo, etc.
+      object=<tag>       — product, lifestyle, minimal, dramatic, text-overlay
+      mood=<tag>         — energetic, calm, luxurious, playful, professional, clean
+      composition=<tag>  — centered, rule-of-thirds, landscape, portrait, high-detail
+      quality_min=<n>    — 1-100, only images scoring >= N
+      text=<substring>   — searchable OCR text (any substring match)
+      sort=<field>       — quality_score | filename (default quality_score desc)
+      limit=<n>          — default 60, max 200
+
+    Returns:
+      {ok, brand, filters_applied, count, results: [{filename, score, colors, brands, objects, mood, quality_score, dna_path, image_url}]}
+    """
+    try:
+        from pathlib import Path as _P
+        import re
+
+        # Load element index
+        idx_path = _P(BUNDLED_DATA_DIR) / "brand-directory" / "_system" / "all-elements.json"
+        if not idx_path.exists():
+            return jsonify({"ok": False, "error": "element index not found; run batch indexer", "results": [], "count": 0}), 404
+        all_idx = json.loads(idx_path.read_text())
+        brand_idx = all_idx.get(brand_id)
+        if not brand_idx:
+            return jsonify({"ok": False, "error": f"no element index for brand={brand_id}", "results": [], "count": 0}), 404
+
+        by_filename = brand_idx.get("by_filename", {})
+
+        # Parse filters
+        color_filter = (request.args.get("color") or "").strip().lower()
+        brand_filter = (request.args.get("brand") or "").strip().lower()
+        object_filter = (request.args.get("object") or "").strip().lower()
+        mood_filter = (request.args.get("mood") or "").strip().lower()
+        composition_filter = (request.args.get("composition") or "").strip().lower()
+        text_filter = (request.args.get("text") or "").strip().lower()
+        try:
+            quality_min = int(request.args.get("quality_min") or 0)
+        except ValueError:
+            quality_min = 0
+        sort_by = (request.args.get("sort") or "quality_score").strip()
+        try:
+            limit = min(int(request.args.get("limit") or 60), 200)
+        except ValueError:
+            limit = 60
+
+        applied = {}
+        if color_filter: applied["color"] = color_filter
+        if brand_filter: applied["brand"] = brand_filter
+        if object_filter: applied["object"] = object_filter
+        if mood_filter: applied["mood"] = mood_filter
+        if composition_filter: applied["composition"] = composition_filter
+        if text_filter: applied["text"] = text_filter
+        if quality_min: applied["quality_min"] = quality_min
+
+        results = []
+        for fn, entry in by_filename.items():
+            # Color match
+            if color_filter:
+                if not any(color_filter in c.lower() for c in entry.get("colors", [])):
+                    continue
+            # Brand match
+            if brand_filter:
+                if not any(brand_filter in b.lower() for b in entry.get("brands", [])):
+                    continue
+            # Object match
+            if object_filter:
+                if not any(object_filter in o.lower() for o in entry.get("objects", [])):
+                    continue
+            # Mood match
+            if mood_filter:
+                if not any(mood_filter in m.lower() for m in entry.get("mood", [])):
+                    continue
+            # Composition match
+            if composition_filter:
+                if not any(composition_filter in c.lower() for c in entry.get("composition_tags", [])):
+                    continue
+            # Text match
+            if text_filter:
+                if text_filter not in entry.get("text", "").lower():
+                    continue
+            # Quality threshold
+            if entry.get("quality_score", 0) < quality_min:
+                continue
+
+            results.append({
+                "filename": fn,
+                "dna_path": entry.get("dna_path", ""),
+                "image_url": f"/api/visual-library/{brand_id}/image/{fn}.jpg",
+                "colors": entry.get("colors", []),
+                "brands": entry.get("brands", []),
+                "objects": entry.get("objects", []),
+                "mood": entry.get("mood", []),
+                "composition_tags": entry.get("composition_tags", []),
+                "quality_score": entry.get("quality_score", 0),
+                "text_preview": (entry.get("text", "") or "")[:120],
+            })
+
+        # Sort
+        if sort_by == "quality_score":
+            results.sort(key=lambda x: x.get("quality_score", 0), reverse=True)
+        elif sort_by == "filename":
+            results.sort(key=lambda x: x.get("filename", ""))
+
+        results = results[:limit]
+        return jsonify({
+            "ok": True,
+            "brand": brand_id,
+            "filters_applied": applied,
+            "count": len(results),
+            "total_matched": len(results),
+            "results": results,
+        })
+    except Exception as e:
+        _app_log.exception("visual_library_discover failed")
+        return jsonify({"ok": False, "error": str(e), "results": [], "count": 0}), 500
+
+
+@app.route('/api/visual-library/<brand_id>/recipe', methods=['GET'])
+def visual_library_recipe(brand_id):
+    """GET /api/visual-library/<brand>/recipe — aggregated brand image DNA.
+
+    Combines statistical mode (most common features) with top-performer emphasis.
+    Returns human-readable recipe + numeric aggregates for use in image generation.
+
+    Query params:
+      top_pct=<n>   — top N% by quality score to weight heavily (default 25)
+
+    Returns:
+      {ok, brand, recipe: {palette, composition, products, moods, text, quality, style_clusters, summary}}
+    """
+    try:
+        from pathlib import Path as _P
+        idx_path = _P(BUNDLED_DATA_DIR) / "brand-directory" / "_system" / "all-elements.json"
+        if not idx_path.exists():
+            return jsonify({"ok": False, "error": "element index not found"}), 404
+        all_idx = json.loads(idx_path.read_text())
+        brand_idx = all_idx.get(brand_id)
+        if not brand_idx:
+            return jsonify({"ok": False, "error": f"no index for {brand_id}"}), 404
+
+        by_filename = brand_idx.get("by_filename", {})
+        try:
+            top_pct = int(request.args.get("top_pct") or 25)
+        except ValueError:
+            top_pct = 25
+
+        all_entries = list(by_filename.values())
+        total = len(all_entries)
+        if total == 0:
+            return jsonify({"ok": False, "error": "no images indexed"}), 404
+
+        # Sort by quality descending for top-performer weighting
+        sorted_entries = sorted(all_entries, key=lambda e: e.get("quality_score", 0), reverse=True)
+        top_n = max(1, int(total * top_pct / 100))
+        top_entries = sorted_entries[:top_n]
+
+        # Aggregate features
+        from collections import Counter
+
+        def counter_aggregate(entries, field, top_k=8):
+            c = Counter()
+            for e in entries:
+                for item in e.get(field, []):
+                    c[item] += 1
+            return [{"name": k, "count": v, "pct": round(v * 100 / max(1, len(entries)), 1)} for k, v in c.most_common(top_k)]
+
+        # All images aggregates
+        all_colors = counter_aggregate(all_entries, "colors")
+        all_brands = counter_aggregate(all_entries, "brands")
+        all_objects = counter_aggregate(all_entries, "objects")
+        all_moods = counter_aggregate(all_entries, "mood")
+        all_composition = counter_aggregate(all_entries, "composition_tags")
+
+        # Top performers aggregates (weighted 3x)
+        top_colors = counter_aggregate(top_entries * 3, "colors")
+        top_brands = counter_aggregate(top_entries * 3, "brands")
+        top_objects = counter_aggregate(top_entries * 3, "objects")
+        top_moods = counter_aggregate(top_entries * 3, "mood")
+
+        # Quality stats
+        quality_scores = [e.get("quality_score", 0) for e in all_entries]
+        quality_stats = {
+            "avg": round(sum(quality_scores) / total, 1) if total else 0,
+            "max": max(quality_scores) if quality_scores else 0,
+            "min": min(quality_scores) if quality_scores else 0,
+            "high_count": sum(1 for s in quality_scores if s >= 75),
+            "mid_count": sum(1 for s in quality_scores if 50 <= s < 75),
+            "low_count": sum(1 for s in quality_scores if s < 50),
+        }
+
+        # Style clustering — group by primary object/mood signature
+        style_signatures = Counter()
+        for e in all_entries:
+            sig = "|".join(sorted((e.get("objects", []) or [])[:2] + (e.get("mood", []) or [])[:1]))
+            if sig.strip("|"):
+                style_signatures[sig] += 1
+        style_clusters = [
+            {"signature": sig, "count": cnt, "pct": round(cnt * 100 / total, 1)}
+            for sig, cnt in style_signatures.most_common(6)
+        ]
+
+        # Human-readable summary
+        top_color_name = top_colors[0]["name"] if top_colors else "neutral"
+        top_object_name = top_objects[0]["name"] if top_objects else "general"
+        top_mood_name = top_moods[0]["name"] if top_moods else "neutral"
+        dominant_brand = top_brands[0]["name"] if top_brands else "none"
+
+        summary = (
+            f"{brand_id} images lean {top_color_name} ({top_colors[0]['pct'] if top_colors else 0}%), "
+            f"primarily {top_object_name} ({top_objects[0]['pct'] if top_objects else 0}%), "
+            f"with {top_mood_name} mood ({top_moods[0]['pct'] if top_moods else 0}%). "
+            f"Dominant brand: {dominant_brand}. "
+            f"Quality: avg {quality_stats['avg']}/100, {quality_stats['high_count']} high-scoring images. "
+            f"{len(style_clusters)} distinct visual style clusters detected."
+        )
+
+        return jsonify({
+            "ok": True,
+            "brand": brand_id,
+            "image_count": total,
+            "top_performer_count": top_n,
+            "recipe": {
+                "palette": {
+                    "all": all_colors,
+                    "top_performers": top_colors,
+                    "primary": top_color_name,
+                },
+                "products": {
+                    "all": all_brands,
+                    "top_performers": top_brands,
+                    "primary": dominant_brand,
+                },
+                "objects": {
+                    "all": all_objects,
+                    "top_performers": top_objects,
+                    "primary": top_object_name,
+                },
+                "mood": {
+                    "all": all_moods,
+                    "top_performers": top_moods,
+                    "primary": top_mood_name,
+                },
+                "composition": {
+                    "all": all_composition,
+                },
+                "quality": quality_stats,
+                "style_clusters": style_clusters,
+                "summary": summary,
+            },
+        })
+    except Exception as e:
+        _app_log.exception("visual_library_recipe failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/visual-library/<brand_id>/generate', methods=['POST'])
+def visual_library_generate(brand_id):
+    """POST /api/visual-library/<brand>/generate — generate image using OpenAI + brand recipe.
+
+    Request JSON (or query params):
+      prompt=<text>           — required, what to generate (e.g. "Mizuno iron close-up, yellow accent")
+      reference_color=<name>  — optional, color to emphasize
+      reference_brand=<name>  — optional, brand to feature
+      reference_mood=<name>   — optional, mood target
+      size=<WxH>              — 1024x1024 | 1024x1792 | 1792x1024 (default 1024x1024)
+      quality=<std|hd>        — default "standard"
+      n=<int>                 — 1-4 images, default 1
+
+    Returns:
+      {ok, prompt_used, images: [{url, revised_prompt}], model, brand_recipe_applied}
+    """
+    try:
+        body = request.get_json(silent=True) or {}
+        # Allow query params too
+        for k in ("prompt", "reference_color", "reference_brand", "reference_mood", "size", "quality"):
+            if not body.get(k) and request.args.get(k):
+                body[k] = request.args.get(k)
+        try:
+            n = int(body.get("n") or request.args.get("n") or 1)
+        except ValueError:
+            n = 1
+        n = max(1, min(4, n))
+
+        prompt = (body.get("prompt") or "").strip()
+        if not prompt:
+            return jsonify({"ok": False, "error": "prompt required"}), 400
+
+        # Load brand recipe
+        recipe_resp = visual_library_recipe(brand_id)
+        recipe_data = recipe_resp.get_json() if recipe_resp.status_code == 200 else {}
+        recipe = recipe_data.get("recipe", {}) if recipe_data else {}
+
+        # Build enhanced prompt with recipe DNA
+        prompt_parts = [prompt]
+        if recipe:
+            pal = recipe.get("palette", {}).get("primary")
+            if pal and pal != "other" and pal != "neutral":
+                prompt_parts.append(f"dominant color: {pal}")
+            mood = recipe.get("mood", {}).get("primary")
+            if mood and mood != "neutral":
+                prompt_parts.append(f"mood: {mood}")
+            obj = recipe.get("objects", {}).get("primary")
+            if obj and obj != "general":
+                prompt_parts.append(f"style: {obj}")
+
+        # User-specified references
+        if body.get("reference_color"):
+            prompt_parts.append(f"accent color: {body['reference_color']}")
+        if body.get("reference_brand"):
+            prompt_parts.append(f"featuring brand: {body['reference_brand']}")
+        if body.get("reference_mood"):
+            prompt_parts.append(f"mood: {body['reference_mood']}")
+
+        prompt_parts.append("professional product photography, clean composition, golf industry")
+        enhanced_prompt = ". ".join(prompt_parts)
+
+        # Load OpenAI key from canonical env file
+        env_file = "/Users/fivefriday/.openclaw/workspace/credentials/openai.env"
+        api_key = None
+        if os.path.exists(env_file):
+            for line in open(env_file):
+                if line.startswith("export OPENAI_API_KEY="):
+                    api_key = line.split(chr(39))[1]
+                    break
+
+        if not api_key:
+            return jsonify({"ok": False, "error": "OpenAI API key not configured. Submit via /openai-portal or place env file at /Users/fivefriday/.openclaw/workspace/credentials/openai.env"}), 503
+
+        # Call OpenAI gpt-image-1 (latest stable)
+        import requests as _req
+        size = body.get("size", "1024x1024")
+        # Map user-friendly values to gpt-image-1's accepted values
+        quality_input = body.get("quality", "auto")
+        quality_map = {"std": "low", "standard": "low", "hd": "high", "low": "low", "medium": "medium", "high": "high", "auto": "auto"}
+        quality = quality_map.get(str(quality_input).lower(), "auto")
+
+        api_resp = _req.post(
+            "https://api.openai.com/v1/images/generations",
+            headers={
+                "Authorization": "Bearer " + api_key,
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "gpt-image-1",
+                "prompt": enhanced_prompt,
+                "size": size,
+                "n": n,
+                "quality": quality,
+            },
+            timeout=120,
+        )
+
+        if api_resp.status_code != 200:
+            err_body = api_resp.text[:500]
+            return jsonify({"ok": False, "error": f"OpenAI {api_resp.status_code}", "detail": err_body}), 502
+
+        api_data = api_resp.json()
+        images = []
+        for item in api_data.get("data", []):
+            images.append({
+                "url": item.get("url"),
+                "b64_json_length": len(item.get("b64_json", "")) if item.get("b64_json") else 0,
+                "revised_prompt": item.get("revised_prompt", ""),
+            })
+
+        return jsonify({
+            "ok": True,
+            "brand": brand_id,
+            "model": "gpt-image-1",
+            "prompt_used": enhanced_prompt,
+            "images": images,
+            "brand_recipe_applied": {
+                "primary_color": recipe.get("palette", {}).get("primary"),
+                "primary_mood": recipe.get("mood", {}).get("primary"),
+                "primary_object": recipe.get("objects", {}).get("primary"),
+                "summary": recipe.get("summary", ""),
+            } if recipe else None,
+            "user_references": {
+                "color": body.get("reference_color"),
+                "brand": body.get("reference_brand"),
+                "mood": body.get("reference_mood"),
+            },
+        })
+    except Exception as e:
+        _app_log.exception("visual_library_generate failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/visual-library/<brand_id>/image/<path:filename>', methods=['GET'])
 def visual_library_image_detail(brand_id, filename):
     """GET /api/visual-library/<brand>/image/ — full DNA for one image.

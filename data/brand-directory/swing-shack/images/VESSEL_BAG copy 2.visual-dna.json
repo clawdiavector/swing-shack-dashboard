@@ -179,5 +179,103 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "black",
+      "silver",
+      "gray"
+    ],
+    "brands": [
+      "Vessel Bag",
+      "Vessel"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "Y; (Fs 2 Vj Os We VESSEL i ee BAGS AVAILABLE FOR ORDER Vj",
+    "quality_score": 46
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "regular",
+    "color": "#040404"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Vessel Bag",
+      "Vessel"
+    ],
+    "count": 2
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Vessel Bag",
+      "Vessel"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        11.6,
+        15.79,
+        14.17
+      ],
+      [
+        10.57,
+        21.19,
+        15.94
+      ],
+      [
+        15.88,
+        10.35,
+        8.01
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 46,
+    "components": {
+      "compliance": 0.475,
+      "sharpness_proxy": 13.722222222222221
+    }
   }
 }

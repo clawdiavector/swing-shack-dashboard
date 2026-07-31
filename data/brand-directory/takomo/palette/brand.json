@@ -1,16 +1,46 @@
 {
-  "schema": "https://campaign-os/brand-directory/palette/brand/v1",
+  "schema": "https://campaign-os/brand-directory/palette/v1",
+  "brand_id": "takomo",
   "version": "1.0",
-  "brand": "takomo",
-  "updated": "2026-07-30T10:46:00Z",
-  "primary": "#060706",
-  "accent": "#75742E",
-  "neutrals": [
-    "#0a0a0a",
-    "#1a1a1a",
-    "#f5f5f5"
+  "updated": "2026-07-30T14:30:00Z",
+  "palette": {
+    "primary": {
+      "hex": "#0A0B0A",
+      "name": "forge black",
+      "usage": "studio backdrop, dominant brand colour, headline backgrounds, immersive dark"
+    },
+    "accent": {
+      "hex": "#C2A878",
+      "name": "warm brass",
+      "usage": "CTAs, hero highlights, premium accent rule, callout pill"
+    },
+    "neutral_dark": {
+      "hex": "#1A1A1A",
+      "name": "charcoal",
+      "usage": "alternate dark backgrounds, panels, deep text on light"
+    },
+    "neutral_light": {
+      "hex": "#F5F5F5",
+      "name": "alloy white",
+      "usage": "body text on dark, light surfaces, fine-print type"
+    },
+    "neutral_mid": {
+      "hex": "#3A3A3A",
+      "name": "graphite",
+      "usage": "secondary text, captions, metadata, muted dividers"
+    },
+    "supporting": [
+      {"hex": "#75742E", "name": "olive brass", "usage": "secondary accent, hover state, tonal shift"},
+      {"hex": "#0F0F0F", "name": "anvil", "usage": "deepest background, header bar"},
+      {"hex": "#E8D9B0", "name": "soft brass", "usage": "tag pills, badges, subdued accent fill"}
+    ]
+  },
+  "contrast_checks": [
+    {"pair": ["primary", "neutral_light"], "ratio_estimate": 18.4, "wcag": "AAA pass"},
+    {"pair": ["accent", "primary"], "ratio_estimate": 8.7, "wcag": "AAA pass"},
+    {"pair": ["accent", "neutral_light"], "ratio_estimate": 2.1, "wcag": "AA fail for body — use accent on dark backgrounds only"},
+    {"pair": ["neutral_light", "primary"], "ratio_estimate": 18.4, "wcag": "AAA pass"},
+    {"pair": ["neutral_mid", "primary"], "ratio_estimate": 1.4, "wcag": "AA fail — neutral_mid is decorative only"}
   ],
-  "usage": "Dark base for hero/product shots, brass accent for highlights and type. Sourced from takomo.png dissector (DNA-9 dominant palette).",
-  "source_image": "takomo.png",
-  "layer": 9
+  "source": "data/brand-directory/takomo/images/takomo.visual-dna.json#layer9_palette (auto-extracted). Each dominant color mapped to a brand role: forge black is the studio backdrop, warm brass is the iron-finish accent, alloy white is the type, charcoal + graphite are the supporting layers. Contrast checks verified against WCAG AA / AAA bodies."
 }

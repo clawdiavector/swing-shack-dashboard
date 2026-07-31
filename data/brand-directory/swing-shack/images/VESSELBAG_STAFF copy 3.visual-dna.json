@@ -179,5 +179,102 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "black",
+      "gray",
+      "silver"
+    ],
+    "brands": [
+      "Vessel Bag",
+      "Vessel"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "Vj VESSEL a. BAGS ~ || AVAILABLE FOR ORDER BAGS AVAILABLE",
+    "quality_score": 59
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#040406"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Vessel Bag",
+      "Vessel"
+    ],
+    "count": 2
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Vessel Bag",
+      "Vessel"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        22.95,
+        16.84,
+        13.29
+      ],
+      [
+        36.65,
+        38.17,
+        19.51
+      ],
+      [
+        23.5,
+        21.27,
+        11.19
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 59,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 22.596666666666668
+    }
   }
 }

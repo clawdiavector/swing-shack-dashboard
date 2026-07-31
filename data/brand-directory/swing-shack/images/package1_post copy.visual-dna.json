@@ -177,5 +177,91 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "black",
+      "blue"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "MONTHLY FACKAGES I DABBLE UNLIMITED PRACTICE R 1800 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA I DABBLE R",
+    "quality_score": 66
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#6245ff"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        10.27,
+        6.43,
+        4.46
+      ],
+      [
+        7.56,
+        10.84,
+        6.67
+      ],
+      [
+        8.94,
+        8.54,
+        6.17
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 66,
+    "components": {
+      "compliance": 0.775,
+      "sharpness_proxy": 7.764444444444444
+    }
   }
 }

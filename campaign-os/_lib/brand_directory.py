@@ -116,6 +116,34 @@ def _count_images(images_path: Path) -> int:
     return count
 
 
+def _extract_tagline(readme: str, max_len: int = 140) -> str:
+    """Pull the first meaningful body line from a brand README.
+
+    Skips headings (`# …`), blank lines, and lines that are just section
+    dividers. Truncates to `max_len` chars with an ellipsis if needed.
+    Returns "" if no body line is found.
+    """
+    if not readme:
+        return ""
+    for line in readme.splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        if s.startswith("#"):
+            continue
+        if s in {"---", "***", "___"}:
+            continue
+        if s.startswith("|") and s.endswith("|"):
+            # markdown table rows; skip
+            continue
+        if s.startswith("-") and "|" in s:
+            continue
+        if len(s) > max_len:
+            return s[: max_len - 1].rstrip(",.;: ") + "…"
+        return s
+    return ""
+
+
 def list_brands(base_dir: Path | None = None) -> list[str]:
     """Return brand IDs that have a directory entry."""
     base = base_dir or _BRAND_DIR
@@ -142,6 +170,7 @@ def build_index(base_dir: Path | None = None) -> dict[str, Any]:
 
     for brand_id in brand_ids:
         brand = load_brand(brand_id, base_dir=base)
+        tagline = _extract_tagline(brand.get("readme") or "")
         brands[brand_id] = {
             "ready": brand["ready"],
             "gates": brand["gates"],
@@ -151,6 +180,8 @@ def build_index(base_dir: Path | None = None) -> dict[str, Any]:
             "archetype_ids": [
                 a.get("id") for a in (brand.get("archetypes") or [])
             ],
+            "tagline": tagline,
+            "has_readme": bool((brand.get("readme") or "").strip()),
         }
         if brand["ready"]:
             ready_count += 1

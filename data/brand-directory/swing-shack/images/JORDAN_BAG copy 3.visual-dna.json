@@ -174,5 +174,101 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "gray",
+      "black"
+    ],
+    "brands": [
+      "Jordan Bag",
+      "Jordan"
+    ],
+    "objects": [
+      "product"
+    ],
+    "composition_tags": [
+      "left-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "",
+    "quality_score": 53
+  },
+  "layer2_subject": {
+    "categories": [
+      "product"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": false,
+    "weight": "unknown",
+    "color": ""
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Jordan Bag",
+      "Jordan"
+    ],
+    "count": 2
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Jordan Bag",
+      "Jordan"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        21.77,
+        14.89,
+        22.43
+      ],
+      [
+        29.5,
+        17.77,
+        20.91
+      ],
+      [
+        11.89,
+        8.24,
+        13.64
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "left"
+  },
+  "layer18_quality": {
+    "score": 53,
+    "components": {
+      "compliance": 0.5588,
+      "sharpness_proxy": 17.893333333333334
+    }
   }
 }

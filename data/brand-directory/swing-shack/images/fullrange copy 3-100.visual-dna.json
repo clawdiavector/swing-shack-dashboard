@@ -177,5 +177,88 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "gray",
+      "silver"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional"
+    ],
+    "text": "LA GOLF _PUTTERS | Ria AICASLE LA",
+    "quality_score": 62
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-caps",
+    "color": "#ffffff"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        4.0,
+        17.79,
+        3.12
+      ],
+      [
+        3.09,
+        12.9,
+        7.27
+      ],
+      [
+        6.68,
+        10.8,
+        4.88
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top"
+  },
+  "layer18_quality": {
+    "score": 62,
+    "components": {
+      "compliance": 0.725,
+      "sharpness_proxy": 7.836666666666667
+    }
   }
 }

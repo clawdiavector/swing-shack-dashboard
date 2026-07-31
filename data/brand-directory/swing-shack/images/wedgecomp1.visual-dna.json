@@ -177,5 +177,93 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "white",
+      "gray",
+      "purple"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay",
+      "minimal"
+    ],
+    "composition_tags": [
+      "left-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "clean",
+      "playful"
+    ],
+    "text": "WIN A SET OF FITTED WEDGES 1 DECEMBER - 28 FEBRUARY R500 ENTRY R100 PER EXTRA ATTEMPT UNLIMITED ATTEMPTS ALLOWED WIN A SET",
+    "quality_score": 56
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay",
+      "minimal"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "clean",
+      "playful"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay",
+      "minimal"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#8f4bfa"
+  },
+  "layer12_scene": {
+    "luminance": "light",
+    "type": "outdoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        9.48,
+        9.85,
+        9.19
+      ],
+      [
+        19.6,
+        9.38,
+        3.29
+      ],
+      [
+        12.63,
+        8.67,
+        9.47
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "left"
+  },
+  "layer18_quality": {
+    "score": 56,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 10.173333333333334
+    }
   }
 }

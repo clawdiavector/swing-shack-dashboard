@@ -177,5 +177,91 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "black",
+      "gray"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "_LAGOLF \u2014 PUTTERS NOW AVAILABLE @ SWING SHACK _LAGOLF",
+    "quality_score": 63
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#ffffff"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        7.23,
+        17.66,
+        3.08
+      ],
+      [
+        9.81,
+        0.38,
+        1.68
+      ],
+      [
+        11.92,
+        29.12,
+        12.54
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom"
+  },
+  "layer18_quality": {
+    "score": 63,
+    "components": {
+      "compliance": 0.725,
+      "sharpness_proxy": 10.380000000000003
+    }
   }
 }

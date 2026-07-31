@@ -177,5 +177,92 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "black",
+      "silver",
+      "green"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "left-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "COACHING PACKAGES 1X SESSION R &20 3X SESSIONS R2350 5X SESSIONS R 3850 FOX SESSIGINS R 7200 BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA COACHING PACKAGES",
+    "quality_score": 56
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#090b0b"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        10.79,
+        7.69,
+        4.54
+      ],
+      [
+        15.76,
+        11.45,
+        11.93
+      ],
+      [
+        9.37,
+        9.02,
+        6.31
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "left"
+  },
+  "layer18_quality": {
+    "score": 56,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 9.651111111111112
+    }
   }
 }

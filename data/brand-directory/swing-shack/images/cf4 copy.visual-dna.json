@@ -172,5 +172,88 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "purple",
+      "black"
+    ],
+    "brands": [],
+    "objects": [],
+    "composition_tags": [
+      "right-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious",
+      "playful"
+    ],
+    "text": "",
+    "quality_score": 63
+  },
+  "layer2_subject": {
+    "categories": [],
+    "primary": "unknown"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious",
+      "playful"
+    ]
+  },
+  "layer5_objects": {
+    "tags": []
+  },
+  "layer11_fonts": {
+    "detected": false,
+    "weight": "unknown",
+    "color": ""
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        5.82,
+        5.57,
+        10.14
+      ],
+      [
+        9.36,
+        9.83,
+        9.34
+      ],
+      [
+        4.53,
+        4.0,
+        3.84
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top-right"
+  },
+  "layer18_quality": {
+    "score": 63,
+    "components": {
+      "compliance": 0.7353,
+      "sharpness_proxy": 6.936666666666667
+    }
   }
 }

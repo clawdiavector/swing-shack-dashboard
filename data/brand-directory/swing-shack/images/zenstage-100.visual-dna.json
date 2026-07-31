@@ -174,5 +174,97 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "black",
+      "green"
+    ],
+    "brands": [
+      "Zen Swing Stage"
+    ],
+    "objects": [
+      "product"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "",
+    "quality_score": 64
+  },
+  "layer2_subject": {
+    "categories": [
+      "product"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": false,
+    "weight": "unknown",
+    "color": ""
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Zen Swing Stage"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Zen Swing Stage"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        11.99,
+        13.47,
+        10.25
+      ],
+      [
+        12.36,
+        13.37,
+        11.3
+      ],
+      [
+        6.65,
+        12.31,
+        7.17
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top"
+  },
+  "layer18_quality": {
+    "score": 64,
+    "components": {
+      "compliance": 0.7353,
+      "sharpness_proxy": 10.985555555555557
+    }
   }
 }

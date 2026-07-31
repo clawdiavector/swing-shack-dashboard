@@ -177,5 +177,100 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "gray",
+      "black"
+    ],
+    "brands": [
+      "Scotty Cameron"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "portrait",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "efe oy Aa SCOTTY CAMERON PHANTOM 5.5 AVAILABLE @ iswive DM US FOR DETAILS PHANTOM 5.5",
+    "quality_score": 56
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#070809"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Scotty Cameron"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Scotty Cameron"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        3.43,
+        5.36,
+        3.33
+      ],
+      [
+        2.5,
+        6.64,
+        3.41
+      ],
+      [
+        9.66,
+        29.35,
+        23.91
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "bottom"
+  },
+  "layer18_quality": {
+    "score": 56,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 9.732222222222223
+    }
   }
 }

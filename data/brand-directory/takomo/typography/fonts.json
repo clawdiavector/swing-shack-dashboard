@@ -1,0 +1,36 @@
+{
+  "schema": "https://campaign-os/brand-directory/typography/v1",
+  "brand_id": "takomo",
+  "version": "1.0",
+  "updated": "2026-07-30T23:10:00Z",
+  "primary": {
+    "family": "Space Grotesk",
+    "source": "Google Fonts (free, web-safe)",
+    "weights_available": [400, 500, 600, 700],
+    "use_for": ["headlines", "specs", "ui"]
+  },
+  "secondary": {
+    "family": "JetBrains Mono",
+    "source": "Google Fonts (free, web-safe)",
+    "weights_available": [400, 500, 700],
+    "use_for": ["spec callouts", "numerical measurements", "forging temperatures"]
+  },
+  "fallbacks": ["IBM Plex Sans", "system-ui", "-apple-system", "Helvetica Neue", "Arial"],
+  "scale": [
+    {"name": "display", "size_px": 72, "weight": 700, "use_for": ["product-hero headline", "spec-card title"]},
+    {"name": "h1", "size_px": 56, "weight": 700, "use_for": ["spec-card primary metric", "101T headline"]},
+    {"name": "h2", "size_px": 36, "weight": 600, "use_for": ["subhead on hero", "spec row label"]},
+    {"name": "h3", "size_px": 24, "weight": 500, "use_for": ["spec detail header", "engineering note"]},
+    {"name": "body", "size_px": 18, "weight": 400, "use_for": ["supporting copy", "engineering body"]},
+    {"name": "spec_mono", "size_px": 16, "weight": 500, "use_for": ["loft / lie / bounce", "swingweight", "forging temperature"]},
+    {"name": "caption", "size_px": 13, "weight": 500, "use_for": ["metadata", "fine print"]}
+  ],
+  "pairing_rules": {
+    "product_headline": {"family": "Space Grotesk", "weight": 700, "size": 72},
+    "spec_card_metric": {"family": "Space Grotesk", "weight": 700, "size": 56},
+    "spec_card_value": {"family": "JetBrains Mono", "weight": 500, "size": 16},
+    "supporting_note": {"family": "Space Grotesk", "weight": 400, "size": 18},
+    "cta_pill": {"family": "Space Grotesk", "weight": 700, "size": 20}
+  },
+  "source": "best-guess — Takomo voice is engineering-led, spec-anchored, premium but accessible. Space Grotesk is the geometric-workhorse display family that Scandinavian engineering brands gravitate to; JetBrains Mono handles the spec callouts (loft, lie, swingweight, forging temp) because engineering audiences expect monospace for measurements. Needs Drive validation once folders wired in."
+}

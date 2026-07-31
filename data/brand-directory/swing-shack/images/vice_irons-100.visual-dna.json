@@ -177,5 +177,98 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "white",
+      "gray"
+    ],
+    "brands": [
+      "Vice"
+    ],
+    "objects": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "clean"
+    ],
+    "text": "@ SWING SHACK @ SWING SHACK",
+    "quality_score": 45
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "clean"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay",
+      "minimal"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-caps",
+    "color": "#f9f9f9"
+  },
+  "layer12_scene": {
+    "luminance": "light",
+    "type": "outdoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Vice"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Vice"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        9.76,
+        5.18,
+        2.98
+      ],
+      [
+        2.92,
+        13.68,
+        12.02
+      ],
+      [
+        10.31,
+        8.54,
+        6.23
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 45,
+    "components": {
+      "compliance": 0.475,
+      "sharpness_proxy": 7.9577777777777765
+    }
   }
 }

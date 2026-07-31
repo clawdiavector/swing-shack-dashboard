@@ -180,5 +180,99 @@
     ],
     "count": 2,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "white",
+      "silver",
+      "gray"
+    ],
+    "brands": [
+      "Callaway",
+      "Callaway Quantum"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "neutral"
+    ],
+    "text": "CALLAWAY QUANTUM MINI DRIVERS AVAILABLE FOR FITTINGS CALLAWAY QUANTUM",
+    "quality_score": 44
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "neutral"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#ffffff"
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "outdoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "Callaway",
+      "Callaway Quantum"
+    ],
+    "count": 2
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "Callaway",
+      "Callaway Quantum"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        7.46,
+        8.98,
+        7.57
+      ],
+      [
+        6.89,
+        5.49,
+        4.59
+      ],
+      [
+        1.37,
+        6.0,
+        7.96
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top"
+  },
+  "layer18_quality": {
+    "score": 44,
+    "components": {
+      "compliance": 0.475,
+      "sharpness_proxy": 6.256666666666667
+    }
   }
 }

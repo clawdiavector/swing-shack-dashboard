@@ -177,5 +177,91 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "black",
+      "green"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "portrait",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": "swe) MONT Tiga cAGieS | AM GOLF WEEKLY LESSON & UNLIMITED PRACTICE R2 850 PER MONTH BOOK ONLINE OR DM US WWW.SWINGSHACK.CO.ZA | AM GOLF",
+    "quality_score": 65
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#6fff0c"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        7.06,
+        3.87,
+        4.11
+      ],
+      [
+        9.5,
+        12.17,
+        5.42
+      ],
+      [
+        7.09,
+        6.46,
+        4.84
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 65,
+    "components": {
+      "compliance": 0.775,
+      "sharpness_proxy": 6.724444444444444
+    }
   }
 }

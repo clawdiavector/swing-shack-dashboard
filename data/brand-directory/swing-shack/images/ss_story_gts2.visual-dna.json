@@ -179,5 +179,97 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "gray"
+    ],
+    "brands": [
+      "GTS Putter"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "portrait",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional"
+    ],
+    "text": "Tahaint GIS? DRIVER 9.0 AVAILABLE @ iswiyg DM US FOR DETAILS GIS? DRIVER 9.0",
+    "quality_score": 55
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-display",
+    "color": "#111415"
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "GTS Putter"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "GTS Putter"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        3.26,
+        6.3,
+        3.7
+      ],
+      [
+        3.93,
+        7.45,
+        3.84
+      ],
+      [
+        6.44,
+        5.89,
+        6.55
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "centre"
+  },
+  "layer18_quality": {
+    "score": 55,
+    "components": {
+      "compliance": 0.625,
+      "sharpness_proxy": 5.2622222222222215
+    }
   }
 }

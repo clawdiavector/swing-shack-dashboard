@@ -177,5 +177,93 @@
     "detected_brands": [],
     "count": 0,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "brown",
+      "orange",
+      "silver",
+      "black"
+    ],
+    "brands": [],
+    "objects": [
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "right-aligned",
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "calm",
+      "professional",
+      "luxurious"
+    ],
+    "text": ">UTTER MIGHT BE >UTTER MIGHT BE",
+    "quality_score": 66
+  },
+  "layer2_subject": {
+    "categories": [
+      "text-overlay"
+    ],
+    "primary": "text-overlay"
+  },
+  "layer3_mood": {
+    "tags": [
+      "calm",
+      "professional",
+      "luxurious"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-caps",
+    "color": "#e27226"
+  },
+  "layer12_scene": {
+    "luminance": "dark",
+    "type": "indoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [],
+    "count": 0
+  },
+  "layer14_logo_presence": {
+    "logos_detected": []
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        7.04,
+        15.21,
+        15.48
+      ],
+      [
+        11.01,
+        13.88,
+        7.1
+      ],
+      [
+        6.75,
+        8.73,
+        7.42
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top-right"
+  },
+  "layer18_quality": {
+    "score": 66,
+    "components": {
+      "compliance": 0.775,
+      "sharpness_proxy": 10.291111111111112
+    }
   }
 }

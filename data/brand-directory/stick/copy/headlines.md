@@ -18,7 +18,7 @@ Pre-approved headline patterns. Tag with `[tone]` `[pillar]` `[intent]`.
 - `You changed your grip. Twice. The slice didn't notice.` `[tone:provocative][pillar:trackman_intelligence][intent:empathise]`
 
 ## Relatable
-- `When your mate says 'I'll fix it myself' — we've all been there. Almost.` `[tone:relatable][intent:empathise]`
+- `When your mate says 'I'll fix it myself'. We've all been there. Almost.` `[tone:relatable][intent:empathise]`
 - `Me: I'll fix my slice this winter. Also me: *buys new driver*.` `[tone:relatable][intent:empathise]`
 
 ## Pattern rules

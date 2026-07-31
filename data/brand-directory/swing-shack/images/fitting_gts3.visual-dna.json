@@ -179,5 +179,96 @@
     ],
     "count": 1,
     "source": "ocr+filename"
+  },
+  "layer18_elements": {
+    "colors": [
+      "silver",
+      "white",
+      "gray"
+    ],
+    "brands": [
+      "GTS Putter"
+    ],
+    "objects": [
+      "product",
+      "text-overlay"
+    ],
+    "composition_tags": [
+      "square",
+      "low-detail"
+    ],
+    "mood": [
+      "neutral"
+    ],
+    "text": "\u2014 7 a AVAILABLE FOR FITTING @ sw)e| AVAILABLE FOR FITTING",
+    "quality_score": 62
+  },
+  "layer2_subject": {
+    "categories": [
+      "product",
+      "text-overlay"
+    ],
+    "primary": "product"
+  },
+  "layer3_mood": {
+    "tags": [
+      "neutral"
+    ]
+  },
+  "layer5_objects": {
+    "tags": [
+      "product",
+      "text-overlay"
+    ]
+  },
+  "layer11_fonts": {
+    "detected": true,
+    "weight": "bold-caps",
+    "color": "#ffffff"
+  },
+  "layer12_scene": {
+    "luminance": "mid",
+    "type": "outdoor"
+  },
+  "layer13_brand_emphasis": {
+    "brands": [
+      "GTS Putter"
+    ],
+    "count": 1
+  },
+  "layer14_logo_presence": {
+    "logos_detected": [
+      "GTS Putter"
+    ]
+  },
+  "layer15_motion": {
+    "static": true,
+    "edge_density": [
+      [
+        4.4,
+        11.32,
+        4.87
+      ],
+      [
+        4.89,
+        10.2,
+        4.14
+      ],
+      [
+        2.61,
+        7.1,
+        2.41
+      ]
+    ]
+  },
+  "layer16_focal_point": {
+    "position": "top"
+  },
+  "layer18_quality": {
+    "score": 62,
+    "components": {
+      "compliance": 0.725,
+      "sharpness_proxy": 5.771111111111111
+    }
   }
 }

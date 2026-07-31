@@ -15,7 +15,7 @@
 - Two sentences, parallel structure (cost-saving that costs).
 - Provocative without being mean.
 - The challenge is specific (cost you strokes, not "you're bad").
-- Pairs with CTA `Get fitted — your clubs aren't random`.
+- Pairs with CTA `Get fitted. Your clubs aren't random.`.
 - Tone: provocative.
 
 ## ❌ Bad (missed the brand)
