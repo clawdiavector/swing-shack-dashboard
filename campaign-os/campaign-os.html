@@ -3465,7 +3465,7 @@ function renderBrandDirectoryTypographyCard(typography){
 
   return `
     <div class="card col-6">
-      <div class="card-h"><h3>🔤 Typography</h3></div>
+      <div class="card-h"><h3 data-help="Canonical type system for this brand. Primary font (face, weight, where it shows up), fallbacks (what to use if primary fails to load), and pairing rules (which weight + size goes with which context: headline, sub, body, caption). The brief preview renders the chosen font on screen." data-help-title="Typography" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🔤 Typography</h3></div>
       ${primaryBlock}
       ${rulesBlock}
     </div>`;
@@ -6961,42 +6961,61 @@ async function renderBrandDirectoryPanel(){
         const palEntries = Object.entries(pal).slice(0, 6);
         const arche = data.archetypes || [];
         const readme = (data.readme || '').slice(0, 400);
+        // Per-card tooltips on the Brand Directory detail panel (pitfall #62 sweep).
+        // Mirrors the Contrast checks card pattern from commit 21462b6: each h3 carries
+        // data-help + data-help-title so HELP.autoAttach() wires the popover. cursor:help
+        // + dotted underline signal affordance. Strings are short, plain-English, no
+        // em-dashes (standing rule + lint_brand_copy pre-commit guard).
+        const fullDirTitle = `${esc(labelMap[bid]||bid)} · full directory`;
+        const fullDirHelp = `Read-only view of every slot for this brand. Voice + palette + archetypes + typography + copy + examples, all sourced from data/brand-directory/${bid}/. Safe to browse. To generate something, click 🎨 Generate brief above.`;
+        const paletteHelp = `Canonical colour list for this brand: each row is a named role (primary, accent, neutral, bg, etc.) with its hex value and label. The image generator reads this. The Contrast checks card below tells you which pairs are safe for body text.`;
+        const archeHelp = `An archetype is a reusable visual recipe: canvas size, layers (background, shape, text), and which palette colours land where. The image generator picks one per brief. Click 🎨 Generate brief to see the rendered preview in the chosen font.`;
+        const voiceHelp = `Tone rules = how the voice lands. Sentence length, formality, confidence level, what kind of humour, what to avoid. Read this before writing any post or caption for this brand.`;
+        const vocabHelp = `Vocabulary gate. Words on the "do say" list are on-brand and safe. Words on the "don't say" list are off-brand, even if they are technically correct. When in doubt, pick the simpler word.`;
+        const punctHelp = `House style: no em-dashes (banned), use full stops for terminators, spec formats (numbers, distances, prices) follow the rules below. The pre-commit lint_brand_copy.py enforces this.`;
+        const headlinesHelp = `Pre-approved headline patterns for this brand. The brief builder pulls from this bank. Use these shapes, do not invent new ones, the bank exists because every approved headline tested well.`;
+        const ctasHelp = `Pre-approved call-to-action patterns. Pull from this bank on every post. Generic CTAs ("click the link in bio") are off-brand.`;
+        const examplesHeaderHelp = `Three buckets of brand-aligned writing. ✅ Good = nailed it, use as a template. ❌ Bad = missed the brand, do not repeat. 📌 Inspiration = borrow the shape, do not copy the words.`;
+        const goodHelp = `Posts that nailed the brand voice + visual. Use these as the template when writing new copy. Read the cadence, the word choice, the CTA shape.`;
+        const badHelp = `Posts that missed the brand. Common failure modes: too formal, generic CTA, em-dash slipped in, wrong tone. Avoid these patterns.`;
+        const inspirationHelp = `Adjacent brands or formats that inspired this brand. Borrow the shape (the rhythm, the layout), do not copy the words. Treating these as templates is a brand-voice drift risk.`;
+        const h3tip = (label, title, body) => `<h3 data-help="${esc(body)}" data-help-title="${esc(title)}" style="cursor:help;border-bottom:1px dotted var(--tx-2)">${label}</h3>`;
         detail.innerHTML = `
           <div class="card">
-            <div class="card-h"><h3>📋 ${esc(labelMap[bid]||bid)} — full directory</h3>${data.ready ? pill('on','ready') : pill('draft','partial')}</div>
+            <div class="card-h">${h3tip(fullDirTitle, 'Full brand directory', fullDirHelp)}${data.ready ? pill('on','ready') : pill('draft','partial')}</div>
             ${readme ? `<details class="help-collapsible" style="margin-bottom:1rem"><summary>📄 Brand one-pager (README)</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(readme)}</div></div></details>` : ''}
             <div class="grid">
-              <div class="card col-6"><div class="card-h"><h3>🎨 Palette</h3></div>
+              <div class="card col-6"><div class="card-h">${h3tip('🎨 Palette', 'Palette', paletteHelp)}</div>
                 <table style="width:100%;font-size:12px;border-collapse:collapse">
-                  ${palEntries.map(([k,v]) => `<tr><td style="padding:4px 8px">${esc(k)}</td><td style="padding:4px 8px"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${esc(v.hex||'#888')};border:1px solid var(--bg-3);vertical-align:middle;margin-right:6px"></span><code style="background:var(--bg-3);padding:1px 4px;border-radius:3px">${esc(v.hex||'—')}</code> ${esc(v.name||'')}</td></tr>`).join('')}
+                  ${palEntries.map(([k,v]) => `<tr><td style="padding:4px 8px">${esc(k)}</td><td style="padding:4px 8px"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${esc(v.hex||'#888')};border:1px solid var(--bg-3);vertical-align:middle;margin-right:6px"></span><code style="background:var(--bg-3);padding:1px 4px;border-radius:3px">${esc(v.hex||'-')}</code> ${esc(v.name||'')}</td></tr>`).join('')}
                 </table>
               </div>
-              <div class="card col-6"><div class="card-h"><h3>🖼️ Archetypes (${arche.length})</h3></div>
+              <div class="card col-6"><div class="card-h">${h3tip(`🖼️ Archetypes (${arche.length})`, 'Archetypes', archeHelp)}</div>
                 <ul class="list">${arche.map(a => `<li class="li"><div class="li-body"><div class="li-title">${esc(a.name||a.id)}</div><div class="li-meta muted">${esc((a.description||'').slice(0,120))}…</div></div></li>`).join('')}</ul>
               </div>
               ${renderBrandDirectoryTypographyCard(data.typography)}
               ${renderBrandDirectoryContrastCard(data.palette_full, data.palette)}
-              <div class="card col-12"><div class="card-h"><h3>🎤 Voice — tone rules</h3></div>
-                <details class="help-collapsible"><summary>Read tone rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.tone_rules||'—')}</div></div></details>
+              <div class="card col-12"><div class="card-h">${h3tip('🎤 Voice · tone rules', 'Voice: tone rules', voiceHelp)}</div>
+                <details class="help-collapsible"><summary>Read tone rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.tone_rules||'-')}</div></div></details>
               </div>
-              <div class="card col-12"><div class="card-h"><h3>📝 Do say / Don't say</h3></div>
-                <details class="help-collapsible"><summary>Read vocabulary</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.do_say_dont_say||'—')}</div></div></details>
+              <div class="card col-12"><div class="card-h">${h3tip(`📝 Do say / Don't say`, 'Vocabulary gate', vocabHelp)}</div>
+                <details class="help-collapsible"><summary>Read vocabulary</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.do_say_dont_say||'-')}</div></div></details>
               </div>
-              <div class="card col-12"><div class="card-h"><h3>✏️ Punctuation rules</h3><span class="muted" style="font-size:11.5px">em-dash ban · sentence terminators · spec formats · capitalisation</span></div>
-                <details class="help-collapsible"><summary>Read punctuation rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.punctuation||'—')}</div></div></details>
+              <div class="card col-12"><div class="card-h">${h3tip('✏️ Punctuation rules', 'Punctuation rules', punctHelp)}<span class="muted" style="font-size:11.5px">no em-dash · sentence terminators · spec formats · capitalisation</span></div>
+                <details class="help-collapsible"><summary>Read punctuation rules</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.voice?.punctuation||'-')}</div></div></details>
               </div>
-              <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
-                <details class="help-collapsible"><summary>Read headline bank</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.copy?.headlines||'—')}</div></div></details>
+              <div class="card col-6"><div class="card-h">${h3tip('📰 Headlines bank', 'Headlines bank', headlinesHelp)}</div>
+                <details class="help-collapsible"><summary>Read headline bank</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.copy?.headlines||'-')}</div></div></details>
               </div>
-              <div class="card col-6"><div class="card-h"><h3>🎯 CTA bank</h3></div>
-                <details class="help-collapsible"><summary>Read CTA bank</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.copy?.ctas||'—')}</div></div></details>
+              <div class="card col-6"><div class="card-h">${h3tip('🎯 CTA bank', 'CTA bank', ctasHelp)}</div>
+                <details class="help-collapsible"><summary>Read CTA bank</summary><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.copy?.ctas||'-')}</div></div></details>
               </div>
               ${(data.examples?.good || data.examples?.bad || data.examples?.inspiration) ? `
-              <div class="card col-12"><div class="card-h"><h3>📚 Examples — do / don't</h3><span class="muted" style="font-size:11.5px">${data.examples?.good ? '✅ good' : ''}${data.examples?.bad ? '  ❌ bad' : ''}${data.examples?.inspiration ? '  📌 inspiration' : ''}</span></div>
+              <div class="card col-12"><div class="card-h">${h3tip('📚 Examples · do / don\'t', 'Examples: do / don\'t', examplesHeaderHelp)}<span class="muted" style="font-size:11.5px">${data.examples?.good ? '✅ good' : ''}${data.examples?.bad ? '  ❌ bad' : ''}${data.examples?.inspiration ? '  📌 inspiration' : ''}</span></div>
                 <div class="grid">
-                  ${data.examples?.good ? `<div class="card col-4"><div class="card-h"><h3>✅ Good (nailed the brand)</h3></div><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.examples.good)}</div></div>` : ''}
-                  ${data.examples?.bad ? `<div class="card col-4"><div class="card-h"><h3>❌ Bad (missed the brand)</h3></div><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.examples.bad)}</div></div>` : ''}
-                  ${data.examples?.inspiration ? `<div class="card col-4"><div class="card-h"><h3>📌 Inspiration (do not copy)</h3></div><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.examples.inspiration)}</div></div>` : ''}
+                  ${data.examples?.good ? `<div class="card col-4"><div class="card-h">${h3tip('✅ Good (nailed the brand)', 'Examples: good', goodHelp)}</div><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.examples.good)}</div></div>` : ''}
+                  ${data.examples?.bad ? `<div class="card col-4"><div class="card-h">${h3tip('❌ Bad (missed the brand)', 'Examples: bad', badHelp)}</div><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.examples.bad)}</div></div>` : ''}
+                  ${data.examples?.inspiration ? `<div class="card col-4"><div class="card-h">${h3tip('📌 Inspiration (do not copy)', 'Examples: inspiration', inspirationHelp)}</div><div class="hc-body" style="overflow:auto"><div class="md-body">${md(data.examples.inspiration)}</div></div>` : ''}
                 </div>
               </div>` : ''}
             </div>
