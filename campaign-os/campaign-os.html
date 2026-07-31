@@ -4633,10 +4633,22 @@ async function renderBrief(){
   // Invalidate cache if brand changed since last render — cache key includes brand
   const cacheKey = S.brand || 'default';
   if(!S.brief || S.brief.__cacheBrand !== cacheKey){
+    // Fire all independent fetches in parallel. Previously the today-rail
+    // (/api/today/panel) and whats-new (/api/whats-new) calls ran sequentially
+    // AFTER this Promise.all, adding ~2.9s of "Loading…" on the right-rail.
+    // Hoisting them into the parallel batch saves the wait.
+    const fetchBrandContext = !S.brandContext ? API.get('/api/intel/brand-context').then(v => S.brandContext = v).catch(() => null) : Promise.resolve();
+    const fetchTodayPanel = !S.todayRail ? API.get('/api/today/panel').then(v => S.todayRail = v).catch(() => null) : Promise.resolve();
+    const fetchWhatsNew = (!S.whatsNew || (Date.now() - (S.whatsNewTs||0)) > 10*60*1000)
+      ? API.get('/api/whats-new').then(v => { S.whatsNew = v.items || []; S.whatsNewTs = Date.now(); }).catch(() => null)
+      : Promise.resolve();
     const [b, r, t] = await Promise.all([
       API.get('/api/intel/morning_brief'),
       API.get('/api/intel/review_inbox'),
       API.get('/api/intel/trend_catcher'),
+      fetchBrandContext,
+      fetchTodayPanel,
+      fetchWhatsNew,
     ]);
     b.__cacheBrand = cacheKey;
     S.brief = b; S.review = r; S.trends = t;
@@ -4731,14 +4743,36 @@ async function renderBrief(){
   const today = safeList(b.post_today, 5);
 
   // ─── What's new (last few nightshift improvements) ───
-  // Lazily fetch and cache for 10 minutes. Append-only list; the API
-  // itself caches 5 min at the edge. Renders as a card above the grid.
-  if(!S.whatsNew || (Date.now() - (S.whatsNewTs||0)) > 10*60*1000){
-    try {
-      const wn = await API.get('/api/whats-new');
-      S.whatsNew = wn.items || [];
+  // Pre-fetched in parallel with the brief Promise.all (see top of fn).
+  // This block is the non-blocking fallback for the rare case the upfront
+  // fetch failed — when it lands, splice the card in directly (do NOT
+  // re-render renderBrief, that would loop if the API keeps failing).
+  if(!S.whatsNew || S.whatsNew.length === 0){
+    API.get('/api/whats-new').then(v => {
+      S.whatsNew = v.items || [];
       S.whatsNewTs = Date.now();
-    } catch(e) { S.whatsNew = []; }
+      const grid = document.querySelector('#brief-grid');
+      if(grid && !document.querySelector('#brief-whats-new')){
+        const card = document.createElement('div');
+        card.className = 'card col-12';
+        card.id = 'brief-whats-new';
+        card.innerHTML = `
+          <div class="card-h">
+            <h3 data-help="The last handful of polish ticks from Campaign OS nightshift. Each row is one shipped improvement (commit → Railway → live). Ladders to the Insights surface for the full activity log." data-help-title="What's new">🛠 What's new</h3>
+            <span class="muted" style="font-size:12px">Nightshift improvements · last ${S.whatsNew.length}</span>
+          </div>
+          <ul class="list whats-new-list">${S.whatsNew.map(w => `
+            <li class="whats-new-row">
+              <span class="wn-tag wn-${esc(w.tag || 'misc')}">${esc(w.tag || 'misc')}</span>
+              <div class="wn-body">
+                <div class="wn-title">${esc(w.title)} <span class="wn-ts muted">· ${esc((w.ts||'').slice(0,16).replace('T',' '))} UTC</span></div>
+                <div class="wn-x">${esc(w.body)}</div>
+              </div>
+            </li>`).join('')}
+          </ul>`;
+        grid.prepend(card);
+      }
+    }).catch(() => null);
   }
   const whatsNewHtml = (S.whatsNew && S.whatsNew.length) ? `
     <div class="card col-12" id="brief-whats-new">
