@@ -1209,12 +1209,22 @@ def visual_library_search():
                 idx = json.loads(idx_path.read_text())
             except Exception:
                 continue
+            # Canonical images dir relative to BUNDLED_DATA_DIR — same fallback
+            # strategy used by /api/visual-library/<brand>/images.
+            images_dir = brand_dir / 'images'
+            def _resolve_dna_search(dna_path_str, filename, imgs_dir):
+                if dna_path_str and _P(dna_path_str).exists():
+                    return _P(dna_path_str)
+                stem = _P(filename).stem
+                candidate = imgs_dir / f"{stem}.visual-dna.json"
+                return candidate if candidate.exists() else None
+
             for fn, meta in (idx.get('by_filename') or {}).items():
-                dna_path_str = (meta or {}).get('dna_path', '')
-                if not dna_path_str or not os.path.exists(dna_path_str):
+                dna_p = _resolve_dna_search((meta or {}).get('dna_path', ''), fn, images_dir)
+                if dna_p is None:
                     continue
                 try:
-                    dna = json.loads(open(dna_path_str).read())
+                    dna = json.loads(dna_p.read_text())
                 except Exception:
                     continue
                 # Build search blob
