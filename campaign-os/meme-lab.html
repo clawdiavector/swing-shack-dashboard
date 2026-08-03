@@ -183,6 +183,14 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 .spinner { width: 24px; height: 24px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* HELP system (matches cockpit-operational.html so tooltips look identical) */
+.help-pop{position:fixed;max-width:340px;min-width:220px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:.7rem .85rem;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.55);z-index:9999;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
+.help-pop.show{opacity:1;transform:translateY(0)}
+.help-pop .hp-title{font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem;display:block}
+.help-pop .hp-why{font-size:11.5px;color:var(--muted);margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--line);display:block;line-height:1.45}
+.help-pop .hp-why b{color:var(--accent)}
+[data-help]{cursor:help}
+
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
   .sidebar { max-height: 40vh; }
@@ -196,7 +204,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 <body>
 <header>
   <div>
-    <h1>Meme Lab <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;">/ 75 memes · Swing Shack</span></h1>
+    <h1 data-help="Browse the 75-meme Swing Shack adaptation catalog. Each card carries a tier (fresh crowd-pleaser / proven classic / risky but fits / dated pick), a Swing Shack adaptation seed, and a one-click Generate button that builds an Ideogram prompt you can ship. Use the sidebar filters to narrow by era, fatigue risk, voice, or pillar." data-help-title="Meme Lab">Meme Lab <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;">/ 75 memes · Swing Shack</span></h1>
   </div>
   <div class="nav">
     <a href="/">← Dashboard</a>
@@ -207,7 +215,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 <div class="layout">
   <aside class="sidebar">
     <div class="filter-group">
-      <h3>Era</h3>
+      <h3 data-help="Era of the original meme. Current = trending now. Recent = last 2-3 years. Classic = evergreen gold from before that. Use Current when you want a meme people are seeing this week; use Classic when you want safe familiarity." data-help-title="Era">Era</h3>
       <div>
         <span class="chip active" data-era="">All</span>
         <span class="chip" data-era="current">Current</span>
@@ -217,7 +225,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3>Fatigue</h3>
+      <h3 data-help="Fatigue = how overused the meme already is. Low = safe to publish, audience has appetite. High = already burned through, posting it now will feel dated. Use Low only when you want zero risk; use Risky when you have a strong Swing Shack angle that earns the throwback." data-help-title="Fatigue">Fatigue</h3>
       <div>
         <span class="chip active" data-fatigue="">All</span>
         <span class="chip" data-fatigue="low">Low only</span>
@@ -226,7 +234,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3>Still works</h3>
+      <h3 data-help="Whether the meme still works on social today, regardless of era. Filters out the dated picks and risky-but-fits. Use Only still-works when you need a quick safe list and do not have time to read each card's notes." data-help-title="Still works">Still works</h3>
       <div>
         <span class="chip active" data-still="">All</span>
         <span class="chip" data-still="true">Only still-works</span>
@@ -234,7 +242,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3>Voice</h3>
+      <h3 data-help="Which brand voice the meme has been adapted for. Swing Shack is the default. Stick and Bag Drop are adapted seeds but not the catalog's primary voice. The All brands option shows every available voice for comparison." data-help-title="Voice">Voice</h3>
       <div>
         <span class="chip active" data-voice="">All brands</span>
         <span class="chip" data-voice="swing-shack">Swing Shack</span>
@@ -244,7 +252,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3>Pillar</h3>
+      <h3 data-help="Which content pillar the meme supports. Education = explainers and how-tos. Club fitting = TrackMan / launch monitor content. Community = member stories and clubhouse moments. Events = league nights, tournaments, fittings. Use this to keep the weekly mix balanced across all four pillars." data-help-title="Pillar">Pillar</h3>
       <div>
         <span class="chip active" data-pillar="">All</span>
         <span class="chip" data-pillar="education">Education</span>
@@ -255,7 +263,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3>Voice bible</h3>
+      <h3 data-help="The voice bible line shown here is pulled from data/voice_bible.json for the active brand. It is the rule the Ideogram prompt enforces (e.g. direct, no fluff, lowercase). The Pineapple Test is the editorial gut-check: would a non-golfer still get the joke?" data-help-title="Voice bible">Voice bible</h3>
       <div id="voice-bible" style="font-size: 11px; color: var(--muted); line-height: 1.5;">
         Loading…
       </div>
@@ -264,10 +272,10 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 
   <main class="main">
     <div class="tiles">
-      <div class="tile"><div class="num" id="tile-shown">—</div><div class="lbl">Showing</div></div>
-      <div class="tile"><div class="num" id="tile-total">—</div><div class="lbl">Total catalog</div></div>
-      <div class="tile"><div class="num" id="tile-fresh">—</div><div class="lbl">Fresh crowd-pleasers</div></div>
-      <div class="tile"><div class="num" id="tile-classic">—</div><div class="lbl">Proven classics</div></div>
+      <div class="tile"><div class="num" id="tile-shown">—</div><div class="lbl" data-help="Number of memes currently visible after applying the sidebar filters. If this drops to zero you have over-filtered. Clear one filter and try again." data-help-title="Showing">Showing</div></div>
+      <div class="tile"><div class="num" id="tile-total">—</div><div class="lbl" data-help="Total meme templates in the Swing Shack catalog, regardless of filters. The catalog grows as you add new adaptations." data-help-title="Total catalog">Total catalog</div></div>
+      <div class="tile"><div class="num" id="tile-fresh">—</div><div class="lbl" data-help="Count of fresh_crowd_pleaser memes visible right now: low fatigue + still works + current era. These are your safest posts for this week." data-help-title="Fresh crowd-pleasers">Fresh crowd-pleasers</div></div>
+      <div class="tile"><div class="num" id="tile-classic">—</div><div class="lbl" data-help="Count of proven_classic memes visible right now: low fatigue + still works (any era). The reliable middle of the catalog. Not trending, not tired." data-help-title="Proven classics">Proven classics</div></div>
     </div>
 
     <div class="grid" id="grid"></div>
@@ -285,27 +293,27 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
       <div class="preview-large" id="modal-preview"></div>
 
       <div class="section">
-        <h4>Why it works</h4>
+        <h4 data-help="The editorial logic for why this meme format resonates. Written from the original meme's pattern, not the Swing Shack version. Use it to decide whether the adaptation is honest to the format or stretches it." data-help-title="Why it works">Why it works</h4>
         <div id="modal-why" style="font-size: 14px; line-height: 1.55;">—</div>
       </div>
 
       <div class="section">
-        <h4>Visual format</h4>
+        <h4 data-help="The visual rules for rendering this format. Aspect ratio, color treatment, caption placement. The Ideogram prompt below already encodes these. Read this section only if you want to tweak the visual directly before generating." data-help-title="Visual format">Visual format</h4>
         <div id="modal-format" style="font-size: 13px; color: var(--muted); line-height: 1.5;">—</div>
       </div>
 
       <div class="section">
-        <h4>Swing Shack adaptations (click to select)</h4>
+        <h4 data-help="3-5 Swing Shack-specific caption seeds written for this meme. Click any seed to drop it into the Ideogram prompt below. Pick the seed that matches your angle for the week." data-help-title="Swing Shack adaptations">Swing Shack adaptations (click to select)</h4>
         <div class="seeds-list" id="modal-seeds"></div>
       </div>
 
       <div class="section">
-        <h4>Selected adaptation → Ideogram prompt</h4>
+        <h4 data-help="The full Ideogram prompt built from the meme format + visual format + selected seed + voice bible. Copy and edit, or just hit Generate image below to ship it as-is." data-help-title="Ideogram prompt">Selected adaptation → Ideogram prompt</h4>
         <pre id="modal-prompt">Select a seed above to build the prompt</pre>
       </div>
 
       <div style="display: grid; gap: 8px;">
-        <button class="btn" id="modal-generate">Generate image with this prompt</button>
+        <button class="btn" id="modal-generate" data-help="Sends the prompt above to Ideogram via the local generator agent. Async by design: the image lands in the modal preview when ready, typically 5-15 seconds. The result is also saved to Review queue so you can triage it alongside other generated assets." data-help-title="Generate image">Generate image with this prompt</button>
         <button class="btn secondary" onclick="document.getElementById('modal-bg').classList.remove('open')">Close</button>
       </div>
     </div>
@@ -313,6 +321,53 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 </div>
 
 <script>
+// HELP system: minimal port from cockpit-operational.html so tooltips render
+// identically across the SPA and the standalone meme-lab page.
+const HELP = (() => {
+  let popEl = null;
+  const ensurePop = () => {
+    if (popEl) return popEl;
+    popEl = document.createElement('div');
+    popEl.className = 'help-pop';
+    document.body.appendChild(popEl);
+    return popEl;
+  };
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const showPop = (target, payload) => {
+    const pop = ensurePop();
+    const title = payload.title ? `<span class="hp-title">${esc(payload.title)}</span>` : '';
+    const why = payload.why ? `<span class="hp-why"><b>Why this helps:</b> ${esc(payload.why)}</span>` : '';
+    pop.innerHTML = `${title}${esc(payload.help || '')}${why}`;
+    pop.classList.add('show');
+    const r = target.getBoundingClientRect();
+    const popR = pop.getBoundingClientRect();
+    let left = r.left + window.scrollX;
+    let top = r.bottom + window.scrollY + 6;
+    const maxLeft = window.innerWidth - popR.width - 12;
+    if (left > maxLeft) left = maxLeft;
+    if (left < 8) left = 8;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${top}px`;
+  };
+  const hidePop = () => { if (popEl) popEl.classList.remove('show'); };
+  const tip = (target, payload) => {
+    target.classList.add('has-help-tip');
+    target.setAttribute('data-help', payload.help || '');
+    target.addEventListener('mouseenter', () => showPop(target, payload));
+    target.addEventListener('mouseleave', hidePop);
+  };
+  const autoAttach = () => {
+    document.querySelectorAll('[data-help]:not(.has-help-tip)').forEach(el => {
+      tip(el, {
+        help: el.getAttribute('data-help') || '',
+        title: el.getAttribute('data-help-title') || '',
+        why: el.getAttribute('data-help-why') || ''
+      });
+    });
+  };
+  return { tip, autoAttach };
+})();
+
 const API = {
   catalog: (params) => fetch('/api/intel/memes/catalog?' + new URLSearchParams(params)).then(r => r.json()),
   preview: (id) => fetch('/api/intel/meme/' + encodeURIComponent(id) + '/preview').then(r => r.json()),
@@ -491,7 +546,7 @@ async function loadCatalog() {
           </div>
         </div>
         <div class="footer">
-          <button data-action="generate">Generate image →</button>
+          <button data-action="generate" data-help="Builds the Ideogram prompt from this meme's format + visual + your selected seed, then sends it to the local generator. Skips the modal seed-selection step by jumping straight to Generate with the first seed." data-help-title="Quick generate">Generate image →</button>
           <div class="fits">${(m.voice_fit || []).slice(0,2).join(' · ')}</div>
         </div>
       </div>
@@ -509,6 +564,8 @@ async function loadCatalog() {
       }
     });
   });
+  // Wire HELP tooltips on the now-rendered card buttons
+  HELP.autoAttach();
 }
 
 function _tier(m) {
@@ -557,6 +614,9 @@ async function openModal(id, jumpToGenerate) {
   }
 
   document.getElementById('modal-bg').classList.add('open');
+  // Modal section h4s and the generate button live inside #modal-bg which is
+  // display:none until open. Wire their help tooltips now that they are visible.
+  HELP.autoAttach();
 }
 
 function updatePrompt() {
@@ -630,6 +690,9 @@ attachChips('pillar', v => { state.filters.pillar = v; loadCatalog(); });
   const qs = new URLSearchParams(window.location.search);
   if (qs.has('voice')) state.filters.voice = qs.get('voice');
   if (qs.has('pillar')) state.filters.pillar = qs.get('pillar');
+  // Wire HELP tooltips on the static page chrome (H1, sidebar h3s, tile labels,
+  // voice-bible h3) before the catalog loads so they are usable immediately.
+  HELP.autoAttach();
   await loadCatalog();
 })();
 </script>
