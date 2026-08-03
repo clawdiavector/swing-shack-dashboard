@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Campaign OS · Swing Shack</title>
+<title>Campaign OS</title>
 <meta name="theme-color" content="#0a0f1a" id="meta-theme-color">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3655,14 +3655,82 @@ const S = {
 // ─── Brand switcher + per-brand data scoping ────────────────────
 async function loadBrandContext(){
   try {
+    // Honor ?brand= deep-link: set S.brand FIRST so the augmented fetch
+    // wrapper injects X-Brand on the brand-context request. Falls back
+    // silently to the server default if the deep-link brand is unknown.
+    const dl = readBrandFromUrl();
+    if(dl && (S.brand === null || S.brand === undefined)){
+      S.brand = dl;
+    }
     const r = await fetch('/api/intel/brand-context');
     if(!r.ok) throw new Error('HTTP ' + r.status);
     S.brandContext = await r.json();
+    // Graceful fallback for invalid deep-link brand IDs: if the server returned
+    // a different brand than the deep-link requested (or returned the raw ID
+    // with no display_name because the brand isn't registered), strip ?brand=
+    // from the URL, clear S.brand, and re-fetch so the server returns its
+    // default brand (since the fetch wrapper will no longer inject X-Brand).
+    if(!S.brandContext.brand || !S.brandContext.brand.display_name){
+      history.replaceState(null, '', location.pathname);
+      S.brand = null;
+      try {
+        const r2 = await fetch('/api/intel/brand-context');
+        if(r2.ok) S.brandContext = await r2.json();
+      } catch(_){}
+      // Persist the corrected choice so subsequent server calls are stable.
+      if(S.brandContext?.brand_id){
+        try { await fetch('/api/brands/' + encodeURIComponent(S.brandContext.brand_id) + '/select', {method:'POST'}); } catch(_){}
+        S.brand = S.brandContext.brand_id;
+      }
+    } else if(dl && dl !== S.brandContext.brand_id){
+      // Valid deep-link that the server treated differently (shouldn't happen
+      // now, but kept as a safety net): persist the choice.
+      try { await fetch('/api/brands/' + encodeURIComponent(dl) + '/select', {method:'POST'}); } catch(_){}
+    }
     renderBrandSwitcher();
+    renderChromeForBrand();
+    syncBrandToUrl();
     return S.brandContext;
   } catch(e) {
     console.warn('brand-context failed:', e);
     return null;
+  }
+}
+
+// Read ?brand= from the URL. Returns the brand id string or null if absent.
+function readBrandFromUrl(){
+  try {
+    const v = new URLSearchParams(location.search).get('brand');
+    return v ? v.trim() : null;
+  } catch(_){ return null; }
+}
+
+// Single source of truth for which brand the SPA chrome is reflecting.
+// Mirrors the visualizer / meme-lab renderChromeForBrand() pattern so the
+// browser tab + bookmarks + history stay accurate as the user switches
+// brands via the topbar dropdown.
+function renderChromeForBrand(){
+  if(!S.brandContext) return;
+  const brand = S.brandContext.brand || {};
+  const name = brand.display_name || S.brandContext.brand_id || 'swing-shack';
+  document.title = 'Campaign OS · ' + name;
+}
+
+// Sync S.brand into the URL's ?brand= query so a refresh preserves the
+// selection and the URL is shareable. Uses history.replaceState (not pushState)
+// so the back button is not polluted with every brand-switch. Mirrors the
+// pattern in visualizer (init reads ?brand=, this writes it back on change).
+function syncBrandToUrl(){
+  try {
+    const id = S.brandContext?.brand_id;
+    if(!id) return;
+    const url = new URL(location.href);
+    if(url.searchParams.get('brand') !== id){
+      url.searchParams.set('brand', id);
+      history.replaceState(null, '', url.toString());
+    }
+  } catch(_){
+    // ignore; URL sync is a progressive enhancement
   }
 }
 
@@ -3713,6 +3781,8 @@ async function switchBrand(brandId){
     document.documentElement.dataset.brand = brandId;
     // Reload brand context + everything that depends on it
     await loadBrandContext();
+    renderChromeForBrand();
+    syncBrandToUrl();
     // Invalidate all section caches so they re-render with the new brand's data
     S.brief = null; S.review = null; S.cal = null; S.hooks = null;
     S.memes = null; S.bb = null; S.cap = null; S.perf = null;
