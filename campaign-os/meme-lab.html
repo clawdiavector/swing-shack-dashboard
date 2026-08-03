@@ -263,7 +263,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3 data-help="The voice bible line shown here is pulled from data/voice_bible.json for the active brand. It is the rule the Ideogram prompt enforces (e.g. direct, no fluff, lowercase). The Pineapple Test is the editorial gut-check: would a non-golfer still get the joke?" data-help-title="Voice bible">Voice bible</h3>
+      <h3 data-help="The voice bible line shown here is pulled from data/voice_bible.json for the active brand. It is the rule the Ideogram prompt enforces (e.g. direct, no fluff, lowercase). The Pineapple Test is the editorial gut-check: would a non-golfer still get the joke? The sidebar follows the Voice chip you clicked above (swing-shack / stick / bag-drop); pick All brands to keep the swing-shack default." data-help-title="Voice bible">Voice bible</h3>
       <div id="voice-bible" style="font-size: 11px; color: var(--muted); line-height: 1.5;">
         Loading…
       </div>
@@ -381,6 +381,10 @@ const API = {
 let state = {
   memes: [],
   filters: { era: '', fatigue: '', still: '', voice: '', pillar: '' },
+  // Active brand drives the voice-bible sidebar render AND the Ideogram prompt
+  // template (VOICE line + brand: field). Defaults to swing-shack because that is
+  // the modal's original hardcoded brand and the catalog's primary voice.
+  activeBrand: 'swing-shack',
   selectedSeed: null,
   selectedMeme: null,
 };
@@ -511,12 +515,15 @@ async function loadCatalog() {
   document.getElementById('tile-total').textContent = data.total_in_catalog;
   document.getElementById('tile-fresh').textContent = state.memes.filter(m => _tier(m) === 'fresh_crowd_pleaser').length;
   document.getElementById('tile-classic').textContent = state.memes.filter(m => _tier(m) === 'proven_classic').length;
+  // Cache the full voice_bible dict in state so updatePrompt() can build the
+  // brand-correct VOICE line for the Ideogram prompt without a second fetch.
   // voice_bible is returned as {brand: {label, tone, audience, do, dont}}.
   // Pick the active brand (default swing-shack) and render a one-liner plus the
   // "do / dont" rules so the sidebar earns its place instead of crashing on
   // .textContent = [object Object].
   const escV = s => String(s ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const vbRoot = (data && typeof data.voice_bible === 'object' && data.voice_bible) || {};
+  state.voiceBible = vbRoot;
   const activeBrand = state.activeBrand || 'swing-shack';
   const vb = vbRoot[activeBrand] || vbRoot['swing-shack'] || {};
   const vbLabel = vb.label || activeBrand;
@@ -645,11 +652,21 @@ function updatePrompt() {
   const m = state.selectedMeme;
   if (!m) return;
   const seed = state.selectedSeed || m.swingshack_fit_seeds?.[0] || 'Swing Shack';
+  // Pull the active brand's tone from the cached catalog voice_bible so the
+  // VOICE line in the Ideogram prompt reflects the selected brand (stick /
+  // bag-drop / swing-shack) instead of always saying "swing-shack direct,
+  // no fluff, lowercase". Falls back to swing-shack defaults on first click
+  // before loadCatalog completes.
+  const brand = state.activeBrand || 'swing-shack';
+  const vb = (state.voiceBible && state.voiceBible[brand]) || {};
+  const voiceLine = vb.tone
+    ? `${brand} — ${vb.tone}`
+    : (brand === 'swing-shack' ? 'swing-shack — direct, no fluff, lowercase. Pineapple Test: would a non-golfer get the joke?' : `${brand}`);
   const prompt =
 `[MEME FORMAT: ${m.format || 'meme'}]
 [VISUAL: ${m.format_hint || ''}]
-[ADAPTATION: Replace original caption with Swing Shack context: "${seed}"]
-[VOICE: swing-shack — direct, no fluff, lowercase. Pineapple Test: would a non-golfer get the joke?]
+[ADAPTATION: Replace original caption with ${brand} context: "${seed}"]
+[VOICE: ${voiceLine}]
 [STYLE: dark palette, high contrast, brand-aligned, single-accent colour #c2f64f]`;
   document.getElementById('modal-prompt').textContent = prompt;
 }
@@ -669,7 +686,7 @@ document.getElementById('modal-generate').onclick = async () => {
   try {
     const result = await API.generate({
       prompt,
-      brand: 'swing-shack',
+      brand: state.activeBrand || 'swing-shack',
       type: 'meme',
       source: 'meme-lab',
     });
@@ -704,7 +721,14 @@ function attachChips(attr, onChange) {
 attachChips('era', v => { state.filters.era = v; loadCatalog(); });
 attachChips('fatigue', v => { state.filters.fatigue = v; loadCatalog(); });
 attachChips('still', v => { state.filters.still = v; loadCatalog(); });
-attachChips('voice', v => { state.filters.voice = v; loadCatalog(); });
+// Voice chip drives TWO things: the catalog filter AND the active brand for the
+// voice-bible sidebar + Ideogram prompt. "All brands" (empty value) keeps the
+// active brand as-is so the sidebar still shows the default swing-shack voice.
+attachChips('voice', v => {
+  state.filters.voice = v;
+  if (v && v !== '') state.activeBrand = v;
+  loadCatalog();
+});
 attachChips('pillar', v => { state.filters.pillar = v; loadCatalog(); });
 
 (async function init() {
@@ -712,6 +736,11 @@ attachChips('pillar', v => { state.filters.pillar = v; loadCatalog(); });
   const qs = new URLSearchParams(window.location.search);
   if (qs.has('voice')) state.filters.voice = qs.get('voice');
   if (qs.has('pillar')) state.filters.pillar = qs.get('pillar');
+  // ?brand= query wins over the default swing-shack so deep links can pin a voice.
+  if (qs.has('brand')) {
+    const qb = qs.get('brand');
+    if (['swing-shack', 'stick', 'bag-drop'].includes(qb)) state.activeBrand = qb;
+  }
   // Wire HELP tooltips on the static page chrome (H1, sidebar h3s, tile labels,
   // voice-bible h3) before the catalog loads so they are usable immediately.
   HELP.autoAttach();
