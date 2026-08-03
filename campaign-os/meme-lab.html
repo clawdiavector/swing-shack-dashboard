@@ -528,6 +528,28 @@ function _renderChromeForBrand(){
   }
 }
 
+// Mirror of visualizer.syncBrandToUrl: sync state.activeBrand into the
+// ?brand= query string so refresh preserves the voice-chip selection and
+// the URL is shareable. Called from the voice-chip handler and on init.
+function syncBrandToUrl() {
+  try {
+    const url = new URL(location.href);
+    const ab = state.activeBrand || '';
+    const current = url.searchParams.get('brand') || '';
+    if (ab && current !== ab) {
+      url.searchParams.set('brand', ab);
+      history.replaceState(null, '', url.toString());
+    } else if (!ab && current) {
+      // Voice chip cleared to "all brands": drop the stale ?brand= so the
+      // URL reflects the default-active state (which is swing-shack).
+      url.searchParams.delete('brand');
+      history.replaceState(null, '', url.toString());
+    }
+  } catch (e) {
+    // ignore; URL sync is a progressive enhancement
+  }
+}
+
 // ── Load catalog ────────────────────────────────────────────────────────
 async function loadCatalog() {
   const grid = document.getElementById('grid');
@@ -758,6 +780,7 @@ attachChips('still', v => { state.filters.still = v; loadCatalog(); });
 attachChips('voice', v => {
   state.filters.voice = v;
   if (v && v !== '') state.activeBrand = v;
+  syncBrandToUrl();
   loadCatalog();
 });
 attachChips('pillar', v => { state.filters.pillar = v; loadCatalog(); });
@@ -776,6 +799,10 @@ attachChips('pillar', v => { state.filters.pillar = v; loadCatalog(); });
   // voice-bible h3) before the catalog loads so they are usable immediately.
   HELP.autoAttach();
   await loadCatalog();
+  // Sync the URL to whatever state.activeBrand ended up being (no-op if
+  // already correct; useful when ?brand= came in via deep link and we want
+  // to normalize away any stray query params).
+  syncBrandToUrl();
 })();
 </script>
 </body>

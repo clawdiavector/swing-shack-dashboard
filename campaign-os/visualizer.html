@@ -860,6 +860,22 @@ function renderChromeForBrand() {
   document.title = 'Visual Library · ' + STATE.brand;
 }
 
+// Sync STATE.brand into the URL's ?brand= query so a refresh preserves the
+// selection and the URL is shareable. Uses history.replaceState (not pushState)
+// so the back button is not polluted with every brand-switch. Mirrors the
+// pattern in meme-lab (init reads ?brand=, this writes it back on change).
+function syncBrandToUrl() {
+  try {
+    const url = new URL(location.href);
+    if (STATE.brand && url.searchParams.get('brand') !== STATE.brand) {
+      url.searchParams.set('brand', STATE.brand);
+      history.replaceState(null, '', url.toString());
+    }
+  } catch (e) {
+    // ignore; URL sync is a progressive enhancement
+  }
+}
+
 // ── Brand loader ────────────────────────────────────────────────────────
 async function loadBrands() {
   try {
@@ -880,11 +896,13 @@ async function loadBrands() {
     sel.innerHTML = brands.map(b => `<option value="${b.brand}">${b.brand} (${b.image_count})</option>`).join('');
     sel.value = STATE.brand;
     renderChromeForBrand();
+    syncBrandToUrl();
     sel.addEventListener('change', async (e) => {
       STATE.brand = e.target.value;
       STATE.q = '';
       document.getElementById('img-search-input').value = '';
       renderChromeForBrand();
+      syncBrandToUrl();
       await loadStats();
       runGrid();
     });
