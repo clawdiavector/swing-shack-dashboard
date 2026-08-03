@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Visual Library — Swing Shack</title>
+<title>Visual Library</title>
 <style>
 :root {
   --bg: #0c0d10;
@@ -122,7 +122,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 <body>
 <header>
   <div>
-    <h1 data-help="Browse every indexed brand image with palette, OCR, product, and brand-recipe metadata. Use the sidebar filters to narrow by Score (brand alignment quality), Luminance (dark / mid / bright), Product (e.g. putter, iron, ball), or Sort order. Open any card to see the full DNA: 17 layers from raw pixels to visual recipe. Use the Discover panel for element-level filtering (color / brand / mood / text-in-image) and the Generate panel to render new images via gpt-image-1." data-help-title="Visual Library">Visual Library <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;" id="brand-label">/ Swing Shack</span></h1>
+    <h1 id="page-h1" data-help="Browse every indexed brand image with palette, OCR, product, and brand-recipe metadata. Use the sidebar filters to narrow by Score (brand alignment quality), Luminance (dark / mid / bright), Product (e.g. putter, iron, ball), or Sort order. Open any card to see the full DNA: 17 layers from raw pixels to visual recipe. Use the Discover panel for element-level filtering (color / brand / mood / text-in-image) and the Generate panel to render new images via gpt-image-1." data-help-title="Visual Library">Visual Library <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;" id="brand-label">/ swing-shack</span></h1>
   </div>
   <div class="nav">
     <a href="/">← Dashboard</a>
@@ -382,7 +382,14 @@ const HELP = (() => {
 })();
 
 const STATE = {
-  brand: 'swing-shack',
+  brand: (() => {
+    try {
+      const params = new URLSearchParams(location.search);
+      const q = (params.get('brand') || '').trim();
+      if (q) return q;
+    } catch (_) {}
+    return 'swing-shack';
+  })(),
   q: '',
   products: {},
 };
@@ -843,6 +850,16 @@ async function restoreGeneratedOutputs() {
   } catch(_){}
 }
 
+// ── Brand chrome (H1 sub-line + document.title) ────────────────────────
+// Single source of truth for which brand the visualizer page is rendering.
+// Mirrors the meme-lab _renderChromeForBrand() pattern so both surfaces
+// stay in sync when the user deep-links or switches via the brand-select.
+function renderChromeForBrand() {
+  const lbl = document.getElementById('brand-label');
+  if (lbl) lbl.textContent = '/ ' + STATE.brand;
+  document.title = 'Visual Library · ' + STATE.brand;
+}
+
 // ── Brand loader ────────────────────────────────────────────────────────
 async function loadBrands() {
   try {
@@ -853,14 +870,21 @@ async function loadBrands() {
       sel.innerHTML = '<option value="">No indexed brands</option>';
       return;
     }
+    // If STATE.brand came from a deep-link but is not in the indexed brand
+    // list, fall back to the first indexed brand so the API calls never
+    // hit a 404 on an unknown brand.
+    const knownIds = new Set(brands.map(b => b.brand));
+    if (!knownIds.has(STATE.brand)) {
+      STATE.brand = brands[0].brand;
+    }
     sel.innerHTML = brands.map(b => `<option value="${b.brand}">${b.brand} (${b.image_count})</option>`).join('');
     sel.value = STATE.brand;
-    document.getElementById('brand-label').textContent = '/ ' + (brands.find(b => b.brand === STATE.brand)?.brand || STATE.brand);
+    renderChromeForBrand();
     sel.addEventListener('change', async (e) => {
       STATE.brand = e.target.value;
       STATE.q = '';
       document.getElementById('img-search-input').value = '';
-      document.getElementById('brand-label').textContent = '/ ' + STATE.brand;
+      renderChromeForBrand();
       await loadStats();
       runGrid();
     });
