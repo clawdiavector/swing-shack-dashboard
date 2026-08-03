@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Operational Cockpit · Campaign OS</title>
+  <!-- Brand-aware title set by renderChromeForBrand() after /api/intel/brand-context resolves -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap">
@@ -51,12 +52,20 @@
     .help-pop .hp-why{font-size:11.5px;color:var(--tx-2);margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--bd);display:block;line-height:1.45}
     .help-pop .hp-why b{color:var(--ac)}
     [data-help]{cursor:help}
+    .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+    .hdr-row h1{margin-bottom:0}
+    .brand-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-2);border:1px solid var(--bd);border-radius:999px;font-size:12px;font-weight:600;color:var(--tx-2)}
+    .brand-pill #brand-pill-ico{font-size:14px;line-height:1}
+    .brand-pill[hidden]{display:none}
   </style>
 </head>
 <body>
   <div class="wrap">
     <a class="back" href="/">← Back to Dashboard</a>
-    <h1><span class="ico">🛩️</span>Operational Cockpit</h1>
+    <div class="hdr-row">
+      <h1><span class="ico">🛩️</span>Operational Cockpit</h1>
+      <div id="brand-pill" class="brand-pill" data-help="Active brand scope for this cockpit view. The /api/campaigns and /api/intel/review_inbox endpoints filter to this brand; /api/schedule is global (publishing sidecar is brand-agnostic). Switch via ?brand= in the URL or pick a brand on the main SPA, then selection persists server-side." data-help-title="Active brand" hidden><span id="brand-pill-ico">⛳</span><span id="brand-pill-name">swing-shack</span></div>
+    </div>
     <p class="sub">Live health, schedule, campaigns, and recent activity across every brand.</p>
 
     <div id="loading" class="loading">Loading…</div>
@@ -149,19 +158,103 @@
     return { tip, autoAttach };
   })();
 
+  // ─── Brand context (mirrors visualizer / meme-lab / main SPA pattern) ───
+  // Single source of truth: cockpit scope = whichever brand the URL says,
+  // falling back to the server's default. Persisted to active-brand.json
+  // via /api/brands/<id>/select so the next load inherits the choice.
+
+  let brandContext = null;
+
+  function readBrandFromUrl(){
+    try {
+      const v = new URLSearchParams(location.search).get('brand');
+      return v ? v.trim() : null;
+    } catch(_) { return null; }
+  }
+
+  function brandIdQS(){
+    const id = brandContext?.brand_id;
+    return id ? '?brand_id=' + encodeURIComponent(id) : '';
+  }
+
+  function renderChromeForBrand(){
+    if(!brandContext) return;
+    const brand = brandContext.brand || {};
+    const name = brand.display_name || brandContext.brand_id || 'swing-shack';
+    document.title = 'Cockpit · ' + name + ' · Campaign OS';
+    // Brand pill
+    const pill = document.getElementById('brand-pill');
+    if(pill){
+      document.getElementById('brand-pill-ico').textContent = brand.icon || '⛳';
+      document.getElementById('brand-pill-name').textContent = name;
+      pill.hidden = false;
+    }
+    // Apply brand primary color as accent
+    if(brand.primary_color){
+      document.documentElement.style.setProperty('--ac', brand.primary_color);
+    }
+  }
+
+  function syncBrandToUrl(){
+    try {
+      const id = brandContext?.brand_id;
+      if(!id) return;
+      const url = new URL(location.href);
+      if(url.searchParams.get('brand') !== id){
+        url.searchParams.set('brand', id);
+        history.replaceState(null, '', url.toString());
+      }
+    } catch(_){}
+  }
+
+  async function loadBrandContext(){
+    const dl = readBrandFromUrl();
+    // Pass deep-link via ?brand_id= so get_brand_id() returns the right brand.
+    const url = dl ? '/api/intel/brand-context?brand_id=' + encodeURIComponent(dl) : '/api/intel/brand-context';
+    try {
+      const r = await fetch(url, { credentials: 'same-origin' });
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      brandContext = await r.json();
+      // Graceful fallback for invalid deep-link brand IDs
+      if(!brandContext.brand || !brandContext.brand.display_name){
+        history.replaceState(null, '', location.pathname);
+        try {
+          const r2 = await fetch('/api/intel/brand-context', { credentials: 'same-origin' });
+          if(r2.ok) brandContext = await r2.json();
+        } catch(_){}
+      }
+      if(brandContext?.brand_id){
+        try { await fetch('/api/brands/' + encodeURIComponent(brandContext.brand_id) + '/select', { method:'POST', credentials:'same-origin' }); } catch(_){}
+      }
+      renderChromeForBrand();
+      syncBrandToUrl();
+    } catch(e){
+      console.warn('brand-context failed:', e);
+      // Even if the brand-context fetch failed, set a sane default title so
+      // the tab isn't permanently stuck on the pre-load placeholder.
+      document.title = 'Cockpit · Campaign OS';
+    }
+  }
+
   async function load() {
+    // Resolve brand context FIRST so /api/campaigns + /api/intel/review_inbox
+    // can be filtered to the active brand. Falls back to server default if
+    // the deep-link brand is unknown.
+    await loadBrandContext();
+
     const fetchJson = async (url) => {
       const r = await fetch(url, { credentials: 'same-origin' });
       if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`);
       return r.json();
     };
+    const bidQS = brandIdQS();
 
     // Parallel — every endpoint hits BUNDLED_DATA_DIR / static JSON, fast.
     const [health, schedule, campaigns, review] = await Promise.allSettled([
       fetchJson('/api/health'),
       fetchJson('/api/schedule'),
-      fetchJson('/api/campaigns'),
-      fetchJson('/api/intel/review_inbox'),
+      fetchJson('/api/campaigns' + bidQS),
+      fetchJson('/api/intel/review_inbox' + bidQS),
     ]);
 
     // Health
@@ -215,15 +308,9 @@
       const c = campaigns.value;
       const camps = c.campaigns || {};
       const ids = Object.keys(camps);
-      const brands = new Set();
-      ids.forEach(id => {
-        const brand = camps[id]?.brand || camps[id]?.brand_id;
-        if (brand) brands.add(brand);
-      });
+      const brandLabel = brandContext?.brand?.display_name || c.brand_id || 'all';
       document.getElementById('camp-total').textContent = String(ids.length);
-      document.getElementById('camp-brands').textContent = brands.size
-        ? `${brands.size} brands · ${c.brand_id || 'all'}`
-        : `${c.brand_id || 'all'}`;
+      document.getElementById('camp-brands').textContent = `${ids.length} campaign${ids.length===1?'':'s'} · ${brandLabel}`;
     } else {
       document.getElementById('camp-total').textContent = '—';
       document.getElementById('camp-brands').textContent = 'unavailable';
