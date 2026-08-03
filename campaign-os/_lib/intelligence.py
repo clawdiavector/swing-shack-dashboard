@@ -98,6 +98,66 @@ def clear_request_brand():
 
 # ─── BRIEF / HOME ──────────────────────────────────────────────────────
 
+
+def _enrich_do_first_where(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Attach a `where` field to each do_first item so the UI can deep-link.
+
+    The recommendation-scores.json data is rich (page URL, channel, expected
+    outcome, suggested hook/CTA) but the renderer was squashing it into a
+    one-line title. This helper extracts the most actionable 'where to act'
+    from each item shape so the UI can render a deep-link button.
+    """
+    if not isinstance(items, list):
+        return []
+    out = []
+    for entry in items:
+        if not isinstance(entry, dict):
+            continue
+        slot = (entry.get("slot") or "").strip().lower()
+        item = entry.get("item") or {}
+        if not isinstance(item, dict):
+            item = {}
+
+        where = {"label": "", "url": "", "channel": "", "page": ""}
+        try:
+            if slot == "post":
+                where["channel"] = (item.get("channel") or item.get("platform") or "instagram")
+                where["label"] = f"📱 Post on {str(where['channel']).title()}"
+                where["url"] = "https://app.postiz.com"
+            elif slot == "service":
+                where["page"] = item.get("url") or "/membership"
+                where["label"] = f"💼 Service · {item.get('service', 'service')}"
+                where["url"] = item.get("url") or "https://swingshack.co.za/membership"
+            elif slot == "retarget":
+                channel = item.get("channel") or "Instagram"
+                where["channel"] = channel
+                where["label"] = f"🎯 Retarget on {channel}"
+                where["url"] = item.get("url") or "https://app.postiz.com"
+            elif slot == "leak":
+                page = item.get("page") or "/bookings/"
+                where["page"] = page
+                where["label"] = f"📍 Fix on swingshack.co.za{page}"
+                where["url"] = f"https://swingshack.co.za{page}"
+            else:
+                # Unknown slot — derive something sensible from item shape
+                if item.get("page"):
+                    where["page"] = item["page"]
+                    where["label"] = f"📍 {item['page']}"
+                    where["url"] = f"https://swingshack.co.za{item['page']}"
+                elif item.get("channel"):
+                    where["channel"] = item["channel"]
+                    where["label"] = f"📱 {item['channel']}"
+                    where["url"] = item.get("url") or "https://app.postiz.com"
+                else:
+                    where["label"] = "🎯 Take action"
+        except Exception:
+            pass
+
+        # Keep everything that was on the entry, plus the new `where` field.
+        out.append({**entry, "where": where})
+    return out
+
+
 def morning_brief() -> Dict[str, Any]:
     """Synthesize 'what should Christelle do today?' from all signals."""
     cd = _campaign_data()
@@ -227,7 +287,7 @@ def morning_brief() -> Dict[str, Any]:
             f"{len(ready_to_publish)} ready to publish."
         ),
         "counts": counts,
-        "do_first": do_first[:5] if isinstance(do_first, list) else [],
+        "do_first": _enrich_do_first_where(do_first[:5] if isinstance(do_first, list) else []),
         "needs_review": needs_review[:10],
         "ready_to_publish": ready_to_publish[:10],
         "missed_high_impact": high_impact_missed,

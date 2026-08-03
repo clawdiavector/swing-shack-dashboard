@@ -336,13 +336,24 @@ a:hover{text-decoration:underline}
 
 /* ─── Lists ───────────────────────────────────────────────────── */
 .list{list-style:none}
-.li{padding:.6rem .75rem;border-radius:var(--r-s);background:var(--bg-3);margin-bottom:.4rem;display:flex;align-items:center;gap:.75rem;transition:background var(--t);cursor:pointer;border:1px solid transparent}
+.li{padding:.6rem .75rem;border-radius:var(--r-s);background:var(--bg-3);margin-bottom:.4rem;display:flex;align-items:flex-start;gap:.75rem;transition:background var(--t);cursor:pointer;border:1px solid transparent}
 .li:hover{background:var(--bg-4);border-color:var(--bd-2)}
 .li-body{flex:1;min-width:0}
 .li-title{font-weight:500;font-size:13px;line-height:1.3}
+.li-preview{font-size:11.5px;color:var(--tx-2);margin-top:3px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
+.li-detail{display:none;margin-top:.55rem;padding:.55rem .65rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;font-size:11.5px;line-height:1.5;color:var(--tx-2)}
+.li.open .li-detail{display:block}
+.li-detail-row{display:flex;gap:.5rem;margin-bottom:.3rem;align-items:flex-start}
+.li-detail-row strong{color:var(--tx);font-weight:600;font-size:11px;min-width:64px}
+.li-detail-row em{font-style:normal;color:var(--tx-3)}
+.li-detail .li-hook{background:var(--bg-3);border-left:3px solid var(--ac);padding:.35rem .55rem;border-radius:0 4px 4px 0;margin:.4rem 0;font-size:11.5px;color:var(--tx);font-style:italic}
+.li-detail .li-cta{display:inline-flex;align-items:center;gap:.3rem;padding:4px 10px;background:var(--ac);color:var(--bg);border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;margin-top:.4rem}
+.li-detail .li-cta:hover{filter:brightness(1.1)}
+.li-chevron{margin-left:auto;color:var(--tx-3);font-size:10px;transition:transform var(--t);flex-shrink:0;padding-top:2px}
+.li.open .li-chevron{transform:rotate(90deg)}
 .li-meta{font-size:11px;color:var(--tx-3);margin-top:2px;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
 .li-action{margin-left:auto;color:var(--tx-3);font-size:12px}
-.li.has-action{display:grid;grid-template-columns:1fr auto;gap:.5rem;align-items:center;padding:.55rem .75rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-s);transition:all var(--t)}
+.li.has-action{display:grid;grid-template-columns:1fr auto;gap:.5rem;align-items:flex-start;padding:.55rem .75rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-s);transition:all var(--t)}
 .li.has-action:hover{border-color:var(--ac);background:var(--bg-3)}
 .action-btn{white-space:nowrap}
 .li.has-action .li-body{min-width:0}
@@ -4391,7 +4402,7 @@ function pretty(obj){
   return `<pre style="white-space:pre-wrap;font-size:11px;background:var(--bg-3);padding:.5rem;border-radius:6px;margin-top:.5rem;max-height:200px;overflow:auto">${esc(s)}</pre>`;
 }
 function itemHtml(it, fmt){
-  if(typeof it === 'string') return `<li class="li"><div class="li-body"><div class="li-title">${esc(it)}</div></div></li>`;
+  if(typeof it === 'string') return `<li class="li"><div class="li-body"><div class="li-title">${esc(it)}</div></div><span class="li-chevron">▶</span></li>`;
   // Look for title in item OR in nested item field
   const inner = (it.item && typeof it.item === 'object') ? it.item : it;
   // Try common title fields first
@@ -4424,6 +4435,70 @@ function itemHtml(it, fmt){
   // Derive a concrete action button based on the item's shape
   const action = _deriveAction(it, inner, fmt);
 
+  // ─── NEW: pick a 2-line preview snippet for the collapsed card ───
+  // Priority: easy_fix > revenue_impact > reason > why_chosen > why > source_evidence
+  // > summary > expected_outcome.label > description
+  let previewText = '';
+  const previewKeys = ['easy_fix','revenue_impact','reason','why_chosen','why','source_evidence','summary','description'];
+  for(const k of previewKeys){
+    const v = inner[k];
+    if(typeof v === 'string' && v.length > 12 && v.length < 220){
+      previewText = v; break;
+    }
+  }
+  if(!previewText && inner.expected_outcome && typeof inner.expected_outcome === 'object'){
+    previewText = inner.expected_outcome.label || '';
+  }
+
+  // ─── NEW: build an expandable detail panel with the breakdown ───
+  const detailRows = [];
+  // Suggested hook
+  const sugHook = inner.suggested_hook || inner.hook || '';
+  if(sugHook && sugHook !== title){
+    detailRows.push(`<div class="li-hook">"${esc(sugHook)}"</div>`);
+  }
+  // Suggested CTA
+  const sugCta = inner.suggested_cta || inner.cta || '';
+  if(sugCta && sugCta !== title){
+    detailRows.push(`<div class="li-detail-row"><strong>CTA</strong><span>${esc(sugCta)}</span></div>`);
+  }
+  // Where to act (from the backend-enriched `where` field, or fall back to item.page / item.channel)
+  const whereObj = it.where || {};
+  const whereUrl = whereObj.url || inner.url || (inner.page ? `https://swingshack.co.za${inner.page}` : '');
+  const whereLabel = whereObj.label || (inner.page ? `📍 ${inner.page}` : (inner.channel ? `📱 ${inner.channel}` : ''));
+  if(whereLabel){
+    detailRows.push(`<div class="li-detail-row"><strong>Where</strong><span><a class="li-cta" href="${esc(whereUrl || '#')}" target="_blank" rel="noopener">${esc(whereLabel)}</a></span></div>`);
+  }
+  // Score breakdown (if present)
+  const breakdown = inner.breakdown;
+  if(breakdown && typeof breakdown === 'object'){
+    const parts = [];
+    for(const [k, v] of Object.entries(breakdown)){
+      if(v && typeof v === 'object' && v.label) parts.push(v.label);
+    }
+    if(parts.length){
+      detailRows.push(`<div class="li-detail-row"><strong>Why</strong><span>${esc(parts.join(' · '))}</span></div>`);
+    }
+  }
+  // Evidence list (for post items)
+  if(Array.isArray(inner.evidence) && inner.evidence.length){
+    detailRows.push(`<div class="li-detail-row"><strong>Evidence</strong><span>${esc(inner.evidence.slice(0,3).join(' · '))}</span></div>`);
+  }
+  // Sessions count
+  if(typeof inner.sessions === 'number' && inner.sessions > 0){
+    detailRows.push(`<div class="li-detail-row"><strong>Traffic</strong><span>${inner.sessions} sessions on ${esc(inner.page || whereObj.page || 'this page')}</span></div>`);
+  }
+  // Owner
+  if(inner.owner){
+    detailRows.push(`<div class="li-detail-row"><strong>Owner</strong><span>${esc(inner.owner)}</span></div>`);
+  }
+  // Action to take (the why_chosen or action field)
+  const actionText = inner.action || inner.why_chosen || '';
+  if(actionText && actionText.length > 12 && actionText.length < 220 && actionText !== previewText){
+    detailRows.push(`<div class="li-detail-row"><strong>Action</strong><span>${esc(actionText)}</span></div>`);
+  }
+  const detailHtml = detailRows.length ? `<div class="li-detail">${detailRows.join('')}</div>` : '';
+
   const meta = [];
   if(it.emoji) meta.push(it.emoji);
   if(inner.kind || it.kind) meta.push(pill(inner.kind || it.kind, inner.kind || it.kind));
@@ -4436,17 +4511,31 @@ function itemHtml(it, fmt){
   if(inner.format_type || it.format_type) meta.push(pill('draft', inner.format_type || it.format_type));
   if(inner.source || it.source) meta.push(`<span class="muted">${esc(inner.source || it.source)}</span>`);
   if(inner.post_id || inner.id || it.post_id || it.id) meta.push(`<span class="muted">${esc(String(inner.post_id || inner.id || it.post_id || it.id).slice(0,18))}</span>`);
+  // Where pill — visible in the collapsed card
+  if(whereLabel && !action){
+    meta.push(`<span class="pill live">${esc(whereLabel.replace(/^[^ ]+ /, ''))}</span>`);
+  }
 
   // Fallback title when nothing useful found
   const finalTitle = title || (it.why_chosen ? it.why_chosen.slice(0,80) : (it.summary ? it.summary.slice(0,80) : JSON.stringify(it).slice(0,80).replace(/\\"/g,'"')));
 
   // Render action button (if item shape allows a useful action)
-  const actionBtn = action ? `<button class="btn-mini action-btn" data-action='${esc(JSON.stringify(action))}' title="${esc(action.tooltip || '')}">${esc(action.label)}</button>` : '';
+  const actionBtn = action ? `<button class="btn-mini action-btn" data-action='${esc(JSON.stringify(action))}' title="${esc(action.tooltip || '')}" onclick="event.stopPropagation()">${esc(action.label)}</button>` : '';
 
-  return `<li class="li ${action ? 'has-action' : ''}" ${action && action.openReview ? `onclick="openReview('${esc(action.campaignId||'')}','${esc(action.assetId||'')}')"` : ''}>
+  const previewHtml = previewText ? `<div class="li-preview">${esc(previewText)}</div>` : '';
+
+  // For items with a review action, clicking the row also opens review (most useful default).
+  // For other items, clicking the row toggles the detail panel.
+  const rowClick = (action && action.openReview)
+    ? `onclick="openReview('${esc(action.campaignId||'')}','${esc(action.assetId||'')}')"`
+    : `onclick="this.classList.toggle('open')"`;
+
+  return `<li class="li ${action ? 'has-action' : ''}" ${rowClick}>
     <div class="li-body">
       <div class="li-title">${esc(finalTitle)}</div>
+      ${previewHtml}
       ${meta.length?`<div class="li-meta">${meta.join(' ')}</div>`:''}
+      ${detailHtml}
     </div>
     ${actionBtn}
   </li>`;
