@@ -4017,8 +4017,21 @@ async function renderInsights(){
   const targetSec = $('#sec-insights');
   const sourceSec = $('#sec-performance');
   if(!targetSec || !sourceSec) return;
-  // Clone all children from sec-performance into sec-insights (excluding script/style)
+  // Mount the section explainer IMMEDIATELY after the wipe, before any await.
+  // Previously the explainer was only re-mounted at the very end of renderInsights,
+  // leaving a 500-1500ms window (the time spent awaiting renderPerformance,
+  // /api/intel/learning, renderWeeklyReport, and the weekly_report endpoint) where
+  // #sec-insights had 0 explainers. Mounting here closes that gap deterministically:
+  // even if subsequent awaits are slow, the section header + explainer is correct
+  // the moment the section-h is appended. HELP.section is idempotent (removes old
+  // .help-section-explainer before inserting), so the trailing post-mount in go()'s
+  // .then() callback and the final re-mount below are no-ops against this one.
   targetSec.innerHTML = '';
+  try {
+    if(typeof HELP !== 'undefined' && HELP.section){
+      HELP.section('insights', 'ga4');
+    }
+  } catch(e){ console.warn('HELP.section(insights, immediate) failed', e); }
   Array.from(sourceSec.children).forEach(child => {
     if(child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE'){
       const clone = child.cloneNode(true);
@@ -4053,20 +4066,6 @@ async function renderInsights(){
   if(typeof bindPerformanceHandlers === 'function') bindPerformanceHandlers();
   // ── Weekly Report (auto-generated from data/, exports to markdown) ───
   await renderWeeklyReport(targetSec);
-  // Re-mount the section explainer AFTER renderInsights has finished wiping + cloning.
-  // The earlier pre-mount (in go()) gets blown away by targetSec.innerHTML = '' on
-  // line 4021, and the post-mount in go()'s .then(loadSection) callback races against
-  // async work inside renderInsights, leaving a 200-1000ms window where the section
-  // has 0 explainers (reproduces ~20% of the time on live). Mounting here, after every
-  // appendChild, makes the explainer mount atomic with the section render so there
-  // is no observable gap. HELP.section is idempotent (it removes existing
-  // .help-section-explainer children before inserting), so the duplicate mount in
-  // go()'s .then() is harmless.
-  try {
-    if(typeof HELP !== 'undefined' && HELP.section){
-      HELP.section('insights', 'ga4');
-    }
-  } catch(e){ console.warn('HELP.section(insights) failed', e); }
 }
 
 // ─── WEEKLY REPORT ────────────────────────────────────────────────────
