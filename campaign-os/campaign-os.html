@@ -1366,11 +1366,11 @@ a:hover{text-decoration:underline}
       <!-- Top row: score band + filter bar -->
       <div class="grid" style="margin-bottom:1rem">
         <div class="card col-4">
-          <div class="card-h"><h3>🎯 Health score</h3></div>
+          <div class="card-h"><h3 data-help="Site-wide rollup of the audit, 0-100 mapped to four bands: healthy (80+), needs attention (60-79), poor (40-59), critical (below 40). One fix on a high-traffic page moves it more than five fixes on no-traffic pages. Treat the score as a trend, not a daily KPI; refresh the audit after applying changes to confirm the band shifted." data-help-title="Health score">🎯 Health score</h3></div>
           <div id="sa-score"></div>
         </div>
         <div class="card col-8">
-          <div class="card-h"><h3>🧭 Filters</h3></div>
+          <div class="card-h"><h3 data-help="Narrow the rest of the page by URL, issue type, and severity. The Only fixable checkbox is the highest-leverage filter: it strips findings where the fix needs a workflow rather than a copy change. Use the filters when you have 30 minutes, not when you want to browse the full list." data-help-title="Filters">🧭 Filters</h3></div>
           <div class="row gap-1" style="flex-wrap:wrap;align-items:center">
             <select id="sa-page-filter" style="min-width:160px"><option value="">All pages</option></select>
             <select id="sa-type-filter" style="min-width:200px"><option value="">All issue types</option></select>
@@ -1391,11 +1391,11 @@ a:hover{text-decoration:underline}
       <!-- Middle row: per-page breakdown + priority actions -->
       <div class="grid">
         <div class="card col-7">
-          <div class="card-h"><h3>📄 Per-page findings</h3></div>
+          <div class="card-h"><h3 data-help="Every finding grouped by URL. Click any finding to open the Fix Draft modal, type a target keyword, click Generate, copy the snippet, paste into your CMS. The generated snippet follows brand voice but you still edit before publishing; do not treat it as final copy." data-help-title="Per-page findings">📄 Per-page findings</h3></div>
           <div id="sa-pages"></div>
         </div>
         <div class="card col-5">
-          <div class="card-h"><h3>🔥 Top priority actions</h3></div>
+          <div class="card-h"><h3 data-help="The system's ranked shortlist: 5 to 10 fixes that move the score the most for the least effort. Start here every time. The ranking weights severity times effort times pages affected, so a single missing H1 on the home page outranks ten alt-tag fixes on internal blog posts." data-help-title="Top priority actions">🔥 Top priority actions</h3></div>
           <div id="sa-priority"></div>
         </div>
       </div>
@@ -1403,11 +1403,11 @@ a:hover{text-decoration:underline}
       <!-- Bottom row: full recommendations list + landing page fixes -->
       <div class="grid" style="margin-top:1rem">
         <div class="card col-7">
-          <div class="card-h"><h3>📋 All recommendations</h3></div>
+          <div class="card-h"><h3 data-help="The full flat list filtered by your dropdowns. Use it after clearing the priority list to see what is left. Sorting is by page, then severity. The list grows on every audit refresh; if it has stopped growing, the site is at a steady state for that issue type." data-help-title="All recommendations">📋 All recommendations</h3></div>
           <div id="sa-recs"></div>
         </div>
         <div class="card col-5">
-          <div class="card-h"><h3>🛬 Landing-page fixes</h3></div>
+          <div class="card-h"><h3 data-help="Separate panel for the highest-traffic pages: the URLs where SEO wins compound fastest. Findings here are usually structural (missing H1, thin copy, missing FAQ schema), not just metadata tweaks. They take longer to fix but the payoff per page is 5 to 10 times a regular recommendation." data-help-title="Landing-page fixes">🛬 Landing-page fixes</h3></div>
           <div id="sa-landing"></div>
         </div>
       </div>
@@ -1433,8 +1433,8 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-gbp">
       <div class="section-h"><h2>Google Business</h2></div>
       <div class="grid">
-        <div class="card col-6"><div class="card-h"><h3>📍 Profile & services</h3></div><div id="gbp-profile"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>📝 Last post</h3></div><div id="gbp-last"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="The active brand's Google Business Profile fields: business name, address, services, hours, plus the SEO opportunities the system found on the profile (categories the brand could claim, services it should add, photos it should upload). Edit these in Google Business Manager directly; this card is a read-only mirror plus the agent's recommendations." data-help-title="Profile &amp; services">📍 Profile &amp; services</h3></div><div id="gbp-profile"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="The most recent GBP post the agent drafted: the angle it picked, the rationale (why this angle wins for this brand right now), and the SEO signals it used (local keyword, service tie-in, seasonal hook). Click into it to open the draft modal and either approve to Postiz or edit the angle." data-help-title="Last post">📝 Last post</h3></div><div id="gbp-last"></div></div>
       </div>
     </section>
 
@@ -1442,8 +1442,8 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-reddit">
       <div class="section-h"><h2>Reddit Outreach</h2></div>
       <div class="grid">
-        <div class="card col-6"><div class="card-h"><h3>🎯 Pain points</h3></div><div id="reddit-pain"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>💬 Replies</h3></div><div id="reddit-replies"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Pain points the Reddit scraper surfaced: recurring complaints, recurring questions, recurring requests on threads where the brand could contribute without sounding like an ad. Each row is one pain point with the source thread and an upvote count. Use these to seed your reply bank below." data-help-title="Pain points">🎯 Pain points</h3></div><div id="reddit-pain"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Drafted Reddit replies to the threads above. Each reply is tagged by_sentiment: high_trust threads tolerate a brand-adjacent voice; medium_trust needs a soft-sell angle; low_trust wants pure value with no product mention. Pick high_trust first; that's where the brand can show up without getting downvoted." data-help-title="Replies">💬 Replies</h3></div><div id="reddit-replies"></div></div>
       </div>
     </section>
 
@@ -1473,9 +1473,9 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-agents">
       <div class="section-h"><h2>Agents & health</h2></div>
       <div class="grid">
-        <div class="card col-7"><div class="card-h"><h3>🤖 Agent runs</h3></div><div id="agents-list"></div></div>
-        <div class="card col-5"><div class="card-h"><h3>🩺 System health</h3></div><div id="agents-health"></div></div>
-        <div class="card col-12"><div class="card-h"><h3>🔌 Integrations</h3></div><div id="agents-int"></div></div>
+        <div class="card col-7"><div class="card-h"><h3 data-help="Live roster of every agent lane that ran in the last refresh cycle: copy agent, trend catcher, reddit scraper, gbp scraper, audit agent. Each row shows the lane name, last run time, status (ok / failed / queued), and a 1-line why-now. Click a row to open the lane detail page with full output and retry controls." data-help-title="Agent runs">🤖 Agent runs</h3></div><div id="agents-list"></div></div>
+        <div class="card col-5"><div class="card-h"><h3 data-help="Site-wide health snapshot: overall status (green / amber / red), confidence score (how fresh the data is), and the per-integration row beneath. Generated timestamp tells you when the snapshot was taken. If the status is amber or red, scan the Integrations card below for the failing connector." data-help-title="System health">🩺 System health</h3></div><div id="agents-health"></div></div>
+        <div class="card col-12"><div class="card-h"><h3 data-help="Status of every external integration: Postiz for publishing, GA4 for traffic, Meta for social, YouTube for trends, Reddit for outreach, GBP for local. Each row shows last successful call, latency, and any auth or quota warning. A red row here means downstream features on that integration will silently fail." data-help-title="Integrations">🔌 Integrations</h3></div><div id="agents-int"></div></div>
       </div>
     </section>
 
