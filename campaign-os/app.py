@@ -3377,12 +3377,11 @@ def index():
 def home_alias():
     return send_from_directory('.', 'campaign-os.html')
 
-@app.route('/cockpit.html')
-def cockpit_alias():
-    return send_from_directory('.', 'campaign-os.html')
-
+@app.route('/cockpit-operational')
 @app.route('/cockpit-operational.html')
+@app.route('/cockpit.html')
 def cockpit():
+    """Operational Cockpit — live health + schedule + campaign + review snapshot."""
     return send_from_directory('.', 'cockpit-operational.html')
 
 @app.route('/<path:filename>')

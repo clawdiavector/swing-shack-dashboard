@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Operational Cockpit · Campaign OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap">
+  <style>
+    :root {
+      --bg:#0a0f1a;--bg-2:#101727;--bg-3:#172033;--bg-4:#1e2940;
+      --bd:#22304d;--bd-2:#2a3a5c;--tx:#e6ecf5;--tx-2:#a8b4cc;--tx-3:#6c7a96;
+      --ac:#34d399;--ac-2:#22c55e;--blu:#60a5fa;--red:#f87171;--yel:#facc15;--org:#fb923c;
+      --r:14px;--r-s:8px;--t:.18s ease;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding:24px}
+    .wrap{max-width:1200px;margin:0 auto}
+    h1{font-size:24px;font-weight:700;margin-bottom:8px}
+    h1 .ico{margin-right:8px}
+    .sub{color:var(--tx-3);font-size:13px;margin-bottom:24px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+    .card{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:18px}
+    .card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .card-h h2{font-size:14px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.04em}
+    .stat{font-size:32px;font-weight:700;color:var(--tx)}
+    .stat-lbl{font-size:11px;color:var(--tx-3);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+    .stat-trend{font-size:11px;color:var(--tx-3);margin-top:4px}
+    .stat-trend.up{color:var(--ac)} .stat-trend.down{color:var(--red)}
+    .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)}
+    .row:last-child{border-bottom:none}
+    .row-l{font-size:13px;color:var(--tx-2)}
+    .row-r{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--tx)}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.04em}
+    .pill.ok{background:rgba(52,211,153,.15);color:var(--ac)}
+    .pill.warn{background:rgba(250,204,21,.15);color:var(--yel)}
+    .pill.err{background:rgba(248,113,113,.15);color:var(--red)}
+    .pill.live{background:rgba(96,165,250,.15);color:var(--blu)}
+    .empty{color:var(--tx-3);font-size:12px;font-style:italic;padding:8px 0}
+    a.back{display:inline-flex;align-items:center;gap:6px;color:var(--tx-3);font-size:12px;text-decoration:none;margin-bottom:16px}
+    a.back:hover{color:var(--tx)}
+    .health{font-size:11px;color:var(--tx-3);margin-top:24px;text-align:center;font-family:'JetBrains Mono',monospace}
+    .health.ok{color:var(--ac)}
+    .health.err{color:var(--red)}
+    .loading{color:var(--tx-3);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="/">← Back to Dashboard</a>
+    <h1><span class="ico">🛩️</span>Operational Cockpit</h1>
+    <p class="sub">Live health, schedule, campaigns, and recent activity across every brand.</p>
+
+    <div id="loading" class="loading">Loading…</div>
+
+    <div id="content" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <div class="card-h"><h2>System</h2><span id="health-pill" class="pill">…</span></div>
+          <div class="row"><span class="row-l">API</span><span class="row-r" id="health-api">—</span></div>
+          <div class="row"><span class="row-l">Auth gate</span><span class="row-r" id="health-auth">—</span></div>
+          <div class="row"><span class="row-l">Build</span><span class="row-r" id="health-ts">—</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h2>Schedule</h2></div>
+          <div class="stat" id="sched-total">—</div>
+          <div class="stat-lbl">Items scheduled</div>
+          <div class="stat-trend" id="sched-summary"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h2>Campaigns</h2></div>
+          <div class="stat" id="camp-total">—</div>
+          <div class="stat-lbl">Active campaigns</div>
+          <div class="stat-trend" id="camp-brands"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h2>Review queue</h2></div>
+          <div class="stat" id="rev-total">—</div>
+          <div class="stat-lbl">Awaiting review</div>
+          <div class="stat-trend" id="rev-summary"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h2>Schedule (next 7 days)</h2></div>
+        <div id="sched-list"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+
+    <p class="health" id="health-footer">—</p>
+  </div>
+
+  <script>
+  async function load() {
+    const fetchJson = async (url) => {
+      const r = await fetch(url, { credentials: 'same-origin' });
+      if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`);
+      return r.json();
+    };
+
+    // Parallel — every endpoint hits BUNDLED_DATA_DIR / static JSON, fast.
+    const [health, schedule, campaigns, review] = await Promise.allSettled([
+      fetchJson('/api/health'),
+      fetchJson('/api/schedule'),
+      fetchJson('/api/campaigns'),
+      fetchJson('/api/intel/review_inbox'),
+    ]);
+
+    // Health
+    const healthCard = document.getElementById('health-pill');
+    const healthFooter = document.getElementById('health-footer');
+    if (health.status === 'fulfilled') {
+      const h = health.value;
+      healthCard.textContent = 'OK';
+      healthCard.className = 'pill ok';
+      document.getElementById('health-api').textContent = (h.status || '—');
+      document.getElementById('health-auth').textContent = 'enforced';
+      document.getElementById('health-ts').textContent = (h.ts || '—').slice(0, 19).replace('T', ' ');
+      healthFooter.textContent = `last check: ${(h.ts || '').slice(0, 19).replace('T', ' ')} · git_synced: ${h.git_synced}`;
+      healthFooter.className = 'health ok';
+    } else {
+      healthCard.textContent = 'ERR';
+      healthCard.className = 'pill err';
+      healthFooter.textContent = 'health endpoint failed: ' + health.reason.message;
+      healthFooter.className = 'health err';
+    }
+
+    // Schedule
+    if (schedule.status === 'fulfilled') {
+      const s = schedule.value;
+      const items = (s.scheduled || s.items || []).slice(0, 12);
+      document.getElementById('sched-total').textContent = String(s.total ?? items.length);
+      document.getElementById('sched-summary').textContent = s.summary || `${items.length} in queue`;
+      const list = document.getElementById('sched-list');
+      if (items.length === 0) {
+        list.innerHTML = '<div class="empty">Nothing scheduled — review queue empty or all drafts sent.</div>';
+      } else {
+        list.innerHTML = items.map(x => {
+          const name = esc(x.name || x.title || x.caption?.slice(0, 50) || 'Untitled');
+          const when = x.scheduledFor || x.scheduled_at || x.publishAt || '';
+          const platform = x.platform ? `<span class="pill live">${esc(x.platform)}</span>` : '';
+          const status = x.publishStatus ? `<span class="pill ${x.publishStatus === 'published' ? 'ok' : 'warn'}">${esc(x.publishStatus)}</span>` : '';
+          return `<div class="row">
+            <span class="row-l">${name} ${platform} ${status}</span>
+            <span class="row-r">${esc(String(when).slice(0, 16))}</span>
+          </div>`;
+        }).join('');
+      }
+    } else {
+      document.getElementById('sched-total').textContent = '—';
+      document.getElementById('sched-summary').textContent = 'unavailable';
+      document.getElementById('sched-list').innerHTML = `<div class="empty">${esc(schedule.reason.message)}</div>`;
+    }
+
+    // Campaigns
+    if (campaigns.status === 'fulfilled') {
+      const c = campaigns.value;
+      const camps = c.campaigns || {};
+      const ids = Object.keys(camps);
+      const brands = new Set();
+      ids.forEach(id => {
+        const brand = camps[id]?.brand || camps[id]?.brand_id;
+        if (brand) brands.add(brand);
+      });
+      document.getElementById('camp-total').textContent = String(ids.length);
+      document.getElementById('camp-brands').textContent = brands.size
+        ? `${brands.size} brands · ${c.brand_id || 'all'}`
+        : `${c.brand_id || 'all'}`;
+    } else {
+      document.getElementById('camp-total').textContent = '—';
+      document.getElementById('camp-brands').textContent = 'unavailable';
+    }
+
+    // Review
+    if (review.status === 'fulfilled') {
+      const r = review.value;
+      const total = (r.pending?.length || 0) + (r.approved?.length || 0);
+      document.getElementById('rev-total').textContent = String(r.pending?.length || 0);
+      document.getElementById('rev-summary').textContent = r.summary || `${total} total`;
+    } else {
+      document.getElementById('rev-total').textContent = '—';
+      document.getElementById('rev-summary').textContent = 'unavailable';
+    }
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  load().catch(err => {
+    document.getElementById('loading').textContent = 'Load failed: ' + err.message;
+  });
+  </script>
+</body>
+</html>

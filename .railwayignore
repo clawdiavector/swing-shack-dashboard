@@ -12,7 +12,7 @@ media/
 *.log
 campaign-os/*.bak
 campaign-os/build-board.html
-campaign-os/cockpit.html
+# campaign-os/cockpit.html
 campaign-os/command-centre.html
 campaign-os/release-plan.html
 campaign-os/workspace-trackman.html
