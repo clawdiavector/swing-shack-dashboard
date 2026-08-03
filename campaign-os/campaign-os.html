@@ -803,12 +803,12 @@ a:hover{text-decoration:underline}
     <!-- ── TRENDS ───────────────────────────────────────── -->
     <section class="section" id="sec-trends">
       <div class="section-h"><h2>Trend Catcher <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · scored signals</span></h2><span class="sub">Marketing · Golf News · Competitors</span></div>
-      <div class="card" style="margin-bottom:1rem"><div class="card-h"><h3>⚡ Signal radar</h3><span class="muted" id="tr-v2-count">—</span></div><div id="tr-v2" class="grid"></div></div>
+      <div class="card" style="margin-bottom:1rem"><div class="card-h"><h3 data-help="The highest-confidence Trend Catcher cards, merged from every source. Each card carries a score (0-100), a source pill (reddit / youtube / golf-news / competitor), and a 1-line why-now. Tap any card to lift the full signal including the action rec the agent would take next." data-help-title="Signal radar">⚡ Signal radar</h3><span class="muted" id="tr-v2-count">—</span></div><div id="tr-v2" class="grid"></div></div>
       <div class="grid">
-        <div class="card col-6"><div class="card-h"><h3>🗣️ Reddit trends</h3></div><div id="tr-reddit"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>📺 YouTube signals</h3></div><div id="tr-yt"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>⛳ Golf news</h3></div><div id="tr-news"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>👀 Competitor moves</h3></div><div id="tr-comp"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Live threads from golf-relevant subreddits (r/golf, r/golfswing, brand-adjacent communities). Scored by upvotes-per-hour, comment velocity, and brand-fit. Each row has a soft-sell angle the copy agent would use without sounding like an ad." data-help-title="Reddit trends">🗣️ Reddit trends</h3></div><div id="tr-reddit"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="YouTube titles + view velocity for golf creators and adjacent verticals. Used to spot format trends (e.g. 'short swing drills are outperforming long form') and topic trends before they hit the news cycle." data-help-title="YouTube signals">📺 YouTube signals</h3></div><div id="tr-yt"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Tour news, equipment launches, course openings, and personality moves. The copy agent cross-references these to time posts when a topic is hot (e.g. a new driver release = driver-fit content spike)." data-help-title="Golf news">⛳ Golf news</h3></div><div id="tr-news"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="What competing brands (and adjacent brands) are posting this week. Pattern-watch, not copy-watch: spot the formats and pillars they lean into so your brand can take a different angle instead of chasing the same shelf." data-help-title="Competitor moves">👀 Competitor moves</h3></div><div id="tr-comp"></div></div>
       </div>
     </section>
 
@@ -843,11 +843,11 @@ a:hover{text-decoration:underline}
         <div class="card col-3"><div class="stat"><div class="stat-val" id="perf-ga-sessions">—</div><div class="stat-lbl">GA4 sessions</div></div></div>
         <div class="card col-3"><div class="stat"><div class="stat-val" id="perf-rising">—</div><div class="stat-lbl">SEO rising</div></div></div>
         <div class="card col-3"><div class="stat"><div class="stat-val" id="perf-falling">—</div><div class="stat-lbl">SEO falling</div></div></div>
-        <div class="card col-7"><div class="card-h"><h3>🏆 Top Instagram posts</h3></div><div id="perf-ig-top"></div></div>
-        <div class="card col-5"><div class="card-h"><h3>🔎 Top SEO keywords</h3></div><div id="perf-seo"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🧪 A/B tests</h3></div><div id="perf-ab"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🌐 Top pages by sessions</h3></div><div id="perf-pages"></div></div>
-        <div class="card col-12"><div class="card-h"><h3>💡 Insights</h3></div><div id="perf-insights"></div></div>
+        <div class="card col-7"><div class="card-h"><h3 data-help="The last 30 days of Instagram posts for the active brand, ranked by engagement rate. Each row carries the real caption + thumbnail + a one-line summary of why it beat the average. Treat the top 3 as your structural template for the next round." data-help-title="Top Instagram posts">🏆 Top Instagram posts</h3></div><div id="perf-ig-top"></div></div>
+        <div class="card col-5"><div class="card-h"><h3 data-help="The keywords you currently rank for on Google, sorted by position movement. Rising = climbing the SERP, Falling = losing rank, Stable = stuck. Use this to decide where to put the next SEO brief." data-help-title="Top SEO keywords">🔎 Top SEO keywords</h3></div><div id="perf-seo"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Active A/B tests on real captions, hooks, or CTAs. Each row shows the variant, the traffic split, the winner (if decided), and the lift in % over baseline. Never ship a copy change without checking this list first." data-help-title="A/B tests">🧪 A/B tests</h3></div><div id="perf-ab"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="GA4 page views for the active brand's site. High-traffic pages are the highest-leverage places to make small copy fixes. Pair with the Funnel leaks card on Ideas to find the best ROI pair." data-help-title="Top pages by sessions">🌐 Top pages by sessions</h3></div><div id="perf-pages"></div></div>
+        <div class="card col-12"><div class="card-h"><h3 data-help="Plain-English 'why' cards the agent generates from real performance data. Each insight cites the asset + the lift + the suggested action. Read these first when planning the next batch of content." data-help-title="Insights">💡 Insights</h3></div><div id="perf-insights"></div></div>
       </div>
       <!-- Weekly Report card is rendered by renderWeeklyReport() inside the Insights section. No static stub here — renderInsights clones sec-performance into sec-insights, so a static stub would duplicate. -->
       <!-- "Connect analytics" CTA — only visible when data sources are empty -->
@@ -867,11 +867,11 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-learning">
       <div class="section-h"><h2>Learning</h2><span class="sub">What to repeat, what to stop, what to try</span></div>
       <div class="grid">
-        <div class="card col-6"><div class="card-h"><h3>✅ What worked</h3></div><div id="learn-worked"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🚫 What failed</h3></div><div id="learn-failed"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🎯 CTA rankings</h3></div><div id="learn-cta"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>📈 Trend delta</h3></div><div id="learn-trend"></div></div>
-        <div class="card col-12"><div class="card-h"><h3>🚨 Failure patterns</h3></div><div id="learn-fail-pat"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Patterns the agent extracted from your highest-performing past content. Each row names the pattern + the asset that proved it + a 1-line rule to follow in the next brief. Treat this list as the editorial checklist for every new caption." data-help-title="What worked">✅ What worked</h3></div><div id="learn-worked"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Patterns from your lowest-performing past content. Same shape as What worked, but inverted: asset + what went wrong + the rule to avoid. Read this list right before approving a batch to catch the same mistakes again." data-help-title="What failed">🚫 What failed</h3></div><div id="learn-failed"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Every CTA the brand has used, ranked by click-through and conversion. Top of the list = highest historical response. The Caption Studio auto-suggests from this list when you generate variants." data-help-title="CTA rankings">🎯 CTA rankings</h3></div><div id="learn-cta"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Week-over-week movement in your headline topics. Up = a topic is gaining traction in your posts + in the wider signal feed, Down = losing traction, Flat = stable. Use this to decide whether to lean into or rotate off a topic." data-help-title="Trend delta">📈 Trend delta</h3></div><div id="learn-trend"></div></div>
+        <div class="card col-12"><div class="card-h"><h3 data-help="Failure modes that recurred across 3+ assets. Each pattern is a class of mistake (bad hook length, off-brand tone, weak CTA, mismatched platform), with the count of assets that hit it. Anything in the top 3 deserves a manual fix in the next batch." data-help-title="Failure patterns">🚨 Failure patterns</h3></div><div id="learn-fail-pat"></div></div>
       </div>
     </section>
 
