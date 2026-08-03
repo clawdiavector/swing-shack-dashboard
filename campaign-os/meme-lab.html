@@ -511,7 +511,29 @@ async function loadCatalog() {
   document.getElementById('tile-total').textContent = data.total_in_catalog;
   document.getElementById('tile-fresh').textContent = state.memes.filter(m => _tier(m) === 'fresh_crowd_pleaser').length;
   document.getElementById('tile-classic').textContent = state.memes.filter(m => _tier(m) === 'proven_classic').length;
-  document.getElementById('voice-bible').textContent = data.voice_bible || 'swing-shack — direct, no fluff, lowercase. Pineapple Test: would a non-golfer get the joke?';
+  // voice_bible is returned as {brand: {label, tone, audience, do, dont}}.
+  // Pick the active brand (default swing-shack) and render a one-liner plus the
+  // "do / dont" rules so the sidebar earns its place instead of crashing on
+  // .textContent = [object Object].
+  const escV = s => String(s ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const vbRoot = (data && typeof data.voice_bible === 'object' && data.voice_bible) || {};
+  const activeBrand = state.activeBrand || 'swing-shack';
+  const vb = vbRoot[activeBrand] || vbRoot['swing-shack'] || {};
+  const vbLabel = vb.label || activeBrand;
+  const vbTone = vb.tone || '';
+  const vbDo = Array.isArray(vb.do) ? vb.do : [];
+  const vbDont = Array.isArray(vb.dont) ? vb.dont : [];
+  const fallback = `${vbLabel}: direct, no fluff, lowercase. Pineapple Test: would a non-golfer get the joke?`;
+  const lines = [];
+  if (vbTone) lines.push(`<div style="margin-bottom:4px;"><b>${escV(vbLabel)}</b>: ${escV(vbTone)}.</div>`);
+  else lines.push(`<div style="margin-bottom:4px;">${escV(fallback)}</div>`);
+  if (vbDo.length || vbDont.length) {
+    lines.push('<div style="margin-top:4px;">');
+    vbDo.slice(0, 3).forEach(d => lines.push(`<div><span style="color:var(--accent,#c2f64f);">✓</span> ${escV(d)}</div>`));
+    vbDont.slice(0, 3).forEach(d => lines.push(`<div><span style="color:#ff6b6b;">✗</span> ${escV(d)}</div>`));
+    lines.push('</div>');
+  }
+  document.getElementById('voice-bible').innerHTML = lines.join('');
   document.getElementById('empty').style.display = state.memes.length ? 'none' : 'block';
 
   if (state.memes.length === 0) {
