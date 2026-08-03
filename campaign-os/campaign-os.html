@@ -885,10 +885,10 @@ a:hover{text-decoration:underline}
         </div>
       </div>
       <div class="grid">
-        <div class="card col-7"><div class="card-h"><h3>👀 Watched + worked</h3></div><div id="hooks-ww"></div></div>
-        <div class="card col-5"><div class="card-h"><h3>🧬 Hook formulas</h3></div><div id="hooks-formulas"></div></div>
+        <div class="card col-7"><div class="card-h"><h3 data-help="Hooks pulled from posts that you flagged as winners, or that won on engagement naturally. These are your highest-confidence opening lines for the active brand. Re-use them verbatim before the algorithm forgets the pattern." data-help-title="Watched + worked">👀 Watched + worked</h3></div><div id="hooks-ww"></div></div>
+        <div class="card col-5"><div class="card-h"><h3 data-help="Structural patterns the system extracted from the watched-and-worked set: question, bold claim, story seed, contrarian, list, etc. These are scaffolds, not finished hooks. Drop a fresh angle into a formula to make it your own." data-help-title="Hook formulas">🧬 Hook formulas</h3></div><div id="hooks-formulas"></div></div>
       </div>
-      <div class="card" style="margin-top:1rem"><div class="card-h"><h3>🆕 Fresh hooks from signals</h3></div><div id="hooks-generated"></div></div>
+      <div class="card" style="margin-top:1rem"><div class="card-h"><h3 data-help="Hooks generated from current signals: trending Reddit threads, golf news, YouTube titles, competitor moves. New each refresh. Treat as raw material, edit before approving. None of these auto-publish." data-help-title="Fresh hooks from signals">🆕 Fresh hooks from signals</h3></div><div id="hooks-generated"></div></div>
     </section>
 
     <!-- ── MEMES ─────────────────────────────────────────── -->
@@ -993,19 +993,19 @@ a:hover{text-decoration:underline}
 
       <!-- Quick Launch: most-used actions for the active brand -->
       <div class="card" style="margin-bottom:1rem;border:1px solid var(--ac-glow)">
-        <div class="card-h"><h3>⚡ Quick launch</h3><span class="muted" id="create-quick-context">—</span></div>
+        <div class="card-h"><h3 data-help="The 4 most-used generators for the active brand. First row is always one-click for the daily meme / hook / caption rhythm. If you only have 5 minutes, start here." data-help-title="Quick launch">⚡ Quick launch</h3><span class="muted" id="create-quick-context">—</span></div>
         <div class="quick-launch-grid" id="create-quick-grid"></div>
       </div>
 
       <!-- All generators: 12+ card grid -->
       <div class="card">
-        <div class="card-h"><h3>🪄 All generators</h3><span class="muted" id="create-gen-count">—</span></div>
+        <div class="card-h"><h3 data-help="The full grid of brand-aware generators. Each card has a short description of what it produces, the voices it understands, and which signal pool it pulls from. Browse when you want a specific format, not the daily rhythm." data-help-title="All generators">🪄 All generators</h3><span class="muted" id="create-gen-count">—</span></div>
         <div class="gen-grid" id="create-gen-grid"></div>
       </div>
 
       <!-- Last used generator output preview -->
       <div class="card" style="margin-top:1rem">
-        <div class="card-h"><h3>📌 Recent output</h3><span class="muted" id="create-recent-meta">—</span></div>
+        <div class="card-h"><h3 data-help="The last thing you generated across any surface. Click Regenerate to spin a new variant on the same input, or Edit to tweak before approving. Useful when you want to iterate on a near-miss rather than start from scratch." data-help-title="Recent output">📌 Recent output</h3><span class="muted" id="create-recent-meta">—</span></div>
         <div id="create-recent-output" style="min-height:120px;color:var(--tx-3)">Pick a generator above and click Generate to start.</div>
       </div>
     </section>
@@ -1349,10 +1349,10 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-seo">
       <div class="section-h"><h2>SEO Assistant</h2></div>
       <div class="grid">
-        <div class="card col-6"><div class="card-h"><h3>🔎 Audit summary</h3></div><div id="seo-audit"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>📈 Rankings</h3></div><div id="seo-rank"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🌍 GEO</h3></div><div id="seo-geo"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🛠️ Landing-page fixes</h3></div><div id="seo-fixes"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Top-line rollup of the latest site audit: total findings split by severity (high / medium / low) plus the highest-priority items to fix. For the per-page deep-dive and the fix-draft generator, open SEO Audit instead." data-help-title="Audit summary">🔎 Audit summary</h3></div><div id="seo-audit"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Google Search Console view for the active site. Rising = position improving, falling = position slipping, quick wins = high-impression / low-CTR queries where a title tag tweak can move the needle. Use the pills at the top to switch lens." data-help-title="Rankings">📈 Rankings</h3></div><div id="seo-rank"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Generative Engine Optimization: how well the brand shows up in AI-search answers (ChatGPT, Perplexity, Gemini with sources). Score is 0-100; high-priority items are the citation gaps the engine is missing when asked about your category." data-help-title="GEO">🌍 GEO</h3></div><div id="seo-geo"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Highest-leverage landing-page fixes: missing H1s, thin copy, missing FAQ schema, weak meta descriptions. Each card ladders into SEO Audit for the one-click fix-draft generator. Empty state means no fixes were suggested this run." data-help-title="Landing-page fixes">🛠️ Landing-page fixes</h3></div><div id="seo-fixes"></div></div>
       </div>
     </section>
 
@@ -1457,8 +1457,8 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-postiz">
       <div class="section-h"><h2>Postiz</h2><span class="sub" id="postiz-summary">—</span></div>
       <div class="grid">
-        <div class="card col-12"><div class="card-h"><h3>📋 Queue</h3></div><div id="postiz-queue"></div></div>
-        <div class="card col-12"><div class="card-h"><h3>🔗 Publishing references (canonical)</h3></div><div id="postiz-refs"></div></div>
+        <div class="card col-12"><div class="card-h"><h3 data-help="Canonical mirror of the Postiz publishing queue. Read-only view of what the publisher agent has actually pushed upstream, not a place to push content. Each row is one item_id with its caption_preview, platform, scheduled time, and schema stamp." data-help-title="Postiz queue">📋 Queue</h3></div><div id="postiz-queue"></div></div>
+        <div class="card col-12"><div class="card-h"><h3 data-help="Schema reference for the publisher agent's output contract: required fields, agent id, evidence URL, schema version. Use it to debug missing rows or rejected posts. Nothing here publishes; it documents what counts as a valid handoff." data-help-title="Publishing references (canonical)">🔗 Publishing references (canonical)</h3></div><div id="postiz-refs"></div></div>
       </div>
     </section>
 
