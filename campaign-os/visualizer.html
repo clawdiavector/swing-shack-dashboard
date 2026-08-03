@@ -109,12 +109,20 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   .main { padding: 14px; }
 }
+
+/* HELP system (matches cockpit + meme-lab so tooltips look identical across the app) */
+.help-pop{position:fixed;max-width:340px;min-width:220px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:.7rem .85rem;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.55);z-index:9999;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
+.help-pop.show{opacity:1;transform:translateY(0)}
+.help-pop .hp-title{font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem;display:block}
+.help-pop .hp-why{font-size:11.5px;color:var(--muted);margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--line);display:block;line-height:1.45}
+.help-pop .hp-why b{color:var(--accent)}
+[data-help]{cursor:help}
 </style>
 </head>
 <body>
 <header>
   <div>
-    <h1>Visual Library <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;" id="brand-label">/ Swing Shack</span></h1>
+    <h1 data-help="Browse every indexed brand image with palette, OCR, product, and brand-recipe metadata. Use the sidebar filters to narrow by Score (brand alignment quality), Luminance (dark / mid / bright), Product (e.g. putter, iron, ball), or Sort order. Open any card to see the full DNA: 17 layers from raw pixels to visual recipe. Use the Discover panel for element-level filtering (color / brand / mood / text-in-image) and the Generate panel to render new images via gpt-image-1." data-help-title="Visual Library">Visual Library <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;" id="brand-label">/ Swing Shack</span></h1>
   </div>
   <div class="nav">
     <a href="/">← Dashboard</a>
@@ -128,24 +136,24 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
   </select>
   <input id="img-search-input" type="text" placeholder="Search images by filename, OCR text, product, or palette…" style="flex: 1; min-width: 240px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-size: 13px;" />
   <button class="btn-clear" id="img-search-clear" style="background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">Clear</button>
-  <span id="img-search-status" style="color: var(--muted); font-size: 12px; min-width: 110px; text-align: right;"></span>
+  <span id="img-search-status" data-help="Status line for the search box. Shows 'Searching…' while a query is in flight, then 'N matches' or 'No matches'. Empty when no query is active. The search covers filename, OCR text, product, and palette across the selected brand." data-help-title="Search status" style="color: var(--muted); font-size: 12px; min-width: 110px; text-align: right;"></span>
 </div>
 
 <div class="layout">
   <aside class="sidebar">
-    <div class="hero" id="page-engagement">
+    <div class="hero" id="page-engagement" data-help="Live page-level engagement pulled from Meta (Facebook + Instagram) for the selected brand over the last 30 days. Page engagements = the combined count of reactions, comments, shares, and clicks on the brand's posts. Views = unique impressions. If the band shows dashes, Meta credentials are not configured for this brand or the page-level signal has not been activated yet." data-help-title="Page engagement (30d)">
       <div>
         <div class="big" id="engagement-total">—</div>
-        <div class="lbl">Page engagements (30d)</div>
+        <div class="lbl" data-help="Combined Meta engagements on the brand's posts in the last 30 days. Includes reactions, comments, shares, and clicks. Use this as the top-line social signal when comparing brands or weeks." data-help-title="Engagements (30d)">Page engagements (30d)</div>
       </div>
       <div class="right">
         <div style="font-size: 18px; font-weight: 700;" id="engagement-views">—</div>
-        <div class="lbl">Views (30d)</div>
+        <div class="lbl" data-help="Unique impressions on the brand's posts in the last 30 days. A post can be engaged-with multiple times but only counted once in views. Compare views to engagements to read the engagement rate: Engagements / Views." data-help-title="Views (30d)">Views (30d)</div>
       </div>
     </div>
 
     <div class="filter-group">
-      <h3>Score</h3>
+      <h3 data-help="Brand alignment score (0 to 1) assigned by the visual-DNA engine. Top is 0.85+, High is 0.75+, Mid is 0.65+. Higher means the image's palette, mood, products, and composition match the brand recipe more closely. Use Top when you need an on-brand-only safe list; use All when you want raw source material to pick from." data-help-title="Score">Score</h3>
       <div>
         <span class="chip active" data-score="all">All</span>
         <span class="chip" data-score="0.85">Top (≥0.85)</span>
@@ -155,7 +163,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3>Luminance</h3>
+      <h3 data-help="Luminance bucket from the image's brightness histogram. Dark = mostly low-light / moody shots. Mid = balanced studio or in-club shots. Bright = outdoor daylight or high-key product shots. Use Dark when you need on-brand moody content for IG reels; use Bright when you need high-contrast product hero shots for the website." data-help-title="Luminance">Luminance</h3>
       <div id="luminance-chips">
         <span class="chip active" data-lum="all">All</span>
         <span class="chip" data-lum="dark">Dark</span>
@@ -165,14 +173,14 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3>Products</h3>
+      <h3 data-help="Product the image depicts, detected by the visual-DNA engine (layer 4). Each chip shows how many images in the library carry that product. Click a chip to filter the grid to that product only. Counts include all luminance and score buckets, so combine with Score and Luminance for tighter slices." data-help-title="Products">Products</h3>
       <div id="product-chips">
         <span class="loading">Loading...</span>
       </div>
     </div>
 
     <div class="filter-group">
-      <h3>Sort</h3>
+      <h3 data-help="Sort order applied to the image grid. Brand alignment score (default, highest first) shows the most on-brand material. Filename (A→Z) is for hunting a specific file you already know. Recently modified is for picking up the freshest renders from the Generate panel." data-help-title="Sort">Sort</h3>
       <select id="sort" style="width: 100%; padding: 8px; background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;">
         <option value="score">Brand alignment score</option>
         <option value="filename">Filename (A→Z)</option>
@@ -181,7 +189,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3>Real-data join</h3>
+      <h3 data-help="Per-post engagement joins from Meta are gated on the pages_read_user_content permission in Meta App Review. Until that permission is approved, only the page-level total (the hero card above) is available. Click View evidence to see the App Review submission for this brand." data-help-title="Real-data join">Real-data join</h3>
       <div style="font-size: 12px; color: var(--muted); line-height: 1.5;">
         Page-level Meta engagement is wired up. Per-post engagement joins auto-activate when Meta approves <code>pages_read_user_content</code> in App Review.
         <a href="https://swing-shack-dashboard-production.up.railway.app/meta-app-review/" target="_blank" style="display: inline-block; margin-top: 6px;">View evidence →</a>
@@ -189,7 +197,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group" id="discover-panel">
-      <h3>Discover by element</h3>
+      <h3 data-help="Element-level discovery filters. Click a color swatch to show every image that contains that color (from layer 9 palette). Click a brand chip to show every image tagged with that brand. Click a mood chip for the mood taxonomy (energetic / calm / premium / playful). Type into the text box and hit Discover to search for OCR text inside images. Each result clicks through to the full DNA modal." data-help-title="Discover by element">Discover by element</h3>
       <div style="font-size: 11px; color: var(--muted); margin-bottom: 6px;">Click any element to filter the gallery</div>
       <div style="margin-bottom: 8px;">
         <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;"><b>Colors</b></div>
@@ -210,13 +218,13 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group" id="recipe-panel">
-      <h3>Brand recipe</h3>
+      <h3 data-help="Live brand recipe summary computed from the indexed image set. Shows the top 3 most common palette colors, mood, products, and objects, plus an average quality score (0-100), the count of high-score images, and the number of style clusters detected. Click Refresh recipe to recompute against the current brand. Use this as the truth source for what the brand actually looks like in the library, not what the style guide says it should look like." data-help-title="Brand recipe">Brand recipe</h3>
       <div id="recipe-summary" style="font-size: 12px; line-height: 1.5; color: var(--muted);">Loading brand DNA...</div>
       <button id="refresh-recipe" class="btn-clear" style="width: 100%; background: transparent; color: var(--accent, #5b8def); border: 1px solid var(--line); padding: 6px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 6px;">Refresh recipe</button>
     </div>
 
     <div class="filter-group" id="generate-panel">
-      <h3>Generate image</h3>
+      <h3 data-help="Sidebar version of the image generator. Type a prompt (describe the image you want) and optionally pin a reference color and brand. Click Generate (gpt-image-1) to render. Output appears below. The main Generate card below the tiles is the same endpoint, just with quality and size controls. Use the sidebar version for quick test renders." data-help-title="Generate image">Generate image</h3>
       <textarea id="gen-prompt" placeholder="Describe the image you want (e.g. 'Mizuno iron close-up, yellow accent')" style="width: 100%; min-height: 50px; padding: 6px 8px; background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 12px; resize: vertical; margin-bottom: 4px;"></textarea>
       <div style="display: flex; gap: 4px; margin-bottom: 4px;">
         <input id="gen-ref-color" type="text" placeholder="color" style="flex: 1; padding: 6px 8px; background: var(--chip); color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 11px;" />
@@ -229,22 +237,22 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 
   <main class="main">
     <div class="tiles">
-      <div class="tile"><div class="num" id="tile-total">—</div><div class="lbl">Total images</div></div>
-      <div class="tile"><div class="num" id="tile-shown">—</div><div class="lbl">Filtered</div></div>
-      <div class="tile"><div class="num" id="tile-products">—</div><div class="lbl">Products</div></div>
-      <div class="tile"><div class="num" id="tile-scored">—</div><div class="lbl">High-score</div></div>
+      <div class="tile"><div class="num" id="tile-total">—</div><div class="lbl" data-help="Total indexed images for the selected brand. Includes both source uploads and any persisted gpt-image-1 renders." data-help-title="Total images">Total images</div></div>
+      <div class="tile"><div class="num" id="tile-shown">—</div><div class="lbl" data-help="Images currently shown in the grid after applying the active Score, Luminance, Product, and Sort filters (and any search query). Useful for confirming the filter actually narrowed the set the way you expected." data-help-title="Filtered">Filtered</div></div>
+      <div class="tile"><div class="num" id="tile-products">—</div><div class="lbl" data-help="Distinct product tags detected across the brand's image library (e.g. putter, iron, ball, glove). Higher count = broader product catalog coverage." data-help-title="Products">Products</div></div>
+      <div class="tile"><div class="num" id="tile-scored">—</div><div class="lbl" data-help="Count of images scoring at or above the High threshold (0.75). These are the on-brand-safe images you can ship without further QA on the visual side." data-help-title="High-score">High-score</div></div>
     </div>
 
     <!-- GENERATE — live image generator (gpt-image-1, recipe-informed). Outputs persist to Library "Recently generated". -->
     <div class="card" style="margin-bottom: 16px;">
-      <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--accent);">🖼️ Generate image (live renders via gpt-image-1)</h3>
+      <h3 data-help="Main image generator. Renders via OpenAI gpt-image-1 with the brand recipe injected into the prompt so outputs stay on palette. Pick a quality tier (low / medium / high / auto), pick a size (1024 square / 1024x1792 portrait / 1792x1024 landscape), type a prompt, and click Generate →. Renders take 30-90 seconds. Outputs are saved to disk under the brand's Recently generated folder and also appear in this card." data-help-title="Generate image (live renders via gpt-image-1)" style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--accent);">🖼️ Generate image (live renders via gpt-image-1)</h3>
       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: end;">
         <div style="flex: 1; min-width: 200px;">
-          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;">Prompt</label>
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;" data-help="Describe the image you want rendered. The brand recipe is auto-prepended so the output stays on palette. Keep prompts concrete: subject + setting + style words (e.g. 'Mizuno JPX 921 forged iron, side-lit on a dark background, premium product photography')." data-help-title="Prompt">Prompt</label>
           <input type="text" id="gen-prompt" placeholder="e.g. premium putter on the green at sunset" style="width: 100%; padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
         </div>
         <div>
-          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;">Quality</label>
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;" data-help="Render quality tier. Low is fastest (cheap, draft quality). Medium is the default for blog/social. High is for hero shots and campaign artwork (slower, more tokens). Auto lets gpt-image-1 pick based on your prompt." data-help-title="Quality">Quality</label>
           <select id="gen-quality" style="padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;">
             <option value="low">low</option>
             <option value="medium" selected>medium</option>
@@ -253,14 +261,14 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
           </select>
         </div>
         <div>
-          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;">Size</label>
+          <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;" data-help="Render canvas size. 1024x1024 is the square default (good for IG feed). 1024x1792 is portrait (good for IG reels cover / TikTok). 1792x1024 is landscape (good for website hero / Facebook cover)." data-help-title="Size">Size</label>
           <select id="gen-size" style="padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;">
             <option value="1024x1024" selected>1024×1024</option>
             <option value="1024x1792">1024×1792 portrait</option>
             <option value="1792x1024">1792×1024 landscape</option>
           </select>
         </div>
-        <button class="btn" id="gen-submit" style="background: var(--accent); color: #0c0d10; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer;">Generate →</button>
+        <button class="btn" id="gen-submit" data-help="Triggers the gpt-image-1 render. The button disables while the render is in flight (30-90 seconds typical). Status text appears below the form: spinner while waiting, success count on save, or an error message if the API call fails." data-help-title="Generate button" style="background: var(--accent); color: #0c0d10; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer;">Generate →</button>
       </div>
       <div id="gen-status" style="margin-top: 8px; font-size: 12px; color: var(--muted);"></div>
       <div id="gen-output" style="margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;"></div>
@@ -281,7 +289,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
       <div class="filename" id="modal-filename">—</div>
 
       <div class="section">
-        <h4>Brand alignment</h4>
+        <h4 data-help="Brand alignment score for this image plus the metadata that drives it. Score = the recipe distance from the brand DNA (0 to 1). Luminance = brightness bucket (dark / mid / bright). Orientation = landscape / portrait / square. Dimensions = raw pixel count. If score shows a dash the DNA is missing for this file." data-help-title="Brand alignment">Brand alignment</h4>
         <div style="display: flex; align-items: center; gap: 16px;">
           <div style="font-size: 36px; font-weight: 800; color: var(--accent);" id="modal-score">—</div>
           <div>
@@ -293,39 +301,86 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
       </div>
 
       <div class="section">
-        <h4>Palette</h4>
+        <h4 data-help="Dominant palette extracted from the image. Each swatch shows its share of the total pixels (e.g. 32% means that color covers roughly a third of the image). Use this to check at a glance whether the image lives inside the brand palette and to find colors you can lift into a new design." data-help-title="Palette">Palette</h4>
         <div class="palette-row" id="modal-palette"></div>
       </div>
 
       <div class="section">
-        <h4>Products</h4>
+        <h4 data-help="Products detected in the image by the visual-DNA engine (layer 4). Each chip is a product tag. 'No products detected' means the engine could not identify a known product, usually because the image is a brand-mood shot (lifestyle, abstract) rather than a product shot." data-help-title="Products">Products</h4>
         <div class="products" id="modal-products"><span style="color: var(--muted); font-size: 12px;">No products detected</span></div>
       </div>
 
       <div class="section">
-        <h4>OCR snippet</h4>
+        <h4 data-help="OCR text extracted from the image (layer 6). Any printed or rendered text the engine can read shows here, joined by ' / '. Useful for finding logos, model numbers, slogans, or any copy you want to reuse or remove." data-help-title="OCR snippet">OCR snippet</h4>
         <div class="ocr" id="modal-ocr">—</div>
       </div>
 
       <div class="section">
-        <h4>Typography</h4>
+        <h4 data-help="Fonts detected in the image (layer 7). When the engine can identify the typeface family, it lists it here. Use this to confirm whether a piece of design uses the brand-approved type or has drifted to something off-palette." data-help-title="Typography">Typography</h4>
         <div id="modal-typo" style="font-size: 13px; color: var(--muted);">—</div>
       </div>
 
       <div class="section">
-        <h4>Visual Recipe (for image generator)</h4>
+        <h4 data-help="Visual recipe (layer 17): the structured JSON the image generator consumes. Includes palette weight, mood, products, objects, and composition hints. Click 'Use as Visual Recipe → Generate image' below to push this exact recipe into the meme-lab prompt box, then generate a new image that mimics the look." data-help-title="Visual Recipe (for image generator)">Visual Recipe (for image generator)</h4>
         <pre id="modal-recipe" style="background: var(--panel-2); padding: 12px; border-radius: 6px; font-size: 11px; max-height: 200px; overflow: auto; color: var(--accent);">—</pre>
       </div>
 
       <div style="display: flex; gap: 8px;">
-        <button class="btn" id="modal-generate">Use as Visual Recipe → Generate image</button>
-        <button class="btn secondary" onclick="document.getElementById('modal-bg').classList.remove('open')">Close</button>
+        <button class="btn" id="modal-generate" data-help="Sends the visual recipe JSON into the meme-lab image generator as the prompt. Lands on meme-lab with the prompt pre-filled so you can tweak it or just click Generate. Use this when you want a new image that copies the look of this one." data-help-title="Use as Visual Recipe → Generate image">Use as Visual Recipe → Generate image</button>
+        <button class="btn secondary" data-help="Close the modal without taking action." data-help-title="Close modal" onclick="document.getElementById('modal-bg').classList.remove('open')">Close</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+// HELP system: minimal port from cockpit-operational.html + meme-lab.html so tooltips
+// render identically across the app. data-help on any element wires a popover.
+const HELP = (() => {
+  let popEl = null;
+  const ensurePop = () => {
+    if (popEl) return popEl;
+    popEl = document.createElement('div');
+    popEl.className = 'help-pop';
+    document.body.appendChild(popEl);
+    return popEl;
+  };
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const showPop = (target, payload) => {
+    const pop = ensurePop();
+    const title = payload.title ? `<span class="hp-title">${esc(payload.title)}</span>` : '';
+    const why = payload.why ? `<span class="hp-why"><b>Why this helps:</b> ${esc(payload.why)}</span>` : '';
+    pop.innerHTML = `${title}${esc(payload.help || '')}${why}`;
+    pop.classList.add('show');
+    const r = target.getBoundingClientRect();
+    const popR = pop.getBoundingClientRect();
+    let left = r.left + window.scrollX;
+    let top = r.bottom + window.scrollY + 6;
+    const maxLeft = window.innerWidth - popR.width - 12;
+    if (left > maxLeft) left = maxLeft;
+    if (left < 8) left = 8;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${top}px`;
+  };
+  const hidePop = () => { if (popEl) popEl.classList.remove('show'); };
+  const tip = (target, payload) => {
+    target.classList.add('has-help-tip');
+    target.setAttribute('data-help', payload.help || '');
+    target.addEventListener('mouseenter', () => showPop(target, payload));
+    target.addEventListener('mouseleave', hidePop);
+  };
+  const autoAttach = () => {
+    document.querySelectorAll('[data-help]:not(.has-help-tip)').forEach(el => {
+      tip(el, {
+        help: el.getAttribute('data-help') || '',
+        title: el.getAttribute('data-help-title') || '',
+        why: el.getAttribute('data-help-why') || ''
+      });
+    });
+  };
+  return { tip, autoAttach };
+})();
+
 const STATE = {
   brand: 'swing-shack',
   q: '',
@@ -925,8 +980,16 @@ async function runGrid() {
   attachScoreChips();
   attachLuminanceChips();
   attachSearch();
+  // Wire HELP tooltips on the static page chrome (H1, sidebar h3s, tile labels,
+  // generate labels, modal h4s) before the catalog loads so they are usable immediately.
+  HELP.autoAttach();
   await loadBrands();
   await Promise.all([loadEngagement(), loadStats(), runGrid()]);
+  // Re-attach after any dynamic render (discover panel populates product chips,
+  // discover color/brand/mood chips, brand recipe card, etc.).
+  HELP.autoAttach();
+  // Safety net for any further dynamic renders (brand switcher repopulates etc.).
+  setInterval(() => HELP.autoAttach(), 4000);
 })();
 </script>
 </body>
