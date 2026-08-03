@@ -226,3 +226,52 @@ done
 
 **Next priority (PRIORITY 4)**: Image generation pipeline — `campaign-os/_lib/image_gen.py` with strict brand standards (colors #0a0f1a / #34d399 / #60a5fa, typography, platform format specs).
 **Blockers**: none.
+
+## Cron tick 2026-08-03T10:56 UTC (visualizer HELP tooltips — 30 elements)
+
+**Built**:
+- **HELP tooltips on `/visualizer`** — 30 elements across the page now have `data-help` + `data-help-title` so a non-engineer can decode the visual-DNA engine, the Meta engagement signal, and the gpt-image-1 generator without leaving the page.
+- **Same minimal IIFE port pattern** as meme-lab + cockpit (`campaign-os/visualizer.html` line ~337). HELP module is 47 lines of JS + 6 lines of CSS, identical shape to the other two pages. Each page is self-contained.
+- **3 autoAttach hook points**: (1) `init()` runs autoAttach BEFORE dynamic content loads; (2) after `Promise.all([loadEngagement(), loadStats(), runGrid()])`; (3) `setInterval(autoAttach, 4000)` safety net for future dynamic injection.
+- **Coverage map** (30): H1, search-status span, hero band + 2 inner lbls, 8 sidebar h3s, 4 stat tile lbls, main Generate card h3 + 3 form labels + Generate button, 6 modal h4s, 2 modal buttons.
+- **Idempotent wiring**: `:not(.has-help-tip)` selector makes re-runs safe.
+- No JS logic added beyond HELP module + 3 autoAttach call sites.
+
+**Files added/modified**: `campaign-os/visualizer.html` (93 insertions / 30 deletions).
+**New routes / UI sections / tests**: none this tick.
+**Commit**: `5841fb1` pushed to `origin/feat/asset-state-engine`.
+
+**Verified live**:
+- 30/30 `[data-help]` elements wired on LIVE URL, 0 pageerrors
+- 9 PNG screenshots at `/tmp/co-nightshift/walkthrough_visualizer_2026-08-03T125506_*.png` (full page, h1, sidebar score, sidebar brand recipe, tile total, main generate h3, generate button, discover, modal brand alignment)
+- Modal tooltip pattern works end-to-end (open card → modal → h4 hovers → popover)
+
+**Lane rules honored**: zero em-dashes in new copy, no publish/schedule, no fake stats, branch `feat/asset-state-engine`.
+
+**Next priority**: sweep HELP onto remaining `.card-h h3` on Brand Directory detail panel (Palette, Archetypes, Typography, Voice, Headlines, CTA, Punctuation, Do-say-don't-say, Examples), or fix the `[object Object]` meme-lab voice-bible bug, or wire HELP on `login.html` / `meta-portal.html`.
+
+**Blockers**: none.
+
+## Cron tick 2026-08-03T10:56 UTC (visualizer HELP tooltips - 30 elements)
+
+**Built**:
+- **HELP tooltips on `/visualizer`** - 30 elements across the page now have `data-help` + `data-help-title` so a non-engineer can decode the visual-DNA engine, the Meta engagement signal, and the gpt-image-1 generator without leaving the page.
+- **Same minimal IIFE port pattern** as meme-lab + cockpit (`campaign-os/visualizer.html` line ~337). HELP module is 47 lines of JS + 6 lines of CSS, identical shape to the other two pages.
+- **3 autoAttach hook points**: (1) `init()` runs autoAttach BEFORE dynamic content loads; (2) after `Promise.all([loadEngagement(), loadStats(), runGrid()])`; (3) `setInterval(autoAttach, 4000)` safety net.
+- **Coverage map** (30): H1, search-status span, hero band + 2 inner lbls, 8 sidebar h3s, 4 stat tile lbls, main Generate card h3 + 3 form labels + Generate button, 6 modal h4s, 2 modal buttons.
+- No JS logic added beyond HELP module + 3 autoAttach call sites.
+
+**Files added/modified**: `campaign-os/visualizer.html` (93 insertions / 30 deletions).
+**New routes / UI sections / tests**: none this tick.
+**Commit**: `5841fb1` pushed to `origin/feat/asset-state-engine`.
+
+**Verified live**:
+- 30/30 `[data-help]` elements wired on LIVE URL, 0 pageerrors
+- 9 PNG screenshots at `/tmp/co-nightshift/walkthrough_visualizer_2026-08-03T125506_*.png` (full page, h1, sidebar score, sidebar brand recipe, tile total, main generate h3, generate button, discover, modal brand alignment)
+- Modal tooltip pattern works end-to-end
+
+**Lane rules honored**: zero em-dashes in new copy, no publish/schedule, no fake stats, branch `feat/asset-state-engine`.
+
+**Next priority**: sweep HELP onto remaining `.card-h h3` on Brand Directory detail panel, or fix `[object Object]` meme-lab voice-bible bug, or wire HELP on `login.html` / `meta-portal.html`.
+
+**Blockers**: none.
