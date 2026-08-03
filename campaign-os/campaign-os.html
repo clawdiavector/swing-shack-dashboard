@@ -3870,8 +3870,12 @@ function go(sec){
   // Persist last active section for reload-state
   try { localStorage.setItem('cos.activeSec', sec); } catch(_){}
   // Mount helper explainer for this section.
-  // The 'insights' section is a clone of 'sec-performance' (rendered by renderInsights),
-  // so mount the explainer on sec-performance; the clone picks it up.
+  // Special case: 'insights' is a clone of 'sec-performance' (rendered by renderInsights
+  // via targetSec.innerHTML = '' + clone-from-sec-performance). Mounting on sec-insights
+  // directly would create a race: the wipe inside renderInsights removes the explainer
+  // and the .then(loadSection) post-mount only fires after the async renders complete,
+  // leaving a window where the section has 0 explainers. Mount on sec-performance
+  // instead so the clone brings the explainer along atomically.
   try {
     if(typeof HELP !== 'undefined' && HELP.section){
       const analyticsMap = {
@@ -3882,11 +3886,15 @@ function go(sec){
         'ideas': 'meta',
         'seo': 'seo',
       };
-      HELP.section(realSec, analyticsMap[realSec]);
+      const mountSec = realSec === 'insights' ? 'performance' : realSec;
+      HELP.section(mountSec, analyticsMap[realSec]);
     }
   } catch(e){ console.warn('HELP.section failed', realSec, e); }
   loadSection(realSec).then(() => {
-    // Re-mount on sec-performance after loadSection runs, so renderInsights()'s clone includes the explainer
+    // Re-mount on the canonical section after loadSection runs. For insights this
+    // hits sec-performance (where the clone-source lives); for other sections it
+    // hits the actual section. HELP.section is idempotent (removes old
+    // .help-section-explainer before inserting), so this is safe to repeat.
     try {
       if(typeof HELP !== 'undefined' && HELP.section){
         const analyticsMap = {
@@ -3897,7 +3905,8 @@ function go(sec){
           'ideas': 'meta',
           'seo': 'seo',
         };
-        HELP.section(realSec, analyticsMap[realSec]);
+        const mountSec = realSec === 'insights' ? 'performance' : realSec;
+        HELP.section(mountSec, analyticsMap[realSec]);
       }
     } catch(e){ /* silent */ }
   });
@@ -4017,21 +4026,12 @@ async function renderInsights(){
   const targetSec = $('#sec-insights');
   const sourceSec = $('#sec-performance');
   if(!targetSec || !sourceSec) return;
-  // Mount the section explainer IMMEDIATELY after the wipe, before any await.
-  // Previously the explainer was only re-mounted at the very end of renderInsights,
-  // leaving a 500-1500ms window (the time spent awaiting renderPerformance,
-  // /api/intel/learning, renderWeeklyReport, and the weekly_report endpoint) where
-  // #sec-insights had 0 explainers. Mounting here closes that gap deterministically:
-  // even if subsequent awaits are slow, the section header + explainer is correct
-  // the moment the section-h is appended. HELP.section is idempotent (removes old
-  // .help-section-explainer before inserting), so the trailing post-mount in go()'s
-  // .then() callback and the final re-mount below are no-ops against this one.
+  // NOTE: the section explainer is mounted by go() onto sec-performance (the
+  // canonical location), NOT sec-insights. renderInsights wipes sec-insights then
+  // clones sec-performance's children into sec-insights, which carries the
+  // explainer along atomically. Mounting directly on sec-insights would race
+  // against this wipe + clone. See go()'s mountSec logic for the redirect.
   targetSec.innerHTML = '';
-  try {
-    if(typeof HELP !== 'undefined' && HELP.section){
-      HELP.section('insights', 'ga4');
-    }
-  } catch(e){ console.warn('HELP.section(insights, immediate) failed', e); }
   Array.from(sourceSec.children).forEach(child => {
     if(child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE'){
       const clone = child.cloneNode(true);
