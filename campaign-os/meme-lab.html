@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Meme Lab — Swing Shack</title>
+<title>Meme Lab</title>
 <style>
 :root {
   --bg: #0c0d10;
@@ -204,7 +204,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 <body>
 <header>
   <div>
-    <h1 data-help="Browse the 75-meme Swing Shack adaptation catalog. Each card carries a tier (fresh crowd-pleaser / proven classic / risky but fits / dated pick), a Swing Shack adaptation seed, and a one-click Generate button that builds an Ideogram prompt you can ship. Use the sidebar filters to narrow by era, fatigue risk, voice, or pillar." data-help-title="Meme Lab">Meme Lab <span style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;">/ 75 memes · Swing Shack</span></h1>
+    <h1 id="page-h1" data-help-title="Meme Lab">Meme Lab <span id="page-h1-sub" style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;">/ 75 memes · Swing Shack</span></h1>
   </div>
   <div class="nav">
     <a href="/">← Dashboard</a>
@@ -501,6 +501,33 @@ function memePreviewSVG(meme) {
   return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
 }
 
+// ── Render page chrome (H1 + title) from the active brand ────────────
+// The catalog is brand-shared (75 memes regardless of brand) but the page
+// header should not lie: when the user picks Stick or Bag Drop via the
+// Voice chip, the H1 sub-line, document.title, and H1 help body all flip to
+// reflect the active brand. Re-binds the H1 tooltip by removing
+// `has-help-tip` first so the next HELP.autoAttach() re-wires it with the
+// new payload (HELP.tip closes over payload in its event listener).
+function _renderChromeForBrand(){
+  const activeBrand = state.activeBrand || 'swing-shack';
+  const vbRoot = state.voiceBible || {};
+  const vb = vbRoot[activeBrand] || vbRoot['swing-shack'] || {};
+  const brandLabel = vb.label || ({'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop'}[activeBrand] || activeBrand);
+  const total = (state.memes && state.memes.length) || 75;
+  const subEl = document.getElementById('page-h1-sub');
+  if (subEl) subEl.textContent = `/ ${total} memes · ${brandLabel}`;
+  document.title = `Meme Lab · ${brandLabel}`;
+  const h1 = document.getElementById('page-h1');
+  if (h1){
+    const helpBody = `Browse the ${total}-meme adaptation catalog. Each card carries a tier (fresh crowd-pleaser / proven classic / risky but fits / dated pick), an adaptation seed for the active voice, and a one-click Generate button that builds an Ideogram prompt you can ship. Use the sidebar filters to narrow by era, fatigue risk, voice, or pillar. The header reflects the brand you picked from the Voice chip.`;
+    h1.setAttribute('data-help', helpBody);
+    // Strip the idempotency class so HELP.autoAttach() re-wires the tooltip
+    // with the new data-help value. Without this, the closure-captured
+    // payload in HELP.tip would still show the original Swing Shack copy.
+    h1.classList.remove('has-help-tip');
+  }
+}
+
 // ── Load catalog ────────────────────────────────────────────────────────
 async function loadCatalog() {
   const grid = document.getElementById('grid');
@@ -593,7 +620,11 @@ async function loadCatalog() {
       }
     });
   });
-  // Wire HELP tooltips on the now-rendered card buttons
+  // Update page chrome (H1 + title + H1 tooltip) from the now-resolved
+  // state.activeBrand. autoAttach() afterwards re-wires the H1 tooltip with
+  // the freshly-set data-help body so the popover shows the brand-aware
+  // copy instead of the original Swing Shack phrasing from the static HTML.
+  _renderChromeForBrand();
   HELP.autoAttach();
 }
 
