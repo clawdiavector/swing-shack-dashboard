@@ -942,7 +942,7 @@ def visual_library_images(brand_id):
     """
     try:
         from pathlib import Path as _P
-        import re
+        import re, base64 as _b64
         index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
         if not index_path.exists():
             return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
@@ -954,13 +954,26 @@ def visual_library_images(brand_id):
         sort_by = request.args.get("sort", "score")
         limit = min(int(request.args.get("limit", "200") or "200"), 500)
 
+        # Canonical images dir relative to BUNDLED_DATA_DIR — used for both jpg and DNA JSON
+        images_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images'
+
+        def _resolve_dna(dna_path_str, filename):
+            """Resolve a DNA file path robustly across local + Railway.
+
+            The index stores absolute local paths which only resolve on the
+            machine that generated them. On Railway, those paths are bogus.
+            Fall back to images_dir/.visual-dna.json.
+            """
+            if dna_path_str and _P(dna_path_str).exists():
+                return _P(dna_path_str)
+            stem = _P(filename).stem
+            candidate = images_dir / f"{stem}.visual-dna.json"
+            return candidate if candidate.exists() else None
+
         out = []
         for fn, meta in by_filename.items():
-            dna_path_str = meta.get("dna_path", "")
-            if not dna_path_str:
-                continue
-            dna_p = _P(dna_path_str)
-            if not dna_p.exists():
+            dna_p = _resolve_dna(meta.get("dna_path", ""), fn)
+            if dna_p is None:
                 continue
             try:
                 dna = json.loads(dna_p.read_text())
@@ -1030,6 +1043,21 @@ def visual_library_images(brand_id):
                 } if composition else {},
                 "recipe": l17 if l17 else None,
                 "tagline": dna.get("layer8_compliance", {}).get("summary", "") if isinstance(dna.get("layer8_compliance"), dict) else "",
+                # Inline thumbnail (data URL) so the grid works on Railway without the
+                # actual jpg files. The images dir is gitignored; thumbnails are embedded
+                # in each DNA JSON at build time.
+                "thumbnail_data_url": (f"data:image/jpeg;base64,{dna['thumbnail_b64']}" if dna.get("thumbnail_b64") else None),
+                "thumbnail_w": dna.get("thumbnail_w"),
+                "thumbnail_h": dna.get("thumbnail_h"),
+                # Searchable blob (lowercase) for client-side text matching
+                "_search_blob": " ".join([
+                    fn.lower(),
+                    ocr_text.lower(),
+                    " ".join(product_names).lower(),
+                    " ".join(palette_hex).lower(),
+                    (dna.get("layer8_compliance", {}) or {}).get("summary", "").lower() if isinstance(dna.get("layer8_compliance"), dict) else "",
+                    str(meta.get("dominant", "")).lower(),
+                ]).strip(),
             }
             out.append(entry)
 
