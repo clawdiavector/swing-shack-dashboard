@@ -4053,6 +4053,20 @@ async function renderInsights(){
   if(typeof bindPerformanceHandlers === 'function') bindPerformanceHandlers();
   // ── Weekly Report (auto-generated from data/, exports to markdown) ───
   await renderWeeklyReport(targetSec);
+  // Re-mount the section explainer AFTER renderInsights has finished wiping + cloning.
+  // The earlier pre-mount (in go()) gets blown away by targetSec.innerHTML = '' on
+  // line 4021, and the post-mount in go()'s .then(loadSection) callback races against
+  // async work inside renderInsights, leaving a 200-1000ms window where the section
+  // has 0 explainers (reproduces ~20% of the time on live). Mounting here, after every
+  // appendChild, makes the explainer mount atomic with the section render so there
+  // is no observable gap. HELP.section is idempotent (it removes existing
+  // .help-section-explainer children before inserting), so the duplicate mount in
+  // go()'s .then() is harmless.
+  try {
+    if(typeof HELP !== 'undefined' && HELP.section){
+      HELP.section('insights', 'ga4');
+    }
+  } catch(e){ console.warn('HELP.section(insights) failed', e); }
 }
 
 // ─── WEEKLY REPORT ────────────────────────────────────────────────────
