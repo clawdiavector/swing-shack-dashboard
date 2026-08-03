@@ -1240,6 +1240,44 @@ def visual_library_search():
                 ocr_text = ' '.join([str(x) for x in ocr_lines if x])
                 palette = ((dna.get('layer9_palette', {}) or {}).get('dominant_colors', []) or [])
                 palette_hex = [c.get('hex', '') for c in palette if isinstance(c, dict)]
+                # Map hex codes to human color names so search by color works
+                def _hex_to_names(h):
+                    if not h or not h.startswith('#') or len(h) < 7:
+                        return []
+                    try:
+                        r=int(h[1:3],16); g=int(h[3:5],16); b=int(h[5:7],16)
+                    except ValueError:
+                        return []
+                    names = []
+                    # Detect hue families
+                    if g > r + 15 and g > b + 15 and g >= 80:
+                        names.append('green')
+                        if r > 150: names.append('lime')
+                        if g > 180 and r < 100: names.append('bright green')
+                    if r > g + 30 and r > b + 50 and r > 120:
+                        names.append('red')
+                        if r > 200 and g < 80 and b < 80: names.append('bright red')
+                    if b > r + 20 and b > g + 30 and b > 120:
+                        names.append('blue')
+                        if r < 100 and g < 100: names.append('navy')
+                    if r > 180 and g > 130 and b < 100:
+                        names.append('yellow'); names.append('gold')
+                    if r > 150 and g < 100 and b > 130:
+                        names.append('purple'); names.append('magenta')
+                    if r > 200 and g > 150 and b > 100:
+                        names.append('orange'); names.append('beige')
+                    # Brightness
+                    avg = (r+g+b)/3
+                    if avg > 220: names.append('light'); names.append('bright')
+                    elif avg < 60: names.append('dark')
+                    if abs(r-g) < 15 and abs(g-b) < 15 and abs(r-b) < 15:
+                        if avg > 180: names.append('white')
+                        elif avg < 50: names.append('black')
+                        else: names.append('gray'); names.append('grey')
+                    return names
+                palette_names = []
+                for h in palette_hex:
+                    palette_names.extend(_hex_to_names(h))
                 score = float((meta or {}).get('score', 0) or 0)
                 if score < min_score:
                     continue
@@ -1251,6 +1289,7 @@ def visual_library_search():
                     ' '.join(prod_names),
                     ocr_text,
                     ' '.join(palette_hex),
+                    ' '.join(palette_names),
                 ]).lower()
                 if needle not in blob:
                     continue
