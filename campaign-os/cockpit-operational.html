@@ -44,6 +44,13 @@
     .health.ok{color:var(--ac)}
     .health.err{color:var(--red)}
     .loading{color:var(--tx-3);font-size:13px}
+    /* HELP system (matches campaign-os.html so tooltips look identical) */
+    .help-pop{position:fixed;max-width:340px;min-width:220px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:.7rem .85rem;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.45);z-index:9999;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
+    .help-pop.show{opacity:1;transform:translateY(0)}
+    .help-pop .hp-title{font-weight:700;color:var(--ac);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem;display:block}
+    .help-pop .hp-why{font-size:11.5px;color:var(--tx-2);margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--bd);display:block;line-height:1.45}
+    .help-pop .hp-why b{color:var(--ac)}
+    [data-help]{cursor:help}
   </style>
 </head>
 <body>
@@ -57,28 +64,28 @@
     <div id="content" style="display:none">
       <div class="grid">
         <div class="card">
-          <div class="card-h"><h2>System</h2><span id="health-pill" class="pill">…</span></div>
+          <div class="card-h"><h2 data-help="Live health snapshot of every endpoint the cockpit touches (API, auth gate, build timestamp). Green pill = all four OK. Use this as a 2-second smoke test before you dig into a specific card." data-help-title="System">System</h2><span id="health-pill" class="pill">…</span></div>
           <div class="row"><span class="row-l">API</span><span class="row-r" id="health-api">—</span></div>
           <div class="row"><span class="row-l">Auth gate</span><span class="row-r" id="health-auth">—</span></div>
           <div class="row"><span class="row-l">Build</span><span class="row-r" id="health-ts">—</span></div>
         </div>
 
         <div class="card">
-          <div class="card-h"><h2>Schedule</h2></div>
+          <div class="card-h"><h2 data-help="Items the publisher agent has accepted and queued. Each entry ladders from a review-queue asset; the count here is the work-in-flight you can reason about. Empty means everything's been published." data-help-title="Schedule">Schedule</h2></div>
           <div class="stat" id="sched-total">—</div>
           <div class="stat-lbl">Items scheduled</div>
           <div class="stat-trend" id="sched-summary"></div>
         </div>
 
         <div class="card">
-          <div class="card-h"><h2>Campaigns</h2></div>
+          <div class="card-h"><h2 data-help="Active campaigns for the active brand. Read-only count, not a deep-dive. Open the Brand Directory from the main nav to see brief, blueprint, plan, and history per campaign." data-help-title="Campaigns">Campaigns</h2></div>
           <div class="stat" id="camp-total">—</div>
           <div class="stat-lbl">Active campaigns</div>
           <div class="stat-trend" id="camp-brands"></div>
         </div>
 
         <div class="card">
-          <div class="card-h"><h2>Review queue</h2></div>
+          <div class="card-h"><h2 data-help="How many generated assets are waiting for a human decision. Open the Review surface (Today → Review queue) to triage. Zero means the queue is empty and the agent is caught up." data-help-title="Review queue">Review queue</h2></div>
           <div class="stat" id="rev-total">—</div>
           <div class="stat-lbl">Awaiting review</div>
           <div class="stat-trend" id="rev-summary"></div>
@@ -86,7 +93,7 @@
       </div>
 
       <div class="card">
-        <div class="card-h"><h2>Schedule (next 7 days)</h2></div>
+        <div class="card-h"><h2 data-help="Forward-looking view of items the agent plans to publish. Use this to spot concentration (5 posts on the same day), gaps (nothing scheduled Wed), or duplicate slots. Limited to 12 rows on the page." data-help-title="Schedule (next 7 days)">Schedule (next 7 days)</h2></div>
         <div id="sched-list"><div class="empty">Loading…</div></div>
       </div>
     </div>
@@ -95,6 +102,53 @@
   </div>
 
   <script>
+  // HELP system: minimal port from campaign-os.html so tooltips render
+  // identically across the SPA and the standalone cockpit page.
+  const HELP = (() => {
+    let popEl = null;
+    const ensurePop = () => {
+      if (popEl) return popEl;
+      popEl = document.createElement('div');
+      popEl.className = 'help-pop';
+      document.body.appendChild(popEl);
+      return popEl;
+    };
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const showPop = (target, payload) => {
+      const pop = ensurePop();
+      const title = payload.title ? `<span class="hp-title">${esc(payload.title)}</span>` : '';
+      const why = payload.why ? `<span class="hp-why"><b>Why this helps:</b> ${esc(payload.why)}</span>` : '';
+      pop.innerHTML = `${title}${esc(payload.help || '')}${why}`;
+      pop.classList.add('show');
+      const r = target.getBoundingClientRect();
+      const popR = pop.getBoundingClientRect();
+      let left = r.left + window.scrollX;
+      let top = r.bottom + window.scrollY + 6;
+      const maxLeft = window.innerWidth - popR.width - 12;
+      if (left > maxLeft) left = maxLeft;
+      if (left < 8) left = 8;
+      pop.style.left = `${left}px`;
+      pop.style.top = `${top}px`;
+    };
+    const hidePop = () => { if (popEl) popEl.classList.remove('show'); };
+    const tip = (target, payload) => {
+      target.classList.add('has-help-tip');
+      target.setAttribute('data-help', payload.help || '');
+      target.addEventListener('mouseenter', () => showPop(target, payload));
+      target.addEventListener('mouseleave', hidePop);
+    };
+    const autoAttach = () => {
+      document.querySelectorAll('[data-help]:not(.has-help-tip)').forEach(el => {
+        tip(el, {
+          help: el.getAttribute('data-help') || '',
+          title: el.getAttribute('data-help-title') || '',
+          why: el.getAttribute('data-help-why') || ''
+        });
+      });
+    };
+    return { tip, autoAttach };
+  })();
+
   async function load() {
     const fetchJson = async (url) => {
       const r = await fetch(url, { credentials: 'same-origin' });
@@ -188,6 +242,8 @@
 
     document.getElementById('loading').style.display = 'none';
     document.getElementById('content').style.display = 'block';
+    // Wire help tooltips on the now-rendered card-h h2 elements
+    HELP.autoAttach();
   }
 
   function esc(s) {
