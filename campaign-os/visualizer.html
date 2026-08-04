@@ -284,9 +284,9 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
   <div class="modal" id="modal">
     <div class="img"><img id="modal-img" src="" alt=""></div>
     <div class="body">
-      <span class="close" id="modal-close">×</span>
-      <h2 id="modal-title">—</h2>
-      <div class="filename" id="modal-filename">—</div>
+      <span class="close" id="modal-close" data-help="Dismiss the DNA modal without taking action. Same as the Close button at the bottom of the panel." data-help-title="Close">×</span>
+      <h2 id="modal-title" data-help="The filename of the image whose DNA you are inspecting. Click any tile in the grid above to open it here. The same string is duplicated below as 'filename · brand' so you can tell at a glance which brand's library this image belongs to." data-help-title="Image filename">—</h2>
+      <div class="filename" id="modal-filename" data-help="Filename followed by the brand the image was indexed under. Filename is the source-of-truth identity for the asset. Brand is the active context: if the visualizer was opened with ?brand=stick, every DNA lookup stays scoped to stick's indexed set." data-help-title="Filename · brand">—</div>
 
       <div class="section">
         <h4 data-help="Brand alignment score for this image plus the metadata that drives it. Score = the recipe distance from the brand DNA (0 to 1). Luminance = brightness bucket (dark / mid / bright). Orientation = landscape / portrait / square. Dimensions = raw pixel count. If score shows a dash the DNA is missing for this file." data-help-title="Brand alignment">Brand alignment</h4>
