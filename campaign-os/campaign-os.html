@@ -833,8 +833,8 @@ a:hover{text-decoration:underline}
         </div>
       </div>
       <div class="grid">
-        <div class="card col-12"><div class="card-h"><h3>🆕 Just generated</h3></div><div id="ideas-fresh"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>💡 Content ideas</h3><span class="h-meta" id="ideas-total">—</span></div><div id="ideas-list"></div></div>
+        <div class="card col-12"><div class="card-h"><h3 data-help="The latest ideas the agent generated in this session. Most recent at the top. Click any card to jump to the source surface (caption studio, headline bank, etc.) where you can refine or publish." data-help-title="Just generated (this session)" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🆕 Just generated</h3></div><div id="ideas-fresh"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Full backlog of content ideas for the active brand, sorted by pillar + recency. The number on the right is the total count. Use the search box at the top of the page to filter across all ideas." data-help-title="Content ideas (full backlog)" style="cursor:help;border-bottom:1px dotted var(--tx-2)">💡 Content ideas</h3><span class="h-meta" id="ideas-total">—</span></div><div id="ideas-list"></div></div>
         <div class="card col-3"><div class="card-h"><h3 data-help="Highest-urgency content ideas the agent generated for today. Start here every morning: pick one, turn it into a brief or jump straight to the asset. Tied to the brand voice bible and current trend signals." data-help-title="Post today (pick one)">🚀 Post today</h3></div><div id="ideas-today"></div></div>
         <div class="card col-3"><div class="card-h"><h3 data-help="Medium-urgency ideas worth batching into this week. Less time-sensitive than Post today, more time-relevant than the back catalog. Good for filling the next 2-5 days of the calendar." data-help-title="This week (batch queue)">📆 This week</h3></div><div id="ideas-week"></div></div>
         <div class="card col-6"><div class="card-h"><h3 data-help="Trends that already peaked and the brand did not post. The cost of a missed opportunity compounds: the next time the trend recycles, the brand is late again. Pick one retroactively and rewrite with fresh angles." data-help-title="Missed opportunities (retros)">⚠️ Missed opportunities</h3></div><div id="ideas-missed"></div></div>
@@ -864,7 +864,7 @@ a:hover{text-decoration:underline}
       <!-- "Connect analytics" CTA — only visible when data sources are empty -->
       <div id="perf-connect-cta" style="display:none;margin-top:1rem"></div>
       <!-- Why-explain panel — answers "why did this post work/fail" with real evidence -->
-      <div class="card" style="margin-top:1rem"><div class="card-h"><h3>🔬 Why this worked / failed — explainer</h3></div>
+      <div class="card" style="margin-top:1rem"><div class="card-h"><h3>🔬 Why this worked / failed · explainer</h3></div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
           <select id="why-asset" style="flex:1;min-width:240px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bg-3);border-radius:6px;padding:6px 10px;font-size:12px"></select>
           <button class="btn primary" id="why-explain-btn">🔍 Explain</button>
@@ -963,7 +963,7 @@ a:hover{text-decoration:underline}
         <!-- Bottom: historian library -->
         <div class="card col-12">
           <div class="card-h">
-            <h3>📚 Meme historian — <span id="mem-lib-count">—</span></h3>
+            <h3>📚 Meme historian · <span id="mem-lib-count">—</span></h3>
             <span class="muted" style="font-size:11px">sort by <button class="link-btn mem-sort" data-sort="brand_fit">brand-fit</button> · <button class="link-btn mem-sort" data-sort="peak_year">peak year</button> · <button class="link-btn mem-sort" data-sort="name">name</button></span>
           </div>
           <div id="memes-list" class="meme-list"></div>
@@ -1223,7 +1223,7 @@ a:hover{text-decoration:underline}
         <div class="card col-12" id="ig-recipe-card">
           <div class="card-h">
             <h3>🎨 Visual Recipe from Brand Library
-              <span class="muted" style="font-size:11px;font-weight:400;margin-left:.5rem">— pulls matched templates from <span id="ig-recipe-brand">Swing Shack</span>'s <span id="ig-recipe-count">122</span> approved images</span>
+              <span class="muted" style="font-size:11px;font-weight:400;margin-left:.5rem">· pulls matched templates from <span id="ig-recipe-brand">Swing Shack</span>'s <span id="ig-recipe-count">122</span> approved images</span>
             </h3>
             <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
               <select id="ig-recipe-brand-select" style="font-size:11px;padding:3px 6px;border-radius:5px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
@@ -7250,7 +7250,7 @@ async function renderBrandDirectoryPanel(){
         detail.innerHTML = `
           <div class="card" id="bd-brief-form">
             <div class="card-h">
-              <h3>🎨 Generate brief — ${esc(bid)}</h3>
+              <h3>🎨 Generate brief · ${esc(bid)}</h3>
               <span class="muted" style="font-size:12px">Pick surface + tone → hit Generate</span>
             </div>
             <div class="row gap-1" style="flex-wrap:wrap;margin-bottom:.75rem">
@@ -7374,7 +7374,7 @@ function renderPlan(p, cid){
   const success = p.success_criteria || [];
   el.innerHTML = `
     <div class="card">
-      <div class="card-h"><h3>📋 Full plan — ${esc(p.campaign_name)}</h3><span class="h-meta">${esc(p.summary)}</span><button class="btn ghost" onclick="toggleCampaignPlan('${cid}')">Close</button></div>
+      <div class="card-h"><h3>📋 Full plan · ${esc(p.campaign_name)}</h3><span class="h-meta">${esc(p.summary)}</span><button class="btn ghost" onclick="toggleCampaignPlan('${cid}')">Close</button></div>
 
       <div class="grid" style="margin-bottom:1rem">
         <div class="card col-6"><div class="card-h"><h3>🎯 Goals</h3></div>
@@ -7384,7 +7384,7 @@ function renderPlan(p, cid){
             ${(goal.secondary||[]).map(g=>`<li class="li"><div class="li-body"><div class="li-title">${esc(g)}</div></div></li>`).join('')}
           </ul>
         </div>
-        <div class="card col-6"><div class="card-h"><h3>👤 Persona — ${esc(persona.name||'')}</h3></div>
+        <div class="card col-6"><div class="card-h"><h3>👤 Persona · ${esc(persona.name||'')}</h3></div>
           <dl class="kvs">
             <dt>Age</dt><dd>${esc((persona.demographics||{}).age||'—')}</dd>
             <dt>Location</dt><dd>${esc((persona.demographics||{}).location||'—')}</dd>
@@ -7441,7 +7441,7 @@ function renderPlan(p, cid){
       </div>
 
       <div class="card-h" style="margin-top:1rem;display:flex;align-items:center;gap:.5rem">
-        <h3>✏️ Assets — click any field to edit</h3>
+        <h3>✏️ Assets · click any field to edit</h3>
         <span class="muted" style="font-size:12px">saves automatically · ⌘+Enter saves · Esc cancels</span>
       </div>
       <div id="plan-assets-${cid}"><div class="muted" style="padding:1rem">Loading assets…</div></div>
