@@ -744,7 +744,7 @@ a:hover{text-decoration:underline}
     <!-- ── REVIEW ────────────────────────────────────────── -->
     <section class="section" id="sec-review">
       <div class="section-h">
-        <h2>Review queue</h2>
+        <h2 data-help="The inbox for every draft the agents produced. Click any row to open the review modal where you can approve, reject, or send back for revision. Approve sends it to the Publishing pipeline below; reject archives it. Filter pills (All, Pending, Approved, Rejected) keep the queue narrow when it grows past a few dozen rows. Empty state means the inbox is clean and every draft has been actioned." data-help-title="Review queue">Review queue</h2>
         <span class="sub" id="review-summary">—</span>
         <div class="btn-row" style="margin-left:auto">
           <button class="btn ghost" data-rfilter="all">All</button>
@@ -781,7 +781,7 @@ a:hover{text-decoration:underline}
     <!-- ── CALENDAR ──────────────────────────────────────── -->
     <section class="section" id="sec-calendar">
       <div class="section-h">
-        <h2>Calendar</h2>
+        <h2 data-help="Month grid of every planned post across all brands, with drag-drop planning. Move work between days by dragging, or click a day to add a new planned post. Filter by campaign, brand, or platform using the toolbar above the grid. Days turn red on dates with overdue items, green on dates with completed posts." data-help-title="Calendar">Calendar</h2>
         <span class="sub" id="cal-summary">—</span>
         <div class="btn-row" style="margin-left:auto">
           <select class="mini-select" id="cal-filter-platform" title="Filter by platform">
@@ -826,7 +826,7 @@ a:hover{text-decoration:underline}
     <!-- ── IDEAS ─────────────────────────────────────────── -->
     <section class="section" id="sec-ideas">
       <div class="section-h">
-        <h2>Opportunities</h2>
+        <h2 data-help="Full backlog of content ideas for the active brand. Sorted by pillar and recency, then broken out into Post today (highest urgency), This week (batch queue), Upsells (high-margin angles), Bundles (cross-sell), Funnel leaks (highest-ROI fixes), and Landing-page SEO. Use the search box at the top of the page to filter across all ideas in one query." data-help-title="Opportunities">Opportunities</h2>
         <span class="sub">Ideas · missed · upsell · bundles · funnel leaks</span>
         <div class="btn-row" style="margin-left:auto">
           <button class="btn primary" id="ideas-gen">💡 Generate new ideas</button>
@@ -847,7 +847,7 @@ a:hover{text-decoration:underline}
 
     <!-- ── PERFORMANCE ───────────────────────────────────── -->
     <section class="section" id="sec-performance">
-      <div class="section-h"><h2>Performance</h2><span class="sub">What worked, what's leaking, what to scale</span></div>
+      <div class="section-h"><h2 data-help="What worked, what is leaking, what to scale for the active brand. Each card pairs a real metric (IG posts, SEO keywords, A/B tests, top pages) with the asset or signal that drove it. Insights at the bottom translate the numbers into plain-English actions for the next brief. Pair with Opportunities above to find the best ROI pair for your next campaign." data-help-title="Performance">Performance</h2><span class="sub">What worked, what's leaking, what to scale</span></div>
       <div id="insights-strip" class="insight-strip"><div class="ico">📈</div><div class="txt" id="insights-strip-txt">Loading…</div></div>
       <div class="grid">
         <div class="card col-3"><div class="stat"><div class="stat-val" id="perf-ig-posts">—</div><div class="stat-lbl">IG posts</div></div></div>
@@ -876,7 +876,7 @@ a:hover{text-decoration:underline}
 
     <!-- ── LEARNING ──────────────────────────────────────── -->
     <section class="section" id="sec-learning">
-      <div class="section-h"><h2>Learning</h2><span class="sub">What to repeat, what to stop, what to try</span></div>
+      <div class="section-h"><h2 data-help="What to repeat, what to stop, what to try. Auto-captured from the last 90 days of assets. What worked lists the patterns from your highest-performing content, What failed lists the patterns from your lowest, CTA rankings orders every CTA by historical click-through, and Failure patterns surfaces mistake classes that recurred across 3+ assets. Use these as the editorial checklist for the next batch." data-help-title="Learning">Learning</h2><span class="sub">What to repeat, what to stop, what to try</span></div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3 data-help="Patterns the agent extracted from your highest-performing past content. Each row names the pattern + the asset that proved it + a 1-line rule to follow in the next brief. Treat this list as the editorial checklist for every new caption." data-help-title="What worked">✅ What worked</h3></div><div id="learn-worked"></div></div>
         <div class="card col-6"><div class="card-h"><h3 data-help="Patterns from your lowest-performing past content. Same shape as What worked, but inverted: asset + what went wrong + the rule to avoid. Read this list right before approving a batch to catch the same mistakes again." data-help-title="What failed">🚫 What failed</h3></div><div id="learn-failed"></div></div>
@@ -889,7 +889,7 @@ a:hover{text-decoration:underline}
     <!-- ── HOOKS ─────────────────────────────────────────── -->
     <section class="section" id="sec-hooks">
       <div class="section-h">
-        <h2>Hook Bank</h2>
+        <h2 data-help="Curated opening hooks ranked by what wins for the active brand. Each hook is a tested opening line (the first 7 words of a caption) that beat the brand's baseline. Click a hook to copy it, or open the asset that proved it. Use this list as the seed when generating new captions in the Caption Studio." data-help-title="Hook Bank">Hook Bank</h2>
         <span class="sub" id="hooks-total">—</span>
         <div class="btn-row" style="margin-left:auto">
           <button class="btn primary" id="hooks-gen">⚡ Generate 10 new hooks</button>
@@ -998,7 +998,7 @@ a:hover{text-decoration:underline}
     <!-- ── CREATE — intelligence grid (one-stop launchpad for all generators) ─ -->
     <section class="section" id="sec-create">
       <div class="section-h">
-        <h2>Create <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">intelligence grid</span></h2>
+        <h2 data-help="The intelligence grid for every brand-aware content generator. Pick a generator (Caption Studio, Headlines, CTAs, Image Gen, Hashtags + SEO, Billboard Lab, Hook Bank, Meme Lord) and each tool inherits the active brand's voice bible, pillars, palette, and do-say-don't-say rules automatically. Outputs land in the Review queue above, ready to approve and publish." data-help-title="Create">Create <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">intelligence grid</span></h2>
         <span class="sub" id="create-summary">— Pick a generator. Each one returns ready-to-publish content.</span>
       </div>
 
@@ -1095,7 +1095,7 @@ a:hover{text-decoration:underline}
     <!-- ── HEADLINES ─────────────────────────────────────── -->
     <section class="section" id="sec-headlines">
       <div class="section-h">
-        <h2>Headline Generator <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · voice + seed aware</span></h2>
+        <h2 data-help="Bold, provocative, shareable headlines per pillar for the active brand. Pick a hook angle and pillar, hit Generate, and the system returns 5 ranked variants that match the brand voice. Each variant cites the seed angle and the historical lift. Regenerate for fresh variants, click a winner to lift it into the Caption Studio or send to Review." data-help-title="Headline Generator">Headline Generator <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · voice + seed aware</span></h2>
         <span class="sub" id="head-summary">—</span>
         <div class="btn-row" style="margin-left:auto">
           <button class="btn primary" id="head-gen">⚡ Generate 5</button>
