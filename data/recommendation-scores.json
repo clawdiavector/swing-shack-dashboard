@@ -57,7 +57,7 @@
       "item": {
         "service": "Club Fitting",
         "score": 7.4,
-        "reason": "7.4/10 — Strong IG engagement (8)",
+        "reason": "7.4/10 · Strong IG engagement (8)",
         "cta": "Book your fit · swingshack.co.za/membership",
         "priority": "high",
         "type": "service"
@@ -70,7 +70,7 @@
       "emoji": "🔁",
       "item": {
         "type": "push_booking_cta",
-        "action": "Push booking CTA — traffic is hot",
+        "action": "Push booking CTA · traffic is hot",
         "sessions": 179,
         "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
         "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
@@ -119,11 +119,11 @@
         "sessions": 179,
         "severity": "high",
         "revenue_impact": "179 sessions on booking page but < 2 booking CTAs in recent IG posts",
-        "easy_fix": "Push booking CTA on IG this week — booking page traffic is there",
+        "easy_fix": "Push booking CTA on IG this week · booking page traffic is there",
         "owner": "Swing Shack page",
         "rank": 1,
         "score": 8.95,
-        "reason": "Push booking CTA on IG this week — booking page traffic is there",
+        "reason": "Push booking CTA on IG this week · booking page traffic is there",
         "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250"
       },
       "score_note": "179 sessions"
@@ -132,7 +132,7 @@
   "ranked_items": [
     {
       "type": "push_booking_cta",
-      "action": "Push booking CTA — traffic is hot",
+      "action": "Push booking CTA · traffic is hot",
       "sessions": 179,
       "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
       "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
@@ -214,7 +214,7 @@
   "all_items": [
     {
       "type": "push_booking_cta",
-      "action": "Push booking CTA — traffic is hot",
+      "action": "Push booking CTA · traffic is hot",
       "sessions": 179,
       "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
       "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
