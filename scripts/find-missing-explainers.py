@@ -55,7 +55,7 @@ def main():
     html = HTML_PATH.read_text()
 
     # All section ids, deduped + sorted.
-    sec_ids = sorted(set(re.findall(r'id="sec-([a-z-]+)"', html)))
+    sec_ids = sorted(set(re.findall(r'id="sec-([a-z0-9-]+)"', html)))
 
     # EXPLAINERS dict = the first `const EXPLAINERS = { ... };` block.
     m = re.search(r"const EXPLAINERS\s*=\s*\{(.*?)^\s*\};", html, re.DOTALL | re.MULTILINE)
@@ -63,14 +63,27 @@ def main():
         print("ERROR: could not find EXPLAINERS dict in HTML", file=sys.stderr)
         sys.exit(2)
     expl_block = m.group(1)
-    # Keys look like: 'foo': {  (in section explainer) or 'foo-bar': {  (no dashes in analytics).
-    expl_keys = sorted(set(re.findall(r"'([a-z-]+)':\s*\{", expl_block)))
+    # Keys look like: 'foo': {  (section) or 'foo-bar': { or 'ga4': { (analytics).
+    # Character class includes digits so 'ga4' is not silently dropped (regression note 2026-08-04).
+    expl_keys = sorted(set(re.findall(r"'([a-z0-9-]+)':\s*\{", expl_block)))
 
-    # Section EXPLAINERS tend to use single-word keys (brief, review, ...) or
-    # hyphenated surface keys (seo-audit, hashtagseo). The same regex captures
-    # analytics keys too ('ga4', 'meta', 'seo') — we filter those out below.
-    ANALYTICS_KEYS = {"ga4", "meta", "seo"}
-    section_expl_keys = {k for k in expl_keys if k not in ANALYTICS_KEYS}
+    # Every key in EXPLAINERS can serve as a section explainer because HELP.section
+    # looks up EXPLAINERS[id] when mounting (see HELP const in campaign-os.html).
+    # The dual-purpose case ('seo' is BOTH a section key and an analytics key in
+    # EXPLAINERS_ANALYTICS) is fine: HELP.section('seo', 'seo') mounts BOTH panels,
+    # the section body from EXPLAINERS + the analytics primer from EXPLAINERS_ANALYTICS.
+    # The previous hardcoded ANALYTICS_KEYS = {'ga4','meta','seo'} denylist wrongly
+    # classified 'seo' as analytics-only and produced a false-positive "missing"
+    # row for sec-seo even though the polished 4-card explainer mounts correctly.
+    section_expl_keys = set(expl_keys)
+    # Reporting transparency: surface which keys are also in ANALYTICS so future
+    # audits know what's a dual-purpose entry.
+    analytics_keys = set()
+    m_a = re.search(r"const EXPLAINERS_ANALYTICS\s*=\s*\{(.*?)^\s*\};", html, re.DOTALL | re.MULTILINE)
+    if m_a:
+        analytics_keys = set(re.findall(r"'([a-z0-9-]+)':\s*\{", m_a.group(1)))
+    dual_purpose = sorted(section_expl_keys & analytics_keys)
+    analytics_only = sorted(analytics_keys - section_expl_keys)
 
     if args.explainer_key:
         present = args.explainer_key in section_expl_keys
@@ -87,6 +100,10 @@ def main():
     print(f"Missing explainers ({len(missing)}):")
     for s in missing:
         print(f"  --  sec-{s}")
+    if dual_purpose or analytics_only:
+        print()
+        print(f"Dual-purpose keys (in EXPLAINERS + EXPLAINERS_ANALYTICS): {dual_purpose}")
+        print(f"Analytics-only keys (in EXPLAINERS_ANALYTICS only):         {analytics_only}")
     print()
     print("Next pick tip: ladder-surface pairings worth considering:")
     print("  seo + seo-audit + hashtagseo + faqs + library + gbp  → SEO content cluster")
