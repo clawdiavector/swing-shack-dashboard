@@ -655,6 +655,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="brief" id="nav-home" data-help-title="Today" data-help="Daily brief for the active brand. Top card: do this right now. Below: today's queue, what's new, brand context, scroll the panel for trends / ideas / learning. Refreshes every few minutes."><span class="nav-icon">🏠</span> Today <span class="nav-badge" id="nav-home-count" hidden>0</span></div>
       <div class="nav" data-go="review" data-help-title="Review" data-help="Inbox of drafts the agents produced. Click any row to approve, reject, or request a revision. Badge in the corner shows how many are waiting on you. Empty means inbox clean."><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
       <div class="nav" data-go="library" data-help-title="Library" data-help="Every piece of copy the agents have ever produced, searchable by brand / pillar / status / date. Use it to find a past winner, copy a structure, or audit a brand's voice drift over time."><span class="nav-icon">📚</span> Library</div>
+      <div class="nav" data-go="gmb" data-help-title="GMB Drafts" data-help="Google Business profile post drafts. Edit the title + body, push to Postiz to schedule on your GBP listing. Templates are seeded from the daily GMB rotation; you can also write a fresh one."><span class="nav-icon">📍</span> GMB <span class="nav-badge" id="nav-gmb-count" hidden>0</span></div>
       <div class="nav" data-go="create" data-help-title="Create" data-help="Brand-aware content generators: captions, headlines, hooks, memes, CTAs, hashtags, billboards, image briefs. Each tool inherits the active brand's voice bible and pillars automatically."><span class="nav-icon">🪄</span> Create</div>
       <div class="nav" data-go="campaigns" data-help-title="Brand" data-help="Switch active brand, edit the 9-slot brand directory (voice, palette, archetypes, examples), and tune what every generator inherits. Changes here propagate to every surface within seconds."><span class="nav-icon">🎯</span> Brand</div>
     </div>
@@ -764,6 +765,21 @@ a:hover{text-decoration:underline}
       <div class="card" style="margin-top:1rem">
         <div class="card-h"><h3 data-help="Drafts you marked as not-ready. Kept here so you can revisit the rationale or re-open them if your mind changes. Nothing in this column will ever be published." data-help-title="Rejected drafts (archived)">✗ Rejected</h3></div>
         <div id="review-rejected"></div>
+      </div>
+    </section>
+
+    <!-- ── GMB DRAFTS ────────────────────────────────────── -->
+    <section class="section" id="sec-gmb">
+      <div class="section-h">
+        <h2 data-help="Google Business profile posts. Edit the title + body, then push to Postiz to schedule on your GBP listing. Templates are seeded from the daily GMB rotation; you can also write a fresh one from scratch." data-help-title="GMB Drafts">📍 GMB drafts</h2>
+        <span class="sub" id="gmb-summary">—</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn primary" id="gmb-new-btn" data-help="Open a blank GMB draft form. Fill in title + body + CTA + link, then Save. Saved drafts appear in the list below ready to edit or push to Postiz." data-help-title="New GMB draft">+ New draft</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3 data-help="All GMB drafts for the active brand. Click a card to edit, push to Postiz, or delete. Templates from the GMB daily rotation appear here too." data-help-title="GMB draft list">📋 Drafts</h3><span class="h-meta" id="gmb-count">—</span></div>
+        <div id="gmb-list"></div>
       </div>
     </section>
 
@@ -3113,7 +3129,10 @@ const API = {
     const r = await fetch(path, {method:'DELETE'});
     if(!r.ok) throw new Error(`${path} → ${r.status}`);
     return r.json();
-  }
+  },
+  // Alias: `delete` is reserved as a property name in some validators;
+  // shorter `del` reads cleaner in the call sites.
+  del(path){ return this.delete(path); }
 };
 
 const $ = sel => document.querySelector(sel);
@@ -4412,7 +4431,7 @@ const _RENDERERS = {
   hashtagseo: renderHashtagSeo, seo: renderSEO, gbp: renderGBP,
   reddit: renderReddit, faqs: renderFAQs, postiz: renderPostiz,
   'seo-audit': renderSeoAudit, campaigns: renderCampaigns, agents: renderAgents,
-  insights: renderInsights, library: renderLibrary,
+  insights: renderInsights, library: renderLibrary, gmb: renderGmb,
 };
 async function renderSection(sec){
   const fn = _RENDERERS[sec];
@@ -4471,6 +4490,7 @@ async function loadSection(sec){
     if(sec==='postiz') return renderPostiz();
     if(sec==='campaigns') return renderCampaigns();
     if(sec==='agents') return renderAgents();
+    if(sec==='gmb') return renderGmb();
   } catch(e){ console.error(sec, e); toast('Failed to load '+sec, 'err'); }
 }
 
@@ -5011,10 +5031,31 @@ async function renderBrief(){
 }
 
 // ─── REVIEW ─────────────────────────────────────────────────────
+// Cache of brand_id -> display name, fetched once per session.
+let _BRAND_DISPLAY_NAMES = null;
+async function _getBrandDisplayName(brandId) {
+  if (!brandId) return '';
+  if (_BRAND_DISPLAY_NAMES && _BRAND_DISPLAY_NAMES[brandId]) return _BRAND_DISPLAY_NAMES[brandId];
+  try {
+    if (!_BRAND_DISPLAY_NAMES) {
+      const list = await API.get('/api/brands');
+      _BRAND_DISPLAY_NAMES = {};
+      (list || []).forEach(b => { _BRAND_DISPLAY_NAMES[b.id || b.brand_id] = b.name || b.identity?.name || b.id; });
+    }
+    return _BRAND_DISPLAY_NAMES[brandId] || brandId;
+  } catch (_) { return brandId; }
+}
+
 async function renderReview(){
   if(!S.review) S.review = await API.get('/api/intel/review_inbox');
   const r = S.review;
   $('#review-summary').textContent = r.summary;
+  // Build a brand_id -> display name lookup up front so every row can show the pretty name.
+  const brandNames = {};
+  try {
+    const bl = await API.get('/api/brands');
+    (bl || []).forEach(b => { brandNames[b.id || b.brand_id] = b.name || b.identity?.name || b.id; });
+  } catch (_) {}
   const renderRow = x => {
     const safeId = esc(x.assetId || '');
     const safeCid = esc(x.campaignId || '');
@@ -5022,6 +5063,8 @@ async function renderReview(){
     const isApproved = (x.approvalStatus || '').toLowerCase() === 'approved';
     const isRejected = (x.approvalStatus || '').toLowerCase() === 'rejected';
     const isScheduled = (x.publishStatus || '').toLowerCase() === 'scheduled';
+    const prettyBrand = esc(brandNames[x.brand] || x.brand || '');
+    const prettyCampaign = esc(x.campaignName || x.campaignId || '');
     // Pending rows get "Approve + Schedule" as the default — most common action.
     // Approved rows get an explicit "Put on calendar" button.
     // Scheduled rows get "View in calendar" + "Archive".
@@ -5029,7 +5072,7 @@ async function renderReview(){
     return `
     <div class="review" data-aid="${safeId}" data-cid="${safeCid}">
       <div class="review-cap" onclick="openReview('${safeCid}','${safeId}')" style="cursor:pointer">
-        <div class="review-cap-t">${safeName} <span class="muted">· ${esc(x.campaignName || x.campaignId)}</span></div>
+        <div class="review-cap-t">${safeName} <span class="muted">· ${prettyCampaign}</span>${prettyBrand ? ` <span class="pill muted" style="font-size:10px;padding:1px 6px">${prettyBrand}</span>` : ''}</div>
         <div class="review-cap-x">${esc(x.caption || x.issue || x.reason || 'No preview')}</div>
       </div>
       <div class="review-meta">
@@ -5056,6 +5099,141 @@ async function renderReview(){
   $('#review-approved').innerHTML = r.approved.length ? r.approved.map(renderRow).join('') : '<div class="empty">No approved assets</div>';
   $('#review-rejected').innerHTML = r.rejected.length ? r.rejected.map(renderRow).join('') : '<div class="empty">No rejected assets</div>';
 }
+
+// ─── GMB DRAFTS ──────────────────────────────────────────
+async function renderGmb() {
+  const list = $('#gmb-list');
+  const summary = $('#gmb-summary');
+  const count = $('#gmb-count');
+  if (!list) return;
+  list.innerHTML = '<div class="muted">Loading…</div>';
+  let r = null;
+  try { r = await API.get('/api/intel/gmb/drafts'); } catch (e) { console.warn('gmb load failed', e); }
+  if (!r || !r.ok) { list.innerHTML = '<div class="empty">GMB drafts unavailable</div>'; return; }
+  const drafts = r.drafts || [];
+  if (summary) summary.textContent = `${drafts.length} draft${drafts.length === 1 ? '' : 's'} for ${S.brand || 'active brand'}`;
+  if (count) count.textContent = drafts.length;
+  if (!drafts.length) { list.innerHTML = '<div class="empty">No GMB drafts yet — click + New draft above</div>'; return; }
+  list.innerHTML = drafts.map(d => {
+    const isScheduled = (d.status || '').toLowerCase() === 'scheduled';
+    const isDraft = (d.status || '').toLowerCase() !== 'scheduled';
+    const safeId = esc(d.id);
+    const title = esc(d.title || 'Untitled');
+    const body = esc((d.body || '').slice(0, 220));
+    const cta = d.cta ? esc(d.cta) : '';
+    const link = d.link ? esc(d.link) : '';
+    const postiz = d.postizId ? esc(d.postizId) : '';
+    return `
+    <div class="gmb-card" data-id="${safeId}" style="background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.85rem 1rem;margin-bottom:.5rem">
+      <div style="display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.35rem">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:14px;color:var(--tx)">${title}</div>
+          ${body ? `<div class="muted" style="font-size:12.5px;line-height:1.45;margin-top:.2rem;white-space:pre-wrap">${body}${(d.body||'').length>220?'…':''}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:.35rem;flex-shrink:0">
+          ${isScheduled ? '<span class="pill on">scheduled</span>' : '<span class="pill draft">draft</span>'}
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;font-size:11px;margin-top:.35rem">
+        ${cta ? `<span class="pill muted">CTA: ${cta}</span>` : ''}
+        ${link ? `<a href="${link}" target="_blank" rel="noopener" style="color:var(--ac);text-decoration:none">🔗 ${link.length > 40 ? link.slice(0,40)+'…' : link}</a>` : ''}
+        ${postiz ? `<span class="pill muted">Postiz: ${postiz.slice(0,12)}</span>` : ''}
+        <span style="margin-left:auto;display:flex;gap:.35rem">
+          <button class="btn-mini" data-gmb-edit="${safeId}">✏️ Edit</button>
+          ${isDraft ? `<button class="btn-mini primary" data-gmb-push="${safeId}">📮 Push to Postiz</button>` : `<button class="btn-mini" onclick="window.open('https://app.postiz.com/post/${postiz}','_blank')">📮 Open in Postiz</button>`}
+          <button class="btn-mini" style="color:var(--red)" data-gmb-delete="${safeId}">🗑️</button>
+        </span>
+      </div>
+    </div>`;
+  }).join('');
+  // Wire per-card actions
+  $$('#gmb-list [data-gmb-edit]').forEach(b => b.addEventListener('click', () => openGmbEdit(b.dataset.gmbEdit)));
+  $$('#gmb-list [data-gmb-push]').forEach(b => b.addEventListener('click', () => pushGmb(b.dataset.gmbPush)));
+  $$('#gmb-list [data-gmb-delete]').forEach(b => b.addEventListener('click', () => deleteGmb(b.dataset.gmbDelete)));
+}
+
+window.openGmbEdit = async (id) => {
+  let r;
+  try { r = await API.get('/api/intel/gmb/drafts'); } catch (e) { toast('Load failed', 'err'); return; }
+  const d = (r.drafts || []).find(x => x.id === id) || { id, title: '', body: '', cta: '', link: '', imageUrl: '' };
+  modal(`
+    <h3>${id ? '✏️ Edit GMB draft' : '+ New GMB draft'}</h3>
+    <div class="sub">${esc(S.brand || 'active brand')}</div>
+    <label style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.5rem">
+      <span style="font-size:12px;color:var(--tx-2);font-weight:600">Title</span>
+      <input id="gmb-title" maxlength="100" value="${esc(d.title||'')}" data-help="Headline shown on the GBP listing. Keep it under 60 chars so it doesn't truncate on mobile." data-help-title="GMB title" style="width:100%;padding:.6rem;border-radius:6px;background:var(--bg-3);color:var(--tx);border:1px solid var(--bd);font-size:13px;font-family:inherit">
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.5rem">
+      <span style="font-size:12px;color:var(--tx-2);font-weight:600">Body</span>
+      <textarea id="gmb-body" rows="6" maxlength="1500" data-help="Main post copy. Google Business caps body at 1500 chars but the visible window on mobile is much shorter — lead with the hook." data-help-title="GMB body" style="width:100%;padding:.75rem;border-radius:6px;background:var(--bg-3);color:var(--tx);border:1px solid var(--bd);font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;min-height:120px">${esc(d.body||'')}</textarea>
+      <span id="gmb-body-count" class="muted" style="font-size:11px;text-align:right">${(d.body||'').length}/1500 chars</span>
+    </label>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:.5rem;margin-bottom:.5rem">
+      <label style="display:flex;flex-direction:column;gap:.35rem">
+        <span style="font-size:12px;color:var(--tx-2);font-weight:600">CTA</span>
+        <input id="gmb-cta" maxlength="40" value="${esc(d.cta||'')}" data-help="Call-to-action button label (Book, Learn more, Call now, etc). Defaults to 'Learn more' if blank." data-help-title="GMB CTA" placeholder="Learn more" style="padding:.6rem;border-radius:6px;background:var(--bg-3);color:var(--tx);border:1px solid var(--bd);font-size:13px;font-family:inherit">
+      </label>
+      <label style="display:flex;flex-direction:column;gap:.35rem">
+        <span style="font-size:12px;color:var(--tx-2);font-weight:600">Link</span>
+        <input id="gmb-link" maxlength="300" value="${esc(d.link||'')}" data-help="Destination URL the CTA button opens. Typically a booking page or a specific landing page." data-help-title="GMB link" placeholder="https://swingshack.co.za/..." style="padding:.6rem;border-radius:6px;background:var(--bg-3);color:var(--tx);border:1px solid var(--bd);font-size:13px;font-family:inherit">
+      </label>
+    </div>
+    <label style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.5rem">
+      <span style="font-size:12px;color:var(--tx-2);font-weight:600">Image URL <span class="muted" style="font-weight:400">(optional)</span></span>
+      <input id="gmb-image" maxlength="500" value="${esc(d.imageUrl||'')}" data-help="Public URL of the image to attach. If blank, the post goes out text-only." data-help-title="GMB image URL" placeholder="https://..." style="padding:.6rem;border-radius:6px;background:var(--bg-3);color:var(--tx);border:1px solid var(--bd);font-size:13px;font-family:inherit">
+    </label>
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" id="gmb-save-btn">💾 Save draft</button>
+    </div>
+  `);
+  const ta = document.getElementById('gmb-body');
+  const counter = document.getElementById('gmb-body-count');
+  if (ta && counter) ta.addEventListener('input', () => { counter.textContent = `${ta.value.length}/1500 chars`; });
+  document.getElementById('gmb-save-btn').addEventListener('click', async () => {
+    const payload = {
+      title: document.getElementById('gmb-title').value,
+      body: document.getElementById('gmb-body').value,
+      cta: document.getElementById('gmb-cta').value,
+      link: document.getElementById('gmb-link').value,
+      imageUrl: document.getElementById('gmb-image').value,
+      brand: S.brand,
+    };
+    try {
+      const r = id
+        ? await API.put('/api/intel/gmb/draft/' + encodeURIComponent(id), payload)
+        : await API.post('/api/intel/gmb/drafts', payload);
+      if (r.ok) { toast('Saved'); closeModal(); renderGmb(); }
+      else toast(r.error || 'Save failed', 'err');
+    } catch (e) { toast(e.message || 'Save failed', 'err'); }
+  });
+};
+
+window.pushGmb = async (id) => {
+  if (!confirm('Push this draft to Postiz? It will become a GMB-platform post you can schedule from the Postiz dashboard.')) return;
+  try {
+    const r = await API.post('/api/intel/gmb/draft/' + encodeURIComponent(id) + '/schedule');
+    if (r.ok) { toast('Pushed to Postiz — opening…'); setTimeout(() => window.open('https://app.postiz.com/post/' + r.postizId, '_blank'), 600); renderGmb(); }
+    else toast(r.error || 'Push failed', 'err');
+  } catch (e) { toast(e.message || 'Push failed', 'err'); }
+};
+
+window.deleteGmb = async (id) => {
+  if (!confirm('Delete this GMB draft? Cannot be undone.')) return;
+  try {
+    const r = await API.del('/api/intel/gmb/draft/' + encodeURIComponent(id));
+    if (r.ok) { toast('Deleted'); renderGmb(); }
+    else toast(r.error || 'Delete failed', 'err');
+  } catch (e) { toast(e.message || 'Delete failed', 'err'); }
+};
+// Wire the + New draft button on the GMB section.
+document.addEventListener('DOMContentLoaded', () => {
+  const b = document.getElementById('gmb-new-btn');
+  if (b) b.addEventListener('click', () => openGmbEdit(null));
+});
+// Also wire now in case DOMContentLoaded already fired.
+(() => { const b = document.getElementById('gmb-new-btn'); if (b) b.addEventListener('click', () => openGmbEdit(null)); })();
+
 window.reviewApproveAndSchedule = async (cid, aid) => {
   // Combined: approve + schedule in one click. Most common workflow.
   const btn = document.querySelector(`.review[data-aid="${aid}"] .review-actions button[onclick*='reviewApproveAndSchedule']`);
@@ -5109,6 +5287,9 @@ window.openReview = async (cid, aid) => {
   const a = (c.assets || {})[aid];
   if(!a){ modal(`<h3>Asset not found</h3><div class="sub">${esc(cid)} / ${esc(aid)}</div>`); return; }
   const plat = a.platform || a.integration || 'instagram';
+  // Existing Postiz refs (if any)
+  const existingPostiz = (a.publishingReferences && a.publishingReferences[0] && a.publishingReferences[0].postizId) || '';
+  const visualUrl = a.visualUrl || a.imageUrl || (a.publishingReferences && a.publishingReferences[0] && a.publishingReferences[0].mediaUrl) || '';
   modal(`
     <h3>${esc(a.name || aid)}</h3>
     <div class="sub">${esc(c.identity?.name || cid)} · ${esc(plat)} · ${esc(a.kind || '')}</div>
@@ -5117,16 +5298,74 @@ window.openReview = async (cid, aid) => {
     <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(a.caption || '—')}</div>
     <h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Visual brief</h4>
     <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(a.visualBrief || '—')}</div>
+    ${visualUrl ? `<h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Current visual</h4><div style="background:var(--bg-3);padding:.5rem;border-radius:8px"><img src="${esc(visualUrl)}" alt="visual" style="max-width:100%;max-height:240px;border-radius:6px;display:block"/></div>` : ''}
+    <h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Upload image</h4>
+    <input type="file" id="rv-upload-file" accept="image/*" data-help="Pick an image file from your computer. It gets stored on the server and the asset's visualUrl points at it. Used by Postiz when the post goes live." data-help-title="Upload image" style="font-size:12px;color:var(--tx-2);margin-bottom:.35rem;width:100%">
+    <button class="btn" id="rv-upload-btn" data-help="Uploads the picked file. Server saves it to data/asset-media/ and updates the asset's visualUrl so Postiz uses the new image." data-help-title="Save upload">📤 Upload</button>
+    <span id="rv-upload-status" class="muted" style="font-size:11px;margin-left:.5rem"></span>
     ${a.publishingReferences?.length ? `<h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Publishing references</h4><ul class="list">${a.publishingReferences.map(p=>`<li class="li"><div class="li-body"><div class="li-title">${esc(p.postizId || '—')}</div><div class="li-meta">${esc(p.platform || '')} · ${esc(p.publishStatus || '')}</div></div></li>`).join('')}</ul>` : ''}
     <div class="modal-actions" style="flex-wrap:wrap">
       <button class="btn ghost" onclick="closeModal()">Close</button>
       <button class="btn" onclick="goToSection('captions');closeModal();setTimeout(()=>{const sel=document.getElementById('cap-asset-select');sel.value='${aid}';document.getElementById('cap-gen').click();},300)">⚡ Generate captions</button>
-      ${a.publishingReferences?.length ? `<button class="btn" onclick="window.open('https://app.postiz.com/post/${a.publishingReferences[0].postizId}','_blank')">📮 Open in Postiz</button>` : ''}
+      ${existingPostiz ? `<button class="btn" onclick="window.open('https://app.postiz.com/post/${existingPostiz}','_blank')">📮 Open in Postiz</button>` : `<button class="btn" id="rv-push-postiz" data-help="Creates a Postiz draft from this asset's caption + image so you can review/schedule in the Postiz dashboard. Refreshes the modal afterwards to show the new Postiz link." data-help-title="Push to Postiz draft">📮 Push to Postiz</button>`}
       <button class="btn" onclick="reviewAction('${cid}','${aid}','revisionRequested')">Request revision</button>
       <button class="btn" style="color:var(--red)" onclick="reviewAction('${cid}','${aid}','rejected')">Reject</button>
       <button class="btn primary" onclick="reviewAction('${cid}','${aid}','approved')">Approve</button>
     </div>
   `);
+  // Wire upload (multipart form POST).
+  const uploadBtn = document.getElementById('rv-upload-btn');
+  if (uploadBtn) {
+    uploadBtn.addEventListener('click', async () => {
+      const fi = document.getElementById('rv-upload-file');
+      const status = document.getElementById('rv-upload-status');
+      if (!fi || !fi.files || !fi.files[0]) { if (status) status.textContent = 'pick a file first'; return; }
+      const f = fi.files[0];
+      if (f.size > 8 * 1024 * 1024) { if (status) { status.textContent = 'file too big (max 8MB)'; status.style.color = 'var(--red)'; } return; }
+      uploadBtn.disabled = true; uploadBtn.textContent = '⏳ Uploading…';
+      if (status) { status.textContent = ''; status.style.color = ''; }
+      try {
+        const fd = new FormData();
+        fd.append('file', f);
+        fd.append('campaignId', cid);
+        // IMPORTANT: do NOT set Content-Type header — browser sets it with the boundary.
+        const r = await fetch('/api/review/' + encodeURIComponent(aid) + '/upload', { method: 'POST', body: fd });
+        const j = await r.json().catch(() => ({ ok: false, error: 'bad json' }));
+        if (j.ok) {
+          if (status) { status.textContent = '✓ uploaded'; status.style.color = 'var(--green, #22c55e)'; }
+          // Refresh the modal so the user sees the new visualUrl + the Postiz button appears.
+          setTimeout(() => openReview(cid, aid), 400);
+        } else {
+          if (status) { status.textContent = '✗ ' + (j.error || 'upload failed'); status.style.color = 'var(--red)'; }
+          uploadBtn.disabled = false; uploadBtn.textContent = '📤 Upload';
+        }
+      } catch (e) {
+        if (status) { status.textContent = '✗ ' + (e.message || 'upload failed'); status.style.color = 'var(--red)'; }
+        uploadBtn.disabled = false; uploadBtn.textContent = '📤 Upload';
+      }
+    });
+  }
+  // Wire Push-to-Postiz (creates draft + refreshes modal so the link appears).
+  const pushBtn = document.getElementById('rv-push-postiz');
+  if (pushBtn) {
+    pushBtn.addEventListener('click', async () => {
+      pushBtn.disabled = true; pushBtn.textContent = '⏳ Pushing…';
+      try {
+        const r = await API.post('/api/review/' + encodeURIComponent(aid) + '/schedule', { campaignId: cid });
+        if (r.ok) {
+          toast('Postiz draft created — opening…');
+          // Refresh modal so the Postiz link replaces the push button.
+          setTimeout(() => openReview(cid, aid), 500);
+        } else {
+          toast(r.error || 'Push failed', 'err');
+          pushBtn.disabled = false; pushBtn.textContent = '📮 Push to Postiz';
+        }
+      } catch (e) {
+        toast(e.message || 'Push failed', 'err');
+        pushBtn.disabled = false; pushBtn.textContent = '📮 Push to Postiz';
+      }
+    });
+  }
 };
 window.goToSection = (s) => go(s);
 window.reviewAction = async (cid, aid, status) => {

@@ -14,7 +14,10 @@ import shutil
 import uuid
 import logging
 import hashlib
+import time
+import datetime
 from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response
+from werkzeug.utils import secure_filename
 from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
@@ -3180,6 +3183,299 @@ def export_review(campaign_id):
 def get_schedule():
     """Return the publisher-compatible scheduling sidecar."""
     return jsonify({"ok": True, **_schedule_response(load_schedule())}), 200
+
+
+# ─── REVIEW UPLOAD + PUSH-TO-POSTIZ (added 2026-08-04 polish pass) ────
+ASSET_MEDIA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'asset-media')
+os.makedirs(ASSET_MEDIA_DIR, exist_ok=True)
+
+
+def _update_asset_field(asset_id, campaign_id, field, value):
+    """Mutate a single asset field via the same campaign loader the review queue uses.
+    Tries campaigns/<cid>/assets.json first, falls back to legacy review-queue.json.
+    Returns True if the asset was located and updated."""
+    try:
+        # Path A: campaign assets.json (the new canonical store)
+        if campaign_id:
+            cpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'campaigns', campaign_id, 'assets.json')
+            if os.path.exists(cpath):
+                with open(cpath, 'r', encoding='utf-8') as f:
+                    doc = json.load(f)
+                assets = doc.get('assets') if isinstance(doc, dict) else doc
+                if isinstance(assets, dict) and asset_id in assets:
+                    assets[asset_id][field] = value
+                    with open(cpath, 'w', encoding='utf-8') as f:
+                        json.dump(doc, f, indent=2, ensure_ascii=False)
+                    return True
+        # Path B: review-queue.json (legacy)
+        qpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'review-queue.json')
+        if os.path.exists(qpath):
+            with open(qpath, 'r', encoding='utf-8') as f:
+                doc = json.load(f)
+            # Try several shapes
+            for key in ('queue', 'assets', 'items'):
+                container = doc.get(key) if isinstance(doc, dict) else None
+                if isinstance(container, dict) and asset_id in container:
+                    container[asset_id][field] = value
+                    with open(qpath, 'w', encoding='utf-8') as f:
+                        json.dump(doc, f, indent=2, ensure_ascii=False)
+                    return True
+                if isinstance(container, list):
+                    for entry in container:
+                        if isinstance(entry, dict) and (entry.get('assetId') == asset_id or entry.get('id') == asset_id):
+                            entry[field] = value
+                            with open(qpath, 'w', encoding='utf-8') as f:
+                                json.dump(doc, f, indent=2, ensure_ascii=False)
+                            return True
+    except Exception as exc:
+        _app_log.warning("asset field update failed for %s.%s = %s: %s", asset_id, field, value, exc)
+    return False
+
+
+@app.route('/api/review/<asset_id>/upload', methods=['POST'])
+def review_upload(asset_id):
+    """Upload an image for an asset (multipart form). Saves to data/asset-media/ and
+    updates the asset's visualUrl so Postiz picks it up on push."""
+    if 'file' not in request.files:
+        return jsonify({"ok": False, "error": "no file in form"}), 400
+    f = request.files['file']
+    if not f or not f.filename:
+        return jsonify({"ok": False, "error": "empty file"}), 400
+    safe = secure_filename(f.filename) or f"upload-{asset_id}.bin"
+    # Disambiguate by prepending asset id so two assets don't collide.
+    out_name = f"{secure_filename(asset_id)}-{int(time.time())}-{safe}"
+    out_path = os.path.join(ASSET_MEDIA_DIR, out_name)
+    try:
+        f.save(out_path)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"save failed: {exc}"}), 500
+    # Build a public URL that the browser can fetch. The asset-media dir is served by
+    # the catch-all route registered later (see _asset_media_serve below).
+    public_url = f"/asset-media/{out_name}"
+    campaign_id = request.form.get('campaignId') or request.form.get('campaign_id') or ''
+    ok = _update_asset_field(asset_id, campaign_id, 'visualUrl', public_url)
+    return jsonify({"ok": True, "assetId": asset_id, "visualUrl": public_url,
+                    "storedAs": out_name, "size": os.path.getsize(out_path),
+                    "assetUpdated": ok}), 200
+
+
+@app.route('/asset-media/<path:filename>', methods=['GET'])
+def _asset_media_serve(filename):
+    """Serve uploaded asset images. Kept separate from /static so the uploads dir
+    never gets clobbered by deploys. Returns 404 (not 500) when the file is gone."""
+    safe = secure_filename(filename)
+    if not safe or '..' in filename or '/' in filename:
+        return jsonify({"ok": False, "error": "bad filename"}), 400
+    full = os.path.join(ASSET_MEDIA_DIR, safe)
+    if not os.path.isfile(full):
+        return jsonify({"ok": False, "error": "not found"}), 404
+    return send_from_directory(ASSET_MEDIA_DIR, safe)
+
+
+@app.route('/api/review/<asset_id>/schedule', methods=['POST'])
+def review_push_postiz(asset_id):
+    """Push the asset's caption + visual to Postiz as a draft. Records the Postiz id
+    back onto the asset so subsequent renders show an Open-in-Postiz link."""
+    body = request.get_json(silent=True) or {}
+    campaign_id = body.get('campaignId') or body.get('campaign_id')
+    # Load asset to get caption + visual (inline loader — _load_campaign is in _lib)
+    caption = ''
+    visual_url = ''
+    platform = 'instagram'
+    try:
+        if campaign_id:
+            # Lazy import to avoid circular refs at module load.
+            try:
+                from _lib.intelligence import _load_campaign as __lc  # type: ignore
+                c = __lc(campaign_id)
+            except Exception:
+                c = None
+            if not c:
+                # Inline fallback loader.
+                cpath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    'data', 'campaigns', campaign_id, 'assets.json')
+                if os.path.exists(cpath):
+                    with open(cpath, 'r', encoding='utf-8') as _f:
+                        c = json.load(_f)
+            a = (c.get('assets') or {}).get(asset_id) if c else None
+            if a:
+                caption = a.get('caption') or ''
+                visual_url = a.get('visualUrl') or a.get('imageUrl') or ''
+                platform = a.get('platform') or a.get('integration') or platform
+    except Exception as exc:
+        _app_log.warning("review_push_postiz: load asset failed: %s", exc)
+    if not caption:
+        return jsonify({"ok": False, "error": "no caption on asset"}), 400
+    # Push to Postiz (reuse the same publish helper the auto-publisher uses).
+    postiz_id = None
+    err = None
+    try:
+        from _lib.postiz_client import postiz_create_post  # late import — module optional
+        media = [visual_url] if visual_url else []
+        result = postiz_create_post(caption=caption, media=media, platform=platform)
+        postiz_id = result.get('id') or result.get('postizId') if isinstance(result, dict) else None
+    except Exception as exc:
+        err = str(exc)
+    if not postiz_id:
+        # Fallback: try the legacy helper if the new one failed/missing.
+        try:
+            from _lib.publisher import push_draft  # type: ignore
+            postiz_id = push_draft(asset_id=asset_id, campaign_id=campaign_id,
+                                    caption=caption, media=[visual_url] if visual_url else [],
+                                    platform=platform)
+        except Exception as exc2:
+            err = (err + " | " if err else "") + str(exc2)
+    if not postiz_id:
+        return jsonify({"ok": False, "error": f"postiz push failed: {err or 'no postiz client'}"}), 502
+    # Record back onto the asset
+    refs_update = [{"postizId": postiz_id, "platform": platform, "publishStatus": "draft"}]
+    _update_asset_field(asset_id, campaign_id, 'publishingReferences', refs_update)
+    _update_asset_field(asset_id, campaign_id, 'publishStatus', 'draft')
+    return jsonify({"ok": True, "assetId": asset_id, "postizId": postiz_id, "platform": platform}), 200
+
+
+# ─── GMB DRAFTS CRUD (added 2026-08-04 polish pass) ──────────────────
+GMB_DRAFTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'gmb-drafts')
+os.makedirs(GMB_DRAFTS_DIR, exist_ok=True)
+
+
+def _gmb_draft_path(draft_id):
+    # draft_id is a slugified string — defend against path traversal.
+    safe = secure_filename(draft_id) or ''
+    if not safe or '..' in draft_id or '/' in draft_id:
+        return None
+    return os.path.join(GMB_DRAFTS_DIR, f"{safe}.json")
+
+
+def _gmb_list_drafts():
+    out = []
+    if not os.path.isdir(GMB_DRAFTS_DIR):
+        return out
+    for fn in sorted(os.listdir(GMB_DRAFTS_DIR)):
+        if not fn.endswith('.json'):
+            continue
+        path = os.path.join(GMB_DRAFTS_DIR, fn)
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                d = json.load(f)
+            d['id'] = fn[:-5]
+            out.append(d)
+        except Exception:
+            continue
+    return out
+
+
+@app.route('/api/intel/gmb/drafts', methods=['GET'])
+def gmb_list_drafts():
+    """List all GMB draft posts (templates + manual drafts)."""
+    drafts = _gmb_list_drafts()
+    return jsonify({"ok": True, "drafts": drafts, "count": len(drafts)}), 200
+
+
+@app.route('/api/intel/gmb/drafts', methods=['POST'])
+def gmb_create_draft():
+    """Create a new GMB draft. Body: {title, body, cta, link, imageUrl}."""
+    body = request.get_json(silent=True) or {}
+    title = (body.get('title') or '').strip()[:100] or 'Untitled GMB post'
+    body_text = (body.get('body') or '').strip()[:1500]
+    cta = (body.get('cta') or '').strip()[:40]
+    link = (body.get('link') or '').strip()[:300]
+    image_url = (body.get('imageUrl') or '').strip()[:500]
+    brand = (body.get('brand') or get_brand_id() or 'swing-shack').strip()
+    slug = secure_filename(title.lower().replace(' ', '-'))[:40] or 'draft'
+    draft_id = f"{slug}-{int(time.time())}"
+    draft = {
+        "id": draft_id,
+        "title": title,
+        "body": body_text,
+        "cta": cta,
+        "link": link,
+        "imageUrl": image_url,
+        "brand": brand,
+        "status": "draft",
+        "createdAt": _now_iso(),
+        "updatedAt": _now_iso(),
+    }
+    path = _gmb_draft_path(draft_id)
+    if not path:
+        return jsonify({"ok": False, "error": "bad draft id"}), 400
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(draft, f, indent=2, ensure_ascii=False)
+    return jsonify({"ok": True, "draft": draft}), 201
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>', methods=['PUT'])
+def gmb_edit_draft(draft_id):
+    """Edit an existing GMB draft."""
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            draft = json.load(f)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
+    body = request.get_json(silent=True) or {}
+    for field in ('title', 'body', 'cta', 'link', 'imageUrl', 'status'):
+        if field in body:
+            draft[field] = body[field]
+    draft['updatedAt'] = _now_iso()
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(draft, f, indent=2, ensure_ascii=False)
+    return jsonify({"ok": True, "draft": draft}), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/schedule', methods=['POST'])
+def gmb_schedule_draft(draft_id):
+    """Push the draft to Postiz as a GMB-platform post and mark scheduled."""
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            draft = json.load(f)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
+    postiz_id = None
+    err = None
+    try:
+        from _lib.postiz_client import postiz_create_post
+        text = draft.get('body') or draft.get('title') or ''
+        media = [draft['imageUrl']] if draft.get('imageUrl') else []
+        result = postiz_create_post(caption=text, media=media, platform='gmb')
+        postiz_id = result.get('id') or result.get('postizId') if isinstance(result, dict) else None
+    except Exception as exc:
+        err = str(exc)
+    if not postiz_id:
+        try:
+            from _lib.publisher import push_draft  # type: ignore
+            postiz_id = push_draft(asset_id=draft_id, campaign_id=draft.get('brand'),
+                                    caption=draft.get('body') or draft.get('title', ''),
+                                    media=[draft['imageUrl']] if draft.get('imageUrl') else [],
+                                    platform='gmb')
+        except Exception as exc2:
+            err = (err + " | " if err else "") + str(exc2)
+    if not postiz_id:
+        return jsonify({"ok": False, "error": f"postiz push failed: {err or 'no postiz client'}"}), 502
+    draft['postizId'] = postiz_id
+    draft['status'] = 'scheduled'
+    draft['updatedAt'] = _now_iso()
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(draft, f, indent=2, ensure_ascii=False)
+    return jsonify({"ok": True, "draft": draft, "postizId": postiz_id}), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>', methods=['DELETE'])
+def gmb_delete_draft(draft_id):
+    """Delete a GMB draft."""
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    try:
+        os.remove(path)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"delete failed: {exc}"}), 500
+    return jsonify({"ok": True, "deleted": draft_id}), 200
 
 @app.route('/api/review/<asset_id>/schedule-now', methods=['POST'])
 def review_schedule_now(asset_id):
