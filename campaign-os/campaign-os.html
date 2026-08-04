@@ -283,6 +283,8 @@ a:hover{text-decoration:underline}
 .card:hover{border-color:var(--bd-2)}
 .card-h{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem}
 .card-h h3{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.card-h h3[data-help-title]{cursor:help;border-bottom:1px dotted var(--tx-2);padding-bottom:1px;transition:border-color .15s ease}
+.card-h h3[data-help-title]:hover{border-bottom-color:var(--ac)}
 .card-h .h-meta{margin-left:auto;color:var(--tx-3);font-size:11px}
 /* ─── Collapse empty cards to slim banners (Option A) ─────────── */
 .card:has(> ul > li.empty:only-child),
