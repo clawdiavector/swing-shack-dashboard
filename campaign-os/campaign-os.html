@@ -1206,7 +1206,7 @@ a:hover{text-decoration:underline}
     <!-- ── IMAGE GENERATION ──────────────────────────────────── -->
     <section class="section" id="sec-imagegen">
       <div class="section-h">
-        <h2>Image Generation</h2>
+        <h2 data-help="Provider-ready image-brief generator for the active brand. Pick a pillar, set a mood (cinematic, editorial, product-shot, illustrated), then hit Generate. The agent returns four ranked prompts tuned for each major provider (Ideogram, DALL-E, Midjourney, Stable Diffusion) with aspect ratio, style cues, and negative prompts called out separately so you can paste straight into any of them. Generation itself is driven by gpt-image-1 on the live site once access is wired; right now the cards return the prompt spec for manual export. Each variant ships with a brand-fit score and a copy suggestion for the caption." data-help-title="Image Generation">Image Generation</h2>
         <span class="sub">Provider-ready prompt specs — Ideogram · DALL-E · Midjourney · Stable Diffusion</span>
         <div class="btn-row" style="margin-left:auto">
           <select id="ig-pillar" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
@@ -1302,7 +1302,7 @@ a:hover{text-decoration:underline}
 
     <!-- ── HASHTAGS & SEO PACK ────────────────────────────── -->
     <section class="section" id="sec-hashtagseo">
-      <div class="section-h"><h2>Hashtags &amp; SEO Pack</h2>
+      <div class="section-h"><h2 data-help="Curated hashtag sets + on-page SEO meta scaffolding per platform. Pick a platform (Instagram, Facebook, LinkedIn, TikTok, X), set a pillar, and the agent returns three ranked hashtag buckets: reach (broad discovery), niche (mid-tail authority), and brand-anchored (the brand handle and signature phrases). The SEO Pack tab drops in page-level meta descriptions, OG titles, OG descriptions, and alt text you can paste into a CMS draft. Pure intelligence, no social actions, safe during rest-mode." data-help-title="Hashtags + SEO Pack">Hashtags &amp; SEO Pack</h2>
         <div class="muted" style="font-size:11px;margin-top:.25rem">
           Curated hashtag sets and on-page SEO scaffolding — pure intelligence, no social actions. Safe during rest-mode.
         </div>
@@ -1374,7 +1374,7 @@ a:hover{text-decoration:underline}
 
     <!-- ── SEO ───────────────────────────────────────────── -->
     <section class="section" id="sec-seo">
-      <div class="section-h"><h2>SEO Assistant</h2></div>
+      <div class="section-h"><h2 data-help="Lightweight SEO overview for the active brand. Score the site health (CWV, mobile-friendly, schema coverage), inspect a quick keyword-rank snapshot for the brand's core terms, and check GEO readiness (whether the brand surfaces in LLM answers). Use the SEO Audit card below for the deep-dive with fix-it drafts. Pure intelligence, no social posting from here." data-help-title="SEO Assistant">SEO Assistant</h2></div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3 data-help="Top-line rollup of the latest site audit: total findings split by severity (high / medium / low) plus the highest-priority items to fix. For the per-page deep-dive and the fix-draft generator, open SEO Audit instead." data-help-title="Audit summary">🔎 Audit summary</h3></div><div id="seo-audit"></div></div>
         <div class="card col-6"><div class="card-h"><h3 data-help="Google Search Console view for the active site. Rising = position improving, falling = position slipping, quick wins = high-impression / low-CTR queries where a title tag tweak can move the needle. Use the pills at the top to switch lens." data-help-title="Rankings">📈 Rankings</h3></div><div id="seo-rank"></div></div>
@@ -1386,7 +1386,7 @@ a:hover{text-decoration:underline}
     <!-- ── SEO AUDIT DETAIL ──────────────────────────────── -->
     <section class="section" id="sec-seo-audit">
       <div class="section-h">
-        <h2>SEO Audit <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · deep-dive + fix-draft</span></h2>
+        <h2 data-help="Deep-dive SEO audit for the active brand site. Returns a full health-score breakdown (technical, on-page, off-page, content, GEO), a priority queue ranked by impact-per-effort, and a fix-it draft for every flagged item (the agent writes the meta description fix, the alt text fix, the schema block, etc. so you can paste straight into the CMS). Click any priority card to expand the proposed fix. Runs on demand, not on a schedule, so the data is fresh from the last crawl." data-help-title="SEO Audit · deep-dive + fix-draft">SEO Audit <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · deep-dive + fix-draft</span></h2>
         <span class="sub" id="sa-summary">Loading…</span>
       </div>
 
@@ -1458,7 +1458,7 @@ a:hover{text-decoration:underline}
 
     <!-- ── GBP ───────────────────────────────────────────── -->
     <section class="section" id="sec-gbp">
-      <div class="section-h"><h2>Google Business</h2></div>
+      <div class="section-h"><h2 data-help="Google Business Profile workspace for the active brand location. View the live profile snapshot (name, address, hours, category, photo count), inspect the last posted Google Business update, and draft the next GBP post in the brand voice (events, offers, what is-new posts). Drafted GBP posts route through the Review queue just like every other asset before they hit the live profile. The lastpost card tells you when the profile was last updated so cadence is visible." data-help-title="Google Business">Google Business</h2></div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3 data-help="The active brand's Google Business Profile fields: business name, address, services, hours, plus the SEO opportunities the system found on the profile (categories the brand could claim, services it should add, photos it should upload). Edit these in Google Business Manager directly; this card is a read-only mirror plus the agent's recommendations." data-help-title="Profile &amp; services">📍 Profile &amp; services</h3></div><div id="gbp-profile"></div></div>
         <div class="card col-6"><div class="card-h"><h3 data-help="The most recent GBP post the agent drafted: the angle it picked, the rationale (why this angle wins for this brand right now), and the SEO signals it used (local keyword, service tie-in, seasonal hook). Click into it to open the draft modal and either approve to Postiz or edit the angle." data-help-title="Last post">📝 Last post</h3></div><div id="gbp-last"></div></div>
@@ -1467,7 +1467,7 @@ a:hover{text-decoration:underline}
 
     <!-- ── REDDIT ────────────────────────────────────────── -->
     <section class="section" id="sec-reddit">
-      <div class="section-h"><h2>Reddit Outreach</h2></div>
+      <div class="section-h"><h2 data-help="Soft-sell Reddit outreach workspace. Two cards: Pain points (the recurring golf / brand-adjacent pain language we picked up from subreddit threads, scored by mention frequency) and Replied threads (the threads we already commented on, ranked by upvote velocity). The replies follow a non-promotional helper-voice pattern: contribute first, mention the brand only if the comment is genuinely useful. Every drafted reply routes through Review before posting." data-help-title="Reddit Outreach">Reddit Outreach</h2></div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3 data-help="Pain points the Reddit scraper surfaced: recurring complaints, recurring questions, recurring requests on threads where the brand could contribute without sounding like an ad. Each row is one pain point with the source thread and an upvote count. Use these to seed your reply bank below." data-help-title="Pain points">🎯 Pain points</h3></div><div id="reddit-pain"></div></div>
         <div class="card col-6"><div class="card-h"><h3 data-help="Drafted Reddit replies to the threads above. Each reply is tagged by_sentiment: high_trust threads tolerate a brand-adjacent voice; medium_trust needs a soft-sell angle; low_trust wants pure value with no product mention. Pick high_trust first; that's where the brand can show up without getting downvoted." data-help-title="Replies">💬 Replies</h3></div><div id="reddit-replies"></div></div>
@@ -1476,13 +1476,13 @@ a:hover{text-decoration:underline}
 
     <!-- ── FAQS ──────────────────────────────────────────── -->
     <section class="section" id="sec-faqs">
-      <div class="section-h"><h2>FAQ Opportunities</h2></div>
+      <div class="section-h"><h2 data-help="Question-shaped content opportunities mined from People-Also-Ask data, Reddit threads, and YouTube comment sections. Each entry pairs the question with the brand pillar it serves, a difficulty estimate (how competitive the SERP is), and a one-paragraph draft answer you can lift into a blog post or social caption. Tapping a row opens the full context (source url, intent class, lift score)." data-help-title="FAQ Opportunities">FAQ Opportunities</h2></div>
       <div class="card"><div id="faqs-list"></div></div>
     </section>
 
     <!-- ── POSTIZ ────────────────────────────────────────── -->
     <section class="section" id="sec-postiz">
-      <div class="section-h"><h2>Postiz</h2><span class="sub" id="postiz-summary">—</span></div>
+      <div class="section-h"><h2 data-help="The Postiz social-queue workspace. Each card is the live status of one outbound post (or one outbound DRAFT not yet on the schedule). Click a card to lift the full payload into Review if you want to override it before it ships, or to view the platform-target. Postiz receives via REST webhook whenever an asset is approved in Review with a publish-time set, so this surface reflects every queue length the auto-publisher sees." data-help-title="Postiz">Postiz</h2><span class="sub" id="postiz-summary">—</span></div>
       <div class="grid">
         <div class="card col-12"><div class="card-h"><h3 data-help="Canonical mirror of the Postiz publishing queue. Read-only view of what the publisher agent has actually pushed upstream, not a place to push content. Each row is one item_id with its caption_preview, platform, scheduled time, and schema stamp." data-help-title="Postiz queue">📋 Queue</h3></div><div id="postiz-queue"></div></div>
         <div class="card col-12"><div class="card-h"><h3 data-help="Schema reference for the publisher agent's output contract: required fields, agent id, evidence URL, schema version. Use it to debug missing rows or rejected posts. Nothing here publishes; it documents what counts as a valid handoff." data-help-title="Publishing references (canonical)">🔗 Publishing references (canonical)</h3></div><div id="postiz-refs"></div></div>
@@ -1491,14 +1491,14 @@ a:hover{text-decoration:underline}
 
     <!-- ── CAMPAIGNS ─────────────────────────────────────── -->
     <section class="section" id="sec-campaigns">
-      <div class="section-h"><h2>Campaigns</h2><span class="sub" id="camp-summary">—</span></div>
+      <div class="section-h"><h2 data-help="Active + archived campaigns for the brand. A campaign is a themed bundle of assets that share a single brief, a publish window, and a lift target (the campaign page is where you compare how the bundle did as a unit, not per-asset). The campaign summary at the top pulls the running totals (live count, expected publish window, aggregate asset count). Open a campaign to lift its brief or to add a new asset into the bundle." data-help-title="Campaigns">Campaigns</h2><span class="sub" id="camp-summary">—</span></div>
       <div id="camp-list"></div>
       <div id="brand-directory-panel" style="margin-top:1.5rem"></div>
     </section>
 
     <!-- ── AGENTS ────────────────────────────────────────── -->
     <section class="section" id="sec-agents">
-      <div class="section-h"><h2>Agents & health</h2></div>
+      <div class="section-h"><h2 data-help="The agent + integration health panel. Three live blocks: System (in-process helper functions, all heartbeat statuses), Integrations (every external service we talk to: Postiz, Meta Graph, GBP, GA4, etc. last-seen, last-error), and Runs (the last 20 agent invocations, ranked by duration and success). Use this to answer the question 'why is nothing posting right now?' without guessing. Click any red row to drill into the error log." data-help-title="Agents + health">Agents &amp; health</h2></div>
       <div class="grid">
         <div class="card col-7"><div class="card-h"><h3 data-help="Live roster of every agent lane that ran in the last refresh cycle: copy agent, trend catcher, reddit scraper, gbp scraper, audit agent. Each row shows the lane name, last run time, status (ok / failed / queued), and a 1-line why-now. Click a row to open the lane detail page with full output and retry controls." data-help-title="Agent runs">🤖 Agent runs</h3></div><div id="agents-list"></div></div>
         <div class="card col-5"><div class="card-h"><h3 data-help="Site-wide health snapshot: overall status (green / amber / red), confidence score (how fresh the data is), and the per-integration row beneath. Generated timestamp tells you when the snapshot was taken. If the status is amber or red, scan the Integrations card below for the failing connector." data-help-title="System health">🩺 System health</h3></div><div id="agents-health"></div></div>
