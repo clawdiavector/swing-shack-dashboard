@@ -2693,6 +2693,84 @@ const HELP = (() => {
         too). Respect the avoid-list or override it with a new data
         point — don't override it on vibes.</p>`,
     },
+    'gmb': {
+      title: 'How GMB drafts move from a blank form to a live GBP post',
+      body: `
+        <p>This page is the <span class="hc-term">GMB draft workshop</span> for
+        the active brand. A draft here is a Google Business Profile post that
+        hasn't been published yet: title, body, CTA button label, destination
+        link, and an optional image URL. It is the only surface in Campaign OS
+        that targets the GBP listing (the local pack result on Google Search
+        and Maps), so the copy rules are different from Instagram / Facebook /
+        email. Read this card once before you start writing.</p>
+        <p><span class="hc-term">📋 Drafts card</span> lists every saved GMB draft
+        for the active brand, newest first. Each row carries a <code>status</code>
+        pill on the right (green <code>scheduled</code> means it has been pushed
+        to Postiz and the GBP-platform post exists; grey <code>draft</code> means
+        it is still local-only). Below the body snippet you'll see the CTA label,
+        a clickable link chip (truncated to 40 chars), the Postiz id once it has
+        been pushed, and a 3-button action row: <b>Edit</b> opens the form modal
+        pre-filled with this draft, <b>Push to Postiz</b> creates the GBP-platform
+        post and refreshes the row to show <code>scheduled</code> plus an
+        <b>Open in Postiz</b> link, and the trash icon deletes the draft after a
+        native confirm prompt. Push and Delete are not reversible from this page
+        once they hit Postiz.</p>
+        <p><span class="hc-term">✏️ Edit / + New draft modal</span> is the only
+        place where copy gets written. Five fields: <b>title</b> (headline
+        shown on the GBP listing, max 100 chars, target under 60 so it doesn't
+        truncate on mobile), <b>body</b> (plain-text post body, max 1500 chars
+        per the GBP API, with a live char counter under the field), <b>CTA</b>
+        (button label like "Book", "Learn more", "Call now", max 40 chars,
+        defaults to "Learn more" when blank), <b>link</b> (destination URL the
+        button opens, max 300 chars, typically a booking page or a specific
+        landing page), and <b>image URL</b> (public URL of the image to attach,
+        optional, blank means text-only post). Each input carries its own
+        <code>data-help</code> tooltip with the rule; hover the field name for
+        the why-not-just-what. Save writes back to <code>/api/intel/gmb/drafts</code>
+        and re-renders the list. Cancel closes without saving.</p>
+        <p><span class="hc-term">📍 GBP, not Instagram</span> is the format
+        trap. GBP strips hashtags, doesn't support carousel or reel formats,
+        and the visible window on mobile is much shorter than the 1500-char
+        cap suggests, so lead with the hook in the first sentence, then expand.
+        Cross-posting an Instagram caption into this form is the most common
+        bug: it carries hashtags that get stripped, drops the local keyword
+        ("Johannesburg", the neighbourhood, the club name) that powers the
+        local pack rank, and over-spends chars on emoji that render inconsistently
+        across GBP surfaces. Write for the local pack reader, not the Instagram
+        scroller.</p>
+        <p><span class="hc-term">🚀 Push to Postiz</span> is the bridge from this
+        page to a live GBP post. It does NOT publish directly; it creates the
+        GBP-platform post inside Postiz, where you set a future <code>scheduled_date</code>
+        and confirm the local time zone. After push, the row flips from grey
+        <code>draft</code> to green <code>scheduled</code> and a new
+        <b>Open in Postiz</b> link appears; clicking it opens the Postiz record
+        in a new tab. From there the standard Postiz scheduling flow runs
+        (auto-publish at the slot, or manual push). Status does not auto-update
+        back here, so refresh this card to re-pull from <code>/api/intel/gmb/drafts</code>
+        and see the latest <code>postizId</code> + currentStatus.</p>
+        <p><span class="hc-term">🗑️ Delete is local-only</span>. Trashing a draft
+        here removes it from this page and the draft store, but if the draft
+        has already been pushed to Postiz, the Postiz record is untouched, so
+        you have to delete that from inside Postiz. The native confirm prompt
+        is the only safeguard; there is no undo. Best practice: trash only
+        drafts that have never been pushed.</p>
+        <p><b>How to use this page:</b> (1) click <b>+ New draft</b>; (2) write
+        for the local pack reader (tight, locally-keyed, plain text, one CTA
+        button); (3) save; (4) review the row, edit if needed; (5) when ready,
+        click <b>Push to Postiz</b> and open the new tab to schedule; (6) come
+        back and refresh to see the <code>scheduled</code> pill + Postiz id. The
+        GMB surface is intentionally read-then-push, not write-then-ship. Every
+        GBP post is a local-search ranking signal, so a few minutes of copy
+        review pays back over months of local pack ranking.</p>
+        <p><b>Anti-pattern:</b> stacking 20 drafts and pushing them all to
+        Postiz in one go. GBP has posting frequency limits (roughly 1 per 7
+        days is the safe ceiling for most categories) and a burst of posts
+        looks like spam to the local pack algorithm. Write 2-3 strong drafts
+        a week, push them one at a time, and let the GBP Insights panel tell
+        you which ones moved calls / direction requests / website clicks. The
+        metrics that matter are the local conversion signals, not the post
+        count.</p>`,
+    },
     'reddit': {
       title: 'How Reddit Outreach opportunities and replies are picked',
       body: `
