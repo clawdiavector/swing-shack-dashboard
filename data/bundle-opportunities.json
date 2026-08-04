@@ -20,7 +20,7 @@
       "rationale": "New fitters want to try before committing R900+ to full fitting. This gives them data + experience before the big spend. Real buying behaviour: test before invest.",
       "operational_fit": "high",
       "confidence": "high",
-      "why_now": "Fitting page has high intent traffic — offer this at first visit to close faster",
+      "why_now": "Fitting page has high intent traffic · offer this at first visit to close faster",
       "cta": "Try the Starter Pack",
       "landing": "/club-fitting"
     },
@@ -38,7 +38,7 @@
       "rationale": "Parents buying lessons want to see progress before committing to large packages. 3 lessons tests commitment + practice reinforces coaching. Real behaviour: small commitment first.",
       "operational_fit": "high",
       "confidence": "medium",
-      "why_now": "Junior golf interest seasonal — capture now before mid-year slump",
+      "why_now": "Junior golf interest seasonal · capture now before mid-year slump",
       "cta": "Build Your Junior's Game",
       "landing": "/coaching"
     },
@@ -46,7 +46,7 @@
       "bundle_id": "bun-3",
       "name": "Social Golf Experience (x4)",
       "services": [
-        "Social Play — 4 Players (3h)",
+        "Social Play · 4 Players (3h)",
         "Bucket of Beer"
       ],
       "original": "R1,020",
@@ -56,7 +56,7 @@
       "rationale": "Groups want the full social experience but feel awkward about the beer add-on separately. Package it. Makes the booking decision faster. Real behaviour: groups want all-in pricing.",
       "operational_fit": "high",
       "confidence": "high",
-      "why_now": "Social play bookings spike on weekends — pre-package to capture group bookings early in week",
+      "why_now": "Social play bookings spike on weekends · pre-package to capture group bookings early in week",
       "cta": "Book the Full Experience",
       "landing": "/practice"
     },
@@ -70,10 +70,10 @@
       "bundle_price": "R2,000",
       "saving": "R500 (20%)",
       "target": "committed_practitioners_low_frequency",
-      "rationale": "High-frequency users who buy single sessions. A 10-pack gives them commitment discount + ensures retention. NOT a desperate discount — this is loyalty pricing. Real behaviour: commit to regular practice.",
+      "rationale": "High-frequency users who buy single sessions. A 10-pack gives them commitment discount + ensures retention. NOT a desperate discount · this is loyalty pricing. Real behaviour: commit to regular practice.",
       "operational_fit": "high",
       "confidence": "high",
-      "why_now": "Practice sessions are highest volume — convert frequent users to committed pack buyers",
+      "why_now": "Practice sessions are highest volume · convert frequent users to committed pack buyers",
       "cta": "Commit to Your Practice",
       "landing": "/practice"
     },

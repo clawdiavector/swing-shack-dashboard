@@ -6,7 +6,7 @@
     "high": 4,
     "medium": 1,
     "low": 0,
-    "most_urgent": "(high) Push booking CTA on IG this week — booking page traffic is t"
+    "most_urgent": "(high) Push booking CTA on IG this week · booking page traffic is t"
   },
   "leaks": [
     {
@@ -15,7 +15,7 @@
       "sessions": 179,
       "severity": "high",
       "revenue_impact": "179 sessions on booking page but < 2 booking CTAs in recent IG posts",
-      "easy_fix": "Push booking CTA on IG this week — booking page traffic is there",
+      "easy_fix": "Push booking CTA on IG this week · booking page traffic is there",
       "owner": "Swing Shack page",
       "rank": 1
     },
@@ -26,7 +26,7 @@
       "hook": "That slice costing you yards off the tee? TrackMan found it ",
       "severity": "high",
       "revenue_impact": "Strong IG hook (10) with no booking funnel follow-up",
-      "easy_fix": "Rework the \"driver\" hook into a follow-up Reel this week — IG proof 10.",
+      "easy_fix": "Rework the \"driver\" hook into a follow-up Reel this week · IG proof 10.",
       "owner": "Coach Cat",
       "rank": 2
     },
@@ -37,7 +37,7 @@
       "hook": "Need to relax and find your golf swing tempo? Join Coach Cat",
       "severity": "high",
       "revenue_impact": "Strong IG hook (10) with no booking funnel follow-up",
-      "easy_fix": "Rework the \"lessons\" hook into a follow-up Reel this week — IG proof 10.",
+      "easy_fix": "Rework the \"lessons\" hook into a follow-up Reel this week · IG proof 10.",
       "owner": "Coach Cat",
       "rank": 3
     },
@@ -48,7 +48,7 @@
       "hook": "Need some help with your putting? Coach Cat explains what ma",
       "severity": "high",
       "revenue_impact": "Strong IG hook (9.82) with no booking funnel follow-up",
-      "easy_fix": "Rework the \"short_game\" hook into a follow-up Reel this week — IG proof 9.82.",
+      "easy_fix": "Rework the \"short_game\" hook into a follow-up Reel this week · IG proof 9.82.",
       "owner": "Coach Cat",
       "rank": 4
     },
@@ -59,7 +59,7 @@
       "sessions": 61,
       "severity": "medium",
       "revenue_impact": "61 sessions with no IG content pushing this service",
-      "easy_fix": "Create IG post about Club Fitting — GA4 shows 61 sessions this week",
+      "easy_fix": "Create IG post about Club Fitting · GA4 shows 61 sessions this week",
       "owner": "Divan",
       "rank": 5
     }

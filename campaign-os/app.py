@@ -406,13 +406,13 @@ def health():
 # on the Morning Brief so Christelle sees the cumulative polish on her
 # morning coffee. Frontend only fetches on first brief render and caches.
 WHATS_NEW = [
-    {"ts": "2026-07-30T01:30:00Z", "tag": "data", "title": "↺ Reset to AI draft — now actually resets",
-     "body": "The Review-queue Edit modal's 'Reset to AI draft' button used to toast 'No AI draft saved' for every asset — the backend endpoint didn't exist. New GET /api/assets/<aid>/ai-draft returns the original AI-generated caption (snapshot taken on first hand-edit), so the button now restores the prior caption for review-and-Save. Old assets without a snapshot fall through to current caption or a clear 'no draft on file' message — no more silent dead-ends."},
+    {"ts": "2026-07-30T01:30:00Z", "tag": "data", "title": "↺ Reset to AI draft · now actually resets",
+     "body": "The Review-queue Edit modal's 'Reset to AI draft' button used to toast 'No AI draft saved' for every asset · the backend endpoint didn't exist. New GET /api/assets/<aid>/ai-draft returns the original AI-generated caption (snapshot taken on first hand-edit), so the button now restores the prior caption for review-and-Save. Old assets without a snapshot fall through to current caption or a clear 'no draft on file' message · no more silent dead-ends."},
     {"ts": "2026-07-29T23:30:00Z", "tag": "chrome", "title": "Zero native browser dialogs",
-     "body": "Swept the last two native confirm() calls on the Headlines and CTAs clear-history buttons. Both now use the same styled inline confirm modal as the Review queue (danger-styled title, explicit Yes/No, click-outside-to-cancel). Campaign OS no longer fires any prompt(), confirm(), or alert() — iOS Safari safe everywhere."},
+     "body": "Swept the last two native confirm() calls on the Headlines and CTAs clear-history buttons. Both now use the same styled inline confirm modal as the Review queue (danger-styled title, explicit Yes/No, click-outside-to-cancel). Campaign OS no longer fires any prompt(), confirm(), or alert() · iOS Safari safe everywhere."},
     {"ts": "2026-07-29T22:00:00Z", "tag": "chrome", "title": "Review queue: inline edit + confirm modals",
-     "body": "Edit caption on the Review queue now opens an inline modal with a full textarea (2200-char soft cap, live counter, optional Reset-to-AI-draft). Regenerate / Publish-now / Archive all use styled confirm modals instead of native browser dialogs — no more ugly dialogs, no iOS Safari blocks."},
-    {"ts": "2026-07-29T20:00:00Z", "tag": "chrome", "title": "Brand brief form — no more stacked prompts",
+     "body": "Edit caption on the Review queue now opens an inline modal with a full textarea (2200-char soft cap, live counter, optional Reset-to-AI-draft). Regenerate / Publish-now / Archive all use styled confirm modals instead of native browser dialogs · no more ugly dialogs, no iOS Safari blocks."},
+    {"ts": "2026-07-29T20:00:00Z", "tag": "chrome", "title": "Brand brief form · no more stacked prompts",
      "body": "Generate brief on Brand Directory now opens an inline form (Surface + Tone selects) instead of two stacked browser prompts. Mobile-safe, iOS Safari works, and runs with defaults immediately so the desktop one-click flow still works."},
     {"ts": "2026-07-29T18:10:00Z", "tag": "nav", "title": "30 sidebar tooltips",
      "body": "Hover any nav item (Home, Review, Brand, Trends, Ideas, Meme Lab…) for a one-line orientation. Replaces blank stare at the rail."},
@@ -2055,7 +2055,7 @@ def visual_performance_join():
         per_post_status = {
             "available": False,
             "reason": "Awaiting Meta App Review for `pages_read_user_content` scope",
-            "eta_after_approval": "Automatic — this endpoint will populate per-post metrics.",
+            "eta_after_approval": "Automatic · this endpoint will populate per-post metrics.",
             "submission_evidence_url": "https://swing-shack-dashboard-production.up.railway.app/meta-app-review/",
         }
 
@@ -3122,7 +3122,7 @@ def asset_ai_draft(asset_id):
             "source": "none",
             "ts": None,
             "_reason": "history_present_but_no_snapshot",
-            "_hint": "Edit + save the caption once — the original is captured. Or generate a fresh caption variant in the Caption Studio.",
+            "_hint": "Edit + save the caption once · the original is captured. Or generate a fresh caption variant in the Caption Studio.",
         }), 200
 
     # Path 3: brand new asset, never edited. The current caption IS the draft.
@@ -3550,7 +3550,7 @@ def review_schedule_now(asset_id):
         "ok": True, "assetId": asset_id, "campaignId": target.get('campaignId'),
         "source": target.get('source'), "scheduledFor": item['scheduledFor'],
         "previousScheduledFor": previous_for, "schedule": _schedule_response(saved),
-        "rationale": f"Next empty slot — {chosen_day.isoformat()} at {hour:02d}:00 UTC",
+        "rationale": f"Next empty slot · {chosen_day.isoformat()} at {hour:02d}:00 UTC",
     }), 200
 
 
@@ -3786,7 +3786,7 @@ def weekly_report_export():
         wow = data.get("week_on_week", {})
 
         md_lines = [
-            f"# Weekly Marketing Report — {data.get('week_start', '?')[:10]} to {data.get('week_end', '?')[:10]}",
+            f"# Weekly Marketing Report · {data.get('week_start', '?')[:10]} to {data.get('week_end', '?')[:10]}",
             "",
             f"**Brand:** {data.get('brand') or 'all'}",
             "",
@@ -3855,7 +3855,7 @@ def weekly_report_export():
         if failures:
             md_lines.append("## Failures")
             for f in failures:
-                md_lines.append(f"- {f.get('item_id', '?')} — {f.get('reason', 'no reason')}")
+                md_lines.append(f"- {f.get('item_id', '?')} · {f.get('reason', 'no reason')}")
             md_lines.append("")
 
         # Agent breakdown
@@ -3863,7 +3863,7 @@ def weekly_report_export():
         if agent_breakdown:
             md_lines.append("## Agents")
             for aid, summary in sorted(agent_breakdown.items()):
-                md_lines.append(f"- **{aid}** — {summary.get('total', 0)} runs, {summary.get('passed', 0)} passed, {summary.get('failed', 0)} failed ({summary.get('pass_rate_pct')}% pass)")
+                md_lines.append(f"- **{aid}** · {summary.get('total', 0)} runs, {summary.get('passed', 0)} passed, {summary.get('failed', 0)} failed ({summary.get('pass_rate_pct')}% pass)")
             md_lines.append("")
 
         # WoW
@@ -4003,7 +4003,7 @@ def set_theme():
     if not isinstance(raw, str):
         return jsonify({
             "ok": False,
-            "error": f"Invalid theme — must be a string. Supported: {', '.join(THEME_VALID_VALUES)}",
+            "error": f"Invalid theme · must be a string. Supported: {', '.join(THEME_VALID_VALUES)}",
             "supported": list(THEME_VALID_VALUES),
         }), 400
     theme = raw.strip().lower()
@@ -4182,7 +4182,7 @@ def intel_generate_image():
             recipe_hint_text = "; ".join(recipe_hints) or f"style reference: {match_filename}"
             # Inject into subject line (provider-agnostic) — append to existing subject
             existing_subject = result.get('subject') or ''
-            result['subject'] = (existing_subject + f" — reference style: {recipe_hint_text}").strip()
+            result['subject'] = (existing_subject + f" · reference style: {recipe_hint_text}").strip()
             # Inject hex codes into color_keywords so the providers use them
             existing_colors = list(result.get('color_keywords') or [])
             if top_bg and top_bg not in existing_colors:
@@ -4504,7 +4504,7 @@ def intel_generate_ideas_route():
             # Build a real, human title from the missed-opportunity shape
             topic = m.get('topic') or 'this angle'
             sug = m.get('suggested_fix') or m.get('suggestion') or ''
-            base_title = f"Rework \"{topic}\" — there's untapped reach here"
+            base_title = f"Rework \"{topic}\" · there's untapped reach here"
             if isinstance(sug, str) and len(sug) > 10:
                 # use the suggested_fix as the why, summarise for title
                 base_title = f"Follow-up: {topic.title()} (IG proof {m.get('ig_score', '?')})"
@@ -4546,7 +4546,7 @@ def intel_generate_ideas_route():
                 continue
             ideas.append({
                 "title": f"Capitalise on: {title[:80]}",
-                "why": f"Trending topic (heat={t.get('heat', t.get('score', '?'))}) — ride the wave before it cools",
+                "why": f"Trending topic (heat={t.get('heat', t.get('score', '?'))}) · ride the wave before it cools",
                 "hook": None,
                 "source_type": "trend",
                 "score": 8.0,
@@ -5438,7 +5438,7 @@ def _render_seo_pack(pack, pillar, voice, platform=None, custom_keyword=None):
         f"{primary.title()} | Swing Shack"
     )
     meta_description = (templates.get('meta_descriptions') or {}).get(pillar) or (
-        f"{primary.title()} at Swing Shack — Johannesburg's indoor golf bay."
+        f"{primary.title()} at Swing Shack · Johannesburg's indoor golf bay."
     )
     h1 = (templates.get('h1') or {}).get(pillar) or primary.title()
     slug = (templates.get('slug_examples') or {}).get(pillar)
@@ -5785,7 +5785,7 @@ def _seo_fix_template(page, fix_type, custom_keyword=None):
     page_name = page.get('page') if isinstance(page, dict) else (page or 'Homepage')
     if fix_type == 'missing_meta_description':
         kw_title = keyword.title() if keyword else 'Indoor Golf Simulator Johannesburg'
-        text = (f'{page_name} — {kw_title}. Book a TrackMan session at Swing Shack Johannesburg. '
+        text = (f'{page_name} · {kw_title}. Book a TrackMan session at Swing Shack Johannesburg. '
                 f'Open 24/7. From R250.')
         # Trim to fit 160 if necessary
         if len(text) > 160:
@@ -5801,7 +5801,7 @@ def _seo_fix_template(page, fix_type, custom_keyword=None):
         }
     if fix_type == 'missing_h1':
         kw_proper = keyword.replace('johannesburg', 'Johannesburg').title() if keyword else 'Indoor Golf Simulator Johannesburg'
-        text = f'Book Your {kw_proper} Session — Swing Shack'
+        text = f'Book Your {kw_proper} Session · Swing Shack'
         return {
             'kind': 'h1',
             'snippet': text,

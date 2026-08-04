@@ -29,9 +29,9 @@
       "topic": "driver",
       "ig_score": 10,
       "owner": "Coach Cat",
-      "suggested_fix": "Rework the \"driver\" hook into a follow-up Reel this week — IG proof 10.",
+      "suggested_fix": "Rework the \"driver\" hook into a follow-up Reel this week · IG proof 10.",
       "suggestion": "Hook scored 10 on IG. No follow-up posts found for \"driver\". Push this angle.",
-      "why": "IG proof: 10 — strong performer with no refresh"
+      "why": "IG proof: 10 · strong performer with no refresh"
     },
     {
       "type": "hook_winner_not_reused",
@@ -41,9 +41,9 @@
       "topic": "lessons",
       "ig_score": 10,
       "owner": "Coach Cat",
-      "suggested_fix": "Rework the \"lessons\" hook into a follow-up Reel this week — IG proof 10.",
+      "suggested_fix": "Rework the \"lessons\" hook into a follow-up Reel this week · IG proof 10.",
       "suggestion": "Hook scored 10 on IG. No follow-up posts found for \"lessons\". Push this angle.",
-      "why": "IG proof: 10 — strong performer with no refresh"
+      "why": "IG proof: 10 · strong performer with no refresh"
     },
     {
       "type": "hook_winner_not_reused",
@@ -53,9 +53,9 @@
       "topic": "short_game",
       "ig_score": 9.82,
       "owner": "Coach Cat",
-      "suggested_fix": "Rework the \"short_game\" hook into a follow-up Reel this week — IG proof 9.82.",
+      "suggested_fix": "Rework the \"short_game\" hook into a follow-up Reel this week · IG proof 9.82.",
       "suggestion": "Hook scored 9.82 on IG. No follow-up posts found for \"short_game\". Push this angle.",
-      "why": "IG proof: 9.82 — strong performer with no refresh"
+      "why": "IG proof: 9.82 · strong performer with no refresh"
     },
     {
       "type": "hook_winner_not_reused",
@@ -65,9 +65,9 @@
       "topic": "driver",
       "ig_score": 9.33,
       "owner": "Coach Cat",
-      "suggested_fix": "Rework the \"driver\" hook into a follow-up Reel this week — IG proof 9.33.",
+      "suggested_fix": "Rework the \"driver\" hook into a follow-up Reel this week · IG proof 9.33.",
       "suggestion": "Hook scored 9.33 on IG. No follow-up posts found for \"driver\". Push this angle.",
-      "why": "IG proof: 9.33 — strong performer with no refresh"
+      "why": "IG proof: 9.33 · strong performer with no refresh"
     },
     {
       "type": "hook_winner_not_reused",
@@ -77,9 +77,9 @@
       "topic": "lessons",
       "ig_score": 9.129999999999999,
       "owner": "Coach Cat",
-      "suggested_fix": "Rework the \"lessons\" hook into a follow-up Reel this week — IG proof 9.129999999999999.",
+      "suggested_fix": "Rework the \"lessons\" hook into a follow-up Reel this week · IG proof 9.129999999999999.",
       "suggestion": "Hook scored 9.129999999999999 on IG. No follow-up posts found for \"lessons\". Push this angle.",
-      "why": "IG proof: 9.129999999999999 — strong performer with no refresh"
+      "why": "IG proof: 9.129999999999999 · strong performer with no refresh"
     },
     {
       "type": "traffic_no_content",
@@ -88,7 +88,7 @@
       "page": "/",
       "sessions": 281,
       "owner": "Swing Shack page",
-      "suggested_fix": "Create IG content targeting \"/\" — 281 sessions with no social link.",
+      "suggested_fix": "Create IG content targeting \"/\" · 281 sessions with no social link.",
       "suggestion": "Page \"/\" gets 281 sessions but no IG post links to it. Create content.",
       "why": "281 sessions with no social presence"
     },
@@ -99,7 +99,7 @@
       "page": "/bookings/",
       "sessions": 179,
       "owner": "Nancy / Front Desk",
-      "suggested_fix": "Create IG content targeting \"/bookings/\" — 179 sessions with no social link.",
+      "suggested_fix": "Create IG content targeting \"/bookings/\" · 179 sessions with no social link.",
       "suggestion": "Page \"/bookings/\" gets 179 sessions but no IG post links to it. Create content.",
       "why": "179 sessions with no social presence"
     },
@@ -110,7 +110,7 @@
       "page": "/customer-portal/",
       "sessions": 61,
       "owner": "Swing Shack page",
-      "suggested_fix": "Create IG content targeting \"/customer-portal/\" — 61 sessions with no social link.",
+      "suggested_fix": "Create IG content targeting \"/customer-portal/\" · 61 sessions with no social link.",
       "suggestion": "Page \"/customer-portal/\" gets 61 sessions but no IG post links to it. Create content.",
       "why": "61 sessions with no social presence"
     },
@@ -121,7 +121,7 @@
       "page": "/club-fitting/",
       "sessions": 32,
       "owner": "Divan",
-      "suggested_fix": "Create IG content targeting \"/club-fitting/\" — 32 sessions with no social link.",
+      "suggested_fix": "Create IG content targeting \"/club-fitting/\" · 32 sessions with no social link.",
       "suggestion": "Page \"/club-fitting/\" gets 32 sessions but no IG post links to it. Create content.",
       "why": "32 sessions with no social presence"
     },
@@ -132,7 +132,7 @@
       "page": "/checkout/",
       "sessions": 25,
       "owner": "Nancy / Front Desk",
-      "suggested_fix": "Create IG content targeting \"/checkout/\" — 25 sessions with no social link.",
+      "suggested_fix": "Create IG content targeting \"/checkout/\" · 25 sessions with no social link.",
       "suggestion": "Page \"/checkout/\" gets 25 sessions but no IG post links to it. Create content.",
       "why": "25 sessions with no social presence"
     },
@@ -147,7 +147,7 @@
         "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
       ],
       "owner": "Swing Shack page",
-      "suggested_fix": "Create IG post on \"lessons\" — YouTube has 4 trending videos.",
+      "suggested_fix": "Create IG post on \"lessons\" · YouTube has 4 trending videos.",
       "suggestion": "YouTube has 4 videos on \"lessons\" but IG hasn't covered it.",
       "why": "4 YouTube videos trending on this topic"
     },
@@ -162,7 +162,7 @@
         "5 Powerful Tips to Unleash Your Senior Driver Swing"
       ],
       "owner": "Swing Shack page",
-      "suggested_fix": "Create IG post on \"driver\" — YouTube has 3 trending videos.",
+      "suggested_fix": "Create IG post on \"driver\" · YouTube has 3 trending videos.",
       "suggestion": "YouTube has 3 videos on \"driver\" but IG hasn't covered it.",
       "why": "3 YouTube videos trending on this topic"
     }

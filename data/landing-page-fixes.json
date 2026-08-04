@@ -5,7 +5,7 @@
     "total_fixes": 8,
     "high_severity": 4,
     "top_page": "/membership",
-    "top_fix": "Add clear pricing table with value context — \"from R250/session\"",
+    "top_fix": "Add clear pricing table with value context · \"from R250/session\"",
     "expected_lift": "+12% booking intent"
   },
   "fixes": [
@@ -17,7 +17,7 @@
       "issue": "pricing_clarity",
       "evidence": "best_practice",
       "severity": "high",
-      "fix": "Add clear pricing table with value context — \"from R250/session\"",
+      "fix": "Add clear pricing table with value context · \"from R250/session\"",
       "expected_outcome": "+12% booking intent",
       "revenue_impact": "high",
       "priority": 1
@@ -43,7 +43,7 @@
       "issue": "intent_mismatch",
       "evidence": "best_practice",
       "severity": "high",
-      "fix": "Add booking urgency — limited slots, fitting demand spike",
+      "fix": "Add booking urgency · limited slots, fitting demand spike",
       "expected_outcome": "+20% conversion",
       "revenue_impact": "high",
       "priority": 1
@@ -56,7 +56,7 @@
       "issue": "friction",
       "evidence": "best_practice",
       "severity": "high",
-      "fix": "Reduce booking form to 3 fields — name, email, preferred time only",
+      "fix": "Reduce booking form to 3 fields · name, email, preferred time only",
       "expected_outcome": "+25% form completion",
       "revenue_impact": "high",
       "priority": 1
@@ -95,7 +95,7 @@
       "issue": "hero_message",
       "evidence": "best_practice",
       "severity": "medium",
-      "fix": "Update hero to lead with TrackMan stats hook — \"Your game in numbers\"",
+      "fix": "Update hero to lead with TrackMan stats hook · \"Your game in numbers\"",
       "expected_outcome": "+10% session bookings",
       "revenue_impact": "medium",
       "priority": 2
@@ -108,7 +108,7 @@
       "issue": "awareness_gap",
       "evidence": "best_practice",
       "severity": "low",
-      "fix": "Add social proof — sessions completed counter, member testimonials",
+      "fix": "Add social proof · sessions completed counter, member testimonials",
       "expected_outcome": "+6% engagement",
       "revenue_impact": "low",
       "priority": 3

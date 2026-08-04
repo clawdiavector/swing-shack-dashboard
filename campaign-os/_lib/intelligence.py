@@ -231,7 +231,7 @@ def morning_brief() -> Dict[str, Any]:
                     "platform": asset.get("platform") or asset.get("integration") or "instagram",
                     "campaignName": c.get("identity", {}).get("name") or cid,
                 }
-                rationale = "Approved but never put on the calendar — it's just sitting in drafts."
+                rationale = "Approved but never put on the calendar · it's just sitting in drafts."
                 break
         if recommended_action:
             break
@@ -247,7 +247,7 @@ def morning_brief() -> Dict[str, Any]:
                 "ig_proof": top.get("ig_proof") or top.get("score"),
                 "source": top.get("source") or "recommendation-scores",
             }
-            rationale = "Top IG performer — make a fresh take this week to ride the wave."
+            rationale = "Top IG performer · make a fresh take this week to ride the wave."
 
     # Priority 3: missed high-impact opportunity
     if not recommended_action and high_impact_missed:
@@ -258,7 +258,7 @@ def morning_brief() -> Dict[str, Any]:
             "rationale": m.get("why") or m.get("insight"),
             "ig_score": m.get("ig_score") or m.get("score"),
         }
-        rationale = "Traffic exists with no content — fill the gap."
+        rationale = "Traffic exists with no content · fill the gap."
 
     # Priority 4: trend with no asset attached
     if not recommended_action:
@@ -270,7 +270,7 @@ def morning_brief() -> Dict[str, Any]:
                 "type": "trend",
                 "trend": t.get("trend") or t.get("title") or t.get("name"),
                 "heat": t.get("heat") or t.get("score"),
-                "rationale": "Trending now — get ahead before it cools.",
+                "rationale": "Trending now · get ahead before it cools.",
             }
             rationale = "Ride this trend before it cools."
 
@@ -840,7 +840,7 @@ def generate_captions(
             if base_caption:
                 break
     if not base_caption:
-        base_caption = f"{name or campaign_name or 'Swing Shack'} — swingshack.co.za"
+        base_caption = f"{name or campaign_name or 'Swing Shack'} · swingshack.co.za"
 
     # Resolve voice
     vb = _load_voice_bible()
@@ -930,7 +930,7 @@ def generate_ctas(n: int = 5) -> Dict[str, Any]:
     if not pool:
         pool = [
             {"cta": "Book a Practice Session → swingshack.co.za", "source": "default"},
-            {"cta": "Try the TrackMan — 30 mins, R150", "source": "default"},
+            {"cta": "Try the TrackMan · 30 mins, R150", "source": "default"},
             {"cta": "DM us to lock your fitting slot", "source": "default"},
             {"cta": "Tap the link in bio to book", "source": "default"},
             {"cta": "Free swing analysis this week", "source": "default"},
@@ -1264,7 +1264,7 @@ def explain_performance() -> Dict[str, Any]:
                 pct = ((ter - er_avg) / er_avg * 100)
                 direction = "better" if pct >= 0 else "worse"
                 claim = f"\"{cap}…\" is performing {abs(pct):.0f}% {direction} than your Instagram average."
-                next_step = (f"Make a fresh take on this hook for next week — same angle, "
+                next_step = (f"Make a fresh take on this hook for next week · same angle, "
                              f"different format (reel vs carousel). Drive {direction} winners again.")
             else:
                 claim = f"\"{cap}…\" is one of your top Instagram posts by engagement."
@@ -1293,7 +1293,7 @@ def explain_performance() -> Dict[str, Any]:
                 "claim": f"Watch out: {', '.join(str(k) for k in falling[:3])} lost positions this week.",
                 "evidence": {"keywords": falling[:5]},
                 "kind": "seo-trend-down",
-                "next_step": f"Update your '{falling[0]}' landing page with fresher content — old pages lose rank.",
+                "next_step": f"Update your '{falling[0]}' landing page with fresher content · old pages lose rank.",
                 "action": "Update landing page",
             })
 
@@ -1312,7 +1312,7 @@ def explain_performance() -> Dict[str, Any]:
     if isinstance(win, dict):
         insights.append({
             "claim": f"Best recommendation type right now: {win.get('type', '—')}.",
-            "next_step": "Trust the system's top pick — it has the highest historical win rate.",
+            "next_step": "Trust the system's top pick · it has the highest historical win rate.",
             "action": "View recommendation",
             "evidence": win,
             "kind": "best-rec",
@@ -1607,7 +1607,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
 
     # ── Build summary headline (1 sentence) ───────────────────────────
     if published_count == 0 and failed_count == 0:
-        headline = f"Quiet week — {total_agent_runs} agent runs, no publishes attempted."
+        headline = f"Quiet week · {total_agent_runs} agent runs, no publishes attempted."
     else:
         wr = f"{win_rate_pct}%" if win_rate_pct is not None else "—"
         headline = f"{published_count} published, {failed_count} failed, {wr} win rate."
@@ -1772,7 +1772,7 @@ def generate_image(
     if visual_brief and len(visual_brief) > 5:
         subject_parts.append(visual_brief)
     if not subject_parts:
-        subject_parts.append(f"{brand} — {resolved_pillar.replace('-', ' ')} content")
+        subject_parts.append(f"{brand} · {resolved_pillar.replace('-', ' ')} content")
 
     subject_line = ", ".join(subject_parts)
 

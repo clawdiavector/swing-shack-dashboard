@@ -29,7 +29,7 @@
         }
       ],
       "position": "post_fitting_confirm_page",
-      "message": "While we have your clubs here — want us to check your wedges too?"
+      "message": "While we have your clubs here · want us to check your wedges too?"
     },
     {
       "us_id": "up-2",
@@ -48,13 +48,13 @@
           "name": "Practice Pack (5 sessions)",
           "price": "R1,000",
           "margin": 0.6,
-          "reason": "TPI results in hand — want to work on it immediately? Practice Pack gives sessions at R200/session.",
+          "reason": "TPI results in hand · want to work on it immediately? Practice Pack gives sessions at R200/session.",
           "take_rate": 0.45,
           "confidence": "medium"
         }
       ],
       "position": "post_assessment_results",
-      "message": "Now you know what to fix — want to start working on it with our instructors?"
+      "message": "Now you know what to fix · want to start working on it with our instructors?"
     },
     {
       "us_id": "up-3",
@@ -79,7 +79,7 @@
         }
       ],
       "position": "post_booking_confirmation",
-      "message": "Practice makes permanent — want to add a coaching session to check your technique?"
+      "message": "Practice makes permanent · want to add a coaching session to check your technique?"
     },
     {
       "us_id": "up-4",
@@ -104,7 +104,7 @@
         }
       ],
       "position": "membership_landing",
-      "message": "Most members add a practice pack — R200/session vs R250. Want to add one now?"
+      "message": "Most members add a practice pack · R200/session vs R250. Want to add one now?"
     },
     {
       "us_id": "up-5",

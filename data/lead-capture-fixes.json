@@ -26,7 +26,7 @@
       "impact": "high",
       "effort": "low",
       "win": "highest_impact",
-      "fix": "Make \"Book Your Session\" CTA button sticky on mobile — visible without scroll. Test 2 sizes.",
+      "fix": "Make \"Book Your Session\" CTA button sticky on mobile · visible without scroll. Test 2 sizes.",
       "evidence": "mobile_traffic_high_conversion_low",
       "rank_score": 90
     },
@@ -37,7 +37,7 @@
       "impact": "high",
       "effort": "medium",
       "win": "sa_market_fit",
-      "fix": "Add WhatsApp click-to-chat: \"Or book via WhatsApp — we'll confirm in 5 minutes.\" No form required.",
+      "fix": "Add WhatsApp click-to-chat: \"Or book via WhatsApp · we'll confirm in 5 minutes.\" No form required.",
       "evidence": "sa_whatsapp_adoption_high",
       "rank_score": 88
     },
@@ -48,7 +48,7 @@
       "impact": "medium",
       "effort": "low",
       "win": "high_impact",
-      "fix": "Add pricing from R850 on /coaching — \"from R850\" visible before fold.",
+      "fix": "Add pricing from R850 on /coaching · \"from R850\" visible before fold.",
       "evidence": "pricing_gap_on_service_pages",
       "rank_score": 78
     },
@@ -81,7 +81,7 @@
       "impact": "medium",
       "effort": "low",
       "win": "medium",
-      "fix": "Hero CTA: \"Book Your First Session — From R250\" not \"Learn More\". Direct booking intent.",
+      "fix": "Hero CTA: \"Book Your First Session · From R250\" not \"Learn More\". Direct booking intent.",
       "evidence": "cta_weak_on_homepage",
       "rank_score": 60
     },
@@ -92,7 +92,7 @@
       "impact": "low",
       "effort": "medium",
       "win": "low",
-      "fix": "Add quick-book tiles: Club Fitting / Coaching / Practice — 1-click to booking flow for that service.",
+      "fix": "Add quick-book tiles: Club Fitting / Coaching / Practice · 1-click to booking flow for that service.",
       "evidence": "service_navigation_friction",
       "rank_score": 45
     }
