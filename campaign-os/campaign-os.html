@@ -864,7 +864,7 @@ a:hover{text-decoration:underline}
       <!-- "Connect analytics" CTA — only visible when data sources are empty -->
       <div id="perf-connect-cta" style="display:none;margin-top:1rem"></div>
       <!-- Why-explain panel — answers "why did this post work/fail" with real evidence -->
-      <div class="card" style="margin-top:1rem"><div class="card-h"><h3>🔬 Why this worked / failed · explainer</h3></div>
+      <div class="card" style="margin-top:1rem"><div class="card-h"><h3 data-help="Pick any asset from the dropdown and hit Explain to see the evidence chain behind why that post worked or failed. The agent cites hook angle, caption pattern, CTA type, posting time, and the matching performance signal (engagement, saves, reach, click-through). Use this when approving a new asset batch to learn from the last one before you commit to it." data-help-title="Why this worked or failed">🔬 Why this worked / failed · explainer</h3></div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
           <select id="why-asset" style="flex:1;min-width:240px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bg-3);border-radius:6px;padding:6px 10px;font-size:12px"></select>
           <button class="btn primary" id="why-explain-btn">🔍 Explain</button>
@@ -1031,8 +1031,8 @@ a:hover{text-decoration:underline}
         </div>
       </div>
       <div class="grid">
-        <div class="card col-6"><div class="card-h"><h3>🪧 Concepts</h3></div><div id="bb-list"></div></div>
-        <div class="card col-6"><div class="card-h"><h3>🎨 Visual briefs</h3></div><div id="bb-briefs"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="The 5 most recent billboard headline concepts the agent drafted for the active brand, with the hook angle, the call-to-action, and the editorial rationale. Click any concept to expand the full visual brief beneath it. Use this list to pick which billboard to actually shoot." data-help-title="Billboard concepts">🪧 Concepts</h3></div><div id="bb-list"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="Provider-ready design specs for the concept you picked: background palette, CTA placement, headline layout, mood, and the matched brand font. Each brief ladders back to a concept above via linked_blueprint_id. Hand this brief to a designer (or the image-gen tool) and the result will already match the brand." data-help-title="Billboard visual briefs">🎨 Visual briefs</h3></div><div id="bb-briefs"></div></div>
       </div>
     </section>
 
@@ -1041,7 +1041,7 @@ a:hover{text-decoration:underline}
       <div class="section-h"><h2>Caption Studio <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · voice-aware</span></h2><span class="sub">Pick voice + tone → generate · regenerate · test</span></div>
       <div class="grid">
         <div class="card col-12">
-          <div class="card-h"><h3>Configure + generate</h3></div>
+          <div class="card-h"><h3 data-help="Pick the asset you want captions for, set a voice + tone, optionally seed a trend or angle, then click Generate. The voice + tone pair filters the underlying caption knowledge base so every variant matches brand voice. Optional seed box forces the agent to lean into a specific topic without abandoning voice. Regenerate without changing inputs to get fresh variants from the same prompt." data-help-title="Configure + generate">Configure + generate</h3></div>
           <!-- Asset picker -->
           <div class="row gap-1" style="margin-bottom:.75rem">
             <select id="cap-asset-select" style="flex:1;max-width:380px"></select>
@@ -1087,8 +1087,8 @@ a:hover{text-decoration:underline}
           </div>
           <div id="cap-results" style="margin-top:1rem"></div>
         </div>
-        <div class="card col-7"><div class="card-h"><h3>📚 Caption bank</h3></div><div id="cap-bank"></div></div>
-        <div class="card col-5"><div class="card-h"><h3>🎯 CTA performance</h3></div><div id="cap-cta"></div></div>
+        <div class="card col-7"><div class="card-h"><h3 data-help="Approved captions the brand has already shipped, grouped by asset. Click any row to expand the full variant set + the performance line (engagement, reach, save rate). Use this as the editorial memory of what already worked so the generator below doesn't re-propose it from scratch." data-help-title="Caption bank">📚 Caption bank</h3></div><div id="cap-bank"></div></div>
+        <div class="card col-5"><div class="card-h"><h3 data-help="Every CTA the brand has used inside a caption, ranked by historical click-through. Top of the list = highest conversion. The Caption Studio auto-suggests from this list when you generate variants, so the more you ship the smarter the suggestions get." data-help-title="CTA performance">🎯 CTA performance</h3></div><div id="cap-cta"></div></div>
       </div>
     </section>
 
@@ -1126,9 +1126,9 @@ a:hover{text-decoration:underline}
         </div>
       </div>
       <!-- Newly generated -->
-      <div class="card" style="margin-bottom:.75rem"><div class="card-h"><h3>🆕 Just generated <span id="head-gen-count" class="pill muted">0</span></h3></div><div id="head-list"></div></div>
+      <div class="card" style="margin-bottom:.75rem"><div class="card-h"><h3 data-help="Headlines from the current generation batch. Save the ones that fit, edit the rest, discard anything weak. Saving a headline pushes it into the History card below and seeds the next Caption Studio run. Use the voice + pillar + count filters above to narrow the agent's output before generating." data-help-title="Headlines just generated">🆕 Just generated <span id="head-gen-count" class="pill muted">0</span></h3></div><div id="head-list"></div></div>
       <!-- History -->
-      <div class="card"><div class="card-h"><h3>📜 History <span id="head-hist-count" class="pill muted">0</span></h3></div><div id="head-history"></div></div>
+      <div class="card"><div class="card-h"><h3 data-help="Every headline batch the brand has generated in this browser, grouped by date. Saved headlines are marked with a star so you can find the keepers across sessions. Click any row to re-open it in the Just generated card for editing. Clear history wipes the localStorage only; it does not affect any campaigns or assets." data-help-title="Headline history">📜 History <span id="head-hist-count" class="pill muted">0</span></h3></div><div id="head-history"></div></div>
     </section>
 
     <!-- ── CTAS ──────────────────────────────────────────── -->
@@ -1182,9 +1182,9 @@ a:hover{text-decoration:underline}
         </div>
       </div>
       <!-- Newly generated -->
-      <div class="card" style="margin-bottom:.75rem"><div class="card-h"><h3>🆕 Just generated <span id="cta-gen-count" class="pill muted">0</span></h3></div><div id="cta-list"></div></div>
+      <div class="card" style="margin-bottom:.75rem"><div class="card-h"><h3 data-help="CTAs from the current generation batch. Save the ones that fit the asset + platform, edit the rest, discard anything weak. Saving a CTA pushes it into the History card below and feeds the Caption Studio so future caption runs pull from a smarter CTA pool." data-help-title="CTAs just generated">🆕 Just generated <span id="cta-gen-count" class="pill muted">0</span></h3></div><div id="cta-list"></div></div>
       <!-- History -->
-      <div class="card"><div class="card-h"><h3>📜 History <span id="cta-hist-count" class="pill muted">0</span></h3></div><div id="cta-history"></div></div>
+      <div class="card"><div class="card-h"><h3 data-help="Every CTA batch the brand has generated in this browser, grouped by date. Saved CTAs are marked with a star so you can find the keepers across sessions. Click any row to re-open it in the Just generated card for editing. Clear history wipes the localStorage only; it does not affect any campaigns or assets." data-help-title="CTA history">📜 History <span id="cta-hist-count" class="pill muted">0</span></h3></div><div id="cta-history"></div></div>
     </section>
 
     <!-- ── IMAGE GENERATION ──────────────────────────────────── -->
@@ -1222,7 +1222,7 @@ a:hover{text-decoration:underline}
         <!-- ── VISUAL DNA RECIPE BRIDGE (new) ───────────────── -->
         <div class="card col-12" id="ig-recipe-card">
           <div class="card-h">
-            <h3>🎨 Visual Recipe from Brand Library
+            <h3 data-help="Brand-matched prompt scaffolding: type a brief (e.g. coaching post, fitting offer, black friday) and the agent pulls the top templates from the active brand's approved image library, ranked by visual similarity. Each match inherits the brand's color keywords, negative prompt, and composition rules. Pick a template to use it as the visual scaffold for the Prompt Spec card below." data-help-title="Visual Recipe from Brand Library">🎨 Visual Recipe from Brand Library
               <span class="muted" style="font-size:11px;font-weight:400;margin-left:.5rem">· pulls matched templates from <span id="ig-recipe-brand">Swing Shack</span>'s <span id="ig-recipe-count">122</span> approved images</span>
             </h3>
             <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
@@ -1244,7 +1244,7 @@ a:hover{text-decoration:underline}
         </div>
 
         <div class="card col-12">
-          <div class="card-h"><h3>Prompt Spec</h3>
+          <div class="card-h"><h3 data-help="The provider-ready output: full prompt text, negative prompt, color keywords, platform config, and composition rules. Provider tabs at the top let you flip between Ideogram, DALL-E, Midjourney, and Stable Diffusion; each gets its own dialed-in prompt without re-generating. The hook override box lets you force a subject without losing the brand scaffold." data-help-title="Image-gen prompt spec">Prompt Spec</h3>
             <div id="ig-spec-badge" style="margin-left:auto;font-size:11px;color:var(--tx-3)"></div>
           </div>
           <div id="ig-meta" style="margin-bottom:.75rem;padding:.5rem;background:var(--bg-2);border-radius:8px;font-size:12px;color:var(--tx-2)"></div>
@@ -1293,7 +1293,7 @@ a:hover{text-decoration:underline}
       </div>
       <div class="grid">
         <div class="card col-12">
-          <div class="card-h"><h3>🎛️ Generate</h3></div>
+          <div class="card-h"><h3 data-help="Pick a pillar, voice, and platform; set how many tags you want (1 to 30). Click Generate to produce a curated hashtag set tuned for the active brand. The score badge shows the average reach score across the set; copy tags puts the result on your clipboard ready to paste into the CMS. Safe to run during rest-mode because nothing publishes." data-help-title="Hashtag generator">🎛️ Generate</h3></div>
           <div id="hashtag-controls" style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
             <label>Pillar
               <select id="hs-pillar" class="inp" style="margin-left:.25rem">
@@ -1328,29 +1328,29 @@ a:hover{text-decoration:underline}
         </div>
 
         <div class="card col-6">
-          <div class="card-h"><h3>#️⃣ Hashtags <span id="hs-count-badge" class="pill muted">0</span> <span id="hs-score-badge" class="pill"></span></h3></div>
+          <div class="card-h"><h3 data-help="The curated hashtag set the agent just produced for the active pillar / voice / platform combo. Click any tag to copy it. The Why this score panel below explains the ranking logic (reach, niche fit, banned-list filtering); Banned (filtered out) shows tags the agent considered but rejected so you can see the editorial boundary." data-help-title="Curated hashtags">#️⃣ Hashtags <span id="hs-count-badge" class="pill muted">0</span> <span id="hs-score-badge" class="pill"></span></h3></div>
           <div id="hs-tags"></div>
           <div style="margin-top:.75rem"><div class="card-h"><h3 style="font-size:12px">Why this score</h3></div><div id="hs-reasons" class="muted" style="font-size:11px"></div></div>
           <div style="margin-top:.75rem"><div class="card-h"><h3 style="font-size:12px">Banned (filtered out)</h3></div><div id="hs-banned" class="muted" style="font-size:11px"></div></div>
         </div>
 
         <div class="card col-6">
-          <div class="card-h"><h3>📡 Platform tips</h3></div>
+          <div class="card-h"><h3 data-help="Platform-specific hashtag rules the agent enforces: tag count caps, banned tags per network, best-performing tag archetypes (broad vs niche mix), and what the platform's algorithm rewards. Auto-updates to match the platform dropdown above. Read this before changing the count slider if a platform caps hashtags." data-help-title="Platform hashtag tips">📡 Platform tips</h3></div>
           <div id="hs-platform-info"></div>
         </div>
 
         <div class="card col-12">
-          <div class="card-h"><h3>🔎 SEO Pack <span id="hs-seo-score" class="pill"></span></h3></div>
+          <div class="card-h"><h3 data-help="On-page SEO scaffolding for the active brand: title tag suggestions, meta description variants, H1 / H2 outlines, FAQ block drafts, internal-link anchors, and schema.org markup snippets. The score badge in the corner reflects how well the pack matches current Search Console ranking signals. Use the pack as a draft; copy snippets into your CMS and edit before publishing." data-help-title="On-page SEO pack">🔎 SEO Pack <span id="hs-seo-score" class="pill"></span></h3></div>
           <div id="hs-seo"></div>
         </div>
 
         <div class="card col-6">
-          <div class="card-h"><h3>📈 Trending signals</h3></div>
+          <div class="card-h"><h3 data-help="Rising topics in the active brand's category over the last 7 to 30 days, scored by search volume + social velocity. Each row pairs a trending keyword with a recommended hashtag set and a sample SEO angle. Use this list as the input to the Generate card above (paste a trend into the brief box on Visual Recipe too)." data-help-title="Trending hashtag signals">📈 Trending signals</h3></div>
           <div id="hs-trending"></div>
         </div>
 
         <div class="card col-6">
-          <div class="card-h"><h3>🪪 Brand keywords</h3></div>
+          <div class="card-h"><h3 data-help="The brand-locked keywords and entity phrases the active brand owns: product names, founder names, location phrases, signature offers. These always rank first when the agent builds a hashtag set or an SEO Pack, and they're protected from the banned list even if a competitor owns the same phrase. Use this list as the canonical naming reference across all content." data-help-title="Brand-locked keywords">🪪 Brand keywords</h3></div>
           <div id="hs-brand-kw"></div>
         </div>
       </div>
