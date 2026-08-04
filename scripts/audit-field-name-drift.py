@@ -48,6 +48,12 @@ Limitations
 - Treats every `x.y` access inside a render function as a read, even when
   it might be inside a string literal or a comment. The drift report flags
   candidates; humans verify each one.
+- `_keys_from_function_body` walks every `return {...}` site in the Python
+  body and unions the keys, so inner helpers (`_delta()` etc.) and
+  early-out error returns no longer hide the main payload. Functions
+  with nested-array returns (e.g. `seo_movers: [{keyword, direction, ...}]`)
+  still only contribute the TOP-LEVEL keys; nested fields stay as drift
+  candidates for human triage (depth-2 is a separate future tick).
 """
 from __future__ import annotations
 
@@ -316,45 +322,60 @@ def extract_dict_keys_for_endpoint(
 
 
 def _keys_from_function_body(body: str) -> set[str]:
-    """Top-level keys produced by `return {"foo": ..., ...}`."""
-    out: set[str] = set()
-    m = re.search(r"\breturn\s*\{", body)
-    if not m:
-        return out
-    start = m.end() - 1
-    depth = 0
-    i = start
-    in_str = None
-    while i < len(body):
-        ch = body[i]
-        if in_str is not None:
-            if ch == "\\":
-                i += 2
-                continue
-            if ch == in_str:
-                in_str = None
-            i += 1
-            continue
-        if ch in ("'", '"', "`"):
-            in_str = ch
-            i += 1
-            continue
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                payload = body[start + 1 : i]
-                break
-        i += 1
-    else:
-        payload = body[start + 1 :]
+    """Top-level keys produced by any `return {"foo": ..., ...}` in the body.
 
-    for line in payload.split("\n"):
-        line = line.strip()
-        m = re.match(r"""['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\s*:""", line)
-        if m:
-            out.add(m.group(1))
+    Unions every return-dict site in the function, not just the first.
+    This matters when an inner helper (`def _delta()` etc.) has its own
+    `return {...}` BEFORE the main payload, OR when the function has an
+    early-out `return {"ok": False, "error": ...}` AND a main-payload
+    return further down (e.g. hooks_view). The previous "first match
+    wins" behaviour silently merged those smaller dicts and dropped the
+    real contract surface.
+
+    The original 12:32Z tick's audit only extracted 1 contract key for
+    weekly_report (`current`, picked up from `_delta()`'s return) and
+    produced 23 drift candidates on renderWeeklyReport; the union
+    version extracts 25 keys (incl. the full main payload) and
+    collapses the drift count to ~10 (mostly nested-array reads).
+    """
+    out: set[str] = set()
+    for site in re.finditer(r"\breturn\s*\{", body):
+        start = site.end() - 1  # points at '{'
+        depth = 0
+        k = start
+        in_str = None
+        balanced = False
+        while k < len(body):
+            ch = body[k]
+            if in_str is not None:
+                if ch == "\\":
+                    k += 2
+                    continue
+                if ch == in_str:
+                    in_str = None
+                k += 1
+                continue
+            if ch in ("'", '"', "`"):
+                in_str = ch
+                k += 1
+                continue
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    payload = body[start + 1 : k]
+                    for line in payload.split("\n"):
+                        line = line.strip()
+                        m = re.match(r"""['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]\s*:""", line)
+                        if m:
+                            out.add(m.group(1))
+                    balanced = True
+                    break
+            k += 1
+        # If unbalanced (malformed input), skip: better to drop one site
+        # than to corrupt the union with garbage.
+        del balanced
     return out
 
 
@@ -451,7 +472,8 @@ def run_audit(verbose: bool = False) -> dict:
         drift_total += len(drift)
 
         if verbose and drift:
-            print(f"  ! {render_name}: {len(drift)} drift: "
+            print(f"  ! {render_name}: {len(drift)} drift "
+                  f"(contract_keys={len(contract_keys)}) "
                   + ", ".join(drift[:8])
                   + (" ..." if len(drift) > 8 else ""),
                   file=sys.stderr)
