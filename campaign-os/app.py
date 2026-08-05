@@ -2923,6 +2923,58 @@ def review_asset(asset_id):
         response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
     return jsonify(response)
 
+
+@app.route('/api/review/bulk-approve', methods=['POST'])
+def bulk_approve_assets():
+    """POST /api/review/bulk-approve — flip a list of assets to approved in one call,
+       one git commit (not N).
+
+       Body: { campaignId, assetIds: [...] }
+       Returns: { ok, approved: N, failed: [...], _syncWarning? }
+    """
+    body = request.get_json() or {}
+    campaign_id = body.get('campaignId')
+    asset_ids = body.get('assetIds') or []
+    if not campaign_id: return jsonify({"ok": False, "error": "campaignId required"}), 400
+    if not asset_ids or not isinstance(asset_ids, list):
+        return jsonify({"ok": False, "error": "assetIds[] required"}), 400
+
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if campaign_id not in campaigns:
+        return jsonify({"ok": False, "error": "Campaign not found"}), 404
+    campaign = campaigns[campaign_id]
+    assets = campaign.get("assets", {})
+    now = datetime.datetime.utcnow().isoformat() + 'Z'
+    approved = 0
+    failed = []
+    for aid in asset_ids:
+        if aid not in assets:
+            failed.append({"assetId": aid, "reason": "not found"})
+            continue
+        a = assets[aid]
+        if a.get('approvalStatus') == 'approved':
+            continue  # already approved — no-op
+        a['approvalStatus'] = 'approved'
+        a['updatedAt'] = now
+        a['reviewTs'] = now
+        history = a.get('history') or []
+        history.append({
+            "action": "bulk-approve",
+            "by": "campaign-workview",
+            "at": now,
+            "note": f"Bulk-approve from campaign work-view ({len(asset_ids)} assets)",
+        })
+        a['history'] = history
+        approved += 1
+    campaign['updatedAt'] = now
+    save_data(data)
+    ok, msg = git_push(f"Campaign OS v0.1: bulk-approve {approved} assets in '{campaign_id}'")
+    response = {"ok": True, "approved": approved, "failed": failed, "total": len(asset_ids)}
+    if not ok:
+        response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
+    return jsonify(response)
+
 # ─── INLINE ASSET EDIT ──────────────────────────────────────────────────
 ALLOWED_INLINE_FIELDS = {
     'caption', 'visualBrief', 'imagePrompt', 'imageUrl',
@@ -4002,6 +4054,52 @@ def today_panel():
             if ident and ident not in hidden:
                 cards.append({'id': ident, 'label': label, 'kind': kind, 'title': item.get('name') or item.get('title') or item.get('action') or 'Untitled', 'campaignId': item.get('campaignId'), 'updatedAt': item.get('updatedAt')})
     return jsonify({'ok': True, 'ts': _now_iso(), 'summary': brief.get('summary', ''), 'cards': cards, 'dismissed': sorted(hidden), 'count': len(cards)})
+
+
+@app.route('/api/freshness', methods=['GET'])
+def freshness():
+    """GET /api/freshness — surface data/freshness.json so the OS UI can render
+       a staleness indicator without re-scanning on every page load.
+
+       Tries DATA_DIR/freshness.json first (Railway volume), then bundled
+       data/freshness.json (shipped with the deploy / used in local dev).
+
+       Schema produced by scripts/data_freshness_check.js:
+       { generated, stale_days_threshold, total_files, by_staleness: {fresh,stale,rotten,static,unknown},
+         stale_files: [...], rotten_files: [...] }
+    """
+    paths = _data_paths()
+    candidates = [
+        os.path.join(paths['data_dir'], 'freshness.json'),
+        os.path.join(REPO_ROOT, 'data', 'freshness.json'),
+    ]
+    data = None
+    used = None
+    for c in candidates:
+        try:
+            if os.path.exists(c):
+                data = _read_json_file(c)
+                used = c
+                if data: break
+        except Exception:
+            continue
+    if not data:
+        return jsonify({'ok': False, 'error': 'freshness.json missing — run scripts/data_freshness_check.js', 'stale_count': 0, 'rotten_count': 0, 'fresh_count': 0, 'source': None}), 503
+    bs = data.get('by_staleness') or {}
+    return jsonify({
+        'ok': True,
+        'source': used,
+        'ts': data.get('generated'),
+        'stale_days_threshold': data.get('stale_days_threshold', 14),
+        'total_files': data.get('total_files', 0),
+        'fresh_count': bs.get('fresh', 0),
+        'stale_count': bs.get('stale', 0),
+        'rotten_count': bs.get('rotten', 0),
+        'static_count': bs.get('static', 0),
+        'unknown_count': bs.get('unknown', 0),
+        'stale_files': data.get('stale_files', [])[:8],
+        'rotten_files': data.get('rotten_files', [])[:8],
+    })
 
 
 @app.route('/api/today/panel/dismiss', methods=['POST'])

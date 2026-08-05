@@ -93,6 +93,13 @@
   --pillar-coaching:#1d4ed8; --pillar-community:#047857;
   --pillar-events:#be185d; --pillar-merch:#6d28d9;
 }
+/* Light-theme overrides for tooltip / collapsible-explainers
+   (the base .help-pop / .hc-body rules ship with dark hex hardcoded so they're
+    readable in dark even when --bg-1 was undefined). These make them readable
+    in light theme too. */
+[data-theme="light"] .help-pop{background:#ffffff;color:#1e293b;border-color:#c1cad9;box-shadow:0 8px 28px rgba(15,23,42,.18),0 0 0 1px rgba(16,185,129,.18)}
+[data-theme="light"] .help-collapsible .hc-body{background:#ffffff;color:#475569;border-color:#c1cad9}
+[data-theme="light"] .help-collapsible .hc-body .hc-term{color:#0f172a}
 /* Honor system preference when no override stored */
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]):not([data-theme="light"]){
@@ -737,6 +744,15 @@ a:hover{text-decoration:underline}
         <div id="brief-recommendation-body">
           <div class="muted">Loading recommendation…</div>
         </div>
+      </div>
+
+      <!-- Data freshness widget: surfaces stale data hidden behind the rest of the OS -->
+      <div class="card" id="freshness-card" style="margin-top:1rem;display:none" data-help="Per-file age check of every JSON in the workspace's data/ directory. Files older than 14 days show in 'stale'. Files 3x older (42d+) show in 'rotten'. Catches the silent-decay pattern (e.g. competitor tracker going 20d stale without anyone noticing). Refreshes daily at 07:30 SAST." data-help-title="Data freshness">
+        <div class="card-h">
+          <h3>🧊 Data freshness</h3>
+          <span class="muted" id="freshness-summary" style="font-size:12px">—</span>
+        </div>
+        <div id="freshness-body"></div>
       </div>
 
       <div class="grid" id="brief-grid"></div>
@@ -4561,7 +4577,33 @@ async function loadLibPane(kind, bid, focusSearch){
         `).join('')}</div>
       ` : '<div class="empty-card muted">No approved assets yet. Approve something from Review →</div>';
     } else if(kind === 'captions' || kind === 'hooks' || kind === 'memes'){
+      // For memes: also render the full catalog above the search so users see actual cards
+      // (the original UX hid them entirely behind a search box).
+      let catalogHtml = '';
+      if(kind === 'memes'){
+        try {
+          const r = await fetch('/api/intel/memes/catalog').then(r => r.json()).catch(() => ({ok:false, memes:[]}));
+          const list = (r.memes || r.items || []).slice(0, 60);
+          catalogHtml = `
+            <div style="margin-bottom:1.5rem">
+              <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
+                <h4 style="margin:0">😂 Meme catalog (${list.length})</h4>
+                <a href="/meme-lab" class="mini-link">Open Meme Lab →</a>
+              </div>
+              <div class="lib-grid">
+                ${list.map(m => `
+                  <div class="lib-thumb lib-text" title="${esc(m.name || '')}">
+                    <div class="lib-thumb-meta"><b>${esc(m.name || m.id || '')}</b></div>
+                    <div class="lib-thumb-sub">${esc(m.format || m.era || '')}${m.peak_year?' · '+m.peak_year:''}</div>
+                    ${m.fatigue_risk ? `<div class="lib-thumb-sub" style="font-size:10px;color:var(--mu)">fatigue: ${esc(m.fatigue_risk)}</div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>`;
+        } catch(e){ catalogHtml = `<div class="empty-card muted" style="margin-bottom:1rem">Couldn't load meme catalog — search still works below.</div>`; }
+      }
       pane.innerHTML = `
+        ${catalogHtml}
         <input id="lib-search-input" type="text" placeholder="Search ${kind}… (try a keyword)" style="width:100%;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:1rem"/>
         <div id="lib-search-results"><span class="muted">Type to search.</span></div>
       `;
@@ -5017,6 +5059,7 @@ async function renderBrief(){
     const fetchWhatsNew = (!S.whatsNew || (Date.now() - (S.whatsNewTs||0)) > 10*60*1000)
       ? API.get('/api/whats-new').then(v => { S.whatsNew = v.items || []; S.whatsNewTs = Date.now(); }).catch(() => null)
       : Promise.resolve();
+    const fetchFreshness = !S.freshness ? API.get('/api/freshness').then(v => S.freshness = v).catch(() => null) : Promise.resolve();
     const [b, r, t] = await Promise.all([
       API.get('/api/intel/morning_brief'),
       API.get('/api/intel/review_inbox'),
@@ -5024,12 +5067,52 @@ async function renderBrief(){
       fetchBrandContext,
       fetchTodayPanel,
       fetchWhatsNew,
+      fetchFreshness,
     ]);
     b.__cacheBrand = cacheKey;
     S.brief = b; S.review = r; S.trends = t;
   }
   const b = S.brief;
   $('#brief-strip-txt').innerHTML = `<b>${esc(b.summary)}</b> · ${b.do_first.length} recommended actions · ${b.missed_high_impact.length} high-impact misses · ${b.seo_quick_wins.length} SEO quick wins.`;
+
+  // ─── Freshness widget — show stale/rotten file counts and top offenders ───
+  // Only render the card if there's actually something stale. Quiet systems
+  // (all-green) shouldn't add visual noise to a brand-first brief.
+  (function renderFreshnessCard(){
+    const card = $('#freshness-card');
+    if(!card) return;
+    const f = S.freshness;
+    if(!f || !f.ok){
+      card.style.display = 'none';
+      return;
+    }
+    const rotten = f.rotten_count || 0;
+    const stale = f.stale_count || 0;
+    const fresh = f.fresh_count || 0;
+    if(rotten === 0 && stale === 0){
+      card.style.display = 'none';
+      return;
+    }
+    const color = rotten > 0 ? 'var(--red)' : (stale > 0 ? 'var(--org)' : 'var(--green)');
+    const headline = rotten > 0
+      ? `🚨 ${rotten} file${rotten===1?'':'s'} > 42 days old · ${stale} more between 14-42 days`
+      : `⚠️ ${stale} file${stale===1?'':'s'} 14-42 days old (${fresh} fresh)`;
+    const top = (f.rotten_files || []).slice(0, 6);
+    const mid = (f.stale_files || []).slice(0, 6);
+    card.style.display = 'block';
+    card.style.borderLeft = `3px solid ${color}`;
+    $('#freshness-summary').innerHTML = `<span style="color:${color};font-weight:600">${headline}</span>`;
+    $('#freshness-summary').setAttribute('title', `last freshness sweep: ${f.ts || '?'} · threshold: ${f.stale_days_threshold}d`);
+    $('#freshness-body').innerHTML = `
+      ${top.length ? `<div style="margin-bottom:.4rem"><b style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Top rotten (${top.length})</b></div>
+      <ul style="margin:.25rem 0 .6rem;padding-left:1.1rem;font-size:12.5px;color:var(--tx-2)">${top.map(x => `<li><code style="background:var(--bg-3);padding:1px 4px;border-radius:3px">${esc(x.path || x.id || '')}</code> · ${x.age_days}d</li>`).join('')}</ul>` : ''}
+      ${mid.length ? `<div style="margin-bottom:.4rem"><b style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Stale 14-42d (${mid.length})</b></div>
+      <ul style="margin:.25rem 0 .6rem;padding-left:1.1rem;font-size:12.5px;color:var(--tx-2)">${mid.map(x => `<li><code style="background:var(--bg-3);padding:1px 4px;border-radius:3px">${esc(x.path || x.id || '')}</code> · ${x.age_days}d</li>`).join('')}</ul>` : ''}
+      <div class="muted" style="font-size:11.5px;margin-top:.5rem">Cron: <code>com.swing-shack.freshness-check</code> · daily 07:30 SAST · threshold ${f.stale_days_threshold}d. Adjust via STALE_DAYS env.</div>
+    `;
+    // Wire help tooltip if available
+    if(window.HELP && HELP.autoAttach) HELP.autoAttach(card);
+  })();
 
   // ─── Today's recommendation — one concrete action with a working button ───
   const rec = b.recommended_action || {type: 'browse', next: 'ideas'};
@@ -7553,8 +7636,26 @@ async function renderCampaigns(){
     const cname = c.identity?.name || cid;
     const assets = c.assets || {};
     const n = Object.keys(assets).length;
-    const status = c.identity?.status || '';
-    return `<div class="card col-4" id="camp-card-${cid}" onclick="toggleCampaignPlan('${cid}')"><div class="card-h">${campCardH3(cname, status)}</div><div class="row gap-1" style="margin-bottom:.5rem"><span class="muted">${n} assets</span>${d.activeCampaignId===cid?pill('on','active'):''}</div>${c.identity?.brief?`<div style="font-size:12px;color:var(--tx-2);line-height:1.4">${esc(c.identity.brief).slice(0,160)}…</div>`:''}<div class="btn-row" style="margin-top:.75rem"><button class="btn ghost" onclick="event.stopPropagation();toggleCampaignPlan('${cid}')">📋 Full plan</button><button class="btn ghost" onclick="event.stopPropagation();go('calendar')">📅 Calendar</button></div></div>`;
+    const status = (c.identity?.status || '').toLowerCase();
+    // Quick breakdowns so each card carries useful info at a glance — not just asset count.
+    let breakdown = '';
+    if(n > 0){
+      const kinds = {};
+      for(const a of Object.values(assets)){
+        const k = a.kind || a.type || a.asset_class || 'asset';
+        kinds[k] = (kinds[k]||0) + 1;
+      }
+      const pills = Object.entries(kinds).slice(0,4).map(([k,v]) =>
+        `<span class="pill draft" style="font-size:10px" title="${esc(k)}">${esc(k)} ${v}</span>`
+      ).join(' ');
+      if(pills) breakdown = `<div style="display:flex;gap:.25rem;flex-wrap:wrap;margin-top:.4rem">${pills}</div>`;
+    }
+    // Status pill — surface any non-empty status coming from backend (active / draft / paused / archived)
+    let statusPill = '';
+    if(status && d.activeCampaignId===cid) statusPill = pill('on', status);
+    else if(status) statusPill = pill('draft', status);
+    else if(d.activeCampaignId===cid) statusPill = pill('on','active');
+    return `<div class="card col-4" id="camp-card-${cid}" onclick="toggleCampaignPlan('${cid}')"><div class="card-h">${campCardH3(cname, status)}<span class="h-meta">${statusPill}</span></div><div class="row gap-1" style="margin-bottom:.5rem"><span class="muted">${n} asset${n===1?'':'s'}</span></div>${c.identity?.brief?`<div style="font-size:12px;color:var(--tx-2);line-height:1.4">${esc(c.identity.brief).slice(0,160)}…</div>`:''}${breakdown}<div class="btn-row" style="margin-top:.75rem"><button class="btn ghost" onclick="event.stopPropagation();toggleCampaignPlan('${cid}')">📋 Full plan</button><button class="btn ghost" onclick="event.stopPropagation();go('calendar')">📅 Calendar</button></div></div>`;
   }).join('') + '</div><div id="camp-plans"></div>';
 
   // ─── Brand Directory panel (new — surfaces 9-slot directory per brand) ──
@@ -7807,6 +7908,267 @@ async function renderBrandDirectoryPanel(){
     container.innerHTML = `<div class="card"><div class="muted">Brand Directory API not reachable: ${esc(e.message)}</div></div>`;
   }
 }
+// ─── TIER 2(d) — Per-campaign work-view header ─────────────────────
+// Surfaces purpose, status counts, "what's needed" checklist at the top of
+// the per-campaign detail view. Computed client-side from /api/campaigns/<cid>
+// (no backend change required — the existing endpoint already ships every
+// asset with its approval/caption/visual/publish sub-statuses).
+window.renderCampaignWorkviewHeader = (cid, c) => {
+  // Skip if no real data (API failure / empty campaign).
+  if(!c || !c.identity) return;
+  const identity = c.identity || {};
+  const assets = c.assets || {};
+  const ids = Object.keys(assets);
+
+  // ── Status pill counts ────────────────────────────────────────
+  const counts = { review:0, generated:0, draft:0, approved:0, published:0, scheduled:0, rejected:0 };
+  // Sub-status aggregates (approval + caption + visual + publish)
+  const sub = { approval_ready:0, caption_ready:0, visual_ready:0, publish_ready:0 };
+  for(const a of Object.values(assets)){
+    counts[a.status] = (counts[a.status]||0)+1;
+    if(a.approvalStatus === 'approved') sub.approval_ready++;
+    if(a.captionStatus === 'approved' || a.captionStatus === 'ready') sub.caption_ready++;
+    if(a.visualStatus === 'approved' || a.visualStatus === 'ready') sub.visual_ready++;
+    if(a.publishStatus === 'scheduled' || a.publishStatus === 'published') sub.publish_ready++;
+  }
+  const readyToApprove = ids.filter(aid => {
+    const a = assets[aid];
+    return a.status === 'review' && a.approvalStatus !== 'approved';
+  });
+
+  // ── "What's needed" checklist ─────────────────────────────────
+  // Each line: { label, count, status, hint }
+  // status: 'ready' (green ✅) | 'partial' (amber 🟡) | 'needed' (red 🔴)
+  const checklist = [];
+  // Real photos
+  const needsRealPhoto = Object.values(assets).filter(a => a.realImageNeeded);
+  if(needsRealPhoto.length){
+    const readyReal = needsRealPhoto.filter(a =>
+      (a.visualStatus === 'approved' || a.visualStatus === 'ready' ||
+       (a.visualBrief && a.qualityGateState === 'pass'))
+    ).length;
+    checklist.push({
+      label: 'Real photos',
+      icon: '📸',
+      status: readyReal === needsRealPhoto.length ? 'ready' : (readyReal > 0 ? 'partial' : 'needed'),
+      count: needsRealPhoto.length,
+      ready: readyReal,
+      hint: needsRealPhoto.length === 1
+        ? '1 asset needs a real photo from you.'
+        : `${readyReal}/${needsRealPhoto.length} have an uploaded or approved visual.`,
+    });
+  }
+  // AI-generated images
+  const allowsAi = Object.values(assets).filter(a => a.aiImageAllowed);
+  if(allowsAi.length){
+    checklist.push({
+      label: 'AI image prompts',
+      icon: '🎨',
+      status: 'ready',
+      count: allowsAi.length,
+      ready: allowsAi.length,
+      hint: 'All AI-eligible assets can be generated by the Image Gen tab.',
+    });
+  }
+  // Videos
+  const videos = Object.values(assets).filter(a =>
+    ['reel','story','video'].includes(a.assetType||'')
+  );
+  if(videos.length){
+    checklist.push({
+      label: 'Videos',
+      icon: '🎬',
+      status: 'needed',
+      count: videos.length,
+      ready: 0,
+      hint: `${videos.length} reel${videos.length===1?'':'s'}/stor${videos.length===1?'y':'ies'} — these can\'t be AI-generated, they need filming.`,
+    });
+  }
+  // Captions
+  const captionPending = Object.values(assets).filter(a =>
+    !(a.caption && a.caption.trim()) &&
+    a.status !== 'rejected'
+  );
+  checklist.push({
+    label: 'Captions',
+    icon: '✍️',
+    status: captionPending.length === 0 ? 'ready' : (captionPending.length < ids.length/2 ? 'partial' : 'needed'),
+    count: ids.length,
+    ready: ids.length - captionPending.length,
+    hint: captionPending.length === 0
+      ? 'Every asset has a caption.'
+      : `${captionPending.length} asset${captionPending.length===1?'':'s'} still need${captionPending.length===1?'s':''} a caption.`,
+  });
+  // CTAs
+  const needsCta = Object.values(assets).filter(a =>
+    ['feed-post','reel','carousel','story','gmb-post'].includes(a.assetType) &&
+    !a.cta
+  );
+  if(needsCta.length){
+    checklist.push({
+      label: 'CTAs',
+      icon: '🔗',
+      status: 'needed',
+      count: needsCta.length,
+      ready: ids.length - needsCta.length,
+      hint: `${needsCta.length} post${needsCta.length===1?'':'s'} missing a clear call-to-action.`,
+    });
+  }
+  // Schedule
+  const approvedNotScheduled = Object.values(assets).filter(a =>
+    (a.status === 'approved' || a.approvalStatus === 'approved') &&
+    a.publishStatus !== 'scheduled' && a.publishStatus !== 'published'
+  );
+  checklist.push({
+    label: 'Schedule',
+    icon: '📅',
+    status: approvedNotScheduled.length === 0 ? 'ready' : 'needed',
+    count: ids.length,
+    ready: ids.length - approvedNotScheduled.length,
+    hint: approvedNotScheduled.length === 0
+      ? 'Everything approved is already scheduled or live.'
+      : `${approvedNotScheduled.length} approved asset${approvedNotScheduled.length===1?'':'s'} still need${approvedNotScheduled.length===1?'s':''} a publish slot. Drag the Calendar view to add.`,
+  });
+
+  // ── Render ────────────────────────────────────────────────────
+  const target = document.getElementById('camp-plans');
+  // Remove any prior header for this campaign (re-open case).
+  const prior = document.getElementById('workview-' + cid);
+  if(prior) prior.remove();
+  // Build the header card
+  const card = document.createElement('div');
+  card.id = 'workview-' + cid;
+  card.style.cssText = 'margin-top:1rem;';
+  // Health score → colour
+  const hs = identity.healthScore || 0;
+  const healthColor = hs >= 75 ? 'var(--green)' : hs >= 50 ? 'var(--org)' : 'var(--red)';
+  const healthBarWidth = Math.max(4, Math.min(100, hs));
+  // Platform pills
+  const platforms = (identity.platforms || []).map(p =>
+    `<span class="pill muted" style="font-size:10px">${esc(p)}</span>`
+  ).join(' ');
+  // Status counts as pills
+  const statusPills = [
+    ['review', counts.review || 0, 'draft'],
+    ['generated', counts.generated || 0, 'draft'],
+    ['approved', counts.approved || 0, 'on'],
+    ['scheduled', counts.scheduled || 0, 'on'],
+    ['published', counts.published || 0, 'on'],
+    ['rejected', counts.rejected || 0, 'blocked'],
+  ].filter(([,n]) => n > 0).map(([s,n,k]) =>
+    `${pill(k, s)} <span class="muted" style="font-size:11px;margin-left:.15rem">${n}</span>`
+  ).join(' ');
+
+  // Checklist render
+  const checklistHtml = checklist.map(item => {
+    const sym = item.status === 'ready' ? '✅' : item.status === 'partial' ? '🟡' : '🔴';
+    const color = item.status === 'ready' ? 'var(--green)' : item.status === 'partial' ? 'var(--org)' : 'var(--red)';
+    return `<div style="display:flex;gap:.65rem;align-items:flex-start;padding:.5rem .65rem;border-radius:6px;background:${item.status==='ready'?'rgba(16,185,129,.06)':item.status==='partial'?'rgba(217,119,6,.06)':'rgba(220,38,38,.06)'};margin-bottom:.35rem">
+      <span style="font-size:18px;line-height:1">${sym}</span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:.5rem">
+          <span style="font-weight:600;color:${color};font-size:13px">${item.icon} ${esc(item.label)}</span>
+          <span class="muted" style="font-size:11px;white-space:nowrap">${item.ready}/${item.count} ready</span>
+        </div>
+        <div class="muted" style="font-size:11.5px;margin-top:.15rem;line-height:1.4">${esc(item.hint)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Sub-status string
+  const subSummary = `${sub.approval_ready} approval · ${sub.caption_ready} caption · ${sub.visual_ready} visual · ${sub.publish_ready} publish`;
+
+  // Purpose text — fall back through goal → primaryGoal → brief
+  const purpose = identity.goal || identity.primaryGoal || (identity.brief ? identity.brief.split('\n')[0] : '');
+
+  card.innerHTML = `
+    <div class="card" style="border-left:3px solid ${healthColor}">
+      <div class="card-h">
+        <h3 data-help="The why of this campaign — the single line you would tell a friend if they asked what this is for. Below it: the status of every asset class (real photos you need, AI image prompts, videos, captions, CTAs, schedule). The 'Automation' section lists what the agents handle (everything except the items marked 🔴). The bulk-approve button ships every 'review' asset to 'approved' in one click." data-help-title="Campaign work-view" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🎯 Campaign work-view <span style="font-size:11px;color:var(--tx-3);font-weight:500;margin-left:.4rem">${esc(identity.name || cid)}</span></h3>
+        <span class="h-meta"><span class="pill ${identity.status==='active'?'on':'draft'}" style="font-size:10px">${esc(identity.status || 'unknown')}</span></span>
+      </div>
+
+      ${purpose ? `<div style="font-size:13.5px;color:var(--tx);line-height:1.5;margin-bottom:.85rem;padding:.65rem .85rem;background:var(--bg-2);border-radius:6px;border-left:3px solid ${healthColor}"><b>Purpose:</b> ${esc(purpose)}</div>` : '<div class="muted" style="font-size:12px;margin-bottom:.85rem">No purpose defined yet — edit identity.goal.</div>'}
+
+      <div class="grid" style="margin-bottom:1rem">
+        <div class="col-8">
+          <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">📊 Status (${ids.length} assets total)</div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">${statusPills || '<span class="muted">No assets yet.</span>'}</div>
+          <div class="muted" style="font-size:11px;margin-top:.4rem">${esc(subSummary)}</div>
+        </div>
+        <div class="col-4">
+          <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">🏥 Health</div>
+          <div style="display:flex;align-items:baseline;gap:.4rem">
+            <span style="font-size:24px;font-weight:700;color:${healthColor};line-height:1">${hs}</span>
+            <span class="muted" style="font-size:11px">${esc(identity.healthState || '')}</span>
+          </div>
+          <div style="height:6px;background:var(--bg-3);border-radius:999px;overflow:hidden;margin-top:.3rem">
+            <div style="height:100%;width:${healthBarWidth}%;background:${healthColor};transition:width .4s ease"></div>
+          </div>
+          <div class="muted" style="font-size:11px;margin-top:.35rem">Owner: ${esc(identity.owner || '—')} · ${platforms || '<span class="muted">no platforms</span>'}</div>
+        </div>
+      </div>
+
+      <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">🛠 What's needed</div>
+      <div style="margin-bottom:1rem">${checklistHtml}</div>
+
+      <div class="row" style="gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
+        ${readyToApprove.length ? `<button class="btn primary" data-bulk-approve="${esc(cid)}" data-bulk-count="${readyToApprove.length}">✓ Approve all ${readyToApprove.length} review item${readyToApprove.length===1?'':'s'}</button>` : ''}
+        <button class="btn ghost" data-export-postiz="${esc(cid)}">📤 Export to Postiz</button>
+        <button class="btn ghost" onclick="toggleCampaignPlan('${esc(cid)}')">📋 Open full plan</button>
+      </div>
+      <div class="muted" style="font-size:11px;margin-top:.5rem">Automation by default: captions + AI images + scheduling. You only touch what's marked 🔴 above.</div>
+    </div>
+  `;
+  target.appendChild(card);
+
+  // ── Wire interactions ─────────────────────────────────────────
+  card.querySelector('[data-bulk-approve]')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const n = parseInt(btn.dataset.bulkCount, 10) || 0;
+    if(n === 0) return;
+    btn.disabled = true;
+    btn.textContent = `Approving ${n} assets…`;
+    const assetIds = Object.entries(assets).filter(([,a]) =>
+      a.status === 'review' && a.approvalStatus !== 'approved'
+    ).map(([aid]) => aid);
+    // Single backend call = single GitHub commit, not N. /api/review/bulk-approve
+    // is the canonical bulk-approve endpoint; the old /api/review/<aid> call would
+    // have created 37 commits for a 37-asset batch (Tier 2(d) lesson).
+    try{
+      const r = await API.post('/api/review/bulk-approve', { campaignId: cid, assetIds });
+      if(r.ok){
+        btn.textContent = `✓ Approved ${r.approved || assetIds.length} assets`;
+        toast(`Approved ${r.approved || assetIds.length} / ${assetIds.length} assets`, 'ok');
+      } else {
+        btn.textContent = '✗ Bulk approve failed';
+        toast(r.error || 'Bulk approve failed', 'err');
+      }
+    }catch(err){
+      btn.textContent = '✗ ' + (err.message || 'Failed');
+      toast(err.message || 'Failed', 'err');
+    }
+    btn.disabled = false;
+    setTimeout(() => {
+      API.get('/api/campaigns/' + cid).then(updated => renderCampaignWorkviewHeader(cid, updated));
+    }, 400);
+  });
+  card.querySelector('[data-export-postiz]')?.addEventListener('click', async () => {
+    toast('Routing you to Postiz publish…', 'ok');
+    try{
+      // The Publish queue already accepts bulk export. Prefill it.
+      const r = await API.post('/api/postiz/bulk-export', { campaignId: cid, brand_id: c.brand_id });
+      if(r.ok){ toast(`Exported ${r.exported||'all'} approved assets to Postiz`); go('postiz'); }
+      else { go('postiz'); }
+    }catch{
+      // Fallback: just navigate; user can multi-select there.
+      go('postiz');
+    }
+  });
+
+  if(window.HELP && HELP.autoAttach) HELP.autoAttach(card);
+};
+
 window.toggleCampaignPlan = async (cid) => {
   const el = document.getElementById('camp-plans');
   if(_campaignsExpanded.has(cid)){
@@ -7817,8 +8179,16 @@ window.toggleCampaignPlan = async (cid) => {
   }
   _campaignsExpanded.add(cid);
   toast('Loading plan…');
-  const p = await API.get('/api/plan/'+cid);
+  // Fire work-view (client-side derivation from /api/campaigns/<cid>) AND
+  // the existing Plan endpoint (synthesised goals / persona / calendar) in
+  // parallel. Tier 2(d) ships the work-view ABOVE the existing plan so the
+  // user lands in "what is this campaign + what needs me" mode first.
+  const [p, c] = await Promise.all([
+    API.get('/api/plan/'+cid).catch(()=>({ok:false})),
+    API.get('/api/campaigns/'+cid).catch(()=>({})),
+  ]);
   if(!p.ok){ toast(p.error||'Failed', 'err'); _campaignsExpanded.delete(cid); return; }
+  renderCampaignWorkviewHeader(cid, c);   // Tier 2(d) — purpose / status / what's needed
   renderPlan(p, cid);
 };
 function renderPlan(p, cid){
