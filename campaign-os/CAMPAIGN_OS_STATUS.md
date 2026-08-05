@@ -212,3 +212,25 @@ Next: Dark mode / theme tokens (priority 9)
 **Server:** restarted on PID 83959; Cloudflare tunnel still up
 
 **Next priority:** Trend Catcher v2 (priority 5) — split signals into 3 sources (marketing industry / golf news / competitors), add relevance scoring + suggested response for each signal.
+## Cron tick — 2026-08-05T08:49Z
+
+**Built:** Wire 5 card-h h3 tooltips in remaining dynamic-template surfaces (carry-over from 2026-08-05T07:39Z tick).
+
+**Files:** `campaign-os/campaign-os.html` (+11/-5, 1 file, commit `964ad78`)
+
+**New tooltips:**
+- 🧠 Learning (renderInsights, line ~4240) — inline `data-help`/`data-help-title` attrs since h3 is outside any h3tip scope
+- 📅 Weekly marketing report (renderWeeklyReport, line ~4270) — same inline-attr pattern
+- Pillar card (renderPlan, line ~7770) — uses the existing renderPlan `h3tip` builder; fires per pillar (5 in the Takomo 101T campaign)
+- ✏️ Assets · click any field to edit (renderPlan, line ~7813) — same `h3tip` builder
+- Asset card (assetEditorHtml, line ~7841) — local `h3tip` builder + `assetCardHelp` const string (assetEditorHtml is a separate function so it needs its own scope)
+
+**Verified via Playwright LIVE, cookie auth:**
+- Bundle probe: 3/3 needles (`pillarCardHelp`, `assetsSectionHelp`, `assetCardHelp`) found in served JS (404,619 chars).
+- DOM counts: Learning 1/1, Weekly 1/1, Pillar cards 5/5, Assets section 1/1, Asset cards 6/6.
+- Affordance: `cursor: help` + `border-bottom-style: dotted` on every new h3.
+- Popover: all 5 fire on hover with correct title + body text matching the wired copy.
+- 0 PAGEERROR, 0 console errors.
+- Helper-system audit re-ran clean (29/29 surfaces pass).
+
+**Next pick:** 4 remaining unwired h3s: campaign card cname (7452), brand directory brief list label (7498), brief detail `✅ bid · tone · surface` (7658), HashtagSEO "Why this score" + "Banned" (1353/1354). All in different function scopes so each needs its own local `h3tip` builder. Next tick.
