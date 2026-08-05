@@ -309,3 +309,30 @@ done
 - OR fix the popover `top = r.bottom + window.scrollY + 6` pre-existing bug (line 1559) — popover is `position:fixed` so the `+ window.scrollY` is wrong, putting the popover below the visible viewport when triggered mid-screen. 1-line patch.
 
 **Blockers**: none.
+
+---
+
+## Cron tick 2026-08-05T05:00Z (nightshift tick — popover position fix + flip-up clamp)
+
+Picked up the **popover `top = r.bottom + window.scrollY + 6` carry-over** flagged in the 2026-08-05T03:45Z tick. Bug: `.help-pop{position:fixed}` but `showPop()` was adding `window.scrollX/scrollY`, placing the pop off-screen below the fold whenever the trigger was mid-page. Static screenshot proof from the prior tick showed popovers at y > 1800 in a 900-tall viewport.
+
+**Files modified** (`commit 5b491cd`, pushed to `origin/feat/asset-state-engine`, +29/-7, 3 files):
+- `campaign-os/campaign-os.html` (line 1555-1577): `showPop()` rewritten to use viewport coords; added vertical flip-up clamp (if `top + popR.height > vh - 8`, flip above trigger; fall back to shrink-to-fit).
+- `campaign-os/visualizer.html` (line 349-365): same fix (visualizer DNA-metadata popover had the same bug).
+- `campaign-os/cockpit-operational.html` (line 126-142): same fix (cockpit popover had the same bug).
+
+**Verified live** (Playwright cookie-auth on Railway URL):
+- Bundle probe (cache-busted `?cb=<ts>`): bundle_chars=392,683, `has_new_comment=true`, `has_old_bug=false`, `has_flip_up=true`, title `Campaign OS · Swing Shack`, 28 EXPLAINERS keys.
+- Mid-page popover probe (LIVE, scrollY=1500, vh=900): trigger `🚀 Ready to publish` at y=313.65, popover rect.y=339.66, bottom=459.53, `inside_viewport=true`. `would_have_been_off_screen_old_bug=true` (old calc would have placed top at 1839.65, far past 900).
+- Near-bottom flip-up probe (LOCAL, vh=400): trigger `⚠️ High-impact misses` at y=322, popover flipped to top=177.84/bottom=316.47. `flippedUp=true`, `inside_viewport=true`.
+- 0 console errors, 0 pageerrors, `/api/health` ok. Horizontal clamp (`maxLeft`, `left < 8`) preserved.
+
+**Screenshot (LIVE)**: `/tmp/co-nightshift/walkthrough_2026-08-05T050036_LIVE_popover_position.png`
+
+**Lane rules honored**: zero em-dashes in new copy (`git diff | grep "—\|–"` = 0), no publish/schedule, no fake stats, branch `feat/asset-state-engine`, no main branch touched.
+
+**Next priority**:
+- Wire ~14 dynamic-template card-h h3s inside `renderBriefStyleGuide`, `renderBriefPreview`, `renderCampaignPlan`, and SEO Audit per-page detail. These need `${h3tip(...)}` builder calls (same pattern Brand Directory uses, commit range 7502-7560).
+- OR a regression sweep: probe all 88 card-h h3 tooltips and confirm none break with the new viewport-relative math (especially h3s inside horizontal-scroll containers or `position:sticky` headers — those are rare on Campaign OS but worth a 5-min sweep).
+
+**Blockers**: none.
