@@ -713,8 +713,8 @@ function updatePrompt() {
   const brand = state.activeBrand || 'swing-shack';
   const vb = (state.voiceBible && state.voiceBible[brand]) || {};
   const voiceLine = vb.tone
-    ? `${brand} — ${vb.tone}`
-    : (brand === 'swing-shack' ? 'swing-shack — direct, no fluff, lowercase. Pineapple Test: would a non-golfer get the joke?' : `${brand}`);
+    ? `${brand} · ${vb.tone}`
+    : (brand === 'swing-shack' ? 'swing-shack · direct, no fluff, lowercase. Pineapple Test: would a non-golfer get the joke?' : `${brand}`);
   const prompt =
 `[MEME FORMAT: ${m.format || 'meme'}]
 [VISUAL: ${m.format_hint || ''}]
@@ -751,10 +751,10 @@ document.getElementById('modal-generate').onclick = async () => {
     } else if (result.ok && result.scaffold) {
       btn.textContent = '✓ Scaffold ready (no image yet)';
     } else {
-      btn.textContent = '✓ Queued — ' + (result.message || 'check intel tab');
+      btn.textContent = '✓ Queued · ' + (result.message || 'check intel tab');
     }
   } catch (e) {
-    btn.textContent = '✗ Error — try again';
+    btn.textContent = '✗ Error · try again';
     console.error(e);
   }
   setTimeout(() => { btn.disabled = false; btn.textContent = 'Generate image with this prompt'; }, 4000);

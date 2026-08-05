@@ -115,7 +115,7 @@
         Generate via Graph API Explorer after adding scopes: <code>pages_show_list</code>, <code>pages_read_engagement</code>,
         <code>pages_read_user_content</code>, <code>instagram_basic</code>, <code>instagram_manage_insights</code>,
         <code>instagram_business_manage_insights</code>, <code>business_management</code>. If you have a page-scoped
-        long-lived token instead, use that — paste the whole string, do not truncate.
+        long-lived token instead, use that · paste the whole string, do not truncate.
         <br><br>
         <a id="gaelink" href="#" target="_blank" rel="noopener" style="display:inline-block;background:var(--accent);color:#0c0d10;padding:8px 14px;border-radius:6px;font-weight:700;text-decoration:none;">
           ⚡ Open Graph API Explorer with all 7 scopes pre-checked →
@@ -125,7 +125,7 @@
       <label for="META_TOKEN_TYPE">Token type</label>
       <select id="META_TOKEN_TYPE" name="META_TOKEN_TYPE" required>
         <option value="user">User token (60-day, can be refreshed)</option>
-        <option value="page">Page token (long-lived, no expiry — preferred if available)</option>
+        <option value="page">Page token (long-lived, no expiry · preferred if available)</option>
       </select>
     </fieldset>
 
@@ -144,7 +144,7 @@
       <strong>Page ID + IG Business ID:</strong> In Graph API Explorer, set query to
       <code>me/accounts?fields=id,name,instagram_business_account</code> with a valid token, click Submit.<br>
       <strong>Token:</strong> In Graph API Explorer, click <em>Generate Access Token</em> after adding the 6 scopes listed above.<br>
-      <strong>Page token (long-lived):</strong> In the <code>me/accounts</code> response, each page has its own <code>access_token</code> field — use that instead of the user token if you can.
+      <strong>Page token (long-lived):</strong> In the <code>me/accounts</code> response, each page has its own <code>access_token</code> field · use that instead of the user token if you can.
     </p>
   </details>
 
@@ -190,7 +190,7 @@ form.addEventListener('submit', async (e) => {
         '  • ' + (data.app_file || '~/.openclaw/workspace/credentials/meta-app.json') + '\n' +
         '  • ' + (data.token_file || '~/.openclaw/workspace/credentials/meta-token.json') + '\n\n' +
         'Graph API verification:\n' +
-        (data.verify || '(verification pending — Heidi will report)'),
+        (data.verify || '(verification pending · Heidi will report)'),
         'ok'
       );
     } else {
