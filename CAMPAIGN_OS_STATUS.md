@@ -275,3 +275,37 @@ done
 **Next priority**: sweep HELP onto remaining `.card-h h3` on Brand Directory detail panel, or fix `[object Object]` meme-lab voice-bible bug, or wire HELP on `login.html` / `meta-portal.html`.
 
 **Blockers**: none.
+
+---
+
+## Cron tick 2026-08-05T03:45Z (nightshift tick — wire 3 more card-h tooltips)
+
+**Built**:
+- **3 more static card-h tooltips wired** on `campaign-os/campaign-os.html`:
+  - Line 977: Meme Lab "🎯 Top picks for ..." → `data-help-title="Top picks for this brand"` (329 chars body, 0 em-dashes)
+  - Line 986: Meme Lab "📚 Meme historian · ..." → `data-help-title="Meme historian library"` (360 chars body, 0 em-dashes)
+  - Line 3437: "👁️ Preview in brand font" (inside `renderBriefPreview()` template literal — h3 text was static so attr injection was safe) → `data-help-title="Preview in brand font"` (428 chars body, 0 em-dashes)
+- All 3 auto-attached by existing `HELP.autoAttach()` 4s interval, picking up the established `cursor:help` + `border-bottom:dotted` affordance from commit `a904842`.
+
+**Files added/modified**: `campaign-os/campaign-os.html` (3 insertions / 3 deletions).
+**New routes / UI sections / tests**: none — pure attribute addition.
+
+**Commit**: `fc2a551` pushed to `origin/feat/asset-state-engine`.
+
+**Verified live**:
+- `/api/health` 200
+- 2/3 hover-verified on LIVE via Playwright (Top picks + Meme historian — popover state `hasShow=true, opacity=1`, innerHTML contains exact title + body)
+- 1/3 HTML probe only (Preview in brand font — only renders at runtime when a user expands a campaign brief detail)
+- 0 pageerrors, 0 em-dashes in new tooltips, 0 main branch touched
+
+**Screenshots**:
+- `/tmp/co-nightshift/walkthrough_2026-08-05T034304_live_top_picks_popover.png`
+- `/tmp/co-nightshift/walkthrough_2026-08-05T034304_live_meme_historian_popover.png`
+
+**Lane rules honored**: zero em-dashes in new copy, no publish/schedule, no fake stats, branch `feat/asset-state-engine`, no main branch.
+
+**Next priority** (PRIORITY CARRY-OVER from last tick):
+- Wire ~14 dynamic-template card-h h3s inside `renderBriefStyleGuide`, `renderBriefPreview`, `renderCampaignPlan`, and SEO Audit per-page detail (lines 7624-7764, 6870-6879). These need `${h3tip(...)}` builder calls — same pattern as Brand Directory detail panel (commit 7502-7560).
+- OR fix the popover `top = r.bottom + window.scrollY + 6` pre-existing bug (line 1559) — popover is `position:fixed` so the `+ window.scrollY` is wrong, putting the popover below the visible viewport when triggered mid-screen. 1-line patch.
+
+**Blockers**: none.
