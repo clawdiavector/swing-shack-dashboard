@@ -365,3 +365,29 @@ Picked up the **`renderBriefStyleGuide / renderBriefPreview` carry-over** flagge
 - OR a regression sweep: probe all 88 card-h h3 tooltips and confirm none break with the new viewport-relative popover math (popover is singleton, but the visual position should still respect viewport for each h3).
 
 **Blockers**: none.
+
+## 2026-08-05T11:00Z — feat(campaign-os): wire Library section h2 tooltip (27/27 section headers)
+
+**Done:** Closed the last remaining section-h h2 gap. Library `<h2>` (line 4338, in `renderLibrary` template-literal) now has `data-help-title="Library"` + `data-help` body. Inline-attr pattern (not `${h3tip(...)}` builder) because the h2 is inside a template-literal that returns a fresh DOM each call but the h2 itself is a single hardcoded tag in the template — autoAttach picks it up on its 4s interval.
+
+**Commit:** `cdcbbb5` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +1/-1, pushed. Railway auto-deployed in ~3 minutes.
+
+**Verified (Playwright LIVE, cookie auth):**
+- Bundle probe (cache-busted, 407,122 chars): 2/2 unique needles found (`Universal archive for the active brand`, `data-help-title="Library"`).
+- DOM: h2 count = 27, h2[data-help-title] count = **27/27** (was 26/27 prior tick → now complete).
+- Library h2 attrs verified: `data-help-title="Library"`, `data-help` body matches verbatim, `cursor=help`, `borderBottomStyle=dotted`.
+- `.has-help-tip` class added by autoAttach on the h2.
+- Hover popover fires: `.help-pop` element with `classList.contains('show')`=true, title="LIBRARY", body starts with the wired copy. Position (8, 472) — just below the h2.
+- 0 PAGEERROR. The 5 console-errors logged are pre-existing 404s on assets not from this change.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-05T091320_lib_h2_zoom.png` — Library h2 with dotted underline, auto-attached "How the Library search works" explainer banner visible.
+- `/tmp/co-nightshift/walkthrough_2026-08-05T091402_lib_h2_hover_proof.png` — hover popover open showing "LIBRARY" title + full body verbatim.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (verified via `git diff` of the commit), 0 JS logic added (only attribute substitution), 0 schema changes.
+
+**Next pick:** The 27/27 h2 sweep is now complete. The carry-over queue is empty for h2s. Remaining candidates per SKILL.md pattern: modal headers (explicitly flagged "tooltips add no value here" in last report), visualizer popovers, or the field-name drift audit. The drift audit is the highest-yield pre-pick gate per the SKILL.md recipe — runs in 3 min, can surface real bugs the next-pick pattern misses.
+
+**Learned:** Section h2s inside a template-literal that gets re-rendered on nav (renderLibrary) still pick up the inline `data-help` + `data-help-title` pattern correctly — `autoAttach()`'s 4s interval re-runs after every render and wires the new DOM. The popover fires with the h2 itself as the tooltip target (the `mouseenter` listener attaches directly to the h2 because `data-help` is on it). No builder, no closure scope trap, no h3tip helper needed. **The earlier 26/27 → 27/27 coverage jump is now achieved.**
+
+**Asks:** None.
