@@ -53,3 +53,32 @@
 **Learned:** `.card-h` flex layout trap — nesting `.h-meta` inside `<h3>` would break `margin-left: auto` (which only works on flex children of `.card-h`, not children of `<h3>`). First patch tried that, reverted. Sibling-of-h3 is the correct pattern. `display: inline-block` on a flex-child h3 is a no-op for layout but adds noise — omit and let CSS handle the affordance. Static-HTML h3s use inline-attr pattern (not `${h3tip(...)}`).
 
 **Asks:** None.
+
+## 2026-08-05T11:00Z — feat(campaign-os): wire Library section h2 tooltip (27/27 section headers now wired)
+
+**Done:** Closed the last remaining section-h h2 gap. Library `<h2>` (line 4338, in `renderLibrary` template-literal) now has `data-help-title="Library"` + `data-help` body. Inline-attr pattern (not `${h3tip(...)}` builder) because the h2 is hardcoded inside the template — autoAttach picks it up on its 4s interval.
+
+**Commit:** `cdcbbb5` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +1/-1, pushed. Railway auto-deployed in ~3 minutes. `5cbbd2c` (CAMPAIGN_OS_STATUS.md) + `6fcd025` (last-report.md) follow.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Bundle probe (cache-busted, 407,122 chars): 2/2 unique needles found.
+- DOM: h2 count = 27, h2[data-help-title] count = 27/27 (was 26/27 prior tick → complete).
+- Library h2 attrs: `data-help-title="Library"`, `data-help` body verbatim, `cursor=help`, `borderBottomStyle=dotted`. `.has-help-tip` class added.
+- Hover popover fires: `.help-pop.show` with title "LIBRARY", body starts with the wired copy. Position (8, 472).
+- 0 PAGEERROR. 5 console-errors are pre-existing 404s not from this change.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-05T091320_lib_h2_zoom.png` — Library h2 with dotted underline, auto-attached "How the Library search works" explainer banner.
+- `/tmp/co-nightshift/walkthrough_2026-08-05T091402_lib_h2_hover_proof.png` — hover popover open, title "LIBRARY" + full body verbatim.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes, 0 JS logic added (only attribute substitution), 0 schema changes.
+
+**Next pick:** Section h2 sweep is now 27/27 complete. Next priorities (in yield order):
+1. **Field-name drift audit** (highest-yield pre-pick gate per SKILL.md recipe — last run 2026-07-30, 5 ticks ago).
+2. Modal headers (explicitly flagged "no value" in 10:05Z report).
+3. Visualizer popovers (same surface, different DOM).
+4. Copy-polish on recent help bodies (e.g. `briefResultHelp` reads slightly jargon-y).
+
+**Learned:** Template-literal h2s work fine with the inline-attr pattern — `autoAttach()`'s 4s interval catches them on every re-render. The h2 itself becomes the popover target (no builder needed because the data-help is directly on the h2). Pre-existing em-dash on line 4337 is NOT introduced by this change (verified via `git diff`).
+
+**Asks:** None.
