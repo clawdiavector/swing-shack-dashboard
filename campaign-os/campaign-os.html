@@ -1011,7 +1011,7 @@ a:hover{text-decoration:underline}
         <div class="meme-modal-inner">
           <div class="row" style="justify-content:space-between;align-items:flex-start">
             <div>
-              <h3 id="meme-modal-title" style="margin:0">Meme</h3>
+              <h3 id="meme-modal-title" data-help="The active meme template. In detail view (this modal) the title is the meme name. In caption-draft view it shows the meme name with the active caption batch. Use the buttons below to generate captions, copy a single line, or re-roll against a different fit-seed." data-help-title="Active meme" style="margin:0">Meme</h3>
               <div class="muted" id="meme-modal-meta" style="font-size:12px;margin-top:.25rem">—</div>
             </div>
             <button class="link-btn" id="meme-modal-close">✕</button>
@@ -5430,7 +5430,7 @@ window.openGmbEdit = async (id) => {
   try { r = await API.get('/api/intel/gmb/drafts'); } catch (e) { toast('Load failed', 'err'); return; }
   const d = (r.drafts || []).find(x => x.id === id) || { id, title: '', body: '', cta: '', link: '', imageUrl: '' };
   modal(`
-    <h3>${id ? '✏️ Edit GMB draft' : '+ New GMB draft'}</h3>
+    <h3 data-help="Google Business Profile draft editor. Edit mode: loads the saved draft (title, body, CTA, link, image). New mode: creates a fresh draft. Saving does NOT auto-publish; the draft then shows up in the GMB drafts list where you can push to Postiz to schedule on the GBP listing." data-help-title="${id ? 'Edit GMB draft' : 'New GMB draft'}">${id ? '✏️ Edit GMB draft' : '+ New GMB draft'}</h3>
     <div class="sub">${esc(S.brand || 'active brand')}</div>
     <label style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.5rem">
       <span style="font-size:12px;color:var(--tx-2);font-weight:600">Title</span>
@@ -5463,6 +5463,7 @@ window.openGmbEdit = async (id) => {
   const ta = document.getElementById('gmb-body');
   const counter = document.getElementById('gmb-body-count');
   if (ta && counter) ta.addEventListener('input', () => { counter.textContent = `${ta.value.length}/1500 chars`; });
+  if(typeof HELP !== 'undefined' && HELP.autoAttach){ try { HELP.autoAttach(); } catch(_){} }
   document.getElementById('gmb-save-btn').addEventListener('click', async () => {
     const payload = {
       title: document.getElementById('gmb-title').value,
@@ -5670,7 +5671,7 @@ window.reviewEdit = async (cid, aid) => {
     const charLimit = 2200; // IG caption soft limit
     const charCount = currentCaption.length;
     modal(`
-      <h3>✏️ Edit caption</h3>
+      <h3 data-help="Edit the caption on an existing asset. Soft limit ${charLimit} chars (Instagram feed cap). Saving updates the asset in place and re-renders the Review surface so the change is reflected immediately. The Reset to AI draft button restores the most recent AI generation (best-effort; toasts if no draft is saved)." data-help-title="Edit caption">✏️ Edit caption</h3>
       <div class="sub">${esc(a.name || aid)} <span class="muted">· ${esc(c.identity?.name || cid)}${platform ? ' · '+esc(platform) : ''}${kind ? ' · '+esc(kind) : ''}</span></div>
       <label style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.5rem">
         <span style="font-size:12px;color:var(--tx-2);font-weight:600">Caption</span>
@@ -6443,6 +6444,8 @@ async function memClickDelegated(e){
 
 function showMemeDetail(m){
   $('#meme-modal-title').textContent = m.name;
+  $('#meme-modal-title').setAttribute('data-help', 'The active meme template. In detail view (this modal) the title is the meme name. In caption-draft view it shows the meme name with the active caption batch. Use the buttons below to generate captions, copy a single line, or re-roll against a different fit-seed.');
+  $('#meme-modal-title').setAttribute('data-help-title', 'Active meme');
   $('#meme-modal-meta').innerHTML = `${memEraChip(m.era)} ${memFatigueChip(m.fatigue_risk)} peak ${m.peak_year} · ${esc(m.format || '')} · ${memBrandFitBadge(m.brand_fit || 0)}`;
   const seeds = (m.swingshack_fit_seeds || []).map(s => `<li>${esc(s)}</li>`).join('');
   const tags = (m.tags || []).map(t => `<span class="meme-tag">${esc(t)}</span>`).join(' ');
@@ -6468,6 +6471,8 @@ async function memApply(memeId){
   const r = await API.post('/api/intel/meme_apply', body);
   if(!r.ok){ toast(r.error || 'Failed', 'err'); return; }
   $('#meme-modal-title').textContent = `Caption drafts — ${r.meme.name}`;
+  $('#meme-modal-title').setAttribute('data-help', 'The active meme template. In detail view (this modal) the title is the meme name. In caption-draft view it shows the meme name with the active caption batch. Use the buttons below to generate captions, copy a single line, or re-roll against a different fit-seed.');
+  $('#meme-modal-title').setAttribute('data-help-title', 'Active meme');
   $('#meme-modal-meta').innerHTML = `${memEraChip(r.meme.era)} ${memBrandFitBadge(r.brand_fit.score)} · voice ${esc(r.applied.voice)} · ${esc(r.applied.platform)}`;
   const caps = (r.captions || []).map(c => `
     <div class="meme-cap-row">
