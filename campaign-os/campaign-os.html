@@ -1962,21 +1962,36 @@ const HELP = (() => {
     'insights': {
       title: 'How to read performance data',
       body: `
-        <p>This page rolls up <b>what is working, what isn't, and why</b> across three
-        data sources: Instagram (engagement), GA4 (site traffic), and the SEO tracker.
-        Each is explained in plain language below — no marketing jargon.</p>
-        <p><span class="hc-term">Why this page exists:</span> the data feeds are noisy.
-        A spike in sessions can mean a real win, or it can mean a bot crawled the page.
-        A drop in IG likes can mean the audience is bored, or it can mean the algorithm
-        just changed. This page helps you <b>tell the difference</b> and act on the
-        signal, not the noise.</p>
-        <p><b>Open the "How to read this data" panel below</b> for a per-source
-        explainer (GA4 + Meta + SEO). It's worth the 90 seconds the first time.</p>`
+        <p>This page is a <b>read-only mirror of the Performance tab</b>, surfaced under
+        its own nav so the "Why" lens stays separate from the "What" lens. The numbers
+        and cards are identical · only the framing changes. The <b>Insights</b> tab
+        invites you to plan your next brief; the <b>Performance</b> tab invites you to
+        audit what just shipped.</p>
+        <p><span class="hc-term">What lives here:</span> the same four stat tiles
+        (IG posts, GA4 sessions, SEO rising, SEO falling) and the same five cards
+        (Top Instagram posts, Top SEO keywords, A/B tests, Top pages by sessions,
+        Insights) as the Performance tab. Use the <b>SEO rising / falling</b> tiles
+        to spot query-trend moves before they hit the SERP, and the <b>Insights</b>
+        card to read the plain-English "why" for each lift or drop.</p>
+        <p><span class="hc-term">Why the data is noisy:</span> a spike in sessions can
+        mean a real win, or it can mean a bot crawled the page. A drop in IG likes can
+        mean the audience is bored, or it can mean the algorithm just changed. This
+        page helps you <b>tell the difference</b> and act on the signal, not the noise.</p>
+        <p><b>Open the "How to read Google Analytics" panel below</b> for the GA4
+        metric glossary. It's worth the 90 seconds the first time you audit a page.</p>`
     },
     'performance': {
       title: "Performance: what works, what's leaking",
       body: `
-        <p>Performance is split into three lenses. Each answers a different question.</p>
+        <p>Performance is a single screen with two layers: <b>four stat tiles at the
+        top</b> and <b>five content cards below</b>. Read top-down, fastest signal first.</p>
+        <p><span class="hc-term">Stat tiles</span> · quick health snapshot. <b>IG posts</b>
+        is the count of posts analysed this period (sample size; if it is 0 the cards
+        below will be empty). <b>GA4 sessions</b> is the active-brand site traffic for
+        the period. <b>SEO rising</b> is the count of keywords that climbed the SERP
+        week-over-week. <b>SEO falling</b> is the inverse · the count that lost rank.
+        Use these to triage: a high falling count with a low rising count is a
+        distribution problem worth a brief.</p>
         <p><span class="hc-term">🏆 Top Instagram posts</span> — the last 30 days, ranked
         by a composite score (engagement × reach × saves). A "top post" tells you what
         tone + format + topic combo is currently resonating with your audience. Re-use
@@ -1991,9 +2006,10 @@ const HELP = (() => {
         <p><span class="hc-term">🌐 Top pages by sessions</span> — what people read
         after they land. High-session + low-CTA-click = landing page leak. Low-session
         on a key page = SEO or distribution problem.</p>
-        <p><span class="hc-term">🔬 Why this worked / failed</span> — the explainer.
-        Pick any asset from the dropdown and the system walks you through the evidence
-        chain (engagement curve, audience overlap, time-of-day, hook type).</p>`
+        <p><span class="hc-term">💡 Insights</span> · the plain-English "why" cards the
+        agent generates from this performance data. Each insight cites the asset, the
+        lift or drop, and the suggested next action. Read these last · they tie the
+        numbers above to the brief you should write next.</p>`
     },
     'learning': {
       title: 'What "learning" actually means',
