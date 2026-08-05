@@ -6875,18 +6875,31 @@ async function _hsGenerate(){
       const p = seo.pack;
       $('#hs-seo-score').textContent = 'score ' + p.score;
       $('#hs-seo-score').className = 'pill ' + (p.score >= 80 ? 'ac' : (p.score >= 50 ? '' : 'muted'));
+      // Per-page SEO pack h3 tooltips (matches Brand Directory h3tip pattern).
+      // Inline here because these h3s live in a one-shot render block, not a loop.
+      const seoH3 = (label, title, body) => `<h3 data-help="${esc(body)}" data-help-title="${esc(title)}" style="font-size:12px;cursor:help;border-bottom:1px dotted var(--tx-2)">${label}</h3>`;
+      const seoPageTitleHelp = `The title tag that goes in the page HTML head. Google displays it as the blue headline in search results. Ideal length 50-60 characters; longer gets cut off. The brand's primary keyword should appear as close to the start as possible without sounding forced.`;
+      const seoH1Help = `The main headline a user actually sees on the page. It tells both the reader and Google what the page is about. Should be close to the title tag in wording but not identical, and should include the primary keyword naturally.`;
+      const seoMetaDescHelp = `The 1-2 sentence snippet Google shows under the title tag in search results. Length cap is 155-160 characters. Think of it as the post-pitch: what does the page deliver and why should the searcher click? Include the primary keyword once.`;
+      const seoSlugHelp = `The URL slug, the part after the domain. Short, hyphen-separated, lowercase, and ideally includes the primary keyword. Avoid stop words (the, a, and) unless they make the URL unreadable.`;
+      const seoAltTextHelp = `Alt text on the page's hero/feature image. Used by screen readers and by Google Images. Describe what the image actually shows (not "image1.jpg"). Include the primary keyword only if it fits naturally.`;
+      const seoOgDescHelp = `Open Graph description, what Facebook, LinkedIn, X show when someone shares the link. Different from the meta description because it surfaces on social, not search. Slightly longer and more benefit-forward is fine here.`;
+      const seoSchemaTypeHelp = `The schema.org structured-data type for this page (e.g. Product, Article, LocalBusiness, FAQPage). It lets Google render rich snippets. Mismatched schema is a common audit fail; this is the recommended type for the page's actual content shape.`;
+      const seoPrimKwHelp = `The single keyword this page should rank for. Used to score the title, H1, slug, and meta description alignment. If the page is a pillar page for a different keyword, swap this before regenerating the pack.`;
+      const seoSecKwHelp = `Supporting keywords the page also targets. They should appear in body copy at least once each. Not weighted as heavily as the primary keyword in the scoring, but compounding: too few and the page reads thin, too many and it reads stuffed.`;
+      const seoWhyHelp = `Plain-English reason the SEO score landed where it did. Lists what the pack did well and what it missed (length, keyword density, schema presence, etc.). If the score is low, this is the first place to look for the specific fix.`;
       $('#hs-seo').innerHTML = `
         <div class="grid">
-          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Page title <span class="pill muted">${p.page_title_length} chars</span></h3></div><div style="font-size:13px">${esc(p.page_title)}</div></div>
-          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">H1</h3></div><div style="font-size:13px">${esc(p.h1)}</div></div>
-          <div class="card col-12"><div class="card-h"><h3 style="font-size:12px">Meta description <span class="pill muted">${p.meta_description_length} chars</span></h3></div><div style="font-size:13px">${esc(p.meta_description)}</div></div>
-          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Slug</h3></div><div style="font-family:monospace;font-size:12px">${esc(p.slug)}</div></div>
-          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Alt text</h3></div><div style="font-size:12px">${esc(p.alt_text)}</div></div>
-          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">OG description</h3></div><div style="font-size:12px">${esc(p.og_description)}</div></div>
-          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Schema type</h3></div><div style="font-size:12px"><span class="pill">${esc(p.schema_type)}</span></div></div>
-          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Primary keyword</h3></div><div style="font-size:12px"><span class="pill ac">${esc(p.primary_keyword)}</span></div></div>
-          <div class="card col-6"><div class="card-h"><h3 style="font-size:12px">Secondary keywords</h3></div><div style="display:flex;flex-wrap:wrap;gap:.35rem">${(p.secondary_keywords||[]).map(k => `<span class="pill muted">${esc(k)}</span>`).join('') || '<span class="muted">—</span>'}</div></div>
-          <div class="card col-12"><div class="card-h"><h3 style="font-size:12px">Why this score</h3></div><div class="muted" style="font-size:11px">${(p.reasons||[]).map(esc).join(' · ')}</div></div>
+          <div class="card col-6"><div class="card-h">${seoH3(`Page title <span class="pill muted">${p.page_title_length} chars</span>`, 'Page title', seoPageTitleHelp)}</div><div style="font-size:13px">${esc(p.page_title)}</div></div>
+          <div class="card col-6"><div class="card-h">${seoH3('H1', 'H1', seoH1Help)}</div><div style="font-size:13px">${esc(p.h1)}</div></div>
+          <div class="card col-12"><div class="card-h">${seoH3(`Meta description <span class="pill muted">${p.meta_description_length} chars</span>`, 'Meta description', seoMetaDescHelp)}</div><div style="font-size:13px">${esc(p.meta_description)}</div></div>
+          <div class="card col-6"><div class="card-h">${seoH3('Slug', 'Slug', seoSlugHelp)}</div><div style="font-family:monospace;font-size:12px">${esc(p.slug)}</div></div>
+          <div class="card col-6"><div class="card-h">${seoH3('Alt text', 'Alt text', seoAltTextHelp)}</div><div style="font-size:12px">${esc(p.alt_text)}</div></div>
+          <div class="card col-6"><div class="card-h">${seoH3('OG description', 'OG description', seoOgDescHelp)}</div><div style="font-size:12px">${esc(p.og_description)}</div></div>
+          <div class="card col-6"><div class="card-h">${seoH3('Schema type', 'Schema type', seoSchemaTypeHelp)}</div><div style="font-size:12px"><span class="pill">${esc(p.schema_type)}</span></div></div>
+          <div class="card col-6"><div class="card-h">${seoH3('Primary keyword', 'Primary keyword', seoPrimKwHelp)}</div><div style="font-size:12px"><span class="pill ac">${esc(p.primary_keyword)}</span></div></div>
+          <div class="card col-6"><div class="card-h">${seoH3('Secondary keywords', 'Secondary keywords', seoSecKwHelp)}</div><div style="display:flex;flex-wrap:wrap;gap:.35rem">${(p.secondary_keywords||[]).map(k => `<span class="pill muted">${esc(k)}</span>`).join('') || '<span class="muted">—</span>'}</div></div>
+          <div class="card col-12"><div class="card-h">${seoH3('Why this score', 'Why this score', seoWhyHelp)}</div><div class="muted" style="font-size:11px">${(p.reasons||[]).map(esc).join(' · ')}</div></div>
         </div>`;
     }
     toast(`Hashtags + SEO pack ready (score ${r.score} / ${seo && seo.ok ? seo.pack.score : '—'})`);
@@ -7703,19 +7716,33 @@ function renderPlan(p, cid){
   const pillars = p.pillars || [];
   const brand = p.brand || {};
   const success = p.success_criteria || [];
+  // Campaign-plan card h3 tooltips. Same h3tip builder pattern as Brand
+  // Directory (line ~7530). Inline here because these h3s are template-literal
+  // child nodes scattered across renderPlan, not a single iterable loop.
+  const h3tip = (label, title, body) => `<h3 data-help="${esc(body)}" data-help-title="${esc(title)}" style="cursor:help;border-bottom:1px dotted var(--tx-2)">${label}</h3>`;
+  const goalsHelp = `The measurable business outcome this campaign is built around. Primary is the single thing that defines success (a booking spike, a launch metric, a follower inflection). Secondary is the supporting lift you would still count as a win. Use the secondary list when reporting the campaign after the fact.`;
+  const personaHelp = `The single human this campaign is written for. Demographics, pains, where they scroll. When a post feels generic or off, the cause is almost always that the writer lost the persona in their head. Re-read this card before approving every batch.`;
+  const pillarsHelp = `The 3-5 themes the campaign pulls from. The weight (percent) is how often each pillar shows up across the 30-day calendar. Pushing every pillar to the top is the most common copy mistake: let the weights do the work.`;
+  const hookBankHelp = `Opening lines ready to lift into a post. Ranked by historical engagement on similar hooks. Top of the list is the highest-confidence opener for the active brand. Use these before drafting from scratch; the hook is half the engagement.`;
+  const imagePromptsHelp = `Brand-matched image generation prompts the planner pre-baked for the campaign. Each prompt carries pillar + format + model hint so the image generator picks the right provider tab without re-prompting. Pick one from the Caption Studio surface to inherit the scaffold.`;
+  const captionsHelp = `Pre-written captions for the campaign, grouped by pillar. Top 8 are the strongest openers the planner picked. Edit before approving; the planner writes drafts, not final copy. Voice is enforced but the punch is yours to sharpen.`;
+  const calendarHelp = `The 30-day posting schedule: which day, which platform, which format, which time slot. The cadence is intentional, back-to-back pillars create fatigue. If you need to move a post, slide the day rather than reshuffling the whole grid.`;
+  const kpisHelp = `The two- and four-week targets the campaign is graded against. Reach is the awareness floor; bookings and follower growth are the conversion checks. The day-7 / day-14 / day-30 sections below are the qualitative read on whether the campaign is trending on plan.`;
+  const successCriteriaHelp = `The binary conditions you check off when declaring the campaign a win. Tie each criterion to a single metric so post-mortems do not slide into "it went ok" hand-waving. A campaign that hit 3 of 5 criteria is a learning; 5 of 5 is a repeat.`;
+  const winningLooksLikeHelp = `The qualitative narrative of success at each check-in. Day 7 is the early signal (are the right people seeing it?), day 14 is the middle read (is the engagement curve bending up?), day 30 is the verdict (did the campaign pay for itself?). Use these to decide whether to extend, refresh, or archive.`;
   el.innerHTML = `
     <div class="card">
-      <div class="card-h"><h3>📋 Full plan · ${esc(p.campaign_name)}</h3><span class="h-meta">${esc(p.summary)}</span><button class="btn ghost" onclick="toggleCampaignPlan('${cid}')">Close</button></div>
+      <div class="card-h">${h3tip(`📋 Full plan · ${esc(p.campaign_name)}`, 'Full plan', `The full campaign view for ${esc(p.campaign_name)}: goals, persona, pillars, hook bank, image prompts, captions, 30-day calendar, and KPIs. Close with the Close button on the right to collapse back to the campaign list.`) }<span class="h-meta">${esc(p.summary)}</span><button class="btn ghost" onclick="toggleCampaignPlan('${cid}')">Close</button></div>
 
       <div class="grid" style="margin-bottom:1rem">
-        <div class="card col-6"><div class="card-h"><h3>🎯 Goals</h3></div>
+        <div class="card col-6"><div class="card-h">${h3tip('🎯 Goals', 'Goals', goalsHelp)}</div>
           <div style="margin-bottom:.75rem"><b>Primary:</b> ${esc(goal.primary||'—')}</div>
           <div style="margin-bottom:.5rem"><b>Secondary:</b></div>
           <ul style="list-style:none;padding:0">
             ${(goal.secondary||[]).map(g=>`<li class="li"><div class="li-body"><div class="li-title">${esc(g)}</div></div></li>`).join('')}
           </ul>
         </div>
-        <div class="card col-6"><div class="card-h"><h3>👤 Persona · ${esc(persona.name||'')}</h3></div>
+        <div class="card col-6"><div class="card-h">${h3tip(`👤 Persona · ${esc(persona.name||'')}`, 'Persona', personaHelp)}</div>
           <dl class="kvs">
             <dt>Age</dt><dd>${esc((persona.demographics||{}).age||'—')}</dd>
             <dt>Location</dt><dd>${esc((persona.demographics||{}).location||'—')}</dd>
@@ -7726,7 +7753,7 @@ function renderPlan(p, cid){
         </div>
       </div>
 
-      <div class="card-h" style="margin-top:1rem"><h3>📚 Content pillars (${pillars.length})</h3></div>
+      <div class="card-h" style="margin-top:1rem">${h3tip(`📚 Content pillars (${pillars.length})`, 'Content pillars', pillarsHelp)}</div>
       <div class="grid">${pillars.map(pil => `
         <div class="card col-${pil.weight > 0.2 ? '6' : '4'}" style="border-left:3px solid ${pil.color_accent}">
           <div class="card-h"><h3>${esc(pil.label)}</h3><span class="h-meta">${(pil.weight*100).toFixed(0)}% weight</span></div>
@@ -7734,16 +7761,16 @@ function renderPlan(p, cid){
           <div class="muted" style="font-size:12px">${esc(pil.rationale||'')}</div>
         </div>`).join('')}</div>
 
-      <div class="card-h" style="margin-top:1rem"><h3>🪝 Hook bank (${hooks.length})</h3></div>
+      <div class="card-h" style="margin-top:1rem">${h3tip(`🪝 Hook bank (${hooks.length})`, 'Hook bank', hookBankHelp)}</div>
       <ul class="list">${hooks.slice(0,10).map(h => `<li class="li"><div class="li-body"><div class="li-title">${esc((h.hook||'').slice(0,140))}</div><div class="li-meta">${h.score?pill('on','score '+h.score):''} ${pill('live', h.source||'')}</div></div></li>`).join('')}</ul>
 
-      <div class="card-h" style="margin-top:1rem"><h3>🎨 Image prompt library (${images.length})</h3></div>
+      <div class="card-h" style="margin-top:1rem">${h3tip(`🎨 Image prompt library (${images.length})`, 'Image prompt library', imagePromptsHelp)}</div>
       <ul class="list">${images.slice(0,8).map(im => `<li class="li"><div class="li-body"><div class="li-title">${esc((im.prompt||'').slice(0,160))}…</div><div class="li-meta">${pill('live', im.pillar||'')} · ${pill('draft', im.format||'')} · ${esc(im.model_hint||'')}</div></div></li>`).join('')}</ul>
 
-      <div class="card-h" style="margin-top:1rem"><h3>✍️ Caption library (${captions.length})</h3></div>
+      <div class="card-h" style="margin-top:1rem">${h3tip(`✍️ Caption library (${captions.length})`, 'Caption library', captionsHelp)}</div>
       <ul class="list">${captions.slice(0,8).map(c => `<li class="li"><div class="li-body"><div class="li-title">${esc((c.caption||'').slice(0,180))}…</div><div class="li-meta">${pill('live', c.pillar||'')} · ${esc(c.cta||'')}</div></div></li>`).join('')}</ul>
 
-      <div class="card-h" style="margin-top:1rem"><h3>📅 30-day calendar (${cal.length} posts)</h3></div>
+      <div class="card-h" style="margin-top:1rem">${h3tip(`📅 30-day calendar (${cal.length} posts)`, '30-day calendar', calendarHelp)}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.5rem">
         ${cal.map(c => `
           <div style="background:var(--bg-3);border-radius:8px;padding:.5rem .75rem;border-left:3px solid var(--ac)">
@@ -7754,15 +7781,15 @@ function renderPlan(p, cid){
           </div>`).join('')}
       </div>
 
-      <div class="card-h" style="margin-top:1rem"><h3>🎯 KPIs & success criteria</h3></div>
+      <div class="card-h" style="margin-top:1rem">${h3tip('🎯 KPIs & success criteria', 'KPIs & success criteria', kpisHelp)}</div>
       <div class="grid">
         <div class="card col-4"><div class="stat"><div class="stat-val">${(kpis.reach_30d?.mid||0).toLocaleString()}</div><div class="stat-lbl">Reach (30d, mid)</div></div></div>
         <div class="card col-4"><div class="stat"><div class="stat-val">${kpis.bookings_30d?.target||0}</div><div class="stat-lbl">Bookings target</div></div></div>
         <div class="card col-4"><div class="stat"><div class="stat-val">${kpis.follow_growth?.target||0}</div><div class="stat-lbl">Follower growth</div></div></div>
-        <div class="card col-12"><div class="card-h"><h3>✅ Success criteria</h3></div>
+        <div class="card col-12"><div class="card-h">${h3tip('✅ Success criteria', 'Success criteria', successCriteriaHelp)}</div>
           <ul class="list">${success.map(s=>`<li class="li"><div class="li-body"><div class="li-title">${esc(s)}</div></div></li>`).join('')}</ul>
         </div>
-        <div class="card col-12"><div class="card-h"><h3>📈 What winning looks like</h3></div>
+        <div class="card col-12"><div class="card-h">${h3tip('📈 What winning looks like', 'What winning looks like', winningLooksLikeHelp)}</div>
           <dl class="kvs">
             <dt>Day 7</dt><dd>${esc(kpis.what_winning_looks_like?.day_7||'—')}</dd>
             <dt>Day 14</dt><dd>${esc(kpis.what_winning_looks_like?.day_14||'—')}</dd>
