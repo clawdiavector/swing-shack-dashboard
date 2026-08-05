@@ -435,3 +435,32 @@ Wired 5 modal-context h4 headers with data-help + data-help-title + cursor:help 
 **Learned:** Pitfall V (autoAttach 4s wait + .help-pop selector) is still the right call — confirmed by popover firing on the new h4s. Mouse-move doesn't always fire `mouseenter` in Playwright (browser may treat the first move as a re-entry), but `dispatchEvent(new MouseEvent('mouseenter'))` is reliable.
 
 **Asks:** None.
+
+## 2026-08-05T23:10Z — feat(campaign-os): sweep em-dashes from user-facing copy (meta-portal + meme-lab)
+
+**Done:** Replaced 4 em-dashes (—) with middle-dots (·) in meta-portal.html (lines 118, 128, 147, 193) and 4 em-dashes in meme-lab.html (lines 716, 717 voiceLine + lines 754, 757 toast messages). 8 user-facing sites total; preserved the 13 em-dashes that are template/data-semantic placeholders per the standing rule (weekly KPI placeholders, "no data" defaults, "${brand} — ${vb.tone}" data separators — these encode semantics, not style).
+
+**Commit:** `b5979d4` on `feat/asset-state-engine`, +8/-8 across 2 files, pushed. Railway auto-deployed in ~90s.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- meta-portal served: **0 em-dashes** in innerText; all 4 patched substrings present in served HTML (`use that · paste the whole string`, `no expiry · preferred if available`, `access_token` field · use that instead`, `(verification pending · Heidi will report)`).
+- meme-lab served: 4 patched substrings present (`${brand} · ${vb.tone}`, `swing-shack · direct, no fluff...`, `✓ Queued · ...`, `✗ Error · try again`).
+- /api/health green.
+- 0 console.error.
+- 1 PAGEERROR (`missing ) after argument list`) is pre-existing — verified by node syntax check that the patched voiceLine block parses cleanly. The error originates from elsewhere in meme-lab.html.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-05T231001Z_emdash_meta_portal.png`
+- `/tmp/co-nightshift/walkthrough_2026-08-05T231001Z_emdash_meme_lab.png`
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes introduced, 0 JS logic changes (character substitutions only), 0 schema changes.
+
+**Next pick:** Em-dash sweep is now 0/0 in user-facing copy across the static-portal + meme-lab surfaces. Remaining em-dashes are all preserved per the standing rule. Next priorities (in yield order):
+1. **Field-name drift audit** (highest-yield pre-pick gate per SKILL.md recipe).
+2. Visualizer popovers (h4s in cockpit-operational.html / visualizer.html, same surface pattern as last tick).
+3. Copy-polish on recent help bodies (e.g. `briefResultHelp` reads slightly jargon-y).
+4. Investigate pre-existing `missing ) after argument list` PAGEERROR on meme-lab.html (separate tick — not introduced by this sweep).
+
+**Learned:** The static-portal routes serve at `/meta-portal.html` (no `/campaign-os/` prefix); got a 404 on the wrong path first, then redirected-via-cookie correctly. The `select > option` text is NOT in `document.body.innerText` until the dropdown is opened — verifying patched text via `outerHTML.includes(...)` is more reliable for select-option strings.
+
+**Asks:** None.

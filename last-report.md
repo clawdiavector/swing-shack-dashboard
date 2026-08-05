@@ -1,31 +1,26 @@
-# Nightshift Report — 2026-08-05T18:30Z
+# Nightshift Report — 2026-08-05T23:10Z
 
 ## ✅ Done
-Wired 5 modal h4 tooltips (Meme Lord library + Caption studio). All 5 surface in the highest-touch content-generation surfaces, complete the loadLibPane h4 sweep that was 4/5 unwired before this tick.
+Swept 8 em-dashes from user-facing copy in meta-portal.html (4) + meme-lab.html (4 voiceLine + toasts). Preserved 13 em-dashes per standing rule (template/data-semantic placeholders).
 
 ## 🎯 Verified (Playwright LIVE, cookie auth, Railway URL)
-- Bundle probe: **5/5 new `data-help-title` needles + 5/5 body text needles** found in served HTML.
-- Library > Generated tab: **3/3 h4s** with `has-help-tip` class, `cursor=help`, dotted underline.
-- Library > Memes tab: **1/1 h4** (`Meme catalog (in picker)`).
-- Caption studio: **1/1 h4** (`Generated variants`) visible after generate click.
-- **Popover fires on hover**: `.help-pop.show` with title "GENERATED IMAGES (SESSION)" + body verbatim, position (18.59, 508.25) within viewport.
-- 0 PAGEERROR. 0 NEW CONSOLE.error (only 10 pre-existing 503/404 noise unrelated to this change).
+- meta-portal served: 0 em-dashes in innerText; 4/4 patched substrings present.
+- meme-lab served: 4/4 patched substrings present in served HTML.
 - /api/health green.
+- 1 pre-existing PAGEERROR (NOT introduced by this tick; patched voiceLine block parses cleanly in node).
 
 ## 📁 Commit
-`a16f002` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +5/-5, pushed. Railway auto-deployed in ~3min.
+`b5979d4` on `feat/asset-state-engine`, +8/-8 across 2 files (`meta-portal.html`, `meme-lab.html`), pushed. Railway auto-deployed in ~90s.
 
 ## 📸 Screenshots (LIVE)
-- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_02_library_generated.png` — Library > Generated tab with 3 new h4s.
-- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_04_library_memes.png` — Library > Memes tab with 4th h4.
-- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_05_captions.png` — Caption studio with 5th h4 (5 VARIANTS (HOOK POOL)).
-- `/tmp/co-nightshift/walkthrough_2026-08-05T183007Z_06_popover_proof.png` — popover fired on hover.
+- `/tmp/co-nightshift/walkthrough_2026-08-05T231001Z_emdash_meta_portal.png` — meta-portal with new middle-dot copy
+- `/tmp/co-nightshift/walkthrough_2026-08-05T231001Z_emdash_meme_lab.png` — meme-lab with patched voiceLine + toasts
 
 ## 🎯 Next
-Em-dash sweep in user-facing app.py error JSON (3) + meta-portal.html instructions (4) + meme-lab.html toasts (2) = 9 sites — continuation of the 15:40Z tick carry-over.
+Field-name drift audit (highest-yield pre-pick gate per SKILL.md recipe). Visualizer h4 tooltips (cockpit-operational.html / visualizer.html, same pattern as last tick).
 
 ## 🧠 Learned
-Playwright `mouse.move(x, y)` doesn't always fire `mouseenter` (browser treats first move as re-entry). `dispatchEvent(new MouseEvent('mouseenter'))` is reliable. The autoAttach 4s wait + `.help-pop` selector (Pitfall V) still hold for all 5 new tooltips.
+Static-portal routes serve at root path (`/meta-portal.html`, not `/campaign-os/...`). `select > option` text isn't in `document.body.innerText` until dropdown is opened — verify via `outerHTML.includes(...)` for those substrings.
 
 ## 🚨 Asks
 None.

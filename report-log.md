@@ -110,3 +110,27 @@
 **Learned:** Playwright `mouse.move(x, y)` doesn't always fire `mouseenter` (the browser treats first move as a re-entry). `dispatchEvent(new MouseEvent('mouseenter'))` is reliable. The autoAttach 4s wait + `.help-pop` selector (Pitfall V) still hold for all 5 new tooltips.
 
 **Asks:** None.
+
+## 2026-08-05T23:10Z — feat(campaign-os): sweep em-dashes from user-facing copy (meta-portal + meme-lab)
+
+**Done:** 4 em-dashes in meta-portal.html + 4 in meme-lab.html replaced with middle-dots. 8 user-facing sites; 13 preserved per standing rule.
+
+**Commit:** `b5979d4` on `feat/asset-state-engine`, +8/-8, 2 files, pushed. Railway auto-deployed.
+
+**Verified (Playwright LIVE, cookie auth):**
+- meta-portal served: 0 em-dashes in innerText; 4/4 patched substrings present.
+- meme-lab served: 4/4 patched substrings present.
+- /api/health green.
+- 1 pre-existing PAGEERROR (NOT introduced by this tick; patched voiceLine block parses cleanly in node).
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-05T231001Z_emdash_meta_portal.png`
+- `/tmp/co-nightshift/walkthrough_2026-08-05T231001Z_emdash_meme_lab.png`
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (8 removed, 0 added), 0 JS logic changes.
+
+**Next pick:** Field-name drift audit (highest-yield pre-pick gate). Visualizer h4s. Copy-polish on `briefResultHelp`. Investigate pre-existing meme-lab PAGEERROR (separate tick).
+
+**Learned:** Static-portal routes serve at root path (`/meta-portal.html`), not `/campaign-os/...`. `select > option` text isn't in innerText until dropdown is opened — verify via `outerHTML.includes(...)`.
+
+**Asks:** None.
