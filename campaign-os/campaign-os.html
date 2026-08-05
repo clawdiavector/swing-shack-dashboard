@@ -4237,7 +4237,7 @@ async function renderInsights(){
   learnCard.className = 'card';
   learnCard.style.marginTop = '1rem';
   learnCard.innerHTML = `
-    <div class="card-h"><h3>🧠 Learning</h3><span class="muted">${esc((learning?.summary || 'Patterns Campaign OS has learned').slice(0,120))}</span></div>
+    <div class="card-h"><h3 data-help="What the system has learned about this brand's audience + creative + posting cadence over time. Patterns surface from real engagement data (impressions, clicks, comments) on past posts. Empty list means too few posts to learn from yet, keep publishing." data-help-title="Learning" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🧠 Learning</h3><span class="muted">${esc((learning?.summary || 'Patterns Campaign OS has learned').slice(0,120))}</span></div>
     <div class="muted" style="margin-bottom:.5rem">Patterns Campaign OS has learned about this brand.</div>
     <ul class="list">${(learning?.patterns || learning?.learnings || learning?.weekly_learnings || []).slice(0,8).map(p => `<li class="li"><div class="li-body"><div class="li-title">${esc(p.pattern || p.title || p.observation || p.lesson || '')}</div>${p.evidence?`<div class="li-meta">${esc(p.evidence)}</div>`:''}</div></li>`).join('') || '<li class="empty">No learnings yet — keep posting to surface patterns.</li>'}</ul>
   `;
@@ -4267,7 +4267,7 @@ async function renderWeeklyReport(targetSec){
   card.style.marginTop = '1rem';
   card.innerHTML = `
     <div class="card-h" style="display:flex;align-items:center;gap:.5rem">
-      <h3>📅 Weekly marketing report</h3>
+      <h3 data-help="The auto-generated weekly report: what was posted, what worked, what missed, and what the system suggests for next week. Built from the last 7 days of publishing + engagement data. Click Export to download as markdown for handoff to clients or stakeholders." data-help-title="Weekly marketing report" style="cursor:help;border-bottom:1px dotted var(--tx-2)">📅 Weekly marketing report</h3>
       <span class="h-meta" id="weekly-week-label-inline" style="margin-left:auto;font-size:11px"></span>
       <button class="btn-mini" id="weekly-export-btn-inline" title="Download as markdown">⬇️ Export</button>
     </div>
@@ -7741,6 +7741,8 @@ function renderPlan(p, cid){
   const kpisHelp = `The two- and four-week targets the campaign is graded against. Reach is the awareness floor; bookings and follower growth are the conversion checks. The day-7 / day-14 / day-30 sections below are the qualitative read on whether the campaign is trending on plan.`;
   const successCriteriaHelp = `The binary conditions you check off when declaring the campaign a win. Tie each criterion to a single metric so post-mortems do not slide into "it went ok" hand-waving. A campaign that hit 3 of 5 criteria is a learning; 5 of 5 is a repeat.`;
   const winningLooksLikeHelp = `The qualitative narrative of success at each check-in. Day 7 is the early signal (are the right people seeing it?), day 14 is the middle read (is the engagement curve bending up?), day 30 is the verdict (did the campaign pay for itself?). Use these to decide whether to extend, refresh, or archive.`;
+  const pillarCardHelp = `A single content pillar for this campaign. The label is the theme (humour, education, proof, etc.), the purpose is why this pillar exists, the rationale is why it was weighted this way, and the weight (% on the right) is how often it appears across the 30-day calendar. Lifting every pillar to equal weight is the most common copy mistake: let the weights do the work.`;
+  const assetsSectionHelp = `The inline editor for every asset in this campaign. Click any field (caption, headline, visual brief, image prompt, hashtags) and the field opens for editing. ⌘+Enter saves, Esc cancels, and saves are automatic to the campaign JSON. The Postiz queue reads from these fields when the asset is approved.`;
   el.innerHTML = `
     <div class="card">
       <div class="card-h">${h3tip(`📋 Full plan · ${esc(p.campaign_name)}`, 'Full plan', `The full campaign view for ${esc(p.campaign_name)}: goals, persona, pillars, hook bank, image prompts, captions, 30-day calendar, and KPIs. Close with the Close button on the right to collapse back to the campaign list.`) }<span class="h-meta">${esc(p.summary)}</span><button class="btn ghost" onclick="toggleCampaignPlan('${cid}')">Close</button></div>
@@ -7767,7 +7769,7 @@ function renderPlan(p, cid){
       <div class="card-h" style="margin-top:1rem">${h3tip(`📚 Content pillars (${pillars.length})`, 'Content pillars', pillarsHelp)}</div>
       <div class="grid">${pillars.map(pil => `
         <div class="card col-${pil.weight > 0.2 ? '6' : '4'}" style="border-left:3px solid ${pil.color_accent}">
-          <div class="card-h"><h3>${esc(pil.label)}</h3><span class="h-meta">${(pil.weight*100).toFixed(0)}% weight</span></div>
+          <div class="card-h">${h3tip(esc(pil.label), `Pillar · ${esc(pil.label)}`, pillarCardHelp)}<span class="h-meta">${(pil.weight*100).toFixed(0)}% weight</span></div>
           <div style="font-size:13px;color:var(--tx-2);line-height:1.5;margin-bottom:.5rem">${esc(pil.purpose||'')}</div>
           <div class="muted" style="font-size:12px">${esc(pil.rationale||'')}</div>
         </div>`).join('')}</div>
@@ -7810,7 +7812,7 @@ function renderPlan(p, cid){
       </div>
 
       <div class="card-h" style="margin-top:1rem;display:flex;align-items:center;gap:.5rem">
-        <h3>✏️ Assets · click any field to edit</h3>
+        ${h3tip('✏️ Assets · click any field to edit', 'Assets · inline editor', assetsSectionHelp)}
         <span class="muted" style="font-size:12px">saves automatically · ⌘+Enter saves · Esc cancels</span>
       </div>
       <div id="plan-assets-${cid}"><div class="muted" style="padding:1rem">Loading assets…</div></div>
@@ -7836,9 +7838,13 @@ function assetEditorHtml(aid, a, cid){
   const hl = esc(a.headline || '');
   const ip = esc(a.imagePrompt || '');
   const tags = (a.hashtags || []).map(t => esc(t)).join(' ');
+  // Local h3tip builder: this card-h h3 lives in a template-literal inside
+  // assetEditorHtml, so it can't see the renderPlan scope's h3tip.
+  const h3tip = (label, title, body) => `<h3 data-help="${esc(body)}" data-help-title="${esc(title)}" style="cursor:help;border-bottom:1px dotted var(--tx-2)">${label}</h3>`;
+  const assetCardHelp = `A single asset (post) inside this campaign. The pills on the right show approval + publish + caption + visual status. Click any field below to edit inline (⌘+Enter saves, Esc cancels). The post only goes to Postiz once approval flips to approved and the caption + visual status are both ready.`;
   return `<div class="card" style="margin-bottom:.75rem" data-asset-id="${esc(aid)}">
     <div class="card-h">
-      <h3 style="font-size:14px">${esc(a.name || aid)}</h3>
+      ${h3tip(esc(a.name || aid), `Asset · ${esc(a.name || aid)}`, assetCardHelp)}
       <span class="h-meta">${pill(a.approvalStatus==='approved'?'on':a.approvalStatus==='rejected'?'blocked':'draft', a.approvalStatus||'draft')} ${pill('live', a.platform||'instagram')}</span>
     </div>
     <div class="grid">
