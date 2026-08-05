@@ -391,3 +391,13 @@ Picked up the **`renderBriefStyleGuide / renderBriefPreview` carry-over** flagge
 **Learned:** Section h2s inside a template-literal that gets re-rendered on nav (renderLibrary) still pick up the inline `data-help` + `data-help-title` pattern correctly — `autoAttach()`'s 4s interval re-runs after every render and wires the new DOM. The popover fires with the h2 itself as the tooltip target (the `mouseenter` listener attaches directly to the h2 because `data-help` is on it). No builder, no closure scope trap, no h3tip helper needed. **The earlier 26/27 → 27/27 coverage jump is now achieved.**
 
 **Asks:** None.
+
+## Cron tick 2026-08-05T12:24Z — review-queue image-asset label
+
+Closed a small but real UX gap in the review queue. 3 of 41 review-pending rows are image-only assets (Takomo 101T Hero Visual A/B/C) that all rendered as identical `No preview` placeholder text, making them indistinguishable without clicking. Now they show `🖼️ Image asset · click to preview`; text rows keep their caption verbatim.
+
+- Commit: `9f384c9` on `feat/asset-state-engine`, +8/-1.
+- Verified LIVE: 3 image-asset span rows + 38 text rows intact, 0 PAGEERROR, bundle contains needle.
+- Carry-over: ran field-name drift audit (PASS, clean) per the 11:00Z tick recommendation; UX diff in `audit_results_authed_20260805_101915.json`'s review.card_texts surfaced this lane.
+
+See `last-report.md` for the full tick report.
