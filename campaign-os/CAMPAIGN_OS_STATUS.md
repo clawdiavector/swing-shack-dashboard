@@ -234,3 +234,24 @@ Next: Dark mode / theme tokens (priority 9)
 - Helper-system audit re-ran clean (29/29 surfaces pass).
 
 **Next pick:** 4 remaining unwired h3s: campaign card cname (7452), brand directory brief list label (7498), brief detail `✅ bid · tone · surface` (7658), HashtagSEO "Why this score" + "Banned" (1353/1354). All in different function scopes so each needs its own local `h3tip` builder. Next tick.
+
+## Cron tick — 2026-08-05T20:55Z
+
+**Built:** Wire 3 modal-h h3 tooltips (Meme Lord, GMB edit, Edit caption) — the last 3 high-touch modals in the SPA.
+
+**Files:** `campaign-os/campaign-os.html` (+8/-3, 1 file, commit `e7ddb4e`)
+
+**New tooltips:**
+- 🖼️ Meme Lord modal title (`#meme-modal-title`) — two-layer approach: static inline `data-help` + `data-help-title` attrs on the h3, plus `setAttribute()` calls in `showMemeDetail()` and `memApply()` to re-attach the same attrs after `.textContent` overwrites the static body. Tooltip covers both detail view (meme name) and caption-drafts view (meme + caption batch).
+- 📋 GMB edit modal title (`openGmbEdit()`) — inline `data-help` + `data-help-title` in the `modal()` template literal. Tooltip explains the edit/new mode split and that saving does NOT auto-publish. Added `HELP.autoAttach()` call so the tooltip is wired immediately on render.
+- ✏️ Edit caption modal title (`window.reviewEdit()`) — inline `data-help` + `data-help-title`. `reviewEdit()` already had `HELP.autoAttach()` so the polling fallback is also fine.
+
+**Verified via Playwright LIVE, cookie auth:**
+- Bundle probe: 3/3 needles found in served JS (451,712 chars).
+- Static HTML probe: `document.getElementById('meme-modal-title')` returns `data-help` + `data-help-title` pre-render.
+- DOM data-help-title count: 156 (no regression).
+- Hover popover: Meme Lord h3 273 chars body, GMB edit h3 287 chars body, Edit caption h3 314 chars body — all fire and match the wired copy verbatim.
+- 0 PAGEERROR, 0 unexpected console errors (only pre-existing 503s on `/api/freshness` + 404s on stale asset files, unrelated).
+- `/api/health`: green.
+
+**Next pick:** Modal-h h3 lane now exhausted (only `reviewConfirm` h3 remains, but its title is fully caller-provided and the body text already explains the action — no value add). Other lanes: HashtagSEO "Why this score" + "Banned" h3s (lines 1353/1354), 4 other campaign/brand-directory h3s, EXPLAINERS body copy polish, or field-name drift re-probe on library/performance/trends.
