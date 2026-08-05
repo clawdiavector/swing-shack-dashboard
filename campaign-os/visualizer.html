@@ -354,11 +354,17 @@ const HELP = (() => {
     pop.classList.add('show');
     const r = target.getBoundingClientRect();
     const popR = pop.getBoundingClientRect();
-    let left = r.left + window.scrollX;
-    let top = r.bottom + window.scrollY + 6;
+    // Pop is position:fixed, so coords must be viewport-relative.
+    let left = r.left;
+    let top = r.bottom + 6;
     const maxLeft = window.innerWidth - popR.width - 12;
     if (left > maxLeft) left = maxLeft;
     if (left < 8) left = 8;
+    if (top + popR.height > window.innerHeight - 8) {
+      const aboveTop = r.top - popR.height - 6;
+      if (aboveTop >= 8) top = aboveTop;
+      else top = Math.max(8, window.innerHeight - popR.height - 8);
+    }
     pop.style.left = `${left}px`;
     pop.style.top = `${top}px`;
   };
