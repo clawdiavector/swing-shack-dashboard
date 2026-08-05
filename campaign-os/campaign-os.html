@@ -7591,10 +7591,21 @@ async function renderBrandDirectoryPanel(){
         // Mobile-safe, keyboard-friendly, and survives iOS Safari prompt blocking.
         const bid = btn.getAttribute('data-bd-brief');
         const detail = document.getElementById('brand-directory-detail');
+        // h3 builder local to this click handler (the Brand Directory detail panel's
+        // h3tip lives inside the [data-bd-view] click handler and is not in scope here).
+        // Mirrors the same pattern so the popover, cursor:help + dotted underline
+        // affordance work for every card-h h3 in the brief generator surface.
+        const h3tip = (label, title, body) => `<h3 data-help="${esc(body)}" data-help-title="${esc(title)}" style="cursor:help;border-bottom:1px dotted var(--tx-2)">${label}</h3>`;
+        const generateBriefHelp = `The brand-brief generator. Pick the surface (what shape the post is) and tone (how the voice lands), then hit Generate. The result below lands as a full brief: archetype, palette + typography, voice anchor, headlines bank, CTAs bank, and a live preview of the headlines + CTAs rendered in the brand's actual font. Re-run with different surface / tone combos to compare outputs.`;
+        const archeHelp = `The visual recipe the brief picked for this brand: canvas size (square IG, story vertical, banner horizontal), the layers it will draw (background, shape, text), and which palette colours land where. The image generator reads this and renders it without re-prompting.`;
+        const paletteTypeHelp = `Live brand palette (hex per role) and typography pairing rules for this brief. Use this card to confirm the colours and fonts match what the user will see on the brand's surface before publishing.`;
+        const voiceAnchorHelp = `The first 400 characters of the brand's voice anchor: the canonical opening tone for this brand. Read this when the rest of the brief feels off; if the voice anchor is mismatched, every downstream caption will feel off too.`;
+        const briefHeadlinesHelp = `Pre-written headlines for this brief, generated from the brand's headline bank and the chosen tone. Pick one as the post opener, or edit in place before approval. The brief pulls from the bank's top performers first.`;
+        const briefCtasHelp = `Pre-written calls-to-action for this brief, matched to the brand's CTA bank and the chosen tone. Use one of these on every post. Generic CTAs (\"click the link in bio\") are off-brand; the bank exists because the approved CTAs tested well.`;
         detail.innerHTML = `
           <div class="card" id="bd-brief-form">
             <div class="card-h">
-              <h3>🎨 Generate brief · ${esc(bid)}</h3>
+              ${h3tip(`🎨 Generate brief · ${esc(bid)}`, 'Generate brief', generateBriefHelp)}
               <span class="muted" style="font-size:12px">Pick surface + tone → hit Generate</span>
             </div>
             <div class="row gap-1" style="flex-wrap:wrap;margin-bottom:.75rem">
@@ -7646,24 +7657,24 @@ async function renderBrandDirectoryPanel(){
               <div class="card">
                 <div class="card-h"><h3>✅ ${esc(bid)} · ${esc(brief.tone)} · ${esc(brief.surface)}</h3>${brief.ready ? pill('on','ready') : pill('draft','partial')}</div>
                 <div class="grid">
-                  <div class="card col-6"><div class="card-h"><h3>🖼️ Archetype</h3></div>
+                  <div class="card col-6"><div class="card-h"><h3 data-help="${archeHelp}" data-help-title="Archetype" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🖼️ Archetype</h3></div>
                     <div style="font-weight:600;margin-bottom:.25rem">${esc(arche.name||arche.id||'—')}</div>
                     <div class="muted" style="font-size:12px;margin-bottom:.5rem">${esc(arche.description||'')}</div>
                     <div class="muted" style="font-size:11px;margin-bottom:.5rem">canvas: <code>${esc(arche.canvas||'—')}</code></div>
                     <div style="font-size:12px;font-weight:600;margin:.5rem 0">Layers (${(arche.layers||[]).length}):</div>
                     <ul style="font-size:12px;padding-left:1.2rem;line-height:1.6">${archeLayers}</ul>
                   </div>
-                  <div class="card col-6"><div class="card-h"><h3>🎨 Palette + Typography</h3></div>
+                  <div class="card col-6"><div class="card-h"><h3 data-help="${paletteTypeHelp}" data-help-title="Palette + Typography" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🎨 Palette + Typography</h3></div>
                     ${renderBriefStyleGuide(brief)}
                   </div>
-                  <div class="card col-12"><div class="card-h"><h3>🎤 Voice anchor (first 400 chars)</h3></div>
+                  <div class="card col-12"><div class="card-h"><h3 data-help="${voiceAnchorHelp}" data-help-title="Voice anchor (first 400 chars)" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🎤 Voice anchor (first 400 chars)</h3></div>
                     <div style="font-size:12px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap">${esc(brief.voice_anchor||'—')}</div>
                   </div>
                   ${renderBriefPreview(brief)}
-                  <div class="card col-6"><div class="card-h"><h3>📰 Headlines bank</h3></div>
+                  <div class="card col-6"><div class="card-h"><h3 data-help="${briefHeadlinesHelp}" data-help-title="Headlines bank" style="cursor:help;border-bottom:1px dotted var(--tx-2)">📰 Headlines bank</h3></div>
                     <div class="hc-body" style="overflow:auto;max-height:300px"><div class="md-body">${md((brief.headlines_bank||'').slice(0, 2000))}</div></div>
                   </div>
-                  <div class="card col-6"><div class="card-h"><h3>🎯 CTAs bank</h3></div>
+                  <div class="card col-6"><div class="card-h"><h3 data-help="${briefCtasHelp}" data-help-title="CTAs bank" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🎯 CTAs bank</h3></div>
                     <div class="hc-body" style="overflow:auto;max-height:300px"><div class="md-body">${md((brief.ctas_bank||'').slice(0, 2000))}</div></div>
                   </div>
                 </div>
