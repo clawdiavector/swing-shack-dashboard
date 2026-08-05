@@ -3878,6 +3878,93 @@ def weekly_report_export():
             md_lines.append(f"- **{k}:** {curr_str} (prev: {prev_str}){pct_str}")
         md_lines.append("")
 
+        # ── Interpretation: What's working / what's not / look at ─────
+        interp = data.get("interpretation") or {}
+        if interp:
+            md_lines.append("## What's working")
+            for w in interp.get("whats_working", []):
+                claim = w.get("claim", "")
+                evid = w.get("evidence", "")
+                cat = w.get("category", "")
+                md_lines.append(f"- **{claim}** _(category: {cat})_\n  - {evid}")
+            md_lines.append("")
+
+            md_lines.append("## What's not working")
+            for w in interp.get("whats_not", []):
+                claim = w.get("claim", "")
+                evid = w.get("evidence", "")
+                sev = w.get("severity", "low")
+                sev_badge = "🛑" if sev == "high" else "⚠️" if sev == "medium" else "•"
+                md_lines.append(f"- {sev_badge} **{claim}** _(severity: {sev})_\n  - {evid}")
+            md_lines.append("")
+
+            md_lines.append("## Look at")
+            for w in interp.get("look_at", []):
+                claim = w.get("claim", "")
+                evid = w.get("evidence", "")
+                md_lines.append(f"- ? **{claim}**\n  - {evid}")
+            md_lines.append("")
+
+            headline_take = interp.get("headline_take", "")
+            if headline_take:
+                md_lines.append(f"> **Headline take:** {headline_take}")
+                md_lines.append("")
+
+        # ── Visual insights: image corpus patterns + suggestions ───────
+        vi = data.get("visual_insights") or {}
+        if vi:
+            corpus = vi.get("corpus") or {}
+            n_parsed = corpus.get("n_parsed", 0)
+            md_lines.append(f"## Visual insights (brand image corpus · {n_parsed} images)")
+            lum = corpus.get("luminance") or {}
+            if any(lum.values()):
+                parts = [f"{k}: {v}" for k, v in lum.items() if v]
+                md_lines.append(f"- **Luminance:** {', '.join(parts)}")
+            palettes = corpus.get("top_palettes") or []
+            if palettes:
+                items = [f"`{p['hex']}` ({round(p['share']*100)}%)" for p in palettes[:5]]
+                md_lines.append(f"- **Top palettes:** {' · '.join(items)}")
+            moods = corpus.get("top_moods") or []
+            if moods:
+                items = [f"{m['mood']} ({m['count']})" for m in moods[:5]]
+                md_lines.append(f"- **Moods:** {' · '.join(items)}")
+            objs = corpus.get("top_objects") or []
+            if objs:
+                items = [f"{o['object']} ({o['count']})" for o in objs[:5]]
+                md_lines.append(f"- **Subjects:** {' · '.join(items)}")
+            brands = corpus.get("top_brands") or []
+            if brands:
+                items = [f"{b['brand']} ({b['count']})" for b in brands[:5]]
+                md_lines.append(f"- **Brand mentions:** {' · '.join(items)}")
+            rate = corpus.get("pass_rate_pct")
+            if rate is not None:
+                md_lines.append(f"- **Brand-canon compliance pass rate:** {rate}%")
+            md_lines.append("")
+
+            md_lines.append("### Visual insights to act on")
+            for ins in vi.get("insight", []):
+                claim = ins.get("claim", "")
+                evid = ins.get("evidence", "")
+                cat = ins.get("category", "")
+                md_lines.append(f"- **{claim}** _(category: {cat})_\n  - {evid}")
+            md_lines.append("")
+
+        # ── Topic clusters: what's actually being said in the captions ──
+        tc = data.get("ig_topic_clusters") or {}
+        if tc:
+            md_lines.append("## IG topic mix this week")
+            primary = tc.get("primary_topic")
+            buckets = tc.get("buckets") or []
+            if buckets:
+                items = [f"{b['topic']} ({b['count']})" for b in buckets]
+                md_lines.append(f"- **Primary:** {primary} · **mix:** {', '.join(items)}")
+                for b in buckets[:3]:
+                    ex = b.get("examples") or []
+                    if ex:
+                        ex_text = " / ".join(f"'{e['preview'][:80]}…'" for e in ex[:2])
+                        md_lines.append(f"  - _{b['topic']}_ ({b['count']}): {ex_text}")
+                md_lines.append("")
+
         md = "\n".join(md_lines)
 
         # Persist to data/weekly-report.md for the next time someone reads it

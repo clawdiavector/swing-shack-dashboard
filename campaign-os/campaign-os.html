@@ -4311,6 +4311,10 @@ async function renderWeeklyReport(targetSec){
       <span style="margin-right:1rem">Win rate: ${fmtNum(wow.win_rate_pct?.current)}${wow.win_rate_pct?.current!=null?'%':''} (prev ${fmtNum(wow.win_rate_pct?.previous)}${wow.win_rate_pct?.previous!=null?'%':''})</span>
       <span>Agent runs: ${fmtNum(wow.agent_runs?.current)} (${fmtPct(wow.agent_runs?.pct_change)})</span>
     </div>
+
+    ${renderInterpretationCard(w.interp)}
+    ${renderVisualInsightsCard(w.visual_insights)}
+    ${renderTopicClustersCard(w.ig_topic_clusters)}
   `;
   targetSec.appendChild(card);
   const labelEl = card.querySelector('#weekly-week-label-inline');
@@ -4325,6 +4329,93 @@ async function renderWeeklyReport(targetSec){
     document.body.removeChild(a);
     toast('Weekly report exported');
   };
+  // Auto-attach tooltip help to any new [data-help] elements we just injected
+  if(window.HELP && typeof HELP.autoAttach === 'function') HELP.autoAttach(card);
+}
+
+// ── Sub-renderers for the three new sections ──────────────────────
+function renderInterpretationCard(interp){
+  if(!interp || (!interp.whats_working?.length && !interp.whats_not?.length && !interp.look_at?.length)) return '';
+  const sevBadge = (sev) => sev === 'high' ? '🛑' : sev === 'medium' ? '⚠️' : '•';
+  const itemsList = (arr, prefix='', fmtBadge=null) => (arr && arr.length)
+    ? arr.map(w => {
+        const badge = fmtBadge ? fmtBadge(w.severity) : '';
+        const claim = esc(w.claim || '');
+        const evid = esc(w.evidence || '');
+        return `<li class="li"><div class="li-body"><div class="li-title">${prefix}${badge} ${claim}</div><div class="li-meta">${evid}</div></div></li>`;
+      }).join('')
+    : '<li class="empty">—</li>';
+  return `
+    <div style="margin-top:1rem;border-top:1px dashed var(--bd);padding-top:1rem">
+      <div class="h-meta" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">🧭 Interpretation — why these numbers & what to do</div>
+      ${interp.headline_take ? `<blockquote style="margin:.4rem 0 .8rem;padding:.5rem .8rem;border-left:3px solid var(--ac);background:var(--bg-3);border-radius:var(--r-s);font-size:13px"><b>Headline take:</b> ${esc(interp.headline_take)}</blockquote>` : ''}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem">
+        <div>
+          <div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">✅ What's working</div>
+          <ul class="list" style="margin:0;font-size:12px">${itemsList(interp.whats_working || [], '', null)}</ul>
+        </div>
+        <div>
+          <div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">⚠️ What's not</div>
+          <ul class="list" style="margin:0;font-size:12px">${itemsList(interp.whats_not || [], '', sevBadge)}</ul>
+        </div>
+        <div>
+          <div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">🔍 Look at</div>
+          <ul class="list" style="margin:0;font-size:12px">${itemsList(interp.look_at || [], '', null)}</ul>
+        </div>
+      </div>
+      <div class="muted" style="font-size:10.5px;margin-top:.4rem"><b>Note:</b> every claim above is grounded in a specific number from this week's pipeline. No LLM involved — pure rules + corpus data.</div>
+    </div>
+  `;
+}
+
+function renderVisualInsightsCard(vi){
+  if(!vi || (!vi.corpus && !vi.insight?.length)) return '';
+  const corpus = vi.corpus || {};
+  const lum = corpus.luminance || {};
+  const palettes = corpus.top_palettes || [];
+  const moods = corpus.top_moods || [];
+  const objects = corpus.top_objects || [];
+  const brands = corpus.top_brands || [];
+  return `
+    <div style="margin-top:1rem;border-top:1px dashed var(--bd);padding-top:1rem">
+      <div class="h-meta" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">🎨 Visual insights — image corpus patterns (${corpus.n_parsed || 0} analysed)</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:.75rem;font-size:12px">
+        <div>
+          ${palettes.length ? `<div style="margin-bottom:.5rem"><b>Top palettes:</b> ${palettes.slice(0, 6).map(p => `<span class="pill" style="background:${p.hex};color:#fff;border:1px solid var(--bd);margin-right:.25rem;font-family:monospace">${esc(p.hex)}</span>`).join('')}</div>` : ''}
+          ${moods.length ? `<div style="margin-bottom:.5rem"><b>Moods:</b> ${moods.slice(0, 4).map(m => `${esc(m.mood)} (${m.count})`).join(' · ')}</div>` : ''}
+          ${objects.length ? `<div style="margin-bottom:.5rem"><b>Subjects:</b> ${objects.slice(0, 4).map(o => `${esc(o.object)} (${o.count})`).join(' · ')}</div>` : ''}
+          ${brands.length ? `<div style="margin-bottom:.5rem"><b>Brand mentions:</b> ${brands.slice(0, 4).map(b => `${esc(b.brand)} (${b.count})`).join(' · ')}</div>` : ''}
+          ${Object.values(lum).some(v => v) ? `<div style="margin-bottom:.5rem"><b>Luminance:</b> ${Object.entries(lum).filter(([,v])=>v).map(([k,v])=>`${k}=${v}`).join(' · ')}</div>` : ''}
+          ${corpus.pass_rate_pct != null ? `<div style="margin-bottom:.5rem"><b>Brand-canon compliance:</b> ${corpus.pass_rate_pct}%</div>` : ''}
+        </div>
+        <div>
+          <div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">Insight to act on</div>
+          <ul class="list" style="margin:0;font-size:12px">${(vi.insight && vi.insight.length)
+            ? vi.insight.map(i => `<li class="li"><div class="li-body"><div class="li-title">${esc(i.claim || '')} <span class="h-meta" style="font-size:10px">[${esc(i.category || '')}]</span></div><div class="li-meta">${esc(i.evidence || '')}</div></div></li>`).join('')
+            : '<li class="empty">No corpus-level signal yet</li>'}</ul>
+        </div>
+      </div>
+      <div class="muted" style="font-size:10.5px;margin-top:.4rem"><b>How to use:</b> cross-reference the insight with this week's published posts + their engagement to test hypotheses (e.g. "blue days outperform amber days"). Update the visual-dna index after every image generation pass.</div>
+    </div>
+  `;
+}
+
+function renderTopicClustersCard(tc){
+  if(!tc || !tc.buckets || !tc.buckets.length) return '';
+  return `
+    <div style="margin-top:1rem;border-top:1px dashed var(--bd);padding-top:1rem">
+      <div class="h-meta" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">📚 IG topic mix — what's actually being said this week</div>
+      <div style="font-size:12px">
+        ${tc.primary_topic ? `<div style="margin-bottom:.4rem"><b>Primary topic:</b> <span class="pill live" style="text-transform:uppercase">${esc(tc.primary_topic)}</span></div>` : ''}
+        <ul class="list" style="margin:0;font-size:12px">${tc.buckets.map(b => `
+          <li class="li"><div class="li-body">
+            <div class="li-title"><b>${esc(b.topic)}</b> (${b.count} post${b.count===1?'':'s'})</div>
+            ${(b.examples || []).map(e => `<div class="li-meta" style="margin-top:.15rem">"${esc((e.preview || '').slice(0,140))}"</div>`).join('')}
+          </div></li>`).join('')}</ul>
+      </div>
+      <div class="muted" style="font-size:10.5px;margin-top:.4rem"><b>Pattern check:</b> if "equipment" + "trackman" dominate every week, you're not rotating pillars. Add a coaching or social-reel theme in the next planning cycle.</div>
+    </div>
+  `;
 }
 
 // ─── LIBRARY — universal search (placeholder for now; uses FAQ list as starting content) ───

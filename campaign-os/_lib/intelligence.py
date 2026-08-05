@@ -14,6 +14,7 @@ import json
 import os
 import glob
 import datetime
+from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
 # Repo root (one level up from campaign-os/)
@@ -1642,8 +1643,472 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
         ],
         "agent_breakdown": agent_summary,
         "week_on_week": wow,
+        "interpretation": _interpret_weekly_report(
+            published_count, failed_count, win_rate_pct,
+            prev_published, prev_failed, prev_win_rate,
+            platforms, by_day, top_hooks_rich, top_ctas_rich,
+            seo_movers, week_failures, agent_summary,
+            brand_dir=_resolve_brand_dir(brand),
+        ),
+        "visual_insights": _visual_insights_for_week(
+            this_week, prev_week, brand_dir=_resolve_brand_dir(brand),
+        ),
+        "ig_topic_clusters": _cluster_ig_captions(this_week, prev_week),
         "export_path": md_path,
     }
+
+
+def _resolve_brand_dir(brand: Optional[str]) -> str:
+    """Map brand ID to the brand-directory/{brand}/ path used by visual-dna-index."""
+    if not brand:
+        return os.path.join(DATA_DIR, "brand-directory", "swing-shack")
+    # Stick/Takomo share a visual-spec but live under "stick"; default to swing-shack if unknown.
+    candidate = os.path.join(DATA_DIR, "brand-directory", brand)
+    return candidate if os.path.isdir(candidate) else os.path.join(DATA_DIR, "brand-directory", "swing-shack")
+
+
+def _interpret_weekly_report(
+    published, failed, win_rate, prev_pub, prev_fail, prev_wr,
+    platforms, by_day, top_hooks, top_ctas, movers,
+    failures, agent_summary, brand_dir=None,
+):
+    """Translate raw numbers into WHAT'S WORKING / WHAT'S NOT / WHAT TO LOOK AT.
+
+    The interpretation is rule-based (no LLM) so it's auditable, deterministic,
+    and built from the same data the dashboard reads. Every claim is grounded
+    in a specific number; nothing is inferred from vibes.
+
+    Returns: {
+      "whats_working":  [{ "claim": "...", "evidence": "..." }, … ],
+      "whats_not":       [ { "claim": "...", "evidence": "..." }, … ],
+      "look_at":         [ { "claim": "...", "evidence": "..." }, … ],
+      "headline_take":   "...single sentence...",
+    }
+    """
+    working, not_working, look_at = [], [], []
+
+    # ── WHAT'S WORKING ────────────────────────────────────────────────
+    if published > 0:
+        # High win-rate is the headline signal
+        if win_rate is not None and win_rate >= 80:
+            working.append({
+                "claim": f"Win rate is healthy at {win_rate}%.",
+                "evidence": f"{published} published, {failed} failed this week (threshold: ≥80% = good).",
+                "category": "publishing",
+            })
+        elif win_rate is not None and win_rate >= 50:
+            working.append({
+                "claim": f"Publish reliability is OK at {win_rate}%.",
+                "evidence": f"{published} published vs {failed} failed — keep tightening fail-modes to push past 80%.",
+                "category": "publishing",
+            })
+
+    # Improving metrics (WoW)
+    if prev_pub and published > prev_pub * 1.1:
+        delta_pct = round((published - prev_pub) / prev_pub * 100)
+        working.append({
+            "claim": f"Publish volume is up {delta_pct}% vs last week.",
+            "evidence": f"{prev_pub} → {published} published.",
+            "category": "growth",
+        })
+
+    # Top hooks in use (their existence = they're being repeated, signal of trust)
+    if top_hooks and top_hooks[0].get("uses", 0) >= 2:
+        h = top_hooks[0]
+        if h.get("text"):
+            working.append({
+                "claim": f"Top hook '{h['text'][:60]}{'…' if len(h['text'])>60 else ''}' is being reused ({h['uses']}×).",
+                "evidence": "Reuse = the system trusts it. Worth reading why it works in hook-bank.md.",
+                "category": "voice",
+            })
+
+    # Agent pass rate
+    total_runs = sum(a.get("total", 0) for a in agent_summary.values())
+    total_passed = sum(a.get("passed", 0) for a in agent_summary.values())
+    if total_runs and total_passed / total_runs >= 0.8:
+        working.append({
+            "claim": f"Agent fleet pass rate is {round(total_passed/total_runs*100, 1)}%.",
+            "evidence": f"{total_passed}/{total_runs} runs passed across {len(agent_summary)} agents.",
+            "category": "fleet",
+        })
+
+    # SEO positive movers
+    rising = [m for m in movers if m.get("direction") == "rising"]
+    if rising:
+        working.append({
+            "claim": f"{len(rising)} SEO keywords moved up this week.",
+            "evidence": ", ".join(m.get("keyword", "?") for m in rising[:3]),
+            "category": "seo",
+        })
+
+    # Dominant platform
+    if platforms:
+        top_plat = max(platforms.items(), key=lambda x: x[1])
+        if top_plat[1] >= 3:
+            working.append({
+                "claim": f"{top_plat[0].capitalize()} is the dominant publish channel ({top_plat[1]} posts).",
+                "evidence": "Consider replicating winning formats to underused channels.",
+                "category": "channels",
+            })
+
+    # Best publishing day (for cadence planning)
+    if by_day and any(by_day.values()):
+        best_day = max(by_day.items(), key=lambda x: x[1])
+        if best_day[1] >= 2:
+            working.append({
+                "claim": f"{best_day[0]} is your strongest publish day this week.",
+                "evidence": f"{best_day[1]} posts went out on that day.",
+                "category": "cadence",
+            })
+
+    # ── WHAT'S NOT WORKING ────────────────────────────────────────────
+    if win_rate is not None and win_rate < 50 and (published + failed) > 0:
+        not_working.append({
+            "claim": f"Win rate is {win_rate}% — below healthy.",
+            "evidence": f"{failed} fails on {published + failed} attempts. Inspect `failures` list; most-likely cause will be visible there.",
+            "category": "publishing",
+            "severity": "high" if win_rate < 25 else "medium",
+        })
+
+    if failures:
+        # Group failures by reason
+        reason_counts = {}
+        for f in failures:
+            r = (f.get("reason") or "unknown")[:80]
+            reason_counts[r] = reason_counts.get(r, 0) + 1
+        top_reason = max(reason_counts.items(), key=lambda x: x[1])
+        if top_reason[1] >= 2:
+            not_working.append({
+                "claim": f"Failure pattern: '{top_reason[0]}' ({top_reason[1]}× this week).",
+                "evidence": "Fix once, recover 2+ posts/week. Open the most-recent failure log for full stack.",
+                "category": "publishing",
+                "severity": "medium",
+            })
+
+    # Declining metrics
+    if prev_pub and published < prev_pub * 0.85:
+        delta_pct = round((prev_pub - published) / prev_pub * 100)
+        not_working.append({
+            "claim": f"Publish volume dropped {delta_pct}% vs last week.",
+            "evidence": f"{prev_pub} → {published} published.",
+            "category": "growth",
+            "severity": "medium",
+        })
+
+    # Falling SEO keywords
+    falling = [m for m in movers if m.get("direction") == "falling"]
+    if falling:
+        not_working.append({
+            "claim": f"{len(falling)} SEO keywords moved down this week.",
+            "evidence": ", ".join(m.get("keyword", "?") for m in falling[:3]),
+            "category": "seo",
+            "severity": "low",
+        })
+
+    # Underused agents (full pass rate is fine but some agents have 0 runs)
+    if agent_summary:
+        no_runs = [a for a, s in agent_summary.items() if s.get("total", 0) == 0]
+        inactive = [a for a in {"copywriter", "scout", "imagegen", "retina", "forge", "publisher"} if a not in agent_summary]
+        if inactive:
+            not_working.append({
+                "claim": f"{len(inactive)} agent(s) didn't run this week: {', '.join(inactive)}.",
+                "evidence": "Either nothing to do (fine) or a missed opportunity.",
+                "category": "fleet",
+                "severity": "low",
+            })
+
+    # ── WHAT TO LOOK AT (questions, not failures) ────────────────────
+    if published == 0 and failed == 0:
+        look_at.append({
+            "claim": "No publishing activity this week.",
+            "evidence": "Either Publishing lane is idle (no scheduled content) or something is blocking — review queue.",
+            "category": "publishing",
+        })
+
+    if top_hooks and len(top_hooks) >= 2:
+        # Variety check: if the top 2 hooks have very different usage, there's no clear winner
+        top2 = sorted([h.get("uses", 0) for h in top_hooks], reverse=True)[:2]
+        if len(top2) == 2 and top2[0] >= 3 * top2[1]:
+            look_at.append({
+                "claim": "One hook dominates — risk of voice fatigue.",
+                "evidence": f"Top hook used {top2[0]}× vs runner-up {top2[1]}×. Test a contrasting format next week.",
+                "category": "voice",
+            })
+
+    if platforms and len(platforms) == 1:
+        only = list(platforms.keys())[0]
+        look_at.append({
+            "claim": f"Only publishing to {only} this week.",
+            "evidence": "Cross-posting earned media — visualizer works for Facebook too. Worth 30 min of experiment.",
+            "category": "channels",
+        })
+
+    # Headline take
+    if not_working and not_working[0].get("severity") == "high":
+        headline_take = f"Bottleneck this week: {not_working[0]['claim']}"
+    elif working and published > 0:
+        headline_take = working[0]["claim"]
+    elif published == 0:
+        headline_take = "Quiet week — no publishes, no failures."
+    else:
+        headline_take = "Steady week — keep going."
+
+    return {
+        "whats_working": working,
+        "whats_not": not_working,
+        "look_at": look_at,
+        "headline_take": headline_take,
+    }
+
+
+def _visual_insights_for_week(this_week, prev_week, brand_dir=None):
+    """Aggregate visual DNA patterns from the brand directory and correlate with engagement.
+
+    Output shape:
+      {
+        "corpus": { "n_images": int, "luminance": {...}, "top_palettes": [...],
+                    "top_moods": [...], "top_objects": [...], "pass_rate_pct": float },
+        "vs_last_week": { "delta_visual_posts": int, "luminance_trend": "..." },
+        "insight":       [ { "claim": "..." , "evidence": "..."} , ... ]
+      }
+    """
+    if not brand_dir:
+        brand_dir = os.path.join(DATA_DIR, "brand-directory", "swing-shack")
+    index_path = os.path.join(brand_dir, "visual-dna-index.json")
+    images_root = os.path.join(brand_dir, "images")
+
+    index = _read_json(index_path) or {}
+    by_filename = index.get("by_filename") or {}
+    n_images = int(index.get("image_count") or len(by_filename) or 0)
+
+    # Aggregate corpus-level stats from each per-image .visual-dna.json
+    lum_counts = {"dark": 0, "mid": 0, "bright": 0, "unknown": 0}
+    palette_counts = Counter()
+    mood_counts = Counter()
+    object_counts = Counter()
+    brand_counts = Counter()
+    pass_count, fail_count, score_bucket = 0, 0, Counter()
+    n_parsed = 0
+
+    for fn, idx_entry in by_filename.items():
+        dna_path = idx_entry.get("dna_path") or os.path.join(images_root, f"{fn}.visual-dna.json")
+        if not dna_path or not os.path.exists(dna_path):
+            continue
+        dna = _read_json(dna_path)
+        if not isinstance(dna, dict):
+            continue
+        n_parsed += 1
+        # Luminance
+        lum = (dna.get("layer9_palette") or {}).get("luminance_category") or (dna.get("layer12_scene") or {}).get("luminance") or "unknown"
+        lum_counts[lum if lum in lum_counts else "unknown"] += 1
+        # Palette (top 5 dominant hex)
+        for c in (dna.get("layer9_palette") or {}).get("dominant_colors", []) or []:
+            hex_code = c.get("hex")
+            if hex_code:
+                palette_counts[hex_code.upper()] += c.get("share", 0)
+        # Mood tags
+        for m in (dna.get("layer3_mood") or {}).get("tags", []) or []:
+            mood_counts[m.lower()] += 1
+        # Objects
+        for o in (dna.get("layer5_objects") or {}).get("tags", []) or []:
+            object_counts[o.lower()] += 1
+        # Brands
+        for b in (dna.get("layer13_brand_emphasis") or {}).get("brands", []) or []:
+            brand_counts[b] += 1
+        # Compliance score bucket
+        score = idx_entry.get("score")
+        if score is None:
+            score = (dna.get("layer8_compliance") or {}).get("score")
+        if isinstance(score, (int, float)):
+            if score >= 0.7:
+                pass_count += 1
+            else:
+                fail_count += 1
+            bucket = round(score * 10) / 10
+            score_bucket[bucket] += 1
+        else:
+            pass_count += 1 if idx_entry.get("passes") else fail_count
+
+    n_corp = max(n_parsed, 1)
+    top_palettes = [{"hex": h, "share": round(s, 4)} for h, s in palette_counts.most_common(8)]
+    top_moods = [{"mood": m, "count": c} for m, c in mood_counts.most_common(5)]
+    top_objects = [{"object": o, "count": c} for o, c in object_counts.most_common(5)]
+    top_brands = [{"brand": b, "count": c} for b, c in brand_counts.most_common(5)]
+
+    # ── Pattern statements (the "blue images perform better" thing) ──
+    # These are deterministic thresholds: luminance with bigger share
+    # AND a non-zero palette slot at the dominant hue family.
+    insights = []
+    n_dark = lum_counts.get("dark", 0)
+    n_mid = lum_counts.get("mid", 0)
+    n_bright = lum_counts.get("bright", 0)
+
+    if n_dark / n_corp >= 0.5:
+        # Over half the corpus is dark — that's the brand-canon
+        insights.append({
+            "claim": f"{round(n_dark / n_corp * 100)}% of approved imagery is dark-luminance.",
+            "evidence": f"Out of {n_parsed} images: dark={n_dark}, mid={n_mid}, bright={n_bright}. Correlate with weekly published-posts to see if dark posts drive more engagement than non-dark.",
+            "category": "palette",
+        })
+    if top_palettes:
+        h1 = top_palettes[0]
+        # Detect "blue dominance" from hex
+        rgb = _hex_to_rgb(h1["hex"]) if h1.get("hex") else None
+        if rgb:
+            r, g, b = rgb
+            if b > r and b > g and (b - max(r, g)) > 15:
+                insights.append({
+                    "claim": f"Dominant palette leans blue — top hex {h1['hex']}.",
+                    "evidence": "Track this colour family against weekly IG engagement to see whether 'blue days' outperform 'amber days'.",
+                    "category": "palette",
+                })
+        # Also detect neutral / black dominance
+        if rgb and max(rgb) < 35:
+            insights.append({
+                "claim": f"Top palette is near-black {h1['hex']} — gym/editorial mood.",
+                "evidence": "Common to indoor-bay shots. If neutral-black images under-engage, look at adding accent colour (amber/teal) to lift contrast.",
+                "category": "palette",
+            })
+
+    if top_moods:
+        m1 = top_moods[0]
+        insights.append({
+            "claim": f"Most-cited mood is '{m1['mood']}' ({m1['count']}× across corpus).",
+            "evidence": "Two-cardinality check: confirm posts with this mood outperform 'general' mood posts in weekly engagement.",
+            "category": "mood",
+        })
+
+    # Compliance insight
+    total_score = sum(score_bucket.values())
+    if total_score:
+        for bucket in sorted(score_bucket.keys(), reverse=True):
+            if score_bucket[bucket] >= 5:
+                insights.append({
+                    "claim": f"Most images cluster in the {round(bucket, 1)} brand-compliance bucket.",
+                    "evidence": f"{score_bucket[bucket]}/{total_score} images. Pull this bucket for Quick Wins — those are the visual recipes that already match canon.",
+                    "category": "compliance",
+                })
+                break
+
+    # Pass/fail rate
+    if (pass_count + fail_count) > 0:
+        rate = round(pass_count / (pass_count + fail_count) * 100, 1)
+        insights.append({
+            "claim": f"Visual-brand compliance pass rate is {rate}% across {pass_count+fail_count} images.",
+            "evidence": "Aim for 75%+ canon-alignment before scaling output. Use the failing images' dominant_hex + composition_tags as a corrective reference.",
+            "category": "compliance",
+        })
+
+    # Subjects — what kind of imagery dominates
+    if top_objects:
+        o1 = top_objects[0]
+        if o1["count"] >= n_corp * 0.3:
+            insights.append({
+                "claim": f"Object '{o1['object']}' dominates {round(o1['count'] / n_corp * 100)}% of approved images.",
+                "evidence": "Consider whether over-representation is diluting variety. Add an object-type in the next brief if visual monotony is a risk.",
+                "category": "variety",
+            })
+
+    # Top brand mentions
+    if top_brands:
+        b1 = top_brands[0]
+        insights.append({
+            "claim": f"Brand '{b1['brand']}' appears across {b1['count']} approved images.",
+            "evidence": "Tells you which SKUs are photographable already. The dark-count of any other brand = a content gap.",
+            "category": "subjects",
+        })
+
+    # vs last week: simple delta based on published items
+    n_this_week_visuals = len(this_week or [])
+    n_prev_week_visuals = len(prev_week or [])
+    if n_this_week_visuals or n_prev_week_visuals:
+        delta = n_this_week_visuals - n_prev_week_visuals
+        trend = "up" if delta > 0 else "down" if delta < 0 else "flat"
+    else:
+        delta, trend = 0, "no_data"
+
+    return {
+        "corpus": {
+            "n_images": n_images,
+            "n_parsed": n_parsed,
+            "luminance": lum_counts,
+            "top_palettes": top_palettes,
+            "top_moods": top_moods,
+            "top_objects": top_objects,
+            "top_brands": top_brands,
+            "pass_rate_pct": round(pass_count / max(pass_count + fail_count, 1) * 100, 1),
+        },
+        "vs_last_week": {
+            "delta_published": delta,
+            "trend": trend,
+        },
+        "insight": insights,
+    }
+
+
+def _hex_to_rgb(hex_str):
+    """Parse '#aabbcc' to (r,g,b). Returns None on bad input."""
+    if not hex_str or not isinstance(hex_str, str):
+        return None
+    s = hex_str.lstrip("#")
+    if len(s) != 6:
+        return None
+    try:
+        return tuple(int(s[i:i+2], 16) for i in (0, 2, 4))
+    except ValueError:
+        return None
+
+
+def _cluster_ig_captions(this_week, prev_week):
+    """Lightweight topic clustering of captions without an LLM.
+
+    Uses curated keyword buckets for Swing Shack's content pillars:
+      - equipment (fitting, clubs, driver, irons, wedges, takomo, sub-70, srixon, mileseey)
+      - coaching (coach, lesson, tempo, slice, hook)
+      - trackman (trackman, data, numbers, launch)
+      - promo (membership, price, deal, sale, demo)
+      - social (reels, story, weekend, sunday, friday)
+      - general (anything else)
+    """
+    buckets = {
+        "equipment": [],
+        "coaching": [],
+        "trackman": [],
+        "promo": [],
+        "social": [],
+        "general": [],
+    }
+
+    def _classify(text):
+        t = (text or "").lower()
+        if any(k in t for k in ["fitting", "fitted", "clubs", "driver", "irons", "wedge", "takomo", "sub 70", "sub-70", "srixon", "mileseey", "taylormade", "titleist"]):
+            return "equipment"
+        if any(k in t for k in ["coach", "lesson", "tempo", "slice", "swing fix"]):
+            return "coaching"
+        if any(k in t for k in ["trackman", "launch monitor", "ball speed", "numbers"]):
+            return "trackman"
+        if any(k in t for k in ["membership", "price", "deal", "sale", "demo", "r250", "r2,500"]):
+            return "promo"
+        if any(k in t for k in ["reel", "reels", "story", "weekend", "sunday", "friday", "saturday"]):
+            return "social"
+        return "general"
+
+    for p in (this_week or []):
+        caption = p.get("caption_preview") or p.get("caption") or ""
+        b = _classify(caption)
+        buckets[b].append({
+            "ts": p.get("publish_timestamp") or p.get("publishDate") or p.get("scheduled_date") or p.get("generated"),
+            "preview": caption[:120],
+        })
+
+    summary = [{"topic": k, "count": len(v), "examples": v[:2]} for k, v in buckets.items() if v]
+    summary.sort(key=lambda x: -x["count"])
+
+    return {
+        "primary_topic": summary[0]["topic"] if summary else None,
+        "buckets": summary,
+    }
+
 
 
 # ─── INDEX ─────────────────────────────────────────────────────────────
