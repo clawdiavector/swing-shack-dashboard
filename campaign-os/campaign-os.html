@@ -686,13 +686,13 @@ a:hover{text-decoration:underline}
 
     <div class="nav-section" id="all-tools-section" hidden>
       <div class="nav-title">All tools</div>
-      <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar — month grid of every planned post across all brands."><span class="nav-icon">📅</span> Calendar</div>
+      <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar · month grid of every planned post across all brands."><span class="nav-icon">📅</span> Calendar</div>
       <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
       <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
       <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
       <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Raw content backlog for the active brand."><span class="nav-icon">💡</span> Ideas</div>
       <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks ranked by what wins for this brand."><span class="nav-icon">🪝</span> Hook Bank</div>
-      <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme workspace — templates, custom captions, format conversion."><span class="nav-icon">😂</span> Meme Lord</div>
+      <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme workspace · templates, custom captions, format conversion."><span class="nav-icon">😂</span> Meme Lord</div>
       <div class="nav" data-go="captions" data-help-title="Caption Studio" data-help="Voice-aware captions. IG / FB / LinkedIn lengths."><span class="nav-icon">✍️</span> Caption Studio</div>
       <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Bold, provocative headlines per pillar."><span class="nav-icon">📰</span> Headlines</div>
       <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs (Midjourney, DALL-E, ComfyUI). Renders live via gpt-image-1."><span class="nav-icon">🖼️</span> Image Gen</div>
@@ -703,7 +703,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
       <div class="nav" data-go="seo" data-help-title="SEO" data-help="Audit scores, keyword rankings, GEO readiness."><span class="nav-icon">🔎</span> SEO</div>
       <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
-      <div class="nav" data-go="gbp" data-help-title="Google Business" data-help="GBP workspace — voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
+      <div class="nav" data-go="gbp" data-help-title="Google Business" data-help="GBP workspace · voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
       <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit tone, no-link soft-sell."><span class="nav-icon">🗣️</span> Reddit</div>
       <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
       <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
@@ -5438,7 +5438,7 @@ window.openGmbEdit = async (id) => {
     </label>
     <label style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.5rem">
       <span style="font-size:12px;color:var(--tx-2);font-weight:600">Body</span>
-      <textarea id="gmb-body" rows="6" maxlength="1500" data-help="Main post copy. Google Business caps body at 1500 chars but the visible window on mobile is much shorter — lead with the hook." data-help-title="GMB body" style="width:100%;padding:.75rem;border-radius:6px;background:var(--bg-3);color:var(--tx);border:1px solid var(--bd);font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;min-height:120px">${esc(d.body||'')}</textarea>
+      <textarea id="gmb-body" rows="6" maxlength="1500" data-help="Main post copy. Google Business caps body at 1500 chars but the visible window on mobile is much shorter · lead with the hook." data-help-title="GMB body" style="width:100%;padding:.75rem;border-radius:6px;background:var(--bg-3);color:var(--tx);border:1px solid var(--bd);font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;min-height:120px">${esc(d.body||'')}</textarea>
       <span id="gmb-body-count" class="muted" style="font-size:11px;text-align:right">${(d.body||'').length}/1500 chars</span>
     </label>
     <div style="display:grid;grid-template-columns:1fr 2fr;gap:.5rem;margin-bottom:.5rem">
@@ -7715,7 +7715,7 @@ async function renderBrandDirectoryPanel(){
                 ${ac.length} archetype${ac.length===1?'':'s'}: ${ac.slice(0,3).map(a=>`<code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;font-size:10.5px">${esc(a)}</code>`).join(' ')}${ac.length>3?'…':''}
               </div>
               <div class="btn-row" style="margin-top:.75rem">
-                <button class="btn ghost" data-bd-view="${esc(bid)}" data-help="Read every brand slot: voice rules, palette swatches, archetype layers, headline bank, CTA bank. Read-only — for the canonical shortlist of what makes this brand this brand." data-help-title="View brand directory">📋 View details</button>
+                <button class="btn ghost" data-bd-view="${esc(bid)}" data-help="Read every brand slot: voice rules, palette swatches, archetype layers, headline bank, CTA bank. Read-only · for the canonical shortlist of what makes this brand this brand." data-help-title="View brand directory">📋 View details</button>
                 <button class="btn ghost" data-bd-brief="${esc(bid)}" data-help="Open the brand-brief form. Pick a surface (what shape the post is) and a tone (how the voice lands), generates a structured brief that ladders to the image and copy generators. No more native prompt() dialogs." data-help-title="Generate brand brief">🎨 Generate brief</button>
               </div>
             </div>`;
@@ -8317,7 +8317,7 @@ window.renderCampaignWorkviewHeader = (cid, c) => {
   card.innerHTML = `
     <div class="card" style="border-left:3px solid ${healthColor}">
       <div class="card-h">
-        <h3 data-help="The why of this campaign — the single line you would tell a friend if they asked what this is for. Below it: the status of every asset class (real photos you need, AI image prompts, videos, captions, CTAs, schedule). The 'Automation' section lists what the agents handle (everything except the items marked 🔴). The bulk-approve button ships every 'review' asset to 'approved' in one click." data-help-title="Campaign work-view" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🎯 Campaign work-view <span style="font-size:11px;color:var(--tx-3);font-weight:500;margin-left:.4rem">${esc(identity.name || cid)}</span></h3>
+        <h3 data-help="The why of this campaign · the single line you would tell a friend if they asked what this is for. Below it: the status of every asset class (real photos you need, AI image prompts, videos, captions, CTAs, schedule). The 'Automation' section lists what the agents handle (everything except the items marked 🔴). The bulk-approve button ships every 'review' asset to 'approved' in one click." data-help-title="Campaign work-view" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🎯 Campaign work-view <span style="font-size:11px;color:var(--tx-3);font-weight:500;margin-left:.4rem">${esc(identity.name || cid)}</span></h3>
         <span class="h-meta"><span class="pill ${identity.status==='active'?'on':'draft'}" style="font-size:10px">${esc(identity.status || 'unknown')}</span></span>
       </div>
 
