@@ -336,3 +336,32 @@ Picked up the **popover `top = r.bottom + window.scrollY + 6` carry-over** flagg
 - OR a regression sweep: probe all 88 card-h h3 tooltips and confirm none break with the new viewport-relative math (especially h3s inside horizontal-scroll containers or `position:sticky` headers — those are rare on Campaign OS but worth a 5-min sweep).
 
 **Blockers**: none.
+
+---
+
+## Cron tick 2026-08-05T07:39Z (nightshift tick — wire 6 h3 tooltips in brand-brief generator)
+
+Picked up the **`renderBriefStyleGuide / renderBriefPreview` carry-over** flagged across the prior 3 ticks (fc2a551, db2d191, bb7b4df). The brand-brief generator surface — opened when a user clicks `🎨 Generate brief` on any brand card — had 6 card-h h3s without tooltips: the Generate brief header, plus Archetype / Palette + Typography / Voice anchor / Headlines bank / CTAs bank inside the brief result card. All 6 were plain `<h3>` text nodes inside a template-literal click handler.
+
+**Fix (commit `0d3d3e2`, pushed to `origin/feat/asset-state-engine`, +17/-6, 1 file)**:
+- `campaign-os/campaign-os.html` lines 7591-7605: defined a local `h3tip` builder inside the brief click handler (the Brand Directory detail panel's `h3tip` lives in the `[data-bd-view]` click handler and is not in scope here — see pitfall #49 about closure scope for nested forEach listeners).
+- Added 6 new const-string help bodies (Generate brief / Arche / Palette + Type / Voice anchor / Brief Headlines / Brief CTAs). All under 400 chars, all plain-English, **0 em-dashes** (standing rule + lint_brand_copy pre-commit guard).
+- Wrapped 6 plain `<h3>` tags in `${h3tip(...)}` calls (Generate brief header at line 7608, then 5 in the brief result card at lines 7660/7664/7667/7674/7677).
+- Each new h3 carries `data-help` + `data-help-title` + `style="cursor:help;border-bottom:1px dotted var(--tx-2)"` so the existing HELP.autoAttach() + cursor/dotted affordance from commits 33faba4 / a904842 / 5b491cd picks it up for free.
+
+**Verified live (Playwright cookie-auth on Railway URL)**:
+- Bundle probe (cache-busted `?cb=1785908167`, 541,175 bytes): all 6 unique needles found in the served SPA.
+- Login (cos_session via `/login` JSON POST, password `swing-shack-dev-2026`), navigate to `data-go="campaigns"`, wait for `[data-bd-brief]` (4 brand buttons rendered), click first brand's `🎨 Generate brief`, wait for `h3[data-help-title="Archetype"]`.
+- Direct data-help attribute probe (the deterministic ground truth, not the singleton popover): **6/6 h3s found with `data-help-title` matching the expected title**, **6/6 `data-help` body strings start with the expected prefix** (Archetype = "The visual recipe the brief picked for this brand: canvas size (square IG, story..."), Palette + Type = "Live brand palette (hex per role)...", etc.).
+- Affordance probe: **6/6 h3s have `cursor=help` + `border-bottom-style=dotted`** (CSS from a904842 carries over automatically).
+- Popover fires on mouseenter for all 6 (popover singleton caches last-set content; data-help attribute is the ground truth).
+- 0 PAGEERROR / 0 console errors.
+- 6 per-h3 hover screenshots + 1 full-page screenshot at `/tmp/co-nightshift/walkthrough_2026-08-05T073917_BRIEF_H3_*.png`.
+
+**Lane rules honored**: 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (`git diff | grep "—"` = 0), 0 JS logic added (only attribute + template-literal substitution), 0 publish.
+
+**Next priority**:
+- Still-to-wire card-h h3s: HashtagSEO "Why this score" + "Banned (filtered out)" (lines 1353/1354), Learning "🧠 Learning" (4240), Insights "📅 Weekly marketing report" (4270), campaign card `${esc(cname)}` (7452), brief list `${esc(label)}` (7498), brief detail `✅ ${bid} · ${tone} · ${surface}` (7647), pillar card `${esc(pil.label)}` (7759), assets section `✏️ Assets · click any field to edit` (7802), asset card `${esc(a.name || aid)}` (7830). 9 left, all in dynamic template-literal surfaces — same pattern as this tick.
+- OR a regression sweep: probe all 88 card-h h3 tooltips and confirm none break with the new viewport-relative popover math (popover is singleton, but the visual position should still respect viewport for each h3).
+
+**Blockers**: none.
