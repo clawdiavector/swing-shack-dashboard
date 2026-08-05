@@ -594,7 +594,7 @@ a:hover{text-decoration:underline}
    (the pseudo-element rendered inline at full text width, breaking any element that received
    the .help-tip class via HELP.tip). The JS pop is the single source of truth for hover text.
    For a manually-added help-tip icon, use HELP.tip() instead of inline content. */
-.help-pop{position:fixed;max-width:340px;min-width:220px;background:var(--bg-1);color:var(--tx);border:1px solid var(--bg-3);border-radius:8px;padding:.7rem .85rem;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.45);z-index:9999;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
+.help-pop{position:fixed;max-width:340px;min-width:220px;background:#101727;color:#e6ecf5;border:1px solid #22304d;border-radius:8px;padding:.7rem .85rem;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.6),0 0 0 1px rgba(52,211,153,.18);z-index:9999;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
 .help-pop.show{opacity:1;transform:translateY(0)}
 .help-pop .hp-title{font-weight:700;color:var(--ac);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem;display:block}
 .help-pop .hp-why{font-size:11.5px;color:var(--tx-2);margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--bg-3);display:block;line-height:1.45}
@@ -611,7 +611,7 @@ a:hover{text-decoration:underline}
 /* Hide body when collapsed so the explainer panel doesn't permanently overlap nav */
 .help-collapsible:not([open]) .hc-body{display:none}
 .help-collapsible[open] summary{border-radius:6px 6px 0 0;border-bottom:none}
-.help-collapsible .hc-body{padding:.85rem 1rem;border:1px solid var(--bg-3);border-top:none;border-radius:0 0 6px 6px;font-size:12.5px;line-height:1.6;color:var(--tx-2);background:var(--bg-1)}
+.help-collapsible .hc-body{padding:.85rem 1rem;border:1px solid #22304d;border-top:none;border-radius:0 0 6px 6px;font-size:12.5px;line-height:1.6;color:#a8b4cc;background:#101727}
 .help-collapsible .hc-body p{margin:0 0 .65rem}
 .help-collapsible .hc-body p:last-child{margin:0}
 .help-collapsible .hc-body .hc-term{font-weight:700;color:var(--tx)}
