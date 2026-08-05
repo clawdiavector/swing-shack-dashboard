@@ -7908,6 +7908,239 @@ async function renderBrandDirectoryPanel(){
     container.innerHTML = `<div class="card"><div class="muted">Brand Directory API not reachable: ${esc(e.message)}</div></div>`;
   }
 }
+// ─── TIER 2(d) v2 — Per-campaign asset thumbnail grid ────────────
+// Renders every asset as a compact card with thumbnail (or icon fallback),
+// status icon strip across the bottom, and a checkbox. Click checkbox →
+// adds to selection set; bulk-approve button updates live. Click card body
+// (not checkbox) → scrolls to inline editor (existing `loadPlanAssets` view).
+// Filter chips above the grid: All / ⚠ Needs work / ✓ Ready / ✋ Needs you.
+window.renderCampaignAssetGrid = (cid, c, assets, readyToApprove) => {
+  const ids = Object.keys(assets);
+  if(!ids.length) return '<div class="muted" style="font-size:11.5px">No assets in this campaign yet.</div>';
+
+  // Selection state — local Map (cid → Set<aid>) so multi-open doesn't leak.
+  if(!window._workviewSelection) window._workviewSelection = {};
+  if(!window._workviewSelection[cid]) window._workviewSelection[cid] = new Set();
+  const sel = window._workviewSelection[cid];
+
+  // Filter state: 'all' (default) | 'work' | 'ready' | 'real'
+  const filterId = `wv-filter-${cid}`;
+
+  // Helper: asset state classification
+  // work = anything not fully approved end-to-end
+  // ready = approvalStatus=approved AND captionStatus ready AND visualStatus ready
+  // real = realImageNeeded=true AND visualStatus ≠ approved/ready
+  const classify = (a) => {
+    if(a.realImageNeeded && a.visualStatus !== 'approved' && a.visualStatus !== 'ready') return 'real';
+    const approved  = a.approvalStatus === 'approved';
+    const capReady  = a.captionStatus === 'approved' || a.captionStatus === 'ready';
+    const visReady  = a.visualStatus === 'approved' || a.visualStatus === 'ready';
+    return (approved && capReady && visReady) ? 'ready' : 'work';
+  };
+
+  // Thumbnail path resolver — try <cid>/<assetType>-<n>.jpg pattern, then
+  // a generic <cid>/<assetType>.jpg, then fall back to icon.
+  const inferThumb = (aid, a) => {
+    // extract "feed-post-01" suffix
+    const m = (aid.match(/-([a-z\-]+)-(\d+)$/) || aid.match(/-([a-z\-]+)$/));
+    if(!m) return null;
+    const typeSlug = m[1];
+    const num = m[2] || '';
+    // Pattern 1: assets/campaigns/<cid>/<type>-<num>.jpg
+    if(num){
+      return `/assets/campaigns/${cid}/${typeSlug}-${parseInt(num,10)}.jpg`;
+    }
+    return `/assets/campaigns/${cid}/${typeSlug}.jpg`;
+  };
+
+  // Asset-type → icon
+  const iconFor = (t) => ({
+    'feed-post': '📰', 'carousel': '🎞️', 'reel': '🎬',
+    'story': '📱', 'gmb-post': '📍', 'research': '🔍',
+    'hook': '🪝', 'cta': '🔗', 'hashtag-set': '#️⃣',
+  }[t] || '📄');
+
+  // Sub-status → tiny icon + colour
+  const subIcon = (kind, val) => {
+    const ok = val === 'approved' || val === 'ready' || val === 'scheduled' || val === 'published';
+    const map = { cap: ['✍️', a => a.captionStatus], vis: ['🎨', a => a.visualStatus], app: ['✓', a => a.approvalStatus], pub: ['📅', a => a.publishStatus] };
+    const [sym, get] = map[kind];
+    return `<span title="${kind}: ${val||'none'}" style="opacity:${ok ? '1':'0.35'};font-size:11px">${sym}</span>`;
+  };
+
+  const cardHtml = (aid) => {
+    const a = assets[aid];
+    const cls = classify(a);
+    const checked = sel.has(aid) ? 'checked' : '';
+    const thumb = inferThumb(aid, a);
+    const typeIcon = iconFor(a.assetType);
+    // Title: pull first line of caption (truncated) or asset ID
+    const firstLine = (a.caption || a.headline || '').split('\n')[0].slice(0,60);
+    const title = firstLine || aid.split('-').slice(-2).join(' ');
+    const typ = a.assetType || 'asset';
+    const realFlag = a.realImageNeeded ? '<span title="Needs real photo from you" style="position:absolute;top:4px;right:4px;background:rgba(220,38,38,.85);color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600">📸 REAL</span>' : '';
+
+    return `
+      <label class="wv-asset-card wv-cls-${cls}" data-aid="${esc(aid)}" data-class="${cls}" style="position:relative;display:block;border:1px solid var(--bg-3);border-radius:6px;overflow:hidden;background:var(--bg);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease">
+        <input type="checkbox" data-asset-select="${esc(aid)}" class="wv-asset-cb" ${checked} style="position:absolute;top:6px;left:6px;z-index:2;width:14px;height:14px;cursor:pointer;accent-color:var(--green)">
+        ${realFlag}
+        ${thumb
+          ? `<div class="wv-thumb" data-src="${esc(thumb)}" style="height:78px;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--tx-3);overflow:hidden">
+               <span class="wv-thumb-fallback">${typeIcon}</span>
+               <img alt="" loading="lazy" style="display:none;width:100%;height:100%;object-fit:cover" onload="this.previousElementSibling.style.display='none';this.style.display='block'">
+             </div>`
+          : `<div style="height:78px;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--tx-3)">${typeIcon}</div>`}
+        <div style="padding:.4rem .5rem">
+          <div style="font-size:11px;font-weight:600;color:var(--tx);line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:28px">${esc(title)}</div>
+          <div class="muted" style="font-size:10px;margin-top:2px;text-transform:uppercase;letter-spacing:.03em">${esc(typ)}</div>
+          <div style="display:flex;gap:.3rem;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--bg-3)">
+            ${subIcon('cap', a.captionStatus)}
+            ${subIcon('vis', a.visualStatus)}
+            ${subIcon('app', a.approvalStatus)}
+            ${subIcon('pub', a.publishStatus)}
+            <span style="flex:1"></span>
+            <span class="muted" style="font-size:9px">${esc(a.status)}</span>
+          </div>
+        </div>
+      </label>
+    `;
+  };
+
+  // Filter chips + grid container
+  const chips = [
+    ['all', `All (${ids.length})`],
+    ['work', `⚠ Needs work (${ids.filter(id => classify(assets[id]) === 'work').length})`],
+    ['ready', `✓ Ready (${ids.filter(id => classify(assets[id]) === 'ready').length})`],
+    ['real', `✋ Real photo needed (${ids.filter(id => classify(assets[id]) === 'real').length})`],
+  ].map(([k, label], i) => `
+    <button type="button" data-filter="${k}" class="wv-filter-chip" style="padding:.25rem .65rem;border-radius:999px;border:1px solid var(--bg-3);background:${i===0?'var(--bg-3)':'transparent'};color:var(--tx);font-size:11px;cursor:pointer;font-weight:500">${label}</button>
+  `).join('');
+
+  const cards = ids.map(cardHtml).join('');
+
+  return `
+    <div style="margin-bottom:1rem">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em">🖼 Assets (${ids.length})</div>
+        <span style="flex:1"></span>
+        <span data-wv-sel-count class="muted" style="font-size:11px">0 selected</span>
+      </div>
+      <div style="display:flex;gap:.3rem;margin-bottom:.6rem;flex-wrap:wrap">${chips}</div>
+      <div data-wv-grid style="display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:.5rem">${cards}</div>
+    </div>
+  `;
+};
+
+// Wire grid behaviour (called once after renderCampaignWorkviewHeader injects DOM).
+window._wireCampaignAssetGrid = (cid, c, assets) => {
+  const root = document.querySelector(`#workview-${cid} [data-asset-grid-section]`);
+  if(!root) return;
+  const sel = window._workviewSelection[cid] || new Set();
+
+  // Filter chips
+  root.querySelectorAll('[data-filter]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const f = chip.dataset.filter;
+      root.querySelectorAll('[data-filter]').forEach(c => {
+        c.style.background = 'transparent';
+      });
+      chip.style.background = 'var(--bg-3)';
+      // Re-render with filter (simple hide/show — no full re-render)
+      root.querySelectorAll('.wv-asset-card').forEach(card => {
+        const cls = card.dataset.class;
+        card.style.display = (f === 'all' || cls === f) ? '' : 'none';
+      });
+    });
+  });
+
+  // Checkbox toggling — also update selection counter & bulk-approve button
+  const updateSelectionUI = () => {
+    const counter = root.querySelector('[data-wv-sel-count]');
+    if(counter) counter.textContent = `${sel.size} selected · ${assets ? Object.keys(assets).length : '?'} total`;
+    // Update bulk approve button text + disabled state
+    const workview = document.getElementById(`workview-${cid}`);
+    if(workview){
+      const btn = workview.querySelector('[data-bulk-approve]');
+      const lab = workview.querySelector('[data-bulk-approve-label]');
+      if(btn){
+        // Get the unapproved-review count from fresh classification
+        const reviewPending = Object.entries(assets || {}).filter(([,a]) =>
+          a.status === 'review' && a.approvalStatus !== 'approved'
+        ).length;
+        const allMax = reviewPending + sel.size > 0 ? (reviewPending + sel.size) : 0;
+        // Rebuild the assetIds list when clicking — selection is the explicit
+        // user intent. Empty selection defaults back to "all".
+        btn.dataset.bulkCount = sel.size || reviewPending;
+        if(lab){
+          if(sel.size > 0){
+            lab.textContent = `Approve ${sel.size} selected`;
+          } else {
+            lab.textContent = `Approve all ${reviewPending} review item${reviewPending===1?'':'s'}`;
+          }
+        }
+      }
+    }
+  };
+
+  root.querySelectorAll('[data-asset-select]').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const aid = cb.dataset.assetSelect;
+      // Stop click from also toggling the label (we manage state ourselves)
+      e.stopPropagation();
+      if(cb.checked){
+        sel.add(aid);
+      } else {
+        sel.delete(aid);
+      }
+      updateSelectionUI();
+    });
+  });
+
+  // Card click (NOT on checkbox) → scrolls to inline editor (renderPlan
+  // already includes asset cards). For now, just expand the Plan view
+  // below and let the user scroll.
+  root.querySelectorAll('.wv-asset-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if(e.target.matches('input[type=checkbox]')) return;  // checkbox handles itself
+      const aid = card.dataset.aid;
+      // Open the Plan if not already; existing Plan lists all assets.
+      const planEl = document.getElementById('plan-'+cid);
+      if(!planEl){
+        window.toggleCampaignPlan(cid);
+        // After open, scroll to asset after Plan mounts (small delay).
+        setTimeout(() => {
+          const target = document.querySelector(`[data-asset-card="${aid}"]`);
+          if(target) target.scrollIntoView({behavior:'smooth', block:'center'});
+        }, 600);
+      } else {
+        const target = document.querySelector(`[data-asset-card="${aid}"]`);
+        if(target) target.scrollIntoView({behavior:'smooth', block:'center'});
+      }
+    });
+  });
+
+  // After the grid renders, attempt to load <img> from data-src on each thumb.
+  // This pattern replaces the inline `<img>` (kept as fallback for SSR/no-JS).
+  root.querySelectorAll('.wv-thumb').forEach(t => {
+    const src = t.dataset.src;
+    const img = new Image();
+    img.onload = () => {
+      const fallback = t.querySelector('.wv-thumb-fallback');
+      if(fallback) fallback.style.display = 'none';
+      const real = document.createElement('img');
+      real.src = src; real.alt = '';
+      real.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+      t.appendChild(real);
+    };
+    img.onerror = () => {
+      // leave the icon fallback visible
+    };
+    img.src = src;
+  });
+
+  updateSelectionUI();
+};
+
 // ─── TIER 2(d) — Per-campaign work-view header ─────────────────────
 // Surfaces purpose, status counts, "what's needed" checklist at the top of
 // the per-campaign detail view. Computed client-side from /api/campaigns/<cid>
@@ -8112,8 +8345,10 @@ window.renderCampaignWorkviewHeader = (cid, c) => {
       <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">🛠 What's needed</div>
       <div style="margin-bottom:1rem">${checklistHtml}</div>
 
+      <div data-asset-grid-section>${renderCampaignAssetGrid(cid, c, assets, readyToApprove)}</div>
+
       <div class="row" style="gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
-        ${readyToApprove.length ? `<button class="btn primary" data-bulk-approve="${esc(cid)}" data-bulk-count="${readyToApprove.length}">✓ Approve all ${readyToApprove.length} review item${readyToApprove.length===1?'':'s'}</button>` : ''}
+        <button class="btn primary" data-bulk-approve="${esc(cid)}" data-bulk-count="${readyToApprove.length}" ${readyToApprove.length===0?'disabled style="opacity:.5;cursor:not-allowed"':''}>✓ <span data-bulk-approve-label>Approve all ${readyToApprove.length} review item${readyToApprove.length===1?'':'s'}</span></button>
         <button class="btn ghost" data-export-postiz="${esc(cid)}">📤 Export to Postiz</button>
         <button class="btn ghost" onclick="toggleCampaignPlan('${esc(cid)}')">📋 Open full plan</button>
       </div>
@@ -8123,21 +8358,36 @@ window.renderCampaignWorkviewHeader = (cid, c) => {
   target.appendChild(card);
 
   // ── Wire interactions ─────────────────────────────────────────
+  // Tier 2(d) v2 — wire the new asset grid (filters, selection counter,
+  // card-click-to-scroll, lazy thumbnail load).
+  _wireCampaignAssetGrid(cid, c, assets);
+
   card.querySelector('[data-bulk-approve]')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
-    const n = parseInt(btn.dataset.bulkCount, 10) || 0;
-    if(n === 0) return;
+    // Tier 2(d) v2 — selection takes priority over "all review items"
+    // when the user has explicitly ticked checkboxes. Falls back to the
+    // review-pending list if no selection.
+    const sel = window._workviewSelection && window._workviewSelection[cid];
+    let assetIds;
+    if(sel && sel.size > 0){
+      assetIds = [...sel];
+    } else {
+      assetIds = Object.entries(assets).filter(([,a]) =>
+        a.status === 'review' && a.approvalStatus !== 'approved'
+      ).map(([aid]) => aid);
+    }
+    const n = assetIds.length;
+    if(n === 0){ toast('Nothing selected to approve', 'err'); return; }
     btn.disabled = true;
     btn.textContent = `Approving ${n} assets…`;
-    const assetIds = Object.entries(assets).filter(([,a]) =>
-      a.status === 'review' && a.approvalStatus !== 'approved'
-    ).map(([aid]) => aid);
     // Single backend call = single GitHub commit, not N. /api/review/bulk-approve
     // is the canonical bulk-approve endpoint; the old /api/review/<aid> call would
     // have created 37 commits for a 37-asset batch (Tier 2(d) lesson).
     try{
       const r = await API.post('/api/review/bulk-approve', { campaignId: cid, assetIds });
       if(r.ok){
+        // Tier 2(d) v2 — clear local selection so refresh shows zero-checked.
+        if(sel) sel.clear();
         btn.textContent = `✓ Approved ${r.approved || assetIds.length} assets`;
         toast(`Approved ${r.approved || assetIds.length} / ${assetIds.length} assets`, 'ok');
       } else {
