@@ -5252,11 +5252,18 @@ async function renderReview(){
     // Approved rows get an explicit "Put on calendar" button.
     // Scheduled rows get "View in calendar" + "Archive".
     // Rejected rows get "Regenerate" as primary + "Archive".
+    // Image-only assets (no caption/issue/reason) get a clearly-labelled
+    // placeholder so the user can tell Hero Visual A from B from C in the
+    // queue, instead of three identical "No preview" lines.
+    const hasText = !!(x.caption || x.issue || x.reason);
+    const previewLine = hasText
+      ? esc(x.caption || x.issue || x.reason)
+      : `<span class="muted">🖼️ Image asset · click to preview</span>`;
     return `
     <div class="review" data-aid="${safeId}" data-cid="${safeCid}">
       <div class="review-cap" onclick="openReview('${safeCid}','${safeId}')" style="cursor:pointer">
         <div class="review-cap-t">${safeName} <span class="muted">· ${prettyCampaign}</span>${prettyBrand ? ` <span class="pill muted" style="font-size:10px;padding:1px 6px">${prettyBrand}</span>` : ''}</div>
-        <div class="review-cap-x">${esc(x.caption || x.issue || x.reason || 'No preview')}</div>
+        <div class="review-cap-x">${previewLine}</div>
       </div>
       <div class="review-meta">
         ${pill(x.approvalStatus||'draft', x.approvalStatus||'draft')}
