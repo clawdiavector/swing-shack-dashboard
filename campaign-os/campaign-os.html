@@ -4523,7 +4523,7 @@ async function loadLibPane(kind, bid, focusSearch){
       pane.innerHTML = `
         <div style="margin-bottom:1.5rem">
           <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
-            <h4 style="margin:0">🖼️ Generated images (this session: ${generated.length})</h4>
+            <h4 data-help="Images you produced in this browser session via the Visualizer generator. They live in memory only; clicking Open Visual Library takes you to the persistent catalog where you can save them, search, or remix with brand voice." data-help-title="Generated images (session)" style="margin:0;cursor:help;border-bottom:1px dotted var(--tx-2)">🖼️ Generated images (this session: ${generated.length})</h4>
             <a href="/visualizer" class="mini-link">Open Visual Library →</a>
           </div>
           ${generated.length === 0 ? `
@@ -4544,7 +4544,7 @@ async function loadLibPane(kind, bid, focusSearch){
         </div>
         <div style="margin-bottom:1.5rem">
           <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
-            <h4 style="margin:0">📚 Visual library preview (${imageList.length} of ${images.total || '?'})</h4>
+            <h4 data-help="Sample of the brand's persisted visual library, capped at 16 thumbnails. The full count is shown in the count badge so you can tell how much of the catalog is hidden. Click Open Visual Library to see everything, search, and inspect individual image DNA." data-help-title="Visual library preview" style="margin:0;cursor:help;border-bottom:1px dotted var(--tx-2)">📚 Visual library preview (${imageList.length} of ${images.total || '?'})</h4>
             <a href="/visualizer" class="mini-link">Open Visual Library →</a>
           </div>
           ${imageList.length === 0 ? '<div class="muted">No images indexed yet.</div>' : `
@@ -4559,7 +4559,7 @@ async function loadLibPane(kind, bid, focusSearch){
         </div>
         <div>
           <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
-            <h4 style="margin:0">😂 Memes catalog (${memeList.length})</h4>
+            <h4 data-help="Number of meme templates in the brand's catalog (memes + adaptations). Click Open Meme Lab to browse the full grid, filter by era / fatigue / brand-fit, and remix any template with the active voice." data-help-title="Memes catalog" style="margin:0;cursor:help;border-bottom:1px dotted var(--tx-2)">😂 Memes catalog (${memeList.length})</h4>
             <a href="/meme-lab" class="mini-link">Open Meme Lab →</a>
           </div>
           <div class="muted" style="font-size:12px">Browse ${memeList.length} meme templates in Meme Lab. Click any to remix with brand voice.</div>
@@ -4587,7 +4587,7 @@ async function loadLibPane(kind, bid, focusSearch){
           catalogHtml = `
             <div style="margin-bottom:1.5rem">
               <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
-                <h4 style="margin:0">😂 Meme catalog (${list.length})</h4>
+                <h4 data-help="Same meme catalog as the Meme Lord tab but shown inside this content-picker so you can hand-pick a template while building a hook or caption. Use it when you want to anchor a post to a specific meme format." data-help-title="Meme catalog (in picker)" style="margin:0;cursor:help;border-bottom:1px dotted var(--tx-2)">😂 Meme catalog (${list.length})</h4>
                 <a href="/meme-lab" class="mini-link">Open Meme Lab →</a>
               </div>
               <div class="lib-grid">
@@ -6654,7 +6654,7 @@ $('#cap-gen').addEventListener('click', async () => {
   const assetLabel = r.asset ? ` for ${esc(r.asset)}` : (id ? ` for ${esc(id)}` : ' (hook pool)');
 
   $('#cap-results').innerHTML =
-    `<h4 style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">${r.count} variants${assetLabel} ${subtitle}</h4>` +
+    `<h4 data-help="Number of caption variants the agent just produced for the chosen asset / voice / tone combo. Each variant below can be edited inline or sent to the Review queue. The voice + tone chips show which recipe was applied." data-help-title="Generated variants" style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem;cursor:help;border-bottom:1px dotted var(--tx-2)">${r.count} variants${assetLabel} ${subtitle}</h4>` +
     (r.variants||[]).map((v, i) => {
       const vVoice = v.voice ? `<span class="meme-chip" style="background:var(--badge-voice-tint-2);color:var(--ac)">${esc(v.voice)}</span>` : '';
       const vTone  = v.tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(v.tone)}</span>` : '';
