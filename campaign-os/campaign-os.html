@@ -974,7 +974,7 @@ a:hover{text-decoration:underline}
         <!-- Top: brand-fit recommendations -->
         <div class="card col-12">
           <div class="card-h">
-            <h3>🎯 Top picks for <span id="mem-picks-context">swing-shack · education · instagram</span></h3>
+            <h3 data-help="Brand-fit ranked meme templates for the active brand's pillar + surface. Scored by voice match, pillar relevance, and historical engagement on similar formats. Click any tile to open the meme template and remix it with your caption; the remix workspace inherits the same scoring so every variant you ship keeps the brand fit bar." data-help-title="Top picks for this brand">🎯 Top picks for <span id="mem-picks-context">swing-shack · education · instagram</span></h3>
             <span class="muted" id="mem-picks-summary" style="font-size:11px">—</span>
           </div>
           <div id="memes-picks" class="meme-picks-grid"></div>
@@ -983,7 +983,7 @@ a:hover{text-decoration:underline}
         <!-- Bottom: historian library -->
         <div class="card col-12">
           <div class="card-h">
-            <h3>📚 Meme historian · <span id="mem-lib-count">—</span></h3>
+            <h3 data-help="Full library of meme formats the agent knows about, with metadata per format: peak year, brand-fit score, format origin, why it works, and the remix angle. Use the sort toggles (brand-fit / peak year / name) to find either the safest templates for your voice or the most timely ones for a fresh trend. Each tile opens the template in the remix workspace above." data-help-title="Meme historian library">📚 Meme historian · <span id="mem-lib-count">—</span></h3>
             <span class="muted" style="font-size:11px">sort by <button class="link-btn mem-sort" data-sort="brand_fit">brand-fit</button> · <button class="link-btn mem-sort" data-sort="peak_year">peak year</button> · <button class="link-btn mem-sort" data-sort="name">name</button></span>
           </div>
           <div id="memes-list" class="meme-list"></div>
@@ -3434,7 +3434,7 @@ function renderBriefPreview(brief){
   return `
     <div class="card col-12">
       <div class="card-h">
-        <h3>👁️ Preview in brand font</h3>
+        <h3 data-help="Live render of your headlines and CTAs using the active brand's actual font pairing rules. Headlines use the headline pairing (font family + spec size), CTAs use the CTA pairing. What you see here is exactly what users will see on the brand's surface, so use this card to catch a wrong font size or a missing letter-spacing before publishing. Updates automatically when you change the brand or generate new headlines/CTAs above." data-help-title="Preview in brand font">👁️ Preview in brand font</h3>
         <span class="muted" style="font-size:11px;margin-left:auto">headlines + CTAs rendered with the brand's pairing rules</span>
       </div>
       <div style="font-size:11px;color:var(--tx-2);margin-bottom:.6rem;font-family:${bodyFallback};font-weight:${bodyWt};font-size:${bodyCardSize}px;line-height:1.45">
