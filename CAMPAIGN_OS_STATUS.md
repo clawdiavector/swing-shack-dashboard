@@ -401,3 +401,37 @@ Closed a small but real UX gap in the review queue. 3 of 41 review-pending rows 
 - Carry-over: ran field-name drift audit (PASS, clean) per the 11:00Z tick recommendation; UX diff in `audit_results_authed_20260805_101915.json`'s review.card_texts surfaced this lane.
 
 See `last-report.md` for the full tick report.
+
+## Cron tick 2026-08-05T18:30Z — modal h4 tooltips (Meme Lord + Caption studio)
+
+Wired 5 modal-context h4 headers with data-help + data-help-title + cursor:help + dotted underline:
+- 🖼️ Generated images (session) — Meme Lord library tab
+- 📚 Visual library preview — Meme Lord library tab
+- 😂 Memes catalog — Meme Lord library tab
+- 😂 Meme catalog (in picker) — Hooks/Captions/Memes tab (loadLibPane meme variant)
+- 5/10/15 variants — Caption studio results header (the count chip after generate)
+
+**Commit:** `a16f002` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +5/-5.
+
+**Verified LIVE (Playwright, cookie auth):**
+- Bundle probe: 5/5 `data-help-title` needles + 5/5 body text needles found in served HTML.
+- Library > Generated tab: 3/3 h4s found with `has-help-tip` class, `cursor=help`, dotted underline.
+- Library > Memes tab: 1/1 h4 (`Meme catalog (in picker)`).
+- Caption studio: 1/1 h4 (`Generated variants`) visible after generate click.
+- Popover fires on mouseenter: `.help-pop.show` with title "GENERATED IMAGES (SESSION)" + body verbatim, position (18.59, 508.25) within viewport.
+- 0 new PAGEERROR, 0 new CONSOLE.error (only 10 pre-existing 503/404 noise).
+- /api/health green.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes, 0 JS logic added (template-literal attribute substitution only — same pattern as the 27/27 h2 + 14/14 card-h h3 ticks).
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_02_library_generated.png` — Library > Generated tab with 3 new h4s
+- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_04_library_memes.png` — Library > Memes tab with 4th h4
+- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_05_captions.png` — Caption studio with 5th h4 (5 VARIANTS (HOOK POOL))
+- `/tmp/co-nightshift/walkthrough_2026-08-05T183007Z_06_popover_proof.png` — popover fired on hover
+
+**Next pick:** 5 h4s unwired (the only modal h4s in `loadLibPane` + caption studio). The remaining gaps are 3 modal h3s (Meme modal title, GMB edit/new, Asset not found, Edit caption, Generic modal). All low-priority (modal titles are obvious). Next meaningful lane: em-dash sweep in user-facing app.py error JSON + meta-portal.html + meme-lab.html instructions (3+4+2 = 9 sites, per the 15:40Z tick carry-over).
+
+**Learned:** Pitfall V (autoAttach 4s wait + .help-pop selector) is still the right call — confirmed by popover firing on the new h4s. Mouse-move doesn't always fire `mouseenter` in Playwright (browser may treat the first move as a re-entry), but `dispatchEvent(new MouseEvent('mouseenter'))` is reliable.
+
+**Asks:** None.

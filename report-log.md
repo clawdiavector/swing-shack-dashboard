@@ -82,3 +82,31 @@
 **Learned:** Template-literal h2s work fine with the inline-attr pattern — `autoAttach()`'s 4s interval catches them on every re-render. The h2 itself becomes the popover target (no builder needed because the data-help is directly on the h2). Pre-existing em-dash on line 4337 is NOT introduced by this change (verified via `git diff`).
 
 **Asks:** None.
+
+## 2026-08-05T18:30Z — feat(campaign-os): wire 5 modal h4 tooltips (Meme Lord + Caption studio)
+
+**Done:** Wired 5 h4 headers in modal contexts: Generated images (session), Visual library preview, Memes catalog (Meme Lord tab), Meme catalog (in picker) (Hooks/Captions/Memes tab), Generated variants (Caption studio results).
+
+**Commit:** `a16f002` on `feat/asset-state-engine`, +5/-5, 1 file, pushed. Railway auto-deployed in ~3min.
+
+**Verified (Playwright LIVE, cookie auth):**
+- Bundle probe: 5/5 `data-help-title` needles + 5/5 body text needles.
+- Library > Generated tab: 3/3 h4s with `has-help-tip` + `cursor=help` + dotted underline.
+- Library > Memes tab: 1/1 h4.
+- Caption studio: 1/1 h4 visible after generate.
+- Popover fires on mouseenter: `.help-pop.show` with verbatim title + body.
+- 0 PAGEERROR. 0 NEW CONSOLE.error (10 pre-existing 503/404).
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_02_library_generated.png`
+- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_04_library_memes.png`
+- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_05_captions.png`
+- `/tmp/co-nightshift/walkthrough_2026-08-05T183007Z_06_popover_proof.png`
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (verified via `git diff`), 0 JS logic added.
+
+**Next pick:** Em-dash sweep in user-facing app.py error JSON responses (3) + meta-portal.html instructions (4) + meme-lab.html toasts (2) = 9 sites. The 15:40Z tick carry-over.
+
+**Learned:** Playwright `mouse.move(x, y)` doesn't always fire `mouseenter` (the browser treats first move as a re-entry). `dispatchEvent(new MouseEvent('mouseenter'))` is reliable. The autoAttach 4s wait + `.help-pop` selector (Pitfall V) still hold for all 5 new tooltips.
+
+**Asks:** None.
