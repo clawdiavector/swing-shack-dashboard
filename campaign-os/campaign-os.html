@@ -1350,8 +1350,8 @@ a:hover{text-decoration:underline}
         <div class="card col-6">
           <div class="card-h"><h3 data-help="The curated hashtag set the agent just produced for the active pillar / voice / platform combo. Click any tag to copy it. The Why this score panel below explains the ranking logic (reach, niche fit, banned-list filtering); Banned (filtered out) shows tags the agent considered but rejected so you can see the editorial boundary." data-help-title="Curated hashtags">#️⃣ Hashtags <span id="hs-count-badge" class="pill muted">0</span> <span id="hs-score-badge" class="pill"></span></h3></div>
           <div id="hs-tags"></div>
-          <div style="margin-top:.75rem"><div class="card-h"><h3 style="font-size:12px">Why this score</h3></div><div id="hs-reasons" class="muted" style="font-size:11px"></div></div>
-          <div style="margin-top:.75rem"><div class="card-h"><h3 style="font-size:12px">Banned (filtered out)</h3></div><div id="hs-banned" class="muted" style="font-size:11px"></div></div>
+          <div style="margin-top:.75rem"><div class="card-h"><h3 data-help="Why this hashtag set earned its quality score. Each reason explains a signal the scoring layer considered: reach tier (broad vs niche), brand fit (does the tag match this brand's category?), banned-list filtering (was it removed for being too generic, off-brand, or platform-flagged?), and platform-specific rules (tag count caps, banned tags per network). Read this before re-running the generator if a tag you expected was rejected." data-help-title="Why this score" style="cursor:help;border-bottom:1px dotted var(--tx-2);font-size:12px">Why this score</h3></div><div id="hs-reasons" class="muted" style="font-size:11px"></div></div>
+          <div style="margin-top:.75rem"><div class="card-h"><h3 data-help="Tags the generator considered but rejected. Banned means either platform-flagged (e.g. shadowban risk), off-brand for the active voice, or duplicates of higher-priority tags already in the curated set. Use this list to audit the editorial boundary: if a tag you want is here, it was rejected for a reason, and the reason appears in the Why this score panel above." data-help-title="Banned (filtered out)" style="cursor:help;border-bottom:1px dotted var(--tx-2);font-size:12px">Banned (filtered out)</h3></div><div id="hs-banned" class="muted" style="font-size:11px"></div></div>
         </div>
 
         <div class="card col-6">
@@ -7443,13 +7443,20 @@ async function renderCampaigns(){
   const camps = d.campaigns || {};
   const ids = Object.keys(camps);
   $('#camp-summary').textContent = ids.length + ' campaigns · ' + (d.activeCampaignId||'no active');
+  // h3 builder local to renderCampaigns scope (different function from renderBrandDirectoryPanel
+  // and the [data-bd-view] / [data-bd-brief] click handlers, so each closure needs its own).
+  // The .h-meta span must remain a SIBLING of <h3> inside .card-h (which is display:flex)
+  // so margin-left:auto pushes the status to the right edge; nesting it inside the h3
+  // would break the flex layout. So we return the h3 + meta span as separate elements.
+  const campCardHelp = `One card per campaign in the active brand. Click anywhere on the card to expand the full plan below; the asset count, status pill, and brief preview surface here. The active campaign is tagged with the "active" pill. Use the 📋 Full plan and 📅 Calendar buttons for the two most common jump-offs.`;
+  const campCardH3 = (name, status) => `<h3 data-help="${esc(campCardHelp)}" data-help-title="Campaign card" style="cursor:help;border-bottom:1px dotted var(--tx-2)">${esc(name)}</h3>`;
   $('#camp-list').innerHTML = '<div class="grid">' + ids.map(cid => {
     const c = camps[cid];
     const cname = c.identity?.name || cid;
     const assets = c.assets || {};
     const n = Object.keys(assets).length;
     const status = c.identity?.status || '';
-    return `<div class="card col-4" id="camp-card-${cid}" onclick="toggleCampaignPlan('${cid}')"><div class="card-h"><h3>${esc(cname)}</h3><span class="h-meta">${esc(status)}</span></div><div class="row gap-1" style="margin-bottom:.5rem"><span class="muted">${n} assets</span>${d.activeCampaignId===cid?pill('on','active'):''}</div>${c.identity?.brief?`<div style="font-size:12px;color:var(--tx-2);line-height:1.4">${esc(c.identity.brief).slice(0,160)}…</div>`:''}<div class="btn-row" style="margin-top:.75rem"><button class="btn ghost" onclick="event.stopPropagation();toggleCampaignPlan('${cid}')">📋 Full plan</button><button class="btn ghost" onclick="event.stopPropagation();go('calendar')">📅 Calendar</button></div></div>`;
+    return `<div class="card col-4" id="camp-card-${cid}" onclick="toggleCampaignPlan('${cid}')"><div class="card-h">${campCardH3(cname, status)}</div><div class="row gap-1" style="margin-bottom:.5rem"><span class="muted">${n} assets</span>${d.activeCampaignId===cid?pill('on','active'):''}</div>${c.identity?.brief?`<div style="font-size:12px;color:var(--tx-2);line-height:1.4">${esc(c.identity.brief).slice(0,160)}…</div>`:''}<div class="btn-row" style="margin-top:.75rem"><button class="btn ghost" onclick="event.stopPropagation();toggleCampaignPlan('${cid}')">📋 Full plan</button><button class="btn ghost" onclick="event.stopPropagation();go('calendar')">📅 Calendar</button></div></div>`;
   }).join('') + '</div><div id="camp-plans"></div>';
 
   // ─── Brand Directory panel (new — surfaces 9-slot directory per brand) ──
@@ -7469,6 +7476,12 @@ async function renderBrandDirectoryPanel(){
     const total = idx.total_brands || ids.length;
     const ready = idx.total_ready || 0;
     const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop','takomo':'Takomo'};
+    // h3 builder local to renderBrandDirectoryPanel scope (the .map(bid=>...) callback
+    // for the per-brand tile runs inside this async function's closure, NOT inside the
+    // [data-bd-view] or [data-bd-brief] click handlers below, so the per-handler h3tip
+    // builders at lines 7543 / 7598 are not in scope here. Each scope needs its own).
+    const brandTileHelp = `One tile per brand in the directory. The pill on the right shows readiness (green = all 4 gate files present, gray = partial). The four small pills underneath are the canonical gate files (tone rules, palette, archetypes, CTAs). Click 📋 View details for the read-only directory or 🎨 Generate brief to ladder to the image + copy generator.`;
+    const brandTileH3 = (label) => `<h3 data-help="${esc(brandTileHelp)}" data-help-title="Brand tile" style="cursor:help;border-bottom:1px dotted var(--tx-2)">${esc(label)}</h3>`;
 
     container.innerHTML = `
       <div class="card">
@@ -7495,7 +7508,7 @@ async function renderBrandDirectoryPanel(){
           const tagline = b.tagline ? `<div class="muted" style="font-size:12px;line-height:1.45;margin:.4rem 0 .25rem;font-style:italic">${esc(b.tagline)}</div>` : `<div class="muted" style="font-size:11px;line-height:1.4;margin:.4rem 0 .25rem;opacity:.6">- no one-pager yet -</div>`;
           return `
             <div class="card col-3">
-              <div class="card-h"><h3>${esc(label)}</h3>${b.ready ? pill('on','ready') : pill('draft','partial')}</div>
+              <div class="card-h">${brandTileH3(label)}${b.ready ? pill('on','ready') : pill('draft','partial')}</div>
               <div style="margin-bottom:.5rem">${gatePills}</div>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">${palette}${accent}</div>
               ${tagline}
@@ -7653,9 +7666,10 @@ async function renderBrandDirectoryPanel(){
             const brief = await API.get(`/api/brand-directory/${bid}/generate-brief?surface=${encodeURIComponent(surface)}&tone=${encodeURIComponent(tone)}`);
             const arche = brief.archetype || {};
             const archeLayers = (arche.layers || []).map(l => `<li><b>${esc(l.id||'')}</b> (${esc(l.kind||'')}) — ${esc(l.position||'')}${l.fill?' · '+esc(l.fill):''}${l.colour?' · '+esc(l.colour):''}</li>`).join('');
+            const briefResultHelp = `The canonical header for this brief run. Combines brand · tone · surface so you can scan the result list and pick the right one. The readiness pill on the right mirrors the brand tile's gate state: green means the brief is fully wired to the generator stack, gray means at least one gate file is missing.`;
             result.innerHTML = `
               <div class="card">
-                <div class="card-h"><h3>✅ ${esc(bid)} · ${esc(brief.tone)} · ${esc(brief.surface)}</h3>${brief.ready ? pill('on','ready') : pill('draft','partial')}</div>
+                <div class="card-h">${h3tip(`✅ ${esc(bid)} · ${esc(brief.tone)} · ${esc(brief.surface)}`, 'Brief result header', briefResultHelp)}${brief.ready ? pill('on','ready') : pill('draft','partial')}</div>
                 <div class="grid">
                   <div class="card col-6"><div class="card-h"><h3 data-help="${archeHelp}" data-help-title="Archetype" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🖼️ Archetype</h3></div>
                     <div style="font-weight:600;margin-bottom:.25rem">${esc(arche.name||arche.id||'—')}</div>
