@@ -749,7 +749,7 @@ a:hover{text-decoration:underline}
       <!-- Data freshness widget: surfaces stale data hidden behind the rest of the OS -->
       <div class="card" id="freshness-card" style="margin-top:1rem;display:none" data-help="Per-file age check of every JSON in the workspace's data/ directory. Files older than 14 days show in 'stale'. Files 3x older (42d+) show in 'rotten'. Catches the silent-decay pattern (e.g. competitor tracker going 20d stale without anyone noticing). Refreshes daily at 07:30 SAST." data-help-title="Data freshness">
         <div class="card-h">
-          <h3>🧊 Data freshness</h3>
+          <h3 data-help="Same as the card wrapper above. Hover this heading for the same explanation; click the card body to expand the file list." data-help-title="Data freshness" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🧊 Data freshness</h3>
           <span class="muted" id="freshness-summary" style="font-size:12px">—</span>
         </div>
         <div id="freshness-body"></div>
@@ -1464,7 +1464,7 @@ a:hover{text-decoration:underline}
     <div class="modal" id="sa-fix-modal" style="display:none">
       <div class="modal-card" style="max-width:720px">
         <div class="modal-h">
-          <h3 id="sa-fix-modal-title">Generate fix</h3>
+          <h3 id="sa-fix-modal-title" data-help="Picks a single keyword from your SEO Audit and produces a 1-2 paragraph English paragraph (a 'fix snippet') that satisfies the LLM-style answer the audit flagged. The snippet is what you paste into your page meta description or FAQ body; the custom keyword field overrides which keyword it picks. Output shows below once generated." data-help-title="Generate fix" style="cursor:help;border-bottom:1px dotted var(--tx-2)">Generate fix</h3>
           <button class="btn ghost" id="sa-fix-close">✕</button>
         </div>
         <div class="modal-b" id="sa-fix-modal-body">
@@ -5563,20 +5563,26 @@ window.openReview = async (cid, aid) => {
   // Existing Postiz refs (if any)
   const existingPostiz = (a.publishingReferences && a.publishingReferences[0] && a.publishingReferences[0].postizId) || '';
   const visualUrl = a.visualUrl || a.imageUrl || (a.publishingReferences && a.publishingReferences[0] && a.publishingReferences[0].mediaUrl) || '';
+  const rvAssetNameHelp = 'The asset name as stored on the campaign. Combines the pillar + hook (e.g. "Practice swings, at-home" or "Range day, meme-3up"). The sub-line shows the brand · platform · kind so you can verify you opened the right asset before approving. The pills below summarise state: approval (your side) and publish (Postiz side).';
+  const rvCaptionHelp = 'The current caption draft for this asset. What you see is what gets posted on approve. The character count soft limit is platform-specific (IG feed 2200, LinkedIn 3000). Edit inline via the ✏️ Edit caption button below the action bar.';
+  const rvVisualBriefHelp = 'The image-generation prompt that was sent to the visual pipeline. Describes composition, palette, focal point, mood. If the current visual is off, regenerate from this brief (or edit it before regenerating) so the next visual lands closer.';
+  const rvCurrentVisualHelp = 'The image that will be posted. Comes from either the agent (a.generated) or your last upload (a.visualUrl). Click to enlarge. If it is wrong, use the Upload image section to replace it; the new file becomes the live asset.';
+  const rvUploadImageHelp = 'Pick an image file from your computer. It gets stored on the server and the asset\'s visualUrl points at it. Used by Postiz when the post goes live. Max 8 MB; PNG / JPG / WEBP only.';
+  const rvPublishingRefsHelp = 'Every Postiz record this asset has been linked to. Most assets have one (the current Postiz draft). If a row shows an old postizId that is no longer in your queue, it means that draft was deleted on Postiz side and the asset is still pointing at the dead id · re-push to get a fresh reference.';
   modal(`
-    <h3>${esc(a.name || aid)}</h3>
+    <h3 data-help="${rvAssetNameHelp}" data-help-title="Asset details" style="cursor:help;border-bottom:1px dotted var(--tx-2)">${esc(a.name || aid)}</h3>
     <div class="sub">${esc(c.identity?.name || cid)} · ${esc(plat)} · ${esc(a.kind || '')}</div>
     <div class="row gap-1" style="margin-bottom:1rem">${pill(a.approvalStatus||'draft', a.approvalStatus||'draft')} ${pill(a.publishStatus||'draft', a.publishStatus||'draft')} ${pill(a.captionStatus||'—', 'caption')} ${pill(a.visualStatus||'—', 'visual')}</div>
-    <h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Caption</h4>
+    <h4 data-help="${rvCaptionHelp}" data-help-title="Caption" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Caption</h4>
     <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(a.caption || '—')}</div>
-    <h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Visual brief</h4>
+    <h4 data-help="${rvVisualBriefHelp}" data-help-title="Visual brief" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Visual brief</h4>
     <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(a.visualBrief || '—')}</div>
-    ${visualUrl ? `<h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Current visual</h4><div style="background:var(--bg-3);padding:.5rem;border-radius:8px"><img src="${esc(visualUrl)}" alt="visual" style="max-width:100%;max-height:240px;border-radius:6px;display:block"/></div>` : ''}
-    <h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Upload image</h4>
+    ${visualUrl ? `<h4 data-help="${rvCurrentVisualHelp}" data-help-title="Current visual" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Current visual</h4><div style="background:var(--bg-3);padding:.5rem;border-radius:8px"><img src="${esc(visualUrl)}" alt="visual" style="max-width:100%;max-height:240px;border-radius:6px;display:block"/></div>` : ''}
+    <h4 data-help="${rvUploadImageHelp}" data-help-title="Upload image" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Upload image</h4>
     <input type="file" id="rv-upload-file" accept="image/*" data-help="Pick an image file from your computer. It gets stored on the server and the asset's visualUrl points at it. Used by Postiz when the post goes live." data-help-title="Upload image" style="font-size:12px;color:var(--tx-2);margin-bottom:.35rem;width:100%">
     <button class="btn" id="rv-upload-btn" data-help="Uploads the picked file. Server saves it to data/asset-media/ and updates the asset's visualUrl so Postiz uses the new image." data-help-title="Save upload">📤 Upload</button>
     <span id="rv-upload-status" class="muted" style="font-size:11px;margin-left:.5rem"></span>
-    ${a.publishingReferences?.length ? `<h4 style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Publishing references</h4><ul class="list">${a.publishingReferences.map(p=>`<li class="li"><div class="li-body"><div class="li-title">${esc(p.postizId || '—')}</div><div class="li-meta">${esc(p.platform || '')} · ${esc(p.publishStatus || '')}</div></div></li>`).join('')}</ul>` : ''}
+    ${a.publishingReferences?.length ? `<h4 data-help="${rvPublishingRefsHelp}" data-help-title="Publishing references" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Publishing references</h4><ul class="list">${a.publishingReferences.map(p=>`<li class="li"><div class="li-body"><div class="li-title">${esc(p.postizId || '—')}</div><div class="li-meta">${esc(p.platform || '')} · ${esc(p.publishStatus || '')}</div></div></li>`).join('')}</ul>` : ''}
     <div class="modal-actions" style="flex-wrap:wrap">
       <button class="btn ghost" onclick="closeModal()">Close</button>
       <button class="btn" onclick="goToSection('captions');closeModal();setTimeout(()=>{const sel=document.getElementById('cap-asset-select');sel.value='${aid}';document.getElementById('cap-gen').click();},300)">⚡ Generate captions</button>
