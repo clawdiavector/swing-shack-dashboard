@@ -4412,7 +4412,10 @@ async function renderWeeklyReport(targetSec){
       <span class="h-meta" id="weekly-week-label-inline" style="margin-left:auto;font-size:11px"></span>
       <button class="btn-mini" id="weekly-export-btn-inline" title="Download as markdown">⬇️ Export</button>
     </div>
-    <div class="muted" style="font-size:13px;line-height:1.4;margin-bottom:.5rem">${esc(w.headline || '')}</div>
+    <div class="muted" style="font-size:13px;line-height:1.4;margin-bottom:.5rem">
+      <div>${esc(w.headline || '')}</div>
+      ${w.window_note ? `<div class="muted" style="font-size:11px;margin-top:.4rem;padding:.35rem .55rem;background:var(--bg-3);border-left:3px solid #d4a72c;border-radius:var(--r-s)">⚠️ ${esc(w.window_note)}</div>` : ''}
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:.75rem">
       <div class="stat" style="background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem"><div class="stat-val">${fmtNum(k.published)}</div><div class="stat-lbl">Published</div></div>
       <div class="stat" style="background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem"><div class="stat-val">${fmtNum(k.failed)}</div><div class="stat-lbl">Failed</div></div>
@@ -4453,9 +4456,10 @@ async function renderWeeklyReport(targetSec){
       <span>Agent runs: ${fmtNum(wow.agent_runs?.current)} (${fmtPct(wow.agent_runs?.pct_change)})</span>
     </div>
 
-    ${renderInterpretationCard(w.interp)}
+    ${renderInterpretationCard(w.interpretation || w.interp)}
     ${renderVisualInsightsCard(w.visual_insights)}
     ${renderTopicClustersCard(w.ig_topic_clusters)}
+    ${renderDataSourcesCard(w)}
   `;
   targetSec.appendChild(card);
   const labelEl = card.querySelector('#weekly-week-label-inline');
@@ -4478,12 +4482,19 @@ async function renderWeeklyReport(targetSec){
 function renderInterpretationCard(interp){
   if(!interp || (!interp.whats_working?.length && !interp.whats_not?.length && !interp.look_at?.length)) return '';
   const sevBadge = (sev) => sev === 'high' ? '🛑' : sev === 'medium' ? '⚠️' : '•';
+  const srcBadge = (src) => {
+    if(!src || src === '?') return '';
+    // Show shortened source name (after last /, before .json)
+    const short = src.split('/').pop().replace('.json','');
+    return `<span class="pill" style="font-size:9.5px;padding:1px 5px;background:var(--bg-3);color:var(--tx-2);margin-left:.35rem;font-family:monospace">${esc(short)}</span>`;
+  };
   const itemsList = (arr, prefix='', fmtBadge=null) => (arr && arr.length)
     ? arr.map(w => {
         const badge = fmtBadge ? fmtBadge(w.severity) : '';
         const claim = esc(w.claim || '');
         const evid = esc(w.evidence || '');
-        return `<li class="li"><div class="li-body"><div class="li-title">${prefix}${badge} ${claim}</div><div class="li-meta">${evid}</div></div></li>`;
+        const src = srcBadge(w.source);
+        return `<li class="li"><div class="li-body"><div class="li-title">${prefix}${badge} ${claim}${src}</div><div class="li-meta">${evid}</div></div></li>`;
       }).join('')
     : '<li class="empty">—</li>';
   return `
@@ -4504,7 +4515,8 @@ function renderInterpretationCard(interp){
           <ul class="list" style="margin:0;font-size:12px">${itemsList(interp.look_at || [], '', null)}</ul>
         </div>
       </div>
-      <div class="muted" style="font-size:10.5px;margin-top:.4rem"><b>Note:</b> every claim above is grounded in a specific number from this week's pipeline. No LLM involved — pure rules + corpus data.</div>
+      ${interp.sources_used && interp.sources_used.length ? `<div class="muted" style="font-size:10.5px;margin-top:.4rem"><b>Sources read for this interpretation (${interp.sources_used.length}):</b> ${interp.sources_used.map(s => `<span class="pill" style="font-size:10px;margin-right:.25rem;font-family:monospace">${esc(s)}</span>`).join('')}</div>` : ''}
+      <div class="muted" style="font-size:10.5px;margin-top:.4rem"><b>Note:</b> every claim above is grounded in a specific number from this week's pipeline, citing its source file. No LLM involved — pure rules + corpus data.</div>
     </div>
   `;
 }
@@ -4555,6 +4567,81 @@ function renderTopicClustersCard(tc){
           </div></li>`).join('')}</ul>
       </div>
       <div class="muted" style="font-size:10.5px;margin-top:.4rem"><b>Pattern check:</b> if "equipment" + "trackman" dominate every week, you're not rotating pillars. Add a coaching or social-reel theme in the next planning cycle.</div>
+    </div>
+  `;
+}
+
+// ── Data-sources cross-cut card (NEW v2026-08-04) ──────────────────
+// Shows metrics from all 6 data sources in one compact strip so the
+// user can verify at a glance WHICH sources contributed claims.
+function renderDataSourcesCard(w){
+  const sources_used = (w.interpretation && w.interpretation.sources_used) || [];
+  const igA = w.ig_analytics || {};
+  const ga4 = w.ga4 || {};
+  const yt = w.youtube || {};
+  const red = w.reddit || {};
+  const seo = w.seo_health || {};
+  const hbb = w.hook_bank_buckets || {};
+
+  // Build source-attribution matrix
+  const rows = [];
+  if (igA.posts_in_window !== undefined) {
+    const t = igA.totals || {};
+    rows.push({src:'ig-analytics.json', label:'Instagram engagement',
+      val:`${igA.posts_in_window} posts · reach=${t.reach||0} · likes=${t.likes||0} · saves=${t.saves||0} · comments=${t.comments||0}`,
+      active: sources_used.includes('ig-analytics.json')
+    });
+  }
+  if (ga4.total_sessions !== undefined) {
+    rows.push({src:'ga4-metrics.json', label:'GA4 website',
+      val:`${(ga4.total_sessions||0).toLocaleString()} sessions · top source: <b>${esc(ga4.top_source||'?')}</b> (${ga4.top_source_sessions||0}) · ${ga4.sources_count||0} sources tracked${ga4.stale?' · STALE':''}`,
+      active: sources_used.includes('ga4-metrics.json')
+    });
+  }
+  if (yt.videos_found !== undefined || yt.top_videos_count !== undefined) {
+    rows.push({src:'youtube-trends.json', label:'YouTube trends',
+      val:`${yt.videos_found||0} found · ${yt.top_videos_count||0} top · themes: ${(yt.active_themes||[]).slice(0,5).map(esc).join(' · ')||'none'}`,
+      active: sources_used.includes('youtube-trends.json')
+    });
+  }
+  if (red.opportunities_count !== undefined) {
+    const subs = (red.top_subreddits||[]).map(s=>`${s.subreddit}=${s.count}`).join(' · ') || '—';
+    rows.push({src:'reddit-opportunities.json + reddit-replies.json', label:'Reddit outreach',
+      val:`${red.opportunities_count} opps · ${red.replies_count} drafts drafted · ready_for_qa: opp=${red.ready_for_qa||0} reply=${red.replies_ready_for_qa||0} · subs: ${subs}`,
+      active: sources_used.includes('reddit-opportunities.json + reddit-replies.json')
+    });
+  }
+  if (seo.keywords_total !== undefined) {
+    rows.push({src:'seo-rankings.json', label:'SEO rankings',
+      val:`${seo.keywords_total} keywords · ${seo.with_rank||0} have rank data · rising=${seo.rising||0} · falling=${seo.falling||0} · freshness: ${(seo.freshness||'never').slice(0,10)}${seo.needs_fetcher?' · ⚠️ fetcher offline':''}`,
+      active: sources_used.includes('seo-rankings.json')
+    });
+  }
+  if (Object.keys(hbb).length) {
+    rows.push({src:'hook-bank.json', label:'Hook bank',
+      val:`proven_and_trending: ${hbb.proven_and_trending||0} · proven_only: ${hbb.proven_only||0} · trending_to_test: ${hbb.trending_to_test||0} · retire: ${hbb.retire||0}`,
+      active: sources_used.includes('hook-bank.json')
+    });
+  }
+
+  if (!rows.length) return '';
+  return `
+    <div style="margin-top:1rem;border-top:1px dashed var(--bd);padding-top:1rem">
+      <div class="h-meta" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">📊 Data sources — what's powering this report</div>
+      <div style="font-size:12px">
+        <ul class="list" style="margin:0;font-size:12px">${rows.map(r => `
+          <li class="li"><div class="li-body">
+            <div class="li-title">
+              ${r.active ? '<span class="pill live" style="font-size:10px;margin-right:.35rem">ACTIVE</span>' : '<span class="pill" style="font-size:10px;margin-right:.35rem;opacity:.55">idle</span>'}
+              <b>${esc(r.label)}</b> · <span style="font-family:monospace;font-size:11px;color:var(--tx-2)">${esc(r.src)}</span>
+            </div>
+            <div class="li-meta">${r.val}</div>
+          </div></li>`).join('')}</ul>
+      </div>
+      <div class="muted" style="font-size:10.5px;margin-top:.4rem">
+        <b>Cross-cut depth:</b> ${sources_used.length}/${rows.length} sources contributing claims above.
+        Active = the data from this source influenced at least one of the interpretation bullets.
+      </div>
     </div>
   `;
 }

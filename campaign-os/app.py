@@ -3872,6 +3872,13 @@ def weekly_report_export():
             "",
             f"**Brand:** {data.get('brand') or 'all'}",
             "",
+            f"**Window:** {data.get('window_label') or 'rolling 7d'}",
+        ]
+        if data.get('window_used') == 'last_publish_window_fallback':
+            md_lines.append("")
+            md_lines.append(f"> ⚠️ **{data.get('window_note', 'rest-mode fallback active')}**")
+        md_lines.extend([
+            "",
             "## Headline",
             f"- {data.get('headline', '')}",
             "",
@@ -3882,7 +3889,7 @@ def weekly_report_export():
             f"- **Agent runs:** {kpis.get('agent_runs', 0)}",
             f"- **Agent pass rate:** {kpis.get('agent_pass_rate_pct') if kpis.get('agent_pass_rate_pct') is not None else '—'}",
             "",
-        ]
+        ])
 
 
 
@@ -3963,12 +3970,19 @@ def weekly_report_export():
         # ── Interpretation: What's working / what's not / look at ─────
         interp = data.get("interpretation") or {}
         if interp:
+            sources_used = interp.get("sources_used") or []
+            if sources_used:
+                md_lines.append(f"### Sources read ({len(sources_used)})")
+                md_lines.append(", ".join(f"`{s}`" for s in sources_used))
+                md_lines.append("")
+
             md_lines.append("## What's working")
             for w in interp.get("whats_working", []):
                 claim = w.get("claim", "")
                 evid = w.get("evidence", "")
                 cat = w.get("category", "")
-                md_lines.append(f"- **{claim}** _(category: {cat})_\n  - {evid}")
+                src = w.get("source") or "—"
+                md_lines.append(f"- **{claim}** _(category: {cat}, source: `{src}`)_\n  - {evid}")
             md_lines.append("")
 
             md_lines.append("## What's not working")
@@ -3977,20 +3991,53 @@ def weekly_report_export():
                 evid = w.get("evidence", "")
                 sev = w.get("severity", "low")
                 sev_badge = "🛑" if sev == "high" else "⚠️" if sev == "medium" else "•"
-                md_lines.append(f"- {sev_badge} **{claim}** _(severity: {sev})_\n  - {evid}")
+                src = w.get("source") or "—"
+                md_lines.append(f"- {sev_badge} **{claim}** _(severity: {sev}, source: `{src}`)_\n  - {evid}")
             md_lines.append("")
 
             md_lines.append("## Look at")
             for w in interp.get("look_at", []):
                 claim = w.get("claim", "")
                 evid = w.get("evidence", "")
-                md_lines.append(f"- ? **{claim}**\n  - {evid}")
+                src = w.get("source") or "—"
+                md_lines.append(f"- ? **{claim}** _(source: `{src}`)_\n  - {evid}")
             md_lines.append("")
 
             headline_take = interp.get("headline_take", "")
             if headline_take:
                 md_lines.append(f"> **Headline take:** {headline_take}")
                 md_lines.append("")
+
+        # ── NEW (v2026-08-04) Cross-source data sources section ──
+        md_lines.append("## Data sources powering this report")
+        igA = data.get("ig_analytics") or {}
+        if igA.get("posts_in_window") is not None:
+            t = igA.get("totals") or {}
+            md_lines.append(f"- **Instagram (`ig-analytics.json`)** — {igA.get('posts_in_window', 0)} posts · reach={t.get('reach', 0)} · likes={t.get('likes', 0)} · saves={t.get('saves', 0)} · shares={t.get('shares', 0)} · comments={t.get('comments', 0)}")
+            md_lines.append(f"  - hook_id overlap with published: {igA.get('hook_overlap_with_published', 0)}; in published but not in IG: {igA.get('hook_only_in_published', 0)}; in IG but not published: {igA.get('hook_only_in_ig', 0)}")
+        ga4 = data.get("ga4") or {}
+        if ga4.get("total_sessions") is not None:
+            stale_tag = " ⚠️ STALE" if ga4.get("stale") else ""
+            md_lines.append(f"- **GA4 (`ga4-metrics.json`)** — {ga4.get('total_sessions', 0):,} sessions · top source: **{ga4.get('top_source') or '?'}** ({ga4.get('top_source_sessions', 0)} sessions) · {ga4.get('sources_count', 0)} sources tracked · fetched: {(ga4.get('fetched_at') or 'never')[:10]}{stale_tag}")
+        yt = data.get("youtube") or {}
+        if yt.get("videos_found") is not None or yt.get("top_videos_count") is not None:
+            themes_str = ", ".join(yt.get("active_themes", [])[:8]) or "none"
+            md_lines.append(f"- **YouTube trends (`youtube-trends.json`)** — {yt.get('videos_found', 0)} videos found · top {yt.get('top_videos_count', 0)} · active themes: {themes_str}")
+        red = data.get("reddit") or {}
+        if red.get("opportunities_count") is not None:
+            subs = ", ".join(f"{s['subreddit']}={s['count']}" for s in (red.get("top_subreddits") or []))
+            md_lines.append(f"- **Reddit (`reddit-opportunities.json + reddit-replies.json`)** — {red.get('opportunities_count', 0)} opportunities · {red.get('replies_count', 0)} drafted replies · ready_for_qa (opps: {red.get('ready_for_qa', 0)}, replies: {red.get('replies_ready_for_qa', 0)}) · subs: {subs or '—'}")
+        seo = data.get("seo_health") or {}
+        if seo.get("keywords_total") is not None:
+            fetcher_tag = " ⚠️ fetcher offline" if seo.get("needs_fetcher") else ""
+            md_lines.append(f"- **SEO (`seo-rankings.json`)** — {seo.get('keywords_total', 0)} keywords · {seo.get('with_rank', 0)} have rank data · rising={seo.get('rising', 0)} falling={seo.get('falling', 0)} · freshness: {(seo.get('freshness') or 'never')[:10]}{fetcher_tag}")
+        hbb = data.get("hook_bank_buckets") or {}
+        if hbb:
+            md_lines.append(f"- **Hook bank (`hook-bank.json`)** — proven_and_trending={hbb.get('proven_and_trending', 0)} · proven_only={hbb.get('proven_only', 0)} · trending_to_test={hbb.get('trending_to_test', 0)} · retire={hbb.get('retire', 0)}")
+        hbm = data.get("hook_bank_mismatch") or {}
+        if hbm:
+            md_lines.append(f"  - ⚠️ **hook-bank mismatch:** {hbm.get('published_hook_ids_not_in_bank', 0)} of published hook_ids are NOT in hook-bank ({hbm.get('hook_bank_total_ids', 0)} bank entries). Bank regenerated independently of publish history.")
+        md_lines.append("")
 
         # ── Visual insights: image corpus patterns + suggestions ───────
         vi = data.get("visual_insights") or {}

@@ -1432,49 +1432,77 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     markdown report that `weekly_reporter` writes, but JSON so the Insights
     section can render live + export.
 
-    Sections:
-      - headline: published count, failed, win rate, agent runs, pass rate
-      - top_hooks: best-performing hooks from this week's published items
-      - top_ctas: CTAs used, sorted by usage
-      - top_platforms: {instagram: N, facebook: M, ...}
-      - published_by_day: {Mon: N, Tue: N, ...}
-      - top_seo_movers: rising keywords from seo-rankings.json
-      - failures: items that failed to publish this week
-      - agent_runs: per-agent pass/fail breakdown
-      - week_on_week: delta vs previous 7 days for headline metrics
-      - exports: pointer to the markdown export path
+    v2026-08-04 changes (this rewrite):
+      - Cross-cuts 6 data sources: published-items, IG analytics, GA4, YouTube
+        trends, Reddit opps+replies, SEO rankings (instead of only the first).
+      - "Last publish window" fallback when last 7d is empty but the pipeline
+        has data ≤30d old — keeps the report useful during rest-mode pauses.
+      - Returns `interp` alias alongside `interpretation` so the SPA renderer
+        can use either (defense in depth against the w.interp key bug).
+      - Every claim in `interpretation` cites the source file it came from.
     """
     now = datetime.datetime.now(datetime.timezone.utc)
     week_start = now - datetime.timedelta(days=7)
     prev_start = now - datetime.timedelta(days=14)
 
-    # ── Published items ───────────────────────────────────────────────
+    # ── 1. Published items ────────────────────────────────────────────
     pub_data = _read_json(os.path.join(DATA_DIR, "published-items.json")) or {}
     all_published = pub_data.get("published", []) if isinstance(pub_data, dict) else []
     if not isinstance(all_published, list):
         all_published = []
 
-    def _in_week(item_ts: Any) -> bool:
-        d = _parse_iso_date(item_ts)
-        if d is None:
-            return False
-        # Normalize to UTC for comparison
-        if d.tzinfo is None:
-            d = d.replace(tzinfo=datetime.timezone.utc)
-        return week_start <= d <= now
-
-    def _in_prev(item_ts: Any) -> bool:
+    def _in_window(item_ts: Any, start: datetime.datetime, end: datetime.datetime) -> bool:
         d = _parse_iso_date(item_ts)
         if d is None:
             return False
         if d.tzinfo is None:
             d = d.replace(tzinfo=datetime.timezone.utc)
-        return prev_start <= d < week_start
+        return start <= d <= end
 
-    this_week = [p for p in all_published if isinstance(p, dict) and _in_week(p.get("generated") or p.get("published_at"))]
-    prev_week = [p for p in all_published if isinstance(p, dict) and _in_prev(p.get("generated") or p.get("published_at"))]
+    this_week = [p for p in all_published if isinstance(p, dict) and _in_window(
+        p.get("generated") or p.get("published_at"), week_start, now
+    )]
+    prev_week = [p for p in all_published if isinstance(p, dict) and _in_window(
+        p.get("generated") or p.get("published_at"), prev_start, week_start
+    )]
 
-    # ── Failures ──────────────────────────────────────────────────────
+    # ── 1b. Last-publish-window fallback (rest-mode aware) ─────────────
+    window_used = "rolling_7d"
+    window_label = f"{week_start.strftime('%Y-%m-%d')} → {now.strftime('%Y-%m-%d')}"
+    window_note = ""
+    latest = None
+    if not this_week and all_published:
+        # No publishes in the last 7 days. Find the most-recent batch (any
+        # contiguous 7-day window that contains publishes).
+        dated = [
+            (p, _parse_iso_date(p.get("generated") or p.get("published_at")))
+            for p in all_published if isinstance(p, dict)
+        ]
+        dated = [(p, d) for p, d in dated if d is not None]
+        if dated:
+            latest = max(d for _, d in dated)
+            earliest = min(d for _, d in dated)
+            days_since_latest = (now - latest).days
+            # Only use this fallback if the most-recent publish is < 30 days old
+            # and the data spans a manageable window.
+            if days_since_latest <= 30:
+                fallback_start = max(earliest, latest - datetime.timedelta(days=7))
+                fallback_end = latest + datetime.timedelta(days=1)
+                this_week = [
+                    p for p, d in dated
+                    if fallback_start <= d <= fallback_end
+                ]
+                prev_week = []  # Nothing comparable
+                window_used = "last_publish_window_fallback"
+                window_label = f"{fallback_start.strftime('%Y-%m-%d')} → {fallback_end.strftime('%Y-%m-%d')} (last active publish window before pause · {days_since_latest}d ago)"
+                window_note = (
+                    f"Pipeline in rest-mode: no publishes in the last 7 days. "
+                    f"Showing last active publish window ({len(this_week)} posts, "
+                    f"{fallback_start.strftime('%Y-%m-%d')} → {fallback_end.strftime('%Y-%m-%d')}). "
+                    f"Approve an active campaign or restart the cron to refresh."
+                )
+
+    # ── 2. Failures ───────────────────────────────────────────────────
     fail_data = _read_json(os.path.join(DATA_DIR, "publish-failures.json")) or {}
     all_failures = []
     if isinstance(fail_data, dict):
@@ -1485,10 +1513,14 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
                 break
     elif isinstance(fail_data, list):
         all_failures = fail_data
-    week_failures = [f for f in all_failures if isinstance(f, dict) and _in_week(f.get("ts") or f.get("failed_at") or f.get("generated"))]
-    prev_failures = [f for f in all_failures if isinstance(f, dict) and _in_prev(f.get("ts") or f.get("failed_at") or f.get("generated"))]
+    week_failures = [f for f in all_failures if isinstance(f, dict) and _in_window(
+        f.get("ts") or f.get("failed_at") or f.get("generated"), week_start, now
+    )]
+    prev_failures = [f for f in all_failures if isinstance(f, dict) and _in_window(
+        f.get("ts") or f.get("failed_at") or f.get("generated"), prev_start, week_start
+    )]
 
-    # ── Headline KPIs ─────────────────────────────────────────────────
+    # ── 3. Headline KPIs ──────────────────────────────────────────────
     published_count = len(this_week)
     failed_count = len(week_failures)
     attempts = published_count + failed_count
@@ -1498,7 +1530,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     prev_attempts = prev_published + prev_failed
     prev_win_rate = round((prev_published / prev_attempts) * 100, 1) if prev_attempts > 0 else None
 
-    # ── Platforms + days breakdown ────────────────────────────────────
+    # ── 4. Platforms + days breakdown ─────────────────────────────────
     platforms = {}
     by_day = {"Mon": 0, "Tue": 0, "Wed": 0, "Thu": 0, "Fri": 0, "Sat": 0, "Sun": 0}
     weekday_keys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -1509,7 +1541,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
         if ts:
             by_day[weekday_keys[ts.weekday()]] += 1
 
-    # ── Top hooks (from published items that have a linked_hook_id) ───
+    # ── 5. Top hooks (cross-referenced with hook-bank) ────────────────
     hook_counts = {}
     for p in this_week:
         hid = p.get("linked_hook_id")
@@ -1517,10 +1549,11 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
             hook_counts[hid] = hook_counts.get(hid, 0) + 1
     top_hooks = sorted(hook_counts.items(), key=lambda x: -x[1])[:5]
 
-    # Cross-reference hook-bank for hook text
     hook_bank = _read_json(os.path.join(DATA_DIR, "hook-bank.json")) or {}
     hook_lookup = {}
-    for bucket_key in ("proven_and_trending", "trending_but_unproven", "watched"):
+    # v2026-08-04: read BOTH old schema keys (defense) AND new output_buckets.* keys
+    old_buckets = ("proven_and_trending", "trending_but_unproven", "watched")
+    for bucket_key in old_buckets:
         bucket = hook_bank.get(bucket_key, []) if isinstance(hook_bank, dict) else []
         if isinstance(bucket, list):
             for h in bucket:
@@ -1528,12 +1561,79 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
                     hid = h.get("hook_id")
                     if hid:
                         hook_lookup[hid] = h.get("hook_text") or h.get("text") or hid
+    # New schema: output_buckets.{proven_and_trending, proven_only, trending_to_test, retire}
+    ob = hook_bank.get("output_buckets") if isinstance(hook_bank, dict) else None
+    if isinstance(ob, dict):
+        for sub_bucket in ("proven_and_trending", "proven_only", "trending_to_test", "retire"):
+            bucket = ob.get(sub_bucket, [])
+            if isinstance(bucket, list):
+                for h in bucket:
+                    if isinstance(h, dict):
+                        hid = h.get("hook_id")
+                        if hid and hid not in hook_lookup:
+                            hook_lookup[hid] = h.get("hook_text") or h.get("text") or hid
     top_hooks_rich = [
         {"hook_id": hid, "uses": cnt, "text": hook_lookup.get(hid, "")}
         for hid, cnt in top_hooks
     ]
 
-    # ── Top CTAs ──────────────────────────────────────────────────────
+    # ── 5b. Hook-bank bucketed summary (for new claims) ──────────────
+    hook_bank_summary = {}
+    if isinstance(ob, dict):
+        for sub_bucket, label in (
+            ("proven_and_trending", "proven_and_trending"),
+            ("proven_only", "proven_only"),
+            ("trending_to_test", "trending_to_test"),
+            ("retire", "retire"),
+        ):
+            bucket = ob.get(sub_bucket, [])
+            if isinstance(bucket, list):
+                hook_bank_summary[label] = len(bucket)
+
+    # All hook_ids in hook-bank (across all buckets) — declared early,
+    # computed later once both sets are ready.
+    all_hb_hook_ids: set = set()
+
+    # ── 5c. Hook match: published hook_ids vs IG-analytics hook_ids ───
+    ig = _read_json(os.path.join(DATA_DIR, "ig-analytics.json")) or {}
+    ig_posts = ig.get("posts", []) if isinstance(ig, dict) else []
+    if not isinstance(ig_posts, list):
+        ig_posts = []
+    ig_hook_ids = {
+        p.get("hook_id") for p in ig_posts
+        if isinstance(p, dict) and p.get("hook_id")
+    }
+    pub_hook_ids = {
+        p.get("linked_hook_id") for p in this_week
+        if isinstance(p, dict) and p.get("linked_hook_id")
+    }
+    hook_overlap = ig_hook_ids & pub_hook_ids
+    hook_in_pub_not_ig = pub_hook_ids - ig_hook_ids
+    hook_in_ig_not_pub = ig_hook_ids - pub_hook_ids
+
+    # Hook-bank cross-cut (filled in now that all_hb_hook_ids is readable)
+    if isinstance(ob, dict):
+        for sub_bucket in ("proven_and_trending", "proven_only", "trending_to_test", "retire"):
+            bucket = ob.get(sub_bucket, [])
+            if isinstance(bucket, list):
+                for h in bucket:
+                    if isinstance(h, dict):
+                        hid = h.get("hook_id")
+                        if hid:
+                            all_hb_hook_ids.add(hid)
+    pub_in_pub_not_hb = pub_hook_ids - all_hb_hook_ids
+    ig_totals = {"posts": len(ig_posts), "reach": 0, "likes": 0,
+                 "saves": 0, "shares": 0, "comments": 0, "follows_gained": 0}
+    for p in ig_posts:
+        if not isinstance(p, dict):
+            continue
+        for k in ("reach", "likes", "saves", "shares", "comments", "follows_gained"):
+            try:
+                ig_totals[k] += int(p.get(k) or 0)
+            except (TypeError, ValueError):
+                pass
+
+    # ── 6. Top CTAs ───────────────────────────────────────────────────
     cta_counts = {}
     for p in this_week:
         cta = p.get("linked_cta") or p.get("cta")
@@ -1542,8 +1642,11 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     top_ctas = sorted(cta_counts.items(), key=lambda x: -x[1])[:5]
     top_ctas_rich = [{"cta": cta, "uses": cnt} for cta, cnt in top_ctas]
 
-    # ── SEO movers ────────────────────────────────────────────────────
+    # ── 7. SEO movers ────────────────────────────────────────────────
     seo = _read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {}
+    keywords = seo.get("keywords", []) if isinstance(seo, dict) else []
+    if not isinstance(keywords, list):
+        keywords = []
     rising = seo.get("rising_keywords", []) if isinstance(seo, dict) else []
     falling = seo.get("falling_keywords", []) if isinstance(seo, dict) else []
     if not isinstance(rising, list):
@@ -1561,8 +1664,13 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
             seo_movers.append({"keyword": f.get("keyword"), "direction": "falling", "rank": f.get("current_rank") or f.get("rank")})
         elif isinstance(f, str):
             seo_movers.append({"keyword": f, "direction": "falling"})
+    seo_keyword_count = len(keywords)
+    seo_keywords_with_rank = sum(
+        1 for k in keywords if isinstance(k, dict) and k.get("current_rank") is not None
+    )
+    seo_freshness = seo.get("updated") or ""
 
-    # ── Agent runs (last 7 days) ──────────────────────────────────────
+    # ── 8. Agent runs (last 7 days) ───────────────────────────────────
     agent_data = _read_json(os.path.join(DATA_DIR, "agent-runs.json")) or {}
     agents_raw = agent_data.get("agents", {}) if isinstance(agent_data, dict) else {}
     if not isinstance(agents_raw, dict):
@@ -1571,7 +1679,9 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     for agent_id, runs in agents_raw.items():
         if not isinstance(runs, list):
             continue
-        week_runs = [r for r in runs if isinstance(r, dict) and _in_week(r.get("run_at"))]
+        week_runs = [r for r in runs if isinstance(r, dict) and _in_window(
+            r.get("run_at"), week_start, now
+        )]
         if not week_runs:
             continue
         passed = sum(1 for r in week_runs if (r.get("status") or "").upper() in ("PASS", "OK", "SUCCESS"))
@@ -1588,7 +1698,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     total_agent_passed = sum(a["passed"] for a in agent_summary.values())
     total_agent_pass_rate = round((total_agent_passed / total_agent_runs) * 100, 1) if total_agent_runs else None
 
-    # ── Week-on-week deltas ───────────────────────────────────────────
+    # ── 9. Week-on-week deltas ────────────────────────────────────────
     def _delta(curr, prev):
         if curr is None or prev in (None, 0):
             return {"current": curr, "previous": prev, "delta": None, "pct_change": None}
@@ -1603,21 +1713,115 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
         "agent_runs": _delta(total_agent_runs, sum(a.get("total", 0) for a in agent_summary.values()) - total_agent_runs),
     }
 
-    # ── Markdown export path ──────────────────────────────────────────
+    # ── 10. NEW — GA4 cross-cut ──────────────────────────────────────
+    ga4 = _read_json(os.path.join(DATA_DIR, "ga4-metrics.json")) or {}
+    ga4_summary = {
+        "total_sessions": ga4.get("total_sessions"),
+        "pages_count": len(ga4.get("pages", []) if isinstance(ga4.get("pages"), list) else []),
+        "sources_count": len(ga4.get("sources", []) if isinstance(ga4.get("sources"), list) else []),
+        "top_source": None,
+        "top_source_sessions": None,
+        "fetched_at": ga4.get("fetched_at") or ga4.get("updated"),
+        "stale": ga4.get("_stale", False),
+    }
+    sources = ga4.get("sources", []) if isinstance(ga4.get("sources"), list) else []
+    if sources and isinstance(sources[0], dict) and sources[0].get("sessions") is not None:
+        top_src = max(sources, key=lambda x: x.get("sessions", 0))
+        ga4_summary["top_source"] = top_src.get("source")
+        ga4_summary["top_source_sessions"] = top_src.get("sessions")
+
+    # ── 11. NEW — YouTube trends cross-cut ───────────────────────────
+    youtube = _read_json(os.path.join(DATA_DIR, "youtube-trends.json")) or {}
+    yt_themes = youtube.get("trending_themes", {}) if isinstance(youtube, dict) else {}
+    if not isinstance(yt_themes, dict):
+        yt_themes = {}
+    yt_active_themes = [k for k, v in yt_themes.items() if v]
+    yt_summary = {
+        "videos_found": youtube.get("videos_found"),
+        "top_videos_count": len(youtube.get("top_videos", []) if isinstance(youtube.get("top_videos"), list) else []),
+        "active_themes": yt_active_themes,
+        "fetched_at": youtube.get("updated"),
+    }
+
+    # ── 12. NEW — Reddit opps vs replies cross-cut ──────────────────
+    ro = _read_json(os.path.join(DATA_DIR, "reddit-opportunities.json")) or {}
+    rr = _read_json(os.path.join(DATA_DIR, "reddit-replies.json")) or {}
+    ro_opps = ro.get("opportunities", []) if isinstance(ro, dict) else []
+    if not isinstance(ro_opps, list):
+        ro_opps = []
+    rr_replies = rr.get("replies", []) if isinstance(rr, dict) else []
+    if not isinstance(rr_replies, list):
+        rr_replies = []
+    reddit_summary = {
+        "opportunities_count": len(ro_opps),
+        "replies_count": len(rr_replies),
+        "ready_for_qa": ro.get("ready_for_qa", 0) if isinstance(ro, dict) else 0,
+        "replies_ready_for_qa": rr.get("ready_for_qa", 0) if isinstance(rr, dict) else 0,
+        "urgency_breakdown": ro.get("by_urgency", {}) if isinstance(ro, dict) else {},
+        "opportunities": ro_opps[:5],
+    }
+    # Top reddit topics by frequency
+    subreddits = [o.get("subreddit") for o in ro_opps if isinstance(o, dict) and o.get("subreddit")]
+    subreddit_counts = Counter(subreddits)
+    reddit_summary["top_subreddits"] = [
+        {"subreddit": s, "count": c} for s, c in subreddit_counts.most_common(5)
+    ]
+
+    # ── 13. Markdown export path ──────────────────────────────────────
     md_path = os.path.join(DATA_DIR, "weekly-report.md")
 
-    # ── Build summary headline (1 sentence) ───────────────────────────
-    if published_count == 0 and failed_count == 0:
+    # ── 14. Headline (1 sentence) ────────────────────────────────────
+    if published_count == 0 and failed_count == 0 and window_used == "rolling_7d":
         headline = f"Quiet week · {total_agent_runs} agent runs, no publishes attempted."
+    elif window_used == "last_publish_window_fallback":
+        wr = f"{win_rate_pct}%" if win_rate_pct is not None else "—"
+        latest_label = latest.strftime('%Y-%m-%d') if latest is not None else "unknown"
+        headline = (
+            f"{published_count} published (last active window {latest_label}), "
+            f"{failed_count} failed, {wr} win rate. "
+            f"Pipeline paused since {latest_label} — this is your most-recent live snapshot."
+        )
     else:
         wr = f"{win_rate_pct}%" if win_rate_pct is not None else "—"
         headline = f"{published_count} published, {failed_count} failed, {wr} win rate."
+
+    # ── 15. Build interpretation (NEW — uses all 6 sources) ──────────
+    interpretation = _interpret_weekly_report(
+        published_count, failed_count, win_rate_pct,
+        prev_published, prev_failed, prev_win_rate,
+        platforms, by_day, top_hooks_rich, top_ctas_rich,
+        seo_movers, week_failures, agent_summary,
+        brand_dir=_resolve_brand_dir(brand),
+        ig_analytics={"posts": ig_posts, "totals": ig_totals,
+                      "hook_ids": list(ig_hook_ids)},
+        ga4=ga4_summary,
+        youtube=yt_summary,
+        reddit_opps={"count": len(ro_opps), "opps": ro_opps[:5],
+                     "ready_for_qa": ro.get("ready_for_qa", 0)},
+        reddit_replies={"count": len(rr_replies), "ready_for_qa": rr.get("ready_for_qa", 0),
+                        "by_sentiment": rr.get("by_sentiment", {})},
+        seo={"keywords_total": seo_keyword_count,
+             "with_rank": seo_keywords_with_rank,
+             "rising": len(rising),
+             "falling": len(falling),
+             "freshness": seo_freshness,
+             "needs_fetcher": seo_keyword_count > 0 and seo_keywords_with_rank == 0},
+        hook_match={"overlap": len(hook_overlap),
+                    "in_pub_not_ig": len(hook_in_pub_not_ig),
+                    "in_ig_not_pub": len(hook_in_ig_not_pub),
+                    "in_pub_not_hook_bank": len(pub_in_pub_not_hb),
+                    "hook_bank_total": len(all_hb_hook_ids)},
+        hook_bank_buckets=hook_bank_summary,
+    )
 
     return {
         "ok": True,
         "ts": _now_iso(),
         "week_start": week_start.isoformat(),
         "week_end": now.isoformat(),
+        "window_label": window_label,
+        "window_used": window_used,
+        "window_note": window_note,
         "brand": brand,
         "headline": headline,
         "headline_kpis": {
@@ -1643,13 +1847,33 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
         ],
         "agent_breakdown": agent_summary,
         "week_on_week": wow,
-        "interpretation": _interpret_weekly_report(
-            published_count, failed_count, win_rate_pct,
-            prev_published, prev_failed, prev_win_rate,
-            platforms, by_day, top_hooks_rich, top_ctas_rich,
-            seo_movers, week_failures, agent_summary,
-            brand_dir=_resolve_brand_dir(brand),
-        ),
+        # ── NEW SECTIONS ──
+        "ig_analytics": {
+            "posts_in_window": len([p for p in ig_posts if isinstance(p, dict)]),
+            "totals": ig_totals,
+            "hook_overlap_with_published": len(hook_overlap),
+            "hook_only_in_published": len(hook_in_pub_not_ig),
+            "hook_only_in_ig": len(hook_in_ig_not_pub),
+        },
+        "hook_bank_mismatch": {
+            "published_hook_ids_not_in_bank": len(pub_in_pub_not_hb),
+            "hook_bank_total_ids": len(all_hb_hook_ids),
+        },
+        "ga4": ga4_summary,
+        "youtube": yt_summary,
+        "reddit": reddit_summary,
+        "seo_health": {
+            "keywords_total": seo_keyword_count,
+            "with_rank": seo_keywords_with_rank,
+            "rising": len(rising),
+            "falling": len(falling),
+            "freshness": seo_freshness,
+            "needs_fetcher": seo_keyword_count > 0 and seo_keywords_with_rank == 0,
+        },
+        "hook_bank_buckets": hook_bank_summary,
+        # ── Interpretation (named both ways for SPA compat) ──
+        "interpretation": interpretation,
+        "interp": interpretation,  # alias — SPA renderer should use interpretation, but defense in depth
         "visual_insights": _visual_insights_for_week(
             this_week, prev_week, brand_dir=_resolve_brand_dir(brand),
         ),
@@ -1671,18 +1895,26 @@ def _interpret_weekly_report(
     published, failed, win_rate, prev_pub, prev_fail, prev_wr,
     platforms, by_day, top_hooks, top_ctas, movers,
     failures, agent_summary, brand_dir=None,
+    ig_analytics=None, ga4=None, youtube=None,
+    reddit_opps=None, reddit_replies=None, seo=None,
+    hook_match=None, hook_bank_buckets=None,
 ):
     """Translate raw numbers into WHAT'S WORKING / WHAT'S NOT / WHAT TO LOOK AT.
 
     The interpretation is rule-based (no LLM) so it's auditable, deterministic,
     and built from the same data the dashboard reads. Every claim is grounded
-    in a specific number; nothing is inferred from vibes.
+    in a specific number AND cites the source file via the `source` field.
+
+    v2026-08-04: extended to read from 6 data sources (was 1). New params are
+    each optional dicts; if missing, that source silently contributes nothing.
 
     Returns: {
-      "whats_working":  [{ "claim": "...", "evidence": "..." }, … ],
-      "whats_not":       [ { "claim": "...", "evidence": "..." }, … ],
-      "look_at":         [ { "claim": "...", "evidence": "..." }, … ],
-      "headline_take":   "...single sentence...",
+      "whats_working":  [{ "claim": "...", "evidence": "...", "source": "...",
+                           "category": "..." }, … ],
+      "whats_not":      [ same shape + "severity" ],
+      "look_at":        [ same shape ],
+      "headline_take":  "...single sentence...",
+      "sources_used":   ["ig-analytics.json", "ga4-metrics.json", ...],
     }
     """
     working, not_working, look_at = [], [], []
@@ -1843,7 +2075,172 @@ def _interpret_weekly_report(
             "category": "channels",
         })
 
-    # Headline take
+    # ── NEW (v2026-08-04) ── CROSS-CUT CLAIM GENERATORS (6 sources) ─
+
+    sources_used = []
+
+    # ── 1. IG analytics ──────────────────────────────────────────────
+    ig_claims = []
+    if isinstance(ig_analytics, dict):
+        totals = ig_analytics.get("totals") or {}
+        ig_claims.append(("ig", totals.get("posts", 0), totals.get("reach", 0)))
+    if ig_claims and ig_claims[0][0] == "ig":
+        _, n_posts, n_reach = ig_claims[0]
+        if n_posts > 0:
+            sources_used.append("ig-analytics.json")
+        if n_posts > 0 and n_reach > 0:
+            working.append({
+                "claim": f"IG reached {n_reach:,} accounts across {n_posts} posts.",
+                "evidence": f"Reach aggregated from ig-analytics.json post-level metrics. Saves={int(ig_analytics.get('totals', {}).get('saves', 0))}, Shares={int(ig_analytics.get('totals', {}).get('shares', 0))}.",
+                "source": "ig-analytics.json",
+                "category": "ig_engagement",
+            })
+        elif n_posts > 0 and n_reach == 0:
+            look_at.append({
+                "claim": f"IG has {n_posts} posts tracked but zero reach recorded.",
+                "evidence": "Reach counter is 0 across all posts. Either engagement metrics haven't synced, or the sync ran before the IG API returned metrics. Re-run sync_ig_analytics.js to verify.",
+                "source": "ig-analytics.json",
+                "category": "ig_engagement",
+            })
+
+    # Hook-IDs cross-cut (was a real-data discovery)
+    if isinstance(hook_match, dict):
+        overlap = hook_match.get("overlap", 0)
+        in_pub = hook_match.get("in_pub_not_ig", 0)
+        in_ig = hook_match.get("in_ig_not_pub", 0)
+        if (in_pub > 0 or in_ig > 0) and sources_used:
+            look_at.append({
+                "claim": f"Hook-ID overlap between published-items and IG is {overlap} (0 expected signal).",
+                "evidence": f"in_pub_not_ig={in_pub}, in_ig_not_pub={in_ig}. Either the sync is showing different content from what was published, or hook_ids aren't linking between sources.",
+                "source": "ig-analytics.json + published-items.json",
+                "category": "engagement_match",
+            })
+
+    # ── 2. GA4 ───────────────────────────────────────────────────────
+    if isinstance(ga4, dict) and ga4.get("total_sessions") is not None:
+        sources_used.append("ga4-metrics.json")
+        sessions = ga4.get("total_sessions", 0)
+        top_src = ga4.get("top_source")
+        top_src_sess = ga4.get("top_source_sessions")
+        if sessions > 0 and top_src:
+            working.append({
+                "claim": f"GA4 recorded {sessions:,} website sessions; {top_src} is your top acquisition channel ({top_src_sess} sessions).",
+                "evidence": f"Source breakdown from ga4-metrics.json across {ga4.get('sources_count', 0)} sources. Last fetch: {ga4.get('fetched_at') or 'never'}.",
+                "source": "ga4-metrics.json",
+                "category": "web_traffic",
+            })
+        if ga4.get("stale"):
+            not_working.append({
+                "claim": "GA4 sync is stale.",
+                "evidence": f"_stale flag is set. The fetch job may have auth'd but failed to pull data. Source file is {ga4.get('fetched_at') or 'never updated'}.",
+                "source": "ga4-metrics.json",
+                "category": "web_traffic",
+                "severity": "medium",
+            })
+
+    # ── 3. SEO ───────────────────────────────────────────────────────
+    if isinstance(seo, dict):
+        kw_total = seo.get("keywords_total", 0)
+        if kw_total > 0:
+            sources_used.append("seo-rankings.json")
+        if seo.get("needs_fetcher"):
+            not_working.append({
+                "claim": f"{kw_total} SEO keywords tracked but zero have rank data — rankings fetcher is offline.",
+                "evidence": f"seo-rankings.json has {kw_total} keywords, all current_rank: null. Need a live rank fetcher (Ubersuggest MCP wired). Last update: {seo.get('freshness') or 'never'}.",
+                "source": "seo-rankings.json",
+                "category": "seo",
+                "severity": "medium",
+            })
+        if (seo.get("rising") or seo.get("falling")) and not seo.get("needs_fetcher"):
+            sources_used.append("seo-rankings.json")
+            if seo.get("rising"):
+                working.append({
+                    "claim": f"{seo.get('rising')} SEO keyword(s) moved up this week.",
+                    "evidence": "Cross-cut from seo-rankings.json movers list.",
+                    "source": "seo-rankings.json",
+                    "category": "seo",
+                })
+
+    # ── 4. YouTube ───────────────────────────────────────────────────
+    if isinstance(youtube, dict):
+        themes = youtube.get("active_themes") or []
+        vids = (youtube.get("top_videos_count") or youtube.get("videos_found")) or 0
+        if themes or vids:
+            sources_used.append("youtube-trends.json")
+        if themes:
+            working.append({
+                "claim": f"YouTube trends pulled; active themes this week: {', '.join(themes[:6])}.",
+                "evidence": f"From youtube-trends.json trending_themes ({len(themes)}/8 themes active) + {vids} candidate videos fetched.",
+                "source": "youtube-trends.json",
+                "category": "youtube_trends",
+            })
+
+    # ── 5. Reddit opportunities vs replies ──────────────────────────
+    if isinstance(reddit_opps, dict) or isinstance(reddit_replies, dict):
+        n_opps = (reddit_opps or {}).get("count", 0)
+        n_replies = (reddit_replies or {}).get("count", 0)
+        if n_opps or n_replies:
+            sources_used.append("reddit-opportunities.json + reddit-replies.json")
+        if n_opps > 0 and n_replies >= n_opps:
+            working.append({
+                "claim": f"All {n_opps} Reddit opportunity threads have drafted ghost replies ({n_replies} drafts).",
+                "evidence": f"{n_replies} drafts in reddit-replies.json vs {n_opps} opportunities in reddit-opportunities.json. ready_for_qa: opp={reddit_opps.get('ready_for_qa', 0) if reddit_opps else 0}, reply={reddit_replies.get('ready_for_qa', 0) if reddit_replies else 0}.",
+                "source": "reddit-opportunities.json + reddit-replies.json",
+                "category": "reddit_outreach",
+            })
+        elif n_opps > 0 and n_replies < n_opps:
+            not_working.append({
+                "claim": f"Only {n_replies}/{n_opps} Reddit opportunities have drafted replies.",
+                "evidence": f"Gap of {n_opps - n_replies} threads that need ghost-reply drafts before they go cold.",
+                "source": "reddit-opportunities.json + reddit-replies.json",
+                "category": "reddit_outreach",
+                "severity": "low",
+            })
+
+    # ── 6. Hook bank state ───────────────────────────────────────────
+    if isinstance(hook_bank_buckets, dict):
+        any_bucket = any(hook_bank_buckets.values())
+        if any_bucket:
+            sources_used.append("hook-bank.json")
+            proven_only = hook_bank_buckets.get("proven_only", 0)
+            trending_to_test = hook_bank_buckets.get("trending_to_test", 0)
+            if proven_only > 0 and not isinstance(ig_analytics, dict):
+                working.append({
+                    "claim": f"{proven_only} hooks are IG-proven and ready to rotate into the next campaign.",
+                    "evidence": f"From hook-bank.json output_buckets.proven_only — these hooks have real engagement signals but aren't yet in the published queue.",
+                    "source": "hook-bank.json",
+                    "category": "voice",
+                })
+            elif proven_only > 0 and isinstance(ig_analytics, dict) and hook_match and hook_match.get("in_pub_not_ig", 0) > 0:
+                # Even better — combine 2 sources
+                working.append({
+                    "claim": f"{proven_only} IG-proven hooks aren't being used in publishing this week.",
+                    "evidence": f"Cross-cut: hook-bank.json output_buckets.proven_only ({proven_only} hooks) vs published-items.json linked_hook_ids ({hook_match.get('in_pub_not_ig', 0)} of those not in IG analytics). Opportunity to rotate them in.",
+                    "source": "hook-bank.json + published-items.json",
+                    "category": "voice",
+                })
+            if trending_to_test >= 3:
+                look_at.append({
+                    "claim": f"{trending_to_test} trending hooks are queued for A/B test — pick 3 to run this week.",
+                    "evidence": "From hook-bank.json output_buckets.trending_to_test. They have cross-signal scores but haven't been validated against live IG yet.",
+                    "source": "hook-bank.json",
+                    "category": "voice",
+                })
+
+    # Hook-bank ↔ published cross-cut (NEW — surfaces missing hooks)
+    if isinstance(hook_match, dict) and hook_match.get("in_pub_not_hook_bank", 0) > 0:
+        not_in_bank = hook_match["in_pub_not_hook_bank"]
+        hb_total = hook_match.get("hook_bank_total", 0)
+        if not_in_bank > hb_total:
+            not_working.append({
+                "claim": f"{not_in_bank} of your published hook_ids aren't in the hook-bank at all.",
+                "evidence": f"published-items.json has unique hook_ids in use, hook-bank.json only contains {hb_total} entries (across all buckets). Hook-bank has been regenerated independently and lost the published history.",
+                "source": "published-items.json + hook-bank.json",
+                "category": "voice",
+                "severity": "low",
+            })
+
+    # ── Headline take
     if not_working and not_working[0].get("severity") == "high":
         headline_take = f"Bottleneck this week: {not_working[0]['claim']}"
     elif working and published > 0:
@@ -1853,11 +2250,29 @@ def _interpret_weekly_report(
     else:
         headline_take = "Steady week — keep going."
 
+    # ── DEFENSIVE DEFAULT — every claim should cite a source ──
+    # Some pre-existing claim generators (from the original v1) didn't include
+    # a `source` field. Backfill by mapping category → source for the contract.
+    default_source_by_cat = {
+        "publishing": "published-items.json",
+        "growth": "published-items.json + agent-runs.json",
+        "voice": "hook-bank.json",
+        "fleet": "agent-runs.json",
+        "seo": "seo-rankings.json",
+        "channels": "published-items.json",
+        "cadence": "published-items.json",
+    }
+    for lst in (working, not_working, look_at):
+        for c in lst:
+            if "source" not in c:
+                c["source"] = default_source_by_cat.get(c.get("category", ""), "—")
+
     return {
         "whats_working": working,
         "whats_not": not_working,
         "look_at": look_at,
         "headline_take": headline_take,
+        "sources_used": sorted(set(sources_used)),
     }
 
 
