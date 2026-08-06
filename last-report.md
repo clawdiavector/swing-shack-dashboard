@@ -1,28 +1,32 @@
-# Nightshift Report — 2026-08-06T03:49Z
+# Nightshift Report — 2026-08-06T06:16Z
 
 ## ✅ Done
-Fixed 8 broken-image 404s on the brand-detail panel + library images surface by switching `<img src>` from `/api/visual-library/<brand>/image/<fn>` (returns JSON, not bytes) to the inline `thumbnail_data_url` (data: URI) the API already returns per image. Raw .jpg files are `.gitignore`d (Drive is source of truth), so even the alternative `/brand-images/<brand>/<fn>` route 404s on Railway. Using the thumbnail makes the surface deploy-environment-agnostic.
+Two-part fix that closes the last residual 404 on the Visualizer (the `takomo.png` outlier flagged in last tick's report).
+1. **Server** (`app.py`): `/api/visual-library/<brand>/discover` now mirrors the `/images` endpoint pattern — resolves each entry's DNA JSON (with the Railway-safe `_resolve_dna` fallback), extracts `thumbnail_b64`, ships it as `thumbnail_data_url: data:image/jpeg;base64,...`.
+2. **Client** (`visualizer.html` line 557): `renderImageCard` was rendering discover results with a stale `<img src=${img.url}>` — never the data-URI preference. Added the same `imgSrc = img.thumbnail_data_url || img.url` short-circuit the `loadImages` render at line 681 already had.
 
 ## 🎯 Verified (Playwright LIVE, cookie auth, Railway URL)
-- Bundle probe (cache-busted, 458,262 chars): 2/2 unique needles from new copy found.
-- Brand-detail panel: 59/59 lib-thumb imgs use `data:image/jpeg;base64,...` src, 0 legacy broken URLs, 59/59 rendered (`naturalWidth>0`).
-- Library images kind: same — 0 legacy URLs, 100% data: URI.
-- **HTTP 404s dropped 8 → 1** (remaining: `/api/visual-library/swing-shack/image/takomo.png` from `visualizer.html:540`, pre-existing, separate surface).
-- Console errors dropped 9 → 1 (same residual as above).
-- 0 PAGEERROR, 0 new JS errors.
+- **Default grid:** 122 cards, **121/122 use `data:image/jpeg;base64,...` src, naturalWidth>0** (the 1 missing = `takomo`, its DNA file legitimately has no `thumbnail_b64` field — data condition).
+- **Discover grid** (after clicking a color filter pill, 42 results): **42/42 use `data:image/jpeg;base64,...` src, naturalWidth>0** (was 0/42 before the client fix).
+- **Modal** (first discover card click): `data:image/jpeg;base64,...` src, `naturalWidth: 540`.
+- **HTTP 404s on `/brand-images/`** during discover flow: 1 (just the takomo.png data condition).
+- **PAGEERROR:** 0. **Sibling endpoints** (`/images`, `/recipe`, `/stats`, `/brands`): all 200.
 
-## 📁 Commit
-`c79e583` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +21/-8, pushed. Railway auto-deployed.
+## 📁 Commits (both on `feat/asset-state-engine`, pushed, Railway auto-deployed)
+- `9174d60` — server: discover endpoint ships `thumbnail_data_url` (1 file, `app.py`, +30/-1)
+- `164479e` — client: renderImageCard prefers `thumbnail_data_url` (1 file, `visualizer.html`, +6/-1)
 
-## 📸 Screenshot (LIVE)
-- `/tmp/co-nightshift/walkthrough_2026-08-06T035024Z_visual_library_thumbs_FIXED.png`
+## 📸 Screenshots (LIVE)
+- `/tmp/co-nightshift/walkthrough_discover_01_visualizer_default.png` — default grid, 121 data URIs
+- `/tmp/co-nightshift/walkthrough_discover_02_after_filter.png` — after blue-color discover pill, 42 data URIs
+- `/tmp/co-nightshift/walkthrough_discover_03_modal.png` — discover-result modal
 
 ## 🎯 Next
-- Visualizer.html line 540 (`/brand-images/...`) also 404s for takomo.png — separate pre-existing image-storage drift on Railway volume. Same fix pattern (use thumbnail_data_url from API response) is the right move.
-- Or: ship the missing raw .jpg files via the daily cron and remove the .gitignore carve-out so the canonical image-bytes route starts working too. Need a human call on whether to lift the "Drive as source of truth" invariant.
+1. **Insights-lens context on the cloned Performance widgets** (still the highest-quality remaining UX lane from the 2026-08-06T03:27Z report — never picked up).
+2. **Add a "click a discover pill" assertion** to the standard visualizer verification script so future thumbnail regressions fail loudly — caught this one only because Playwright probed actual `<img>` src, not just API shape.
 
 ## 🧠 Learned
-The route `/api/visual-library/<brand>/image/<fn>` (line 1833 of `app.py`) is a **DNA detail endpoint** returning JSON (the metadata layer for the modal), NOT image bytes. The SPA's `<img src>` was hitting this route expecting JPEGs and getting `{"error":"...not found"}`. The same mistake is now confirmed on `visualizer.html:700` (`modal-img.src = '/brand-images/...'`) for any brand where raw jpg is missing. The thumbnail_data_url field on the images endpoint is the deploy-safe abstraction.
+Two `renderImageCard` definitions existed in the same file — line 557 (used by `runDiscover`) and line 681 (used by `loadImages`). The 681 copy got the thumbnail-first fix last tick; the 557 copy missed it because `grep thumbnail_data_url` matched the same surrounding comment block on both. The server returned the right field; the client was discarding it. Worth a discover-pill probe in the visualizer walk.
 
 ## 🚨 Asks
-Should the .gitignore carve-out for `data/brand-directory/*/images/*.jpg` be lifted (let the cron ship jpg bytes to Railway) — OR should visualizer.html + any future surface use the thumbnail_data_url pattern instead? Both are fine; it's a one-time decision about where image bytes canonically live.
+None.

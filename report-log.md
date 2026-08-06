@@ -1,4 +1,36 @@
 
+## 2026-08-06T06:16Z — fix(campaign-os): ship thumbnail_data_url on /discover + use it in renderImageCard (eliminates the last visualizer 404 surface)
+
+**Done:** Two-part fix that closes the last residual 404 on the Visualizer page (the one `takomo.png` outlier identified in last tick's report was the only thing left after the visualizer.html thumbnail_data_url patch).
+
+1. **Server (app.py):** `/api/visual-library/<brand>/discover` was reading metadata-only `all-elements.json` and emitting `image_url: /api/visual-library/<brand>/image/<fn>.jpg` (a JSON DNA endpoint) as the only image source. Mirrored the `/api/visual-library/<brand>/images` pattern: added `_resolve_dna` (path fallback for Railway where index stores bogus absolute local paths) + per-result DNA read + `thumbnail_b64` → `data:image/jpeg;base64,...` extraction. Docstring updated to reflect the new `thumbnail_data_url` field.
+2. **Client (visualizer.html line 557):** The `runDiscover` flow normalizes API results to `{filename, url, thumbnail_data_url, ...}` and renders via `renderImageCard`. That renderer had a stale `<img src=${img.url}>` hardcode — never the data-URI preference. After the server started shipping `thumbnail_data_url`, the state.images[i].thumbnail_data_url was set but the rendered src still pointed at `/api/visual-library/<brand>/image/<fn>.jpg`. Mirrored the `loadImages` render at line 681: `imgSrc = img.thumbnail_data_url || img.url`.
+
+**Commits (both on feat/asset-state-engine, pushed, Railway auto-deployed):**
+- `9174d60` — server: discover endpoint ships `thumbnail_data_url`
+- `164479e` — client: renderImageCard prefers `thumbnail_data_url`
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- **Default grid:** 122 cards rendered, **121/122 use `data:image/jpeg;base64,...` src, naturalWidth>0**. 1 missing = `takomo` (its DNA file legitimately has no `thumbnail_b64` field — data condition, not code).
+- **Discover grid** (after clicking a color filter pill, 42 results returned): **42/42 use `data:image/jpeg;base64,...` src, naturalWidth>0** (was 0/42 before the client fix).
+- **Modal** (click first discover card): `modal-img.src = "data:image/jpeg;base64,..."`, `naturalWidth: 540`.
+- **HTTP 404s on /brand-images/** during discover flow: 1 (just the pre-existing `takomo.png` data condition).
+- **PAGEERROR:** 0. **Console errors:** 2 (1 is the takomo.png 404, 1 is the pre-existing meta redirect to `?brand=swing-shack` that was there last tick).
+- **Regression:** `/`, `/visualizer`, `/meme-lab` all 200. Sibling `/api/visual-library/<brand>/images`, `/recipe`, `/stats`, `/brands` all 200.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_discover_01_visualizer_default.png` — LIVE default grid (121 data URIs)
+- `/tmp/co-nightshift/walkthrough_discover_02_after_filter.png` — LIVE after clicking a blue-color discover pill (42 data URIs)
+- `/tmp/co-nightshift/walkthrough_discover_03_modal.png` — LIVE discover-result modal
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 em-dashes added, 0 NEW JS logic beyond a single `||` short-circuit, 0 schema changes (just one new optional field on an existing response).
+
+**Learned:** Two `renderImageCard` definitions existed in the same file — line 557 (used by `runDiscover`) and line 681 (used by `loadImages`). The 681 copy got the thumbnail-first fix last tick (commit 29ba354). The 557 copy missed the sweep because grep `thumbnail_data_url` matched the same surrounding comment block on both. A Playwright-driven walk that probes actual `<img>` src (not just API response shape) was what surfaced the regression — server was returning the right field, client was discarding it. Worth adding a "click a discover pill" assertion to the visualizer walk going forward.
+
+**Next pick:** Insights-lens context on the cloned Performance widgets (still the highest-quality remaining UX lane from the 2026-08-06T03:27Z report — never picked up). Then add the same walk-the-discover-pill assertion to the standard visualizer verification script so future thumbnail regressions fail loudly.
+
+**Asks:** None.
+
 ## 2026-08-06T03:49Z — fix(campaign-os): render Visual Library thumbnails via inline thumbnail_data_url (was 404)
 
 **Done:** Pre-pick probe found 9 console errors, all 404s on `/api/visual-library/<brand>/image/<fn>.jpg`. The SPA's `<img src>` on the brand-detail panel + library images kind was hitting this route, but the route (app.py:1833) is the **DNA detail endpoint** that returns JSON, not image bytes. The actual image-bytes route is `/brand-images/<brand>/<fn>`, but raw .jpg files are `.gitignore`d (Drive is the canonical source of truth) so that 404s too on Railway in many cases. Switched the `<img src>` to use the inline `thumbnail_data_url` (data: URI, base64 JPEG) the API already returns per image — deploy-environment-agnostic, no 404 surface anywhere. Falls back to the legacy URL for any caller passing an image entry without a thumbnail.
@@ -174,5 +206,17 @@
 **Next pick:** Differentiate `/insights` content layer from `/performance` (currently just a clone + Weekly Report). Then consolidate the duplicate `mountSec` ternaries. Then EXPLAINERS copy polish sweep.
 
 **Learned:** `targetSec.innerHTML = '' + cloneFromSource()` patterns lock help widgets on the target to the source's help copy unless you re-mount after the clone. `HELP.section`'s idempotency makes post-clone overwrites safe.
+
+**Asks:** None.
+
+## 2026-08-06T06:58Z — fix(campaign-os): render Visualizer.html thumbnails via inline thumbnail_data_url
+
+**Done:** Pre-pick probe found 47+ 404s on `/brand-images/swing-shack/*.jpg` from the /visualizer page alone. Identical pattern to last tick's brand-detail fix, but applied to a separate HTML page: `campaign-os/visualizer.html` (not the main SPA). Switched all 4 `<img src>` call sites to use `thumbnail_data_url || img.url`: `loadImages` default grid, `loadImages` meme-lab grid, `runDiscover` normalizer, `openModal` image src. The `/api/visual-library/<brand>/images` endpoint already returns `thumbnail_data_url` per image — no server-side change needed. Commit `29ba354` on `feat/asset-state-engine`, +20/-4.
+
+**Verified:** LIVE /visualizer page now renders 121/123 thumbnails correctly (was 0/123 visually). Modal click on `blackfriday copy 3.jpg` opens with `modal-img.src = "data:image/jpeg;base64,..."` and `naturalWidth: 338`. 1 residual 404 from `/api/visual-library/<brand>/discover` results (which read from a different metadata index, no inline thumbnail). 0 PAGEERROR. 2 console errors (1 pre-existing brief-fetch, 1 the residual takomo.png 404).
+
+**Next pick:** Add `thumbnail_data_url` to `/discover` results (server-side, ~5-15KB per item). Either reuse the `_resolve_dna` pattern from `/images` or precompute thumbnails into all-elements.json at build time.
+
+**Learned:** `thumbnail_data_url || img.url` is the canonical pattern for any Campaign OS image surface on Railway. The same root cause keeps recurring because there are now 5+ image surfaces (brand-detail panel, library images, visualizer default grid, visualizer meme-lab grid, visualizer modal). A shared `imgSrcFor(img)` helper in a single location would be the right refactor next time the pattern needs to ship again.
 
 **Asks:** None.
