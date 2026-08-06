@@ -558,10 +558,15 @@ function renderImageCard(img) {
   const palette = (img.palette || []).slice(0, 5);
   const paletteHtml = palette.map(c => `<div style="background:${c}"></div>`).join('');
   const prodTag = (img.products && img.products[0]) ? img.products[0] : (img.luminance || '—');
+  // Prefer the inline thumbnail_data_url (data: URI) so the grid renders on
+  // Railway even when raw .jpg files are missing from the volume. Fall back
+  // to img.url (which the discover normalizer leaves null when a thumbnail
+  // is shipped, but legacy callers may still set).
+  const imgSrc = img.thumbnail_data_url || img.url;
   return `
       <div class="card" data-filename="${img.filename}">
         <div class="imgwrap">
-          <img src="${img.url}" alt="${img.filename}">
+          <img src="${imgSrc}" alt="${img.filename}">
           <div class="score">${img.score}</div>
         </div>
         <div class="info">
