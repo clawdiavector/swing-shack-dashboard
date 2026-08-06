@@ -416,3 +416,32 @@ build is verifiable.
 ---
 
 _Captured 2026-08-06 by Heidi, no code written. Backstop: this file plus CHECKPOINT-2026-08-06.md are the source of truth for "where we left off with Ubersuggest MCP."_
+
+---
+
+## Update — 2026-08-06 (build complete)
+
+Built and shipped in commit `25d76d8` on `feat/asset-state-engine`:
+
+- `campaign-os/_lib/ubersuggest_mcp.py` (649 lines) — wrapper + OAuth helpers + 8 tool fns
+- `scripts/ubersuggest_oauth.py` (552 lines) — one-time OAuth dance
+- `scripts/ubersuggest_refresh_token.py` (147 lines) — weekly refresh
+- `scripts/fetch_ubersuggest.py` (375 lines) — daily rank pull
+- 3 new endpoints in `campaign-os/app.py` (`/api/intel/ubersuggest/{status,keyword_overview,domain_overview}`)
+- `campaign-os/tests/test_ubersuggest_v2026_08_06.py` (25 unit tests, all pass)
+- `~/Library/LaunchAgents/com.swing-shack.ubersuggest-{fetch,refresh}.plist` — bootstrapped + kickstart-verified
+- `~/.openclaw-instance2/workspace/scripts/ubersuggest_*_launchd.sh` — chmod 700 wrappers
+
+The only thing that doesn't work until Christelle completes her browser click at the Ubersuggest consent screen is the actual token. Everything else is online:
+- All routes return clean 503-with-hint messages explaining how to fix it
+- Both launchd jobs fire correctly and exit 2 gracefully when no token is present
+- All 25 new tests pass + 76 existing tests stay green
+
+When she runs `python3 scripts/ubersuggest_oauth.py` (her phone is fine — the script auto-spawns a Cloudflare quick tunnel), the build lights up:
+- seo-rankings.json goes from "10 keywords, all current_rank=null" to real rank data
+- weekly_report gains a "Biggest SEO mover/drop" claim from rising/falling keywords
+- weekly_report gains a "SEO domain snapshot" claim with swingshack.co.za traffic + backlinks
+- All 3 /api/intel/ubersuggest/* endpoints flip from 503 to 200
+- The next 04:30 SAST fetch job fills in real numbers automatically
+
+Build is offline-safe by design. The report's 12-claim surface still renders the same 7 working / 2 not / 3 look-at with the existing 6 sources — the SEO claims only get richer once data lands.

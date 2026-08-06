@@ -38,6 +38,11 @@ at `sync_ig_analytics.js`.
 | Markdown export | `/api/intel/weekly_report/export` | live, auth-gated |
 | `/api/health` | `/api/health` | live, public |
 | Local dev server | `.venv/bin/python3 app.py` (in campaign-os/) | works locally with same auth |
+| **Ubersuggest status** | `/api/intel/ubersuggest/status` | **live, returns 200 + "not configured" until OAuth done** |
+| **Ubersuggest keyword endpoint** | `/api/intel/ubersuggest/keyword_overview?keyword=X` | **live, returns 503 until OAuth done** |
+| **Ubersuggest domain endpoint** | `/api/intel/ubersuggest/domain_overview?domain=X` | **live, returns 503 until OAuth done** |
+| **Daily fetch launchd** | `com.swing-shack.ubersuggest-fetch` | **loaded, fires 04:30 SAST daily, currently exits 2 (no creds)** |
+| **Weekly refresh launchd** | `com.swing-shack.ubersuggest-refresh` | **loaded, fires Tuesday 04:30 SAST, currently exits 2 (no creds)** |
 
 **Currently observing live (verified just now):**
 
@@ -47,8 +52,9 @@ HEADLINE  : "57 published (last active window 2026-07-21), 0 failed, 100.0% win 
 WINDOW    : last_publish_window_fallback (rest-mode)
 CLAIMS    : 7 working / 2 not / 3 look-at  (12 total)
 SOURCES   : 6 (ga4, hook-bank, ig-analytics, reddit-opps+replies, seo, youtube)
-LIVE TESTS: 20/20 pass · 76/76 total unit tests pass
-COMMIT    : 91f3e3d pushed to feat/asset-state-engine
+LIVE TESTS: 25/25 new ubersuggest tests + 76/76 existing weekly-report/truth
+COMMIT    : 25d76d8 pushed to feat/asset-state-engine
+UBERTOKEN : not yet present (Christelle's browser click is the only thing missing)
 ```
 
 ---
@@ -220,6 +226,12 @@ vibes.** No LLM in the loop — pure rules + corpus data.
    Christelle to log into her Ubersuggest account in a browser tab once
    to authorize the client — that's the part only she can do.
 
+   **STATUS 2026-08-06:** Built and shipped in commit `25d76d8`. All
+   server-side code is in place (wrapper + OAuth script + fetch +
+   refresh + 3 endpoints + launchd crons + 25 unit tests). The only thing
+   that doesn't work without her click is the actual token. Ready for
+   `python3 scripts/ubersuggest_oauth.py`.
+
 2. **No Meta Business (FB) analytics file.** `ig-analytics.json` exists
    but there's no `fb-analytics.json`. FB page metrics (reach, engagement,
    follower delta, top posts) would be a 7th data source the moment we
@@ -301,16 +313,46 @@ cd /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard
 
 | # | Move | Effort | Impact |
 |---|---|---|---|
-| 1 | Wire Ubersuggest MCP with Bearer token. Turns the 1 `whats_not` SEO claim into real rank movement data. | 30 min | closes the SEO gap |
+| 1 | **Christelle runs `python3 scripts/ubersuggest_oauth.py` to authorize** | 30 sec, requires browser click | immediately unblocks ALL the SEO claims in weekly_report |
 | 2 | Build `data/fb-analytics.json` fetcher using System User `61558075178636`. Adds Meta Business page data as a 7th source. | 2-3 hrs | new platform lens |
 | 3 | Build `data/postiz-analytics.json` fetcher. Adds publish → engagement feedback loop. | 2-3 hrs | closes the publish loop |
 | 4 | Reddit engagement fetcher (PRAW or similar). | 4-6 hrs | proves outreach is working |
 | 5 | Fix the "Insights" nav being behind "+ More tools". Either move it to the default rail or add a discoverability hint. | 15 min | UX polish |
 | 6 | Auth-optional markdown export (signed URL or remove gate). | 30 min | share-by-URL |
 
-**My pick for next session:** #1 (Ubersuggest MCP). Tiny scope, closes the
-largest "what's not working" gap, and unblocks the SEO claims into real
-weekly-report data.
+**My pick for next session:** #1 (Christelle's click → live SEO data the next morning
+at 04:30 SAST). Already shipped in commit `25d76d8`. Then #2 (FB analytics) to
+round out the meta-graph.
+
+---
+
+## How the Ubersuggest build landed in one session
+
+On 2026-08-06 after Christelle sent the Ubersuggest screenshot, the
+build went from "no Ubersuggest at all" to "everything wired up, waiting
+on her browser click" in commit `25d76d8`. Here's what landed:
+
+| File | Lines | What |
+|---|---|---|
+| `campaign-os/_lib/ubersuggest_mcp.py` | +649 | Wrapper. MCP JSON-RPC caller, OAuth dance helpers (DCR/PKCE/refresh), token file lifecycle with chmod 600 atomic writes, RFC 7636 PKCE pair generation, 8 high-level tool functions. |
+| `scripts/ubersuggest_oauth.py` | +552 | One-time OAuth dance. Spins loopback listener, spins Cloudflare quick tunnel for Christelle (remote by default per skill pitfall 26a), opens browser to `/authorize`, catches redirect, exchanges code for tokens, atomically saves to credentials file. |
+| `scripts/ubersuggest_refresh_token.py` | +147 | Weekly refresh. Pattern: fire-weekly, only-burn-inside-7d-window (per skill pitfall 9a). Exit code contract: 0=no-op or success, 1=transient retry, 2=no token, 3=hard-expired re-OAuth. |
+| `scripts/fetch_ubersuggest.py` | +375 | Daily rank pull. Reads `seo-rankings.json`, calls `keyword_overview` for each keyword with retry+backoff, computes rising/falling/quick-wins, writes `seo-rankings.json` + `ubersuggest-domain.json` atomically. Failures carry forward last-known rank per keyword (single failure ≠ all-data-loss). |
+| `campaign-os/_lib/intelligence.py` | +94 | weekly_report() extended with 2 new auto-silent claim generators: "Biggest SEO mover/drop" (from seo-rankings.json rising/falling lists) and "SEO domain snapshot" (from ubersuggest-domain.json). Stays silent when data is missing. |
+| `campaign-os/app.py` | +104 | 3 status/read endpoints with the 503-with-hint pattern (per read-only-auth skill): `/api/intel/ubersuggest/{status,keyword_overview,domain_overview}`. |
+| `campaign-os/tests/test_ubersuggest_v2026_08_06.py` | +432 | 25 unit tests covering wrapper PKCE roundtrip, token file lifecycle, atomicity, credentials_present, mcp_call auth translation, oauth script --help/--status, weekly_report's auto-silent behavior with simulated rank data. All 25 pass. |
+| `~/Library/LaunchAgents/com.swing-shack.ubersuggest-fetch.plist` | — | Daily 04:30 SAST. Bootstrap + kickstart verified, fires correctly under launchd context, exits gracefully 2 when token is missing. |
+| `~/Library/LaunchAgents/com.swing-shack.ubersuggest-refresh.plist` | — | Weekly Tuesday 04:30 SAST. Same verification as above. |
+| `~/.openclaw-instance2/workspace/scripts/ubersuggest_{fetch,refresh}_launchd.sh` | — | chmod-700 wrappers. Per launchd-cron skill pitfall 2 (no `&`/`|`/`<`/`>` inside `<string>ProgramArguments</string>`). |
+
+**What changed in user-visible behavior: zero, until the OAuth dance completes.**
+
+Then: seo-rankings.json goes from "10 keywords, all current_rank=null" to
+real rank data; weekly_report gains a "Biggest SEO mover: 'indoor golf
+johannesburg' rose from #7 to #4" claim (per the simulated-rank-data test
+that verifies the auto-firing path); `ubersuggest-domain.json` populates
+the "SEO domain snapshot — swingshack.co.za organic traffic = 4,523;
+backlinks = 1,247." claim.
 
 ---
 
