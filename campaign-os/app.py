@@ -1411,7 +1411,7 @@ def visual_library_discover(brand_id):
       limit=<n>          — default 60, max 200
 
     Returns:
-      {ok, brand, filters_applied, count, results: [{filename, score, colors, brands, objects, mood, quality_score, dna_path, image_url}]}
+      {ok, brand, filters_applied, count, results: [{filename, score, colors, brands, objects, mood, quality_score, dna_path, image_url, thumbnail_data_url}]}
     """
     try:
         from pathlib import Path as _P
@@ -1427,6 +1427,20 @@ def visual_library_discover(brand_id):
             return jsonify({"ok": False, "error": f"no element index for brand={brand_id}", "results": [], "count": 0}), 404
 
         by_filename = brand_idx.get("by_filename", {})
+
+        # Resolve DNA per image so we can ship an inline thumbnail (data: URI).
+        # Same pattern as /api/visual-library/<brand>/images — the index stores
+        # absolute local paths that don't resolve on Railway, so fall back to the
+        # canonical images_dir location. Raw .jpg files are gitignored; the
+        # thumbnail_b64 in each DNA JSON is the deploy-safe image bytes.
+        images_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images'
+
+        def _resolve_dna(dna_path_str, filename):
+            if dna_path_str and _P(dna_path_str).exists():
+                return _P(dna_path_str)
+            stem = _P(filename).stem
+            candidate = images_dir / f"{stem}.visual-dna.json"
+            return candidate if candidate.exists() else None
 
         # Parse filters
         color_filter = (request.args.get("color") or "").strip().lower()
@@ -1484,10 +1498,26 @@ def visual_library_discover(brand_id):
             if entry.get("quality_score", 0) < quality_min:
                 continue
 
+            # Resolve DNA + extract inline thumbnail (data: URI) so discover
+            # results render on Railway without raw .jpg bytes on the volume.
+            # Same pattern as /api/visual-library/<brand>/images.
+            dna_path = entry.get("dna_path", "")
+            dna_p = _resolve_dna(dna_path, fn)
+            thumbnail_data_url = None
+            if dna_p is not None:
+                try:
+                    dna = json.loads(dna_p.read_text())
+                    tb = dna.get("thumbnail_b64")
+                    if tb:
+                        thumbnail_data_url = f"data:image/jpeg;base64,{tb}"
+                except Exception:
+                    pass
+
             results.append({
                 "filename": fn,
                 "dna_path": entry.get("dna_path", ""),
                 "image_url": f"/api/visual-library/{brand_id}/image/{fn}.jpg",
+                "thumbnail_data_url": thumbnail_data_url,
                 "colors": entry.get("colors", []),
                 "brands": entry.get("brands", []),
                 "objects": entry.get("objects", []),
