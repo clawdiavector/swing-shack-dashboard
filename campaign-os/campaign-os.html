@@ -4644,11 +4644,18 @@ async function loadLibPane(kind, bid, focusSearch){
           </div>
           ${imageList.length === 0 ? '<div class="muted">No images indexed yet.</div>' : `
             <div class="lib-grid">
-              ${imageList.slice(0, 8).map(im => `
+              ${imageList.slice(0, 8).map(im => {
+                // Use the inline thumbnail_data_url (data: URI) first so the
+                // image renders even when the raw .jpg is missing on the
+                // server (raw files live in Drive as source of truth).
+                // Fall back to /api/visual-library/<brand>/image/<fn> for
+                // back-compat with any caller still using the legacy URL.
+                const src = im.thumbnail_data_url || ('/api/visual-library/' + bid + '/image/' + encodeURIComponent(im.filename || im.path || ''));
+                return `
                 <a class="lib-thumb" href="/visualizer">
-                  <img src="/api/visual-library/${bid}/image/${encodeURIComponent(im.filename || im.path || '')}" alt="${esc(im.filename || '')}" loading="lazy" />
-                </a>
-              `).join('')}
+                  <img src="${src}" alt="${esc(im.filename || '')}" loading="lazy" />
+                </a>`;
+              }).join('')}
             </div>
           `}
         </div>
@@ -4729,12 +4736,18 @@ async function loadLibPane(kind, bid, focusSearch){
           <span class="muted">${list.length} of ${r.total || list.length} images</span>
           <a class="mini-link" href="/visualizer">Open Visual Library →</a>
         </div>
-        <div class="lib-grid">${list.map(im => `
+        <div class="lib-grid">${list.map(im => {
+          // Same thumbnail-first strategy as the brand-detail panel above:
+          // raw .jpg files live in Drive (gitignored), so /brand-images/...
+          // returns 404 in many envs. The /api/visual-library/<brand>/images
+          // response carries an inline thumbnail_data_url we can use directly.
+          const src = im.thumbnail_data_url || ('/api/visual-library/' + bid + '/image/' + encodeURIComponent(im.filename || im.path || ''));
+          return `
           <a class="lib-thumb" href="/visualizer">
-            <img src="/api/visual-library/${bid}/image/${encodeURIComponent(im.filename || im.path || '')}" alt="${esc(im.filename || '')}" loading="lazy" />
+            <img src="${src}" alt="${esc(im.filename || '')}" loading="lazy" />
             <div class="lib-thumb-meta">${esc(im.filename || '').slice(0,40)}</div>
-          </a>
-        `).join('')}</div>
+          </a>`;
+        }).join('')}</div>
       `;
     }
   } catch(e){ pane.innerHTML = '<div class="empty-card">Failed to load.</div>'; console.warn(e); }
