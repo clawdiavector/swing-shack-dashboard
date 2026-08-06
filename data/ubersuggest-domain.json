@@ -1,0 +1,299 @@
+{
+  "_meta": {
+    "domain": "swingshack.co.za",
+    "fetched_at": "2026-08-06"
+  },
+  "backlinks": 24,
+  "domain": "swingshack.co.za",
+  "domainAuthority": 13,
+  "domainTraffic": {
+    "202408": {
+      "fourthTier": 24,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 53,
+      "searchTraffic": 432,
+      "secondTier": 12,
+      "thirdTier": 16,
+      "topTier": 1
+    },
+    "202409": {
+      "fourthTier": 39,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 72,
+      "searchTraffic": 383,
+      "secondTier": 11,
+      "thirdTier": 21,
+      "topTier": 1
+    },
+    "202410": {
+      "fourthTier": 38,
+      "paidKw": 0,
+      "paidTraffic": 47,
+      "searchKw": 69,
+      "searchTraffic": 384,
+      "secondTier": 5,
+      "thirdTier": 25,
+      "topTier": 1
+    },
+    "202411": {
+      "fourthTier": 50,
+      "paidKw": 0,
+      "paidTraffic": 206,
+      "searchKw": 83,
+      "searchTraffic": 294,
+      "secondTier": 5,
+      "thirdTier": 27,
+      "topTier": 1
+    },
+    "202412": {
+      "fourthTier": 56,
+      "paidKw": 0,
+      "paidTraffic": 305,
+      "searchKw": 89,
+      "searchTraffic": 343,
+      "secondTier": 7,
+      "thirdTier": 23,
+      "topTier": 3
+    },
+    "202501": {
+      "fourthTier": 23,
+      "paidKw": 0,
+      "paidTraffic": 381,
+      "searchKw": 58,
+      "searchTraffic": 650,
+      "secondTier": 6,
+      "thirdTier": 28,
+      "topTier": 1
+    },
+    "202502": {
+      "fourthTier": 17,
+      "paidKw": 0,
+      "paidTraffic": 310,
+      "searchKw": 62,
+      "searchTraffic": 600,
+      "secondTier": 8,
+      "thirdTier": 36,
+      "topTier": 1
+    },
+    "202503": {
+      "fourthTier": 24,
+      "paidKw": 0,
+      "paidTraffic": 124,
+      "searchKw": 76,
+      "searchTraffic": 644,
+      "secondTier": 10,
+      "thirdTier": 41,
+      "topTier": 1
+    },
+    "202504": {
+      "fourthTier": 28,
+      "paidKw": 0,
+      "paidTraffic": 189,
+      "searchKw": 97,
+      "searchTraffic": 721,
+      "secondTier": 14,
+      "thirdTier": 54,
+      "topTier": 1
+    },
+    "202505": {
+      "fourthTier": 20,
+      "paidKw": 0,
+      "paidTraffic": 136,
+      "searchKw": 92,
+      "searchTraffic": 547,
+      "secondTier": 12,
+      "thirdTier": 59,
+      "topTier": 1
+    },
+    "202506": {
+      "fourthTier": 22,
+      "paidKw": 0,
+      "paidTraffic": 132,
+      "searchKw": 103,
+      "searchTraffic": 529,
+      "secondTier": 16,
+      "thirdTier": 65,
+      "topTier": 0
+    },
+    "202507": {
+      "fourthTier": 24,
+      "paidKw": 0,
+      "paidTraffic": 307,
+      "searchKw": 100,
+      "searchTraffic": 468,
+      "secondTier": 16,
+      "thirdTier": 60,
+      "topTier": 0
+    },
+    "202508": {
+      "fourthTier": 23,
+      "paidKw": 0,
+      "paidTraffic": 18,
+      "searchKw": 95,
+      "searchTraffic": 312,
+      "secondTier": 10,
+      "thirdTier": 62,
+      "topTier": 0
+    },
+    "202509": {
+      "fourthTier": 16,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 51,
+      "searchTraffic": 0,
+      "secondTier": 6,
+      "thirdTier": 29,
+      "topTier": 0
+    },
+    "202510": {
+      "fourthTier": 21,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 51,
+      "searchTraffic": 0,
+      "secondTier": 6,
+      "thirdTier": 22,
+      "topTier": 2
+    },
+    "202511": {
+      "fourthTier": 29,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 74,
+      "searchTraffic": 0,
+      "secondTier": 10,
+      "thirdTier": 33,
+      "topTier": 2
+    },
+    "202512": {
+      "fourthTier": 39,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 98,
+      "searchTraffic": 0,
+      "secondTier": 16,
+      "thirdTier": 42,
+      "topTier": 1
+    },
+    "202601": {
+      "fourthTier": 24,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 59,
+      "searchTraffic": 1,
+      "secondTier": 8,
+      "thirdTier": 26,
+      "topTier": 1
+    },
+    "202602": {
+      "fourthTier": 27,
+      "paidKw": 0,
+      "paidTraffic": 1,
+      "searchKw": 74,
+      "searchTraffic": 395,
+      "secondTier": 15,
+      "thirdTier": 31,
+      "topTier": 1
+    },
+    "202603": {
+      "fourthTier": 23,
+      "paidKw": 0,
+      "paidTraffic": 1,
+      "searchKw": 84,
+      "searchTraffic": 629,
+      "secondTier": 22,
+      "thirdTier": 37,
+      "topTier": 2
+    },
+    "202604": {
+      "fourthTier": 11,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 80,
+      "searchTraffic": 884,
+      "secondTier": 23,
+      "thirdTier": 44,
+      "topTier": 2
+    },
+    "202605": {
+      "fourthTier": 7,
+      "paidKw": 0,
+      "paidTraffic": 1,
+      "searchKw": 78,
+      "searchTraffic": 856,
+      "secondTier": 18,
+      "thirdTier": 49,
+      "topTier": 4
+    },
+    "202606": {
+      "fourthTier": 5,
+      "paidKw": 0,
+      "paidTraffic": 1,
+      "searchKw": 65,
+      "searchTraffic": 844,
+      "secondTier": 16,
+      "thirdTier": 39,
+      "topTier": 5
+    },
+    "202607": {
+      "fourthTier": 1,
+      "paidKw": 0,
+      "paidTraffic": 2,
+      "searchKw": 51,
+      "searchTraffic": 967,
+      "secondTier": 14,
+      "thirdTier": 34,
+      "topTier": 2
+    }
+  },
+  "follow": 22,
+  "noFollow": 2,
+  "organic": 51,
+  "organicKeywords": [
+    {
+      "competition": 0.05,
+      "cpc": 1.22,
+      "cpcDollars": 1.22,
+      "domain": "swingshack.co.za:organic:en:2840",
+      "keyword": "swing shack",
+      "path": "/",
+      "pd": 5,
+      "position": 3,
+      "position_group": 3,
+      "sd": 14,
+      "traffic": 9,
+      "type": "organic",
+      "updated_at": 1783090009,
+      "url": "http://swingshack.co.za/",
+      "volume": 390
+    },
+    {
+      "competition": 0.42,
+      "cpc": 0.34,
+      "cpcDollars": 0.34,
+      "domain": "swingshack.co.za:organic:en:2840",
+      "keyword": "golf clubs in south africa",
+      "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
+      "pd": 42,
+      "position": 89,
+      "position_group": 75,
+      "sd": 50,
+      "traffic": 0,
+      "type": "organic",
+      "updated_at": 1785630204,
+      "url": "http://swingshack.co.za/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
+      "volume": 50
+    }
+  ],
+  "paidKeywords": 0,
+  "paidTraffic": 2,
+  "refDomains": 9,
+  "serviceInfo": {
+    "isConnectedToGA": true,
+    "isConnectedToGSC": false,
+    "isUsingGoogleData": true
+  },
+  "traffic": 967
+}

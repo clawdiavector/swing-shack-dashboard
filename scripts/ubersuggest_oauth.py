@@ -60,6 +60,13 @@ CRED_DIR = Path(
 )
 CRED_FILE = CRED_DIR / "ubersuggest-api.json"
 
+# Env var override (so tests can point at throwaway paths without touching
+# the real credential file). Mirrors the convention used by Meta + GA4
+# fetchers. Production callers don't set this; the default applies.
+CRED_FILE = Path(
+    os.environ.get("UBERSUGGEST_TOKEN_FILE", str(CRED_FILE))
+)
+
 AUTHORIZE_URL = "https://ubersuggest-mcp.neilpatelapi.com/authorize"
 TOKEN_URL = "https://ubersuggest-mcp.neilpatelapi.com/token"
 MCP_URL = "https://ubersuggest-mcp.neilpatelapi.com/mcp"

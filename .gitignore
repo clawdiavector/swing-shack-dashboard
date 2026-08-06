@@ -14,6 +14,15 @@ __pycache__/
 .env
 .env.*
 
+# Block the in-repo `credentials/` directory entirely. It pre-dates this
+# line (8 legacy service-account files cloned here by a prior process),
+# but it MUST NOT be committed. Live credentials belong in the canonical
+# directory outside the repo. If this line is removed, the next
+# `git add .` would leak tokens. Hardened 2026-08-06 when the Ubersuggest
+# MCP OAuth flow landed.
+credentials/
+credentials/**
+
 # Brand directory: keep dissector outputs but exclude raw image files
 # (they live in Google Drive as source of truth)
 data/brand-directory/*/images/*.jpg

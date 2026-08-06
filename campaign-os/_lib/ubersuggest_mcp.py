@@ -513,19 +513,31 @@ def list_tools() -> dict:
     return result
 
 
-def keyword_overview(keyword: str, *, loc_id: int = 2840, lang: str = "en") -> dict:
+def keyword_overview(keyword: str, *, location: str = "ZA", lang: str = "en") -> dict:
     """`keyword_overview` — search volume, CPC, SEO difficulty, paid difficulty.
 
-    Default loc_id (2840) is US; pass 2712 for South Africa / Johannesburg.
+    NOTE — live-tested 2026-08-06:
+      • `locId` (numeric) is REJECTED by the upstream MCP server
+        with `HTTP 400 /keyword_info: Invalid "location" parameter.`
+      • Use `location` as a country code (e.g. "ZA", "US"). The server
+        does not scope results by location for this tool — it returns
+        global numbers regardless. Use `project_position_info` for
+        properly location-scoped rank tracking.
+
+    Default `location="ZA"` is documented intent (Swing Shack audience).
     """
     return mcp_call("tools/call", {
         "name": "keyword_overview",
-        "arguments": {"keyword": keyword, "locId": loc_id, "lang": lang},
+        "arguments": {"keyword": keyword, "location": location, "lang": lang},
     })
 
 
-def domain_overview(domain: str, *, country: int = 2840) -> dict:
-    """`domain_overview` — headline domain metrics."""
+def domain_overview(domain: str, *, country: str = "ZA") -> dict:
+    """`domain_overview` — headline domain metrics for the domain.
+
+    NOTE — live-tested 2026-08-06: server ignores `country` and returns
+    the same shape regardless. Kept in signature for forward compatibility.
+    """
     return mcp_call("tools/call", {
         "name": "domain_overview",
         "arguments": {"domain": domain, "country": country},
@@ -540,26 +552,34 @@ def backlinks_overview(domain: str) -> dict:
     })
 
 
-def competitors(domain: str, *, loc_id: int = 2840, lang: str = "en") -> dict:
-    """`competitors` — find organic competitors. Async on the backend (~30s)."""
+def competitors(domain: str, *, loc_id: int = 2710, lang: str = "en") -> dict:
+    """`competitors` — find organic competitors. Async on the backend (~30s).
+
+    Default loc_id=2710 (Johannesburg-specific) matches the Swing Shack
+    Ubersuggest project configuration discovered 2026-08-06.
+    """
     return mcp_call("tools/call", {
         "name": "competitors",
         "arguments": {"domain": domain, "locId": loc_id, "lang": lang},
     })
 
 
+def keyword_suggestions(keyword: str, *, location: str = "ZA", lang: str = "en",
+                       limit: int = 25) -> dict:
+    """`keyword_suggestions` — related keywords + search volume.
+
+    NOTE — live-tested 2026-08-06: same `locId` rejection as
+    `keyword_overview`; use `location` as a country string.
+    """
+    return mcp_call("tools/call", {
+        "name": "keyword_suggestions",
+        "arguments": {"keyword": keyword, "location": location, "lang": lang, "limit": limit},
+    })
+
+
 def auth_status() -> dict:
     """`auth_status` — confirm token is live and return account tier."""
     return mcp_call("tools/call", {"name": "auth_status", "arguments": {}})
-
-
-def keyword_suggestions(keyword: str, *, loc_id: int = 2840, lang: str = "en",
-                       limit: int = 25) -> dict:
-    """`keyword_suggestions` — related keywords + search volume."""
-    return mcp_call("tools/call", {
-        "name": "keyword_suggestions",
-        "arguments": {"keyword": keyword, "locId": loc_id, "lang": lang, "limit": limit},
-    })
 
 
 def site_audit(domain: str, *, crawl_max_pages: int = 150, recrawl: bool = False) -> dict:
@@ -577,6 +597,40 @@ def site_audit(domain: str, *, crawl_max_pages: int = 150, recrawl: bool = False
 def list_projects() -> dict:
     """`list_projects` — list tracked projects with their `has_brand` flag."""
     return mcp_call("tools/call", {"name": "list_projects", "arguments": {}})
+
+
+def find_project_id_for_domain(domain: str) -> Optional[str]:
+    """Return the project_id from `list_projects()` whose `domain` matches.
+
+    Live-tested 2026-08-06: response shape is `{"projects": [...]}` where each
+    project has `domain`, `id`, `title`, `competitors` (a dict of competing
+    domains → list of {loc_id,lang} configs).
+
+    `mcp_call` returns the JSON-RPC `result` envelope, which is
+    `{"content": [{"type":"text","text": "<json string>"}]}`. We unwrap
+    one layer of MCP content → JSON → projects list.
+    """
+    payload = list_projects()
+    data: dict = {}
+    content = payload.get("content") if isinstance(payload, dict) else None
+    if isinstance(content, list) and content:
+        first = content[0]
+        if isinstance(first, dict):
+            inner = first.get("text", "{}")
+            try:
+                data = json.loads(inner) if isinstance(inner, str) else (inner or {})
+            except Exception:
+                data = {}
+    elif isinstance(content, str):
+        try:
+            data = json.loads(content)
+        except Exception:
+            data = {}
+
+    for project in (data.get("projects") or []):
+        if (project.get("domain") or "").lower() == domain.lower():
+            return project.get("id")
+    return None
 
 
 def project_position_info(

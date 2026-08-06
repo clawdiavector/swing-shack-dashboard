@@ -332,19 +332,58 @@ class WeeklyReportSeoCrossCutTests(unittest.TestCase):
         }
         self._seo_path.write_text(json.dumps(data, indent=2))
 
-    def _write_domain_snapshot(self):
+    def _write_seo_empty(self):
+        """Shipped state (no live data): empty rising/falling, keywords not ranked.
+
+        Used to verify auto-silent fallback. Post-launch real data overrides this.
+        """
         data = {
-            "fetched_at": "2026-08-06T04:30:42Z",
-            "domain_overview": {"content": [{"text": json.dumps({
-                "organicTraffic": 4523,
-                "monthlyTraffic": 4523,
-            })}]},
-            "backlinks_overview": {"content": [{"text": json.dumps({
-                "backlinks": 1247,
-                "totalBacklinks": 1247,
-            })}]},
+            "updated": "2026-08-04T22:00:00Z",
+            "keywords": [
+                {"keyword": k, "current_rank": None, "previous_rank": None,
+                 "search_volume": None, "cpc": None, "target_url": None}
+                for k in [
+                    "indoor golf johannesburg", "golf simulator johannesburg",
+                    "club fitting johannesburg", "golf lessons randburg",
+                    "golf practice johannesburg", "trackman johannesburg",
+                    "custom clubs johannesburg", "indoor golf randburg",
+                    "golf simulator south africa", "golf fitting johannesburg price",
+                ]
+            ],
+            "rising_keywords": [],
+            "falling_keywords": [],
+            "quick_wins": [],
+            "summary": {"tracked": 10, "found": 0, "not_found": 10, "fetch_failures": 10},
+            "recommendations": [],
+        }
+        self._seo_path.write_text(json.dumps(data, indent=2))
+
+    def _write_domain_snapshot(self):
+        """Real-shape fixture (matches what fetch_ubersuggest.py writes live-tested 2026-08-06).
+
+        Flat top-level keys, not the nested MCP envelope shape. The old envelope
+        style was the previous build's aspirational format; the live API returns
+        a flat dict that we persist 1:1.
+        """
+        data = {
+            "domain": "swingshack.co.za",
+            "organic": 4512,
+            "traffic": 4523,
+            "paidKeywords": 0,
+            "paidTraffic": 47,
+            "domainAuthority": 18,
+            "backlinks": 1247,
+            "refDomains": 87,
+            "follow": 1100,
+            "noFollow": 147,
+            "_meta": {"domain": "swingshack.co.za", "fetched_at": "2026-08-06T04:30:42Z"},
         }
         self._domain_path.write_text(json.dumps(data, indent=2))
+
+    def _remove_domain_snapshot(self):
+        """Remove domain file so auto-silent test for SEO can verify that path."""
+        if self._domain_path.exists():
+            self._domain_path.unlink()
 
     def setUp(self):
         self._backup_existing()
@@ -410,13 +449,16 @@ class WeeklyReportSeoCrossCutTests(unittest.TestCase):
         """If seo-rankings.json has 'needs_fetcher' gating or no rising/falling
         arrays, the new claims don't fire (auto-fail-safe). The pre-existing
         'rankings fetcher offline' claim is what should surface."""
-        # The shipped state has 0 rising, 0 falling. Don't write anything.
-        # weekly_report should run on the actual disk data.
-        # Just confirm the new auto-silent paths don't crash.
+        # Use shipped-state data (empty rising/falling, all ranks null).
+        # This explicitly verifies the contract that the report stays silent
+        # about rank movement when there's no live data — independent of
+        # whatever real data currently sits on disk.
+        self._write_seo_empty()
+        self._remove_domain_snapshot()
         r = self._call_weekly()
         interp = r["interpretation"]
         # New "Biggest SEO mover" / "Biggest SEO drop" / "SEO domain snapshot"
-        # MUST NOT appear if the data files are the shipped state (no fake data).
+        # MUST NOT appear if the data files are the shipped state (no real data).
         for lst in (interp["whats_working"], interp["whats_not"], interp["look_at"]):
             for w in lst:
                 claim = w.get("claim", "")

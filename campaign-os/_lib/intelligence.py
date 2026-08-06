@@ -2165,93 +2165,225 @@ def _interpret_weekly_report(
     # Fires only when actual rank data is present (post-launch the next morning).
     # Auto-silent before any fetch_ubersuggest.py run. Reads seo-rankings.json
     # directly so the report claims are grounded in real data, not vibes.
+    #
+    # Live-tested 2026-08-06: real seo-rankings.json shape (from
+    # fetch_ubersuggest.py pulling project_position_info) is:
+    #   {
+    #     "rising":    [{"keyword","previous_rank","current_rank",...}],
+    #     "falling":   [...],
+    #     "quick_wins":[...],
+    #     "summary":   {"up","down","unchanged"},
+    #     "binned":    {"top_3":{"old","new"}, ...},
+    #     "average_position_trend": [{"date","position"}],
+    #   }
+    # The OLD claim generator looked for `rising_keywords` (snake_case);
+    # we now point at `rising` and gracefully fall back if old shape lingers.
     try:
         seo_full_path = os.path.join(DATA_DIR, "seo-rankings.json")
         seo_full = _read_json(seo_full_path) if os.path.exists(seo_full_path) else None
-        if isinstance(seo_full, dict) and isinstance(seo_full.get("rising_keywords"), list) \
-                and isinstance(seo_full.get("falling_keywords"), list) and not seo_full.get("needs_fetcher"):
-            rk = seo_full["rising_keywords"]
-            fk = seo_full["falling_keywords"]
-            sources_used.append("seo-rankings.json")
-            if rk and isinstance(rk[0], dict) and rk[0].get("keyword"):
-                top = rk[0]
-                working.append({
-                    "claim": (
+        if isinstance(seo_full, dict):
+            # Accept both shapes — old `rising_keywords`, new `rising`.
+            rk = (seo_full.get("rising_keywords")
+                  if isinstance(seo_full.get("rising_keywords"), list)
+                  else seo_full.get("rising") or [])
+            fk = (seo_full.get("falling_keywords")
+                  if isinstance(seo_full.get("falling_keywords"), list)
+                  else seo_full.get("falling") or [])
+            summary = seo_full.get("summary") or {}
+            avg_trend = seo_full.get("average_position_trend") or []
+
+            if (rk or fk) and not seo_full.get("needs_fetcher"):
+                sources_used.append("seo-rankings.json")
+                if rk and isinstance(rk[0], dict) and rk[0].get("keyword"):
+                    top = rk[0]
+                    big_mover = (
                         f"Biggest SEO mover: '{top['keyword']}' rose "
-                        f"from #{top.get('previous_rank', '?')} to #{top.get('current_rank', '?')}."
-                    ),
-                    "evidence": (
-                        f"seo-rankings.json rising_keywords — {len(rk)} keyword(s) "
-                        f"ranked up this week, {len(fk)} ranked down. "
-                        f"Source: Ubersuggest via daily fetch_ubersuggest.py cron."
-                    ),
-                    "source": "seo-rankings.json",
-                    "category": "seo",
-                })
-            elif fk and isinstance(fk[0], dict) and fk[0].get("keyword"):
-                top = fk[0]
-                not_working.append({
-                    "claim": (
-                        f"Biggest SEO drop: '{top['keyword']}' fell "
-                        f"from #{top.get('previous_rank', '?')} to #{top.get('current_rank', '?')}."
-                    ),
-                    "evidence": (
-                        f"seo-rankings.json falling_keywords — {len(fk)} keyword(s) "
-                        f"lost rank this week. Audit content + backlinks for that page."
-                    ),
-                    "source": "seo-rankings.json",
-                    "category": "seo",
-                    "severity": "medium",
-                })
+                        f"from #{top.get('previous_rank', '?')} "
+                        f"to #{top.get('current_rank', '?')}."
+                    )
+                else:
+                    big_mover = None
+                if fk and isinstance(fk[0], dict) and fk[0].get("keyword"):
+                    top_d = fk[0]
+                    big_drop = (
+                        f"Biggest SEO drop: '{top_d['keyword']}' fell "
+                        f"from #{top_d.get('previous_rank', '?')} "
+                        f"to #{top_d.get('current_rank', '?')}."
+                    )
+                else:
+                    big_drop = None
+
+                if big_mover:
+                    working.append({
+                        "claim": big_mover,
+                        "evidence": (
+                            f"seo-rankings.json — {len(rk)} keyword(s) "
+                            f"ranked up this period, {len(fk)} ranked down, "
+                            f"{summary.get('unchanged', 0)} unchanged. "
+                            f"Source: Ubersuggest via daily fetch_ubersuggest.py cron."
+                        ),
+                        "source": "seo-rankings.json",
+                        "category": "seo",
+                    })
+                elif big_drop:
+                    not_working.append({
+                        "claim": big_drop,
+                        "evidence": (
+                            f"seo-rankings.json falling_keywords — {len(fk)} keyword(s) "
+                            f"lost rank this week. Audit content + backlinks for that page."
+                        ),
+                        "source": "seo-rankings.json",
+                        "category": "seo",
+                        "severity": "medium",
+                    })
+
+                # Average-position trend claim — fires when we have ≥2 weekly points.
+                if avg_trend and len(avg_trend) >= 2:
+                    head = avg_trend[0]
+                    tail = avg_trend[-1]
+                    if (head.get("position") is not None
+                            and tail.get("position") is not None):
+                        delta = head["position"] - tail["position"]
+                        sign = "improved" if delta > 0 else (
+                            "slipped" if delta < 0 else "held"
+                        )
+                        verb = "improved" if delta > 0 else (
+                            "slipped" if delta < 0 else "held"
+                        )
+                        working.append({
+                            "claim": (
+                                f"Avg position for swingshack.co.za {sign} "
+                                f"{abs(delta):.1f} places over "
+                                f"{len(avg_trend)} weekly snapshots "
+                                f"(#{head['position']:.2f} → "
+                                f"#{tail['position']:.2f})."
+                            ),
+                            "evidence": (
+                                f"seo-rankings.json average_position_trend "
+                                f"({len(avg_trend)} points, "
+                                f"{head.get('date')} → {tail.get('date')}). "
+                                f"Source: Ubersuggest via fetch_ubersuggest.py."
+                            ),
+                            "source": "seo-rankings.json",
+                            "category": "seo",
+                        })
     except Exception:
         pass
 
     # ── 3c. SEO — DOMAIN AUTHORITY (from ubersuggest-domain.json) ──
     # Optional file written by fetch_ubersuggest.py as a side effect.
+    #
+    # Live-tested 2026-08-06: real shape is FLAT — ubersuggest-domain.json
+    # contains the result of `domain_overview` directly, NOT the raw MCP
+    # envelope. So we read top-level keys (organic, traffic, domainAuthority,
+    # backlinks, refDomains) instead of drilling into `content[0].text`.
     try:
         domain_path = os.path.join(DATA_DIR, "ubersuggest-domain.json")
         domain_data = _read_json(domain_path) if os.path.exists(domain_path) else None
         if isinstance(domain_data, dict):
-            d_resp = domain_data.get("domain_overview")
-            b_resp = domain_data.get("backlinks_overview")
-            # Defensive extraction — never raise from here.
-            traffic = None
-            if isinstance(d_resp, dict):
-                content = d_resp.get("content") or []
-                if content and isinstance(content[0], dict):
-                    try:
-                        from json import loads as _json_loads
-                        inner = _json_loads(content[0].get("text", "{}"))
-                        traffic = inner.get("organicTraffic") or inner.get("monthlyTraffic")
-                    except Exception:
-                        pass
-            backlinks_count = None
-            if isinstance(b_resp, dict):
-                content = b_resp.get("content") or []
-                if content and isinstance(content[0], dict):
-                    try:
-                        from json import loads as _json_loads
-                        inner = _json_loads(content[0].get("text", "{}"))
-                        backlinks_count = inner.get("backlinks") or inner.get("totalBacklinks")
-                    except Exception:
-                        pass
             sources_used.append("ubersuggest-domain.json")
+            traffic = domain_data.get("traffic")
+            organic = domain_data.get("organic")
+            da = domain_data.get("domainAuthority")
+            backlinks_count = domain_data.get("backlinks")
+            ref_domains = domain_data.get("refDomains")
+            fetched_at = (domain_data.get("_meta") or {}).get("fetched_at", "unknown")
+
             claim_parts = []
             if traffic:
-                claim_parts.append(f"swingshack.co.za organic traffic = {traffic:,}")
+                claim_parts.append(f"organic traffic = {int(traffic):,}")
+            if organic:
+                claim_parts.append(f"organic keywords = {int(organic):,}")
+            if da:
+                claim_parts.append(f"domain authority = {da}")
             if backlinks_count is not None:
-                claim_parts.append(f"backlinks = {backlinks_count:,}")
+                claim_parts.append(f"backlinks = {int(backlinks_count):,}")
+            if ref_domains is not None:
+                claim_parts.append(f"referring domains = {int(ref_domains):,}")
+
             if claim_parts:
                 working.append({
                     "claim": "SEO domain snapshot — " + "; ".join(claim_parts) + ".",
                     "evidence": (
-                        f"ubersuggest-domain.json via daily fetch_ubersuggest.py cron. "
-                        f"Last fetch: {domain_data.get('fetched_at', 'unknown')[:10]}. "
-                        f"Pull from `swingshack.co.za` domain_overview + backlinks_overview."
+                        f"ubersuggest-domain.json via daily fetch_ubersuggest.py "
+                        f"cron. Last fetch: {fetched_at[:10]}. "
+                        f"Pulled from `swingshack.co.za` "
+                        f"`domain_overview` + `backlinks_overview` MCP tools."
                     ),
                     "source": "ubersuggest-domain.json",
                     "category": "seo",
                 })
+    except Exception:
+        pass
+
+    # ── 3d. SEO — COMPETITORS (from ubersuggest-competitors.json) ──
+    # Optional file written by fetch_ubersuggest.py. Surfaces the top organic
+    # competitor by keyword overlap — useful for "who's actually competing
+    # with us in ZA search" framing in the report.
+    try:
+        comp_path = os.path.join(DATA_DIR, "ubersuggest-competitors.json")
+        comp_data = _read_json(comp_path) if os.path.exists(comp_path) else None
+        if isinstance(comp_data, dict):
+            comps = comp_data.get("competitors") or []
+            if comps and isinstance(comps[0], dict):
+                # Sort by keyword overlap (most-overlapping competitor first).
+                comps_sorted = sorted(
+                    [c for c in comps if isinstance(c, dict)],
+                    key=lambda c: c.get("commonKeywordCount") or 0,
+                    reverse=True,
+                )
+                top = comps_sorted[0]
+                fetched_at = (comp_data.get("_meta") or {}).get("fetched_at", "unknown")
+                sources_used.append("ubersuggest-competitors.json")
+                overlap = top.get("commonKeywordCount") or 0
+                gap = top.get("gapKeywordCount") or 0
+                comp_da = top.get("domainAuthority") or 0
+                # Resolve our own DA from the same data layer, not a hardcoded
+                # value. Falls back gracefully if ubersuggest-domain.json
+                # hasn't been written yet (single-tool offline scenario).
+                our_da = None
+                try:
+                    our_domain_data = _read_json(
+                        os.path.join(DATA_DIR, "ubersuggest-domain.json")
+                    ) or {}
+                    our_da = our_domain_data.get("domainAuthority")
+                except Exception:
+                    pass
+                our_da_display = our_da if our_da is not None else "—"
+
+                if our_da is not None and comp_da > our_da + 5 and overlap > 10:
+                    not_working.append({
+                        "claim": (
+                            f"Strongest organic competitor: {top['domain']} "
+                            f"— {overlap} shared keywords, DA {comp_da} "
+                            f"(us: {our_da})."
+                        ),
+                        "evidence": (
+                            f"ubersuggest-competitors.json via fetch_ubersuggest.py. "
+                            f"Top of list by commonKeywordCount. Gap keywords "
+                            f"(we don't rank but they do): {gap}. Last fetch: "
+                            f"{fetched_at}."
+                        ),
+                        "source": "ubersuggest-competitors.json",
+                        "category": "seo",
+                        "severity": "medium",
+                    })
+                elif gap > 5:
+                    working.append({
+                        "claim": (
+                            f"SEO opportunity: {gap} gap keywords to outrank "
+                            f"{top['domain']} on."
+                        ),
+                        "evidence": (
+                            f"ubersuggest-competitors.json — top competitor "
+                            f"{top['domain']} ranks for {overlap} keywords we "
+                            f"also target (their DA {comp_da}, ours {our_da_display}), "
+                            f"but {gap} keywords where they rank and we don't "
+                            f"(gapKeywordCount)."
+                        ),
+                        "source": "ubersuggest-competitors.json",
+                        "category": "seo",
+                    })
     except Exception:
         pass
 
