@@ -2161,6 +2161,100 @@ def _interpret_weekly_report(
                     "category": "seo",
                 })
 
+    # ── 3b. SEO — RANK MOVEMENT DETAIL (richer claim when real ranks exist) ──
+    # Fires only when actual rank data is present (post-launch the next morning).
+    # Auto-silent before any fetch_ubersuggest.py run. Reads seo-rankings.json
+    # directly so the report claims are grounded in real data, not vibes.
+    try:
+        seo_full_path = os.path.join(DATA_DIR, "seo-rankings.json")
+        seo_full = _read_json(seo_full_path) if os.path.exists(seo_full_path) else None
+        if isinstance(seo_full, dict) and isinstance(seo_full.get("rising_keywords"), list) \
+                and isinstance(seo_full.get("falling_keywords"), list) and not seo_full.get("needs_fetcher"):
+            rk = seo_full["rising_keywords"]
+            fk = seo_full["falling_keywords"]
+            sources_used.append("seo-rankings.json")
+            if rk and isinstance(rk[0], dict) and rk[0].get("keyword"):
+                top = rk[0]
+                working.append({
+                    "claim": (
+                        f"Biggest SEO mover: '{top['keyword']}' rose "
+                        f"from #{top.get('previous_rank', '?')} to #{top.get('current_rank', '?')}."
+                    ),
+                    "evidence": (
+                        f"seo-rankings.json rising_keywords — {len(rk)} keyword(s) "
+                        f"ranked up this week, {len(fk)} ranked down. "
+                        f"Source: Ubersuggest via daily fetch_ubersuggest.py cron."
+                    ),
+                    "source": "seo-rankings.json",
+                    "category": "seo",
+                })
+            elif fk and isinstance(fk[0], dict) and fk[0].get("keyword"):
+                top = fk[0]
+                not_working.append({
+                    "claim": (
+                        f"Biggest SEO drop: '{top['keyword']}' fell "
+                        f"from #{top.get('previous_rank', '?')} to #{top.get('current_rank', '?')}."
+                    ),
+                    "evidence": (
+                        f"seo-rankings.json falling_keywords — {len(fk)} keyword(s) "
+                        f"lost rank this week. Audit content + backlinks for that page."
+                    ),
+                    "source": "seo-rankings.json",
+                    "category": "seo",
+                    "severity": "medium",
+                })
+    except Exception:
+        pass
+
+    # ── 3c. SEO — DOMAIN AUTHORITY (from ubersuggest-domain.json) ──
+    # Optional file written by fetch_ubersuggest.py as a side effect.
+    try:
+        domain_path = os.path.join(DATA_DIR, "ubersuggest-domain.json")
+        domain_data = _read_json(domain_path) if os.path.exists(domain_path) else None
+        if isinstance(domain_data, dict):
+            d_resp = domain_data.get("domain_overview")
+            b_resp = domain_data.get("backlinks_overview")
+            # Defensive extraction — never raise from here.
+            traffic = None
+            if isinstance(d_resp, dict):
+                content = d_resp.get("content") or []
+                if content and isinstance(content[0], dict):
+                    try:
+                        from json import loads as _json_loads
+                        inner = _json_loads(content[0].get("text", "{}"))
+                        traffic = inner.get("organicTraffic") or inner.get("monthlyTraffic")
+                    except Exception:
+                        pass
+            backlinks_count = None
+            if isinstance(b_resp, dict):
+                content = b_resp.get("content") or []
+                if content and isinstance(content[0], dict):
+                    try:
+                        from json import loads as _json_loads
+                        inner = _json_loads(content[0].get("text", "{}"))
+                        backlinks_count = inner.get("backlinks") or inner.get("totalBacklinks")
+                    except Exception:
+                        pass
+            sources_used.append("ubersuggest-domain.json")
+            claim_parts = []
+            if traffic:
+                claim_parts.append(f"swingshack.co.za organic traffic = {traffic:,}")
+            if backlinks_count is not None:
+                claim_parts.append(f"backlinks = {backlinks_count:,}")
+            if claim_parts:
+                working.append({
+                    "claim": "SEO domain snapshot — " + "; ".join(claim_parts) + ".",
+                    "evidence": (
+                        f"ubersuggest-domain.json via daily fetch_ubersuggest.py cron. "
+                        f"Last fetch: {domain_data.get('fetched_at', 'unknown')[:10]}. "
+                        f"Pull from `swingshack.co.za` domain_overview + backlinks_overview."
+                    ),
+                    "source": "ubersuggest-domain.json",
+                    "category": "seo",
+                })
+    except Exception:
+        pass
+
     # ── 4. YouTube ───────────────────────────────────────────────────
     if isinstance(youtube, dict):
         themes = youtube.get("active_themes") or []

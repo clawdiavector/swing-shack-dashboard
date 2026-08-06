@@ -2144,6 +2144,110 @@ def meta_status():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/intel/ubersuggest/status', methods=['GET'])
+def ubersuggest_status():
+    """GET /api/intel/ubersuggest/status — are Ubersuggest MCP creds configured?
+
+    Returns { ok, configured, token_file, refreshed_at, expires_at, scope, hint }
+    — never leaks the access_token value. Best-effort account tier probe with
+    short timeout; tier info is omitted on transient network failures.
+    """
+    try:
+        from _lib import ubersuggest_mcp as _us
+        out = _us.status_report()
+        out.setdefault("ok", True)
+        # If configured but token is expired, surface a hint for the SPA.
+        if out.get("configured") and (out.get("expires_in_seconds") or 0) <= 0:
+            out["hint"] = (
+                "access_token expired — run scripts/ubersuggest_refresh_token.py "
+                "or scripts/ubersuggest_oauth.py to re-authorize"
+            )
+        elif not out.get("configured"):
+            out["hint"] = (
+                "no token saved — run scripts/ubersuggest_oauth.py to do the "
+                "OAuth dance. ~30 seconds, requires clicking 'Authorize' once "
+                "in your browser at the Ubersuggest consent screen."
+            )
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("ubersuggest_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/intel/ubersuggest/keyword_overview', methods=['GET'])
+def ubersuggest_keyword_overview():
+    """GET /api/intel/ubersuggest/keyword_overview — single-keyword snapshot.
+
+    Query params: keyword (required), loc_id (default 2840 = US, 2076 = SA),
+    lang (default 'en'). Uses the cached access token + auto-refresh; returns
+    503 if the OAuth dance hasn't been run yet.
+    """
+    try:
+        from _lib import ubersuggest_mcp as _us
+        keyword = (request.args.get("keyword") or "").strip()
+        if not keyword:
+            return jsonify({"ok": False, "error": "keyword query param required"}), 400
+        try:
+            loc_id = int(request.args.get("loc_id", "2840"))
+        except ValueError:
+            loc_id = 2840
+        lang = (request.args.get("lang") or "en").strip()
+        result = _us.keyword_overview(keyword, loc_id=loc_id, lang=lang)
+        return jsonify({"ok": True, "keyword": keyword, **result}), 200
+    except _us.UbersuggestAuthError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "hint": "run scripts/ubersuggest_oauth.py to authorize Ubersuggest",
+        }), 503
+    except _us.UbersuggestUpstreamError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "code": e.code,
+        }), 502
+    except _us.UbersuggestNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("ubersuggest_keyword_overview failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/intel/ubersuggest/domain_overview', methods=['GET'])
+def ubersuggest_domain_overview():
+    """GET /api/intel/ubersuggest/domain_overview?domain=swingshack.co.za — domain stats.
+
+    Optional country (loc_id, default US/2840). Returns 503 if not authorized.
+    """
+    try:
+        from _lib import ubersuggest_mcp as _us
+        domain = (request.args.get("domain") or "").strip()
+        if not domain:
+            return jsonify({"ok": False, "error": "domain query param required"}), 400
+        try:
+            country = int(request.args.get("country", "2840"))
+        except ValueError:
+            country = 2840
+        result = _us.domain_overview(domain, country=country)
+        return jsonify({"ok": True, "domain": domain, **result}), 200
+    except _us.UbersuggestAuthError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "hint": "run scripts/ubersuggest_oauth.py to authorize Ubersuggest",
+        }), 503
+    except _us.UbersuggestUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _us.UbersuggestNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("ubersuggest_domain_overview failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/meta/posts', methods=['GET'])
 def meta_list_posts():
     """GET /api/meta/posts — list recent Instagram media for the connected account.
