@@ -4086,6 +4086,216 @@ def today_panel():
     return jsonify({'ok': True, 'ts': _now_iso(), 'summary': brief.get('summary', ''), 'cards': cards, 'dismissed': sorted(hidden), 'count': len(cards)})
 
 
+# ─── FRESHNESS: lazy on-demand generator ────────────────────────────────
+# When data/freshness.json is missing from both the volume and the bundled
+# repo copy (e.g. a fresh deploy before the daily 07:30 cron has run, or a
+# local boot that has never run data_freshness_check.js), /api/freshness used
+# to return 503 and the SPA hid the freshness card. That meant the OS went
+# silent on staleness for up to a day after every deploy. This helper walks
+# the data/ tree on demand using the same heuristic as
+# scripts/data_freshness_check.js so the SPA always gets a usable payload.
+_FRESHNESS_TS_KEYS = frozenset({
+    'generated', 'lastUpdated', 'last_run', 'last_run_at', 'last_check',
+    'ts', 'date', 'saved_at', 'published_at', 'posted_at', 'polled',
+    'fetched_at', 'updated_at', 'created_at', 'scanned_at', 'synced_at',
+    'checked_at', 'detected_at', 'analyzed_at', 'snapshot_at',
+})
+_FRESHNESS_SKIP = frozenset({'freshness.json', 'freshness-detail.json', 'meta-auth-health.json'})
+_freshness_cache = {'data': None, 'ts': 0.0}
+_FRESHNESS_CACHE_TTL = 300  # seconds — match the daily cron cadence loosely
+
+
+def _walk_freshness_timestamps(node, hits, depth=0):
+    if depth > 8 or len(hits) > 80:
+        return
+    if isinstance(node, list):
+        for v in node:
+            _walk_freshness_timestamps(v, hits, depth + 1)
+        return
+    if not isinstance(node, dict):
+        return
+    for k, v in node.items():
+        if k in _FRESHNESS_TS_KEYS and (isinstance(v, str) or isinstance(v, (int, float))):
+            hits.append(v)
+        if isinstance(v, (dict, list)):
+            _walk_freshness_timestamps(v, hits, depth + 1)
+
+
+def _freshness_parse_ts(v):
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        n = float(v)
+        if n > 1e11:
+            return n  # ms
+        if n > 1e9:
+            return n * 1000.0  # s
+        return None
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return None
+        try:
+            ms = datetime.datetime.fromisoformat(s.replace('Z', '+00:00')).timestamp() * 1000.0
+            return ms
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
+def _freshness_classify(parsed, mtime_ts):
+    """Return (staleness, newest_ts_iso, newest_raw, age_days). None for static/unknown."""
+    if not isinstance(parsed, dict):
+        return ('unknown', None, None, None)
+    hits = []
+    _walk_freshness_timestamps(parsed, hits)
+    if not hits:
+        return ('static', None, None, None)
+    newest_ms = None
+    newest_raw = None
+    for h in hits:
+        ms = _freshness_parse_ts(h)
+        if ms is None:
+            continue
+        if newest_ms is None or ms > newest_ms:
+            newest_ms = ms
+            newest_raw = h
+    if newest_ms is None:
+        return ('unknown', None, None, None)
+    age_days = round((mtime_ts - newest_ms) / 86400000.0, 1)
+    if age_days < 0:
+        age_days = 0.0
+    iso = datetime.datetime.fromtimestamp(newest_ms / 1000.0, tz=datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+    stale_days = 14
+    if age_days > stale_days * 3:
+        staleness = 'rotten'
+    elif age_days > stale_days:
+        staleness = 'stale'
+    else:
+        staleness = 'fresh'
+    return (staleness, iso, newest_raw, age_days)
+
+
+def _walk_data_json_files(root):
+    """Yield (abs_path, rel_path) for every *.json under root."""
+    if not root or not os.path.isdir(root):
+        return
+    for dirpath, _dirs, files in os.walk(root):
+        for name in files:
+            if not name.endswith('.json'):
+                continue
+            if name in _FRESHNESS_SKIP:
+                continue
+            ap = os.path.join(dirpath, name)
+            rp = os.path.relpath(ap, root)
+            yield ap, rp
+
+
+def _build_freshness_on_demand(data_root):
+    """Walk data_root, build the same freshness.json shape as the JS cron."""
+    stale_days = 14
+    summary = {
+        'generated': _now_iso(),
+        'stale_days_threshold': stale_days,
+        'total_files': 0,
+        'by_staleness': {'fresh': 0, 'stale': 0, 'rotten': 0, 'unknown': 0, 'static': 0},
+        'stale_files': [],
+        'rotten_files': [],
+    }
+    for ap, rp in _walk_data_json_files(data_root):
+        try:
+            with open(ap, 'r', encoding='utf-8') as fh:
+                parsed = json.load(fh)
+        except (OSError, ValueError):
+            parsed = None
+        try:
+            mtime_ms = os.path.getmtime(ap) * 1000.0
+        except OSError:
+            continue
+        staleness, newest_ts, newest_raw, age_days = _freshness_classify(parsed, mtime_ms)
+        summary['total_files'] += 1
+        summary['by_staleness'][staleness] = summary['by_staleness'].get(staleness, 0) + 1
+        entry = {'path': rp}
+        if newest_ts:
+            entry['newest_ts'] = newest_ts
+        if age_days is not None:
+            entry['age_days'] = age_days
+        if staleness == 'stale':
+            summary['stale_files'].append(entry)
+        elif staleness == 'rotten':
+            summary['rotten_files'].append(entry)
+    summary['stale_files'].sort(key=lambda e: e.get('age_days') or 0, reverse=True)
+    summary['rotten_files'].sort(key=lambda e: e.get('age_days') or 0, reverse=True)
+    return summary
+
+
+def _get_freshness():
+    """Read freshness.json from volume or bundled, else lazily generate.
+
+    Returns (data_dict, source_label, ok_bool).
+    """
+    paths = _data_paths()
+    candidates = [
+        (os.path.join(paths['data_dir'], 'freshness.json'), 'volume'),
+        (os.path.join(REPO_ROOT, 'data', 'freshness.json'), 'bundled'),
+    ]
+    for c, label in candidates:
+        try:
+            if os.path.exists(c):
+                d = _read_json_file(c)
+                if d:
+                    return d, c, True
+        except Exception:
+            continue
+    # Neither exists — generate on demand. Cache the result so we don't walk
+    # data/ on every page load. Daily cron will write the real file and our
+    # cache will pick it up next tick.
+    now = time.time()
+    cached = _freshness_cache.get('data')
+    cached_ts = _freshness_cache.get('ts') or 0.0
+    if cached and (now - cached_ts) < _FRESHNESS_CACHE_TTL:
+        return cached, 'on-demand-cache', True
+    # Prefer volume dir for the walk (it's where the cron writes); fall back
+    # to bundled repo data/. Both produce the same shape.
+    walk_roots = []
+    vol = paths['data_dir']
+    if os.path.isdir(vol):
+        walk_roots.append(vol)
+    bundled = os.path.join(REPO_ROOT, 'data')
+    if os.path.isdir(bundled) and os.path.abspath(bundled) != os.path.abspath(vol):
+        walk_roots.append(bundled)
+    if not walk_roots:
+        return None, None, False
+    # If the volume walk is empty, try the bundled repo data/ so a freshly
+    # mounted empty volume still gets the real walk (better stale signal).
+    chosen = walk_roots[0]
+    try:
+        generated = _build_freshness_on_demand(chosen)
+    except Exception as exc:
+        _app_log.warning('freshness on-demand walk failed: %s', exc)
+        return None, None, False
+    if (not generated.get('total_files')) and len(walk_roots) > 1:
+        try:
+            generated = _build_freshness_on_demand(walk_roots[1])
+            chosen = walk_roots[1]
+        except Exception:
+            pass
+    _freshness_cache['data'] = generated
+    _freshness_cache['ts'] = now
+    # Best-effort persist to volume so subsequent reads short-circuit and the
+    # file is on disk for the next deploy. Skip if volume is read-only.
+    try:
+        target = os.path.join(vol, 'freshness.json')
+        if os.path.isdir(vol) and os.access(vol, os.W_OK):
+            os.makedirs(vol, exist_ok=True)
+            with open(target, 'w', encoding='utf-8') as fh:
+                json.dump(generated, fh, indent=2, ensure_ascii=False)
+            return generated, target, True
+    except OSError:
+        pass
+    return generated, 'on-demand', True
+
+
 @app.route('/api/freshness', methods=['GET'])
 def freshness():
     """GET /api/freshness — surface data/freshness.json so the OS UI can render
@@ -4094,29 +4304,20 @@ def freshness():
        Tries DATA_DIR/freshness.json first (Railway volume), then bundled
        data/freshness.json (shipped with the deploy / used in local dev).
 
+       If neither exists yet (fresh deploy before the daily 07:30 cron has
+       fired, or a local boot that has never run the JS sweep), lazily walks
+       the data/ tree on demand and returns a usable payload so the OS card
+       never silently disappears.
+
        Schema produced by scripts/data_freshness_check.js:
        { generated, stale_days_threshold, total_files, by_staleness: {fresh,stale,rotten,static,unknown},
          stale_files: [...], rotten_files: [...] }
     """
-    paths = _data_paths()
-    candidates = [
-        os.path.join(paths['data_dir'], 'freshness.json'),
-        os.path.join(REPO_ROOT, 'data', 'freshness.json'),
-    ]
-    data = None
-    used = None
-    for c in candidates:
-        try:
-            if os.path.exists(c):
-                data = _read_json_file(c)
-                used = c
-                if data: break
-        except Exception:
-            continue
-    if not data:
-        return jsonify({'ok': False, 'error': 'freshness.json missing — run scripts/data_freshness_check.js', 'stale_count': 0, 'rotten_count': 0, 'fresh_count': 0, 'source': None}), 503
+    data, used, ok = _get_freshness()
+    if not ok or not data:
+        return jsonify({'ok': False, 'error': 'freshness data unavailable', 'stale_count': 0, 'rotten_count': 0, 'fresh_count': 0, 'source': None, 'fallback': 'no-data'}, 200)
     bs = data.get('by_staleness') or {}
-    return jsonify({
+    payload = {
         'ok': True,
         'source': used,
         'ts': data.get('generated'),
@@ -4127,9 +4328,12 @@ def freshness():
         'rotten_count': bs.get('rotten', 0),
         'static_count': bs.get('static', 0),
         'unknown_count': bs.get('unknown', 0),
-        'stale_files': data.get('stale_files', [])[:8],
-        'rotten_files': data.get('rotten_files', [])[:8],
-    })
+        'stale_files': (data.get('stale_files') or [])[:8],
+        'rotten_files': (data.get('rotten_files') or [])[:8],
+    }
+    if isinstance(used, str) and used.startswith('on-demand'):
+        payload['fallback'] = 'on-demand'
+    return jsonify(payload)
 
 
 @app.route('/api/today/panel/dismiss', methods=['POST'])
