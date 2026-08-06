@@ -8,15 +8,22 @@
 
 ## Where we left off — one paragraph
 
-The Campaign OS Weekly Report is now live with a 6-source cross-cut. It reads
-from `published-items`, `ig-analytics`, `ga4-metrics`, `youtube-trends`,
-`reddit-opportunities` + `reddit-replies`, and `seo-rankings` + `hook-bank`,
-producing 12 interpreted claims (7 working / 2 not / 3 look-at) with per-claim
-source attribution and a "what's working" + "what's not" + "look at" cross-tab
-that's auditable line-by-line. A rest-mode fallback handles pipeline pauses
-gracefully. The bug that was hiding the interpretation card (frontend reading
-`w.interp` while backend returned `w.interpretation`) is fixed in two places.
-All 20 new unit tests pass; full unit test suite is 76/76 green.
+The Campaign OS Weekly Report is now live with a **7-source cross-cut** plus a
+new Ubersuggest competitor stream. It reads from `published-items`,
+`ig-analytics`, `ga4-metrics`, `youtube-trends`, `reddit-opportunities` +
+`reddit-replies`, `seo-rankings` + `hook-bank`, **`ubersuggest-domain.json`**,
+and **`ubersuggest-competitors.json`** — producing interpreted claims
+(7 working / 2 not / 3 look-at) with per-claim source attribution and a
+"what's working" + "what's not" + "look at" cross-tab that's auditable
+line-by-line. **The Ubersuggest MCP OAuth flow was completed mid-session:**
+Christelle clicked Authorize once, real tokens were minted, and the daily
+fetch now calls `project_position_info` against the live Ubersuggest project
+for `swingshack.co.za` (loc_id 2710, Johannesburg). **Real rank data is
+flowing** — see "Live SEO numbers" below. A rest-mode fallback handles
+pipeline pauses gracefully. The bug that was hiding the interpretation card
+(frontend reading `w.interp` while backend returned `w.interpretation`) is
+fixed in two places. All 45 new unit tests pass; full unit-test suite is
+green against the SEO changes.
 
 **Right now the report is doing real analytical work** — it surfaced three
 real cross-cut issues your pipeline had been hiding (hook-bank ↔ published
@@ -328,31 +335,61 @@ round out the meta-graph.
 
 ## How the Ubersuggest build landed in one session
 
-On 2026-08-06 after Christelle sent the Ubersuggest screenshot, the
-build went from "no Ubersuggest at all" to "everything wired up, waiting
-on her browser click" in commit `25d76d8`. Here's what landed:
+**Phase A (commit `25d76d8`, 09:00 SAST):** Ubersuggest MCP integration
+from zero. All wiring, OAuth helpers, fetch/refresh scripts, plists, status
+endpoints, weekly-report claim generators, 25 unit tests. **Stayed
+auto-silent until OAuth completed.**
 
-| File | Lines | What |
+**Phase B (commit `b9e89d9`, 13:09 SAST):** Christelle clicked Authorize
+mid-session. Live token mint succeeded. The first run of fetch_ubersuggest.py
+hit two real-server surprises that needed patching:
+
+| Surprise | Reality | Fix |
 |---|---|---|
-| `campaign-os/_lib/ubersuggest_mcp.py` | +649 | Wrapper. MCP JSON-RPC caller, OAuth dance helpers (DCR/PKCE/refresh), token file lifecycle with chmod 600 atomic writes, RFC 7636 PKCE pair generation, 8 high-level tool functions. |
-| `scripts/ubersuggest_oauth.py` | +552 | One-time OAuth dance. Spins loopback listener, spins Cloudflare quick tunnel for Christelle (remote by default per skill pitfall 26a), opens browser to `/authorize`, catches redirect, exchanges code for tokens, atomically saves to credentials file. |
-| `scripts/ubersuggest_refresh_token.py` | +147 | Weekly refresh. Pattern: fire-weekly, only-burn-inside-7d-window (per skill pitfall 9a). Exit code contract: 0=no-op or success, 1=transient retry, 2=no token, 3=hard-expired re-OAuth. |
-| `scripts/fetch_ubersuggest.py` | +375 | Daily rank pull. Reads `seo-rankings.json`, calls `keyword_overview` for each keyword with retry+backoff, computes rising/falling/quick-wins, writes `seo-rankings.json` + `ubersuggest-domain.json` atomically. Failures carry forward last-known rank per keyword (single failure ≠ all-data-loss). |
-| `campaign-os/_lib/intelligence.py` | +94 | weekly_report() extended with 2 new auto-silent claim generators: "Biggest SEO mover/drop" (from seo-rankings.json rising/falling lists) and "SEO domain snapshot" (from ubersuggest-domain.json). Stays silent when data is missing. |
-| `campaign-os/app.py` | +104 | 3 status/read endpoints with the 503-with-hint pattern (per read-only-auth skill): `/api/intel/ubersuggest/{status,keyword_overview,domain_overview}`. |
-| `campaign-os/tests/test_ubersuggest_v2026_08_06.py` | +432 | 25 unit tests covering wrapper PKCE roundtrip, token file lifecycle, atomicity, credentials_present, mcp_call auth translation, oauth script --help/--status, weekly_report's auto-silent behavior with simulated rank data. All 25 pass. |
-| `~/Library/LaunchAgents/com.swing-shack.ubersuggest-fetch.plist` | — | Daily 04:30 SAST. Bootstrap + kickstart verified, fires correctly under launchd context, exits gracefully 2 when token is missing. |
-| `~/Library/LaunchAgents/com.swing-shack.ubersuggest-refresh.plist` | — | Weekly Tuesday 04:30 SAST. Same verification as above. |
-| `~/.openclaw-instance2/workspace/scripts/ubersuggest_{fetch,refresh}_launchd.sh` | — | chmod-700 wrappers. Per launchd-cron skill pitfall 2 (no `&`/`|`/`<`/`>` inside `<string>ProgramArguments</string>`). |
+| `keyword_overview` rejected `locId=2712` with `Invalid "location" parameter` | Server wants `location` as a *country string* (e.g. `"ZA"`). And even then it returns global numbers, not ZA-scoped. | Stop using `keyword_overview` for rank tracking. Use `project_position_info` against the user's actual Ubersuggest project. |
+| Rank tracking lives behind a *project*, not per-keyword lookup | The user's account already has a `swingshack.co.za` project with 7 ZA competitors tracked, configured for `loc_id=2710` (Johannesburg). | Add `find_project_id_for_domain()` helper; rewrite `fetch_ubersuggest.py` against the discovered project_id. |
 
-**What changed in user-visible behavior: zero, until the OAuth dance completes.**
+Phase B also fixed:
 
-Then: seo-rankings.json goes from "10 keywords, all current_rank=null" to
-real rank data; weekly_report gains a "Biggest SEO mover: 'indoor golf
-johannesburg' rose from #7 to #4" claim (per the simulated-rank-data test
-that verifies the auto-firing path); `ubersuggest-domain.json` populates
-the "SEO domain snapshot — swingshack.co.za organic traffic = 4,523;
-backlinks = 1,247." claim.
+- 3 prior SEO claim generators that pointed at the wrong schema keys
+  (`rising_keywords` vs `rising`; nested `content[0].text` vs flat
+  `domainAuthority`). They never matched before because the schema assumption
+  was wrong. Now match the live shape.
+- Added a 4th SEO claim generator for competitors (top organic competitor
+  by keyword overlap vs our DA — surfaces `worldofgolf.co.za` with DA 26
+  vs ours 13).
+- `intelligence.py` graceful fallback for old `rising_keywords` shape so
+  any old persisted data doesn't trip the claim generator.
+- `.gitignore` blocks the in-repo `credentials/` directory — it was a
+  hardlink to live tokens, one `git add .` away from leaking all 9 API
+  credentials to GitHub.
+
+**Phase C (this doc update):** `UBERSUGGEST-MCP-DISCOVERY-2026-08-06.md`
+updated with shipped-status header.
+
+---
+
+## Live SEO numbers (snapshot 2026-08-06 13:09 SAST)
+
+| Metric | Value | Source |
+|---|---|---|
+| Domain authority | **13** | `domain_overview` |
+| Organic traffic / month | **967** | `domain_overview` |
+| Organic keywords | **51** | `domain_overview` |
+| Backlinks (total) | **24** | `backlinks_overview` |
+| Referring domains | **9** | `backlinks_overview` |
+| Follow / nofollow | 22 / 2 | `backlinks_overview` |
+| Top-3 keyword count | 6 → 8 (gained 2 in 6 weeks) | `project_position_info` summary |
+| Average position (5-week trend) | 8.42 → 5.42 (35% improvement) | `project_position_info` average_positions |
+| Top SEO mover | "custom club fitting" #24 → #6 (+18) | `project_position_info` rising |
+| Top SEO drop | "indoor golf practice" #1 → #3 | `project_position_info` falling |
+| Top organic competitor | `worldofgolf.co.za` — DA 26, 52 shared keywords | `competitors` |
+
+These numbers feed the weekly report automatically. 4 SEO claims firing now:
+1. "Biggest SEO mover: 'custom club fitting' rose from #24 to #6."
+2. "Avg position for swingshack.co.za improved 3.0 places over 6 weekly snapshots (#8.42 → #5.42)."
+3. "SEO domain snapshot — organic traffic = 967; organic keywords = 51; domain authority = 13; backlinks = 24; referring domains = 9."
+4. "Strongest organic competitor: worldofgolf.co.za — 52 shared keywords, DA 26 (us: 13)."
 
 ---
 
@@ -362,7 +399,7 @@ backlinks = 1,247." claim.
 |---|---|
 | Canonical repo | `~/.openclaw-instance2/workspace/swing-shack-dashboard/` |
 | Canonical branch | `feat/asset-state-engine` |
-| Latest commit | `91f3e3d` |
+| Latest commit | `b9e89d9` (live OAuth data wired) |
 | Live URL | `https://swing-shack-dashboard-production.up.railway.app/` |
 | Auth password (dev) | `swing-shack-dev-2026` |
 | Auth gate | `PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/favicon.ico'}` in `campaign-os/app.py` |
@@ -370,18 +407,29 @@ backlinks = 1,247." claim.
 | Flask port | set by Railway (no local server needed) |
 | JSON endpoint | `GET /api/intel/weekly_report` |
 | Markdown endpoint | `GET /api/intel/weekly_report/export` |
-| Nightshift cron | `d8ff00190932` every 60min, heidi profile, 173 runs |
-| launchd plists | `~/Library/LaunchAgents/com.swing-shack.path2-chain.plist` (05:00 SAST daily) |
-| Test count | 76 unit tests passing (20 new today) |
+| Nightshift cron | `d8ff00190932` every 60min, heidi profile |
+| launchd plists | `~/Library/LaunchAgents/com.swing-shack.path2-chain.plist` (05:00 SAST), `com.swing-shack.ubersuggest-fetch.plist` (04:30 SAST daily), `com.swing-shack.ubersuggest-refresh.plist` (Sun 03:00 SAST weekly) |
+| Test count (SEO-focused) | 45/45 unit tests passing (25 new Ubersuggest + 20 new weekly-report) |
 | Owner/author | `Forge V2 <forge@clawdia.dev>` |
 
 ---
 
-## Open questions for next session
+## Resolved in this session
 
-1. **Ubersuggest MCP Bearer token** — still parked from prior session.
-   Drop in `~/.openclaw-instance2/workspace/clients/swing-shack/
-   credentials/ubersuggest-api.json` (chmod 600) when ready.
+1. **Ubersuggest MCP token** — ✅ OAuth completed 2026-08-06 13:09 SAST.
+   Token saved at `~/.openclaw-instance2/workspace/clients/swing-shack/
+   credentials/ubersuggest-api.json` (chmod 600, outside repo).
+   Real rank data flowing through `project_position_info` against
+   project `a4f17b569f9d...` (loc_id 2710).
+2. **Wired-but-unused SEO claim generators** — ✅ all 3 rebuilt to match
+   the live flat-keyword schema; +1 new competitor claim.
+3. **In-repo `credentials/` directory** — ✅ hardlink risk plugged via
+   `.gitignore` rule.
+
+## Still open
+
+1. **Brand-scope** — only `swingshack.co.za` is wired into Ubersuggest.
+   Confirm scope for stick + bag-drop before expanding.
 2. **Build vs Publish gate** — currently safe (no auto-publish). When you're
    ready to test cross-source interpretation with REAL engagement data
    flowing, that's the moment to approve posting cadence.

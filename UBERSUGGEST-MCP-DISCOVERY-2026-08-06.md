@@ -2,12 +2,36 @@
 
 **Captured:** 2026-08-06 (Wednesday)
 **Author:** Heidi (orchestrator profile)
-**Status:** DISCOVERY ONLY — no build, no auth, no data fetched.
-**Need:** Christelle's browser-click in the OAuth flow (only human step in the whole integration).
+**Status:** LIVE AND SHIPPED — OAuth token minted, real data flowing, 4 SEO
+  weekly-report claims firing against actual Ubersuggest project
+  `swingshack.co.za` (loc_id 2710, Johannesburg).
 
 ---
 
-## TL;DR
+## 🚦 What shipped 2026-08-06 (this session, all live now)
+
+| Time | Commit | What |
+|---|---|---|
+| 09:00 | `25d76d8` | Initial Ubersuggest OAuth + wrapper + plists + tests (9 files, +3,123 lines) |
+| 09:30 | `91f3e3d` | Weekly-report v2 with 6 sources + per-claim attribution |
+| 13:09 | **`b9e89d9`** | **Live fixes after Christelle clicked Authorize: project_position_info + real data wired** |
+
+In commit `b9e89d9` specifically:
+- `ubersuggest_mcp.py`: dropped the bogus `locId=2840` defaults, added `find_project_id_for_domain()`
+- `fetch_ubersuggest.py`: rewritten to call `project_position_info` against the discovered project_id
+- `intelligence.py`: 3 SEO claim generators rebuilt to match the live flat-keyword schema; added a 4th for competitors
+- `ubersuggest_oauth.py`: honours `UBERSUGGEST_TOKEN_FILE` env var for testability
+- `.gitignore`: blocks the in-repo `credentials/` directory (hardlink risk)
+
+**45/45 tests pass.** Data on disk now (`/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/`):
+- `seo-rankings.json` — 16 keywords, 5 up / 2 down / 9 unchanged
+- `ubersuggest-domain.json` — DA=13, traffic=967/mo, backlinks=24
+- `ubersuggest-competitors.json` — top org competitor is `worldofgolf.co.za` (DA 26, 52 shared keywords)
+- `ubersuggest-backlinks.json` — follow/nofollow breakdown
+
+---
+
+## TL;DR (still valid)
 
 The Ubersuggest MCP server is at `https://ubersuggest-mcp.neilpatelapi.com/mcp`.
 It's a **fully MCP-compliant OAuth 2.0 + PKCE server** with Dynamic Client Registration.
