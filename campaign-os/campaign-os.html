@@ -4068,6 +4068,28 @@ const SECTION_ALIASES = {
 };
 
 // Safe section activation — falls back to an alias if the requested section doesn't exist.
+// ─── Orphan-section reconciliation ─────────────────────────────
+// Background: at runtime, ~20 of the 28 `.section` blocks end up as direct
+// children of <body> instead of inside <main>. Root cause unknown (could not
+// be located in static analysis — the page never has appendChild/insertBefore
+// on those sections). Symptom: any "More tools" section (insights, hooks,
+// memes, etc.) renders a 633px-tall empty area to the right of the nav bar,
+// then puts content BELOW the .app grid — looks like the content is hidden
+// under the nav. The 8 sections that stay inside <main> (brief, review, gmb,
+// publish, calendar, trends, ideas, performance) render correctly because
+// they sit in the right column of .app's 240px+1fr grid.
+//
+// Reconciliation: re-parent any .section that's a child of <body> back into
+// <main>, preserving original ordering by id. Idempotent (no-op if already
+// correct). Runs on every go() and once at boot.
+function reconcileSections(){
+  const main = document.querySelector('main');
+  if(!main) return;
+  document.querySelectorAll('body > .section').forEach(sec => {
+    main.appendChild(sec);
+  });
+}
+
 function go(sec){
   const realSec = SECTION_ALIASES[sec] || sec;
   const targetEl = document.getElementById('sec-'+realSec);
@@ -4075,6 +4097,7 @@ function go(sec){
     console.warn('Unknown section:', sec, '(alias:', realSec, ')');
     return;
   }
+  reconcileSections();
   $$('.nav').forEach(n => n.classList.toggle('on', (n.dataset.go===sec || n.dataset.go===realSec)));
   $$('.section').forEach(s => s.classList.remove('on'));
   targetEl.classList.add('on');
@@ -4894,6 +4917,9 @@ async function renderSection(sec){
   // Brand must load first so the X-Brand header is set on subsequent fetches
   await loadBrandContext();
   attachExplainers();
+  // Pull any orphan .section blocks back into <main> so the CSS Grid puts
+  // content in the right column, not below the .app grid (see reconcileSections).
+  reconcileSections();
   // Wire universal hover tooltips on every [data-help] element (brand switcher, all-tools toggle, topbar chrome, etc.)
   if (typeof HELP !== 'undefined' && HELP.autoAttach) HELP.autoAttach();
   // Default active section: brief. Restore from localStorage if present.
