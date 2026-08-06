@@ -134,3 +134,20 @@
 **Learned:** Static-portal routes serve at root path (`/meta-portal.html`), not `/campaign-os/...`. `select > option` text isn't in innerText until dropdown is opened — verify via `outerHTML.includes(...)`.
 
 **Asks:** None.
+
+---
+
+## 2026-08-06T01:45Z — fix(campaign-os): mount EXPLAINERS['insights'] on sec-insights directly
+
+**Done:** Closed last-pick #1 from the 22:00Z tick. One-line fix in `go()` post-loadSection `.then()`: `mountSec = realSec === 'insights' ? 'insights' : realSec;`. `HELP.section` is idempotent, so the cloned Performance explainer gets atomically replaced with the Insights one + GA4 sub-explainer. Also rewrote the misleading comment in `renderInsights()`. Commit `fd280bc` on `feat/asset-state-engine`, +17/-10, pushed, Railway auto-deployed.
+
+**Verified (Playwright LIVE, cookie auth):**
+- Pre-fix repro: `/insights` showed `"Performance: what works, what's leaking"` (wrong).
+- Post-fix: `/insights` shows `"How to read performance data"` (correct). 7-tab walk confirms no cross-contamination. `/performance` unchanged. Idempotent on revisit.
+- 0 PAGEERROR, 0 non-503 console errors.
+
+**Next pick:** Differentiate `/insights` content layer from `/performance` (currently just a clone + Weekly Report). Then consolidate the duplicate `mountSec` ternaries. Then EXPLAINERS copy polish sweep.
+
+**Learned:** `targetSec.innerHTML = '' + cloneFromSource()` patterns lock help widgets on the target to the source's help copy unless you re-mount after the clone. `HELP.section`'s idempotency makes post-clone overwrites safe.
+
+**Asks:** None.

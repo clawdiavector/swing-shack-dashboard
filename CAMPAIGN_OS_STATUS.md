@@ -464,3 +464,33 @@ Wired 5 modal-context h4 headers with data-help + data-help-title + cursor:help 
 **Learned:** The static-portal routes serve at `/meta-portal.html` (no `/campaign-os/` prefix); got a 404 on the wrong path first, then redirected-via-cookie correctly. The `select > option` text is NOT in `document.body.innerText` until the dropdown is opened — verifying patched text via `outerHTML.includes(...)` is more reliable for select-option strings.
 
 **Asks:** None.
+
+## 2026-08-06T01:45Z — fix(campaign-os): mount EXPLAINERS['insights'] on sec-insights directly
+
+**Done:** Closed the last-pick #1 from the 22:00Z tick. The `go()` post-loadSection `.then()` callback was redirecting the Insights explainer mount to `#sec-performance` (`mountSec = realSec === 'insights' ? 'performance' : realSec;`) so `renderInsights()` could clone it across — but that locked the Insights tab to showing the Performance explainer. Switched to `mountSec = realSec === 'insights' ? 'insights' : realSec;` in the post-mount path (left the pre-mount alone, because the pre-mount is what feeds the clone). `HELP.section` is idempotent (removes pre-existing `.help-section-explainer` first), so the cloned Performance explainer is atomically replaced by the Insights one + its paired GA4 sub-explainer. Also rewrote the misleading 5-line comment block in `renderInsights()` to document the 3-step flow.
+
+**Commit:** `fd280bc` on `feat/asset-state-engine`, +17/-10 across 1 file (campaign-os/campaign-os.html), pushed. Railway auto-deployed in ~90s.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Cache-busted bundle probe (595,676 chars served): all 3 new code fragments FOUND in served JS.
+- Pre-fix repro: clicking Insights nav showed `Performance: what works, what's leaking` inside `#sec-insights` (the bug).
+- Post-fix: clicking Insights nav shows `How to read performance data` inside `#sec-insights` — body opens with *"This page is a read-only mirror of the Performance tab, surfaced under its own nav so the 'Why' lens stays separate from the 'What' lens."*
+- 7-tab explainer walk (brief / performance / insights / learning / trends / ideas / seo): each tab shows its own canonical explainer. `/performance` still shows `Performance: what works, what's leaking` — no regression.
+- Idempotency check (Insights → Performance → Insights): exactly 2 `.help-section-explainer` inside `#sec-insights` (Insights + GA4), exactly 2 inside `#sec-performance` (Performance + GA4). No duplication on revisit.
+- 0 PAGEERROR, 0 non-503 console errors.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-06T0145_insights_OPEN.png` — Insights tab, explainer expanded, showing the new "How to read performance data" title + body + GA4 sub-explainer + stat tiles + cards below.
+- `/tmp/co-nightshift/walkthrough_2026-08-06T0145_performance_explainer_REGRESSION.png` — Performance tab, unchanged.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes, 0 JS logic changes outside the 1-line mountSec swap, 0 schema changes.
+
+**Next pick:**
+1. **`renderInsights()` still leaves Insights content identical to Performance plus a Weekly Report card** — so the actual data layer is a clone, only the explainer is differentiated. The "Why lens / What lens" copy promise isn't really delivered yet. Lane: genuinely differentiate `/insights` from `/performance` by adding an "Insights-only" widget (week-over-week deltas, recommended-next-brief card based on top signals).
+2. The `mountSec` ternary now lives twice in `go()` (pre-mount + post-mount); consolidate to a single `mountSecFor(realSec)` helper before further edits.
+3. The remaining 26 `EXPLAINERS` blocks still reference 2026-07-30 era card names — most copy is current but some section-specific terms drifted. Quick sweep.
+4. Field-name drift re-probe on library / performance / trends (last probe 2026-07-30).
+
+**Learned:** When a render path uses `targetSec.innerHTML = '' + cloneFromSource()`, mounting help widgets on the source section *appears* to work on the target via the clone — but it locks the target to the source's help copy, which is wrong when the target has its own canonical explainer. The fix isn't to skip the source mount (the clone still needs SOMETHING); it's to mount the canonical target explainer after the clone completes (`.then()` of `loadSection`). `HELP.section`'s idempotency (remove-then-insert at the same selector) is what makes the post-loadSection overwrite safe — without it we'd get duplicate panels on every nav click.
+
+**Asks:** None.
