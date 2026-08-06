@@ -1,7 +1,7 @@
 # Campaign OS · Overnight CTO Build — Status & Continuation
 
 ## Last update
-2026-07-27 · CTO overnight build · MiniMax-M3 (continuation session)
+2026-08-06T03:49Z · visual-library thumbnails: `<img src>` switched from broken `/api/visual-library/.../image/<fn>` (JSON, not bytes) to inline `thumbnail_data_url` (data: URI). 8 broken-image 404s → 0 on brand-detail panel + library images surface.
 
 ## Overnight cron
 - Job ID `da7bebf99c66`, hourly 22:00–10:00 SAST, 12 ticks, delivers to Discord origin.

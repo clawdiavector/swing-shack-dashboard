@@ -1,4 +1,29 @@
 
+## 2026-08-06T03:49Z — fix(campaign-os): render Visual Library thumbnails via inline thumbnail_data_url (was 404)
+
+**Done:** Pre-pick probe found 9 console errors, all 404s on `/api/visual-library/<brand>/image/<fn>.jpg`. The SPA's `<img src>` on the brand-detail panel + library images kind was hitting this route, but the route (app.py:1833) is the **DNA detail endpoint** that returns JSON, not image bytes. The actual image-bytes route is `/brand-images/<brand>/<fn>`, but raw .jpg files are `.gitignore`d (Drive is the canonical source of truth) so that 404s too on Railway in many cases. Switched the `<img src>` to use the inline `thumbnail_data_url` (data: URI, base64 JPEG) the API already returns per image — deploy-environment-agnostic, no 404 surface anywhere. Falls back to the legacy URL for any caller passing an image entry without a thumbnail.
+
+**Commit:** `c79e583` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +21/-8, pushed.
+
+**Verified (Playwright LIVE, cookie auth):**
+- Bundle probe (cache-busted, 458,262 chars): 2/2 needles from new copy found.
+- Brand-detail panel: 59/59 lib-thumb imgs use `data:image/jpeg;base64,...` src, 0 legacy broken URLs, 59/59 rendered (`naturalWidth>0`).
+- Library images kind: same — 0 legacy URLs, 100% data: URI.
+- **HTTP 404s dropped 8 → 1** (residual: `/api/visual-library/swing-shack/image/takomo.png` from visualizer.html:540, pre-existing, separate surface).
+- Console errors dropped 9 → 1 (same residual).
+- 0 PAGEERROR, 0 new JS errors.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-06T035024Z_visual_library_thumbs_FIXED.png`
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes, 0 JS logic change (template-literal substitution only), 0 schema change.
+
+**Learned:** `/api/visual-library/<brand>/image/<fn>` (line 1833 of app.py) is a DNA detail endpoint returning JSON metadata, NOT image bytes. The SPA's `<img src>` was hitting it expecting JPEGs and getting `{"error":"...not found"}`. Same mistake lives in visualizer.html:700 (`modal-img.src = '/brand-images/...'`) for any brand where the raw jpg is missing on the Railway volume. The thumbnail_data_url field on the images endpoint is the deploy-safe abstraction (data: URI, no 404 surface, ships with the served API payload).
+
+**Next pick:** visualizer.html line 540 + 700 — apply the same thumbnail-first pattern to the Visual Library's `<img>` and modal-img.src. Either that OR lift the .gitignore carve-out for `data/brand-directory/*/images/*.jpg` so the cron can ship raw jpg bytes — need a human call on whether to keep "Drive as source of truth" or push image bytes too.
+
+**Asks:** Drive-vs-railway-volume call on raw image bytes.
+
 ## 2026-08-05T07:39Z — feat(campaign-os): wire 6 h3 tooltips in brand-brief generator
 
 **Done:** Wired 6 new h3 tooltips in the brand-brief generator surface (the click handler that fires when a user clicks `🎨 Generate brief` on any brand card). New tooltips: Generate brief (header), Archetype, Palette + Typography, Voice anchor (first 400 chars), Headlines bank, CTAs bank. Defined a local `h3tip` builder + 6 help-body const strings; wrapped 6 plain `<h3>` template-literal nodes.
