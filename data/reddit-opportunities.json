@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/reddit-ghost/v1",
-  "generated": "2026-04-22T08:51:13.975Z",
+  "generated": "2026-08-06T09:00:12.600Z",
   "total": 5,
   "by_urgency": {
     "high": 2,
@@ -10,9 +10,9 @@
   "ready_for_qa": 5,
   "opportunities": [
     {
-      "opp_id": "ro-78tgdfec",
+      "opp_id": "ro-05rkh4wu",
       "schema": "https://clawdia.io/agents/reddit-ghost/v1",
-      "generated": "2026-04-22T08:51:13.975Z",
+      "generated": "2026-08-06T09:00:12.599Z",
       "thread_topic": "How do I stop slicing?",
       "trend_pain_point": "How do I stop slicing?",
       "suggested_angle": "TrackMan numbers are the fastest path to understanding your golf game.",
@@ -24,9 +24,9 @@
       "ready_for_qa": true
     },
     {
-      "opp_id": "ro-fud3il86",
+      "opp_id": "ro-bynyek0g",
       "schema": "https://clawdia.io/agents/reddit-ghost/v1",
-      "generated": "2026-04-22T08:51:13.975Z",
+      "generated": "2026-08-06T09:00:12.600Z",
       "thread_topic": "Is indoor golf worth it for improvement?",
       "trend_pain_point": "Is indoor golf worth it for improvement?",
       "suggested_angle": "Indoor golf with TrackMan gives you better data than most outdoor ranges.",
@@ -38,9 +38,9 @@
       "ready_for_qa": true
     },
     {
-      "opp_id": "ro-ckdqlaj7",
+      "opp_id": "ro-k7fm8mph",
       "schema": "https://clawdia.io/agents/reddit-ghost/v1",
-      "generated": "2026-04-22T08:51:13.975Z",
+      "generated": "2026-08-06T09:00:12.600Z",
       "thread_topic": "Should I get fitted before buying new clubs?",
       "trend_pain_point": "Should I get fitted before buying new clubs?",
       "suggested_angle": "Get fitted before buying new clubs — TrackMan fitting shows you what you actually need.",
@@ -52,9 +52,9 @@
       "ready_for_qa": true
     },
     {
-      "opp_id": "ro-7a2778y2",
+      "opp_id": "ro-0h98k1ke",
       "schema": "https://clawdia.io/agents/reddit-ghost/v1",
-      "generated": "2026-04-22T08:51:13.975Z",
+      "generated": "2026-08-06T09:00:12.600Z",
       "thread_topic": "TPI assessment — worth it?",
       "trend_pain_point": "TPI assessment — worth it?",
       "suggested_angle": "TrackMan numbers are the fastest path to understanding your golf game.",
@@ -66,9 +66,9 @@
       "ready_for_qa": true
     },
     {
-      "opp_id": "ro-5k3s9er3",
+      "opp_id": "ro-qgprug2z",
       "schema": "https://clawdia.io/agents/reddit-ghost/v1",
-      "generated": "2026-04-22T08:51:13.975Z",
+      "generated": "2026-08-06T09:00:12.600Z",
       "thread_topic": "Indoor golf in Johannesburg — any recommendations?",
       "trend_pain_point": "Indoor golf in Johannesburg — any recommendations?",
       "suggested_angle": "Indoor golf with TrackMan gives you better data than most outdoor ranges.",

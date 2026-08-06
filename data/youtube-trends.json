@@ -1,17 +1,8 @@
 {
-  "updated": "2026-04-22T06:31:02.784Z",
+  "updated": "2026-08-06T08:59:37.180Z",
   "data_source": "youtube_api_v3",
   "videos_found": 19,
   "top_videos": [
-    {
-      "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
-      "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple driver ...",
-      "videoId": "Db6oNu9p6Kc",
-      "channelTitle": "Alistair Davies Golf",
-      "publishedAt": "2023-04-09T11:00:08Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
     {
       "title": "How to hit irons Consistently (Simple Golf Tips)",
       "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
@@ -22,11 +13,20 @@
       "query": "golf swing tips"
     },
     {
-      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
-      "videoId": "aGdAdJu9Zr8",
-      "channelTitle": "US GOLF TV",
-      "publishedAt": "2023-09-15T11:00:01Z",
+      "title": "Beginner golf lessons ⛳️ #golf",
+      "description": "",
+      "videoId": "8m8_lt3_H9I",
+      "channelTitle": " Durnian Golf",
+      "publishedAt": "2023-10-10T07:42:37Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "How to Swing a Golf Club (The EASY way)",
+      "description": "How to hold golf club: https://youtu.be/RwNWtm_RRqw Discover the easiest way to swing a golf club with this comprehensive ...",
+      "videoId": "me5gjIUe1Ks",
+      "channelTitle": "Rick Shiels Golf",
+      "publishedAt": "2023-06-05T16:19:34Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -40,11 +40,11 @@
       "query": "golf swing tips"
     },
     {
-      "title": "Senior Golf Tips from Legend Tom Watson",
-      "description": "Senior Golf Tips from Legend Tom Watson when I'm asked about Senior Golf there are a few things I talk about before I even talk ...",
-      "videoId": "dWZuKgvTS28",
-      "channelTitle": "Golf Secrets",
-      "publishedAt": "2024-01-10T21:00:20Z",
+      "title": "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO&#39;S &amp; DON&#39;TS!",
+      "description": "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO'S & DON'TS! In this video PGA Golf Professional Rick Shiels gives you 5 simple ...",
+      "videoId": "r5u52YuNVG8",
+      "channelTitle": "Rick Shiels Golf",
+      "publishedAt": "2020-08-03T15:00:12Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -58,20 +58,20 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "Beginner golf lessons ⛳️ #golf",
-      "description": "",
-      "videoId": "8m8_lt3_H9I",
-      "channelTitle": " Durnian Golf",
-      "publishedAt": "2023-10-10T07:42:37Z",
-      "source": "youtube_api_v3",
-      "query": "golf lesson tutorial"
-    },
-    {
       "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
       "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you need to ...",
       "videoId": "n4aOMLSRGrI",
       "channelTitle": "Meandmygolf",
       "publishedAt": "2024-06-17T13:00:55Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "Golf Swing Basics For Beginners - Stance Fundamentals",
+      "description": "Golf Swing Basics For Beginners - Stance Fundamentals, Mark Crossfield shares a simple golf setup drill to help you maximise ...",
+      "videoId": "oandn2z-KwA",
+      "channelTitle": "Mark Crossfield",
+      "publishedAt": "2024-10-22T11:01:01Z",
       "source": "youtube_api_v3",
       "query": "golf lesson tutorial"
     },
@@ -85,51 +85,21 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "Avoid These Golf Simulator Mistakes at All Costs!",
-      "description": "7 mistakes to avoid when building a golf simulator. Get a Sim Enclosure: ...",
-      "videoId": "LXHmx-wyWbs",
-      "channelTitle": "Lets Play Thru",
-      "publishedAt": "2024-09-23T17:30:02Z",
+      "title": "⛳️ The Most REALISTIC Golf Simulator in the World?! 😍",
+      "description": "The Golfzon TwoVision is regarded as one of the most realistic golf simulators in the world! Check out the full demo of this ...",
+      "videoId": "zYt_FQjXleU",
+      "channelTitle": "Handicap Golf",
+      "publishedAt": "2023-09-29T10:33:54Z",
       "source": "youtube_api_v3",
       "query": "golf simulator indoor"
     }
   ],
   "articles_sourced": [
     {
-      "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
-      "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple driver ...",
-      "source": "Alistair Davies Golf",
-      "publishedAt": "2023-04-09T11:00:08Z"
-    },
-    {
       "title": "How to hit irons Consistently (Simple Golf Tips)",
       "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
       "source": "Rick Shiels Golf",
       "publishedAt": "2023-04-24T14:05:24Z"
-    },
-    {
-      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
-      "source": "US GOLF TV",
-      "publishedAt": "2023-09-15T11:00:01Z"
-    },
-    {
-      "title": "4 Simple Steps For The Perfect Golf Drive",
-      "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
-      "source": "The Art of Simple Golf",
-      "publishedAt": "2025-07-28T19:08:17Z"
-    },
-    {
-      "title": "Senior Golf Tips from Legend Tom Watson",
-      "description": "Senior Golf Tips from Legend Tom Watson when I'm asked about Senior Golf there are a few things I talk about before I even talk ...",
-      "source": "Golf Secrets",
-      "publishedAt": "2024-01-10T21:00:20Z"
-    },
-    {
-      "title": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
-      "description": "Golf Swing Basics is a series of 3 golf lesson videos for beginners. We guarantee you will hit the ball better after watching this ...",
-      "source": "New Nine Golf | Brandon Cubitt",
-      "publishedAt": "2020-09-01T17:59:02Z"
     },
     {
       "title": "Beginner golf lessons ⛳️ #golf",
@@ -138,10 +108,40 @@
       "publishedAt": "2023-10-10T07:42:37Z"
     },
     {
+      "title": "How to Swing a Golf Club (The EASY way)",
+      "description": "How to hold golf club: https://youtu.be/RwNWtm_RRqw Discover the easiest way to swing a golf club with this comprehensive ...",
+      "source": "Rick Shiels Golf",
+      "publishedAt": "2023-06-05T16:19:34Z"
+    },
+    {
+      "title": "4 Simple Steps For The Perfect Golf Drive",
+      "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
+      "source": "The Art of Simple Golf",
+      "publishedAt": "2025-07-28T19:08:17Z"
+    },
+    {
+      "title": "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO&#39;S &amp; DON&#39;TS!",
+      "description": "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO'S & DON'TS! In this video PGA Golf Professional Rick Shiels gives you 5 simple ...",
+      "source": "Rick Shiels Golf",
+      "publishedAt": "2020-08-03T15:00:12Z"
+    },
+    {
+      "title": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
+      "description": "Golf Swing Basics is a series of 3 golf lesson videos for beginners. We guarantee you will hit the ball better after watching this ...",
+      "source": "New Nine Golf | Brandon Cubitt",
+      "publishedAt": "2020-09-01T17:59:02Z"
+    },
+    {
       "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
       "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you need to ...",
       "source": "Meandmygolf",
       "publishedAt": "2024-06-17T13:00:55Z"
+    },
+    {
+      "title": "Golf Swing Basics For Beginners - Stance Fundamentals",
+      "description": "Golf Swing Basics For Beginners - Stance Fundamentals, Mark Crossfield shares a simple golf setup drill to help you maximise ...",
+      "source": "Mark Crossfield",
+      "publishedAt": "2024-10-22T11:01:01Z"
     },
     {
       "title": "Better Golf Swing In 2 Minutes",
@@ -150,10 +150,10 @@
       "publishedAt": "2024-04-26T22:02:20Z"
     },
     {
-      "title": "Avoid These Golf Simulator Mistakes at All Costs!",
-      "description": "7 mistakes to avoid when building a golf simulator. Get a Sim Enclosure: ...",
-      "source": "Lets Play Thru",
-      "publishedAt": "2024-09-23T17:30:02Z"
+      "title": "⛳️ The Most REALISTIC Golf Simulator in the World?! 😍",
+      "description": "The Golfzon TwoVision is regarded as one of the most realistic golf simulators in the world! Check out the full demo of this ...",
+      "source": "Handicap Golf",
+      "publishedAt": "2023-09-29T10:33:54Z"
     }
   ],
   "trending_themes": {
@@ -168,15 +168,7 @@
   },
   "hooks": [
     {
-      "idea_id": "yt-hook-1776839466400-0",
-      "source": "Alistair Davies Golf",
-      "hook_text": "Possibly The BEST DRIVER Tip Ever In GOLF",
-      "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple drive",
-      "freshness_score": 5,
-      "theme_signal": "trackman"
-    },
-    {
-      "idea_id": "yt-hook-1776839466400-1",
+      "idea_id": "yt-hook-1786006781007-0",
       "source": "Rick Shiels Golf",
       "hook_text": "How to hit irons Consistently (Simple Golf Tips)",
       "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistent",
@@ -184,39 +176,7 @@
       "theme_signal": "trackman"
     },
     {
-      "idea_id": "yt-hook-1776839466400-2",
-      "source": "US GOLF TV",
-      "hook_text": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to sho",
-      "freshness_score": 5,
-      "theme_signal": "trackman"
-    },
-    {
-      "idea_id": "yt-hook-1776839466400-3",
-      "source": "The Art of Simple Golf",
-      "hook_text": "4 Simple Steps For The Perfect Golf Drive",
-      "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
-      "freshness_score": 5,
-      "theme_signal": "trackman"
-    },
-    {
-      "idea_id": "yt-hook-1776839466400-4",
-      "source": "Golf Secrets",
-      "hook_text": "Senior Golf Tips from Legend Tom Watson",
-      "description": "Senior Golf Tips from Legend Tom Watson when I'm asked about Senior Golf there are a few things I talk about before I ev",
-      "freshness_score": 5,
-      "theme_signal": "trackman"
-    },
-    {
-      "idea_id": "yt-hook-1776839466400-5",
-      "source": "New Nine Golf | Brandon Cubitt",
-      "hook_text": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
-      "description": "Golf Swing Basics is a series of 3 golf lesson videos for beginners. We guarantee you will hit the ball better after wat",
-      "freshness_score": 5,
-      "theme_signal": "trackman"
-    },
-    {
-      "idea_id": "yt-hook-1776839466400-6",
+      "idea_id": "yt-hook-1786006781007-1",
       "source": " Durnian Golf",
       "hook_text": "Beginner golf lessons ⛳️ #golf",
       "description": "",
@@ -224,7 +184,39 @@
       "theme_signal": "trackman"
     },
     {
-      "idea_id": "yt-hook-1776839466400-7",
+      "idea_id": "yt-hook-1786006781007-2",
+      "source": "Rick Shiels Golf",
+      "hook_text": "How to Swing a Golf Club (The EASY way)",
+      "description": "How to hold golf club: https://youtu.be/RwNWtm_RRqw Discover the easiest way to swing a golf club with this comprehensiv",
+      "freshness_score": 5,
+      "theme_signal": "trackman"
+    },
+    {
+      "idea_id": "yt-hook-1786006781007-3",
+      "source": "The Art of Simple Golf",
+      "hook_text": "4 Simple Steps For The Perfect Golf Drive",
+      "description": "Struggling with your driver? Want to hit it further AND straighter without swinging harder?",
+      "freshness_score": 5,
+      "theme_signal": "trackman"
+    },
+    {
+      "idea_id": "yt-hook-1786006781007-4",
+      "source": "Rick Shiels Golf",
+      "hook_text": "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO&#39;S &amp; DON&#39;TS!",
+      "description": "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO'S & DON'TS! In this video PGA Golf Professional Rick Shiels gives you 5 simple ...",
+      "freshness_score": 5,
+      "theme_signal": "trackman"
+    },
+    {
+      "idea_id": "yt-hook-1786006781007-5",
+      "source": "New Nine Golf | Brandon Cubitt",
+      "hook_text": "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
+      "description": "Golf Swing Basics is a series of 3 golf lesson videos for beginners. We guarantee you will hit the ball better after wat",
+      "freshness_score": 5,
+      "theme_signal": "trackman"
+    },
+    {
+      "idea_id": "yt-hook-1786006781007-6",
       "source": "Meandmygolf",
       "hook_text": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
       "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you ne",
@@ -232,7 +224,15 @@
       "theme_signal": "trackman"
     },
     {
-      "idea_id": "yt-sa-1776839466400-0",
+      "idea_id": "yt-hook-1786006781007-7",
+      "source": "Mark Crossfield",
+      "hook_text": "Golf Swing Basics For Beginners - Stance Fundamentals",
+      "description": "Golf Swing Basics For Beginners - Stance Fundamentals, Mark Crossfield shares a simple golf setup drill to help you maxi",
+      "freshness_score": 5,
+      "theme_signal": "trackman"
+    },
+    {
+      "idea_id": "yt-sa-1786006781007-0",
       "source": "sa_market_always",
       "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings.",
       "description": "SA-market hook - always included",
@@ -240,7 +240,7 @@
       "theme_signal": "slice_fix"
     },
     {
-      "idea_id": "yt-sa-1776839466400-1",
+      "idea_id": "yt-sa-1786006781007-1",
       "source": "sa_market_always",
       "hook_text": "How fast should your club head speed actually be? Pros average 112 mph.",
       "description": "SA-market hook - always included",
@@ -248,7 +248,7 @@
       "theme_signal": "swing_speed"
     },
     {
-      "idea_id": "yt-sa-1776839466400-2",
+      "idea_id": "yt-sa-1786006781007-2",
       "source": "sa_market_always",
       "hook_text": "Your launch monitor data is telling you exactly what to fix.",
       "description": "SA-market hook - always included",
@@ -256,7 +256,7 @@
       "theme_signal": "trackman"
     },
     {
-      "idea_id": "yt-sa-1776839466400-3",
+      "idea_id": "yt-sa-1786006781007-3",
       "source": "sa_market_always",
       "hook_text": "Rain season. Your game doesn't have to stop. Indoor golf in Johannesburg.",
       "description": "SA-market hook - always included",
@@ -264,7 +264,7 @@
       "theme_signal": "indoor"
     },
     {
-      "idea_id": "yt-sa-1776839466400-4",
+      "idea_id": "yt-sa-1786006781007-4",
       "source": "sa_market_always",
       "hook_text": "Short game practice that actually transfers to the course.",
       "description": "SA-market hook - always included",
@@ -272,7 +272,7 @@
       "theme_signal": "short_game"
     },
     {
-      "idea_id": "yt-sa-1776839466400-5",
+      "idea_id": "yt-sa-1786006781007-5",
       "source": "sa_market_always",
       "hook_text": "When was the last time a golf pro watched your actual swing on a launch monitor?",
       "description": "SA-market hook - always included",
