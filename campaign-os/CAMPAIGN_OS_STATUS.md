@@ -255,3 +255,25 @@ Next: Dark mode / theme tokens (priority 9)
 - `/api/health`: green.
 
 **Next pick:** Modal-h h3 lane now exhausted (only `reviewConfirm` h3 remains, but its title is fully caller-provided and the body text already explains the action — no value add). Other lanes: HashtagSEO "Why this score" + "Banned" h3s (lines 1353/1354), 4 other campaign/brand-directory h3s, EXPLAINERS body copy polish, or field-name drift re-probe on library/performance/trends.
+
+## Cron tick — 2026-08-06T03:27Z
+
+**Built:** Fix dead Learning card on `/insights` — render actual `/api/intel/learning` data (was reading wrong keys, always showed "No learnings yet").
+
+**Files:** `campaign-os/campaign-os.html` (+75/-3, 1 file, commit `84d7655`)
+
+**What changed:**
+- Rewrote the Learning card template at `renderInsights()` lines 4272-4346 to consume the actual API shape: `what_worked.{hooks,signals}`, `what_failed[]`, `recommendation_outcomes.best_channel`, `failure_patterns.by_agent_partial`, `confidence_bands`.
+- Renders 6 row kinds (hook / signal / fail / channel / agent / calibration), each with a kind pill (channel / agent / calibration / hook / signal / failed) + meta line.
+- Card sub-header shows `"N signals from past engagement"` or fallback `"No signals yet: keep publishing to surface patterns"`.
+- Updated h3 `data-help` body to point at the real endpoint fields.
+
+**Verified via Playwright LIVE, cookie auth:**
+- Pre-fix: card showed `"No learnings yet — keep posting to surface patterns."` (bug reproduced).
+- Post-fix: card sub header = `"6 signals from past engagement"`, 6 list rows (best channel: retarget_existing, partial-run agents hook_smith 3 / pulse_keeper 3 / blog_beast 1, calibration bands hook_performance 85% vs 65-75% and fitting_demand high vs confirmed).
+- Bundle probe (cache-busted): 5/5 new code fragments found in served HTML.
+- Regression sweep on 7 nav surfaces: all expected card counts, 0 PAGEERROR.
+- Em-dash sweep on diff: 1 (was pre-existing in deleted original).
+- `/api/health`: green throughout.
+
+**Next pick:** Add Insights-lens context to cloned Performance widgets (week-over-week deltas on SEO counts) OR add 503→retry helper to `/api/freshness` polling OR field-name drift re-probe on library / performance / trends (last 2026-07-30 — high-yield pre-pick gate).
