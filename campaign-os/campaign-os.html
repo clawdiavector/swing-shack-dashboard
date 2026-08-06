@@ -4104,10 +4104,14 @@ function go(sec){
     }
   } catch(e){ console.warn('HELP.section failed', realSec, e); }
   loadSection(realSec).then(() => {
-    // Re-mount on the canonical section after loadSection runs. For insights this
-    // hits sec-performance (where the clone-source lives); for other sections it
-    // hits the actual section. HELP.section is idempotent (removes old
-    // .help-section-explainer before inserting), so this is safe to repeat.
+    // Re-mount on the canonical section after loadSection runs.
+    // For most sections this hits the actual section (HELP.section is idempotent).
+    // For 'insights' it hits sec-insights directly: renderInsights() just wiped
+    // + cloned sec-performance into sec-insights, so EXPLAINERS['insights'] (not
+    // EXPLAINERS['performance']) is what the user should see under that tab.
+    // HELP.section removes any pre-existing .help-section-explainer first, so
+    // the cloned Performance explainer is replaced atomically with the Insights
+    // one plus its paired GA4 sub-explainer.
     try {
       if(typeof HELP !== 'undefined' && HELP.section){
         const analyticsMap = {
@@ -4118,7 +4122,7 @@ function go(sec){
           'ideas': 'meta',
           'seo': 'seo',
         };
-        const mountSec = realSec === 'insights' ? 'performance' : realSec;
+        const mountSec = realSec === 'insights' ? 'insights' : realSec;
         HELP.section(mountSec, analyticsMap[realSec]);
       }
     } catch(e){ /* silent */ }
@@ -4239,11 +4243,14 @@ async function renderInsights(){
   const targetSec = $('#sec-insights');
   const sourceSec = $('#sec-performance');
   if(!targetSec || !sourceSec) return;
-  // NOTE: the section explainer is mounted by go() onto sec-performance (the
-  // canonical location), NOT sec-insights. renderInsights wipes sec-insights then
-  // clones sec-performance's children into sec-insights, which carries the
-  // explainer along atomically. Mounting directly on sec-insights would race
-  // against this wipe + clone. See go()'s mountSec logic for the redirect.
+  // NOTE: the section explainer flow:
+  //   1. go() pre-mounts EXPLAINERS['performance'] on sec-performance so the
+  //      clone below carries a Performance explainer into sec-insights.
+  //   2. THIS function wipes sec-insights and clones sec-performance's children
+  //      (including the perf explainer) into sec-insights.
+  //   3. go()'s post-loadSection .then() then overwrites sec-insights with
+  //      EXPLAINERS['insights'] (HELP.section removes the cloned perf one
+  //      first), so the user sees the Insights-specific explainer.
   targetSec.innerHTML = '';
   Array.from(sourceSec.children).forEach(child => {
     if(child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE'){
