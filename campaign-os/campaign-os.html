@@ -4252,6 +4252,7 @@ async function renderInsights(){
   //      EXPLAINERS['insights'] (HELP.section removes the cloned perf one
   //      first), so the user sees the Insights-specific explainer.
   targetSec.innerHTML = '';
+  let firstNonHeaderPushed = false;
   Array.from(sourceSec.children).forEach(child => {
     if(child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE'){
       const clone = child.cloneNode(true);
@@ -4267,6 +4268,35 @@ async function renderInsights(){
         if(sub) sub.textContent = 'Performance signals + what Campaign OS is learning · same data, smarter lens';
       }
       targetSec.appendChild(clone);
+      // Insights-lens context banner: appears right after the section-h clone,
+      // before the cloned stat tiles + cards. Frames the Insights tab as a
+      // pattern-finding view (read rising/falling as a distribution signal,
+      // scan recurring failures, watch calibration honesty) rather than a
+      // snapshot of today's numbers. Honors the section-h rewrite above so
+      // the banner sits under the rewritten "Insights" H2.
+      if(!firstNonHeaderPushed){
+        firstNonHeaderPushed = true;
+        const ctx = document.createElement('div');
+        ctx.className = 'card insights-lens-ctx';
+        ctx.style.marginTop = '.75rem';
+        ctx.innerHTML = `
+          <div style="display:flex;gap:.6rem;align-items:flex-start">
+            <div style="font-size:20px;line-height:1">🔍</div>
+            <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
+              <b style="color:var(--tx-1)">How to read this view:</b>
+              the numbers below mirror Performance, but treat them as <i>pattern signals</i>, not today's snapshot.
+              <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
+                <li><b>SEO rising vs falling</b>: a distribution shift, not a count. More rising than falling = momentum. Even mix = stagnation.</li>
+                <li><b>GA4 engagement rate</b>: outliers above the brand's 30-day average are the seeds for the next post.</li>
+                <li><b>Top IG posts</b>: scan for shared hook shape, format, or pillar. Repeating patterns beat one-off wins.</li>
+                <li><b>Insights card</b>: each line has a <code>next_step</code> you can act on (regenerate, archive, test).</li>
+              </ul>
+              <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">The <b>🧠 Learning</b> card below this section is the long-memory view: what hooks, formats, and CTAs have actually paid off across weeks.</div>
+            </div>
+          </div>
+        `;
+        targetSec.appendChild(ctx);
+      }
     }
   });
   // Append the Learning strip
