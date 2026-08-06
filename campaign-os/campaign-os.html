@@ -4270,15 +4270,87 @@ async function renderInsights(){
     }
   });
   // Append the Learning strip
+  // The /api/intel/learning endpoint returns a richer shape than the original
+  // template assumed (it read .patterns / .learnings / .weekly_learnings, all
+  // null). Real keys: what_worked.{hooks,signals}, what_failed[],
+  // recommendation_outcomes, failure_patterns, confidence_bands,
+  // trend_delta, cta_rankings, best_recommendation. Render the actual data
+  // instead of always showing "No learnings yet".
   let learning = null;
   try { learning = await API.get('/api/intel/learning'); } catch(_){}
+  const ww = learning?.what_worked || {};
+  const wwHooks = Array.isArray(ww.hooks) ? ww.hooks : [];
+  const wwSignals = Array.isArray(ww.signals) ? ww.signals : [];
+  const wf = Array.isArray(learning?.what_failed) ? learning.what_failed : [];
+  const cb = Array.isArray(learning?.confidence_bands) ? learning.confidence_bands : [];
+  const fp = learning?.failure_patterns || {};
+  const ro = learning?.recommendation_outcomes || {};
+  // Build rows: each row is {title, meta, kind}; render by kind with a pill.
+  const rows = [];
+  wwHooks.slice(0,3).forEach(h => rows.push({
+    kind: 'hook', title: h.hook || h.text || h.title || '(hook)',
+    meta: h.uses != null ? `${h.uses} use${h.uses===1?'':'s'}` : (h.win_rate != null ? `${(h.win_rate*100).toFixed(0)}% win rate` : ''),
+  }));
+  wwSignals.slice(0,3).forEach(s => rows.push({
+    kind: 'signal', title: s.signal || s.name || s.title || '(signal)',
+    meta: s.evidence ? `evidence: ${String(s.evidence).slice(0,80)}` : (s.value != null ? `value: ${s.value}` : ''),
+  }));
+  wf.slice(0,2).forEach(f => rows.push({
+    kind: 'fail', title: f.failure || f.reason || f.title || '(failure)',
+    meta: f.count != null ? `${f.count} occurrence${f.count===1?'':'s'}` : '',
+  }));
+  // Recommendation channel summary as a top-level row
+  if(ro.best_channel && ro.best_channel !== 'unknown'){
+    rows.push({
+      kind: 'channel',
+      title: `Best channel: ${ro.best_channel}`,
+      meta: ro.best_channel_rate != null ? `${(ro.best_channel_rate*100).toFixed(0)}% win rate` : (ro.exec_rate != null ? `${(ro.exec_rate*100).toFixed(0)}% exec rate` : ''),
+    });
+  }
+  // Failure by agent (top 3 partial rates) as a row
+  const byAgent = fp.by_agent_partial && Object.keys(fp.by_agent_partial).length
+    ? Object.entries(fp.by_agent_partial).sort((a,b)=>b[1]-a[1]).slice(0,3)
+    : [];
+  byAgent.forEach(([agent, count]) => rows.push({
+    kind: 'agent', title: `Partial runs: ${agent}`,
+    meta: `${count} partial${count===1?'':'s'} (review needed)`,
+  }));
+  // Confidence calibration: top 2 bands (stated vs actual)
+  cb.slice(0,2).forEach(b => rows.push({
+    kind: 'cal', title: `${b.category || 'category'}: stated ${b.stated || '?'} · actual ${b.actual || '?'}`,
+    meta: b.ok ? '✓ calibration honest' : '⚠ overstated vs actual',
+  }));
+  const totalRows = rows.length;
+  const learnSub = totalRows
+    ? `${totalRows} signal${totalRows===1?'':'s'} from past engagement`
+    : 'No signals yet: keep publishing to surface patterns';
+  // Per-row pill: render only a short tag, then the full meta line on its own.
+  // The pill text is the leading word/symbol so it stays narrow; meta line gets the rest.
+  const learnBody = totalRows ? rows.slice(0,8).map(r => {
+    const pillCls = r.kind === 'hook' ? 'on'
+                  : r.kind === 'signal' ? 'live'
+                  : r.kind === 'fail' ? 'blocked'
+                  : r.kind === 'agent' ? 'warn'
+                  : r.kind === 'channel' ? 'live'
+                  : r.kind === 'cal' ? (r.meta && r.meta.indexOf('⚠') === 0 ? 'blocked' : 'on')
+                  : 'muted';
+    // Pill text is a short tag based on kind (so it never duplicates meta).
+    const pillTxt = r.kind === 'hook' ? 'hook'
+                  : r.kind === 'signal' ? 'signal'
+                  : r.kind === 'fail' ? 'failed'
+                  : r.kind === 'agent' ? 'agent'
+                  : r.kind === 'channel' ? 'channel'
+                  : r.kind === 'cal' ? 'calibration'
+                  : 'pattern';
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(r.title)}</div>${r.meta?`<div class="li-meta">${pill(pillCls, pillTxt)} · ${esc(r.meta)}</div>`:''}</div></li>`;
+  }).join('') : '<li class="empty">No learnings yet: keep posting to surface patterns.</li>';
   const learnCard = document.createElement('div');
   learnCard.className = 'card';
   learnCard.style.marginTop = '1rem';
   learnCard.innerHTML = `
-    <div class="card-h"><h3 data-help="What the system has learned about this brand's audience + creative + posting cadence over time. Patterns surface from real engagement data (impressions, clicks, comments) on past posts. Empty list means too few posts to learn from yet, keep publishing." data-help-title="Learning" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🧠 Learning</h3><span class="muted">${esc((learning?.summary || 'Patterns Campaign OS has learned').slice(0,120))}</span></div>
-    <div class="muted" style="margin-bottom:.5rem">Patterns Campaign OS has learned about this brand.</div>
-    <ul class="list">${(learning?.patterns || learning?.learnings || learning?.weekly_learnings || []).slice(0,8).map(p => `<li class="li"><div class="li-body"><div class="li-title">${esc(p.pattern || p.title || p.observation || p.lesson || '')}</div>${p.evidence?`<div class="li-meta">${esc(p.evidence)}</div>`:''}</div></li>`).join('') || '<li class="empty">No learnings yet — keep posting to surface patterns.</li>'}</ul>
+    <div class="card-h"><h3 data-help="What the system has learned about this brand's audience, creative, and posting cadence. Pulls from /api/intel/learning: top hooks + signals that worked, failure patterns by agent and time of day, confidence calibration (stated vs actual), and the recommendation channel that is winning. Empty list means the data files have not been written yet (weekly-learnings, recommendation-outcomes, failure-patterns)." data-help-title="Learning" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🧠 Learning</h3><span class="muted">${esc(learnSub)}</span></div>
+    <div class="muted" style="margin-bottom:.5rem">Patterns Campaign OS has learned about this brand (live from data/ files).</div>
+    <ul class="list">${learnBody}</ul>
   `;
   targetSec.appendChild(learnCard);
   // Also re-bind event handlers that renderPerformance attached (since cloneNode doesn't carry them)
