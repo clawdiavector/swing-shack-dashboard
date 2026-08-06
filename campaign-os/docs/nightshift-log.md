@@ -2080,3 +2080,37 @@ Fix path was the smallest possible: regenerate freshness locally via `node scrip
 **Learned:** When a backend endpoint falls through to a "not configured" 503 because a data file is missing, the SPA silently swallows the JSON and the bug surfaces only as a console error. Pre-pick gating on **console-error count** (not just rendered-DOM shape) is a faster signal than re-running the full audit. Also: when "the file is generated, just commit it" is the fix, do that — the alternative (regenerate on startup) is more invasive and risks cold-start races.
 
 **Asks:** None.
+
+## 2026-08-06T08:43Z — fix(api): lazy on-demand freshness walk when freshness.json is missing
+
+Follow-up to the 2026-08-06T04:38Z commit-freshness.json tick. That fix bundled the file into the deploy, but the gap remained: a brand-new Railway deploy before the daily 07:30 cron has run (or a local boot that has never run `data_freshness_check.js`) still hit the 503 fall-through. The SPA hid the freshness card and the OS went silent on staleness for up to a day.
+
+Fix: ported the JS sweep algorithm to a Python helper (`_build_freshness_on_demand` + `_freshness_classify` + `_walk_data_json_files` + `_walk_freshness_timestamps` + `_freshness_parse_ts`) and wired it into `/api/freshness` as a lazy on-demand fallback. The helper walks the data/ tree, runs the same timestamp-key heuristic as the JS cron, classifies each file (fresh/stale/rotten/static/unknown), and returns the same shape. Results are cached in-memory for 5 minutes so we don't re-walk on every page load. Best-effort persist back to the volume so subsequent reads short-circuit.
+
+If the volume walk yields zero files (e.g. freshly mounted empty Railway volume), the helper falls back to walking the bundled `REPO_ROOT/data/` so the SPA still sees a real staleness picture from the repo's tracked files. Only if both walks fail does the endpoint return `ok: false` (still 200, not 503, so the SPA card is hidden cleanly).
+
+**Patch (commit b0c2ae9, 1 file, +225/-21):**
+- Added lazy-fallback helpers (`_walk_freshness_timestamps`, `_freshness_parse_ts`, `_freshness_classify`, `_walk_data_json_files`, `_build_freshness_on_demand`, `_get_freshness`).
+- Refactored `/api/freshness` to use `_get_freshness()` and surface `fallback: 'on-demand'` when the cache or live walk fired.
+- Old 503 path replaced with a 200 + `ok: false` + `fallback: 'no-data'` so the SPA widget continues to hide cleanly without logging a console error.
+
+**Verified (LOCAL, three scenarios):**
+- Scenario A (bundled present): `/api/freshness` reads `REPO_ROOT/data/freshness.json` directly. Same payload as before, no `fallback` field. Source: REPO path.
+- Scenario B (volume present, bundled missing): `/api/freshness` reads `DATA_DIR/freshness.json`. Same payload shape, source: volume path.
+- Scenario C (volume missing, bundled missing): `/api/freshness` walks the volume dir, finds nothing, falls back to bundled walk, generates fresh summary (e.g. 299 files: 105 fresh, 2 stale, 13 rotten, 176 static, 3 unknown), persists to volume, returns with `source: <volume>/freshness.json` and `fallback: 'on-demand'`.
+- Scenario D (empty DATA_DIR, bundled missing): same as C, the empty-volume + bundled-fallback path fires correctly.
+
+**Verified (LIVE, post-deploy, Playwright authed):**
+- `/api/freshness` returns 200 with `ok: true`, `total: 302, fresh: 7, stale: 7, rotten: 111`, `source: /app/data/freshness.json`. Volume file is still present (the cron has run since the deploy), so the fallback path is not triggered on LIVE — that's correct production behavior.
+- `#freshness-card` renders with headline `🚨 111 files > 42 days old · 7 more between 14-42 days`. Body shows TOP ROTTEN (6) + STALE 14-42D (6) with age_days per file. No behavioural change on LIVE because the volume file exists.
+- 0 PAGEERROR. 0 console errors during the home-page walkthrough.
+- New code path verified to fire correctly when the file is missing (LOCAL scenario C+D).
+
+**Next pick:**
+1. **Restore the missing library images on Railway** (8× 404s on `/api/visual-library/.../*.jpg` — images are gitignored so they're missing from the bundle). Last-report's #1 follow-up, still the loudest remaining console error on LIVE.
+2. **Polish the remaining 26 EXPLAINERS blocks** — many still reference 2026-07-30 era card names. Cheap find-and-replace sweep.
+3. **Wire the same banner pattern on the Insights-card buttons** — currently `next_step` says things like "Generate fresh take" but the user has no idea what will happen when they click.
+
+**Learned:** Porting the JS timestamp-scan algorithm to Python was straightforward (~80 lines) because the JS version was already a clean recursive walk over `node` keys. The trickiest detail was the unit-handling (seconds vs ms vs ISO strings vs yyyy-mm-dd) — the JS version has the same heuristic in `_freshness_parse_ts` so behaviour matches. The bigger design question was *when* to walk: lazy-on-miss is better than eager-on-startup because it doesn't add cold-start latency and only fires when the user actually wants the data. The cache TTL of 300s is loose enough that the daily cron (which writes to disk) will be picked up on the next request after the cache expires.
+
+**Asks:** None.
