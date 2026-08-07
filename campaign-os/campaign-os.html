@@ -6230,8 +6230,16 @@ window.openReview = async (cid, aid) => {
   const existingPostiz = (a.publishingReferences && a.publishingReferences[0] && a.publishingReferences[0].postizId) || '';
   // Image URL — try every plausible field. Order matters: explicit URLs win,
   // then filePath (relative to /assets/), then publishingReferences.mediaUrl.
-  const visualUrl = a.visualUrl || a.imageUrl || a.mediaUrl
-    || (a.filePath ? (a.filePath.startsWith('http') || a.filePath.startsWith('/') ? a.filePath : '/assets/' + a.filePath) : '')
+  // Avoid double-prefixing: if filePath already starts with "/" or "http",
+  // use it as-is; otherwise prepend "/assets/" for repo-rooted paths.
+  const _resolveFilePath = (p) => {
+    if (!p) return '';
+    if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:')) return p;
+    if (p.startsWith('/')) return p;
+    return '/assets/' + p;
+  };
+  const visualUrl = _resolveFilePath(a.visualUrl || a.imageUrl || a.mediaUrl)
+    || _resolveFilePath(a.filePath)
     || (a.publishingReferences && a.publishingReferences[0] && a.publishingReferences[0].mediaUrl)
     || '';
   // Caption — fall back to description (image-only assets store their brief
