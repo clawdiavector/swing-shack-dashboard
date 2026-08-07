@@ -916,6 +916,18 @@ def meme_lab_page():
     return send_from_directory(os.path.dirname(__file__), 'meme-lab.html')
 
 
+@app.route('/image-lab', methods=['GET'])
+def image_lab_page():
+    """GET /image-lab — Reference DNA + Product/Service library + learned signals.
+
+    Three-column UI for the full visual generation workflow:
+      - LEFT:   upload references (file / URL / brand library)
+      - MIDDLE: compose prompt + select size/model + generate
+      - RIGHT:  product/service library + learned WIN PROFILE + records
+    """
+    return send_from_directory(os.path.dirname(__file__), 'image-lab.html')
+
+
 @app.route('/brand-images/<brand_id>/<path:filename>', methods=['GET'])
 def brand_image_serve(brand_id, filename):
     """GET /brand-images/<brand>/ — serve a brand-directory image.
@@ -2169,6 +2181,703 @@ def image_from_asset(asset_id):
         return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
     except Exception as e:
         _app_log.exception("image_from_asset failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# =============================================================================
+# Visual Reference Library — point at an image, capture its DNA
+# =============================================================================
+
+
+@app.route('/api/image/references/upload', methods=['POST'])
+def image_reference_upload():
+    """POST /api/image/references/upload — accept a multipart file upload.
+
+    Form fields:
+      file:        the image file
+      brand:       brand_id (default swing-shack)
+      label:       optional human label
+      tags:        comma-separated tags
+
+    Returns the saved reference DNA record.
+    """
+    try:
+        from pathlib import Path
+        import tempfile
+        from _lib.reference_dna import ingest_local_image, save_reference_dna, extract_reference_dna
+
+        if 'file' not in request.files:
+            return jsonify({"ok": False, "error": "missing file field"}), 400
+
+        f = request.files['file']
+        if not f.filename:
+            return jsonify({"ok": False, "error": "empty filename"}), 400
+
+        brand = request.form.get('brand') or get_brand_id() or 'swing-shack'
+        label = request.form.get('label') or None
+        tags_raw = request.form.get('tags', '')
+        tags = [t.strip() for t in tags_raw.split(',') if t.strip()] if tags_raw else None
+
+        # Save to a temp file, then ingest
+        ext = Path(f.filename).suffix.lower() or '.jpg'
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+            f.save(tmp_path)
+
+        try:
+            ref = ingest_local_image(tmp_path, brand, label=label, tags=tags, copy=True)
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        _app_log.exception("image_reference_upload failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/from-url', methods=['POST'])
+def image_reference_from_url():
+    """POST /api/image/references/from-url — download + ingest a reference image from URL.
+
+    Body: {"url": "https://...", "brand": "swing-shack", "label": "...", "tags": [...]}
+    """
+    try:
+        from _lib.reference_dna import ingest_url
+
+        body = request.get_json(force=True, silent=True) or {}
+        url = body.get('url', '').strip()
+        if not url:
+            return jsonify({"ok": False, "error": "missing url"}), 400
+
+        brand = body.get('brand') or get_brand_id() or 'swing-shack'
+        label = body.get('label') or None
+        tags = body.get('tags') or None
+
+        ref = ingest_url(url, brand, label=label, tags=tags)
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        _app_log.exception("image_reference_from_url failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/from-library/<brand_id>/<path:filename>', methods=['POST'])
+def image_reference_from_library(brand_id, filename):
+    """POST /api/image/references/from-library/<brand>/<filename> — use an existing
+    image from the brand directory as a reference.
+
+    Body (optional): {"label": "...", "tags": [...]}
+    """
+    try:
+        from pathlib import Path
+        from _lib.reference_dna import (
+            ingest_local_image, _references_dir
+        )
+
+        # Resolve to brand-directory image
+        candidate = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images' / filename
+        if not candidate.exists():
+            # Try thumbnail or other extensions
+            stem = Path(filename).stem
+            for ext in ['.jpg', '.jpeg', '.png', '.webp']:
+                alt = candidate.with_suffix(ext) if candidate.suffix else candidate.parent / f"{stem}{ext}"
+                if alt.exists():
+                    candidate = alt
+                    break
+            else:
+                return jsonify({"ok": False, "error": f"image not found: {filename}"}), 404
+
+        body = request.get_json(force=True, silent=True) or {}
+        label = body.get('label') or None
+        tags = body.get('tags') or None
+
+        ref = ingest_local_image(candidate, brand_id, label=label, tags=tags, copy=True)
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        _app_log.exception("image_reference_from_library failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/<brand_id>', methods=['GET'])
+def image_references_list(brand_id):
+    """GET /api/image/references/<brand> — list all reference DNA records.
+
+    Query params:
+      product   — filter to refs with this product tag
+      mood      — filter to refs with this mood keyword
+      limit     — cap results (default 100)
+    """
+    try:
+        from _lib.reference_dna import list_reference_dnas, select_references
+
+        product = request.args.get('product', '').strip() or None
+        mood = request.args.get('mood', '').strip() or None
+        limit = min(int(request.args.get('limit', '100') or '100'), 500)
+
+        if product or mood:
+            refs = select_references(
+                brand_id,
+                product=product, mood=mood, limit=limit
+            )
+        else:
+            refs = list_reference_dnas(brand_id)[:limit]
+
+        return jsonify({
+            "ok": True,
+            "brand": brand_id,
+            "count": len(refs),
+            "references": refs,
+        })
+    except Exception as e:
+        _app_log.exception("image_references_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/<brand_id>/<ref_id>', methods=['GET'])
+def image_reference_get(brand_id, ref_id):
+    """GET /api/image/references/<brand>/<ref_id> — get a single reference DNA."""
+    try:
+        from _lib.reference_dna import load_reference_dna
+        ref = load_reference_dna(ref_id, brand_id)
+        if not ref:
+            return jsonify({"ok": False, "error": f"reference {ref_id} not found"}), 404
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        _app_log.exception("image_reference_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/<brand_id>/<ref_id>', methods=['DELETE'])
+def image_reference_delete(brand_id, ref_id):
+    """DELETE /api/image/references/<brand>/<ref_id> — delete a reference."""
+    try:
+        from _lib.reference_dna import delete_reference_dna
+        ok = delete_reference_dna(ref_id, brand_id)
+        return jsonify({"ok": ok})
+    except Exception as e:
+        _app_log.exception("image_reference_delete failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/<brand_id>/<ref_id>/thumbnail', methods=['GET'])
+def image_reference_thumbnail(brand_id, ref_id):
+    """GET /api/image/references/<brand>/<ref_id>/thumbnail — serve the thumbnail JPG."""
+    try:
+        from pathlib import Path
+        from _lib.reference_dna import _default_brand_root
+        thumb_dir = _default_brand_root() / brand_id / "references" / "thumbnails"
+        target = thumb_dir / f"{ref_id}.jpg"
+        if not target.exists():
+            return jsonify({"ok": False, "error": "thumbnail not found"}), 404
+        return send_from_directory(str(target.parent), target.name)
+    except Exception as e:
+        _app_log.exception("image_reference_thumbnail failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/from-reference/<brand_id>/<ref_id>', methods=['POST'])
+def image_from_reference(brand_id, ref_id):
+    """POST /api/image/from-reference/<brand>/<ref_id> — generate a new image that
+    mimics the look of the given reference.
+
+    Body: {"prompt": "...", "size": "1024x1024", "model": "...",
+           "extra_reference_ids": [...], "product_ids": [...], "service_ids": [...]}
+    """
+    try:
+        from _lib.reference_dna import load_reference_dna
+        from _lib.product_service_library import get_item
+        from _lib.feedback_loop import load_learned_signals
+        from _lib.image_gen_router import generate_image
+
+        ref = load_reference_dna(ref_id, brand_id)
+        if not ref:
+            return jsonify({"ok": False, "error": f"reference {ref_id} not found"}), 404
+
+        body = request.get_json(force=True, silent=True) or {}
+        prompt = (body.get('prompt') or '').strip()
+        if not prompt:
+            prompt = ref.get('label', 'reference-inspired image')
+
+        size = body.get('size', '1024x1024')
+        model = body.get('model') or None
+
+        # Collect reference DNAs
+        references = [ref]
+        for extra_id in body.get('extra_reference_ids') or []:
+            r = load_reference_dna(extra_id, brand_id)
+            if r:
+                references.append(r)
+
+        # Collect product/service items
+        items = []
+        for pid in body.get('product_ids') or []:
+            it = get_item(brand_id, pid)
+            if it:
+                items.append(it)
+        for sid in body.get('service_ids') or []:
+            it = get_item(brand_id, sid)
+            if it:
+                items.append(it)
+
+        # Load learned signals
+        signals = load_learned_signals(brand_id)
+
+        result = generate_image(
+            prompt=prompt,
+            brand_id=brand_id,
+            reference_dnas=references,
+            product_service_items=items,
+            learned_signals=signals,
+            size=size,
+            model=model,
+            save=True,
+        )
+
+        return jsonify({
+            "ok": True,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "prompt_used": result.prompt_used,
+            "saved_path": result.saved_path,
+            "warning": result.warning,
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_from_reference failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# =============================================================================
+# Product & Service Library — the "what do we sell" database
+# =============================================================================
+
+
+@app.route('/api/library/<brand_id>/items', methods=['GET'])
+def library_items_list(brand_id):
+    """GET /api/library/<brand>/items — list all products, services, offerings.
+
+    Query params:
+      kind: product | service | offering (default: all)
+      seed: if 'true', seed defaults first (idempotent)
+    """
+    try:
+        from _lib.product_service_library import (
+            load_library, seed_defaults, list_items
+        )
+
+        if request.args.get('seed', '').lower() in ('1', 'true', 'yes'):
+            seed_defaults(brand_id)
+
+        kind = request.args.get('kind', '').strip() or None
+        items = list_items(brand_id, kind=kind)
+        lib = load_library(brand_id)
+
+        return jsonify({
+            "ok": True,
+            "brand": brand_id,
+            "kind_filter": kind,
+            "count": len(items),
+            "items": items,
+            "totals": {
+                "products": len(lib.get("products", [])),
+                "services": len(lib.get("services", [])),
+                "offerings": len(lib.get("offerings", [])),
+            },
+        })
+    except Exception as e:
+        _app_log.exception("library_items_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>', methods=['GET'])
+def library_item_get(brand_id, item_id):
+    """GET /api/library/<brand>/items/<id> — get a single item."""
+    try:
+        from _lib.product_service_library import get_item
+        item = get_item(brand_id, item_id)
+        if not item:
+            return jsonify({"ok": False, "error": f"item {item_id} not found"}), 404
+        return jsonify({"ok": True, "item": item})
+    except Exception as e:
+        _app_log.exception("library_item_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items', methods=['POST'])
+def library_item_create(brand_id):
+    """POST /api/library/<brand>/items — create a new product/service/offering."""
+    try:
+        from _lib.product_service_library import add_item
+
+        body = request.get_json(force=True, silent=True) or {}
+        kind = body.get('kind', '').strip()
+        name = body.get('name', '').strip()
+        if not kind or not name:
+            return jsonify({"ok": False, "error": "kind and name are required"}), 400
+
+        item = add_item(brand_id, **body)
+        return jsonify({"ok": True, "item": item})
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("library_item_create failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>', methods=['PUT'])
+def library_item_update(brand_id, item_id):
+    """PUT /api/library/<brand>/items/<id> — update fields on an item."""
+    try:
+        from _lib.product_service_library import update_item
+
+        body = request.get_json(force=True, silent=True) or {}
+        updated = update_item(brand_id, item_id, **body)
+        if not updated:
+            return jsonify({"ok": False, "error": f"item {item_id} not found"}), 404
+        return jsonify({"ok": True, "item": updated})
+    except Exception as e:
+        _app_log.exception("library_item_update failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>', methods=['DELETE'])
+def library_item_delete(brand_id, item_id):
+    """DELETE /api/library/<brand>/items/<id> — remove an item."""
+    try:
+        from _lib.product_service_library import delete_item
+        ok = delete_item(brand_id, item_id)
+        return jsonify({"ok": ok})
+    except Exception as e:
+        _app_log.exception("library_item_delete failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>/attach-reference', methods=['POST'])
+def library_item_attach(brand_id, item_id):
+    """POST /api/library/<brand>/items/<id>/attach-reference — attach a reference DNA."""
+    try:
+        from _lib.product_service_library import attach_reference
+
+        body = request.get_json(force=True, silent=True) or {}
+        ref_id = body.get('ref_id', '').strip()
+        as_hero = bool(body.get('as_hero', False))
+        if not ref_id:
+            return jsonify({"ok": False, "error": "ref_id required"}), 400
+
+        item = attach_reference(brand_id, item_id, ref_id, as_hero=as_hero)
+        if not item:
+            return jsonify({"ok": False, "error": "attach failed (ref or item missing)"}), 404
+        return jsonify({"ok": True, "item": item})
+    except Exception as e:
+        _app_log.exception("library_item_attach failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>/detach-reference', methods=['POST'])
+def library_item_detach(brand_id, item_id):
+    """POST /api/library/<brand>/items/<id>/detach-reference — detach a reference DNA."""
+    try:
+        from _lib.product_service_library import detach_reference
+
+        body = request.get_json(force=True, silent=True) or {}
+        ref_id = body.get('ref_id', '').strip()
+        if not ref_id:
+            return jsonify({"ok": False, "error": "ref_id required"}), 400
+
+        item = detach_reference(brand_id, item_id, ref_id)
+        if not item:
+            return jsonify({"ok": False, "error": "detach failed"}), 404
+        return jsonify({"ok": True, "item": item})
+    except Exception as e:
+        _app_log.exception("library_item_detach failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/from-product/<brand_id>/<item_id>', methods=['POST'])
+def image_from_product(brand_id, item_id):
+    """POST /api/image/from-product/<brand>/<item_id> — generate a promotional image
+    for a specific product/service/offering.
+
+    Body: {"prompt": "...", "size": "1024x1024", "extra_reference_ids": [...],
+           "extra_product_ids": [...], "extra_service_ids": [...]}
+    """
+    try:
+        from _lib.product_service_library import get_item, attach_reference
+        from _lib.reference_dna import load_reference_dna
+        from _lib.feedback_loop import load_learned_signals
+        from _lib.image_gen_router import generate_image
+
+        item = get_item(brand_id, item_id)
+        if not item:
+            return jsonify({"ok": False, "error": f"item {item_id} not found"}), 404
+
+        body = request.get_json(force=True, silent=True) or {}
+        prompt = (body.get('prompt') or '').strip()
+        if not prompt:
+            # Auto-build a prompt from the item
+            prompt = f"{item.get('name', '')} — {item.get('headline', '')}"
+
+        size = body.get('size', '1024x1024')
+        model = body.get('model') or None
+
+        # Pull the item's attached references (hero first)
+        references = []
+        hero_id = item.get('hero_ref_id')
+        ref_ids = list(item.get('reference_ref_ids') or [])
+        if hero_id and hero_id in ref_ids:
+            ref_ids.remove(hero_id)
+            ref_ids.insert(0, hero_id)
+        for rid in ref_ids:
+            r = load_reference_dna(rid, brand_id)
+            if r:
+                references.append(r)
+
+        # Add any extra explicit references
+        for extra_id in body.get('extra_reference_ids') or []:
+            r = load_reference_dna(extra_id, brand_id)
+            if r and r not in references:
+                references.append(r)
+
+        # Items list — start with this item, then any extras
+        items = [item]
+        for pid in body.get('extra_product_ids') or []:
+            it = get_item(brand_id, pid)
+            if it and it not in items:
+                items.append(it)
+        for sid in body.get('extra_service_ids') or []:
+            it = get_item(brand_id, sid)
+            if it and it not in items:
+                items.append(it)
+
+        # Load learned signals
+        signals = load_learned_signals(brand_id)
+
+        result = generate_image(
+            prompt=prompt,
+            brand_id=brand_id,
+            reference_dnas=references,
+            product_service_items=items,
+            learned_signals=signals,
+            size=size,
+            model=model,
+            save=True,
+        )
+
+        return jsonify({
+            "ok": True,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "prompt_used": result.prompt_used,
+            "saved_path": result.saved_path,
+            "warning": result.warning,
+            "item_id": item_id,
+            "references_used": [r["ref_id"] for r in references],
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_from_product failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# =============================================================================
+# Feedback Loop — per-image performance capture + learned signals
+# =============================================================================
+
+
+@app.route('/api/image/feedback/record', methods=['POST'])
+def feedback_record():
+    """POST /api/image/feedback/record — capture a performance signal for one image.
+
+    Body: {
+        "image_id": "ref-xxx" or "generated-xxx",
+        "kind": "reference" or "generated",
+        "source": "ig" | "ga4" | "gmb" | "manual" | "import",
+        "captured_signal": {"likes": ..., "saves": ..., ...},
+        "dna_snapshot": {...} or omit,
+        "platform_post_id": "..." optional,
+        "notes": "..."
+    }
+    """
+    try:
+        from _lib.feedback_loop import add_record
+
+        body = request.get_json(force=True, silent=True) or {}
+        brand = body.get('brand') or get_brand_id() or 'swing-shack'
+
+        required = ['image_id', 'kind', 'source', 'captured_signal']
+        missing = [k for k in required if not body.get(k)]
+        if missing:
+            return jsonify({"ok": False, "error": f"missing fields: {missing}"}), 400
+
+        record = add_record(brand, **body)
+        return jsonify({"ok": True, "record": record})
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("feedback_record failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/feedback/import-ig', methods=['POST'])
+def feedback_import_ig():
+    """POST /api/image/feedback/import-ig — bulk import IG metrics for many posts.
+
+    Body: {
+        "brand": "swing-shack",
+        "records": [
+            {
+                "image_id": "ref-xxx",
+                "post_id": "ig_post_123",
+                "impressions": ..., "likes": ..., ...
+            },
+            ...
+        ]
+    }
+
+    Computes scores and persists records + DNA snapshot (looked up from
+    the library if image_id is a ref_id).
+    """
+    try:
+        from _lib.feedback_loop import add_record
+        from _lib.reference_dna import load_reference_dna
+
+        body = request.get_json(force=True, silent=True) or {}
+        brand = body.get('brand') or get_brand_id() or 'swing-shack'
+        records_in = body.get('records') or []
+        if not records_in:
+            return jsonify({"ok": False, "error": "no records provided"}), 400
+
+        imported = 0
+        errors: list[str] = []
+        for r in records_in:
+            try:
+                image_id = r.get('image_id', '').strip()
+                post_id = r.get('post_id', '').strip() or None
+                if not image_id:
+                    continue
+
+                signal = {k: v for k, v in r.items()
+                          if k in ('impressions', 'likes', 'comments', 'saves', 'reach',
+                                   'link_clicks', 'ga_sessions', 'ga_conversions',
+                                   'gmb_calls', 'bookings')}
+
+                # Look up DNA from library if image_id looks like a ref
+                dna_snapshot = r.get('dna_snapshot')
+                if not dna_snapshot:
+                    ref = load_reference_dna(image_id, brand)
+                    if ref:
+                        from _lib.feedback_loop import snapshot_from_reference
+                        dna_snapshot = snapshot_from_reference(ref)
+
+                add_record(
+                    brand,
+                    image_id=image_id,
+                    kind='reference',
+                    source='ig',
+                    captured_signal=signal,
+                    dna_snapshot=dna_snapshot or {},
+                    platform_post_id=post_id,
+                    notes=r.get('notes', ''),
+                )
+                imported += 1
+            except Exception as e:
+                errors.append(str(e))
+
+        return jsonify({"ok": True, "imported": imported, "errors": errors[:5]})
+    except Exception as e:
+        _app_log.exception("feedback_import_ig failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/feedback/<brand_id>', methods=['GET'])
+def feedback_list(brand_id):
+    """GET /api/image/feedback/<brand> — list performance records."""
+    try:
+        from _lib.feedback_loop import list_records, summary
+
+        min_score = request.args.get('min_score')
+        kind = request.args.get('kind', '').strip() or None
+        limit = min(int(request.args.get('limit', '50') or '50'), 500)
+
+        recs = list_records(
+            brand_id,
+            min_score=float(min_score) if min_score else None,
+            kind=kind,
+            limit=limit,
+        )
+        return jsonify({
+            "ok": True,
+            "brand": brand_id,
+            "count": len(recs),
+            "records": recs,
+            "summary": summary(brand_id),
+        })
+    except Exception as e:
+        _app_log.exception("feedback_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/feedback/<brand_id>/learned', methods=['GET'])
+def feedback_learned(brand_id):
+    """GET /api/image/feedback/<brand>/learned — computed WIN PROFILE + preferences."""
+    try:
+        from _lib.feedback_loop import load_learned_signals, compute_learned_signals
+
+        # If the request includes ?recompute=1, force recompute
+        if request.args.get('recompute') == '1':
+            from _lib.feedback_loop import save_learned_signals
+            signals = compute_learned_signals(brand_id)
+            save_learned_signals(signals, brand_id)
+        else:
+            signals = load_learned_signals(brand_id)
+
+        return jsonify({"ok": True, "signals": signals})
+    except Exception as e:
+        _app_log.exception("feedback_learned failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/feedback/<brand_id>/threshold', methods=['PUT'])
+def feedback_threshold(brand_id):
+    """PUT /api/image/feedback/<brand>/threshold — adjust the win threshold.
+
+    Body: {"win_threshold": 0.7}
+    """
+    try:
+        from _lib.feedback_loop import load_performance, save_performance, compute_learned_signals, save_learned_signals
+
+        body = request.get_json(force=True, silent=True) or {}
+        threshold = float(body.get('win_threshold', 0.65))
+        if not (0.0 < threshold <= 1.0):
+            return jsonify({"ok": False, "error": "threshold must be in (0, 1]"}), 400
+
+        perf = load_performance(brand_id)
+        perf['win_threshold'] = threshold
+        save_performance(perf, brand_id)
+
+        # Recompute signals
+        signals = compute_learned_signals(brand_id)
+        save_learned_signals(signals, brand_id)
+
+        return jsonify({"ok": True, "win_threshold": threshold, "signals": signals})
+    except Exception as e:
+        _app_log.exception("feedback_threshold failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

@@ -248,6 +248,72 @@ def _detect_logo_preserve_drift(instruction: str) -> bool:
     return bool(_PRESERVE_TRIGGERS.search(instruction or ""))
 
 
+def _compose_full_prompt(
+    user_prompt: str,
+    *,
+    brand_id: Optional[str] = None,
+    brand_recipe: Optional[dict] = None,
+    reference_dnas: Optional[list[dict]] = None,
+    product_service_items: Optional[list[dict]] = None,
+    learned_signals: Optional[dict] = None,
+) -> str:
+    """Compose the final prompt by stacking all 4 context layers.
+
+    Order (matters — each layer constrains the next):
+      1. Learned WIN PROFILE         (self-improvement signal from feedback loop)
+      2. Reference DNA fragments      (visual look the user pointed at)
+      3. Product / service fragments  (what we're selling)
+      4. Brand recipe summary        (palette + mood + object summary)
+      5. User's raw prompt           (the specific ask, last word on subject)
+
+    All layers are optional and degrade gracefully if missing.
+    """
+    parts: list[str] = [user_prompt.strip()]
+
+    # Layer 4: brand recipe (always lowest priority — sets the brand safety net)
+    recipe_enhanced = enhance_prompt_with_recipe(user_prompt, brand_recipe)
+    if recipe_enhanced != user_prompt.strip():
+        # Strip the user's prompt from the recipe-enhanced version — keep only the additions
+        addition = recipe_enhanced[len(user_prompt.strip()):].lstrip(". ")
+        if addition:
+            parts.append(addition)
+
+    # Layer 3: product/service items
+    if product_service_items:
+        for item in product_service_items:
+            try:
+                from _lib.product_service_library import item_to_prompt
+                frag = item_to_prompt(item, max_chars=400)
+                if frag:
+                    parts.append(frag)
+            except Exception:
+                continue
+
+    # Layer 2: reference DNAs
+    if reference_dnas:
+        try:
+            from _lib.reference_dna import reference_dna_to_prompt
+            for ref in reference_dnas:
+                frag = reference_dna_to_prompt(ref)
+                if frag:
+                    parts.append(frag)
+        except Exception:
+            pass
+
+    # Layer 1: learned signals — prepended LAST so it has first word on style
+    if learned_signals and learned_signals.get("ready"):
+        try:
+            from _lib.feedback_loop import signals_to_prompt
+            win_frag = signals_to_prompt(learned_signals)
+            if win_frag:
+                parts.append(win_frag)
+        except Exception:
+            pass
+
+    joined = " ".join(parts)
+    return joined if joined else user_prompt.strip()
+
+
 def enhance_prompt_with_recipe(prompt: str, recipe: Optional[dict]) -> str:
     """Merge brand recipe DNA into the caller's prompt. Returns the new prompt.
 
@@ -486,6 +552,9 @@ def generate_image(
     *,
     brand_id: Optional[str] = None,
     brand_recipe: Optional[dict] = None,
+    reference_dnas: Optional[list[dict]] = None,
+    product_service_items: Optional[list[dict]] = None,
+    learned_signals: Optional[dict] = None,
     size: str = "1024x1024",
     n: int = 1,
     model: Optional[str] = None,
@@ -503,6 +572,12 @@ def generate_image(
                   None = no save, bytes returned only.
         brand_recipe: Optional recipe dict from /api/visual-library/<brand>/recipe.
                       When supplied, palette/mood/objects/summary merge into the prompt.
+        reference_dnas: List of Reference DNA dicts to inject as visual style cues.
+                         Each gets converted to a prompt fragment via reference_dna_to_prompt().
+        product_service_items: List of product/service dicts from product_service_library.
+                               Each gets converted via item_to_prompt() and injected.
+        learned_signals: Learned WIN PROFILE dict from feedback_loop.
+                         When supplied and 'ready', the signals prepend to the prompt.
         size: One of "1024x1024" (default), "1024x1792" (vertical), "1792x1024" (landscape).
               Nano Banana emits 1024² native; non-square sizes may be padded/cropped.
         n: Number of images (1-4). OpenRouter routes are typically 1; n>1 requires OpenAI.
@@ -534,7 +609,14 @@ def generate_image(
                 "OpenAI key not configured. Set OPENAI_API_KEY env var or "
                 f"OPENAI_API_KEY_FILE / canonical fallback {DEFAULT_OPENAI_TOKEN_FILE}."
             )
-        enhanced = enhance_prompt_with_recipe(prompt, brand_recipe)
+        enhanced = _compose_full_prompt(
+            prompt,
+            brand_id=brand_id,
+            brand_recipe=brand_recipe,
+            reference_dnas=reference_dnas,
+            product_service_items=product_service_items,
+            learned_signals=learned_signals,
+        )
         api_resp = _call_openai_generate(
             prompt=enhanced, model=model, size=size, n=n, timeout_s=timeout_s
         )
@@ -579,7 +661,14 @@ def generate_image(
                 "OpenRouter key not configured. Set OPENROUTER_API_KEY env var or "
                 f"OPENROUTER_API_KEY_FILE / canonical fallback {DEFAULT_OPENROUTER_TOKEN_FILE}."
             )
-        enhanced = enhance_prompt_with_recipe(prompt, brand_recipe)
+        enhanced = _compose_full_prompt(
+            prompt,
+            brand_id=brand_id,
+            brand_recipe=brand_recipe,
+            reference_dnas=reference_dnas,
+            product_service_items=product_service_items,
+            learned_signals=learned_signals,
+        )
         # OpenRouter multimodal: text-only content for gen (no source image)
         content = [{"type": "text", "text": enhanced.strip()}]
         api_resp = _call_openrouter_multimodal(
