@@ -596,6 +596,7 @@ a:hover{text-decoration:underline}
 .meme-templates-strip .meme-tile{aspect-ratio:1/1;background:var(--bg-3);border-radius:6px;overflow:hidden;cursor:pointer;position:relative;border:1px solid var(--bg-3);transition:transform .12s}
 .meme-templates-strip .meme-tile:hover{transform:scale(1.03);border-color:var(--ac)}
 .meme-templates-strip .meme-tile img{width:100%;height:100%;object-fit:cover}
+.meme-templates-strip .meme-tile-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:42px;background:linear-gradient(135deg,var(--bg-3),var(--bg-2));color:var(--tx-3)}
 .meme-templates-strip .meme-tile-label{position:absolute;left:0;right:0;bottom:0;padding:.25rem .4rem;background:linear-gradient(to top,rgba(0,0,0,.85),transparent);color:#fff;font-size:10px;font-weight:600;line-height:1.1}
 .meme-templates-strip .meme-tile-tier{position:absolute;top:.25rem;right:.25rem;font-size:9px;padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.7);color:#fff;text-transform:uppercase}
 .meme-templates-strip .meme-tile-tier.iconic{background:var(--ac)}
@@ -7957,7 +7958,7 @@ async function renderMemeTemplatesStrip(){
   strip.innerHTML = filtered.map(t => `
     <div class="meme-tile" data-template-id="${esc(t.id)}" title="${esc(t.name)} — ${esc(t.text_zones.join(', '))}">
       <img src="${esc(t.thumbnail_url)}" loading="lazy" alt="${esc(t.name)}"
-           onerror="this.style.opacity=0.15;this.setAttribute('alt','image not available')"/>
+           onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'meme-tile-fallback',textContent:'🎭',title:'${esc(t.name)} (thumbnail unavailable)'}));console.warn('[meme-templates] thumbnail missing:',this.dataset?.src||this.src)"/>
       <span class="meme-tile-tier ${esc(t.tier)}">${esc(t.tier)}</span>
       <span class="meme-tile-label">${esc(t.name)}</span>
     </div>
