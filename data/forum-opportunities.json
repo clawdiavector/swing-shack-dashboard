@@ -1,13 +1,13 @@
 {
   "schema": "https://clawdia.io/agents/reddit-ghost/v1",
-  "generated": "2026-04-22T08:51:13.975Z",
+  "generated": "2026-08-06T09:03:26.383Z",
   "total": 2,
   "ready_for_qa": 2,
   "opportunities": [
     {
-      "opp_id": "bo-sr9n4wt0",
+      "opp_id": "bo-czshrn0g",
       "schema": "https://clawdia.io/agents/reddit-ghost/v1",
-      "generated": "2026-04-22T08:51:13.975Z",
+      "generated": "2026-08-06T09:03:26.383Z",
       "platform": "golf-specific forums / Reddit wiki",
       "opportunity_type": "wiki_contribution",
       "suggested_page": "Indoor golf Johannesburg resource page",
@@ -18,9 +18,9 @@
       "ready_for_qa": true
     },
     {
-      "opp_id": "bo-5m7d0v9o",
+      "opp_id": "bo-l4ihp1rj",
       "schema": "https://clawdia.io/agents/reddit-ghost/v1",
-      "generated": "2026-04-22T08:51:13.975Z",
+      "generated": "2026-08-06T09:03:26.383Z",
       "platform": "r/golf wiki",
       "opportunity_type": "wiki_contribution",
       "suggested_page": "Golf improvement resources",

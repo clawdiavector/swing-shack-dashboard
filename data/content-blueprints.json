@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/content-architect/v1",
-  "generated": "2026-08-06T09:00:07.434Z",
+  "generated": "2026-08-06T09:03:26.295Z",
   "blueprint_count": 8,
   "formats": {
     "static": 6,
@@ -16,7 +16,7 @@
     {
       "blueprint_id": "bp-plan-2026-08-06-001",
       "schema": "https://clawdia.io/agents/content-architect/v1",
-      "generated": "2026-08-06T09:00:07.434Z",
+      "generated": "2026-08-06T09:03:26.295Z",
       "source": "post_plan",
       "format_type": "static",
       "objective": "reach",
@@ -37,7 +37,7 @@
     {
       "blueprint_id": "bp-plan-2026-08-06-002",
       "schema": "https://clawdia.io/agents/content-architect/v1",
-      "generated": "2026-08-06T09:00:07.434Z",
+      "generated": "2026-08-06T09:03:26.295Z",
       "source": "post_plan",
       "format_type": "static",
       "objective": "reach",
@@ -58,7 +58,7 @@
     {
       "blueprint_id": "bp-plan-2026-08-06-003",
       "schema": "https://clawdia.io/agents/content-architect/v1",
-      "generated": "2026-08-06T09:00:07.434Z",
+      "generated": "2026-08-06T09:03:26.295Z",
       "source": "post_plan",
       "format_type": "static",
       "objective": "bookings",
@@ -79,7 +79,7 @@
     {
       "blueprint_id": "bp-plan-2026-08-06-004",
       "schema": "https://clawdia.io/agents/content-architect/v1",
-      "generated": "2026-08-06T09:00:07.434Z",
+      "generated": "2026-08-06T09:03:26.295Z",
       "source": "post_plan",
       "format_type": "static",
       "objective": "saves",
@@ -100,7 +100,7 @@
     {
       "blueprint_id": "bp-plan-2026-08-06-005",
       "schema": "https://clawdia.io/agents/content-architect/v1",
-      "generated": "2026-08-06T09:00:07.434Z",
+      "generated": "2026-08-06T09:03:26.295Z",
       "source": "post_plan",
       "format_type": "static",
       "objective": "awareness",
@@ -121,7 +121,7 @@
     {
       "blueprint_id": "bp-2026-08-06-003",
       "schema": "https://clawdia.io/agents/content-architect/v1",
-      "generated": "2026-08-06T09:00:07.434Z",
+      "generated": "2026-08-06T09:03:26.295Z",
       "source_hook_id": "sub-70-clubs-are-now-available-for-fitting-at-swin",
       "source_hook_text": "Sub 70 clubs are now available for fitting at Swing Shack.",
       "ig_proof_score": null,
@@ -152,7 +152,7 @@
     {
       "blueprint_id": "bp-2026-08-06-001",
       "schema": "https://clawdia.io/agents/content-architect/v1",
-      "generated": "2026-08-06T09:00:07.434Z",
+      "generated": "2026-08-06T09:03:26.295Z",
       "source_hook_id": "and-we-certainly-do-have-spirit-----visit-swingsha",
       "source_hook_text": "And we certainly do have spirit 🤣. Visit SwingShack today for all your golfing ",
       "ig_proof_score": 1.28,
@@ -181,7 +181,7 @@
     {
       "blueprint_id": "bp-2026-08-06-002",
       "schema": "https://clawdia.io/agents/content-architect/v1",
-      "generated": "2026-08-06T09:00:07.434Z",
+      "generated": "2026-08-06T09:03:26.295Z",
       "source_hook_id": "book-your-ball-fitting-at-swing-shack-today--dm-us",
       "source_hook_text": "Book your ball fitting at Swing Shack today. DM us or book online.",
       "ig_proof_score": 0.32,

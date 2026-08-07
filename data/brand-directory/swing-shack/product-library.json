@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "brand": "swing-shack",
+  "updated": 1786088333.724424,
+  "products": [
+    {
+      "id": "product-trackman",
+      "name": "TrackMan Launch Monitor",
+      "category": "launch-monitor",
+      "headline": "Tour-grade data for your game",
+      "description": "Dual-radar launch monitor used on tour. See club speed, ball speed, launch angle, spin, smash factor, and carry distance for every shot.",
+      "tags": [
+        "premium",
+        "fitting",
+        "hardware",
+        "data"
+      ],
+      "default_palette": [
+        "#0b0d0e",
+        "#f5c842"
+      ],
+      "preferred_mood": [
+        "dark",
+        "studio",
+        "premium"
+      ],
+      "default_prompt_seed": "Premium product photography, dark backdrop, side-lit with rim light, no people",
+      "kind": "product",
+      "reference_ref_ids": [],
+      "hero_ref_id": null,
+      "performance_summary": {},
+      "created": 1786088333.720205
+    },
+    {
+      "id": "product-gts-putter",
+      "name": "GTS Putter",
+      "category": "putter",
+      "headline": "Your stroke, perfected",
+      "description": "GTS (Get The Stroke) putters \u2014 custom fit and balanced to your stroke. Available in multiple head shapes.",
+      "tags": [
+        "premium",
+        "putting",
+        "fitting"
+      ],
+      "default_palette": [
+        "#1a1a1a",
+        "#c8b273"
+      ],
+      "preferred_mood": [
+        "studio",
+        "premium"
+      ],
+      "default_prompt_seed": "Premium putter product photography, dark studio backdrop, soft side light, sharp focus on head",
+      "kind": "product",
+      "reference_ref_ids": [],
+      "hero_ref_id": null,
+      "performance_summary": {},
+      "created": 1786088333.720205
+    },
+    {
+      "id": "product-zen-swing-stage",
+      "name": "Zen Swing Stage",
+      "category": "training-aid",
+      "headline": "Find your perfect impact position",
+      "description": "Tour-grade swing training aid that locks the perfect impact position and lets you feel the right move.",
+      "tags": [
+        "training",
+        "premium",
+        "instruction"
+      ],
+      "default_palette": [
+        "#0d0d0d",
+        "#d4a849"
+      ],
+      "preferred_mood": [
+        "studio",
+        "premium"
+      ],
+      "default_prompt_seed": "Studio product shot of a golf training aid, dark backdrop, dramatic side lighting",
+      "kind": "product",
+      "reference_ref_ids": [],
+      "hero_ref_id": null,
+      "performance_summary": {},
+      "created": 1786088333.720205
+    },
+    {
+      "id": "product-takomo-101",
+      "name": "Takomo 101T Irons",
+      "category": "iron-set",
+      "headline": "Forged feel, modern distance",
+      "description": "Tour-style forged cavity-back irons with the look and feel of a players iron at game-improvement distance.",
+      "tags": [
+        "iron-set",
+        "premium",
+        "fitting"
+      ],
+      "default_palette": [
+        "#1c1c1c",
+        "#c0a062"
+      ],
+      "preferred_mood": [
+        "studio",
+        "premium"
+      ],
+      "default_prompt_seed": "Premium iron-set product photography, dark studio, multiple clubs fanned, sharp",
+      "kind": "product",
+      "reference_ref_ids": [],
+      "hero_ref_id": null,
+      "performance_summary": {},
+      "created": 1786088333.720205
+    },
+    {
+      "id": "product-mileseey-rangefinder",
+      "name": "Mileseey Rangefinder",
+      "category": "rangefinder",
+      "headline": "Pin-lock precision",
+      "description": "High-accuracy golf rangefinder with pin-lock vibration and slope-adjusted distance.",
+      "tags": [
+        "rangefinder",
+        "premium",
+        "tech"
+      ],
+      "default_palette": [
+        "#0a0a0a",
+        "#e74c3c"
+      ],
+      "preferred_mood": [
+        "studio",
+        "tech"
+      ],
+      "default_prompt_seed": "Rangefinder product shot, studio, dark backdrop with red accent lighting",
+      "kind": "product",
+      "reference_ref_ids": [],
+      "hero_ref_id": null,
+      "performance_summary": {},
+      "created": 1786088333.720205
+    }
+  ],
+  "services": [
+    {
+      "id": "service-coaching-1on1",
+      "name": "1-on-1 Coaching",
+      "category": "instruction",
+      "headline": "Your swing, decoded",
+      "description": "Private 60-minute coaching session. Video analysis, launch monitor data, and a personalised drill plan. With a PGA pro at our indoor studio.",
+      "tags": [
+        "premium",
+        "transformation",
+        "1-on-1"
+      ],
+      "default_palette": [
+        "#0b0d0e",
+        "#f5c842"
+      ],
+      "preferred_mood": [
+        "premium",
+        "studio"
+      ],
+      "default_prompt_seed": "Premium coaching promo, indoor studio setting, dark moody backdrop, motion blur on swing",
+      "kind": "service",
+      "reference_ref_ids": [],
+      "hero_ref_id": null,
+      "performance_summary": {},
+      "created": 1786088333.720205,
+      "updated": 1786088333.724385
+    },
+    {
+      "id": "service-fitting",
+      "name": "Club Fitting",
+      "category": "fitting",
+      "headline": "From data to driver",
+      "description": "TrackMan-driven club fitting. We use launch monitor data + swing DNA to dial in every club in your bag.",
+      "tags": [
+        "premium",
+        "fitting",
+        "data"
+      ],
+      "default_palette": [
+        "#0d0d0d",
+        "#d4a849"
+      ],
+      "preferred_mood": [
+        "studio",
+        "data"
+      ],
+      "default_prompt_seed": "Fitting session, indoor studio, TrackMan screen in background, premium feel",
+      "kind": "service",
+      "reference_ref_ids": [],
+      "hero_ref_id": null,
+      "performance_summary": {},
+      "created": 1786088333.720205
+    },
+    {
+      "id": "service-beginner-lessons",
+      "name": "Beginner Lessons",
+      "category": "instruction",
+      "headline": "New to golf? Start here.",
+      "description": "4-pack of beginner lessons covering grip, stance, swing basics, and short game. Indoor studio, no pressure.",
+      "tags": [
+        "beginner",
+        "entry-level"
+      ],
+      "default_palette": [
+        "#2c3e50",
+        "#27ae60"
+      ],
+      "preferred_mood": [
+        "bright",
+        "approachable"
+      ],
+      "default_prompt_seed": "Approachable beginner-friendly golf lesson scene, indoor studio, warm tones, welcoming",
+      "kind": "service",
+      "reference_ref_ids": [],
+      "hero_ref_id": null,
+      "performance_summary": {},
+      "created": 1786088333.720205
+    },
+    {
+      "id": "service-ladies-lessons",
+      "name": "Ladies Lessons",
+      "category": "instruction",
+      "headline": "Your game. Your community.",
+      "description": "Ladies-only coaching sessions. Group format, relaxed atmosphere, expert instruction.",
+      "tags": [
+        "ladies",
+        "community",
+        "group"
+      ],
+      "default_palette": [
+        "#8e44ad",
+        "#e91e63"
+      ],
+      "preferred_mood": [
+        "bright",
+        "community"
+      ],
+      "default_prompt_seed": "Ladies-only golf session, indoor studio, warm welcoming tones, group setting",
+      "kind": "service",
+      "reference_ref_ids": [],
+      "hero_ref_id": null,
+      "performance_summary": {},
+      "created": 1786088333.720205
+    }
+  ],
+  "offerings": []
+}

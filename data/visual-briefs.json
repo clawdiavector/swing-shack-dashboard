@@ -1,13 +1,13 @@
 {
   "schema": "https://clawdia.io/agents/visual-forge/v1",
-  "generated": "2026-08-06T09:00:07.475Z",
+  "generated": "2026-08-06T09:03:26.339Z",
   "total": 8,
   "ready_for_qa": 8,
   "briefs": [
     {
-      "brief_id": "vb-g9k77cvo",
+      "brief_id": "vb-ldswsw7z",
       "schema": "https://clawdia.io/agents/visual-forge/v1",
-      "generated": "2026-08-06T09:00:07.474Z",
+      "generated": "2026-08-06T09:03:26.338Z",
       "linked_blueprint_id": "bp-plan-2026-08-06-001",
       "linked_hook_id": null,
       "format_type": "static",
@@ -42,9 +42,9 @@
       "next_action": "Execute prompt via image AI, QA output"
     },
     {
-      "brief_id": "vb-c478z1q7",
+      "brief_id": "vb-fq4xv1n5",
       "schema": "https://clawdia.io/agents/visual-forge/v1",
-      "generated": "2026-08-06T09:00:07.475Z",
+      "generated": "2026-08-06T09:03:26.339Z",
       "linked_blueprint_id": "bp-plan-2026-08-06-002",
       "linked_hook_id": null,
       "format_type": "static",
@@ -79,9 +79,9 @@
       "next_action": "Execute prompt via image AI, QA output"
     },
     {
-      "brief_id": "vb-3mdyqdql",
+      "brief_id": "vb-tpf0xnmu",
       "schema": "https://clawdia.io/agents/visual-forge/v1",
-      "generated": "2026-08-06T09:00:07.475Z",
+      "generated": "2026-08-06T09:03:26.339Z",
       "linked_blueprint_id": "bp-plan-2026-08-06-003",
       "linked_hook_id": null,
       "format_type": "static",
@@ -116,9 +116,9 @@
       "next_action": "Execute prompt via image AI, QA output"
     },
     {
-      "brief_id": "vb-tnykx6po",
+      "brief_id": "vb-lwn572ak",
       "schema": "https://clawdia.io/agents/visual-forge/v1",
-      "generated": "2026-08-06T09:00:07.475Z",
+      "generated": "2026-08-06T09:03:26.339Z",
       "linked_blueprint_id": "bp-plan-2026-08-06-004",
       "linked_hook_id": null,
       "format_type": "static",
@@ -153,9 +153,9 @@
       "next_action": "Execute prompt via image AI, QA output"
     },
     {
-      "brief_id": "vb-gyby7cau",
+      "brief_id": "vb-ogonbwou",
       "schema": "https://clawdia.io/agents/visual-forge/v1",
-      "generated": "2026-08-06T09:00:07.475Z",
+      "generated": "2026-08-06T09:03:26.339Z",
       "linked_blueprint_id": "bp-plan-2026-08-06-005",
       "linked_hook_id": null,
       "format_type": "static",
@@ -190,9 +190,9 @@
       "next_action": "Execute prompt via image AI, QA output"
     },
     {
-      "brief_id": "vb-x8qkmh9d",
+      "brief_id": "vb-pubzsn3z",
       "schema": "https://clawdia.io/agents/visual-forge/v1",
-      "generated": "2026-08-06T09:00:07.475Z",
+      "generated": "2026-08-06T09:03:26.339Z",
       "linked_blueprint_id": "bp-2026-08-06-003",
       "linked_hook_id": "sub-70-clubs-are-now-available-for-fitting-at-swin",
       "format_type": "reel",
@@ -217,9 +217,9 @@
       "next_action": "Execute prompt via image AI, QA output"
     },
     {
-      "brief_id": "vb-7x7xpsu5",
+      "brief_id": "vb-3361bqfc",
       "schema": "https://clawdia.io/agents/visual-forge/v1",
-      "generated": "2026-08-06T09:00:07.475Z",
+      "generated": "2026-08-06T09:03:26.339Z",
       "linked_blueprint_id": "bp-2026-08-06-001",
       "linked_hook_id": "and-we-certainly-do-have-spirit-----visit-swingsha",
       "format_type": "static",
@@ -254,9 +254,9 @@
       "next_action": "Execute prompt via image AI, QA output"
     },
     {
-      "brief_id": "vb-9t7xugdp",
+      "brief_id": "vb-mc11f327",
       "schema": "https://clawdia.io/agents/visual-forge/v1",
-      "generated": "2026-08-06T09:00:07.475Z",
+      "generated": "2026-08-06T09:03:26.339Z",
       "linked_blueprint_id": "bp-2026-08-06-002",
       "linked_hook_id": "book-your-ball-fitting-at-swing-shack-today--dm-us",
       "format_type": "carousel",

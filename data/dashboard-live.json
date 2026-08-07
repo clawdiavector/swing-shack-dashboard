@@ -1,78 +1,74 @@
 {
-  "lastUpdated": "2026-08-05T09:33:49.212Z",
+  "lastUpdated": "2026-08-07T10:00:06.457Z",
   "source": "automated",
   "website": {
-    "activeUsers": 570,
-    "sessions": 733,
-    "pageViews": 1168,
-    "avgSessionSeconds": 97.37414213096862,
-    "bounceRate": 0.572987721691678,
+    "activeUsers": 497,
+    "sessions": 638,
+    "pageViews": 1013,
+    "avgSessionSeconds": 88.99616183228841,
+    "bounceRate": 0.5830721003134797,
     "topPages": [
       {
         "path": "/",
-        "views": 574
+        "views": 484
       },
       {
         "path": "/bookings/",
-        "views": 263
+        "views": 230
       },
       {
         "path": "/customer-portal/",
-        "views": 140
-      },
-      {
-        "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 65
+        "views": 120
       },
       {
         "path": "/club-fitting/",
-        "views": 63
+        "views": 64
+      },
+      {
+        "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
+        "views": 59
       },
       {
         "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 17
+        "views": 16
       },
       {
-        "path": "/philosophy/",
+        "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
         "views": 9
       },
       {
-        "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
+        "path": "/philosophy/",
         "views": 7
       },
       {
-        "path": "/category/equipment/",
-        "views": 6
+        "path": "/404.html",
+        "views": 5
       },
       {
-        "path": "/membership/",
-        "views": 6
+        "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
+        "views": 5
       }
     ],
     "topSources": [
       {
         "source": "google",
-        "sessions": 271
-      },
-      {
-        "source": "fb",
-        "sessions": 165
+        "sessions": 265
       },
       {
         "source": "(direct)",
-        "sessions": 138
+        "sessions": 128
+      },
+      {
+        "source": "fb",
+        "sessions": 124
       },
       {
         "source": "clublab.app",
-        "sessions": 84
+        "sessions": 75
       },
       {
         "source": "(not set)",
-        "sessions": 37
-      },
-      {
-        "source": "bing",
-        "sessions": 13
+        "sessions": 35
       },
       {
         "source": "(data not available)",
@@ -83,26 +79,30 @@
         "sessions": 9
       },
       {
-        "source": "chatgpt.com",
-        "sessions": 6
+        "source": "bing",
+        "sessions": 8
       },
       {
-        "source": "instagram",
-        "sessions": 6
+        "source": "c.yoco.com",
+        "sessions": 3
+      },
+      {
+        "source": "chatgpt.com",
+        "sessions": 3
       }
     ],
     "devices": [
       {
         "device": "mobile",
-        "sessions": 517
+        "sessions": 436
       },
       {
         "device": "desktop",
-        "sessions": 214
+        "sessions": 198
       },
       {
         "device": "tablet",
-        "sessions": 1
+        "sessions": 4
       }
     ]
   },
@@ -110,49 +110,49 @@
     {
       "query": "swing shack",
       "clicks": 193,
-      "impressions": 428,
+      "impressions": 437,
       "position": "2.8"
     },
     {
       "query": "swingshack",
-      "clicks": 81,
-      "impressions": 137,
-      "position": "2.1"
+      "clicks": 79,
+      "impressions": 136,
+      "position": "2.0"
     },
     {
       "query": "takomo irons south africa",
-      "clicks": 56,
-      "impressions": 237,
+      "clicks": 64,
+      "impressions": 257,
       "position": "1.9"
     },
     {
       "query": "takomo irons",
-      "clicks": 37,
-      "impressions": 480,
-      "position": "3.0"
+      "clicks": 47,
+      "impressions": 559,
+      "position": "2.9"
     },
     {
       "query": "takomo south africa",
-      "clicks": 28,
-      "impressions": 95,
+      "clicks": 26,
+      "impressions": 93,
       "position": "2.3"
     },
     {
       "query": "swing shack golf",
       "clicks": 20,
-      "impressions": 43,
-      "position": "2.6"
+      "impressions": 45,
+      "position": "2.3"
     },
     {
       "query": "golf simulator",
-      "clicks": 14,
-      "impressions": 1029,
-      "position": "6.4"
+      "clicks": 15,
+      "impressions": 1117,
+      "position": "6.5"
     },
     {
       "query": "golf simulator johannesburg",
-      "clicks": 11,
-      "impressions": 98,
+      "clicks": 13,
+      "impressions": 108,
       "position": "2.1"
     },
     {
@@ -162,137 +162,11 @@
       "position": "2.5"
     },
     {
-      "query": "indoor golf",
+      "query": "vice golf balls south africa",
       "clicks": 8,
-      "impressions": 203,
-      "position": "5.4"
+      "impressions": 49,
+      "position": "2.7"
     }
   ],
-  "instagram": {
-    "followers": 2483,
-    "followsCount": 177,
-    "posts": 787,
-    "postsInWindow": 10,
-    "avgEngagement": "0.10",
-    "period": "2026-07-06 to 2026-08-05",
-    "reach30d": 52066,
-    "profileViews30d": 778,
-    "accountsEngaged30d": 230,
-    "totalInteractions30d": 482,
-    "recentPosts": [
-      {
-        "id": "18098215292347008",
-        "caption": "Sub 70 clubs are now available for fitting at Swing Shack.\nFind the right head, shaft and setup with one of our experienced fitters.\nBook your appointment today.",
-        "captionPreview": "Sub 70 clubs are now available for fitting at Swing Shack.\nFind the right head, ",
-        "timestamp": "2026-08-05T06:01:11+0000",
-        "permalink": "https://www.instagram.com/reel/DbpcjRwG4Tx/",
-        "mediaType": "VIDEO",
-        "likeCount": 0,
-        "commentsCount": 0,
-        "engagementRate": "0.00"
-      },
-      {
-        "id": "17980153908061122",
-        "caption": "You've seen the reviews.\nNow it's your turn.\nSub 70 is now available for professional fitting at Swing Shack.\n\nBook your fitting today.",
-        "captionPreview": "You've seen the reviews.\nNow it's your turn.\nSub 70 is now available for profess",
-        "timestamp": "2026-07-31T03:01:40+0000",
-        "permalink": "https://www.instagram.com/reel/DbcP91WD6QZ/",
-        "mediaType": "VIDEO",
-        "likeCount": 3,
-        "commentsCount": 1,
-        "engagementRate": "0.16"
-      },
-      {
-        "id": "18241808092308155",
-        "caption": "\ud835\udde6\ud835\ude02\ud835\uddef \ud835\udff3\ud835\udfec \ud835\uddf5\ud835\uddee\ud835\ude00 \ud835\uddee\ud835\uddff\ud835\uddff\ud835\uddf6\ud835\ude03\ud835\uddf2\ud835\uddf1 \ud835\uddee\ud835\ude01 \ud835\udde6\ud835\ude04\ud835\uddf6\ud835\uddfb\ud835\uddf4 \ud835\udde6\ud835\uddf5\ud835\uddee\ud835\uddf0\ud835\uddf8.\n\nGet professionally fitted for \ud835\udde6\ud835\ude02\ud835\uddef \ud835\udff3\ud835\udfec at Swing Shack.\n\nBook your fitting today.",
-        "captionPreview": "\ud835\udde6\ud835\ude02\ud835\uddef \ud835\udff3\ud835\udfec \ud835\uddf5\ud835\uddee\ud835\ude00 \ud835\uddee\ud835\uddff\ud835\uddff\ud835\uddf6\ud835\ude03\ud835\uddf2\ud835\uddf1 \ud835\uddee\ud835\ude01 \ud835\udde6\ud835\ude04\ud835\uddf6\ud835\uddfb\ud835\uddf4 \ud835\udde6\ud835\uddf5\ud835\uddee\ud835\uddf0\ud835\uddf8.\n\nGet professionall",
-        "timestamp": "2026-07-30T14:13:21+0000",
-        "permalink": "https://www.instagram.com/p/Dba4CXzAVAk/",
-        "mediaType": "IMAGE",
-        "likeCount": 2,
-        "commentsCount": 0,
-        "engagementRate": "0.08"
-      },
-      {
-        "id": "18360953572213385",
-        "caption": "And we certainly do have spirit \ud83e\udd23. Visit SwingShack today for all your golfing needs\n#golf #coaching #fittings #tech #trackman",
-        "captionPreview": "And we certainly do have spirit \ud83e\udd23. Visit SwingShack today for all your golfing ",
-        "timestamp": "2026-07-30T09:52:04+0000",
-        "permalink": "https://www.instagram.com/reel/DbaZ2Y5MYdz/",
-        "mediaType": "VIDEO",
-        "likeCount": 15,
-        "commentsCount": 0,
-        "engagementRate": "0.60"
-      },
-      {
-        "id": "17935510203346465",
-        "caption": "Your ball affects every shot. Book your fitting today and find the one that actually suits your game.",
-        "captionPreview": "Your ball affects every shot. Book your fitting today and find the one that actu",
-        "timestamp": "2026-07-29T22:01:05+0000",
-        "permalink": "https://www.instagram.com/p/DbZIxaUnTZn/",
-        "mediaType": "IMAGE",
-        "likeCount": 2,
-        "commentsCount": 0,
-        "engagementRate": "0.08"
-      },
-      {
-        "id": "18083616452674797",
-        "caption": "Tired of the same old setup \ud83e\udd71 try Avoda today! \n#golf #coach #fitter #equipment #golfaddict",
-        "captionPreview": "Tired of the same old setup \ud83e\udd71 try Avoda today! \n#golf #coach #fitter #equipment",
-        "timestamp": "2026-07-28T12:10:45+0000",
-        "permalink": "https://www.instagram.com/reel/DbVgJmCMZZC/",
-        "mediaType": "VIDEO",
-        "likeCount": 15,
-        "commentsCount": 0,
-        "engagementRate": "0.60"
-      },
-      {
-        "id": "17866901091651089",
-        "caption": "Wrong ball? Let\u2019s fix it. \n\nBook your ball fitting today!",
-        "captionPreview": "Wrong ball? Let\u2019s fix it. \n\nBook your ball fitting today!",
-        "timestamp": "2026-07-27T22:00:37+0000",
-        "permalink": "https://www.instagram.com/p/DbT_LtVAR9b/",
-        "mediaType": "IMAGE",
-        "likeCount": 2,
-        "commentsCount": 0,
-        "engagementRate": "0.08"
-      },
-      {
-        "id": "18024027806681782",
-        "caption": "Wrong ball. Wrong numbers. Wrong feel.\nLet\u2019s fix that.\n\nGolf ball fitting is now available at Swing Shack.",
-        "captionPreview": "Wrong ball. Wrong numbers. Wrong feel.\nLet\u2019s fix that.\n\nGolf ball fitting is now",
-        "timestamp": "2026-07-26T06:01:08+0000",
-        "permalink": "https://www.instagram.com/p/DbPsiMXkmXf/",
-        "mediaType": "IMAGE",
-        "likeCount": 3,
-        "commentsCount": 0,
-        "engagementRate": "0.12"
-      },
-      {
-        "id": "18335254792283425",
-        "caption": "Off-the-rack is fine for groceries.\nFor clubs, let\u2019s aim a little higher.\nBook your fitting at Swing Shack.",
-        "captionPreview": "Off-the-rack is fine for groceries.\nFor clubs, let\u2019s aim a little higher.\nBook y",
-        "timestamp": "2026-07-25T22:01:05+0000",
-        "permalink": "https://www.instagram.com/p/DbO1l4agdJ8/",
-        "mediaType": "IMAGE",
-        "likeCount": 2,
-        "commentsCount": 0,
-        "engagementRate": "0.08"
-      },
-      {
-        "id": "18032418161824737",
-        "caption": "Book your ball fitting at Swing Shack today. DM us or book online.",
-        "captionPreview": "Book your ball fitting at Swing Shack today. DM us or book online.",
-        "timestamp": "2026-07-24T06:01:23+0000",
-        "permalink": "https://www.instagram.com/p/DbKi-A-mgKS/",
-        "mediaType": "IMAGE",
-        "likeCount": 4,
-        "commentsCount": 0,
-        "engagementRate": "0.16"
-      }
-    ],
-    "lastUpdated": "2026-08-05T09:33:49.212Z",
-    "trackedFirst": "2026-07-01T08:30:31.524Z",
-    "source": "automated"
-  }
+  "instagram": {}
 }
