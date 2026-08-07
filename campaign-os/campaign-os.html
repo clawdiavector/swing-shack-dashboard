@@ -466,7 +466,9 @@ a:hover{text-decoration:underline}
 .review-meta{display:flex;flex-direction:column;gap:.25rem;align-items:flex-end;font-size:11px;color:var(--tx-3);min-width:120px}
 
 /* ─── Empty + loading states ─────────────────────────────────── */
-.empty{padding:2rem;text-align:center;color:var(--tx-3);font-size:13px;background:var(--bg-3);border-radius:var(--r-s);border:1px dashed var(--bd)}
+.empty{padding:1.4rem 1rem;text-align:center;color:var(--tx-3);font-size:13px;background:var(--bg-3);border-radius:var(--r-s);border:1px dashed var(--bd)}
+.empty-title{font-weight:600;color:var(--tx-2);font-size:13px;margin-bottom:.35rem;letter-spacing:.01em}
+.empty-sub{font-size:11.5px;color:var(--tx-3);line-height:1.45;max-width:42ch;margin:0 auto}
 .skeleton{background:linear-gradient(90deg,var(--bg-3) 0%,var(--bg-4) 50%,var(--bg-3) 100%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:var(--r-s)}
 @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 
@@ -7055,17 +7057,33 @@ async function renderPerformance(){
 }
 
 // ─── LEARNING ───────────────────────────────────────────────────
+// Each empty-state carries a one-line "what goes here" + a one-line
+// "how to seed it" hint. Keep the copy honest: no fake counts, no
+// promises, no em-dashes (use pipes / commas). Triggers described here
+// match the data sources in _lib/intelligence.py:
+//   what_worked / what_failed  ← recommendation-outcomes.json
+//   cta_rankings               ← cta-performance.json
+//   trend_delta                ← trend-delta.json (hook_trends)
+//   failure_patterns           ← failure-patterns.json
+const LEARN_EMPTY = {
+  worked:    { title: 'No patterns yet',          sub: 'Fills in once 3+ assets have published performance data. Approve + publish in the Review queue to start learning.' },
+  failed:    { title: 'No failure patterns yet',  sub: 'Same trigger as What worked. Inverts the top performers into the mistakes to avoid next batch.' },
+  cta:       { title: 'No CTA data yet',          sub: 'Builds as captions with CTAs accumulate click-through or conversion results. Use the CTA generator to seed more variants.' },
+  trend:     { title: 'No trend data yet',        sub: 'Updates weekly once the trend feed has 2+ weeks of comparison data. Run Trend Catcher now to kick it off.' },
+  fail_pat:  { title: 'No failure patterns yet',  sub: 'Recurring mistakes detected automatically across 3+ assets. Need a small published corpus before patterns surface.' },
+};
+const learnEmpty = key => `<div class="empty"><div class="empty-title">${esc(LEARN_EMPTY[key].title)}</div><div class="empty-sub">${esc(LEARN_EMPTY[key].sub)}</div></div>`;
 async function renderLearning(){
   if(!S.learn) S.learn = await API.get('/api/intel/learning');
   const l = S.learn;
-  $('#learn-worked').innerHTML = safeList(l.what_worked, 10).map(itemHtml).join('') || '<div class="empty">Nothing yet</div>';
-  $('#learn-failed').innerHTML = safeList(l.what_failed, 10).map(itemHtml).join('') || '<div class="empty">Nothing yet</div>';
+  $('#learn-worked').innerHTML = safeList(l.what_worked, 10).map(itemHtml).join('') || learnEmpty('worked');
+  $('#learn-failed').innerHTML = safeList(l.what_failed, 10).map(itemHtml).join('') || learnEmpty('failed');
   $('#learn-cta').innerHTML = safeList(l.cta_rankings, 10).map(it => {
     const score = it.score ?? it.cvr ?? it.ctr ?? '';
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.cta||it.text||JSON.stringify(it))}</div>${score?`<div class="li-meta">score ${score}</div>`:''}</div></li>`;
-  }).join('') || '<div class="empty">No CTA data</div>';
-  $('#learn-trend').innerHTML = safeList(l.trend_delta, 10).map(itemHtml).join('') || '<div class="empty">No trend data</div>';
-  $('#learn-fail-pat').innerHTML = safeList(l.failure_patterns, 10).map(itemHtml).join('') || '<div class="empty">No patterns</div>';
+  }).join('') || learnEmpty('cta');
+  $('#learn-trend').innerHTML = safeList(l.trend_delta, 10).map(itemHtml).join('') || learnEmpty('trend');
+  $('#learn-fail-pat').innerHTML = safeList(l.failure_patterns, 10).map(itemHtml).join('') || learnEmpty('fail_pat');
 }
 
 // ─── HOOKS ──────────────────────────────────────────────────────
