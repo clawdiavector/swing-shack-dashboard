@@ -3,6 +3,8 @@ CampaignOS v0.1 — Railway Backend
 Flask app serving Campaign OS cockpit + campaign data API.
 Data lives on Railway disk. GitHub is backup/version history.
 """
+from __future__ import annotations  # noqa: F401
+
 import os
 import json
 import copy
@@ -16,6 +18,10 @@ import logging
 import hashlib
 import time
 import datetime
+import base64
+import urllib.request
+from pathlib import Path
+from typing import Optional
 from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
@@ -1858,6 +1864,373 @@ def visual_library_generate(brand_id):
     except Exception as e:
         _app_log.exception("visual_library_generate failed")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── IMAGE GEN ROUTER — unified generate + edit across the OS ───────
+#
+# Three new endpoints that wire every section of Campaign OS to the same
+# router (campaign-os/_lib/image_gen_router.py). The router picks between
+# OpenAI direct (gpt-image-1, text-to-image only) and OpenRouter
+# (Nano Banana / gpt-5-image-mini / Nano Banana Pro, both gen + edit).
+#
+# - POST /api/image/generate        — generate from text prompt (brand-aware)
+# - POST /api/image/edit            — edit existing image (recolour, restyle, swap)
+# - POST /api/image/from-asset/<id> — pull an asset from another surface,
+#                                     extract its visual context, generate a
+#                                     matching hero image
+# - GET  /api/image/status          — capabilities + key presence
+
+
+@app.route('/api/image/status', methods=['GET'])
+def image_router_status():
+    """GET /api/image/status — provider + credential status (no key values echoed)."""
+    try:
+        from _lib.image_gen_router import status_report as _status
+        return jsonify({"ok": True, **_status()})
+    except Exception as e:
+        _app_log.exception("image_router_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/generate', methods=['POST'])
+def image_generate():
+    """POST /api/image/generate — generate image from text prompt.
+
+    Request JSON:
+      prompt (required)
+      brand_id        (optional, but recommended — used for recipe + save path)
+      size            (default "1024x1024"; valid: 1024x1024, 1024x1792, 1792x1024)
+      n               (default 1; OpenAI supports up to 4)
+      model           (optional override)
+      provider        (optional: "openai" or "openrouter", default = env or openrouter)
+      save            (default true; requires brand_id)
+      max_cost_usd    (default 0.50)
+      reference_color / reference_brand / reference_mood (optional overrides)
+
+    Returns:
+      {ok, bytes_b64, mime, model, provider, cost_estimate_usd, prompt_used,
+       saved_path, saved_sidecar_path, warning, usage}
+    """
+    try:
+        from _lib.image_gen_router import generate_image as _gen, ImageGenBadRequest, ImageGenAuthError, ImageGenNetworkError, ImageGenUpstreamError
+        body = request.get_json(silent=True) or {}
+        prompt = (body.get("prompt") or "").strip()
+        if not prompt:
+            return jsonify({"ok": False, "error": "prompt is required"}), 400
+        brand_id = (body.get("brand_id") or "").strip() or None
+
+        # Build brand_recipe from existing /recipe endpoint when brand_id given
+        brand_recipe = None
+        if brand_id:
+            try:
+                rr = visual_library_recipe(brand_id)
+                if rr.status_code == 200:
+                    payload = rr.get_json() or {}
+                    brand_recipe = payload.get("recipe") or None
+            except Exception:
+                _app_log.warning("could not load recipe for brand_id=%s", brand_id)
+
+        result = _gen(
+            prompt=prompt,
+            brand_id=brand_id,
+            brand_recipe=brand_recipe,
+            size=body.get("size", "1024x1024"),
+            n=int(body.get("n") or 1),
+            model=body.get("model"),
+            provider=body.get("provider"),
+            save=bool(body.get("save", True)) and bool(brand_id),
+            max_cost_usd=float(body.get("max_cost_usd") or 0.50),
+        )
+
+        import base64 as _b64
+        return jsonify({
+            "ok": True,
+            "bytes_b64": _b64.b64encode(result.bytes).decode("ascii"),
+            "mime": result.mime,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "prompt_used": result.prompt_used,
+            "revised_prompt": result.revised_prompt,
+            "saved_path": result.saved_path,
+            "saved_sidecar_path": result.saved_sidecar_path,
+            "warning": result.warning,
+            "usage": result.usage,
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_generate failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/edit', methods=['POST'])
+def image_edit():
+    """POST /api/image/edit — edit an existing image.
+
+    Request JSON:
+      instruction (required)  — natural-language edit ("change background to pink")
+      source_url  (one of required)  — http(s) URL OR data: URL
+      source_b64  (alternative)       — raw base64 bytes (when not data: URL)
+      source_mime (default "image/png")
+      brand_id    (optional — save path)
+      extra_urls  (optional — list of additional image URLs for style reference)
+      model       (default Nano Banana)
+      provider    (default openrouter — OpenAI direct does not support edit)
+      save        (default true; requires brand_id)
+      max_cost_usd (default 0.50)
+
+    Returns:
+      {ok, bytes_b64, mime, model, provider, cost_estimate_usd,
+       saved_path, warning, usage}
+    """
+    try:
+        from _lib.image_gen_router import (
+            edit_image as _edit, ImageGenBadRequest, ImageGenAuthError,
+            ImageGenNetworkError, ImageGenUpstreamError,
+        )
+        import base64 as _b64
+        import urllib.request as _ureq
+
+        body = request.get_json(silent=True) or {}
+        instruction = (body.get("instruction") or "").strip()
+        if not instruction:
+            return jsonify({"ok": False, "error": "instruction is required"}), 400
+
+        # Resolve source bytes
+        source_bytes: Optional[bytes] = None
+        if body.get("source_b64"):
+            try:
+                source_bytes = _b64.b64decode(body["source_b64"])
+            except Exception:
+                return jsonify({"ok": False, "error": "source_b64 is not valid base64"}), 400
+        elif body.get("source_url"):
+            url = body["source_url"]
+            try:
+                if url.startswith("data:"):
+                    head, _, b64 = url.partition(",")
+                    source_bytes = _b64.b64decode(b64)
+                else:
+                    with _ureq.urlopen(url, timeout=30) as r:
+                        source_bytes = r.read()
+            except Exception as e:
+                return jsonify({"ok": False, "error": f"could not fetch source_url: {e}"}), 400
+        else:
+            return jsonify({"ok": False, "error": "either source_b64 or source_url is required"}), 400
+
+        if not source_bytes:
+            return jsonify({"ok": False, "error": "source image is empty"}), 400
+
+        # Optional extra reference images
+        extra: list[bytes] = []
+        for eu in (body.get("extra_urls") or []):
+            try:
+                if eu.startswith("data:"):
+                    extra.append(_b64.b64decode(eu.partition(",")[2]))
+                else:
+                    with _ureq.urlopen(eu, timeout=30) as r:
+                        extra.append(r.read())
+            except Exception as e:
+                _app_log.warning("could not fetch extra_url %s: %s", eu[:60], e)
+
+        brand_id = (body.get("brand_id") or "").strip() or None
+
+        result = _edit(
+            source_bytes=source_bytes,
+            instruction=instruction,
+            brand_id=brand_id,
+            extra_image_bytes=extra or None,
+            model=body.get("model"),
+            provider=body.get("provider"),
+            save=bool(body.get("save", True)) and bool(brand_id),
+            max_cost_usd=float(body.get("max_cost_usd") or 0.50),
+        )
+
+        return jsonify({
+            "ok": True,
+            "bytes_b64": _b64.b64encode(result.bytes).decode("ascii"),
+            "mime": result.mime,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "instruction_used": result.instruction_used,
+            "saved_path": result.saved_path,
+            "saved_sidecar_path": result.saved_sidecar_path,
+            "warning": result.warning,
+            "usage": result.usage,
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_edit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/from-asset/<asset_id>', methods=['POST'])
+def image_from_asset(asset_id):
+    """POST /api/image/from-asset/<asset_id> — link image gen to ANY Campaign OS surface.
+
+    asset_id can be one of:
+      - a hook id from data/hook-bank.json
+      - a caption id from data/library.json
+      - a headline id from data/headlines.json
+      - a CTA id from data/ctas.json
+      - a billboard brief id from data/content-blueprints.json
+      - a visual recipe filename from the active brand
+      - a top IG post media id from data/instagram.json (regenerate from winner)
+      - an SEO top-performing page (regenerate OG cover)
+
+    The endpoint extracts the asset's text (hook text / caption / headline /
+    CTA / visual brief), reads the brand's recipe, and runs generate_image
+    with that context. Result is saved under the brand directory and a
+    sidecar references the asset_id for cross-linking.
+    """
+    try:
+        from _lib.image_gen_router import generate_image as _gen, ImageGenBadRequest, ImageGenAuthError, ImageGenNetworkError, ImageGenUpstreamError
+        import base64 as _b64
+        body = request.get_json(silent=True) or {}
+        brand_id = (body.get("brand_id") or get_brand_id()).strip() or "swing-shack"
+
+        # Pull the asset's text + intent by id across data/
+        prompt, kind = _extract_asset_context(asset_id, brand_id)
+        if not prompt:
+            return jsonify({"ok": False, "error": f"asset_id {asset_id!r} not found in any data file"}), 404
+
+        # Optional user refinement on top of the extracted prompt
+        user_prompt = (body.get("prompt") or "").strip()
+        full_prompt = user_prompt + ". " + prompt if user_prompt else prompt
+
+        # Get the recipe
+        brand_recipe = None
+        try:
+            rr = visual_library_recipe(brand_id)
+            if rr.status_code == 200:
+                brand_recipe = (rr.get_json() or {}).get("recipe") or None
+        except Exception:
+            _app_log.warning("could not load recipe for brand_id=%s", brand_id)
+
+        result = _gen(
+            prompt=full_prompt,
+            brand_id=brand_id,
+            brand_recipe=brand_recipe,
+            size=body.get("size", "1024x1024"),
+            n=int(body.get("n") or 1),
+            model=body.get("model"),
+            provider=body.get("provider"),
+            save=True,
+            max_cost_usd=float(body.get("max_cost_usd") or 0.50),
+        )
+
+        # Augment sidecar with asset link so future agents can trace back
+        if result.saved_sidecar_path:
+            try:
+                p = Path(result.saved_sidecar_path)
+                meta = json.loads(p.read_text())
+                meta["linked_asset_id"] = asset_id
+                meta["linked_asset_kind"] = kind
+                meta["linked_asset_prompt"] = prompt
+                p.write_text(json.dumps(meta, indent=2))
+            except Exception as e:
+                _app_log.warning("could not back-link asset_id to sidecar: %s", e)
+
+        return jsonify({
+            "ok": True,
+            "asset_id": asset_id,
+            "asset_kind": kind,
+            "extracted_prompt": prompt,
+            "bytes_b64": _b64.b64encode(result.bytes).decode("ascii"),
+            "mime": result.mime,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "prompt_used": result.prompt_used,
+            "saved_path": result.saved_path,
+            "warning": result.warning,
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_from_asset failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _extract_asset_context(asset_id: str, brand_id: str) -> tuple[Optional[str], Optional[str]]:
+    """Walk data/ for an asset matching asset_id. Return (prompt_text, kind).
+
+    Lookup order (most likely to match first):
+      1. data/hook-bank.json       — {hooks: [...]} by id or hook text
+      2. data/captions.json        — captions by id
+      3. data/headlines.json       — headlines by id
+      4. data/ctas.json            — CTAs by id
+      5. data/content-blueprints.json — billboard briefs by id
+      6. data/library.json         — assets by id
+      7. data/visual-briefs.json   — visual briefs by id
+      8. data/instagram.json       — IG posts by media_id (regenerate from winner)
+      9. data/seo-rankings.json    — top-performing SEO pages (OG cover regen)
+    """
+    base = Path(BUNDLED_DATA_DIR)
+    lookup_paths = [
+        ("hook",       base / "hook-bank.json",            "hooks",       "text"),
+        ("caption",    base / "captions.json",             "captions",    "text"),
+        ("caption",    base / "library.json",              "items",       "caption"),
+        ("headline",   base / "headlines.json",            "headlines",   "text"),
+        ("cta",        base / "ctas.json",                 "ctas",        "text"),
+        ("billboard",  base / "content-blueprints.json",   "blueprints",  "brief"),
+        ("visual",     base / "visual-briefs.json",        "briefs",      "prompt"),
+        ("seo",        base / "seo-rankings.json",         "keywords",    "query"),
+    ]
+    for kind, p, list_key, text_key in lookup_paths:
+        if not p.exists():
+            continue
+        try:
+            data = json.loads(p.read_text())
+        except Exception:
+            continue
+        # Resolve items: dict gets the list_key, list IS items, anything else empty
+        if isinstance(data, dict):
+            items = data.get(list_key) or []
+        elif isinstance(data, list):
+            items = data
+        else:
+            items = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            # Match by id field (flexible: id, _id, asset_id, blueprint_id, media_id)
+            for id_field in ("id", "_id", "asset_id", "blueprint_id", "media_id", "post_id"):
+                if it.get(id_field) == asset_id or str(it.get(id_field)) == asset_id:
+                    text = (it.get(text_key) or it.get("text") or it.get("prompt") or it.get("query") or
+                            it.get("caption") or it.get("hook") or it.get("title") or it.get("name") or "")
+                    if text:
+                        return str(text).strip(), kind
+        # Try matching the asset_id as a substring of the text (for hooks like "hk-..." or filenames)
+        for it in (items if isinstance(items, list) else []):
+            if not isinstance(it, dict):
+                continue
+            text = (it.get(text_key) or it.get("text") or it.get("prompt") or it.get("query") or
+                    it.get("caption") or it.get("hook") or it.get("title") or it.get("name") or "")
+            if text and asset_id in str(text):
+                return str(text).strip(), kind
+    # No match
+    return None, None
 
 
 @app.route('/api/visual-library/<brand_id>/image/<path:filename>', methods=['GET'])

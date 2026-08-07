@@ -506,6 +506,38 @@ a:hover{text-decoration:underline}
 .toast.on{transform:none}
 .toast.err{border-left-color:var(--red)}
 
+/* ─── Image-link helper + floating action button ──────────────── */
+/* Buttons that surface "Generate / Edit / Cover" actions on any item. */
+.image-link-btn{display:inline-flex;align-items:center;gap:.3rem;padding:3px 8px;border-radius:6px;background:var(--bg-3);border:1px solid var(--bd);color:var(--tx-2);font-size:10.5px;font-weight:600;cursor:pointer;transition:all var(--t);margin-left:.35rem;letter-spacing:.02em}
+.image-link-btn:hover{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+.image-link-btn.il-edit{background:transparent;border-color:var(--bd);color:var(--tx-3)}
+.image-link-btn.il-edit:hover{background:var(--bg-3);color:var(--ac)}
+.image-link-btn.il-busy{opacity:.6;pointer-events:none}
+.image-link-btn.il-warn{border-left:2px solid var(--org)}
+/* Container appended after an item — keeps DOM tidy */
+.image-link-cluster{display:inline-flex;align-items:center;gap:.25rem;margin-left:.35rem;flex-wrap:wrap}
+/* FAB — bottom-right floating action button */
+.image-fab{position:fixed;bottom:1.25rem;right:1.25rem;display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;z-index:150}
+.image-fab-main{width:54px;height:54px;border-radius:50%;background:var(--ac);color:var(--bg);border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s ease}
+.image-fab-main:hover{transform:translateY(-2px)}
+.image-fab-menu{background:var(--bg-2);border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:.4rem;display:flex;flex-direction:column;gap:.2rem;min-width:220px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .15s ease,transform .15s ease}
+.image-fab.on .image-fab-menu{opacity:1;transform:none;pointer-events:auto}
+.image-fab-item{display:flex;align-items:center;gap:.6rem;padding:.55rem .75rem;border-radius:6px;background:transparent;border:none;color:var(--tx);font-size:13px;font-weight:500;cursor:pointer;text-align:left;width:100%}
+.image-fab-item:hover{background:var(--bg-3)}
+.image-fab-item .il-icon{font-size:16px}
+.image-fab-item .il-cost{font-size:10px;color:var(--tx-3);margin-left:auto;font-family:monospace}
+/* Modal that pops when generating from the FAB */
+.image-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:300}
+.image-modal-bg.on{display:flex}
+.image-modal{background:var(--bg-1);border:1px solid var(--bd);border-radius:12px;padding:1.25rem;width:min(560px,90vw);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.image-modal h3{margin:0 0 .75rem;font-size:15px}
+.image-modal textarea{width:100%;min-height:80px;background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:.5rem;font-family:inherit;font-size:13px;resize:vertical}
+.image-modal .il-row{display:flex;gap:.5rem;align-items:center;margin-top:.6rem;flex-wrap:wrap}
+.image-modal .il-preview{margin-top:.75rem;display:none}
+.image-modal .il-preview.on{display:block}
+.image-modal .il-preview img{max-width:100%;border-radius:6px;border:1px solid var(--bd)}
+.image-modal .il-status{font-size:11px;color:var(--tx-3);margin-top:.4rem;font-family:monospace}
+
 /* ─── Meme Lord v2 ─────────────────────────────────────────── */
 .mini-select{background:var(--bg-2);color:var(--tx);border:1px solid var(--bg-3);border-radius:6px;padding:5px 8px;font-size:12px;font-weight:500}
 .btn-mini{display:inline-flex;align-items:center;gap:.3rem;padding:4px 10px;border-radius:6px;background:var(--bg-3);border:1px solid var(--bd);color:var(--tx-2);font-size:11px;font-weight:500;cursor:pointer;transition:all var(--t)}
@@ -4912,6 +4944,376 @@ async function renderSection(sec){
   else { try { await loadSection(sec); } catch(e){ console.warn('loadSection', sec, e); } }
 }
 
+// ─── IMAGE LINK HELPER ─────────────────────────────────────────────
+// imageLink() — single function that any render*() can call to attach
+// "Generate / Edit / Cover" action buttons to any item. Backed by the
+// /api/image/{generate,edit,from-asset} routes.
+//
+// Usage from any render function:
+//
+//   // Wrap an existing hook item with image actions
+//   imageLink(itemEl, { prompt: hookText, brand_id: 'swing-shack' });
+//
+//   // Wrap an existing image (Visual Library thumbs) with Edit
+//   imageLink(thumbEl, { source_url: '/brand-images/swing-shack/foo.jpg',
+//                        instruction: 'Recolour to swing-shack green',
+//                        mode: 'edit' });
+//
+//   // Link from any asset id (hook, caption, headline, etc.) — server
+//   // pulls the asset's text and injects brand recipe
+//   imageLink(itemEl, { asset_id: 'hk-abc123', mode: 'from-asset' });
+
+const IL_CONFIG = {
+  endpoint: '/api/image',
+  model_default: 'google/gemini-2.5-flash-image',
+  size_default: '1024x1024',
+  max_cost_usd: 0.50,
+};
+
+// Costs are approximate. Update after live verification.
+const IL_MODEL_COSTS = {
+  'google/gemini-2.5-flash-image': '$0.04',
+  'openai/gpt-5-image-mini': '$0.003',
+  'google/gemini-3-pro-image': '$0.15',
+  'openai/gpt-image-1': '$0.04',
+};
+
+async function imageLink(targetEl, opts) {
+  if(!targetEl) return null;
+  const cfg = Object.assign({}, IL_CONFIG, opts || {});
+  const cluster = document.createElement('span');
+  cluster.className = 'image-link-cluster';
+
+  // Decide which buttons to surface based on opts.mode
+  const buttons = [];
+
+  if(cfg.mode === 'edit' || cfg.source_url || cfg.source_b64) {
+    // Edit mode — recolour, restyle, etc.
+    buttons.push({
+      label: cfg.edit_label || '✏ Edit',
+      mode: 'edit',
+      cls: 'il-edit',
+      handler: () => openImageModal({ ...cfg, mode: 'edit' }),
+    });
+  }
+  if(cfg.mode === 'from-asset' && cfg.asset_id) {
+    buttons.push({
+      label: '🖼 Cover',
+      mode: 'from-asset',
+      cls: '',
+      handler: () => generateFromAsset(cfg.asset_id, cfg.brand_id, targetEl),
+    });
+  }
+  if(!cfg.mode || cfg.mode === 'generate' || cfg.prompt) {
+    // Default: Generate a hero/cover for this item's prompt
+    buttons.push({
+      label: cfg.gen_label || '🖼 Generate',
+      mode: 'generate',
+      cls: '',
+      handler: () => openImageModal({ ...cfg, mode: 'generate' }),
+    });
+  }
+
+  for(const b of buttons){
+    const btn = document.createElement('button');
+    btn.className = 'image-link-btn' + (b.cls ? ' ' + b.cls : '');
+    btn.textContent = b.label;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      b.handler();
+    });
+    cluster.appendChild(btn);
+  }
+
+  // Append after the item body (or inside it for compact rows)
+  if(cfg.container === 'inside') {
+    targetEl.appendChild(cluster);
+  } else {
+    const anchor = cfg.after_el || targetEl.querySelector('.li-body, .card-h, h3, .row') || targetEl;
+    anchor.appendChild(cluster);
+  }
+  return cluster;
+}
+
+// ── Modal-driven flow (Generate + Edit) ───────────────────────────
+function openImageModal(opts) {
+  const bg = $('#image-modal-bg');
+  const modal = $('#image-modal');
+  if(!bg || !modal) return;
+
+  const isEdit = opts.mode === 'edit';
+  $('#image-modal-title').textContent = isEdit ? 'Edit image' : 'Generate image';
+  $('#image-modal-prompt').value = opts.prompt || opts.instruction || '';
+  $('#image-modal-prompt').placeholder = isEdit
+    ? 'e.g. Change background to swing-shack green (#0f3a2e)'
+    : 'e.g. Editorial shot of fitted Mizuno irons, dark bay, gold accent...';
+  $('#image-modal-prompt-label').textContent = isEdit ? 'Edit instruction' : 'Prompt';
+  $('#image-modal-source-row').style.display = isEdit ? 'flex' : 'none';
+  if(isEdit) $('#image-modal-source').value = opts.source_url || opts.source_b64 || '';
+  $('#image-modal-size').value = opts.size || IL_CONFIG.size_default;
+  $('#image-modal-model').value = opts.model || IL_CONFIG.model_default;
+  $('#image-modal-cost-hint').textContent = IL_MODEL_COSTS[$('#image-modal-model').value] || '';
+  $('#image-modal-status').textContent = '';
+  $('#image-modal-preview').classList.remove('on');
+  $('#image-modal-preview-img').src = '';
+  $('#image-modal-do').textContent = isEdit ? 'Edit' : 'Generate';
+
+  // Wire once
+  const runHandler = async () => {
+    const instruction = $('#image-modal-prompt').value.trim();
+    if(!instruction){ toast('Type a prompt first', 'warn'); return; }
+    const model = $('#image-modal-model').value;
+    const size = $('#image-modal-size').value;
+    const costHint = IL_MODEL_COSTS[model] || '';
+
+    $('#image-modal-do').disabled = true;
+    $('#image-modal-do').textContent = 'Working…';
+    $('#image-modal-status').textContent = `→ POST ${IL_CONFIG.endpoint}/${isEdit ? 'edit' : 'generate'} · model=${model} · est. ${costHint}`;
+
+    try {
+      const body = isEdit
+        ? {
+            instruction,
+            model, size,
+            brand_id: opts.brand_id || (window.S && S.brand_id) || 'swing-shack',
+          }
+        : { prompt: instruction, model, size, brand_id: opts.brand_id || 'swing-shack' };
+      // For edit, attach the source image
+      if(isEdit){
+        const src = $('#image-modal-source').value.trim();
+        if(src.startsWith('http') || src.startsWith('data:') || src.startsWith('/')){
+          body.source_url = src;
+        } else if(src){
+          body.source_b64 = src;
+        } else if(opts.source_url){
+          body.source_url = opts.source_url;
+        } else if(opts.source_b64){
+          body.source_b64 = opts.source_b64;
+        }
+      }
+
+      const r = await fetch(IL_CONFIG.endpoint + '/' + (isEdit ? 'edit' : 'generate'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      if(!j.ok){ throw new Error(j.error || 'failed'); }
+
+      $('#image-modal-status').textContent =
+        `✅ ${isEdit ? 'edit' : 'gen'} ok · model=${j.model} · provider=${j.provider} · cost $${(j.cost_estimate_usd||0).toFixed(4)} · saved=${j.saved_path || 'no save'}`;
+      if(j.warning) $('#image-modal-status').textContent += ` · ⚠ ${j.warning}`;
+
+      // Show preview
+      const dataUrl = `data:${j.mime};base64,${j.bytes_b64}`;
+      $('#image-modal-preview-img').src = dataUrl;
+      $('#image-modal-preview').classList.add('on');
+
+      // Bubble up so caller can react
+      if(opts.on_done) opts.on_done(j);
+
+      toast(isEdit ? 'Image edited' : 'Image generated', 'on');
+    } catch(e){
+      $('#image-modal-status').textContent = `❌ ${e.message}`;
+      toast((e.message || 'failed').slice(0, 80), 'err');
+    } finally {
+      $('#image-modal-do').disabled = false;
+      $('#image-modal-do').textContent = isEdit ? 'Edit' : 'Generate';
+    }
+  };
+  // Reset handler
+  $('#image-modal-do').onclick = runHandler;
+  // Live cost-hint update
+  $('#image-modal-model').onchange = () => {
+    $('#image-modal-cost-hint').textContent = IL_MODEL_COSTS[$('#image-modal-model').value] || '';
+  };
+
+  bg.classList.add('on');
+  setTimeout(() => $('#image-modal-prompt').focus(), 50);
+}
+
+function closeImageModal(){
+  $('#image-modal-bg').classList.remove('on');
+}
+
+// ── From-asset flow (no modal — fires immediately with confirmation toast) ──
+async function generateFromAsset(asset_id, brand_id, sourceEl) {
+  if(!asset_id){ toast('No asset id', 'err'); return; }
+  toast(`Generating from asset ${asset_id}…`, 'on');
+  try {
+    const r = await fetch(IL_CONFIG.endpoint + '/from-asset/' + encodeURIComponent(asset_id), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand_id: brand_id || 'swing-shack' }),
+    });
+    const j = await r.json();
+    if(!j.ok){ throw new Error(j.error || 'failed'); }
+    toast(`✅ Generated from ${j.asset_kind || 'asset'} · $${(j.cost_estimate_usd||0).toFixed(4)} · saved ${j.saved_path ? '✓' : 'no'}`, 'on');
+    // If there's a parent li/row, inject a small preview
+    if(sourceEl && sourceEl.classList){
+      let slot = sourceEl.querySelector('.image-link-preview');
+      if(!slot){
+        slot = document.createElement('div');
+        slot.className = 'image-link-preview';
+        slot.style.cssText = 'margin-top:.4rem;border:1px solid var(--bd);border-radius:6px;padding:.4rem;background:var(--bg-1)';
+        sourceEl.appendChild(slot);
+      }
+      slot.innerHTML = `<img src="data:${j.mime};base64,${j.bytes_b64}" style="max-width:240px;border-radius:4px;display:block">` +
+        `<div style="font-size:10px;color:var(--tx-3);margin-top:.3rem;font-family:monospace">linked to ${j.asset_id} (${j.asset_kind}) · $${(j.cost_estimate_usd||0).toFixed(4)}</div>`;
+    }
+  } catch(e){
+    toast(`Asset gen failed: ${e.message}`.slice(0, 100), 'err');
+  }
+}
+
+// ── FAB + modal DOM ───────────────────────────────────────────────
+function injectImageLinkChrome() {
+  if($('#image-fab')) return; // idempotent
+  const html = `
+    <div class="image-fab" id="image-fab">
+      <div class="image-fab-menu">
+        <button class="image-fab-item" data-mode="generate"><span class="il-icon">🖼</span><span>Generate image</span><span class="il-cost">~$0.04</span></button>
+        <button class="image-fab-item" data-mode="edit"><span class="il-icon">✏</span><span>Edit / recolour</span><span class="il-cost">~$0.04</span></button>
+        <button class="image-fab-item" data-mode="cover-brief"><span class="il-icon">🎯</span><span>Cover for active brief</span><span class="il-cost">~$0.04</span></button>
+        <button class="image-fab-item" data-mode="from-recipe"><span class="il-icon">🎨</span><span>From brand recipe</span><span class="il-cost">~$0.04</span></button>
+        <div style="border-top:1px solid var(--bd);margin:.4rem 0"></div>
+        <button class="image-fab-item" data-mode="status"><span class="il-icon">⚙</span><span>Image router status</span></button>
+      </div>
+      <button class="image-fab-main" id="image-fab-main" title="Image ops (g / e / s)">🖼</button>
+    </div>
+    <div class="image-modal-bg" id="image-modal-bg">
+      <div class="image-modal" id="image-modal">
+        <h3 id="image-modal-title">Generate image</h3>
+        <div>
+          <div style="font-size:11px;color:var(--tx-3);margin-bottom:.3rem" id="image-modal-prompt-label">Prompt</div>
+          <textarea id="image-modal-prompt" placeholder="Type your prompt..."></textarea>
+        </div>
+        <div id="image-modal-source-row" style="display:none;margin-top:.5rem">
+          <div style="font-size:11px;color:var(--tx-3);margin-bottom:.3rem">Source image URL or base64</div>
+          <input id="image-modal-source" type="text" placeholder="/brand-images/.../foo.jpg or data:image/png;base64,..." style="width:100%;background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:.5rem;font-family:monospace;font-size:11px">
+        </div>
+        <div class="il-row">
+          <select id="image-modal-model" style="background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:.4rem .6rem;font-size:12px">
+            <option value="google/gemini-2.5-flash-image">Nano Banana (default, ~$0.04)</option>
+            <option value="openai/gpt-5-image-mini">gpt-5-image-mini (cheap, ~$0.003)</option>
+            <option value="google/gemini-3-pro-image">Nano Banana Pro (hero, ~$0.15)</option>
+          </select>
+          <select id="image-modal-size" style="background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:.4rem .6rem;font-size:12px">
+            <option value="1024x1024">1024×1024 (square)</option>
+            <option value="1024x1792">1024×1792 (vertical)</option>
+            <option value="1792x1024">1792×1024 (landscape)</option>
+          </select>
+          <span id="image-modal-cost-hint" style="font-size:11px;color:var(--tx-3);font-family:monospace"></span>
+        </div>
+        <div class="il-row" style="justify-content:flex-end;margin-top:.75rem">
+          <button class="btn" onclick="closeImageModal()">Cancel</button>
+          <button class="btn primary" id="image-modal-do">Generate</button>
+        </div>
+        <div class="il-status" id="image-modal-status"></div>
+        <div class="il-preview" id="image-modal-preview">
+          <img id="image-modal-preview-img" alt="Generated preview">
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // FAB toggle
+  $('#image-fab-main').addEventListener('click', () => {
+    $('#image-fab').classList.toggle('on');
+  });
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest('#image-fab')) $('#image-fab').classList.remove('on');
+  });
+  // Modal close
+  $('#image-modal-bg').addEventListener('click', (e) => {
+    if(e.target.id === 'image-modal-bg') closeImageModal();
+  });
+  // FAB menu handlers
+  $$('#image-fab .image-fab-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $('#image-fab').classList.remove('on');
+      const mode = btn.dataset.mode;
+      if(mode === 'generate' || mode === 'edit'){
+        openImageModal({ mode, brand_id: (window.S && S.brand_id) || 'swing-shack' });
+      } else if(mode === 'cover-brief'){
+        // Try to find an active brief from any surface; fall back to brand context
+        const brief = (windowS && S.lastBrief) || (S.currentBrief) || '';
+        openImageModal({ mode: 'generate', brand_id: (window.S && S.brand_id) || 'swing-shack', prompt: brief || 'Cover image for the active brief' });
+      } else if(mode === 'from-recipe'){
+        // Pull the active brand's recipe summary as the seed prompt
+        (async () => {
+          try {
+            const bid = (window.S && S.brand_id) || 'swing-shack';
+            const r = await fetch('/api/visual-library/' + bid + '/recipe');
+            const j = await r.json();
+            const summary = (j && j.recipe && j.recipe.summary) || '';
+            openImageModal({ mode: 'generate', brand_id: bid, prompt: summary || 'Editorial image matching brand DNA' });
+          } catch(e){
+            toast('Could not load brand recipe: ' + e.message, 'err');
+          }
+        })();
+      } else if(mode === 'status'){
+        (async () => {
+          try {
+            const r = await fetch(IL_CONFIG.endpoint + '/status');
+            const j = await r.json();
+            const txt = j.ok
+              ? `configured=${j.configured}\nactive_provider=${j.active_provider}\nactive_model=${j.active_model}\nopenai=${j.providers.openai.configured}\nopenrouter=${j.providers.openrouter.configured}`
+              : ('error: ' + (j.error || '?'));
+            alert('Image router status\n\n' + txt);
+          } catch(e){
+            alert('Status check failed: ' + e.message);
+          }
+        })();
+      }
+    });
+  });
+
+  // Keyboard shortcuts: g = open generate modal, e = open edit modal
+  document.addEventListener('keydown', (e) => {
+    if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    if(e.key === 'g' || e.key === 'G'){
+      e.preventDefault();
+      openImageModal({ mode: 'generate', brand_id: (window.S && S.brand_id) || 'swing-shack' });
+    } else if(e.key === 'e' || e.key === 'E'){
+      e.preventDefault();
+      openImageModal({ mode: 'edit', brand_id: (window.S && S.brand_id) || 'swing-shack' });
+    }
+  });
+}
+
+// Surface-level wiring: call this from each render*() function to add
+// image-link buttons to that surface's items. Idempotent.
+function wireImageLinksForSurface(secId, opts) {
+  opts = opts || {};
+  const sec = $('#sec-' + secId);
+  if(!sec) return;
+  // Find candidate items — any element with data-asset-id, or any .li inside
+  let items = sec.querySelectorAll('[data-asset-id]');
+  if(!items.length){
+    items = sec.querySelectorAll('.li, .recipe-match, .asset-row, .lib-thumb');
+  }
+  items.forEach((item) => {
+    if(item.querySelector('.image-link-cluster')) return; // already wired
+    const assetId = item.dataset.assetId
+      || item.dataset.asset_id
+      || item.dataset.hookId
+      || item.dataset.headlineId
+      || item.dataset.captionId
+      || item.dataset.ctaId;
+    const prompt = item.dataset.prompt
+      || item.querySelector('.li-title, h3, .headline, .caption-text')?.textContent?.trim();
+    if(assetId){
+      imageLink(item, { asset_id: assetId, mode: 'from-asset' });
+    } else if(prompt){
+      imageLink(item, { prompt, mode: 'generate' });
+    }
+  });
+}
+
 // Initialise brand switcher + section explainers + first render
 (async function boot(){
   // Brand must load first so the X-Brand header is set on subsequent fetches
@@ -4930,10 +5332,19 @@ async function renderSection(sec){
   // Mark the right nav item as active (handle alias)
   $$('.nav').forEach(n => n.classList.toggle('on', (n.dataset.go===activeSec || n.dataset.go===(SECTION_ALIASES[activeSec] || activeSec))));
   go(activeSec);
+  // Inject image-link FAB + modal (one-time, idempotent)
+  injectImageLinkChrome();
+  // Wire image-link buttons into the active surface (idempotent)
+  wireImageLinksForSurface(activeSec === 'insights' ? 'insights' : (activeSec === 'performance' ? 'performance' : 'brief'));
   // Re-attach explainers whenever sections are re-rendered (since their section-h elements may be replaced)
   setInterval(() => attachExplainers(), 4000);
   // Re-attach universal data-help tooltips when nav/chrome is re-rendered (brand switcher dropdown repopulates).
   setInterval(() => { if (typeof HELP !== 'undefined' && HELP.autoAttach) HELP.autoAttach(); }, 4000);
+  // Re-wire image-link buttons when surfaces refresh
+  setInterval(() => {
+    const active = document.querySelector('.section.on');
+    if(active && active.id) wireImageLinksForSurface(active.id.replace(/^sec-/, ''));
+  }, 5000);
 })();
 
 // ─── Section loaders ────────────────────────────────────────────
