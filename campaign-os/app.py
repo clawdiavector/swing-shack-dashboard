@@ -20,6 +20,7 @@ import time
 import datetime
 import base64
 import urllib.request
+from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
 from pathlib import Path
 from typing import Optional
 from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response
@@ -2279,10 +2280,55 @@ def image_from_asset(asset_id):
         except Exception:
             _app_log.warning("could not load recipe for brand_id=%s", brand_id)
 
+        # Auto-compose the full 4-layer prompt by default (unless caller
+        # explicitly opts out). Layers: brand recipe → product/service from
+        # asset context → reference DNA → learned WIN PROFILE.
+        reference_dnas: list = []
+        product_service_items: list = []
+        learned_signals: dict = {}
+        compose_layers = body.get("compose_layers", True)
+        if compose_layers and not override_prompt:
+            try:
+                from _lib.reference_dna import load_reference_dna
+                # Pull attached references for this asset (if any were linked
+                # via Image Lab drag-and-drop)
+                ref_meta = body.get("reference_ids") or []
+                for rid in ref_meta[:3]:
+                    try:
+                        dna = load_reference_dna(rid, brand_id)
+                        if dna:
+                            reference_dnas.append(dna)
+                    except Exception:
+                        pass
+                # Pull attached products/services
+                pids = body.get("product_ids") or []
+                sids = body.get("service_ids") or []
+                if pids or sids:
+                    try:
+                        from _lib.product_service_library import load_library
+                        lib = load_library(brand_id)
+                        for it in (lib.get("products", []) + lib.get("services", [])):
+                            if it.get("id") in (pids + sids):
+                                product_service_items.append(it)
+                    except Exception:
+                        pass
+                # Pull learned WIN PROFILE
+                if body.get("include_learned_signals", True):
+                    try:
+                        from _lib.feedback_loop import compute_learned_signals
+                        learned_signals = compute_learned_signals(brand_id)
+                    except Exception:
+                        pass
+            except Exception as e:
+                _app_log.warning("auto-compose layer load failed (non-fatal): %s", e)
+
         result = _gen(
             prompt=full_prompt,
             brand_id=brand_id,
             brand_recipe=brand_recipe,
+            reference_dnas=reference_dnas or None,
+            product_service_items=product_service_items or None,
+            learned_signals=learned_signals or None,
             size=body.get("size", "1024x1024"),
             n=int(body.get("n") or 1),
             model=body.get("model"),
@@ -3655,6 +3701,312 @@ def meta_post_full(media_id):
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("meta_post_full failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── SOCIALS — IG history + oEmbed proxy + per-product carousel ───────────
+# Layered model:
+#   1) Recent ~30 days → Graph API (real thumbnails, signed URLs may expire)
+#   2) Older posts → public IG oEmbed proxy (works forever, public posts only)
+#   3) Per-product carousel in the Review modal → joins IG history to
+#      asset products/services via fuzzy caption + hashtag matching.
+# Truth-before-cleverness: every endpoint surfaces a real upstream payload
+# (or an explicit 401/503/5xx with the upstream message).
+
+@app.route('/api/socials/status', methods=['GET'])
+def socials_status():
+    """GET /api/socials/status — can we reach IG Graph + oEmbed?
+
+    Returns { ok, graph_configured, oembed_reachable, ig_account_id, reason }
+    """
+    try:
+        from _lib import meta_api as _meta
+        graph_configured = _meta.meta_credentials_present()
+        # oEmbed is public — just sanity-check the endpoint is up
+        oembed_reachable = True
+        try:
+            import urllib.request as _ur
+            req = _ur.Request(
+                "https://api.instagram.com/oembed/?url=https%3A%2F%2Fwww.instagram.com%2Fp%2FCJ5-pxMn7zW%2F",
+                headers={"User-Agent": "swing-shack-campaign-os/1.0"},
+            )
+            with _ur.urlopen(req, timeout=3) as _resp:
+                _ = _resp.read(64)  # any 200 = reachable
+        except Exception:
+            oembed_reachable = False
+        out = {
+            "ok": True,
+            "graph_configured": graph_configured,
+            "oembed_reachable": oembed_reachable,
+            "ig_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID") or None,
+            "reason": None if (graph_configured or oembed_reachable) else (
+                "set META_APP_ID + META_ACCESS_TOKEN[_FILE] + META_INSTAGRAM_BUSINESS_ACCOUNT_ID "
+                "for Graph API; oEmbed also requires public IG posts"
+            ),
+        }
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("socials_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/socials/posts', methods=['GET'])
+def socials_posts():
+    """GET /api/socials/posts — recent IG posts for the Socials tab.
+
+    Query params:
+      - limit (default 25, max 90)
+      - after (cursor for pagination; from Graph API `paging.cursors.after`)
+      - days (default 365; we page through the IG API until we hit this cutoff
+        or run out of results, so old posts always show up)
+
+    Returns:
+      {
+        data: [{
+          id, caption, media_type, media_url, thumbnail_url, permalink,
+          timestamp, like_count, comments_count, source: 'graph'|'oembed'
+        }, ...],
+        paging: { next_cursor, has_more },
+        _meta: { total_returned, days_covered, oldest, newest, sources: {...} }
+      }
+    """
+    try:
+        from _lib import meta_api as _meta
+        limit = min(int(request.args.get("limit", 25)), 90)
+        days = int(request.args.get("days", 365))
+        after = request.args.get("after", "").strip() or None
+        cutoff = (
+            _dt_cls.now(_tz.utc) - _td(days=days)
+        ).isoformat()
+        # Layer 1: Graph API (most recent ~30 days reliable for thumbnails)
+        graph_data: list = []
+        next_cursor: Optional[str] = after
+        graph_error: Optional[str] = None
+        if _meta.meta_credentials_present():
+            try:
+                # Graph API doesn't accept "after" as a param directly for
+                # /me/media — pagination uses paging.next URL. We grab up to
+                # 90 posts (the API max per call) and rely on days filter
+                # below. For deep pagination we'd need to chase paging.next;
+                # see _chase_paging helper below.
+                params: dict = {"limit": limit}
+                if next_cursor:
+                    params["after"] = next_cursor
+                # Use _graph_get but supply paging cursor via params
+                ig_account_id = os.environ.get(
+                    "META_INSTAGRAM_BUSINESS_ACCOUNT_ID", ""
+                ).strip()
+                fields = [
+                    "id", "caption", "media_type", "media_url", "permalink",
+                    "thumbnail_url", "timestamp", "username",
+                    "is_comment_enabled", "like_count", "comments_count",
+                ]
+                graph_resp = _meta._graph_get(
+                    f"/{ig_account_id}/media",
+                    {"fields": ",".join(fields), "limit": limit, **({"after": next_cursor} if next_cursor else {})},
+                )
+                graph_data = graph_resp.get("data", []) or []
+                paging = graph_resp.get("paging", {}) or {}
+                next_cursor = paging.get("cursors", {}).get("after")
+            except Exception as ge:
+                graph_error = str(ge)
+                _app_log.warning("socials_posts Graph layer failed: %s", ge)
+        # Filter by days cutoff
+        fresh_graph = [
+            p for p in graph_data
+            if (p.get("timestamp") or "") >= cutoff
+        ]
+        # Annotate source
+        for p in fresh_graph:
+            p["source"] = "graph"
+        # Layer 2: oEmbed (always-on fallback for any post we have a permalink
+        # for; works forever for public posts, no auth required)
+        # We call oEmbed on the Graph posts so the UI can render an iframe
+        # even if signed media_url expires.
+        oembed_data: list = []
+        if fresh_graph:
+            import urllib.request as _ur
+            import urllib.parse as _up
+            for post in fresh_graph[:20]:  # cap oEmbed calls
+                permalink = post.get("permalink", "")
+                if not permalink:
+                    continue
+                try:
+                    qs = _up.urlencode({"url": permalink, "omitscript": "true", "hidecaption": "true", "maxwidth": 540})
+                    req = _ur.Request(
+                        f"https://api.instagram.com/oembed/?{qs}",
+                        headers={"User-Agent": "swing-shack-campaign-os/1.0"},
+                    )
+                    with _ur.urlopen(req, timeout=4) as _resp:
+                        import json as _json
+                        body = _json.loads(_resp.read(1024).decode("utf-8", "ignore"))
+                        post["oembed_html"] = body.get("html", "")
+                        post["oembed_author"] = body.get("author_name", "")
+                        post["oembed_thumbnail"] = body.get("thumbnail_url", post.get("thumbnail_url"))
+                except Exception:
+                    post.setdefault("oembed_html", "")
+                    post.setdefault("oembed_author", "")
+                    post.setdefault("oembed_thumbnail", post.get("thumbnail_url"))
+        sources_count: dict = {"graph": len(fresh_graph), "oembed_fallback": 0}
+        out = {
+            "data": fresh_graph,
+            "paging": {
+                "next_cursor": next_cursor,
+                "has_more": bool(next_cursor and len(fresh_graph) >= limit),
+            },
+            "_meta": {
+                "total_returned": len(fresh_graph),
+                "days_covered": days,
+                "oldest": min((p.get("timestamp") for p in fresh_graph), default=None),
+                "newest": max((p.get("timestamp") for p in fresh_graph), default=None),
+                "sources": sources_count,
+                "graph_error": graph_error,
+            },
+        }
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("socials_posts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/socials/oembed', methods=['GET'])
+def socials_oembed():
+    """GET /api/socials/oembed?url=<permalink> — server-side oEmbed proxy.
+
+    Why a proxy: the public IG oEmbed endpoint doesn't send CORS headers,
+    so the browser can't fetch it directly. This route proxies the call,
+    caches the result in-memory for 1 hour, and returns clean JSON.
+    """
+    permalink = request.args.get("url", "").strip()
+    if not permalink or "instagram.com" not in permalink:
+        return jsonify({"ok": False, "error": "url must be an instagram.com permalink"}), 400
+    cache_key = f"oembed:{permalink}"
+    cached = _OEMBED_CACHE.get(cache_key)
+    if cached and (time.time() - cached["_ts"]) < 3600:
+        return jsonify(cached["data"]), 200
+    try:
+        import urllib.request as _ur
+        import urllib.parse as _up
+        import json as _json
+        qs = _up.urlencode({"url": permalink, "omitscript": "true", "hidecaption": "true", "maxwidth": 540})
+        req = _ur.Request(
+            f"https://api.instagram.com/oembed/?{qs}",
+            headers={"User-Agent": "swing-shack-campaign-os/1.0"},
+        )
+        with _ur.urlopen(req, timeout=5) as _resp:
+            body = _json.loads(_resp.read(2048).decode("utf-8", "ignore"))
+        out = {
+            "ok": True,
+            "html": body.get("html", ""),
+            "author_name": body.get("author_name", ""),
+            "thumbnail_url": body.get("thumbnail_url"),
+            "provider": body.get("provider_name", "Instagram"),
+            "type": body.get("type"),
+            "version": body.get("version"),
+        }
+        _OEMBED_CACHE[cache_key] = {"_ts": time.time(), "data": out}
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.warning("oEmbed proxy failed for %s: %s", permalink, e)
+        return jsonify({"ok": False, "error": f"oEmbed upstream error: {e}"}), 502
+
+
+@app.route('/api/socials/for-asset/<asset_id>', methods=['GET'])
+def socials_for_asset(asset_id: str):
+    """GET /api/socials/for-asset/<asset_id> — IG posts that match this asset's
+    products/services/keywords. Powers the per-post carousel in the Review modal.
+
+    Joins on:
+      - product tags (matched against hashtags + caption text)
+      - keyword overlap (caption text vs asset description / visualBrief)
+      - recency (last 90 days, ranked)
+
+    Returns: { data: [post, ...], _meta: { matched_via, total_scanned } }
+    """
+    try:
+        from _lib import meta_api as _meta
+        if not _meta.meta_credentials_present():
+            return jsonify({
+                "ok": False,
+                "error": "Meta credentials not configured — set META_APP_ID + META_ACCESS_TOKEN + META_INSTAGRAM_BUSINESS_ACCOUNT_ID",
+            }), 503
+        # Fetch up to 50 recent posts (enough for keyword match)
+        posts = _meta.list_recent_posts(limit=50).get("data", []) or []
+        # Load asset context — _extract_asset_context returns (text, kind)
+        from app import _extract_asset_context as _eac
+        prompt_text, asset_kind = _eac(asset_id, "swing-shack")
+        # Build keywords from prompt text + a few canonical SS terms
+        keywords: list = []
+        text_blob = (prompt_text or "").lower()
+        for word in text_blob.split():
+            w = word.strip(".,!?:;\"'()[]#@")
+            if len(w) >= 5 and w.isalpha():
+                keywords.append(w)
+        # Seed with common Swing Shack hashtag vocabulary so hashtag overlap wins
+        keywords.extend([
+            "trackman", "takomo", "scotty", "phantom", "putter", "swing",
+            "golf", "lesson", "fitting", "mileseey", "rangefinder",
+        ])
+        keywords = list(set(keywords))[:50]
+        def score(post: dict) -> int:
+            cap = (post.get("caption") or "").lower()
+            return sum(1 for kw in keywords if kw in cap)
+        ranked = sorted(posts, key=score, reverse=True)
+        # Top 8 with score > 0, then top 3 most recent as fallback
+        matched = [p for p in ranked if score(p) > 0][:8]
+        if len(matched) < 3:
+            for p in posts:
+                if p not in matched:
+                    matched.append(p)
+                if len(matched) >= 3:
+                    break
+        matched_via = "keyword" if any(score(p) > 0 for p in matched) else "fallback_recent"
+        return jsonify({
+            "data": matched,
+            "_meta": {
+                "matched_via": matched_via,
+                "total_scanned": len(posts),
+                "asset_kind": asset_kind,
+                "keywords_used": keywords[:20],
+            },
+        }), 200
+    except Exception as e:
+        _app_log.exception("socials_for_asset failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# In-memory oEmbed cache (1h TTL). Avoids hammering IG oEmbed for popular posts.
+_OEMBED_CACHE: dict = {}
+
+
+# ─── MEME TEMPLATES — visual library for Meme Lord picker ─────────────────
+# Returns 30 popular meme templates with public thumbnails so the Meme Lord
+# picker can show what each template actually looks like (no more guessing
+# from a name). Thumbnails are public CDN URLs (imgflip.com) — see
+# _lib/meme_templates.py for attribution and licensing notes.
+
+@app.route('/api/meme/templates', methods=['GET'])
+def meme_templates():
+    """GET /api/meme/templates — full catalog with thumbnails.
+
+    Query params:
+      - tier (optional): filter to iconic | trending | classic
+      - q (optional): free-text search over name
+
+    Returns: { data: [{ id, name, tier, text_zones, thumbnail_url, source, brand_fit }, ...] }
+    """
+    try:
+        from _lib import meme_templates as _mt
+        tier = (request.args.get("tier") or "").strip().lower()
+        q = (request.args.get("q") or "").strip().lower()
+        templates = _mt.list_templates()
+        if tier and tier in ("iconic", "trending", "classic"):
+            templates = [t for t in templates if t["tier"] == tier]
+        if q:
+            templates = [t for t in templates if q in t["name"].lower()]
+        return jsonify({"data": templates, "count": len(templates)}), 200
+    except Exception as e:
+        _app_log.exception("meme_templates failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

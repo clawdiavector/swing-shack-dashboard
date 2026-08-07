@@ -549,6 +549,15 @@ a:hover{text-decoration:underline}
 .meme-chip{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;margin-right:.25rem}
 .meme-bf{display:inline-flex;align-items:center;gap:.3rem;font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;letter-spacing:.02em}
 .meme-picks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.85rem}
+.meme-templates-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.5rem;max-height:340px;overflow-y:auto;padding-right:.25rem}
+.meme-templates-strip .meme-tile{aspect-ratio:1/1;background:var(--bg-3);border-radius:6px;overflow:hidden;cursor:pointer;position:relative;border:1px solid var(--bg-3);transition:transform .12s}
+.meme-templates-strip .meme-tile:hover{transform:scale(1.03);border-color:var(--ac)}
+.meme-templates-strip .meme-tile img{width:100%;height:100%;object-fit:cover}
+.meme-templates-strip .meme-tile-label{position:absolute;left:0;right:0;bottom:0;padding:.25rem .4rem;background:linear-gradient(to top,rgba(0,0,0,.85),transparent);color:#fff;font-size:10px;font-weight:600;line-height:1.1}
+.meme-templates-strip .meme-tile-tier{position:absolute;top:.25rem;right:.25rem;font-size:9px;padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.7);color:#fff;text-transform:uppercase}
+.meme-templates-strip .meme-tile-tier.iconic{background:var(--ac)}
+.meme-templates-strip .meme-tile-tier.trending{background:#10b981}
+.meme-templates-strip .meme-tile-tier.classic{background:#6b7280}
 .meme-pick{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:.85rem 1rem;display:flex;flex-direction:column;gap:.5rem;transition:all var(--t)}
 .meme-pick:hover{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-glow)}
 .meme-pick-h{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
@@ -700,6 +709,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="brief" id="nav-home" data-help-title="Today" data-help="Daily brief for the active brand. Top card: do this right now. Below: today's queue, what's new, brand context, scroll the panel for trends / ideas / learning. Refreshes every few minutes."><span class="nav-icon">🏠</span> Today <span class="nav-badge" id="nav-home-count" hidden>0</span></div>
       <div class="nav" data-go="review" data-help-title="Review" data-help="Inbox of drafts the agents produced. Click any row to approve, reject, or request a revision. Badge in the corner shows how many are waiting on you. Empty means inbox clean."><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
       <div class="nav" data-go="library" data-help-title="Library" data-help="Every piece of copy the agents have ever produced, searchable by brand / pillar / status / date. Use it to find a past winner, copy a structure, or audit a brand's voice drift over time."><span class="nav-icon">📚</span> Library</div>
+      <div class="nav" data-go="socials" data-help-title="Socials" data-help="Live Instagram history for the active brand. Real thumbnails (last ~30 days) + oEmbed embeds (works forever for public posts). Use it to see what you posted about a topic, audit voice consistency, or feed context into Image Lab."><span class="nav-icon">🪩</span> Socials</div>
       <div class="nav" data-go="gmb" data-help-title="GMB Drafts" data-help="Google Business profile post drafts. Edit the title + body, push to Postiz to schedule on your GBP listing. Templates are seeded from the daily GMB rotation; you can also write a fresh one."><span class="nav-icon">📍</span> GMB <span class="nav-badge" id="nav-gmb-count" hidden>0</span></div>
       <div class="nav" data-go="create" data-help-title="Create" data-help="Brand-aware content generators: captions, headlines, hooks, memes, CTAs, hashtags, billboards, image briefs. Each tool inherits the active brand's voice bible and pillars automatically."><span class="nav-icon">🪄</span> Create</div>
       <div class="nav" data-go="campaigns" data-help-title="Brand" data-help="Switch active brand, edit the 9-slot brand directory (voice, palette, archetypes, examples), and tune what every generator inherits. Changes here propagate to every surface within seconds."><span class="nav-icon">🎯</span> Brand</div>
@@ -1021,6 +1031,22 @@ a:hover{text-decoration:underline}
         </div>
       </div>
 
+      <!-- Template thumbnail strip — "not sure what it looks like? browse here" -->
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div class="card-h">
+          <h3 data-help="Visual reference for every meme template in the picker. Hover to see the name + tone; use the dropdown to filter by tier. Click a template to use it. These thumbnails are pulled from imgflip.com (the public meme format catalog) so the actual visual matches what the Meme Lord composer is going to write to." data-help-title="Template visual reference">🎭 Template visuals <span style="font-size:11px;color:var(--tx-3)">— not sure what one looks like? Browse here</span></h3>
+          <select id="mem-template-tier" class="mini-select" style="font-size:11px">
+            <option value="">All tiers</option>
+            <option value="iconic">Iconic only</option>
+            <option value="trending">Trending</option>
+            <option value="classic">Classic</option>
+          </select>
+        </div>
+        <div id="meme-templates-strip" class="meme-templates-strip">
+          <div class="muted" style="font-size:11px">Loading templates…</div>
+        </div>
+      </div>
+
       <div class="grid">
         <!-- Top: brand-fit recommendations -->
         <div class="card col-12">
@@ -1160,6 +1186,38 @@ a:hover{text-decoration:underline}
         </div>
         <div class="card col-7"><div class="card-h"><h3 data-help="Approved captions the brand has already shipped, grouped by asset. Click any row to expand the full variant set + the performance line (engagement, reach, save rate). Use this as the editorial memory of what already worked so the generator below doesn't re-propose it from scratch." data-help-title="Caption bank">📚 Caption bank</h3></div><div id="cap-bank"></div></div>
         <div class="card col-5"><div class="card-h"><h3 data-help="Every CTA the brand has used inside a caption, ranked by historical click-through. Top of the list = highest conversion. The Caption Studio auto-suggests from this list when you generate variants, so the more you ship the smarter the suggestions get." data-help-title="CTA performance">🎯 CTA performance</h3></div><div id="cap-cta"></div></div>
+      </div>
+    </section>
+
+    <!-- ── SOCIALS — Instagram history + per-asset context ───────── -->
+    <section class="section" id="sec-socials">
+      <div class="section-h">
+        <h2 data-help="Live Instagram history for the active brand. Recent posts (~30 days) come straight from Meta's Graph API with real thumbnails; older posts fall back to oEmbed embeds so the visual stays live forever. Click any post to open it in a side panel with full caption + media + permalink. Use this surface to audit voice consistency across the last year, find a past winner to remix, or feed context into Image Lab." data-help-title="Socials">🪩 Socials <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">IG history · real visuals</span></h2>
+        <span class="sub" id="socials-summary">—</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn" id="socials-refresh">🔄 Refresh</button>
+        </div>
+      </div>
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
+          <label class="muted" style="font-size:11px">Range</label>
+          <select id="socials-days" style="font-size:12px">
+            <option value="30">Last 30 days</option>
+            <option value="90" selected>Last 90 days</option>
+            <option value="365">Last year</option>
+          </select>
+          <label class="muted" style="font-size:11px">Type</label>
+          <select id="socials-type" style="font-size:12px">
+            <option value="">All</option>
+            <option value="IMAGE">Image</option>
+            <option value="VIDEO">Video</option>
+            <option value="CAROUSEL_ALBUM">Carousel</option>
+          </select>
+          <span class="muted" id="socials-status" style="margin-left:auto;font-size:11px">—</span>
+        </div>
+      </div>
+      <div class="grid" id="socials-grid">
+        <div class="card col-12"><div class="muted">Loading socials…</div></div>
       </div>
     </section>
 
@@ -5360,6 +5418,7 @@ async function loadSection(sec){
     if(sec==='create') return renderCreate();
     if(sec==='insights') return renderInsights();
     if(sec==='library') return renderLibrary();
+    if(sec==='socials') return renderSocials();
     if(sec==='trends') return renderTrends();
     if(sec==='ideas') return renderIdeas();
     if(sec==='performance') return renderPerformance();
@@ -6268,6 +6327,11 @@ window.openReview = async (cid, aid) => {
     <h4 data-help="${rvVisualBriefHelp}" data-help-title="Visual brief" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Visual brief</h4>
     <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(visualBriefText) || '—'}</div>
 
+    <h4 data-help="Past Instagram posts that mention this asset's product, service, or keywords. Ranked by caption overlap. Use it to see how the brand has talked about this topic before — match the voice, or remix the winner." data-help-title="IG history (this product/topic)" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">🪩 Already posted about this</h4>
+    <div id="rv-socials-strip" style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.5rem">
+      <div class="muted" style="font-size:11px;padding:1rem">Loading socials…</div>
+    </div>
+
     <h4 data-help="${rvCurrentVisualHelp}" data-help-title="Current visual" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Current visual</h4>
     <div id="rv-visual-wrap" style="background:var(--bg-3);padding:.5rem;border-radius:8px;min-height:80px;display:flex;align-items:center;justify-content:center">
       ${visualUrl
@@ -6384,6 +6448,42 @@ window.openReview = async (cid, aid) => {
       }
     });
   }
+
+  // ── Inline IG history strip ─────────────────────────────────────
+  // Pulls up to 8 posts that match this asset's product/service/keywords
+  // and renders them as a horizontal carousel so you can see what's
+  // already been said on this topic before approving.
+  (async () => {
+    const strip = document.getElementById('rv-socials-strip');
+    if (!strip) return;
+    try {
+      const r = await API.get('/api/socials/for-asset/' + encodeURIComponent(aid));
+      const posts = (r && r.data) || [];
+      if (!posts.length) {
+        strip.innerHTML = '<div class="muted" style="font-size:11px;padding:.5rem">No matching IG posts yet — this asset will be the first.</div>';
+        return;
+      }
+      strip.innerHTML = posts.map((p, i) => {
+        const thumb = p.thumbnail_url || p.media_url || '';
+        const ts = p.timestamp ? new Date(p.timestamp).toLocaleDateString() : '';
+        const cap = (p.caption || '').slice(0, 60) + ((p.caption || '').length > 60 ? '…' : '');
+        const likes = p.like_count != null ? `❤️ ${p.like_count}` : '';
+        return `<a href="${esc(p.permalink || '#')}" target="_blank" rel="noopener"
+                   style="flex:0 0 auto;width:140px;text-decoration:none;color:inherit">
+          <div style="aspect-ratio:1/1;background:var(--bg-3);border-radius:6px;overflow:hidden">
+            ${thumb ? `<img src="${esc(thumb)}" loading="lazy" style="width:100%;height:100%;object-fit:cover"
+              onerror="this.style.opacity=0.2"/>` : '<div class="muted" style="padding:1rem;font-size:11px">no thumb</div>'}
+          </div>
+          <div style="font-size:10px;color:var(--tx-3);margin-top:.25rem;display:flex;justify-content:space-between">
+            <span>${esc(ts)}</span><span>${likes}</span>
+          </div>
+          <div style="font-size:11px;line-height:1.2;margin-top:.15rem;color:var(--tx-2)">${esc(cap)}</div>
+        </a>`;
+      }).join('');
+    } catch (e) {
+      strip.innerHTML = `<div class="muted" style="font-size:11px;padding:.5rem">Couldn't load socials: ${esc(String(e))}</div>`;
+    }
+  })();
 
   // Wire upload (multipart form POST).
   const uploadBtn = document.getElementById('rv-upload-btn');
@@ -6826,6 +6926,99 @@ $$('[data-cal-shift]').forEach(b => b.addEventListener('click', () => {
   }
   renderCalendar();
 }));
+
+// ─── SOCIALS — IG history + per-asset context ────────────────────────
+let _socialsCache = null;
+async function renderSocials(){
+  const days = ($('#socials-days')?.value || '90').trim();
+  const type = ($('#socials-type')?.value || '').trim();
+  const grid = $('#socials-grid');
+  const summary = $('#socials-summary');
+  const status = $('#socials-status');
+  if(!grid) return;
+  grid.innerHTML = '<div class="card col-12"><div class="muted">Loading socials…</div></div>';
+  status.textContent = 'Fetching…';
+  try {
+    const qs = new URLSearchParams({ days: String(days), limit: '90' });
+    const r = await API.get('/api/socials/posts?' + qs.toString());
+    const posts = (r.data || []).filter(p => !type || p.media_type === type);
+    _socialsCache = { posts, fetched: Date.now(), days };
+    const meta = r._meta || {};
+    summary.textContent = `${posts.length} posts · ${meta.days_covered || days}d window · sources: ${(meta.sources?.graph || 0)} graph`;
+    status.textContent = `${meta.newest ? '🟢 live' : '⚪ empty'} · newest ${meta.newest ? new Date(meta.newest).toLocaleDateString() : '—'}`;
+    if(!posts.length){
+      grid.innerHTML = `<div class="card col-12"><div class="muted">No posts in the last ${days} days. Try widening the range.</div></div>`;
+      return;
+    }
+    grid.innerHTML = posts.map((p, i) => {
+      const ts = p.timestamp ? new Date(p.timestamp).toLocaleDateString() : '';
+      const thumb = p.thumbnail_url || p.oembed_thumbnail || p.media_url || '';
+      const typeIcon = p.media_type === 'VIDEO' ? '🎥' : (p.media_type === 'CAROUSEL_ALBUM' ? '🖼️' : '📷');
+      const caption = (p.caption || '').slice(0, 140) + ((p.caption||'').length > 140 ? '…' : '');
+      const likes = p.like_count != null ? `❤️ ${p.like_count}` : '';
+      const comments = p.comments_count != null ? `💬 ${p.comments_count}` : '';
+      return `<div class="card col-4 socials-card" data-socials-i="${i}" data-permalink="${esc(p.permalink || '')}" style="cursor:pointer">
+        <div style="aspect-ratio:1/1;background:var(--bg-3);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+          ${thumb ? `<img src="${esc(thumb)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<div class=&quot;muted&quot; style=&quot;font-size:11px&quot;>No thumbnail</div>'"/>` : `<div class="muted" style="font-size:11px">No thumbnail</div>`}
+        </div>
+        <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;font-size:11px;color:var(--tx-3)">
+          <span>${typeIcon}</span>
+          <span>${ts}</span>
+          <span style="margin-left:auto">${likes} ${comments}</span>
+        </div>
+        <div style="font-size:12px;margin-top:.25rem;color:var(--tx-2);line-height:1.3">${esc(caption)}</div>
+      </div>`;
+    }).join('');
+    // Click → open detail modal
+    $$('.socials-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const i = parseInt(card.dataset.socialsI, 10);
+        const p = _socialsCache.posts[i];
+        if(p) openSocialsDetail(p);
+      });
+    });
+  } catch(e){
+    console.error('renderSocials failed', e);
+    status.textContent = '⚠ error';
+    grid.innerHTML = `<div class="card col-12"><div class="muted">Error loading socials: ${esc(String(e))}</div></div>`;
+  }
+}
+
+async function openSocialsDetail(post){
+  const permalink = post.permalink || '';
+  let oembed = null;
+  try { oembed = await API.get('/api/socials/oembed?url=' + encodeURIComponent(permalink)); } catch(_){}
+  const caption = post.caption || '(no caption)';
+  const thumb = post.thumbnail_url || (oembed && oembed.thumbnail_url) || post.media_url || '';
+  const ts = post.timestamp ? new Date(post.timestamp).toLocaleString() : '';
+  const html = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-height:70vh;overflow:auto">
+      <div>
+        ${thumb ? `<img src="${esc(thumb)}" style="width:100%;border-radius:8px"/>` : '<div class="muted">No media</div>'}
+        <div style="font-size:11px;color:var(--tx-3);margin-top:.5rem">${esc(ts)}</div>
+        <div style="margin-top:.5rem"><a href="${esc(permalink)}" target="_blank" rel="noopener" class="btn">Open on Instagram ↗</a></div>
+      </div>
+      <div>
+        <h4 style="margin-top:0">Caption</h4>
+        <pre style="white-space:pre-wrap;font-size:12px;background:var(--bg-3);padding:.5rem;border-radius:6px;max-height:240px;overflow:auto">${esc(caption)}</pre>
+        <h4>Stats</h4>
+        <div style="font-size:12px">
+          ❤️ ${post.like_count ?? '—'} &nbsp; 💬 ${post.comments_count ?? '—'} &nbsp; ${esc(post.media_type || '')}
+        </div>
+      </div>
+    </div>`;
+  showModal(post.id || 'IG post', html);
+}
+
+// Filter bindings
+document.addEventListener('change', (e) => {
+  if(e.target && e.target.id === 'socials-days') renderSocials();
+  if(e.target && e.target.id === 'socials-type') renderSocials();
+});
+document.addEventListener('click', (e) => {
+  if(e.target && e.target.id === 'socials-refresh') renderSocials();
+});
+
 
 // ─── TRENDS ─────────────────────────────────────────────────────
 async function renderTrends(){
@@ -7311,8 +7504,54 @@ async function memApply(memeId){
   }));
 }
 
+// ─── MEME TEMPLATE THUMBNAIL STRIP ─────────────────────────────────
+let _memeTemplatesCache = null;
+async function renderMemeTemplatesStrip(){
+  const strip = $('#meme-templates-strip');
+  if(!strip) return;
+  const tier = ($('#mem-template-tier')?.value || '').trim();
+  if(!_memeTemplatesCache){
+    strip.innerHTML = '<div class="muted" style="font-size:11px">Loading templates…</div>';
+    try {
+      _memeTemplatesCache = (await API.get('/api/meme/templates'))?.data || [];
+    } catch(e){
+      strip.innerHTML = '<div class="muted" style="font-size:11px">Could not load meme templates.</div>';
+      return;
+    }
+  }
+  const filtered = tier ? _memeTemplatesCache.filter(t => t.tier === tier) : _memeTemplatesCache;
+  if(!filtered.length){
+    strip.innerHTML = '<div class="muted" style="font-size:11px">No templates in this tier.</div>';
+    return;
+  }
+  strip.innerHTML = filtered.map(t => `
+    <div class="meme-tile" data-template-id="${esc(t.id)}" title="${esc(t.name)} — ${esc(t.text_zones.join(', '))}">
+      <img src="${esc(t.thumbnail_url)}" loading="lazy" alt="${esc(t.name)}"
+           onerror="this.style.opacity=0.15;this.setAttribute('alt','image not available')"/>
+      <span class="meme-tile-tier ${esc(t.tier)}">${esc(t.tier)}</span>
+      <span class="meme-tile-label">${esc(t.name)}</span>
+    </div>
+  `).join('');
+  // Click → fill the meme search box and trigger memRefresh
+  $$('.meme-tile', strip).forEach(tile => {
+    tile.addEventListener('click', () => {
+      const tid = tile.dataset.templateId;
+      const tpl = _memeTemplatesCache.find(x => x.id === tid);
+      if(!tpl) return;
+      const search = $('#mem-search');
+      if(search){ search.value = tpl.name; search.dispatchEvent(new Event('input', { bubbles: true })); }
+      $('#mem-search')?.dispatchEvent(new Event('input', { bubbles: true }));
+      toast(`Using "${tpl.name}"`);
+    });
+  });
+}
+document.addEventListener('change', (e) => {
+  if(e.target && e.target.id === 'mem-template-tier') renderMemeTemplatesStrip();
+});
+
 async function renderMemes(){
   $('#memes-summary').textContent = 'Loading meme historian…';
+  renderMemeTemplatesStrip();  // fire-and-forget; populates the visual strip
   try { await memRefresh(); }
   catch(err){
     $('#memes-summary').textContent = 'Failed to load memes';
