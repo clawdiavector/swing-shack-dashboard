@@ -255,6 +255,43 @@ a:hover{text-decoration:underline}
 .nav-badge.muted{background:var(--bg-4);color:var(--tx-2)}
 .all-tools-toggle{font-style:italic;color:var(--tx-3);font-weight:500}
 .all-tools-toggle:hover{color:var(--tx)}
+.nav-group-h{display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx-2);cursor:pointer;border-radius:6px;user-select:none;transition:background .15s ease,color .15s ease}
+.nav-group-h:hover{background:var(--bg-2);color:var(--tx)}
+.nav-group-h:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+.nav-group-chev{font-size:10px;color:var(--tx-3);transition:transform .2s ease;flex-shrink:0}
+.nav-group-h[aria-expanded="true"] .nav-group-chev{transform:rotate(0deg)}
+.nav-group-h[aria-expanded="false"] .nav-group-chev{transform:rotate(0deg);color:var(--tx-3)}
+.nav-group-label{flex:1}
+.nav-group-tag{font-size:9px;font-weight:500;color:var(--tx-3);text-transform:none;letter-spacing:0;background:var(--bg-2);padding:2px 6px;border-radius:10px;border:1px solid var(--line)}
+.nav-group{display:flex;flex-direction:column;gap:1px;margin-bottom:.25rem}
+.nav-group[hidden]{display:none}
+.ext-mark{color:var(--tx-3);font-size:10px;margin-left:auto;padding-left:4px}
+.nav-soft{color:var(--tx-3);font-style:italic;font-weight:500;font-size:12px;opacity:0.7}
+.nav-soft:hover{color:var(--tx);opacity:1}
+.welcome-bg{position:fixed;inset:0;background:var(--scrim);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;z-index:200;padding:1.5rem}
+.welcome-bg.on{display:flex;animation:fadeIn .25s ease}
+.welcome{background:var(--bg-2);border:1px solid var(--bd);border-radius:14px;padding:2rem;max-width:640px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.welcome-h{display:flex;align-items:flex-start;gap:.75rem;margin-bottom:.25rem}
+.welcome-h .welcome-mark{font-size:28px;line-height:1}
+.welcome-h h2{font-size:22px;font-weight:700;margin:0;color:var(--tx)}
+.welcome-sub{color:var(--tx-3);font-size:13px;margin-bottom:1.25rem}
+.welcome-tour{display:grid;gap:.5rem;margin-bottom:1.25rem}
+.welcome-tour-step{display:flex;gap:.75rem;align-items:flex-start;padding:.75rem;background:var(--bg);border:1px solid var(--line);border-radius:10px;cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.welcome-tour-step:hover{border-color:var(--ac);background:var(--bg-3)}
+.welcome-step-ico{font-size:20px;flex-shrink:0;width:32px;text-align:center}
+.welcome-step-body{flex:1;min-width:0}
+.welcome-step-title{font-weight:600;color:var(--tx);margin-bottom:2px}
+.welcome-step-desc{color:var(--tx-3);font-size:12px;line-height:1.45}
+.welcome-step-jump{font-size:11px;color:var(--ac);margin-top:4px;font-weight:600}
+.welcome-actions{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin-top:.5rem}
+.welcome-skip{color:var(--tx-3);font-size:12px;cursor:pointer;background:none;border:0;padding:.5rem .75rem;border-radius:6px}
+.welcome-skip:hover{color:var(--tx)}
+.welcome-cta{background:var(--ac);color:#fff;border:0;padding:.6rem 1.25rem;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer}
+.welcome-cta:hover{filter:brightness(1.08)}
+.welcome-tour-progress{display:flex;gap:4px;justify-content:center;margin-bottom:1rem}
+.welcome-dot{width:6px;height:6px;border-radius:50%;background:var(--line);transition:background .2s ease}
+.welcome-dot.on{background:var(--ac)}
+@media (max-width:600px){.welcome{padding:1.25rem}.welcome-h h2{font-size:18px}.welcome-tour-step{padding:.6rem}}
 
 .main{padding:1.5rem 2rem 4rem;max-width:100%;overflow-x:hidden}
 .topbar{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem}
@@ -542,6 +579,12 @@ a:hover{text-decoration:underline}
 
 /* ─── Meme Lord v2 ─────────────────────────────────────────── */
 .mini-select{background:var(--bg-2);color:var(--tx);border:1px solid var(--bg-3);border-radius:6px;padding:5px 8px;font-size:12px;font-weight:500}
+.pub-flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.75rem 1rem;margin-bottom:1rem;background:var(--bg-2);border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--tx-2)}
+.pub-flow-step{padding:3px 8px;border-radius:5px;background:var(--bg);border:1px solid var(--line);font-weight:600;color:var(--tx-2)}
+.pub-flow-step.on{background:color-mix(in srgb,var(--ac) 15%,transparent);border-color:var(--ac);color:var(--ac)}
+.pub-flow-step.fail{background:color-mix(in srgb,#e74c3c 12%,transparent);border-color:#e74c3c;color:#e74c3c}
+.pub-flow-arrow{color:var(--tx-3);font-weight:700}
+.pub-flow-note{margin-left:auto;font-size:11px}
 .btn-mini{display:inline-flex;align-items:center;gap:.3rem;padding:4px 10px;border-radius:6px;background:var(--bg-3);border:1px solid var(--bd);color:var(--tx-2);font-size:11px;font-weight:500;cursor:pointer;transition:all var(--t)}
 .btn-mini:hover{background:var(--ac);color:var(--bg);border-color:var(--ac)}
 .link-btn{background:none;border:none;color:var(--ac);cursor:pointer;font-size:11px;font-weight:600;text-transform:lowercase;letter-spacing:.02em;padding:0 .25rem}
@@ -703,58 +746,129 @@ a:hover{text-decoration:underline}
       <div class="brand-dropdown" id="brand-dropdown" role="listbox" hidden></div>
     </div>
 
-    <!-- Simplified top-level nav (5 items — the daily essentials).
-         Power tools live behind "+ More" so they're one tap away, not constantly in the way. -->
+    <!-- Simplified top-level nav (Daily essentials visible by default).
+         Power tools live behind collapsible groups so they're one tap away,
+         not constantly in the way. Groups: Daily / Build / Insight / Reach / External. -->
     <div class="nav-section">
-      <div class="nav" data-go="brief" id="nav-home" data-help-title="Today" data-help="Daily brief for the active brand. Top card: do this right now. Below: today's queue, what's new, brand context, scroll the panel for trends / ideas / learning. Refreshes every few minutes."><span class="nav-icon">🏠</span> Today <span class="nav-badge" id="nav-home-count" hidden>0</span></div>
-      <div class="nav" data-go="review" data-help-title="Review" data-help="Inbox of drafts the agents produced. Click any row to approve, reject, or request a revision. Badge in the corner shows how many are waiting on you. Empty means inbox clean."><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
-      <div class="nav" data-go="library" data-help-title="Library" data-help="Every piece of copy the agents have ever produced, searchable by brand / pillar / status / date. Use it to find a past winner, copy a structure, or audit a brand's voice drift over time."><span class="nav-icon">📚</span> Library</div>
-      <div class="nav" data-go="socials" data-help-title="Socials" data-help="Live Instagram history for the active brand. Real thumbnails (last ~30 days) + oEmbed embeds (works forever for public posts). Use it to see what you posted about a topic, audit voice consistency, or feed context into Image Lab."><span class="nav-icon">🪩</span> Socials</div>
-      <div class="nav" data-go="gmb" data-help-title="GMB Drafts" data-help="Google Business profile post drafts. Edit the title + body, push to Postiz to schedule on your GBP listing. Templates are seeded from the daily GMB rotation; you can also write a fresh one."><span class="nav-icon">📍</span> GMB <span class="nav-badge" id="nav-gmb-count" hidden>0</span></div>
-      <div class="nav" data-go="create" data-help-title="Create" data-help="Brand-aware content generators: captions, headlines, hooks, memes, CTAs, hashtags, billboards, image briefs. Each tool inherits the active brand's voice bible and pillars automatically."><span class="nav-icon">🪄</span> Create</div>
-      <div class="nav" data-go="campaigns" data-help-title="Brand" data-help="Switch active brand, edit the 9-slot brand directory (voice, palette, archetypes, examples), and tune what every generator inherits. Changes here propagate to every surface within seconds."><span class="nav-icon">🎯</span> Brand</div>
+      <div class="nav-group-h" data-nav-group="daily" tabindex="0" role="button" aria-expanded="true">
+        <span class="nav-group-chev">▾</span>
+        <span class="nav-group-label">Daily</span>
+        <span class="nav-group-tag">5 essentials</span>
+      </div>
+      <div class="nav-group" id="nav-group-daily">
+        <div class="nav" data-go="brief" id="nav-home" data-help-title="Today" data-help="Daily brief for the active brand. Top card: do this right now. Below: today's queue, what's new, brand context, scroll the panel for trends / ideas / learning. Refreshes every few minutes."><span class="nav-icon">🏠</span> Today <span class="nav-badge" id="nav-home-count" hidden>0</span></div>
+        <div class="nav" data-go="review" data-help-title="Review" data-help="Inbox of drafts the agents produced. Click any row to approve, reject, or request a revision. Badge in the corner shows how many are waiting on you. Empty means inbox clean."><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
+        <div class="nav" data-go="library" data-help-title="Library" data-help="Every piece of copy the agents have ever produced, searchable by brand / pillar / status / date. Use it to find a past winner, copy a structure, or audit a brand's voice drift over time."><span class="nav-icon">📚</span> Library</div>
+        <div class="nav" data-go="socials" data-help-title="Socials" data-help="Live Instagram history for the active brand. Real thumbnails (last ~30 days) + oEmbed embeds (works forever for public posts). Use it to see what you posted about a topic, audit voice consistency, or feed context into Image Lab."><span class="nav-icon">🪩</span> Socials</div>
+        <div class="nav" data-go="gmb" data-help-title="Google Business drafts" data-help="Google Business profile post drafts. Edit the title + body, push to Postiz to schedule on your GBP listing. Templates are seeded from the daily GMB rotation; you can also write a fresh one."><span class="nav-icon">📍</span> Google Business <span class="nav-badge" id="nav-gmb-count" hidden>0</span></div>
+      </div>
     </div>
 
-    <!-- Quick links (sub-nav under primary items) -->
-    <div class="nav-section nav-sub">
-      <div class="nav-title">Quick links</div>
-      <a class="nav nav-link" href="/visualizer" data-help-title="Visual Library" data-help="Full visual library: 122+ brand images, filter by color/brand/mood, discover by element, generate new images with the recipe-informed gpt-image-1 pipeline."><span class="nav-icon">🎨</span> Visual Library</a>
-      <a class="nav nav-link" href="/meme-lab" data-help-title="Meme Lab" data-help="Meme templates gallery + remix workspace. Browse existing meme formats, remix them with your brand voice, save to Review queue."><span class="nav-icon">😂</span> Meme Lab</a>
-      <a class="nav nav-link" href="/image-lab" data-help-title="Image Lab" data-help="Reference DNA + Product/Service library + self-improving prompts. Point at any image, capture its look. Promote any product/service with one click. Every render learns from prior performance."><span class="nav-icon">🧬</span> Image Lab</a>
-      <a class="nav nav-link" href="/cockpit-operational" data-help-title="Operational Cockpit" data-help="Read-only operational dashboard: campaign status, scheduled items, raw telemetry. Use for quick health checks."><span class="nav-icon">🛩️</span> Cockpit</a>
-    </div>
-
-    <!-- Power tools: hidden by default. Expand "+ More" to see all 18 sub-tools. -->
+    <!-- Build: content generators + brand controls. -->
     <div class="nav-section">
-      <div class="nav all-tools-toggle" id="all-tools-toggle"><span class="nav-icon">🧰</span> <span id="all-tools-toggle-label">+ More tools</span></div>
+      <div class="nav-group-h" data-nav-group="build" tabindex="0" role="button" aria-expanded="false">
+        <span class="nav-group-chev">▸</span>
+        <span class="nav-group-label">Build</span>
+        <span class="nav-group-tag">create + brand</span>
+      </div>
+      <div class="nav-group" id="nav-group-build" hidden>
+        <div class="nav" data-go="create" data-help-title="Create" data-help="Brand-aware content generators: captions, headlines, hooks, memes, CTAs, hashtags, billboards, image briefs. Each tool inherits the active brand's voice bible and pillars automatically."><span class="nav-icon">🪄</span> Create</div>
+        <div class="nav" data-go="campaigns" data-help-title="Brand" data-help="Switch active brand, edit the 9-slot brand directory (voice, palette, archetypes, examples), and tune what every generator inherits. Changes here propagate to every surface within seconds."><span class="nav-icon">🎯</span> Brand</div>
+        <div class="nav" data-go="captions" data-help-title="Caption Studio" data-help="Voice-aware captions. IG / FB / LinkedIn lengths."><span class="nav-icon">✍️</span> Caption Studio</div>
+        <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Bold, provocative headlines per pillar."><span class="nav-icon">📰</span> Headlines</div>
+        <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks ranked by what wins for this brand."><span class="nav-icon">🪝</span> Hook Bank</div>
+        <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme workspace · templates, custom captions, format conversion."><span class="nav-icon">😂</span> Meme Lord</div>
+        <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs (Midjourney, DALL-E, ComfyUI). Renders live via gpt-image-1."><span class="nav-icon">🖼️</span> Image Gen</div>
+        <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
+        <div class="nav" data-go="ctas" data-help-title="CTAs" data-help="CTA generator. ~40 CTAs ranked by funnel position."><span class="nav-icon">🎯</span> CTAs</div>
+        <div class="nav" data-go="hashtagseo" data-help-title="Hashtags + SEO" data-help="Hashtag sets + SEO meta descriptions per platform."><span class="nav-icon">#️⃣</span> Hashtags + SEO</div>
+        <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Raw content backlog for the active brand."><span class="nav-icon">💡</span> Ideas</div>
+        <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit tone, no-link soft-sell."><span class="nav-icon">🗣️</span> Reddit</div>
+        <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
+      </div>
     </div>
 
-    <div class="nav-section" id="all-tools-section" hidden>
-      <div class="nav-title">All tools</div>
-      <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar · month grid of every planned post across all brands."><span class="nav-icon">📅</span> Calendar</div>
-      <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
-      <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
-      <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
-      <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Raw content backlog for the active brand."><span class="nav-icon">💡</span> Ideas</div>
-      <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks ranked by what wins for this brand."><span class="nav-icon">🪝</span> Hook Bank</div>
-      <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme workspace · templates, custom captions, format conversion."><span class="nav-icon">😂</span> Meme Lord</div>
-      <div class="nav" data-go="captions" data-help-title="Caption Studio" data-help="Voice-aware captions. IG / FB / LinkedIn lengths."><span class="nav-icon">✍️</span> Caption Studio</div>
-      <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Bold, provocative headlines per pillar."><span class="nav-icon">📰</span> Headlines</div>
-      <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs (Midjourney, DALL-E, ComfyUI). Renders live via gpt-image-1."><span class="nav-icon">🖼️</span> Image Gen</div>
-      <div class="nav" data-go="ctas" data-help-title="CTAs" data-help="CTA generator. ~40 CTAs ranked by funnel position."><span class="nav-icon">🎯</span> CTAs</div>
-      <div class="nav" data-go="hashtagseo" data-help-title="Hashtags + SEO" data-help="Hashtag sets + SEO meta descriptions per platform."><span class="nav-icon">#️⃣</span> Hashtags + SEO</div>
-      <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
-      <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
-      <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
-      <div class="nav" data-go="seo" data-help-title="SEO" data-help="Audit scores, keyword rankings, GEO readiness."><span class="nav-icon">🔎</span> SEO</div>
-      <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
-      <div class="nav" data-go="gbp" data-help-title="Google Business" data-help="GBP workspace · voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
-      <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit tone, no-link soft-sell."><span class="nav-icon">🗣️</span> Reddit</div>
-      <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
-      <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
-      <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness."><span class="nav-icon">🤖</span> Agents</div>
+    <!-- Insight: data + learning surfaces. -->
+    <div class="nav-section">
+      <div class="nav-group-h" data-nav-group="insight" tabindex="0" role="button" aria-expanded="false">
+        <span class="nav-group-chev">▸</span>
+        <span class="nav-group-label">Insight</span>
+        <span class="nav-group-tag">what's working</span>
+      </div>
+      <div class="nav-group" id="nav-group-insight" hidden>
+        <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
+        <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
+        <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
+        <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
+        <div class="nav" data-go="seo" data-help-title="SEO" data-help="Audit scores, keyword rankings, GEO readiness."><span class="nav-icon">🔎</span> SEO</div>
+        <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
+      </div>
+    </div>
+
+    <!-- Reach: scheduling + distribution. -->
+    <div class="nav-section">
+      <div class="nav-group-h" data-nav-group="reach" tabindex="0" role="button" aria-expanded="false">
+        <span class="nav-group-chev">▸</span>
+        <span class="nav-group-label">Reach</span>
+        <span class="nav-group-tag">schedule + ship</span>
+      </div>
+      <div class="nav-group" id="nav-group-reach" hidden>
+        <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar · month grid of every planned post across all brands."><span class="nav-icon">📅</span> Calendar</div>
+        <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
+        <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
+        <div class="nav" data-go="gbp" data-help-title="GBP workspace" data-help="GBP workspace · voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
+        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness."><span class="nav-icon">🤖</span> Agents</div>
+      </div>
+    </div>
+
+    <!-- External: apps that live in their own page. -->
+    <div class="nav-section">
+      <div class="nav-group-h" data-nav-group="external" tabindex="0" role="button" aria-expanded="false">
+        <span class="nav-group-chev">▸</span>
+        <span class="nav-group-label">External</span>
+        <span class="nav-group-tag">5 apps</span>
+      </div>
+      <div class="nav-group" id="nav-group-external" hidden>
+        <a class="nav nav-link" href="/visualizer" data-help-title="Visual Library" data-help="Full visual library: 122+ brand images, filter by color/brand/mood, discover by element, generate new images with the recipe-informed gpt-image-1 pipeline."><span class="nav-icon">🎨</span> Visual Library <span class="ext-mark">↗</span></a>
+        <a class="nav nav-link" href="/meme-lab" data-help-title="Meme Lab" data-help="Meme templates gallery + remix workspace. Browse existing meme formats, remix them with your brand voice, save to Review queue."><span class="nav-icon">😂</span> Meme Lab <span class="ext-mark">↗</span></a>
+        <a class="nav nav-link" href="/image-lab" data-help-title="Image Lab" data-help="Reference DNA + Product/Service library + self-improving prompts. Point at any image, capture its look. Promote any product/service with one click. Every render learns from prior performance."><span class="nav-icon">🧬</span> Image Lab <span class="ext-mark">↗</span></a>
+        <a class="nav nav-link" href="/cockpit-operational" data-help-title="Operational Cockpit" data-help="Read-only operational dashboard: campaign status, scheduled items, raw telemetry. Use for quick health checks."><span class="nav-icon">🛩️</span> Cockpit <span class="ext-mark">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Reset onboarding link -->
+    <div class="nav-section">
+      <div class="nav nav-soft" id="nav-restart-tour" data-help="Replay the first-run welcome tour. Useful if you forget what a tab does, or you're handing the dashboard to a new team member."><span class="nav-icon">❓</span> Restart tour</div>
     </div>
   </aside>
+
+  <!-- ─── First-run welcome tour ──────────────────────────────── -->
+  <div class="welcome-bg" id="welcome-bg" role="dialog" aria-modal="true" aria-labelledby="welcome-step-title">
+    <div class="welcome">
+      <div class="welcome-h">
+        <span class="welcome-mark">👋</span>
+        <div style="flex:1;min-width:0">
+          <h2>Welcome to Campaign OS</h2>
+          <div class="welcome-sub">Five places to start. Click any step to jump straight to it.</div>
+        </div>
+      </div>
+      <div class="welcome-tour-progress" id="welcome-progress"></div>
+      <div class="welcome-tour">
+        <div class="welcome-tour-step" id="welcome-step-card" role="button" tabindex="0">
+          <div class="welcome-step-ico" id="welcome-ico">🏠</div>
+          <div class="welcome-step-body">
+            <div class="welcome-step-title" id="welcome-step-title">Today</div>
+            <div class="welcome-step-desc" id="welcome-step-desc">—</div>
+            <div class="welcome-step-jump" id="welcome-jump">Jump to Today →</div>
+          </div>
+        </div>
+      </div>
+      <div class="welcome-actions">
+        <button class="welcome-skip" id="welcome-skip" type="button">Skip the tour</button>
+        <button class="welcome-cta" id="welcome-cta" type="button">Next</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ─── Main ─────────────────────────────────────────────── -->
   <main class="main">
@@ -851,6 +965,16 @@ a:hover{text-decoration:underline}
     <!-- ── PUBLISH ───────────────────────────────────────── -->
     <section class="section" id="sec-publish">
       <div class="section-h"><h2 data-help="Where every approved post lives in its four lifecycle stages: Drafts (approved, no date yet), Scheduled (future publish time set, will fire automatically), Published (live on the platform with a URL), and Failed (the auto-publisher hit an error, needs manual retry). The pipeline is the only place to convert Drafts into Scheduled, so set a date here and the system does the rest. Read the top-of-section summary (X scheduled today, Y failed this week) for the daily pulse." data-help-title="Publishing pipeline">Publishing pipeline</h2><span class="sub" id="publish-summary">—</span></div>
+      <div class="pub-flow" data-help="How a post moves through the pipeline. Drafts become Scheduled when you set a future publish time, then auto-publish at that time and land in Published. Anything the platform rejects (bad auth, broken URL, etc.) falls into Failed and needs a manual retry from the card body." data-help-title="Publish flow">
+        <span class="pub-flow-step on">📝 Draft</span>
+        <span class="pub-flow-arrow">→</span>
+        <span class="pub-flow-step">🗓️ Scheduled</span>
+        <span class="pub-flow-arrow">→</span>
+        <span class="pub-flow-step">✓ Live</span>
+        <span class="pub-flow-arrow">→</span>
+        <span class="pub-flow-step fail">🚨 Failed</span>
+        <span class="pub-flow-note muted">set a date → fires automatically → done (or retry if failed)</span>
+      </div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3 data-help="Approved copy that is sitting in Postiz with no future publish time yet. Open the card to set a date or push live immediately. This is the staging area between Approved and Scheduled." data-help-title="Drafts (waiting on a date)">📮 Drafts</h3><span class="h-meta" id="pub-drafts-count">—</span></div><div id="pub-drafts"></div></div>
         <div class="card col-6"><div class="card-h"><h3 data-help="Has a future publish time set in Postiz. The auto-publisher will fire at that time. Edit or cancel from the card body. Past-time scheduled items should be in Published by now. If any linger, they stalled." data-help-title="Scheduled (future publish time)">🗓️ Scheduled</h3><span class="h-meta" id="pub-sched-count">—</span></div><div id="pub-sched"></div></div>
@@ -865,6 +989,7 @@ a:hover{text-decoration:underline}
         <h2 data-help="Month grid of every planned post across all brands, with drag-drop planning. Move work between days by dragging, or click a day to add a new planned post. Filter by campaign, brand, or platform using the toolbar above the grid. Days turn red on dates with overdue items, green on dates with completed posts." data-help-title="Calendar">Calendar</h2>
         <span class="sub" id="cal-summary">—</span>
         <div class="btn-row" style="margin-left:auto">
+          <button class="btn-mini" id="cal-today-btn" title="Jump to today" type="button">📍 Today</button>
           <select class="mini-select" id="cal-filter-platform" title="Filter by platform">
             <option value="">All platforms</option>
             <option value="instagram">📷 Instagram</option>
@@ -4246,21 +4371,19 @@ function go(sec){
   });
 }
 
-// All-tools toggle (expand/collapse the power-user full nav)
-$('#all-tools-toggle').addEventListener('click', () => {
-  const sec = $('#all-tools-section');
-  const isHidden = sec.hasAttribute('hidden');
-  if(isHidden){ sec.removeAttribute('hidden'); $('#all-tools-toggle-label').textContent = 'Hide all tools'; }
-  else { sec.setAttribute('hidden', ''); $('#all-tools-toggle-label').textContent = 'Show all tools'; }
-  try { localStorage.setItem('cos.allTools', isHidden ? '1' : '0'); } catch(_){}
-});
-// Restore from localStorage
-try {
-  if(localStorage.getItem('cos.allTools') === '1'){
-    $('#all-tools-section').removeAttribute('hidden');
-    $('#all-tools-toggle-label').textContent = 'Hide all tools';
-  }
-} catch(_){}
+// All-tools toggle (expand/collapse the power-user full nav).
+// Removed when nav was reorganised into collapsible groups (Daily/Build/Insight/Reach/External).
+// No-op guard kept in case any legacy code still references it.
+if($('#all-tools-toggle')) {
+  $('#all-tools-toggle').addEventListener('click', () => {
+    const sec = $('#all-tools-section');
+    if(!sec) return;
+    const isHidden = sec.hasAttribute('hidden');
+    if(isHidden){ sec.removeAttribute('hidden'); const lbl = $('#all-tools-toggle-label'); if(lbl) lbl.textContent = 'Hide all tools'; }
+    else { sec.setAttribute('hidden', ''); const lbl = $('#all-tools-toggle-label'); if(lbl) lbl.textContent = 'Show all tools'; }
+    try { localStorage.setItem('cos.allTools', isHidden ? '1' : '0'); } catch(_){}
+  });
+}
 
 $$('.nav').forEach(n => {
   // Only bind go() on items with a data-go attribute (links and the toggle are skipped)
@@ -7062,6 +7185,16 @@ async function renderCalendar(){
     const camps = [...new Set((data.days || []).flatMap(d => (d.slots || []).map(s => s.campaignName || s.campaignId).filter(Boolean)))];
     campSel.innerHTML = '<option value="">All campaigns</option>' + camps.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
     campSel._populated = true;
+  }
+  // Wire Today-jump once
+  const todayBtn = $('#cal-today-btn');
+  if(todayBtn && !todayBtn._wired){
+    todayBtn._wired = true;
+    todayBtn.addEventListener('click', () => {
+      const today = $('#cal-grid [data-day="today"]');
+      if(today){ today.scrollIntoView({behavior:'smooth', block:'start'}); today.style.outline = '2px solid var(--ac)'; setTimeout(()=> today.style.outline = '', 1500); }
+      else toast("Today's row not loaded yet — try again", 'info');
+    });
   }
   // Render HUD: today's workload + overdue + tomorrow preview + weekly total
   const today = data.days?.[0];
@@ -10047,6 +10180,102 @@ initTheme();
 
 // Live right-rail: pulse every 30s (cache-busts, re-renders timestamps)
 setInterval(() => { if($('#sec-brief')?.classList.contains('on')){ S.todayRail = null; renderTodayRail(); } }, 30000);
+
+// ─── FIRST-RUN WELCOME TOUR ──────────────────────────────────────────────
+// Shown on first visit (localStorage-gated). Restartable from sidebar.
+// 5 steps, each clickable to jump straight to that section.
+const TOUR_STEPS = [
+  { ico:'🏠', title:'Today', sec:'brief',    desc:'What to do right now, plus the freshest signals for the active brand.' },
+  { ico:'✅', title:'Review', sec:'review',  desc:'Drafts the agents produced. Approve to publish, reject to archive.' },
+  { ico:'🪄', title:'Create', sec:'create',  desc:'Voice-aware content generators. Picks up the active brand automatically.' },
+  { ico:'📈', title:'Insights', sec:'insights', desc:'GA4 + Instagram + ad correlation. What worked, what didn\'t, explained like you\'re 10.' },
+  { ico:'🧬', title:'Image Lab', sec:'', external:'/image-lab', desc:'Reference DNA + product library + self-improving prompts. Every render learns from prior performance.' },
+];
+const TOUR_KEY = 'campaign-os.tour.dismissed.v2';
+let tourStep = 0;
+function renderTourStep(idx){
+  tourStep = idx;
+  const tour = TOUR_STEPS[idx];
+  $('#welcome-ico').textContent = tour.ico;
+  $('#welcome-step-title').textContent = tour.title;
+  $('#welcome-step-desc').textContent = tour.desc;
+  $('#welcome-jump').textContent = tour.external ? 'Open →' : 'Jump to ' + tour.title + ' →';
+  $('#welcome-progress').innerHTML = TOUR_STEPS.map((_, i) => `<div class="welcome-dot ${i===idx?'on':''}"></div>`).join('');
+  $('#welcome-cta').textContent = idx === TOUR_STEPS.length - 1 ? "Let's go" : 'Next';
+}
+function openWelcome(){
+  renderTourStep(0);
+  $('#welcome-bg').classList.add('on');
+}
+function closeWelcome(){
+  $('#welcome-bg').classList.remove('on');
+  try { localStorage.setItem(TOUR_KEY, '1'); } catch(e){}
+}
+function maybeShowWelcome(){
+  try { if(localStorage.getItem(TOUR_KEY)) return; } catch(e){ return; }
+  // Defer to after initial paint so it doesn't fight the boot animations
+  setTimeout(openWelcome, 600);
+}
+$('#welcome-bg').addEventListener('click', (e) => {
+  if(e.target.id === 'welcome-bg') closeWelcome();
+});
+$('#welcome-skip').addEventListener('click', closeWelcome);
+$('#welcome-cta').addEventListener('click', () => {
+  // "Next" advances; jump-to-section happens on dot click + step body click.
+  if(tourStep < TOUR_STEPS.length - 1){ renderTourStep(tourStep + 1); return; }
+  closeWelcome();
+  go('brief');
+});
+$('#welcome-step-card').addEventListener('click', () => {
+  const t = TOUR_STEPS[tourStep];
+  closeWelcome();
+  if(t.external) window.location.href = t.external;
+  else if(t.sec) go(t.sec);
+});
+$('#nav-restart-tour').addEventListener('click', () => openWelcome());
+
+// Wire the collapsible nav groups (persist open/closed state)
+const NAV_STATE_KEY = 'campaign-os.nav-groups.v1';
+const NAV_GROUPS = ['daily', 'build', 'insight', 'reach', 'external'];
+function loadNavState(){
+  try { return JSON.parse(localStorage.getItem(NAV_STATE_KEY) || '{}'); }
+  catch(e){ return {}; }
+}
+function saveNavState(s){ try { localStorage.setItem(NAV_STATE_KEY, JSON.stringify(s)); } catch(e){} }
+function applyNavState(){
+  const s = loadNavState();
+  NAV_GROUPS.forEach(g => {
+    const head = document.querySelector(`[data-nav-group="${g}"]`);
+    const body = document.getElementById('nav-group-' + g);
+    if(!head || !body) return;
+    const open = s[g] === undefined ? g === 'daily' : !!s[g];
+    head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    head.querySelector('.nav-group-chev').textContent = open ? '▾' : '▸';
+    body.hidden = !open;
+  });
+}
+function toggleNavGroup(g){
+  const head = document.querySelector(`[data-nav-group="${g}"]`);
+  const body = document.getElementById('nav-group-' + g);
+  if(!head || !body) return;
+  const nowOpen = head.getAttribute('aria-expanded') !== 'true';
+  head.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
+  head.querySelector('.nav-group-chev').textContent = nowOpen ? '▾' : '▸';
+  body.hidden = !nowOpen;
+  const s = loadNavState(); s[g] = nowOpen; saveNavState(s);
+}
+document.addEventListener('click', (e) => {
+  const head = e.target.closest('[data-nav-group]');
+  if(head) toggleNavGroup(head.getAttribute('data-nav-group'));
+});
+
+// Stale helpers: the old toggle code referenced #all-tools-toggle and
+// #all-tools-section — both removed. Stub them out so existing boot code
+// doesn't blow up.
+window.addEventListener('DOMContentLoaded', () => {
+  applyNavState();
+  maybeShowWelcome();
+});
 </script>
 </body>
 </html>
