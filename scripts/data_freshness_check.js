@@ -58,20 +58,45 @@ function findTimestamps(node, hits = []) {
   return hits;
 }
 
+// Sanity range: any timestamp outside this window is treated as junk and
+// skipped, not classified. Date.parse() happily accepts strings like
+// "Apr 22" and returns 2001-04-21, which then produces age_days=9238
+// and a spurious "🚨 N files > 42 days" banner on Home. Cap the window
+// generously (2010 → current_year+1) so we still capture real cron data
+// from 2010+ projects while filtering content-only date labels.
+function _inSaneRange(dt) {
+  if (!dt || Number.isNaN(dt.getTime())) return false;
+  const yr = dt.getUTCFullYear();
+  return yr >= 2010 && yr <= new Date().getUTCFullYear() + 1;
+}
+
 function parseTs(v) {
   if (typeof v === 'number') {
     // Seconds vs ms — phone home by magnitude
     const ms = v > 1e11 ? v : (v > 1e9 ? v * 1000 : null);
-    return ms ? new Date(ms) : null;
+    const dt = ms ? new Date(ms) : null;
+    return _inSaneRange(dt) ? dt : null;
   }
   if (typeof v !== 'string') return null;
   const s = v.trim();
-  // ISO 8601 or yyyy-mm-dd hh:mm:ss
+  // yyyy-mm-dd only — already includes year, so always sane after 2010
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const dt = new Date(s + 'T00:00:00Z');
+    return _inSaneRange(dt) ? dt : null;
+  }
+  // ISO 8601 with explicit year — Date.parse is fine here
+  if (/^\d{4}-/.test(s)) {
+    const iso = Date.parse(s);
+    const dt = Number.isNaN(iso) ? null : new Date(iso);
+    return _inSaneRange(dt) ? dt : null;
+  }
+  // English dates with explicit year like "Apr 22, 2026" — Date.parse
+  // handles these and returns the right year, then sanity-check catches
+  // bad ones. Bare strings like "Apr 22" without any year fall through
+  // and return null (they parse to 2001 in JS — junk).
   const iso = Date.parse(s);
-  if (!Number.isNaN(iso)) return new Date(iso);
-  // yyyy-mm-dd only
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T00:00:00Z');
-  return null;
+  const dt = Number.isNaN(iso) ? null : new Date(iso);
+  return _inSaneRange(dt) ? dt : null;
 }
 
 function classify(filePath, parsed) {
