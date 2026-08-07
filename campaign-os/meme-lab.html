@@ -512,7 +512,13 @@ function _renderChromeForBrand(){
   const activeBrand = state.activeBrand || 'swing-shack';
   const vbRoot = state.voiceBible || {};
   const vb = vbRoot[activeBrand] || vbRoot['swing-shack'] || {};
-  const brandLabel = vb.label || ({'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop'}[activeBrand] || activeBrand);
+  // Prefer the clean brand name (from the ID map) over voice_bible's label,
+  // which carries flavour descriptors like "(default)" / "(edgy)" / "(premium)"
+  // that look like stray debug text in the page title. Strip any parenthesised
+  // suffix from the label as a last-resort fallback.
+  const CLEAN_BRANDS = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop','takomo':'Takomo'};
+  const _stripParens = s => String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const brandLabel = CLEAN_BRANDS[activeBrand] || _stripParens(vb.label) || activeBrand;
   const total = (state.memes && state.memes.length) || 75;
   const subEl = document.getElementById('page-h1-sub');
   if (subEl) subEl.textContent = `/ ${total} memes · ${brandLabel}`;

@@ -1029,6 +1029,12 @@ def brand_image_serve(brand_id, filename):
 
     Used by the Visual Library UI to display thumbnails. Safe: resolves to
     a path inside the brand-directory and rejects traversal attempts.
+
+    If the file is not found under the requested brand (e.g. a DNA record
+    indexed under swing-shack but the actual PNG lives under takomo/),
+    fall back to scanning every other brand directory for the same
+    filename. This stops the Visual Library from emitting broken-image
+    404s for orphan DNA records without changing the data.
     """
     from pathlib import Path as _P
     base = (_P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images').resolve()
@@ -1037,9 +1043,26 @@ def brand_image_serve(brand_id, filename):
         target.relative_to(base)
     except ValueError:
         return jsonify({"error": "path traversal denied"}), 403
-    if not target.exists() or not target.is_file():
-        return jsonify({"error": "not found", "path": str(target)}), 404
-    return send_from_directory(str(target.parent), target.name)
+    if target.exists() and target.is_file():
+        return send_from_directory(str(target.parent), target.name)
+    # Fallback: scan sibling brand directories for the same filename.
+    # Filenames are unique per file (no collisions across brands), and this
+    # keeps orphan DNA records rendering without surfacing a 404 to users.
+    try:
+        root = (_P(BUNDLED_DATA_DIR) / 'brand-directory').resolve()
+        for sibling in root.iterdir():
+            if not sibling.is_dir() or sibling.name == brand_id:
+                continue
+            cand = (sibling / 'images' / filename).resolve()
+            try:
+                cand.relative_to(root)
+            except ValueError:
+                continue
+            if cand.exists() and cand.is_file():
+                return send_from_directory(str(cand.parent), cand.name)
+    except Exception:
+        pass
+    return jsonify({"error": "not found", "path": str(target)}), 404
 
 
 @app.route('/api/visual-library/<brand_id>/images', methods=['GET'])
