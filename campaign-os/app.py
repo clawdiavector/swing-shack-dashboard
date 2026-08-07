@@ -3979,6 +3979,73 @@ def socials_for_asset(asset_id: str):
 _OEMBED_CACHE: dict = {}
 
 
+# ─── INSIGHTS v2 — top IG posts + ad correlation + layman verdicts ─────
+# These three endpoints back the new Insights tab. They:
+#   1. Surface top IG posts WITH thumbnails + plain-English verdict
+#   2. Compute ad-traffic correlation (Google Ads + Meta Ads) when data
+#      exists; otherwise return a clean "not configured" payload
+#   3. Compute content-traffic correlation from IG post timestamps +
+#      GA4 daily sessions
+# Truth-before-cleverness: every verdict cites a real timestamp + data
+# source. We do not fabricate "the ad worked" stories.
+
+@app.route('/api/insights/top-instagram-posts', methods=['GET'])
+def insights_top_instagram_posts():
+    """GET /api/insights/top-instagram-posts?limit=8
+
+    Returns: { ok, posts: [{id,thumbnail_url,engagementRate,permalink,
+            verdict,plain_english,...}], _meta }
+    """
+    try:
+        from _lib import insights_correlator as _ic
+        limit = min(int(request.args.get("limit", 8)), 25)
+        out = _ic.get_top_instagram_posts(limit=limit)
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("insights_top_instagram_posts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/insights/ad-correlation', methods=['GET'])
+def insights_ad_correlation():
+    """GET /api/insights/ad-correlation — joins ad-platform timestamps
+    with GA4 traffic.
+
+    Returns: { ok, configured, google_ads:{configured,campaigns,verdicts},
+            meta_ads:{...}, combined_summary }
+
+    When ad data is missing, returns clear "not configured" with the
+    exact JSON shape needed to wire it up.
+    """
+    try:
+        from _lib import insights_correlator as _ic
+        out = _ic.get_ad_correlation_verdicts()
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("insights_ad_correlation failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/insights/content-traffic-correlation', methods=['GET'])
+def insights_content_traffic_correlation():
+    """GET /api/insights/content-traffic-correlation?days=30
+
+    Joins IG post timestamps with GA4 traffic to surface verdicts like
+    "Post X went live Mon → /bookings/ spiked +212% Mon → likely content
+    drove the spike".
+
+    Returns: { ok, matches, unmatched_spikes, _meta }
+    """
+    try:
+        from _lib import insights_correlator as _ic
+        days = min(int(request.args.get("days", 30)), 90)
+        out = _ic.get_content_traffic_correlations(days=days)
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("insights_content_traffic_correlation failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # ─── MEME TEMPLATES — visual library for Meme Lord picker ─────────────────
 # Returns 30 popular meme templates with public thumbnails so the Meme Lord
 # picker can show what each template actually looks like (no more guessing

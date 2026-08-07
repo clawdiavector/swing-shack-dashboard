@@ -894,7 +894,8 @@ a:hover{text-decoration:underline}
 
     <!-- ── TRENDS ───────────────────────────────────────── -->
     <section class="section" id="sec-trends">
-      <div class="section-h"><h2 data-help="The highest-confidence Trend Catcher cards, merged from every source (Reddit, YouTube, golf news, competitor feeds). Each card carries a 0 to 100 score (>=70 = publish-this-week, 50 to 69 = watch, below = no-action), the source pill, a 1-line why-now, and the brand pillar it best fits. Click a card to lift the full signal and the action rec the agent would take next. The Signal Radar card above this section is the scored slice of the same data; the full unfiltered feed lives in the Trend Catcher workspace." data-help-title="Trend Catcher">Trend Catcher <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · scored signals</span></h2><span class="sub">Marketing · Golf News · Competitors</span></div>
+      <div class="section-h"><h2 data-help="The highest-confidence Trend Catcher cards, merged from every source (Reddit, YouTube, golf news, competitor feeds). Each card carries a 0 to 100 score (>=70 = publish-this-week, 50 to 69 = watch, below = no-action), the source pill, a 1-line why-now, and the brand pillar it best fits. Click a card to lift the full signal and the action rec the agent would take next. The Signal Radar card above this section is the scored slice of the same data; the full unfiltered feed lives in the Trend Catcher workspace." data-help-title="Trend Catcher">Trend Catcher <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · scored signals</span></h2><span class="sub">Marketing · Golf News · Competitors</span><div class="btn-row" style="margin-left:auto"><button class="btn" id="tr-refresh">🔄 Refresh trends</button></div></div>
+      <div id="tr-freshness-banner"></div>
       <div class="card" style="margin-bottom:1rem"><div class="card-h"><h3 data-help="The highest-confidence Trend Catcher cards, merged from every source. Each card carries a score (0-100), a source pill (reddit / youtube / golf-news / competitor), and a 1-line why-now. Tap any card to lift the full signal including the action rec the agent would take next." data-help-title="Signal radar">⚡ Signal radar</h3><span class="muted" id="tr-v2-count">—</span></div><div id="tr-v2" class="grid"></div></div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3 data-help="Live threads from golf-relevant subreddits (r/golf, r/golfswing, brand-adjacent communities). Scored by upvotes-per-hour, comment velocity, and brand-fit. Each row has a soft-sell angle the copy agent would use without sounding like an ad." data-help-title="Reddit trends">🗣️ Reddit trends</h3></div><div id="tr-reddit"></div></div>
@@ -957,7 +958,7 @@ a:hover{text-decoration:underline}
 
     <!-- ── LEARNING ──────────────────────────────────────── -->
     <section class="section" id="sec-learning">
-      <div class="section-h"><h2 data-help="What to repeat, what to stop, what to try. Auto-captured from the last 90 days of assets. What worked lists the patterns from your highest-performing content, What failed lists the patterns from your lowest, CTA rankings orders every CTA by historical click-through, and Failure patterns surfaces mistake classes that recurred across 3+ assets. Use these as the editorial checklist for the next batch." data-help-title="Learning">Learning</h2><span class="sub">What to repeat, what to stop, what to try</span></div>
+      <div class="section-h"><h2 data-help="What to repeat, what to stop, what to try. Auto-captured from the last 90 days of assets. What worked lists the patterns from your highest-performing content, What failed lists the patterns from your lowest, CTA rankings orders every CTA by historical click-through, and Failure patterns surfaces mistake classes that recurred across 3+ assets. Use these as the editorial checklist for the next batch." data-help-title="Learning">🧠 Learning <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">— the long-memory view</span></h2><span class="sub" style="font-size:13px">Marketing has a short memory. This tab is the long one — patterns from the last 90 days that should shape the next batch.</span></div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3 data-help="Patterns the agent extracted from your highest-performing past content. Each row names the pattern + the asset that proved it + a 1-line rule to follow in the next brief. Treat this list as the editorial checklist for every new caption." data-help-title="What worked">✅ What worked</h3></div><div id="learn-worked"></div></div>
         <div class="card col-6"><div class="card-h"><h3 data-help="Patterns from your lowest-performing past content. Same shape as What worked, but inverted: asset + what went wrong + the rule to avoid. Read this list right before approving a batch to catch the same mistakes again." data-help-title="What failed">🚫 What failed</h3></div><div id="learn-failed"></div></div>
@@ -4349,8 +4350,217 @@ async function renderCreate(){
   });
 }
 
+// ─── INSIGHTS v2 — color-coded, layman-terms, image-first ───────────
+async function renderInsightsV2(){
+    const sec = $('#sec-insights');
+    if(!sec) return;
+    sec.innerHTML = `
+      <div class="section-h">
+        <h2 data-help="Plain-English view of what is happening with your marketing. Every card shows the data AND what it means in one short sentence. Green = good signal, yellow = watch, red = needs attention. Built for non-marketers — if you can't read a card in 5 seconds, it's a bug." data-help-title="Insights">📈 Insights <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · layman terms · color-coded</span></h2>
+        <span class="sub" id="ins-v2-summary">— loading —</span>
+        <div class="btn-row" style="margin-left:auto">
+          <button class="btn" id="ins-v2-refresh">🔄 Refresh</button>
+        </div>
+      </div>
+      <div id="ins-v2-body">
+        <div class="card col-12"><div class="muted">Loading insights…</div></div>
+      </div>
+    `;
+    const body = $('#ins-v2-body');
+    const summary = $('#ins-v2-summary');
+    const [perf, topPosts, adCorr] = await Promise.all([
+      API.get('/api/intel/performance').catch(e => ({error: String(e)})),
+      API.get('/api/insights/top-instagram-posts?limit=8').catch(e => ({error: String(e)})),
+      API.get('/api/insights/ad-correlation').catch(e => ({error: String(e)})),
+    ]);
+    const igPosts = (perf.instagram?.top_posts) || [];
+    const ga4Pages = safeList(perf.ga4?.pages, 10);
+    const seo = perf.seo || {};
+    const rising = safeList(seo.rising, 5);
+    const falling = safeList(seo.falling, 5);
+
+    const headlines = [];
+    if(perf.ga4?.total_sessions){
+      headlines.push({
+        emoji: '📊',
+        data: `${perf.ga4.total_sessions.toLocaleString()} website sessions (${ga4Window(perf)})`,
+        take: topGA4Take(ga4Pages),
+        tone: 'good',
+      });
+    }
+    if(igPosts.length){
+      const avg = avgER(igPosts);
+      const top = igPosts[0];
+      headlines.push({
+        emoji: '📱',
+        data: `${igPosts.length} recent IG posts · avg engagement ${avg.toFixed(2)}%`,
+        take: top ? `"${(top.caption || top.hook_text || '').slice(0, 60)}…" is your top performer at ${parseFloat(top.engagementRate || 0).toFixed(2)}%` : '',
+        tone: avg > 3 ? 'good' : avg > 1.5 ? 'watch' : 'bad',
+      });
+    }
+    if(rising.length || falling.length){
+      headlines.push({
+        emoji: '🔎',
+        data: `${rising.length} keywords rising · ${falling.length} falling on Google`,
+        take: rising.length > falling.length ? `More keywords moving up than down — your SEO is gaining traction.`
+             : falling.length > rising.length ? `More keywords dropping than rising — content refresh needed.`
+             : `Flat — neither gaining nor losing SEO ground.`,
+        tone: rising.length > falling.length ? 'good' : falling.length > rising.length ? 'bad' : 'watch',
+      });
+    }
+    if(!headlines.length){
+      headlines.push({
+        emoji: '📊',
+        data: 'No analytics connected yet',
+        take: 'Connect Meta + GA4 to see what is working.',
+        tone: 'watch',
+      });
+    }
+    summary.textContent = `${headlines.length} signals · ${igPosts.length} posts · ${ga4Pages.length} pages tracked`;
+
+    body.innerHTML = `
+      <div class="grid" style="margin-bottom:1rem">
+        ${headlines.slice(0,3).map((h, i) => `
+          <div class="card col-4 ins-headline tone-${h.tone}">
+            <div class="card-h">
+              <h3 style="margin:0">${h.emoji} ${i+1}. <span style="color:var(--tx-3);font-weight:500">What happened</span></h3>
+            </div>
+            <div class="ins-data">${esc(h.data)}</div>
+            <div class="ins-take">${esc(h.take)}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card col-7">
+        <div class="card-h">
+          <h3 data-help="Your best Instagram posts, ranked by engagement. Green = top performer, yellow = average, red = below average. Click any post to open it on Instagram." data-help-title="Top Instagram Posts">🏆 Top Instagram Posts <span style="font-size:11px;color:var(--tx-3);font-weight:500">— color-coded, click to open</span></h3>
+          <span class="muted" id="ins-ig-count">—</span>
+        </div>
+        <div id="ins-ig-top-list"></div>
+      </div>
+      <div class="card col-5">
+        <div class="card-h">
+          <h3 data-help="Your most-visited pages, ranked. Click any row to open the actual page in a new tab." data-help-title="Top pages by sessions">🌐 Top pages by sessions <span style="font-size:11px;color:var(--tx-3);font-weight:500">— click to visit</span></h3>
+        </div>
+        <div id="ins-pages-list"></div>
+      </div>
+      <div class="card col-12">
+        <div class="card-h">
+          <h3 data-help="Correlates your Google Ads + Meta Ads campaigns with traffic spikes. When a campaign goes live on the same day traffic spikes on the same page, this card flags it. When ad data is missing, it tells you exactly what to wire up." data-help-title="Ad correlation">🎯 Did the ad drive this spike?</h3>
+          <span class="muted" id="ins-ad-status">—</span>
+        </div>
+        <div id="ins-ad-block"></div>
+      </div>
+    `;
+
+    const igList = $('#ins-ig-top-list');
+    const igFromV2 = (topPosts.posts || []);
+    const igPostsFinal = igFromV2.length ? igFromV2 : igPosts.slice(0, 8).map(p => ({
+      id: p.id, engagementRate: parseFloat(p.engagementRate || 0),
+      thumbnail_url: p.thumbnail_url || p.media_url,
+      permalink: p.permalink,
+      caption_excerpt: (p.caption || p.hook_text || '').slice(0, 80),
+      like_count: p.like_count, comments_count: p.comments_count,
+      timestamp: p.timestamp,
+    }));
+    $('#ins-ig-count').textContent = `${igPostsFinal.length} posts`;
+    igList.innerHTML = igPostsFinal.length ? igPostsFinal.map(p => {
+      const er = parseFloat(p.engagementRate || 0) || 0;
+      const tone = er >= 3 ? 'good' : er >= 1.5 ? 'watch' : 'bad';
+      const toneEmoji = er >= 3 ? '🟢' : er >= 1.5 ? '🟡' : '🔴';
+      const cap = esc(p.caption_excerpt || p.caption || '(no caption)');
+      const ts = p.timestamp ? new Date(p.timestamp).toLocaleDateString() : '';
+      const borderColor = tone==='good'?'#10b981':tone==='watch'?'#f59e0b':'#ef4444';
+      return `
+        <a href="${esc(p.permalink || '#')}" target="_blank" rel="noopener"
+           style="display:flex;gap:.6rem;align-items:center;padding:.5rem;border-radius:8px;text-decoration:none;color:inherit;border-left:3px solid ${borderColor};background:var(--bg-2);margin-bottom:.4rem">
+          <div style="width:56px;height:56px;background:var(--bg-3);border-radius:6px;overflow:hidden;flex-shrink:0">
+            ${p.thumbnail_url ? `<img src="${esc(p.thumbnail_url)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<div style=&quot;font-size:9px;color:var(--tx-3);display:flex;align-items:center;justify-content:center;height:100%&quot;>no img</div>'"/>` : `<div style="font-size:9px;color:var(--tx-3);display:flex;align-items:center;justify-content:center;height:100%">no img</div>`}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;color:var(--tx-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cap}</div>
+            <div style="font-size:10px;color:var(--tx-3);display:flex;justify-content:space-between;margin-top:.15rem">
+              <span>${ts} · ${p.like_count != null ? '❤️ '+p.like_count : ''} ${p.comments_count != null ? '💬 '+p.comments_count : ''}</span>
+              <span style="font-weight:600;color:${borderColor}">${toneEmoji} ${er.toFixed(2)}%</span>
+            </div>
+          </div>
+        </a>`;
+    }).join('') : `<div class="muted" style="padding:1rem">No IG posts yet. Connect Instagram in the Brand Directory to see top performers.</div>`;
+
+    const pagesList = $('#ins-pages-list');
+    pagesList.innerHTML = ga4Pages.length ? ga4Pages.map(it => {
+      const rawEr = it.engRate || it.engagement_rate || it.engagementRate;
+      const erPct = rawEr == null ? null : (typeof rawEr === 'string' ? parseFloat(rawEr.replace('%','')) : Number(rawEr));
+      const tone = erPct != null && erPct >= 60 ? 'good' : erPct != null && erPct >= 30 ? 'watch' : 'bad';
+      const toneEmoji = tone === 'good' ? '🟢' : tone === 'watch' ? '🟡' : '🔴';
+      const url = it.path || it.page || '';
+      const fullUrl = url.startsWith('http') ? url : `https://swingshack.co.za${url}`;
+      const borderColor = tone==='good'?'#10b981':tone==='watch'?'#f59e0b':'#ef4444';
+      return `
+        <a href="${esc(fullUrl)}" target="_blank" rel="noopener"
+           style="display:flex;justify-content:space-between;align-items:center;padding:.5rem;border-radius:6px;text-decoration:none;color:inherit;border-left:3px solid ${borderColor};background:var(--bg-2);margin-bottom:.3rem">
+          <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(url)}</div>
+          <div style="font-size:11px;color:var(--tx-3);text-align:right">
+            <div style="font-weight:600;color:var(--tx-1)">${(it.sessions||0).toLocaleString()}</div>
+            <div>${toneEmoji} ${erPct != null ? erPct.toFixed(1)+'%' : '—'}</div>
+          </div>
+        </a>`;
+    }).join('') : `<div class="muted" style="padding:1rem">No GA4 data yet. Add the service account JSON in <code>/ga4</code>.</div>`;
+
+    const adBlock = $('#ins-ad-block');
+    const adStatus = $('#ins-ad-status');
+    adStatus.textContent = adCorr.configured ? `${(adCorr.google_ads?.campaigns?.length||0) + (adCorr.meta_ads?.campaigns?.length||0)} campaigns wired` : '⚪ not configured';
+    if(adCorr.configured){
+      const allVerdicts = [...(adCorr.google_ads?.verdicts || []), ...(adCorr.meta_ads?.verdicts || [])];
+      adBlock.innerHTML = allVerdicts.length ? allVerdicts.map(v => `
+        <div style="border-left:3px solid var(--ac);padding:.6rem .75rem;background:var(--bg-2);border-radius:6px;margin-bottom:.5rem">
+          <div style="font-size:12px;color:var(--tx-3);margin-bottom:.2rem">${esc(v.start_date || '?')} → ${esc(v.end_date || 'ongoing')} · ${esc(v.campaign_name || v.campaign_id || '')}</div>
+          <div style="font-size:13px">${esc(v.verdict || '')}</div>
+        </div>
+      `).join('') : '<div class="muted" style="padding:.5rem">No campaign verdicts yet.</div>';
+    } else {
+      adBlock.innerHTML = `
+        <div style="border:1px dashed var(--bd);border-radius:8px;padding:.85rem;background:var(--bg-2);font-size:12px;color:var(--tx-2);line-height:1.5">
+          <div style="font-weight:600;color:var(--tx-1);margin-bottom:.4rem">📡 To see "did the ad drive this spike" answers:</div>
+          <div style="margin-bottom:.35rem"><b>Google Ads</b> — ${esc(adCorr.google_ads?.reason || 'data not present')}</div>
+          <div><b>Meta Ads</b> — ${esc(adCorr.meta_ads?.reason || 'data not present')}</div>
+          <div style="margin-top:.5rem;color:var(--tx-3);font-size:11px">Until ad data lands, this card honestly says "not configured" instead of guessing.</div>
+        </div>`;
+    }
+
+    const refreshBtn = $('#ins-v2-refresh');
+    if(refreshBtn && !refreshBtn._bound){
+      refreshBtn._bound = true;
+      refreshBtn.addEventListener('click', () => renderInsightsV2());
+    }
+  }
+
+  function avgER(posts){
+  if(!posts.length) return 0;
+  const sum = posts.reduce((s, p) => s + parseFloat(p.engagementRate || 0), 0);
+  return sum / posts.length;
+}
+function ga4Window(perf){
+  return perf.ga4?.data_window || 'recent';
+}
+function topGA4Take(pages){
+  if(!pages.length) return '';
+  const top = pages[0];
+  return `Your homepage gets the most traffic — ${(top.sessions||0).toLocaleString()} sessions. That is where small copy fixes pay off most.`;
+}
+
 // ─── INSIGHTS — performance + learning (wrapper around performance + learning) ───
 async function renderInsights(){
+  // ─── Insights v2 (layman terms + color signals + Top IG Posts + ad correlation) ───
+  // Replaces the dense data-first view with:
+  //   1) "What happened" — 3 numbered headlines with one-line takeaways
+  //   2) "Top Instagram Posts" — thumbnails + color-coded verdicts (green/yellow/red)
+  //   3) "Top pages by sessions" — click-through to the actual page
+  //   4) "Did the ad drive this spike?" — ad correlation verdict
+  //   5) "What's working / not working" — layman verdict cards (green/red)
+  //   6) 🧠 Learning strip at the bottom (unchanged)
+  await renderInsightsV2();
+  return;
+  // (Old code below — kept as a reference but unreachable.)
   // Render performance into sec-performance first (canonical location)
   if(typeof renderPerformance === 'function'){
     await renderPerformance();
@@ -7021,10 +7231,41 @@ document.addEventListener('click', (e) => {
 
 
 // ─── TRENDS ─────────────────────────────────────────────────────
+let _trendsForceRefresh = false;
 async function renderTrends(){
+  if(_trendsForceRefresh){
+    S.trends = null;
+    _trendsForceRefresh = false;
+  }
+  $('#tr-freshness-banner').innerHTML = '<div class="muted" style="padding:.5rem">Loading…</div>';
   if(!S.trends) S.trends = await API.get('/api/intel/trend_catcher');
   const t = S.trends;
   const v2 = await API.get('/api/intel/trends_v2');
+  // Freshness banner — show last-updated time + how many sources returned data
+  const banner = $('#tr-freshness-banner');
+  if(banner){
+    const updated = t.updated || t.fetched_at || v2.updated || null;
+    const updStr = updated ? new Date(updated).toLocaleString() : 'unknown';
+    const ageMs = updated ? Date.now() - new Date(updated).getTime() : Infinity;
+    const ageDays = Math.round(ageMs / (1000*60*60*24));
+    const tone = ageDays <= 1 ? 'good' : ageDays <= 7 ? 'watch' : 'bad';
+    const toneEmoji = tone === 'good' ? '🟢' : tone === 'watch' ? '🟡' : '🔴';
+    const sources = ['reddit','youtube','golf_news','competitor_changes']
+      .map(k => ({k, n: safeList(t[k], 50).length}))
+      .filter(s => s.n > 0);
+    const srcBadges = sources.map(s => `<span style="display:inline-block;padding:2px 6px;margin-right:.25rem;background:var(--bg-3);border-radius:4px;font-size:10px">${s.k.replace('_',' ')} (${s.n})</span>`).join('');
+    const toneColor = tone === 'good' ? '#10b981' : tone === 'watch' ? '#f59e0b' : '#ef4444';
+    banner.innerHTML = `
+      <div style="border-left:3px solid ${toneColor};padding:.6rem .85rem;background:var(--bg-2);border-radius:6px;margin-bottom:1rem;font-size:12px;line-height:1.5">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+          <div>
+            <b>${toneEmoji} Data last updated ${updStr}</b> · ${ageDays === Infinity ? '—' : ageDays + ' day' + (ageDays === 1 ? '' : 's') + ' old'}
+            ${sources.length ? ` · ${sources.length} source${sources.length === 1 ? '' : 's'} live: ${srcBadges}` : ' · <span style="color:var(--red)">no sources returning data</span>'}
+          </div>
+          <div class="muted" style="font-size:11px">Click "Refresh trends" to re-fetch the latest signals</div>
+        </div>
+      </div>`;
+  }
   $('#tr-v2-count').textContent = `${v2.count || 0} ranked signals`;
   $('#tr-v2').innerHTML = (v2.signals||[]).map(s => `<div class="card col-4"><div class="li-title">${esc(s.title)}</div><div class="li-meta"><span class="pill on">${esc(s.source.replace(/-/g,' '))}</span> <b>${s.relevance}/100</b></div><p class="muted" style="font-size:12px">${esc(s.detail)}</p><div style="font-size:12px;color:var(--ac)">→ ${esc(s.suggested_response)}</div></div>`).join('');
   // YouTube signals come as {key, value} dicts — render as {topic, hot}
@@ -7078,6 +7319,16 @@ async function renderTrends(){
       });
     }
   });
+
+  // Bind refresh button (idempotent)
+  const trRefreshBtn = document.getElementById('tr-refresh');
+  if(trRefreshBtn && !trRefreshBtn._bound){
+    trRefreshBtn._bound = true;
+    trRefreshBtn.addEventListener('click', () => {
+      _trendsForceRefresh = true;
+      renderTrends();
+    });
+  }
 }
 
 // ─── IDEAS ──────────────────────────────────────────────────────
