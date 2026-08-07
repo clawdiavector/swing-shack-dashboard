@@ -8678,6 +8678,819 @@ def intel_brand_context():
     }), 200
 
 
+# ─── WEEKLY MARKETING REPORT ────────────────────────────────────────────
+# Generates a brand-aware weekly report matching the Stick layout:
+#   • Hero with H1 + focus pills
+#   • TL;DR (5 bullets, plain English, top of page)
+#   • 4 metric cards (weekly snapshot)
+#   • Comparison table vs previous week
+#   • Facebook / Instagram 28-day tables
+#   • Top content earning attention
+#   • Website + acquisition (GA4)
+#   • Google Ads (honest "not configured" if no token)
+#   • What's working / Needs attention / This week's focus
+#   • Footer with date windows + caveats
+#
+# Available as:
+#   • GET  /api/weekly-report?brand=<id>&format=html|json|markdown
+#   • GET  /weekly-report?brand=<id>              (HTML page with downloads)
+#   • Cron /api/weekly-report/snapshot?brand=<id>  (archive current week)
+
+WEEKLY_REPORT_DATA_DIR = os.path.join(DATA_DIR, 'weekly-snapshots')
+os.makedirs(WEEKLY_REPORT_DATA_DIR, exist_ok=True)
+
+
+def _weekly_brand_meta(bid):
+    """Load brand meta + voice + pillars for report hero."""
+    registry = load_brands_registry()
+    brand = (registry.get('brands') or {}).get(bid) or {}
+    voice = _load_voice_bible_brand(bid)
+    return {
+        'id': bid,
+        'display_name': brand.get('display_name', bid),
+        'tagline': brand.get('tagline', ''),
+        'positioning': brand.get('positioning', ''),
+        'primary_color': brand.get('primary_color', '#d7b46a'),
+        'audience': brand.get('audience', ''),
+        'pillar_defaults': brand.get('pillar_defaults', []) or [],
+        'voice_label': brand.get('voice_label', ''),
+        'voice_bible': voice,
+    }
+
+
+def _weekly_pct(curr, prev):
+    """Compute % change between two numbers. Returns (pct_str, direction, raw_pct)."""
+    try:
+        c = float(curr)
+        p = float(prev)
+        if p == 0:
+            if c == 0: return ('0.0%', 'neutral', 0.0)
+            return ('n/a', 'up', None)
+        raw = (c - p) / p * 100
+        sign = '+' if raw > 0 else ''
+        return (f'{sign}{raw:.1f}%', 'up' if raw > 0 else ('down' if raw < 0 else 'neutral'), raw)
+    except (ValueError, TypeError):
+        return ('n/a', 'neutral', None)
+
+
+def _weekly_safe_div(a, b):
+    try:
+        return float(a) / float(b) if float(b) != 0 else 0
+    except (ValueError, TypeError, ZeroDivisionError):
+        return 0
+
+
+def _weekly_collect_current(bid):
+    """Pull the current week's raw metrics from every data source we have.
+    Returns a dict; every value has a source + window tag so the doc can cite honestly."""
+    out = {
+        'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'brand_id': bid,
+        'sources': [],
+        'weekly': {},    # last 7 days
+        '28d': {},       # last 28 days
+    }
+
+    # 1) GA4 — last 7 days (resilient: missing keys → zero + tagged)
+    try:
+        ga4_path = os.path.join(DATA_DIR, 'ga4-metrics.json')
+        if os.path.exists(ga4_path):
+            ga = _read_json_file(ga4_path) or {}
+            window = ga.get('data_window', 'unknown')
+            out['sources'].append({'name': 'ga4', 'window': window, 'fetched_at': ga.get('fetched_at')})
+            out['weekly']['ga4_sessions'] = ga.get('total_sessions', 0)
+            # Top pages
+            pages = ga.get('pages', []) or []
+            out['weekly']['ga4_top_pages'] = [{'path': p.get('path'), 'sessions': p.get('sessions', 0), 'engagement_rate': p.get('engRate')} for p in pages[:5]]
+            out['weekly']['ga4_sources'] = [{'source': s.get('source'), 'sessions': s.get('sessions', 0)} for s in (ga.get('sources') or [])[:6]]
+    except Exception as e:
+        out['sources'].append({'name': 'ga4', 'error': str(e)})
+
+    # 2) Instagram analytics — last 28 days
+    try:
+        ig_path = os.path.join(DATA_DIR, 'analytics', 'instagram-analytics.json')
+        if os.path.exists(ig_path):
+            ig = _read_json_file(ig_path) or {}
+            out['sources'].append({'name': 'instagram', 'fetched_at': ig.get('lastUpdated'), 'posts_tracked': ig.get('totalPostsTracked')})
+            top = ig.get('topPerformers', []) or []
+            out['28d']['ig_top_performers'] = top[:5]
+            # Aggregate engagement
+            posts = ig.get('posts', []) or []
+            if posts:
+                interactions = sum((p.get('like_count', 0) + p.get('comments_count', 0) + p.get('shares', 0) + (p.get('saves') or 0)) for p in posts)
+                reach = sum(p.get('reach', 0) for p in posts if p.get('reach') is not None)
+                followers = sum(p.get('follows', 0) for p in posts)
+                views = sum(p.get('views', 0) or 0 for p in posts)
+                out['28d']['ig_posts'] = len(posts)
+                out['28d']['ig_interactions'] = interactions
+                out['28d']['ig_reach'] = reach
+                out['28d']['ig_follows'] = followers
+                out['28d']['ig_views'] = views
+    except Exception as e:
+        out['sources'].append({'name': 'instagram', 'error': str(e)})
+
+    # 3) Meta Graph API — for Facebook (last 28 days)
+    # Honest "not configured" if tokens missing
+    try:
+        from meta_api import list_recent_posts  # local helper if available
+        posts = list_recent_posts(days=28) or []
+        if posts:
+            out['sources'].append({'name': 'meta_graph', 'posts': len(posts)})
+            out['28d']['fb_posts'] = len(posts)
+            out['28d']['fb_top_posts'] = sorted(posts, key=lambda p: -(p.get('views') or p.get('like_count', 0)))[:5]
+    except Exception:
+        out['sources'].append({'name': 'meta_graph', 'configured': False})
+
+    # 4) Google Ads — honest "not configured" if no token
+    google_ads_path = os.path.join(DATA_DIR, 'google-ads.json')
+    if os.path.exists(google_ads_path):
+        ga = _read_json_file(google_ads_path) or {}
+        out['sources'].append({'name': 'google_ads', 'configured': True})
+        out['weekly']['google_ads'] = ga
+    else:
+        out['sources'].append({'name': 'google_ads', 'configured': False})
+
+    # 5) Booking events / closure / value model — brand-aware where possible
+    try:
+        bk = _read_json_file(os.path.join(DATA_DIR, 'booking-events.json')) or {}
+        out['weekly']['bookings_total'] = (bk.get('summary') or {}).get('total', 0)
+    except Exception:
+        out['weekly']['bookings_total'] = 0
+
+    # 6) Content published in last 7 days — derive from campaign-data.json
+    try:
+        data = load_data()
+        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+        created = 0
+        for camp in (data.get('campaigns') or {}).values():
+            if camp.get('brand_id') not in (bid, None):
+                # Brand-agnostic count if no brand filter; else only matching
+                if camp.get('brand_id') and camp.get('brand_id') != bid:
+                    continue
+            for aid, asset in (camp.get('assets') or {}).items():
+                ts = asset.get('created_at') or asset.get('createdAt')
+                if ts:
+                    try:
+                        if datetime.datetime.fromisoformat(ts.replace('Z', '+00:00')) > cutoff:
+                            created += 1
+                    except (ValueError, AttributeError):
+                        pass
+        out['weekly']['content_published'] = created
+    except Exception:
+        out['weekly']['content_published'] = 0
+
+    # 7) Review queue depth — drafts waiting for human review
+    try:
+        rq = _read_json_file(os.path.join(DATA_DIR, 'approval-queue.json')) or {}
+        out['weekly']['review_pending'] = rq.get('total', 0)
+    except Exception:
+        out['weekly']['review_pending'] = 0
+
+    return out
+
+
+def _weekly_prev_snapshot(bid):
+    """Load the most recent previous snapshot for comparison. Returns None if first ever run.
+
+    'Previous' = the latest snapshot archived in a week *earlier* than the current
+    one. This avoids the case where archiving this week's snapshot makes it appear
+    as 'previous' (always 0% delta) until next week."""
+    try:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        cur_year, cur_week, _ = now.isocalendar()
+        snaps = sorted(
+            [f for f in os.listdir(WEEKLY_REPORT_DATA_DIR) if f.startswith(f'{bid}_') and f.endswith('.json')],
+            reverse=True
+        )
+        for f in snaps:
+            # Filename: <bid>_<year>-W<week>.json — parse the week out
+            try:
+                stem = f[len(bid) + 1:-5]  # strip "<bid>_" and ".json"
+                year_s, week_s = stem.split('-W')
+                y, w = int(year_s), int(week_s)
+                if (y, w) < (cur_year, cur_week):
+                    return _read_json_file(os.path.join(WEEKLY_REPORT_DATA_DIR, f))
+            except (ValueError, IndexError):
+                continue
+        return None
+    except Exception:
+        return None
+
+
+def _weekly_save_snapshot(bid, current):
+    """Archive the current snapshot under a week-stamped filename."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    iso_year, iso_week, _ = now.isocalendar()
+    fname = f'{bid}_{iso_year}-W{iso_week:02d}.json'
+    fpath = os.path.join(WEEKLY_REPORT_DATA_DIR, fname)
+    payload = dict(current)
+    payload['archived_at'] = now.isoformat()
+    payload['iso_year'] = iso_year
+    payload['iso_week'] = iso_week
+    try:
+        with open(fpath, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, indent=2, default=str)
+        return fpath
+    except Exception as e:
+        return f'ERROR: {e}'
+
+
+def _weekly_compute_metrics(bid):
+    """Pull current + previous snapshot and produce all metric rows used in the doc."""
+    current = _weekly_collect_current(bid)
+    prev = _weekly_prev_snapshot(bid)
+
+    c_weekly = current.get('weekly', {}) or {}
+    c_28d = current.get('28d', {}) or {}
+    p_weekly = (prev or {}).get('weekly', {}) or {}
+    p_28d = (prev or {}).get('28d', {}) or {}
+
+    # Build comparison table rows: (label, curr, prev, fmt)
+    rows = [
+        {
+            'label': 'Content published',
+            'current': c_weekly.get('content_published', 0),
+            'previous': p_weekly.get('content_published', 0),
+            'fmt': 'int',
+        },
+        {
+            'label': 'Facebook reach',
+            'current': c_28d.get('fb_reach', 0),
+            'previous': p_28d.get('fb_reach', 0),
+            'fmt': 'k',  # formatted as "1.2K"
+        },
+        {
+            'label': 'Instagram reach',
+            'current': c_28d.get('ig_reach', 0),
+            'previous': p_28d.get('ig_reach', 0),
+            'fmt': 'k',
+        },
+        {
+            'label': 'Instagram interactions',
+            'current': c_28d.get('ig_interactions', 0),
+            'previous': p_28d.get('ig_interactions', 0),
+            'fmt': 'int',
+        },
+        {
+            'label': 'New contacts / leads',
+            'current': c_weekly.get('leads', 0),
+            'previous': p_weekly.get('leads', 0),
+            'fmt': 'int',
+        },
+        {
+            'label': 'Website sessions (GA4)',
+            'current': c_weekly.get('ga4_sessions', 0),
+            'previous': p_weekly.get('ga4_sessions', 0),
+            'fmt': 'int',
+        },
+        {
+            'label': 'Review queue depth',
+            'current': c_weekly.get('review_pending', 0),
+            'previous': p_weekly.get('review_pending', 0),
+            'fmt': 'int',
+        },
+    ]
+
+    # 28d tables (Facebook, Instagram)
+    fb_rows = [
+        {'label': 'Views', 'current': c_28d.get('fb_views', 0), 'previous': p_28d.get('fb_views', 0), 'fmt': 'k'},
+        {'label': 'Reach', 'current': c_28d.get('fb_reach', 0), 'previous': p_28d.get('fb_reach', 0), 'fmt': 'k'},
+        {'label': 'Link clicks', 'current': c_28d.get('fb_link_clicks', 0), 'previous': p_28d.get('fb_link_clicks', 0), 'fmt': 'k'},
+        {'label': 'Interactions', 'current': c_28d.get('fb_interactions', 0), 'previous': p_28d.get('fb_interactions', 0), 'fmt': 'int'},
+        {'label': 'Conversations started', 'current': c_28d.get('fb_conversations', 0), 'previous': p_28d.get('fb_conversations', 0), 'fmt': 'int'},
+        {'label': 'New contacts', 'current': c_28d.get('fb_new_contacts', 0), 'previous': p_28d.get('fb_new_contacts', 0), 'fmt': 'int'},
+    ]
+    ig_rows = [
+        {'label': 'Views', 'current': c_28d.get('ig_views', 0), 'previous': p_28d.get('ig_views', 0), 'fmt': 'k'},
+        {'label': 'Reach', 'current': c_28d.get('ig_reach', 0), 'previous': p_28d.get('ig_reach', 0), 'fmt': 'k'},
+        {'label': 'Interactions', 'current': c_28d.get('ig_interactions', 0), 'previous': p_28d.get('ig_interactions', 0), 'fmt': 'int'},
+        {'label': 'Follows', 'current': c_28d.get('ig_follows', 0), 'previous': p_28d.get('ig_follows', 0), 'fmt': 'int'},
+        {'label': 'Conversations started', 'current': c_28d.get('ig_conversations', 0), 'previous': p_28d.get('ig_conversations', 0), 'fmt': 'int'},
+    ]
+
+    # What's working / Needs attention — derived from deltas
+    working, attention = [], []
+    for r in rows + fb_rows + ig_rows:
+        try:
+            c = float(r['current']); p = float(r['previous'])
+        except (ValueError, TypeError):
+            continue
+        if p == 0 and c == 0:
+            continue
+        if p == 0:
+            continue
+        delta = (c - p) / p
+        if delta > 0.10 and r['label'] not in ('Review queue depth',):
+            working.append(f"<strong>{r['label']}</strong> is up <span class=\"up\">{(c-p)/p*100:+.0f}%</span> vs last week.")
+        elif delta < -0.10 and r['label'] != 'Review queue depth':
+            attention.append(f"<strong>{r['label']}</strong> is down <span class=\"down\">{delta*100:+.0f}%</span> vs last week.")
+    # If we have nothing flagged, give honest empty states
+    if not working:
+        working.append("<strong>Reach held steady</strong> — content volume and engagement landed within 10% of last week. No regression to chase this week.")
+    if not attention:
+        attention.append("<strong>No metric dropped more than 10%</strong> week-on-week. Clean week — focus on doubling down on what worked.")
+
+    return {
+        'current': current,
+        'prev': prev,
+        'rows': rows,
+        'fb_rows': fb_rows,
+        'ig_rows': ig_rows,
+        'working': working[:5],
+        'attention': attention[:5],
+        'has_prev': prev is not None,
+    }
+
+
+def _weekly_format_num(n, fmt='int'):
+    """Format a number for display. fmt ∈ {'int','k','pct','rand'}"""
+    try:
+        n = float(n)
+    except (ValueError, TypeError):
+        return str(n)
+    if fmt == 'k':
+        if abs(n) >= 1_000_000:
+            return f'{n/1_000_000:.1f}M'
+        if abs(n) >= 1000:
+            return f'{n/1000:.1f}K'
+        return f'{int(n)}'
+    if fmt == 'rand':
+        return f'R{n:,.0f}'
+    if fmt == 'pct':
+        return f'{n:.1f}%'
+    return f'{int(n):,}'
+
+
+def _weekly_render_html(bid):
+    """Render the full HTML page (same CSS as Stick report)."""
+    meta = _weekly_brand_meta(bid)
+    metrics = _weekly_compute_metrics(bid)
+    cur = metrics['current']
+    now = datetime.datetime.now(datetime.timezone.utc)
+    today = now.strftime('%d %b %Y')
+    week_start = (now - datetime.timedelta(days=7)).strftime('%d %b')
+    week_end = (now - datetime.timedelta(days=1)).strftime('%d %b %Y')
+    pcp_start = (now - datetime.timedelta(days=14)).strftime('%d %b')
+    pcp_end = (now - datetime.timedelta(days=8)).strftime('%d %b %Y')
+
+    # Helpers
+    def change_html(row):
+        c = row.get('current', 0)
+        p = row.get('previous', 0)
+        pct, direction, raw = _weekly_pct(c, p)
+        cls = {'up':'up', 'down':'down', 'neutral':'neutral'}.get(direction, 'neutral')
+        return f"<span class=\"{cls}\">{pct}</span>"
+
+    def fmt_row(row):
+        return _weekly_format_num(row['current'], row.get('fmt', 'int'))
+
+    def prev_fmt_row(row):
+        if metrics['has_prev']:
+            return _weekly_format_num(row['previous'], row.get('fmt', 'int'))
+        return '—'
+
+    # TL;DR — top 5 bullets. Built from real deltas + brand voice.
+    tldr_bullets = []
+    weekly = cur.get('weekly', {}) or {}
+    if weekly.get('content_published', 0) > 0:
+        tldr_bullets.append(f"<strong>{weekly.get('content_published', 0)} pieces of content published</strong> this week for {meta['display_name']}.")
+    if weekly.get('ga4_sessions', 0) > 0:
+        tldr_bullets.append(f"<strong>Website traffic:</strong> {weekly.get('ga4_sessions', 0)} sessions in the last 7 days.")
+    if weekly.get('review_pending', 0) > 0:
+        tldr_bullets.append(f"<strong>{weekly.get('review_pending', 0)} drafts</strong> are sitting in Review waiting for your call.")
+    if cur.get('28d', {}).get('ig_interactions', 0) > 0:
+        tldr_bullets.append(f"<strong>Instagram (28d):</strong> {cur['28d'].get('ig_interactions', 0):,} interactions across {cur['28d'].get('ig_posts', 0)} posts.")
+    if not tldr_bullets:
+        tldr_bullets.append(f"<strong>No content published</strong> in the last 7 days for {meta['display_name']}. Worth a check-in — is the cadence working?")
+
+    # Focus pills from brand pillars
+    focus_pills = (meta.get('pillar_defaults') or [])[:5] or ['Brand voice', 'Top content', 'Lead flow', 'Web traffic', 'Reviews']
+
+    # Build all the section HTML
+    rows_html = ''.join(
+        f"<tr><td>{r['label']}</td><td>{fmt_row(r)}</td><td>{prev_fmt_row(r)}</td><td>{change_html(r)}</td></tr>"
+        for r in metrics['rows']
+    )
+    fb_rows_html = ''
+    for r in metrics['fb_rows']:
+        c, p = r.get('current', 0), r.get('previous', 0)
+        if c == 0 and p == 0 and not metrics['has_prev']:
+            continue  # skip empties on first ever run
+        fb_rows_html += f"<tr><td>{r['label']}</td><td>{fmt_row(r)}</td><td>{prev_fmt_row(r)}</td><td>{change_html(r)}</td></tr>"
+
+    ig_rows_html = ''
+    for r in metrics['ig_rows']:
+        c, p = r.get('current', 0), r.get('previous', 0)
+        if c == 0 and p == 0 and not metrics['has_prev']:
+            continue
+        ig_rows_html += f"<tr><td>{r['label']}</td><td>{fmt_row(r)}</td><td>{prev_fmt_row(r)}</td><td>{change_html(r)}</td></tr>"
+
+    # Meta config status
+    meta_configured = any(s.get('name') == 'meta_graph' and s.get('posts') for s in (cur.get('sources') or []))
+    meta_section_html = ''
+    if meta_configured:
+        meta_section_html = f'''
+<section class="section">
+  <h2>Facebook</h2>
+  <p><span class="date-note">Current 28 days: {pcp_start}–{today} • Previous report: {pcp_start}–{pcp_end}</span></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Movement</th></tr></thead>
+      <tbody>{fb_rows_html or '<tr><td colspan="4" class="muted">No Facebook data returned yet</td></tr>'}</tbody>
+    </table>
+  </div>
+</section>'''
+    else:
+        meta_section_html = '''
+<section class="section">
+  <h2>Facebook</h2>
+  <div class="highlight warning">
+    <strong>Meta data not configured.</strong> The 28-day Facebook table will appear here once the Meta Graph API token is added to Railway. The expected shape (views, reach, link clicks, interactions, conversations, new contacts) is already wired — drop a token in and it'll fill in.
+  </div>
+</section>'''
+
+    # Top content — IG top performers
+    top_performers = cur.get('28d', {}).get('ig_top_performers', []) or []
+    top_content_html = ''
+    if top_performers:
+        items = ''.join(
+            f"<li><strong>{p.get('caption', p.get('permalink', 'Post'))[:80]}</strong> — {p.get('like_count', 0):,} likes, {p.get('comments_count', 0):,} comments, {(p.get('reach') or 0):,} reach</li>"
+            for p in top_performers[:5]
+        )
+        top_content_html = f'''
+<section class="section">
+  <h2>Content that is earning attention</h2>
+  <h3>Instagram top performers (28d)</h3>
+  <ul>{items}</ul>
+</section>'''
+
+    # Google Ads section
+    ga_configured = any(s.get('name') == 'google_ads' and s.get('configured') for s in (cur.get('sources') or []))
+    ga_section_html = ''
+    if ga_configured:
+        ga_data = weekly.get('google_ads', {}) or {}
+        spend = ga_data.get('spend', 0)
+        impressions = ga_data.get('impressions', 0)
+        clicks = ga_data.get('clicks', 0)
+        conversions = ga_data.get('conversions', 0)
+        ctr = _weekly_safe_div(clicks, impressions) * 100
+        cpc = _weekly_safe_div(spend, clicks)
+        ga_section_html = f'''
+<section class="section">
+  <h2>Google Ads this week</h2>
+  <div class="grid">
+    <div class="card span-3"><div class="metric-label">Spend</div><div class="metric-value">{_weekly_format_num(spend, "rand")}</div><div class="metric-note">Current week</div></div>
+    <div class="card span-3"><div class="metric-label">Impressions</div><div class="metric-value">{_weekly_format_num(impressions, "int")}</div><div class="metric-note">CTR {ctr:.1f}%</div></div>
+    <div class="card span-3"><div class="metric-label">Clicks</div><div class="metric-value">{_weekly_format_num(clicks, "int")}</div><div class="metric-note">CPC {_weekly_format_num(cpc, "rand")}</div></div>
+    <div class="card span-3"><div class="metric-label">Conversions</div><div class="metric-value">{_weekly_format_num(conversions, "int")}</div><div class="metric-note">Tracked</div></div>
+  </div>
+</section>'''
+    else:
+        ga_section_html = '''
+<section class="section">
+  <h2>Google Ads this week</h2>
+  <div class="highlight warning">
+    <strong>Google Ads not configured.</strong> Drop a <code>data/google-ads.json</code> file with the shape <code>{spend, impressions, clicks, conversions}</code> and the spend / CTR / CPC cards will fill in here.
+  </div>
+</section>'''
+
+    # GA4 top pages / sources
+    top_pages = weekly.get('ga4_top_pages', []) or []
+    sources = weekly.get('ga4_sources', []) or []
+    pages_rows = ''.join(f"<tr><td>{p.get('path')}</td><td>{p.get('sessions', 0)}</td><td>{p.get('engagement_rate', '—')}</td></tr>" for p in top_pages)
+    sources_rows = ''.join(f"<tr><td>{s.get('source')}</td><td>{s.get('sessions', 0)}</td></tr>" for s in sources)
+    ga4_section_html = f'''
+<section class="section">
+  <h2>Website and acquisition</h2>
+  <p><span class="date-note">Google Analytics • Current 7 days</span></p>
+  <div class="grid">
+    <div class="card span-3"><div class="metric-label">Sessions</div><div class="metric-value">{_weekly_format_num(weekly.get('ga4_sessions', 0), 'int')}</div><div class="metric-note">Last 7 days</div></div>
+    <div class="card span-3"><div class="metric-label">Review queue</div><div class="metric-value">{_weekly_format_num(weekly.get('review_pending', 0), 'int')}</div><div class="metric-note">Drafts waiting</div></div>
+    <div class="card span-3"><div class="metric-label">Content published</div><div class="metric-value">{_weekly_format_num(weekly.get('content_published', 0), 'int')}</div><div class="metric-note">Last 7 days</div></div>
+    <div class="card span-3"><div class="metric-label">Brand</div><div class="metric-value" style="font-size:18px">{meta['display_name']}</div><div class="metric-note">{meta.get('voice_label', '')}</div></div>
+  </div>
+  {f'<h3>Top pages by sessions</h3><div class="table-wrap"><table><thead><tr><th>Path</th><th>Sessions</th><th>Engagement rate</th></tr></thead><tbody>{pages_rows}</tbody></table></div>' if pages_rows else '<p class="small">No page-level GA4 data yet.</p>'}
+  {f'<h3>Top sources</h3><div class="table-wrap"><table><thead><tr><th>Source</th><th>Sessions</th></tr></thead><tbody>{sources_rows}</tbody></table></div>' if sources_rows else ''}
+</section>'''
+
+    # Working / attention / focus
+    working_html = ''.join(f'<li>{w}</li>' for w in metrics['working'])
+    attention_html = ''.join(f'<li>{a}</li>' for a in metrics['attention'])
+    focus_pills_html = ''.join(f'<div class="pill">{esc_html(p)}</div>' for p in focus_pills)
+
+    # Hero subtitle — derived from best delta
+    subtitle_parts = []
+    best_up = max(
+        [(r['label'], _weekly_pct(r['current'], r['previous'])[2] or 0) for r in metrics['rows']],
+        key=lambda x: x[1] or 0,
+        default=(None, 0),
+    )
+    if best_up[0] and best_up[1] and best_up[1] > 5:
+        subtitle_parts.append(f"<strong>{best_up[0]}</strong> is up this week ({best_up[1]:+.0f}%).")
+    if weekly.get('review_pending', 0) > 5:
+        subtitle_parts.append(f"{weekly['review_pending']} drafts are waiting on Review.")
+    if weekly.get('content_published', 0) == 0:
+        subtitle_parts.append("No content shipped in the last 7 days — worth a cadence check.")
+    subtitle = ' '.join(subtitle_parts) or f"Weekly review for {meta['display_name']} — {today}."
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{meta['display_name']} Weekly Marketing Report | {today}</title>
+<style>
+:root {{
+  --bg:#0b0f14; --card:#111821; --soft:#16212c; --text:#f4f7fb;
+  --muted:#aeb8c5; --line:#273443; --green:#5dff9d; --blue:#63b3ff;
+  --gold:{meta.get('primary_color', '#d7b46a')}; --red:#ff7a7a; --white:#fff;
+}}
+*{{box-sizing:border-box}}
+body{{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;line-height:1.45}}
+.page{{max-width:1120px;margin:0 auto;padding:28px 18px 60px}}
+.hero,.section,.card{{border:1px solid var(--line);background:var(--card)}}
+.hero{{background:linear-gradient(135deg,#101720 0%,#172230 55%,#0d1218 100%);border-radius:22px;padding:34px;margin-bottom:20px}}
+.eyebrow{{text-transform:uppercase;letter-spacing:.12em;font-size:12px;color:var(--gold);font-weight:700;margin-bottom:10px}}
+h1,h2,h3{{margin:0}} h1{{font-size:clamp(32px,5vw,54px);line-height:1;letter-spacing:-.04em;margin-bottom:14px}}
+h2{{font-size:24px;letter-spacing:-.02em;margin-bottom:14px}} h3{{font-size:17px;margin:18px 0 8px}}
+p{{color:var(--muted);margin:0 0 12px}} strong{{color:var(--white)}}
+.subtitle{{max-width:880px;color:var(--muted);font-size:17px}}
+.focus-strip{{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}}
+.pill{{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700}}
+.section{{border-radius:22px;padding:26px;margin-bottom:18px}}
+.grid{{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-bottom:18px}}
+.card{{border-radius:18px;padding:20px}} .span-3{{grid-column:span 3}} .span-4{{grid-column:span 4}} .span-6{{grid-column:span 6}}
+.metric-label{{color:var(--muted);font-size:13px;margin-bottom:6px}}
+.metric-value{{font-size:34px;font-weight:800;letter-spacing:-.04em}}
+.metric-note{{color:var(--muted);font-size:13px;margin-top:6px}}
+.date-note{{display:inline-block;color:var(--gold);font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px}}
+ul{{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:8px}}
+li{{color:var(--muted);padding-left:18px;position:relative}}
+li:before{{content:"";width:6px;height:6px;border-radius:50%;background:var(--blue);position:absolute;left:0;top:.68em}}
+.two-col{{display:grid;grid-template-columns:1fr 1fr;gap:18px}}
+.highlight{{border-left:4px solid var(--green);background:var(--soft);border-radius:14px;padding:16px;margin-top:14px;color:var(--text)}}
+.gold{{border-left-color:var(--gold)}} .warning{{border-left-color:var(--red)}}
+.table-wrap{{overflow-x:auto;border:1px solid var(--line);border-radius:14px;margin-top:10px}}
+table{{width:100%;border-collapse:collapse;min-width:680px}}
+th,td{{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}}
+th{{color:var(--white);font-size:13px;background:rgba(255,255,255,.03)}}
+td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
+.up{{color:var(--green);font-weight:700}} .down{{color:var(--red);font-weight:700}} .neutral{{color:var(--muted);font-weight:700}}
+.muted{{color:var(--muted)}}
+.small{{font-size:12px;color:var(--muted)}} .footer-note{{color:var(--muted);text-align:center;font-size:12px;margin-top:20px}}
+.toolbar{{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}}
+.toolbar button{{background:var(--bg-2,#1d2733);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer}}
+.toolbar button:hover{{background:var(--soft)}}
+.toolbar select{{background:var(--bg-2,#1d2733);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700}}
+@media print {{ .toolbar{{display:none}} body{{background:#fff;color:#000}} .section,.card,.hero{{background:#fff;color:#000;border-color:#999}} h1,h2,h3,strong{{color:#000}} .subtitle,p,li,td,.metric-note{{color:#333}} .up{{color:#0a8}} .down{{color:#c33}} }}
+@media(max-width:900px){{.span-3,.span-4,.span-6{{grid-column:span 12}}.two-col{{grid-template-columns:1fr}}.hero,.section{{padding:22px}}}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="toolbar">
+  <span class="muted" style="font-size:12px;line-height:32px;margin-right:auto">Brand:</span>
+  <select onchange="window.location.href='/weekly-report?brand=' + this.value">
+    <option value="swing-shack" {"selected" if bid=='swing-shack' else ""}>Swing Shack</option>
+    <option value="stick" {"selected" if bid=='stick' else ""}>Stick</option>
+    <option value="bag-drop" {"selected" if bid=='bag-drop' else ""}>Bag Drop</option>
+    <option value="takomo" {"selected" if bid=='takomo' else ""}>Takomo</option>
+  </select>
+  <button onclick="downloadHTML()">⬇ HTML</button>
+  <button onclick="downloadMarkdown()">⬇ Markdown</button>
+  <button onclick="window.print()">⬇ PDF (print)</button>
+  <button onclick="snapshotNow()">📸 Archive snapshot</button>
+</div>
+
+<section class="hero">
+  <div class="eyebrow">{meta['display_name']} • Weekly Marketing Report • {today}</div>
+  <h1>{esc_html(meta.get('tagline', f'Your {today} snapshot.'))}</h1>
+  <p class="subtitle">{subtitle}</p>
+  <div class="focus-strip">
+    {focus_pills_html}
+  </div>
+</section>
+
+<section class="section">
+  <h2>TL;DR</h2>
+  <ul>
+    {"".join(f'<li>{b}</li>' for b in tldr_bullets)}
+  </ul>
+</section>
+
+<section class="grid">
+  <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">Content published</div><div class="metric-value">{_weekly_format_num(weekly.get('content_published', 0), 'int')}</div><div class="metric-note">Last 7 days</div></div>
+  <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">Website sessions</div><div class="metric-value">{_weekly_format_num(weekly.get('ga4_sessions', 0), 'int')}</div><div class="metric-note">GA4 last 7 days</div></div>
+  <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">IG interactions (28d)</div><div class="metric-value">{_weekly_format_num(cur.get('28d', {}).get('ig_interactions', 0), 'int')}</div><div class="metric-note">{cur.get('28d', {}).get('ig_posts', 0)} posts tracked</div></div>
+  <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">Review queue</div><div class="metric-value">{_weekly_format_num(weekly.get('review_pending', 0), 'int')}</div><div class="metric-note">Drafts waiting</div></div>
+</section>
+
+<section class="section">
+  <h2>Comparison with the previous {meta['display_name']} report</h2>
+  <p><span class="date-note">Current weekly review: {week_start}–{week_end} • Previous report: {pcp_start}–{pcp_end}</span></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Change</th></tr></thead>
+      <tbody>{rows_html or '<tr><td colspan="4" class="muted">First run — no previous snapshot to compare yet. Archive a snapshot to start comparing.</td></tr>'}</tbody>
+    </table>
+  </div>
+  <div class="highlight gold"><strong>Read:</strong> comparison table above is the raw movement week-on-week. Anything in green is a real lift; anything in red is something to address in the next 7 days.</div>
+</section>
+
+{meta_section_html}
+
+<section class="section">
+  <h2>Instagram</h2>
+  <p><span class="date-note">Current 28 days: {pcp_start}–{today} • Previous report: {pcp_start}–{pcp_end}</span></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Movement</th></tr></thead>
+      <tbody>{ig_rows_html or '<tr><td colspan="4" class="muted">No Instagram data available yet</td></tr>'}</tbody>
+    </table>
+  </div>
+</section>
+
+{top_content_html}
+
+{ga4_section_html}
+
+{ga_section_html}
+
+<section class="section">
+  <h2>What is working</h2>
+  <ul>{working_html}</ul>
+</section>
+
+<section class="section">
+  <h2>What needs attention</h2>
+  <ul>{attention_html}</ul>
+</section>
+
+<section class="section">
+  <h2>This week's focus</h2>
+  <ul>
+    {"".join(f'<li>Keep <strong>{esc_html(p)}</strong> content visible and on-cadence.</li>' for p in focus_pills)}
+    <li>Clear the <strong>{weekly.get('review_pending', 0)} drafts</strong> sitting in Review.</li>
+    <li>Check what worked last week and ship at least one more of it.</li>
+  </ul>
+</section>
+
+<div class="footer-note">
+Prepared for {meta['display_name']} • Weekly review uses {week_start}–{week_end} {now.year}. IG section uses the latest 28-day window through {today}. {f"Previous-report comparison uses the {meta['display_name']} report based on {pcp_start}–{pcp_end}." if metrics['has_prev'] else "First-ever run — no previous snapshot archived yet. Click 'Archive snapshot' to start the comparison trail."}
+</div>
+
+</div>
+
+<script>
+function downloadHTML(){{
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob([html], {{type:'text/html'}});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '{meta["id"]}-weekly-report-{today.replace(" ","-")}.html';
+  a.click();
+}}
+function downloadMarkdown(){{
+  fetch('/api/weekly-report?brand={bid}&format=markdown').then(r=>r.text()).then(t=>{{
+    const blob = new Blob([t], {{type:'text/markdown'}});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '{meta["id"]}-weekly-report-{today.replace(" ","-")}.md';
+    a.click();
+  }});
+}}
+function snapshotNow(){{
+  fetch('/api/weekly-report/snapshot?brand={bid}', {{method:'POST'}}).then(r=>r.json()).then(j=>{{
+    alert('Snapshot archived: ' + (j.path || JSON.stringify(j)));
+    location.reload();
+  }});
+}}
+</script>
+</body>
+</html>'''
+
+
+def _md_strip_html(s):
+    return (s.replace('<strong>', '**').replace('</strong>', '**')
+             .replace('<span class="up">', '').replace('<span class="down">', '')
+             .replace('</span>', ''))
+
+
+def _weekly_render_markdown(bid):
+    """Render the same report as plain Markdown for Notion / Slack paste."""
+    meta = _weekly_brand_meta(bid)
+    metrics = _weekly_compute_metrics(bid)
+    cur = metrics['current']
+    now = datetime.datetime.now(datetime.timezone.utc)
+    today = now.strftime('%d %b %Y')
+
+    lines = [f"# {meta['display_name']} — Weekly Marketing Report ({today})", ""]
+    lines.append(f"**Brand:** {meta['display_name']}  ")
+    lines.append(f"**Voice:** {meta.get('voice_label', '—')}  ")
+    lines.append(f"**Tagline:** {meta.get('tagline', '—')}  ")
+    lines.append("")
+    lines.append("## TL;DR")
+    lines.append("")
+    weekly = cur.get('weekly', {}) or {}
+    if weekly.get('content_published', 0) > 0:
+        lines.append(f"- **{weekly.get('content_published', 0)} pieces of content published** this week.")
+    if weekly.get('ga4_sessions', 0) > 0:
+        lines.append(f"- **Website traffic:** {weekly.get('ga4_sessions', 0)} sessions in the last 7 days.")
+    if weekly.get('review_pending', 0) > 0:
+        lines.append(f"- **{weekly.get('review_pending', 0)} drafts** are waiting on Review.")
+    if cur.get('28d', {}).get('ig_interactions', 0) > 0:
+        lines.append(f"- **Instagram (28d):** {cur['28d'].get('ig_interactions', 0):,} interactions across {cur['28d'].get('ig_posts', 0)} posts.")
+    if weekly.get('content_published', 0) == 0:
+        lines.append(f"- **No content published** in the last 7 days. Worth a cadence check.")
+    lines.append("")
+    lines.append("## Comparison with previous report")
+    lines.append("")
+    lines.append("| Metric | Current | Previous | Change |")
+    lines.append("|---|---|---|---|")
+    for r in metrics['rows']:
+        pct, direction, _ = _weekly_pct(r['current'], r['previous'])
+        arrow = {'up':'↑', 'down':'↓', 'neutral':'—'}.get(direction, '—')
+        prev_disp = _weekly_format_num(r['previous'], r.get('fmt', 'int')) if metrics['has_prev'] else '—'
+        lines.append(f"| {r['label']} | {_weekly_format_num(r['current'], r.get('fmt', 'int'))} | {prev_disp} | {pct} {arrow} |")
+    lines.append("")
+    lines.append("## What is working")
+    lines.append("")
+    for w in metrics['working']:
+        # Strip HTML for markdown
+        lines.append(f"- {_md_strip_html(w)}")
+    lines.append("")
+    lines.append("## What needs attention")
+    lines.append("")
+    for a in metrics['attention']:
+        lines.append(f"- {_md_strip_html(a)}")
+    lines.append("")
+    lines.append("---")
+    lines.append(f"_Generated {now.isoformat()} • Sources: " + ", ".join(s.get('name','?') for s in (cur.get('sources') or [])) + "_")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def esc_html(s):
+    if s is None: return ''
+    s = str(s)
+    return (s.replace('&', '&amp;')
+             .replace('<', '&lt;')
+             .replace('>', '&gt;')
+             .replace('"', '&quot;'))
+
+
+@app.route('/api/weekly-report', methods=['GET'])
+def weekly_report_api():
+    """GET /api/weekly-report?brand=swing-shack&format=html|json|markdown
+    Returns the weekly report. Default format = html.
+    """
+    bid = request.args.get('brand') or get_brand_id()
+    fmt = request.args.get('format', 'html').lower()
+    if fmt == 'json':
+        return jsonify({
+            'brand_id': bid,
+            'brand_meta': _weekly_brand_meta(bid),
+            'metrics': _weekly_compute_metrics(bid),
+        }), 200
+    if fmt == 'markdown':
+        from flask import Response
+        return Response(_weekly_render_markdown(bid), mimetype='text/markdown'), 200
+    return _weekly_render_html(bid), 200
+
+
+@app.route('/api/weekly-report/snapshot', methods=['POST', 'GET'])
+def weekly_report_snapshot():
+    """Archive the current week for the brand. Returns the saved path."""
+    bid = request.args.get('brand') or get_brand_id()
+    cur = _weekly_collect_current(bid)
+    path = _weekly_save_snapshot(bid, cur)
+    return jsonify({'brand_id': bid, 'path': path, 'iso_week': datetime.datetime.now(datetime.timezone.utc).isocalendar()[:2]}), 200
+
+
+@app.route('/api/weekly-report/snapshots', methods=['GET'])
+def weekly_report_snapshots():
+    """List all archived snapshots for a brand."""
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        snaps = []
+        for f in sorted(os.listdir(WEEKLY_REPORT_DATA_DIR)):
+            if f.startswith(f'{bid}_') and f.endswith('.json'):
+                snaps.append(f)
+        return jsonify({'brand_id': bid, 'snapshots': snaps}), 200
+    except Exception as e:
+        return jsonify({'brand_id': bid, 'snapshots': [], 'error': str(e)}), 200
+
+
+@app.route('/weekly-report', methods=['GET'])
+def weekly_report_page():
+    """GET /weekly-report?brand=swing-shack
+    Renders the weekly-report HTML page directly (same as /api/weekly-report?format=html).
+    """
+    bid = request.args.get('brand') or get_brand_id()
+    return _weekly_render_html(bid), 200
+
+
 # ─── STARTUP ────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
