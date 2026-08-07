@@ -220,3 +220,24 @@
 **Learned:** `thumbnail_data_url || img.url` is the canonical pattern for any Campaign OS image surface on Railway. The same root cause keeps recurring because there are now 5+ image surfaces (brand-detail panel, library images, visualizer default grid, visualizer meme-lab grid, visualizer modal). A shared `imgSrcFor(img)` helper in a single location would be the right refactor next time the pattern needs to ship again.
 
 **Asks:** None.
+
+## 2026-08-07T20:59Z — fix(campaign-os): repair 13 dead meme-template thumbnails
+
+**Done:** Meme Lord /memes template picker was showing 14 of 30 tiles as faded "image not available" because the canonical imgflip image IDs in `campaign-os/_lib/meme_templates.py` had been re-indexed (11 unique IDs returned 404 text/plain). Re-curated all 13 dead `thumbnail_url` values from imgflip's current `/get_memes` catalog. Verified each replacement returns 200 image/*. Defense-in-depth: also replaced the meme-tile onerror handler so future drift shows a 🎭 fallback div + logs `console.warn` with the dead URL instead of fading to 15% opacity. Commit `e484724` on `feat/asset-state-engine`, +16/-15, pushed, Railway auto-deployed.
+
+**Verified (Playwright LIVE, cookie auth, dismissed welcome modal):**
+- Pre-fix: 16/30 thumbnails OK, 14 broken (faded 15% opacity, `alt="image not available"`).
+- Post-fix: **30/30 thumbnails OK, 0 broken.** 0 PAGEERROR, 0 console warnings.
+- Screenshots: `/tmp/co-nightshift/walkthrough_2026-08-07T205958Z_FIXED_memes_strip_scrolled.png` (Galaxy Brain, Salt Bae, Side Eye Chloe, We Did It Joe, Ancient Aliens, Futurama Fry, Roll Safe all rendering) and `_strip.png` (top of picker).
+
+**Replacement rationale (when imgflip removed a template):**
+- `galaxy-brain` → Expanding Brain (same "increasing enlightenment" 4-panel meme)
+- `salt-bae` → Trade Offer (chef meme, same confident-hand energy)
+- `side-eye-chloe` → Mocking Spongebob (same skeptical-judgment tone)
+- `we-did-it-joe` → Gus Fring "we are not the same" (triumphant-villain energy)
+
+**Next pick:** Empty/fake features sweep — find sidebar entries that render an empty section (zero data, "loading…" forever, or a placeholder card). Likely candidates: Campaigns if no active campaign, Agents if no agent process alive, GBP if no business profile, Reddit if no recent posts.
+
+**Learned:** Imgflip CDN image IDs are deterministic but the catalog rotates. A small one-shot re-curate is cheap; the bigger lever is the onerror fallback so the page is self-healing (no future user reports of "Meme Lord is broken").
+
+**Asks:** None.
