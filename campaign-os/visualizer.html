@@ -92,6 +92,30 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 .modal .btn:hover { filter: brightness(1.1); }
 .modal .btn.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
 
+/* Orphan-DNA placeholder: replaces a broken tile/modal image with a
+   palette-swatch block + "image missing" caption. Rendered by
+   _imgMissingFallback() when an <img data-fallback="1"> fails to load. */
+.img-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.92);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  text-align: center;
+  padding: 8px;
+  position: relative;
+}
+.img-placeholder .ph-icon { font-size: 28px; line-height: 1; opacity: 0.85; margin-bottom: 6px; }
+.img-placeholder .ph-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; opacity: 0.85;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+.img-placeholder .ph-file {
+  font-size: 10px; opacity: 0.75; margin-top: 4px;
+  max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
 /* Loading + empty */
 .loading, .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
 .spinner { width: 24px; height: 24px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
@@ -543,7 +567,10 @@ async function runDiscover(params) {
     url: r.image_url || ('/brand-images/' + encodeURIComponent(STATE.brand) + '/' + encodeURIComponent(r.filename)),
     thumbnail_data_url: r.thumbnail_data_url || null,
     score: r.quality_score || 0,
-    palette: [],
+    // Preserve palette from the source record so the onerror placeholder
+    // (see _imgMissingFallback below) can paint a meaningful DNA swatch
+    // instead of a black box when /brand-images/ 404s.
+    palette: r.palette || [],
     products: r.brands || [],
     luminance: '',
     discover_meta: r,
@@ -563,10 +590,15 @@ function renderImageCard(img) {
   // to img.url (which the discover normalizer leaves null when a thumbnail
   // is shipped, but legacy callers may still set).
   const imgSrc = img.thumbnail_data_url || img.url;
+  // Encode the palette as a data attribute so the global _imgMissingFallback
+  // handler (registered once at boot) can paint a DNA-coloured placeholder
+  // when the image fails to load — e.g. orphan DNA records whose .png file
+  // was never copied into the brand directory.
+  const paletteAttr = JSON.stringify(palette).replace(/"/g, '&quot;');
   return `
       <div class="card" data-filename="${img.filename}">
         <div class="imgwrap">
-          <img src="${imgSrc}" alt="${img.filename}">
+          <img src="${imgSrc}" alt="${img.filename}" data-palette="${paletteAttr}" data-fallback="1">
           <div class="score">${img.score}</div>
         </div>
         <div class="info">
@@ -605,6 +637,43 @@ async function loadBrandRecipe() {
     document.getElementById('recipe-summary').textContent = 'Recipe unavailable';
   }
   document.getElementById('refresh-recipe').addEventListener('click', loadBrandRecipe);
+}
+
+// ── Orphan-DNA image fallback ──────────────────────────────────────────
+// When /brand-images/<brand>/<file> 404s (e.g. a .visual-dna.json record
+// indexed under swing-shack but the .png only lives under takomo/), the
+// broken <img> would otherwise render as a black box. We paint a
+// palette-swatch placeholder using the item's DNA palette so the tile still
+// communicates the brand colour. Registered once at document level so it
+// catches the modal, the grid, and any tiles rendered later.
+function _imgMissingFallback(img) {
+  if (!img || img.dataset.fallbackDone === '1') return;
+  img.dataset.fallbackDone = '1';
+  let palette = [];
+  try { palette = JSON.parse(img.getAttribute('data-palette') || '[]'); } catch (_) {}
+  if (!Array.isArray(palette)) palette = [];
+  const fallback = document.createElement('div');
+  fallback.className = 'img-placeholder';
+  fallback.setAttribute('data-fallback-reason', 'image-missing');
+  if (palette.length) {
+    fallback.style.background = `linear-gradient(135deg, ${palette.slice(0, 4).join(', ')})`;
+  } else {
+    fallback.style.background = 'var(--panel)';
+  }
+  fallback.innerHTML = `
+    <div class="ph-icon" aria-hidden="true">▦</div>
+    <div class="ph-label">image missing</div>
+    <div class="ph-file">${(img.alt || '').slice(0, 28)}</div>`;
+  img.replaceWith(fallback);
+}
+if (typeof document !== 'undefined' && !window.__coImgFallbackInstalled) {
+  window.__coImgFallbackInstalled = true;
+  document.addEventListener('error', function (ev) {
+    const t = ev.target;
+    if (t && t.tagName === 'IMG' && t.dataset && t.dataset.fallback === '1') {
+      _imgMissingFallback(t);
+    }
+  }, true);
 }
 
 // ── Image generator ────────────────────────────────────────────────────
@@ -684,10 +753,13 @@ async function loadImages() {
     // to /brand-images/<brand>/<fn> when the thumbnail isn't shipped (legacy
     // back-compat for any caller still using the old shape).
     const imgSrc = img.thumbnail_data_url || img.url;
+    // Encode palette as a data attribute so the global _imgMissingFallback
+    // handler can paint a DNA-coloured placeholder if /brand-images/ 404s.
+    const paletteAttr = JSON.stringify(palette).replace(/"/g, '&quot;');
     return `
       <div class="card" data-filename="${img.filename}">
         <div class="imgwrap">
-          <img src="${imgSrc}" alt="${img.filename}">
+          <img src="${imgSrc}" alt="${img.filename}" data-palette="${paletteAttr}" data-fallback="1">
           <div class="score">${img.score}</div>
         </div>
         <div class="info">
@@ -715,7 +787,15 @@ async function openModal(filename, brand) {
   // the modal renders even on Railway volumes missing the raw .jpg. Fall back
   // to /brand-images/<brand>/<fn> for any caller still on the legacy shape.
   const _fallbackSrc = '/brand-images/' + encodeURIComponent(useBrand) + '/' + encodeURIComponent(filename);
-  document.getElementById('modal-img').src = (state.images || []).find(im => im.filename === filename)?.thumbnail_data_url || _fallbackSrc;
+  const _modalImg = document.getElementById('modal-img');
+  const _modalItem = (state.images || []).find(im => im.filename === filename);
+  _modalImg.src = _modalItem?.thumbnail_data_url || _fallbackSrc;
+  // Arm the orphan-DNA fallback for the modal too: when /brand-images/ 404s,
+  // _imgMissingFallback replaces the <img> with a palette-coloured placeholder
+  // so the modal doesn't open onto a broken thumbnail.
+  _modalImg.setAttribute('data-fallback', '1');
+  _modalImg.setAttribute('data-palette', JSON.stringify((_modalItem?.palette || []).slice(0, 5)).replace(/"/g, '&quot;'));
+  _modalImg.dataset.fallbackDone = ''; // re-arm for repeated opens
 
   const detail = await API.detail(filename, useBrand);
   if (!detail.dna) {

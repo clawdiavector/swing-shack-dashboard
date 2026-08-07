@@ -670,6 +670,14 @@ a:hover{text-decoration:underline}
 .nav-link{text-decoration:none}
 @media (max-width:600px){.lib-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}}
 
+/* Orphan-DNA placeholder: replaces a broken tile image with a palette
+   swatch + "image missing" caption. Painted by _imgMissingFallback when an
+   <img data-fallback="1"> fails to load (404 or network error). */
+.img-placeholder{width:100%;aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.92);font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;padding:8px;position:relative}
+.img-placeholder .ph-icon{font-size:24px;line-height:1;opacity:.85;margin-bottom:6px}
+.img-placeholder .ph-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.img-placeholder .ph-file{font-size:9px;opacity:.75;margin-top:3px;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+
 /* ─── Misc ───────────────────────────────────────────────────── */
 .muted{color:var(--tx-3)}
 .row{display:flex;align-items:center;gap:.75rem}
@@ -4051,6 +4059,39 @@ function initTheme(){
   }
 }
 
+// ─── Orphan-DNA image fallback ──────────────────────────────────────────
+// When /brand-images/<brand>/<file> (or any other image source) 404s on a
+// thumbnail tagged data-fallback="1", paint a palette-swatch placeholder
+// using the item's DNA palette. Keeps the brand detail panel and the
+// Visual Library page free of black-box tiles when an image is orphaned
+// from its DNA record. Mirrors the same handler on /visualizer.
+function _imgMissingFallback(img){
+  if(!img || img.dataset.fallbackDone === '1') return;
+  img.dataset.fallbackDone = '1';
+  let palette = [];
+  try { palette = JSON.parse(img.getAttribute('data-palette') || '[]'); } catch(_){ }
+  if(!Array.isArray(palette)) palette = [];
+  const ph = document.createElement('div');
+  ph.className = 'img-placeholder';
+  ph.setAttribute('data-fallback-reason', 'image-missing');
+  if(palette.length){
+    ph.style.background = `linear-gradient(135deg, ${palette.slice(0,4).join(', ')})`;
+  } else {
+    ph.style.background = 'var(--panel-2)';
+  }
+  ph.innerHTML = '<div class="ph-icon" aria-hidden="true">▦</div><div class="ph-label">image missing</div><div class="ph-file">' + (img.alt || '').slice(0,28) + '</div>';
+  img.replaceWith(ph);
+}
+if(typeof document !== 'undefined' && !window.__coImgFallbackInstalled){
+  window.__coImgFallbackInstalled = true;
+  document.addEventListener('error', function(ev){
+    const t = ev.target;
+    if(t && t.tagName === 'IMG' && t.dataset && t.dataset.fallback === '1'){
+      _imgMissingFallback(t);
+    }
+  }, true);
+}
+
 // ─── State ──────────────────────────────────────────────────────
 const S = {
   brief:null, review:null, cal:null, calOffset:0,
@@ -5264,9 +5305,13 @@ async function loadLibPane(kind, bid, focusSearch){
                 // Fall back to /api/visual-library/<brand>/image/<fn> for
                 // back-compat with any caller still using the legacy URL.
                 const src = im.thumbnail_data_url || ('/api/visual-library/' + bid + '/image/' + encodeURIComponent(im.filename || im.path || ''));
+                // Arm the global orphan-DNA fallback so a 404 paints a palette
+                // placeholder instead of a black box. Same handler used by the
+                // Visual Library page.
+                const paletteAttr = JSON.stringify((im.palette || []).slice(0, 5)).replace(/"/g, '&quot;');
                 return `
                 <a class="lib-thumb" href="/visualizer">
-                  <img src="${src}" alt="${esc(im.filename || '')}" loading="lazy" />
+                  <img src="${src}" alt="${esc(im.filename || '')}" loading="lazy" data-fallback="1" data-palette="${paletteAttr}" />
                 </a>`;
               }).join('')}
             </div>
