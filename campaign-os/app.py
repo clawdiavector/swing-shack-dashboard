@@ -3093,9 +3093,13 @@ def _extract_asset_context(asset_id: str, brand_id: str) -> tuple[Optional[str],
     # for assets like `takomo-101t-hero-c` whose data lives in the portfolio
     # file rather than the standalone data/ hook/caption files.
     #
-    # The file may live at REPO_ROOT/campaign-data.json (older layout) or
-    # REPO_ROOT/campaign-os/campaign-data.json (current layout). Try both.
+    # The file may live at any of:
+    #   - REPO_ROOT/data/campaign-data.json            (older bundled layout)
+    #   - REPO_ROOT/campaign-os/campaign-data.json     (current local layout)
+    #   - $DATA_DIR/campaign-data.json                  (Railway runtime)
     portfolio_candidates = []
+    runtime_data_dir = os.environ.get('DATA_DIR') or '/data'
+    portfolio_candidates.append(Path(runtime_data_dir) / 'campaign-data.json')
     if base.name == "data":
         portfolio_candidates.append(base.parent / "campaign-data.json")
         portfolio_candidates.append(base.parent / "campaign-os" / "campaign-data.json")
