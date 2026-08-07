@@ -691,8 +691,10 @@ async function ingestFromLibrary(filename) {
 
 // ── Library (products + services) ──────────────────────────────────
 async function loadLibrary() {
-  const kind = $('lib-kind').value;
-  const r = await api(`/api/library/${STATE.brand}/items?kind=${kind}&seed=true`);
+  const rawKind = $('lib-kind').value;
+  // "all" means no filter — pass None to list_items so it returns everything
+  const kind = rawKind === 'all' ? null : rawKind;
+  const r = await api(`/api/library/${STATE.brand}/items?kind=${kind || ''}&seed=true`);
   const items = r.items || [];
   $('lib-count').textContent = items.length;
 
