@@ -9073,11 +9073,36 @@ async function generateSeoFix(){
 }
 
 // ─── GBP ────────────────────────────────────────────────────────
+// Render `inp.location_context` as a readable city, region, country string.
+// `location_context` is an object ({city, region, country, address, service_area})
+// in the gbp-input.json shape, so a naive `${esc(inp.location_context)}` collapses
+// it to "[object Object]". Build the human-readable line ourselves.
+function _gmb_location_line(inp) {
+  const lc = inp && inp.location_context;
+  if (!lc || typeof lc !== 'object') {
+    // Legacy string shape or empty: fall back to the raw value
+    return typeof lc === 'string' && lc.trim() ? lc : '—';
+  }
+  const city = (lc.city || '').trim();
+  const region = (lc.region || '').trim();
+  const country = (lc.country || '').trim();
+  // Two-line summary: city + region on top, country on bottom. Falls back to
+  // whichever subset we have so a partial record still renders something useful.
+  const top = [city, region].filter(Boolean).join(', ');
+  if (top && country) return `${top} · ${country}`;
+  if (top) return top;
+  if (country) return country;
+  // Last resort: address line (which usually mirrors city + region)
+  const addr = (lc.address || '').trim();
+  return addr || '—';
+}
+
 async function renderGBP(){
   if(!S.gbp) S.gbp = await API.get('/api/intel/gbp_suggestions');
   const g = S.gbp;
   const inp = g.input || {};
-  $('#gbp-profile').innerHTML = `<dl class="kvs"><dt>Business</dt><dd>${esc(inp.business_name||'—')}</dd><dt>Location</dt><dd>${esc(inp.location_context||'—')}</dd><dt>Services</dt><dd>${esc((inp.services||[]).join(', '))}</dd></dl>` + safeList(inp.seo_opportunities, 6).map(itemHtml).join('');
+  const services = (inp.services || []).filter(s => typeof s === 'string' && s.trim());
+  $('#gbp-profile').innerHTML = `<dl class="kvs"><dt>Business</dt><dd>${esc(inp.business_name||'—')}</dd><dt>Location</dt><dd>${esc(_gmb_location_line(inp))}</dd><dt>Services</dt><dd>${esc(services.join(', '))}</dd></dl>` + safeList(inp.seo_opportunities, 6).map(itemHtml).join('');
   const last = g.last_post || {};
   $('#gbp-last').innerHTML = `<div style="margin-bottom:.75rem"><b>Last angle:</b> ${esc(last.chosen_angle||'—')}</div><div class="muted" style="font-size:12px">${esc(last.why_this_angle_wins||'')}</div>` + safeList(last.seo_signals_used, 4).map(itemHtml).join('');
 }
