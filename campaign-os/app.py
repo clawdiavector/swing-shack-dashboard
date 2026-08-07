@@ -928,6 +928,100 @@ def image_lab_page():
     return send_from_directory(os.path.dirname(__file__), 'image-lab.html')
 
 
+# ─── IMAGE KEYS PORTAL ───────────────────────────────────────────────
+# Local-only route for safely ingesting OpenAI / OpenRouter keys without
+# them touching Discord/chat. Form at GET /image-portal.html. Submit
+# writes to the credential dirs the image_gen_router already knows how
+# to read from:
+#   ~/.openclaw/workspace/credentials/openai-api.json     (chmod 600)
+#   ~/.openclaw/workspace/credentials/openrouter-api.json  (chmod 600)
+#   ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/openai-api.json
+#   ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/openrouter-api.json
+# These are the canonical fallback locations the router looks for when
+# env vars aren't set.
+#
+# For the LIVE Railway deploy, the keys still need to be set as env vars
+# via the Railway dashboard — this portal can't push to Railway directly.
+# The portal page makes that explicit with a "Setting keys on Railway"
+# step-by-step section.
+
+IMAGE_CRED_DIRS = [
+    os.path.expanduser('~/.openclaw/workspace/credentials'),
+    os.path.expanduser('~/.openclaw-instance2/workspace/clients/swing-shack/credentials'),
+]
+
+
+@app.route('/image-portal.html', methods=['GET'])
+def image_portal_page():
+    return send_from_directory(os.path.dirname(__file__), 'image-portal.html')
+
+
+@app.route('/image-portal', methods=['POST'])
+def image_portal_submit():
+    """POST /image-portal — write OpenAI / OpenRouter keys to credential dirs."""
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        openai = (body.get('openai') or '').strip()
+        openrouter = (body.get('openrouter') or '').strip()
+
+        if not openai and not openrouter:
+            return jsonify({"ok": False, "error": "at least one key required"}), 400
+
+        wrote_openai = None
+        wrote_openrouter = None
+
+        if openai:
+            # Basic shape validation
+            if not openai.startswith('sk-'):
+                return jsonify({"ok": False, "error": "OpenAI key should start with 'sk-'"}), 400
+            payload = json.dumps({"api_key": openai, "updated": time.time()}, indent=2)
+            for d in IMAGE_CRED_DIRS:
+                try:
+                    os.makedirs(d, exist_ok=True)
+                    p = os.path.join(d, 'openai-api.json')
+                    with open(p, 'w') as fh:
+                        fh.write(payload)
+                    os.chmod(p, 0o600)
+                    wrote_openai = wrote_openai or p
+                except Exception as e:
+                    _app_log.warning('failed to write %s: %s', d, e)
+
+        if openrouter:
+            if not openrouter.startswith('sk-or-'):
+                return jsonify({"ok": False, "error": "OpenRouter key should start with 'sk-or-'"}), 400
+            payload = json.dumps({"api_key": openrouter, "updated": time.time()}, indent=2)
+            for d in IMAGE_CRED_DIRS:
+                try:
+                    os.makedirs(d, exist_ok=True)
+                    p = os.path.join(d, 'openrouter-api.json')
+                    with open(p, 'w') as fh:
+                        fh.write(payload)
+                    os.chmod(p, 0o600)
+                    wrote_openrouter = wrote_openrouter or p
+                except Exception as e:
+                    _app_log.warning('failed to write %s: %s', d, e)
+
+        # Refresh status report so subsequent /api/image/status reflects new keys
+        try:
+            from _lib.image_gen_router import status_report as _status
+            # Use lru_cache clear if status_report is wrapped; otherwise no-op.
+            clear = getattr(_status, "cache_clear", None)
+            if callable(clear):
+                clear()
+        except Exception:
+            pass
+
+        return jsonify({
+            "ok": True,
+            "wrote_openai": wrote_openai,
+            "wrote_openrouter": wrote_openrouter,
+            "next_step": "Set OPENAI_API_KEY / OPENROUTER_API_KEY env vars on Railway dashboard for live generation.",
+        })
+    except Exception as e:
+        _app_log.exception('image_portal_submit failed')
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/brand-images/<brand_id>/<path:filename>', methods=['GET'])
 def brand_image_serve(brand_id, filename):
     """GET /brand-images/<brand>/ — serve a brand-directory image.
@@ -2998,8 +3092,19 @@ def _extract_asset_context(asset_id: str, brand_id: str) -> tuple[Optional[str],
     # This is what makes the Review-modal "🎨 Generate visual" button work
     # for assets like `takomo-101t-hero-c` whose data lives in the portfolio
     # file rather than the standalone data/ hook/caption files.
-    campaign_file = base.parent / "campaign-data.json" if base.name == "data" else base / "campaign-data.json"
-    if campaign_file.exists():
+    #
+    # The file may live at REPO_ROOT/campaign-data.json (older layout) or
+    # REPO_ROOT/campaign-os/campaign-data.json (current layout). Try both.
+    portfolio_candidates = []
+    if base.name == "data":
+        portfolio_candidates.append(base.parent / "campaign-data.json")
+        portfolio_candidates.append(base.parent / "campaign-os" / "campaign-data.json")
+    else:
+        portfolio_candidates.append(base / "campaign-data.json")
+        portfolio_candidates.append(base / ".." / "campaign-os" / "campaign-data.json")
+    for campaign_file in portfolio_candidates:
+        if not campaign_file.exists():
+            continue
         try:
             portfolio = json.loads(campaign_file.read_text())
             for cname, c in (portfolio.get("campaigns") or {}).items():

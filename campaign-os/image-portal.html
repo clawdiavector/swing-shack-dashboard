@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Image Keys Portal — Campaign OS</title>
+<style>
+:root {
+  --bg: #0a0c10;
+  --panel: #131720;
+  --panel-2: #1a1f2c;
+  --line: #2a3142;
+  --text: #e6e8eb;
+  --muted: #8a92a6;
+  --accent: #f5c842;
+  --danger: #ef5350;
+  --success: #4caf50;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 24px;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+h1 { color: var(--accent); margin-top: 0; font-size: 22px; }
+h2 { color: var(--accent); margin-top: 28px; font-size: 16px; }
+.sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.status {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: monospace;
+  font-size: 12px;
+  margin: 12px 0;
+}
+.status.ok { border-color: var(--success); color: var(--success); }
+.status.err { border-color: var(--danger); color: var(--danger); }
+label {
+  display: block;
+  margin: 12px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+input[type=password], input[type=text], textarea {
+  width: 100%;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px;
+  font-size: 13px;
+  font-family: ui-monospace, monospace;
+}
+input[type=password]:focus, input[type=text]:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.btn {
+  display: inline-block;
+  padding: 10px 18px;
+  background: var(--accent);
+  color: #0a0c10;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+  margin-right: 8px;
+}
+.btn:hover { opacity: 0.9; }
+.btn:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
+.btn-secondary {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+code {
+  background: var(--panel-2);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+ol li { margin-bottom: 8px; }
+.warn {
+  background: rgba(239, 83, 80, 0.08);
+  border-left: 3px solid var(--danger);
+  padding: 12px 16px;
+  margin: 12px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+</style>
+</head>
+<body>
+<h1>🖼 Image Keys Portal</h1>
+<div class="sub">Paste your OpenAI and OpenRouter API keys here. The portal writes them locally so you can generate images. For Railway, the same keys need to be set as environment variables on the dashboard.</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Current status</h2>
+  <div id="status" class="status">Loading…</div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Paste keys</h2>
+  <form id="keys-form">
+    <label for="openai">OpenAI API key <span class="sub" style="font-size:11px;font-weight:400;text-transform:none">(<code>sk-...</code>)</span></label>
+    <input type="password" id="openai" placeholder="sk-..." autocomplete="off" />
+
+    <label for="openrouter">OpenRouter API key <span class="sub" style="font-size:11px;font-weight:400;text-transform:none">(<code>sk-or-v1-...</code>)</span></label>
+    <input type="password" id="openrouter" placeholder="sk-or-v1-..." autocomplete="off" />
+
+    <div style="margin-top:14px">
+      <button class="btn" type="submit" id="submit-btn">💾 Save keys</button>
+      <button class="btn btn-secondary" type="button" id="clear-btn">Clear</button>
+    </div>
+  </form>
+  <div id="result" class="status" style="display:none"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Setting keys on Railway (production)</h2>
+  <div class="warn">⚠ The keys you paste above only affect your local machine. To enable image generation on the live Campaign OS (Railway), you also need to set environment variables on the Railway dashboard.</div>
+  <ol>
+    <li>Open <a href="https://railway.com/dashboard" target="_blank" style="color:var(--accent)">railway.com/dashboard</a></li>
+    <li>Go to <strong>swing-shack-dashboard</strong> project → <strong>Variables</strong> tab</li>
+    <li>Add (or update) these variables:
+      <div class="status">
+        <div>OPENAI_API_KEY=<em>your OpenAI key</em></div>
+        <div>OPENROUTER_API_KEY=<em>your OpenRouter key</em></div>
+        <div>CAMPAIGN_OS_IMAGE_PROVIDER=openrouter</div>
+        <div>CAMPAIGN_OS_IMAGE_MODEL=google/gemini-2.5-flash-image</div>
+      </div>
+    </li>
+    <li>Click <strong>Deploy</strong> to push the new env vars. Railway will auto-redeploy.</li>
+    <li>Come back to <a href="/image-lab" style="color:var(--accent)">/image-lab</a> and try Generate.</li>
+  </ol>
+  <div class="sub">Where to get the keys:
+    <br>• OpenAI: <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--accent)">platform.openai.com/api-keys</a>
+    <br>• OpenRouter: <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent)">openrouter.ai/keys</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Back to Campaign OS</h2>
+  <a class="btn" href="/image-lab">🖼 Image Lab →</a>
+  <a class="btn btn-secondary" href="/">← Campaign OS</a>
+</div>
+
+<script>
+async function loadStatus() {
+  try {
+    const r = await fetch('/api/image/status');
+    const d = await r.json();
+    const status = document.getElementById('status');
+    if (!d.ok) { status.textContent = 'Status endpoint error'; return; }
+    const lines = [];
+    lines.push(`OpenAI: ${d.openai_configured ? '✓ configured' : '✗ not configured'}`);
+    lines.push(`OpenRouter: ${d.openrouter_configured ? '✓ configured' : '✗ not configured'}`);
+    lines.push(`Default provider: ${d.default_provider || '?'}`);
+    lines.push(`Default model: ${d.default_model || '?'}`);
+    status.textContent = lines.join('\n');
+    status.className = 'status ' + (d.openai_configured || d.openrouter_configured ? 'ok' : 'err');
+  } catch (e) {
+    document.getElementById('status').textContent = 'Failed to load: ' + e.message;
+  }
+}
+
+document.getElementById('keys-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const openai = document.getElementById('openai').value.trim();
+  const openrouter = document.getElementById('openrouter').value.trim();
+  if (!openai && !openrouter) {
+    showResult('err', 'Paste at least one key first.');
+    return;
+  }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving…';
+  try {
+    const r = await fetch('/image-portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ openai, openrouter }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      let msg = `✓ Saved.`;
+      if (d.wrote_openai) msg += ` OpenAI → ${d.wrote_openai}`;
+      if (d.wrote_openrouter) msg += ` OpenRouter → ${d.wrote_openrouter}`;
+      msg += '\n\nYou may also need to set these as env vars on Railway for the live site to generate images.';
+      showResult('ok', msg);
+      document.getElementById('openai').value = '';
+      document.getElementById('openrouter').value = '';
+      loadStatus();
+    } else {
+      showResult('err', d.error || 'Save failed');
+    }
+  } catch (e) {
+    showResult('err', 'Network error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Save keys';
+  }
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  document.getElementById('openai').value = '';
+  document.getElementById('openrouter').value = '';
+});
+
+function showResult(cls, text) {
+  const r = document.getElementById('result');
+  r.textContent = text;
+  r.className = 'status ' + cls;
+  r.style.display = 'block';
+}
+
+loadStatus();
+</script>
+</body>
+</html>
