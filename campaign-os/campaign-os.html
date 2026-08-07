@@ -6271,7 +6271,7 @@ window.openReview = async (cid, aid) => {
     <h4 data-help="${rvCurrentVisualHelp}" data-help-title="Current visual" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Current visual</h4>
     <div id="rv-visual-wrap" style="background:var(--bg-3);padding:.5rem;border-radius:8px;min-height:80px;display:flex;align-items:center;justify-content:center">
       ${visualUrl
-        ? `<a href="${esc(visualUrl)}" target="_blank" rel="noopener"><img src="${esc(visualUrl)}" alt="visual" style="max-width:100%;max-height:300px;border-radius:6px;display:block" onerror="this.parentNode.innerHTML='<div class=&quot;muted&quot; style=&quot;padding:1rem&quot;>⚠️ image URL broken: ${esc(visualUrl)}<br><span style=&quot;font-size:11px&quot;>Upload a replacement below.</span></div>'"/></a>`
+        ? `<a href="${esc(visualUrl)}" target="_blank" rel="noopener"><img src="${esc(visualUrl)}" alt="visual" style="max-width:100%;max-height:300px;border-radius:6px;display:block" onerror="this.parentNode.parentNode.innerHTML='<div class=&quot;muted&quot; style=&quot;padding:1rem&quot;>⚠️ image URL unreachable: ${esc(visualUrl)}<br><span style=&quot;font-size:11px&quot;>The image file may not be on this server. ${visualBriefText ? 'Use <strong>🎨 Generate visual</strong> below to render a fresh one.' : ''}</span></div>'"/></a>`
         : `<div class="muted" style="padding:1rem;text-align:center">
             <div style="font-size:24px;margin-bottom:.35rem">🖼️</div>
             <div>No visual yet. ${visualBriefText ? 'Click <strong>🎨 Generate visual</strong> below to render one.' : 'Add a visual brief first, then generate.'}</div>
