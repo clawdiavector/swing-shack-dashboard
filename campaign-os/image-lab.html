@@ -200,6 +200,63 @@ aside.right {
   cursor: pointer;
 }
 .ref-card:hover .delete-x { display: flex; }
+.ref-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.97);
+  cursor: grabbing;
+}
+.library-list li.drop-target {
+  background: rgba(245, 200, 66, 0.15);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.attached-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.attached-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 5px 2px 2px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--muted);
+}
+.attached-ref.hero {
+  background: rgba(245, 200, 66, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.attached-ref img {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #000;
+}
+.attached-ref .rid {
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attached-ref .detach {
+  cursor: pointer;
+  color: var(--muted);
+  margin-left: 1px;
+  padding: 0 2px;
+  border-radius: 50%;
+}
+.attached-ref .detach:hover {
+  background: var(--danger);
+  color: white;
+}
 
 main {
   padding: 24px;
@@ -632,7 +689,7 @@ function renderRefGrid() {
   grid.innerHTML = STATE.references.map(ref => {
     const selected = STATE.selectedRefs.has(ref.ref_id);
     return `
-      <div class="ref-card ${selected ? 'selected' : ''}" data-ref-id="${ref.ref_id}">
+      <div class="ref-card ${selected ? 'selected' : ''}" draggable="true" data-ref-id="${ref.ref_id}">
         <div class="check">✓</div>
         <div class="delete-x" data-action="delete">✕</div>
         <img src="/api/image/references/${STATE.brand}/${ref.ref_id}/thumbnail" loading="lazy"
@@ -657,6 +714,17 @@ function renderRefGrid() {
       renderRefGrid();
       updateComposePreview();
     });
+
+    // ── Drag handler: dragging a ref onto a library item attaches it.
+    // Uses the HTML5 drag API + a dataTransfer payload so other surfaces
+    // (post composer etc.) can read it later without coupling.
+    card.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('application/x-ref-id', refId);
+      e.dataTransfer.setData('text/plain', refId);
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
   });
 }
 
@@ -705,24 +773,99 @@ async function loadLibrary() {
   }
   list.innerHTML = items.map(item => {
     const selected = STATE.selectedItems.has(item.id);
+    const refs = item.reference_ref_ids || [];
+    const hero = item.hero_ref_id;
+    const refsHtml = refs.length
+      ? `<div class="attached-refs">${refs.map(rid => `
+          <span class="attached-ref ${rid === hero ? 'hero' : ''}" data-rid="${escapeHtml(rid)}">
+            <img src="/api/image/references/${STATE.brand}/${escapeHtml(rid)}/thumbnail" loading="lazy"
+                 onerror="this.style.display='none'" />
+            <span class="rid">${escapeHtml(rid.slice(0, 10))}${rid === hero ? ' ★' : ''}</span>
+            <span class="detach" data-detach="${escapeHtml(rid)}">✕</span>
+          </span>`).join('')}</div>`
+      : '';
     return `
       <li class="${selected ? 'selected' : ''}" data-id="${item.id}">
         <span class="kind-badge ${item.kind}">${item.kind}</span>
         <span class="name">${escapeHtml(item.name)}</span>
         ${item.headline ? `<span class="headline">${escapeHtml(item.headline)}</span>` : ''}
+        ${refsHtml}
       </li>
     `;
   }).join('');
 
+  // Click toggles selection for generation
   list.querySelectorAll('li').forEach(li => {
     const id = li.dataset.id;
-    li.addEventListener('click', () => {
+    li.addEventListener('click', (e) => {
+      // Clicks on detach buttons don't toggle selection
+      if (e.target.dataset.detach) {
+        e.stopPropagation();
+        detachRefFromItem(id, e.target.dataset.detach);
+        return;
+      }
       if (STATE.selectedItems.has(id)) STATE.selectedItems.delete(id);
       else STATE.selectedItems.add(id);
       loadLibrary();
       updateComposePreview();
     });
+
+    // Drop target for refs dragged from the left column
+    li.addEventListener('dragover', (e) => {
+      if (!Array.from(e.dataTransfer.types || []).includes('application/x-ref-id')) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      li.classList.add('drop-target');
+    });
+    li.addEventListener('dragleave', () => li.classList.remove('drop-target'));
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      li.classList.remove('drop-target');
+      const refId = e.dataTransfer.getData('application/x-ref-id') || e.dataTransfer.getData('text/plain');
+      if (!refId) return;
+      // Confirm if attaching many refs
+      attachRefToItem(id, refId);
+    });
   });
+}
+
+async function attachRefToItem(itemId, refId) {
+  // Make the FIRST attached ref the hero by default — most common UX.
+  // If the item already has a hero, don't overwrite.
+  try {
+    const itemR = await api(`/api/library/${STATE.brand}/items/${encodeURIComponent(itemId)}`);
+    const alreadyHero = itemR.ok && itemR.item && itemR.item.hero_ref_id;
+    const asHero = !alreadyHero;
+    const r = await api(`/api/library/${STATE.brand}/items/${encodeURIComponent(itemId)}/attach-reference`, {
+      method: 'POST',
+      body: JSON.stringify({ ref_id: refId, as_hero: asHero }),
+    });
+    if (r.ok) {
+      toast(`Attached ${refId.slice(0, 10)}${asHero ? ' (hero)' : ''} ✓`);
+      loadLibrary();
+    } else {
+      toast(r.error || 'Attach failed', true);
+    }
+  } catch (e) {
+    toast(`Attach failed: ${e.message}`, true);
+  }
+}
+
+async function detachRefFromItem(itemId, refId) {
+  try {
+    const r = await api(`/api/library/${STATE.brand}/items/${encodeURIComponent(itemId)}/detach-reference`, {
+      method: 'POST',
+      body: JSON.stringify({ ref_id: refId }),
+    });
+    if (r.ok) {
+      toast('Detached ✓');
+      loadLibrary();
+    } else {
+      toast(r.error || 'Detach failed', true);
+    }
+  } catch (e) {
+    toast(`Detach failed: ${e.message}`, true);
+  }
 }
 
 // ── Signals (learned WIN PROFILE) ─────────────────────────────────
@@ -868,11 +1011,18 @@ $('generate-btn').addEventListener('click', async () => {
       body = { prompt, brand: STATE.brand, size, model: model || null };
       if (provider) body.provider = provider;
     } else {
-      // Mixed — fall back to plain generate with library items only via the router directly
+      // Multi-source compose — /api/image/generate now accepts all 4 layers
       endpoint = `/api/image/generate`;
-      body = { prompt, brand: STATE.brand, size, model: model || null };
+      body = {
+        prompt,
+        brand: STATE.brand,
+        size,
+        model: model || null,
+        reference_ids: Array.from(STATE.selectedRefs),
+        product_ids: Array.from(STATE.selectedItems),
+        service_ids: [],
+      };
       if (provider) body.provider = provider;
-      toast(`Multi-source composition isn't supported yet — falling back to plain generate`, true);
     }
 
     const r = await api(endpoint, { method: 'POST', body: JSON.stringify(body) });

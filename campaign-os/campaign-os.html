@@ -6226,36 +6226,155 @@ window.openReview = async (cid, aid) => {
   const plat = a.platform || a.integration || 'instagram';
   // Existing Postiz refs (if any)
   const existingPostiz = (a.publishingReferences && a.publishingReferences[0] && a.publishingReferences[0].postizId) || '';
-  const visualUrl = a.visualUrl || a.imageUrl || (a.publishingReferences && a.publishingReferences[0] && a.publishingReferences[0].mediaUrl) || '';
+  // Image URL — try every plausible field. Order matters: explicit URLs win,
+  // then filePath (relative to /assets/), then publishingReferences.mediaUrl.
+  const visualUrl = a.visualUrl || a.imageUrl || a.mediaUrl
+    || (a.filePath ? (a.filePath.startsWith('http') || a.filePath.startsWith('/') ? a.filePath : '/assets/' + a.filePath) : '')
+    || (a.publishingReferences && a.publishingReferences[0] && a.publishingReferences[0].mediaUrl)
+    || '';
+  // Caption — fall back to description (image-only assets store their brief
+  // in `description` instead of `caption`).
+  const captionText = a.caption || a.description || '';
+  // Visual brief — try visualBrief, then description for image-only assets.
+  const visualBriefText = a.visualBrief || a.description || a.realPhotoBrief || '';
   const rvAssetNameHelp = 'The asset name as stored on the campaign. Combines the pillar + hook (e.g. "Practice swings, at-home" or "Range day, meme-3up"). The sub-line shows the brand · platform · kind so you can verify you opened the right asset before approving. The pills below summarise state: approval (your side) and publish (Postiz side).';
-  const rvCaptionHelp = 'The current caption draft for this asset. What you see is what gets posted on approve. The character count soft limit is platform-specific (IG feed 2200, LinkedIn 3000). Edit inline via the ✏️ Edit caption button below the action bar.';
+  const rvCaptionHelp = 'The current caption draft for this asset. What you see is what gets posted on approve. The character count soft limit is platform-specific (IG feed 2200, LinkedIn 3000). Edit inline via the ✏️ Edit caption button below.';
   const rvVisualBriefHelp = 'The image-generation prompt that was sent to the visual pipeline. Describes composition, palette, focal point, mood. If the current visual is off, regenerate from this brief (or edit it before regenerating) so the next visual lands closer.';
-  const rvCurrentVisualHelp = 'The image that will be posted. Comes from either the agent (a.generated) or your last upload (a.visualUrl). Click to enlarge. If it is wrong, use the Upload image section to replace it; the new file becomes the live asset.';
+  const rvCurrentVisualHelp = 'The image that will be posted. Comes from either the agent (a.generated) or your last upload (a.visualUrl / a.filePath). Click to enlarge. If it is wrong, use the Upload image section to replace it; the new file becomes the live asset.';
   const rvUploadImageHelp = 'Pick an image file from your computer. It gets stored on the server and the asset\'s visualUrl points at it. Used by Postiz when the post goes live. Max 8 MB; PNG / JPG / WEBP only.';
   const rvPublishingRefsHelp = 'Every Postiz record this asset has been linked to. Most assets have one (the current Postiz draft). If a row shows an old postizId that is no longer in your queue, it means that draft was deleted on Postiz side and the asset is still pointing at the dead id · re-push to get a fresh reference.';
   modal(`
     <h3 data-help="${rvAssetNameHelp}" data-help-title="Asset details" style="cursor:help;border-bottom:1px dotted var(--tx-2)">${esc(a.name || aid)}</h3>
     <div class="sub">${esc(c.identity?.name || cid)} · ${esc(plat)} · ${esc(a.kind || '')}</div>
     <div class="row gap-1" style="margin-bottom:1rem">${pill(a.approvalStatus||'draft', a.approvalStatus||'draft')} ${pill(a.publishStatus||'draft', a.publishStatus||'draft')} ${pill(a.captionStatus||'—', 'caption')} ${pill(a.visualStatus||'—', 'visual')}</div>
-    <h4 data-help="${rvCaptionHelp}" data-help-title="Caption" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Caption</h4>
-    <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(a.caption || '—')}</div>
+
+    <h4 data-help="${rvCaptionHelp}" data-help-title="Caption" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3);display:flex;align-items:center;gap:.5rem">
+      <span>Caption</span>
+      <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;flex:1"><span id="rv-cap-len">${captionText.length}</span> chars</span>
+      <button class="btn-mini" id="rv-edit-cap-btn" style="font-weight:500">✏️ Edit</button>
+    </h4>
+    <div id="rv-cap-body" data-raw="${esc(captionText)}" style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap;max-height:240px;overflow-y:auto">${esc(captionText) || '<span class="muted">— no caption yet. Use Edit to add one or Generate captions below.</span>'}</div>
+
     <h4 data-help="${rvVisualBriefHelp}" data-help-title="Visual brief" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Visual brief</h4>
-    <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(a.visualBrief || '—')}</div>
-    ${visualUrl ? `<h4 data-help="${rvCurrentVisualHelp}" data-help-title="Current visual" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Current visual</h4><div style="background:var(--bg-3);padding:.5rem;border-radius:8px"><img src="${esc(visualUrl)}" alt="visual" style="max-width:100%;max-height:240px;border-radius:6px;display:block"/></div>` : ''}
+    <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(visualBriefText) || '—'}</div>
+
+    <h4 data-help="${rvCurrentVisualHelp}" data-help-title="Current visual" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Current visual</h4>
+    <div id="rv-visual-wrap" style="background:var(--bg-3);padding:.5rem;border-radius:8px;min-height:80px;display:flex;align-items:center;justify-content:center">
+      ${visualUrl
+        ? `<a href="${esc(visualUrl)}" target="_blank" rel="noopener"><img src="${esc(visualUrl)}" alt="visual" style="max-width:100%;max-height:300px;border-radius:6px;display:block" onerror="this.parentNode.innerHTML='<div class=&quot;muted&quot; style=&quot;padding:1rem&quot;>⚠️ image URL broken: ${esc(visualUrl)}<br><span style=&quot;font-size:11px&quot;>Upload a replacement below.</span></div>'"/></a>`
+        : `<div class="muted" style="padding:1rem;text-align:center">
+            <div style="font-size:24px;margin-bottom:.35rem">🖼️</div>
+            <div>No visual yet. ${visualBriefText ? 'Click <strong>🎨 Generate visual</strong> below to render one.' : 'Add a visual brief first, then generate.'}</div>
+          </div>`
+      }
+    </div>
+
     <h4 data-help="${rvUploadImageHelp}" data-help-title="Upload image" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Upload image</h4>
     <input type="file" id="rv-upload-file" accept="image/*" data-help="Pick an image file from your computer. It gets stored on the server and the asset's visualUrl points at it. Used by Postiz when the post goes live." data-help-title="Upload image" style="font-size:12px;color:var(--tx-2);margin-bottom:.35rem;width:100%">
     <button class="btn" id="rv-upload-btn" data-help="Uploads the picked file. Server saves it to data/asset-media/ and updates the asset's visualUrl so Postiz uses the new image." data-help-title="Save upload">📤 Upload</button>
     <span id="rv-upload-status" class="muted" style="font-size:11px;margin-left:.5rem"></span>
+
     ${a.publishingReferences?.length ? `<h4 data-help="${rvPublishingRefsHelp}" data-help-title="Publishing references" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Publishing references</h4><ul class="list">${a.publishingReferences.map(p=>`<li class="li"><div class="li-body"><div class="li-title">${esc(p.postizId || '—')}</div><div class="li-meta">${esc(p.platform || '')} · ${esc(p.publishStatus || '')}</div></div></li>`).join('')}</ul>` : ''}
     <div class="modal-actions" style="flex-wrap:wrap">
       <button class="btn ghost" onclick="closeModal()">Close</button>
-      <button class="btn" onclick="goToSection('captions');closeModal();setTimeout(()=>{const sel=document.getElementById('cap-asset-select');sel.value='${aid}';document.getElementById('cap-gen').click();},300)">⚡ Generate captions</button>
+      <button class="btn" onclick="goToSection('captions');closeModal();setTimeout(()=>{const sel=document.getElementById('cap-asset-select');if(sel){sel.value='${aid}';document.getElementById('cap-gen').click();}},300)">⚡ Generate captions</button>
+      <button class="btn" id="rv-gen-visual" data-help="Render a new visual for this asset using the unified image generator (OpenRouter Nano Banana / gpt-image-1). Pulls in the asset's visualBrief + the brand's reference DNA + product library + learned WIN PROFILE automatically. The new image becomes the asset's visual and you can approve from here." data-help-title="Generate visual">🎨 Generate visual</button>
       ${existingPostiz ? `<button class="btn" onclick="window.open('https://app.postiz.com/post/${existingPostiz}','_blank')">📮 Open in Postiz</button>` : `<button class="btn" id="rv-push-postiz" data-help="Creates a Postiz draft from this asset's caption + image so you can review/schedule in the Postiz dashboard. Refreshes the modal afterwards to show the new Postiz link." data-help-title="Push to Postiz draft">📮 Push to Postiz</button>`}
       <button class="btn" onclick="reviewAction('${cid}','${aid}','revisionRequested')">Request revision</button>
       <button class="btn" style="color:var(--red)" onclick="reviewAction('${cid}','${aid}','rejected')">Reject</button>
       <button class="btn primary" onclick="reviewAction('${cid}','${aid}','approved')">Approve</button>
     </div>
   `);
+
+  // ── Inline caption editor ────────────────────────────────────────
+  // Click ✏️ Edit → swap the read-only block for a textarea + Save/Cancel.
+  // Saves via PATCH /api/assets/<aid> (same endpoint as the standalone
+  // reviewEdit flow — keeps the API surface small).
+  const editCapBtn = document.getElementById('rv-edit-cap-btn');
+  const capBody = document.getElementById('rv-cap-body');
+  const capLen = document.getElementById('rv-cap-len');
+  if (editCapBtn && capBody) {
+    editCapBtn.addEventListener('click', () => {
+      const raw = capBody.dataset.raw || '';
+      const charLimit = 2200;
+      capBody.innerHTML = `
+        <textarea id="rv-cap-edit" rows="8" maxlength="${charLimit}" style="width:100%;padding:.6rem;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;min-height:140px">${esc(raw)}</textarea>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.5rem;font-size:11px;color:var(--muted)">
+          <span id="rv-cap-edit-count">${raw.length}/${charLimit} chars</span>
+          <span style="flex:1"></span>
+          <button class="btn-mini" id="rv-cap-cancel">Cancel</button>
+          <button class="btn-mini primary" id="rv-cap-save">💾 Save</button>
+        </div>
+      `;
+      const ta = document.getElementById('rv-cap-edit');
+      const counter = document.getElementById('rv-cap-edit-count');
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+      ta.addEventListener('input', () => {
+        counter.textContent = `${ta.value.length}/${charLimit} chars`;
+        counter.style.color = ta.value.length > charLimit * 0.95 ? 'var(--red, #f87171)' : '';
+      });
+      document.getElementById('rv-cap-cancel').addEventListener('click', () => openReview(cid, aid));
+      document.getElementById('rv-cap-save').addEventListener('click', async () => {
+        const newCaption = ta.value;
+        if (newCaption === raw) { toast('No changes'); openReview(cid, aid); return; }
+        const saveBtn = document.getElementById('rv-cap-save');
+        saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving…';
+        try {
+          const r = await API.patch('/api/assets/' + encodeURIComponent(aid), { campaignId: cid, caption: newCaption });
+          if (r.ok) {
+            toast('Caption updated ✓');
+            // Refresh the modal so the visualUrl / / data is fresh too
+            S.review = null; S.brief = null;
+            openReview(cid, aid);
+          } else {
+            toast(r.error || 'Save failed', 'err');
+            saveBtn.disabled = false; saveBtn.textContent = '💾 Save';
+          }
+        } catch (e) { toast(e.message || 'Save failed', 'err'); saveBtn.disabled = false; saveBtn.textContent = '💾 Save'; }
+      });
+    });
+  }
+
+  // ── Inline visual generation ─────────────────────────────────────
+  // Renders a new image using the asset's visualBrief + the unified image
+  // generator (which auto-pulls reference DNA + product library + learned
+  // signals). On success, the new image becomes the asset's visualUrl and
+  // the modal refreshes.
+  const genBtn = document.getElementById('rv-gen-visual');
+  if (genBtn) {
+    genBtn.addEventListener('click', async () => {
+      // Build the prompt from the asset's visualBrief; fall back to name
+      const prompt = (visualBriefText || a.name || aid).trim();
+      if (!prompt || prompt === '—') {
+        toast('Add a visual brief first (or use Edit on the brief to write one)', 'err');
+        return;
+      }
+      genBtn.disabled = true;
+      const origLabel = genBtn.textContent;
+      genBtn.textContent = '⏳ Rendering…';
+      try {
+        const r = await API.post('/api/image/from-asset/' + encodeURIComponent(aid), {
+          campaignId: cid,
+          prompt,
+          size: '1024x1024',
+        });
+        if (r.ok && r.saved_path) {
+          toast('Visual rendered ✓');
+          // Refresh modal to show the new image + the Push-to-Postiz button
+          S.review = null; S.brief = null;
+          openReview(cid, aid);
+        } else {
+          toast(r.error || 'Render failed', 'err');
+          genBtn.disabled = false; genBtn.textContent = origLabel;
+        }
+      } catch (e) {
+        toast(e.message || 'Render failed', 'err');
+        genBtn.disabled = false; genBtn.textContent = origLabel;
+      }
+    });
+  }
+
   // Wire upload (multipart form POST).
   const uploadBtn = document.getElementById('rv-upload-btn');
   if (uploadBtn) {

@@ -1919,12 +1919,22 @@ def image_generate():
       max_cost_usd    (default 0.50)
       reference_color / reference_brand / reference_mood (optional overrides)
 
+      // 4-layer compose context (added 2026-08-07)
+      reference_ids   (optional list of ref-xxxxxx — Visual Reference Library entries)
+      product_ids     (optional list of product-xxxx — Product Library entries)
+      service_ids     (optional list of service-xxxx — Product Library entries)
+      include_learned_signals (optional bool, default true — inject WIN PROFILE)
+
     Returns:
       {ok, bytes_b64, mime, model, provider, cost_estimate_usd, prompt_used,
-       saved_path, saved_sidecar_path, warning, usage}
+       saved_path, saved_sidecar_path, warning, usage, layers}
+      where `layers` summarises which compose layers fired (signals/refs/products/recipe)
     """
     try:
         from _lib.image_gen_router import generate_image as _gen, ImageGenBadRequest, ImageGenAuthError, ImageGenNetworkError, ImageGenUpstreamError
+        from _lib.reference_dna import load_reference_dna
+        from _lib.product_service_library import get_item
+        from _lib.feedback_loop import load_learned_signals
         body = request.get_json(silent=True) or {}
         prompt = (body.get("prompt") or "").strip()
         if not prompt:
@@ -1942,10 +1952,37 @@ def image_generate():
             except Exception:
                 _app_log.warning("could not load recipe for brand_id=%s", brand_id)
 
+        # ── 4-layer compose context ─────────────────────────────────────
+        # Pull reference DNAs (Layer 2)
+        reference_dnas = []
+        for rid in body.get("reference_ids") or []:
+            r = load_reference_dna(rid, brand_id or "swing-shack") if brand_id else None
+            if r:
+                reference_dnas.append(r)
+
+        # Pull product/service items (Layer 3)
+        items = []
+        for pid in body.get("product_ids") or []:
+            it = get_item(brand_id or "swing-shack", pid) if brand_id else None
+            if it:
+                items.append(it)
+        for sid in body.get("service_ids") or []:
+            it = get_item(brand_id or "swing-shack", sid) if brand_id else None
+            if it:
+                items.append(it)
+
+        # Load learned signals (Layer 1) unless caller opts out
+        signals = None
+        if body.get("include_learned_signals", True) is not False and brand_id:
+            signals = load_learned_signals(brand_id)
+
         result = _gen(
             prompt=prompt,
             brand_id=brand_id,
             brand_recipe=brand_recipe,
+            reference_dnas=reference_dnas,
+            product_service_items=items,
+            learned_signals=signals,
             size=body.get("size", "1024x1024"),
             n=int(body.get("n") or 1),
             model=body.get("model"),
@@ -1968,6 +2005,12 @@ def image_generate():
             "saved_sidecar_path": result.saved_sidecar_path,
             "warning": result.warning,
             "usage": result.usage,
+            "layers": {
+                "signals": signals is not None and bool(signals.get("ready")),
+                "references": len(reference_dnas),
+                "products_or_services": len(items),
+                "recipe": brand_recipe is not None,
+            },
         })
     except ImageGenBadRequest as e:
         return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
@@ -2121,8 +2164,17 @@ def image_from_asset(asset_id):
             return jsonify({"ok": False, "error": f"asset_id {asset_id!r} not found in any data file"}), 404
 
         # Optional user refinement on top of the extracted prompt
+        # Two ways callers can override the auto-extracted prompt:
+        #   body["override_prompt"] — replace entirely
+        #   body["prompt"]          — append with ". " separator (legacy)
         user_prompt = (body.get("prompt") or "").strip()
-        full_prompt = user_prompt + ". " + prompt if user_prompt else prompt
+        override_prompt = (body.get("override_prompt") or "").strip()
+        if override_prompt:
+            full_prompt = override_prompt
+        elif user_prompt:
+            full_prompt = user_prompt + ". " + prompt
+        else:
+            full_prompt = prompt
 
         # Get the recipe
         brand_recipe = None
@@ -2894,6 +2946,8 @@ def _extract_asset_context(asset_id: str, brand_id: str) -> tuple[Optional[str],
       7. data/visual-briefs.json   — visual briefs by id
       8. data/instagram.json       — IG posts by media_id (regenerate from winner)
       9. data/seo-rankings.json    — top-performing SEO pages (OG cover regen)
+     10. campaign-data.json        — review-inbox assets (Takomo hero, etc.) — uses
+      asset's `visualBrief` then `description` then `caption` as the prompt.
     """
     base = Path(BUNDLED_DATA_DIR)
     lookup_paths = [
@@ -2938,6 +2992,40 @@ def _extract_asset_context(asset_id: str, brand_id: str) -> tuple[Optional[str],
                     it.get("caption") or it.get("hook") or it.get("title") or it.get("name") or "")
             if text and asset_id in str(text):
                 return str(text).strip(), kind
+
+    # ── 10. campaign-data.json — review-inbox assets ───────────────────
+    # Walk every campaign's `assets` map. Match by assetId / id / name.
+    # This is what makes the Review-modal "🎨 Generate visual" button work
+    # for assets like `takomo-101t-hero-c` whose data lives in the portfolio
+    # file rather than the standalone data/ hook/caption files.
+    campaign_file = base.parent / "campaign-data.json" if base.name == "data" else base / "campaign-data.json"
+    if campaign_file.exists():
+        try:
+            portfolio = json.loads(campaign_file.read_text())
+            for cname, c in (portfolio.get("campaigns") or {}).items():
+                assets_map = (c or {}).get("assets") or {}
+                if not isinstance(assets_map, dict):
+                    continue
+                # Direct ID match
+                if asset_id in assets_map and isinstance(assets_map[asset_id], dict):
+                    a = assets_map[asset_id]
+                    text = (a.get("visualBrief") or a.get("description")
+                            or a.get("caption") or a.get("name") or "")
+                    if text:
+                        return str(text).strip(), "visual"
+                # Substring match against name (covers cases where the asset
+                # ID has a v2 / -copy suffix and the name is the canonical key)
+                for aid, a in assets_map.items():
+                    if not isinstance(a, dict):
+                        continue
+                    if aid == asset_id or str(a.get("name", "")).replace(" ", "-").lower() == asset_id.lower():
+                        text = (a.get("visualBrief") or a.get("description")
+                                or a.get("caption") or a.get("name") or "")
+                        if text:
+                            return str(text).strip(), "visual"
+        except Exception:
+            pass
+
     # No match
     return None, None
 
