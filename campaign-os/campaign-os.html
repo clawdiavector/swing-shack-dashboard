@@ -777,7 +777,7 @@ a:hover{text-decoration:underline}
         <div class="nav" data-go="captions" data-help-title="Caption Studio" data-help="Voice-aware captions. IG / FB / LinkedIn lengths."><span class="nav-icon">✍️</span> Caption Studio</div>
         <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Bold, provocative headlines per pillar."><span class="nav-icon">📰</span> Headlines</div>
         <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks ranked by what wins for this brand."><span class="nav-icon">🪝</span> Hook Bank</div>
-        <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme workspace · templates, custom captions, format conversion."><span class="nav-icon">😂</span> Meme Lord</div>
+        <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme generator for the active brand. Pick a template (Drake, Distracted Boyfriend, Doge, etc.), get an auto-written caption that matches your voice, and ship it to Review. The 'Lord' part is a brand bit: the tool is just a meme studio. Meme Lab (separate app, in the External group) is the bigger workspace if you want to remix."><span class="nav-icon">😂</span> Meme Lord</div>
         <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs (Midjourney, DALL-E, ComfyUI). Renders live via gpt-image-1."><span class="nav-icon">🖼️</span> Image Gen</div>
         <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
         <div class="nav" data-go="ctas" data-help-title="CTAs" data-help="CTA generator. ~40 CTAs ranked by funnel position."><span class="nav-icon">🎯</span> CTAs</div>
@@ -833,6 +833,50 @@ a:hover{text-decoration:underline}
         <a class="nav nav-link" href="/meme-lab" data-help-title="Meme Lab" data-help="Meme templates gallery + remix workspace. Browse existing meme formats, remix them with your brand voice, save to Review queue."><span class="nav-icon">😂</span> Meme Lab <span class="ext-mark">↗</span></a>
         <a class="nav nav-link" href="/image-lab" data-help-title="Image Lab" data-help="Reference DNA + Product/Service library + self-improving prompts. Point at any image, capture its look. Promote any product/service with one click. Every render learns from prior performance."><span class="nav-icon">🧬</span> Image Lab <span class="ext-mark">↗</span></a>
         <a class="nav nav-link" href="/cockpit-operational" data-help-title="Operational Cockpit" data-help="Read-only operational dashboard: campaign status, scheduled items, raw telemetry. Use for quick health checks."><span class="nav-icon">🛩️</span> Cockpit <span class="ext-mark">↗</span></a>
+      </div>
+    </div>
+
+    <!-- All tools: flat alphabetical list. Use when you can't remember which group a tool lives in. -->
+    <div class="nav-section">
+      <div class="nav-group-h" data-nav-group="all" tabindex="0" role="button" aria-expanded="false">
+        <span class="nav-group-chev">▸</span>
+        <span class="nav-group-label">All tools</span>
+        <span class="nav-group-tag">33 · flat list</span>
+      </div>
+      <div class="nav-group" id="nav-group-all" hidden>
+        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness."><span class="nav-icon">🤖</span> Agents</div>
+        <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Bold, provocative headlines per pillar."><span class="nav-icon">📰</span> Headlines</div>
+        <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
+        <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Raw content backlog for the active brand."><span class="nav-icon">💡</span> Ideas</div>
+        <div class="nav" data-go="brief" data-help-title="Today" data-help="Daily brief for the active brand."><span class="nav-icon">🏠</span> Today</div>
+        <div class="nav" data-go="captions" data-help-title="Caption Studio" data-help="Voice-aware captions. IG / FB / LinkedIn lengths."><span class="nav-icon">✍️</span> Caption Studio</div>
+        <div class="nav" data-go="ctas" data-help-title="CTAs" data-help="CTA generator. ~40 CTAs ranked by funnel position."><span class="nav-icon">🎯</span> CTAs</div>
+        <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
+        <div class="nav" data-go="campaigns" data-help-title="Brand" data-help="Switch active brand, edit the 9-slot brand directory."><span class="nav-icon">🎯</span> Brand</div>
+        <div class="nav" data-go="create" data-help-title="Create" data-help="Brand-aware content generators hub."><span class="nav-icon">🪄</span> Create</div>
+        <div class="nav" data-go="gmb" data-help-title="Google Business drafts" data-help="Google Business profile post drafts."><span class="nav-icon">📍</span> Google Business</div>
+        <div class="nav" data-go="gbp" data-help-title="GBP workspace" data-help="GBP workspace · voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
+        <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
+        <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar · month grid."><span class="nav-icon">📅</span> Calendar</div>
+        <div class="nav" data-go="hashtagseo" data-help-title="Hashtags + SEO" data-help="Hashtag sets + SEO meta descriptions per platform."><span class="nav-icon">#️⃣</span> Hashtags + SEO</div>
+        <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks ranked by what wins for this brand."><span class="nav-icon">🪝</span> Hook Bank</div>
+        <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs · renders live via gpt-image-1."><span class="nav-icon">🖼️</span> Image Gen</div>
+        <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
+        <div class="nav" data-go="library" data-help-title="Library" data-help="Every piece of copy the agents ever produced, searchable."><span class="nav-icon">📚</span> Library</div>
+        <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme generator · templates, custom captions, format conversion."><span class="nav-icon">😂</span> Meme Lord</div>
+        <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
+        <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends."><span class="nav-icon">📈</span> Insights</div>
+        <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
+        <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing."><span class="nav-icon">🚀</span> Publish</div>
+        <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator."><span class="nav-icon">🗣️</span> Reddit</div>
+        <div class="nav" data-go="review" data-help-title="Review" data-help="Inbox of drafts the agents produced."><span class="nav-icon">✅</span> Review</div>
+        <div class="nav" data-go="seo" data-help-title="SEO" data-help="Audit scores, keyword rankings, GEO readiness."><span class="nav-icon">🔎</span> SEO</div>
+        <div class="nav" data-go="socials" data-help-title="Socials" data-help="Live Instagram history for the active brand."><span class="nav-icon">🪩</span> Socials</div>
+        <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
+        <a class="nav nav-link" href="/visualizer" data-help-title="Visual Library" data-help="Full visual library: 122+ brand images."><span class="nav-icon">🎨</span> Visual Library <span class="ext-mark">↗</span></a>
+        <a class="nav nav-link" href="/meme-lab" data-help-title="Meme Lab" data-help="Meme templates gallery + remix workspace (separate app)."><span class="nav-icon">😂</span> Meme Lab <span class="ext-mark">↗</span></a>
+        <a class="nav nav-link" href="/image-lab" data-help-title="Image Lab" data-help="Reference DNA + Product/Service library (separate app)."><span class="nav-icon">🧬</span> Image Lab <span class="ext-mark">↗</span></a>
+        <a class="nav nav-link" href="/cockpit-operational" data-help-title="Operational Cockpit" data-help="Read-only operational dashboard (separate app)."><span class="nav-icon">🛩️</span> Cockpit <span class="ext-mark">↗</span></a>
       </div>
     </div>
 
@@ -1113,6 +1157,7 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-memes">
       <div class="section-h">
         <h2 data-help="Brand-aware meme workspace. The meme historian tracks every proven-classic template ranked by historical lift for this brand, plus a fatigue score that warns when a template is over-rotated in the past 30 days. Click a classic to insert it with an auto-generated caption that matches voice + tone, or hit Generate fresh meme concept to spawn a new angle from the current trend feed. Generated captions go to the Review queue like every other asset." data-help-title="Meme Lord">Meme Lord <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · meme historian</span></h2>
+        <p style="margin:.25rem 0 1rem 0;font-size:12px;color:var(--tx-2);line-height:1.4"><b>Meme Lord</b> is the brand-aware meme generator: pick a template, get an auto-written caption, ship to Review. It's not a separate app (that's <i>Meme Lab</i> in the External nav). Hover the nav item for the full explainer.</p>
         <span class="sub" id="memes-summary">—</span>
         <div class="btn-row" style="margin-left:auto">
           <button class="btn primary" id="mem-gen-fresh">🎲 Generate fresh meme concept</button>
@@ -10237,7 +10282,7 @@ $('#nav-restart-tour').addEventListener('click', () => openWelcome());
 
 // Wire the collapsible nav groups (persist open/closed state)
 const NAV_STATE_KEY = 'campaign-os.nav-groups.v1';
-const NAV_GROUPS = ['daily', 'build', 'insight', 'reach', 'external'];
+const NAV_GROUPS = ['daily', 'build', 'insight', 'reach', 'external', 'all'];
 function loadNavState(){
   try { return JSON.parse(localStorage.getItem(NAV_STATE_KEY) || '{}'); }
   catch(e){ return {}; }
