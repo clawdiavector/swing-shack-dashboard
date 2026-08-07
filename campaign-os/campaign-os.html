@@ -5837,7 +5837,7 @@ function itemHtml(it, fmt){
   // Look for title in item OR in nested item field
   const inner = (it.item && typeof it.item === 'object') ? it.item : it;
   // Try common title fields first
-  let title = inner.title || inner.name || inner.caption || inner.hook_text || inner.hook || inner.headline || inner.cta || inner.angle || inner.pain_point || inner.issue || inner.text || inner.best_example || inner.formula || it.label || '';
+  let title = inner.title || inner.name || inner.caption || inner.hook_text || inner.hook || inner.headline || inner.cta || inner.angle || inner.pain_point || inner.issue || inner.text || inner.best_example || inner.formula || (typeof inner.keyword === 'string' ? inner.keyword : '') || it.label || '';
 
   // If no title found, dig into nested dicts for first meaningful string
   if(!title && typeof inner === 'object'){
@@ -6393,7 +6393,7 @@ async function renderBrief(){
     <div class="card col-6"><div class="card-h"><h3 data-help="Drafts you approved that are still sitting in the queue. They have not been pushed to Postiz yet. Open any row to set a publish date or push live now. Until then, nothing here is on any platform." data-help-title="Ready to publish">🚀 Ready to publish</h3></div><ul class="list">${publish.map(x => { const a = Object.assign({approvalStatus: 'approved'}, x); return itemHtml(a); }).join('') || '<li class="empty">Nothing queued yet</li>'}</ul></div>
     <div class="card col-6"><div class="card-h"><h3 data-help="Trends that already peaked and the brand did not post. The cost of a missed opportunity compounds: the next time the trend recycles, the brand is late again. Pick one retroactively and rewrite with fresh angles." data-help-title="High-impact misses">⚠️ High-impact misses</h3></div><ul class="list">${missed.map(itemHtml).join('') || '<li class="empty">No missed opportunities</li>'}</ul></div>
 
-    <div class="card col-6"><div class="card-h"><h3 data-help="SEO keywords where the brand is already on page 2 of search (positions 11 to 20) and a small content push could land on page 1. These are the cheapest ranking wins because the hardest work (relevance, indexing) is already done." data-help-title="SEO quick wins">🔎 SEO quick wins</h3></div><ul class="list">${seo.map(x => itemHtml({keyword: x, kind: 'seo-keyword'}, 'seo')).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3 data-help="SEO keywords where the brand is already on page 2 of search (positions 11 to 20) and a small content push could land on page 1. These are the cheapest ranking wins because the hardest work (relevance, indexing) is already done." data-help-title="SEO quick wins">🔎 SEO quick wins</h3></div><ul class="list">${seo.map(x => itemHtml({...x, keyword: x.keyword, kind: 'seo-keyword'}, 'seo')).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
     <div class="card col-6"><div class="card-h"><h3 data-help="Items already scheduled to go live today. If the list is empty, nothing is going out today and a post is overdue. If the list is full, sit back and watch. Each row carries the publish time and the target platform." data-help-title="Post today">📮 Post today</h3></div><ul class="list">${today.map(x => itemHtml(x)).join('') || '<li class="empty">Nothing scheduled today</li>'}</ul></div>
   `;
   renderTodayRail();
