@@ -164,7 +164,9 @@ def morning_brief() -> Dict[str, Any]:
     cd = _campaign_data()
     campaigns = cd.get("campaigns", {})
 
-    # Count assets by status across all campaigns
+    # Count assets by status across all campaigns.
+    # Mirrors the review_inbox() semantics so the sidebar badge and the
+    # Brief summary never disagree with the actual Review queue.
     counts = {"approved": 0, "draft": 0, "blocked": 0, "review": 0, "published": 0, "scheduled": 0, "total": 0}
     needs_review = []
     ready_to_publish = []
@@ -174,20 +176,39 @@ def morning_brief() -> Dict[str, Any]:
         for aid, asset in (c.get("assets") or {}).items():
             counts["total"] += 1
             aps = asset.get("approvalStatus", "")
+            ps = asset.get("publishStatus", "") or ""
             if aps == "approved":
                 counts["approved"] += 1
-                ps = asset.get("publishStatus", "")
-                if ps in ("draft", "queued", "ready"):
+                if ps in ("draft", "queued", "ready", ""):
                     ready_to_publish.append({"campaignId": cid, "assetId": aid, "name": asset.get("name", aid)})
                 elif ps == "scheduled":
                     counts["scheduled"] += 1
-            elif aps in ("revisionRequested",):
-                counts["review"] += 1
-                needs_review.append({"campaignId": cid, "assetId": aid, "name": asset.get("name", aid), "issue": asset.get("revisionRequest", "")})
+                elif ps == "published":
+                    counts["published"] += 1
             elif aps == "rejected":
                 counts["blocked"] += 1
+            elif aps == "archived":
+                # Hidden but kept for audit — don't surface anywhere.
+                pass
+            elif ps in ("scheduled", "published"):
+                # Already on the rail — not a review need.
+                if ps == "scheduled":
+                    counts["scheduled"] += 1
+                else:
+                    counts["published"] += 1
             else:
-                counts["draft"] += 1
+                # Anything else (draft, review, revisionRequested, missing)
+                # needs a human eye before it can ship. Track review bucket
+                # separately so the badge and summary read truthfully.
+                if aps in ("review", "revisionRequested"):
+                    counts["review"] += 1
+                else:
+                    counts["draft"] += 1
+                needs_review.append({
+                    "campaignId": cid, "assetId": aid,
+                    "name": asset.get("name", aid),
+                    "issue": asset.get("revisionRequest", "") or asset.get("approvalStatus", "") or "",
+                })
 
     # Pull top recommendations from data/
     do_first = (_read_json(os.path.join(DATA_DIR, "recommendation-scores.json")) or {}).get("do_first") or []
