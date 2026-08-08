@@ -2200,3 +2200,35 @@ Fix: SPA-only patch. After populating the other 7 ideas cards, seed `#ideas-fres
 **Learned:** When a render function populates 7 sibling cards but skips the 8th, the bug is invisible in audit scripts that only check rendered-DOM shape — the 8th card simply looks "blank but valid." The "Empty placeholder for 2+ ticks" lane-pick signal (last 2 reports flagged it) is the right heuristic: same complaint from prior ticks = high-confidence pick. Also: the `Generate` button at line 7574 uses a `_bound` flag to avoid double-binding on re-renders — my fix matches the same discipline by gating the empty-state injection on `hasChildNodes()` so the post-click branch can still write to `#ideas-fresh` cleanly.
 
 **Asks:** None.
+
+## 2026-08-08T21:12Z — fix(trends): banner reads .ts fallback so "Data last updated unknown —" no longer hides the real fetch time
+
+Pre-tick live probe caught the Trends freshness banner showing `🔴 Data last updated unknown · —` even though both `/api/intel/trend_catcher` and `/api/intel/trends_v2` return a top-level `ts` field (e.g. `"2026-08-08T21:07:50.163159Z"`). The SPA read `t.updated || t.fetched_at || v2.updated` — three keys the backend never wired — and fell through to `null`, hiding the real fetch time and pinning `ageDays` to `Infinity`. The literal em-dash `—` placeholder on line 7487 was the visible symptom; flagged in the 2026-08-08T19:55Z report as "needs the same kind of empty-state treatment."
+
+Two atomic edits inside `renderTrends()`:
+
+1. **Fix the read chain:** `t.updated || t.fetched_at || t.ts || v2.updated || v2.ts || null` — adds the actual keys the endpoints return.
+2. **Swap the em-dash placeholder for a plain-text CTA:** `ageDays === Infinity ? 'never (click Refresh trends)' : ...` — replaces the `—` so the banner never emits em-dashes even when the data is missing (standing rule compliance).
+
+**Patch (commit `b5339cf`, 1 file, +5/-2):**
+- `campaign-os/campaign-os.html` — `renderTrends()` body, lines 7472 + 7490.
+- SPA-only patch. No API contract change, no other consumers affected, no data touched.
+
+**Verified (LIVE, authed, Playwright, post-deploy):**
+- Pre-fix (probe): banner text `"🔴 Data last updated unknown · —"`, `tone='bad'`, left-border red. Bug reproduced.
+- Post-fix: banner text `"🟢 Data last updated 08/08/2026, 23:11:46 · 0 days old · 2 sources live: youtube (8) competitor changes (4)"`, `tone='good'`, left-border green. Real fetch time now visible.
+- Bundle probe (cache-busted GET): both new code fragments FOUND (`t.updated || t.fetched_at || t.ts || v2.updated || v2.ts || null`, `never (click Refresh trends)`).
+- 0 PAGEERROR, 0 console errors during the full post-deploy walk (logged in → home → trends).
+- `/api/health` green throughout.
+- Em-dash sweep on diff: 0 NEW em-dashes (the 1 deleted em-dash was the literal `—` placeholder being replaced).
+
+**Standing rules honored:** 0 NEW em-dashes (1 deleted, replaced with plain text); 0 JS logic added beyond the read chain; 0 publish/schedule touched; 0 tokens in chat; branch stays on `feat/asset-state-engine`; no main; no delete; no symlinks.
+
+**Next pick:**
+1. The "Scheduled: 0" column on the Publish page contradicts the Calendar's "57 scheduled in next 14 days" headline — Calendar counts calendar slots (planned), Publish counts Postiz queue items (pushed). Either rename the column header to "Queued in Postiz" or add a hint linking the two so users see why they don't match. Same lane as this tick (cross-surface contradiction on a high-traffic page).
+2. The remaining ~26 EXPLAINERS blocks still reference 2026-07-30 era card names — cheap text sweep.
+3. The 8× 404s on `/api/visual-library/.../*.jpg` (pre-existing image-storage drift on Railway volume) still show as console errors — the most prominent remaining console noise on LIVE.
+
+**Learned:** The "API returns top-level `ts` but SPA reads a legacy `updated`/`fetched_at`" pattern is a sub-class of the unverified-key-name trap from `incremental-implementation-runtime-verification`. The tell is a literal placeholder character (`—`, `0`, `undefined`, `null`) that survives across multiple deploys because nothing surfaces it as a JS error — it just renders as a quiet lie. The detection recipe: when a freshness/empty-state UI element shows the same placeholder text across 2+ deploys, diff the SPA template's referenced keys against the live API response. The fix shape is exactly the same as the prior Learning-card dead-render fix (defense-in-depth alias on the read chain, plus a plain-text fallback that does not emit em-dashes even when the data is missing). Worth codifying as a "placeholder-for-2-ticks" lane-pick signal — same heuristic as the ideas-fresh empty state, different symptom (literal `—` vs blank div).
+
+**Asks:** None.
