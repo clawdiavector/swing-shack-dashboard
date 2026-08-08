@@ -8792,9 +8792,34 @@ def _weekly_collect_current(bid):
             window = ga.get('data_window', 'unknown')
             out['sources'].append({'name': 'ga4', 'window': window, 'fetched_at': ga.get('fetched_at')})
             out['weekly']['ga4_sessions'] = ga.get('total_sessions', 0)
-            # Top pages
-            pages = ga.get('pages', []) or []
-            out['weekly']['ga4_top_pages'] = [{'path': p.get('path'), 'sessions': p.get('sessions', 0), 'engagement_rate': p.get('engRate')} for p in pages[:5]]
+            # Top pages — collapse (pagePath, sessionSource) duplicates so the
+            # homepage doesn't dominate the top-5 with one row per source.
+            # Defence-in-depth: matches the aggregator in performance_view().
+            raw_pages = ga.get('pages', []) or []
+            by_path = {}
+            for p in raw_pages:
+                if not isinstance(p, dict):
+                    continue
+                pp = p.get('path', '')
+                if not pp:
+                    continue
+                cur = by_path.get(pp) or {'sessions': 0, '_er_sum': 0.0, '_n': 0}
+                cur['sessions'] += (p.get('sessions') or 0)
+                try:
+                    er_raw = p.get('engRate') or p.get('engagementRate') or 0
+                    cur['_er_sum'] += float(str(er_raw).replace('%', '')) if er_raw else 0.0
+                except (ValueError, TypeError):
+                    pass
+                cur['_n'] += 1
+                by_path[pp] = cur
+            agg = []
+            for pp, v in by_path.items():
+                n = v['_n'] or 1
+                er = v['_er_sum'] / n
+                agg.append({'path': pp, 'sessions': v['sessions'],
+                            'engagement_rate': f"{er:.1f}%"})
+            agg.sort(key=lambda x: x['sessions'], reverse=True)
+            out['weekly']['ga4_top_pages'] = agg[:5]
             out['weekly']['ga4_sources'] = [{'source': s.get('source'), 'sessions': s.get('sessions', 0)} for s in (ga.get('sources') or [])[:6]]
     except Exception as e:
         out['sources'].append({'name': 'ga4', 'error': str(e)})

@@ -667,6 +667,41 @@ def performance_view() -> Dict[str, Any]:
 
     if isinstance(ga4, dict):
         insights.append({"label": "GA4 sessions", "value": str(ga4.get("total_sessions", "—")), "kind": "kpi"})
+
+    # Defence-in-depth: GA4 fetcher historically returned top-10 raw rows from a
+    # (pagePath, sessionSource) query, so the homepage appeared 5+ times with
+    # different engagement rates. Collapse duplicates before the response so
+    # the rendered list always shows unique paths with session-weighted ER.
+    raw_pages = ga4.get("pages", []) if isinstance(ga4, dict) else []
+    pages_by_path = {}
+    for p in raw_pages:
+        if not isinstance(p, dict):
+            continue
+        path = p.get("path", "")
+        if not path:
+            continue
+        sessions = p.get("sessions") or 0
+        cur = pages_by_path.get(path) or {"path": path, "sessions": 0, "_er_sum": 0.0, "_n": 0}
+        cur["sessions"] += sessions
+        try:
+            er_raw = p.get("engRate") or p.get("engagementRate") or 0
+            er_val = float(str(er_raw).replace("%", "")) if er_raw else 0.0
+        except (ValueError, TypeError):
+            er_val = 0.0
+        cur["_er_sum"] += er_val
+        cur["_n"] += 1
+        pages_by_path[path] = cur
+    aggregated_pages = []
+    for p in pages_by_path.values():
+        n = p["_n"] or 1
+        er_avg = p["_er_sum"] / n
+        aggregated_pages.append({
+            "path": p["path"],
+            "sessions": p["sessions"],
+            "engRate": f"{er_avg:.1f}%",
+            "engagementRate": er_avg,
+        })
+    aggregated_pages.sort(key=lambda x: x["sessions"], reverse=True)
     if isinstance(seo_rank, dict):
         rising = seo_rank.get("rising_keywords", [])
         if isinstance(rising, list) and rising:
@@ -682,7 +717,7 @@ def performance_view() -> Dict[str, Any]:
         },
         "ga4": {
             "total_sessions": ga4.get("total_sessions"),
-            "pages": ga4.get("pages", [])[:10] if isinstance(ga4, dict) else [],
+            "pages": aggregated_pages[:10],
         },
         "seo": {
             "audit_summary": (seo.get("summary", {}) if isinstance(seo, dict) else {}),
