@@ -7469,7 +7469,10 @@ async function renderTrends(){
   // Freshness banner — show last-updated time + how many sources returned data
   const banner = $('#tr-freshness-banner');
   if(banner){
-    const updated = t.updated || t.fetched_at || v2.updated || null;
+    // /api/intel/trend_catcher and /api/intel/trends_v2 both surface the fetch time as top-level `ts`.
+    // Older keys (updated/fetched_at) were never wired by the backend; falling back to `ts` closes the
+    // "Data last updated unknown" + `—` placeholder gap.
+    const updated = t.updated || t.fetched_at || t.ts || v2.updated || v2.ts || null;
     const updStr = updated ? new Date(updated).toLocaleString() : 'unknown';
     const ageMs = updated ? Date.now() - new Date(updated).getTime() : Infinity;
     const ageDays = Math.round(ageMs / (1000*60*60*24));
@@ -7484,7 +7487,7 @@ async function renderTrends(){
       <div style="border-left:3px solid ${toneColor};padding:.6rem .85rem;background:var(--bg-2);border-radius:6px;margin-bottom:1rem;font-size:12px;line-height:1.5">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
           <div>
-            <b>${toneEmoji} Data last updated ${updStr}</b> · ${ageDays === Infinity ? '—' : ageDays + ' day' + (ageDays === 1 ? '' : 's') + ' old'}
+            <b>${toneEmoji} Data last updated ${updStr}</b> · ${ageDays === Infinity ? 'never (click Refresh trends)' : ageDays + ' day' + (ageDays === 1 ? '' : 's') + ' old'}
             ${sources.length ? ` · ${sources.length} source${sources.length === 1 ? '' : 's'} live: ${srcBadges}` : ' · <span style="color:var(--red)">no sources returning data</span>'}
           </div>
           <div class="muted" style="font-size:11px">Click "Refresh trends" to re-fetch the latest signals</div>
