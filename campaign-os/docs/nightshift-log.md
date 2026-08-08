@@ -2174,3 +2174,29 @@ Fix: SPA-only patch in `renderSEO()`.
 **Learned:** SPA-only patches are still the safest nightshift lever when the API contract is the source of truth — same pattern as the 2026-08-08T03:14Z audit-numbers fix. When itemHtml has a clear contract (`it.where.url`), decorating the items before passing them in is cleaner than forking the renderer.
 
 **Asks:** None.
+
+## 2026-08-08T19:55Z — fix(ideas): seed Just-generated empty card with CTA on first render
+
+Pre-flight clean. Picked Priority #3/#4 (empty/fake feature + weak empty state) — the `🆕 Just generated` card on the Ideas page was a 69px blank box on every fresh page load because `renderIdeas()` (line 7560) populated every other ideas card (`#ideas-list`, `#ideas-today`, `#ideas-week`, etc.) but never initialized `#ideas-fresh`. The card only got content after the user clicked "💡 Generate new ideas" (line 7593). First-time visitors saw a tall empty header with no guidance.
+
+Fix: SPA-only patch. After populating the other 7 ideas cards, seed `#ideas-fresh` with a `.empty-card` body + `.mini-link` CTA pointing at the existing Generate button. Matches the Library empty-state idiom from line 5279 (`empty-card` + `mini-link` with action). The CTA's click handler delegates to `$('#ideas-gen')?.click()` so the existing post-click branch (line 7593) overwrites the empty state with the real `.li` items — no duplicate logic.
+
+**Patch (commit `e9027f2`, 1 file, +13/-0):**
+- `campaign-os/campaign-os.html` — 13-line addition inside `renderIdeas()`, gated by `hasChildNodes()` so the post-click branch can still replace the empty state.
+
+**Verified (LIVE, authed, Playwright, post-deploy):**
+- Cache-busted bundle probe: `ideas-fresh-cta` count = 2, `No ideas generated this session yet` count = 1. Both new strings are in the served HTML.
+- Initial-render DOM probe (LIVE): `#ideas-fresh` has 1 child (the `.empty-card`), muted text = `"No ideas generated this session yet."`, CTA text = `'Tap "Generate new ideas" above to start →'`, card bbox = 170px tall (was 69px blank).
+- Post-click simulation (LIVE, manual innerHTML injection since the Live `/api/intel/generate_ideas` returned 0 ideas today — pre-existing API behavior, not a regression): empty-card removed, 3 `.li` items rendered with title + pillar pill + Why/Hook meta, matching the format the Generate click produces.
+- 0 PAGEERROR, 0 console errors during the full walk.
+- `/api/health` green throughout.
+- 0 em-dashes in new copy. 0 raw hex. 0 API contract changes.
+
+**Next pick:**
+- Performance page `Top pages by sessions` shows duplicate `/` entries (data-side fix — carryover from 2026-08-08T03:14Z).
+- `🔴 Data last updated unknown · —` banner on Trends page — the `—` placeholder is a stale-timestamp signal that needs the same kind of empty-state treatment.
+- EXPLAINERS copy-polish sweep on the 26 remaining blocks that still reference 2026-07-30 era card names.
+
+**Learned:** When a render function populates 7 sibling cards but skips the 8th, the bug is invisible in audit scripts that only check rendered-DOM shape — the 8th card simply looks "blank but valid." The "Empty placeholder for 2+ ticks" lane-pick signal (last 2 reports flagged it) is the right heuristic: same complaint from prior ticks = high-confidence pick. Also: the `Generate` button at line 7574 uses a `_bound` flag to avoid double-binding on re-renders — my fix matches the same discipline by gating the empty-state injection on `hasChildNodes()` so the post-click branch can still write to `#ideas-fresh` cleanly.
+
+**Asks:** None.
