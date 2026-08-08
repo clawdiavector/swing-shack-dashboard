@@ -3356,6 +3356,90 @@ const HELP = (() => {
         caption. Each platform has its own count convention (see "Platform
         tips"). The pack generates to the platform's sweet spot by default
         — trust the count that's there.</p>`
+    },
+    'socials': {
+      title: 'How to read the Socials (Instagram history) surface',
+      body: `
+        <p>This page is a <span class="hc-term">read-only mirror</span> of
+        the active brand's live Instagram account. It's not a place to
+        schedule or post. It's the editorial memory of what has already
+        shipped, with real visuals, so the generators below can stop
+        re-proposing things that didn't land the first time.</p>
+        <p><span class="hc-term">🪩 Summary line</span> under the h2 is the
+        single string you should read first:
+        <code>NN posts · NN d window · sources: NN graph</code> (three
+        numbers in that exact shape: count, window, graph-source).
+        Three numbers: how many posts came back, over what window, and how
+        many came from the Meta Graph API (the rest are oEmbed fallbacks
+        for older posts). If <code>sources: 0 graph</code>, the IG token
+        has expired and you're seeing the oEmbed mirror only. See the
+        bottom of this panel for the standing fix.</p>
+        <p><span class="hc-term">🟢 live / ⚪ empty pill</span> on the right
+        of the filter row tells you whether the API returned any post
+        newer than 30 days. <b>🟢 live</b> = the Graph call succeeded, you
+        have a <code>newest</code> timestamp, refresh keeps the page
+        honest. <b>⚪ empty</b> = either the brand has not posted in the
+        window, or the token has lapsed and the oEmbed mirror is empty for
+        the window too. Click any card to open the full caption + media
+        + permalink modal.</p>
+        <p><span class="hc-term">📷 Card anatomy</span>, each card is one
+        post. Top: 1:1 thumbnail (real Meta CDN when Graph is live, oEmbed
+        thumbnail when the post is older than the Graph window, and a
+        muted <i>"No thumbnail"</i> placeholder when both fail). The
+        icon row below the thumbnail is <code>📷 Image</code>,
+        <code>🎥 Video</code>, or <code>🖼️ Carousel</code> based on
+        <code>media_type</code>. Right side of that row is the like +
+        comment counter; both can be <code>null</code> if the post is a
+        reel older than the engagement window (Meta only exposes reel
+        like counts for ~24h). The caption preview below is the first 140
+        characters with an ellipsis if truncated. The modal opens with
+        the full text.</p>
+        <p><span class="hc-term">🎚 Filter row</span> at the top of the grid
+        has two controls. <b>Range</b> is the look-back window: 30 / 90
+        (default) / 365 days. The Meta Graph API only returns posts newer
+        than ~30 days with full media URLs, so picking a longer window
+        automatically widens to the oEmbed mirror (the thumbnails stay
+        live forever via oEmbed even after Meta rotates the CDN URL).
+        <b>Type</b> filters by media type. <code>All</code> is the
+        default; <code>IMAGE</code> + <code>VIDEO</code> +
+        <code>CAROUSEL_ALBUM</code> are the three Meta media_type values
+        you can filter on. Changing either control re-runs
+        <code>renderSocials()</code> and updates the summary line + grid
+        in place. The 🔄 Refresh button bypasses the cache and refetches
+        from the API. Useful when you just published a new post and want
+        to see it before the next auto-refresh.</p>
+        <p><span class="hc-term">🔍 Detail modal</span> opens on card click
+        and shows the full media on the left (with an <i>"Open on
+        Instagram ↗"</i> button that links to the real permalink) and the
+        full caption + stat row on the right. The caption is rendered in a
+        monospace block so line breaks survive. Likes + comments surface
+        here even when the card collapsed them. That's the spot to audit
+        voice consistency or copy a past winner's structure into Image
+        Lab.</p>
+        <p><span class="hc-term">🧬 Where the data comes from</span>, the
+        surface is powered by <code>GET /api/socials/posts?days=N&limit=90</code>.
+        The server merges two sources: <b>Meta Graph</b> (authoritative,
+        30-day window, full media URLs, real engagement) and
+        <b>oEmbed</b> (older posts, public thumbnail, no engagement). The
+        API response carries a <code>_meta</code> block with
+        <code>days_covered</code>, <code>newest</code> timestamp, and a
+        <code>sources.graph</code> count. Those three feed the summary
+        line. If the brand changes (the dropdown at the top of the
+        dashboard), the next renderSocials() pass picks up the new
+        <code>activeBrand.ig_user_id</code> and the page re-fetches with
+        the right account.</p>
+        <p><b>How to use this page:</b> open it whenever you're about to
+        generate new captions in Caption Studio. Scroll the grid and ask:
+        <i>"Have I posted this angle in the last 90 days?"</i> If yes, the
+        post is the editorial memory you should reference (open the modal,
+        lift the structure, swap the hook). If no, you've got green field
+        for the angle. Pair it with the <b>Performance</b> tab to see
+        which past posts moved the needle, then come back here to
+        visually inspect the winners before remixing them.</p>
+        <p><b>Anti-pattern:</b> treating this as a queue. It's a mirror.
+        To schedule a new post you go through Caption Studio →
+        Review → Publish → Postiz. To audit what already shipped, you
+        stay on this page.</p>`
     }
   };
 
