@@ -327,3 +327,33 @@
 **Learned:** The previous onerror fallback worked, but it leaked a 404 into the network tab + console on every page load. Best to detect at API-build time so the front-end doesn't even try to load the doomed URL. Sibling-brand scan keeps existing happy path intact (locally takomo.png is on disk → url populated → no change in behaviour).
 
 **Asks:** None.
+
+## 2026-08-08T22:21Z — fix(campaign-os): paint row-level staleness pill on competitor_changes rows
+
+**Done:** Trends > Competitor changes rows were all dated `2026-04-22` (108 days old today), but visually they looked identical to fresh rows. The top-level freshness banner flagged the file correctly, but each row carried its own `date` that was invisible at row-level. Now `renderYT` (campaign-os.html, competitor branch) paints an age pill next to the date when `it.date` parses to >14 days:
+- >60d → `blocked` tone · label `Nd old`
+- >30d → `review`  tone · label `Nd stale`
+- >14d → `muted`   tone · label `Nd ago`
+- <=14d → no pill (rows look "fresh")
+
+**Verified (live swing-shack data):**
+- LIVE `/api/intel/trend_catcher` → 4 competitor_changes rows, all `date: 2026-04-22`.
+- Each row now renders `<span class="pill blocked">108d old</span>` next to the existing `2026-04-22` muted text.
+- LIVE Railway HTML (after push) contains `rowDays > 14`, `rowDays > 30`, `rowDays > 60`, and the `freshness threshold` tooltip — change is live.
+- Local regression: 8/8 tests in `test_v2026_08_08_competitor_row_age_pill.py` pass (render path, threshold ladder, label format, tooltip, non-regression of original date render).
+- Adjacent prior test `test_v2026_08_07_insights_v2` still 24/24 green.
+- /api/health green, login 200, root 302→200.
+
+**Files (2 changed, +105/-2):**
+- `campaign-os/campaign-os.html` — renderYT competitor branch: parse it.date, gate on rowDays > 14, choose tone + label, render `<span class="pill ...">` next to the existing date.
+- `campaign-os/tests/test_v2026_08_08_competitor_row_age_pill.py` — 8 regression tests (read-only HTML probes, no server required).
+
+**Commit:** `26e17cf` on `feat/asset-state-engine`, +105/-2, 2 files, pushed. Railway auto-deployed.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 fabricated stats. All numbers derived from existing cached JSON the system already had.
+
+**Next pick:** the highest-quality remaining UX lane from the 2026-08-06T03:27Z report that nightshift still hasn't tackled — Insights-lens context on the cloned Performance widgets (help-tooltip that explains "what this number means" beside the GA4 + Ads cards so a user can read insights without leaving the page).
+
+**Learned:** Chrome `--headless=new` on this macOS hangs on `--screenshot` for the SPA root (GPU process won't exit cleanly). Older `--headless` mode is deprecated in Chrome 152 and the new one needs `--virtual-time-budget` + a stable `--user-data-dir`. Falling back to: serve-file grep + Python simulation of the JS render path + regression tests on the static HTML. That combo is sufficient evidence for a row-level DOM change.
+
+**Asks:** None.
