@@ -8891,8 +8891,21 @@ $('#ig-recipe-brand-select').addEventListener('change', (e) => {
 async function renderSEO(){
   if(!S.seo) S.seo = await API.get('/api/intel/seo_assistant');
   const s = S.seo;
-  const auditSum = s.audit?.summary || {};
-  $('#seo-audit').innerHTML = `<dl class="kvs"><dt>Findings</dt><dd>${auditSum.total_findings||'—'}</dd><dt>High</dt><dd>${auditSum.high_severity||'—'}</dd><dt>Medium</dt><dd>${auditSum.medium_severity||'—'}</dd><dt>Low</dt><dd>${auditSum.low_severity||'—'}</dd></dl>` + safeList(s.audit?.high_priority, 8).map(itemHtml).join('');
+  const a = s.audit || {};
+  // Backend stores audit stats at top level (total_findings / high_severity / etc.)
+  // and emits high-priority items in `recommendations[]`. The SPA used to look
+  // for `summary.{...}` and `high_priority` which don't exist on this payload —
+  // fall back to top-level fields and synthesize high_priority from recs when
+  // missing so the audit card renders real numbers instead of "—".
+  const auditSum = a.summary && Object.keys(a.summary).length ? a.summary : a;
+  const highPrio = Array.isArray(a.high_priority) && a.high_priority.length
+    ? a.high_priority
+    : (Array.isArray(a.recommendations) ? a.recommendations.filter(r => r && r.severity === 'high') : []);
+  const tot = auditSum.total_findings ?? '—';
+  const hi  = auditSum.high_severity  ?? '—';
+  const mid = auditSum.medium_severity ?? '—';
+  const lo  = auditSum.low_severity   ?? '—';
+  $('#seo-audit').innerHTML = `<dl class="kvs"><dt>Findings</dt><dd>${tot}</dd><dt>High</dt><dd>${hi}</dd><dt>Medium</dt><dd>${mid}</dd><dt>Low</dt><dd>${lo}</dd></dl>` + safeList(highPrio, 8).map(itemHtml).join('');
   const rank = s.rankings;
   $('#seo-rank').innerHTML = `<div class="row gap-1" style="margin-bottom:.75rem">${pill('on',(rank?.rising||[]).length+' rising')} ${pill('blocked',(rank?.falling||[]).length+' falling')} ${pill('live',(rank?.quick_wins||[]).length+' quick wins')}</div>` + safeList(rank?.keywords, 10).map(itemHtml).join('');
   $('#seo-geo').innerHTML = `<dl class="kvs"><dt>GEO score</dt><dd>${s.geo?.geo_score||'—'}</dd></dl>` + safeList(s.geo?.high_priority, 6).map(itemHtml).join('');
