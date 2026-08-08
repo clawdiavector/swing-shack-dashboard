@@ -7570,6 +7570,19 @@ async function renderIdeas(){
   $('#ideas-bundles').innerHTML = renderList(d.bundles);
   $('#ideas-funnel').innerHTML = renderList(d.funnel_leaks);
   $('#ideas-landing').innerHTML = renderList(d.landing_fixes);
+  // "Just generated" card: initialize the empty state on first render so the card
+  // is not a tall blank box. The Generate button click overwrites this with the
+  // real list. Matches the .empty-card idiom from the Library (line 5279) and
+  // gives the user a clear CTA pointing at the existing generate button.
+  if (!$('#ideas-fresh').hasChildNodes()) {
+    $('#ideas-fresh').innerHTML = `
+      <div class="empty-card" id="ideas-fresh-empty">
+        <div class="muted">No ideas generated this session yet.</div>
+        <div style="margin-top:.6rem"><a class="mini-link" href="#" id="ideas-fresh-cta">Tap "Generate new ideas" above to start →</a></div>
+      </div>`;
+    const cta = $('#ideas-fresh-cta');
+    if (cta) cta.addEventListener('click', (e) => { e.preventDefault(); $('#ideas-gen')?.click(); cta.blur(); });
+  }
   // bind generate-new-ideas button
   const genBtn = $('#ideas-gen');
   if (genBtn && !genBtn._bound) {
