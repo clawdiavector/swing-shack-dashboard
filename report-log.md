@@ -307,3 +307,23 @@
 **Learned:** Module-level `DATA_DIR = os.path.join(REPO_ROOT, "data")` is not env-overridable per-test. Test must use `unittest.mock.patch.object(module, "_read_json")` instead of `os.environ`. The Railway-side `/data` volume is also separate from repo's `data/` — the runtime file stays stale until the next fetch, which is why defence-in-depth at render time is the only reliable fix.
 
 **Asks:** None.
+
+## 2026-08-08T20:49Z — fix(campaign-os): visualizer orphan-DNA tile paints placeholder without firing 404
+
+**Done:** The Visual Library grid stopped firing a doomed 404 for `takomo.png` on every page load. The raw `.png` is gitignored (it lives in Drive as source of truth), so Railway never gets the bytes — but the DNA JSON for swing-shack's index still references it. Now the server flags it with `image_missing=true` and `url=null` at API-build time, and the three grid renders (default, modal, search) paint the DNA-coloured placeholder directly without ever issuing the doomed `/brand-images/.../takomo.png` network request.
+
+**Verified (Playwright LIVE, cookie auth):**
+- LIVE `/api/visual-library/swing-shack/images` → takomo entry: `{filename:"takomo.png", url:null, image_missing:true, thumbnail_data_url:null}`.
+- LIVE `/visualizer` page load: 0 image 4xx responses, 0 console errors, 0 page errors. takomo card has the gradient placeholder, no `<img>` element inside it.
+- 3/3 new regression tests pass (`test_visual_library_image_missing.py`): happy path (file on disk → url populated, flag false), Railway-like state (file removed everywhere → url null, flag true), and non-regression (other 121 cards stay healthy).
+- All 5 prior `test_v2026_08_07_brand_images_fallback.py` tests still pass.
+- `/api/health` green, all top-level routes 200.
+
+**Files (3 changed, +134/-2):**
+- `campaign-os/app.py` — `_image_on_disk()` helper + `image_missing` flag in `/api/visual-library/<brand>/images`
+- `campaign-os/visualizer.html` — 3 grid/modal render sites branch on `img.image_missing` and render the placeholder directly
+- `campaign-os/tests/test_visual_library_image_missing.py` — 3 regression tests
+
+**Learned:** The previous onerror fallback worked, but it leaked a 404 into the network tab + console on every page load. Best to detect at API-build time so the front-end doesn't even try to load the doomed URL. Sibling-brand scan keeps existing happy path intact (locally takomo.png is on disk → url populated → no change in behaviour).
+
+**Asks:** None.
