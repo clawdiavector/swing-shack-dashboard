@@ -2144,3 +2144,33 @@ Fix: SPA-only patch. When `summary` is empty/missing, fall back to top-level fie
 
 **Asks:** None.
 
+
+## 2026-08-08T05:42Z — fix(campaign-os): SEO audit 'Where' links resolve real page URLs + GEO card falls back to recommendations
+
+Pre-flight found dirty tree from previous tick (analytics/dashboard-live/freshness auto-refresh + one formatting change). Committed housekeeping first as `chore(data): auto-refresh ...` (1066f89), pushed. Tree clean.
+
+Live walkthrough on 6 surfaces. Authed probe on `/api/intel/seo_assistant` exposed two visible UX defects on the SEO page:
+
+1. **Broken "Where" links in the audit card.** itemHtml constructed `https://swingshack.co.za${inner.page}` — producing `https://swingshack.co.zaHomepage`, `https://swingshack.co.zaMembership` (no slash, no real path). The data was right there in `audit.pages[]` as `{name, url}` pairs, just not wired up.
+2. **GEO card was mostly blank.** `geo.high_priority` is empty on a healthy site, so the card showed only "GEO score GOOD" then whitespace. Meanwhile `geo.recommendations` (8 items) and `geo.positive_signals` (12 items) were sitting unused.
+
+Fix: SPA-only patch in `renderSEO()`.
+- Build `_auditPageUrl` map from `audit.pages[]`, decorate each high-severity rec with `{ where: { url, label } }` so itemHtml picks up the real URL.
+- GEO card falls back to `geo.recommendations` when `high_priority` is empty; shows `positive_signals.length` as a footer when both are empty.
+
+**Patch (commit e3e7406, 1 file, +22/-2):**
+- `campaign-os/campaign-os.html` — `renderSEO()` body.
+
+**Verified (LIVE, authed, Playwright, post-deploy):**
+- `#seo-audit` first item href: `https://swingshack.co.za` for Homepage, `https://swingshack.co.za/membership` for Membership (was `https://swingshack.co.zaHomepage`).
+- `#seo-geo .li` count: 6 (was 0) — 6 GEO recommendations now visible.
+- `GEO score GOOD` card no longer blank.
+- `/api/health` green throughout. 0 PAGEERROR, 0 console errors.
+
+**Next pick:**
+- Performance page `Top pages by sessions` shows duplicate `/` entries — already noted in 2026-08-08T03:14Z log, data-side fix.
+- Empty "Just generated" card on Ideas page is a tall blank when nothing has run this session.
+
+**Learned:** SPA-only patches are still the safest nightshift lever when the API contract is the source of truth — same pattern as the 2026-08-08T03:14Z audit-numbers fix. When itemHtml has a clear contract (`it.where.url`), decorating the items before passing them in is cleaner than forking the renderer.
+
+**Asks:** None.
