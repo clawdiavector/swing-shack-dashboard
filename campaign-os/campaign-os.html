@@ -7501,10 +7501,27 @@ async function renderTrends(){
     if(it.key !== undefined){
       return `<li class="li"><div class="li-body"><div class="li-title">${esc(String(it.key).replace(/_/g,' '))}</div><div class="li-meta">${pill(it.value==true||it.value==='true'?'on':'muted', it.value==true||it.value==='true'?'trending':'cooling')} · youtube</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(it.key).replace(/_/g,' '))}">Use →</button></div></li>`;
     }
-    // Competitor-style items: extract competitor name + readable text
+    // Competitor-style items: extract competitor name + readable text.
+    // Surface row-level staleness as an "X days old" pill so a 4-month-old
+    // tracker doesn't look identical to a 2-day-old one. The pill hides when
+    // the row is <=14 days old (the freshness threshold the system already uses).
     if(it.competitor){
       const txt = it.response || it.change || it.summary || it.note || it.what_changed || '';
-      return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''}</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}">Use →</button></div></li>`;
+      // Row-level age pill — only render when date parses + is older than 14 days.
+      // Matches the 14d "stale" threshold from the Data freshness widget.
+      let agePill = '';
+      if(it.date){
+        const parsed = Date.parse(it.date);
+        if(!isNaN(parsed)){
+          const rowDays = Math.floor((Date.now() - parsed) / (1000*60*60*24));
+          if(rowDays > 14){
+            const ageTone = rowDays > 60 ? 'blocked' : rowDays > 30 ? 'review' : 'muted';
+            const ageLabel = rowDays > 60 ? `${rowDays}d old` : rowDays > 30 ? `${rowDays}d stale` : `${rowDays}d ago`;
+            agePill = `<span class="pill ${ageTone}" style="font-size:10px" title="Row-level age (vs 14d freshness threshold)">${ageLabel}</span> `;
+          }
+        }
+      }
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''} ${agePill}</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}">Use →</button></div></li>`;
     }
     const title = it.title || it.headline || it.name || it.theme || it.angle || it.change || it.summary || it.suggested_angle || it.trend_pain_point || it.thread_topic || it.body || it.text || JSON.stringify(it).slice(0,80);
     const src = it._src ? it._src.replace(/_/g,' ') : (it.kind || it.source || '');
