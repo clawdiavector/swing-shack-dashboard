@@ -421,7 +421,7 @@ WHATS_NEW = [
      "body": "The Google Business Profile header was stringifying an object instead of the city. Now reads GBP fields safely (name / city / region / country) so the header reads 'Sandton, Gauteng · South Africa' instead of leaking the raw object. Affects every GBP tile on Home + Brand Directory."},
     {"ts": "2026-08-07T22:58:00Z", "tag": "chrome", "title": "13 dead meme-template thumbnails repaired",
      "body": "Meme Lab was showing broken-image icons for 13 of 26 templates because the thumbnail filenames had drifted from the on-disk assets. Re-mapped every template to its real PNG (palette + first-frame SVG fallback for the two truly-missing ones). All 26 templates now preview cleanly."},
-    {"ts": "2026-08-07T19:43:00Z", "tag": "seo", "title": "SEO quick wins — show keyword, not raw JSON",
+    {"ts": "2026-08-07T19:43:00Z", "tag": "seo", "title": "SEO quick wins · show keyword, not raw JSON",
      "body": "The SEO Quick Wins row on Home was rendering the full raw API payload instead of the keyword + opportunity score. Now shows a tidy 'club fitting near me · volume 1.2K · KD 22' card with the same Run-it / Draft action chips. The Insights surface also got the same treatment."},
     {"ts": "2026-08-07T18:27:00Z", "tag": "data", "title": "Freshness sanity-range guard stops 9238-day bogus files",
      "body": "Home freshness banner was lighting up with 9000+ day-old files because a malformed date slipped through the parser. Added a sanity-range filter (last 30 days to next 7 days) before the diff so any out-of-range timestamp is silently dropped and the banner only ever flags real recent files."},
