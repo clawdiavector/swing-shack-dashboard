@@ -595,6 +595,31 @@ function renderImageCard(img) {
   // when the image fails to load — e.g. orphan DNA records whose .png file
   // was never copied into the brand directory.
   const paletteAttr = JSON.stringify(palette).replace(/"/g, '&quot;');
+  // image_missing: server flagged this card's raw .png/.jpg as not on disk
+  // (e.g. the takomo orphan under swing-shack — DNA JSON ships but the .png
+  // is gitignored, so Railway never gets the bytes). Render the DNA-colour
+  // placeholder directly so we don't fire a doomed 404 network request.
+  if (img.image_missing) {
+    const paletteBg = palette.length
+      ? `background: linear-gradient(135deg, ${palette.slice(0, 4).join(', ')});`
+      : `background: var(--panel);`;
+    return `
+      <div class="card" data-filename="${img.filename}" data-image-missing="1">
+        <div class="imgwrap">
+          <div class="img-placeholder" data-fallback-reason="image-missing" style="${paletteBg}">
+            <div class="ph-icon" aria-hidden="true">▦</div>
+            <div class="ph-label">image missing</div>
+            <div class="ph-file">${img.filename}</div>
+          </div>
+          <div class="score">${img.score}</div>
+        </div>
+        <div class="info">
+          <div class="fname">${img.filename}</div>
+          <div class="tags">${prodTag}</div>
+          <div class="palette">${paletteHtml}</div>
+        </div>
+      </div>`;
+  }
   return `
       <div class="card" data-filename="${img.filename}">
         <div class="imgwrap">
@@ -756,6 +781,28 @@ async function loadImages() {
     // Encode palette as a data attribute so the global _imgMissingFallback
     // handler can paint a DNA-coloured placeholder if /brand-images/ 404s.
     const paletteAttr = JSON.stringify(palette).replace(/"/g, '&quot;');
+    // Server-flagged orphans: skip the doomed 404 entirely.
+    if (img.image_missing) {
+      const paletteBg = palette.length
+        ? `background: linear-gradient(135deg, ${palette.slice(0, 4).join(', ')});`
+        : `background: var(--panel);`;
+      return `
+      <div class="card" data-filename="${img.filename}" data-image-missing="1">
+        <div class="imgwrap">
+          <div class="img-placeholder" data-fallback-reason="image-missing" style="${paletteBg}">
+            <div class="ph-icon" aria-hidden="true">▦</div>
+            <div class="ph-label">image missing</div>
+            <div class="ph-file">${img.filename}</div>
+          </div>
+          <div class="score">${img.score}</div>
+        </div>
+        <div class="info">
+          <div class="fname">${img.filename}</div>
+          <div class="tags">${prodTag}</div>
+          <div class="palette">${paletteHtml}</div>
+        </div>
+      </div>`;
+    }
     return `
       <div class="card" data-filename="${img.filename}">
         <div class="imgwrap">
@@ -1107,6 +1154,28 @@ async function runGrid() {
     // Arm the orphan-DNA fallback (see _imgMissingFallback) so a 404 paints a
     // palette placeholder instead of a black box.
     const paletteAttr = JSON.stringify(palette).replace(/"/g, '&quot;');
+    // Server-flagged orphans: skip the doomed 404 entirely.
+    if (img.image_missing) {
+      const paletteBg = palette.length
+        ? `background: linear-gradient(135deg, ${palette.slice(0, 4).join(', ')});`
+        : `background: var(--panel);`;
+      return `
+      <div class="card" data-filename="${img.filename}" data-brand="${img._brand}" data-image-missing="1">
+        <div class="imgwrap">
+          <div class="img-placeholder" data-fallback-reason="image-missing" style="${paletteBg}">
+            <div class="ph-icon" aria-hidden="true">▦</div>
+            <div class="ph-label">image missing</div>
+            <div class="ph-file">${img.filename}</div>
+          </div>
+          <div class="score">${img.score || '—'}</div>
+        </div>
+        <div class="info">
+          <div class="fname">${img.filename}${brandTag}</div>
+          <div class="tags">${prodTag}</div>
+          <div class="palette">${paletteHtml}</div>
+        </div>
+      </div>`;
+    }
     return `
       <div class="card" data-filename="${img.filename}" data-brand="${img._brand}">
         <div class="imgwrap">

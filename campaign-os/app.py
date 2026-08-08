@@ -1119,6 +1119,28 @@ def visual_library_images(brand_id):
             candidate = images_dir / f"{stem}.visual-dna.json"
             return candidate if candidate.exists() else None
 
+        # Sibling-scan used by /brand-images/<brand>/<file> at serve time.
+        # Re-used here so we can flag an entry as `image_missing=true` when
+        # the raw .png/.jpg doesn't exist ANYWHERE on the deployed volume
+        # (e.g. DNA record indexed under swing-shack but the .png lives under
+        # takomo/ and is gitignored → never reaches Railway). Without this,
+        # the front-end issues a doomed 404 for every orphan card.
+        _bd_root = (_P(BUNDLED_DATA_DIR) / 'brand-directory').resolve()
+        _sibling_brands = [p.name for p in _bd_root.iterdir() if p.is_dir() and p.name != brand_id and p.name != '_system'] if _bd_root.exists() else []
+
+        def _image_on_disk(filename):
+            """True iff `filename` resolves under ANY brand directory on disk."""
+            # Primary location: the requested brand
+            if (images_dir / filename).exists():
+                return True
+            # Sibling brands (orphan DNA fallback path)
+            stem = _P(filename).name  # strip any path prefix safely
+            for sib in _sibling_brands:
+                cand = _bd_root / sib / 'images' / stem
+                if cand.exists():
+                    return True
+            return False
+
         out = []
         for fn, meta in by_filename.items():
             dna_p = _resolve_dna(meta.get("dna_path", ""), fn)
@@ -1169,9 +1191,19 @@ def visual_library_images(brand_id):
             score = float(meta.get("score", 0) or 0)
             if score < min_score:
                 continue
+            # If the underlying image isn't on disk (orphan DNA record whose
+            # .png lives under a sibling brand that isn't gitignored, OR the
+            # .png never made it onto the Railway volume because of the
+            # brand-images gitignore rule), expose image_missing=true and
+            # null out `url` so the front-end renders the DNA placeholder
+            # WITHOUT firing a doomed network request.
+            _has_thumb = bool(dna.get("thumbnail_b64"))
+            _on_disk = _image_on_disk(fn)
+            _image_missing = (not _has_thumb) and (not _on_disk)
             entry = {
                 "filename": fn,
-                "url": f"/brand-images/{brand_id}/{fn}",
+                "url": (None if _image_missing else f"/brand-images/{brand_id}/{fn}"),
+                "image_missing": _image_missing,
                 "dna_url": f"/brand-images/{brand_id}/{fn.replace('.jpg', '.visual-dna.json').replace('.jpeg', '.visual-dna.json').replace('.png', '.visual-dna.json')}",
                 "score": round(score, 3),
                 "luminance": meta.get("luminance", ""),
