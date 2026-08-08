@@ -1,5 +1,32 @@
 
 
+## Nightshift Report — 2026-08-08T23:30:00Z
+
+### ✅ What was done
+- **Wired the missing "How to read" explainer onto the Socials (Instagram history) section.** It was the last top-level section without an `EXPLAINERS` entry — 28 sections had one, socials didn't. Added a `socials` key to the `EXPLAINERS` map in `campaign-os/campaign-os.html` that the existing `HELP.section()` helper picks up automatically. Zero new JS logic. The new panel explains: (1) the summary line (`NN posts · NN d window · sources: NN graph`), (2) the live / empty pill (when the IG token has lapsed, `sources: 0 graph` shows you the oEmbed mirror only), (3) card anatomy (1:1 thumbnail, 📷/🎥/🖼️ icon, like + comment counter, 140-char caption preview, modal with full text), (4) the filter row (Range 30/90/365 days; Type All/IMAGE/VIDEO/CAROUSEL_ALBUM; the Meta Graph 30-day window auto-falls back to oEmbed for older posts), (5) the detail modal, (6) where the data comes from (`GET /api/socials/posts?days=N&limit=90`, Meta Graph + oEmbed merge, `_meta` block), and (7) the anti-pattern reminder (this is a mirror, not a queue).
+
+### 🎯 Verified
+- **JS parse check** (Node): the updated `EXPLAINERS` block parses cleanly, 29 keys (`socials` is the new one), `EXPLAINERS.socials.title` = `How to read the Socials (Instagram history) surface`, body = 5404 chars.
+- **Local Playwright walk** (`http://127.0.0.1:8765`): logged in, dismissed tour overlay, clicked Socials nav. Probe returns `section_found: true, panel_count: 1, summaries: ['How to read the Socials (Instagram history) surface'], first_body_chars: 4807`. 0 pageerrors, 0 console errors. Screenshot at `/tmp/co-nightshift/walkthrough_socials_explainer_local.png` shows the panel rendered + opened with all 7 sections visible.
+- **Live Playwright walk** (Railway): same probe after the Railway rebuild, identical payload. Screenshot at `/tmp/co-nightshift/walkthrough_socials_explainer_live.png` confirms the panel is in the deployed HTML.
+- **Deploy probe**: `/api/health` green throughout (`{"status":"ok","git_synced":false}`). Commit `cbf18fc` pushed to `feat/asset-state-engine`, 1 file, 84 insertions / 0 deletions, Railway auto-rebuilt.
+- **Standing rule respected**: zero new em-dashes in the added body (verified `git diff | grep -c "—"` on added lines = 0). Pipes / periods / colons used per the rule.
+
+### 🎯 Next pick
+- `/api/socials/posts` currently returns 0 posts on Swing Shack (`sources: 0 graph`) — the IG long-lived token has lapsed and the page falls back to the oEmbed mirror which is also empty. The standing fix is to refresh the IG token via Postiz / Meta portal. This is a daytime-approval ask (credentials lane).
+- Sweep the same pattern across the remaining `.card-h h3` elements on the Brand Directory detail panel (Palette, Archetypes, Typography, Voice, Headlines bank, CTA bank, Punctuation rules, Do-say-don't-say, Examples) — the `data-help + data-help-title` pattern is codified, ~10 cards to lift.
+- OR: auto-correct the AA-fail contrast pairs on the Brand Directory (e.g. nudging Swing Shack primary away from `primary on neutral_dark`) — out of lane (brand-team decision).
+
+### 🧠 What I learned / can improve
+- **EXPLAINERS coverage was 28/29** — the only gap was `socials`. The pattern is "every section in the sidebar deserves a how-to-read panel." Next tick could add a runtime check that warns in `/api/health` if a section key is missing from `EXPLAINERS` (cheap, idempotent, ships the same night).
+- **JS template-literal trap**: when writing documentation inside a back-tick string, `${...}` is evaluated by the runtime. Initial pass used `${posts.length}` to "show" the variable shape in the body, which produced literal `undefined` at runtime — replaced with the literal shape `NN posts · NN d window · sources: NN graph` and an explanatory parenthetical.
+- **Em-dash standing rule applies to NEW copy in published UI bodies** — converted 9 accidental em-dashes to commas / periods / colons before commit (verified `git diff | grep "—"` = 0 on added lines).
+
+### 🚨 Blockers / asks
+- **IG long-lived token for Swing Shack has expired** (live `Socials` shows `0 posts · 90d window · sources: 0 graph`). Refresh via Postiz / Meta portal is a daytime-approval ask (credentials lane).
+
+---
+
 ## Nightshift Report — 2026-08-04T06:24:00Z
 
 ### ✅ What was done
