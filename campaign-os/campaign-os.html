@@ -8898,9 +8898,19 @@ async function renderSEO(){
   // fall back to top-level fields and synthesize high_priority from recs when
   // missing so the audit card renders real numbers instead of "—".
   const auditSum = a.summary && Object.keys(a.summary).length ? a.summary : a;
-  const highPrio = Array.isArray(a.high_priority) && a.high_priority.length
+  const highPrioRaw = Array.isArray(a.high_priority) && a.high_priority.length
     ? a.high_priority
     : (Array.isArray(a.recommendations) ? a.recommendations.filter(r => r && r.severity === 'high') : []);
+  // Audit recs reference pages by name; build a name→url map so itemHtml's
+  // "Where" link doesn't render `https://swingshack.co.zaHomepage`. Decorate
+  // each rec with a `where` object so the renderer picks up the real URL.
+  const _auditPageUrl = Object.fromEntries((a.pages || []).map(p => [p.name, p.url]));
+  const highPrio = highPrioRaw.map(r => {
+    if (r && r.page && !r.url && _auditPageUrl[r.page] && !r.where) {
+      return { ...r, where: { url: _auditPageUrl[r.page], label: `📍 ${r.page}` } };
+    }
+    return r;
+  });
   const tot = auditSum.total_findings ?? '—';
   const hi  = auditSum.high_severity  ?? '—';
   const mid = auditSum.medium_severity ?? '—';
@@ -8908,7 +8918,17 @@ async function renderSEO(){
   $('#seo-audit').innerHTML = `<dl class="kvs"><dt>Findings</dt><dd>${tot}</dd><dt>High</dt><dd>${hi}</dd><dt>Medium</dt><dd>${mid}</dd><dt>Low</dt><dd>${lo}</dd></dl>` + safeList(highPrio, 8).map(itemHtml).join('');
   const rank = s.rankings;
   $('#seo-rank').innerHTML = `<div class="row gap-1" style="margin-bottom:.75rem">${pill('on',(rank?.rising||[]).length+' rising')} ${pill('blocked',(rank?.falling||[]).length+' falling')} ${pill('live',(rank?.quick_wins||[]).length+' quick wins')}</div>` + safeList(rank?.keywords, 10).map(itemHtml).join('');
-  $('#seo-geo').innerHTML = `<dl class="kvs"><dt>GEO score</dt><dd>${s.geo?.geo_score||'—'}</dd></dl>` + safeList(s.geo?.high_priority, 6).map(itemHtml).join('');
+  // GEO high_priority is often empty on a healthy site; fall back to recommendations
+  // (medium/low) so the card isn't mostly blank. Show positive_signals as a footer
+  // when we have no items at all.
+  const _geoItems = (s.geo?.high_priority && s.geo.high_priority.length)
+    ? s.geo.high_priority
+    : ((s.geo?.recommendations && s.geo.recommendations.length) ? s.geo.recommendations : []);
+  const _geoPositives = s.geo?.positive_signals || [];
+  const _geoFooter = (!_geoItems.length && _geoPositives.length)
+    ? `<div class="empty" style="margin-top:.5rem">No fixes needed · ${_geoPositives.length} positive signal${_geoPositives.length===1?'':'s'}</div>`
+    : '';
+  $('#seo-geo').innerHTML = `<dl class="kvs"><dt>GEO score</dt><dd>${s.geo?.geo_score||'—'}</dd></dl>` + safeList(_geoItems, 6).map(itemHtml).join('') + _geoFooter;
   $('#seo-fixes').innerHTML = safeList(s.fixes, 10).map(itemHtml).join('') || '<div class="empty">No fixes suggested</div>';
 }
 
