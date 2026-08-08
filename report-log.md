@@ -241,3 +241,69 @@
 **Learned:** Imgflip CDN image IDs are deterministic but the catalog rotates. A small one-shot re-curate is cheap; the bigger lever is the onerror fallback so the page is self-healing (no future user reports of "Meme Lord is broken").
 
 **Asks:** None.
+
+## 2026-08-08T07:08Z — fix(campaign-os): collapse GA4 (pagePath, source) duplicates in Top Pages
+
+**Done:** Performance > Top pages by sessions was showing 10 rows but 5 of them were the same `/` (homepage) with different engagement rates — because `fetch_ga4.js` sliced the top 10 RAW rows from a GA4 `(pagePath, sessionSource)` query. Now: homepage shows once with session-weighted ER. Three layers:
+1. `scripts/fetch_ga4.js` — aggregate by `pagePath` (sum sessions, session-weighted ER) before slicing top 10. Source file is correct from next fetch onwards.
+2. `_lib/intelligence.py performance_view()` + `campaign-os/app.py weekly_report()` — defence-in-depth: collapse duplicates at render time so API serves correct data even before next GA4 fetch.
+3. `scripts/cleanup_ga4_pages.js` (one-shot normaliser) + `tests/test_ga4_page_aggregation.py` (4 regression tests).
+
+**Verified (Playwright LIVE, cookie auth):**
+- LIVE `/api/intel/performance` → `ga4.pages` returns 5 unique rows (was 10 with 5 homepage duplicates).
+- Before: `/` × 5 with sessions {153, 149, 104, 30, 23} and ER {71.9%, 26.8%, 23.1%, 70.0%, 0.0%} — visually a wall of `/` rows.
+- After: `/` (459 sessions · 38.4% ER), `/bookings/` (146 · 64.2%), `/customer-portal/` (59 · 59.3%), `/takomo-irons-south-africa-...` (56 · 64.3%), `/club-fitting/` (45 · 73.3%).
+- 4/4 regression tests pass.
+- 0 PAGEERROR, 0 console errors, /api/health green.
+
+**Files (5 changed, +253/-7):**
+- `campaign-os/_lib/intelligence.py` — aggregator added before return
+- `campaign-os/app.py` — aggregator in `weekly_report()` GA4 section
+- `scripts/fetch_ga4.js` — proper per-path aggregation in source fetcher
+- `scripts/cleanup_ga4_pages.js` — one-shot normaliser for cached file
+- `campaign-os/tests/test_ga4_page_aggregation.py` — 4 regression tests
+
+**Commit:** `45d404e` on `feat/asset-state-engine`, +253/-7, 5 files, pushed. Railway auto-deployed in ~60s.
+
+**Screenshot (LIVE):** `/tmp/co-nightshift/walkthrough_2026-08-08T07:06Z_ga4_toppages_FIXED.png`
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 JS logic added, 0 fabricated stats (all numbers derived from the same cached rows that were already on disk).
+
+**Next pick:** Trends competitor_changes dates still show 2026-04-22 (4 months old) — the freshness banner correctly flags it 🟡, but the competitor card itself doesn't show how stale each row is. Add a relative-time pill per competitor row (or grey out rows > 30 days old).
+
+**Learned:** Module-level `DATA_DIR = os.path.join(REPO_ROOT, "data")` is not env-overridable per-test. Test must use `unittest.mock.patch.object(module, "_read_json")` instead of `os.environ`. The Railway-side `/data` volume is also separate from repo's `data/` — the runtime file stays stale until the next fetch, which is why defence-in-depth at render time is the only reliable fix.
+
+**Asks:** None.
+
+## 2026-08-08T07:08Z — fix(campaign-os): collapse GA4 (pagePath, source) duplicates in Top Pages
+
+**Done:** Performance > Top pages by sessions was showing 10 rows but 5 of them were the same `/` (homepage) with different engagement rates — because `fetch_ga4.js` sliced the top 10 RAW rows from a GA4 `(pagePath, sessionSource)` query. Now: homepage shows once with session-weighted ER. Three layers:
+1. `scripts/fetch_ga4.js` — aggregate by `pagePath` (sum sessions, session-weighted ER) before slicing top 10. Source file is correct from next fetch onwards.
+2. `_lib/intelligence.py performance_view()` + `campaign-os/app.py weekly_report()` — defence-in-depth: collapse duplicates at render time so API serves correct data even before next GA4 fetch.
+3. `scripts/cleanup_ga4_pages.js` (one-shot normaliser) + `tests/test_ga4_page_aggregation.py` (4 regression tests).
+
+**Verified (Playwright LIVE, cookie auth):**
+- LIVE `/api/intel/performance` → `ga4.pages` returns 5 unique rows (was 10 with 5 homepage duplicates).
+- Before: `/` × 5 with sessions {153, 149, 104, 30, 23} and ER {71.9%, 26.8%, 23.1%, 70.0%, 0.0%} — visually a wall of `/` rows.
+- After: `/` (459 sessions · 38.4% ER), `/bookings/` (146 · 64.2%), `/customer-portal/` (59 · 59.3%), `/takomo-irons-south-africa-...` (56 · 64.3%), `/club-fitting/` (45 · 73.3%).
+- 4/4 regression tests pass.
+- 0 PAGEERROR, 0 console errors, /api/health green.
+
+**Files (5 changed, +253/-7):**
+- `campaign-os/_lib/intelligence.py` — aggregator added before return
+- `campaign-os/app.py` — aggregator in `weekly_report()` GA4 section
+- `scripts/fetch_ga4.js` — proper per-path aggregation in source fetcher
+- `scripts/cleanup_ga4_pages.js` — one-shot normaliser for cached file
+- `campaign-os/tests/test_ga4_page_aggregation.py` — 4 regression tests
+
+**Commit:** `45d404e` on `feat/asset-state-engine`, +253/-7, 5 files, pushed. Railway auto-deployed in ~60s.
+
+**Screenshot (LIVE):** `/tmp/co-nightshift/walkthrough_2026-08-08T07:06Z_ga4_toppages_FIXED.png`
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 JS logic added, 0 fabricated stats (all numbers derived from the same cached rows that were already on disk).
+
+**Next pick:** Trends competitor_changes dates still show 2026-04-22 (4 months old) — the freshness banner correctly flags it 🟡, but the competitor card itself doesn't show how stale each row is. Add a relative-time pill per competitor row (or grey out rows > 30 days old).
+
+**Learned:** Module-level `DATA_DIR = os.path.join(REPO_ROOT, "data")` is not env-overridable per-test. Test must use `unittest.mock.patch.object(module, "_read_json")` instead of `os.environ`. The Railway-side `/data` volume is also separate from repo's `data/` — the runtime file stays stale until the next fetch, which is why defence-in-depth at render time is the only reliable fix.
+
+**Asks:** None.
