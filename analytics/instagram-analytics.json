@@ -1,14 +1,14 @@
 {
-  "followers": 2480,
-  "followsCount": 176,
+  "followers": 2482,
+  "followsCount": 177,
   "posts": 787,
   "postsInWindow": 10,
   "avgEngagement": "0.16",
-  "period": "2026-07-08 to 2026-08-07",
-  "reach30d": 49488,
-  "profileViews30d": 721,
-  "accountsEngaged30d": 226,
-  "totalInteractions30d": 494,
+  "period": "2026-07-09 to 2026-08-08",
+  "reach30d": 45968,
+  "profileViews30d": 671,
+  "accountsEngaged30d": 219,
+  "totalInteractions30d": 474,
   "recentPosts": [
     {
       "id": "18098215292347008",
@@ -74,7 +74,7 @@
       "mediaType": "VIDEO",
       "likeCount": 16,
       "commentsCount": 0,
-      "engagementRate": "0.65"
+      "engagementRate": "0.64"
     },
     {
       "id": "17866901091651089",
@@ -121,7 +121,7 @@
       "engagementRate": "0.16"
     }
   ],
-  "lastUpdated": "2026-08-07T04:30:14.321Z",
+  "lastUpdated": "2026-08-08T04:30:12.537Z",
   "trackedFirst": "2026-07-01T08:30:31.524Z",
   "source": "automated",
   "fbPage": {
@@ -139,15 +139,11 @@
     "daily": []
   },
   "igInsights30d": {
-    "reach": 49488,
-    "profileViews": 721,
-    "accountsEngaged": 226,
-    "totalInteractions": 494,
+    "reach": 45968,
+    "profileViews": 671,
+    "accountsEngaged": 219,
+    "totalInteractions": 474,
     "daily": [
-      {
-        "date": "2026-07-08",
-        "reach": 3834
-      },
       {
         "date": "2026-07-09",
         "reach": 3108
@@ -262,13 +258,17 @@
       },
       {
         "date": "2026-08-06",
-        "reach": 340
+        "reach": 367
+      },
+      {
+        "date": "2026-08-07",
+        "reach": 287
       }
     ]
   },
   "window": {
-    "sinceUnix": 1783485004,
-    "untilUnix": 1786077004,
+    "sinceUnix": 1783571401,
+    "untilUnix": 1786163401,
     "days": 30
   },
   "warnings": []
