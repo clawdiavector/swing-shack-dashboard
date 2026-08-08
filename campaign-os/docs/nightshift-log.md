@@ -2114,3 +2114,33 @@ If the volume walk yields zero files (e.g. freshly mounted empty Railway volume)
 **Learned:** Porting the JS timestamp-scan algorithm to Python was straightforward (~80 lines) because the JS version was already a clean recursive walk over `node` keys. The trickiest detail was the unit-handling (seconds vs ms vs ISO strings vs yyyy-mm-dd) — the JS version has the same heuristic in `_freshness_parse_ts` so behaviour matches. The bigger design question was *when* to walk: lazy-on-miss is better than eager-on-startup because it doesn't add cold-start latency and only fires when the user actually wants the data. The cache TTL of 300s is loose enough that the daily cron (which writes to disk) will be picked up on the next request after the cache expires.
 
 **Asks:** None.
+
+## 2026-08-08T03:14Z — fix(campaign-os): render real audit numbers on SEO page
+
+Pre-flight caught dirty tree (7 data files + CHECKPOINT inserts from previous session). Stashed as `nightshift-preflight-dirty-2026-08-08` so the tree was clean before touching code. Local server fails to start (read-only `/data` volume — known issue from 2026-08-06 log entry), so verification was live-only.
+
+Authed live probe on 10 surfaces. Live app healthy (0 console errors, 0 page errors). Most surfaces look fine. The real bug found: **SEO section's Audit summary card** showed four dashes (`—`) for Findings/High/Medium/Low and the high-priority list rendered empty even though 16 real findings (8 high, 4 medium, 4 low) are in `data/seo-audit.json`.
+
+Root cause: API `/api/intel/seo_assistant` returns the raw seo-audit.json payload (top-level `total_findings/high_severity/medium_severity/low_severity` + `recommendations[]`). SPA's `renderSEO()` was reading `s.audit.summary.total_findings` and `s.audit.high_priority` — keys that don't exist on this payload. The SPA was written against an old API contract that the backend drifted away from.
+
+Fix: SPA-only patch. When `summary` is empty/missing, fall back to top-level fields. When `high_priority` is missing, synthesize it from `recommendations[]` filtered by `severity === 'high'`. No API contract change, no other consumers affected, no data touched.
+
+**Patch (commit 41b71d5, 1 file, +15/-2):**
+- `campaign-os/campaign-os.html` — `renderSEO()` body.
+
+**Verified (LIVE, authed, Playwright, post-deploy):**
+- Bundle probe: `hasOld: false`, `hasNew: true` — new code shipped.
+- `#seo-audit` innerHTML now reads: `Findings: 16 · High: 8 · Medium: 4 · Low: 4` (was all dashes).
+- 8 high-priority findings listed (Missing meta description, No H1 found, etc.) with `🚀 Run it` action buttons — was empty.
+- 0 PAGEERROR, 0 console errors, 0 net fails.
+- `/api/health` green throughout.
+
+**Next pick:**
+1. The remaining 26 EXPLAINERS blocks still reference 2026-07-30 era card names — cheap text sweep.
+2. GA4 "Top pages by sessions" shows 3 duplicate `/` entries on Performance page — data quality issue (the GA4 service is returning collapsed-aggregate rows), likely needs a separate data-side fix.
+3. The "Just generated" card on Ideas page is a tall empty banner when nothing has been generated this session — empty state needs a "click Generate to start" hint instead of a blank card.
+
+**Learned:** The pre-existing field-name-drift audit script (`scripts/audit-field-name-drift.py`) does check `renderSEO` against `/api/intel/seo_assistant`, but it only validates that the keys the SPA reads are *present* on the response — not that they *contain the data the SPA expects*. The audit would have missed this because the SPA was reading `summary` which exists as a key (just empty). The next iteration of the audit should validate that the values at the keys the SPA reads are non-empty for at least one sample payload.
+
+**Asks:** None.
+
