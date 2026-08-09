@@ -4804,6 +4804,7 @@ async function renderInsightsV2(){
       caption_excerpt: (p.caption || p.hook_text || '').slice(0, 80),
       like_count: p.like_count, comments_count: p.comments_count,
       timestamp: p.timestamp,
+      format_type: p.format_type, topic_cluster: p.topic_cluster, likes: p.likes,
     }));
     $('#ins-ig-count').textContent = `${igPostsFinal.length} posts`;
     igList.innerHTML = igPostsFinal.length ? igPostsFinal.map(p => {
@@ -4816,8 +4817,9 @@ async function renderInsightsV2(){
       return `
         <a href="${esc(p.permalink || '#')}" target="_blank" rel="noopener"
            style="display:flex;gap:.6rem;align-items:center;padding:.5rem;border-radius:8px;text-decoration:none;color:inherit;border-left:3px solid ${borderColor};background:var(--bg-2);margin-bottom:.4rem">
-          <div style="width:56px;height:56px;background:var(--bg-3);border-radius:6px;overflow:hidden;flex-shrink:0">
-            ${p.thumbnail_url ? `<img src="${esc(p.thumbnail_url)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<div style=&quot;font-size:9px;color:var(--tx-3);display:flex;align-items:center;justify-content:center;height:100%&quot;>no img</div>'"/>` : `<div style="font-size:9px;color:var(--tx-3);display:flex;align-items:center;justify-content:center;height:100%">no img</div>`}
+          <div style="width:56px;height:56px;background:var(--bg-3);border-radius:6px;overflow:hidden;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;text-align:center;line-height:1.1">
+            <b style="font-size:8px;letter-spacing:.5px;color:var(--tx-2)">${esc((p.format_type||'POST').toUpperCase().slice(0,6))}</b>
+            <span style="font-size:7px;color:var(--tx-3);opacity:.75">${esc((p.topic_cluster||'').slice(0,10))}</span>
           </div>
           <div style="flex:1;min-width:0">
             <div style="font-size:12px;font-weight:600;color:var(--tx-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cap}</div>
