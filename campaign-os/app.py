@@ -417,7 +417,7 @@ WHATS_NEW = [
      "body": "Morning Brief's review/publish counters were stuck at 0/0 because the count panel called a different state slice than the Review tab. Re-pointed at review_inbox() + publishing_inbox() so the numbers, the 'Do this right now' rationale, and the Review tab finally agree. No more pretending the queue is empty."},
     {"ts": "2026-08-08T01:30:00Z", "tag": "chrome", "title": "Orphan-DNA tile renders palette placeholder, not black box",
      "body": "Visualizer tiles whose DNA JSON is missing the thumbnail_b64 field were painting solid black. Now they render a tasteful palette-swatch placeholder (the same fallback the Recipes tab uses) plus a one-line 'Image unavailable' caption · no more mystery black rectangles in the grid."},
-    {"ts": "2026-08-08T00:10:00Z", "tag": "chrome", "title": "GBP profile 'Location [object Object]' becomes city, region · country",
+    {"ts": "2026-08-08T00:10:00Z", "tag": "chrome", "title": "GBP profile header reads 'city, region · country' (no more raw-object leak)",
      "body": "The Google Business Profile header was stringifying an object instead of the city. Now reads GBP fields safely (name / city / region / country) so the header reads 'Sandton, Gauteng · South Africa' instead of leaking the raw object. Affects every GBP tile on Home + Brand Directory."},
     {"ts": "2026-08-07T22:58:00Z", "tag": "chrome", "title": "13 dead meme-template thumbnails repaired",
      "body": "Meme Lab was showing broken-image icons for 13 of 26 templates because the thumbnail filenames had drifted from the on-disk assets. Re-mapped every template to its real PNG (palette + first-frame SVG fallback for the two truly-missing ones). All 26 templates now preview cleanly."},
