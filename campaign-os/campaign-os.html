@@ -4785,15 +4785,19 @@ async function renderInsightsV2(){
         </div>
       </div>
       <div class="grid" style="margin-bottom:1rem">
-        ${headlines.slice(0,3).map((h, i) => `
-          <div class="card col-4 ins-headline tone-${h.tone}">
+        ${(() => {
+          const hs = headlines.slice(0,3);
+          const colCls = hs.length === 3 ? 'col-4' : hs.length === 2 ? 'col-6' : 'col-12';
+          return hs.map((h, i) => `
+          <div class="card ${colCls} ins-headline tone-${h.tone}">
             <div class="card-h">
               <h3 style="margin:0">${h.emoji} ${i+1}. <span style="color:var(--tx-3);font-weight:500">What happened</span></h3>
             </div>
             <div class="ins-data">${esc(h.data)}</div>
             <div class="ins-take">${esc(h.take)}</div>
           </div>
-        `).join('')}
+        `).join('');
+        })()}
       </div>
       <div class="card col-7">
         <div class="card-h">
