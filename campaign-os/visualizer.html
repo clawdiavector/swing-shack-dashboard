@@ -165,15 +165,16 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 
 <div class="layout">
   <aside class="sidebar">
-    <div class="hero" id="page-engagement" data-help="Live page-level engagement pulled from Meta (Facebook + Instagram) for the selected brand over the last 30 days. Page engagements = the combined count of reactions, comments, shares, and clicks on the brand's posts. Views = unique impressions. If the band shows dashes, Meta credentials are not configured for this brand or the page-level signal has not been activated yet." data-help-title="Page engagement (30d)">
-      <div>
+    <div class="hero" id="page-engagement" data-help="Live page-level engagement pulled from Meta (Facebook + Instagram) for the selected brand over the last 30 days. Page engagements = the combined count of reactions, comments, shares, and clicks on the brand's posts. Views = unique impressions. If the band shows dashes with a reason below, the API told us exactly why: e.g. 'no token' means Meta credentials aren't configured for this brand, 'awaiting approval' means App Review is in progress." data-help-title="Page engagement (30d)">
+      <div style="flex:1; min-width:0;">
         <div class="big" id="engagement-total">—</div>
         <div class="lbl" data-help="Combined Meta engagements on the brand's posts in the last 30 days. Includes reactions, comments, shares, and clicks. Use this as the top-line social signal when comparing brands or weeks." data-help-title="Engagements (30d)">Page engagements (30d)</div>
       </div>
-      <div class="right">
+      <div class="right" style="margin-left: 12px;">
         <div style="font-size: 18px; font-weight: 700;" id="engagement-views">—</div>
         <div class="lbl" data-help="Unique impressions on the brand's posts in the last 30 days. A post can be engaged-with multiple times but only counted once in views. Compare views to engagements to read the engagement rate: Engagements / Views." data-help-title="Views (30d)">Views (30d)</div>
       </div>
+      <div id="engagement-reason" style="display:none; flex-basis:100%; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.25); font-size: 11px; line-height: 1.4; opacity: 0.95;"></div>
     </div>
 
     <div class="filter-group">
@@ -213,8 +214,8 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
     </div>
 
     <div class="filter-group">
-      <h3 data-help="Per-post engagement joins from Meta are gated on the pages_read_user_content permission in Meta App Review. Until that permission is approved, only the page-level total (the hero card above) is available. Click View evidence to see the App Review submission for this brand." data-help-title="Real-data join">Real-data join</h3>
-      <div style="font-size: 12px; color: var(--muted); line-height: 1.5;">
+      <h3 data-help="Per-post engagement joins from Meta are gated on the pages_read_user_content permission in Meta App Review. Until that permission is approved, only the page-level total (the hero card above) is available. Click View evidence to see the App Review submission for this brand. The body text is data-driven: when page-level is unconfigured it tells you, when per-post is waiting it tells you." data-help-title="Real-data join">Real-data join</h3>
+      <div id="real-data-join-body" style="font-size: 12px; color: var(--muted); line-height: 1.5;">
         Page-level Meta engagement is wired up. Per-post engagement joins auto-activate when Meta approves <code>pages_read_user_content</code> in App Review.
         <a href="https://swing-shack-dashboard-production.up.railway.app/meta-app-review/" target="_blank" style="display: inline-block; margin-top: 6px;">View evidence →</a>
       </div>
@@ -449,18 +450,60 @@ let state = {
 };
 
 // ── Load page engagement hero ───────────────────────────────────────────
+const REASON_LABELS = {
+  'no token': 'No Meta token configured for this brand yet',
+  'token expired': 'Meta token expired — re-authenticate',
+  'awaiting approval': 'Awaiting Meta App Review approval',
+  'rate limited': 'Meta rate-limited the request — will retry shortly',
+  'no posts': 'No posts on the Meta page yet for this brand',
+  'permission denied': 'Meta permission denied for this brand',
+};
+function explainReason(reason) {
+  if (!reason) return '';
+  const key = String(reason).toLowerCase().trim();
+  return REASON_LABELS[key] || reason;
+}
 async function loadEngagement() {
   try {
     const perf = await API.perf();
     const sig = perf.page_signal || {};
+    const totalEl = document.getElementById('engagement-total');
+    const viewsEl = document.getElementById('engagement-views');
+    const reasonEl = document.getElementById('engagement-reason');
     if (sig.available) {
-      document.getElementById('engagement-total').textContent = sig.engagements_30d.toLocaleString();
-      document.getElementById('engagement-views').textContent = sig.views_30d.toLocaleString();
-      document.getElementById('engagement-total').style.color = '#fff';
-      document.getElementById('engagement-views').style.color = '#fff';
+      totalEl.textContent = sig.engagements_30d.toLocaleString();
+      viewsEl.textContent = sig.views_30d.toLocaleString();
+      totalEl.style.color = '#fff';
+      viewsEl.style.color = '#fff';
+      reasonEl.style.display = 'none';
+      reasonEl.textContent = '';
     } else {
-      document.getElementById('engagement-total').textContent = '—';
-      document.getElementById('engagement-views').textContent = '—';
+      totalEl.textContent = '—';
+      viewsEl.textContent = '—';
+      totalEl.style.color = 'rgba(255,255,255,0.55)';
+      viewsEl.style.color = 'rgba(255,255,255,0.55)';
+      const r = explainReason(sig.reason);
+      if (r) {
+        reasonEl.textContent = '⚠ ' + r + (sig.reason && REASON_LABELS[String(sig.reason).toLowerCase().trim()] ? '' : '');
+        reasonEl.style.display = 'block';
+      } else {
+        reasonEl.style.display = 'none';
+      }
+    }
+    // Drive the Real-data join banner from the API instead of a hardcoded lie.
+    const joinBox = document.getElementById('real-data-join-body');
+    if (joinBox) {
+      const pp = perf.per_post_join || {};
+      const pageWired = !!(sig.available || sig.engagements_30d || sig.views_30d);
+      const pageText = pageWired
+        ? 'Page-level Meta engagement is wired up.'
+        : 'Page-level Meta engagement is not active (' + (explainReason(sig.reason) || 'unconfigured') + ').';
+      const ppText = pp.available
+        ? 'Per-post engagement joins are live.'
+        : 'Per-post engagement joins auto-activate when Meta approves <code>pages_read_user_content</code> in App Review.';
+      const ppReason = (!pp.available && pp.reason) ? ' ' + explainReason(pp.reason) + '.' : '';
+      const href = pp.submission_evidence_url || '/meta-app-review/';
+      joinBox.innerHTML = pageText + ' ' + ppText + ppReason + ' <a href="' + href + '" target="_blank" style="display: inline-block; margin-top: 6px;">View evidence →</a>';
     }
   } catch (e) {
     console.warn('engagement load failed', e);
