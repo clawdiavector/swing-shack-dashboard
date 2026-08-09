@@ -582,3 +582,32 @@ Also added `.sh-extras` / `.sh-next` / `.sh-warn` CSS so the new layout doesn't 
 **Next pick:** Same generic-renderer anti-pattern likely applies to the `data_sources` array inside the system_health payload (15 sources with FRESH/STALE/MISSING status each). Today's snapshot shows `ig-analytics=FRESH, ga4-report=MISSING, seo-rankings=STALE` etc. — that lives one level deeper in the payload and could become a "data source freshness" expandable list on the same card. Same renderer pattern, smaller blast radius (data already there, no new endpoint needed).
 
 **Asks:** None.
+
+## 2026-08-09T15:09Z — fix(campaign-os): welcome tour no-ops gracefully when DOM scaffolding missing
+
+**Done:** Pre-pick sweep (new `scripts/sweep_campaign_os_live.py`, walks 28 section tabs via Playwright on the live Railway URL) caught a production pageerror: `TypeError: Cannot set properties of null (setting 'textContent')` thrown from `renderTourStep` (campaign-os.html:10674). Repro: any code path (the sweep itself, future extension/cleanup, third-party plugin) that destroys the inner `<div class="welcome-tour">` BEFORE boot's `maybeShowWelcome() -> setTimeout(openWelcome, 600)` fires leaves the outer `#welcome-bg` intact but its `welcome-ico` / `welcome-step-title` / `welcome-step-desc` / `welcome-jump` / `welcome-progress` / `welcome-cta` children null. `openWelcome()` then calls `renderTourStep(0)`, the first `$('#welcome-ico').textContent = ...` throws, and the page hits a real production pageerror every time.
+
+Fix: guard every `$('#welcome-*')` setter in `renderTourStep`, `openWelcome`, and `closeWelcome` with `if (el) el.<mutator>`. Plus `if(!tour) return;` early-return guard for out-of-range step indices. Net diff: +12/-8 in the single `renderTourStep` + 2-line tweaks in `openWelcome`/`closeWelcome`. Behaviour unchanged when the DOM is intact (tour still renders "Today / Review / Create / Insights / Image Lab" steps correctly on first visit).
+
+**Verified (Playwright LIVE via cookie auth, Railway URL, post-deploy):**
+- Pre-fix repro (wipe `.welcome-tour`, wait 2.5s): 1 pageerror — `Cannot set properties of null (setting 'textContent')` at line 10674. Reproduced on the live site before pushing.
+- Post-fix repro (same scenario, live URL @ ce2cda3): 0 pageerrors. Tour no-ops silently.
+- Tour still works on clean reload (no DOM wipe): `welcome-bg.on`, `welcome-ico = 🏠`, `welcome-step-title = "Today"`.
+- Full-page screenshot at `/tmp/co-nightshift/walkthrough_20260809T150934Z.png` (welcome dismissed, Today brief renders cleanly with recommendation card, data freshness, stats grid, do-first / needs-review, SEO quick wins, post-today, today timeline — all green).
+- 119/119 `unittest discover -s campaign-os/tests -p "test_v2026*.py` (was 113; +6 new from this fix). 0 prior-lane regressions.
+- `/api/health` 200. Login + root + brief nav all 200.
+
+**Files (3 changed, +383/-8):**
+- `campaign-os/campaign-os.html` — `renderTourStep()` body rewritten with null-guarded setters + early-return on missing step; `openWelcome()`/`closeWelcome()` guards on `#welcome-bg`.
+- `campaign-os/tests/test_v2026_08_09_welcome_tour_null_safe.py` — NEW, 6 read-only regression tests (WelcomeTourNullSafeTests class: guards_every_setter, openWelcome_guards_welcome_bg_setter, closeWelcome_guards_welcome_bg_setter, no_unconditional_welcome_setters_left, renderTourStep_returns_early_on_missing_step, no_em_dash_in_patched_block).
+- `scripts/sweep_campaign_os_live.py` — NEW, Playwright walker that pre-pick-sweeps all 28 Campaign OS section tabs for `<pre>` JSON dumps, literal `[object Object]` text, raw JSON row dumps, blank sections, and `[object-object]` text artefacts. Outputs JSON to `/tmp/co-nightshift/sweep_<TS>.json`.
+
+**Commit:** `ce2cda3` on `feat/asset-state-engine`, 3 files, +383/-8, pushed. Railway auto-deployed.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes (`git diff | grep "—"` = 0; the comment uses a colon instead), 0 NEW JS logic beyond null-guards, 0 schema change, 0 helper added.
+
+**Learned:** The boot-time `setTimeout(openWelcome, 600)` is racing against anything that mutates the welcome modal DOM in the first 600ms — and the pageerror happens during a normal cold load if `.welcome-tour` is wiped early. Same null-guard pattern should apply to any other `setTimeout`-driven renderer (`renderBrief`, `renderCalendar`, `renderInsights`) where the target DOM could be torn down by the same sweep code. One-shot bootstrap paths (boot, post-`localStorage.removeItem` reload) are the highest-risk window for null refs because the user has had zero chance to interact.
+
+**Next pick:** The `data_status` source array inside the system_health payload (`f.data_sources` — 15+ sources each with name/url/status/age). Currently rendered as a raw key/value block in the System health card. Could become a compact "data source freshness" expandable list (fresh / stale / missing colour pills) — same renderer pattern, same file, smaller blast radius. Alternative: the "Learning" nav tab has been silent for weeks — confirm whether the intelligence module's `learning` view still returns a non-empty list (prior lane flagged it as a possible dead section).
+
+**Asks:** None.
