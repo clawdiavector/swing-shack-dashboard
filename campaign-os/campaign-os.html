@@ -4526,6 +4526,15 @@ function go(sec){
     // HELP.section removes any pre-existing .help-section-explainer first, so
     // the cloned Performance explainer is replaced atomically with the Insights
     // one plus its paired GA4 sub-explainer.
+    //
+    // NOTE: as of the Insights v2 rewrite (renderInsightsV2 is the sole Insights
+    // renderer — old clone-based code below `await renderInsightsV2(); return;`
+    // is preserved as a reference but never runs), sec-insights already carries
+    // a richer "🔍 How to read this view" lens banner that supersedes both the
+    // generic Insights explainer and the GA4 sub-explainer. Re-mounting here
+    // produced two orphaned collapsed <details> boxes at the top of the Insights
+    // tab that looked like broken empty accordions. Skip the mount for insights.
+    if(realSec === 'insights') return;
     try {
       if(typeof HELP !== 'undefined' && HELP.section){
         const analyticsMap = {
