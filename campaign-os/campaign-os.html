@@ -10671,19 +10671,23 @@ let tourStep = 0;
 function renderTourStep(idx){
   tourStep = idx;
   const tour = TOUR_STEPS[idx];
-  $('#welcome-ico').textContent = tour.ico;
-  $('#welcome-step-title').textContent = tour.title;
-  $('#welcome-step-desc').textContent = tour.desc;
-  $('#welcome-jump').textContent = tour.external ? 'Open →' : 'Jump to ' + tour.title + ' →';
-  $('#welcome-progress').innerHTML = TOUR_STEPS.map((_, i) => `<div class="welcome-dot ${i===idx?'on':''}"></div>`).join('');
-  $('#welcome-cta').textContent = idx === TOUR_STEPS.length - 1 ? "Let's go" : 'Next';
+  if(!tour) return;
+  // Guard every setter: if any welcome-* child has been removed from the
+  // DOM (some external code or extension could wipe .welcome-tour), the
+  // tour should still no-op instead of throwing "Cannot set properties of null".
+  const ico = $('#welcome-ico');       if(ico)       ico.textContent       = tour.ico;
+  const ttl = $('#welcome-step-title');if(ttl)       ttl.textContent       = tour.title;
+  const dsc = $('#welcome-step-desc'); if(dsc)       dsc.textContent       = tour.desc;
+  const jmp = $('#welcome-jump');      if(jmp)       jmp.textContent       = tour.external ? 'Open →' : 'Jump to ' + tour.title + ' →';
+  const prg = $('#welcome-progress');  if(prg)       prg.innerHTML         = TOUR_STEPS.map((_, i) => `<div class="welcome-dot ${i===idx?'on':''}"></div>`).join('');
+  const cta = $('#welcome-cta');       if(cta)       cta.textContent       = idx === TOUR_STEPS.length - 1 ? "Let's go" : 'Next';
 }
 function openWelcome(){
   renderTourStep(0);
-  $('#welcome-bg').classList.add('on');
+  const bg = $('#welcome-bg'); if(bg) bg.classList.add('on');
 }
 function closeWelcome(){
-  $('#welcome-bg').classList.remove('on');
+  const bg = $('#welcome-bg'); if(bg) bg.classList.remove('on');
   try { localStorage.setItem(TOUR_KEY, '1'); } catch(e){}
 }
 function maybeShowWelcome(){
