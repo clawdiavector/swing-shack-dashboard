@@ -1,4 +1,27 @@
 
+## 2026-08-09T01:43Z — fix(campaign-os): skip stale HELP.section mount on Insights tab (orphan accordions)
+
+**Done:** Insights tab was rendering two orphaned collapsed `<details>` boxes ("How to read performance data" + "How to read Google Analytics (GA4)") right under the H2 — they looked like broken empty accordions because the v2 lens banner ("🔍 How to read this view") below them was already a richer superseding explanation. Root cause: `go()`'s post-loadSection `HELP.section('insights', 'ga4')` mount dated from when `renderInsights` cloned sec-performance into sec-insights and needed the cloned perf explainer swapped out for the Insights-specific one. Since the Insights v2 rewrite, `renderInsightsV2()` is the sole renderer (old clone-based code preserved as a reference but never runs) and mounts its own lens banner; the post-mount just adds dead duplicate boxes. One-line guard: `if(realSec === 'insights') return;` inside the post-loadSection `.then(...)` block in `go()`.
+
+**Commit:** `77ee6b9` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +9/-0 (all comment + the one-line guard), pushed.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-fix: `#sec-insights` had 2 `<details.help-collapsible.help-section-explainer>` summary boxes stacked under the H2.
+- Post-fix: 0 such panels. v2 lens banner `.insights-lens-ctx` still present (1 instance). H2 unchanged. 0 PAGEERROR. 0 console errors.
+- Regression sweep (other sections still get their explainers): Performance → 2 summaries (perf + GA4). Trends → 2 summaries (trend catcher + Meta).
+- Insights content below the banner: 2 "What happened" headline cards + 8 Top IG Posts rows + 5 Top pages rows + ad-correlation block — all unchanged.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-09T014300Z_insights_FIXED.png` — clean Insights tab (no orphan accordions, lens banner in place)
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (0 in the new comment block — used `//` line comments only), 0 NEW JS logic (single `if(...) return;` early-return guard), 0 schema change, 0 helper removed (post-mount still runs for every other section).
+
+**Learned:** The `go()` post-loadSection `HELP.section` re-mount was originally paired with a `renderInsights` clone-from-performance that no longer runs. The companion comments at lines 4521-4528 describe the old "swap the cloned perf explainer for the Insights-specific one" intent — that intent is now stale because `renderInsightsV2()` never clones, it renders fresh content with its own banner. The pre-mount (`mountSec = 'performance'` for insights) is harmless because sec-performance isn't the active view, but worth a follow-up to remove if we confirm no other consumer depends on sec-performance having an explainer mounted while insights is active. The orphan-accordion pattern is general — any time a renderer fully replaces section content, post-mount explainer helpers that were paired with the old renderer's clone pattern become silent UI rot.
+
+**Next pick:** Top IG Posts show `no img` placeholders on every row — `thumbnail_url` field on `/api/insights/top-instagram-posts` is either missing or 404ing on Railway (the live screenshot shows 8 "no img" gray boxes with red engagement rates). Visualizer thumbnails use the `thumbnail_data_url` pattern; the Insights API probably needs the same fix on the server side (`/api/insights/top-instagram-posts` in `campaign-os/app.py` around line 4057-4074). Could be a single missing field-extraction line. Then the empty 3rd "What happened" grid slot — the headlines grid is `col-4 col-4 col-4` but only 2 cards fill it when SEO keyword data isn't wired; layout would benefit from `col-6 col-6` when only 2 cards, or a "no SEO data" placeholder in the 3rd slot.
+
+**Asks:** None.
+
 ## 2026-08-06T06:16Z — fix(campaign-os): ship thumbnail_data_url on /discover + use it in renderImageCard (eliminates the last visualizer 404 surface)
 
 **Done:** Two-part fix that closes the last residual 404 on the Visualizer page (the one `takomo.png` outlier identified in last tick's report was the only thing left after the visualizer.html thumbnail_data_url patch).
