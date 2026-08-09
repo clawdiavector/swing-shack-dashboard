@@ -611,3 +611,27 @@ Fix: guard every `$('#welcome-*')` setter in `renderTourStep`, `openWelcome`, an
 **Next pick:** The `data_status` source array inside the system_health payload (`f.data_sources` — 15+ sources each with name/url/status/age). Currently rendered as a raw key/value block in the System health card. Could become a compact "data source freshness" expandable list (fresh / stale / missing colour pills) — same renderer pattern, same file, smaller blast radius. Alternative: the "Learning" nav tab has been silent for weeks — confirm whether the intelligence module's `learning` view still returns a non-empty list (prior lane flagged it as a possible dead section).
 
 **Asks:** None.
+## 2026-08-09T16:23Z — fix(campaign-os): System health card lists per-source freshness as colour-coded rows
+
+**Done:** The Agents & health System health card surfaced the aggregate "9 source(s) older than 24h" QA warning but hid the per-source `data_sources.sources` array (15 entries) inside the payload — Christelle had to open `/api/intel/agents` to spot which source was actually missing or stale. `systemHealthHtml()` now renders the array as a scrollable stack of compact rows below the existing qa_warnings block. Each row carries: label · file (monospace, on hover) · human-readable age · colour-mapped status pill (FRESH=on/green, STALE=review/amber, MISSING=blocked/red). Rows sort FRESH → STALE → MISSING so the worst land at the bottom. New CSS block `.sh-sources` / `.sh-source-row.s-*` uses theme tokens (`--ac`, `--yel`, `--red`) for the left-border colour so the rows inherit the same palette as the other pills on the page. `.sh-sources-scroller { max-height:240px }` keeps the System health card from overflowing the integration-health card to its left.
+
+**Verified (Playwright LIVE via cookie auth, Railway URL, post-deploy):**
+- Pre-fix DOM (HEAD @ 1e2a964): `#agents-health` ended with the qa_warnings ul. The 15-entry `data_sources.sources` payload was present in the response but never rendered.
+- Post-fix DOM (HEAD @ b06103d): `#agents-health` now ends with `.sh-sources` containing 15 `.sh-source-row` children, header reading "15 total · 5 fresh · 9 stale · 1 missing", first row `.s-fresh` "IG Analytics / ig-analytics.json / 5h ago / FRESH", first STALE row "Nudge Queue / nudge-queue.json / 1d ago / STALE".
+- Visual verification (vision, tight-crop screenshot): System health card renders 5 FRESH rows (green left border + green pill) and at least 1 STALE row (yellow left border + yellow pill) above the fold; more rows scroll into view. None of the existing KV rows, data/priority pills, next line, or qa_warnings are touched.
+- 0 new page errors. 0 new console errors from this change.
+- `/api/health` green. Login + root + Agents nav all 200.
+
+**Files (2 changed, +266/-1):**
+- `campaign-os/campaign-os.html` — 19-line CSS block for `.sh-sources*` + 38-line data-sources render block inside `systemHealthHtml()` (sort + per-row map + header counts).
+- `campaign-os/tests/test_v2026_08_09_system_health_data_sources.py` — NEW, 14 read-only regression tests (presence, sort order, row markers, all 3 pill branches, esc on user fields, cap at 24, header counts, CSS class existence, theme-var colours, no em-dash, prior-lane non-regression on data_status / priority / next_action / qa_warnings).
+
+**Commit:** `b06103d` on `feat/asset-state-engine`, 2 files, +266/-1, pushed. Railway auto-deployed in ~15 s.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 em-dashes in rendered output (used `·` separator + `or 'never'` fallback + `: ` labels; em-dash test in the new file guards against future regression), 0 fabricated stats, 0 schema change, 0 helper added beyond extending the existing `systemHealthHtml()`.
+
+**Learned:** Generic list-renderers (`itemHtml`, `safeList`) always pass the right shape but `systemHealthHtml()` was already a per-shape renderer for the rest of the payload — extending it was the right move instead of opening a new code path. The same pattern will apply to any future per-source / per-agent sub-array in this payload (currently none).
+
+**Next pick:** The Learning nav tab (`renderLearning()`) shows a "long-memory view" tile but the learning endpoint returns largely empty arrays (`what_worked.hooks: []`, `what_worked.signals: []`, `recommendation_outcomes.exec_rate: 0`) — a user opening the tab sees only a heading. Two follow-ups: (a) make the empty state obvious with a one-line "no data yet, hook bank needs 2+ weeks of delivery audit" honest explanation, (b) once we have real data, surface the 4 confidence-band `ok:false` cases (autonomous_actions 8% success rate, reddit_trending 70% match) as the most actionable signal in that view. Smaller blast radius, no schema change, same per-shape renderer pattern.
+
+**Asks:** None.
