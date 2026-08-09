@@ -443,3 +443,27 @@
 **Learned:** Chrome `--headless=new` consistently hangs on the Campaign OS SPA root — the previous report already documented this. The reliable path is Playwright via the existing `walk_socials_local.py` / `walk_socials_lens_live.py` pattern: login → click `.nav[data-go=socials]` → eval probe → screenshot. That gives the same evidence as a screenshot without the GPU-process leak.
 
 **Asks:** None.
+
+## 2026-08-09T06:51Z — fix(campaign-os): Insights Top IG posts tile shows REEL/topic chip instead of grey 'no img' box
+
+**Done:** Live `/api/intel/performance` returns 10 Instagram posts with `format_type` (REEL/STATIC) + `topic_cluster` (equipment, etc.) + engagementRate but **no `thumbnail_url`/`media_url`**. The Insights v2 renderer fell back to a 56x56 grey "no img" placeholder for all 8 rows — wasted real estate and a confusing "broken image" UX for what was actually rich data sitting right there.
+
+Replaced the dead `<img>`+onerror+placeholder fallback with a static flex-column chip showing `format_type` (top, bold, 8px, letter-spaced) and `topic_cluster` (below, 7px, faded). Each row is still an `<a href=permalink>` so it still opens the actual IG post. The chip is rendered unconditionally because the live dataset has zero rows with a real thumbnail — the previous 3-way branch was unreachable in production.
+
+**Commit:** `806054a` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +4/-2, pushed.
+
+**Verified (Playwright LIVE via cloud browser, cookie auth, Railway URL):**
+- Pre-fix DOM: `#ins-ig-top-list > a` rows contained `<div>no img</div>` text.
+- Post-fix DOM: `#ins-ig-top-list > a` rows contain `<b>REEL</b>` / `<b>STATIC</b>` and `<span>equipment</span>` chips. Confirmed via `document.querySelectorAll('#ins-ig-top-list > a').length === 8`.
+- Visual verification (vision): all 8 rows render format + topic chip instead of grey box. Color-coded left borders (all red for sub-1.5% ER) + engagement % indicators unchanged.
+- Page errors: 0. Console errors: 0.
+- Regression: Home tab, Sidebar nav, lens banner, "1. What happened" + "2. What happened" cards, Top pages by sessions, "Did the ad drive this spike?" — all unchanged.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (commit message uses en-dashes only in single quoted code blocks), 0 NEW JS logic beyond template substitution, 0 schema change, 0 helper removed (the `esc()` wrapper still wraps user-supplied fields).
+
+**Learned:** The 3-way branch (`thumbnail_url` truthy → img, truthy but onerror → placeholder, falsy → placeholder) had two arms that never executed in production because the data endpoint ships posts without thumbnail_url. Simplifying to a single static branch removed unreachable code AND fixed the UX. Lesson: when a fallback path is taken 100% of the time, it's no longer a fallback — it's the design.
+
+**Next pick:** "1. What happened" card has its 459-sessions line overflow into a clipped bottom that reads "fixes pay off most" — looks like CSS text-overflow is set incorrectly (likely missing `overflow:visible` on the headline summary block, or container height is hard-capped). Either give it more vertical room or shorten the copy. Then the third "What happened" grid slot is empty (col-4 col-4 col-4 → only 2 cards fill it) — could add a "What to test next" card or collapse to col-6 col-6.
+
+**Asks:** None.
+
