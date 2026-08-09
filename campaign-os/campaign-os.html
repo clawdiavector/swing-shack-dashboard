@@ -4714,6 +4714,25 @@ async function renderInsightsV2(){
     summary.textContent = `${headlines.length} signals · ${igPosts.length} posts · ${ga4Pages.length} pages tracked`;
 
     body.innerHTML = `
+      <!-- Insights-lens context banner: explains what this view is and how to read it.
+           Same intent as the dead-code banner inside the old renderInsights() clone loop,
+           but tuned to v2's actual cards (headlines, top IG posts, top pages, ad correlation). -->
+      <div class="card col-12 insights-lens-ctx" style="margin-bottom:1rem;border-left:3px solid var(--ac)">
+        <div style="display:flex;gap:.6rem;align-items:flex-start">
+          <div style="font-size:20px;line-height:1">🔍</div>
+          <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
+            <b style="color:var(--tx-1)">How to read this view:</b>
+            the cards below mirror Performance, but the framing is different — read them as <i>pattern signals</i>, not today's snapshot.
+            <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
+              <li><b>🟢🟡🔴 tone</b>: green = keep doing it, yellow = watch, red = needs attention before next batch.</li>
+              <li><b>Top Instagram Posts</b>: scan for shared hook shape, format, or pillar. Repeating patterns beat one-off wins.</li>
+              <li><b>Top pages by sessions</b>: high-traffic URLs are the highest-leverage place to make small copy fixes.</li>
+              <li><b>Did the ad drive this spike?</b>: green = the campaign correlates, gray = no ad data wired yet (honest, not guessed).</li>
+            </ul>
+            <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">Pair with <b>Performance</b> for the raw numbers, <b>🧠 Learning</b> for the long-memory view (what hooks and CTAs actually paid off over weeks).</div>
+          </div>
+        </div>
+      </div>
       <div class="grid" style="margin-bottom:1rem">
         ${headlines.slice(0,3).map((h, i) => `
           <div class="card col-4 ins-headline tone-${h.tone}">
