@@ -1379,6 +1379,25 @@ a:hover{text-decoration:underline}
         </div>
       </div>
       <div id="socials-connect-cta" style="display:none"></div>
+      <!-- Socials-lens context banner: explains what this view is and how to read it.
+           Mirrors the Insights v2 banner pattern (line ~4730). Tells the user which
+           two sources feed the grid, what the status pill colours mean, and where
+           to go if they want to push a winning post into a new asset. -->
+      <div class="card col-12 socials-lens-ctx" style="margin-bottom:1rem;border-left:3px solid var(--ac)">
+        <div style="display:flex;gap:.6rem;align-items:flex-start">
+          <div style="font-size:20px;line-height:1">🪩</div>
+          <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
+            <b style="color:var(--tx-1)">How to read this view:</b>
+            this is the <i>voice history</i> of the active brand on Instagram, not a feed of today's posts.
+            <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
+              <li><b>Recent (≤30d)</b> posts come from <b>Meta Graph</b> with real thumbnails, captions, likes and comments. <b>Older</b> posts fall back to <b>oEmbed</b> link previews so the grid stays visually live forever.</li>
+              <li><b>Status pill</b>: <span style="color:#10b981">🟢 live</span> = newest post inside the window, <span style="color:var(--tx-3)">⚪ empty</span> = wired but quiet, <span style="color:var(--ac)">🔌 not wired</span> = the long-lived token has not landed yet (the card above explains the next step).</li>
+              <li><b>Click any tile</b> for the side panel: full caption, permalink, like + comment counts. Use that as your <i>voice consistency audit</i>, or as a starting point for an Image Lab remix.</li>
+            </ul>
+            <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">Pair with <b>Meme Lord</b> for templates that match the same voice, and <b>🧠 Learning</b> for which of these posts actually paid off over weeks.</div>
+          </div>
+        </div>
+      </div>
       <div class="card col-12" style="margin-bottom:1rem">
         <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
           <label class="muted" style="font-size:11px">Range</label>
