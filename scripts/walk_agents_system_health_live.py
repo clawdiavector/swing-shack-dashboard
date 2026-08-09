@@ -56,6 +56,21 @@ def main() -> int:
         # Wait for renderAgents() to populate
         page.wait_for_function("document.querySelector('#agents-list')?.children.length > 0", timeout=15000)
         page.wait_for_function("document.querySelector('#agents-health')?.innerHTML.length > 100", timeout=15000)
+        # Dismiss the welcome tour overlay so it doesn't sit on top of the System health card
+        try:
+            page.evaluate("""
+              () => {
+                try { localStorage.setItem('co_welcomed', '1'); } catch(e){}
+                const tour = document.querySelector('.tour, .welcome-tour, [data-tour]');
+                if(tour) tour.remove();
+                // also try to click the Skip button if present
+                const skip = [...document.querySelectorAll('button')].find(b => /skip|close/i.test(b.textContent || ''));
+                if(skip) skip.click();
+              }
+            """)
+            page.wait_for_timeout(200)
+        except Exception as e:
+            print("tour dismiss:", e)
 
         # 4. Probe the System health card
         probe = page.evaluate("""
@@ -85,6 +100,31 @@ def main() -> int:
         page.wait_for_timeout(300)
         page.screenshot(path=str(SCREEN), full_page=True)
         print(f"screenshot: {SCREEN}")
+
+        # 5b. Also capture a tight crop of just the System health card for visual verification
+        try:
+            health_card = page.evaluate("""
+              () => {
+                const card = document.querySelector('#agents-health')?.closest('.card');
+                if(!card) return null;
+                const r = card.getBoundingClientRect();
+                return {x: r.x, y: r.y, width: r.width, height: r.height};
+              }
+            """)
+            if health_card:
+                crop_path = OUT / f"walkthrough_{TS}_system_health.png"
+                page.screenshot(
+                    path=str(crop_path),
+                    clip={
+                        "x": max(0, health_card["x"] - 4),
+                        "y": max(0, health_card["y"] - 4),
+                        "width": min(1440, health_card["width"] + 8),
+                        "height": min(900, health_card["height"] + 8),
+                    },
+                )
+                print(f"screenshot (crop): {crop_path}")
+        except Exception as e:
+            print("crop skipped:", e)
 
         # 6. Print errors (if any)
         if errors:

@@ -98,6 +98,18 @@ def test_css_classes_for_system_health_extras_exist():
         assert cls in src, f"Missing CSS class {cls} in campaign-os.html"
 
 
+def test_sh_extras_pill_collision_overridden():
+    """`.sh-extras .pill{display:inline-flex;padding:3px 8px}` must exist to override the bare `.review` class collision (line ~500 of campaign-os.html sets `.review{display:flex;padding:.75rem 1rem}`, which would otherwise render the STALE pill as a full-width block inside the System health card).
+
+    Regression guard: if anyone removes the .sh-extras .pill override, the STALE pill returns to stretching across the col-5 card width and looks like a broken block instead of a pill.
+    """
+    src = _read()
+    assert re.search(r"\.sh-extras\s+\.pill\{display:inline-flex;padding:3px 8px\}", src), (
+        "Expected '.sh-extras .pill{display:inline-flex;padding:3px 8px}' rule to "
+        "override the bare .review class collision in the System health card"
+    )
+
+
 # ─── data_status pill colour mapping ─────────────────────────────
 
 

@@ -521,6 +521,11 @@ a:hover{text-decoration:underline}
 .kvs dd{color:var(--tx);font-weight:500}
 /* System-health extras: gap above, tighter rows, small inline lists */
 .sh-extras{margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--bd)}
+/* .pill.review collides with the bare .review class (line 500, display:flex,
+   padding:.75rem 1rem) which is defined later in source order and wins
+   on same specificity. Re-assert inline-flex + zero padding inside the
+   System health card so the STALE pill stays pill-sized, not block-sized. */
+.sh-extras .pill{display:inline-flex;padding:3px 8px}
 .sh-next{font-size:12.5px;color:var(--tx-2);margin-top:.5rem;line-height:1.45}
 .sh-next b{color:var(--tx);font-weight:600}
 .sh-warn{margin-top:.5rem}
