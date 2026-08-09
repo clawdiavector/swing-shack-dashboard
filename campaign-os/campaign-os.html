@@ -4729,9 +4729,18 @@ async function renderCreate(){
 }
 
 // ─── INSIGHTS v2 — color-coded, layman-terms, image-first ───────────
+// Per-section render token: when a user navigates away from Insights and back
+// during the async fetch window, the previous render's Promise.all still resolves
+// and tries to mutate DOM nodes the new render has already wiped — that throws
+// "Cannot set properties of null (setting 'textContent')" on `#ins-ig-count`,
+// `#ins-v2-summary`, etc. Each call increments a counter on the section element;
+// stale callbacks check `sec.dataset.insRenderToken` against the snapshot they
+// captured at entry and bail silently if a newer render has taken over.
 async function renderInsightsV2(){
     const sec = $('#sec-insights');
     if(!sec) return;
+    const myToken = (Number(sec.dataset.insRenderToken) || 0) + 1;
+    sec.dataset.insRenderToken = String(myToken);
     sec.innerHTML = `
       <div class="section-h">
         <h2 data-help="Plain-English view of what is happening with your marketing. Every card shows the data AND what it means in one short sentence. Green = good signal, yellow = watch, red = needs attention. Built for non-marketers — if you can't read a card in 5 seconds, it's a bug." data-help-title="Insights">📈 Insights <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · layman terms · color-coded</span></h2>
@@ -4751,6 +4760,9 @@ async function renderInsightsV2(){
       API.get('/api/insights/top-instagram-posts?limit=8').catch(e => ({error: String(e)})),
       API.get('/api/insights/ad-correlation').catch(e => ({error: String(e)})),
     ]);
+    // Bail if a newer render has taken over (user navigated away and back).
+    // The DOM nodes this render created have been wiped by the new call.
+    if(String(sec.dataset.insRenderToken) !== String(myToken)) return;
     const igPosts = (perf.instagram?.top_posts) || [];
     const ga4Pages = safeList(perf.ga4?.pages, 10);
     const seo = perf.seo || {};
