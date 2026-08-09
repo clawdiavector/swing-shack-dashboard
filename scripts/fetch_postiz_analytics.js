@@ -94,6 +94,10 @@ async function run() {
       id: p.id || p._id || 'unknown',
       postId: p.postId || p.externalId || p.id,
       timestamp: p.date || p.publishedAt || p.createdAt || new Date().toISOString(),
+      // Permalink: Postiz returns releaseURL/releaseId; fall back to shortcode-based URL when missing.
+      // Without this, the Insights tab renders the post as a non-clickable row (live UX bug).
+      permalink: p.permalink || p.url || p.postUrl || p.releaseURL || null,
+      permalink_shortcode: p.shortcode || p.code || null,
       captionPreview: caption.substring(0, 80),
       hook_text: hook,
       hook_id: hook.toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 50),

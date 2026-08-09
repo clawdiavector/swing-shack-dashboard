@@ -4877,28 +4877,53 @@ async function renderInsightsV2(){
       format_type: p.format_type, topic_cluster: p.topic_cluster, likes: p.likes,
     }));
     $('#ins-ig-count').textContent = `${igPostsFinal.length} posts`;
-    igList.innerHTML = igPostsFinal.length ? igPostsFinal.map(p => {
+    // Tone posts relative to the local average so the top performer gets a clear
+    // "above your average" signal even when the whole deck is low (e.g. ER < 1.5%).
+    // If the average is essentially zero, fall back to absolute thresholds so we still
+    // surface a "Top performer" row.
+    const igErValues = igPostsFinal.map(p => parseFloat(p.engagementRate || 0) || 0);
+    const igAvgEr = igErValues.length ? (igErValues.reduce((s, x) => s + x, 0) / igErValues.length) : 0;
+    const igTopEr = igErValues.length ? Math.max(...igErValues) : 0;
+    igList.innerHTML = igPostsFinal.length ? igPostsFinal.map((p, idx) => {
       const er = parseFloat(p.engagementRate || 0) || 0;
-      const tone = er >= 3 ? 'good' : er >= 1.5 ? 'watch' : 'bad';
-      const toneEmoji = er >= 3 ? '🟢' : er >= 1.5 ? '🟡' : '🔴';
+      const ratio = igAvgEr > 0 ? er / igAvgEr : 0;
+      const isTop = idx === 0 || er === igTopEr;
+      let tone, toneEmoji, verdictLabel;
+      if (isTop && er > 0 && ratio >= 1.5) {
+        tone = 'good'; toneEmoji = '🟢'; verdictLabel = 'Top performer';
+      } else if (ratio >= 1.2) {
+        tone = 'good'; toneEmoji = '🟢'; verdictLabel = 'Above average';
+      } else if (ratio >= 0.8 || er >= igAvgEr) {
+        tone = 'watch'; toneEmoji = '🟡'; verdictLabel = 'On par';
+      } else {
+        tone = 'bad'; toneEmoji = '🔴'; verdictLabel = 'Below average';
+      }
       const cap = esc(p.caption_excerpt || p.caption || '(no caption)');
       const ts = p.timestamp ? new Date(p.timestamp).toLocaleDateString() : '';
       const borderColor = tone==='good'?'#10b981':tone==='watch'?'#f59e0b':'#ef4444';
-      return `
-        <a href="${esc(p.permalink || '#')}" target="_blank" rel="noopener"
-           style="display:flex;gap:.6rem;align-items:center;padding:.5rem;border-radius:8px;text-decoration:none;color:inherit;border-left:3px solid ${borderColor};background:var(--bg-2);margin-bottom:.4rem">
+      const innerContent = `
           <div style="width:56px;height:56px;background:var(--bg-3);border-radius:6px;overflow:hidden;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;text-align:center;line-height:1.1">
             <b style="font-size:8px;letter-spacing:.5px;color:var(--tx-2)">${esc((p.format_type||'POST').toUpperCase().slice(0,6))}</b>
             <span style="font-size:7px;color:var(--tx-3);opacity:.75">${esc((p.topic_cluster||'').slice(0,10))}</span>
           </div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:600;color:var(--tx-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cap}</div>
-            <div style="font-size:10px;color:var(--tx-3);display:flex;justify-content:space-between;margin-top:.15rem">
-              <span>${ts} · ${p.like_count != null ? '❤️ '+p.like_count : ''} ${p.comments_count != null ? '💬 '+p.comments_count : ''}</span>
-              <span style="font-weight:600;color:${borderColor}">${toneEmoji} ${er.toFixed(2)}%</span>
+            <div style="display:flex;gap:.4rem;align-items:center">
+              <div style="font-size:12px;font-weight:600;color:var(--tx-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${cap}</div>
+              ${isTop && er > 0 ? `<span style="font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:${borderColor}22;color:${borderColor};flex-shrink:0" title="Top engagementRate in this list">★ Top</span>` : ''}
             </div>
-          </div>
-        </a>`;
+            <div style="font-size:10px;color:var(--tx-3);display:flex;justify-content:space-between;margin-top:.15rem;gap:.5rem">
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ts}${p.like_count != null ? ' · ❤️ '+p.like_count : ''}${p.comments_count != null ? ' · 💬 '+p.comments_count : ''}</span>
+              <span style="font-weight:600;color:${borderColor};flex-shrink:0" title="${verdictLabel} (your avg: ${igAvgEr.toFixed(2)}%)">${toneEmoji} ${er.toFixed(2)}%</span>
+            </div>
+          </div>`;
+      // When permalink is missing, render as a static div so the cursor doesn't lie
+      // about this row being clickable.
+      if (p.permalink) {
+        return `<a href="${esc(p.permalink)}" target="_blank" rel="noopener"
+           style="display:flex;gap:.6rem;align-items:center;padding:.5rem;border-radius:8px;text-decoration:none;color:inherit;border-left:3px solid ${borderColor};background:var(--bg-2);margin-bottom:.4rem">${innerContent}</a>`;
+      }
+      return `<div
+           style="display:flex;gap:.6rem;align-items:center;padding:.5rem;border-radius:8px;color:inherit;border-left:3px solid ${borderColor};background:var(--bg-2);margin-bottom:.4rem;opacity:.92">${innerContent}</div>`;
     }).join('') : `<div class="muted" style="padding:1rem">No IG posts yet. Connect Instagram in the Brand Directory to see top performers.</div>`;
 
     const pagesList = $('#ins-pages-list');
