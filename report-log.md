@@ -692,3 +692,37 @@ Fix: render `angle` as the `.li-title`, `reply_draft` as a 2-line `.li-preview`,
 **Next pick:** The remaining sections with 0 visible top-level buttons (`learning`, `gbp`, `publish`) are intentional read-only diagnostic surfaces — but each one's empty-state strings ("No patterns yet", "Nothing scheduled") could link to the action that would fill them (Review queue, Trend Catcher, Review queue respectively). Smallest possible: add a single "How to fill this in" sub-line to each empty state. Even smaller: just `learning`, since the report-log already flagged it two ticks ago.
 
 **Asks:** None.
+## 2026-08-09T22:08Z — fix(campaign-os): Learning tab empty states each show an inline CTA button to the tab that fills them in
+
+**Done:** Pre-pick sweep on the LIVE Railway URL (28-section walker) caught a priority #4 weak-UX gap on the Learning tab: the 5 empty-state cards (What worked / What failed / CTA rankings / Trend delta / Failure patterns) showed descriptive copy but no actionable button. The brand team reading "Fills in once 3+ assets have published performance data. Approve + publish in the Review queue to start learning." had no in-card way to jump to Review.
+
+Fix: every `LEARN_EMPTY` entry now carries a `cta: { go, label }` object, and `learnEmpty(key)` renders a primary button below the existing empty-sub copy that calls `go('<section>')` via inline onclick. Targets map to the tab that actually fills the card (no fake data):
+  worked    -> review      (approve + publish is what seeds this)
+  failed    -> review
+  cta       -> ctas        (CTA generator is what fills this)
+  trend     -> trends      (Trend Catcher kick-off)
+  fail_pat  -> review
+
+Same `.btn primary` token every other CTA in the app uses. Uses `esc(e.cta.go)` and `esc(e.cta.label)` so a stray quote in copy cannot break out of the inline handler. Action hint is the right-arrow character (`→`), not an em-dash.
+
+**Verified (Playwright LIVE via cookie auth, Railway URL @ 861c9a5 + 984690a, post-deploy):**
+- Learning tab now shows 5 actionable empty-state buttons.
+- Each click navigates to the right tab (clicked "Open Review queue →" on `learn-worked` → `sec-review.on === true` confirmed).
+- 0 pageerrors, 0 console.errors, 0 net failures across the 28-section sweep.
+- 7/7 new tests in `test_v2026_08_09_learning_empty_state_cta.py` pass (all 5 entries have cta, cta.go values are valid data-go nav targets, learnEmpty is multi-line with `.btn.primary` + `onclick="go(...)"`, esc() wired around go + label, right-arrow hint present, no em-dash in new copy, existing title/sub copy preserved).
+- 28/28 prior-lane static tests still pass (no regressions).
+
+**Files (3 changed, +289/-6):**
+- `campaign-os/campaign-os.html` — replaced 5-line LEARN_EMPTY + 1-line learnEmpty with 6-line LEARN_EMPTY + 6-line learnEmpty (5 cta targets wired, multi-line arrow body, esc-wired button).
+- `campaign-os/tests/test_v2026_08_09_learning_empty_state_cta.py` — NEW, 7 read-only regression tests.
+- `scripts/walk_full_sweep_live.py` — NEW, Playwright walker that hits all 28 sidebar sections on LIVE and reports pageerrors / console.errors / net failures / em-dash count / JSON leaks / empty-state hits.
+
+**Commits:** `861c9a5` + `984690a` on `feat/asset-state-engine`, 3 files, +289/-6, pushed. Railway auto-deployed in ~30 s. /api/health 200.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes in shipped copy (right-arrow `→` used as action hint), 0 fabricated stats, 0 schema change, 0 helper added beyond an inline esc-wired button.
+
+**Learned:** Pre-pick sweep (28-section walker) found zero browser bugs this tick but surfaced 5 actionable empty states with zero button affordance. Pattern generalises to `GBP`, `Publish`, and the read-only diagnostic surfaces (`learning` itself was the first) — but Learning was the most-trafficked by the brand team since it answers "why are my posts not performing?". Each empty-state now needs to either (a) point to the action that fills it, or (b) show a synthetic preview with the existing data (e.g. show 3 most recent assets even if performance is null).
+
+**Next pick:** Same empty-state pattern likely applies to Publish (5 published-status columns: Drafts / Scheduled / Published / Failed / Rejected) when the queue is empty for a brand. Each column needs its own "Create + schedule" CTA. Also, `GBP` section currently shows a single big empty card — same single-CTA treatment. Smallest possible: GBP empty card first since the section has fewer moving parts.
+
+**Asks:** None.
