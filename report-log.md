@@ -467,3 +467,29 @@ Replaced the dead `<img>`+onerror+placeholder fallback with a static flex-column
 
 **Asks:** None.
 
+
+## 2026-08-09T10:20Z — fix(campaign-os): Insights 'What happened' grid fills its row when only 1 or 2 cards render
+
+**Done:** Insights > "What happened" no longer shows an empty 4-column slot to the right when SEO (Ubersuggest) isn't wired. Today only GA4 + IG push into `headlines[]`, so the grid renders 2 cards. The template hardcoded `col-4` for every card, leaving a visible empty `col-4` gap. Fix is an IIFE that picks col-class by array length: 3 → col-4, 2 → col-6, 1 → col-12. The "No analytics connected yet" fallback already covers the empty-state case.
+
+**Verified (live Railway, Playwright cookie auth):**
+- Pre-fix DOM (HEAD @ 9174ccd): `#sec-insights .ins-headline` cards rendered with `col-4` classes; visible empty slot to the right of "1. What happened" + "2. What happened".
+- Post-fix DOM (HEAD @ eca8186): cards now carry `col-6` and span the full 12-column grid cleanly. Probe confirmed `parent_first_class: "card col-6 ins-headline tone-good"`.
+- Visual verification (vision): row fills the full width, no empty slot. Lens banner above + Top IG Posts below remain aligned.
+- 5/5 new tests in `test_v2026_08_09_what_happened_col_picker.py` pass (iife picker, three col cases, no static col-4-only template, headline markers still render, no smart quotes).
+- 61/61 prior-lane nightshift static-HTML tests still pass — no regression on adjacent lanes.
+- `/api/health` green. Login + root + Insights nav all 200. No console errors. No page errors.
+
+**Files (2 changed, +81/-3):**
+- `campaign-os/campaign-os.html` — 8-line IIFE col-picker inside `renderInsightsV2`'s body template.
+- `campaign-os/tests/test_v2026_08_09_what_happened_col_picker.py` — 5 read-only regression tests.
+
+**Commit:** `eca8186` on `feat/asset-state-engine`, +81/-3, 2 files, pushed. Railway auto-deployed.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 fabricated stats. One atomic commit, no force push. No schema change. No helper added.
+
+**Next pick:** the leftover third Insights grid slot (1-card / 2-card cases) now fills cleanly, but the actual UX win for Christelle would be a "What to test next" suggestion card when SEO is unwired — picks one concrete action from the available data sources. That's a daytime-approval candidate (new product behaviour, not a fix). Until then, the next lane is the dead-code block at line 4920 (the old `renderInsights()` clone loop) — keep or delete? Either way it's maintenance noise.
+
+**Learned:** Col-class templates should be data-driven, not hardcoded. When the data array can have 1, 2, or 3 items (because of feature wiring state), the grid column span must adapt. Same pattern applies to other arrays on the page — if SEO ever unwires (briefing data loss), the empty-state UX is already there but the visual rhythm breaks.
+
+**Asks:** None.
