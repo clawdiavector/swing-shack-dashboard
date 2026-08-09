@@ -357,3 +357,34 @@
 **Learned:** Chrome `--headless=new` on this macOS hangs on `--screenshot` for the SPA root (GPU process won't exit cleanly). Older `--headless` mode is deprecated in Chrome 152 and the new one needs `--virtual-time-budget` + a stable `--user-data-dir`. Falling back to: serve-file grep + Python simulation of the JS render path + regression tests on the static HTML. That combo is sufficient evidence for a row-level DOM change.
 
 **Asks:** None.
+
+## 2026-08-09T00:35Z — feat(campaign-os): Insights v2 — paint 'How to read this view' lens banner
+
+**Done:** The Insights tab now greets the user with an `insights-lens-ctx` card explaining the framing before the headlines + v2 cards load. The earlier dead-code banner inside `renderInsights()` (which was meant to provide this context) never actually reached users because `renderInsights()` returns early at `await renderInsightsV2(); return;`. The banner copy lived as unreachable code since the v2 rebuild.
+
+**Shipped:** Banner is prepended inside `renderInsightsV2()`'s body template, immediately before the headlines grid. Survives every Refresh click because `body.innerHTML = ...` re-injects it each render. Banner explains:
+- 🟢🟡🔴 tone legend (green = keep, yellow = watch, red = attention)
+- Top Instagram Posts is a pattern view (shared hook/format/pillar)
+- Top pages by sessions = high-leverage copy-fix locations
+- Ad correlation card is honest about "not configured" instead of guessing
+- Cross-link to Performance (raw) and 🧠 Learning (long-memory)
+
+**Verified:**
+- 9/9 tests in new `test_v2026_08_09_insights_lens_ctx.py` pass (banner class present, lives in v2 body template, lives BEFORE headlines grid, NOT in dead-code renderInsights clone loop, explains every v2 card, cross-links Performance + Learning, no smart-quote artifacts).
+- 8/8 `test_v2026_08_08_competitor_row_age_pill` (static-HTML) still pass — no regression on adjacent prior lane.
+- `/api/health` green, live URL responsive.
+- Grep on local HTML: `insights-lens-ctx` appears 2x — line 4720 (live v2 banner) + line 4920 (dead-code old banner, kept as reference). Exactly the invariant the test asserts.
+
+**Files (2 changed, +171):**
+- `campaign-os/campaign-os.html` — prepend 19-line `insights-lens-ctx` card into `body.innerHTML` template inside `renderInsightsV2`.
+- `campaign-os/tests/test_v2026_08_09_insights_lens_ctx.py` — 9 read-only regression tests.
+
+**Commit:** `9b5b34e` on `feat/asset-state-engine`, +171, 2 files, pushed. Railway auto-deploying.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 fabricated stats. Banner copy uses straight quotes (no smart-quote artifacts). One atomic commit, no force push.
+
+**Next pick:** the next highest-quality remaining UX lane — Socials / Meme Lab tabs still lack their own "How to read" framing (the Socials explainer panel that landed in cbf18fc is for the data-freshness banner, not the section framing). Or: the Trends `competitor_changes` banner already has row-age pills from the previous lane — the Trends > Trends Signals list could use a parallel stale-aware pill so users can spot abandoned signals at a glance.
+
+**Learned:** `renderInsights()` is a wrapper that early-returns into `renderInsightsV2()`. Any "explainer" code inside the wrapper's body below `return;` is dead. Always check whether a function has an early `return;` before assuming the body executes. The dead-code banner block (line 4920) was kept as "reference" but is a maintenance trap — anyone reading it would assume it's live. Future refactor should delete it, OR add a `// UNREACHABLE — see renderInsightsV2` comment so the next reader doesn't waste time.
+
+**Asks:** None.
