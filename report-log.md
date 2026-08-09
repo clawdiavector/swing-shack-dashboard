@@ -493,3 +493,27 @@ Replaced the dead `<img>`+onerror+placeholder fallback with a static flex-column
 **Learned:** Col-class templates should be data-driven, not hardcoded. When the data array can have 1, 2, or 3 items (because of feature wiring state), the grid column span must adapt. Same pattern applies to other arrays on the page — if SEO ever unwires (briefing data loss), the empty-state UX is already there but the visual rhythm breaks.
 
 **Asks:** None.
+## 2026-08-09T11:36Z — fix(campaign-os): Agents tab renders agent lanes as readable cards, not raw JSON
+
+**Done:** Christelle opens the Agents & health tab to see what the fleet ran; previously every agent lane row was the raw `JSON.stringify(item).slice(0,80)` because the generic `itemHtml()` couldn't find a long-string title in `{agent_id, last_run, last_status, runs}` and fell back to JSON. Replaced with a 25-line `agentRunHtml()` that knows the shape and paints: agent_id (monospace) · N runs total · last <age|never> · status pill (PASS=on/green, PARTIAL=review/amber, FAIL=blocked/red). Bumped cap 20 → 24 so all 23 lanes show uncut.
+
+**Verified (live Railway, Playwright cookie auth):**
+- Pre-fix DOM (HEAD @ d3ded89): 23 LIs whose `textContent` was `{"agent_id":"pulse_keeper","last_run":null,"last_status":"PASS","runs":5}` etc.
+- Post-fix DOM (HEAD @ bb941bc): 23 LIs with `pulse_keeper` / `5 runs total · last never` / `PASS` pill (green).
+- 0 console errors, 0 page errors. Live `/api/health` 200.
+- 8/8 new structural tests in `test_v2026_08_09_agents_runs_json_to_cards.py` pass (function exists, renderAgents uses it, status pill emitted, runs pluralised, age in Xm/Xh/Xd/never, no em-dashes, fields escaped, pill colour branches cover PASS/PARTIAL/FAIL).
+- 54/54 prior static regression tests still pass (calendar_lens, insights_lens, socials_lens, socials_connect_cta, what_happened_col_picker).
+
+**Files (2 changed, +188/-1):**
+- `campaign-os/campaign-os.html` — 25-line `agentRunHtml()`, swap in `renderAgents()`.
+- `campaign-os/tests/test_v2026_08_09_agents_runs_json_to_cards.py` — 8 read-only regression tests.
+
+**Commit:** `bb941bc` on `feat/asset-state-engine`, +188/-1, 2 files, pushed. Railway auto-deployed in 24 s.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes in rendered output (used `: ` and `,` and `·` everywhere; `→` U+2192 in code comments is fine), 0 fabricated stats, 0 schema change, 0 helper added beyond the one renderer for this exact shape. The screenshot file is `/tmp/co-nightshift/walkthrough_20260809T113639Z.png`.
+
+**Learned:** When a generic list-renderer (`itemHtml()`) hits a shape it doesn't recognise, it has a final `JSON.stringify(it).slice(0,80)` fallback that looks like a title but is just data dump. Symptom: every row in a list has identical text-shape that looks like a bug because all rows literally start with `{`. Fix: renderers that know their shape should be co-located with the API contract, not dropped into a one-size-fits-all helper. Three more shapes still go through `itemHtml` from this same renderAgents call (integration_health, etc.) — they're fine because they carry a `name` field itemHtml can title; the agent shape was the lone outlier.
+
+**Next pick:** The "System health" card on the right of the Agents page renders the `data_status` field as a JSON `<pre>` block ("STALE") — same shape mismatch, same fix. Move from `pretty(h.data_status)` (which JSON-stringifies) to a dedicated colour-mapped status badge. Smallest reversible fix, same one-renderer pattern, ships in the same file.
+
+**Asks:** None.
