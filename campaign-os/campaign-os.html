@@ -532,6 +532,25 @@ a:hover{text-decoration:underline}
 .sh-warn b{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--org);display:block;margin-bottom:.25rem}
 .sh-warn ul{margin:.25rem 0 0;padding-left:1.1rem;font-size:12px;color:var(--tx-2);line-height:1.45}
 .sh-warn li{margin-bottom:.15rem}
+/* Data sources: one compact row per source (label + age + status pill).
+   .sh-sources-scroller holds the list — max-height keeps long lists from
+   pushing the System health card past the integration-health card on the
+   left. .sh-source-row uses a 3-col grid so each row stays one line tall
+   on desktop and wraps cleanly on narrow screens. */
+.sh-sources{margin-top:.6rem;padding-top:.55rem;border-top:1px dashed var(--bd)}
+.sh-sources-h{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--tx-3);display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem}
+.sh-sources-h .count{font-weight:500;color:var(--tx-2);text-transform:none;letter-spacing:0;font-size:11.5px}
+.sh-sources-scroller{max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;padding-right:4px}
+.sh-sources-scroller::-webkit-scrollbar{width:6px}
+.sh-sources-scroller::-webkit-scrollbar-thumb{background:var(--bd-2);border-radius:3px}
+.sh-source-row{display:grid;grid-template-columns:1fr auto auto;gap:.55rem;align-items:center;padding:.3rem .5rem;background:var(--bg-2);border-radius:6px;font-size:12px;border-left:2px solid var(--bd)}
+.sh-source-row.s-fresh{border-left-color:var(--ac)}
+.sh-source-row.s-stale{border-left-color:var(--yel)}
+.sh-source-row.s-missing{border-left-color:var(--red)}
+.sh-source-label{color:var(--tx-1);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sh-source-file{color:var(--tx-3);font-family:ui-monospace,SF Mono,Menlo,Consolas,monospace;font-size:10.5px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.sh-source-age{color:var(--tx-2);font-size:11px;font-variant-numeric:tabular-nums}
+.sh-source-row .pill{padding:2px 6px;font-size:10px;letter-spacing:.04em}
 
 /* ─── Inline editor ──────────────────────────────────────────── */
 .ed{width:100%;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.5rem .65rem;color:var(--tx);font:13px/1.45 inherit;outline:none;transition:border var(--t),box-shadow var(--t);resize:vertical}
@@ -10582,7 +10601,10 @@ function agentRunHtml(it){
 // Pretty-print the System health card body. Used by renderAgents() to render
 // the bits below the Status / Confidence / Generated KV row. Surfaces four
 // signals from the system-health payload as readable rows + pills instead of
-// dumping one of them (data_status) as a JSON <pre> block.
+// dumping one of them (data_status) as a JSON <pre> block, plus renders the
+// per-source freshness list (data_sources.sources) as a scrollable stack of
+// compact rows so Christelle can see WHICH sources are fresh/stale/missing
+// instead of only the aggregate "9 source(s) older than 24h" warning.
 //
 // Returns an empty string when nothing renderable is present so the caller
 // can concatenate safely. Never throws on missing fields.
@@ -10612,6 +10634,39 @@ function systemHealthHtml(h){
   if(Array.isArray(h.qa_warnings) && h.qa_warnings.length){
     const items = h.qa_warnings.slice(0,5).map(w => `<li>${esc(String(w))}</li>`).join('');
     extra += `<div class="sh-warn"><b>QA warnings:</b><ul>${items}</ul></div>`;
+  }
+  // Per-source freshness list. data_sources is an object {sources, fresh,
+  // stale, missing, total}; sources is an array of {label, file, status,
+  // age_label, age_hours, updated}. Sorted FRESH first, then STALE, then
+  // MISSING (worst at bottom). Each row carries a status pill + the file
+  // name + human age so the user can spot a missing source without having
+  // to open the API. Cap at 24 to keep the scroll bounded.
+  if(h.data_sources && Array.isArray(h.data_sources.sources) && h.data_sources.sources.length){
+    const sources = h.data_sources.sources.slice();
+    const order = {FRESH: 0, STALE: 1, MISSING: 2};
+    sources.sort((a, b) => (order[(a.status||'').toUpperCase()] ?? 9) - (order[(b.status||'').toUpperCase()] ?? 9)
+                       || (a.age_hours ?? 999) - (b.age_hours ?? 999));
+    const rows = sources.slice(0, 24).map(s => {
+      const st = (s.status || 'UNKNOWN').toString().toUpperCase();
+      let pKind = 'draft';
+      let sCls = 's-other';
+      if(st === 'FRESH'){ pKind = 'on'; sCls = 's-fresh'; }
+      else if(st === 'STALE'){ pKind = 'review'; sCls = 's-stale'; }
+      else if(st === 'MISSING' || st === 'OFFLINE' || st === 'FAILED'){ pKind = 'blocked'; sCls = 's-missing'; }
+      return `<div class="sh-source-row ${sCls}" title="${esc(s.file || '')}">
+        <div class="sh-source-label">${esc(s.label || s.file || 'source')}</div>
+        <div class="sh-source-file">${esc(s.file || '')}</div>
+        <div class="sh-source-age">${esc(s.age_label || 'never')}<span class="pill ${pKind}" style="margin-left:.4rem">${esc(st)}</span></div>
+      </div>`;
+    }).join('');
+    const total = h.data_sources.total || sources.length;
+    const fresh = h.data_sources.fresh != null ? h.data_sources.fresh : sources.filter(s => (s.status||'').toUpperCase() === 'FRESH').length;
+    const stale = h.data_sources.stale != null ? h.data_sources.stale : sources.filter(s => (s.status||'').toUpperCase() === 'STALE').length;
+    const missing = h.data_sources.missing != null ? h.data_sources.missing : sources.filter(s => (s.status||'').toUpperCase() === 'MISSING').length;
+    extra += `<div class="sh-sources">
+      <div class="sh-sources-h">Data sources <span class="count">${total} total · ${fresh} fresh · ${stale} stale · ${missing} missing</span></div>
+      <div class="sh-sources-scroller">${rows}</div>
+    </div>`;
   }
   if(!parts.length && !extra) return '';
   return `<dl class="kvs sh-extras">${parts.join('')}</dl>${extra}`;
