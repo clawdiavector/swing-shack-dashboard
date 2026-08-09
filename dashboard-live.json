@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-08-08T04:30:12.537Z",
+  "lastUpdated": "2026-08-09T04:30:10.557Z",
   "source": "automated",
   "website": {
     "activeUsers": 1063,
@@ -100,7 +100,7 @@
   },
   "searchConsole": null,
   "instagram": {
-    "followers": 2482,
+    "followers": 2484,
     "posts": 787,
     "avgEngagement": "0.16",
     "recentPosts": [
@@ -146,7 +146,7 @@
         "mediaType": "VIDEO",
         "likeCount": 18,
         "commentsCount": 0,
-        "engagementRate": "0.73"
+        "engagementRate": "0.72"
       },
       {
         "id": "17935510203346465",
@@ -267,14 +267,14 @@
         "permalink": "https://www.instagram.com/reel/DRxdxG6DM5H/"
       }
     ],
-    "lastUpdated": "2026-08-08T04:30:12.537Z",
+    "lastUpdated": "2026-08-09T04:30:10.557Z",
     "followsCount": 177,
     "postsInWindow": 10,
-    "period": "2026-07-09 to 2026-08-08",
-    "reach30d": 45968,
-    "profileViews30d": 671,
-    "accountsEngaged30d": 219,
-    "totalInteractions30d": 474,
+    "period": "2026-07-10 to 2026-08-09",
+    "reach30d": 43337,
+    "profileViews30d": 645,
+    "accountsEngaged30d": 196,
+    "totalInteractions30d": 432,
     "trackedFirst": "2026-07-01T08:30:31.524Z",
     "source": "automated"
   }
