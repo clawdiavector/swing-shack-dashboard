@@ -519,6 +519,14 @@ a:hover{text-decoration:underline}
 .kvs{display:grid;grid-template-columns:auto 1fr;gap:.4rem .75rem;font-size:13px}
 .kvs dt{color:var(--tx-3);font-weight:500}
 .kvs dd{color:var(--tx);font-weight:500}
+/* System-health extras: gap above, tighter rows, small inline lists */
+.sh-extras{margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--bd)}
+.sh-next{font-size:12.5px;color:var(--tx-2);margin-top:.5rem;line-height:1.45}
+.sh-next b{color:var(--tx);font-weight:600}
+.sh-warn{margin-top:.5rem}
+.sh-warn b{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--org);display:block;margin-bottom:.25rem}
+.sh-warn ul{margin:.25rem 0 0;padding-left:1.1rem;font-size:12px;color:var(--tx-2);line-height:1.45}
+.sh-warn li{margin-bottom:.15rem}
 
 /* ─── Inline editor ──────────────────────────────────────────── */
 .ed{width:100%;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.5rem .65rem;color:var(--tx);font:13px/1.45 inherit;outline:none;transition:border var(--t),box-shadow var(--t);resize:vertical}
@@ -10524,7 +10532,12 @@ async function renderAgents(){
   // last-run age · total runs.
   $('#agents-list').innerHTML = safeList(a.agents, 24).map(agentRunHtml).join('') || '<div class="empty">No agent runs</div>';
   const h = a.system_health || {};
-  $('#agents-health').innerHTML = `<dl class="kvs"><dt>Status</dt><dd>${esc(h.status||'—')}</dd><dt>Confidence</dt><dd>${esc(h.confidence||'—')}</dd><dt>Generated</dt><dd>${esc((h.generated||'').slice(0,19))}</dd></dl>` + pretty(h.data_status);
+  // System health used to dump h.data_status (a plain string like "STALE")
+  // via pretty() into a <pre> JSON block — wrong format, wrong affordance.
+  // systemHealthHtml() paints data_status + priority as colour-mapped pills
+  // and surfaces next_action + qa_warnings as a one-line summary + list,
+  // matching the Status / Confidence / Generated KV rows above.
+  $('#agents-health').innerHTML = `<dl class="kvs"><dt>Status</dt><dd>${esc(h.status||'—')}</dd><dt>Confidence</dt><dd>${esc(h.confidence||'—')}</dd><dt>Generated</dt><dd>${esc((h.generated||'').slice(0,19))}</dd></dl>` + systemHealthHtml(h);
   $('#agents-int').innerHTML = safeList(a.integration_health?.health, 12).map(itemHtml).join('') || '<div class="empty">No integration data</div>';
 }
 
@@ -10559,6 +10572,44 @@ function agentRunHtml(it){
       <div class="li-meta"><span class="pill ${pillKind}">${esc(status)}</span></div>
     </div>
   </li>`;
+}
+
+// Pretty-print the System health card body. Used by renderAgents() to render
+// the bits below the Status / Confidence / Generated KV row. Surfaces four
+// signals from the system-health payload as readable rows + pills instead of
+// dumping one of them (data_status) as a JSON <pre> block.
+//
+// Returns an empty string when nothing renderable is present so the caller
+// can concatenate safely. Never throws on missing fields.
+function systemHealthHtml(h){
+  if(!h || typeof h !== 'object') return '';
+  // data_status pill colour. FRESH=green (on), STALE=amber (review),
+  // MISSING=offline (blocked), anything else=neutral (draft).
+  const dsRaw = (h.data_status || '').toString().toUpperCase();
+  let dsKind = 'draft';
+  if(dsRaw === 'FRESH') dsKind = 'on';
+  else if(dsRaw === 'STALE') dsKind = 'review';
+  else if(dsRaw === 'MISSING' || dsRaw === 'OFFLINE' || dsRaw === 'FAILED') dsKind = 'blocked';
+  // priority pill colour. HIGH=warn (orange), MEDIUM=review (amber),
+  // LOW=draft (neutral), default=draft.
+  const prRaw = (h.priority || '').toString().toUpperCase();
+  let prKind = 'draft';
+  if(prRaw === 'HIGH' || prRaw === 'P0' || prRaw === 'URGENT') prKind = 'warn';
+  else if(prRaw === 'MEDIUM' || prRaw === 'P1' || prRaw === 'NORMAL') prKind = 'review';
+  else if(prRaw === 'LOW' || prRaw === 'P2' || prRaw === 'P3') prKind = 'draft';
+  const parts = [];
+  if(dsRaw) parts.push(`<dt>Data</dt><dd><span class="pill ${dsKind}">${esc(dsRaw)}</span></dd>`);
+  if(prRaw) parts.push(`<dt>Priority</dt><dd><span class="pill ${prKind}">${esc(prRaw)}</span></dd>`);
+  let extra = '';
+  if(h.next_action && typeof h.next_action === 'string'){
+    extra += `<div class="sh-next"><b>Next:</b> ${esc(h.next_action)}</div>`;
+  }
+  if(Array.isArray(h.qa_warnings) && h.qa_warnings.length){
+    const items = h.qa_warnings.slice(0,5).map(w => `<li>${esc(String(w))}</li>`).join('');
+    extra += `<div class="sh-warn"><b>QA warnings:</b><ul>${items}</ul></div>`;
+  }
+  if(!parts.length && !extra) return '';
+  return `<dl class="kvs sh-extras">${parts.join('')}</dl>${extra}`;
 }
 
 // ─── Search ─────────────────────────────────────────────────────
