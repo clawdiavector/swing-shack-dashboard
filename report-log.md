@@ -411,3 +411,35 @@
 **Learned:** `renderInsights()` is a wrapper that early-returns into `renderInsightsV2()`. Any "explainer" code inside the wrapper's body below `return;` is dead. Always check whether a function has an early `return;` before assuming the body executes. The dead-code banner block (line 4920) was kept as "reference" but is a maintenance trap — anyone reading it would assume it's live. Future refactor should delete it, OR add a `// UNREACHABLE — see renderInsightsV2` comment so the next reader doesn't waste time.
 
 **Asks:** None.
+
+## 2026-08-09T04:30Z — feat(campaign-os): Socials 'How to read this view' lens banner
+
+**Done:** Socials tab now greets the user with the same lens-banner pattern Insights v2 got in 9b5b34e. Meme Lord already had a `<p>` explainer, but Socials only carried a tooltip on the H2 — first-time users landed on a "0 posts · 90d window · sources: 0 graph" status line with no framing.
+
+**Shipped:** Banner sits inside `#sec-socials` between the Connect Instagram CTA and the Range/Type filter card. Explains:
+- 🪩 framing: this is *voice history*, not today's feed
+- Meta Graph (≤30d, real thumbnails/captions/likes/comments) vs oEmbed (30d→1y, link previews) — the two sources that feed the grid
+- Status pill legend: 🟢 live / ⚪ empty / 🔌 not wired (so the colour-to-meaning mapping is explicit)
+- "Click any tile" → side panel for full caption + permalink + counts
+- Cross-links to Meme Lord + 🧠 Learning for downstream context
+
+**Verified (live Railway, Playwright cookie auth):**
+- LIVE `/` served HTML: `socials-lens-ctx` appears 1× in `#sec-socials`; `insights-lens-ctx` still 2× (no regression).
+- Playwright probe on `#sec-socials` after clicking the Socials nav: banner found, visible, banner_before_filter=true, banner_has_meta_graph/oembed/status_legend/cross_links all true. 0 page errors. 0 console errors.
+- `/api/health` green. Login + root + Socials nav all 200.
+- 9/9 new tests in `test_v2026_08_09_socials_lens_ctx.py` pass.
+- 17/17 prior-lane tests (`test_v2026_08_09_insights_lens_ctx` + `test_v2026_08_08_competitor_row_age_pill`) still pass — no regression.
+
+**Files (2 changed, +131):**
+- `campaign-os/campaign-os.html` — 19-line `socials-lens-ctx` banner injected into `#sec-socials` after the Connect CTA, before the filter card.
+- `campaign-os/tests/test_v2026_08_09_socials_lens_ctx.py` — 9 read-only regression tests (banner presence, position relative to filter/CTA, sources documented, status legend complete, cross-links, no smart quotes, exactly-once invariant, prior-lane non-regression).
+
+**Commit:** `0b5de58` on `feat/asset-state-engine`, +131, 2 files, pushed. Railway auto-deployed.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 fabricated stats. Banner copy uses straight quotes (smart-quote regression test guards). One atomic commit, no force push.
+
+**Next pick:** the next highest-quality remaining UX lane — the Billboards / Calendar / Review tabs still lack their own "How to read this view" framing. Calendar in particular has many date-state edge cases (empty, scheduled, published, cancelled) that confuse first-time users.
+
+**Learned:** Chrome `--headless=new` consistently hangs on the Campaign OS SPA root — the previous report already documented this. The reliable path is Playwright via the existing `walk_socials_local.py` / `walk_socials_lens_live.py` pattern: login → click `.nav[data-go=socials]` → eval probe → screenshot. That gives the same evidence as a screenshot without the GPU-process leak.
+
+**Asks:** None.
