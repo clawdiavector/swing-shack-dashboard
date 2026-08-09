@@ -10515,10 +10515,50 @@ document.addEventListener('click', e => {
 async function renderAgents(){
   if(!S.agents) S.agents = await API.get('/api/intel/agents');
   const a = S.agents;
-  $('#agents-list').innerHTML = safeList(a.agents, 20).map(itemHtml).join('') || '<div class="empty">No agent runs</div>';
+  // Render the agent lane roster as readable cards. Each row carries agent_id,
+  // last_run (ISO or null), last_status (PASS|PARTIAL|FAIL), and runs count.
+  // The generic itemHtml() can't title these: agent_id is a short slug, the
+  // other fields are timestamps or short status strings, so it falls back to
+  // JSON.stringify(it).slice(0,80), dumping the raw object as a "title".
+  // agentRunHtml() knows the shape and paints it as: name · status pill ·
+  // last-run age · total runs.
+  $('#agents-list').innerHTML = safeList(a.agents, 24).map(agentRunHtml).join('') || '<div class="empty">No agent runs</div>';
   const h = a.system_health || {};
   $('#agents-health').innerHTML = `<dl class="kvs"><dt>Status</dt><dd>${esc(h.status||'—')}</dd><dt>Confidence</dt><dd>${esc(h.confidence||'—')}</dd><dt>Generated</dt><dd>${esc((h.generated||'').slice(0,19))}</dd></dl>` + pretty(h.data_status);
   $('#agents-int').innerHTML = safeList(a.integration_health?.health, 12).map(itemHtml).join('') || '<div class="empty">No integration data</div>';
+}
+
+// Pretty-print a single agent run row. Used by the Agent runs card on the
+// Agents & health surface. Returns an <li class="li"> compatible with the
+// standard list styling so it lines up with the integration health cards.
+function agentRunHtml(it){
+  const id = esc(it.agent_id || 'unknown');
+  const status = (it.last_status || 'UNKNOWN').toUpperCase();
+  // status → pill color class. PASS=on (green), PARTIAL=review (amber), FAIL/broken=blocked (red)
+  let pillKind = 'on';
+  if(status === 'PARTIAL') pillKind = 'review';
+  if(status === 'FAIL' || status === 'FAILED' || status === 'ERROR') pillKind = 'blocked';
+  // last-run age: human readable. null/never → "never".
+  let age = 'never';
+  if(it.last_run){
+    try {
+      const ms = Date.now() - new Date(it.last_run).getTime();
+      if(!isNaN(ms) && ms >= 0){
+        const m = Math.floor(ms / 60000);
+        const h = Math.floor(m / 60);
+        const d = Math.floor(h / 24);
+        age = d >= 1 ? `${d}d ago` : h >= 1 ? `${h}h ago` : m >= 1 ? `${m}m ago` : 'just now';
+      }
+    } catch(_){ age = 'never'; }
+  }
+  const runs = typeof it.runs === 'number' ? it.runs : 0;
+  return `<li class="li" onclick="this.classList.toggle('open')">
+    <div class="li-body">
+      <div class="li-title"><span style="font-family:var(--mono);font-size:13px">${id}</span></div>
+      <div class="li-preview">${runs} ${runs === 1 ? 'run' : 'runs'} total · last ${age}</div>
+      <div class="li-meta"><span class="pill ${pillKind}">${esc(status)}</span></div>
+    </div>
+  </li>`;
 }
 
 // ─── Search ─────────────────────────────────────────────────────
