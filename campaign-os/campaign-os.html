@@ -8016,13 +8016,17 @@ async function renderPerformance(){
 //   trend_delta                ← trend-delta.json (hook_trends)
 //   failure_patterns           ← failure-patterns.json
 const LEARN_EMPTY = {
-  worked:    { title: 'No patterns yet',          sub: 'Fills in once 3+ assets have published performance data. Approve + publish in the Review queue to start learning.' },
-  failed:    { title: 'No failure patterns yet',  sub: 'Same trigger as What worked. Inverts the top performers into the mistakes to avoid next batch.' },
-  cta:       { title: 'No CTA data yet',          sub: 'Builds as captions with CTAs accumulate click-through or conversion results. Use the CTA generator to seed more variants.' },
-  trend:     { title: 'No trend data yet',        sub: 'Updates weekly once the trend feed has 2+ weeks of comparison data. Run Trend Catcher now to kick it off.' },
-  fail_pat:  { title: 'No failure patterns yet',  sub: 'Recurring mistakes detected automatically across 3+ assets. Need a small published corpus before patterns surface.' },
+  worked:    { title: 'No patterns yet',          sub: 'Fills in once 3+ assets have published performance data. Approve + publish in the Review queue to start learning.', cta: { go: 'review', label: 'Open Review queue' } },
+  failed:    { title: 'No failure patterns yet',  sub: 'Same trigger as What worked. Inverts the top performers into the mistakes to avoid next batch.', cta: { go: 'review', label: 'Open Review queue' } },
+  cta:       { title: 'No CTA data yet',          sub: 'Builds as captions with CTAs accumulate click-through or conversion results. Use the CTA generator to seed more variants.', cta: { go: 'ctas', label: 'Open CTA generator' } },
+  trend:     { title: 'No trend data yet',        sub: 'Updates weekly once the trend feed has 2+ weeks of comparison data. Run Trend Catcher now to kick it off.', cta: { go: 'trends', label: 'Open Trend Catcher' } },
+  fail_pat:  { title: 'No failure patterns yet',  sub: 'Recurring mistakes detected automatically across 3+ assets. Need a small published corpus before patterns surface.', cta: { go: 'review', label: 'Open Review queue' } },
 };
-const learnEmpty = key => `<div class="empty"><div class="empty-title">${esc(LEARN_EMPTY[key].title)}</div><div class="empty-sub">${esc(LEARN_EMPTY[key].sub)}</div></div>`;
+const learnEmpty = key => {
+  const e = LEARN_EMPTY[key];
+  const cta = e.cta ? `<button class="btn primary" style="margin-top:.7rem;font-size:12px;padding:.35rem .75rem" onclick="go('${esc(e.cta.go)}')">${esc(e.cta.label)} →</button>` : '';
+  return `<div class="empty" style="text-align:center"><div class="empty-title">${esc(e.title)}</div><div class="empty-sub">${esc(e.sub)}</div>${cta}</div>`;
+};
 async function renderLearning(){
   if(!S.learn) S.learn = await API.get('/api/intel/learning');
   const l = S.learn;
