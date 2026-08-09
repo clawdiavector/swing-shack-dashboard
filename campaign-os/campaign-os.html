@@ -1058,6 +1058,26 @@ a:hover{text-decoration:underline}
           <button class="btn ghost" data-cal-shift="7">Next week →</button>
         </div>
       </div>
+      <!-- Calendar-lens context banner: explains drag-drop semantics, slot state
+           colours, the HUD strip above the grid, and the Prev/Today/Next buttons.
+           Mirrors the Insights v2 + Socials lens banner pattern. First-time
+           users otherwise land on a 14-day grid with no framing. -->
+      <div class="card col-12 calendar-lens-ctx" style="margin-bottom:1rem;border-left:3px solid var(--ac)">
+        <div style="display:flex;gap:.6rem;align-items:flex-start">
+          <div style="font-size:20px;line-height:1">📅</div>
+          <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
+            <b style="color:var(--tx-1)">How to read this view:</b>
+            this is a 14-day <i>drag-and-drop planning surface</i>, not a content calendar in the social sense. Posts live in <b>Review</b>; this grid shows what is <i>queued</i> for each day.
+            <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
+              <li><b>HUD strip</b> (the row above the grid) summarises <i>today's workload</i>, the <i>overdue count</i>, and <i>tomorrow's preview</i> so you can spot a backlog without scanning every day cell.</li>
+              <li><b>Slot state</b>: <span class="pill draft" style="font-size:10px;display:inline-flex">draft</span> = new work, <span class="pill review" style="font-size:10px;display:inline-flex">review</span> = waiting on approval, <span class="pill live" style="font-size:10px;display:inline-flex">scheduled</span> = approved and queued. The left border picks up the brand colour; the dot on the meta line picks up the pillar tint.</li>
+              <li><b>Drag</b> a slot to another day to reschedule, or drop it on the <b>⧉ Duplicate zone</b> at the bottom of the card to spin a fresh draft copy without publishing anything.</li>
+              <li><b>Prev / Today / Next</b> shifts the 14-day window by ±7 days. <b>📍 Today</b> jumps the page back to today's row even after you have scrolled away.</li>
+            </ul>
+            <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">Approvals and rejects happen in <b>Review</b>; the calendar is the <i>schedule</i>, not the <i>inbox</i>. Pair with <b>Analytics</b> to see which scheduled slots actually drove traffic.</div>
+          </div>
+        </div>
+      </div>
       <!-- Calendar HUD: today's workload + overdue count + tomorrow preview -->
       <div class="cal-hud" id="cal-hud"></div>
       <div class="card">
