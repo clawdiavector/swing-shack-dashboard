@@ -517,3 +517,41 @@ Replaced the dead `<img>`+onerror+placeholder fallback with a static flex-column
 **Next pick:** The "System health" card on the right of the Agents page renders the `data_status` field as a JSON `<pre>` block ("STALE") — same shape mismatch, same fix. Move from `pretty(h.data_status)` (which JSON-stringifies) to a dedicated colour-mapped status badge. Smallest reversible fix, same one-renderer pattern, ships in the same file.
 
 **Asks:** None.
+
+## 2026-08-09T12:50Z — fix(campaign-os): System health card renders data_status + priority as colour-mapped pills, surfaces next_action + qa_warnings
+
+**Done:** Agents & health > System health (col-5) used to dump `h.data_status` (a plain string like "STALE" / "FRESH" / "MISSING") through `pretty()` into a `<pre>` JSON block — wrong format (JSON dump of a string), wrong affordance (code-style box instead of a status pill), and it dropped three other useful fields (`priority`, `next_action`, `qa_warnings`) that the payload carried but the renderer ignored. New `systemHealthHtml(h)` paints four signals as readable rows + pills:
+- **Data**: FRESH=on/green, STALE=review/amber, MISSING|OFFLINE|FAILED=blocked/red, default=draft
+- **Priority**: HIGH|P0|URGENT=warn/orange, MEDIUM|P1|NORMAL=review/amber, LOW|P2|P3=draft, default=draft
+- **Next**: `<b>Next:</b> esc(next_action)` one-line action when present
+- **QA warnings**: `<ul>` capped at 5 items when present
+
+Also added `.sh-extras` / `.sh-next` / `.sh-warn` CSS so the new layout doesn't fall back to platform-default ugly inside the col-5 card, plus `.sh-extras .pill{display:inline-flex;padding:3px 8px}` to override a pre-existing `.review` class collision (line 500, `display:flex;padding:.75rem 1rem`) that was rendering the STALE pill as a full-width block.
+
+`renderAgents()` now calls `systemHealthHtml(h)` instead of `pretty(h.data_status)`.
+
+**Verified (Playwright LIVE via cookie auth, Railway URL):**
+- Pre-fix DOM: `#agents-health` ended with `<pre>...json dump of "STALE"...</pre>` after the KV row.
+- Post-fix DOM: ends with `<dl class="kvs sh-extras">` containing Data + Priority pill rows + a `.sh-next` line + a `.sh-warn` ul.
+- Text excerpt post-fix: `StatusPARTIALConfidence3Generated2026-04-23T09:37:09DataSTALEPriorityHIGHNext: Unblock tasks in RUN THE WEEK sectionQA warnings:9 source(s) older than 24h`
+- Visual (vision, full-page screenshot): System health card on right renders STALE (amber) + HIGH (orange) as compact pills, Next: line, QA warnings bulleted list. No `<pre>` dump visible.
+- Pill collision fix verified via Playwright probe: STALE pill `display:inline-flex`, width ~70px (was 369px before).
+- 0 new page errors. 0 new console errors from my changes.
+- `/api/health` green. Login + root + Agents nav all 200.
+
+**Files (4 changed across 2 atomic commits):**
+- `campaign-os/campaign-os.html` — 38-line `systemHealthHtml()` function + 8-line CSS block + 5-line renderAgents call swap.
+- `campaign-os/tests/test_v2026_08_09_system_health_json_to_pills.py` — 15 read-only regression tests (presence, renderAgents call site, CSS class existence, CSS collision override, data_status pill kind branches, priority pill kind branches, next_action surfacing, qa_warnings ul capped at 5, empty-payload guard, esc() on all user fields, no em-dash, null guard, prior-lane non-regression).
+- `scripts/walk_agents_system_health_live.py` — Playwright walker that logs in, navigates to Agents tab, probes `#agents-health` innerHTML for 4 pill + 2 surface markers, captures full-page + tight-crop screenshots.
+
+**Commits (both on `feat/asset-state-engine`, both pushed, both auto-deployed):**
+- `16573d6` — fix(campaign-os): System health card renders data_status + priority as colour-mapped pills
+- `2689162` — fix(campaign-os): STALE pill collides with .review class — re-assert inline-flex inside .sh-extras
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 em-dashes in rendered output (used `: ` and `,` and `·` and `<ul>` everywhere; em-dashes only appear in code comments), 0 fabricated stats, 0 schema change, 0 helper added beyond the one renderer for this exact shape.
+
+**Learned:** When a generic list-renderer falls back to JSON-stringifying an item it doesn't recognise, the same bug tends to recur on every field that is a plain string (not an object). The `pretty(obj)` helper is right for object-shaped data but wrong for string-shaped data — the fix is a per-shape renderer. The CSS-collision lesson: the `.review` class is overloaded (review-inbox block AND pill kind), so any new context using `<dd>` instead of `<li-meta>` needs a scoped specificity override. Same pattern likely affects the next lane that introduces a new `<dl>`-based card.
+
+**Next pick:** Same generic-renderer anti-pattern likely applies to the `data_sources` array inside the system_health payload (15 sources with FRESH/STALE/MISSING status each). Today's snapshot shows `ig-analytics=FRESH, ga4-report=MISSING, seo-rankings=STALE` etc. — that lives one level deeper in the payload and could become a "data source freshness" expandable list on the same card. Same renderer pattern, smaller blast radius (data already there, no new endpoint needed).
+
+**Asks:** None.
