@@ -726,3 +726,34 @@ Same `.btn primary` token every other CTA in the app uses. Uses `esc(e.cta.go)` 
 **Next pick:** Same empty-state pattern likely applies to Publish (5 published-status columns: Drafts / Scheduled / Published / Failed / Rejected) when the queue is empty for a brand. Each column needs its own "Create + schedule" CTA. Also, `GBP` section currently shows a single big empty card — same single-CTA treatment. Smallest possible: GBP empty card first since the section has fewer moving parts.
 
 **Asks:** None.
+
+## 2026-08-09T23:20Z — fix(campaign-os): Insights Top IG Posts ranks relative to local average + non-clickable rows when no permalink
+
+**Done:** Two-part fix for the Insights "Top Instagram Posts" card (the carry-over from the 2026-08-09T01:43Z tick that the prior day's sweep had confirmed).
+
+**Bug 1 — all-red deck:** The SPA used hardcoded absolute ER thresholds (`>=3% good, >=1.5% watch, else bad`). When the local average ER was well below 1.5% (a typical real-world case for a small account), every post rendered as the "bad" red border, hiding the genuine top performer. The card header literally says "Top performer" but nothing earned the green color. The card looked like a list of failures.
+
+**Bug 2 — dead links:** The Postiz fetcher never extracted `permalink` from the API response, so `data/ig-analytics.json` had zero `permalink` fields. Every row rendered as `<a href="#">` — a dead link with a clickable cursor (lying affordance).
+
+**Fix (commit `71c62cc`, pushed, Railway auto-deployed ~90s):**
+- `campaign-os/campaign-os.html` (lines 4879-4934): rewrite the `igList.innerHTML` map to (a) compute in-list `igAvgEr` and a per-row `ratio`, (b) tone-rank relative to the local average (>=1.5x top performer + ★ Top badge, >=1.2x above average, >=0.8x on par, else below average), (c) render `<div>` (not `<a>`) when `p.permalink` is missing so the cursor doesn't lie, (d) surface the verdict in the ER pill's tooltip (`title="Top performer (your avg: 0.20%)"`).
+- `scripts/fetch_postiz_analytics.js` (line 96): capture `permalink`, `url`, `postUrl`, `releaseURL`, `shortcode` from the Postiz API response so the next sync makes the rows real links.
+- `campaign-os/tests/test_v2026_08_10_insights_relative_tone.py` (NEW, 6 tests): regression assertions for the 6 invariants (hardcoded thresholds gone, local average computed, ★ Top badge reachable, `if (p.permalink)` branch in place, permalink-direct href present, no em-dashes, Postiz fetcher captures permalink).
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-fix: 8 posts all red border (`rgb(239, 68, 68)`), all `href="#"`, no ★ Top badge, header says "color-coded, click to open" but nothing was clickable.
+- Post-fix: 8 posts rendered as `<div>` (no permalink yet = honest non-anchor). Top 2 posts get **green border** (`rgb(16, 185, 129)`) + green emoji. Top performer carries the **★ TOP** badge. Bottom 6 posts are red. Header hover-tip on the ER pill shows "Top performer (your avg: 0.20%)" — math is transparent.
+- `/api/health` 200. 162/162 `test_v2026_*.py` tests pass (including the new 6).
+- 0 PAGEERROR, 0 new console.errors.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260809T232231Z_ig_card_zoom.png` — the IG card zoomed: row 1 "And we certainly do have spirit" green + ★ TOP at 0.64%, row 2 "Tired of the same old setup" green at 0.60%, rows 3-8 red with 0.08-0.16% (the deck is now color-coded against the local average, not an unreachable absolute threshold).
+- `/tmp/co-nightshift/walkthrough_20260809T232124Z_insights_AFTER.png` — full-page Insights AFTER.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (`git diff` of the commit = 0), 0 schema changes, 0 helper removed, 1 new regression test, 0 JS framework dependency added.
+
+**Learned:** Hardcoded absolute thresholds are a recurring failure mode for "what's my best X?" UX surfaces. The fix pattern is universal: compute the local average, tone-rank relative to it, and always surface the math in a tooltip. The pattern applies equally to the `Top pages by sessions` card (still uses `>=60% good, >=30% watch, else bad`) and the PageSpeed-style traffic pages. Same template, different ratio. Next time you see a deck where every row scores "bad", the cause is almost always absolute thresholds that don't match the actual data distribution.
+
+**Next pick:** The same `href="#"` dead-link pattern lives in the review-modal IG history strip at line 7125 (`<a href="${esc(p.permalink || '#')}">` for the IG post carousel). Same bug, different render context. Same fix would apply. One-tick scope check: the IG history strip is a horizontal carousel showing posts that match an asset, with the same permalink fallthrough. Carrying it over.
+
+**Asks:** None.
