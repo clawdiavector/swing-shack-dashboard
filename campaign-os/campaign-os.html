@@ -9459,11 +9459,47 @@ async function renderGBP(){
 }
 
 // ─── REDDIT ─────────────────────────────────────────────────────
+// Reddit reply payloads carry `reply_draft` (the body), `angle` (the hook),
+// `sentiment` (high_trust / medium_trust / low_trust), and a 4-key
+// `safety_check` object. Earlier the renderer only looked at text/reply/title
+// and so every row fell through to JSON.stringify(item).slice(0,80) which
+// dumped raw object syntax into the Replies card on production. This pass
+// surfaces the real fields and renders the sentiment + safety metadata so
+// the brand can tell at a glance which threads are safe to post to.
+const REDDIT_SENTIMENT_PILL = {
+  high_trust: 'on',      // green-ish accent
+  medium_trust: 'warn',  // amber
+  low_trust: 'blocked',  // red
+};
 async function renderReddit(){
   if(!S.reddit) S.reddit = await API.get('/api/intel/reddit_outreach');
   const r = S.reddit;
   $('#reddit-pain').innerHTML = safeList(r.pain_points, 12).map(itemHtml).join('') || '<div class="empty">No pain points yet</div>';
-  $('#reddit-replies').innerHTML = safeList(r.replies, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.text||it.reply||it.title||JSON.stringify(it).slice(0,80))}</div></div></li>`).join('') || '<div class="empty">No replies yet</div>';
+  $('#reddit-replies').innerHTML = safeList(r.replies, 12).map(rr => {
+    const angle = (rr.angle || '').trim();
+    const draft = (rr.reply_draft || rr.reply || rr.text || '').trim();
+    const subreddit = rr.subreddit || '';
+    const upvotes = typeof rr.upvotes === 'number' ? rr.upvotes : null;
+    const sentiment = rr.sentiment || '';
+    const safety = rr.safety_check && typeof rr.safety_check === 'object' ? rr.safety_check : {};
+    const safetyFlags = [
+      safety.no_direct_link ? 'no-link' : null,
+      safety.native_tone ? 'native-tone' : null,
+      safety.no_salesy_language ? 'no-salesy' : null,
+      safety.adds_value_first ? 'value-first' : null,
+    ].filter(Boolean);
+    const sentimentPill = REDDIT_SENTIMENT_PILL[sentiment]
+      ? `<span class="pill ${REDDIT_SENTIMENT_PILL[sentiment]}">${esc(sentiment.replace('_', ' '))}</span>`
+      : '';
+    const safetyPills = safetyFlags.map(f => `<span class="pill">${esc(f)}</span>`).join('');
+    const metaBits = [
+      subreddit ? `<span>📍 ${esc(subreddit)}</span>` : '',
+      upvotes !== null ? `<span>▲ ${upvotes}</span>` : '',
+      sentimentPill,
+      safetyPills,
+    ].filter(Boolean).join('');
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(angle || '(no angle)')}</div><div class="li-preview">${esc(draft)}</div><div class="li-meta">${metaBits}</div></div></li>`;
+  }).join('') || '<div class="empty">No replies yet</div>';
 }
 
 // ─── FAQS ───────────────────────────────────────────────────────
