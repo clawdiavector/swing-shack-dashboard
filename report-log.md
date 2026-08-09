@@ -664,3 +664,31 @@ Fix: each `renderInsightsV2()` captures a monotonically increasing token on `sec
 **Next pick:** Same race pattern likely applies to `renderBrief` (which also shows up in the sweep's `console.error: TypeError: Failed to fetch` on boot — but that's a different cause: a network-blip during boot, not a render race). The Brief render path uses the same `sec.innerHTML = ...` + `await` pattern; a quick grep for the same race signature (no token check, awaits API then mutates DOM by id) would surface candidates. Smaller blast radius: check `renderCalendar`, `renderIdeas`, `renderHooks`, `renderMemes` for the same anti-pattern.
 
 **Asks:** None.
+## 2026-08-09T20:45Z — fix(campaign-os): Reddit Outreach Replies card renders angle + reply_draft + sentiment + safety, not raw JSON
+
+**Done:** Pre-pick sweep (28-section walker on live Railway URL) caught a real browser-visible bug on the Reddit Outreach tab: the Replies card dumped raw JSON object syntax into every row. The renderReddit() inner template only checked `it.text / it.reply / it.title`, and the actual `/api/intel/reddit_outreach` payload uses `reply_draft` (body), `angle` (hook), `sentiment` (high_trust / medium_trust / low_trust) plus a 4-key `safety_check` object. None matched the fallback chain, so every row fell through to `JSON.stringify(item).slice(0,80)` and the card showed nested `{"angle":...{"angle":...` braces instead of the actual drafted Reddit replies.
+
+Fix: render `angle` as the `.li-title`, `reply_draft` as a 2-line `.li-preview`, `subreddit` + `upvotes` in the `.li-meta` row, `sentiment` as a colour-coded pill (green / amber / red, mapped onto the existing `pill on / warn / blocked` tokens so no new CSS), and the 4 `safety_check` flags as small pills so the brand can tell at a glance which threads are safe to post to. Same `.li / .li-title / .li-preview / .li-meta` structure every other list in the app uses, so the Replies card now matches the visual language of Pain Points and the rest of the sidebar.
+
+**Verified (Playwright LIVE via cookie auth, Railway URL @ eb37474, post-deploy):**
+- Reddit Outreach tab now renders 5 reply rows (one per drafted reply in the API).
+- 25 colour-coded pills visible across the 5 rows (5 meta bits per row avg: subreddit + upvotes + sentiment + 4 safety flags).
+- First row example: title=`TrackMan numbers are the fastest path to understanding your golf game.`, preview=`TrackMan is the standard in professional golf for a reason. ...`, meta=`📍 r/golf ▲ 47 medium trust no-link native-tone no-salesy value-first`.
+- `hasJSONLeak: false`, `hasReplyDraft: true` in DOM.
+- 10/10 new tests in `test_v2026_08_09_reddit_replies_renderer.py` pass (no JSON.stringify leak, angle as title, reply_draft as preview, REDDIT_SENTIMENT_PILL covers all 3 sentiment tags, all 4 safety_check flags surfaced, subreddit + upvotes in meta, existing pill tokens only, standard li structure, empty-state preserved, no em-dash in shipped copy).
+- 40/40 prior-lane static tests still pass (6 test modules across last 3 nights).
+- `/api/health` 200, login + root + Reddit nav all 200, 0 pageerrors, 0 net failures.
+
+**Files (2 changed, +218/-1):**
+- `campaign-os/campaign-os.html` — replaced 1-line inner template with 31-line Reddit reply renderer (angle + reply_draft + sentiment pill + safety pills + subreddit + upvotes). No new CSS, no new helper, no schema change.
+- `campaign-os/tests/test_v2026_08_09_reddit_replies_renderer.py` — NEW, 10 read-only regression tests.
+
+**Commit:** `eb37474` on `feat/asset-state-engine`, 2 files, +218/-1, pushed. Railway auto-deployed in ~30 s.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes in shipped copy (the new comments use `:` + `-` only; em-dash regression test guards future regressions), 0 fabricated stats, 0 schema change, 0 new helper beyond an inline `REDDIT_SENTIMENT_PILL` const mapping.
+
+**Learned:** Per-shape renderer templates are easy to forget when adding a new sub-card to an existing renderer. `itemHtml` (the generic list renderer) already had `angle` in its fallback chain (line 6090), so Pain Points rendered correctly — but the Replies card built its own inline template instead of reusing `itemHtml`, and the inline template never got the same field-fallback maintenance. Worth a future sweep of every `.innerHTML = .map(...).join('')` block to confirm each one either uses `itemHtml` or has its own documented field-fallback chain.
+
+**Next pick:** The remaining sections with 0 visible top-level buttons (`learning`, `gbp`, `publish`) are intentional read-only diagnostic surfaces — but each one's empty-state strings ("No patterns yet", "Nothing scheduled") could link to the action that would fill them (Review queue, Trend Catcher, Review queue respectively). Smallest possible: add a single "How to fill this in" sub-line to each empty state. Even smaller: just `learning`, since the report-log already flagged it two ticks ago.
+
+**Asks:** None.
