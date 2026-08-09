@@ -635,3 +635,32 @@ Fix: guard every `$('#welcome-*')` setter in `renderTourStep`, `openWelcome`, an
 **Next pick:** The Learning nav tab (`renderLearning()`) shows a "long-memory view" tile but the learning endpoint returns largely empty arrays (`what_worked.hooks: []`, `what_worked.signals: []`, `recommendation_outcomes.exec_rate: 0`) — a user opening the tab sees only a heading. Two follow-ups: (a) make the empty state obvious with a one-line "no data yet, hook bank needs 2+ weeks of delivery audit" honest explanation, (b) once we have real data, surface the 4 confidence-band `ok:false` cases (autonomous_actions 8% success rate, reddit_trending 70% match) as the most actionable signal in that view. Smaller blast radius, no schema change, same per-shape renderer pattern.
 
 **Asks:** None.
+## 2026-08-09T17:33Z — fix(campaign-os): Insights V2 bails silently when re-entered mid-fetch
+
+**Done:** Pre-pick sweep (existing `scripts/sweep_campaign_os_live.py`, 28-section walker on live Railway URL) caught a real production pageerror on the Insights tab: `TypeError: Cannot set properties of null (setting 'textContent') at renderInsightsV2 (campaign-os.html:4867:36) at async renderInsights (campaign-os.html:4964:3)`. Repro: tab-cycle Insights -> Hooks -> Insights within the ~3s async fetch window. Two `renderInsightsV2()` invocations overlap; the second's `sec.innerHTML = ...` wipes the first's `#ins-ig-count` / `#ins-v2-summary` DOM nodes; the first's awaited Promise.all then resolves and tries to mutate the now-null nodes. Page error fires on every race round.
+
+Fix: each `renderInsightsV2()` captures a monotonically increasing token on `sec.dataset.insRenderToken` at entry. After the awaited `Promise.all` resolves, the function compares the section's current token to the snapshot it captured and returns silently if a newer render has taken over. Same per-section render-token pattern as the welcome-tour null-safety fix; +12/-2 in the single function, no schema change, no new helper.
+
+**Verified (Playwright LIVE via cookie auth, Railway URL, post-deploy):**
+- Pre-fix repro (tab-cycle Insights->Hooks->Insights->Memes->Insights 5x): 1 pageerror per cycle, 5 pageerrors total.
+- Post-fix repro (same scenario, live URL @ 6e5fae2): 0 pageerrors across 5 race rounds. Render token ends at `16` (5 rounds × ~3 calls/round + 1 final).
+- Final Insights render carries full content: `sec_text_len=4969`, `body_html_len=18004`, `ig_count_text="8 posts"`, no "Loading" placeholder.
+- Full-page screenshot at `/tmp/co-nightshift/walkthrough_20260809T173327Z_insights_race.png` shows the Insights tab fully rendered after the race storm.
+- 6/6 new tests in `test_v2026_08_09_insights_race_token.py` pass (token snapshot at entry, increment on section, post-Promise.all check, normal-render path preserved, no em-dash, no top-level unguarded `$('#ins-ig-count').textContent` setter).
+- 139/139 prior-lane static tests still pass (was 133, +6).
+- `/api/health` 200. Login + root + Insights nav all 200.
+
+**Files (3 changed, +328):**
+- `campaign-os/campaign-os.html` — 9-line docstring + 2-line token increment + 3-line bail-out check inside `renderInsightsV2()`.
+- `campaign-os/tests/test_v2026_08_09_insights_race_token.py` — NEW, 6 read-only regression tests.
+- `scripts/walk_insights_race_live.py` — NEW, Playwright walker that triggers the race 5x and asserts 0 pageerrors + final render integrity.
+
+**Commit:** `6e5fae2` on `feat/asset-state-engine`, 3 files, +328, pushed. Railway auto-deployed in ~45 s.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes in shipped copy (the new comment block uses `:` + `-` only; em-dash regression test guards against future regressions), 0 fabricated stats, 0 schema change, 0 helper added beyond the inline token check.
+
+**Learned:** Any async renderer that sets `section.innerHTML` and then awaits an API call has the same race risk. Same pattern will apply to `renderBrief`, `renderCalendar`, `renderInsights` (other paths) wherever a tab-click can re-enter during the await window. Generic fix could be a small `withRenderToken(sec, fn)` wrapper that captures/bails automatically — but a one-off check is enough for now. Worth keeping the regression test for the welcome tour and this Insights fix side-by-side so the pattern is documented.
+
+**Next pick:** Same race pattern likely applies to `renderBrief` (which also shows up in the sweep's `console.error: TypeError: Failed to fetch` on boot — but that's a different cause: a network-blip during boot, not a render race). The Brief render path uses the same `sec.innerHTML = ...` + `await` pattern; a quick grep for the same race signature (no token check, awaits API then mutates DOM by id) would surface candidates. Smaller blast radius: check `renderCalendar`, `renderIdeas`, `renderHooks`, `renderMemes` for the same anti-pattern.
+
+**Asks:** None.
