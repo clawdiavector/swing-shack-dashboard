@@ -1,5 +1,32 @@
 
-## 2026-08-09T01:43Z — fix(campaign-os): skip stale HELP.section mount on Insights tab (orphan accordions)
+## 2026-08-09T14:08Z — fix(campaign-os): Brief "What's new" title no longer leaks literal [object Object]
+
+**Done:** Pre-pick sweep (`scripts/sweep.py`-style Playwright walk over 21 sections) caught the Morning Brief rendering literal `[object Object]` text in production — in the GBP-location regression-test row of the "What's new" card. The bug it describes is already fixed in the codebase; the *description* of the bug quoted the broken token verbatim (`"GBP profile 'Location [object Object]' becomes city, region · country"`), and the SPA rendered that title as-is. Result: Christelle opens Campaign OS and reads `[object Object]` in the morning — looks like a live regression.
+
+Rewrote the title to describe the fix without quoting the bug token:
+`GBP profile header reads 'city, region · country' (no more raw-object leak)`.
+Body copy preserved (still mentions Sandton / Gauteng / South Africa) so the technical content is intact.
+
+Added `test_v2026_08_09_whats_new_no_object_object.py`: static-regex parse of the `WHATS_NEW` list literal in `app.py`, asserts no entry contains `[object Object]` (case-insensitive). Future hand-edits that reintroduce the leak will fail loudly in `unittest discover`.
+
+**Commit:** `addde62` on `feat/asset-state-engine`, 2 files (`campaign-os/app.py` +1/-1, `campaign-os/tests/test_v2026_08_09_whats_new_no_object_object.py` NEW +67/-0), pushed. Railway auto-deployed in ~90s.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-fix: `BRIEF [object Object] hits: 1` in `.wn-title` (`GBP profile 'Location [object Object]' becomes city, region · country`).
+- Post-fix: `hits: 0`. New title rendered verbatim in `.wn-title`: `GBP profile header reads 'city, region · country' (no more raw-object leak) · 2026-08-08 00:10 UTC`. Other 12 rows unchanged. `/api/health` 200. 0 PAGEERROR. 0 console errors.
+- 113/113 tests pass (`unittest discover -s campaign-os/tests -p test_v2026_*.py`).
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260809T135708Z_brief_fixed.png` — full-page Brief (Welcome modal visible at top, but the What's new list below the modal clearly shows the 13 rows with the GBP row now clean).
+- `/tmp/co-nightshift/walkthrough_20260809T135733Z_whats_new_zoom.png` — zoomed What's new card, GBP row third.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (`git diff | grep "—"` = 0), 0 JS logic added (literal-text substitution only), 0 schema change, 0 helper removed, 1 new regression test added.
+
+**Learned:** The WHATS_NEW list is hand-authored — it can rot just like generated copy does. The original GBP regression-test title was a self-aware joke ("here's what the broken text used to look like") that aged into a real UX bug the moment the fix shipped. Lesson: titles/bodies that *describe* bugs should describe the fix, not quote the broken token. The new test enforces that going forward.
+
+**Next pick:** Insights tab still has the carry-over from 2026-08-06T01:45Z — `renderInsights()` clones Performance widgets but the data layer doesn't actually differentiate (only the explainer does). Real lane: add an Insights-only widget (week-over-week deltas, recommended-next-brief card) so the "Why lens / What lens" promise lands. Or add the visualizer `data-help-title` sweep the prior 2026-08-05T18:30Z tick flagged (modal h3s: Meme modal, GMB edit/new, Asset not found, Edit caption, Generic modal).
+
+**Asks:** None.
 
 **Done:** Insights tab was rendering two orphaned collapsed `<details>` boxes ("How to read performance data" + "How to read Google Analytics (GA4)") right under the H2 — they looked like broken empty accordions because the v2 lens banner ("🔍 How to read this view") below them was already a richer superseding explanation. Root cause: `go()`'s post-loadSection `HELP.section('insights', 'ga4')` mount dated from when `renderInsights` cloned sec-performance into sec-insights and needed the cloned perf explainer swapped out for the Insights-specific one. Since the Insights v2 rewrite, `renderInsightsV2()` is the sole renderer (old clone-based code preserved as a reference but never runs) and mounts its own lens banner; the post-mount just adds dead duplicate boxes. One-line guard: `if(realSec === 'insights') return;` inside the post-loadSection `.then(...)` block in `go()`.
 
