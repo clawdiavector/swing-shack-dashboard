@@ -8213,17 +8213,28 @@ function memBrandFitBadge(score){
   return `<span class="meme-bf ${cls}" title="Brand-fit score">⛳ ${score}</span>`;
 }
 
-function memPicksCard(m){
+function memMechanismChip(mech){
+  if(!mech) return '';
+  // Render the comedic mechanism as a small theme-aware chip (callout-contrast, ironic-corporate, etc.)
+  const label = String(mech).replace(/-/g, ' ');
+  return `<span class="meme-chip" style="background:var(--bg-4);color:var(--tx-2);text-transform:lowercase" title="Comedic mechanism: ${esc(label)}">⚙ ${esc(label)}</span>`;
+}
+
+function memPicksCard(m, isTop, tone){
   const seeds = (m.swingshack_fit_seeds || []).slice(0, 3).map(s => `<li class="mem-seed">${esc(s)}</li>`).join('');
   const tags = (m.tags || []).slice(0, 4).map(t => `<span class="meme-tag">${esc(t)}</span>`).join(' ');
+  const borderColor = tone==='good' ? '#10b981' : tone==='watch' ? '#f59e0b' : '#ef4444';
+  const topBadge = isTop
+    ? `<span style="font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:${borderColor}22;color:${borderColor};flex-shrink:0;margin-left:.25rem" title="Top brand-fit in this list (>=1.2x local average)">★ Top</span>`
+    : '';
   return `
-    <div class="meme-pick" data-id="${esc(m.id)}">
+    <div class="meme-pick" data-id="${esc(m.id)}" style="border-left:3px solid ${borderColor}">
       <div class="meme-pick-h">
-        <div>
+        <div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap">
           <div class="meme-pick-title">${esc(m.name)}</div>
-          <div class="meme-pick-sub">peak ${m.peak_year || '?'} · ${memEraLabel(m.era)}</div>
+          ${topBadge}
         </div>
-        ${memBrandFitBadge(m.brand_fit || 0)}
+        <div class="meme-pick-sub">peak ${m.peak_year || '?'} · ${memEraLabel(m.era)} ${memMechanismChip(m.mechanism)}</div>
       </div>
       <div class="meme-pick-why" title="${esc(m.why_it_works || '')}">${esc(m.why_it_works || '')}</div>
       <div class="meme-pick-tags">${tags}</div>
@@ -8276,7 +8287,29 @@ async function memRefresh(){
   $('#mem-picks-summary').textContent = picks.summary || '';
   $('#mem-lib-count').textContent = `${lib.total} of ${lib.stats?.total_memes ?? '?'}`;
 
-  $('#memes-picks').innerHTML = (picks.recommendations || []).map(memPicksCard).join('') || '<div class="empty">No recommendations match — try a different pillar/voice.</div>';
+  // Tone the Top picks relative to the local brand-fit average so the standout row
+  // gets a clear "★ Top" signal even when the deck is uniform (a common real-world
+  // case for swing-shack/education/instagram where 5+ memes share the same brand_fit
+  // ceiling). When all picks are identical the local avg is 1.0x and no badge fires
+  // (avoids the "every tile is Top" noise). The 1.2x ratio threshold matches the
+  // "good" tone boundary; using 1.5x (the IG/GA4 cut) would miss the deck because
+  // brand_fit scores cluster around the same ceiling in most real-world filters.
+  const pickList = picks.recommendations || [];
+  const fitValues = pickList.map(m => Number(m.brand_fit || 0));
+  const avgFit = fitValues.length ? (fitValues.reduce((s, x) => s + x, 0) / fitValues.length) : 0;
+  const maxFit = fitValues.length ? Math.max(...fitValues) : 0;
+  const pickCards = pickList.map(m => {
+    const bf = Number(m.brand_fit || 0);
+    const ratio = avgFit > 0 ? bf / avgFit : 0;
+    // Only mark "Top" when the row is BOTH the max AND meaningfully above average.
+    // Pure ties (ratio === 1.0) stay untagged to avoid the "every tile is Top" noise.
+    const isTop = bf > 0 && bf === maxFit && ratio >= 1.2;
+    let tone = 'watch';
+    if (ratio >= 1.2) tone = 'good';
+    else if (ratio < 0.8 && bf < avgFit) tone = 'bad';
+    return memPicksCard(m, isTop, tone);
+  });
+  $('#memes-picks').innerHTML = pickCards.join('') || '<div class="empty">No recommendations match · try a different pillar/voice.</div>';
   $('#memes-list').innerHTML = (lib.memes || []).slice(0, 60).map(memLibraryRow).join('') || '<div class="empty">No memes match the filters.</div>';
 
   if(!MEM_LIB_CACHE._bound){
