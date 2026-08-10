@@ -802,3 +802,60 @@ Same `.btn primary` token every other CTA in the app uses. Uses `esc(e.cta.go)` 
 **Next pick:** The same `href="#"` dead-link pattern lives in the review-modal IG history strip at line 7125 (`<a href="${esc(p.permalink || '#')}">` for the IG post carousel). Same bug, different render context. Same fix would apply. One-tick scope check: the IG history strip is a horizontal carousel showing posts that match an asset, with the same permalink fallthrough. Carrying it over.
 
 **Asks:** None.
+
+## 2026-08-10T08:41Z — fix(review): IG history strip renders as div when permalink missing
+
+**Done:** Carried the dead-link fix from the prior tick (Insights Top IG Posts) into the Review modal's IG history strip. The carousel at `campaign-os.html:7148-7169` previously rendered every post as `<a href="${esc(p.permalink || '#')}" ...>` — a stub anchor with a clickable cursor that went nowhere when the IG API returned a post without a permalink. Now: when `p.permalink` is missing, the strip renders a static `<div>` (opacity .92 to signal "not interactive"). When permalink is present the strip still renders a real `<a>` to the IG post.
+
+**Files (3 changed, +284/-4):**
+- `campaign-os/campaign-os.html` (lines 7148-7169): extracted inline inner template, branched on `p.permalink` to render `<a>` vs `<div>`. Inline comment explains the cursor-affordance rule.
+- `campaign-os/tests/test_v2026_08_10_review_socials_strip_dead_links.py` (NEW, 5 tests): regression assertions (`p.permalink || '#'` gone, `if (p.permalink)` branch present, `<div>` fallback in place, no em-dashes, strip element still wired).
+- `scripts/walk_review_socials_strip_live.py` (NEW): Playwright walker that authenticates via the shared-password gate, dismisses the welcome tour (which intercepts all clicks), opens the Review section, clicks the first VISIBLE row, then inspects `#rv-socials-strip`. Asserts no `<a href="#">` in any child. Captures screenshots to `/tmp/co-nightshift/walkthrough_<TS>_review_*.png`.
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- Post-deploy HTML check on LIVE: `p.permalink || '#'` = GONE, `if (p.permalink)` branch = PRESENT, direct permalink href = PRESENT, fix comment = PRESENT.
+- Post-deploy walker: 0 pageerrors, 0 console errors (the 503 console entry is the expected `/api/socials/for-asset/...` response when Meta credentials aren't configured — the strip then renders the "No matching IG posts yet" placeholder div, which is already a div, so the fix is a no-op when the API returns empty).
+- 36/36 tests pass (5 new in this tick + 31 prior socials/insights tests).
+
+**Screenshots:**
+- `/tmp/co-nightshift/walkthrough_20260810T083955Z_review_queue.png` — review queue with 93 rows visible.
+- `/tmp/co-nightshift/walkthrough_20260810T083955Z_review_with_socials.png` — review modal after opening first row, IG strip populated as a single placeholder div (no Meta creds = empty state).
+
+**Commit:** `c66a39e` on `feat/asset-state-engine`, 3 files, +284/-4, pushed. Railway auto-deploy in ~90s. `/api/health` 200.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes (`git diff` of the commit = 0 occurrences of `—` or `–`), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Learned:** The shared-password login flow has two gotchas that bit the walker: (1) pressing Enter races with the fetch submit handler; clicking the `#submit-btn` is more reliable. (2) The welcome tour modal (`#welcome-bg`) intercepts every click on first paint and must be dismissed before any navigation clicks work. Both should be encoded into a `walk_with_login(live_url, password)` helper for future nightshift ticks.
+
+**Next pick:** Walk the Insights tab to confirm the Top IG Posts fix is holding on live (the prior tick's walker wasn't repeatable). Also, the same `href="#"` pattern likely lives in the `<a href="${esc(fullUrl)}">` at line 4939 (Top pages card) — that one is always a real URL because it uses `page.path` not a permalink, so it's safe, but the threshold there (`>=60% good, >=30% watch`) is still hardcoded and could all be red on a small data set. Carrying over if the sweep confirms it.
+
+**Asks:** None.
+
+
+## 2026-08-10T08:41Z — fix(review): IG history strip renders as div when permalink missing
+
+**Done:** Carried the dead-link fix from the prior tick (Insights Top IG Posts) into the Review modal's IG history strip. The carousel at `campaign-os.html:7148-7169` previously rendered every post as `<a href="${esc(p.permalink || '#')}" ...>` — a stub anchor with a clickable cursor that went nowhere when the IG API returned a post without a permalink. Now: when `p.permalink` is missing, the strip renders a static `<div>` (opacity .92 to signal "not interactive"). When permalink is present the strip still renders a real `<a>` to the IG post.
+
+**Files (3 changed, +284/-4):**
+- `campaign-os/campaign-os.html` (lines 7148-7169): extracted inline inner template, branched on `p.permalink` to render `<a>` vs `<div>`. Inline comment explains the cursor-affordance rule.
+- `campaign-os/tests/test_v2026_08_10_review_socials_strip_dead_links.py` (NEW, 5 tests): regression assertions (`p.permalink || '#'` gone, `if (p.permalink)` branch present, `<div>` fallback in place, no em-dashes, strip element still wired).
+- `scripts/walk_review_socials_strip_live.py` (NEW): Playwright walker that authenticates via the shared-password gate, dismisses the welcome tour (which intercepts all clicks), opens the Review section, clicks the first VISIBLE row, then inspects `#rv-socials-strip`. Asserts no `<a href="#">` in any child. Captures screenshots to `/tmp/co-nightshift/walkthrough_<TS>_review_*.png`.
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- Post-deploy HTML check on LIVE: `p.permalink || '#'` = GONE, `if (p.permalink)` branch = PRESENT, direct permalink href = PRESENT, fix comment = PRESENT.
+- Post-deploy walker: 0 pageerrors, 0 console errors (the 503 console entry is the expected `/api/socials/for-asset/...` response when Meta credentials aren't configured — the strip then renders the "No matching IG posts yet" placeholder div, which is already a div, so the fix is a no-op when the API returns empty).
+- 36/36 tests pass (5 new in this tick + 31 prior socials/insights tests).
+
+**Screenshots:**
+- `/tmp/co-nightshift/walkthrough_20260810T083955Z_review_queue.png` — review queue with 93 rows visible.
+- `/tmp/co-nightshift/walkthrough_20260810T083955Z_review_with_socials.png` — review modal after opening first row, IG strip populated as a single placeholder div (no Meta creds = empty state).
+
+**Commit:** `c66a39e` on `feat/asset-state-engine`, 3 files, +284/-4, pushed. Railway auto-deploy in ~90s. `/api/health` 200.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes (`git diff` of the commit = 0 occurrences of `—` or `–`), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Learned:** The shared-password login flow has two gotchas that bit the walker: (1) pressing Enter races with the fetch submit handler; clicking the `#submit-btn` is more reliable. (2) The welcome tour modal (`#welcome-bg`) intercepts every click on first paint and must be dismissed before any navigation clicks work. Both should be encoded into a `walk_with_login(live_url, password)` helper for future nightshift ticks.
+
+**Next pick:** Walk the Insights tab to confirm the Top IG Posts fix is holding on live (the prior tick's walker wasn't repeatable). Also, the same `href="#"` pattern likely lives in the `<a href="${esc(fullUrl)}">` at line 4939 (Top pages card) — that one is always a real URL because it uses `page.path` not a permalink, so it's safe, but the threshold there (`>=60% good, >=30% watch`) is still hardcoded and could all be red on a small data set. Carrying over if the sweep confirms it.
+
+**Asks:** None.
