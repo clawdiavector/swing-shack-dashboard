@@ -70,7 +70,11 @@ class TestGa4PageAggregation(unittest.TestCase):
         self.assertEqual(paths[0], "/")
 
     def test_session_weighted_engagement_rate(self):
-        # Two equal-session rows: arithmetic mean of displayed ER == 50%.
+        # Two rows with different session counts: the final ER should be
+        # session-weighted (sum(ER_i * sessions_i) / sum(sessions_i)),
+        # matching the upstream `fetch_ga4.js` aggregation. NOT the
+        # arithmetic mean of the row ERs.
+        # (80*100 + 20*50) / (100+50) = 9000 / 150 = 60.0
         pages = [
             {"path": "/", "sessions": 100, "engRate": "80.0%"},
             {"path": "/", "sessions": 50,  "engRate": "20.0%"},
@@ -78,8 +82,8 @@ class TestGa4PageAggregation(unittest.TestCase):
         out = self._view(pages)["ga4"]["pages"]
         self.assertEqual(len(out), 1)
         er = out[0]["engagementRate"]
-        self.assertAlmostEqual(er, 50.0, places=1,
-            msg=f"ER should be ~50.0% (mean of 80% + 20%), got {er}")
+        self.assertAlmostEqual(er, 60.0, places=1,
+            msg=f"ER should be ~60.0% (session-weighted 80%+20% rows), got {er}")
 
     def test_caps_at_ten_unique_pages(self):
         pages = [{"path": f"/p{i}/", "sessions": 100 - i, "engRate": "50.0%"}

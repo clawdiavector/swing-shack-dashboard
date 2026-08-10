@@ -672,6 +672,10 @@ def performance_view() -> Dict[str, Any]:
     # (pagePath, sessionSource) query, so the homepage appeared 5+ times with
     # different engagement rates. Collapse duplicates before the response so
     # the rendered list always shows unique paths with session-weighted ER.
+    # The upstream `fetch_ga4.js` aggregates ER as session-weighted
+    # (weightedErSum / sessions). Mirror that math here so the API never
+    # returns an arithmetic mean that misrepresents the page's true ER when
+    # the raw rows have unequal session counts.
     raw_pages = ga4.get("pages", []) if isinstance(ga4, dict) else []
     pages_by_path = {}
     for p in raw_pages:
@@ -681,20 +685,22 @@ def performance_view() -> Dict[str, Any]:
         if not path:
             continue
         sessions = p.get("sessions") or 0
-        cur = pages_by_path.get(path) or {"path": path, "sessions": 0, "_er_sum": 0.0, "_n": 0}
+        cur = pages_by_path.get(path) or {"path": path, "sessions": 0, "_er_wsum": 0.0}
         cur["sessions"] += sessions
         try:
             er_raw = p.get("engRate") or p.get("engagementRate") or 0
             er_val = float(str(er_raw).replace("%", "")) if er_raw else 0.0
         except (ValueError, TypeError):
             er_val = 0.0
-        cur["_er_sum"] += er_val
-        cur["_n"] += 1
+        # Scale by this row's session count so the final divisor is total sessions.
+        cur["_er_wsum"] += er_val * sessions
         pages_by_path[path] = cur
     aggregated_pages = []
     for p in pages_by_path.values():
-        n = p["_n"] or 1
-        er_avg = p["_er_sum"] / n
+        # Session-weighted mean: sum(ER_i * sessions_i) / sum(sessions_i).
+        # Falls back to 0 if no sessions (avoids division by zero).
+        total_sessions = p["sessions"] or 0
+        er_avg = (p["_er_wsum"] / total_sessions) if total_sessions else 0.0
         aggregated_pages.append({
             "path": p["path"],
             "sessions": p["sessions"],
