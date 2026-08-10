@@ -7597,9 +7597,9 @@ async function renderCalendar(){
       <div class="cal-hud-val">${(tomorrow?.slots || []).length}</div>
       <div class="cal-hud-lbl">⏭️ Tomorrow</div>
     </div>
-    <div class="cal-hud-card week">
+    <div class="cal-hud-card week" data-help="Total planned posts in the 14-day window on this grid. These are CALENDAR SLOTS (planned work), not Postiz-queued items. Cross-check Publish page 'Scheduled' for items that are actually queued in Postiz and ready to auto-publish." data-help-title="Planned next 14 days">
       <div class="cal-hud-val">${weekTotal}</div>
-      <div class="cal-hud-lbl">📅 Next 14 days</div>
+      <div class="cal-hud-lbl">📅 Planned next 14 days</div>
     </div>
     <div class="cal-hud-card overdue ${overdueCount > 0 ? 'has-overdue' : ''}">
       <div class="cal-hud-val">${overdueCount}</div>
@@ -7610,7 +7610,9 @@ async function renderCalendar(){
       <div class="cal-hud-lbl">📭 Empty days</div>
     </div>
   `;
-  $('#cal-summary').textContent = data.totalScheduled + ' scheduled in next 14 days · ' + (today?.count || 0) + ' today';
+  // Word this as "planned" (calendar slots) so it doesn't contradict Publish page's "Scheduled: 0".
+  // Calendar counts planned work in the 14-day window; Publish counts items already in Postiz with a future publish time.
+  $('#cal-summary').textContent = data.totalScheduled + ' planned in next 14 days · ' + (today?.count || 0) + ' today · see Publish page for Postiz queue';
   const grid = $('#cal-grid');
   const days = (data.days || []).map(d => ({
     ...d,
