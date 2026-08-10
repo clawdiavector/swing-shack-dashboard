@@ -8547,12 +8547,35 @@ async function renderMemes(){
 }
 
 // ─── BILLBOARDS ─────────────────────────────────────────────────
+// Empty-state copy: tell the user *why* the column is empty and *what*
+// unblocks it. Mirrors the LEARN_EMPTY pattern (richer .empty-title +
+// .empty-sub + inline CTA button) so the page never shows a flat "No X
+// yet" message when there is a one-click path to fill it. The Concepts
+// column is empty whenever content-ideas.json["billboards"] is empty
+// (the visual-briefs.json pipeline is independent and does not seed
+// concepts). Em-dash banned: pipes / commas only.
+const BB_EMPTY = {
+  concepts: {
+    title: 'No headline concepts yet',
+    sub: 'Concepts live in content-ideas.json (visual briefs live in a separate file and do not auto-seed here). Hit the green Generate button to draft 5 placement-ready headlines for the active brand.',
+    cta: { label: 'Generate 5 headline concepts', fn: "document.getElementById('bb-gen')?.click()" }
+  },
+  briefs: {
+    title: 'No visual briefs yet',
+    sub: 'Briefs are the design-spec companions to billboard concepts (palette, layout, mood, CTA placement, font). They appear here once a designer or image-gen run produces one tied to this brand. Run the visual-brief agent to seed your first set.'
+  }
+};
+const bbEmpty = key => {
+  const e = BB_EMPTY[key];
+  const cta = e.cta ? `<button class="btn primary" style="margin-top:.7rem;font-size:12px;padding:.35rem .75rem" onclick="${e.cta.fn}">${esc(e.cta.label)} →</button>` : '';
+  return `<div class="empty" style="text-align:center"><div class="empty-title">${esc(e.title)}</div><div class="empty-sub">${esc(e.sub)}</div>${cta}</div>`;
+};
 async function renderBillboards(){
   if(!S.bb) S.bb = await API.get('/api/intel/billboards');
   const b = S.bb;
   $('#bb-summary').textContent = b.summary;
-  $('#bb-list').innerHTML = safeList(b.billboards, 12).map(itemHtml).join('') || '<div class="empty">No concepts yet</div>';
-  $('#bb-briefs').innerHTML = safeList(b.briefs, 12).map(itemHtml).join('') || '<div class="empty">No visual briefs</div>';
+  $('#bb-list').innerHTML = safeList(b.billboards, 12).map(itemHtml).join('') || bbEmpty('concepts');
+  $('#bb-briefs').innerHTML = safeList(b.briefs, 12).map(itemHtml).join('') || bbEmpty('briefs');
   // bind generate-headlines button (idempotent)
   const genBtn = $('#bb-gen');
   if (genBtn && !genBtn._bound) {
