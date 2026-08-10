@@ -366,6 +366,14 @@ a:hover{text-decoration:underline}
 .rail-empty{padding:1rem;text-align:center}
 @keyframes rail-pulse{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:none}}
 
+/* Loading skeletons for the home-page brief recommendation and today rail.
+   Replaces the dry "Loading…" text that previously made Home look broken
+   for several seconds on first paint. Uses the existing .skeleton shimmer
+   (line 511) so the visual language is consistent with the rest of the OS. */
+.rail-skel-card{background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem;margin-bottom:.5rem}
+.rail-skel-hint{font-size:11px;margin-top:.5rem;text-align:center;letter-spacing:.02em}
+.brief-rec-skel{padding:.25rem 0}
+
 .col-3{grid-column:span 3}
 .col-4{grid-column:span 4}
 .col-5{grid-column:span 5}
@@ -985,10 +993,15 @@ a:hover{text-decoration:underline}
       <div class="card" id="brief-recommendation" style="margin-top:1rem;border:1px solid var(--ac);box-shadow:0 0 0 3px rgba(99,102,241,0.08)">
         <div class="card-h">
           <h3 data-help="The single highest-leverage action for today across every brand surface. Ranked by recency, novelty, and unblock-value. Click the action to jump straight to the asset, brief, or campaign it points at." data-help-title="Do this right now">🎯 Do this right now</h3>
-          <span class="muted" id="brief-recommendation-rationale" style="font-size:12px">—</span>
+          <span class="muted" id="brief-recommendation-rationale" style="font-size:12px">Picking today's highest-leverage action…</span>
         </div>
         <div id="brief-recommendation-body">
-          <div class="muted">Loading recommendation…</div>
+          <div class="brief-rec-skel">
+            <div class="skeleton" style="height:14px;width:62%;margin-bottom:.55rem"></div>
+            <div class="skeleton" style="height:11px;width:38%;margin-bottom:.4rem"></div>
+            <div class="skeleton" style="height:12px;width:88%;margin-bottom:.3rem"></div>
+            <div class="skeleton" style="height:12px;width:74%"></div>
+          </div>
         </div>
       </div>
 
@@ -1003,8 +1016,25 @@ a:hover{text-decoration:underline}
 
       <div class="grid" id="brief-grid"></div>
       <aside class="today-rail" id="today-rail">
-        <div class="today-rail-h"><h3 data-help="Right-rail ticker of the freshest signals and tasks for the active brand, sorted by urgency. Each card carries a kind tag (opportunity, scheduled, seo, etc.), a timestamp, and a dismiss button (✕) to clear once handled. New cards animate in at the top every refresh, so scroll to see older ones. Click any card to jump to its source surface." data-help-title="Today ticker (right rail)">⚡ Today</h3><span class="muted" id="today-rail-ts">—</span></div>
-        <div id="today-rail-list"><div class="muted">Loading…</div></div>
+        <div class="today-rail-h"><h3 data-help="Right-rail ticker of the freshest signals and tasks for the active brand, sorted by urgency. Each card carries a kind tag (opportunity, scheduled, seo, etc.), a timestamp, and a dismiss button (✕) to clear once handled. New cards animate in at the top every refresh, so scroll to see older ones. Click any card to jump to its source surface." data-help-title="Today ticker (right rail)">⚡ Today</h3><span class="muted" id="today-rail-ts">…</span></div>
+        <div id="today-rail-list">
+          <div class="rail-skel-card">
+            <div class="skeleton" style="height:10px;width:30%;margin-bottom:.4rem"></div>
+            <div class="skeleton" style="height:12px;width:90%;margin-bottom:.3rem"></div>
+            <div class="skeleton" style="height:10px;width:50%"></div>
+          </div>
+          <div class="rail-skel-card">
+            <div class="skeleton" style="height:10px;width:35%;margin-bottom:.4rem"></div>
+            <div class="skeleton" style="height:12px;width:82%;margin-bottom:.3rem"></div>
+            <div class="skeleton" style="height:10px;width:45%"></div>
+          </div>
+          <div class="rail-skel-card">
+            <div class="skeleton" style="height:10px;width:25%;margin-bottom:.4rem"></div>
+            <div class="skeleton" style="height:12px;width:88%;margin-bottom:.3rem"></div>
+            <div class="skeleton" style="height:10px;width:55%"></div>
+          </div>
+          <div class="muted rail-skel-hint">Pulling live signals…</div>
+        </div>
       </aside>
       </section>
 
