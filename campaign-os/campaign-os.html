@@ -4926,22 +4926,51 @@ async function renderInsightsV2(){
            style="display:flex;gap:.6rem;align-items:center;padding:.5rem;border-radius:8px;color:inherit;border-left:3px solid ${borderColor};background:var(--bg-2);margin-bottom:.4rem;opacity:.92">${innerContent}</div>`;
     }).join('') : `<div class="muted" style="padding:1rem">No IG posts yet. Connect Instagram in the Brand Directory to see top performers.</div>`;
 
+    // Tone pages relative to the local average so the top engagement page gets a clear
+    // "above your average" signal even when the whole deck is low (e.g. all ER < 30%).
+    // If the average is essentially zero, fall back to absolute thresholds so we still
+    // surface a "Top performer" row.
+    const pageErValues = ga4Pages.map(it => {
+      const rawEr = it.engRate || it.engagement_rate || it.engagementRate;
+      const v = rawEr == null ? 0 : (typeof rawEr === 'string' ? parseFloat(rawEr.replace('%','')) : Number(rawEr));
+      return isNaN(v) ? 0 : v;
+    });
+    const pageAvgEr = pageErValues.length ? (pageErValues.reduce((s, x) => s + x, 0) / pageErValues.length) : 0;
+    const pageTopEr = pageErValues.length ? Math.max(...pageErValues) : 0;
     const pagesList = $('#ins-pages-list');
-    pagesList.innerHTML = ga4Pages.length ? ga4Pages.map(it => {
+    pagesList.innerHTML = ga4Pages.length ? ga4Pages.map((it, idx) => {
       const rawEr = it.engRate || it.engagement_rate || it.engagementRate;
       const erPct = rawEr == null ? null : (typeof rawEr === 'string' ? parseFloat(rawEr.replace('%','')) : Number(rawEr));
-      const tone = erPct != null && erPct >= 60 ? 'good' : erPct != null && erPct >= 30 ? 'watch' : 'bad';
-      const toneEmoji = tone === 'good' ? '🟢' : tone === 'watch' ? '🟡' : '🔴';
+      const er = erPct == null || isNaN(erPct) ? 0 : erPct;
+      const ratio = pageAvgEr > 0 ? er / pageAvgEr : 0;
+      const isTop = er === pageTopEr && er > 0;
+      let tone, toneEmoji, verdictLabel;
+      if (isTop && ratio >= 1.5) {
+        tone = 'good'; toneEmoji = '🟢'; verdictLabel = 'Top performer';
+      } else if (ratio >= 1.2) {
+        tone = 'good'; toneEmoji = '🟢'; verdictLabel = 'Above average';
+      } else if (ratio >= 0.8 || er >= pageAvgEr) {
+        tone = 'watch'; toneEmoji = '🟡'; verdictLabel = 'On par';
+      } else {
+        tone = 'bad'; toneEmoji = '🔴'; verdictLabel = 'Below average';
+      }
       const url = it.path || it.page || '';
       const fullUrl = url.startsWith('http') ? url : `https://swingshack.co.za${url}`;
       const borderColor = tone==='good'?'#10b981':tone==='watch'?'#f59e0b':'#ef4444';
+      const erText = erPct == null || isNaN(erPct) ? '—' : erPct.toFixed(1)+'%';
+      const erTitle = pageAvgEr > 0
+        ? `${verdictLabel} (your avg: ${pageAvgEr.toFixed(1)}%)`
+        : verdictLabel;
       return `
         <a href="${esc(fullUrl)}" target="_blank" rel="noopener"
-           style="display:flex;justify-content:space-between;align-items:center;padding:.5rem;border-radius:6px;text-decoration:none;color:inherit;border-left:3px solid ${borderColor};background:var(--bg-2);margin-bottom:.3rem">
-          <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(url)}</div>
-          <div style="font-size:11px;color:var(--tx-3);text-align:right">
+           style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.5rem;border-radius:6px;text-decoration:none;color:inherit;border-left:3px solid ${borderColor};background:var(--bg-2);margin-bottom:.3rem">
+          <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;display:flex;align-items:center;gap:.4rem">
+            <span>${esc(url)}</span>
+            ${isTop && ratio >= 1.5 ? `<span style="font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:${borderColor}22;color:${borderColor};flex-shrink:0" title="Top engagement rate in this list">★ Top</span>` : ''}
+          </div>
+          <div style="font-size:11px;color:var(--tx-3);text-align:right;flex-shrink:0">
             <div style="font-weight:600;color:var(--tx-1)">${(it.sessions||0).toLocaleString()}</div>
-            <div>${toneEmoji} ${erPct != null ? erPct.toFixed(1)+'%' : '—'}</div>
+            <div style="color:${borderColor};font-weight:600" title="${esc(erTitle)}">${toneEmoji} ${erText}</div>
           </div>
         </a>`;
     }).join('') : `<div class="muted" style="padding:1rem">No GA4 data yet. Add the service account JSON in <code>/ga4</code>.</div>`;
