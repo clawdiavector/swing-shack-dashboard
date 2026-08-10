@@ -6466,6 +6466,19 @@ async function renderBrief(){
     }
   }
   const b = S.brief;
+  // The brief-feed safeGet wrapper (top of this function) can leave S.brief
+  // null on a cold start with no cache. Render a quiet placeholder for the
+  // strip and short-circuit the rest of renderBrief — every downstream read
+  // (b.counts, b.do_first, b.needs_review, b.ready_to_publish, b.missed_high_impact,
+  // b.seo_quick_wins, b.post_today) would crash, and there is nothing useful
+  // to render anyway. The user already saw the warn toast at the top.
+  if(!b || !b.summary){
+    $('#brief-strip-txt').innerHTML = `<b>Brief feed unavailable.</b> Reconnect in a moment, or refresh.`;
+    // Render a single quiet placeholder card so the surface doesn't go blank.
+    const grid = $('#brief-grid');
+    if(grid) grid.innerHTML = `<div class="card col-12"><div class="muted">The brief feed is unreachable right now. The rest of the dashboard (Review, Ideas, Capture Library, Calendar) still works — pick one of those while this recovers.</div></div>`;
+    return;
+  }
   $('#brief-strip-txt').innerHTML = `<b>${esc(b.summary)}</b> · ${b.do_first.length} recommended actions · ${b.missed_high_impact.length} high-impact misses · ${b.seo_quick_wins.length} SEO quick wins.`;
 
   // ─── Freshness widget — show stale/rotten file counts and top offenders ───

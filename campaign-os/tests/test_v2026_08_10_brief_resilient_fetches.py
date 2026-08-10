@@ -145,6 +145,39 @@ class BriefResilientFetches(unittest.TestCase):
             "renderBrief() must toast a soft warning when the primary brief payload is null and no cache exists",
         )
 
+    def test_downstream_b_property_accesses_are_guarded(self):
+        """If S.brief is null after the safeGet wrapper returns, the rest of
+        renderBrief must NOT continue to read b.counts / b.do_first /
+        b.needs_review / b.ready_to_publish / b.missed_high_impact /
+        b.seo_quick_wins / b.post_today — those would crash with
+        "Cannot read properties of null". The guard is a top-level early
+        return once the strip placeholder is rendered."""
+        # The guard: `if(!b || !b.summary){ ...; return; }` must appear
+        # between the `const b = S.brief;` read and the first downstream
+        # b.counts / b.do_first access.
+        m = re.search(r"const\s+b\s*=\s*S\.brief\s*;", self.body)
+        self.assertIsNotNone(m, "Could not find `const b = S.brief;` in renderBrief()")
+        after = self.body[m.end():m.end() + 1200]
+        self.assertRegex(
+            after,
+            r"if\s*\(\s*!b\s*\|\|\s*!b\.summary\s*\)\s*\{[^}]*return\s*;",
+            "renderBrief() must guard downstream b.* reads with `if(!b || !b.summary){ ...; return; }`",
+        )
+        # Verify the guard returns BEFORE we hit the first `b.counts` access.
+        # In the body, the first `b.counts` should appear AFTER `return;` inside
+        # the guard block, not before. Simpler check: the guard's `return;` must
+        # appear before the line `const c = b.counts;`.
+        cdot = self.body.find("const c = b.counts")
+        ret = self.body.find("return;", m.end())
+        self.assertGreater(
+            ret, m.end(),
+            "renderBrief() must return early from the null-brief branch",
+        )
+        self.assertLess(
+            ret, cdot,
+            "renderBrief() must `return;` before reaching `const c = b.counts;`",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
