@@ -8077,15 +8077,46 @@ async function renderPerformance(){
         const fmt = match?.format_type || match?.format || '?';
         let r = null;
         try { r = await API.get('/api/engagement/' + encodeURIComponent(id)); } catch(_) { r = null; }
-        const verdict = (er > 4) ? '✅ Strong performer'
-                      : (er > 2) ? '🟡 Average performer'
-                      : (er > 0) ? '🔴 Underperformer'
-                      : '⚪ No engagement data';
+        // Relative-tone verdict (pitfall #90): tone is relative to the in-list
+        // average ER from top_posts, not absolute thresholds. The old hardcoded
+        // ladder (er > 4 ? strong : er > 2 ? average : underperformer) was
+        // decoupled from the data scale (Swing Shack average is ~52%, so every
+        // post labelled "Strong" regardless of actual standing). Now: in-list
+        // avg is computed, top row gets a 1.5x-badge, math is in the tooltip.
+        const topErValues = top.map(it => parseFloat(it.engagementRate || it.engagement_rate || 0) || 0);
+        const whyAvgEr = topErValues.length
+          ? (topErValues.reduce((s, x) => s + x, 0) / topErValues.length)
+          : 0;
+        const whyTopEr = topErValues.length ? Math.max.apply(null, topErValues) : 0;
+        const whyRatio = whyAvgEr > 0 ? (er / whyAvgEr) : 0;
+        const whyIsTop = topErValues.length > 0 && er === whyTopEr && er > 0;
+        let whyTone, whyVerdictLabel;
+        if (er <= 0) {
+          whyTone = 'neutral'; whyVerdictLabel = 'No engagement data';
+        } else if (whyIsTop && whyRatio >= 1.5) {
+          whyTone = 'good'; whyVerdictLabel = 'Top performer';
+        } else if (whyRatio >= 1.2) {
+          whyTone = 'good'; whyVerdictLabel = 'Above average';
+        } else if (whyRatio >= 0.8 || er >= whyAvgEr) {
+          whyTone = 'watch'; whyVerdictLabel = 'On par';
+        } else {
+          whyTone = 'bad'; whyVerdictLabel = 'Below average';
+        }
+        const whyEmoji = ({good:'✅',watch:'🟡',bad:'🔴',neutral:'⚪'})[whyTone] || '⚪';
+        const whyTitle = whyAvgEr > 0
+          ? `${whyVerdictLabel} (your avg: ${whyAvgEr.toFixed(2)}%)`
+          : whyVerdictLabel;
+        const whyFallback = whyAvgEr > 0
+          ? `Engagement rate ${er.toFixed(2)}% vs 30-day avg ${whyAvgEr.toFixed(2)}%. Above 1.5x = strong. Below 0.8x = underperformer.`
+          : `Engagement rate ${er.toFixed(2)}% vs 30-day avg. Higher than 1.5x average = strong. Lower than 0.8x = underperformer.`;
+        const starTop = whyIsTop && whyRatio >= 1.5
+          ? `<span style="font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:#10b98122;color:#10b981;margin-left:.4rem" title="Top engagementRate in this list">★ Top</span>`
+          : '';
         out.innerHTML = `
-          <div style="margin-bottom:.6rem"><b>${verdict}</b> — engagement rate ${er ? er.toFixed(2) + '%' : '—'} · reach ${reach ?? '—'}${likes != null ? ' · likes ' + likes : ''}${comments != null ? ' · comments ' + comments : ''}</div>
+          <div style="margin-bottom:.6rem"><b>${whyEmoji} ${whyVerdictLabel}${starTop}</b> · engagement rate ${er ? er.toFixed(2) + '%' : 'no data'}${whyAvgEr > 0 ? ` <span style="font-size:11px;color:var(--tx-2);cursor:help" title="${esc(whyTitle)}">(${whyRatio.toFixed(2)}x avg)</span>` : ''} · reach ${reach ?? 'no data'}${likes != null ? ' · likes ' + likes : ''}${comments != null ? ' · comments ' + comments : ''}</div>
           <div style="margin-bottom:.3rem"><b>Hook:</b> ${esc(String(hook).slice(0,160))}</div>
           <div style="margin-bottom:.3rem"><b>Pillar:</b> ${esc(pillar)} &nbsp; <b>Format:</b> ${esc(fmt)} &nbsp; <b>CTA:</b> ${esc(cta)}</div>
-          <div style="margin-top:.6rem;padding:.6rem;background:var(--bg-3);border-radius:6px"><b>Why:</b> ${esc(r?.explanation || r?.why || ('Engagement rate ' + er.toFixed(2) + '% vs 30-day avg. Higher than 2× average = strong. Lower than 0.5× = underperformer.'))}</div>`;
+          <div style="margin-top:.6rem;padding:.6rem;background:var(--bg-3);border-radius:6px"><b>Why:</b> ${esc(r?.explanation || r?.why || whyFallback)}</div>`;
       } catch(err) {
         out.innerHTML = '<i>Engagement endpoint failed: ' + esc(err.message || String(err)) + '</i>';
       }
