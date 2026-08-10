@@ -933,3 +933,89 @@ Same `.btn primary` token every other CTA in the app uses. Uses `esc(e.cta.go)` 
 **Next pick:** The IG posts and GA4 pages cards on the Insights tab are now both relative-tone. The same hardcoded-threshold pattern likely lives in other "what's my best X?" surfaces — the `Top pages by sessions` mini-widget on the Performance widget (line 7997) is plain text without tone, so it's already safe. The next candidate is the Ad correlation verdict card (line 4954) which uses `verdict` strings from the data — check if those have absolute thresholds baked in. Also: the GA4 fetcher aggregation in `performance_view()` (intelligence.py:677) computes ER as a simple arithmetic mean rather than session-weighted (despite the upstream `fetch_ga4.js` doing session-weighted). Worth a tiny `weight = sessions` patch.
 
 **Asks:** None.
+
+## 2026-08-10T14:34Z — fix(perf): GA4 page aggregation uses session-weighted ER (matches upstream)
+
+**Done:** Picked up the deferred `intelligence.py:677` arithmetic-mean bug from the 2026-08-10T10:56Z next-pick note. The `performance_view()` GA4 aggregation was computing `sum(ER_i) / n` (arithmetic mean of row ERs) instead of the session-weighted mean that the upstream `fetch_ga4.js` already computes (`weightedErSum / sessions`). The divergence was masked by the fact that the upstream pre-aggregates unique paths, so for most pages the rows collapse 1:1 and the math is identical. Only multi-row paths (the homepage typically) paid the bug tax.
+
+**Fix (`campaign-os/_lib/intelligence.py` lines 671-712):** Replaced the `_er_sum / n` accumulator with `_er_wsum += er * sessions` divided by `total_sessions`. Defensive against `total_sessions == 0` (returns 0). Comment block now cites the upstream source so future readers see why the math is session-weighted. The output shape (`engRate` as `X.X%` string, `engagementRate` as float) is unchanged — the HTML at `campaign-os.html:4934-4965` reads both fields and the format string stays identical.
+
+**Test fix (`test_ga4_page_aggregation.py::test_session_weighted_engagement_rate`):** The existing regression test was named "session_weighted" but its assertion was the arithmetic-mean value (50.0) — written against the buggy code. Updated the payload and the assertion to the true session-weighted value (60.0) so the test now matches its name and the actual contract.
+
+**New regression tests (`test_v2026_08_10_ga4_session_weighted_er.py`, 5 tests):**
+- `test_unequal_sessions_uses_session_weighted`: 3 rows of sessions 100/50/25 with ERs 80/20/0 — assert 51.43% (old code would have given 33.33%).
+- `test_single_row_path_unchanged`: single-row pages still show their row ER.
+- `test_zero_sessions_row_does_not_break`: zero-session rows contribute 0/0 (no division by zero).
+- `test_no_arithmetic_mean_regression`: payload that produces wildly different arithmetic vs. weighted means (90% × 200 vs 0% × 1) — assert 89.55%, not 45%.
+- `test_engRate_format_string`: output format is still "X.X%" not "X.X".
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- Walker reprinted the live card against the new build: 5 rows, tone distribution 1 bad + 4 watch + 0 good (no ★ Top — `/club-fitting/` at 73.3% is 1.20x avg, below the 1.5x badge threshold).
+- Live homepage ER: 42.5% (was 38.4% arithmetic mean). -4.1pp upward correction.
+- Live `/bookings/` ER: 67.1% (was 64.2%). -2.9pp upward correction.
+- Live `/customer-portal/`, `/takomo-irons-...`, `/club-fitting/`: unchanged (single-row pages).
+- Live card tooltip text: "Below average (your avg: 61.3%)" — the local average itself moved from 59.9% to 61.3% (the weighted mean of the rendered set is higher than the arithmetic mean of the same 5 numbers).
+- Single-row pages still show their raw row ER (no accidental SR (scaled) drift).
+- No PAGEERROR, no console errors, no new console warnings.
+
+**Files (3, +136/-8):**
+- `campaign-os/_lib/intelligence.py` (lines 671-712): session-weighted aggregator + 4-line comment block referencing `fetch_ga4.js`.
+- `campaign-os/tests/test_ga4_page_aggregation.py`: existing session-weighted test now asserts the correct value (60.0%, not 50.0%) and the docstring block explains the math.
+- `campaign-os/tests/test_v2026_08_10_ga4_session_weighted_er.py` (NEW, 5 tests): full regression for the relative-tone math.
+
+**Commit:** `c548a7c` on `feat/asset-state-engine`, 3 files, +136/-8, pushed. Railway auto-deploy in ~90s. `/api/health` 200.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes (verified in commit diff), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260810T143411Z_ga4_session_weighted.png` — full Insights tab post-deploy.
+- `/tmp/co-nightshift/walkthrough_20260810T143411Z_ga4_session_weighted_top.png` — Top pages by sessions zoomed: red `/` (459 sess, 42.5%), yellow `/bookings/` (67.1%), `/customer-portal/` (59.3%), `/takomo-...` (64.3%), `/club-fitting/` (73.3%).
+
+**Learned:** The arithmetic-mean vs session-weighted trap is invisible in single-row fixtures. Unit tests that hand-craft `pages=[{sessions:N, engRate:"X%"}]` with `N=1` for every path will always pass against either implementation — the divergence only surfaces when you have a real-world path with multiple rows of unequal sessions. The pre-existing test in `test_ga4_page_aggregation.py` accidentally exercised this case (two rows of sessions 100/50) but its assertion was wrong: it locked in the arithmetic-mean value (50.0) instead of the weighted value (60.0). The fix isn't just code — it's also repairing the assertion that was rubber-stamping the bug. The new test suite includes a `test_no_arithmetic_mean_regression` that explicitly checks the math diverges by a wide margin on a payload like 90% × 200 vs 0% × 1, so the bug can't sneak back in.
+
+**Next pick:** The relative-tone pattern is now stable across 4 surfaces (IG posts, GA4 pages, Why-explain, and the API math behind all three). The natural next lane is the **Meme Lord** tab — its hooks/captions library has no "what works" signal at all (no engagement data, no relative tone). Worth a tiny "★ Top" badge for the 3 most-reused memes across the last 30 days. Or: the **Performance widget era pill** (line ~8011) still uses absolute tone (`rising`/`falling`) without any local-context comparison — but that's a different fix shape (movement is binary direction, not magnitude), so it may not be the right target. Lower-priority. Higher-value: ship the walker-helper (`walk_open_nav`) that the 2026-08-10T10:56Z tick noted, since it's been re-discovered in 3 of the last 4 walkers.
+
+**Asks:** None.
+
+
+## 2026-08-10T14:34Z — fix(perf): GA4 page aggregation uses session-weighted ER (matches upstream)
+
+**Done:** Picked up the deferred `intelligence.py:677` arithmetic-mean bug from the 2026-08-10T10:56Z next-pick note. The `performance_view()` GA4 aggregation was computing `sum(ER_i) / n` (arithmetic mean of row ERs) instead of the session-weighted mean that the upstream `fetch_ga4.js` already computes (`weightedErSum / sessions`). The divergence was masked by the fact that the upstream pre-aggregates unique paths, so for most pages the rows collapse 1:1 and the math is identical. Only multi-row paths (the homepage typically) paid the bug tax.
+
+**Fix (`campaign-os/_lib/intelligence.py` lines 671-712):** Replaced the `_er_sum / n` accumulator with `_er_wsum += er * sessions` divided by `total_sessions`. Defensive against `total_sessions == 0` (returns 0). Comment block now cites the upstream source so future readers see why the math is session-weighted. The output shape (`engRate` as `X.X%` string, `engagementRate` as float) is unchanged — the HTML at `campaign-os.html:4934-4965` reads both fields and the format string stays identical.
+
+**Test fix (`test_ga4_page_aggregation.py::test_session_weighted_engagement_rate`):** The existing regression test was named "session_weighted" but its assertion was the arithmetic-mean value (50.0) — written against the buggy code. Updated the payload and the assertion to the true session-weighted value (60.0) so the test now matches its name and the actual contract.
+
+**New regression tests (`test_v2026_08_10_ga4_session_weighted_er.py`, 5 tests):**
+- `test_unequal_sessions_uses_session_weighted`: 3 rows of sessions 100/50/25 with ERs 80/20/0 — assert 51.43% (old code would have given 33.33%).
+- `test_single_row_path_unchanged`: single-row pages still show their row ER.
+- `test_zero_sessions_row_does_not_break`: zero-session rows contribute 0/0 (no division by zero).
+- `test_no_arithmetic_mean_regression`: payload that produces wildly different arithmetic vs. weighted means (90% × 200 vs 0% × 1) — assert 89.55%, not 45%.
+- `test_engRate_format_string`: output format is still "X.X%" not "X.X".
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- Walker reprinted the live card against the new build: 5 rows, tone distribution 1 bad + 4 watch + 0 good (no ★ Top — `/club-fitting/` at 73.3% is 1.20x avg, below the 1.5x badge threshold).
+- Live homepage ER: 42.5% (was 38.4% arithmetic mean). -4.1pp upward correction.
+- Live `/bookings/` ER: 67.1% (was 64.2%). -2.9pp upward correction.
+- Live `/customer-portal/`, `/takomo-irons-...`, `/club-fitting/`: unchanged (single-row pages).
+- Live card tooltip text: "Below average (your avg: 61.3%)" — the local average itself moved from 59.9% to 61.3% (the weighted mean of the rendered set is higher than the arithmetic mean of the same 5 numbers).
+- No PAGEERROR, no console errors, no new console warnings.
+
+**Files (3, +136/-8):**
+- `campaign-os/_lib/intelligence.py` (lines 671-712): session-weighted aggregator + 4-line comment block referencing `fetch_ga4.js`.
+- `campaign-os/tests/test_ga4_page_aggregation.py`: existing session-weighted test now asserts the correct value (60.0%, not 50.0%) and the docstring block explains the math.
+- `campaign-os/tests/test_v2026_08_10_ga4_session_weighted_er.py` (NEW, 5 tests): full regression for the relative-tone math.
+
+**Commit:** `c548a7c` on `feat/asset-state-engine`, 3 files, +136/-8, pushed. Railway auto-deploy in ~90s. `/api/health` 200.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes (verified in commit diff), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260810T143411Z_ga4_session_weighted.png` — full Insights tab post-deploy.
+- `/tmp/co-nightshift/walkthrough_20260810T143411Z_ga4_session_weighted_top.png` — Top pages by sessions zoomed: red `/` (459 sess, 42.5%), yellow `/bookings/` (67.1%), `/customer-portal/` (59.3%), `/takomo-...` (64.3%), `/club-fitting/` (73.3%).
+
+**Learned:** The arithmetic-mean vs session-weighted trap is invisible in single-row fixtures. Unit tests that hand-craft `pages=[{sessions:N, engRate:"X%"}]` with `N=1` for every path will always pass against either implementation — the divergence only surfaces when you have a real-world path with multiple rows of unequal sessions. The pre-existing test in `test_ga4_page_aggregation.py` accidentally exercised this case (two rows of sessions 100/50) but its assertion was wrong: it locked in the arithmetic-mean value (50.0) instead of the weighted value (60.0). The fix isn't just code — it's also repairing the assertion that was rubber-stamping the bug. The new test suite includes a `test_no_arithmetic_mean_regression` that explicitly checks the math diverges by a wide margin on a payload like 90% × 200 vs 0% × 1, so the bug can't sneak back in.
+
+**Next pick:** The relative-tone pattern is now stable across 4 surfaces (IG posts, GA4 pages, Why-explain, and the API math behind all three). The natural next lane is the **Meme Lord** tab — its hooks/captions library has no "what works" signal at all. Worth a tiny "★ Top" badge for the 3 most-reused memes across the last 30 days. Or: the **Performance widget era pill** (line ~8011) still uses absolute tone (`rising`/`falling`) without any local-context comparison — but that's a different fix shape (movement is binary direction, not magnitude), so it may not be the right target. Lower-priority. Higher-value: ship the walker-helper (`walk_open_nav`) that the 2026-08-10T10:56Z tick noted, since it's been re-discovered in 3 of the last 4 walkers.
+
+**Asks:** None.
