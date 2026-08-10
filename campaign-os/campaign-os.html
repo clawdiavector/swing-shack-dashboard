@@ -7150,8 +7150,7 @@ window.openReview = async (cid, aid) => {
         const ts = p.timestamp ? new Date(p.timestamp).toLocaleDateString() : '';
         const cap = (p.caption || '').slice(0, 60) + ((p.caption || '').length > 60 ? '…' : '');
         const likes = p.like_count != null ? `❤️ ${p.like_count}` : '';
-        return `<a href="${esc(p.permalink || '#')}" target="_blank" rel="noopener"
-                   style="flex:0 0 auto;width:140px;text-decoration:none;color:inherit">
+        const inner = `
           <div style="aspect-ratio:1/1;background:var(--bg-3);border-radius:6px;overflow:hidden">
             ${thumb ? `<img src="${esc(thumb)}" loading="lazy" style="width:100%;height:100%;object-fit:cover"
               onerror="this.style.opacity=0.2"/>` : '<div class="muted" style="padding:1rem;font-size:11px">no thumb</div>'}
@@ -7159,8 +7158,14 @@ window.openReview = async (cid, aid) => {
           <div style="font-size:10px;color:var(--tx-3);margin-top:.25rem;display:flex;justify-content:space-between">
             <span>${esc(ts)}</span><span>${likes}</span>
           </div>
-          <div style="font-size:11px;line-height:1.2;margin-top:.15rem;color:var(--tx-2)">${esc(cap)}</div>
-        </a>`;
+          <div style="font-size:11px;line-height:1.2;margin-top:.15rem;color:var(--tx-2)">${esc(cap)}</div>`;
+        // When permalink is missing, render as a static div so the cursor doesn't lie
+        // about this tile being clickable. Was previously an <a href="#"> dead link.
+        if (p.permalink) {
+          return `<a href="${esc(p.permalink)}" target="_blank" rel="noopener"
+                     style="flex:0 0 auto;width:140px;text-decoration:none;color:inherit">${inner}</a>`;
+        }
+        return `<div style="flex:0 0 auto;width:140px;color:inherit;opacity:.92">${inner}</div>`;
       }).join('');
     } catch (e) {
       strip.innerHTML = `<div class="muted" style="font-size:11px;padding:.5rem">Couldn't load socials: ${esc(String(e))}</div>`;
