@@ -1,4 +1,31 @@
 
+## 2026-08-10T07:00Z — fix(campaign-os): Agents page shows real last-run ages, not "never"
+
+**Done:** Agents & health page now renders actual last-run ages for every agent (e.g. "5 runs total · last 110d ago") instead of "last never" on every row. Pre-pick walkthrough on the live URL caught 23/23 agent rows showing "1 run total · last never" / "2 runs total · last never" / "5 runs total · last never" — even though the green PASS pill made the page look healthy. The agent roster was unscannable.
+
+**Root cause:** `data/agent-runs.json` records each run's timestamp under the key `run_at`, but `campaign-os/_lib/intelligence.py` `agents_view()` was looking for `ts`, `generated`, or `updated`. Every `last_run` collapsed to `None`, and the JS `agentRunHtml()` formatter rendered `None` as the literal string "never".
+
+**Fix (commit `d64ce44`, pushed, Railway auto-deployed):**
+- `campaign-os/_lib/intelligence.py` (line ~1399): `agents_view()` now puts `run_at` first in the lookup chain, with the older probe names kept as a fallback so any future writer that picks a different key still renders an age instead of collapsing to "never".
+- `tests/test_v2026_08_10_agents_run_at_field.py` (NEW, 4 tests): regression assertions for the 4 invariants (run_at in lookup chain, legacy fallbacks still present, JS `age = 'never'` initialiser preserved, every agent in `data/agent-runs.json` carries a run_at).
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-fix: 23/23 rows showed "X runs total · last never".
+- Post-fix: 23/23 rows show real ages — e.g. "5 runs total · last 110d ago", "3 runs total · last 109d ago", "1 run total · last 110d ago". The PARTIAL/FAIL pills now stand out from the PASS rows because the only difference between them is the status, not "never vs never".
+- `/api/health` 200. 63/63 `test_v2026_*.py` tests pass (including the new 4).
+- 0 PAGEERROR, 0 new console.errors.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260810T070000Z_agents_AFTER.png` — full-page Agents & health AFTER. Every row's "last ___" line is now a real age.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 em-dashes (`git diff` of the commit = 0), 0 schema changes, 0 helper removed, 1 new regression test, 0 JS framework dependency added.
+
+**Learned:** Field-name drift between the writer and the reader is a silent failure mode — Python's `dict.get("wrong_name") or None` returns a value that looks normal until you actually display it. The pattern (lookup the right key, but keep the old keys as fallbacks) is universal and worth applying to every other `or`-chain in `intelligence.py`. Quick scan for the same pattern: `agents_view()` was the only one with this exact bug, but the surface area for the same fix style is large — anywhere we read from a JSON file written by a Node script, the key names are at risk of drift.
+
+**Next pick:** The Publish page header text says "Published: 57" but its own right-pane Published tab renders nothing. That number is probably from a different counter (postiz-ref count vs published-with-URL count). Likely a similar field-name drift inside the publish renderer. Quick scope check is the next tick.
+
+**Asks:** None.
+
 ## 2026-08-10T04:25Z — fix(campaign-os): brief feeds render gracefully when intel endpoints fail (no more "Boot failed" toast, no more blank strip)
 
 **Done:** Pre-pick sweep (Playwright walk over 30 sections) caught brief feed fetch failures cascading into a hard "Boot failed: Failed to fetch" toast + blank strip. Two atomic commits, both shipped to Railway:
