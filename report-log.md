@@ -859,3 +859,43 @@ Same `.btn primary` token every other CTA in the app uses. Uses `esc(e.cta.go)` 
 **Next pick:** Walk the Insights tab to confirm the Top IG Posts fix is holding on live (the prior tick's walker wasn't repeatable). Also, the same `href="#"` pattern likely lives in the `<a href="${esc(fullUrl)}">` at line 4939 (Top pages card) — that one is always a real URL because it uses `page.path` not a permalink, so it's safe, but the threshold there (`>=60% good, >=30% watch`) is still hardcoded and could all be red on a small data set. Carrying over if the sweep confirms it.
 
 **Asks:** None.
+
+
+## 2026-08-10T10:56Z — fix(insights): GA4 top pages card uses relative-tone (mirrors IG post fix)
+
+**Done:** Carried the same relative-tone fix from the Top Instagram Posts card into the Top pages by sessions card on the Insights tab. The card was tone-coding every row against hardcoded absolute engagement-rate thresholds (`>=60% good, >=30% watch, else bad`). For a brand whose real average engagement is ~52% (the live swing-shack data), a 26.8% ER page rendered red even though it was only 0.5x the average — and the top performer (77.5% /bookings/) got no distinguishing badge.
+
+**Fix (`campaign-os.html` lines 4929-4971):** Tone is now relative to the in-list average (pageAvgEr). Top performer = highest ER with ratio >= 1.5x avg, gets a "★ Top" badge. Every row's ER pill tooltip exposes the math ("Top performer (your avg: 59.9%)", "Above average", "On par", "Below average") so the user sees the verdict, not just a color. Empty-state branch preserved verbatim.
+
+**Files (3, +318/-7):**
+- `campaign-os/campaign-os.html` (lines 4929-4971): new pagesList block with pageAvgEr, pageTopEr, ratio, isTop, relative-tone ladder, and ER pill tooltip with the math exposed.
+- `campaign-os/tests/test_v2026_08_10_insights_ga4_pages_relative_tone.py` (NEW, 5 tests): regression assertions (hardcoded thresholds gone, local avg + isTop + ratio guards, tooltip math, no new em-dashes).
+- `scripts/walk_insights_ga4_pages_live.py` (NEW): Playwright walker that logs in, dismisses the welcome tour, expands the "Insight" nav-group, opens Insights, inspects #ins-pages-list rows (borderLeftColor, href, title, ★ Top badge), captures two screenshots.
+
+**Walker fix follow-up (`26b2da4`):** The Insights nav lives inside a hidden `#nav-group-insight` group that opens when the user clicks the "Insight" group header. The first walker draft tried to click `.nav[data-go='insights']` directly, which Playwright resolved to the hidden mobile-bottom-nav duplicate. Fix: wait for the group header to render, then click it to expand the group before clicking the Insights nav. Same pattern works for any group-hidden nav (Trends, Performance, Meme Lord, Postiz, Publish, etc.).
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- 5 rows rendered (the GA4 aggregator collapsed 10 raw rows to 5 unique paths).
+- Tone distribution: 1 bad + 3 watch + 1 good. Avg = 59.9%.
+- Top row = `/club-fitting/` at 73.3% (1.22x avg, "Above average"). Below the 1.5x threshold so no ★ Top badge — math is honest, the bar is high.
+- Red row = `/` at 38.4% (the highest-traffic page, 459 sessions, but 0.64x avg) — faithful "below your average" signal on the most important page.
+- All hrefs real (`https://swingshack.co.za/...`), no dead `#`.
+- ER pill tooltips: "Below average (your avg: 59.9%)", "On par (your avg: 59.9%)", "Above average (your avg: 59.9%)" — math is transparent.
+- 178/178 tests pass (5 new + 173 prior).
+- 0 PAGEERROR, 0 new console.errors.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260810T105410Z_insights_full.png` — full Insights page.
+- `/tmp/co-nightshift/walkthrough_20260810T105410Z_insights_top_pages.png` — the Top pages card zoomed: red `/` (459 sessions, 38.4%), yellow `/bookings/`, `/customer-portal/`, `/takomo-irons-...`, green `/club-fitting/` (73.3%).
+
+**Commits (both on `feat/asset-state-engine`, pushed, Railway auto-deployed):**
+- `2c7ea21` — server: GA4 pages card uses relative-tone (3 files, +318/-7)
+- `26b2da4` — walker: expand Insight nav-group before click (1 file, +19/-3)
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes in user-facing copy (the pre-existing `'—'` for missing-ER fallback was preserved verbatim), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Learned:** Two patterns converged this tick. (1) Hardcoded absolute thresholds are the same failure mode everywhere — the IG post card and the GA4 pages card had the same shape and the same 1.5x threshold for the ★ Top badge. The fix template is stable: compute the local average, tone-rank relative to it, surface the math in a tooltip. (2) The hidden nav-group gotcha in the walker is reusable knowledge: the Insights / Trends / Performance nav items all live inside collapsible groups (`data-nav-group="insight"`). Future walkers that need to reach any buried nav target should expand the group header first. Worth encoding as a `walk_open_nav(page, group_name, child_name)` helper.
+
+**Next pick:** The IG posts and GA4 pages cards on the Insights tab are now both relative-tone. The same hardcoded-threshold pattern likely lives in other "what's my best X?" surfaces — the `Top pages by sessions` mini-widget on the Performance widget (line 7997) is plain text without tone, so it's already safe. The next candidate is the Ad correlation verdict card (line 4954) which uses `verdict` strings from the data — check if those have absolute thresholds baked in. Also: the GA4 fetcher aggregation in `performance_view()` (intelligence.py:677) computes ER as a simple arithmetic mean rather than session-weighted (despite the upstream `fetch_ga4.js` doing session-weighted). Worth a tiny `weight = sessions` patch.
+
+**Asks:** None.
