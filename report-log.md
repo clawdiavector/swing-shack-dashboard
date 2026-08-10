@@ -1,4 +1,22 @@
 
+## 2026-08-10T04:25Z — fix(campaign-os): brief feeds render gracefully when intel endpoints fail (no more "Boot failed" toast, no more blank strip)
+
+**Done:** Pre-pick sweep (Playwright walk over 30 sections) caught brief feed fetch failures cascading into a hard "Boot failed: Failed to fetch" toast + blank strip. Two atomic commits, both shipped to Railway:
+
+1. **cbd5f02 — fetch-level resilience.** Wrapped the 3 direct `API.get(...)` calls in `renderBrief`'s `Promise.all` (`morning_brief`, `review_inbox`, `trend_catcher`) in a `safeGet()` helper that resolves to `null` on rejection. Replaced the unconditional `S.brief = b; S.review = r; S.trends = t;` with a guarded `if(!b){ ... }` that keeps any cached brief and surfaces a quiet warn toast instead of a hard error.
+
+2. **9230d5d — downstream consumer guard.** The browser test exposed the next bug: even after the safeGet wrapper, `renderBrief` proceeded to render the strip from `const b = S.brief` and crashed on `b.summary` when S.brief was null (cold start with no cache). Added an early-return guard: if `b` is null OR `b.summary` is missing, render a quiet "Brief feed unavailable" placeholder in the strip + a single muted card in `#brief-grid` (tells the user the rest of Campaign OS still works), then `return;` so the rest of the function (b.counts / b.do_first / b.needs_review / b.ready_to_publish / b.missed_high_impact / b.seo_quick_wins / b.post_today) is skipped.
+
+**Verification:** Added `campaign-os/tests/test_v2026_08_10_brief_resilient_fetches.py` (6 tests, all passing). Tested both paths on live Railway: happy path = strip renders normally, zero console errors; failure path (Playwright `page.route('**/api/intel/*').abort`) = strip shows "Brief feed unavailable" placeholder, grid shows muted card, no `TypeError`, no "Boot failed" toast.
+
+**Files:** `campaign-os/campaign-os.html` (2 hunks), `campaign-os/tests/test_v2026_08_10_brief_resilient_fetches.py` (new).
+
+**Commits:** `cbd5f02` + `9230d5d` on `feat/asset-state-engine`. Both pushed, both live on Railway.
+
+**Next:** Sweep came back clean (0 console errors, 0 page errors, 0 JSON dumps, 0 [object Object] across all 30 sections). Pick from priority list — next likely candidate is small UX polish on the Calendar (no drag handles visible to desktop users) or the Meme Lord explainer (which never made it into HELP.EXPLAINERS).
+
+**Asks:** None.
+
 ## 2026-08-09T14:08Z — fix(campaign-os): Brief "What's new" title no longer leaks literal [object Object]
 
 **Done:** Pre-pick sweep (`scripts/sweep.py`-style Playwright walk over 21 sections) caught the Morning Brief rendering literal `[object Object]` text in production — in the GBP-location regression-test row of the "What's new" card. The bug it describes is already fixed in the codebase; the *description* of the bug quoted the broken token verbatim (`"GBP profile 'Location [object Object]' becomes city, region · country"`), and the SPA rendered that title as-is. Result: Christelle opens Campaign OS and reads `[object Object]` in the morning — looks like a live regression.
