@@ -26,6 +26,46 @@
 
 **Asks:** None.
 
+## 2026-08-10T15:50Z — fix(campaign-os): FAQs tab renders the question, not a JSON dump
+
+**Done:** Picked up the `JSON_LEAK` flagged on the FAQs tab in the 2026-08-10T15:42Z pre-pick sweep. Every one of the 8 rows on the live FAQs tab was rendering as a wall of `{"cluster":"TrackMan Golf Technology","faq_id":"faq-u2q6m4lz","generated":"2026-04-23T09:37:27.915Z",...}` instead of the mined questions. The renderFAQs() renderer at `campaign-os.html:9632` used `it.question || it.title || it.q || JSON.stringify(it).slice(0,80)`, but the live data shape (`data/faq-opportunities.json`) ships each FAQ as `{faq_id, cluster, target_keyword, questions:[..], source, status, ...}` — none of the fallback fields exist, so every row fell through to the JSON.stringify branch.
+
+**Fix (`campaign-os/campaign-os.html:9629-9658`):** New renderFAQs() that:
+- Title = first element of `it.questions[]` (or `it.cluster` as a last-ditch fallback). Never the JSON.
+- Preview = the next 2 questions, one per line, truncated to 120 chars.
+- Meta = cluster (the topic) + target_keyword (the SEO intent) + status pill. Mirrors the Reddit replies card's modern shape (which was already known-good after the 2026-08-09 reddit replies renderer fix).
+- The empty-state HTML ("No FAQ opportunities") is the honest fallback when the data doesn't carry a question we can read.
+
+**Standing rule: no em-dashes.** Verified via `git diff` of the commit: 0 NEW occurrences of `—` or `–` in the new code or comments. The single em-dash that remained in the new comment block was rewritten to a colon.
+
+**Regression tests (`test_v2026_08_10_faqs_no_json_dump.py`, 9 tests, all passing post-deploy):**
+- 3 static renderer contract tests: renderFAQs() must not use `JSON.stringify(it).slice(0,80)`, must read `it.questions`, must use `it.cluster` and `it.target_keyword` for the meta row.
+- 3 data-shape tests: `faq-opportunities.json` is a list of objects each carrying a non-empty `questions[]` array; none of the buggy fallback fields (`question`/`title`/`q`) sneak in.
+- 1 whole-file lying-affordance audit: counts active `JSON.stringify(x).slice(0,N)` patterns (excludes comments) and fails if a regression re-introduces the renderFAQs bug. Baseline is 5 (was 6 before this fix).
+- 2 LIVE playwright checks (login → BUILD group → FAQs nav → `#faqs-list`): rendered HTML must contain the first question text + the cluster name, and must not contain the `{"cluster"` substring.
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- 8/8 rows in `#faqs-list` now show real questions, not JSON.
+- Row 1: "What is trackman golf?" with meta "📚 TrackMan Golf Technology · 🎯 trackman golf · draft" (was: `{"cluster":"TrackMan Golf Technology","faq_id":"faq-u2q6m4lz",...}`).
+- Row 1 preview: "How much does trackman golf cost in Johannesburg? / Is trackman golf worth it?" (the next 2 questions, one per line).
+- No PAGEERROR, no console errors, no new console warnings.
+- 199/199 prior nightshift test suite still passes (8 new + 191 prior IG/GA4/Review/Calendar/Insights/etc).
+
+**Files (2, +298/-1):**
+- `campaign-os/campaign-os.html` (line 9629-9658): new renderFAQs() with documented contract; no other surface touched.
+- `campaign-os/tests/test_v2026_08_10_faqs_no_json_dump.py` (NEW, 9 tests): static + data + live regression for the bug.
+
+**Commit:** `5f4a047` on `feat/asset-state-engine`, 2 files, +298/-1, pushed. Railway auto-deploy in ~90s. `/api/health` 200. Live HTML size = 752260 bytes (was 751048, +1.2KB matches the new code + comment block).
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_v2026_08_10_faqs_fix.png` — FAQs tab post-deploy: 8 rows, real questions, cluster + keyword + status meta.
+
+**Learned:** The `JSON.stringify(it).slice(0,N)` lying-affordance pattern still has 4 siblings in the file (lines 6166, 6255, 7855, 8017, 8019). The Reddit replies renderer was the first to be repaired (eb37474, 2026-08-09). The renderFAQs repair is the second. The remaining 4 are all in the generic `pretty()` / `itemHtml()` helpers and the seo quick-wins/keywords lists — they have more defensive chains (other fallbacks come first) so the JSON dump is a last-resort, not the primary title source. Worth a future tick that walks each one and gives it a domain-specific renderer like the reddit/faqs pattern. Audit surfaced in the new test (whole-file lying-affordance count).
+
+**Next pick:** The 4 remaining `JSON.stringify(x).slice(0,N)` patterns (lines 6166, 6255, 7855, 8017+8019). They live in shared `pretty()`/`itemHtml()` helpers, so the fix shape is bigger (need a small domain-aware title extractor), but the impact is wide: the helpers feed the review queue, the inboxes, the agent runs, and the SEO quick-wins. Each fix would also reduce the lying-affordance count by 1. OR: the walker-helper `walk_open_nav` (carried over from the last 4 nightshift reports as a "ship the helper" priority), since it's been re-discovered in every recent walker. Lower risk to ship the helper; higher impact to fix the lying-affordance generics.
+
+**Asks:** None.
+
 ## 2026-08-10T04:25Z — fix(campaign-os): brief feeds render gracefully when intel endpoints fail (no more "Boot failed" toast, no more blank strip)
 
 **Done:** Pre-pick sweep (Playwright walk over 30 sections) caught brief feed fetch failures cascading into a hard "Boot failed: Failed to fetch" toast + blank strip. Two atomic commits, both shipped to Railway:
