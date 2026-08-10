@@ -9627,9 +9627,34 @@ async function renderReddit(){
 }
 
 // ─── FAQS ───────────────────────────────────────────────────────
+// Renders mined FAQ opportunities. Each item has the shape:
+//   {faq_id, cluster, target_keyword, questions:[..], source, status, ...}
+// Title = first question (the most useful single line). Preview = remaining
+// questions, one per line. Meta = cluster + target_keyword + status pill.
+// NEVER fall back to JSON.stringify(it): that was a silent "render a wall of
+// braces" bug. The empty-state HTML is the honest fallback when the data
+// doesn't carry a question we can read.
 async function renderFAQs(){
   const r = await API.get('/api/intel/faq_generator');
-  $('#faqs-list').innerHTML = safeList(r.faqs, 30).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.question||it.title||it.q||JSON.stringify(it).slice(0,80))}</div>${it.answer||it.a?`<div class="li-meta">${esc((it.answer||it.a).slice(0,140))}</div>`:''}</div></li>`).join('') || '<div class="empty">No FAQ opportunities</div>';
+  const items = safeList(r.faqs, 30);
+  const html = items.length
+    ? items.map(it => {
+        const qs = Array.isArray(it.questions) ? it.questions.filter(q => typeof q === 'string' && q.trim()) : [];
+        const title = qs[0] || it.cluster || 'Untitled FAQ set';
+        const rest = qs.slice(1, 3);
+        const preview = rest.length
+          ? `<div class="li-preview">${rest.map(q => esc(q.length > 120 ? q.slice(0, 119) + '…' : q)).join('<br>')}</div>`
+          : '';
+        const metaBits = [
+          it.cluster ? `<span>📚 ${esc(it.cluster)}</span>` : '',
+          it.target_keyword ? `<span>🎯 ${esc(it.target_keyword)}</span>` : '',
+          it.status ? `<span class="pill">${esc(it.status)}</span>` : '',
+        ].filter(Boolean).join(' · ');
+        const meta = metaBits ? `<div class="li-meta">${metaBits}</div>` : '';
+        return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${preview}${meta}</div></li>`;
+      }).join('')
+    : '<div class="empty">No FAQ opportunities</div>';
+  $('#faqs-list').innerHTML = html;
 }
 
 // ─── POSTIZ ─────────────────────────────────────────────────────
