@@ -1059,3 +1059,35 @@ Same `.btn primary` token every other CTA in the app uses. Uses `esc(e.cta.go)` 
 **Next pick:** The relative-tone pattern is now stable across 4 surfaces (IG posts, GA4 pages, Why-explain, and the API math behind all three). The natural next lane is the **Meme Lord** tab — its hooks/captions library has no "what works" signal at all. Worth a tiny "★ Top" badge for the 3 most-reused memes across the last 30 days. Or: the **Performance widget era pill** (line ~8011) still uses absolute tone (`rising`/`falling`) without any local-context comparison — but that's a different fix shape (movement is binary direction, not magnitude), so it may not be the right target. Lower-priority. Higher-value: ship the walker-helper (`walk_open_nav`) that the 2026-08-10T10:56Z tick noted, since it's been re-discovered in 3 of the last 4 walkers.
 
 **Asks:** None.
+
+## 2026-08-10T23:10Z — fix(ux): Billboard Lab empty states now explain the data split + inline CTA
+
+**Done:** The Billboard Lab `Concepts` column used to render `<div class="empty">No concepts yet</div>` — a flat message that left the user wondering why a column called "Visual briefs" right next to it had 8 populated cards (they're actually full billboard headlines with palette/layout/CTA, just stored in a different file). Worse, there was no inline path to the Generate button (which sits at the top of the section). The user would stare at the empty box and never realise the one-click fix was right there.
+
+**Fix (commit `a847964`, +25/-2 on `feat/asset-state-engine`):**
+- New `BB_EMPTY` table + `bbEmpty(key)` builder mirroring the `LEARN_EMPTY` pattern that already lives at line ~8180.
+- Two states: `concepts` (with inline "Generate 5 headline concepts" CTA that fires the existing `#bb-gen` click handler) and `briefs` (no CTA — empty path is one-time setup, not a recurring action).
+- Copy explains the data-source split (`content-ideas.json` vs `visual-briefs.json`) so the user understands why the two columns look unbalanced.
+- 0 em-dashes (verified via `git diff`).
+- 0 JS logic added (only template builder + two `||` substitutions).
+
+**Verified LIVE (Playwright, cookie auth, Railway URL):**
+- Bundle probe (cache-busted, served via `cos_session` cookie): `"No headline concepts yet"` FOUND, `"No concepts yet"` GONE.
+- DOM probe (post-deploy):
+  - `bb-list` empty state: contains new title, new sub, and the "Generate 5 headline concepts" CTA button.
+  - `bb-briefs` unchanged — 8 items still render correctly (no false empty state).
+- CTA click test: clicking the inline CTA fires `#bb-gen`, which posts `/api/intel/generate_headlines`, prepends 5 headlines to `bb-list`, and updates the summary string. After click, `bb-list.children.length = 6` (1 empty wrapper + 5 generated headlines — first li gets the empty placeholder stripped on the prepend).
+- /api/health 200, 0 PAGEERROR, 0 console.error.
+- Live URL re-check after push: deployed commit = `a847964`, Railway auto-deploy confirmed.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes, 0 JS logic changes outside the empty-state template, 0 schema changes, 0 fabricated stats.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-10T2310Z_bb_empty_fix.png` — Billboard Lab with new empty state + CTA.
+- `/tmp/co-nightshift/walkthrough_2026-08-10T2310Z_bb_empty_fix_after_cta.png` — after CTA click, 5 generated headlines populate the column.
+
+**Learned:** When two adjacent cards are labeled "Concepts" and "Visual briefs" but only one is populated, the user reads it as "I have visual briefs but no concepts" — and assumes the briefs column isn't really concepts. The actual fix isn't to seed the concepts column from the briefs (data-model change, blocked) but to *name the gap explicitly* ("Concepts live in content-ideas.json; visual briefs live in a separate file and do not auto-seed here") and give the user a one-click path to fill it. The existing `LEARN_EMPTY` pattern was already this shape — I just copied it. The CTA's `onclick` string `"document.getElementById('bb-gen')?.click()"` reuses the already-bound button so there's no double-event risk (the `_bound` idempotency flag on the original `#bb-gen` listener still holds).
+
+**Next pick:** Three more sections in the same shape (Learn also has 5 empty-states already wired, but `Ideas` and `GBP` / `Publish` / `Captions when voice bible is missing` may have flat `<div class="empty">` strings left). Worth a 5-min sweep next tick. Higher-yield: the Insights tab `renderInsightsV2()` still has a "Insights-only" widget gap flagged across 3 prior next-picks (the `What works / What's leaking` promise isn't actually delivered — Insights is still mostly a clone of Performance). Or: ship the `walk_open_nav` walker helper since it has been re-discovered in 3 of the last 4 walkers (would save 5-10 min per future tick).
+
+**Asks:** None.
