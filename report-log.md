@@ -882,6 +882,40 @@ Same `.btn primary` token every other CTA in the app uses. Uses `esc(e.cta.go)` 
 - All hrefs real (`https://swingshack.co.za/...`), no dead `#`.
 - ER pill tooltips: "Below average (your avg: 59.9%)", "On par (your avg: 59.9%)", "Above average (your avg: 59.9%)" — math is transparent.
 - 178/178 tests pass (5 new + 173 prior).
+
+## 2026-08-10T12:05Z — fix(perf): Why-explain button uses relative-tone (third surface)
+
+**Done:** Carried the relative-tone pattern (pitfall #90) into the Performance widget's "Why this worked / failed" explainer, the third lying-tone surface and the one closest to the data the asset team actually uses day-to-day. The handler at `campaign-os.html:8057-8120` previously tone-coded every asset against hardcoded absolute ER thresholds (`er > 4 ? 'Strong' : er > 2 ? 'Average' : er > 0 ? 'Underperformer' : 'No data'`). For Swing Shack — where the IG top_posts return ER in the actual IG scale (≈0.2% average, ≈0.64% top, 0% trunk) — the old ladder marked every post either "Strong" or "No data" with no in-between signal. The fallback string even said "Higher than 2× average = strong" but the code never computed the average.
+
+**Fix:** Tone is now relative to the in-list average ER computed from `top` (the same list the dropdown is populated from). Top performer gets a "★ Top" badge when it beats the local average by >= 1.5x. The verdict pill exposes the math via a tooltip ("Top performer (your avg: 0.20%)") and shows an inline ratio badge ("3.20x avg") so the multiplier is unmissable. Fallback explanation now uses the same 1.5x/0.8x ladder as the verdict (was 2x/0.5x). All em-dashes in the rendered output replaced with ` · ` / `no data` forms (standing rule).
+
+**Files (3, +422/-6):**
+- `campaign-os/campaign-os.html` (lines 8077-8120): new why-render block with `topErValues`, `whyAvgEr`, `whyTopEr`, `whyRatio`, `whyIsTop`, relative-tone ladder, ★ Top badge, and tooltip on the ratio badge.
+- `campaign-os/tests/test_v2026_08_10_perf_why_explain_relative_tone.py` (NEW, 7 tests): regression assertions for the hardcoded-ladder removal, local-average const, badge guard (`whyRatio >= 1.5`), tooltip math, fallback thresholds (1.5x/0.8x not 2x/0.5x), em-dash ban, and dropdown/button plumbing.
+- `scripts/walk_perf_why_explain_live.py` (NEW): Playwright walker that logs in, dismisses the welcome tour, expands the Insight nav group, opens Performance, picks the first + last asset from the why-asset dropdown, clicks Explain, inspects the ratio badge + tooltip + verdict label for each, captures 4 screenshots.
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- Walker hit the LIVE URL, dispatched 0 pageerrors, 0 console errors.
+- First asset (`18360953572213385`): "✅ Top performer ★ Top · engagement rate 0.64% (3.20x avg) · reach no data · likes 16 · comments 0" — 3.20x the in-list average (0.20%), correctly badged. Tooltip: "Top performer (your avg: 0.20%)". Fallback: "Engagement rate 0.64% vs 30-day avg 0.20%. Above 1.5x = strong. Below 0.8x = underperformer."
+- Last asset (`18098215292347008`): "⚪ No engagement data · engagement rate no data (0.00x avg) · reach no data · likes 0 · comments 0" — zero engagement, correctly hit the `er <= 0` branch. Tooltip: "No engagement data (your avg: 0.20%)".
+- Both rendered outputs: 0 em-dashes, 0 en-dashes (clean — standing rule holds).
+- Dropdown populated with 11 options from top_posts.
+- 29/29 of the 2026-08-10 nightshift-test suite pass (7 new + 22 prior IG/GA4/Review).
+
+**Screenshots:**
+- `/tmp/co-nightshift/walkthrough_20260810T120452Z_perf_full.png` — full Performance widget.
+- `/tmp/co-nightshift/walkthrough_20260810T120452Z_perf_why_dropdown.png` — the why-asset dropdown populated.
+- `/tmp/co-nightshift/walkthrough_20260810T120452Z_perf_why_result.png` — the zoomed verdict card after Explain.
+
+**Commit:** `54e24a2` on `feat/asset-state-engine`, 3 files, +422/-6, pushed. Railway auto-deploy in ~90s. `/api/health` 200.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes (`git diff` of the commit = 0 occurrences of `—` or `–` in the new why-render block), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Learned:** The pattern is now stable across three surfaces — IG posts (71c62cc), GA4 pages (2c7ea21), Why-explain (54e24a2). The template is verbatim: compute the local average, ladder of ratios (1.5x/1.2x/0.8x), math in the tooltip, badge guarded by `ratio >= 1.5`. Any future "what's my best X?" card should ship this shape by default. Worth encoding as a `renderRelativeToneList(items, metric, options)` helper in the next refactor pass.
+
+**Next pick:** The **Performance widget era / Top SEO keywords** (line ~8011) — those still use plain `pill('on','rising')` / `pill('blocked','falling')` color-coding without any relative-tone. Could be a fourth surface but it's not "best X" — it's "movement direction" — so the fix may not apply. Lower priority. Higher value: the **GA4 fetcher aggregation in `performance_view()` (intelligence.py:677)** computes ER as a simple arithmetic mean rather than session-weighted (despite upstream `fetch_ga4.js` doing session-weighted). Worth a one-line `weight = sessions` fix. Also: the **api-level-verify** receipt per the prior skill (after-deploy) should be a standing step.
+
+**Asks:** None.
 - 0 PAGEERROR, 0 new console.errors.
 
 **Screenshots (LIVE):**
