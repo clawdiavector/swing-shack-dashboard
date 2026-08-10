@@ -6438,17 +6438,32 @@ async function renderBrief(){
       ? API.get('/api/whats-new').then(v => { S.whatsNew = v.items || []; S.whatsNewTs = Date.now(); }).catch(() => null)
       : Promise.resolve();
     const fetchFreshness = !S.freshness ? API.get('/api/freshness').then(v => S.freshness = v).catch(() => null) : Promise.resolve();
+    // Each feed endpoint can fail independently (transient network, auth
+    // expiry, backend restart). Previously the 3 direct API.get calls had
+    // no .catch(), so a single Failed-to-fetch on any of them rejected the
+    // whole Promise.all and boot() bubbled up a "Boot failed" toast to
+    // the user. Now each one resolves to null on failure and we skip the
+    // state assignment if the primary brief payload is missing (the prior
+    // cached brief (if any) keeps rendering instead of going blank.
+    const safeGet = (p) => API.get(p).catch((e) => { console.warn('brief fetch failed', p, e?.message || e); return null; });
     const [b, r, t] = await Promise.all([
-      API.get('/api/intel/morning_brief'),
-      API.get('/api/intel/review_inbox'),
-      API.get('/api/intel/trend_catcher'),
+      safeGet('/api/intel/morning_brief'),
+      safeGet('/api/intel/review_inbox'),
+      safeGet('/api/intel/trend_catcher'),
       fetchBrandContext,
       fetchTodayPanel,
       fetchWhatsNew,
       fetchFreshness,
     ]);
-    b.__cacheBrand = cacheKey;
-    S.brief = b; S.review = r; S.trends = t;
+    if(!b){
+      // Primary brief payload missing (keep any cached version the user
+      // was already looking at and surface a quiet non-blocking notice.
+      console.warn('renderBrief: morning_brief returned null, keeping prior cache');
+      if(!S.brief) toast('Brief feed unreachable — showing last known state.', 'warn');
+    } else {
+      b.__cacheBrand = cacheKey;
+      S.brief = b; S.review = r; S.trends = t;
+    }
   }
   const b = S.brief;
   $('#brief-strip-txt').innerHTML = `<b>${esc(b.summary)}</b> · ${b.do_first.length} recommended actions · ${b.missed_high_impact.length} high-impact misses · ${b.seo_quick_wins.length} SEO quick wins.`;
