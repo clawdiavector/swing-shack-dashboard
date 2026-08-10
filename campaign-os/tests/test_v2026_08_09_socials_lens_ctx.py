@@ -35,8 +35,13 @@ class SocialsLensCtx(unittest.TestCase):
         self.slice = _sec_socials_slice(self.html)
 
     def test_banner_block_present(self):
+        # After the 2026-08-10 collapsible fix the outer element is a
+        # <details class="help-collapsible help-section-explainer socials-lens-ctx">,
+        # not a <div class="card col-12 socials-lens-ctx">. The class
+        # socials-lens-ctx is still on the outer element so we just look for
+        # the substring.
         self.assertIn(
-            'class="card col-12 socials-lens-ctx"',
+            "socials-lens-ctx",
             self.slice,
             "socials-lens-ctx banner must live inside #sec-socials",
         )
@@ -82,10 +87,18 @@ class SocialsLensCtx(unittest.TestCase):
     def test_banner_no_smart_quote_artifacts(self):
         # The Insights v2 banner had a regression on smart quotes once. Make sure
         # none of the typographically-decoded quote marks snuck into the copy.
+        # After the 2026-08-10 collapsible fix the banner body is wrapped in
+        # <details> ... </details>, so slice to the matching </details> rather
+        # than the first </div> (which now belongs to the inner .card body).
+        after = self.slice.split("socials-lens-ctx", 1)[1]
+        end = after.find("</details>")
+        if end == -1:
+            end = after.find("</div>")
+        banner_body = after[:end] if end != -1 else after
         for bad in ("\u201c", "\u201d", "\u2018", "\u2019"):
             self.assertNotIn(
                 bad,
-                self.slice.split("socials-lens-ctx", 1)[1].split("</div>", 1)[0],
+                banner_body,
                 f"banner must not contain smart-quote char U+{ord(bad):04X}",
             )
 

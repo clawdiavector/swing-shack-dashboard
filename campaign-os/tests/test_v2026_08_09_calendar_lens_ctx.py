@@ -32,30 +32,54 @@ def _sec_calendar_slice(html: str) -> str:
 
 def _banner_block(slice_html: str) -> str:
     """Return just the banner block (between the calendar-lens-ctx class marker
-    and the first closing </div> that ends it)."""
+    and the matching closing tag of the element that owns the class).
+
+    Originally the banner was a `<div class="card col-12 calendar-lens-ctx">`
+    (always-expanded). After the 2026-08-10 lens-ctx-collapsible fix it is a
+    `<details class="help-collapsible help-section-explainer calendar-lens-ctx">`
+    with the body wrapped in an inner `<div class="card">`. This helper handles
+    both shapes by walking back to the *outer* element (the one that owns the
+    class), then walking forward tracking depth across both `<details>` and
+    `<div>` openings/closings until depth returns to zero.
+    """
     idx = slice_html.find("calendar-lens-ctx")
     assert idx > -1, "calendar-lens-ctx banner must exist"
-    # The banner is one <div class="card col-12 calendar-lens-ctx"> ... </div>.
-    # Slice from idx to the matching closing tag. The banner is the first
-    # col-12 div after the section-h close, so the first 'data-cal-shift'
-    # occurrence (Prev/Today/Next buttons) lands AFTER the banner end. Walk
-    # forward from idx until we've seen a </div> at the same nesting depth.
-    start = slice_html.rfind("<div", 0, idx)
+    # Walk back to the start of the OUTER element. The outer element is the
+    # most recent `<details` OR `<div` before idx whose opening tag is at the
+    # top level (i.e. its start-tag is a direct child, not nested inside
+    # another wrapping element). In practice, the outer element's `<` is the
+    # last `<` before idx that starts a tag (we walk back from idx and stop
+    # at the first `<X` that is at the same indentation as the class line).
+    # Simpler heuristic: walk back over both `<details` and `<div` to the
+    # nearest one whose closing tag comes AFTER the class marker.
+    # Find the rightmost `<details` or `<div` before idx such that its
+    # matching close is at a depth that fully contains idx.
+    candidates = []
+    for m in re.finditer(r'<(?:details|div)\b', slice_html[:idx]):
+        candidates.append(m.start())
+    # Walk candidates from closest-to-idx outward; pick the outermost whose
+    # matching close exists. In our HTML the outer element is the `<details`
+    # immediately before the class.
+    start = candidates[-1] if candidates else idx
+    # Walk forward from start, tracking depth across both tag types until
+    # the matching close brings depth back to 0.
     depth = 0
     pos = start
+    open_re = re.compile(r'<(details|div)\b')
+    close_re = re.compile(r'</(details|div)>')
     while pos < len(slice_html):
-        nxt_open = slice_html.find("<div", pos + 1)
-        nxt_close = slice_html.find("</div>", pos + 1)
-        if nxt_close == -1:
+        nxt_open = open_re.search(slice_html, pos + 1)
+        nxt_close = close_re.search(slice_html, pos + 1)
+        if not nxt_close:
             break
-        if nxt_open != -1 and nxt_open < nxt_close:
+        if nxt_open and nxt_open.start() < nxt_close.start():
             depth += 1
-            pos = nxt_open
+            pos = nxt_open.end()
         else:
             if depth == 0:
-                return slice_html[start:nxt_close + len("</div>")]
+                return slice_html[start:nxt_close.end()]
             depth -= 1
-            pos = nxt_close
+            pos = nxt_close.end()
     return slice_html[start:idx + 400]
 
 
@@ -66,8 +90,13 @@ class CalendarLensCtx(unittest.TestCase):
         self.banner = _banner_block(self.slice)
 
     def test_banner_block_present(self):
+        # After the 2026-08-10 collapsible fix the outer element is a
+        # <details class="help-collapsible help-section-explainer calendar-lens-ctx">,
+        # not a <div class="card col-12 calendar-lens-ctx">. The class
+        # calendar-lens-ctx is still on the outer element so we just look for
+        # the substring.
         self.assertIn(
-            'class="card col-12 calendar-lens-ctx"',
+            "calendar-lens-ctx",
             self.slice,
             "calendar-lens-ctx banner must live inside #sec-calendar",
         )

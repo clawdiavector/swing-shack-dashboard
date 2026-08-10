@@ -1124,24 +1124,30 @@ a:hover{text-decoration:underline}
       </div>
       <!-- Calendar-lens context banner: explains drag-drop semantics, slot state
            colours, the HUD strip above the grid, and the Prev/Today/Next buttons.
-           Mirrors the Insights v2 + Socials lens banner pattern. First-time
-           users otherwise land on a 14-day grid with no framing. -->
-      <div class="card col-12 calendar-lens-ctx" style="margin-bottom:1rem;border-left:3px solid var(--ac)">
-        <div style="display:flex;gap:.6rem;align-items:flex-start">
-          <div style="font-size:20px;line-height:1">📅</div>
-          <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
-            <b style="color:var(--tx-1)">How to read this view:</b>
-            this is a 14-day <i>drag-and-drop planning surface</i>, not a content calendar in the social sense. Posts live in <b>Review</b>; this grid shows what is <i>queued</i> for each day.
-            <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
-              <li><b>HUD strip</b> (the row above the grid) summarises <i>today's workload</i>, the <i>overdue count</i>, and <i>tomorrow's preview</i> so you can spot a backlog without scanning every day cell.</li>
-              <li><b>Slot state</b>: <span class="pill draft" style="font-size:10px;display:inline-flex">draft</span> = new work, <span class="pill review" style="font-size:10px;display:inline-flex">review</span> = waiting on approval, <span class="pill live" style="font-size:10px;display:inline-flex">scheduled</span> = approved and queued. The left border picks up the brand colour; the dot on the meta line picks up the pillar tint.</li>
-              <li><b>Drag</b> a slot to another day to reschedule, or drop it on the <b>⧉ Duplicate zone</b> at the bottom of the card to spin a fresh draft copy without publishing anything.</li>
-              <li><b>Prev / Today / Next</b> shifts the 14-day window by ±7 days. <b>📍 Today</b> jumps the page back to today's row even after you have scrolled away.</li>
-            </ul>
-            <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">Approvals and rejects happen in <b>Review</b>; the calendar is the <i>schedule</i>, not the <i>inbox</i>. Pair with <b>Analytics</b> to see which scheduled slots actually drove traffic.</div>
+           Mirrors the Insights v2 + Socials lens banner pattern. Wrapped in a
+           native <details> so it is COLLAPSED BY DEFAULT (Christelle ships from
+           this surface daily, the explainer was pushing the actual 14-day grid
+           below the fold on every visit. One click expands it for a refresher.
+           Matches the Trends / Signals collapsible pattern. -->
+      <details class="help-collapsible help-section-explainer calendar-lens-ctx" style="margin-bottom:1rem">
+        <summary>How to read the calendar</summary>
+        <div class="card" style="border-left:3px solid var(--ac);margin-top:.5rem">
+          <div style="display:flex;gap:.6rem;align-items:flex-start">
+            <div style="font-size:20px;line-height:1">📅</div>
+            <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
+              <b style="color:var(--tx-1)">How to read this view:</b>
+              this is a 14-day <i>drag-and-drop planning surface</i>, not a content calendar in the social sense. Posts live in <b>Review</b>; this grid shows what is <i>queued</i> for each day.
+              <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
+                <li><b>HUD strip</b> (the row above the grid) summarises <i>today's workload</i>, the <i>overdue count</i>, and <i>tomorrow's preview</i> so you can spot a backlog without scanning every day cell.</li>
+                <li><b>Slot state</b>: <span class="pill draft" style="font-size:10px;display:inline-flex">draft</span> = new work, <span class="pill review" style="font-size:10px;display:inline-flex">review</span> = waiting on approval, <span class="pill live" style="font-size:10px;display:inline-flex">scheduled</span> = approved and queued. The left border picks up the brand colour; the dot on the meta line picks up the pillar tint.</li>
+                <li><b>Drag</b> a slot to another day to reschedule, or drop it on the <b>⧉ Duplicate zone</b> at the bottom of the card to spin a fresh draft copy without publishing anything.</li>
+                <li><b>Prev / Today / Next</b> shifts the 14-day window by ±7 days. <b>📍 Today</b> jumps the page back to today's row even after you have scrolled away.</li>
+              </ul>
+              <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">Approvals and rejects happen in <b>Review</b>; the calendar is the <i>schedule</i>, not the <i>inbox</i>. Pair with <b>Analytics</b> to see which scheduled slots actually drove traffic.</div>
+            </div>
           </div>
         </div>
-      </div>
+      </details>
       <!-- Calendar HUD: today's workload + overdue count + tomorrow preview -->
       <div class="cal-hud" id="cal-hud"></div>
       <div class="card">
@@ -1466,22 +1472,28 @@ a:hover{text-decoration:underline}
       <!-- Socials-lens context banner: explains what this view is and how to read it.
            Mirrors the Insights v2 banner pattern (line ~4730). Tells the user which
            two sources feed the grid, what the status pill colours mean, and where
-           to go if they want to push a winning post into a new asset. -->
-      <div class="card col-12 socials-lens-ctx" style="margin-bottom:1rem;border-left:3px solid var(--ac)">
-        <div style="display:flex;gap:.6rem;align-items:flex-start">
-          <div style="font-size:20px;line-height:1">🪩</div>
-          <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
-            <b style="color:var(--tx-1)">How to read this view:</b>
-            this is the <i>voice history</i> of the active brand on Instagram, not a feed of today's posts.
-            <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
-              <li><b>Recent (≤30d)</b> posts come from <b>Meta Graph</b> with real thumbnails, captions, likes and comments. <b>Older</b> posts fall back to <b>oEmbed</b> link previews so the grid stays visually live forever.</li>
-              <li><b>Status pill</b>: <span style="color:#10b981">🟢 live</span> = newest post inside the window, <span style="color:var(--tx-3)">⚪ empty</span> = wired but quiet, <span style="color:var(--ac)">🔌 not wired</span> = the long-lived token has not landed yet (the card above explains the next step).</li>
-              <li><b>Click any tile</b> for the side panel: full caption, permalink, like + comment counts. Use that as your <i>voice consistency audit</i>, or as a starting point for an Image Lab remix.</li>
-            </ul>
-            <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">Pair with <b>Meme Lord</b> for templates that match the same voice, and <b>🧠 Learning</b> for which of these posts actually paid off over weeks.</div>
+           to go if they want to push a winning post into a new asset. Wrapped in a
+           native <details> so it is COLLAPSED BY DEFAULT (the voice-history grid
+           is the working surface; the explainer was stealing 250px of viewport on
+           every visit. One click expands for a refresher. -->
+      <details class="help-collapsible help-section-explainer socials-lens-ctx" style="margin-bottom:1rem">
+        <summary>How to read the Socials grid</summary>
+        <div class="card" style="border-left:3px solid var(--ac);margin-top:.5rem">
+          <div style="display:flex;gap:.6rem;align-items:flex-start">
+            <div style="font-size:20px;line-height:1">🪩</div>
+            <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
+              <b style="color:var(--tx-1)">How to read this view:</b>
+              this is the <i>voice history</i> of the active brand on Instagram, not a feed of today's posts.
+              <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
+                <li><b>Recent (≤30d)</b> posts come from <b>Meta Graph</b> with real thumbnails, captions, likes and comments. <b>Older</b> posts fall back to <b>oEmbed</b> link previews so the grid stays visually live forever.</li>
+                <li><b>Status pill</b>: <span style="color:#10b981">🟢 live</span> = newest post inside the window, <span style="color:var(--tx-3)">⚪ empty</span> = wired but quiet, <span style="color:var(--ac)">🔌 not wired</span> = the long-lived token has not landed yet (the card above explains the next step).</li>
+                <li><b>Click any tile</b> for the side panel: full caption, permalink, like + comment counts. Use that as your <i>voice consistency audit</i>, or as a starting point for an Image Lab remix.</li>
+              </ul>
+              <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">Pair with <b>Meme Lord</b> for templates that match the same voice, and <b>🧠 Learning</b> for which of these posts actually paid off over weeks.</div>
+            </div>
           </div>
         </div>
-      </div>
+      </details>
       <div class="card col-12" style="margin-bottom:1rem">
         <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
           <label class="muted" style="font-size:11px">Range</label>
@@ -4841,23 +4853,29 @@ async function renderInsightsV2(){
     body.innerHTML = `
       <!-- Insights-lens context banner: explains what this view is and how to read it.
            Same intent as the dead-code banner inside the old renderInsights() clone loop,
-           but tuned to v2's actual cards (headlines, top IG posts, top pages, ad correlation). -->
-      <div class="card col-12 insights-lens-ctx" style="margin-bottom:1rem;border-left:3px solid var(--ac)">
-        <div style="display:flex;gap:.6rem;align-items:flex-start">
-          <div style="font-size:20px;line-height:1">🔍</div>
-          <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
-            <b style="color:var(--tx-1)">How to read this view:</b>
-            the cards below mirror Performance, but the framing is different — read them as <i>pattern signals</i>, not today's snapshot.
-            <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
-              <li><b>🟢🟡🔴 tone</b>: green = keep doing it, yellow = watch, red = needs attention before next batch.</li>
-              <li><b>Top Instagram Posts</b>: scan for shared hook shape, format, or pillar. Repeating patterns beat one-off wins.</li>
-              <li><b>Top pages by sessions</b>: high-traffic URLs are the highest-leverage place to make small copy fixes.</li>
-              <li><b>Did the ad drive this spike?</b>: green = the campaign correlates, gray = no ad data wired yet (honest, not guessed).</li>
-            </ul>
-            <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">Pair with <b>Performance</b> for the raw numbers, <b>🧠 Learning</b> for the long-memory view (what hooks and CTAs actually paid off over weeks).</div>
+           but tuned to v2's actual cards (headlines, top IG posts, top pages, ad correlation).
+           Wrapped in a native <details> so it is COLLAPSED BY DEFAULT (the patterns are
+           the working surface, not the explainer. Matches the Trends / Signals collapsible
+           pattern. -->
+      <details class="help-collapsible help-section-explainer insights-lens-ctx" style="margin-bottom:1rem">
+        <summary>How to read the Insights cards</summary>
+        <div class="card" style="border-left:3px solid var(--ac);margin-top:.5rem">
+          <div style="display:flex;gap:.6rem;align-items:flex-start">
+            <div style="font-size:20px;line-height:1">🔍</div>
+            <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
+              <b style="color:var(--tx-1)">How to read this view:</b>
+              the cards below mirror Performance, but the framing is different — read them as <i>pattern signals</i>, not today's snapshot.
+              <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
+                <li><b>🟢🟡🔴 tone</b>: green = keep doing it, yellow = watch, red = needs attention before next batch.</li>
+                <li><b>Top Instagram Posts</b>: scan for shared hook shape, format, or pillar. Repeating patterns beat one-off wins.</li>
+                <li><b>Top pages by sessions</b>: high-traffic URLs are the highest-leverage place to make small copy fixes.</li>
+                <li><b>Did the ad drive this spike?</b>: green = the campaign correlates, gray = no ad data wired yet (honest, not guessed).</li>
+              </ul>
+              <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">Pair with <b>Performance</b> for the raw numbers, <b>🧠 Learning</b> for the long-memory view (what hooks and CTAs actually paid off over weeks).</div>
+            </div>
           </div>
         </div>
-      </div>
+      </details>
       <div class="grid" style="margin-bottom:1rem">
         ${(() => {
           const hs = headlines.slice(0,3);
