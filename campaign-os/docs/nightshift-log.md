@@ -2259,3 +2259,36 @@ Two atomic edits inside `renderTrends()`:
 **Learned:** The "API returns top-level `ts` but SPA reads a legacy `updated`/`fetched_at`" pattern is a sub-class of the unverified-key-name trap from `incremental-implementation-runtime-verification`. The tell is a literal placeholder character (`—`, `0`, `undefined`, `null`) that survives across multiple deploys because nothing surfaces it as a JS error — it just renders as a quiet lie. The detection recipe: when a freshness/empty-state UI element shows the same placeholder text across 2+ deploys, diff the SPA template's referenced keys against the live API response. The fix shape is exactly the same as the prior Learning-card dead-render fix (defense-in-depth alias on the read chain, plus a plain-text fallback that does not emit em-dashes even when the data is missing). Worth codifying as a "placeholder-for-2-ticks" lane-pick signal — same heuristic as the ideas-fresh empty state, different symptom (literal `—` vs blank div).
 
 **Asks:** None.
+
+## 2026-08-10T13:26Z — fix(calendar): "Next 14 days" → "Planned next 14 days" so it stops contradicting Publish "Scheduled: 0"
+
+Pre-flight clean. Picked Priority #4 (weak UX / confusing labels) — the Calendar HUD card labelled "Next 14 days" with a count of 57 sat next to the Publish page's "Scheduled: 0" card and the two numbers told contradictory stories. Christelle has hit this exact confusion in two prior ticks (last called out in the 2026-08-08T21:12Z log as "Either rename the column header to 'Queued in Postiz' or add a hint linking the two so users see why they don't match"). Today I renamed the calendar side.
+
+Root cause: the two numbers are *correctly different counts* but the labels hide that. Calendar's `weekTotal` walks `data.days[].slots` (planned calendar slots the agent has placed on the 14-day grid). Publish's `S.postiz.scheduled` is what Postiz holds with a future publish time. The Calendar counts ideas; the Publish page counts items queued to actually go live. The label "Next 14 days" + "scheduled in next 14 days" used the same word for both, so a user comparing the two pages assumes the data is broken.
+
+Fix (SPA-only, 1 file, 5 ins / 3 del):
+
+- HUD card label: `📅 Next 14 days` → `📅 Planned next 14 days`
+- Summary line: `57 scheduled in next 14 days · 4 today` → `57 planned in next 14 days · 4 today · see Publish page for Postiz queue`
+- Add `data-help` + `data-help-title` to the calendar week HUD card so the existing help-tooltip system shows the reconciliation on hover: "Total planned posts in the 14-day window on this grid. These are CALENDAR SLOTS (planned work), not Postiz-queued items. Cross-check Publish page 'Scheduled' for items that are actually queued in Postiz and ready to auto-publish."
+
+**Verified (LIVE, authed, post-deploy):**
+- Cache-busted bundle GET: `Planned next 14 days` and `planned in next 14 days` both FOUND in served HTML.
+- Render probe on LIVE Calendar page: HUD card text = `📅 Planned next 14 days`, summary text = `57 planned in next 14 days · 4 today · see Publish page for Postiz queue`, `data-help-title` = `Planned next 14 days`, `data-help` body matches the patch body.
+- `/api/health` green throughout (`git_synced:false` is the standard pre-sync lag, not a fault).
+- 0 PAGEERROR, 0 PAGEERROR during the walk.
+- 0 NEW em-dashes (the only literal text in the patch is the help body which uses ASCII `|` `:` `,` and quotes per the standing rule).
+- Screenshot: `/tmp/co-nightshift/walkthrough_1786368362.png` (full-page, 1440×900, Calendar tab with the new "Planned next 14 days" label visible).
+
+**Standing rules honored:** SPA-only patch; no API contract change; no publish/schedule touched; no tokens stored in chat; branch stays on `feat/asset-state-engine`; atomic single commit; no force push; no main.
+
+**Next pick:**
+- The "duplicate `/` entries" noted in 2026-08-08T03:14Z is in fact a non-issue (it's the homepage being correctly counted once) — the actual carryover I considered first was that the count was unreadable, but the data is clean. Avoid.
+- The home dashboard `Top pages by sessions` card shows `/` (homepage) on a single line with no label — could be improved by rendering `/` as `Home`. Cosmetic, low priority.
+- The home dashboard `Top pages by sessions` card renders paths without spaces when the path doesn't end with `/` (e.g. `/bookings/146 sessions` — note the missing space). Single-space fix in `renderRow` for the page card.
+- The ~26 EXPLAINERS blocks still reference 2026-07-30 era card names — bulk text sweep, low urgency.
+- The home dashboard `Top pages by sessions` card labels GA4 engagement rate as "ER" — that's an abbreviation inherited from IG feed rates. A rename to "engagement" (GA4 terminology) would be more accurate but is more disruptive than this tick's scope.
+
+**Learned:** Calendar "schedule" vs Publish "queue" is a textbook "two correctly-different counts that look identical from the user's seat" problem. The cure is not picking one source of truth — both counts are legitimately useful — but renaming one so the labels stop pretending they measure the same thing. The help-tip-on-hover pattern is the right vehicle for the reconciliation: it doesn't take up screen real-estate, it surfaces on demand, and it routes the curious user to the right page rather than leaving them to compare numbers across tabs. Same shape as the 2026-08-09 IG-history dead-link fix (let the existing help-tooltip system carry the explanation) — and worth proposing as a small starter-template for any future cross-page count that could be misread.
+
+**Asks:** None.
