@@ -62,7 +62,10 @@ def main():
             timeout=20000,
         )
         page.wait_for_load_state("networkidle", timeout=20000)
-        page.wait_for_selector(".nav[data-go='insights']", timeout=20000)
+        # The Insights nav is inside a hidden nav-group that opens when the user
+        # clicks the "Insight" group header. Just wait for the sidebar to render,
+        # then we'll expand the group manually in step 3.
+        page.wait_for_selector(".nav-group-h[data-nav-group='insight']", timeout=20000)
         page.wait_for_timeout(800)
 
         # Dismiss welcome tour
@@ -81,9 +84,22 @@ def main():
         except Exception:
             pass
 
-        # Step 3: open Insights
+        # Step 3: open Insights. The nav lives inside a collapsible "Insight" group
+        # (data-nav-group="insight"). Expand the group first, then click the child.
         try:
-            page.locator(".nav[data-go='insights']").first.click()
+            group_header = page.locator(
+                ".nav-group-h[data-nav-group='insight']"
+            ).first
+            if group_header.is_visible(timeout=2000):
+                group_header.click()
+                page.wait_for_timeout(500)
+                findings["console"].append("opened Insight group")
+            else:
+                findings["console"].append("Insight group header not visible (already expanded?)")
+            insights_nav = page.locator(
+                ".nav[data-go='insights']:visible"
+            ).first
+            insights_nav.click()
             page.wait_for_timeout(2000)
         except Exception as e:
             findings["errors"].append(f"could not open insights: {e}")
