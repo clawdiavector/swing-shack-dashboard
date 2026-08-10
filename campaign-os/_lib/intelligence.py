@@ -1396,7 +1396,16 @@ def agents_view() -> Dict[str, Any]:
                     "agent_id": agent_id,
                     "runs": len(runs_list) if isinstance(runs_list, list) else 1,
                     "last_status": last_run.get("status", "—"),
-                    "last_run": last_run.get("ts") or last_run.get("generated") or last_run.get("updated"),
+                    # agent-runs.json records the timestamp as `run_at` (ISO 8601).
+                    # Older probe names (`ts`, `generated`, `updated`) are kept as a
+                    # fallback so any future writer that picks a different key still
+                    # renders an age instead of collapsing to "never".
+                    "last_run": (
+                        last_run.get("run_at")
+                        or last_run.get("ts")
+                        or last_run.get("generated")
+                        or last_run.get("updated")
+                    ),
                 })
             else:
                 out.append({"agent_id": agent_id, "runs": len(runs_list) if isinstance(runs_list, list) else 1})
