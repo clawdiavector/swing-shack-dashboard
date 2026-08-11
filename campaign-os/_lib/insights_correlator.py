@@ -118,9 +118,16 @@ def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
                     p.get("caption_excerpt") or p.get("captionPreview")
                     or p.get("hook_text") or p.get("caption") or ""
                 )[:140],
-                "like_count": int(p.get("like_count") or p.get("likes") or 0),
-                "comments_count": int(p.get("comments_count")
-                                       or p.get("comments") or 0),
+                # camelCase aliases: instagram-analytics.json (the largest IG
+                # archive) uses Meta's Graph API field names — likeCount /
+                # commentsCount — not the snake_case the snake_case-first
+                # alias list expected. Without these the Insights Top Posts
+                # card silently shows "0 likes" and "(no caption)" for posts
+                # that actually have 16 likes and a real caption.
+                "like_count": int(p.get("like_count") or p.get("likeCount")
+                                   or p.get("likes") or 0),
+                "comments_count": int(p.get("comments_count") or p.get("commentsCount")
+                                      or p.get("comments") or 0),
                 "reach": int(p.get("reach") or p.get("views") or 0),
                 "saves": int(p.get("saves") or p.get("saved") or 0),
                 "shares": int(p.get("shares") or 0),
@@ -404,7 +411,10 @@ def get_top_instagram_posts(limit: int = 8) -> dict[str, Any]:
         else:
             verdict = "Underperformer"
             emoji = "🔴"
-        cap = (p.get("caption") or "")[:120]
+        # After _load_ig_posts normalisation, the caption lives under
+        # `caption_excerpt` (not `caption`). Read either so we don't silently
+        # blank out the post text. (Same insight as the likeCount alias fix.)
+        cap = (p.get("caption_excerpt") or p.get("caption") or "")[:120]
         ratio = (er / avg_er) if avg_er > 0 else 0
         plain = (
             f"{emoji} {verdict}. "

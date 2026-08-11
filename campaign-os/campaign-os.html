@@ -4948,12 +4948,18 @@ async function renderInsightsV2(){
 
     const igList = $('#ins-ig-top-list');
     const igFromV2 = (topPosts.posts || []);
+    // Fallback shape: /api/intel/performance returns `likes` (snake_case) but
+    // the rendered row reads `like_count`. Map both names so the ❤️ / �
+    // badges show real numbers instead of silently disappearing. (Same bug
+    // for caption_excerpt — the source has `captionPreview` / `caption` /
+    // `hook_text`.)
     const igPostsFinal = igFromV2.length ? igFromV2 : igPosts.slice(0, 8).map(p => ({
       id: p.id, engagementRate: parseFloat(p.engagementRate || 0),
       thumbnail_url: p.thumbnail_url || p.media_url,
       permalink: p.permalink,
-      caption_excerpt: (p.caption || p.hook_text || '').slice(0, 80),
-      like_count: p.like_count, comments_count: p.comments_count,
+      caption_excerpt: (p.captionPreview || p.caption || p.hook_text || '').slice(0, 80),
+      like_count: p.like_count ?? p.likes ?? 0,
+      comments_count: p.comments_count ?? p.comments ?? 0,
       timestamp: p.timestamp,
       format_type: p.format_type, topic_cluster: p.topic_cluster, likes: p.likes,
     }));
