@@ -92,6 +92,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
   position: absolute;
   top: 8px;
   left: 8px;
+  max-width: calc(100% - 120px);   /* leave room for .tier on the right */
   background: rgba(0,0,0,0.7);
   color: var(--accent);
   font-size: 10px;
@@ -100,6 +101,9 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
   border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mcard .preview .tier {
   position: absolute;
