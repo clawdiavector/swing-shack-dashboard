@@ -93,6 +93,50 @@ def get_request_brand():
     return _REQUEST_BRAND_ID
 
 
+# ─── Brand → campaign-id mapping ───────────────────────────────────
+# A single campaign can appear in multiple brand lists (e.g. takomo-101t is
+# a Takomo campaign but also accessible from swing-shack views because the
+# data layer delegates to swing-shack). For the today panel / home view
+# we want STRICT brand ownership — if the active brand is takomo, only
+# campaigns in brands.takomo.campaign_ids should appear.
+def _load_brands_registry() -> Dict[str, Any]:
+    """Read data/brands.json and return the parsed dict, or empty on error."""
+    try:
+        path = os.path.join(DATA_DIR, "brands.json")
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f) or {}
+    except Exception:
+        return {}
+    return {}
+
+
+def _brands_for_campaign(campaign_id: str) -> List[str]:
+    """Return the list of brand_ids that explicitly own `campaign_id`.
+
+    Reads brands.json → brands.<id>.campaign_ids. Returns [] if the campaign
+    is not in any brand's explicit list (the campaign is then considered
+    unowned and excluded from brand-scoped views).
+    """
+    reg = _load_brands_registry()
+    owners = []
+    for bid, b in (reg.get("brands") or {}).items():
+        cids = b.get("campaign_ids") or []
+        if isinstance(cids, list) and campaign_id in cids:
+            owners.append(bid)
+    return owners
+
+
+def _owns_campaign(campaign_id: str, brand_id: Optional[str]) -> bool:
+    """True iff `brand_id` is in the explicit owner list for `campaign_id`.
+
+    Returns True when brand_id is None or empty (unscoped request — show all).
+    """
+    if not brand_id:
+        return True
+    return brand_id in _brands_for_campaign(campaign_id)
+
+
 def set_request_brand(brand_id):
     """Called by app.py before invoking an intel function to scope its data."""
     global _REQUEST_BRAND_ID
@@ -182,8 +226,10 @@ def morning_brief() -> Dict[str, Any]:
     overdue = []
 
     for cid, c in campaigns.items():
-        # Brand-scope: skip campaigns belonging to a different brand.
-        if scoped_brand and c.get('brand_id') != scoped_brand:
+        # Brand-scope: skip campaigns not owned by the active brand. Uses
+        # brands.json → brands.<id>.campaign_ids for STRICT ownership — not
+        # the campaign's own brand_id field, which is unreliable.
+        if scoped_brand and not _owns_campaign(cid, scoped_brand):
             continue
         for aid, asset in (c.get("assets") or {}).items():
             counts["total"] += 1
