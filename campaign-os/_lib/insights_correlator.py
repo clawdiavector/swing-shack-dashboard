@@ -35,8 +35,29 @@ from typing import Any
 
 
 def _data_dir() -> Path:
-    """Resolve DATA_DIR at call time so tests can change it without re-import."""
-    return Path(os.environ.get("DATA_DIR", "/data"))
+    """Resolve DATA_DIR at call time so tests can change it without re-import.
+
+    On Railway, DATA_DIR defaults to /data (an empty volume) — the real
+    data lives in the bundled repo copy at REPO_ROOT/data. We probe both
+    and pick whichever has the most JSON data, so a fresh deploy with an
+    empty volume still reads the bundled repo.
+    """
+    runtime = Path(os.environ.get("DATA_DIR", "/data"))
+    # BUNDLED_DATA_DIR = REPO_ROOT/data — set by app.py before this is imported.
+    bundled = Path(os.environ.get("BUNDLED_DATA_DIR", str(runtime)))
+    if runtime == bundled:
+        return runtime
+    # Score each root by JSON count so the populated one wins.
+    def _score(root: Path) -> int:
+        if not root.is_dir():
+            return 0
+        total = 0
+        for _dir, _dirs, files in os.walk(root):
+            total += sum(1 for f in files if f.endswith(".json"))
+        return total
+    r_score = _score(runtime)
+    b_score = _score(bundled)
+    return runtime if r_score >= b_score else bundled
 
 
 def _read_json(path: Path) -> Any:
@@ -46,6 +67,68 @@ def _read_json(path: Path) -> Any:
         return json.loads(path.read_text())
     except Exception:
         return None
+
+
+def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
+    """Load Instagram posts from whichever file is present on disk.
+
+    The platform has had three different IG data stores over time:
+      - data/instagram.json                  (canonical, written by ingestion)
+      - data/analytics/instagram-analytics.json (largest historical archive)
+      - data/ig-analytics.json               (lightweight daily tracker)
+
+    We try them in priority order and normalise the post shape so callers
+    can treat them uniformly. Returns (posts, source_label).
+    """
+    base = _data_dir()
+    candidates = [
+        base / "instagram.json",
+        base / "analytics" / "instagram-analytics.json",
+        base / "ig-analytics.json",
+    ]
+    for path in candidates:
+        data = _read_json(path)
+        if not data or not isinstance(data, dict):
+            continue
+        posts = data.get("posts")
+        if not isinstance(posts, list) or not posts:
+            continue
+        # Normalise each post into the shape insights v2 expects.
+        normalised: list[dict[str, Any]] = []
+        for p in posts:
+            if not isinstance(p, dict):
+                continue
+            # Field aliases across stores.
+            er = p.get("engagementRate")
+            if er is None:
+                er = p.get("engagement_rate", 0)
+            try:
+                er_val = float(er or 0)
+            except (TypeError, ValueError):
+                er_val = 0.0
+            normalised.append({
+                "id": p.get("id") or p.get("postId"),
+                "timestamp": p.get("timestamp"),
+                "engagementRate": er_val,
+                "permalink": p.get("permalink") or p.get("postUrl") or "",
+                "thumbnail_url": p.get("thumbnail_url") or p.get("thumbnailUrl")
+                    or p.get("media_url") or p.get("mediaUrl") or "",
+                "media_type": p.get("media_type") or p.get("mediaType") or "IMAGE",
+                "caption_excerpt": (
+                    p.get("caption_excerpt") or p.get("captionPreview")
+                    or p.get("hook_text") or p.get("caption") or ""
+                )[:140],
+                "like_count": int(p.get("like_count") or p.get("likes") or 0),
+                "comments_count": int(p.get("comments_count")
+                                       or p.get("comments") or 0),
+                "reach": int(p.get("reach") or p.get("views") or 0),
+                "saves": int(p.get("saves") or p.get("saved") or 0),
+                "shares": int(p.get("shares") or 0),
+            })
+        if normalised:
+            label = str(path.relative_to(base)) if path.is_relative_to(base) else str(path)
+            return normalised, label
+    return [], None
 
 
 def _parse_dt(value: str | None) -> datetime | None:
@@ -92,10 +175,7 @@ def get_content_traffic_correlations(days: int = 30) -> dict[str, Any]:
     ga4 = _read_json(_data_dir() / "ga4-metrics.json") or {}
     if not isinstance(ga4, dict):
         ga4 = {}
-    ig_data = _read_json(_data_dir() / "instagram.json") or {}
-    if not isinstance(ig_data, dict):
-        ig_data = {}
-    posts = ig_data.get("posts", []) if isinstance(ig_data, dict) else []
+    posts, ig_source = _load_ig_posts()
     # Page-level sessions from GA4 (pages[] has path + sessions + engRate)
     pages = ga4.get("pages", []) if isinstance(ga4, dict) else []
     # No daily sessions time series in the current shape — we work with
@@ -113,7 +193,7 @@ def get_content_traffic_correlations(days: int = 30) -> dict[str, Any]:
                 "posts_scanned": 0,
                 "days_covered": days,
                 "ga4_window": ga4.get("data_window"),
-                "reason": "No instagram.json posts found — need Meta IG data wired up",
+                "reason": "No IG posts found in instagram.json / analytics/instagram-analytics.json / ig-analytics.json",
             },
         }
 
@@ -274,7 +354,13 @@ def get_top_instagram_posts(limit: int = 8) -> dict[str, Any]:
     ig_data = _read_json(_data_dir() / "instagram.json") or {}
     if not isinstance(ig_data, dict):
         ig_data = {}
+    # Prefer the larger/more-complete IG store if it exists on disk.
+    _fallback_posts, ig_source = _load_ig_posts()
+    if _fallback_posts and (not ig_data.get("posts") or len(_fallback_posts) > len(ig_data.get("posts", []))):
+        ig_data = {"posts": _fallback_posts}
     posts = ig_data.get("posts", []) if isinstance(ig_data, dict) else []
+    # Track the actual source so the response is honest about where data came from.
+    actual_source = ig_source or "instagram.json"
     if not posts:
         return {
             "ok": True,
@@ -282,8 +368,8 @@ def get_top_instagram_posts(limit: int = 8) -> dict[str, Any]:
             "_meta": {
                 "total_scanned": 0,
                 "average_engagement": None,
-                "source": "instagram.json",
-                "reason": "No posts in instagram.json. Once IG data syncs, top posts appear here.",
+                "source": actual_source,
+                "reason": "No posts in any IG store yet. Once IG data syncs, top posts appear here.",
             },
         }
     scored = []
@@ -350,7 +436,7 @@ def get_top_instagram_posts(limit: int = 8) -> dict[str, Any]:
         "_meta": {
             "total_scanned": len(scored),
             "average_engagement": round(avg_er, 2),
-            "source": "instagram.json",
+            "source": actual_source,
             "window": ig_data.get("data_window") or ig_data.get("fetched_at"),
         },
     }

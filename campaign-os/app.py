@@ -135,6 +135,10 @@ CAMPAIGN_FILE = os.path.join(DATA_DIR, 'campaign-data.json')
 REPO_DIR = os.path.join(DATA_DIR, 'repo')
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 BUNDLED_DATA_DIR = os.path.join(REPO_ROOT, 'data')
+# Expose BUNDLED_DATA_DIR as an env var so library modules (insights_correlator,
+# etc.) can auto-fallback to the bundled repo copy when DATA_DIR is an empty
+# volume mount on Railway.
+os.environ.setdefault('BUNDLED_DATA_DIR', BUNDLED_DATA_DIR)
 SCHEDULE_FILE = os.path.join(DATA_DIR, 'scheduled-items.json')
 BUNDLED_SCHEDULE_FILE = os.path.join(BUNDLED_DATA_DIR, 'scheduled-items.json')
 GIT_REMOTE = os.environ.get('GIT_REMOTE', 
@@ -195,6 +199,26 @@ def _read_json_file(path):
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return None
+
+
+def _resolve_data_path(rel_path: str) -> str:
+    """Resolve a data file path, preferring BUNDLED_DATA_DIR when the runtime
+    DATA_DIR (volume mount) doesn't have the file. Used by weekly-report,
+    insights, socials, and any module that needs to read historical data
+    that ships with the repo (IG analytics, Ubersuggest, ad stubs, etc.).
+    """
+    runtime_path = os.path.join(DATA_DIR, rel_path)
+    if os.path.exists(runtime_path):
+        return runtime_path
+    bundled_path = os.path.join(BUNDLED_DATA_DIR, rel_path)
+    if os.path.exists(bundled_path):
+        return bundled_path
+    return runtime_path  # caller will get FileNotFoundError or None
+
+
+def _read_data_json(rel_path: str):
+    """Read a data file with DATA_DIR → BUNDLED_DATA_DIR fallback."""
+    return _read_json_file(_resolve_data_path(rel_path))
 
 def load_schedule():
     """Read the scheduling sidecar; campaign-data.json remains read-only here."""
@@ -8817,8 +8841,9 @@ def _weekly_collect_current(bid):
     }
 
     # 1) GA4 — last 7 days (resilient: missing keys → zero + tagged)
+    # Try runtime DATA_DIR first; fall back to bundled repo copy.
     try:
-        ga4_path = os.path.join(DATA_DIR, 'ga4-metrics.json')
+        ga4_path = _resolve_data_path('ga4-metrics.json')
         if os.path.exists(ga4_path):
             ga = _read_json_file(ga4_path) or {}
             window = ga.get('data_window', 'unknown')
@@ -8856,9 +8881,9 @@ def _weekly_collect_current(bid):
     except Exception as e:
         out['sources'].append({'name': 'ga4', 'error': str(e)})
 
-    # 2) Instagram analytics — last 28 days
+    # 2) Instagram analytics — last 28 days; fallback to bundled data dir
     try:
-        ig_path = os.path.join(DATA_DIR, 'analytics', 'instagram-analytics.json')
+        ig_path = _resolve_data_path(os.path.join('analytics', 'instagram-analytics.json'))
         if os.path.exists(ig_path):
             ig = _read_json_file(ig_path) or {}
             out['sources'].append({'name': 'instagram', 'fetched_at': ig.get('lastUpdated'), 'posts_tracked': ig.get('totalPostsTracked')})
@@ -8891,8 +8916,8 @@ def _weekly_collect_current(bid):
     except Exception:
         out['sources'].append({'name': 'meta_graph', 'configured': False})
 
-    # 4) Google Ads — honest "not configured" if no token
-    google_ads_path = os.path.join(DATA_DIR, 'google-ads.json')
+    # 4) Google Ads — honest "not configured" if no token; fallback to bundled
+    google_ads_path = _resolve_data_path('google-ads.json')
     if os.path.exists(google_ads_path):
         ga = _read_json_file(google_ads_path) or {}
         out['sources'].append({'name': 'google_ads', 'configured': True})
