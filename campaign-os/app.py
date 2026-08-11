@@ -993,7 +993,15 @@ def image_portal_page():
 
 @app.route('/image-portal', methods=['POST'])
 def image_portal_submit():
-    """POST /image-portal — write OpenAI / OpenRouter keys to credential dirs."""
+    """POST /image-portal — write OpenAI / OpenRouter keys to credential dirs.
+
+    Three persistence layers:
+      1. IMAGE_CRED_DIRS (multi-path fallback chain — local + Railway's $HOME)
+      2. DATA_DIR/credentials/ (so the next deploy restart picks them up via
+         OPENAI_API_KEY_FILE / OPENROUTER_API_KEY_FILE env vars we set below)
+      3. os.environ — so the CURRENT process can use them immediately,
+         no Railway dashboard round-trip needed
+    """
     try:
         body = request.get_json(force=True, silent=True) or {}
         openai = (body.get('openai') or '').strip()
@@ -1004,6 +1012,9 @@ def image_portal_submit():
 
         wrote_openai = None
         wrote_openrouter = None
+        # Also write to DATA_DIR/credentials so the keys survive deploy restarts
+        runtime_creds_dir = os.path.join(DATA_DIR, 'credentials')
+        os.makedirs(runtime_creds_dir, exist_ok=True)
 
         if openai:
             # Basic shape validation
@@ -1020,6 +1031,19 @@ def image_portal_submit():
                     wrote_openai = wrote_openai or p
                 except Exception as e:
                     _app_log.warning('failed to write %s: %s', d, e)
+            # Runtime persistence — survives restart
+            try:
+                rp = os.path.join(runtime_creds_dir, 'openai-api.json')
+                with open(rp, 'w') as fh:
+                    fh.write(payload)
+                os.chmod(rp, 0o600)
+                # Set file env var so the resolver picks it up next restart
+                os.environ['OPENAI_API_KEY_FILE'] = rp
+                wrote_openai = wrote_openai or rp
+            except Exception as e:
+                _app_log.warning('failed to write runtime openai cred: %s', e)
+            # In-process env var so current request cycle sees the key
+            os.environ['OPENAI_API_KEY'] = openai
 
         if openrouter:
             if not openrouter.startswith('sk-or-'):
@@ -1035,22 +1059,44 @@ def image_portal_submit():
                     wrote_openrouter = wrote_openrouter or p
                 except Exception as e:
                     _app_log.warning('failed to write %s: %s', d, e)
+            # Runtime persistence — survives restart
+            try:
+                rp = os.path.join(runtime_creds_dir, 'openrouter-api.json')
+                with open(rp, 'w') as fh:
+                    fh.write(payload)
+                os.chmod(rp, 0o600)
+                os.environ['OPENROUTER_API_KEY_FILE'] = rp
+                wrote_openrouter = wrote_openrouter or rp
+            except Exception as e:
+                _app_log.warning('failed to write runtime openrouter cred: %s', e)
+            # In-process env var so current request cycle sees the key
+            os.environ['OPENROUTER_API_KEY'] = openrouter
 
         # Refresh status report so subsequent /api/image/status reflects new keys
         try:
             from _lib.image_gen_router import status_report as _status
-            # Use lru_cache clear if status_report is wrapped; otherwise no-op.
             clear = getattr(_status, "cache_clear", None)
             if callable(clear):
                 clear()
+            # Also clear the provider-key caches so generate/edit pick up new keys
+            from _lib import image_gen_router as _igr
+            for name in ('_resolve_openai_key', '_resolve_openrouter_key'):
+                fn = getattr(_igr, name, None)
+                clr = getattr(fn, 'cache_clear', None) if fn else None
+                if callable(clr):
+                    clr()
         except Exception:
             pass
 
+        # Report back what status says NOW
+        from _lib.image_gen_router import status_report as _status_now
+        new_status = _status_now()
         return jsonify({
             "ok": True,
             "wrote_openai": wrote_openai,
             "wrote_openrouter": wrote_openrouter,
-            "next_step": "Set OPENAI_API_KEY / OPENROUTER_API_KEY env vars on Railway dashboard for live generation.",
+            "next_step": "Keys live in the running process. For deploy restarts, set OPENAI_API_KEY / OPENROUTER_API_KEY env vars on Railway dashboard.",
+            "status_now": new_status,
         })
     except Exception as e:
         _app_log.exception('image_portal_submit failed')
