@@ -8892,10 +8892,10 @@ def _weekly_collect_current(bid):
             # Aggregate engagement
             posts = ig.get('posts', []) or []
             if posts:
-                interactions = sum((p.get('like_count', 0) + p.get('comments_count', 0) + p.get('shares', 0) + (p.get('saves') or 0)) for p in posts)
-                reach = sum(p.get('reach', 0) for p in posts if p.get('reach') is not None)
-                followers = sum(p.get('follows', 0) for p in posts)
-                views = sum(p.get('views', 0) or 0 for p in posts)
+                interactions = sum(((p.get('like_count') or 0) + (p.get('comments_count') or 0) + (p.get('shares') or 0) + (p.get('saves') or 0)) for p in posts)
+                reach = sum((p.get('reach') or 0) for p in posts)
+                followers = sum((p.get('follows') or 0) for p in posts)
+                views = sum((p.get('views') or 0) for p in posts)
                 out['28d']['ig_posts'] = len(posts)
                 out['28d']['ig_interactions'] = interactions
                 out['28d']['ig_reach'] = reach
