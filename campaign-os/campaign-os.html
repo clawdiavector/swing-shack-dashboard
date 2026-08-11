@@ -6090,6 +6090,9 @@ function wireImageLinksForSurface(secId, opts) {
   }
   items.forEach((item) => {
     if(item.querySelector('.image-link-cluster')) return; // already wired
+    // Skip opt-out rows (analysis cards that should not get a Generate button:
+    // e.g. failure_patterns rows that are about agent-run stats, not prompts).
+    if(item.dataset.noImageLink != null) return;
     const assetId = item.dataset.assetId
       || item.dataset.asset_id
       || item.dataset.hookId
@@ -8195,6 +8198,47 @@ const learnEmpty = key => {
   const cta = e.cta ? `<button class="btn primary" style="margin-top:.7rem;font-size:12px;padding:.35rem .75rem" onclick="go('${esc(e.cta.go)}')">${esc(e.cta.label)} →</button>` : '';
   return `<div class="empty" style="text-align:center"><div class="empty-title">${esc(e.title)}</div><div class="empty-sub">${esc(e.sub)}</div>${cta}</div>`;
 };
+// failure_patterns API returns a rich object (by_agent_partial, by_time,
+// by_agent_fail, error_types, sequences): not a flat list. The pre-fix
+// code ran `safeList(l.failure_patterns, 10)` which returned [] for any
+// non-array, so the card ALWAYS showed "No failure patterns yet" even
+// though by_agent_partial had real data (qa_inspector 1, hook_smith 3,
+// pulse_keeper 3, etc.). This flatten helper turns the object into
+// readable rows: "qa_inspector · 3 partials" plus "morning · 9/38
+// partials (24%)" for the by_time view. Empty when there is genuinely
+// no signal across all sub-fields.
+function _flattenFailurePatterns(fp){
+  if(!fp || typeof fp !== 'object' || Array.isArray(fp)) return [];
+  const rows = [];
+  const partials = fp.by_agent_partial && typeof fp.by_agent_partial === 'object' ? fp.by_agent_partial : {};
+  Object.entries(partials).forEach(([agent, count]) => {
+    if(typeof count === 'number' && count > 0){
+      rows.push({ kind: 'agent', label: agent, value: `${count} partial run${count===1?'':'s'}` });
+    }
+  });
+  const fails = fp.by_agent_fail && typeof fp.by_agent_fail === 'object' ? fp.by_agent_fail : {};
+  Object.entries(fails).forEach(([agent, count]) => {
+    if(typeof count === 'number' && count > 0){
+      rows.push({ kind: 'agent_fail', label: agent, value: `${count} fail${count===1?'':'s'}` });
+    }
+  });
+  const byTime = fp.by_time && typeof fp.by_time === 'object' ? fp.by_time : {};
+  Object.entries(byTime).forEach(([window, bucket]) => {
+    if(bucket && typeof bucket === 'object'){
+      const total = Number(bucket.total || 0);
+      const pf = Number(bucket.partials || 0) + Number(bucket.fails || 0);
+      if(total > 0 && pf > 0){
+        const pct = Math.round((pf / total) * 100);
+        rows.push({ kind: 'time', label: `${window} runs`, value: `${pf}/${total} partial · ${pct}%` });
+      }
+    }
+  });
+  // Sort: highest-value rows first so the most painful signal leads the card.
+  return rows.sort((a,b) => {
+    const aN = parseInt(a.value) || 0; const bN = parseInt(b.value) || 0;
+    return bN - aN;
+  });
+}
 async function renderLearning(){
   if(!S.learn) S.learn = await API.get('/api/intel/learning');
   const l = S.learn;
@@ -8205,7 +8249,20 @@ async function renderLearning(){
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.cta||it.text||JSON.stringify(it))}</div>${score?`<div class="li-meta">score ${score}</div>`:''}</div></li>`;
   }).join('') || learnEmpty('cta');
   $('#learn-trend').innerHTML = safeList(l.trend_delta, 10).map(itemHtml).join('') || learnEmpty('trend');
-  $('#learn-fail-pat').innerHTML = safeList(l.failure_patterns, 10).map(itemHtml).join('') || learnEmpty('fail_pat');
+  // failure_patterns is a nested object, not an array: flatten it.
+  const failRows = _flattenFailurePatterns(l.failure_patterns);
+  $('#learn-fail-pat').innerHTML = failRows.length
+    ? failRows.map(r => {
+        const kindPill = r.kind === 'agent_fail'
+          ? `<span class="pill blocked" style="font-size:10px">fail</span>`
+          : r.kind === 'time'
+            ? `<span class="pill" style="font-size:10px">time</span>`
+            : `<span class="pill" style="font-size:10px;background:var(--bg-4);color:var(--tx-2)">partial</span>`;
+        // data-no-image-link opts out of the wireImageLinksForSurface auto-wire
+        // (those rows are agent-run stats, not prompt → image candidates).
+        return `<li class="li" data-no-image-link><div class="li-body"><div class="li-title">${kindPill} ${esc(r.label)} <span class="muted" style="font-weight:400;font-size:12px">· ${esc(r.value)}</span></div></div></li>`;
+      }).join('')
+    : learnEmpty('fail_pat');
 }
 
 // ─── HOOKS ──────────────────────────────────────────────────────
