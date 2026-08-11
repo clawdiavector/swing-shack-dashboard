@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-08-09T04:30:10.557Z",
+  "lastUpdated": "2026-08-11T04:30:07.445Z",
   "source": "automated",
   "website": {
     "activeUsers": 1063,
@@ -100,9 +100,9 @@
   },
   "searchConsole": null,
   "instagram": {
-    "followers": 2484,
+    "followers": 2490,
     "posts": 787,
-    "avgEngagement": "0.16",
+    "avgEngagement": "0.18",
     "recentPosts": [
       {
         "id": "18098215292347008",
@@ -122,9 +122,9 @@
         "timestamp": "2026-07-31T03:01:40+0000",
         "permalink": "https://www.instagram.com/reel/DbcP91WD6QZ/",
         "mediaType": "VIDEO",
-        "likeCount": 4,
+        "likeCount": 5,
         "commentsCount": 1,
-        "engagementRate": "0.20"
+        "engagementRate": "0.24"
       },
       {
         "id": "18241808092308155",
@@ -133,9 +133,9 @@
         "timestamp": "2026-07-30T14:13:21+0000",
         "permalink": "https://www.instagram.com/p/Dba4CXzAVAk/",
         "mediaType": "IMAGE",
-        "likeCount": 3,
+        "likeCount": 4,
         "commentsCount": 0,
-        "engagementRate": "0.12"
+        "engagementRate": "0.16"
       },
       {
         "id": "18360953572213385",
@@ -155,9 +155,9 @@
         "timestamp": "2026-07-29T22:01:05+0000",
         "permalink": "https://www.instagram.com/p/DbZIxaUnTZn/",
         "mediaType": "IMAGE",
-        "likeCount": 4,
+        "likeCount": 5,
         "commentsCount": 0,
-        "engagementRate": "0.16"
+        "engagementRate": "0.20"
       },
       {
         "id": "18083616452674797",
@@ -177,9 +177,9 @@
         "timestamp": "2026-07-27T22:00:37+0000",
         "permalink": "https://www.instagram.com/p/DbT_LtVAR9b/",
         "mediaType": "IMAGE",
-        "likeCount": 4,
+        "likeCount": 5,
         "commentsCount": 0,
-        "engagementRate": "0.16"
+        "engagementRate": "0.20"
       },
       {
         "id": "18024027806681782",
@@ -267,14 +267,14 @@
         "permalink": "https://www.instagram.com/reel/DRxdxG6DM5H/"
       }
     ],
-    "lastUpdated": "2026-08-09T04:30:10.557Z",
+    "lastUpdated": "2026-08-11T04:30:07.445Z",
     "followsCount": 177,
     "postsInWindow": 10,
-    "period": "2026-07-10 to 2026-08-09",
-    "reach30d": 43337,
-    "profileViews30d": 645,
-    "accountsEngaged30d": 196,
-    "totalInteractions30d": 432,
+    "period": "2026-07-12 to 2026-08-11",
+    "reach30d": 38931,
+    "profileViews30d": 587,
+    "accountsEngaged30d": 189,
+    "totalInteractions30d": 422,
     "trackedFirst": "2026-07-01T08:30:31.524Z",
     "source": "automated"
   }
