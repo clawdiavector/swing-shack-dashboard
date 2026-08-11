@@ -2333,3 +2333,43 @@ Fix (SPA-only, 1 file, +11/-0):
 **Learned:** When the SPA only honors one source-of-truth for the active section (localStorage in this case), every URL parameter that "looks like" it should work is silently a no-op. The user-visible symptom is non-obvious: empty cards from the brief section show up on every page because `sec-brief` stays `.on` until the SPA reads its own state. The detection recipe: probe with `?page=` for every section, then assert `.section.on` matches the requested section. If the SPA's boot doesn't read URL params, you have a silent "URL is decoration" bug that doesn't throw any JS error — it just lands users on the wrong page silently. The fix shape mirrors the existing `?brand=` pattern (line 4385), which means there was already a precedent for URL-as-state in the same file; the section URL just hadn't been wired up yet. Worth codifying as a "SPA boot must read URL params before falling back to localStorage" rule for any future page-state.
 
 **Asks:** None.
+
+## 2026-08-11T20:36Z — fix(em-dash-sweep): drop em-dashes from create-summary and ins-v2-summary loading labels
+
+Pre-flight clean. Picked Priority #6 (visual issue + standing-rule violation). Probe of all 27 sections via Playwright on LIVE found 0 PAGEERROR but surfaced two `<span class="sub">` labels still shipping with em-dashes.
+
+Root cause: section sub-labels come in two flavors. (a) Bare em-dash placeholders (`—`) that JS fills in within ~50ms (review-summary, gmb-summary, cal-summary, etc.) — em-dash never visible to a user. (b) Em-dash + prose strings that render as-is with no JS update. The Create page sub-label was the only one in flavor (b): it shipped full prose after the em-dash and no JS ever overwrote it. The Insights v2 loading label was flavor (a) but still violated the standing rule.
+
+Fix (SPA-only, 1 file, +2/-2):
+
+- `campaign-os.html:1369` `#create-summary`: `— Pick a generator. Each one returns ready-to-publish content.` → `Pick a generator. Each one returns ready-to-publish content.`
+- `campaign-os.html:4822` `#ins-v2-summary`: `— loading —` → `loading…`
+
+Both swept with the same separator pattern as the 2026-08-10/11 prior sweeps (no em-dash, prose leads directly).
+
+Regression test (1 new file, +124/-0): `campaign-os/tests/test_v2026_08_11_no_emdash_create_sub_label.py` — 7 tests covering: post-fix string present, pre-fix string absent, post-fix string em-dash-free at char level, no JS writes to `#create-summary` (guards against a future fix that drops the label without realising the label was the only source of truth), ins-v2-summary post-fix present, ins-v2-summary pre-fix absent, and a generic scan across every `<span class="sub">` block for prose-with-em-dash so future leaks fail CI loudly.
+
+**Verified (LIVE, authed, Playwright, post-deploy):**
+- Cache-busted bundle probe (authed): both fixed strings FOUND in served HTML on LIVE, both pre-fix strings absent.
+- `create-summary` text on LIVE Create page: `'Pick a generator. Each one returns ready-to-publish content.'` (was `'— Pick a generator. ...'`)
+- `ins-v2-summary` text on LIVE Insights page: `'2 signals · 10 posts · 5 pages tracked'` (filled by JS, post-fix loading state also clean)
+- `/api/health` green throughout (`git_synced:false` is the standard pre-sync lag, not a fault).
+- 0 PAGEERROR on either page.
+- 0 NEW em-dashes introduced by the sweep (only deleted, no replacements with em-dashes).
+- 7/7 new tests pass + 38/38 pre-existing em-dash tests still pass.
+- Screenshots:
+  - `/tmp/co-nightshift/walkthrough_20260811T203600Z_create_no_emdash.png` — Create page top, em-dash gone
+  - `/tmp/co-nightshift/walkthrough_20260811T203600Z_insights_no_emdash.png` — Insights page top, loading state clean
+  - `/tmp/co-nightshift/walkthrough_20260811T203600Z.png` — full Create page (report hero shot)
+
+**Standing rules honored:** SPA-only patch; no API contract change; no publish/schedule touched; no tokens stored in chat; branch stays on `feat/asset-state-engine`; atomic single commit; no force push; no main; 1 regression test added so the fix is CI-locked.
+
+**Next pick:**
+- The remaining ~26 EXPLAINERS blocks still reference 2026-07-30 era card names — bulk text sweep, low urgency but the cheapest remaining em-dash-risk lane in the file.
+- The 8× 404s on `/api/visual-library/.../*.jpg` (pre-existing image-storage drift on Railway volume) — image-library data fix, carryover from multiple prior ticks; not an SPA fix.
+- Home dashboard `Top pages by sessions` card renders paths like `/bookings/146 sessions` with the missing space — single-space fix in `renderRow`, cosmetic.
+- The `favicon.ico` 404 on every section (visible as a single console error per navigation) — `app.py` route exists but no favicon file is committed. A 1-line inline SVG data URL in the HTML head would close this; cosmetic, one-shot fix.
+
+**Learned:** Em-dash leaks hide in two very different places — JS-set strings (visible briefly during loading) and JS-NEVER-set strings (visible forever). The detection recipe: scan every `<span class="sub">` block, then check whether JS mutates the `id` of that block. If JS never touches it, the literal HTML is what the user sees — and any em-dash in that literal HTML is a real leak. The "sweep the file for em-dashes" approach misses this distinction: it would treat bare loading em-dashes (cosmetic, replaced in 50ms) the same as prose em-dashes (permanent). The sub-block + JS-write test is the correct shape: it lets the loading em-dashes pass while failing on the real leak.
+
+**Asks:** None.
