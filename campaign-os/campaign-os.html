@@ -5038,8 +5038,8 @@ async function renderInsightsV2(){
       adBlock.innerHTML = `
         <div style="border:1px dashed var(--bd);border-radius:8px;padding:.85rem;background:var(--bg-2);font-size:12px;color:var(--tx-2);line-height:1.5">
           <div style="font-weight:600;color:var(--tx-1);margin-bottom:.4rem">📡 To see "did the ad drive this spike" answers:</div>
-          <div style="margin-bottom:.35rem"><b>Google Ads</b> — ${esc(adCorr.google_ads?.reason || 'data not present')}</div>
-          <div><b>Meta Ads</b> — ${esc(adCorr.meta_ads?.reason || 'data not present')}</div>
+          <div style="margin-bottom:.35rem"><b>Google Ads</b>: ${esc(adCorr.google_ads?.reason || 'data not present')}</div>
+          <div><b>Meta Ads</b>: ${esc(adCorr.meta_ads?.reason || 'data not present')}</div>
           <div style="margin-top:.5rem;color:var(--tx-3);font-size:11px">Until ad data lands, this card honestly says "not configured" instead of guessing.</div>
         </div>`;
     }
@@ -5062,7 +5062,7 @@ function ga4Window(perf){
 function topGA4Take(pages){
   if(!pages.length) return '';
   const top = pages[0];
-  return `Your homepage gets the most traffic — ${(top.sessions||0).toLocaleString()} sessions. That is where small copy fixes pay off most.`;
+  return `Your homepage gets the most traffic: ${(top.sessions||0).toLocaleString()} sessions. That is where small copy fixes pay off most.`;
 }
 
 // ─── INSIGHTS — performance + learning (wrapper around performance + learning) ───
