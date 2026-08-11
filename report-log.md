@@ -1249,3 +1249,49 @@ All replacements use middots (`·`), colons, or plain text — per the standing 
 **Next pick:** The help-popup em-dash sweep (the third tier of visibility after headings/dropdowns and main cards). The em-dash count in `data-help="..."` attribute bodies and `<span class="hc-term">X</span> — Y` explainer paragraphs is large (~70 lines) so it's worth a focused 5-line sweep with a regex-based "all `data-help="..."` attrs must contain no em-dash" assertion in the regression suite. Or: the Meme Lord "★ Top" badge for the 3 most-reused memes — still the highest signal/value tradeoff in the queue since the meme library has no engagement data at all.
 
 **Asks:** None.
+
+## 2026-08-11T06:23Z — fix(meme-lord): add ★ Top badge to library list so standout rows surface
+
+**Done:** Picked up the deferred Meme Lord "★ Top" lane the 2026-08-10 tick flagged ("the 3 most-reused memes across the last 30 days" — no engagement data exists, so the lane has been waiting for a brand-fit badge that surfaces the standout rows in the *wider* library deck, not just the 6-card top-picks panel). Top picks already had ★ Top (set 2026-08-10, commit `9cf7ca8` area); this tick mirrors the same logic on the 60-row library scroller so the badge is visible in the view Christelle actually scrolls when hunting for "what meme should I use next?".
+
+**Fix (campaign-os/campaign-os.html, +38/-3):**
+- `memLibraryRow()` now accepts `(m, isTop)` and renders the green ★ Top chip next to the meme name when set. Same colour + tooltip pattern as the picks badge.
+- `memRefresh()` computes `libAvgFit` + `libMaxFit` + `libTopCount` for the visible 60 rows. Badge fires when `brand_fit === libMaxFit` AND `ratio >= 1.2` (same threshold as picks) AND `brand_fit >= 60` (hard floor so the badge only fires on genuinely strong matches, avoiding the "everything is Top" noise when the filter combo is loose and brand_fit spread is wide).
+- Summary line gets a `· N ★ top in view` suffix so Christelle can see the badge count without scrolling.
+
+**New regression test (campaign-os/tests/test_v2026_08_11_meme_library_top_badge.py, 7 tests):**
+- test_01: memLibraryRow signature accepts isTop
+- test_02: memRefresh computes libAvgFit + libMaxFit + libTopCount
+- test_03: ★ Top badge template + green colour wired in
+- test_04: min brand_fit 60 floor + 1.2x ratio threshold present
+- test_05: "★ top in view" suffix wired into summary
+- test_06: no new em-dashes in memLibraryRow
+- test_07: no new em-dashes in library-top logic block
+
+**Verified (Playwright LIVE on Railway, post-deploy, cookie auth):**
+- LIVE URL `https://swing-shack-dashboard-production.up.railway.app/?brand=swing-shack`
+- #sec-memes rendered DOM: 30 library rows, 7 ★ Top badges visible.
+- Summary text: "30 of 75 memes · voice=swing-shack pillar=education · 7 ★ top in view" (suffix live).
+- First 5 standout rows: "Always Has Been (Astronaut) ★ Top", "Not Stonks (Down arrow guy) ★ Top", "This Is The Way (Mandalorian) ★ Top", "Pikachu Brain (Thinking Pikachu) ★ Top", "Cat Judging Camera ★ Top".
+- `deployed_has_libTopCount=True` (new constant present in served HTML).
+- 0 PAGEERROR, 0 console errors during walkthrough (1 unrelated 404 for a non-meme asset, pre-existing).
+- `/api/health` 200, deployed commit = `31ba4ef`.
+
+**Test suite (all green):** 119/119 static v2026_08_07–11 tests pass (112 prior + 7 new). The picks test suite (`test_v2026_08_10_meme_lord_relative_tone.py`, 8 tests) still passes — no regression on the existing badge logic.
+
+**Files (2, +139/-3):**
+- `campaign-os/campaign-os.html` (38 insertions, 3 deletions — memLibraryRow signature + topBadge template + memRefresh libList + summary suffix)
+- `campaign-os/tests/test_v2026_08_11_meme_library_top_badge.py` (NEW, 7 tests)
+
+**Commit:** `31ba4ef` on `feat/asset-state-engine`, pushed. Railway auto-deploy in ~60s.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (verified via diff), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260811T062355Z_meme_lib_top_badge_LIVE.png` — Meme Lord section scrolled into view, 7 ★ Top badges visible in the library list, summary line shows the badge count.
+
+**Learned:** The "what gets the badge" question splits into two distinct shapes. The picks panel uses a `> 0` brand_fit floor (because the picks list is already pre-filtered by the recommender to be reasonable matches, so any max badge is meaningful). The wider library needs a higher `>= 60` floor because the library accepts a broader filter set and the brand_fit spread can be 0–100. Sharing the 1.2x local-average + maxFit tie-gate is correct (that's the "standout in this view" signal); the floor difference is the "is this worth a badge at all" gate. Worth flagging that the picks panel still shows 0 badges in the swing-shack/education/instagram combo — the brand_fit values cluster around the ceiling and the ratio test fires 0 rows. The picks threshold could be loosened (1.1x instead of 1.2x) but that's a different priority pick.
+
+**Next pick:** The picks panel brand_fit ceiling cluster (0 badges fire on the default swing-shack combo — feels underwhelming). Two options: (1) loosen the picks ratio to 1.1x so 1–2 picks get the badge in the cluster-equal case; (2) add a per-pick "🎯 Pillar-fit" signal (the picks are scored by voice+pillar+platform, so surfacing the pillar-fit score as a chip alongside brand_fit would give the picks panel more differentiation without relaxing the badge threshold). The other queued lane is the data-help="..." em-dash sweep (~70 lines, third tier of visibility after headings/dropdowns and main cards).
+
+**Asks:** None.
