@@ -1128,3 +1128,44 @@ Same `.btn primary` token every other CTA in the app uses. Uses `esc(e.cta.go)` 
 **Next pick:** Three more sections in the same shape (Learn also has 5 empty-states already wired, but `Ideas` and `GBP` / `Publish` / `Captions when voice bible is missing` may have flat `<div class="empty">` strings left). Worth a 5-min sweep next tick. Higher-yield: the Insights tab `renderInsightsV2()` still has a "Insights-only" widget gap flagged across 3 prior next-picks (the `What works / What's leaking` promise isn't actually delivered — Insights is still mostly a clone of Performance). Or: ship the `walk_open_nav` walker helper since it has been re-discovered in 3 of the last 4 walkers (would save 5-10 min per future tick).
 
 **Asks:** None.
+
+## 2026-08-11T01:26Z — fix(copy): remove 12 user-visible em-dashes from section/card headings + dropdowns
+
+**Done:** Picked up the "em-dash banned in published copy" standing rule and applied it to the most visible user-facing em-dashes in `campaign-os.html`. 20 em-dash chars removed across 12 lines, 0 added. The 5 line groups that got fixed:
+
+1. **Learning section H2 banner pill** (line 1229): "— the long-memory view" → "· the long-memory view" + the sub-tag below "tab is the long one — patterns" → "tab is the long one: patterns".
+2. **Image Generation sub-header** (line 1619): "Provider-ready prompt specs — Ideogram · DALL-E..." → "Provider-ready prompt specs: Ideogram · DALL-E...".
+3. **Library sub-header** (line 5501): "Everything you've already made — approved captions..." → "Everything you've already made: approved captions...".
+4. **Insights v2 Top IG Posts card pill** (line 4896): "— color-coded, click to open" → "· color-coded, click to open".
+5. **Insights v2 Top pages card pill** (line 4903): "— click to visit" → "· click to visit".
+6. **7 dropdown option placeholders** (lines 1431, 1440, 1622, 1629, 1637, 8103, 8625): "— any voice —" → "any voice", "— any tone —" → "any tone", "— pillar —" → "any pillar", "— platform —" → "any platform", "— provider —" → "any provider", "— pick an asset —" → "pick an asset", "— any asset (hook pool) —" → "any asset (hook pool)".
+
+All replacements use middots (`·`), colons, or plain text — per the standing rule's suggested alternatives (pipes/commas/colons). No copy meaning lost.
+
+**Diff:** `+12/-12 lines, 20 em-dash chars removed, 0 added` (verified via `git diff` em-dash count on added vs removed lines).
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- Auth: shared-password gate via `/login`, landed on `/?brand=swing-shack`.
+- Insights v2 (`#sec-insights` rendered by `renderInsightsV2()`): 21878 chars rendered, **0 em-dash leaks** for the two new pills — both `· color-coded, click to open` and `· click to visit` confirmed present.
+- Learning (`#sec-learning` rendered by `renderLearning()`): **0 em-dash leaks** in the H2 header pill or sub-tag. Both `· the long-memory view` and `This tab is the long one:` confirmed present.
+- Image Generation (`#sec-imagegen`): **0 em-dash leaks**. `Provider-ready prompt specs:` confirmed.
+- Library (`#sec-library`): **0 em-dash leaks** in the section sub-header. `Everything you've already made:` confirmed.
+- Total em-dashes across the 4 affected rendered sections: 5 — and those 5 are all inside long-form help/explainer paragraphs (data-driven content like `<b>Knowledge</b>. A locked filter cuts noise fast...`), not in headings or user-facing labels. They're flagged in next-pick for a separate cleanup pass.
+- No PAGEERROR, no console errors during walkthrough.
+- `/api/health` 200 after deploy.
+
+**Files (1, +12/-12):**
+- `campaign-os/campaign-os.html` — 5 section/card text replacements + 7 dropdown option placeholder replacements.
+
+**Commit:** `b992ca4` on `feat/asset-state-engine`, 1 file, +12/-12, pushed. Railway auto-deploy in ~60s. `/api/health` 200.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (verified via diff), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260811T012602Z_emdash_FINAL.png` — Learning section scrolled into view, header pill shows "· the long-memory view".
+
+**Learned:** The em-dash audit surfaced two patterns worth flagging for future nightshift ticks. (a) `<option value="">— placeholder —</option>` placeholders show up in dropdowns whenever the user opens them — they're visible copy too, not just static decoration. (b) `data-help="..."` tooltip text and inline `<b>Knowledge</b>.` explainer blocks are also user-visible copy under the "no em-dash in published copy" rule, but they are dense paragraphs where the em-dash is functioning as a sentence separator. Sweeping those is a different shape of fix (many lines, low individual visibility) and worth a dedicated cleanup pass, not bundled into a heading/sub-header pass.
+
+**Next pick:** Two productive lanes. (1) The 5 surviving em-dashes in the Library + Insights v2 help/explainer blocks — a focused sweep of those `data-help` / `<b>Knowledge</b>` paragraphs. (2) The Meme Lord "★ Top" badge for the 3 most-reused memes across the last 30 days — flagged 3 ticks ago, still unbuilt, and now the lane with the strongest signal/value tradeoff (the meme library has no engagement data at all, so this is the only badge lane worth building).
+
+**Asks:** None.
