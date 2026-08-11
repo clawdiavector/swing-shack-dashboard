@@ -4126,15 +4126,22 @@ _OEMBED_CACHE: dict = {}
 
 @app.route('/api/insights/top-instagram-posts', methods=['GET'])
 def insights_top_instagram_posts():
-    """GET /api/insights/top-instagram-posts?limit=8
+    """GET /api/insights/top-instagram-posts?limit=8&brand_id=...
 
     Returns: { ok, posts: [{id,thumbnail_url,engagementRate,permalink,
             verdict,plain_english,...}], _meta }
+
+    brand_id: when provided, follows data_delegates_from (e.g. stick →
+    swing-shack) so sub-brands inherit the parent's IG analytics.
     """
     try:
         from _lib import insights_correlator as _ic
         limit = min(int(request.args.get("limit", 8)), 25)
+        bid = request.args.get("brand_id") or get_brand_id()
+        data_bid = resolve_data_brand(bid)
         out = _ic.get_top_instagram_posts(limit=limit)
+        out['requested_brand_id'] = bid
+        out['data_source_brand_id'] = data_bid
         return jsonify(out), 200
     except Exception as e:
         _app_log.exception("insights_top_instagram_posts failed")
@@ -4154,7 +4161,11 @@ def insights_ad_correlation():
     """
     try:
         from _lib import insights_correlator as _ic
+        bid = request.args.get("brand_id") or get_brand_id()
+        data_bid = resolve_data_brand(bid)
         out = _ic.get_ad_correlation_verdicts()
+        out['requested_brand_id'] = bid
+        out['data_source_brand_id'] = data_bid
         return jsonify(out), 200
     except Exception as e:
         _app_log.exception("insights_ad_correlation failed")
@@ -4163,7 +4174,7 @@ def insights_ad_correlation():
 
 @app.route('/api/insights/content-traffic-correlation', methods=['GET'])
 def insights_content_traffic_correlation():
-    """GET /api/insights/content-traffic-correlation?days=30
+    """GET /api/insights/content-traffic-correlation?days=30&brand_id=...
 
     Joins IG post timestamps with GA4 traffic to surface verdicts like
     "Post X went live Mon → /bookings/ spiked +212% Mon → likely content
@@ -4174,7 +4185,11 @@ def insights_content_traffic_correlation():
     try:
         from _lib import insights_correlator as _ic
         days = min(int(request.args.get("days", 30)), 90)
+        bid = request.args.get("brand_id") or get_brand_id()
+        data_bid = resolve_data_brand(bid)
         out = _ic.get_content_traffic_correlations(days=days)
+        out['requested_brand_id'] = bid
+        out['data_source_brand_id'] = data_bid
         return jsonify(out), 200
     except Exception as e:
         _app_log.exception("insights_content_traffic_correlation failed")
@@ -8633,6 +8648,24 @@ def get_brand_id():
     return registry.get('default_brand_id') or 'swing-shack'
 
 
+def resolve_data_brand(brand_id: str) -> str:
+    """For analytics endpoints, return the brand whose data files should be read.
+
+    Sub-brands (Stick, Bag Drop, Takomo) delegate analytics to swing-shack so
+    we don't need separate IG / GBP / GA4 files per brand. The brand_id is
+    still used for voice/positioning/colour in the UI layer — only the
+    analytics endpoints swap to the delegate source.
+    """
+    if not brand_id:
+        return 'swing-shack'
+    registry = load_brands_registry()
+    brand = (registry.get('brands') or {}).get(brand_id) or {}
+    delegate = brand.get('data_delegates_from')
+    if delegate and isinstance(delegate, str):
+        return delegate
+    return brand_id
+
+
 def brand_published_ids(brand_id):
     """Collect all asset IDs that belong to a brand. Used by filter helpers."""
     data = load_data()
@@ -9182,10 +9215,14 @@ def _weekly_format_num(n, fmt='int'):
     return f'{int(n):,}'
 
 
-def _weekly_render_html(bid):
-    """Render the full HTML page (same CSS as Stick report)."""
+def _weekly_render_html(bid, data_bid=None):
+    """Render the full HTML page (same CSS as Stick report).
+
+    bid         — used for brand_meta (voice/positioning/colour)
+    data_bid    — used for metrics computation (defaults to bid; follows delegation)
+    """
     meta = _weekly_brand_meta(bid)
-    metrics = _weekly_compute_metrics(bid)
+    metrics = _weekly_compute_metrics(data_bid or bid)
     cur = metrics['current']
     now = datetime.datetime.now(datetime.timezone.utc)
     today = now.strftime('%d %b %Y')
@@ -9538,10 +9575,14 @@ def _md_strip_html(s):
              .replace('</span>', ''))
 
 
-def _weekly_render_markdown(bid):
-    """Render the same report as plain Markdown for Notion / Slack paste."""
+def _weekly_render_markdown(bid, data_bid=None):
+    """Render the same report as plain Markdown for Notion / Slack paste.
+
+    bid         — used for brand_meta (voice/positioning/colour)
+    data_bid    — used for metrics computation (defaults to bid; follows delegation)
+    """
     meta = _weekly_brand_meta(bid)
-    metrics = _weekly_compute_metrics(bid)
+    metrics = _weekly_compute_metrics(data_bid or bid)
     cur = metrics['current']
     now = datetime.datetime.now(datetime.timezone.utc)
     today = now.strftime('%d %b %Y')
@@ -9605,19 +9646,26 @@ def esc_html(s):
 def weekly_report_api():
     """GET /api/weekly-report?brand=swing-shack&format=html|json|markdown
     Returns the weekly report. Default format = html.
+
+    Analytics delegate: when the requested brand has data_delegates_from set
+    (e.g. stick → swing-shack), compute metrics against the delegate source
+    while keeping the requested brand's voice/positioning for the hero.
     """
     bid = request.args.get('brand') or get_brand_id()
     fmt = request.args.get('format', 'html').lower()
+    # Analytics source follows delegation; voice/positioning stay on the brand
+    data_bid = resolve_data_brand(bid)
     if fmt == 'json':
         return jsonify({
             'brand_id': bid,
+            'data_source_brand_id': data_bid,
             'brand_meta': _weekly_brand_meta(bid),
-            'metrics': _weekly_compute_metrics(bid),
+            'metrics': _weekly_compute_metrics(data_bid),
         }), 200
     if fmt == 'markdown':
         from flask import Response
-        return Response(_weekly_render_markdown(bid), mimetype='text/markdown'), 200
-    return _weekly_render_html(bid), 200
+        return Response(_weekly_render_markdown(bid, data_bid=data_bid), mimetype='text/markdown'), 200
+    return _weekly_render_html(bid, data_bid=data_bid), 200
 
 
 @app.route('/api/weekly-report/snapshot', methods=['POST', 'GET'])
@@ -9649,7 +9697,8 @@ def weekly_report_page():
     Renders the weekly-report HTML page directly (same as /api/weekly-report?format=html).
     """
     bid = request.args.get('brand') or get_brand_id()
-    return _weekly_render_html(bid), 200
+    data_bid = resolve_data_brand(bid)
+    return _weekly_render_html(bid, data_bid=data_bid), 200
 
 
 # ─── STARTUP ────────────────────────────────────────────────────────────
