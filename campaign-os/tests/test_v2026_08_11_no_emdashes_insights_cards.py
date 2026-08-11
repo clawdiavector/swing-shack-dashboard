@@ -51,15 +51,28 @@ class TestNoEmdashesInsightsMainCards(unittest.TestCase):
         return m.group(0)
 
     def _topga4take(self) -> str:
-        """Return the full topGA4Take function body — extract the function then
-        pull out its template literal body."""
-        m = re.search(
-            r"function topGA4Take\(pages\)\s*\{(.*?)\n\s*\}",
-            self.html,
-            re.DOTALL,
-        )
+        """Return the full topGA4Take function body.
+
+        Walks the body with a brace counter so nested if/else blocks + template
+        literal ${} interpolations don't break extraction. Returns the matched
+        text including the `function topGA4Take(pages){` opener and the matching
+        closing brace.
+        """
+        m = re.search(r"function topGA4Take\(pages\)\s*\{", self.html)
         self.assertIsNotNone(m, "topGA4Take function not found")
-        return m.group(0)
+        start = m.start()
+        depth = 0
+        i = m.end() - 1  # position of the opening {
+        while i < len(self.html):
+            ch = self.html[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return self.html[start:i + 1]
+            i += 1
+        self.fail("topGA4Take function body never closed")
 
     # ---- test cases --------------------------------------------------------
 
@@ -98,33 +111,37 @@ class TestNoEmdashesInsightsMainCards(unittest.TestCase):
                       "Meta Ads separator should be a colon (per the fix)")
 
     def test_03_no_emdash_topga4take_homepage_line(self) -> None:
-        """The 'Your homepage gets the most traffic: X sessions' string must use a colon."""
+        """The topGA4Take template literal must use a colon (not an em-dash) before
+        the ${sessions} interpolation, in the homepage branch."""
         fn = self._topga4take()
-        # Locate the template literal body
+        # Locate the homepage branch: "Your ${label}" where label is "homepage"
         m = re.search(
-            r"`(Your homepage gets the most traffic[^`]+)`",
+            r"gets the most traffic:\s*\$\{sessions\}",
             fn,
         )
-        self.assertIsNotNone(m, "topGA4Take template literal not found")
-        body = m.group(1)
-        self.assertNotIn("\u2014", body,
-                         "topGA4Take template literal must not contain an em-dash")
-        self.assertNotIn("\u2013", body,
-                         "topGA4Take template literal must not contain an en-dash")
-        # Verify the colon is present in the right slot
-        self.assertIn("gets the most traffic: ${", body,
-                      "topGA4Take should use a colon before ${top.sessions...}")
+        self.assertIsNotNone(m, "topGA4Take colon-before-${sessions} pattern not found")
+        # Whole function body must not contain an em-dash or en-dash in prose.
+        self.assertNotIn("\u2014", fn,
+                         "topGA4Take function must not contain an em-dash")
+        self.assertNotIn("\u2013", fn,
+                         "topGA4Take function must not contain an en-dash")
+        # The homepage branch's tail must still be the "small copy fixes pay off most" copy.
+        self.assertIn("small copy fixes pay off most", fn,
+                      "topGA4Take homepage branch tail must be preserved")
 
     # ---- preservation guards ----------------------------------------------
 
     def test_04_key_substrings_preserved(self) -> None:
         """The em-dash removal must not have stripped any keyword the
-        renderInsightsV2() code depends on."""
+        renderInsightsV2() code depends on. The topGA4Take rewrite dropped the
+        literal "Your homepage gets the most traffic" string (it now lives
+        inside a template: `Your ${label} gets the most traffic`), so we
+        assert on the assembled fragment and the homepage tail copy instead.
+        """
+        # Static substrings unaffected by the rewrite
         for kw in (
             "Google Ads",
             "Meta Ads",
-            "Your homepage gets the most traffic",
-            "small copy fixes pay off most",
             "Until ad data lands",
             "did the ad drive this spike",
             "data not present",
@@ -132,6 +149,13 @@ class TestNoEmdashesInsightsMainCards(unittest.TestCase):
             self.assertIn(kw, self.html,
                           f"keyword {kw!r} must still appear in campaign-os.html "
                           f"(the em-dash sweep must not have stripped it)")
+        # The topGA4Take rewrite: these fragments live in different parts of
+        # the file now. Assert each is still present, just not necessarily
+        # as a single string.
+        self.assertIn("Your ${label} gets the most traffic", self.html,
+                      "topGA4Take must still build the headline from a label var")
+        self.assertIn("small copy fixes pay off most", self.html,
+                      "homepage-branch tail copy must be preserved")
 
     def test_05_replaced_text_exact(self) -> None:
         """The post-fix exact text must match the canonical colon form."""
@@ -139,11 +163,9 @@ class TestNoEmdashesInsightsMainCards(unittest.TestCase):
                       "expected Google Ads colon separator not present")
         self.assertIn("<b>Meta Ads</b>: ${esc(adCorr.meta_ads", self.html,
                       "expected Meta Ads colon separator not present")
-        self.assertIn(
-            "Your homepage gets the most traffic: ${(top.sessions||0).toLocaleString()}",
-            self.html,
-            "expected topGA4Take colon separator not present",
-        )
+        # topGA4Take now uses ${sessions} instead of inlining the expression
+        self.assertIn("gets the most traffic: ${sessions}", self.html,
+                      "expected topGA4Take colon-before-${sessions} not present")
 
 
 if __name__ == "__main__":

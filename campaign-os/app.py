@@ -9136,10 +9136,12 @@ def _weekly_collect_current(bid):
         ig_path = _resolve_data_path(os.path.join('analytics', 'instagram-analytics.json'))
         if os.path.exists(ig_path):
             ig = _read_json_file(ig_path) or {}
-            out['sources'].append({'name': 'instagram', 'fetched_at': ig.get('lastUpdated'), 'posts_tracked': ig.get('totalPostsTracked')})
             top = ig.get('topPerformers', []) or []
             out['28d']['ig_top_performers'] = top[:5]
-            # Aggregate engagement
+            # Aggregate engagement — defensive None-coalescing on every field
+            # because the Instagram JSON sometimes stores null for like_count
+            # / comments_count / shares / saves / follows depending on whether
+            # the field was present at fetch time.
             posts = ig.get('posts', []) or []
             if posts:
                 interactions = sum(((p.get('like_count') or 0) + (p.get('comments_count') or 0) + (p.get('shares') or 0) + (p.get('saves') or 0)) for p in posts)
@@ -9151,6 +9153,9 @@ def _weekly_collect_current(bid):
                 out['28d']['ig_reach'] = reach
                 out['28d']['ig_follows'] = followers
                 out['28d']['ig_views'] = views
+            out['sources'].append({'name': 'instagram', 'fetched_at': ig.get('lastUpdated'), 'posts_tracked': ig.get('totalPostsTracked')})
+        else:
+            out['sources'].append({'name': 'instagram', 'error': 'instagram-analytics.json not found'})
     except Exception as e:
         out['sources'].append({'name': 'instagram', 'error': str(e)})
 
@@ -9483,7 +9488,22 @@ def _weekly_render_html(bid, data_bid=None):
     top_content_html = ''
     if top_performers:
         items = ''.join(
-            f"<li><strong>{p.get('caption', p.get('permalink', 'Post'))[:80]}</strong> — {p.get('like_count', 0):,} likes, {p.get('comments_count', 0):,} comments, {(p.get('reach') or 0):,} reach</li>"
+            (lambda cap, likes, comments, reach, permalink, thumb:
+                f"<li><strong>{(cap or permalink or 'Post')[:80]}</strong> — "
+                f"{likes:,} likes, {comments:,} comments, {reach:,} reach"
+                + (f'<br><a href="{permalink}" target="_blank" rel="noopener">'
+                   f'<img src="{thumb}" loading="lazy" alt="post thumbnail" '
+                   f'style="width:120px;height:120px;object-fit:cover;border-radius:6px;margin-top:.4rem;background:var(--bg-2)"/>'
+                   f'</a>' if thumb else '')
+                + "</li>"
+            )(
+                p.get('caption') or p.get('captionPreview') or '',
+                p.get('like_count', p.get('likeCount', 0)) or 0,
+                p.get('comments_count', p.get('commentsCount', 0)) or 0,
+                p.get('reach') or 0,
+                p.get('permalink') or '#',
+                p.get('thumbnail_url') or p.get('thumbnailUrl') or p.get('media_url') or '',
+            )
             for p in top_performers[:5]
         )
         top_content_html = f'''
@@ -9664,6 +9684,7 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
       <tbody>{rows_html or '<tr><td colspan="4" class="muted">First run — no previous snapshot to compare yet. Archive a snapshot to start comparing.</td></tr>'}</tbody>
     </table>
   </div>
+  {('' if metrics['has_prev'] else '<div class="highlight muted"><strong>First-ever run:</strong> no previous snapshot archived yet for this brand. Click <em>Archive snapshot</em> on a future report to start the comparison trail.</div>')}
   <div class="highlight gold"><strong>Read:</strong> comparison table above is the raw movement week-on-week. Anything in green is a real lift; anything in red is something to address in the next 7 days.</div>
 </section>
 
