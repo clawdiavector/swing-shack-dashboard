@@ -318,6 +318,15 @@ def select_visual_recipes(
         "matches": [
             {
                 "filename": m.get("dna_path", "").split("/")[-1].replace(".visual-dna.json", ""),
+                # Include the image source for the IG-recipe-card so each match
+                # can render a thumbnail without an extra round-trip.
+                # m.get('dna_path') looks like .../brand-directory/<brand>/images/<file>.visual-dna.json
+                # The actual image sits beside it, with the same stem + a real
+                # image extension (.jpg / .jpeg / .png). Use stem-based lookup
+                # so the same code handles all three extensions.
+                "dna_path": m.get("dna_path", ""),
+                "image_path": _resolve_image_path(m.get("dna_path", ""), base_dir / brand / "images"),
+                "image_url": _image_url_for(brand, m.get("dna_path", ""), base_dir / brand / "images"),
                 "score": m.get("score"),
                 "alignment": (
                     "high" if m.get("score", 0) >= 0.70
@@ -333,6 +342,31 @@ def select_visual_recipes(
             for m in top
         ],
     }
+
+
+def _resolve_image_path(dna_path: str, images_dir: Path) -> str | None:
+    """Given a DNA JSON path, return the matching image path on disk.
+
+    The visual-dna-index records sit beside the image they describe — same
+    stem, different extension. This finds whatever extension actually
+    exists on disk so the UI can render a thumbnail.
+    """
+    if not dna_path:
+        return None
+    stem = dna_path.replace(".visual-dna.json", "")
+    for ext in (".jpg", ".jpeg", ".png", ".webp"):
+        cand = Path(stem + ext)
+        if cand.exists():
+            return str(cand)
+    return None
+
+
+def _image_url_for(brand: str, dna_path: str, images_dir: Path) -> str | None:
+    """Return the public URL for the image matching this DNA record, or None."""
+    p = _resolve_image_path(dna_path, images_dir)
+    if not p:
+        return None
+    return f"/brand-images/{brand}/{Path(p).name}"
 
 
 def _common_colors(matches: list[dict], field: str, top_n: int = 5) -> list[dict]:

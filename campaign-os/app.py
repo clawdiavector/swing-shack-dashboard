@@ -3369,6 +3369,90 @@ def visual_library_image_detail(brand_id, filename):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+# ─── GENERATED IMAGE OUTPUTS ───────────────────────────────────────────────
+# Past renders from /api/image/{generate,from-asset,from-product,...} land at
+# data/brand-directory/<brand>/images/gen-<brand>-<ts>-<n>.{png,jpg}
+# This endpoint lists them so the UI can show a 'recent renders' gallery
+# (before this they only existed as filesystem artifacts — invisible to the OS).
+
+@app.route('/api/image/outputs/<brand_id>', methods=['GET'])
+def image_outputs_list(brand_id):
+    """GET /api/image/outputs/<brand> — list past generated images for the brand.
+
+    Query params:
+      limit     (optional, default 50) — cap the number of entries
+      offset    (optional, default 0)   — pagination
+
+    Returns: { data: [{ filename, url, prompt, ts, model, quality, size }, ...],
+               count, brand_id }
+    """
+    try:
+        from pathlib import Path as _P
+        brand_id = (brand_id or "").strip() or "swing-shack"
+        try:
+            limit = max(1, min(200, int(request.args.get("limit") or 50)))
+            offset = max(0, int(request.args.get("offset") or 0))
+        except (TypeError, ValueError):
+            limit, offset = 50, 0
+
+        images_dir = _P(BUNDLED_DATA_DIR) / "brand-directory" / brand_id / "images"
+        if not images_dir.exists():
+            return jsonify({"data": [], "count": 0, "brand_id": brand_id}), 200
+
+        # Match the gen-* filename pattern (set by image_gen_router.py when save=True)
+        out = []
+        for f in images_dir.glob(f"gen-{brand_id}-*.png"):
+            meta_path = f.with_suffix(".meta.json")
+            entry = {
+                "filename": f.name,
+                "url": f"/brand-images/{brand_id}/{f.name}",
+                "ts": int(f.stat().st_mtime),
+                "ts_iso": _P(f).stat().st_mtime and __import__("datetime").datetime.utcfromtimestamp(f.stat().st_mtime).isoformat() + "Z",
+                "size_bytes": f.stat().st_size,
+            }
+            if meta_path.exists():
+                try:
+                    meta = json.loads(meta_path.read_text())
+                    entry["prompt"] = meta.get("prompt") or ""
+                    entry["enhanced_prompt"] = meta.get("enhanced_prompt") or ""
+                    entry["model"] = meta.get("model") or ""
+                    entry["quality"] = meta.get("quality") or ""
+                    entry["size"] = meta.get("size") or ""
+                    entry["ts_meta"] = meta.get("ts") or entry["ts"]
+                except Exception:
+                    pass
+            out.append(entry)
+
+        # Also match .jpg variants (gpt-image-1 can produce either)
+        for f in images_dir.glob(f"gen-{brand_id}-*.jpg"):
+            meta_path = f.with_suffix(".meta.json")
+            entry = {
+                "filename": f.name,
+                "url": f"/brand-images/{brand_id}/{f.name}",
+                "ts": int(f.stat().st_mtime),
+                "ts_iso": __import__("datetime").datetime.utcfromtimestamp(f.stat().st_mtime).isoformat() + "Z",
+                "size_bytes": f.stat().st_size,
+            }
+            if meta_path.exists():
+                try:
+                    meta = json.loads(meta_path.read_text())
+                    entry["prompt"] = meta.get("prompt") or ""
+                    entry["model"] = meta.get("model") or ""
+                    entry["quality"] = meta.get("quality") or ""
+                except Exception:
+                    pass
+            out.append(entry)
+
+        # Newest first
+        out.sort(key=lambda e: -e.get("ts", 0))
+        total = len(out)
+        page = out[offset:offset + limit]
+        return jsonify({"data": page, "count": total, "limit": limit, "offset": offset, "brand_id": brand_id}), 200
+    except Exception as e:
+        _app_log.exception("image_outputs_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # ─── MEME LAB (full catalog for UI) ─────────────────────────────────────
 
 @app.route('/api/intel/memes/catalog', methods=['GET'])
