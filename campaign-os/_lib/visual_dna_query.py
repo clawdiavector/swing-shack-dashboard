@@ -382,7 +382,14 @@ def _common_field(matches: list[dict], field: str) -> dict[str, int]:
     counts = defaultdict(int)
     for m in matches:
         val = m.get(field)
-        if val:
+        if not val:
+            continue
+        # Some DNA fields (e.g. products) are stored as lists — flatten them.
+        if isinstance(val, (list, tuple, set)):
+            for v in val:
+                if v:
+                    counts[v] += 1
+        else:
             counts[val] += 1
     return dict(counts)
 
