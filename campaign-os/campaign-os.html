@@ -6178,8 +6178,19 @@ function wireImageLinksForSurface(secId, opts) {
   // Wire universal hover tooltips on every [data-help] element (brand switcher, all-tools toggle, topbar chrome, etc.)
   if (typeof HELP !== 'undefined' && HELP.autoAttach) HELP.autoAttach();
   // Default active section: brief. Restore from localStorage if present.
+  // URL ?page= overrides localStorage so shareable/bookmarkable links land
+  // on the right section (e.g. /?page=calendar). Per-visitation only, not
+  // written back to localStorage, so a one-off link doesn't permanently
+  // hijack the user's default landing surface.
   let activeSec = 'brief';
   try { activeSec = localStorage.getItem('cos.activeSec') || 'brief'; } catch(_){}
+  try {
+    const urlPage = new URLSearchParams(location.search).get('page');
+    if (urlPage) {
+      const aliased = SECTION_ALIASES[urlPage] || urlPage;
+      if (document.getElementById('sec-' + aliased)) activeSec = urlPage;
+    }
+  } catch(_){}
   const activeSecEl = document.getElementById('sec-' + (SECTION_ALIASES[activeSec] || activeSec));
   if(!activeSecEl) activeSec = 'brief';
   // Mark the right nav item as active (handle alias)
