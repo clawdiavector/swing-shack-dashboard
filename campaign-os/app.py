@@ -4395,11 +4395,171 @@ def _write_meta_creds(payload):
     }
 
 
+@app.route('/api/admin/secrets-sync', methods=['POST'])
+def admin_secrets_sync():
+    """POST /api/admin/secrets-sync — paste contents of any local credential file.
+
+    Single-source-of-truth bridge: copy the JSON from
+    ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/
+    on your Mac, paste it here. Server writes to:
+
+      1. CRED_DIR/<service>.json (Railway persistent credential dir)
+      2. DATA_DIR/credentials/<service>.json (deploy-survives)
+      3. os.environ (in-process, immediate effect)
+
+    Body: { service: "meta-token" | "openai-api" | "openrouter-api" |
+            "instagram-api-token" | "ubersuggest-api" | "google-analytics"
+            | "google-service-account" | "postiz-api-key" | "youtube-api",
+            contents: <full JSON as a string OR object> }
+
+    For 'meta-token' specifically, also sets META_APP_ID + META_ACCESS_TOKEN
+    + META_INSTAGRAM_BUSINESS_ACCOUNT_ID in os.environ so Graph API works
+    immediately.
+    """
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"invalid JSON: {e}"}), 400
+
+    service = (body.get('service') or '').strip()
+    contents = body.get('contents')
+    if not service:
+        return jsonify({"ok": False, "error": "service is required"}), 400
+    if contents is None:
+        return jsonify({"ok": False, "error": "contents is required"}), 400
+
+    # Accept contents as either JSON string or already-parsed object
+    if isinstance(contents, str):
+        try:
+            contents_obj = json.loads(contents)
+        except json.JSONDecodeError as e:
+            return jsonify({"ok": False, "error": f"contents not valid JSON: {e}"}), 400
+    elif isinstance(contents, dict):
+        contents_obj = contents
+    else:
+        return jsonify({"ok": False, "error": "contents must be JSON string or object"}), 400
+
+    # Write to all persistence layers
+    runtime_creds_dir = os.path.join(DATA_DIR, 'credentials')
+    os.makedirs(runtime_creds_dir, exist_ok=True)
+    home_creds_dir = os.path.expanduser('~/.openclaw/workspace/credentials')
+    os.makedirs(home_creds_dir, exist_ok=True)
+
+    payload_str = json.dumps(contents_obj, indent=2)
+    file_name = f'{service}.json'
+    wrote = []
+    rt_path = ''
+    for d in (home_creds_dir, runtime_creds_dir):
+        try:
+            p = os.path.join(d, file_name)
+            with open(p, 'w') as f:
+                f.write(payload_str)
+            os.chmod(p, 0o600)
+            wrote.append(p)
+            if d == runtime_creds_dir:
+                rt_path = p
+        except Exception as e:
+            _app_log.warning('secrets-sync write %s failed: %s', p, e)
+
+    # Service-specific env-var wiring for the running process
+    env_wired = []
+    if service == 'meta-token':
+        # Map meta-token.json fields to env vars
+        if contents_obj.get('app_id') or contents_obj.get('META_APP_ID'):
+            v = contents_obj.get('app_id') or contents_obj.get('META_APP_ID')
+            os.environ['META_APP_ID'] = str(v); env_wired.append('META_APP_ID')
+        if contents_obj.get('access_token'):
+            os.environ['META_ACCESS_TOKEN'] = contents_obj['access_token']
+            env_wired.append('META_ACCESS_TOKEN')
+            # Also set the *_FILE so resolver picks it up
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['META_ACCESS_TOKEN_FILE'] = rt_path
+                env_wired.append('META_ACCESS_TOKEN_FILE')
+        if contents_obj.get('instagram_account_id'):
+            os.environ['META_INSTAGRAM_BUSINESS_ACCOUNT_ID'] = str(
+                contents_obj['instagram_account_id'])
+            env_wired.append('META_INSTAGRAM_BUSINESS_ACCOUNT_ID')
+        if contents_obj.get('page_id'):
+            os.environ['META_PAGE_ID'] = str(contents_obj['page_id'])
+            env_wired.append('META_PAGE_ID')
+        # Also try to read app_id from a sibling meta-app.json if present
+        meta_app_path = os.path.join(runtime_creds_dir, 'meta-app.json')
+        if not os.environ.get('META_APP_ID') and os.path.exists(meta_app_path):
+            try:
+                with open(meta_app_path) as f:
+                    app_cfg = json.load(f)
+                if app_cfg.get('app_id'):
+                    os.environ['META_APP_ID'] = str(app_cfg['app_id'])
+                    env_wired.append('META_APP_ID (from meta-app.json)')
+            except Exception:
+                pass
+        # Same for home dir
+        if not os.environ.get('META_APP_ID'):
+            home_meta_app = os.path.join(home_creds_dir, 'meta-app.json')
+            if os.path.exists(home_meta_app):
+                try:
+                    with open(home_meta_app) as f:
+                        app_cfg = json.load(f)
+                    if app_cfg.get('app_id'):
+                        os.environ['META_APP_ID'] = str(app_cfg['app_id'])
+                        env_wired.append('META_APP_ID (from home meta-app.json)')
+                except Exception:
+                    pass
+    elif service == 'openrouter-api':
+        if contents_obj.get('api_key'):
+            os.environ['OPENROUTER_API_KEY'] = contents_obj['api_key']
+            env_wired.append('OPENROUTER_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['OPENROUTER_API_KEY_FILE'] = rt_path
+                env_wired.append('OPENROUTER_API_KEY_FILE')
+    elif service == 'openai-api':
+        if contents_obj.get('api_key'):
+            os.environ['OPENAI_API_KEY'] = contents_obj['api_key']
+            env_wired.append('OPENAI_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['OPENAI_API_KEY_FILE'] = rt_path
+                env_wired.append('OPENAI_API_KEY_FILE')
+
+    # Bust any caches that would hide the new keys
+    try:
+        from _lib import image_gen_router as _igr
+        for name in ('_resolve_openai_key', '_resolve_openrouter_key',
+                     'openai_credentials_present', 'openrouter_credentials_present'):
+            fn = getattr(_igr, name, None)
+            clr = getattr(fn, 'cache_clear', None) if fn else None
+            if callable(clr):
+                clr()
+        from _lib.image_gen_router import status_report as _status
+        clr = getattr(_status, 'cache_clear', None)
+        if callable(clr):
+            clr()
+    except Exception:
+        pass
+
+    return jsonify({
+        'ok': True,
+        'service': service,
+        'wrote': wrote,
+        'env_wired': env_wired,
+        'note': 'Keys are now active in the running process. For deploy restarts, also set them in Railway dashboard Variables tab.',
+    })
+
+
 @app.route('/meta-portal', methods=['GET'])
 @app.route('/meta-portal.html', methods=['GET'])
 def meta_portal_form():
     """GET /meta-portal — serve the credential submission form."""
     return send_from_directory(os.path.dirname(__file__), 'meta-portal.html')
+
+
+@app.route('/secrets-sync', methods=['GET'])
+@app.route('/secrets-sync.html', methods=['GET'])
+def secrets_sync_page():
+    """GET /secrets-sync — visual paste-form for any credential file."""
+    return send_from_directory(os.path.dirname(__file__), 'secrets-sync.html')
 
 
 @app.route('/privacy', methods=['GET'])
