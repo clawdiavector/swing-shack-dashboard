@@ -9381,7 +9381,11 @@ async function findRecipes(){
       </div>
     `;
   }).join('');
-  empty('ig-recipe-matches', grid || '<span style="color:var(--tx-3);font-size:12px;grid-column:1/-1">No matches in the library for that brief.</span>');
+  // Don't use empty() here — it HTML-escapes its arg, which would render the
+  // grid as literal text. Write directly so the grid HTML renders as DOM,
+  // and the fallback (no matches) still flows through the empty-state style.
+  const matchesEl = document.getElementById('ig-recipe-matches');
+  if (matchesEl) matchesEl.innerHTML = grid || '<span style="color:var(--tx-3);font-size:12px;grid-column:1/-1">No matches in the library for that brief.</span>';
 
   // Wire the per-card buttons
   $$('.recipe-use-as-hook').forEach(btn => {

@@ -775,6 +775,10 @@ def visual_dna_recipe(brand_id):
         if not brief:
             return jsonify({"error": "missing 'brief' param"}), 400
         result = select_visual_recipes(brand_id, brief, n=n)
+        # The frontend (campaign-os.html findRecipes) gates rendering on r.ok.
+        # The query layer returns matches without an ok flag, so wrap here.
+        if isinstance(result, dict) and "ok" not in result:
+            result["ok"] = True
         return jsonify(result)
     except Exception as e:
         _app_log.exception("visual_dna_recipe failed")
