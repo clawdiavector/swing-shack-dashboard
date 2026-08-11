@@ -3697,15 +3697,37 @@ const HELP = (() => {
 })();
 
 // ─── API ───────────────────────────────────────────────────────
+// Read the response body as JSON (or text) so error messages reach callers.
+// `safe_json` is non-throwing — returns {ok, status, data} for both success
+// and HTTP failure so call sites can inspect the body in catch.
+async function _readBody(r){
+  const ct = (r.headers.get('content-type')||'').toLowerCase();
+  if (ct.includes('application/json')) {
+    try { return await r.json(); } catch(_){ return null; }
+  }
+  try { return await r.text(); } catch(_){ return ''; }
+}
+
 const API = {
   async get(path){
     const r = await fetch(path);
-    if(!r.ok) throw new Error(`${path} → ${r.status}`);
+    if(!r.ok) {
+      const body = await _readBody(r);
+      const msg = (body && body.error) || `${path} → ${r.status}`;
+      const err = new Error(msg);
+      err.status = r.status; err.body = body; err.path = path;
+      throw err;
+    }
     return r.json();
   },
   async post(path, body){
     const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})});
-    if(!r.ok) throw new Error(`${path} → ${r.status}`);
+    if(!r.ok) {
+      const b = await _readBody(r);
+      const msg = (b && b.error) || `${path} → ${r.status}`;
+      const err = new Error(msg); err.status = r.status; err.body = b; err.path = path;
+      throw err;
+    }
     return r.json();
   },
   async patch(path, body){
@@ -3713,18 +3735,29 @@ const API = {
     if(!r.ok) {
       let err = `${path} → ${r.status}`;
       try { const j = await r.json(); if(j.error) err = j.error; } catch(_){}
-      throw new Error(err);
+      const e = new Error(err); e.status = r.status; e.path = path;
+      throw e;
     }
     return r.json();
   },
   async put(path, body){
     const r = await fetch(path, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})});
-    if(!r.ok) throw new Error(`${path} → ${r.status}`);
+    if(!r.ok) {
+      const b = await _readBody(r);
+      const msg = (b && b.error) || `${path} → ${r.status}`;
+      const err = new Error(msg); err.status = r.status; err.body = b; err.path = path;
+      throw err;
+    }
     return r.json();
   },
   async delete(path){
     const r = await fetch(path, {method:'DELETE'});
-    if(!r.ok) throw new Error(`${path} → ${r.status}`);
+    if(!r.ok) {
+      const b = await _readBody(r);
+      const msg = (b && b.error) || `${path} → ${r.status}`;
+      const err = new Error(msg); err.status = r.status; err.body = b; err.path = path;
+      throw err;
+    }
     return r.json();
   },
   // Alias: `delete` is reserved as a property name in some validators;
@@ -5062,7 +5095,32 @@ function ga4Window(perf){
 function topGA4Take(pages){
   if(!pages.length) return '';
   const top = pages[0];
-  return `Your homepage gets the most traffic: ${(top.sessions||0).toLocaleString()} sessions. That is where small copy fixes pay off most.`;
+  const sessions = (top.sessions||0).toLocaleString();
+  const rawPath = (top.path || top.page || '').toString();
+  // Build a friendly label for whatever page is actually at the top of the list.
+  // The old version hardcoded "homepage", which silently lied once any non-`/`
+  // page overtook `/` (already true in brand data: `/bookings/` and
+  // `/takomo-irons-south-africa-.../` are 2nd and 3rd, and Stick / Bag Drop
+  // / Takomo brands often have a different top page entirely).
+  let label, tail;
+  if(rawPath === '/' || rawPath === ''){
+    label = 'homepage';
+    tail = 'That is where small copy fixes pay off most.';
+  } else if(rawPath === '/bookings/'){
+    label = 'Bookings page';
+    tail = 'Visitors arrive there already intent on booking, so the page copy has to answer "is this for me" in under five seconds.';
+  } else if(rawPath === '/customer-portal/'){
+    label = 'Customer portal';
+    tail = 'Returning members land there first, so the page has to make the next step obvious (book a lesson, view credits, contact coach).';
+  } else {
+    // Generic case: turn `/takomo-irons-south-africa-are-they-actually-worth-it/`
+    // into the readable "takomo irons south africa are they actually worth it" slug,
+    // quoted so long slugs do not break the sentence rhythm.
+    const slug = rawPath.replace(/^\/+|\/+$/g, '').replace(/[-_]+/g, ' ').trim();
+    label = slug ? `\u201C${slug}\u201D page` : 'top page';
+    tail = 'Most visitors arrive there first, so the page has to set the first impression clearly.';
+  }
+  return `Your ${label} gets the most traffic: ${sessions} sessions. ${tail}`;
 }
 
 // ─── INSIGHTS — performance + learning (wrapper around performance + learning) ───
@@ -10591,7 +10649,7 @@ window.renderCampaignWorkviewHeader = (cid, c) => {
         <span class="h-meta"><span class="pill ${identity.status==='active'?'on':'draft'}" style="font-size:10px">${esc(identity.status || 'unknown')}</span></span>
       </div>
 
-      ${purpose ? `<div style="font-size:13.5px;color:var(--tx);line-height:1.5;margin-bottom:.85rem;padding:.65rem .85rem;background:var(--bg-2);border-radius:6px;border-left:3px solid ${healthColor}"><b>Purpose:</b> ${esc(purpose)}</div>` : '<div class="muted" style="font-size:12px;margin-bottom:.85rem">No purpose defined yet. Edit identity.goal to add one.</div>'}`;
+      ${purpose ? `<div style="font-size:13.5px;color:var(--tx);line-height:1.5;margin-bottom:.85rem;padding:.65rem .85rem;background:var(--bg-2);border-radius:6px;border-left:3px solid ${healthColor}"><b>Purpose:</b> ${esc(purpose)}</div>` : '<div class="muted" style="font-size:12px;margin-bottom:.85rem">No purpose defined yet. Edit identity.goal to add one.</div>'};
 
       <div class="grid" style="margin-bottom:1rem">
         <div class="col-8">

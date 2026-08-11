@@ -514,7 +514,7 @@ def brand_directory_get(brand_id):
         return jsonify(brand)
     except Exception as e:
         _app_log.exception("brand_directory_get failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/brand-directory/<brand_id>/generate-brief', methods=['GET'])
@@ -570,7 +570,7 @@ def brand_directory_generate_brief(brand_id):
         })
     except Exception as e:
         _app_log.exception("brand_directory_generate_brief failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/brand-directory/refresh', methods=['POST'])
@@ -586,7 +586,7 @@ def brand_directory_refresh():
         return jsonify({"wrote": str(path), "index": idx})
     except Exception as e:
         _app_log.exception("brand_directory_refresh failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── Google Drive ingestion ──────────────────────────────────────────
@@ -600,7 +600,10 @@ def google_drive_status():
         return jsonify(_gdrive.status())
     except Exception as e:
         _app_log.exception("google_drive_status failed")
-        return jsonify({"error": str(e)}), 500
+        msg = str(e)
+        if "invalid_grant" in msg or "expired or revoked" in msg:
+            return jsonify({"ok": False, "error": "Token has been expired or revoked — re-upload at /secrets-sync"}), 401
+        return jsonify({"ok": False, "error": msg}), 500
 
 
 @app.route('/api/google-drive/ingest', methods=['POST'])
@@ -669,7 +672,7 @@ def google_drive_ingest():
         })
     except Exception as e:
         _app_log.exception("google_drive_ingest failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/google-drive/list-folders', methods=['GET'])
@@ -696,7 +699,15 @@ def google_drive_list_folders():
         return jsonify({"ok": True, "query": q, "folders": resp.get("files", [])})
     except Exception as e:
         _app_log.exception("google_drive_list_folders failed")
-        return jsonify({"error": str(e)}), 500
+        msg = str(e)
+        if "invalid_grant" in msg or "expired or revoked" in msg:
+            return jsonify({
+                "ok": False,
+                "error": "Token has been expired or revoked — re-upload at /secrets-sync",
+            }), 401
+        if "403" in msg or "permission" in msg.lower():
+            return jsonify({"ok": False, "error": "Drive permission denied — token lacks required scope"}), 403
+        return jsonify({"ok": False, "error": msg}), 500
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -746,7 +757,7 @@ def visual_dna_search(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_dna_search failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-dna/<brand_id>/recipe', methods=['GET'])
@@ -767,7 +778,7 @@ def visual_dna_recipe(brand_id):
         return jsonify(result)
     except Exception as e:
         _app_log.exception("visual_dna_recipe failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-dna/<brand_id>/index', methods=['GET'])
@@ -785,7 +796,7 @@ def visual_dna_index(brand_id):
         return jsonify(json.loads(index_path.read_text()))
     except Exception as e:
         _app_log.exception("visual_dna_index failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-dna/<brand_id>/products', methods=['GET'])
@@ -805,7 +816,7 @@ def visual_dna_products(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_dna_products failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-dna/<brand_id>/scrape-and-dissect', methods=['POST'])
@@ -934,7 +945,7 @@ def visual_dna_scrape_and_dissect(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_dna_scrape_and_dissect failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── VISUAL LIBRARY (image serving + DNA breakdown for the UI) ──────────
@@ -1329,7 +1340,7 @@ def visual_library_images(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_library_images failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-library/<brand_id>/stats', methods=['GET'])
@@ -1404,7 +1415,7 @@ def visual_library_stats(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_library_stats failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-library/search', methods=['GET'])
@@ -3355,7 +3366,7 @@ def visual_library_image_detail(brand_id, filename):
         })
     except Exception as e:
         _app_log.exception("visual_library_image_detail failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── MEME LAB (full catalog for UI) ─────────────────────────────────────
@@ -3423,7 +3434,7 @@ def meme_catalog():
         })
     except Exception as e:
         _app_log.exception("meme_catalog failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/intel/meme/<meme_id>/preview', methods=['GET'])
@@ -3461,7 +3472,7 @@ def meme_preview(meme_id):
         })
     except Exception as e:
         _app_log.exception("meme_preview failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── REAL DATA + VISUAL DNA JOIN ────────────────────────────────────────
@@ -3568,7 +3579,7 @@ def visual_performance_join():
         })
     except Exception as e:
         _app_log.exception("visual_performance_join failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── META / INSTAGRAM / FACEBOOK READS ───────────────────────────────────
@@ -9862,6 +9873,7 @@ def weekly_report_page():
 
 
 # ─── STARTUP ────────────────────────────────────────────────────────────
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))

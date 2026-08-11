@@ -368,15 +368,31 @@ def setup_interactive(port: int = 8765, method: str = "console") -> dict[str, An
 
 
 def status() -> dict[str, Any]:
-    """Return current Drive auth status — for the dashboard Brand surface."""
+    """Return current Drive auth status — for the dashboard Brand surface.
+
+    Returns connected=False (not raises) when stored token is revoked or
+    expired so the dashboard can render a clean "needs re-auth" badge
+    instead of a raw Python tuple error.
+    """
     has_client = OAUTH_CLIENT_PATH.exists()
     has_token = DRIVE_TOKEN_PATH.exists()
-    drive = connect() if has_token else None
+    auth_error = None
+    drive = None
+    if has_token:
+        try:
+            drive = connect()
+        except Exception as e:  # noqa: BLE001 - report auth failure as status
+            auth_error = f"{type(e).__name__}: {e}".split("invalid_grant")[0][:200] or "token rejected"
+            if "invalid_grant" in str(e):
+                auth_error = "Token has been expired or revoked — re-upload at /secrets-sync"
+            elif "RefreshError" in str(e) or "refresh" in str(e).lower():
+                auth_error = "Refresh failed — token may be invalid"
     return {
         "has_oauth_client": has_client,
         "has_token": has_token,
         "client_path": str(OAUTH_CLIENT_PATH),
         "token_path": str(DRIVE_TOKEN_PATH),
         "connected": drive is not None,
+        "auth_error": auth_error,
         "instructions": oauth_instructions(),
     }
