@@ -1226,7 +1226,7 @@ a:hover{text-decoration:underline}
 
     <!-- ── LEARNING ──────────────────────────────────────── -->
     <section class="section" id="sec-learning">
-      <div class="section-h"><h2 data-help="What to repeat, what to stop, what to try. Auto-captured from the last 90 days of assets. What worked lists the patterns from your highest-performing content, What failed lists the patterns from your lowest, CTA rankings orders every CTA by historical click-through, and Failure patterns surfaces mistake classes that recurred across 3+ assets. Use these as the editorial checklist for the next batch." data-help-title="Learning">🧠 Learning <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">— the long-memory view</span></h2><span class="sub" style="font-size:13px">Marketing has a short memory. This tab is the long one — patterns from the last 90 days that should shape the next batch.</span></div>
+      <div class="section-h"><h2 data-help="What to repeat, what to stop, what to try. Auto-captured from the last 90 days of assets. What worked lists the patterns from your highest-performing content, What failed lists the patterns from your lowest, CTA rankings orders every CTA by historical click-through, and Failure patterns surfaces mistake classes that recurred across 3+ assets. Use these as the editorial checklist for the next batch." data-help-title="Learning">🧠 Learning <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">· the long-memory view</span></h2><span class="sub" style="font-size:13px">Marketing has a short memory. This tab is the long one: patterns from the last 90 days that should shape the next batch.</span></div>
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3 data-help="Patterns the agent extracted from your highest-performing past content. Each row names the pattern + the asset that proved it + a 1-line rule to follow in the next brief. Treat this list as the editorial checklist for every new caption." data-help-title="What worked">✅ What worked</h3></div><div id="learn-worked"></div></div>
         <div class="card col-6"><div class="card-h"><h3 data-help="Patterns from your lowest-performing past content. Same shape as What worked, but inverted: asset + what went wrong + the rule to avoid. Read this list right before approving a batch to catch the same mistakes again." data-help-title="What failed">🚫 What failed</h3></div><div id="learn-failed"></div></div>
@@ -1428,7 +1428,7 @@ a:hover{text-decoration:underline}
             <div style="display:flex;flex-direction:column;gap:.2rem;flex:1;max-width:280px">
               <label class="ed-label" style="margin-bottom:.15rem">Voice</label>
               <select id="cap-voice-select">
-                <option value="">— any voice —</option>
+                <option value="">any voice</option>
                 <option value="swing-shack">⛳ Swing Shack (data-driven coach)</option>
                 <option value="stick">🚩 Stick (sarcastic insider)</option>
                 <option value="bag-drop">🫂 Bag Drop (community-first)</option>
@@ -1437,7 +1437,7 @@ a:hover{text-decoration:underline}
             <div style="display:flex;flex-direction:column;gap:.2rem;flex:1;max-width:280px">
               <label class="ed-label" style="margin-bottom:.15rem">Tone</label>
               <select id="cap-tone-select">
-                <option value="">— any tone —</option>
+                <option value="">any tone</option>
                 <option value="educational">📚 Educational</option>
                 <option value="confident">💪 Confident</option>
                 <option value="funny">😂 Funny</option>
@@ -1616,17 +1616,17 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-imagegen">
       <div class="section-h">
         <h2 data-help="Provider-ready image-brief generator for the active brand. Pick a pillar, set a mood (cinematic, editorial, product-shot, illustrated), then hit Generate. The agent returns four ranked prompts tuned for each major provider (Ideogram, DALL-E, Midjourney, Stable Diffusion) with aspect ratio, style cues, and negative prompts called out separately so you can paste straight into any of them. Generation itself is driven by gpt-image-1 on the live site once access is wired; right now the cards return the prompt spec for manual export. Each variant ships with a brand-fit score and a copy suggestion for the caption." data-help-title="Image Generation">Image Generation</h2>
-        <span class="sub">Provider-ready prompt specs — Ideogram · DALL-E · Midjourney · Stable Diffusion</span>
+        <span class="sub">Provider-ready prompt specs: Ideogram · DALL-E · Midjourney · Stable Diffusion</span>
         <div class="btn-row" style="margin-left:auto">
           <select id="ig-pillar" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
-            <option value="">— pillar —</option>
+            <option value="">any pillar</option>
             <option value="education">Education</option>
             <option value="club-fitting">Club Fitting</option>
             <option value="community">Community</option>
             <option value="events">Events</option>
           </select>
           <select id="ig-platform" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
-            <option value="">— platform —</option>
+            <option value="">any platform</option>
             <option value="instagram">Instagram</option>
             <option value="tiktok">TikTok</option>
             <option value="twitter">Twitter</option>
@@ -1634,7 +1634,7 @@ a:hover{text-decoration:underline}
             <option value="gmb">Google Business</option>
           </select>
           <select id="ig-provider" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
-            <option value="">— provider —</option>
+            <option value="">any provider</option>
             <option value="ideogram">Ideogram</option>
             <option value="dall-e">DALL-E</option>
             <option value="midjourney">Midjourney</option>
@@ -4893,14 +4893,14 @@ async function renderInsightsV2(){
       </div>
       <div class="card col-7">
         <div class="card-h">
-          <h3 data-help="Your best Instagram posts, ranked by engagement. Green = top performer, yellow = average, red = below average. Click any post to open it on Instagram." data-help-title="Top Instagram Posts">🏆 Top Instagram Posts <span style="font-size:11px;color:var(--tx-3);font-weight:500">— color-coded, click to open</span></h3>
+          <h3 data-help="Your best Instagram posts, ranked by engagement. Green = top performer, yellow = average, red = below average. Click any post to open it on Instagram." data-help-title="Top Instagram Posts">🏆 Top Instagram Posts <span style="font-size:11px;color:var(--tx-3);font-weight:500">· color-coded, click to open</span></h3>
           <span class="muted" id="ins-ig-count">—</span>
         </div>
         <div id="ins-ig-top-list"></div>
       </div>
       <div class="card col-5">
         <div class="card-h">
-          <h3 data-help="Your most-visited pages, ranked. Click any row to open the actual page in a new tab." data-help-title="Top pages by sessions">🌐 Top pages by sessions <span style="font-size:11px;color:var(--tx-3);font-weight:500">— click to visit</span></h3>
+          <h3 data-help="Your most-visited pages, ranked. Click any row to open the actual page in a new tab." data-help-title="Top pages by sessions">🌐 Top pages by sessions <span style="font-size:11px;color:var(--tx-3);font-weight:500">· click to visit</span></h3>
         </div>
         <div id="ins-pages-list"></div>
       </div>
@@ -5498,7 +5498,7 @@ async function renderLibrary(){
   let html = `
     <div class="section-h">
       <h2 data-help="Universal archive for the active brand: every approved caption, every generated meme, every generated image, plus the FAQ list, hook bank entries, and the campaign/asset metadata. Tabs across the top filter by kind (Recently generated, Approved assets, Captions, Hooks, Memes, Images). The three quick-launch tiles at the top jump straight to the Visual Library (image browser) or the Meme Lab (meme remix workspace), or open the universal search across all kinds in one query. Empty state means nothing has been generated yet for this brand." data-help-title="Library">Library</h2>
-      <span class="sub">Everything you've already made — approved captions, generated memes, generated images. Search or filter.</span>
+      <span class="sub">Everything you've already made: approved captions, generated memes, generated images. Search or filter.</span>
     </div>
 
     <!-- Three quick-access tiles: Visual Library + Meme Lab + Search -->
@@ -8100,7 +8100,7 @@ async function renderPerformance(){
   if (whySel) {
     const top = (p.instagram?.top_posts || []).slice(0, 20);
     if (!whySel.options.length) {
-      whySel.innerHTML = '<option value="">— pick an asset —</option>' +
+      whySel.innerHTML = '<option value="">pick an asset</option>' +
         top.map(it => `<option value="${esc(it.post_id || it.id || '')}">${esc((it.hook_text || it.captionPreview || it.caption || 'Untitled').slice(0, 80))}</option>`).join('');
     }
   }
@@ -8622,7 +8622,7 @@ async function renderCaptions(){
     if(vb.ok) S.voiceBible = vb;
   }
   const sel = $('#cap-asset-select');
-  sel.innerHTML = '<option value="">— any asset (hook pool) —</option>' + (S.assets.assets||[]).slice(0,60).map(a => `<option value="${esc(a.assetId)}">${esc(a.campaignName)} · ${esc(a.name)}</option>`).join('');
+  sel.innerHTML = '<option value="">any asset (hook pool)</option>' + (S.assets.assets||[]).slice(0,60).map(a => `<option value="${esc(a.assetId)}">${esc(a.campaignName)} · ${esc(a.name)}</option>`).join('');
   const c = S.cap;
   $('#cap-bank').innerHTML = safeList(c.captions, 20).map(it => {
     const txt = it.hook_text || it.short_caption || it.medium_caption || it.long_caption || it.caption || it.text || '';
