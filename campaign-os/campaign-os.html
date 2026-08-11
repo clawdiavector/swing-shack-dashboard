@@ -5339,7 +5339,7 @@ function renderInterpretationCard(interp){
         const src = srcBadge(w.source);
         return `<li class="li"><div class="li-body"><div class="li-title">${prefix}${badge} ${claim}${src}</div><div class="li-meta">${evid}</div></div></li>`;
       }).join('')
-    : '<li class="empty">—</li>';
+    : '<li class="empty">No signals to interpret yet. Connect analytics above to see what is working.</li>';
   return `
     <div style="margin-top:1rem;border-top:1px dashed var(--bd);padding-top:1rem">
       <div class="h-meta" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">🧭 Interpretation — why these numbers & what to do</div>
@@ -6556,7 +6556,7 @@ async function renderBrief(){
     $('#brief-strip-txt').innerHTML = `<b>Brief feed unavailable.</b> Reconnect in a moment, or refresh.`;
     // Render a single quiet placeholder card so the surface doesn't go blank.
     const grid = $('#brief-grid');
-    if(grid) grid.innerHTML = `<div class="card col-12"><div class="muted">The brief feed is unreachable right now. The rest of the dashboard (Review, Ideas, Capture Library, Calendar) still works — pick one of those while this recovers.</div></div>`;
+    if(grid) grid.innerHTML = `<div class="card col-12"><div class="muted">The brief feed is unreachable right now. The rest of the dashboard (Review, Ideas, Capture Library, Calendar) still works. Pick one of those while this recovers.</div></div>`;
     return;
   }
   $('#brief-strip-txt').innerHTML = `<b>${esc(b.summary)}</b> · ${b.do_first.length} recommended actions · ${b.missed_high_impact.length} high-impact misses · ${b.seo_quick_wins.length} SEO quick wins.`;
@@ -6872,7 +6872,7 @@ async function renderGmb() {
   const drafts = r.drafts || [];
   if (summary) summary.textContent = `${drafts.length} draft${drafts.length === 1 ? '' : 's'} for ${S.brand || 'active brand'}`;
   if (count) count.textContent = drafts.length;
-  if (!drafts.length) { list.innerHTML = '<div class="empty">No GMB drafts yet — click + New draft above</div>'; return; }
+  if (!drafts.length) { list.innerHTML = '<div class="empty">No GMB drafts yet. Click + New draft above to start.</div>'; return; }
   list.innerHTML = drafts.map(d => {
     const isScheduled = (d.status || '').toLowerCase() === 'scheduled';
     const isDraft = (d.status || '').toLowerCase() !== 'scheduled';
@@ -7084,7 +7084,7 @@ window.openReview = async (cid, aid) => {
       <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;flex:1"><span id="rv-cap-len">${captionText.length}</span> chars</span>
       <button class="btn-mini" id="rv-edit-cap-btn" style="font-weight:500">✏️ Edit</button>
     </h4>
-    <div id="rv-cap-body" data-raw="${esc(captionText)}" style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap;max-height:240px;overflow-y:auto">${esc(captionText) || '<span class="muted">— no caption yet. Use Edit to add one or Generate captions below.</span>'}</div>
+    <div id="rv-cap-body" data-raw="${esc(captionText)}" style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap;max-height:240px;overflow-y:auto">${esc(captionText) || '<span class="muted">No caption yet. Use Edit to add one, or Generate captions below.</span>'}</div>
 
     <h4 data-help="${rvVisualBriefHelp}" data-help-title="Visual brief" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Visual brief</h4>
     <div style="background:var(--bg-3);padding:.75rem;border-radius:8px;font-size:13px;white-space:pre-wrap">${esc(visualBriefText) || '—'}</div>
@@ -7222,7 +7222,7 @@ window.openReview = async (cid, aid) => {
       const r = await API.get('/api/socials/for-asset/' + encodeURIComponent(aid));
       const posts = (r && r.data) || [];
       if (!posts.length) {
-        strip.innerHTML = '<div class="muted" style="font-size:11px;padding:.5rem">No matching IG posts yet — this asset will be the first.</div>';
+        strip.innerHTML = '<div class="muted" style="font-size:11px;padding:.5rem">No matching IG posts yet. This asset will be the first.</div>';
         return;
       }
       strip.innerHTML = posts.map((p, i) => {
@@ -8097,7 +8097,7 @@ async function renderPerformance(){
         ${i.action ? `<button class="btn-mini" onclick="go('ideas');setTimeout(()=>document.getElementById('ideas-gen')?.click(), 600)">${esc(i.action)}</button>` : ''}
       </div>
     </div>
-  `).join('') || '<div class="empty">No insights yet — connect analytics to see what is working</div>';
+  `).join('') || '<div class="empty">No insights yet. Connect analytics to see what is working.</div>';
   // Populate why-asset dropdown with the top IG posts
   const whySel = $('#why-asset');
   if (whySel) {
@@ -8809,7 +8809,7 @@ function _renderHeadHistory(){
   const hist = HEAD_STATE.history || [];
   $('#head-hist-count').textContent = String(hist.length);
   if(!hist.length){
-    $('#head-history').innerHTML = '<div class="empty">No history yet — every generation is saved here.</div>';
+    $('#head-history').innerHTML = '<div class="empty">No history yet. Every generation is saved here.</div>';
     return;
   }
   $('#head-history').innerHTML = hist.map((batch, i) => {
@@ -8943,7 +8943,7 @@ function _renderCtaHistory(){
   const hist = CTA_STATE.history || [];
   $('#cta-hist-count').textContent = String(hist.length);
   if(!hist.length){
-    $('#cta-history').innerHTML = '<div class="empty">No history yet — every generation is saved here.</div>';
+    $('#cta-history').innerHTML = '<div class="empty">No history yet. Every generation is saved here.</div>';
     return;
   }
   $('#cta-history').innerHTML = hist.map((batch, i) => {
@@ -9159,7 +9159,7 @@ async function _hsGenerate(){
     const tags = r.ordered || [];
     const tagsHtml = tags.length
       ? `<div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.5rem">${tags.map(t => `<span class="pill ${r.by_category.pillar_core.includes(t)?'ac':''}" data-tag="${esc(t)}" style="cursor:pointer" title="Click to copy">${esc(t)}</span>`).join('')}</div>`
-      : '<div class="empty">No hashtags for this platform (GMB — uses natural-language keyword phrases instead)</div>';
+      : '<div class="empty">No hashtags for this platform. GMB uses natural-language keyword phrases instead.</div>';
     $('#hs-tags').innerHTML = tagsHtml;
     // tag click to copy
     $$('#hs-tags [data-tag]').forEach(el => el.addEventListener('click', async () => {
@@ -10591,7 +10591,7 @@ window.renderCampaignWorkviewHeader = (cid, c) => {
         <span class="h-meta"><span class="pill ${identity.status==='active'?'on':'draft'}" style="font-size:10px">${esc(identity.status || 'unknown')}</span></span>
       </div>
 
-      ${purpose ? `<div style="font-size:13.5px;color:var(--tx);line-height:1.5;margin-bottom:.85rem;padding:.65rem .85rem;background:var(--bg-2);border-radius:6px;border-left:3px solid ${healthColor}"><b>Purpose:</b> ${esc(purpose)}</div>` : '<div class="muted" style="font-size:12px;margin-bottom:.85rem">No purpose defined yet — edit identity.goal.</div>'}
+      ${purpose ? `<div style="font-size:13.5px;color:var(--tx);line-height:1.5;margin-bottom:.85rem;padding:.65rem .85rem;background:var(--bg-2);border-radius:6px;border-left:3px solid ${healthColor}"><b>Purpose:</b> ${esc(purpose)}</div>` : '<div class="muted" style="font-size:12px;margin-bottom:.85rem">No purpose defined yet. Edit identity.goal to add one.</div>'}`;
 
       <div class="grid" style="margin-bottom:1rem">
         <div class="col-8">
