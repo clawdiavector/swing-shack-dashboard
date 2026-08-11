@@ -570,7 +570,18 @@ main {
   <main>
     <div class="prompt-card">
       <label for="prompt">Prompt</label>
-      <textarea id="prompt" placeholder="Describe the image you want — e.g. 'Premium promo for our TrackMan fitting service, Instagram square'">Premium promo for our TrackMan fitting service, Instagram square</textarea>
+      <!-- Goal-first form: shown when no campaign is loaded yet -->
+      <div id="goal-form" style="margin-bottom:8px">
+        <label for="goal-select" style="font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Start from a goal</label>
+        <select id="goal-select" style="width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--line);padding:6px 8px;border-radius:4px;font-size:13px;margin-bottom:8px">
+          <option value="">-- Choose a goal --</option>
+          <option value="Booking">Booking (drive appointments/sessions)</option>
+          <option value="Awareness">Awareness (build brand visibility)</option>
+          <option value="Product sale">Product sale (direct product promotion)</option>
+          <option value="Event registration">Event registration (sign-ups for an event)</option>
+        </select>
+      </div>
+      <textarea id="prompt" placeholder="Describe the image you want — e.g. 'Premium promo for our TrackMan fitting service, Instagram square'"></textarea>
       <div class="row">
         <div>
           <label for="size">Size</label>
@@ -1171,7 +1182,59 @@ function escapeHtml(s) {
 // ── Boot ──────────────────────────────────────────────────────────
 (async function boot() {
   await Promise.all([loadReferences(), loadLibrary(), loadSignals(), loadRecords()]);
+  // Prefill prompt from campaign context or goal
+  await prefillPromptFromCampaign();
+  // Wire goal selector → auto-compose starter prompt
+  $('goal-select').addEventListener('change', onGoalChange);
 })();
+
+// ── Prompt prefill from campaign context ──────────────────────────
+async function prefillPromptFromCampaign() {
+  const params = new URLSearchParams(window.location.search);
+  const campaignId = params.get('campaign');
+  const brandParam = params.get('brand') || STATE.brand;
+  if (!campaignId) return;
+  try {
+    const r = await api(`/api/campaigns/${campaignId}?brand=${brandParam}`);
+    if (!r.campaign) return;
+    const c = r.campaign;
+    const goal = (c.goal || '').trim();
+    const insight = (c.insight || '').trim();
+    const recipe = (c.recipe || '').trim();
+    const hook = (c.campaignHook || c.hook || '').trim();
+    const parts = [];
+    if (goal) parts.push(goal);
+    if (insight) parts.push(insight);
+    if (recipe) parts.push(recipe);
+    if (hook && hook !== goal) parts.push(hook);
+    if (parts.length) {
+      $('prompt').value = parts.join(' | ');
+      // Hide goal form since we have campaign context
+      const gf = $('goal-form');
+      if (gf) gf.style.display = 'none';
+    }
+  } catch (e) { /* non-fatal */ }
+}
+
+// ── Goal-first starter prompt composer ────────────────────────────
+const GOAL_STARTERS = {
+  'Booking': 'Professional promo image for a booking campaign — warm invitation to book a golf fitting or lesson. Studio or on-course setting. Clear CTA aesthetic. Instagram square format.',
+  'Awareness': 'Brand awareness visual for a golf business — distinctive, on-brand imagery that communicates identity and quality. Editorial look. Instagram square.',
+  'Product sale': 'Product promo for a golf product — the item is the hero, sharp focus, premium feel, price transparency aesthetic. Instagram square format.',
+  'Event registration': 'Event promo visual for a golf event — high energy, clear event messaging, invitation aesthetic. Instagram square format.',
+};
+
+function onGoalChange() {
+  const goal = $('goal-select').value;
+  if (!goal) return;
+  const starter = GOAL_STARTERS[goal] || '';
+  if (starter) {
+    $('prompt').value = starter;
+  }
+  // Optionally hide goal form after selection
+  const gf = $('goal-form');
+  if (gf) gf.style.display = 'none';
+}
 </script>
 </body>
 </html>

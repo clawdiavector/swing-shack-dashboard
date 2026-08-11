@@ -8915,7 +8915,7 @@ def load_brands_registry():
 
 def get_brand_id():
     """Resolve the active brand from request headers or query string."""
-    bid = request.headers.get('X-Brand') or request.args.get('brand_id')
+    bid = request.headers.get('X-Brand') or request.args.get('brand_id') or request.args.get('brand')
     if bid:
         return bid
     registry = load_brands_registry()

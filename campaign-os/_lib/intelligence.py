@@ -13,6 +13,9 @@ from __future__ import annotations
 import json
 import os
 import glob
+import time
+import hashlib
+import random as _random
 import datetime
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
@@ -83,6 +86,11 @@ def _campaign_data() -> Dict[str, Any]:
 
 # Thread-local brand id (set by app.py for each request so intel functions can scope)
 _REQUEST_BRAND_ID = None
+
+
+def get_request_brand():
+    """Return the brand_id currently scoped for this request, or None."""
+    return _REQUEST_BRAND_ID
 
 
 def set_request_brand(brand_id):
@@ -163,6 +171,7 @@ def morning_brief() -> Dict[str, Any]:
     """Synthesize 'what should Christelle do today?' from all signals."""
     cd = _campaign_data()
     campaigns = cd.get("campaigns", {})
+    scoped_brand = get_request_brand()
 
     # Count assets by status across all campaigns.
     # Mirrors the review_inbox() semantics so the sidebar badge and the
@@ -173,6 +182,9 @@ def morning_brief() -> Dict[str, Any]:
     overdue = []
 
     for cid, c in campaigns.items():
+        # Brand-scope: skip campaigns belonging to a different brand.
+        if scoped_brand and c.get('brand_id') != scoped_brand:
+            continue
         for aid, asset in (c.get("assets") or {}).items():
             counts["total"] += 1
             aps = asset.get("approvalStatus", "")
@@ -803,44 +815,120 @@ def _signal_pool() -> Dict[str, List[Any]]:
     }
 
 
+_HOOK_EXHAUSTION_CACHE: Dict[str, List[str]] = {}
+"""Per-process in-memory cache of recently generated hooks (key = date_str)."""
+
+
+def _used_hooks() -> List[str]:
+    """Load up to the last 20 used hooks from campaign-data.json used_hooks array."""
+    cd = _campaign_data()
+    used = cd.get("used_hooks", [])
+    if not isinstance(used, list):
+        return []
+    return [h for h in used if isinstance(h, str)][:20]
+
+
 def generate_hooks(n: int = 10) -> Dict[str, Any]:
-    """Build hook ideas from signals."""
+    """Build hook ideas from signals, excluding recently used hooks for diversity.
+
+    A per-process cache keyed by today's date prevents the same hooks from
+    being regenerated within the same process lifetime (e.g. during a test run
+    or rapid API calls). The campaign-data.json `used_hooks` array provides
+    cross-process exclusion.
+    """
     pool = _signal_pool()
     out = []
-    # From reddit pain points
-    for r in pool["reddit_pain_points"][:n]:
+    today = _now_iso()[:10]
+
+    # Track this process's recent output so we don't repeat within-process.
+    global _HOOK_EXHAUSTION_CACHE
+    recent = _HOOK_EXHAUSTION_CACHE.setdefault(today, [])
+
+    used = set(_used_hooks())
+    recent_set = set(recent)
+
+    def _is_fresh(h: str) -> bool:
+        h_lower = h.lower()
+        for u in used:
+            if u.lower() == h_lower:
+                return False
+        for r in recent_set:
+            if r.lower() == h_lower:
+                return False
+        return True
+
+    def _push(h: str):
+        """Track a hook string for deduplication (does NOT append to out)."""
+        recent_set.add(h)
+        recent.append(h)
+        if len(recent) > 40:
+            # Keep cache bounded.
+            recent[:] = recent[-40:]
+
+    def _add(h: str, source: str, kind: str):
+        """Add a hook dict to the output list."""
+        out.append({"hook": h, "source": source, "kind": kind})
+
+    # Mechanism prefixes — use a seeded shuffle so order varies per call.
+    seed_str = f"{today}|{n}|{get_request_brand() or ''}"
+    seed_bytes = hashlib.sha256(seed_str.encode()).digest()
+    rng = _random.Random(int.from_bytes(seed_bytes[:4], "big"))
+
+    # Shuffle source pools with seed so each call cycles through differently.
+    reddit_shuffled = list(pool["reddit_pain_points"])
+    rng.shuffle(reddit_shuffled)
+
+    golf_news_shuffled = list(pool["golf_news"])
+    rng.shuffle(golf_news_shuffled)
+
+    missed_shuffled = list(pool["missed_opportunities"])
+    rng.shuffle(missed_shuffled)
+
+    # From reddit pain points.
+    for r in reddit_shuffled:
+        if len(out) >= n:
+            break
         if not isinstance(r, dict):
             continue
         ang = r.get("suggested_angle") or r.get("angle") or r.get("title") or r.get("pain_point") or r.get("trend_pain_point") or r.get("thread_topic") or ""
         if isinstance(ang, str) and ang:
-            out.append({"hook": f"The golf truth nobody tells you: {ang[:80]}", "source": "reddit", "kind": "pain-point"})
-        if len(out) >= n:
-            break
-    # From golf news
+            hook = f"The golf truth nobody tells you: {ang[:80]}"
+            if _is_fresh(hook):
+                _push(hook)
+                _add(hook, "reddit", "pain-point")
+
+    # From golf news.
     if len(out) < n:
-        for n_ in pool["golf_news"][:n]:
+        for n_ in golf_news_shuffled:
+            if len(out) >= n:
+                break
             if not isinstance(n_, dict):
                 continue
             t = n_.get("title") or n_.get("headline") or n_.get("name") or n_.get("summary") or ""
             if isinstance(t, str) and t:
-                out.append({"hook": f"While everyone is talking about {t[:60]}...", "source": "golf-news", "kind": "trend-jack"})
+                hook = f"While everyone is talking about {t[:60]}..."
+                if _is_fresh(hook):
+                    _push(hook)
+                    _add(hook, "golf-news", "trend-jack")
+
+    # From missed opportunities.
+    if len(out) < n:
+        for m in missed_shuffled:
             if len(out) >= n:
                 break
-    # From missed opportunities (use hook field directly if available)
-    if len(out) < n:
-        for m in pool["missed_opportunities"][:n]:
             if not isinstance(m, dict):
                 continue
             t = m.get("hook") or m.get("title") or m.get("issue") or m.get("suggested_fix") or m.get("suggestion") or m.get("summary") or ""
             if isinstance(t, str) and t and len(t) > 15:
-                # If it's a complete hook (looks like a sentence), use as-is
                 if any(t.lower().startswith(w) for w in ['the ', 'why ', 'how ', 'what ', 'this ', 'have you', 'need to', 'stop ', 'your ', 'here']):
-                    out.append({"hook": t[:120], "source": "missed-opp", "kind": "gap-fix"})
+                    hook = t[:120]
                 else:
-                    out.append({"hook": f"You're losing bookings because: {t[:60]}", "source": "missed-opp", "kind": "gap-fix"})
-            if len(out) >= n:
-                break
-    # Fallback to evergreen templates if still empty
+                    hook = f"You're losing bookings because: {t[:60]}"
+                if _is_fresh(hook):
+                    _push(hook)
+                    _add(hook, "missed-opp", "gap-fix")
+
+    # Fallback to evergreen templates if still empty.
     if not out:
         templates = [
             "The lie every golfer believes about the range",
@@ -854,9 +942,29 @@ def generate_hooks(n: int = 10) -> Dict[str, Any]:
             "The mistake 80% of golfers make on the downswing",
             "What fitting actually fixes (it's not the club)",
         ]
+        rng.shuffle(templates)
         for t in templates[:n]:
-            out.append({"hook": t, "source": "evergreen", "kind": "evergreen"})
+            hook = t
+            if _is_fresh(hook):
+                _push(hook)
+                _add(hook, "evergreen", "evergreen")
+
     return {"ok": True, "ts": _now_iso(), "generated": out[:n], "count": len(out)}
+
+
+# Mechanism labels used to ensure caption variants use different angles.
+_VARIANT_MECHANISMS = [
+    "problem-first",  # starts with the pain point
+    "story",          # opens with a relatable scene
+    "contrarian",     # challenges a common belief
+    "listicle",       # numbered list format
+    "question",       # opens with a question
+    "data-driven",    # leads with a fact or stat
+    "controversy",    # sparks debate
+    "authority",      # leverages expert/trusted-voice framing
+    "fomo",           # urgency / limited availability
+    "before-after",    # transformation arc
+]
 
 
 def generate_captions(
@@ -869,23 +977,35 @@ def generate_captions(
 
     Args:
         asset_id: campaign asset ID to attach captions to
-        n:        number of variants to generate
+        n:        number of variants to generate (max 20)
         voice:    voice id from voice_bible.json ('swing-shack' | 'stick' | 'bag-drop')
         tone:     tone within the voice ('educational' | 'funny' | etc.)
     Returns:
-        {ok, asset, campaign, variants: [{variant, hook, body, cta, platform, voice, tone}, ...], count, ts}
+        {ok, asset, campaign, variants: [{variant, hook, body, cta, platform, voice, tone, mechanism}, ...], count, ts}
     """
     cd = _campaign_data()
     asset = None
     campaign_name = ""
+    campaign_brand_id = ""
     if asset_id:
         for cid, c in cd.get("campaigns", {}).items():
             if asset_id in (c.get("assets") or {}):
                 asset = c["assets"][asset_id]
                 campaign_name = c.get("identity", {}).get("name", cid)
+                campaign_brand_id = c.get("brand_id") or ""
                 break
 
+    # Seed RNG so repeated calls produce different variants.
+    # Seed = date + asset_id hash + request brand (if scoped).
+    seed_base = f"{_now_iso()[:10]}|{asset_id or ''}|{get_request_brand() or ''}"
+    seed_bytes = hashlib.sha256(seed_base.encode()).digest()
+    rng = _random.Random(int.from_bytes(seed_bytes[:4], "big"))
+
     pool = generate_hooks(max(3, n)).get("generated", [])
+    # Shuffle the pool with the seeded RNG so order varies per call.
+    shuffled_pool = list(pool)
+    rng.shuffle(shuffled_pool)
+
     name = (asset.get("name", "") or "") if asset else ""
     platform = (asset.get("platform") or asset.get("integration", "instagram")) if asset else "instagram"
     base_caption = ""
@@ -905,10 +1025,12 @@ def generate_captions(
     if not base_caption:
         base_caption = f"{name or campaign_name or 'Swing Shack'} · swingshack.co.za"
 
-    # Resolve voice
+    # Resolve voice: if not explicitly passed, try to auto-detect from campaign brand.
     vb = _load_voice_bible()
     voices = vb.get("voices", {})
     resolved_voice = voice if (voice and voice in voices) else None
+    if not resolved_voice and campaign_brand_id and campaign_brand_id in voices:
+        resolved_voice = campaign_brand_id
 
     # Resolve tone (must be allowed for the resolved voice)
     allowed = set(voices.get(resolved_voice, {}).get("allowed_tones", []) if resolved_voice else [])
@@ -929,28 +1051,57 @@ def generate_captions(
             return alts[idx]
         return cta_default
 
-    def _apply_voice(hook_text, vid, t, idx):
+    def _apply_voice(hook_text, vid, mechanism, idx):
         prefix = _voice_prefix(vid)
         suffix = _voice_suffix(vid)
         cta = _voice_cta(vid, idx)
-        body = f"{prefix} {hook_text}. {suffix} {cta}"
+        # Frame the hook differently based on mechanism so each variant feels distinct.
+        if mechanism == "problem-first":
+            body = f"{prefix} The problem nobody talks about: {hook_text}. {suffix} {cta}"
+        elif mechanism == "story":
+            body = f"{prefix} A golfer walked into Swing Shack and said: {hook_text}. {suffix} {cta}"
+        elif mechanism == "contrarian":
+            body = f"{prefix} Forget what you heard about {hook_text.split()[0] if hook_text else 'that'}. Here's the truth. {suffix} {cta}"
+        elif mechanism == "listicle":
+            body = f"{prefix} 3 things you didn't know about {hook_text.split()[0] if hook_text else 'golf'}. {suffix} {cta}"
+        elif mechanism == "question":
+            body = f"{prefix} {hook_text}? We asked the same thing. {suffix} {cta}"
+        elif mechanism == "data-driven":
+            body = f"{prefix} The data says: {hook_text}. {suffix} {cta}"
+        elif mechanism == "controversy":
+            body = f"{prefix} Is {hook_text.split()[0] if hook_text else 'this'} actually true? {suffix} {cta}"
+        elif mechanism == "authority":
+            body = f"{prefix} Here's what the experts say about {hook_text.split()[0] if hook_text else 'this'}: {suffix} {cta}"
+        elif mechanism == "fomo":
+            body = f"{prefix} Most golfers miss this: {hook_text}. Don't be one of them. {suffix} {cta}"
+        elif mechanism == "before-after":
+            body = f"{prefix} Before vs after: {hook_text}. {suffix} {cta}"
+        else:
+            body = f"{prefix} {hook_text}. {suffix} {cta}"
         return body
 
     out = []
-    for i, hook in enumerate(pool[:n]):
+    for i in range(n):
+        if i >= len(shuffled_pool):
+            break
+        hook = shuffled_pool[i]
         title = (hook.get("hook", "") or "") if isinstance(hook, dict) else ""
         if not title:
             continue
+
+        # Assign a unique mechanism per variant, cycling through the list.
+        mechanism = _VARIANT_MECHANISMS[i % len(_VARIANT_MECHANISMS)]
 
         variant_voice = resolved_voice
         variant_tone = resolved_tone
 
         if variant_voice:
-            body = _apply_voice(title, variant_voice, variant_tone, i)
+            body = _apply_voice(title, variant_voice, mechanism, i)
             cta = _voice_cta(variant_voice, i)
         else:
-            # No voice specified — use default format
-            body = f"{title}\n\n{base_caption[:240]}\n\nBook a session → swingshack.co.za"
+            # No voice specified — use default format with mechanism framing.
+            mech_frame = f"[{mechanism}] " if mechanism else ""
+            body = f"{mech_frame}{title}\n\n{base_caption[:240]}\n\nBook a session → swingshack.co.za"
             cta = "Book a session → swingshack.co.za"
 
         out.append({
@@ -962,6 +1113,7 @@ def generate_captions(
             "source": (hook.get("source") or "signal-pool") if isinstance(hook, dict) else None,
             "voice": variant_voice,
             "tone": variant_tone,
+            "mechanism": mechanism,
         })
 
     return {
