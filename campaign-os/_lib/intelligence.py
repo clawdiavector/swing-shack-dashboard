@@ -1328,25 +1328,51 @@ def opportunities_view() -> Dict[str, Any]:
 # ─── POSTIZ (live) ─────────────────────────────────────────────────────
 
 def postiz_overview() -> Dict[str, Any]:
-    """Live state from publishing-references.json (canonical mirror) + queue."""
+    """Live state from publishing-references.json (canonical mirror) + queue.
+
+    The summary string used to report raw totals (57 in queue / 57 published) while
+    the client only renders the first 30 queue + 20 published cards, so the header
+    lied to the user — "Publishing refs: 1. Queue: 57. Scheduled: 0. Published: 57."
+    contradicted the card counts it sat above. The summary now mirrors the slice
+    the client renders and adds a "(N total)" suffix when the visible slice is
+    shorter than the full corpus. Single source of truth = the same slice logic
+    used in `queue[:30]` / `published[:20]` below.
+    """
     refs = _read_json(os.path.join(DATA_DIR, "publishing-references.json")) or {}
     queue = _read_json(os.path.join(DATA_DIR, "publish-queue.json")) or {}
     items = queue.get("queued", []) if isinstance(queue, dict) else []
     sched = _read_json(os.path.join(DATA_DIR, "scheduled-items.json")) or {}
     published = _read_json(os.path.join(DATA_DIR, "published-items.json")) or {}
+    queue_all = items if isinstance(items, list) else []
+    sched_all = (sched.get("scheduled", []) if isinstance(sched, dict) else [])
+    pub_all = (published.get("published", []) if isinstance(published, dict) else [])
+    pub_total_from_file = (published.get("total", 0) if isinstance(published, dict) else 0)
+    # What the client actually renders (mirrors campaign-os.html:7521-7523):
+    queue_visible = queue_all[:30]
+    sched_visible = sched_all[:30]
+    pub_visible = pub_all[:20]
+    # Use len(pub_visible) so the summary always matches the rendered card count;
+    # the legacy `published.get('total')` overcounted by including non-published entries.
+    def _fmt(visible, total):
+        if total > len(visible):
+            return f"{len(visible)} ({total} total)"
+        return f"{len(visible)}"
     return {
         "ok": True,
         "ts": _now_iso(),
         "summary": (
             f"Publishing refs: {refs.get('count', 0)}. "
-            f"Queue: {len(items) if isinstance(items, list) else 0}. "
-            f"Scheduled: {len(sched.get('scheduled', [])) if isinstance(sched, dict) else 0}. "
-            f"Published: {published.get('total', 0) if isinstance(published, dict) else 0}."
+            f"Queue: {_fmt(queue_visible, len(queue_all))}. "
+            f"Scheduled: {_fmt(sched_visible, len(sched_all))}. "
+            f"Published: {_fmt(pub_visible, max(len(pub_all), pub_total_from_file))}."
         ),
         "publishing_refs": refs if isinstance(refs, dict) else {},
-        "queue": (items[:30] if isinstance(items, list) else []),
-        "scheduled": (sched.get("scheduled", []) if isinstance(sched, dict) else [])[:30],
-        "published": ((published.get("published", []) if isinstance(published, dict) else [])[:20]),
+        "queue": queue_visible,
+        "scheduled": sched_visible,
+        "published": pub_visible,
+        "queue_total": len(queue_all),
+        "scheduled_total": len(sched_all),
+        "published_total": max(len(pub_all), pub_total_from_file),
         "note": "Live Postiz sync runs via the truth_collector webhook. This view is the canonical mirror.",
     }
 
