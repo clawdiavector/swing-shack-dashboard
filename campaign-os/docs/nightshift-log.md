@@ -2292,3 +2292,44 @@ Fix (SPA-only, 1 file, 5 ins / 3 del):
 **Learned:** Calendar "schedule" vs Publish "queue" is a textbook "two correctly-different counts that look identical from the user's seat" problem. The cure is not picking one source of truth — both counts are legitimately useful — but renaming one so the labels stop pretending they measure the same thing. The help-tip-on-hover pattern is the right vehicle for the reconciliation: it doesn't take up screen real-estate, it surfaces on demand, and it routes the curious user to the right page rather than leaving them to compare numbers across tabs. Same shape as the 2026-08-09 IG-history dead-link fix (let the existing help-tooltip system carry the explanation) — and worth proposing as a small starter-template for any future cross-page count that could be misread.
 
 **Asks:** None.
+
+## 2026-08-11T18:01Z — fix(spa): boot honors ?page= URL so shareable links land on the right section
+
+Pre-flight clean. Picked Priority #1 (broken browser flow). Playwright probe against LIVE discovered that every `?page=` deep-link (calendar, publish, ideas, review, trends, performance, hooks, memes) silently landed on the Home/Today page — the SPA boot read `cos.activeSec` from localStorage but never read `location.search`. Side effect: every section's first-paint had the `sec-brief` section still visible underneath, producing "Nothing queued yet" + "No missed opportunities" empty cards on Calendar, Publish, Ideas, etc.
+
+Root cause: line 6181 boot IIFE — `let activeSec = localStorage.getItem('cos.activeSec') || 'brief';` with no URL override. Mirrors the existing `?brand=` pattern at line 4385 but for the active section.
+
+Fix (SPA-only, 1 file, +11/-0):
+
+- After the localStorage read, also read `new URLSearchParams(location.search).get('page')`. If present, pass through `SECTION_ALIASES`, validate `document.getElementById('sec-' + aliased)` exists, then override `activeSec`.
+- Invalid URL values fall back to localStorage (preserves the existing default behavior).
+- URL is per-visitation only — never written back to localStorage, so a one-off link doesn't permanently hijack the user's default landing surface.
+
+**Verified (LIVE, authed, Playwright, post-deploy):**
+- 10/10 cases pass on LIVE production:
+  - `/` → sec-brief (regression: unchanged)
+  - `/?page=invalid-section` → sec-brief (invalid → fallback)
+  - `/?page=calendar` → sec-calendar (nav: calendar)
+  - `/?page=ideas` → sec-ideas (nav: ideas)
+  - `/?page=publish` → sec-publish (nav: publish)
+  - `/?page=review` → sec-review (nav: review)
+  - `/?page=trends` → sec-trends (nav: trends)
+  - `/?page=performance` → sec-performance (nav: performance)
+  - `/?page=hooks` → sec-hooks (nav: hooks)
+  - `/?page=memes` → sec-memes (nav: memes)
+- Cache-busted bundle probe (authed): both `urlPage` and the `URLSearchParams(location.search).get('page')` read pattern FOUND in served HTML.
+- `/api/health` green throughout (`git_synced:false` is the standard pre-sync lag, not a fault).
+- 0 PAGEERROR, 0 console errors during the full walk.
+- 0 NEW em-dashes (1 deleted from the comment in favor of a comma).
+- Screenshot: `/tmp/co-nightshift/walkthrough_20260811T180129Z.png` — LIVE Calendar page loaded via `/?page=calendar`, full week grid + "Planned next 14 days" label visible.
+
+**Standing rules honored:** SPA-only patch; no API contract change; no publish/schedule touched; no tokens stored in chat; branch stays on `feat/asset-state-engine`; atomic single commit; no force push; no main.
+
+**Next pick:**
+- The remaining ~26 EXPLAINERS blocks still reference 2026-07-30 era card names — cheap text sweep, low urgency.
+- The 8× 404s on `/api/visual-library/.../*.jpg` (pre-existing image-storage drift on Railway volume) still show as console errors — image-library data fix, carryover from multiple prior ticks.
+- Home dashboard `Top pages by sessions` card renders paths like `/bookings/146 sessions` with the missing space because the path is rendered as `li-title` and the meta starts with a literal number — single-space fix in the `renderRow` template, cosmetic.
+
+**Learned:** When the SPA only honors one source-of-truth for the active section (localStorage in this case), every URL parameter that "looks like" it should work is silently a no-op. The user-visible symptom is non-obvious: empty cards from the brief section show up on every page because `sec-brief` stays `.on` until the SPA reads its own state. The detection recipe: probe with `?page=` for every section, then assert `.section.on` matches the requested section. If the SPA's boot doesn't read URL params, you have a silent "URL is decoration" bug that doesn't throw any JS error — it just lands users on the wrong page silently. The fix shape mirrors the existing `?brand=` pattern (line 4385), which means there was already a precedent for URL-as-state in the same file; the section URL just hadn't been wired up yet. Worth codifying as a "SPA boot must read URL params before falling back to localStorage" rule for any future page-state.
+
+**Asks:** None.
