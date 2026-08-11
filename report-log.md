@@ -1,5 +1,41 @@
 
-## 2026-08-11T00:17Z — fix(campaign-os): Postiz surface renders real captions + canonical ref status (no more blank rows)
+## 2026-08-11T04:01Z — fix(copy): 8 em-dashes gone from Connect-Instagram / Connect-analytics empty-state explainers + Check-Search-Console button
+
+**Done:** The Connect-Instagram explainer (Socials surface, visible daily while IG isn't wired) and the Connect-analytics explainer (Performance surface, visible daily while IG/GA4 aren't wired) no longer contain em-dashes in the bullet bodies, the "Ask Heidi to spin up the setup-portal" line, the inline "widening the range won't help" empty-state msg, or the "Check Search Console" button copy. 8 em-dashes replaced with colons + parentheses, following the same pattern as the b992ca4 fix.
+
+**Root cause:** the b992ca4 sweep targeted "section/card headings + dropdowns" but missed the empty-state explainer blocks (which only render when data sources are empty, so they were hidden from the structural sweep). The standing "no em-dash in published copy" rule still applies — these explainers ARE published copy and ARE visible every time Christelle opens Socials/Performance with IG/GA4 not wired.
+
+**Fix (commit `28159fd`, pushed, Railway auto-deployed):**
+- `campaign-os/campaign-os.html` (9 lines):
+  - Socials Meta Graph API bullet: `— last 30 days` → `: last 30 days`
+  - Socials oEmbed fallback bullet: `— older posts` → `: older posts`
+  - Socials Ask-Heidi setup line: `/meta — same pattern` → `/meta (same pattern`
+  - Socials inline empty msg: `token — widening the range` → `token (widening the range`
+  - Performance Instagram + Facebook bullet: `— gives you` → `: gives you`
+  - Performance Google Analytics 4 bullet: `— sessions` → `: sessions`
+  - Performance Google Search Console bullet: `— keyword` → `: keyword`
+  - Performance Ask-Heidi setup line: `/ga4 — same pattern` → `/ga4 (same pattern`
+  - Performance "Check Search Console" button: `status — may already be` → `status (may already be`
+- `campaign-os/tests/test_v2026_08_11_no_emdashes_connect_explainer.py` (NEW, 11 tests): per-site em-dash assertions + a preservation guard that the existing `test_v2026_08_09_socials_connect_cta` substring invariants (`Connect Instagram`, `setup-portal`, `widening the range`, `IG business account`, `Facebook page`) are intact + a defense test that the unicode right-arrow `(30d → 1y)` survives.
+
+**Verified (LIVE post-deploy, Playwright + cookie auth):**
+- Socials surface body text scan: 0 em-dashes in prose. The single surviving `—` is the conventional "no-data" placeholder glyph in the status pill (`🔌 not wired · newest —`), which is a UI affordance, not prose — matches the b992ca4 carve-out for loading glyphs.
+- Performance surface body text scan: 0 em-dashes in prose.
+- All 11 new tests pass. All 30 critical tests in `test_v2026_08_09_socials_connect_cta` + `test_v2026_08_09_socials_lens_ctx` still pass (substrings preserved).
+- Full suite delta: 601 tests, +11 added (the new file), 0 net regressions (the 9 pre-existing failures + 94 pre-existing errors are network/credential-dependent, unrelated to this fix).
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (verified via diff), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_socials_connect_explainer_after.png` — Socials surface post-fix, Connect Instagram explainer reads "Meta Graph API: last 30 days...", "oEmbed fallback: older posts (30d → 1y)...", "Ask Heidi to spin up the setup-portal at `/meta` (same pattern as Drive and GA4...)".
+- `/tmp/co-nightshift/walkthrough_performance_connect_explainer_after.png` — Performance surface post-fix.
+- `/tmp/co-nightshift/walkthrough_live_socials_20260811T040026Z.png` — LIVE Railway URL, post-deploy verification.
+
+**Learned:** Two patterns for future em-dash sweeps. (a) Empty-state explainer blocks (rendered only when data is absent) are easy to miss in static sweeps — the b992ca4 fix looked at headings + dropdowns but skipped these. (b) The unicode right-arrow `(30d → 1y)` is NOT an em-dash; sweeps must distinguish. Helper: look for `—` (U+2014) and `–` (U+2013) only, ignore `→` (U+2192) and `·` (U+00B7). The new test has an explicit `test_11_arrow_preserved_in_oembed_bullet` assertion to defend against future over-zealous sweeps.
+
+**Next pick:** The empty-state explainer lane is mostly swept now (Socials + Performance covered). Two productive next-tick lanes: (1) The Hashtag + SEO Pack sub-tag at line 1716 still has one em-dash (`Curated hashtag sets and on-page SEO scaffolding — pure intelligence, no social actions`). Small follow-on sweep. (2) The Meme Lord "★ Top" badge for the 3 most-reused memes across the last 30 days — flagged 3 ticks ago, still unbuilt, strongest signal/value tradeoff on the meme library lane.
+
+**Asks:** None.
 
 **Done:** The Postiz surface now shows real content for every row. Pre-pick sweep (Playwright walk over 28 sections) caught two broken renderers inside `renderPostiz()` at `campaign-os.html:9764-9795`:
 
