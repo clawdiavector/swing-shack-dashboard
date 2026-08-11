@@ -8351,14 +8351,23 @@ function memPicksCard(m, isTop, tone){
     </div>`;
 }
 
-function memLibraryRow(m){
+function memLibraryRow(m, isTop){
   const still = m.still_works === true ? '✅' : (m.still_works === false ? '⚠️' : '·');
   const fmtLabel = (m.format || '').replace(/-/g,' ');
   const tags = (m.tags || []).slice(0, 3).map(t => `<span class="meme-tag">${esc(t)}</span>`).join(' ');
+  // Mirror the memPicksCard ★ Top badge so the wider library list (the view
+  // Christelle actually scrolls when hunting for "what meme should I use next?")
+  // also surfaces standout rows. Same 1.2x local-average threshold + maxFit tie
+  // gate as the picks list, with min brand_fit 60 so the badge only fires on
+  // genuinely strong matches (a hard floor avoids the "everything is Top"
+  // noise when the filter combo is loose and the brand_fit spread is wide).
+  const topBadge = isTop
+    ? `<span style="font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:#10b98122;color:#10b981;flex-shrink:0;margin-left:.35rem" title="Top brand-fit in this list (>=1.2x local average, brand_fit >= 60)">★ Top</span>`
+    : '';
   return `
     <li class="meme-row" data-id="${esc(m.id)}">
       <div class="meme-row-main">
-        <div class="meme-row-title">${esc(m.name)} <span class="meme-row-still">${still}</span></div>
+        <div class="meme-row-title">${esc(m.name)} ${topBadge} <span class="meme-row-still">${still}</span></div>
         <div class="meme-row-sub">${memEraChip(m.era)} ${memFatigueChip(m.fatigue_risk)} <span class="meme-fmt">${esc(fmtLabel)}</span></div>
       </div>
       <div class="meme-row-tags">${tags}</div>
@@ -8399,6 +8408,32 @@ async function memRefresh(){
   // (avoids the "every tile is Top" noise). The 1.2x ratio threshold matches the
   // "good" tone boundary; using 1.5x (the IG/GA4 cut) would miss the deck because
   // brand_fit scores cluster around the same ceiling in most real-world filters.
+  // Library "★ Top" badge: mirror the picks logic so the wider list (the view
+  // Christelle actually scrolls) also surfaces standout rows. Same 1.2x local-
+  // average threshold + maxFit tie gate, plus a brand_fit >= 60 hard floor so
+  // the badge only fires on genuinely strong matches (avoids the "everything is
+  // Top" noise when the filter combo is loose and brand_fit spread is wide).
+  const libList = (lib.memes || []).slice(0, 60);
+  const libFitValues = libList.map(m => Number(m.brand_fit || 0));
+  const libAvgFit = libFitValues.length ? (libFitValues.reduce((s, x) => s + x, 0) / libFitValues.length) : 0;
+  const libMaxFit = libFitValues.length ? Math.max(...libFitValues) : 0;
+  let libTopCount = 0;
+  const libRows = libList.map(m => {
+    const bf = Number(m.brand_fit || 0);
+    const ratio = libAvgFit > 0 ? bf / libAvgFit : 0;
+    const isTop = bf >= 60 && bf === libMaxFit && ratio >= 1.2;
+    if (isTop) libTopCount++;
+    return memLibraryRow(m, isTop);
+  });
+  if (libTopCount > 0 && lib.summary) {
+    // Append a "N top" hint so Christelle can see the badge count without
+    // counting rows manually. Pattern matches the mem-picks-summary line.
+    const suffix = ` · ${libTopCount} ★ top in view`;
+    if (!$('#memes-summary').textContent.includes('★ top in view')) {
+      $('#memes-summary').textContent = lib.summary + suffix;
+    }
+  }
+
   const pickList = picks.recommendations || [];
   const fitValues = pickList.map(m => Number(m.brand_fit || 0));
   const avgFit = fitValues.length ? (fitValues.reduce((s, x) => s + x, 0) / fitValues.length) : 0;
@@ -8415,7 +8450,7 @@ async function memRefresh(){
     return memPicksCard(m, isTop, tone);
   });
   $('#memes-picks').innerHTML = pickCards.join('') || '<div class="empty">No recommendations match · try a different pillar/voice.</div>';
-  $('#memes-list').innerHTML = (lib.memes || []).slice(0, 60).map(memLibraryRow).join('') || '<div class="empty">No memes match the filters.</div>';
+  $('#memes-list').innerHTML = libRows.join('') || '<div class="empty">No memes match the filters.</div>';
 
   if(!MEM_LIB_CACHE._bound){
     MEM_LIB_CACHE._bound = true;
