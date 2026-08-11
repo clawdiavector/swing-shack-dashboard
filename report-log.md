@@ -1,4 +1,41 @@
 
+## 2026-08-11T00:17Z — fix(campaign-os): Postiz surface renders real captions + canonical ref status (no more blank rows)
+
+**Done:** The Postiz surface now shows real content for every row. Pre-pick sweep (Playwright walk over 28 sections) caught two broken renderers inside `renderPostiz()` at `campaign-os.html:9764-9795`:
+
+- **Queue rows** (`#postiz-queue`): all 20 visible rows rendered with an EMPTY title + just `instagram · queued · ` in the meta. The user couldn't tell what was queued.
+- **Refs rows** (`#postiz-refs`): the single canonical reference rendered as a literal em-dash title with a trailing-empty meta line — masking the real postiz id + lifecycle status.
+
+**Root cause (field-name drift, same pattern as the renderFAQs and Reddit replies fixes):**
+
+- Queue items (`data/publish-queue.json`) carry the caption text under `caption_preview` (NOT `caption` or `name`), the status under `status` (NOT `publishStatus`), and the schedule timestamp under `scheduled_date` (NOT `publishDate`). The renderer read `it.caption || it.name`, so every row fell through to an empty string.
+- Publishing references (`data/publishing-references.json`) carry the upstream postiz id under `postizPostId` (NOT `postizId`) and the lifecycle status under `currentStatus` (NOT `publishStatus`). The renderer read the legacy key names, so the row fell through to the `'—'` fallback.
+
+**Fix (commit `a209d8a`, pushed, Railway auto-deployed):**
+- `campaign-os/campaign-os.html` (`renderPostiz`, line 9764-9795): queue title = `caption_preview || caption || name || linked_hook_id` (mirrors the publish page's `pickTitle()` chain). Refs title = `postizPostId || postizId || id || publishingId`. Refs meta now includes `currentStatus`.
+- `campaign-os/tests/test_v2026_08_11_postiz_no_blank_titles.py` (NEW, 14 tests): 5 static + 4 data-shape + 2 LIVE.
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- **Before**: queue rows = blank title / refs row = `—` title + empty meta.
+- **After**: queue rows show real caption text (e.g. `That slice costing you yards off the tee? TrackMan found it 🏌️ Club Fitting…`, `Need to relax and find your golf swing tempo? Join Coach Cat…`). Refs row shows the upstream postiz id `cmrypnzq802fspe0ynp1nu3vb` with meta `instagram · use-the-right-equipment-mq5l90bk · use-the-right-equipment-mq5l90bk-feed-post-04 · draft` (was: `—` title + empty meta).
+- 251 tests pass (237 prior nightshift + 14 new = 251). Zero PAGEERROR, zero new console errors.
+
+**Files (2):**
+- `campaign-os/campaign-os.html` (`renderPostiz` rewrite, +26/-2).
+- `campaign-os/tests/test_v2026_08_11_postiz_no_blank_titles.py` (NEW, 14 tests).
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 em-dashes (`git diff` = 0 new occurrences outside the pre-existing `'—'` UI fallback string), 0 schema changes, 1 helper unchanged, 1 new regression test file, 0 JS framework dependency added.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_postiz_BEFORE.png` — Pre-fix: 20 blank queue titles + em-dash refs title.
+- `/tmp/co-nightshift/walkthrough_postiz_AFTER_20260811T001701Z.png` — Post-fix: real captions + canonical id.
+
+**Learned:** The `JSON.stringify(it).slice(0,N)` lying-affordance pattern from prior reports had a quieter sibling here — a `it.caption || it.name` chain that *silently* returned an empty string (rather than JSON). The empty string looked fine in code review but rendered as 20 blank rows. The audit pattern going forward: any `it.x || it.y` chain where `x` and `y` are BOTH short strings and neither is a "primary" canonical field should be flagged. Worth a future audit pass across the other renderers that use this pattern.
+
+**Next pick:** The `topGA4Take(pages)` function at line 5062-5066 is hardcoded to say "Your homepage gets the most traffic — X sessions. That is where small copy fixes pay off most." regardless of which page is actually top. Currently correct because `/` is genuinely the top, but the message would silently lie if a landing page overtook it (which happens often). Also the relative-tone pill on the homepage row currently shows 🔴 "below average" for a 42.5% engagement rate that's actually fine for the homepage pattern — the tone logic uses local average, which treats high-traffic homepage ER as "below" just because it's lower than the average of niche landing pages. Lower priority than today's fix.
+
+**Asks:** None.
+
 ## 2026-08-10T07:00Z — fix(campaign-os): Agents page shows real last-run ages, not "never"
 
 **Done:** Agents & health page now renders actual last-run ages for every agent (e.g. "5 runs total · last 110d ago") instead of "last never" on every row. Pre-pick walkthrough on the live URL caught 23/23 agent rows showing "1 run total · last never" / "2 runs total · last never" / "5 runs total · last never" — even though the green PASS pill made the page look healthy. The agent roster was unscannable.
