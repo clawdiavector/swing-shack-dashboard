@@ -1205,3 +1205,47 @@ All replacements use middots (`·`), colons, or plain text — per the standing 
 **Next pick:** Two productive lanes. (1) The 5 surviving em-dashes in the Library + Insights v2 help/explainer blocks — a focused sweep of those `data-help` / `<b>Knowledge</b>` paragraphs. (2) The Meme Lord "★ Top" badge for the 3 most-reused memes across the last 30 days — flagged 3 ticks ago, still unbuilt, and now the lane with the strongest signal/value tradeoff (the meme library has no engagement data at all, so this is the only badge lane worth building).
 
 **Asks:** None.
+
+
+## 2026-08-11T05:13Z — fix(copy): remove 3 user-visible em-dashes from Insights tab main cards
+
+**Done:** Picked up the deferred "em-dash in published copy" sweep on the Insights tab. The b992ca4 tick fixed headings + dropdowns; the 2026-08-11 morning tick fixed the Socials + Performance connect explainers. This tick closes the next lane: 3 em-dashes that render on every Insights page-load (not just help-popups). All replaced with colons (same separator pattern as b992ca4).
+
+**Fix (campaign-os/campaign-os.html, +3/-3):**
+- L5041: `<b>Google Ads</b> — ${...}` → `<b>Google Ads</b>: ${...}`
+- L5042: `<b>Meta Ads</b> — ${...}` → `<b>Meta Ads</b>: ${...}`
+- L5065: `Your homepage gets the most traffic — N sessions` → `Your homepage gets the most traffic: N sessions`
+
+**New regression test (campaign-os/tests/test_v2026_08_11_no_emdashes_insights_cards.py, 5 tests):**
+- test_01_no_emdash_adblock_google_ads_line: Google Ads separator is a colon
+- test_02_no_emdash_adblock_meta_ads_line: Meta Ads separator is a colon
+- test_03_no_emdash_topga4take_homepage_line: topGA4Take template literal colon-form
+- test_04_key_substrings_preserved: Google Ads / Meta Ads / homepage strings intact
+- test_05_replaced_text_exact: post-fix exact text matches canonical colon form
+
+**Verified (Playwright LIVE on the PRIOR build, pre-fix):**
+- Walker hit the LIVE URL, dispatched 0 pageerrors, 0 console errors.
+- #sec-insights rendered DOM had em=3, en=0 (the 3 sites above, no others).
+- The 3 em-lines: "Your homepage gets the most traffic — 459 sessions..." (topGA4Take), "Google Ads — Google Ads data not present..." (adBlock), "Meta Ads — Meta Ads data not present..." (adBlock).
+
+**Verified (Playwright LIVE on the POST-DEPLOY build):**
+- #sec-insights rendered DOM: em=0, en=0 — Insights tab is em-dash-free.
+- Both replacements confirmed live: "Google Ads: Google Ads data not present" and "Your homepage gets the most traffic:" present in rendered DOM.
+- 0 PAGEERROR, 0 console errors during walkthrough.
+- `/api/health` 200, deployed commit = `32f83fa`.
+
+**Test suite (all green):** 99/99 v2026_08_1* tests pass (94 prior + 5 new). The prior em-dash test suite (`test_v2026_08_11_no_emdashes_connect_explainer.py`, 11 tests) still passes — no regression.
+
+**Files (2, +155/-3):**
+- `campaign-os/campaign-os.html` (3 em-dash → colon replacements)
+- `campaign-os/tests/test_v2026_08_11_no_emdashes_insights_cards.py` (NEW, 5 tests)
+
+**Commit:** `32f83fa` on `feat/asset-state-engine`, pushed. Railway auto-deploy in ~60s.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (verified via `git diff`), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Learned:** The visible-vs-hidden distinction matters when prioritising em-dash sweeps. The 3 em-dashes I fixed are all on the **main card body** of #sec-insights (rendered every page-load); the ~70 em-dashes still in `data-help="..."` attributes are inside **help-popups** that only render on hover/click — the previous tick explicitly left those for "a separate cleanup pass" because they're a different shape of fix (many lines, low individual visibility). Keeping the ticks narrow is paying off — the b992ca4 sweep, the 2026-08-11 morning sweep, and now this one each closed a tier of visibility. The next natural tier is help-popup `<span class="hc-term">X</span> — Y` explainer text (which appears on every FAQ-style help dialog), but that's the "many lines" tier and worth its own dedicated tick.
+
+**Next pick:** The help-popup em-dash sweep (the third tier of visibility after headings/dropdowns and main cards). The em-dash count in `data-help="..."` attribute bodies and `<span class="hc-term">X</span> — Y` explainer paragraphs is large (~70 lines) so it's worth a focused 5-line sweep with a regex-based "all `data-help="..."` attrs must contain no em-dash" assertion in the regression suite. Or: the Meme Lord "★ Top" badge for the 3 most-reused memes — still the highest signal/value tradeoff in the queue since the meme library has no engagement data at all.
+
+**Asks:** None.
