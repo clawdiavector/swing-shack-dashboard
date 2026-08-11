@@ -9766,9 +9766,33 @@ async function renderPostiz(){
   if(!S.postiz) S.postiz = await API.get('/api/intel/postiz');
   const p = S.postiz;
   $('#postiz-summary').textContent = p.summary;
-  $('#postiz-queue').innerHTML = safeList(p.queue, 20).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc((it.caption||it.name||'').slice(0,80))}</div><div class="li-meta">${esc(it.platform||'')} · ${esc(it.publishStatus||it.status||'')} · ${esc((it.publishDate||'').slice(0,16))}</div></div></li>`).join('') || '<div class="empty">Queue empty</div>';
+  // Queue rows: the live data shape (data/publish-queue.json) carries the
+  // caption text under `caption_preview` (NOT `caption` or `name`) and the
+  // status under `status` (NOT `publishStatus`); the schedule timestamp is
+  // `scheduled_date` (NOT `publishDate`). Previously the renderer read
+  // `caption || name`, so every one of the 20 visible queue rows rendered
+  // as a blank title + just "instagram · queued · ". Mirrors the publish
+  // page's pickTitle() chain so the two surfaces read the same field names.
+  $('#postiz-queue').innerHTML = safeList(p.queue, 20).map(it => {
+    const rawTitle = it.caption_preview || it.caption || it.name || it.linked_hook_id || '(no caption)';
+    const title = String(rawTitle).replace(/\s+/g, ' ').trim().slice(0, 90);
+    const status = it.publishStatus || it.status || '';
+    const date = it.scheduled_date || it.publishDate || '';
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div><div class="li-meta">${esc(it.platform||'')} · ${esc(status)}${date ? ` · <span class="muted">${esc(date.slice(0,16))}</span>` : ''}</div></div></li>`;
+  }).join('') || '<div class="empty">Queue empty</div>';
+  // Refs rows: publishing-references.json carries one canonical row per
+  // post under `publishing_refs.references[]` with the upstream postiz id
+  // under `postizPostId` (NOT `postizId`) and the lifecycle status under
+  // `currentStatus` (NOT `publishStatus`). Previously the renderer read
+  // the legacy key names, so the single canonical row rendered as a
+  // dash title with a trailing-empty meta line, masking the real status.
   const refs = p.publishing_refs?.references || p.publishing_refs?.items || [];
-  $('#postiz-refs').innerHTML = safeList(refs, 20).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.postizId||it.id||'—')}</div><div class="li-meta">${esc(it.campaignId||'')} · ${esc(it.assetId||'')} · ${esc(it.publishStatus||'')}</div></div></li>`).join('') || '<div class="empty">No canonical references yet</div>';
+  $('#postiz-refs').innerHTML = safeList(refs, 20).map(it => {
+    const refId = it.postizPostId || it.postizId || it.id || it.publishingId || '—';
+    const status = it.currentStatus || it.publishStatus || it.status || '';
+    const platform = it.integrationProvider || it.channel || '';
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(refId)}</div><div class="li-meta">${esc(platform ? platform + ' · ' : '')}${esc(it.campaignId||'')} · ${esc(it.assetId||'')}${status ? ` · ${esc(status)}` : ''}</div></div></li>`;
+  }).join('') || '<div class="empty">No canonical references yet</div>';
 }
 
 // ─── CAMPAIGNS ──────────────────────────────────────────────────
