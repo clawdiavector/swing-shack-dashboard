@@ -2233,6 +2233,14 @@ def image_generate():
         )
 
         import base64 as _b64
+        # Derive a browser-fetchable URL from saved_path. The frontend uses this
+        # for <img src=...>; saved_path alone is an absolute filesystem path
+        # which the browser cannot resolve.
+        preview_url = None
+        if result.saved_path:
+            from pathlib import Path as _P
+            sp = _P(result.saved_path)
+            preview_url = f"/brand-images/{brand_id}/{sp.name}" if brand_id else None
         return jsonify({
             "ok": True,
             "bytes_b64": _b64.b64encode(result.bytes).decode("ascii"),
@@ -2243,6 +2251,7 @@ def image_generate():
             "prompt_used": result.prompt_used,
             "revised_prompt": result.revised_prompt,
             "saved_path": result.saved_path,
+            "preview_url": preview_url,
             "saved_sidecar_path": result.saved_sidecar_path,
             "warning": result.warning,
             "usage": result.usage,
@@ -2495,6 +2504,11 @@ def image_from_asset(asset_id):
             except Exception as e:
                 _app_log.warning("could not back-link asset_id to sidecar: %s", e)
 
+        # Derive a browser-fetchable URL from the saved_path (same trick as /api/image/generate).
+        preview_url = None
+        if result.saved_path:
+            from pathlib import Path as _P
+            preview_url = f"/brand-images/{brand_id}/{_P(result.saved_path).name}"
         return jsonify({
             "ok": True,
             "asset_id": asset_id,
@@ -2507,6 +2521,7 @@ def image_from_asset(asset_id):
             "cost_estimate_usd": result.cost_estimate_usd,
             "prompt_used": result.prompt_used,
             "saved_path": result.saved_path,
+            "preview_url": preview_url,
             "warning": result.warning,
         })
     except ImageGenBadRequest as e:

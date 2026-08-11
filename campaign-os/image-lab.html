@@ -1046,7 +1046,10 @@ $('generate-btn').addEventListener('click', async () => {
 
 function renderPreview(r) {
   const area = $('preview-area');
-  const url = r.saved_path || r.preview_url;
+  // Prefer the public URL (relative path that the browser can fetch); fall back
+  // to a data: URL the server returned inline; finally to the absolute disk
+  // path (which is useless in <img src> but better than nothing for the onerror fallback).
+  const url = r.preview_url || (r.saved_path && r.saved_path.startsWith('/') ? r.saved_path : (r.dataUrl || '')) || r.saved_path || '';
   if (!url) {
     area.innerHTML = '<div class="empty-state">No preview available</div>';
     return;

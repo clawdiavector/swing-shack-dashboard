@@ -274,7 +274,7 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: end;">
         <div style="flex: 1; min-width: 200px;">
           <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;" data-help="Describe the image you want rendered. The brand recipe is auto-prepended so the output stays on palette. Keep prompts concrete: subject + setting + style words (e.g. 'Mizuno JPX 921 forged iron, side-lit on a dark background, premium product photography')." data-help-title="Prompt">Prompt</label>
-          <input type="text" id="gen-prompt" placeholder="e.g. premium putter on the green at sunset" style="width: 100%; padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+          <input type="text" id="gen-prompt-main" placeholder="e.g. premium putter on the green at sunset" style="width: 100%; padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
         </div>
         <div>
           <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px;" data-help="Render quality tier. Low is fastest (cheap, draft quality). Medium is the default for blog/social. High is for hero shots and campaign artwork (slower, more tokens). Auto lets gpt-image-1 pick based on your prompt." data-help-title="Quality">Quality</label>
@@ -297,6 +297,14 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
       </div>
       <div id="gen-status" style="margin-top: 8px; font-size: 12px; color: var(--muted);"></div>
       <div id="gen-output" style="margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;"></div>
+    </div>
+
+    <!-- RECENT RENDERS — persistent gallery of every image this brand has produced.
+         source of truth: /api/image/outputs/<brand> (data/brand-directory/<brand>/images/gen-*.png).
+         Refreshes automatically after every successful generation. -->
+    <div class="card" style="margin-bottom: 16px;">
+      <h3 data-help="Persistent gallery of every image the generator has produced for this brand. Source of truth is /api/image/outputs/<brand> on the server (files at data/brand-directory/<brand>/images/gen-*.png). Click any thumbnail to open it full-size in a new tab. Newest first. Use this surface to find a past render you liked, or to confirm a generation actually landed." data-help-title="Recent renders" style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--accent);">🖼️ Recent renders <span id="recent-count" style="font-size:11px;color:var(--muted);margin-left:.4rem">—</span> <button id="recent-refresh" class="btn-clear" style="margin-left:.5rem;background:transparent;color:var(--accent);border:1px solid var(--line);padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;">↻ Refresh</button></h3>
+      <div id="recent-outputs" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; min-height: 50px;"><div style="color: var(--muted); font-size: 12px; padding: 8px;">Loading…</div></div>
     </div>
 
     <div class="grid" id="grid"></div>
@@ -925,11 +933,23 @@ async function openModal(filename, brand) {
     ? JSON.stringify(recipe, null, 2)
     : '(No visual recipe extracted)';
 
-  // Generate button
+  // Generate button — runs the recipe through the in-page generator, not a
+  // detour to meme-lab. Closes the modal, fills the main prompt, scrolls
+  // into view, and fires the render. The recipe is folded into the prompt
+  // so the new image inherits the same look (palette, mood, composition).
   document.getElementById('modal-generate').onclick = () => {
     const recipeStr = JSON.stringify(recipe || {});
-    const prompt = `Generate a Swing Shack image using this visual recipe: ${recipeStr}. Style: brand-aligned to ${detail.score} score.`;
-    window.location.href = `/meme-lab?recipe=${encodeURIComponent(prompt)}`;
+    const basePrompt = (detail.filename || 'this image').replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+    const prompt = `Generate a ${STATE.brand} image inspired by "${basePrompt}" matching this visual recipe (palette, mood, composition): ${recipeStr}. Brand-aligned to ${detail.score} score.`;
+    const promptEl = document.getElementById('gen-prompt-main');
+    if (promptEl) {
+      promptEl.value = prompt;
+      promptEl.scrollIntoView({behavior: 'smooth', block: 'center'});
+      promptEl.focus();
+    }
+    document.getElementById('modal-bg').classList.remove('open');
+    // Fire the render immediately so the user only clicks once.
+    runGenerate();
   };
 }
 
@@ -988,9 +1008,14 @@ document.getElementById('sort').addEventListener('change', (e) => {
 
 // ── Generate image (live gpt-image-1) ──────────────────────────
 async function runGenerate() {
-  const promptInput = document.getElementById('gen-prompt');
-  const prompt = (promptInput?.value || '').trim();
+  // Read from BOTH prompt slots (sidebar + main) so duplicate-id copy/paste
+  // behaviour stays sane — main wins because that's where users typically type.
+  const promptMain = document.getElementById('gen-prompt-main');
+  const promptSidebar = document.getElementById('gen-prompt');
+  const prompt = ((promptMain?.value || promptSidebar?.value) || '').trim();
   if (!prompt) { document.getElementById('gen-status').textContent = 'Type a prompt first.'; return; }
+  // Mirror sidebar value into the main prompt so the user sees what was sent.
+  if (promptMain && promptSidebar && promptSidebar.value) promptMain.value = promptSidebar.value;
   const quality = document.getElementById('gen-quality').value;
   const size = document.getElementById('gen-size').value;
   const status = document.getElementById('gen-status');
@@ -1024,12 +1049,15 @@ async function runGenerate() {
     }
     out.innerHTML = html;
     status.textContent = `✅ ${imgs.length} generated · ${imgs.filter(i=>i.saved).length} saved to disk`;
+    // Refresh the persistent Recent Renders gallery so the new image shows up.
+    loadRecentOutputs();
   } catch(e) {
     status.textContent = '❌ Network error';
   }
   btn.disabled = false;
 }
 document.getElementById('gen-submit').addEventListener('click', runGenerate);
+document.getElementById('gen-prompt-main')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') runGenerate(); });
 document.getElementById('gen-prompt')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') runGenerate(); });
 
 // ── Restore previously generated (this browser, this tab) ──────────
@@ -1099,6 +1127,7 @@ async function loadBrands() {
       syncBrandToUrl();
       await loadStats();
       runGrid();
+      loadRecentOutputs();
     });
   } catch (e) {
     console.warn('brands load failed', e);
@@ -1240,6 +1269,45 @@ async function runGrid() {
 }
 
 // ── Init ────────────────────────────────────────────────────────────────
+// ── Recent renders gallery (persistent across reloads) ──────────────
+// Source of truth: /api/image/outputs/<brand> (data/brand-directory/<brand>/images/gen-*.png)
+// Loaded on init, refreshed after every successful generation.
+const _esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function loadRecentOutputs() {
+  const wrap = document.getElementById('recent-outputs');
+  const count = document.getElementById('recent-count');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="color: var(--muted); font-size: 12px; padding: 8px;">Loading…</div>';
+  try {
+    const r = await fetch('/api/image/outputs/' + encodeURIComponent(STATE.brand) + '?limit=24').then(r => r.json());
+    const data = (r && r.data) || [];
+    if (!data.length) {
+      wrap.innerHTML = '<div style="color: var(--muted); font-size: 12px; padding: 8px;">No renders yet for this brand. Type a prompt above and click Generate.</div>';
+      count.textContent = '0';
+      return;
+    }
+    count.textContent = `${r.count || data.length} total · most recent ${data.length}`;
+    wrap.innerHTML = data.map(im => {
+      const prompt = (im.prompt || im.enhanced_prompt || '').slice(0, 90);
+      const ts = im.ts_iso ? new Date(im.ts_iso).toLocaleString() : '';
+      const model = im.model ? im.model.split('/').pop() : '';
+      return `
+        <a href="${im.url}" target="_blank" rel="noopener" style="display:block;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;overflow:hidden;color:inherit;text-decoration:none;transition:transform .12s" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='none'">
+          <div style="aspect-ratio:1/1;background:var(--chip);overflow:hidden"><img src="${im.url}" loading="lazy" alt="${_esc(prompt)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.opacity=0.2"/></div>
+          <div style="padding:6px 8px;font-size:10px;line-height:1.3">
+            <div style="color:var(--text);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${_esc(prompt)}</div>
+            <div style="color:var(--muted);margin-top:3px;display:flex;justify-content:space-between;gap:4px">
+              <span>${_esc(model)}</span><span>${_esc(ts)}</span>
+            </div>
+          </div>
+        </a>`;
+    }).join('');
+  } catch (e) {
+    wrap.innerHTML = '<div style="color: var(--err); font-size: 12px; padding: 8px;">Could not load recent renders: ' + _esc(String(e)) + '</div>';
+  }
+}
+document.getElementById('recent-refresh')?.addEventListener('click', loadRecentOutputs);
+
 (async function init() {
   attachScoreChips();
   attachLuminanceChips();
@@ -1248,7 +1316,7 @@ async function runGrid() {
   // generate labels, modal h4s) before the catalog loads so they are usable immediately.
   HELP.autoAttach();
   await loadBrands();
-  await Promise.all([loadEngagement(), loadStats(), runGrid()]);
+  await Promise.all([loadEngagement(), loadStats(), runGrid(), loadRecentOutputs()]);
   // Re-attach after any dynamic render (discover panel populates product chips,
   // discover color/brand/mood chips, brand recipe card, etc.).
   HELP.autoAttach();
