@@ -7063,13 +7063,10 @@ async function renderReview(){
     const t = new Date(x.updatedAt).getTime();
     return !isNaN(t) && (_now - t) > 7 * 86400000;
   };
-  const _stalePending = (r.pending || []).filter(_isStale).length;
-  if(_stalePending > 0 && $('#review-summary')){
-    $('#review-summary').textContent = `${r.summary} · ${_stalePending} stale (>7d)`;
-  }
   // Stale badge on the Stale filter pill — drives the count without
   // duplicating the summary line. Hides the badge at 0 so a clean inbox
-  // doesn't shout.
+  // doesn't shout. Counts across ALL three buckets (pending/approved/
+  // rejected) so the chip matches what the filter actually shows.
   const _staleAll = (r.pending || []).filter(_isStale).length
     + (r.approved || []).filter(_isStale).length
     + (r.rejected || []).filter(_isStale).length;
@@ -7082,6 +7079,12 @@ async function renderReview(){
   // visual urgency so it doesn't blend in with the other ghost pills.
   const _staleBtn = document.querySelector('[data-rfilter="stale"]');
   if (_staleBtn) _staleBtn.classList.toggle('has-stale', _staleAll > 0);
+  // Update the header subtitle so the plain-text "stale (>7d)" count
+  // matches the chip's scope (cross-bucket). Avoids two different numbers
+  // for the same word on the same screen.
+  if(_staleAll > 0 && $('#review-summary')){
+    $('#review-summary').textContent = `${r.summary} · ${_staleAll} stale (>7d)`;
+  }
   const renderRow = x => {
     const safeId = esc(x.assetId || '');
     const safeCid = esc(x.campaignId || '');
