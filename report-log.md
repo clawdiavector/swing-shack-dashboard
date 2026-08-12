@@ -1372,3 +1372,38 @@ All replacements use middots (`·`), colons, or plain text — per the standing 
 **Next pick:** The data-help hover-tooltip em-dash sweep (~70 lines, single regex assertion: no em-dash inside data-help="..." attr values). Or: the Playwright sweep walker bug — scripts/walk_full_sweep_live.py was broken because nav groups are collapsed by default, causing NAV_ERR on 19/28 sections and hiding real signals.
 
 **Asks:** None.
+
+## 2026-08-12T05:50Z — fix(em-dash-sweep): drop 2 chrome em-dashes from Insights v2 tooltip + perf empty-state fallback
+
+**Done:** Two chrome-class em-dash leaks survived the 2026-08-12T04:24Z sweep because they live INSIDE JS template literals (not the static `<h2 data-help=...>` attrs the prior tick audited). Both are visible to the user when their respective surfaces render empty data:
+1. `renderInsightsV2()` H2 data-help on the Insights tab: `... Built for non-marketers — if you can't read a card in 5 seconds ...` → em-dash → colon. Surfaces when the user hovers the "?" icon on the Insights H2.
+2. `renderPerformance()` insights-strip fallback: `No insights yet — connect analytics to see what is working` → em-dash → comma. Surfaces on the Performance page when `/api/intel/explain` returns zero insights.
+
+**Root cause:** pitfall 119 — chrome em-dashes inside JS template literals that are mounted into the DOM at runtime are invisible to the static `<h2 data-help=...>` probe the prior sweep used. They only show up via direct file scan of the template literal contents.
+
+**Fix (commit `3de3cf2`, pushed, Railway auto-deployed, LIVE post-deploy verified):**
+- `campaign-os/campaign-os.html` (2 lines):
+  - Line 4821 (`renderInsightsV2` H2): em-dash → colon
+  - Line 8096 (`renderPerformance` insights-strip fallback): em-dash → comma
+- `campaign-os/tests/test_v2026_08_12_no_emdashes_insights_v2_chrome.py` (NEW, 9 tests):
+  - 2 post-fix strings present + 2 pre-fix strings absent (per-fix)
+  - defensive em-dash-free checks on each post-fix string
+  - 1 pinpoint guard (Insights tooltip must be wired to `data-help-title="Insights"`)
+  - 3 generic chrome guards (every `<h2/h3/h4 data-help=...>` in static HTML is em-dash-free) so any FUTURE chrome leak in static data-help attrs is caught at the same time
+
+**Verified (LIVE post-deploy):**
+- Served HTML on `https://swing-shack-dashboard-production.up.railway.app/`:
+  - `insights_pre=False` (em-dash form gone)
+  - `insights_post=True` (colon form present)
+  - `perf_pre=False` (em-dash form gone)
+  - `perf_post=True` (comma form present)
+- All 9 new tests pass + 72 prior em-dash tests still pass (combined run: `Ran 72 tests in 0.020s · OK`)
+- Walker sweep on LIVE post-deploy: 0 pageerrors, 0 console-errors, 0 net failures
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via diff).
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260812T055034Z_insights_v2_live.png` — Insights v2 default
+- `/tmp/co-nightshift/walkthrough_20260812T055034Z_insights_v2_tooltip_live.png` — H2 tooltip
+
+**Learned:** The static `<h2 data-help=...>` probe the 2026-08-12T04:24Z tick used is a chrome-vs-content classifier (pitfall 119), but it misses the entire EXPLAINERS map (207 em-dashes across 28 sections) and the small handful of inline `data-help=` strings inside JS template literals. The next sweep tick should target the EXPLAINERS map explicitly — a `re.sub` over the JS template-literal contents, scoped to `EXPLAINERS = {...}` block, would close the largest remaining lane in one pass.
