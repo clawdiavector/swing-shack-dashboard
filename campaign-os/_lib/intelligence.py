@@ -833,7 +833,12 @@ def performance_view() -> Dict[str, Any]:
         })
     aggregated_pages.sort(key=lambda x: x["sessions"], reverse=True)
     if isinstance(seo_rank, dict):
-        rising = seo_rank.get("rising_keywords", [])
+        # Accept both shapes — old `rising_keywords` (snake_case), new `rising` —
+        # to keep this view populated regardless of which field the live
+        # seo-rankings.json uses. Mirrors the fallback pattern at line ~2853.
+        rising = (seo_rank.get("rising_keywords")
+                  if isinstance(seo_rank.get("rising_keywords"), list)
+                  else seo_rank.get("rising") or [])
         if isinstance(rising, list) and rising:
             insights.append({"label": "Rising keywords", "value": ", ".join(str(k) for k in rising[:3]), "kind": "trend-up"})
 
@@ -852,8 +857,17 @@ def performance_view() -> Dict[str, Any]:
         "seo": {
             "audit_summary": (seo.get("summary", {}) if isinstance(seo, dict) else {}),
             "rankings_summary": (seo_rank.get("summary", {}) if isinstance(seo_rank, dict) else {}),
-            "rising": (seo_rank.get("rising_keywords", []) if isinstance(seo_rank, dict) else []),
-            "falling": (seo_rank.get("falling_keywords", []) if isinstance(seo_rank, dict) else []),
+            # Accept both shapes — old `rising_keywords` / `falling_keywords`
+            # (snake_case), new `rising` / `falling`. Mirrors the fallback
+            # pattern at line ~2853 and the patch above. seo-rankings.json
+            # currently ships `rising` / `falling` (5 rising, 2 falling in the
+            # live dataset) so this view was silently returning 0/0 before.
+            "rising": (seo_rank.get("rising_keywords")
+                       if isinstance(seo_rank.get("rising_keywords"), list)
+                       else seo_rank.get("rising") or []),
+            "falling": (seo_rank.get("falling_keywords")
+                        if isinstance(seo_rank.get("falling_keywords"), list)
+                        else seo_rank.get("falling") or []),
             "keywords": (seo_rank.get("keywords", []) if isinstance(seo_rank, dict) else []),
             "quick_wins": (seo_rank.get("quick_wins", []) if isinstance(seo_rank, dict) else []),
         },
@@ -1938,7 +1952,14 @@ def explain_performance() -> Dict[str, Any]:
             })
 
     if isinstance(seo, dict):
-        rising = seo.get("rising_keywords", []) or []
+        # Accept both shapes — old `rising_keywords` / `falling_keywords`
+        # (snake_case), new `rising` / `falling`. Live seo-rankings.json
+        # currently uses `rising` / `falling` so the explain view was
+        # silently producing no SEO claims before. Same fallback pattern
+        # used at line ~2853 and in performance_view().
+        rising = (seo.get("rising_keywords")
+                  if isinstance(seo.get("rising_keywords"), list)
+                  else seo.get("rising") or [])
         if rising:
             insights.append({
                 "claim": f"Your search visibility is climbing on: {', '.join(str(k) for k in rising[:3])}. Add supporting content to lock the gains.",
@@ -1947,7 +1968,9 @@ def explain_performance() -> Dict[str, Any]:
                 "next_step": f"Generate 3 supporting posts around '{rising[0]}' this week to ride the climb.",
                 "action": "Generate SEO content",
             })
-        falling = seo.get("falling_keywords", []) or []
+        falling = (seo.get("falling_keywords")
+                   if isinstance(seo.get("falling_keywords"), list)
+                   else seo.get("falling") or [])
         if falling:
             insights.append({
                 "claim": f"Watch out: {', '.join(str(k) for k in falling[:3])} lost positions this week.",
@@ -2315,8 +2338,16 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
     keywords = seo.get("keywords", []) if isinstance(seo, dict) else []
     if not isinstance(keywords, list):
         keywords = []
-    rising = seo.get("rising_keywords", []) if isinstance(seo, dict) else []
-    falling = seo.get("falling_keywords", []) if isinstance(seo, dict) else []
+    # Accept both shapes — old `rising_keywords` / `falling_keywords`
+    # (snake_case), new `rising` / `falling`. Same fallback pattern as
+    # performance_view() and explain_performance() so weekly-report
+    # claims and movers stay in sync with the live dataset.
+    rising = (seo.get("rising_keywords")
+              if isinstance(seo.get("rising_keywords"), list)
+              else seo.get("rising") or [])
+    falling = (seo.get("falling_keywords")
+               if isinstance(seo.get("falling_keywords"), list)
+               else seo.get("falling") or [])
     if not isinstance(rising, list):
         rising = []
     if not isinstance(falling, list):
