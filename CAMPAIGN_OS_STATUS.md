@@ -494,3 +494,31 @@ Wired 5 modal-context h4 headers with data-help + data-help-title + cursor:help 
 **Learned:** When a render path uses `targetSec.innerHTML = '' + cloneFromSource()`, mounting help widgets on the source section *appears* to work on the target via the clone — but it locks the target to the source's help copy, which is wrong when the target has its own canonical explainer. The fix isn't to skip the source mount (the clone still needs SOMETHING); it's to mount the canonical target explainer after the clone completes (`.then()` of `loadSection`). `HELP.section`'s idempotency (remove-then-insert at the same selector) is what makes the post-loadSection overwrite safe — without it we'd get duplicate panels on every nav click.
 
 **Asks:** None.
+
+## 2026-08-13T03:50Z — feat(review): one-click 'Stale only' filter chip + scope alignment
+
+**Done:** Closed a long-standing UX gap on the Review queue. The 41 drafts looked identical at a glance, but 7 of them were >7d old (4 were 71d — the Takomo 101T package from 2026-06-02). The header subtitle already mentioned the count, but as plain text with no way to act on it. Added a fifth filter pill `🕰️ Stale N` next to All/Pending/Approved/Rejected, with the count surfaced in yellow to match the existing age-pill colour language. Clicking it shows every card but only the stale rows inside; cards with no stale rows collapse so empty-state placeholders don't compete with the filter. Every review row now carries `data-stale="1|0"` so the filter is purely client-side with no API change. The handler also marks the active filter button as `primary` so the user can see which view they're on. Second pass aligned the header subtitle's "stale (>7d)" count with the chip's scope (cross-bucket) so the two numbers don't drift apart.
+
+**Commits:** `09161e5` + `f60c74d` on `feat/asset-state-engine`, +88/-14 across 1 file (campaign-os/campaign-os.html), pushed. Railway auto-deployed in ~15s each.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-click probe: chip exists, text = `🕰️ Stale 7`, `has-stale` class applied (computed bg `rgba(255,196,0,0.08)`, text `rgb(250,204,21)`).
+- Post-click: 3 cards visible, 7 stale rows shown (all Takomo 101T drafts from 71d and 58d ago + 1 stale approved `Feed Post — The Fitting Solution`), 0 active filter drift, activeFilter = `stale`.
+- Click "All" reset: 78 rows restored (no orphan hidden rows from the stale filter).
+- Summary `41 pending review · 1 approved · 0 rejected · 7 stale (>7d)` — agrees with chip count.
+- 0 PAGEERROR, 0 non-503 console errors.
+
+**Screenshot (LIVE):**
+- `/tmp/co-nightshift/walkthrough_review_stale_full_20260812T225613Z.png` — Stale filter active, yellow chip with `7` badge, 7 rotting Takomo drafts visible, Rejected card collapsed because empty.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (the chip text uses dots + slash, all safe), 0 schema changes, 0 API changes.
+
+**Next pick:**
+1. **Insights-lens context on the cloned Performance widgets** (still the highest-quality remaining UX lane from the 2026-08-06T03:27Z report — never picked up).
+2. **`mountSec` ternary lives twice in `go()`** — consolidate to a `mountSecFor(realSec)` helper before further edits.
+3. The `Learn` tab still shows `No patterns yet` everywhere even though we now have published data — the condition for filling it might have drifted.
+4. Em-dash sweep on the campaign-os.html surface (the data: URI / static-page files are already clean).
+
+**Learned:** Two `data-` attributes (`data-stale` on rows, `data-rfilter` on the chips) is the cleanest way to add a new filter without growing the existing card-indexing scheme. Using `display: ''` to restore rows works because the previous "Stale" click set them to `display: none`, so the next filter has to undo both the card-level hide and the row-level hide. The pending-vs-cross-bucket scope split between the summary and the chip was a real footgun — when two UI elements both say "stale" they should agree.
+
+**Asks:** None.
