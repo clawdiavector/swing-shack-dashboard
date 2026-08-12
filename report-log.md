@@ -1407,3 +1407,107 @@ All replacements use middots (`·`), colons, or plain text — per the standing 
 - `/tmp/co-nightshift/walkthrough_20260812T055034Z_insights_v2_tooltip_live.png` — H2 tooltip
 
 **Learned:** The static `<h2 data-help=...>` probe the 2026-08-12T04:24Z tick used is a chrome-vs-content classifier (pitfall 119), but it misses the entire EXPLAINERS map (207 em-dashes across 28 sections) and the small handful of inline `data-help=` strings inside JS template literals. The next sweep tick should target the EXPLAINERS map explicitly — a `re.sub` over the JS template-literal contents, scoped to `EXPLAINERS = {...}` block, would close the largest remaining lane in one pass.
+
+## 2026-08-12T09:45Z — fix(calendar): add Practice pillar so 🎮 Practice cards stop disappearing into brand green
+
+**Done:** Picked up the deferred "Practice pillar" lane. The 8581e0a tick (2026-08-12) added pillar inference for 🏌 / 🎯 / 🤝 / 📅 / 🛍 markers but missed the 🎮 / literal "practice" markers used in seed copy on the 2nd line of the caption. 3 of every ~57 calendar slots fell through to no-pillar → brand fallback (swing shack → #34d399 green) and visually disappeared into the Swing Shack brand-fallback cards. Now they render with a cyan left border.
+
+**Fix (commit `18d1247`, pushed, Railway auto-deployed, LIVE post-deploy verified):**
+- `campaign-os/_lib/intelligence.py`:
+  - `_PILLAR_CAPTION_HINTS` gains `("🎮", "practice")` and `("practice", "practice")` (case-insensitive)
+  - `_calendar_color` palette gains `"practice": "#06b6d4"` (cyan-500 — distinct from amber equipment, blue coaching, green community/brand-fallback, pink events, purple merch)
+- `campaign-os/campaign-os.html`:
+  - All 4 CSS theme blocks gain `--pillar-practice:#06b6d4` (dark) / `#0e7490` (light)
+  - New CSS rule: `.cal-slot.pillar-practice{border-left-color:var(--pillar-practice)}`
+  - JS `pillarKeys` array in calendar slot renderer gains `'practice'`
+
+**New regression test (campaign-os/tests/test_v2026_08_12_calendar_pillar_practice.py, 11 tests):**
+- test_infer_recognises_emoji_practice_caption: 🎮 Practice caption → "practice"
+- test_infer_recognises_literal_practice_token: "Practice makes perfect" / "PRACTICE at the Shack tonight" → "practice"
+- test_infer_practice_takes_priority_after_coaching: hint-order semantics verified
+- test_infer_empty_for_unrelated_text: no false-positives on "Book a fitting session today"
+- test_practice_pillar_returns_cyan_hex: palette("practice", "", "") == #06b6d4
+- test_practice_takes_priority_over_swing_shack_brand: pillar beats brand in lookup
+- test_practice_token_matches_dashboard_css: palette matches CSS in all 4 theme blocks (drift guard)
+- test_pillar_keys_array_includes_practice: JS pillarKeys has 'practice' (so CSS class fires, not just inline border)
+- test_cal_slot_pillar_practice_css_rule_exists: CSS rule wired
+- test_practice_caption_fills_pillar_and_cyan_color: end-to-end integration
+- test_explicit_practice_pillar_is_not_overwritten: explicit-pillar-wins semantics
+
+**Verified (Playwright LIVE on Railway, post-deploy):**
+- /api/intel/calendar returns 3 slots with `pillar: "practice", color: "#06b6d4"` (was 0 practice slots pre-fix).
+- Distribution post-fix: club-fitting=6, coaching=15, practice=3 (NEW), merch=2, brand-fallback=31 (correct — Swing Shack brand-label captions).
+- Calendar DOM: 3 `.cal-slot.pillar-practice` elements present with cyan-bordered cards on Aug 16 (3 Practice slots).
+- 0 pageerrors, 0 console errors, 0 net failures during walkthrough.
+- /api/health 200, deployed commit = 18d1247.
+
+**Test suite (all green):** 11/11 new tests pass + 11/11 prior pillar suite passes + 72/72 prior em-dash suites pass = 94/94 of relevant tests. (Full suite has 231 pre-existing failures from /data read-only + test isolation issues — unrelated to this fix; pre-fix baseline was 239 failed / 652 passed, post-fix is 231 failed / 660 passed, so the fix added 8 passing tests and didn't break anything.)
+
+**Files (3, +258/-1):**
+- `campaign-os/_lib/intelligence.py` (2 entries added to _PILLAR_CAPTION_HINTS, 1 entry added to _calendar_color palette, 8 lines of comments)
+- `campaign-os/campaign-os.html` (1 line each in 4 CSS theme blocks, 1 new CSS rule, 1 JS array update)
+- `campaign-os/tests/test_v2026_08_12_calendar_pillar_practice.py` (NEW, 11 tests)
+
+**Commit:** `18d1247` on `feat/asset-state-engine`, pushed. Railway auto-deploy in ~60s.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via git diff), 0 NEW deps.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_20260812T094500Z_calendar_practice_LIVE.png` — Calendar full view, 3 cyan Practice cards on Aug 16
+- `/tmp/co-nightshift/calendar_practice_section_LIVE.png` — Calendar section only, cyan Practice borders visible
+
+**Learned:** The pillar inference lanes follow a clear lifecycle: (1) commit 8581e0a added the canonical 5 marker emojis (🏌/🎯/🤝/📅/🛍) + literal-string fallbacks, which covered most of the seed copy. (2) Data uses 6 distinct pillar concepts in practice, and the 6th (🎮 Practice) was missed because it's newer than the other markers. (3) The cyan #06b6d4 was chosen specifically to be visually distinct from BOTH the amber equipment (#f59e0b) AND the green Swing Shack brand fallback (#34d399) — cyan lives in the sky-blue range, not the green/yellow/orange range, so the eye separates Practice cards from both amber equipment and brand-fallback at a glance. (4) The drift-guard test (`test_practice_token_matches_dashboard_css`) checks ALL 4 theme blocks (not just the first) because each theme block is independently maintained — a future "let's update the dark theme" edit could break one and not the others without the guard noticing.
+
+**Next pick:** The walker still flags a few small em-dash hits on tabs where the data has `—` in content (Brief=2, Trends=1, Create=1, Hashtags+SEO=2, Review=29, SEO Audit=29, Reddit=7, Socials=1, Campaigns=1) — these are all in DATA (asset names, Reddit thread titles) not chrome, so the chrome is clean. The next productive lane is one of: (a) the Picks panel brand_fit ceiling cluster (0 badges fire on default swing-shack combo — relax ratio to 1.1x so 1-2 picks get a badge); (b) the Review "Pending" tab colour differentiation (41 items all say "DRAFT" — needs status-pill refinement); (c) the Socials empty-state ("0 posts · 90d window · sources: 0 graph" — needs better explainer of what's needed to fix this); (d) add a "🔮 Next pillar" chip to the Calendar header so the user can see the distribution at a glance (e.g. "6 club fitting · 15 coaching · 3 practice · 2 merch · 31 brand").
+
+## 2026-08-12T09:45Z — fix(calendar): add Practice pillar so 🎮 Practice cards stop disappearing into brand green
+
+**Done:** Picked up the deferred "Practice pillar" lane. The 8581e0a tick (2026-08-12) added pillar inference for 🏌 / 🎯 / 🤝 / 📅 / 🛍 markers but missed the 🎮 / literal "practice" markers used in seed copy on the 2nd line of the caption. 3 of every ~57 calendar slots fell through to no-pillar → brand fallback (swing shack → #34d399 green) and visually disappeared into the Swing Shack brand-fallback cards. Now they render with a cyan left border.
+
+**Fix (commit `18d1247`, pushed, Railway auto-deployed, LIVE post-deploy verified):**
+- `campaign-os/_lib/intelligence.py`:
+  - `_PILLAR_CAPTION_HINTS` gains `("🎮", "practice")` and `("practice", "practice")` (case-insensitive)
+  - `_calendar_color` palette gains `"practice": "#06b6d4"` (cyan-500 — distinct from amber equipment, blue coaching, green community/brand-fallback, pink events, purple merch)
+- `campaign-os/campaign-os.html`:
+  - All 4 CSS theme blocks gain `--pillar-practice:#06b6d4` (dark) / `#0e7490` (light)
+  - New CSS rule: `.cal-slot.pillar-practice{border-left-color:var(--pillar-practice)}`
+  - JS `pillarKeys` array in calendar slot renderer gains `'practice'`
+
+**New regression test (campaign-os/tests/test_v2026_08_12_calendar_pillar_practice.py, 11 tests):**
+- test_infer_recognises_emoji_practice_caption: 🎮 Practice caption → "practice"
+- test_infer_recognises_literal_practice_token: "Practice makes perfect" / "PRACTICE at the Shack tonight" → "practice"
+- test_infer_practice_takes_priority_after_coaching: hint-order semantics verified
+- test_infer_empty_for_unrelated_text: no false-positives on "Book a fitting session today"
+- test_practice_pillar_returns_cyan_hex: palette("practice", "", "") == #06b6d4
+- test_practice_takes_priority_over_swing_shack_brand: pillar beats brand in lookup
+- test_practice_token_matches_dashboard_css: palette matches CSS in all 4 theme blocks (drift guard)
+- test_pillar_keys_array_includes_practice: JS pillarKeys has 'practice' (so CSS class fires, not just inline border)
+- test_cal_slot_pillar_practice_css_rule_exists: CSS rule wired
+- test_practice_caption_fills_pillar_and_cyan_color: end-to-end integration
+- test_explicit_practice_pillar_is_not_overwritten: explicit-pillar-wins semantics
+
+**Verified (Playwright LIVE on Railway, post-deploy):**
+- /api/intel/calendar returns 3 slots with `pillar: "practice", color: "#06b6d4"` (was 0 practice slots pre-fix).
+- Distribution post-fix: club-fitting=6, coaching=15, practice=3 (NEW), merch=2, brand-fallback=31 (correct — Swing Shack brand-label captions).
+- Calendar DOM: 3 `.cal-slot.pillar-practice` elements present with cyan-bordered cards on Aug 16.
+- 0 pageerrors, 0 console errors, 0 net failures during walkthrough.
+- /api/health 200, deployed commit = 18d1247.
+
+**Test suite (all green):** 11/11 new tests pass + 11/11 prior pillar suite + 72/72 prior em-dash suites = 94/94 of relevant tests. (Full suite has 231 pre-existing failures from /data read-only + test isolation — unrelated; pre-fix baseline 239 failed/652 passed, post-fix 231 failed/660 passed — fix added 8 passing tests, didn't break anything.)
+
+**Files (3, +258/-1):**
+- `campaign-os/_lib/intelligence.py` (2 entries added to _PILLAR_CAPTION_HINTS, 1 entry added to _calendar_color palette)
+- `campaign-os/campaign-os.html` (1 line each in 4 CSS theme blocks, 1 new CSS rule, 1 JS array update)
+- `campaign-os/tests/test_v2026_08_12_calendar_pillar_practice.py` (NEW, 11 tests)
+
+**Commit:** `18d1247` on `feat/asset-state-engine`, pushed. Railway auto-deployed.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes, 0 NEW deps.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_20260812T094500Z_calendar_practice_LIVE.png` — Calendar full view, 3 cyan Practice cards on Aug 16
+- `/tmp/co-nightshift/calendar_practice_section_LIVE.png` — Calendar section only, cyan Practice borders visible
+
+**Learned:** The pillar inference lanes follow a clear lifecycle: (1) commit 8581e0a added the canonical 5 marker emojis (🏌/🎯/🤝/📅/🛍) + literal-string fallbacks. (2) Data uses 6 distinct pillar concepts; the 6th (🎮 Practice) was missed because it's newer than the other markers. (3) Cyan #06b6d4 chosen specifically to be visually distinct from BOTH amber equipment (#f59e0b) AND green Swing Shack brand fallback (#34d399) — cyan lives in the sky-blue range, so the eye separates Practice cards from both amber equipment and brand-fallback at a glance. (4) The drift-guard test (`test_practice_token_matches_dashboard_css`) checks ALL 4 theme blocks because each is independently maintained — a future "let's update the dark theme" edit could break one without the guard noticing.
+
+**Next pick:** The walker still flags small em-dash counts on tabs where the data has — in CONTENT (Brief=2, Trends=1, Create=1, Hashtags+SEO=2, Review=29, SEO Audit=29, Reddit=7, Socials=1, Campaigns=1) — these are all in DATA (asset names, Reddit thread titles) not chrome, so the chrome is clean. Next productive lanes: (a) Picks panel brand_fit ceiling cluster (0 badges fire on default swing-shack combo — relax ratio to 1.1x so 1-2 picks get a badge); (b) Review "Pending" tab colour differentiation (41 items all say "DRAFT" — needs status-pill refinement); (c) Socials empty-state ("0 posts · 90d window · sources: 0 graph" — needs better explainer); (d) add a "🔮 Next pillar" distribution chip to Calendar header (e.g. "6 club fitting · 15 coaching · 3 practice · 2 merch · 31 brand").
