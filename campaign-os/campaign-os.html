@@ -1821,14 +1821,14 @@ a:hover{text-decoration:underline}
     <section class="section" id="sec-seo-audit">
       <div class="section-h">
         <h2 data-help="Deep-dive SEO audit for the active brand site. Returns a full health-score breakdown (technical, on-page, off-page, content, GEO), a priority queue ranked by impact-per-effort, and a fix-it draft for every flagged item (the agent writes the meta description fix, the alt text fix, the schema block, etc. so you can paste straight into the CMS). Click any priority card to expand the proposed fix. Runs on demand, not on a schedule, so the data is fresh from the last crawl." data-help-title="SEO Audit · deep-dive + fix-draft">SEO Audit <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · deep-dive + fix-draft</span></h2>
-        <span class="sub" id="sa-summary">Loading…</span>
+        <span class="sub" id="sa-summary"><span class="skeleton" style="display:inline-block;height:10px;width:160px;vertical-align:middle"></span> Auditing site…</span>
       </div>
 
       <!-- Top row: score band + filter bar -->
       <div class="grid" style="margin-bottom:1rem">
         <div class="card col-4">
           <div class="card-h"><h3 data-help="Site-wide rollup of the audit, 0-100 mapped to four bands: healthy (80+), needs attention (60-79), poor (40-59), critical (below 40). One fix on a high-traffic page moves it more than five fixes on no-traffic pages. Treat the score as a trend, not a daily KPI; refresh the audit after applying changes to confirm the band shifted." data-help-title="Health score">🎯 Health score</h3></div>
-          <div id="sa-score"></div>
+          <div id="sa-score"><div class="brief-rec-skel"><div class="skeleton" style="height:36px;width:60px;margin-bottom:.5rem"></div><div class="skeleton" style="height:11px;width:80%;margin-bottom:.4rem"></div><div class="skeleton" style="height:11px;width:55%;margin-bottom:.4rem"></div><div class="skeleton" style="height:11px;width:90%;margin-bottom:.4rem"></div><div class="skeleton" style="height:11px;width:70%"></div></div></div>
         </div>
         <div class="card col-8">
           <div class="card-h"><h3 data-help="Narrow the rest of the page by URL, issue type, and severity. The Only fixable checkbox is the highest-leverage filter: it strips findings where the fix needs a workflow rather than a copy change. Use the filters when you have 30 minutes, not when you want to browse the full list." data-help-title="Filters">🧭 Filters</h3></div>
