@@ -1,110 +1,59 @@
 {
-  "brand": "swing-shack",
-  "source": "christellew@fivefriday.com paste 2026-07-29",
-  "source_doc_id": "10O9wy6HGOsYeX8UvipaGWRk26mObFZN5",
-  "source_doc_target_id": "1VkK7L72sOVWyF3nqLGyN92cw-hFKNc4wH0Z6m5p9f4w",
-  "source_status": "shortcut target unreadable to current auth; bible pasted by Christelle",
-  "version": "2026-07-29.1",
-  "summary": "Dark backgrounds (flat or gradient), thin white border at 20% opacity, OR image-bg with dark-faded overlay + light/accent text. Headings ALL CAPS.",
+  "_placeholder": true,
+  "_schema": "https://campaign-os/brand-directory/bible-visual/v1",
+  "_instructions": "PLACEHOLDER bible-visual.json for swing-shack. Fill in the TODO fields below to give the image gen layer real creative direction. The brand_dna.py module loads this file automatically — once you save changes, the next generation picks them up. See the TODO comments and structure of the example fields for what to write.",
 
-  "colors": {
-    "dark":       ["#000000", "#191919"],
-    "accent":     ["#74cc46", "#e17026", "#63a3ef", "#8f4bf9"],
-    "light":      ["#ffffff"],
-    "function": {
-      "background_dark": ["#000000", "#191919"],
-      "text_light":      ["#ffffff"],
-      "accent_highlight":["#74cc46", "#e17026", "#63a3ef", "#8f4bf9"]
-    },
-    "notes": "Accent colours used 'where needed' — i.e. for CTAs, highlights, key words. Background MUST be one of the two dark colours (flat or gradient between them). The two dark colours #000000 and #191919 are INTERCHANGEABLE within either treatment type — pick either, they do not have layout-specific meaning."
+  "brand_id": "swing-shack",
+  "version": "0.1-placeholder",
+  "updated": "2026-08-12T12:00:00Z",
+
+  "voice": "Premium, confident, data-driven. Confident without being cocky. TrackMan-confident. JHB-original.",
+
+  "visual_philosophy": "Moody indoor studio over flat studio white. In-the-moment swing/launch feels over posed product photography. Data overlays (TrackMan trail, club head, ball flight) over generic copy. Real Swing Shack energy over stock-photo golf energy.",
+
+  "look_and_feel_keywords": [
+    "TODO: 5-10 adjectives that describe the Swing Shack look",
+    "Examples (delete and replace): moody, indoor, low-key lighting, deep teal, amber accent, motion blur, mid-swing, launch monitor glow, club-head detail, premium, JHB"
+  ],
+
+  "negative_prompts": [
+    "TODO: list of things the model must never produce for this brand",
+    "Examples (delete and replace): white seamless backgrounds, stock-photo smiles, generic golf landscape, cartoon illustration, watermarks, AI-fingerprint artefacts"
+  ],
+
+  "archetype_preference": {
+    "_note": "Which archetypes the brand leans into most. The image gen will prefer these when no archetype is specified. Keys are archetype IDs from visual-spec/archetypes.json.",
+    "primary": "TODO: archetype_id (e.g. 'square-post-v1')",
+    "secondary": "TODO: archetype_id (e.g. 'story-banner')"
   },
 
-  "gradients": {
-    "direction": "vertical",
-    "rule": "Always top-to-bottom (or bottom-to-top). Horizontal/diagonal gradients are off-bible.",
-    "applies_to": "type_b overlay fade; type_a background gradient between the two dark colours"
-  },
-
-  "accent_frequency_rule": {
-    "max_per_image": 2,
-    "rule": "Single accent colour per image is the default. Two accents only when one is structural (e.g. CTA) and the other is highlighting (e.g. number or stat). Never three or more accent colours in one image.",
-    "answered_2026_07_29": "Single unless absolutely required for two, never more than two"
-  },
-
-  "borders": {
-    "white_border_opacity": 0.20,
-    "stroke_width_px_relative": "thin (visual ratio ~1px per 1080px image, i.e. ~0.1% of width)",
-    "mandatory": false,
-    "rule": "RECOMMENDED on type_a (dark bg) layouts. Strongly preferred on type_b (image bg) layouts. May be omitted only if focal contrast with white text/border is already achieved.",
-    "answered_2026_07_29": "Recommended, not mandatory"
-  },
-
-  "treatments": {
-    "type_a": {
-      "name": "flat_or_gradient_dark_background",
-      "background": "flat or gradient of #000000 ↔ #191919",
-      "border": "thin white at 20% opacity, around image edge",
-      "text": "white or accent colour over dark background"
-    },
-    "type_b": {
-      "name": "image_with_dark_fade_overlay",
-      "background": "photographic image",
-      "overlay": "gradient of dark colour faded over image",
-      "text": "light or accent colour above overlay",
-      "accent_use": "where needed (CTAs, headlines, key concepts)"
-    }
-  },
-
-  "typography": {
-    "headings": {
-      "family": "Avenir Next",
-      "weight": "Heavy",
-      "style": "Italic",
-      "case": "ALL CAPS",
-      "use": "page titles, section titles, hero text"
-    },
-    "body": {
-      "family": "Avenir Next",
-      "weight": "Regular",
-      "style": "Italic",
-      "case": "sentence",
-      "use": "captions, descriptions, body copy"
-    },
-    "compliance_rules": [
-      "Headings MUST be ALL CAPS",
-      "Headings MUST be Avenir Next Heavy Italic",
-      "Body MUST be Avenir Next Italic"
+  "subject_bias": {
+    "_note": "Bias the model toward certain subjects (golf clubs, swing, sim bay, member moments, data) over others.",
+    "lean_toward": [
+      "TODO: 3-5 subjects to lean toward",
+      "Examples: TrackMan launch monitor, mid-swing, club head close-up, sim bay, JHB skyline"
+    ],
+    "lean_away": [
+      "TODO: 3-5 subjects to avoid",
+      "Examples: generic golf course landscape, lone golfer posed at sunset, stock-photo studio"
     ]
   },
 
-  "compliance_score": {
-    "weights": {
-      "background_is_dark_or_dark_over_image": 0.25,
-      "accent_colour_present_where_needed":    0.15,
-      "white_border_or_white_text_present":    0.10,
-      "headings_all_caps":                     0.15,
-      "headings_font_avenir_next_heavy_italic":0.15,
-      "body_font_avenir_next_italic":          0.10,
-      "no_off_brand_background_colours":       0.10
-    },
-    "passing_threshold": 0.70,
-    "threshold_notes": "Start at 0.70 for the v0.1 rollout. If too noisy (too many false-positive failures on legit brand assets), tighten to 0.80. If too strict (legit assets failing), loosen to 0.65. Re-tune after first 100 new dissections.",
-    "answered_2026_07_29": "Start at 0.70, can tighten up later if needed"
+  "typography_in_image": {
+    "_note": "How text appears IN generated images (NOT in posts — that's a separate layer).",
+    "all_caps_headings": "TODO: true / false",
+    "heading_weight": "TODO: e.g. 'bold' / 'heavy' / 'black'",
+    "preferred_fonts": "TODO: e.g. 'Avenir Next Heavy Italic, GT Walsheim'",
+    "rule": "TODO: e.g. 'amber thin rule above quote text'"
   },
 
-  "voice_refs": {
-    "see_also": "data/voice_bible.json",
-    "note": "Voice bible governs copy; this file governs visuals."
-  },
-
-  "resolved_questions_2026_07_29": {
-    "1_body_font_weight":            "Regular Italic (not Demi).",
-    "2_white_border":                 "Recommended, not mandatory.",
-    "3_dark_colours_interchangeable": "Yes — #000000 and #191919 are interchangeable; pick either per image, no layout-specific meaning.",
-    "4_gradient_direction":           "Always vertical (top-to-bottom or bottom-to-top). No horizontal/diagonal.",
-    "5_accent_frequency_rule":        "Single accent per image is default. Two only when one is structural (CTA) + one is highlight (stat/number). Never more than two.",
-    "6_threshold":                    "0.70 for v0.1 rollout. Re-tune after first 100 new dissections."
-  },
-
-  "open_questions": []
+  "_todos_for_christelle": [
+    "1. Replace the TODO values in 'look_and_feel_keywords' with the real 5-10 adjectives that describe Swing Shack imagery",
+    "2. Replace TODO in 'negative_prompts' with the real list of things the model should never produce",
+    "3. Set 'archetype_preference.primary' and 'secondary' to the IDs of the 2 archetypes you use most (look in visual-spec/archetypes.json)",
+    "4. Fill in 'subject_bias.lean_toward' and 'lean_away' — what we want more of, what we want less of",
+    "5. Set 'typography_in_image' rules so the model knows how to lay out text when it includes any",
+    "6. Set '_placeholder' to false when done. Once false, the brand_dna layer will use the bible as the hard creative direction",
+    "7. Bump 'version' (e.g. to '1.0' or '1.0.0') so the nightshift knows to re-validate"
+  ]
 }

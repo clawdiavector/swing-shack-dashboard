@@ -1910,13 +1910,13 @@ def visual_library_discover(brand_id):
 
 @app.route('/api/visual-library/<brand_id>/recipe', methods=['GET'])
 def visual_library_recipe(brand_id):
-    """GET /api/visual-library/<brand>/recipe — aggregated brand image DNA.
+    """GET /api/visual-library/<brand>/recipe - aggregated brand image DNA.
 
     Combines statistical mode (most common features) with top-performer emphasis.
     Returns human-readable recipe + numeric aggregates for use in image generation.
 
     Query params:
-      top_pct=<n>   — top N% by quality score to weight heavily (default 25)
+      top_pct=<n>   - top N% by quality score to weight heavily (default 25)
 
     Returns:
       {ok, brand, recipe: {palette, composition, products, moods, text, quality, style_clusters, summary}}
@@ -2238,12 +2238,34 @@ def visual_library_generate(brand_id):
 
 @app.route('/api/image/status', methods=['GET'])
 def image_router_status():
-    """GET /api/image/status — provider + credential status (no key values echoed)."""
+    """GET /api/image/status - provider + credential status (no key values echoed)."""
     try:
         from _lib.image_gen_router import status_report as _status
         return jsonify({"ok": True, **_status()})
     except Exception as e:
         _app_log.exception("image_router_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/brand-dna/<brand_id>', methods=['GET'])
+def image_brand_dna(brand_id):
+    """GET /api/image/brand-dna/<brand> - brand DNA + recipe for the UI Recipe panel.
+
+    Returns the brand_dna context that the image gen layer will use to constrain
+    the next generation: palette hex codes, philosophy, keywords, top reference
+    images, bible status, warnings. Cheap, no API call. Call this on page load
+    to render the Recipe panel BEFORE the user clicks Generate.
+
+    The same payload is also included in /api/image/generate's response under
+    `brand_recipe` after a generation completes, so the UI can confirm what
+    the model actually saw vs what it was told.
+    """
+    try:
+        from _lib.brand_dna import load_brand_context, build_recipe_summary
+        ctx = load_brand_context(brand_id)
+        return jsonify({"ok": True, **build_recipe_summary(ctx)})
+    except Exception as e:
+        _app_log.exception("image_brand_dna failed for %s", brand_id)
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -2357,6 +2379,7 @@ def image_generate():
             "saved_sidecar_path": result.saved_sidecar_path,
             "warning": result.warning,
             "usage": result.usage,
+            "brand_recipe": result.brand_recipe,  # NEW (2026-08-12) for UI Recipe panel
             "layers": {
                 "signals": signals is not None and bool(signals.get("ready")),
                 "references": len(reference_dnas),

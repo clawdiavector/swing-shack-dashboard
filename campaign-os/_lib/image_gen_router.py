@@ -127,7 +127,7 @@ class GenResult:
     """Returned by generate_image(). The .path is set if save=True."""
 
     bytes: bytes
-    mime: str                # "image/png" typically
+    mime: str
     model: str
     provider: str
     cost_estimate_usd: float
@@ -137,6 +137,9 @@ class GenResult:
     saved_sidecar_path: Optional[str] = None
     warning: Optional[str] = None  # e.g. "logo-preserve likely to drift"
     usage: dict = field(default_factory=dict)
+    # NEW (2026-08-12): brand_dna recipe summary for the UI Recipe panel.
+    # None if no brand was given or brand_dna wasn't loaded.
+    brand_recipe: Optional[dict] = None
 
 
 @dataclass
@@ -409,11 +412,24 @@ def _call_openai_generate(
 
 def _call_openrouter_multimodal(
     *,
-    content_chunks: list,
+    content_chunks: Optional[list] = None,
+    messages: Optional[list] = None,
     model: str,
     timeout_s: int = 120,
     stream: bool = False,
 ) -> dict:
+    """POST to OpenRouter's chat completions endpoint.
+
+    Two calling conventions (mutually exclusive):
+      - content_chunks: list of multimodal content chunks (text + image_url).
+                        Sent as a single user message.
+      - messages: full messages list (system + user etc). Lets callers send a
+                  system message + multimodal user content. Takes precedence
+                  when both are passed.
+
+    Refactored 2026-08-12 to support brand_dna's system-message + reference
+    image pattern (see _lib/brand_dna.py).
+    """
     key = _resolve_openrouter_key()
     if not key:
         raise ImageGenAuthError(
@@ -421,9 +437,15 @@ def _call_openrouter_multimodal(
             "OPENROUTER_API_KEY_FILE / canonical fallback "
             f"{DEFAULT_OPENROUTER_TOKEN_FILE}."
         )
+    if messages is None:
+        if content_chunks is None:
+            raise ImageGenBadRequest(
+                "_call_openrouter_multimodal needs messages= or content_chunks="
+            )
+        messages = [{"role": "user", "content": content_chunks}]
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": content_chunks}],
+        "messages": messages,
         "stream": stream,
     }
     body = json.dumps(payload).encode("utf-8")
@@ -607,7 +629,8 @@ def generate_image(
         if not openai_credentials_present():
             raise ImageGenAuthError(
                 "OpenAI key not configured. Set OPENAI_API_KEY env var or "
-                f"OPENAI_API_KEY_FILE / canonical fallback {DEFAULT_OPENAI_TOKEN_FILE}."
+                "OPENAI_API_KEY_FILE / canonical fallback "
+                f"{DEFAULT_OPENAI_TOKEN_FILE}."
             )
         enhanced = _compose_full_prompt(
             prompt,
@@ -617,6 +640,27 @@ def generate_image(
             product_service_items=product_service_items,
             learned_signals=learned_signals,
         )
+
+        # NEW (2026-08-12): When a brand is given, prepend the brand_dna system
+        # message into the prompt. OpenAI gpt-image-1 doesn't support image
+        # inputs OR a system role — but it does read the user prompt carefully,
+        # so we lead with the brand context as the first thing the model sees.
+        recipe_summary: dict = {}
+        if brand_id:
+            try:
+                from _lib.brand_dna import (
+                    load_brand_context,
+                    build_system_message,
+                    build_recipe_summary,
+                )
+                brand_ctx = load_brand_context(brand_id)
+                if brand_ctx.ok:
+                    sys_msg = build_system_message(brand_ctx)
+                    enhanced = f"{sys_msg}\n\n---\n\nUSER REQUEST: {enhanced}"
+                recipe_summary = build_recipe_summary(brand_ctx)
+            except Exception as e:
+                _LOG.warning("brand_dna wiring failed for OpenAI path %s: %s", brand_id, e)
+
         api_resp = _call_openai_generate(
             prompt=enhanced, model=model, size=size, n=n, timeout_s=timeout_s
         )
@@ -649,18 +693,18 @@ def generate_image(
             revised_prompt=revised,
             warning=None,
             usage=usage,
-            **(
-                {}
-            ),
+            brand_recipe=recipe_summary or None,
         )
-
     elif provider == "openrouter":
         model = model or os.environ.get("CAMPAIGN_OS_IMAGE_MODEL") or DEFAULT_MODEL_GEN
         if not openrouter_credentials_present():
             raise ImageGenAuthError(
                 "OpenRouter key not configured. Set OPENROUTER_API_KEY env var or "
-                f"OPENROUTER_API_KEY_FILE / canonical fallback {DEFAULT_OPENROUTER_TOKEN_FILE}."
+                "OPENROUTER_API_KEY_FILE / canonical fallback "
+                f"{DEFAULT_OPENROUTER_TOKEN_FILE}."
             )
+
+        # Build the legacy enhanced prompt (Layer 4 brand recipe tail, etc.)
         enhanced = _compose_full_prompt(
             prompt,
             brand_id=brand_id,
@@ -669,10 +713,39 @@ def generate_image(
             product_service_items=product_service_items,
             learned_signals=learned_signals,
         )
-        # OpenRouter multimodal: text-only content for gen (no source image)
-        content = [{"type": "text", "text": enhanced.strip()}]
+
+        # NEW (2026-08-12): When a brand is given, build a multimodal
+        # message payload with a hard system message + reference image chunks.
+        # Falls back to the legacy text-only path if brand_dna is unavailable.
+        messages = None
+        recipe_summary: dict = {}
+        if brand_id:
+            try:
+                from _lib.brand_dna import (
+                    load_brand_context,
+                    build_image_messages,
+                    flatten_to_text,
+                    build_recipe_summary,
+                )
+                brand_ctx = load_brand_context(brand_id)
+                msgs = build_image_messages(brand_ctx, enhanced)
+                if brand_ctx.ok:
+                    messages = msgs
+                else:
+                    # Not enough brand context — flatten to text (no images,
+                    # no system message); better than nothing.
+                    messages = flatten_to_text(msgs)
+                recipe_summary = build_recipe_summary(brand_ctx)
+            except Exception as e:
+                _LOG.warning("brand_dna wiring failed for %s, falling back: %s", brand_id, e)
+
+        if messages is None:
+            # Legacy path: single text content chunk, no system message
+            messages = [{"role": "user", "content": enhanced.strip()}]
+
         api_resp = _call_openrouter_multimodal(
-            content_chunks=content,
+            content_chunks=None,
+            messages=messages,
             model=model,
             timeout_s=timeout_s,
         )
@@ -698,6 +771,7 @@ def generate_image(
                 else None
             ),
             usage=usage,
+            brand_recipe=recipe_summary or None,
         )
 
     else:

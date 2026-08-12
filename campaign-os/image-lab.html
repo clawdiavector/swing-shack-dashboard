@@ -490,6 +490,99 @@ main {
   overflow-y: auto;
 }
 .compose-preview .layer-1 { color: var(--accent); }
+
+/* ── Recipe panel (2026-08-12) ──────────────────────────────────── */
+.recipe-card {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin: 14px 0;
+  padding: 0;
+  font-size: 12px;
+}
+.recipe-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.recipe-header:hover { background: rgba(255,255,255,0.02); }
+.recipe-title {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 8px;
+}
+.recipe-subtitle {
+  color: var(--muted);
+  font-size: 11px;
+}
+.recipe-toggle {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  cursor: pointer;
+}
+.recipe-toggle:hover { color: var(--text); border-color: var(--accent); }
+.recipe-body { padding: 0 12px 10px 12px; }
+.recipe-row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  align-items: start;
+}
+.recipe-label {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-top: 2px;
+}
+.recipe-value {
+  color: var(--text);
+  font-size: 12px;
+  word-break: break-word;
+}
+.recipe-muted { color: var(--muted); font-style: italic; }
+.swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.recipe-warnings .recipe-value { color: #f59e0b; }
+.recipe-system { margin-top: 8px; }
+.recipe-system summary {
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.recipe-system pre {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  color: var(--muted);
+  font-family: monospace;
+  margin: 6px 0 0 0;
+}
 .compose-preview .layer-2 { color: var(--accent-2); }
 .compose-preview .layer-3 { color: #d4a849; }
 .compose-preview .layer-4 { color: #2ecc71; }
@@ -621,6 +714,55 @@ main {
       </div>
     </div>
 
+    <!-- Recipe panel (2026-08-12) — shows the brand DNA the image gen will use.
+         Helps the user see and (later) edit the constraints before generating. -->
+    <div class="recipe-card" id="recipe-card">
+      <div class="recipe-header" id="recipe-header">
+        <div>
+          <span class="recipe-title">Brand Recipe</span>
+          <span class="recipe-subtitle" id="recipe-subtitle">loading...</span>
+        </div>
+        <button class="recipe-toggle" id="recipe-toggle" type="button">details</button>
+      </div>
+      <div class="recipe-body" id="recipe-body" style="display:none">
+        <div class="recipe-row" id="recipe-status-row">
+          <span class="recipe-label">Status</span>
+          <span class="recipe-value" id="recipe-status-value">-</span>
+        </div>
+        <div class="recipe-row">
+          <span class="recipe-label">Palette</span>
+          <span class="recipe-value">
+            <span class="swatch" id="recipe-swatch-primary" title="primary"></span>
+            <span id="recipe-palette-text">-</span>
+          </span>
+        </div>
+        <div class="recipe-row">
+          <span class="recipe-label">Archetypes</span>
+          <span class="recipe-value" id="recipe-archetypes">-</span>
+        </div>
+        <div class="recipe-row">
+          <span class="recipe-label">References</span>
+          <span class="recipe-value" id="recipe-references">-</span>
+        </div>
+        <div class="recipe-row">
+          <span class="recipe-label">Philosophy</span>
+          <span class="recipe-value recipe-muted" id="recipe-philosophy">-</span>
+        </div>
+        <div class="recipe-row">
+          <span class="recipe-label">Negative</span>
+          <span class="recipe-value recipe-muted" id="recipe-negative">-</span>
+        </div>
+        <div class="recipe-row recipe-warnings" id="recipe-warnings-row" style="display:none">
+          <span class="recipe-label">Warnings</span>
+          <span class="recipe-value" id="recipe-warnings"></span>
+        </div>
+        <details class="recipe-system" id="recipe-system-details">
+          <summary>System message sent to model</summary>
+          <pre id="recipe-system-preview"></pre>
+        </details>
+      </div>
+    </div>
+
     <div id="preview-area"></div>
   </main>
 
@@ -672,7 +814,117 @@ const STATE = {
   selectedRefs: new Set(),
   selectedItems: new Set(),
   lastGen: null,
+  recipe: null,  // brand_dna summary for the Recipe panel
 };
+
+// ── Recipe panel (2026-08-12) ───────────────────────────────────
+// Calls /api/image/brand-dna/<brand> and renders the result so the user can see
+// (and later edit) what the model is being told.
+async function loadRecipePanel() {
+  const card = $('recipe-card');
+  if (!card) return;
+  try {
+    const r = await api(`/api/image/brand-dna/${STATE.brand}`);
+    if (!r.ok) {
+      $('recipe-subtitle').textContent = 'unavailable';
+      $('recipe-status-value').textContent = 'error: ' + (r.error || 'unknown');
+      return;
+    }
+    STATE.recipe = r;
+    renderRecipePanel(r);
+  } catch (e) {
+    $('recipe-subtitle').textContent = 'load failed';
+    $('recipe-status-value').textContent = e.message;
+  }
+}
+
+function renderRecipePanel(r) {
+  // Subtitle: short summary
+  $('recipe-subtitle').textContent = r.summary || r.brand_id;
+
+  // Status
+  const statusEl = $('recipe-status-value');
+  if (r.ok) {
+    statusEl.innerHTML = '<span style="color:#2ecc71">ready</span>';
+  } else {
+    statusEl.innerHTML = '<span style="color:#e74c3c">incomplete</span>';
+  }
+
+  // Palette
+  const pal = r.palette || {};
+  const primary = pal.primary || {};
+  const accent = pal.accent || {};
+  const swatch = $('recipe-swatch-primary');
+  if (swatch && primary.hex) swatch.style.background = primary.hex;
+  const palText = $('recipe-palette-text');
+  if (palText) {
+    if (primary.hex && accent.hex) {
+      palText.textContent = `${primary.name || 'primary'} ${primary.hex}, ${accent.name || 'accent'} ${accent.hex}`;
+    } else {
+      palText.textContent = '-';
+    }
+  }
+
+  // Archetypes
+  $('recipe-archetypes').textContent = r.archetypes_count
+    ? `${r.archetypes_count} loaded`
+    : 'none';
+
+  // References
+  const refs = r.reference_images_used || [];
+  if (refs.length) {
+    $('recipe-references').innerHTML = refs.map(ref =>
+      `<span title="score ${(ref.score || 0).toFixed(2)}, dominant ${ref.dominant || '?'}">${escapeHtml(ref.filename || ref.dominant || 'ref')}</span>`
+    ).join('<br>');
+  } else {
+    $('recipe-references').textContent = 'none';
+  }
+
+  // Philosophy
+  $('recipe-philosophy').textContent = r.bible_philosophy || (r.bible_placeholder ? 'placeholder — bible not filled in' : '-');
+
+  // Negative (just count + first bit)
+  $('recipe-negative').textContent = r.bible_placeholder
+    ? 'defaults only (bible placeholder)'
+    : 'see system message';
+
+  // Warnings
+  const warnings = r.warnings || [];
+  if (warnings.length) {
+    $('recipe-warnings-row').style.display = 'grid';
+    $('recipe-warnings').innerHTML = warnings.map(escapeHtml).join('<br>');
+  } else {
+    $('recipe-warnings-row').style.display = 'none';
+  }
+
+  // System message preview
+  $('recipe-system-preview').textContent = r.system_message_preview || '(no system message)';
+
+  // Add bible-loaded indicator
+  if (r.bible_loaded) {
+    $('recipe-subtitle').textContent += ' - bible active';
+  } else if (r.bible_placeholder) {
+    $('recipe-subtitle').textContent += ' - bible PLACEHOLDER';
+  }
+}
+
+function setupRecipePanelToggle() {
+  const card = $('recipe-card');
+  const body = $('recipe-body');
+  const btn = $('recipe-toggle');
+  if (!card || !body || !btn) return;
+  const toggle = () => {
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    btn.textContent = open ? 'details' : 'hide';
+  };
+  card.addEventListener('click', (e) => {
+    // Don't toggle if the user clicked the system-message <details>
+    if (e.target.closest('details')) return;
+    toggle();
+  });
+  btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+}
 
 // ── Helpers ────────────────────────────────────────────────────────
 function $(id) { return document.getElementById(id); }
@@ -1162,6 +1414,14 @@ $('generate-btn').addEventListener('click', async () => {
       updateCostPreview();
     }
 
+    // 2026-08-12: surface the actual brand_dna the model saw in this generation.
+    // If the server returned a `brand_recipe` field, replace the Recipe panel
+    // content with what the model actually got (vs the pre-load summary).
+    if (r.brand_recipe && typeof r.brand_recipe === 'object') {
+      STATE.recipe = r.brand_recipe;
+      renderRecipePanel(r.brand_recipe);
+    }
+
     renderPreview(r);
     toast('Image generated ✓');
   } catch (e) {
@@ -1298,7 +1558,9 @@ function escapeHtml(s) {
 
 // ── Boot ──────────────────────────────────────────────────────────
 (async function boot() {
+  setupRecipePanelToggle();  // 2026-08-12: wire the Recipe panel toggle
   await Promise.all([loadReferences(), loadLibrary(), loadSignals(), loadRecords()]);
+  loadRecipePanel();  // fire-and-forget — UI shows the recipe once it's loaded
   // Prefill prompt from campaign context or goal
   await prefillPromptFromCampaign();
   // Wire goal selector → auto-compose starter prompt
