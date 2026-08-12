@@ -6998,6 +6998,31 @@ async function _getBrandDisplayName(brandId) {
   } catch (_) { return brandId; }
 }
 
+// Age-based freshness pill for review rows. Picked up from the standing
+// 2026-08-12T09:45Z tick next-pick queue: "Review 'Pending' tab colour
+// differentiation (41 items all say 'DRAFT' — needs status-pill refinement)".
+// 35 of 41 pending items are 30+ days old, but every row paints the same
+// generic "draft" pill, so Christelle can't see at a glance which drafts are
+// rotting. This helper turns `updatedAt` into a colour-coded age pill using
+// the existing pill palette: green "fresh" (≤7d), yellow "stale" (8-29d),
+// red "rotting Nd" (≥30d). Mirrors the /api/freshness sweep's 14d threshold
+// for "stale" and the 42d threshold for "rotten" but uses gentler boundaries
+// so the visual escalation lands earlier (a 14d-old draft already feels
+// stale to a marketer, not "fresh").
+function reviewAgePill(updatedAt){
+  if(!updatedAt) return '';
+  let age;
+  try {
+    const t = new Date(updatedAt).getTime();
+    if(isNaN(t)) return '';
+    age = Math.floor((Date.now() - t) / 86400000);
+  } catch(_){ return ''; }
+  if(age < 0) age = 0;  // future timestamps (clock skew) shouldn't go negative
+  if(age <= 7)  return `<span class="pill on" title="Last updated ${age}d ago — within the 7d freshness window">fresh ${age}d</span>`;
+  if(age < 30)  return `<span class="pill review" title="Last updated ${age}d ago — past the 7d freshness window">stale ${age}d</span>`;
+  return `<span class="pill blocked" title="Last updated ${age}d ago — past the 30d stale threshold. Likely needs a refresh or archive.">stale ${age}d</span>`;
+}
+
 async function renderReview(){
   if(!S.review) S.review = await API.get('/api/intel/review_inbox');
   const r = S.review;
@@ -7008,6 +7033,20 @@ async function renderReview(){
     const bl = await API.get('/api/brands');
     (bl || []).forEach(b => { brandNames[b.id || b.brand_id] = b.name || b.identity?.name || b.id; });
   } catch (_) {}
+  // Count stale pending rows so the summary can surface "41 pending (12 stale)"
+  // instead of leaving Christelle to spot the rotting entries by scrolling.
+  // Stale = updatedAt older than 7d. Counts only the pending queue because
+  // approved/rejected rows have their own age semantics (approval age, not
+  // last-edit age) and aren't the bottleneck right now.
+  const _now = Date.now();
+  const _stalePending = (r.pending || []).filter(x => {
+    if(!x.updatedAt) return false;
+    const t = new Date(x.updatedAt).getTime();
+    return !isNaN(t) && (_now - t) > 7 * 86400000;
+  }).length;
+  if(_stalePending > 0 && $('#review-summary')){
+    $('#review-summary').textContent = `${r.summary} · ${_stalePending} stale (>7d)`;
+  }
   const renderRow = x => {
     const safeId = esc(x.assetId || '');
     const safeCid = esc(x.campaignId || '');
@@ -7017,6 +7056,11 @@ async function renderReview(){
     const isScheduled = (x.publishStatus || '').toLowerCase() === 'scheduled';
     const prettyBrand = esc(brandNames[x.brand] || x.brand || '');
     const prettyCampaign = esc(x.campaignName || x.campaignId || '');
+    // Age pill: green "fresh Nd" (≤7d), yellow "stale Nd" (8-29d),
+    // red "stale Nd" (≥30d). Helps triage which drafts need attention
+    // first — the review queue showed 41 rows that all looked identical,
+    // 35 of which were 30+ days old.
+    const agePill = reviewAgePill(x.updatedAt);
     // Pending rows get "Approve + Schedule" as the default — most common action.
     // Approved rows get an explicit "Put on calendar" button.
     // Scheduled rows get "View in calendar" + "Archive".
@@ -7036,6 +7080,7 @@ async function renderReview(){
       </div>
       <div class="review-meta">
         ${pill(x.approvalStatus||'draft', x.approvalStatus||'draft')}
+        ${agePill}
         ${x.platform ? pill('live', x.platform) : ''}
         ${x.publishStatus ? pill(x.publishStatus==='scheduled'?'on':x.publishStatus==='published'?'review':'draft', x.publishStatus) : ''}
         <span class="muted">${esc((x.updatedAt||'').slice(0,10))}</span>
