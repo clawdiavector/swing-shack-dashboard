@@ -1295,3 +1295,80 @@ All replacements use middots (`·`), colons, or plain text — per the standing 
 **Next pick:** The picks panel brand_fit ceiling cluster (0 badges fire on the default swing-shack combo — feels underwhelming). Two options: (1) loosen the picks ratio to 1.1x so 1–2 picks get the badge in the cluster-equal case; (2) add a per-pick "🎯 Pillar-fit" signal (the picks are scored by voice+pillar+platform, so surfacing the pillar-fit score as a chip alongside brand_fit would give the picks panel more differentiation without relaxing the badge threshold). The other queued lane is the data-help="..." em-dash sweep (~70 lines, third tier of visibility after headings/dropdowns and main cards).
 
 **Asks:** None.
+
+
+## 2026-08-12T00:26Z — fix(copy): drop em-dashes from Hashtags + SEO and Meme Lord section sub-headers
+
+**Done:** Picked up the deferred "em-dash banned in published copy" sweep on section sub-headers that render in user-visible UI on every page-load. The 2026-08-11 ticks swept headings + dropdowns, main-card copy, empty-state strings, the connect explainers, and the inline muted/empty prose strings. The 2026-08-11T20:36Z sweep fixed create-summary and ins-v2-summary loading labels. This tick closes the next lane: 2 em-dashes that render on every Hashtags + SEO and Meme Lord page-load (not just help-popups). Both replaced (one with a colon, one with a middot) — same separator patterns as past sweeps.
+
+**Fix (campaign-os/campaign-os.html, +3/-3):**
+- L1716: `<div class="muted">Curated hashtag sets and on-page SEO scaffolding — pure intelligence, no social actions. Safe during rest-mode.</div>` → em-dash replaced with colon.
+- L1307: `<h3>🎭 Template visuals <span ...>— not sure what one looks like? Browse here</span></h3>` → em-dash replaced with middot (matches the existing "🎯 layman terms · color-coded" / "· the long-memory view" / "· click to visit" pills).
+
+**New regression test (campaign-os/tests/test_v2026_08_12_no_emdashes_section_subheaders.py, 7 tests):**
+- test_01/02/03: hashtagseo post-fix string present, pre-fix string absent, post-fix is em-dash free.
+- test_04/05/06: meme Template visuals h3 post-fix string present, pre-fix string absent, post-fix is em-dash free.
+- test_07: scan all `<div class="section-h">` blocks for em-dashes in visible text (excluding data-help hover-only attributes and bare loading-placeholder spans) — guards against future drift on adjacent sections (Ideas, GMB, Library sub-headers, etc.).
+
+**Verified (Playwright LIVE on Railway, post-deploy, cookie auth):**
+- LIVE URL `https://swing-shack-dashboard-production.up.railway.app`
+- sec-hashtagseo rendered text (post-deploy): `"Curated hashtag sets and on-page SEO scaffolding: pure intelligence, no social actions. Safe during rest-mode."` (colon form confirmed live).
+- sec-memes h3 rendered text (post-deploy): `"🎭 Template visuals · not sure what one looks like? Browse here"` (middot form confirmed live).
+- 0 PAGEERROR, 0 console errors during walkthrough.
+- `/api/health` 200, deployed commit = `0313730`.
+
+**Test suite (all green):** 59/59 v2026_08_1* regression tests pass (52 prior + 7 new). No regression on the prior em-dash test suites (`test_v2026_08_11_no_emdashes_connect_explainer.py`, `test_v2026_08_11_no_emdashes_empty_states.py`, `test_v2026_08_11_no_emdashes_insights_cards.py`, `test_v2026_08_11_no_emdash_create_sub_label.py`).
+
+**Files (2, +138/-2):**
+- `campaign-os/campaign-os.html` (2 em-dash replacements)
+- `campaign-os/tests/test_v2026_08_12_no_emdashes_section_subheaders.py` (NEW, 7 tests)
+
+**Commit:** `0313730` on `feat/asset-state-engine`, pushed. Railway auto-deploy in ~60s.
+
+**Standing rules:** 0 publish/schedule, 0 tokens in chat, 0 main branch, 0 NEW em-dashes (verified via `git diff`), 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW deps.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260812T002624Z_hashtagseo_fix.png` — Hashtags + SEO section with the colon-form sub-header.
+- `/tmp/co-nightshift/walkthrough_20260812T002624Z_meme_lord_h3_fix.png` — Meme Lord section with the middot-form Template visuals h3.
+
+**Learned:** The em-dash sweep has now closed 4 distinct visibility tiers: (a) headings/dropdowns (b992ca4), (b) main-card inline text (32f83fa), (c) loading labels + connect explainers (2026-08-11 morning sweep + 20:36Z sweep), (d) section sub-headers (this tick). The remaining em-dashes are in (i) `data-help="..."` hover-tooltip attributes (only visible on hover/click), (ii) dense long-form explainer paragraphs like `<span class="hc-term">X</span> — Y`, and (iii) data-driven content (Reddit suggestions, post titles, competitor analysis text) where the em-dash is part of the generated copy not the UI chrome. Categories (i) and (ii) are the next natural targets but they're "many lines, low individual visibility" so worth a dedicated sweep, not bundled into another sub-header pass.
+
+**Next pick:** Two productive lanes remain. (1) The data-help hover-tooltip em-dash sweep (~70 lines, single regex assertion: "no em-dash inside `data-help="..."` attr values"). (2) The Playwright sweep walker bug — `scripts/walk_full_sweep_live.py` was broken because nav groups are collapsed by default and the `.nav[data-go=X]` selector picks a hidden element first, causing `NAV_ERR` on 19 of 28 sections. The fix is to expand all collapsed groups before clicking. This bug has been hiding the em-dash signal in the sweep output for several ticks (showing `EMPTY=['0 posts']` instead of actual section content).
+
+**Asks:** None.
+
+## 2026-08-12T00:26Z — fix(copy): drop em-dashes from Hashtags + SEO and Meme Lord section sub-headers
+
+**Done:** Picked up the deferred "em-dash banned in published copy" sweep on section sub-headers that render in user-visible UI on every page-load. The 2026-08-11 ticks swept headings + dropdowns, main-card copy, empty-state strings, the connect explainers, and the inline muted/empty prose strings. The 2026-08-11T20:36Z sweep fixed create-summary and ins-v2-summary loading labels. This tick closes the next lane: 2 em-dashes that render on every Hashtags + SEO and Meme Lord page-load (not just help-popups). Both replaced (one with a colon, one with a middot) — same separator patterns as past sweeps.
+
+**Fix (campaign-os/campaign-os.html, +3/-3):**
+- L1716: Hashtags + SEO sub-header em-dash replaced with colon ("scaffolding: pure intelligence").
+- L1307: Meme Lord "Template visuals" h3 sub-label em-dash replaced with middot ("· not sure what one looks like").
+
+**New regression test (campaign-os/tests/test_v2026_08_12_no_emdashes_section_subheaders.py, 7 tests):**
+- test_01/02/03: hashtagseo post-fix string present, pre-fix string absent, post-fix is em-dash free.
+- test_04/05/06: meme Template visuals h3 post-fix string present, pre-fix string absent, post-fix is em-dash free.
+- test_07: scan all `<div class="section-h">` blocks for em-dashes in visible text (excluding data-help hover-only attrs and bare loading-placeholder spans) — guards against future drift on adjacent sections.
+
+**Verified (Playwright LIVE on Railway, post-deploy, cookie auth):**
+- LIVE URL `https://swing-shack-dashboard-production.up.railway.app`
+- sec-hashtagseo rendered text (post-deploy): "Curated hashtag sets and on-page SEO scaffolding: pure intelligence, no social actions. Safe during rest-mode." (colon form confirmed).
+- sec-memes h3 rendered text (post-deploy): "🎭 Template visuals · not sure what one looks like? Browse here" (middot form confirmed).
+- 0 PAGEERROR, 0 console errors during walkthrough.
+- /api/health 200, deployed commit = 0313730.
+
+**Test suite (all green):** 59/59 v2026_08_1* regression tests pass (52 prior + 7 new).
+
+**Files (2, +138/-2):** campaign-os/campaign-os.html + new tests file.
+
+**Commit:** 0313730 on feat/asset-state-engine, pushed.
+
+**Screenshots (LIVE):**
+- /tmp/co-nightshift/walkthrough_20260812T002624Z_hashtagseo_fix.png — Hashtags + SEO with colon-form sub-header.
+- /tmp/co-nightshift/walkthrough_20260812T002624Z_meme_lord_h3_fix.png — Meme Lord with middot-form Template visuals h3.
+
+**Learned:** The em-dash sweep has now closed 4 distinct visibility tiers: (a) headings/dropdowns (b992ca4), (b) main-card inline text (32f83fa), (c) loading labels + connect explainers (2026-08-11 morning sweep + 20:36Z), (d) section sub-headers (this tick). Remaining em-dashes are in (i) data-help hover-tooltip attrs, (ii) long-form explainer paragraphs, (iii) data-driven content. Worth a dedicated sweep of (i) + (ii) as one focused tick.
+
+**Next pick:** The data-help hover-tooltip em-dash sweep (~70 lines, single regex assertion: no em-dash inside data-help="..." attr values). Or: the Playwright sweep walker bug — scripts/walk_full_sweep_live.py was broken because nav groups are collapsed by default, causing NAV_ERR on 19/28 sections and hiding real signals.
+
+**Asks:** None.
