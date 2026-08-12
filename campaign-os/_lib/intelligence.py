@@ -408,6 +408,16 @@ def calendar_view(days: int = 14, start: Optional[str] = None) -> Dict[str, Any]
             d = datetime.datetime.fromisoformat(str(scheduled_for).replace("Z", "+00:00")).date()
         except (ValueError, AttributeError):
             return
+        # Pillar-from-caption inference. Many seed assets carry the pillar
+        # only inside the caption text ("...🏌️ Club Fitting..." or
+        # "...🎯 Coaching..."). Without this fallback every queue slot
+        # lands as no-pillar and the calendar loses its left-border colour
+        # differentiation: every card looks identical. Cheap regex over
+        # a short caption string; never writes if a pillar was already set.
+        if not slot.get("pillar"):
+            inferred = _infer_pillar_from_caption(slot.get("caption", "") or slot.get("name", ""))
+            if inferred:
+                slot["pillar"] = inferred
         slot["scheduledFor"] = scheduled_for
         slot.setdefault("source", "campaign")
         slot.setdefault("color", _calendar_color(slot.get("pillar"), slot.get("brand"), slot.get("platform")))
@@ -514,15 +524,55 @@ def calendar_view(days: int = 14, start: Optional[str] = None) -> Dict[str, Any]
 def _calendar_color(pillar: Any, brand: Any, platform: Any) -> str:
     palette = {
         "education": "#34d399", "education & authority": "#34d399",
-        "social proof": "#60a5fa", "offer": "#fb923c", "community": "#a78bfa",
+        "social proof": "#60a5fa", "offer": "#fb923c",
         "entertainment": "#facc15", "instagram": "#f472b6", "tiktok": "#e6ecf5",
         "gmb": "#60a5fa", "swing shack": "#34d399", "stick": "#fb923c", "bag drop": "#a78bfa",
+        # Pillar keys. These mirror the CSS --pillar-* tokens in campaign-os.html
+        # so the calendar's left-border colour matches the rest of the dashboard
+        # when an asset has a real pillar. Until this fix every queue slot
+        # landed on the fallback green (#34d399) and the calendar looked like
+        # 56 identical cards.
+        "equipment": "#f59e0b", "club fitting": "#f59e0b", "club-fitting": "#f59e0b",
+        "coaching": "#3b82f6", "community": "#10b981", "events": "#ec4899", "merch": "#a78bfa",
     }
     for value in (pillar, brand, platform):
         key = str(value or "").strip().lower()
         if key in palette:
             return palette[key]
     return "#34d399"
+
+
+# Caption → pillar inference. Looks for the pillar label that the seed copy
+# embeds on its second line ("🏌️ Club Fitting", "🎯 Coaching", etc.). Cheap
+# substring scan; case-insensitive; first match wins. Returns a lower-case
+# pillar key that matches _calendar_color / the CSS --pillar-* tokens.
+_PILLAR_CAPTION_HINTS = (
+    ("🏌", "club fitting"),
+    ("🎯", "coaching"),
+    ("🤝", "community"),
+    ("📅", "events"),
+    ("🛍", "merch"),
+    ("club fitting", "club fitting"),
+    ("club-fitting", "club fitting"),
+    ("coaching", "coaching"),
+    ("community", "community"),
+    ("events", "events"),
+    ("merch", "merch"),
+    ("equipment", "equipment"),
+)
+
+
+def _infer_pillar_from_caption(text: str) -> str:
+    if not text:
+        return ""
+    try:
+        low = text.lower()
+    except AttributeError:
+        return ""
+    for marker, pillar in _PILLAR_CAPTION_HINTS:
+        if marker in low:
+            return pillar
+    return ""
 
 
 # ─── REVIEW INBOX ──────────────────────────────────────────────────────
