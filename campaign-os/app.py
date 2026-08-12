@@ -114,6 +114,28 @@ def logout():
     return resp
 
 
+_FAVICON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+    '<rect width="32" height="32" rx="6" fill="#0a0f1a"/>'
+    '<path d="M10 26V6" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>'
+    '<path d="M10 8 L22 11 L10 14 Z" fill="#fbbf24"/>'
+    '<circle cx="10" cy="27" r="1.5" fill="#34d399"/>'
+    '</svg>'
+)
+
+
+@app.route('/favicon.ico')
+def favicon():
+    """Serve the Swing Shack favicon as inline SVG.
+
+    Returns an SVG (not a real .ico) so we don't need to commit a binary
+    asset. Modern browsers happily render SVG when served with the right
+    content type; legacy browsers fall back to a generic icon.
+    """
+    return Response(_FAVICON_SVG, mimetype='image/svg+xml',
+                    headers={'Cache-Control': 'public, max-age=86400'})
+
+
 def _data_paths():
     """Resolve runtime DATA_DIR + canonical file paths at call time.
 
