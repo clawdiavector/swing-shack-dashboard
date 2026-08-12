@@ -520,7 +520,7 @@ function _renderChromeForBrand(){
   // which carries flavour descriptors like "(default)" / "(edgy)" / "(premium)"
   // that look like stray debug text in the page title. Strip any parenthesised
   // suffix from the label as a last-resort fallback.
-  const CLEAN_BRANDS = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop','takomo':'Takomo'};
+  const CLEAN_BRANDS = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop'};
   const _stripParens = s => String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
   const brandLabel = CLEAN_BRANDS[activeBrand] || _stripParens(vb.label) || activeBrand;
   const total = (state.memes && state.memes.length) || 75;

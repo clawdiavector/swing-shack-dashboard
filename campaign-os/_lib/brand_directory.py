@@ -145,13 +145,26 @@ def _extract_tagline(readme: str, max_len: int = 140) -> str:
 
 
 def list_brands(base_dir: Path | None = None) -> list[str]:
-    """Return brand IDs that have a directory entry."""
+    """Return brand IDs that have a directory entry.
+
+    Intersection of (a) brand folders on disk, (b) brand entries in
+    data/brands.json → brands. This ensures takomo (which has a brand
+    folder but is now a product_brand, not a top-level business) does not
+    surface in /api/brand-directory. The takomo folder itself stays on
+    disk because it carries the palette/voice/archetypes that the caption
+    studio and image lab reuse when swing-shack content needs a takomo
+    flavour.
+    """
+    from .intelligence import _load_brands_registry  # local import to avoid cycle
     base = base_dir or _BRAND_DIR
     if not base.exists():
         return []
+    business_ids = set((_load_brands_registry().get("brands") or {}).keys())
     return sorted(
         d.name for d in base.iterdir()
-        if d.is_dir() and not d.name.startswith(("_", "."))
+        if d.is_dir()
+        and not d.name.startswith(("_", "."))
+        and d.name in business_ids
     )
 
 

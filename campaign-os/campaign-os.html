@@ -10031,7 +10031,7 @@ async function renderBrandDirectoryPanel(){
     const ids = Object.keys(brands);
     const total = idx.total_brands || ids.length;
     const ready = idx.total_ready || 0;
-    const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop','takomo':'Takomo'};
+    const labelMap = {'swing-shack':'Swing Shack','stick':'Stick','bag-drop':'Bag Drop'};
     // h3 builder local to renderBrandDirectoryPanel scope (the .map(bid=>...) callback
     // for the per-brand tile runs inside this async function's closure, NOT inside the
     // [data-bd-view] or [data-bd-brief] click handlers below, so the per-handler h3tip

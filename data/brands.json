@@ -99,12 +99,14 @@
       "order": 3,
       "icon": "\ud83c\udf92",
       "short_label": "BD"
-    },
+    }
+  },
+  "product_brands": {
     "takomo": {
       "id": "takomo",
       "display_name": "Takomo",
       "tagline": "Takomo 101T \u2014 the iron that finally gets it.",
-      "positioning": "Premium Finnish-forged golf clubs available at Swing Shack. The 101T series blends forged feel with distance technology.",
+      "positioning": "Premium Finnish-forged golf clubs. Stocked in-store by Swing Shack and Stick as a carried product brand \u2014 not a separate business.",
       "voice_id": "takomo",
       "voice_label": "Takomo",
       "audience": "Mid-handicap golfers (8-18) who want feel without giving up distance. Spec-curious, research-first buyers.",
@@ -112,7 +114,7 @@
       "accent_color": "#75742E",
       "logo_url": null,
       "website": "https://swingshack.co.za/takomo",
-      "instagram_handle": "@swingshack",
+      "instagram_handle": null,
       "facebook_page": null,
       "gbp_location_id": null,
       "voice_bible_ref": "data/voice_bible.json#voices/takomo",
@@ -130,13 +132,12 @@
         "Finnish craftsmanship",
         "Spec-led proof"
       ],
-      "campaign_ids": [
-        "takomo-101t"
-      ],
-      "data_delegates_from": "swing-shack",
-      "data_delegate_note": "Takomo is sold via Swing Shack. All booking/analytics flow through Swing Shack; Takomo voice drives content.",
+      "carried_by": ["swing-shack", "stick"],
+      "campaigns": {
+        "swing-shack": ["takomo-101t"],
+        "stick": []
+      },
       "active": true,
-      "order": 4,
       "icon": "\u26f3",
       "short_label": "TK"
     }

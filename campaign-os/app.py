@@ -533,9 +533,25 @@ def brand_directory_index():
     Returns the merged brand-index.json so the SPA Brand surface can render
     readiness scores per brand, and so image/copy generators know which
     brands are ready (all 4 gate files) vs partial (fall back to voice bible).
+
+    Also merges in `product_brands` from data/brands.json so the SPA can
+    surface Takomo-style "carried product brands" alongside the businesses
+    (swing-shack / stick / bag-drop) on the Brand surface.
     """
     try:
         idx = _brand_dir.build_index()
+        # Pull product_brands from the registry. These don't have their own
+        # brand-directory/<id>/ folder lifecycle (the takomo/ folder exists
+        # on disk for caption/image lab reuse, but it's not a "business" for
+        # the brand switcher or the today-panel).
+        try:
+            from _lib import intelligence as _intel
+            reg = _intel._load_brands_registry()
+            pb = reg.get("product_brands") or {}
+            if pb:
+                idx["product_brands"] = pb
+        except Exception:
+            pass
         return jsonify(idx)
     except Exception as e:
         _app_log.exception("brand_directory_index failed")
@@ -9789,7 +9805,6 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
     <option value="swing-shack" {"selected" if bid=='swing-shack' else ""}>Swing Shack</option>
     <option value="stick" {"selected" if bid=='stick' else ""}>Stick</option>
     <option value="bag-drop" {"selected" if bid=='bag-drop' else ""}>Bag Drop</option>
-    <option value="takomo" {"selected" if bid=='takomo' else ""}>Takomo</option>
   </select>
   <button onclick="downloadHTML()">⬇ HTML</button>
   <button onclick="downloadMarkdown()">⬇ Markdown</button>

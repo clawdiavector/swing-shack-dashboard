@@ -47,7 +47,7 @@ class WeeklyReportEndpointTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.client = _client()
-        cls.brands = ['swing-shack', 'stick', 'bag-drop', 'takomo']
+        cls.brands = ['swing-shack', 'stick', 'bag-drop']
 
     def test_html_endpoint_returns_full_page(self):
         for b in self.brands:
@@ -231,15 +231,19 @@ class WeeklyReportHonestyTests(unittest.TestCase):
         """On first-ever run (no snapshots archived), the doc must explicitly disclose
         the absence of previous data — never silently show 0.0% everywhere.
 
-        Note: Takomo inherits swing-shack's analytics via data_delegates_from,
-        so its prev-snapshot follows the delegate. The first-ever-run disclaimer
-        is for a brand that DOESN'T delegate and has no own snapshots — use
-        'swing-shack' with a clean snapshots dir, or rely on the new
-        'highlight muted' First-ever block."""
+        Note: Stick and Bag Drop inherit swing-shack's analytics via
+        data_delegates_from, so their prev-snapshot follows the delegate.
+        The first-ever-run disclaimer is for a brand that DOESN'T delegate
+        and has no own snapshots — use 'swing-shack' with a clean snapshots
+        dir, or rely on the new 'highlight muted' First-ever block.
+
+        (Takomo is no longer a top-level brand as of 2026-08-12 — it's a
+        product brand carried by swing-shack and stick. The 'fresh brand
+        with no delegation' scenario doesn't apply to the current model.)"""
         # Use a brand that's never been snapshotted AND has no delegate
-        # fallback. We override data_delegates_from to None at runtime by
-        # clearing the brand's delegation in a local dict.
-        fresh_brand = 'takomo'
+        # fallback. We use bag-drop and override its data_delegates_from
+        # at runtime by clearing the brand's delegation in a local dict.
+        fresh_brand = 'bag-drop'
         snap_dir = os.path.join(SANDBOX, 'weekly-snapshots')
         # Wipe every brand's snapshots so the only data dir is empty
         if os.path.exists(snap_dir):
@@ -276,7 +280,7 @@ class WeeklyReportToolbarTests(unittest.TestCase):
     def test_toolbar_has_brand_switcher(self):
         r = self.client.get('/weekly-report?brand=swing-shack')
         html = r.data.decode()
-        for brand in ['swing-shack', 'stick', 'bag-drop', 'takomo']:
+        for brand in ['swing-shack', 'stick', 'bag-drop']:
             self.assertIn(f'value="{brand}"', html)
 
     def test_toolbar_has_html_download_button(self):
