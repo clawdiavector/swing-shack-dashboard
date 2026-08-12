@@ -302,6 +302,16 @@ a:hover{text-decoration:underline}
 .topbar{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem}
 .topbar h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
 .topbar .crumbs{font-size:12px;color:var(--tx-3)}
+/* SA context chip — see /api/intel/sa_context. Always visible in the
+   topbar so the user knows the current loadshedding stage, season,
+   school holiday, and public holiday before publishing anything. */
+.sa-chip{display:inline-flex;align-items:center;gap:.35rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--tx-2);white-space:nowrap;margin-left:.25rem;letter-spacing:.01em}
+.sa-chip .sa-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}
+.sa-chip .sa-chip-dot.warn{background:var(--amber,#d97706);box-shadow:0 0 0 3px rgba(217,119,6,.15)}
+.sa-chip .sa-chip-dot.bad{background:var(--red,#dc2626);box-shadow:0 0 0 3px rgba(220,38,38,.18);animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.sa-chip .sa-chip-sep{color:var(--tx-3);font-weight:300}
+.sa-chip:hover{cursor:help;border-color:var(--ac);transition:all .15s}
 .search{margin-left:auto;position:relative;width:340px;max-width:40vw}
 .search input{width:100%;padding-left:2.25rem}
 .search-ico{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--tx-3)}
@@ -982,6 +992,21 @@ a:hover{text-decoration:underline}
         <span class="search-ico">🔎</span>
         <input id="search-input" placeholder="Search campaigns, hooks, captions, ideas…" autocomplete="off" data-help="Fuzzy search across campaigns, hooks, captions, and ideas for the active brand. Results update as you type; Enter jumps to the top hit." data-help-title="Global search">
         <div class="search-results" id="search-results"></div>
+      </div>
+      <!-- SA context chip: shows loadshedding stage, school holiday,
+           public holiday, season. Updated on every page load and
+           whenever the user switches brands. Pure display; the actual
+           sanitization is done by the backend on every hook/caption
+           generation. -->
+      <div class="sa-chip" id="sa-chip" title="South Africa context — refreshes on every page load" data-help="Live South Africa context: current loadshedding stage (heuristic — check eskom.co.za for the real schedule before publishing), school holiday status (DBE calendar), public holiday, season (Southern Hemisphere). Backend uses this to rewrite US-default units in hooks and captions ($, yards, miles, lb, °F) before they reach you." data-help-title="SA context">
+        <span class="sa-chip-dot" id="sa-chip-dot"></span>
+        <span id="sa-chip-load">⚡ —</span>
+        <span class="sa-chip-sep">·</span>
+        <span id="sa-chip-season">—</span>
+        <span class="sa-chip-sep" id="sa-chip-hol-sep" style="display:none">·</span>
+        <span id="sa-chip-hol" style="display:none"></span>
+        <span class="sa-chip-sep" id="sa-chip-pub-sep" style="display:none">·</span>
+        <span id="sa-chip-pub" style="display:none"></span>
       </div>
       <div class="theme-switch" id="theme-switch" role="group" aria-label="Color theme" data-help="Pick the color theme. Dark for low-light focus, Light for daytime, Auto to follow your system preference. Saved per browser." data-help-title="Theme">
         <button data-theme-val="dark" title="Dark theme"><span class="ico">🌙</span>Dark</button>
@@ -4317,6 +4342,50 @@ function initTheme(){
     } catch(_){}
   }
 }
+
+// ─── SA context chip loader ─────────────────────────────────────────
+// Fetches /api/intel/sa_context on page load and on brand switch, then
+// paints the topbar chip. Pure display — the actual sanitization is done
+// server-side. Failures fall back to "—" (chip stays in the DOM, just
+// shows the placeholder).
+function _seasonIcon(s){return s==='summer'?'☀️':s==='autumn'?'🍂':s==='winter'?'❄️':'🌸'}
+function _loadChip(){
+  if(!$('sa-chip')) return;
+  fetch('/api/intel/sa_context').then(r => r.json()).then(d => {
+    if(!d || !d.ok) return;
+    const stage = d.loadshedding_stage || 0;
+    // Dot colour: green if stage 0, amber if 1-2, red+pulse if 3+
+    const dot = $('sa-chip-dot');
+    if(dot){
+      dot.classList.remove('warn','bad');
+      if(stage >= 3) dot.classList.add('bad');
+      else if(stage >= 1) dot.classList.add('warn');
+    }
+    $('sa-chip-load').textContent = stage === 0 ? '⚡ no shedding' : `⚡ stage ${stage}`;
+    $('sa-chip-load').style.color = stage >= 3 ? 'var(--red,#dc2626)' : (stage >= 1 ? 'var(--amber,#d97706)' : 'var(--green)');
+    $('sa-chip-season').textContent = `${_seasonIcon(d.season)} ${d.season || '—'}`;
+    if(d.school_holiday){
+      $('sa-chip-hol-sep').style.display = '';
+      $('sa-chip-hol').style.display = '';
+      $('sa-chip-hol').textContent = '📚 school hols';
+    } else {
+      $('sa-chip-hol-sep').style.display = 'none';
+      $('sa-chip-hol').style.display = 'none';
+    }
+    if(d.public_holiday){
+      $('sa-chip-pub-sep').style.display = '';
+      $('sa-chip-pub').style.display = '';
+      $('sa-chip-pub').textContent = `🎉 ${d.public_holiday_name || 'public holiday'}`;
+    } else {
+      $('sa-chip-pub-sep').style.display = 'none';
+      $('sa-chip-pub').style.display = 'none';
+    }
+  }).catch(() => {/* keep the placeholder dashes */});
+}
+// Refresh every 5 minutes (loadshedding stage is heuristic + could change
+// at the start of a new time block). Cheap fetch; < 1 KB response.
+_loadChip();
+setInterval(_loadChip, 5 * 60 * 1000);
 
 // ─── Orphan-DNA image fallback ──────────────────────────────────────────
 // When /brand-images/<brand>/<file> (or any other image source) 404s on a
@@ -8191,7 +8260,8 @@ async function renderIdeas(){
           toast('No idea generated — try again', 'err');
           return;
         }
-        const html = r.ideas.map(i => `
+        const saChip = renderSaRewritesBadge(r._sa_rewrites);
+        const html = saChip + r.ideas.map(i => `
           <div class="li">
             <div class="li-body">
               <div class="li-title">${esc(i.title)} <span class="pill primary" style="font-size:10px">${esc(i.pillar||'')}</span></div>
@@ -8482,13 +8552,23 @@ $('#hooks-gen').addEventListener('click', async () => {
   if (!r.generated || !r.generated.length) {
     // Honest empty state — the dedup cache has all available hooks for today.
     // Don't pretend we generated something we didn't.
-    $('#hooks-generated').innerHTML = `<div class="empty"><b>All fresh hooks already shown.</b><br>Today's pool has ${r._pool_size || '?'} unique signals — you saw them all.<br>Try tomorrow (the pool resets at midnight) or run <code>scripts/refresh_signals.sh</code> to add more.</div>`;
+    const saChip = renderSaRewritesBadge(r._sa_rewrites);
+    $('#hooks-generated').innerHTML = `${saChip}<div class="empty"><b>All fresh hooks already shown.</b><br>Today's pool has ${r._pool_size || '?'} unique signals — you saw them all.<br>Try tomorrow (the pool resets at midnight) or run <code>scripts/refresh_signals.sh</code> to add more.</div>`;
     toast('No new hooks available right now', 'ok');
     return;
   }
-  $('#hooks-generated').innerHTML = safeList(r.generated, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.hook)}</div><div class="li-meta">${esc(it.source||'')} · ${pill(it.kind||'live', it.kind||'live')}</div></div></li>`).join('');
+  const saChip = renderSaRewritesBadge(r._sa_rewrites);
+  $('#hooks-generated').innerHTML = `${saChip}<ul class="li">${safeList(r.generated, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.hook)}</div><div class="li-meta">${esc(it.source||'')} · ${pill(it.kind||'live', it.kind||'live')}</div></div></li>`).join('')}</ul>`;
   toast('Generated '+r.count+' fresh hooks');
 });
+
+// Render a small "🇿🇦 N SA fixes applied" badge when the backend rewrote
+// US-default units. Tooltip lists what was changed.
+function renderSaRewritesBadge(rewrites){
+  if(!rewrites || !rewrites.length) return '';
+  const tip = rewrites.map(r => r.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))).join('\n');
+  return `<div class="sa-rewrites-badge" title="${tip}" data-help="Backend sanitization log. The hooks above were rewritten before you saw them — US-default units ($, yards, miles, lb, °F) were converted to their SA equivalents (R, m, km, kg, °C). Click to expand the full list. Conversions use rough rates (1 yd = 0.91 m, 1 lb = 0.45 kg, 18:1 USD→ZAR); verify the financial ones before publishing." data-help-title="SA rewrites applied" style="display:inline-flex;align-items:center;gap:.35rem;background:rgba(0,121,107,.08);border:1px solid rgba(0,121,107,.25);color:#00796b;padding:3px 9px;border-radius:999px;font-size:11px;margin-bottom:.5rem;cursor:help">🇿🇦 ${rewrites.length} SA fix${rewrites.length===1?'':'es'} applied</div>`;
+}
 
 // ─── MEME LORD v2 — meme historian ───────────────────────────
 const MEM_STATE = {
@@ -8977,9 +9057,10 @@ $('#cap-gen').addEventListener('click', async () => {
   const toneChip  = r._tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(r._tone)}</span>` : '';
   const subtitle = [voiceChip, toneChip].filter(Boolean).join(' ');
   const assetLabel = r.asset ? ` for ${esc(r.asset)}` : (id ? ` for ${esc(id)}` : ' (hook pool)');
+  const saChip = renderSaRewritesBadge(r._sa_rewrites);
 
   $('#cap-results').innerHTML =
-    `<h4 data-help="Number of caption variants the agent just produced for the chosen asset / voice / tone combo. Each variant below can be edited inline or sent to the Review queue. The voice + tone chips show which recipe was applied." data-help-title="Generated variants" style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem;cursor:help;border-bottom:1px dotted var(--tx-2)">${r.count} variants${assetLabel} ${subtitle}</h4>` +
+    `${saChip}<h4 data-help="Number of caption variants the agent just produced for the chosen asset / voice / tone combo. Each variant below can be edited inline or sent to the Review queue. The voice + tone chips show which recipe was applied." data-help-title="Generated variants" style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem;cursor:help;border-bottom:1px dotted var(--tx-2)">${r.count} variants${assetLabel} ${subtitle}</h4>` +
     (r.variants||[]).map((v, i) => {
       const vVoice = v.voice ? `<span class="meme-chip" style="background:var(--badge-voice-tint-2);color:var(--ac)">${esc(v.voice)}</span>` : '';
       const vTone  = v.tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(v.tone)}</span>` : '';

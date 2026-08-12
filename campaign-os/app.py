@@ -23,7 +23,7 @@ import base64
 import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
@@ -7393,8 +7393,25 @@ def intel_generate_ideas_route():
             unique.append(i)
         unique.sort(key=lambda x: x.get('score', 0), reverse=True)
         top = unique[:n]
+
+        # SA INTELLIGENCE: rewrite US-default units in every idea's title/why/hook.
+        sa_issues: List[str] = []
+        try:
+            from _lib.intelligence import _sa_sanitize
+            for idea in top:
+                for fld in ("title", "why", "hook"):
+                    val = idea.get(fld)
+                    if isinstance(val, str):
+                        new_val, issues = _sa_sanitize(val)
+                        if issues:
+                            sa_issues.extend(issues)
+                            idea[fld] = new_val
+        except Exception as _sa_err:
+            _app_log.debug("SA sanitization in generate_ideas failed: %s", _sa_err)
+
         return jsonify({"ok": True, "ideas": top, "count": len(top),
-                        "ts": _now_iso()}), 200
+                        "ts": _now_iso(),
+                        "_sa_rewrites": sa_issues}), 200
     except Exception as exc:
         _app_log.exception("generate_ideas failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
