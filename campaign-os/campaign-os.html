@@ -358,8 +358,11 @@ a:hover{text-decoration:underline}
 .card:has(> div > .empty:only-child) > div:has(.empty:only-child){display:inline}
 .card:has(> ul > li.empty:only-child) li.empty{font-size:11.5px;color:var(--tx-3);font-style:italic;padding:0;margin:0}
 .card:has(> div > .empty:only-child) .empty{font-size:11.5px;color:var(--tx-3);font-style:italic;padding:0;margin:0}
-/* Empty grid cards must not stretch to row-tallest sibling height — collapse to content height. */
-.card:has(> div > .empty:only-child){align-self:start}
+/* Empty grid cards must not stretch to row-tallest sibling height — collapse to content height.
+   Also promote slim empty banners to a full-width row so they don't sit as tiny stubs
+   alongside tall siblings (e.g. "Missed opportunities" beside "Upsells"+"Bundles"). */
+.card:has(> div > .empty:only-child),
+.card:has(> ul > li.empty:only-child){align-self:start;grid-column:1 / -1}
 /* ─── Today rail (right-rail panel) ───────────────────────────── */
 .today-rail{margin-top:1.25rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:1rem}
 .today-rail-h{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem}

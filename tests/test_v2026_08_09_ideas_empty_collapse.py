@@ -30,12 +30,23 @@ class IdeasEmptyCollapseTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = CAMPAIGN_OS_HTML.read_text(encoding="utf-8")
 
-    def test_align_self_start_rule_present(self):
+    def test_empty_card_collapse_rule_present(self):
+        # As of the 2026-08-12 nightshift fix, the rule now also promotes the
+        # slim empty banner to a full-width row (grid-column:1 / -1) so it
+        # doesn't sit as a tiny stub alongside tall siblings like Upsells /
+        # Bundles. The align-self:start part is what kept it from stretching.
         self.assertIn(
-            ".card:has(> div > .empty:only-child){align-self:start}",
+            ".card:has(> div > .empty:only-child)",
             self.html,
             "Empty-card collapse rule missing — empty Ideas cards will "
             "stretch to row-tallest sibling height again.",
+        )
+        self.assertIn("align-self:start", self.html)
+        self.assertIn(
+            "grid-column:1 / -1",
+            self.html,
+            "Slim empty banner is not promoted to full-width row — "
+            "empty cards will sit as tiny stubs beside tall siblings.",
         )
 
     def test_empty_collapse_block_still_intact(self):
@@ -50,10 +61,7 @@ class IdeasEmptyCollapseTests(unittest.TestCase):
         # break alignment of content-rich cards (Upsells, Bundles, etc.).
         # It must remain scoped via :has(> div > .empty:only-child).
         self.assertNotIn(".card{align-self:start}", self.html)
-        self.assertIn(
-            ".card:has(> div > .empty:only-child){align-self:start}",
-            self.html,
-        )
+        self.assertNotIn(".card{grid-column:1 / -1}", self.html)
 
 
 if __name__ == "__main__":
