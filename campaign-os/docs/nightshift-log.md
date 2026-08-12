@@ -2373,3 +2373,36 @@ Regression test (1 new file, +124/-0): `campaign-os/tests/test_v2026_08_11_no_em
 **Learned:** Em-dash leaks hide in two very different places — JS-set strings (visible briefly during loading) and JS-NEVER-set strings (visible forever). The detection recipe: scan every `<span class="sub">` block, then check whether JS mutates the `id` of that block. If JS never touches it, the literal HTML is what the user sees — and any em-dash in that literal HTML is a real leak. The "sweep the file for em-dashes" approach misses this distinction: it would treat bare loading em-dashes (cosmetic, replaced in 50ms) the same as prose em-dashes (permanent). The sub-block + JS-write test is the correct shape: it lets the loading em-dashes pass while failing on the real leak.
 
 **Asks:** None.
+
+
+## 2026-08-12T07:00Z — fix(favicon): kill /favicon.ico 404 with inline-SVG icon + route + <link>
+
+Pre-flight clean. Picked Priority #6 (visual issue: console-error noise on every page navigation).
+
+Root cause: `app.py` advertised `'/favicon.ico'` in `PUBLIC_ROUTES` but no Flask route existed for it. Every browser navigation logged a console error trying to fetch the favicon. The home SPA and login page also had no `<link rel="icon">`, so the browser fell back to `/favicon.ico` and hit the 404.
+
+Fix (1 route + 2 inline `<link>` tags + 7-test suite, +152/-0):
+
+- `campaign-os/app.py:117` — `/favicon.ico` route returning the Swing Shack amber-flag SVG with `Content-Type: image/svg+xml` and 24h cache. Inlined SVG (no binary asset, fully reversible).
+- `campaign-os/campaign-os.html:6` — `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,...">` so the browser never hits `/favicon.ico` on the home SPA at all.
+- `campaign-os/login.html:6` — same `<link>` so the pre-auth login page stops 404-ing too.
+- `campaign-os/tests/test_v2026_08_12_favicon_route_and_link.py` — 7 tests: route returns 200+SVG, `PUBLIC_ROUTES` still contains `/favicon.ico`, both HTML heads declare the inline `<link>`, exactly one `<link rel="icon">` per file (guards against a regression that adds a SECOND link with `href="/favicon.ico"` and re-introduces the bug), `/logout` still redirects, no em-dash leaked into the SVG.
+
+**Verified (LIVE, authed, Playwright, post-deploy):**
+- LIVE `curl https://swing-shack-dashboard-production.up.railway.app/favicon.ico` → 200, `image/svg+xml; charset=utf-8`.
+- LIVE `curl -L /` and `/login` → both contain `<link rel="icon" type="image/svg+xml" href="data:...">` in `<head>`.
+- Playwright headless Chromium on LIVE `/login`: `icon_links=1`, `fetch('/favicon.ico').then(r => r.status) === 200`, 0 pageerrors, clean console.
+- `/api/health` green throughout (`git_synced:false` is the standard pre-sync lag, not a fault).
+- 7/7 new tests pass; 74/74 pre-existing em-dash tests still pass.
+- Screenshot: `/tmp/co-nightshift/walkthrough_20260812T070017Z.png` — LIVE login page after fix, dark card + amber Sign in button, no favicon 404 in network log.
+
+**Standing rules honored:** SPA-only patch + 1 route; no API contract change; no publish/Postiz touched; no tokens stored in chat; branch stays on `feat/asset-state-engine`; atomic single commit; no force push; no main; regression test added so the fix is CI-locked.
+
+**Next pick:**
+- The remaining ~26 EXPLAINERS blocks still reference 2026-07-30 era card names — cheap text sweep, low urgency but the last cheap em-dash-risk lane.
+- The 8× 404s on `/api/visual-library/.../*.jpg` (pre-existing image-storage drift on Railway volume) — image-library data fix, carryover from multiple prior ticks; not an SPA fix.
+- Home dashboard `Top pages by sessions` card renders paths like `/bookings/146 sessions` with a missing space — single-space fix in `renderRow`, cosmetic.
+
+**Learned:** A `PUBLIC_ROUTES` allowlist entry is not a route — it's a hint to the auth decorator that "this path is safe to skip auth on." If no `@app.route` exists for the path, the allowlist is silently a no-op and the request still 404s. Two visible symptoms (console error from `GET /favicon.ico`, missing tab icon) point to the same one-line root cause: a missing route. The cleanest one-shot fix is BOTH the route (so the request that does happen returns 200) AND the `<link rel="icon">` (so the request doesn't happen in the first place on the home SPA). One without the other leaves one of the two symptoms alive.
+
+**Asks:** None.
