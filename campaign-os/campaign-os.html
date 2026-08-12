@@ -4752,12 +4752,15 @@ function go(sec){
   // instead so the clone brings the explainer along atomically.
   try {
     if(typeof HELP !== 'undefined' && HELP.section){
+      // analyticsMap: which "How to read this data" explainer to stack under
+      // each section. Only sections whose primary content is a single analytics
+      // signal get one. Ideas/Trends are multi-source (bundles + content ideas
+      // + Reddit/news signals) so no single explainer fits — leave them with
+      // their own section explainer only.
       const analyticsMap = {
         'insights': 'ga4',
         'performance': 'ga4',
         'learning': 'meta',
-        'trends': 'meta',
-        'ideas': 'meta',
         'seo': 'seo',
       };
       const mountSec = realSec === 'insights' ? 'performance' : realSec;
@@ -4784,12 +4787,12 @@ function go(sec){
     if(realSec === 'insights') return;
     try {
       if(typeof HELP !== 'undefined' && HELP.section){
+        // Mirror the mount-time analyticsMap above — both must agree or the
+        // post-loadSection re-mount would re-introduce the wrong explainer.
         const analyticsMap = {
           'insights': 'ga4',
           'performance': 'ga4',
           'learning': 'meta',
-          'trends': 'meta',
-          'ideas': 'meta',
           'seo': 'seo',
         };
         const mountSec = realSec === 'insights' ? 'insights' : realSec;
