@@ -613,6 +613,7 @@ main {
         <button class="btn" id="generate-btn">Generate</button>
         <button class="btn btn-secondary" id="compose-only-btn">Preview composed prompt</button>
         <span id="cost-est" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
+        <span id="daily-spend-est" style="color:var(--muted);font-size:11px;margin-left:6px"></span>
       </div>
       <div id="compose-preview-wrap" style="margin-top:14px;display:none">
         <label>Composed prompt (sent to model):</label>
@@ -650,6 +651,18 @@ main {
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Cost confirmation modal (spend discipline — see FLEET_CONTEXT.md) -->
+<div class="modal" id="cost-confirm-modal" style="display:none">
+  <div class="modal-card" style="max-width:440px">
+    <h3 style="margin:0 0 .5rem">Heads up — this render will cost ~$<span id="cost-confirm-amount">?</span></h3>
+    <div id="cost-confirm-body" style="font-size:13.5px;line-height:1.55;color:var(--tx-2)"></div>
+    <div class="row" style="justify-content:flex-end;gap:.5rem;margin-top:1rem">
+      <button class="btn btn-secondary" id="cost-confirm-cancel">Cancel</button>
+      <button class="btn" id="cost-confirm-go">Generate anyway</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────
@@ -988,6 +1001,93 @@ $('compose-only-btn').addEventListener('click', () => {
   updateComposePreview();
 });
 
+// ── Cost discipline (client-side gate) ────────────────────────────
+//   - $0.50+   -> show confirm modal
+//   - $2.00+   -> block (require explicit override)
+//   - $5/day   -> soft cap, warn but allow
+//   - $20/day  -> hard cap, block all generation
+//
+// All amounts are USD. We track spend in localStorage (key: imageLab.dailySpend).
+// This is intentionally client-side only — no backend ledger. If we ever
+// want server-side enforcement, the same numbers apply; just record
+// cost_estimate_usd into a daily JSON file at /api/image/generate.
+const COST_MODEL_PRICES = {
+  // Approximate per-render costs. Update when pricing changes.
+  // gpt-image-1: ~$0.04 for 1024x1024 std, ~$0.08 for hd
+  'gpt-image-1':           { '1024x1024': 0.04, '1024x1536': 0.06, '1536x1024': 0.06, 'auto': 0.04 },
+  'openai/gpt-image-1':    { '1024x1024': 0.04, '1024x1536': 0.06, '1536x1024': 0.06, 'auto': 0.04 },
+  'gpt-5-image-mini':      { '1024x1024': 0.003, '1024x1536': 0.005, '1536x1024': 0.005, 'auto': 0.003 },
+  'openai/gpt-5-image-mini': { '1024x1024': 0.003, '1024x1536': 0.005, '1536x1024': 0.005, 'auto': 0.003 },
+  'gemini-2.5-flash-image':{ '1024x1024': 0.04, '1024x1536': 0.04, '1536x1024': 0.04, 'auto': 0.04 },
+  'google/gemini-2.5-flash-image':{ '1024x1024': 0.04, '1024x1536': 0.04, '1536x1024': 0.04, 'auto': 0.04 },
+  // Unknown / default = $0.05 worst case
+  '__default__':           { '1024x1024': 0.05, '1024x1536': 0.05, '1536x1024': 0.05, 'auto': 0.05 },
+};
+const COST_WARN = 0.50;     // confirm modal threshold
+const COST_BLOCK = 2.00;    // hard-block threshold
+const DAILY_WARN = 5.00;    // soft daily cap
+const DAILY_BLOCK = 20.00;  // hard daily cap
+
+function estimateCost(model, size) {
+  const m = COST_MODEL_PRICES[model] || COST_MODEL_PRICES['__default__'];
+  return m[size] != null ? m[size] : m['auto'];
+}
+
+function getDailySpend() {
+  try {
+    const d = JSON.parse(localStorage.getItem('imageLab.dailySpend') || '{}');
+    const today = new Date().toISOString().slice(0, 10);
+    if (d.date !== today) return 0;
+    return d.spend || 0;
+  } catch { return 0; }
+}
+
+function recordSpend(usd) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const cur = JSON.parse(localStorage.getItem('imageLab.dailySpend') || '{}');
+    const spend = (cur.date === today ? (cur.spend || 0) : 0) + usd;
+    localStorage.setItem('imageLab.dailySpend', JSON.stringify({
+      date: today, spend, last: new Date().toISOString(),
+    }));
+  } catch {}
+}
+
+function updateCostPreview() {
+  const model = $('model').value;
+  const size = $('size').value;
+  const est = estimateCost(model, size);
+  const today = getDailySpend();
+  $('cost-est').textContent = `~$${est.toFixed(3)} this render`;
+  $('cost-est').style.color = est >= COST_BLOCK ? 'var(--red)' : (est >= COST_WARN ? 'var(--amber, #d97706)' : 'var(--muted)');
+  const remaining = Math.max(0, DAILY_BLOCK - today);
+  $('daily-spend-est').textContent = `· $${today.toFixed(2)} today / $${DAILY_BLOCK.toFixed(0)} cap (R${remaining > 0 ? 'remaining' : 'cap hit'})`;
+  $('daily-spend-est').style.color = today >= DAILY_BLOCK ? 'var(--red)' : (today >= DAILY_WARN ? 'var(--amber, #d97706)' : 'var(--muted)');
+}
+
+function showCostConfirm(cost, today, cb) {
+  const modal = $('cost-confirm-modal');
+  $('cost-confirm-amount').textContent = cost.toFixed(3);
+  const remaining = Math.max(0, DAILY_BLOCK - today - cost);
+  const newTotal = today + cost;
+  const afterCap = newTotal >= DAILY_BLOCK;
+  $('cost-confirm-body').innerHTML = `
+    <p style="margin:0 0 .4rem">This is <b>~${(cost / 0.04).toFixed(1)}×</b> the cost of a standard gpt-image-1 1024×1024 render.</p>
+    <p style="margin:0 0 .4rem">You've spent <b>$${today.toFixed(2)}</b> today. After this render: <b>$${newTotal.toFixed(2)}</b>${afterCap ? ` — that hits your $${DAILY_BLOCK.toFixed(0)} daily cap.` : ` ($${remaining.toFixed(2)} left in the cap).`}</p>
+    <p style="margin:.4rem 0 0;color:var(--tx-3);font-size:12px">If you're sure, click Generate anyway. Otherwise switch to a cheaper model in the dropdown above (Nano Banana $0.04 or gpt-5-image-mini $0.003).</p>
+  `;
+  modal.style.display = 'flex';
+  $('cost-confirm-go').onclick = () => { modal.style.display = 'none'; cb(true); };
+  $('cost-confirm-cancel').onclick = () => { modal.style.display = 'none'; cb(false); };
+}
+
+// Wire cost preview to model/size changes
+['model', 'size'].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener('change', updateCostPreview);
+});
+updateCostPreview();  // initial paint
+
 // ── Generate ──────────────────────────────────────────────────────
 $('generate-btn').addEventListener('click', async () => {
   const prompt = $('prompt').value.trim();
@@ -996,6 +1096,18 @@ $('generate-btn').addEventListener('click', async () => {
   const size = $('size').value;
   const model = $('model').value;
   const provider = $('provider').value;
+
+  // ── Cost gate (client-side) ──
+  const estCost = estimateCost(model, size);
+  const todaySpend = getDailySpend();
+  if (todaySpend + estCost > DAILY_BLOCK) {
+    toast(`Daily cap hit: $${todaySpend.toFixed(2)} spent + $${estCost.toFixed(3)} render would exceed $${DAILY_BLOCK.toFixed(0)}. Try again tomorrow or pick a cheaper model.`, true);
+    return;
+  }
+  if (estCost >= COST_WARN) {
+    const proceed = await new Promise(res => showCostConfirm(estCost, todaySpend, res));
+    if (!proceed) return;
+  }
 
   const btn = $('generate-btn');
   btn.disabled = true;
@@ -1044,6 +1156,11 @@ $('generate-btn').addEventListener('click', async () => {
 
     STATE.lastGen = r;
     $('cost-est').textContent = `Cost ~$${(r.cost_estimate_usd || 0).toFixed(3)}`;
+    // Record actual server-confirmed cost in the daily ledger.
+    if (r.cost_estimate_usd && r.cost_estimate_usd > 0) {
+      recordSpend(r.cost_estimate_usd);
+      updateCostPreview();
+    }
 
     renderPreview(r);
     toast('Image generated ✓');
