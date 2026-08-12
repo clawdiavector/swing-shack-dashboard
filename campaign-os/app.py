@@ -7093,6 +7093,28 @@ def intel_index():
 # ─── GENERATION ROUTES — fill the gap between browse-only views and real flow
 # ─── Each route wraps an existing intelligence function with POST/GET + n param.
 
+
+@app.route('/api/intel/sa_context', methods=['GET'])
+def intel_sa_context_route():
+    """GET /api/intel/sa_context — current SA context chip.
+
+    Returns the loadshedding stage, school holiday status, season, public
+    holiday, and a rough ZAR/USD rate. Frontend renders this as a chip in
+    the Ideas/Captions/Hooks pages so Christelle always knows the SA
+    context the AI is operating against.
+
+    Cheap, no auth, safe to call on every page load.
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        from _lib.intelligence import _sa_context
+        return jsonify({"ok": True, **_sa_context()}), 200
+    except Exception as exc:
+        _app_log.exception("sa_context failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @app.route('/api/intel/generate_hooks', methods=['POST', 'GET'])
 def intel_generate_hooks_route():
     """POST/GET /api/intel/generate_hooks — generate N fresh hooks from signals.

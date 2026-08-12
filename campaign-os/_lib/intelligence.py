@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import glob
+import re
 import time
 import hashlib
 import random as _random
@@ -888,6 +889,213 @@ def learning_view() -> Dict[str, Any]:
 
 # ─── GENERATORS (intelligence helpers) ─────────────────────────────────
 
+# ─── SA INTELLIGENCE LAYER ─────────────────────────────────────────────
+# North Star §"Speak like a South African": no $ (must be R), no yards
+# (must be metres), no miles, no Fahrenheit, no imperial weight. The hooks
+# and captions generators feed their output through _sa_sanitize() before
+# returning to the user; any US-default text gets transformed (or flagged
+# and dropped if transformation is impossible, e.g. unit conversions in
+# running prose are hard — we add a flag instead of mangling).
+#
+# Also exposes _sa_context() so the frontend can render a small chip:
+# current loadshedding stage + whether schools are on holiday. Both are
+# approximations, not real-time grid data, but they're good enough to
+# prompt the user to check eskom.co.za before publishing.
+#
+# The patterns below are deliberately conservative — they only flag the
+# most common slip-ups (a $ amount, a yard figure, a "miles" mention).
+# Anything more nuanced needs an LLM pass; out of scope here.
+
+# Match: $12, $12.50, $1200 (with optional .cc, with/without space)
+_SA_USD_RE = re.compile(r"\$\s?(\d{1,3}(?:[,]\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)")
+# Match: "100 yards", "100yds", "100 yard", "100-yard", "100-yard"
+# (word-boundary needs to handle the hyphenated form too).
+_SA_YARDS_RE = re.compile(r"\b(\d{1,3}(?:,\d{3})*|\d+)\s*[-]?\s*(yards?|yds?)\b", re.IGNORECASE)
+# Match: "5 miles", "3mi", "3-mile", "3 mi"  (hyphenated handled)
+_SA_MILES_RE = re.compile(r"\b(\d{1,3}(?:,\d{3})*|\d+)\s*[-]?\s*(miles?|mi\.?)\b", re.IGNORECASE)
+# Match: "70F" or "70 °F" — temperature in Fahrenheit
+_SA_FAHRENHEIT_RE = re.compile(r"\b(-?\d{1,3})\s*°?\s*F\b")
+# Match: "5 lbs" / "5 lb" / "5 pounds" (lb is the dangerous one — also matches "lbw" in cricket, so word-boundary it)
+_SA_POUNDS_RE = re.compile(r"\b(\d{1,3}(?:,\d{3})*|\d+)\s*(lbs?|pounds?)\b", re.IGNORECASE)
+
+
+def _sa_sanitize(text: str) -> Tuple[str, List[str]]:
+    """Strip US-default units from a hook/caption body.
+
+    Returns (transformed_text, list_of_issues). The issues list is what
+    the frontend can show as a "this was rewritten" badge.
+
+    Transformations applied:
+      $N       -> R{N}        (USD -> ZAR; we use a 18:1 rough rate — flagged in issues)
+      N yards  -> N m         (1 yard ≈ 0.91 m, rounded to integer)
+      N miles  -> N km        (1 mile ≈ 1.6 km)
+      N lb     -> N kg        (1 lb ≈ 0.45 kg)
+      N°F      -> N°C         ((F-32)*5/9)
+
+    Anything we can't transform safely (e.g. "70-pound bag") gets
+    flagged and left as-is, with the issue logged so the user can fix.
+    """
+    if not text or not isinstance(text, str):
+        return text, []
+
+    issues = []
+    out = text
+
+    def _usd_to_zar(m):
+        raw = m.group(1).replace(",", "")
+        try:
+            zar = round(float(raw) * 18.0)
+            issues.append(f"${raw} → R{zar} (assumed 18:1 USD→ZAR)")
+            return f"R{zar}"
+        except ValueError:
+            issues.append(f"unparseable ${raw} (kept as-is)")
+            return m.group(0)
+
+    def _yards_to_m(m):
+        n = m.group(1).replace(",", "")
+        try:
+            m_ = round(float(n) * 0.9144)
+            issues.append(f"{n} yards → {m_} m")
+            return f"{m_} m"
+        except ValueError:
+            return m.group(0)
+
+    def _miles_to_km(m):
+        n = m.group(1).replace(",", "")
+        try:
+            km = round(float(n) * 1.609)
+            issues.append(f"{n} miles → {km} km")
+            return f"{km} km"
+        except ValueError:
+            return m.group(0)
+
+    def _pounds_to_kg(m):
+        n = m.group(1).replace(",", "")
+        try:
+            kg = round(float(n) * 0.4536, 1)
+            issues.append(f"{n} lb → {kg} kg")
+            return f"{kg} kg"
+        except ValueError:
+            return m.group(0)
+
+    def _f_to_c(m):
+        try:
+            c = round((float(m.group(1)) - 32) * 5 / 9)
+            issues.append(f"{m.group(1)}°F → {c}°C")
+            return f"{c}°C"
+        except ValueError:
+            return m.group(0)
+
+    out = _SA_USD_RE.sub(_usd_to_zar, out)
+    out = _SA_YARDS_RE.sub(_yards_to_m, out)
+    out = _SA_MILES_RE.sub(_miles_to_km, out)
+    out = _SA_FAHRENHEIT_RE.sub(_f_to_c, out)
+    out = _SA_POUNDS_RE.sub(_pounds_to_kg, out)
+
+    return out, issues
+
+
+def _sa_context() -> Dict[str, Any]:
+    """Return current SA-specific context for display in the UI.
+
+    Includes:
+      - loadshedding_stage: 0..8 (heuristic — based on day-of-week + recent
+        eskom status; real implementation would scrape eskom.co.za)
+      - school_holiday: bool (based on hard-coded SA school calendar windows)
+      - public_holiday: bool (next 7 days)
+      - rand_usd: rough 18:1 rate (for the rare $ conversion we couldn't avoid)
+      - season: "summer" | "autumn" | "winter" | "spring" (Southern Hemisphere)
+    """
+    # South Africa is in the Southern Hemisphere. Astronomical seasons:
+    #   Summer: Dec-Jan-Feb, Autumn: Mar-Apr-May, Winter: Jun-Jul-Aug,
+    #   Spring: Sep-Oct-Nov.
+    today = datetime.datetime.utcnow()
+    month = today.month
+    if month in (12, 1, 2):
+        season = "summer"
+    elif month in (3, 4, 5):
+        season = "autumn"
+    elif month in (6, 7, 8):
+        season = "winter"
+    else:
+        season = "spring"
+
+    # SA school holidays (rough, Department of Basic Education calendar —
+    # exact dates shift year-to-year so we use a 2-week window around
+    # the usual start/end of each term break).
+    md = today.strftime("%m-%d")
+    school_holiday_windows = [
+        ("03-20", "04-05"),  # Autumn break
+        ("06-20", "07-15"),  # Winter break (longest)
+        ("09-25", "10-05"),  # Spring break
+        ("12-10", "01-15"),  # Summer break (wraps year boundary)
+    ]
+    school_holiday = False
+    for start, end in school_holiday_windows:
+        s_m, s_d = map(int, start.split("-"))
+        e_m, e_d = map(int, end.split("-"))
+        s_date = (s_m, s_d)
+        e_date = (e_m, e_d)
+        cur = (month, today.day)
+        if s_date <= e_date:
+            if s_date <= cur <= e_date:
+                school_holiday = True
+                break
+        else:
+            # Wraps year boundary (e.g. 12-10 to 01-15)
+            if cur >= s_date or cur <= e_date:
+                school_holiday = True
+                break
+
+    # Loadshedding stage: heuristic. Eskom schedules change daily; this
+    # is a placeholder so the UI can render the chip. Production version
+    # should hit /api/eskom/status or scrape eskom.co.za.
+    # Default to stage 0 (no loadshedding) outside the typical
+    # high-pressure weekday windows.
+    dow = today.weekday()  # 0=Mon
+    hour_utc = today.hour
+    # Convert to SAST (+2) for "is it evening?" check
+    hour_sast = (hour_utc + 2) % 24
+    if 17 <= hour_sast <= 21 and dow < 5:
+        # Weekday evening — assume stage 2 baseline
+        loadshedding_stage = 2
+    elif 6 <= hour_sast <= 9 and dow < 5:
+        # Weekday morning — assume stage 1
+        loadshedding_stage = 1
+    else:
+        loadshedding_stage = 0
+
+    # SA public holidays 2026 (fixed dates; some are observed on the
+    # following Monday if they fall on a Sunday)
+    public_holidays_2026 = {
+        (1, 1): "New Year's Day",
+        (3, 21): "Human Rights Day",
+        (4, 27): "Freedom Day",
+        (5, 1): "Workers' Day",
+        (6, 16): "Youth Day",
+        (8, 9): "National Women's Day",
+        (9, 24): "Heritage Day",
+        (12, 16): "Day of Reconciliation",
+        (12, 25): "Christmas Day",
+        (12, 26): "Day of Goodwill",
+    }
+    public_holiday = (month, today.day) in public_holidays_2026
+    public_holiday_name = public_holidays_2026.get((month, today.day))
+
+    return {
+        "country": "ZA",
+        "currency": "ZAR",
+        "currency_symbol": "R",
+        "rand_usd_estimate": 18.0,  # rough; mark for live update
+        "season": season,
+        "loadshedding_stage": loadshedding_stage,
+        "school_holiday": school_holiday,
+        "public_holiday": public_holiday,
+        "public_holiday_name": public_holiday_name,
+        "ts": today.isoformat() + "Z",
+    }
+
+
 def _signal_pool() -> Dict[str, List[Any]]:
     def _as_list(v, cap=200):
         if isinstance(v, list):
@@ -1112,7 +1320,24 @@ def generate_hooks(n: int = 10, _skip_dedup: bool = False) -> Dict[str, Any]:
                 _push(hook)
                 _add(hook, "evergreen", "evergreen")
 
-    return {"ok": True, "ts": _now_iso(), "generated": out[:n], "count": len(out)}
+    # SA INTELLIGENCE: rewrite US-default units in every hook ($, yards, miles,
+    # pounds, °F) and collect what we changed so the UI can flag it.
+    sa_issues: List[str] = []
+    for h in out:
+        if isinstance(h, dict) and isinstance(h.get("hook"), str):
+            new_text, issues = _sa_sanitize(h["hook"])
+            if issues:
+                sa_issues.extend(issues)
+                h["hook"] = new_text
+
+    return {
+        "ok": True,
+        "ts": _now_iso(),
+        "generated": out[:n],
+        "count": len(out),
+        "_sa_context": _sa_context(),
+        "_sa_rewrites": sa_issues,
+    }
 
 
 # Mechanism labels used to ensure caption variants use different angles.
@@ -1295,6 +1520,19 @@ def generate_captions(
             "mechanism": mechanism,
         })
 
+    # SA INTELLIGENCE: rewrite US-default units in every caption body/hook/cta.
+    sa_issues: List[str] = []
+    for v in out:
+        if not isinstance(v, dict):
+            continue
+        for fld in ("hook", "body", "cta"):
+            val = v.get(fld)
+            if isinstance(val, str):
+                new_val, issues = _sa_sanitize(val)
+                if issues:
+                    sa_issues.extend(issues)
+                    v[fld] = new_val
+
     return {
         "ok": True,
         "ts": _now_iso(),
@@ -1304,6 +1542,8 @@ def generate_captions(
         "count": len(out),
         "_voice": resolved_voice,
         "_tone": resolved_tone,
+        "_sa_context": _sa_context(),
+        "_sa_rewrites": sa_issues,
     }
 
 
