@@ -8329,8 +8329,19 @@ async function renderPerformance(){
 
   const seo = p.seo;
   const seoRows = [];
-  (seo.rising||[]).slice(0,5).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k)}</div><div class="li-meta">${pill('on','rising')}</div></div></li>`));
-  (seo.falling||[]).slice(0,5).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k)}</div><div class="li-meta">${pill('blocked','falling')}</div></div></li>`));
+  // Rising/falling now return objects ({keyword, current_rank, previous_rank, ...})
+  // since the field-name fix in performance_view(). Pull .keyword out before
+  // escaping so the row title shows the readable term, not "[object Object]".
+  // Quick wins and keywords were already objects, so this just makes the
+  // rising/falling paths match the same shape.
+  (seo.rising||[]).slice(0,5).forEach(k => {
+    const label = (typeof k === 'string') ? k : (k?.keyword || k?.query || k?.title || JSON.stringify(k).slice(0,60));
+    seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(label)}</div><div class="li-meta">${pill('on','rising')}${k && typeof k==='object' && k.current_rank?` · #${k.current_rank} (was #${k.previous_rank||'?'})`:''}</div></div></li>`);
+  });
+  (seo.falling||[]).slice(0,5).forEach(k => {
+    const label = (typeof k === 'string') ? k : (k?.keyword || k?.query || k?.title || JSON.stringify(k).slice(0,60));
+    seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(label)}</div><div class="li-meta">${pill('blocked','falling')}${k && typeof k==='object' && k.current_rank?` · #${k.current_rank} (was #${k.previous_rank||'?'})`:''}</div></div></li>`);
+  });
   (seo.quick_wins||[]).slice(0,3).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k.keyword||k.query||k.title||JSON.stringify(k).slice(0,60))}</div><div class="li-meta">${pill('live','quick win')}${k.position?` · pos ${k.position}`:''}</div></div></li>`));
   if(!seoRows.length && (seo.keywords||[]).length){
     (seo.keywords||[]).slice(0,8).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k.keyword||k.query||k.title||JSON.stringify(k).slice(0,60))}</div>${k.position?`<div class="li-meta">pos ${k.position}${k.volume?' · '+k.volume+' vol':''}</div>`:''}</div></li>`));
