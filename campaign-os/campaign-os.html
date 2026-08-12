@@ -1011,7 +1011,10 @@ a:hover{text-decoration:underline}
         </div>
       </div>
 
-      <!-- Data freshness widget: surfaces stale data hidden behind the rest of the OS -->
+      <!-- Data freshness widget: hidden on the brief by default (it's an
+           admin / fleet-health concern, not a marketing concern). Move it
+           under the Agents & health surface where Christelle + Forge go to
+           see system state. -->
       <div class="card" id="freshness-card" style="margin-top:1rem;display:none" data-help="Per-file age check of every JSON in the workspace's data/ directory. Files older than 14 days show in 'stale'. Files 3x older (42d+) show in 'rotten'. Catches the silent-decay pattern (e.g. competitor tracker going 20d stale without anyone noticing). Refreshes daily at 07:30 SAST." data-help-title="Data freshness">
         <div class="card-h">
           <h3>🧊 Data freshness <span class="help-tip" tabindex="0" role="button" aria-label="What is data freshness?" data-help="Same as the card wrapper above. Hover this icon for the same explanation; click the card body to expand the file list." data-help-title="Data freshness">?</span></h3>
@@ -1188,6 +1191,22 @@ a:hover{text-decoration:underline}
           <button class="btn primary" id="ideas-gen">💡 Generate new ideas</button>
         </div>
       </div>
+
+      <!-- OPPORTUNITY DETECTOR (North Star §"Opportunity Finder")
+           Picks the single highest-impact angle for the active brand, scores
+           it /100, shows the reasoning, and one-click drops it into the
+           campaign builder. Hidden until the data shape supports it. -->
+      <div class="card col-12" id="opportunity-detector" style="display:none;background:linear-gradient(135deg,rgba(99,102,241,0.06),rgba(245,158,11,0.04));border:1px solid var(--ac);box-shadow:0 0 0 3px rgba(99,102,241,0.06)">
+        <div class="card-h" style="display:flex;align-items:center;gap:1rem">
+          <div style="font-size:10px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700"># Opportunity detected</div>
+          <div id="opportunity-detector-score" style="font-size:32px;font-weight:800;color:var(--ac);letter-spacing:-.02em">—</div>
+          <div style="font-size:11px;color:var(--tx-3);margin-top:-12px">/100</div>
+          <h3 id="opportunity-detector-title" style="margin:0;flex:1;font-size:18px">…</h3>
+          <button class="btn primary" id="opportunity-detector-build" style="font-size:13px">🚀 Build campaign</button>
+        </div>
+        <div id="opportunity-detector-why" style="font-size:13px;color:var(--tx-2);margin-top:.5rem;line-height:1.5"></div>
+      </div>
+
       <div class="grid">
         <div class="card col-12"><div class="card-h"><h3 data-help="The latest ideas the agent generated in this session. Most recent at the top. Click any card to jump to the source surface (caption studio, headline bank, etc.) where you can refine or publish." data-help-title="Just generated (this session)" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🆕 Just generated</h3></div><div id="ideas-fresh"></div></div>
         <div class="card col-6"><div class="card-h"><h3 data-help="Full backlog of content ideas for the active brand, sorted by pillar + recency. The number on the right is the total count. Use the search box at the top of the page to filter across all ideas." data-help-title="Content ideas (full backlog)" style="cursor:help;border-bottom:1px dotted var(--tx-2)">💡 Content ideas</h3><span class="h-meta" id="ideas-total">—</span></div><div id="ideas-list"></div></div>
@@ -1918,6 +1937,7 @@ a:hover{text-decoration:underline}
         <div class="card col-7"><div class="card-h"><h3 data-help="Live roster of every agent lane that ran in the last refresh cycle: copy agent, trend catcher, reddit scraper, gbp scraper, audit agent. Each row shows the lane name, last run time, status (ok / failed / queued), and a 1-line why-now. Click a row to open the lane detail page with full output and retry controls." data-help-title="Agent runs">🤖 Agent runs</h3></div><div id="agents-list"></div></div>
         <div class="card col-5"><div class="card-h"><h3 data-help="Site-wide health snapshot: overall status (green / amber / red), confidence score (how fresh the data is), and the per-integration row beneath. Generated timestamp tells you when the snapshot was taken. If the status is amber or red, scan the Integrations card below for the failing connector." data-help-title="System health">🩺 System health</h3></div><div id="agents-health"></div></div>
         <div class="card col-12"><div class="card-h"><h3 data-help="Status of every external integration: Postiz for publishing, GA4 for traffic, Meta for social, YouTube for trends, Reddit for outreach, GBP for local. Each row shows last successful call, latency, and any auth or quota warning. A red row here means downstream features on that integration will silently fail." data-help-title="Integrations">🔌 Integrations</h3></div><div id="agents-int"></div></div>
+        <div class="card col-12"><div class="card-h"><h3 data-help="Per-file age check of every JSON in the workspace's data/ directory. Files older than 14 days show in 'stale'. Files 3x older (42d+) show in 'rotten'. Catches the silent-decay pattern (e.g. competitor tracker going 20d stale without anyone noticing). This card used to live on the home (brief) page but it was hiding the actual marketing recommendation — moved here where fleet + ops issues belong." data-help-title="Data freshness">🧊 Data freshness</h3><span class="muted" id="freshness-summary-agents" style="font-size:12px">—</span></div><div id="freshness-body-agents"></div></div>
       </div>
     </section>
 
@@ -6646,39 +6666,40 @@ async function renderBrief(){
   // Only render the card if there's actually something stale. Quiet systems
   // (all-green) shouldn't add visual noise to a brand-first brief.
   (function renderFreshnessCard(){
-    const card = $('#freshness-card');
-    if(!card) return;
+    // The Data Freshness card used to live on the brief page and block the
+    // marketing recommendation. It's an admin / fleet-health concern, so
+    // we hide it on the brief entirely and surface it on the Agents page
+    // where Christelle + Forge go to see system state.
+    const briefCard = $('#freshness-card');
+    if (briefCard) briefCard.style.display = 'none';
+
     const f = S.freshness;
-    if(!f || !f.ok){
-      card.style.display = 'none';
+    const agentsSummary = $('#freshness-summary-agents');
+    const agentsBody = $('#freshness-body-agents');
+    if(!agentsSummary || !agentsBody) return;
+    if(!f || !f.ok || (f.rotten_count === 0 && f.stale_count === 0)){
+      agentsBody.innerHTML = '<div class="empty" style="color:var(--green)">✓ All data files fresh (under 14d threshold)</div>';
+      agentsSummary.innerHTML = '<span style="color:var(--green);font-weight:600">All fresh</span>';
       return;
     }
     const rotten = f.rotten_count || 0;
     const stale = f.stale_count || 0;
     const fresh = f.fresh_count || 0;
-    if(rotten === 0 && stale === 0){
-      card.style.display = 'none';
-      return;
-    }
     const color = rotten > 0 ? 'var(--red)' : (stale > 0 ? 'var(--org)' : 'var(--green)');
     const headline = rotten > 0
       ? `🚨 ${rotten} file${rotten===1?'':'s'} > 42 days old · ${stale} more between 14-42 days`
       : `⚠️ ${stale} file${stale===1?'':'s'} 14-42 days old (${fresh} fresh)`;
     const top = (f.rotten_files || []).slice(0, 6);
     const mid = (f.stale_files || []).slice(0, 6);
-    card.style.display = 'block';
-    card.style.borderLeft = `3px solid ${color}`;
-    $('#freshness-summary').innerHTML = `<span style="color:${color};font-weight:600">${headline}</span>`;
-    $('#freshness-summary').setAttribute('title', `last freshness sweep: ${f.ts || '?'} · threshold: ${f.stale_days_threshold}d`);
-    $('#freshness-body').innerHTML = `
+    agentsSummary.innerHTML = `<span style="color:${color};font-weight:600">${headline}</span>`;
+    agentsSummary.setAttribute('title', `last freshness sweep: ${f.ts || '?'} · threshold: ${f.stale_days_threshold}d`);
+    agentsBody.innerHTML = `
       ${top.length ? `<div style="margin-bottom:.4rem"><b style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Top rotten (${top.length})</b></div>
       <ul style="margin:.25rem 0 .6rem;padding-left:1.1rem;font-size:12.5px;color:var(--tx-2)">${top.map(x => `<li><code style="background:var(--bg-3);padding:1px 4px;border-radius:3px">${esc(x.path || x.id || '')}</code> · ${x.age_days}d</li>`).join('')}</ul>` : ''}
       ${mid.length ? `<div style="margin-bottom:.4rem"><b style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em">Stale 14-42d (${mid.length})</b></div>
       <ul style="margin:.25rem 0 .6rem;padding-left:1.1rem;font-size:12.5px;color:var(--tx-2)">${mid.map(x => `<li><code style="background:var(--bg-3);padding:1px 4px;border-radius:3px">${esc(x.path || x.id || '')}</code> · ${x.age_days}d</li>`).join('')}</ul>` : ''}
       <div class="muted" style="font-size:11.5px;margin-top:.5rem">Cron: <code>com.swing-shack.freshness-check</code> · daily 07:30 SAST · threshold ${f.stale_days_threshold}d. Adjust via STALE_DAYS env.</div>
     `;
-    // Wire help tooltip if available
-    if(window.HELP && HELP.autoAttach) HELP.autoAttach(card);
   })();
 
   // ─── Today's recommendation — one concrete action with a working button ───
@@ -8041,6 +8062,100 @@ async function renderTrends(){
 async function renderIdeas(){
   if(!S.ideas) S.ideas = await API.get('/api/intel/opportunities');
   const d = S.ideas;
+
+  // ── OPPORTUNITY DETECTOR (North Star §"Opportunity Finder")
+  // Walks every list in the response, picks the one with the strongest
+  // signal (lead_capture_fixes have booking_drop_off_detected evidence;
+  // bundles have price + landing; upsells have margin), and scores it
+  // out of 100. The "why" line is a 1-sentence reason the score is what
+  // it is. The Build Campaign button is the one-click path.
+  try {
+    const allPicks = [];
+    const sources = [
+      ['lead_capture_fixes', 'Funnel leak', 'leak',
+        (it) => (it.effort === 'low' ? 25 : it.effort === 'medium' ? 12 : 0)
+              + (it.evidence === 'booking_drop_off_detected' ? 30 : 0)
+              + (it.expected_outcome ? 20 : 0)],
+      ['landing_fixes', 'Landing page', 'seo',
+        (it) => (it.evidence === 'best_practice' ? 15 : 0)
+              + (it.expected_outcome ? 20 : 0)],
+      ['upsells', 'Upsell', 'upsell',
+        (it) => (it.margin && it.margin > 0.5 ? 30 : 10)
+              + (it.confidence === 'high' ? 25 : 0)
+              + 20],
+      ['bundles', 'Bundle', 'bundle',
+        (it) => (it.confidence === 'high' ? 25 : 0)
+              + (it.operational_fit === 'high' ? 25 : 0)
+              + 15],
+      ['ideas', 'Idea', 'idea',
+        (it) => (it.freshness_score || 0) * 5],
+      ['post_today', 'Post today', 'idea',
+        (it) => (it.freshness_score || 0) * 5],
+      ['this_week', 'This week', 'idea',
+        (it) => (it.freshness_score || 0) * 4],
+    ];
+    for (const [key, label, kind, scoreFn] of sources) {
+      for (const it of (d[key] || [])) {
+        if (typeof it !== 'object' || !it) continue;
+        const s = scoreFn(it);
+        if (s <= 0) continue;
+        allPicks.push({
+          key, label, kind, score: Math.min(100, Math.round(s + 30)),
+          it,
+          why: it.expected_outcome || it.why || it.fix || it.hook ||
+               it.description || it.name || it.title || it.suggested_fix || ''
+        });
+      }
+    }
+    allPicks.sort((a, b) => b.score - a.score);
+    const top = allPicks[0];
+    const detector = $('#opportunity-detector');
+    if (top && top.score >= 40) {
+      $('#opportunity-detector-score').textContent = top.score;
+      $('#opportunity-detector-title').textContent =
+        (top.it.name || top.it.title || top.it.fix || top.it.hook || 'Untitled angle')
+          .toString().slice(0, 100);
+      const whyBits = [];
+      if (top.it.expected_outcome) whyBits.push(top.it.expected_outcome);
+      if (top.it.margin && top.it.margin > 0.5)
+        whyBits.push(`margin ${Math.round(top.it.margin * 100)}%`);
+      if (top.it.evidence && top.it.evidence !== 'best_practice')
+        whyBits.push(`evidence: ${top.it.evidence}`);
+      if (top.it.confidence) whyBits.push(`confidence: ${top.it.confidence}`);
+      if (top.it.effort) whyBits.push(`effort: ${top.it.effort}`);
+      const whyLine = whyBits.length ? whyBits.join(' · ') : (top.why || '');
+      $('#opportunity-detector-why').innerHTML =
+        `<b>${top.label}.</b> ${esc(whyLine)}<br><span class="muted" style="font-size:11.5px">Source: ${top.key}${top.it.idea_id ? ' · ' + esc(top.it.idea_id) : ''}</span>`;
+      const buildBtn = $('#opportunity-detector-build');
+      if (buildBtn) {
+        buildBtn.onclick = () => {
+          // Drop into the campaign builder with this opportunity pre-seeded.
+          // Uses the existing campaign_planner endpoint, which accepts a
+          // brief string and returns a full blueprint. Falls back to
+          // opening the Campaigns page if the API isn't wired.
+          const seed = (top.it.name || top.it.title || top.it.fix || '').toString();
+          goToSection('campaigns');
+          toast(`Building campaign from "${seed.slice(0, 50)}"…`, 'ok');
+          setTimeout(() => {
+            const brief = document.getElementById('camp-brief-input') ||
+                           document.querySelector('[data-camp-brief]');
+            if (brief) {
+              brief.value = seed;
+              brief.focus();
+            }
+          }, 400);
+        };
+      }
+      detector.style.display = 'block';
+    } else {
+      detector.style.display = 'none';
+    }
+  } catch (e) {
+    console.warn('Opportunity detector failed:', e);
+    const detector = $('#opportunity-detector');
+    if (detector) detector.style.display = 'none';
+  }
+
   $('#ideas-total').textContent = (d.ideas||[]).length + ' ideas';
   const renderList = arr => safeList(arr, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
   $('#ideas-list').innerHTML = renderList(d.ideas);
@@ -8363,6 +8478,14 @@ async function renderHooks(){
 }
 $('#hooks-gen').addEventListener('click', async () => {
   const r = await API.get('/api/intel/hooks_generate');
+  if (!r.ok) { toast(r.error || 'Hook generation failed', 'err'); return; }
+  if (!r.generated || !r.generated.length) {
+    // Honest empty state — the dedup cache has all available hooks for today.
+    // Don't pretend we generated something we didn't.
+    $('#hooks-generated').innerHTML = `<div class="empty"><b>All fresh hooks already shown.</b><br>Today's pool has ${r._pool_size || '?'} unique signals — you saw them all.<br>Try tomorrow (the pool resets at midnight) or run <code>scripts/refresh_signals.sh</code> to add more.</div>`;
+    toast('No new hooks available right now', 'ok');
+    return;
+  }
   $('#hooks-generated').innerHTML = safeList(r.generated, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.hook)}</div><div class="li-meta">${esc(it.source||'')} · ${pill(it.kind||'live', it.kind||'live')}</div></div></li>`).join('');
   toast('Generated '+r.count+' fresh hooks');
 });
