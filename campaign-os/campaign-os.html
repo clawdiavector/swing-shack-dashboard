@@ -477,6 +477,24 @@ a:hover{text-decoration:underline}
 
 /* ─── Calendar grid ──────────────────────────────────────────── */
 .cal-hud{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;margin-bottom:1rem}
+/* Calendar pillar strip: inline row of coloured mini-pills under the HUD.
+   Each .cal-pill carries a --pillar-key so the colour comes from the existing
+   pillar CSS vars (theme-aware). The fallback .cal-pill.unspecified is neutral. */
+.cal-pillar-strip{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;margin:-.25rem 0 1rem 0;padding:.4rem .6rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-s);font-size:11px;color:var(--tx-3)}
+.cal-pillar-strip .cal-pill{display:inline-flex;align-items:center;gap:.3rem;padding:3px 8px;border-radius:999px;background:var(--bg-3);color:var(--tx-2);border:1px solid var(--bd);font-weight:600;letter-spacing:.02em}
+.cal-pillar-strip .cal-pill .cal-pill-key{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--pill-key,var(--tx-3))}
+.cal-pillar-strip .cal-pill[data-pillar="equipment"]{--pill-key:var(--pillar-equipment)}
+.cal-pillar-strip .cal-pill[data-pillar="club-fitting"]{--pill-key:var(--pillar-club-fitting)}
+.cal-pillar-strip .cal-pill[data-pillar="coaching"]{--pill-key:var(--pillar-coaching)}
+.cal-pillar-strip .cal-pill[data-pillar="community"]{--pill-key:var(--pillar-community)}
+.cal-pillar-strip .cal-pill[data-pillar="events"]{--pill-key:var(--pillar-events)}
+.cal-pillar-strip .cal-pill[data-pillar="merch"]{--pill-key:var(--pillar-merch)}
+.cal-pillar-strip .cal-pill[data-pillar="practice"]{--pill-key:var(--pillar-practice)}
+.cal-pillar-strip .cal-pill[data-pillar="unspecified"]{--pill-key:var(--tx-3);opacity:.75}
+.cal-pillar-strip .cal-pill.is-zero{opacity:.35;font-style:italic}
+.cal-pillar-strip .cal-pill-label{text-transform:lowercase}
+.cal-pillar-strip .cal-pill-count{color:var(--tx);font-weight:700}
+.cal-pillar-strip .cal-pill-strip-title{margin-right:.5rem;color:var(--tx-2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:10px}
 .cal-hud-card{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-s);padding:.65rem .85rem;text-align:center;transition:all var(--t)}
 .cal-hud-card:hover{border-color:var(--bd-2);background:var(--bg-3)}
 .cal-hud-card.today{border-left:3px solid var(--ac)}
@@ -1187,6 +1205,11 @@ a:hover{text-decoration:underline}
       </details>
       <!-- Calendar HUD: today's workload + overdue count + tomorrow preview -->
       <div class="cal-hud" id="cal-hud"></div>
+      <!-- Calendar pillar strip: shows the distribution of planned posts by pillar
+           across the visible 14-day window. Brand-fallback slots get a neutral pill so
+           Christelle can see at a glance if a pillar is missing from the upcoming queue.
+           data-help anchors an explainer popup; #cal-pillar-strip is wired in renderCalendar. -->
+      <div class="cal-pillar-strip" id="cal-pillar-strip" data-help="Pillar distribution across the 14-day window shown above. Each coloured pill counts how many planned posts fall into that pillar (colours match the left-border colours of the day cells below). The neutral &quot;brand / unspecified&quot; pill counts posts whose caption did not match any of the 6 pillar markers (🏌/🎯/🤝/📅/🛍/🎮) — these are typically brand-fallback captions like &quot;Swing Shack&quot; or older copy that needs pillar hinting." data-help-title="Calendar pillar mix"></div>
       <div class="card">
         <div class="cal-grid" id="cal-grid"></div>
         <div class="cal-duplicate-zone" id="cal-duplicate-zone" data-drop-target="duplicate">
@@ -7838,6 +7861,38 @@ async function renderCalendar(){
       <div class="cal-hud-lbl">📭 Empty days</div>
     </div>
   `;
+  // Pillar distribution strip: count slots per pillar across the visible 14-day
+  // window (respecting the current platform/campaign filter). Renders as a row
+  // of coloured mini-pills under the HUD so the mix is visible at a glance.
+  // Slots with no detected pillar are bucketed as "unspecified" (neutral pill).
+  // The API returns pillar values as human strings ("club fitting", "coaching")
+  // — we normalise to slug keys so the CSS data-pillar attribute stays consistent
+  // with the rest of the calendar pillar colours.
+  const _PILLAR_KEYS = ['equipment','club-fitting','coaching','community','events','merch','practice'];
+  const _pillarSlug = p => {
+    const k = (p || '').toLowerCase().trim().replace(/\s+/g, '-');
+    return _PILLAR_KEYS.includes(k) ? k : '';
+  };
+  const _pillarCounts = {};
+  (data.days || []).forEach(d => (d.slots || []).forEach(s => {
+    if(filterPlatform && s.platform !== filterPlatform) return;
+    if(filterCampaign && (s.campaignName || s.campaignId) !== filterCampaign) return;
+    const slug = _pillarSlug(s.pillar);
+    const key = slug || 'unspecified';
+    _pillarCounts[key] = (_pillarCounts[key] || 0) + 1;
+  }));
+  const _stripOrder = [..._PILLAR_KEYS, 'unspecified'];
+  const _stripLabels = {equipment:'equipment', 'club-fitting':'club fitting', coaching:'coaching', community:'community', events:'events', merch:'merch', practice:'practice', unspecified:'unspecified'};
+  const _stripPills = _stripOrder.map(k => {
+    const n = _pillarCounts[k] || 0;
+    const cls = n === 0 ? 'cal-pill is-zero' : 'cal-pill';
+    return `<span class="${cls}" data-pillar="${k}"><span class="cal-pill-key"></span><span class="cal-pill-label">${esc(_stripLabels[k])}</span><span class="cal-pill-count">${n}</span></span>`;
+  }).join('');
+  $('#cal-pillar-strip').innerHTML = `<span class="cal-pill-strip-title">🔮 Pillar mix</span>${_stripPills}`;
+  // If the strip is empty (zero slots in the window), hide it so we don't
+  // leave a blank card pushing the grid down.
+  const _stripTotal = Object.values(_pillarCounts).reduce((a,b)=>a+b, 0);
+  $('#cal-pillar-strip').style.display = _stripTotal === 0 ? 'none' : '';
   // Word this as "planned" (calendar slots) so it doesn't contradict Publish page's "Scheduled: 0".
   // Calendar counts planned work in the 14-day window; Publish counts items already in Postiz with a future publish time.
   $('#cal-summary').textContent = data.totalScheduled + ' planned in next 14 days · ' + (today?.count || 0) + ' today · see Publish page for Postiz queue';
