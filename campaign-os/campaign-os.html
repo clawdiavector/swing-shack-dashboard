@@ -4818,7 +4818,7 @@ async function renderInsightsV2(){
     sec.dataset.insRenderToken = String(myToken);
     sec.innerHTML = `
       <div class="section-h">
-        <h2 data-help="Plain-English view of what is happening with your marketing. Every card shows the data AND what it means in one short sentence. Green = good signal, yellow = watch, red = needs attention. Built for non-marketers — if you can't read a card in 5 seconds, it's a bug." data-help-title="Insights">📈 Insights <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · layman terms · color-coded</span></h2>
+        <h2 data-help="Plain-English view of what is happening with your marketing. Every card shows the data AND what it means in one short sentence. Green = good signal, yellow = watch, red = needs attention. Built for non-marketers: if you can't read a card in 5 seconds, it's a bug." data-help-title="Insights">📈 Insights <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · layman terms · color-coded</span></h2>
         <span class="sub" id="ins-v2-summary">loading…</span>
         <div class="btn-row" style="margin-left:auto">
           <button class="btn" id="ins-v2-refresh">🔄 Refresh</button>
@@ -8093,7 +8093,7 @@ async function renderIdeas(){
 async function renderPerformance(){
   const [p, e] = await Promise.all([API.get('/api/intel/performance'), API.get('/api/intel/explain')]);
   S.perf = p;
-  $('#insights-strip-txt').innerHTML = (e.insights||[]).slice(0,3).map(i => `<b>${esc((i.kind||'insight').replace('-',' ').replace(/_/g,' '))}:</b> ${esc(i.claim)}`).join(' &nbsp;·&nbsp; ') || 'No insights yet — connect analytics to see what is working';
+  $('#insights-strip-txt').innerHTML = (e.insights||[]).slice(0,3).map(i => `<b>${esc((i.kind||'insight').replace('-',' ').replace(/_/g,' '))}:</b> ${esc(i.claim)}`).join(' &nbsp;·&nbsp; ') || 'No insights yet, connect analytics to see what is working';
 
   $('#perf-ig-posts').textContent = p.instagram?.total_posts || 0;
   $('#perf-ga-sessions').textContent = (p.ga4?.total_sessions || '—').toLocaleString();
