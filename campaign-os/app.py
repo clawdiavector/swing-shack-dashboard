@@ -454,6 +454,45 @@ def health():
     })
 
 
+@app.route('/api/admin/env-debug', methods=['GET'])
+def env_debug():
+    """Debug endpoint: dump which credential env vars the running process can see.
+    Returns the PREFIX + LENGTH of each secret, never the value. Used to
+    verify env-var pickup after Railway env changes.
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    keys_of_interest = [
+        "OPENROUTER_API_KEY",
+        "OPENROUTER_API_KEY_FILE",
+        "OPENAI_API_KEY",
+        "OPENAI_API_KEY_FILE",
+        "CAMPAIGN_OS_IMAGE_PROVIDER",
+        "CAMPAIGN_OS_IMAGE_MODEL",
+        "DATA_DIR",
+        "PORT",
+    ]
+    out = {}
+    for k in keys_of_interest:
+        v = os.environ.get(k, "")
+        if v:
+            out[k] = {"set": True, "length": len(v), "prefix": v[:6] + "…"}
+        else:
+            out[k] = {"set": False}
+    # Also check the canonical file paths
+    file_checks = {}
+    for label, p in [
+        ("DEFAULT_OPENROUTER_TOKEN_FILE", "/Users/fivefriday/.openclaw-instance2/workspace/clients/swing-shack/credentials/openrouter-api.json"),
+    ]:
+        file_checks[label] = {"path": p, "exists": os.path.exists(p)}
+    return jsonify({
+        "ok": True,
+        "env": out,
+        "files": file_checks,
+        "ts": datetime.datetime.utcnow().isoformat() + 'Z',
+    })
+
+
 # ─── What's New (last N nightshift improvements) ─────────────────────────
 # Static list of recent campaign-os improvements. Each tick appends an entry
 # at the top; oldest entries fall off the end. Shown as a "What's new" card
