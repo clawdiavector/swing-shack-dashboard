@@ -7933,13 +7933,18 @@ async function renderSocials(){
       ctaEl.style.display = graphEmpty ? 'block' : 'none';
     }
     if(!posts.length){
-      // Better empty message: if Meta Graph is genuinely disconnected, widening
-      // the range won't help. The connect CTA above carries the full explainer,
-      // so the inline empty card just confirms the situation in one line.
-      const emptyMsg = graphEmpty
-        ? `📷 Meta Graph isn't returning posts yet. Use the <b>Connect Instagram</b> card above to wire the long-lived token (widening the range won't help until the credential lands).`
-        : `No posts in the last ${days} days. Try widening the range.`;
-      grid.innerHTML = `<div class="card col-12"><div class="muted" style="padding:1rem;line-height:1.5">${emptyMsg}</div></div>`;
+      // Empty-state policy: when Meta Graph is genuinely disconnected, the
+      // Connect Instagram CTA above is the primary surface (with the action
+      // buttons + full explainer). Showing a second card below that repeats
+      // "Meta Graph isn't returning posts yet, use the card above" is pure
+      // noise — the CTA already says that more prominently. Suppress the
+      // inline card in that case. When the CTA is hidden (sources ARE wired
+      // but no posts in window), keep the "widen the range" hint.
+      if(graphEmpty){
+        grid.innerHTML = '';
+        return;
+      }
+      grid.innerHTML = `<div class="card col-12"><div class="muted" style="padding:1rem;line-height:1.5">No posts in the last ${days} days. Try widening the range.</div></div>`;
       return;
     }
     grid.innerHTML = posts.map((p, i) => {
