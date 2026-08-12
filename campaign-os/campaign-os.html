@@ -43,6 +43,7 @@
   --pillar-equipment:#f59e0b; --pillar-club-fitting:#f59e0b;
   --pillar-coaching:#3b82f6; --pillar-community:#10b981;
   --pillar-events:#ec4899; --pillar-merch:#a78bfa;
+  --pillar-practice:#06b6d4;
 }
 /* ─── DARK THEME (default) ─────────────────────────────────────── */
 [data-theme="dark"]{
@@ -68,6 +69,7 @@
   --pillar-equipment:#f59e0b; --pillar-club-fitting:#f59e0b;
   --pillar-coaching:#3b82f6; --pillar-community:#10b981;
   --pillar-events:#ec4899; --pillar-merch:#a78bfa;
+  --pillar-practice:#06b6d4;
 }
 /* ─── LIGHT THEME ──────────────────────────────────────────────── */
 [data-theme="light"]{
@@ -93,6 +95,7 @@
   --pillar-equipment:#b45309; --pillar-club-fitting:#b45309;
   --pillar-coaching:#1d4ed8; --pillar-community:#047857;
   --pillar-events:#be185d; --pillar-merch:#6d28d9;
+  --pillar-practice:#0e7490;
 }
 /* Light-theme overrides for tooltip / collapsible-explainers
    (the base .help-pop / .hc-body rules ship with dark hex hardcoded so they're
@@ -126,6 +129,7 @@
     --pillar-equipment:#b45309; --pillar-club-fitting:#b45309;
     --pillar-coaching:#1d4ed8; --pillar-community:#047857;
     --pillar-events:#be185d; --pillar-merch:#6d28d9;
+    --pillar-practice:#0e7490;
   }
 }
 /* Theme switcher chip */
@@ -495,6 +499,7 @@ a:hover{text-decoration:underline}
 .cal-slot.pillar-community{border-left-color:var(--pillar-community)}
 .cal-slot.pillar-events{border-left-color:var(--pillar-events)}
 .cal-slot.pillar-merch{border-left-color:var(--pillar-merch)}
+.cal-slot.pillar-practice{border-left-color:var(--pillar-practice)}
 .cal-slot .cal-slot-name{font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-slot .cal-slot-meta{font-size:10px;color:var(--tx-3);margin-top:2px;display:flex;gap:4px;align-items:center}
 .cal-slot .cal-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
@@ -7653,7 +7658,7 @@ function calSlotHtml(s){
   // Platform icon
   const platIcon = ({instagram:'📷', tiktok:'🎬', facebook:'📘', twitter:'🐦', gmb:'📍'})[s.platform] || '📱';
   // Pillar color tint if no color set — uses CSS classes (theme-aware), no inline hex.
-  const pillarKeys = ['equipment','club-fitting','coaching','community','events','merch'];
+  const pillarKeys = ['equipment','club-fitting','coaching','community','events','merch','practice'];
   const normLabel = (s.pillar || s.brand || s.platform || '').toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'');
   const matchedPillar = pillarKeys.find(k => normLabel === k || normLabel.includes(k));
   const pillarCls = matchedPillar ? ' pillar-' + matchedPillar : '';

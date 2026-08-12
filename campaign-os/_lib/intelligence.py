@@ -537,6 +537,11 @@ def _calendar_color(pillar: Any, brand: Any, platform: Any) -> str:
         # 56 identical cards.
         "equipment": "#f59e0b", "club fitting": "#f59e0b", "club-fitting": "#f59e0b",
         "coaching": "#3b82f6", "community": "#10b981", "events": "#ec4899", "merch": "#a78bfa",
+        # Practice — cyan-500 (#06b6d4). Added so the 3 seed "🎮 Practice" cards
+        # stop falling through to the brand-fallback green and become visually
+        # distinct. Cyan fits the golf-aesthetic (outdoor practice = sky) and
+        # is not used elsewhere in the pillar palette.
+        "practice": "#06b6d4",
     }
     for value in (pillar, brand, platform):
         key = str(value or "").strip().lower()
@@ -555,12 +560,19 @@ _PILLAR_CAPTION_HINTS = (
     ("🤝", "community"),
     ("📅", "events"),
     ("🛍", "merch"),
+    # Practice — used in seed copy on the 2nd line ("...🎮 Practice...").
+    # Before this hint was added, 3 of every 57 calendar slots fell through
+    # to the brand fallback (swing shack green) and visually disappeared
+    # into the Swing Shack brand-fallback cards. The 2nd-line marker is the
+    # emoji 🎮 OR the literal "practice" token; both are matched below.
+    ("🎮", "practice"),
     ("club fitting", "club fitting"),
     ("club-fitting", "club fitting"),
     ("coaching", "coaching"),
     ("community", "community"),
     ("events", "events"),
     ("merch", "merch"),
+    ("practice", "practice"),
     ("equipment", "equipment"),
 )
 
