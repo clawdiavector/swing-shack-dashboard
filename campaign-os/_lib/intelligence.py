@@ -70,10 +70,13 @@ def _campaign_data() -> Dict[str, Any]:
         d = _read_json(p2)
     if d is None:
         d = {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
-    # Brand scoping — uses a thread-local style hint (set by app.py for the duration of a request)
+    # Brand scoping — uses brands.json campaign_ids (NOT the campaign's own
+    # brand_id field, which is unreliable because data-delegation makes
+    # every campaign's brand_id point to swing-shack even when it belongs
+    # to a sub-brand like takomo).
     brand_id = _REQUEST_BRAND_ID
     if brand_id:
-        filtered = {cid: c for cid, c in (d.get('campaigns') or {}).items() if c.get('brand_id') == brand_id}
+        filtered = {cid: c for cid, c in (d.get('campaigns') or {}).items() if _owns_campaign(cid, brand_id)}
         # If the active campaign id is in another brand, fall back to the first matching campaign
         active = d.get('activeCampaignId')
         if active and active not in filtered:
