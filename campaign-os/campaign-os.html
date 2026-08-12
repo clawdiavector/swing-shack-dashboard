@@ -423,6 +423,10 @@ a:hover{text-decoration:underline}
 .li-detail-row strong{color:var(--tx);font-weight:600;font-size:11px;min-width:64px}
 .li-detail-row em{font-style:normal;color:var(--tx-3)}
 .li-detail .li-hook{background:var(--bg-3);border-left:3px solid var(--ac);padding:.35rem .55rem;border-radius:0 4px 4px 0;margin:.4rem 0;font-size:11.5px;color:var(--tx);font-style:italic}
+/* Idea card sub-rows: hook (italic proof line), CTA (actionable), source_reason (why-this-works) */
+.idea-card .idea-hook{font-size:12px;color:var(--tx);font-style:italic;border-left:3px solid var(--ac);padding:.3rem .55rem;background:var(--bg-3);border-radius:0 4px 4px 0;margin:.4rem 0;line-height:1.4}
+.idea-card .idea-cta{font-size:11.5px;color:var(--ac);margin:.25rem 0;font-weight:600}
+.idea-card .idea-reason{font-size:11px;color:var(--tx-3);font-style:italic;margin-top:.2rem;line-height:1.4}
 .li-detail .li-cta{display:inline-flex;align-items:center;gap:.3rem;padding:4px 10px;background:var(--ac);color:var(--bg);border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;margin-top:.4rem}
 .li-detail .li-cta:hover{filter:brightness(1.1)}
 .li-chevron{margin-left:auto;color:var(--tx-3);font-size:10px;transition:transform var(--t);flex-shrink:0;padding-top:2px}
@@ -8337,10 +8341,41 @@ async function renderIdeas(){
   }
 
   $('#ideas-total').textContent = (d.ideas||[]).length + ' ideas';
-  const renderList = arr => safeList(arr, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
-  $('#ideas-list').innerHTML = renderList(d.ideas);
-  $('#ideas-today').innerHTML = renderList(d.post_today);
-  $('#ideas-week').innerHTML = renderList(d.this_week);
+  // Idea cards carry rich metadata (hook, best_cta, source_reason, pillar,
+  // difficulty, format, priority) that the generic itemHtml() helper drops on
+  // the floor — it only surfaces the title + a generic Caption action button.
+  // The hook is the actual asset (the title is just the headline rewrite), and
+  // the source_reason is the "why this works" proof that justifies the pick.
+  // Surface them inline so a glance at the list tells the operator what the
+  // idea IS and WHY it was chosen, not just what the headline says.
+  const renderIdeaCard = i => {
+    const title = esc(i.title || '(untitled)');
+    // Use .idea-hook (scoped) instead of .li-hook so the .li-detail .li-hook
+    // styling doesn't get accidentally inherited.
+    const hook = i.hook ? `<div class="idea-hook">"${esc(i.hook)}"</div>` : '';
+    const pillar = i.topic_cluster ? `<span class="pill draft">${esc(i.topic_cluster.replace(/_/g,' '))}</span>` : '';
+    const format = i.format ? `<span class="pill live">${esc(i.format)}</span>` : '';
+    const difficulty = i.difficulty ? `<span class="pill review" title="Production effort">${esc(i.difficulty)}</span>` : '';
+    const priority = i.priority === 'today' ? `<span class="pill on" title="Highest urgency">📌 today</span>`
+                   : i.priority === 'this-week' ? `<span class="pill draft" title="Batch this week">📅 this week</span>` : '';
+    const cta = i.best_cta ? `<div class="idea-cta" title="Suggested call-to-action">🎯 ${esc(i.best_cta)}</div>` : '';
+    const reason = i.source_reason ? `<div class="idea-reason">💡 ${esc(i.source_reason)}</div>` : '';
+    const copyHook = i.hook ? `data-copy="${esc(i.hook.replace(/"/g,'&quot;'))}"` : '';
+    return `<li class="li has-action idea-card" ${copyHook} onclick="this.classList.toggle('open')">
+      <div class="li-body">
+        <div class="li-title">${title}</div>
+        ${hook}
+        ${cta}
+        <div class="li-meta">${pillar} ${format} ${difficulty} ${priority}</div>
+        ${reason}
+      </div>
+      <div class="li-act"><button class="btn-mini" title="Copy hook text" onclick="event.stopPropagation();navigator.clipboard?.writeText(this.closest('.li').dataset.copy||'');toast('Hook copied','ok')">📋 Copy</button></div>
+    </li>`;
+  };
+  const renderList = (arr, fmt) => safeList(arr, 8).map(fmt === 'idea' ? renderIdeaCard : itemHtml).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-list').innerHTML = renderList(d.ideas, 'idea');
+  $('#ideas-today').innerHTML = renderList(d.post_today, 'idea');
+  $('#ideas-week').innerHTML = renderList(d.this_week, 'idea');
   $('#ideas-missed').innerHTML = renderList(d.missed);
   $('#ideas-upsell').innerHTML = renderList(d.upsells);
   $('#ideas-bundles').innerHTML = renderList(d.bundles);
