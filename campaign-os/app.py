@@ -6,6 +6,7 @@ Data lives on Railway disk. GitHub is backup/version history.
 from __future__ import annotations  # noqa: F401
 
 import os
+import sys
 import json
 import copy
 import datetime
@@ -7108,6 +7109,15 @@ def intel_generate_hooks_route():
         result = generate_hooks(n)
         result['hooks'] = result.get('generated') or result.get('hooks') or []
         result['count'] = len(result['hooks'])
+        # Expose signal pool size for the honest empty state ("no new hooks
+        # available — today's pool had N signals and you saw them all").
+        # Peeks at the signal pool without modifying dedup state.
+        try:
+            from _lib.intelligence import _signal_pool as _sp
+            _pool_size = sum(len(v) for v in _sp().values() if isinstance(v, list))
+        except Exception:
+            _pool_size = 0
+        result['_pool_size'] = _pool_size
         return jsonify(result), 200
     except Exception as exc:
         _app_log.exception("generate_hooks failed")
@@ -7246,63 +7256,109 @@ def intel_generate_ideas_route():
         # Mine missed opportunities + reddit pain + trends
         ideas = []
         opp = opportunities_view() or {}
-        for m in (opp.get('missed') or [])[:20]:
-            if not isinstance(m, dict):
-                continue
-            if pillar and m.get('pillar') and m.get('pillar') != pillar:
-                continue
-            # Build a real, human title from the missed-opportunity shape
-            topic = m.get('topic') or 'this angle'
-            sug = m.get('suggested_fix') or m.get('suggestion') or ''
-            base_title = f"Rework \"{topic}\" · there's untapped reach here"
-            if isinstance(sug, str) and len(sug) > 10:
-                # use the suggested_fix as the why, summarise for title
-                base_title = f"Follow-up: {topic.title()} (IG proof {m.get('ig_score', '?')})"
-            ideas.append({
-                "title": base_title[:120],
-                "why": m.get('why') or m.get('suggestion') or 'High-impact gap — strong signal with no current content',
-                "hook": m.get('hook'),
-                "source_type": "missed_opportunity",
-                "score": float(m.get('ig_score', 7) or 7),
-                "pillar": m.get('pillar') or 'general',
-                "platform": platform,
-            })
+        # The opportunities_view dict has many idea lists (ideas, post_today,
+        # this_week, missed, bundles, upsells, reels, lead_capture_fixes,
+        # landing_fixes). The old code only read `missed` which is always
+        # empty on swing-shack. We pull from every non-empty idea pool now
+        # so Generate new ideas always has something to show.
+        for src in ("missed", "ideas", "post_today", "this_week",
+                    "reels", "upsells", "bundles", "lead_capture_fixes",
+                    "landing_fixes"):
+            for m in (opp.get(src) or [])[:20]:
+                if not isinstance(m, dict):
+                    continue
+                if pillar and m.get('pillar') and m.get('pillar') != pillar:
+                    continue
+                title = (m.get('title') or m.get('name') or m.get('idea_id')
+                         or m.get('fix_id') or m.get('bundle_id') or
+                         m.get('topic') or '').strip()
+                if not title:
+                    continue
+                why = (m.get('why') or m.get('suggestion') or
+                       m.get('fix') or m.get('hook') or
+                       m.get('description') or
+                       'High-impact angle for the active brand')
+                hook = m.get('hook') or m.get('best_cta')
+                # Score: numeric fields get cast; string confidence like
+                # 'high'/'medium'/'low' get a fixed number; else 7.
+                raw_score = m.get('freshness_score')
+                if raw_score is None:
+                    raw_score = m.get('confidence')
+                if isinstance(raw_score, (int, float)):
+                    score = float(raw_score)
+                elif isinstance(raw_score, str):
+                    score = {'high': 9.0, 'medium': 7.0, 'low': 5.0}.get(
+                        raw_score.strip().lower(), 7.0
+                    )
+                else:
+                    score = 7.0
+                ideas.append({
+                    "title": title[:120],
+                    "why": str(why)[:240],
+                    "hook": str(hook)[:120] if hook else None,
+                    "source_type": f"opportunity_{src}",
+                    "score": score,
+                    "pillar": m.get('pillar') or m.get('category') or 'general',
+                    "platform": platform,
+                })
 
-        # reddit pain points (if fewer than n so far)
-        reddit = reddit_outreach() or {}
-        for r in (reddit.get('pain_points') or reddit.get('items') or [])[:20]:
-            if not isinstance(r, dict):
-                continue
-            title = r.get('title') or r.get('pain_point') or r.get('summary') or ''
-            if not title:
-                continue
-            ideas.append({
-                "title": title[:120],
-                "why": r.get('why') or r.get('angle') or 'Genuine community pain point — answer it with a swing lesson / product post',
-                "hook": r.get('hook') or (title[:80] if title else None),
-                "source_type": "reddit",
-                "score": 7.5,
-                "pillar": 'community',
-                "platform": platform,
-            })
+        # reddit pain points (defensive: if endpoint errors, skip rather than crash)
+        try:
+            reddit = reddit_outreach() or {}
+            for r in (reddit.get('pain_points') or reddit.get('items') or
+                      reddit.get('threads') or [])[:20]:
+                if not isinstance(r, dict):
+                    continue
+                title = r.get('title') or r.get('pain_point') or r.get('summary') or r.get('topic') or ''
+                if not title:
+                    continue
+                ideas.append({
+                    "title": title[:120],
+                    "why": r.get('why') or r.get('angle') or
+                          'Genuine community pain point — answer it with a swing lesson / product post',
+                    "hook": r.get('hook') or (title[:80] if title else None),
+                    "source_type": "reddit",
+                    "score": 7.5,
+                    "pillar": 'community',
+                    "platform": platform,
+                })
+        except Exception:
+            pass
 
-        # trends — convert into ideas
-        tr = trend_catcher() or {}
-        for t in (tr.get('trends') or tr.get('items') or [])[:10]:
-            if not isinstance(t, dict):
-                continue
-            title = t.get('title') or t.get('trend') or t.get('name') or ''
-            if not title:
-                continue
-            ideas.append({
-                "title": f"Capitalise on: {title[:80]}",
-                "why": f"Trending topic (heat={t.get('heat', t.get('score', '?'))}) · ride the wave before it cools",
-                "hook": None,
-                "source_type": "trend",
-                "score": 8.0,
-                "pillar": 'events' if 'event' in title.lower() else 'community',
-                "platform": platform,
-            })
+        # trends — convert into ideas. The trend_catcher endpoint returns
+        # competitor_changes / youtube / golf_news / reddit (all lists),
+        # not a flat "trends" or "items" key. Walk every list.
+        try:
+            tr = trend_catcher() or {}
+            for src in ("trends", "items", "youtube", "golf_news",
+                        "competitor_changes", "reddit"):
+                for t in (tr.get(src) or [])[:10]:
+                    if not isinstance(t, dict):
+                        continue
+                    title = (t.get('title') or t.get('trend') or
+                             t.get('name') or t.get('topic') or
+                             t.get('change') or '')
+                    if not title:
+                        continue
+                    # Build a heat number safely
+                    heat = t.get('heat')
+                    if heat is None:
+                        heat = t.get('score')
+                    if heat is None:
+                        heat = t.get('opportunity_level')
+                    heat_str = str(heat) if heat is not None else '?'
+                    ideas.append({
+                        "title": f"Capitalise on: {title[:80]}",
+                        "why": (f"Trending {src} (heat={heat_str}). "
+                                f"Ride the wave while the conversation is hot."),
+                        "hook": None,
+                        "source_type": f"trend_{src}",
+                        "score": 8.0 if src == "competitor_changes" else 7.5,
+                        "pillar": 'events' if 'event' in title.lower() else 'community',
+                        "platform": platform,
+                    })
+        except Exception:
+            pass
 
         # dedupe by title, sort by score desc, take top n
         seen = set()

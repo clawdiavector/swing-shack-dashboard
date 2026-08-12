@@ -908,21 +908,65 @@ def _signal_pool() -> Dict[str, List[Any]]:
                             out.append({"key": k, "value": it})
             return out
         return []
+    # Helper: read a JSON file, then try a sequence of keys (so a list
+    # nested under 'foo' or 'foo.bar' or 'foo.changes' is found whichever
+    # path the writer used).  Returns [] if none of the keys are lists.
+    def _read_with_keys(filename, *key_paths):
+        d = _read_json(os.path.join(DATA_DIR, filename)) or {}
+        if not isinstance(d, dict):
+            return []
+        for path in key_paths:
+            # Normalise — paths can be 'a.b.c' (dotted) or 'a' (single).
+            # The "for seg in path" form would iterate characters of a
+            # string, which silently returned [] for every call.
+            if isinstance(path, str):
+                segs = path.split('.')
+            else:
+                segs = list(path)
+            v = d
+            ok = True
+            for seg in segs:
+                if isinstance(v, dict) and seg in v:
+                    v = v[seg]
+                else:
+                    ok = False
+                    break
+            if ok and isinstance(v, list) and v:
+                return v[:200]
+        return []
     return {
-        "reddit_pain_points": _as_list((((_read_json(os.path.join(DATA_DIR, "reddit-opportunities.json")) or {}).get("opportunities", [])) or [])),
-        "golf_news": _as_list((((_read_json(os.path.join(DATA_DIR, "golf-news.json")) or {}).get("news", [])) or [])),
-        "youtube_trends": _as_list((((_read_json(os.path.join(DATA_DIR, "youtube-trends.json")) or {}).get("trending_themes", [])) or [])),
-        "youtube_ideas": _as_list((((_read_json(os.path.join(DATA_DIR, "youtube-ideas.json")) or {}).get("ideas", [])) or [])),
-        "competitor_changes": _as_list((((_read_json(os.path.join(DATA_DIR, "competitor-tracker.json")) or {}).get("changes", [])) or [])),
-        "missed_opportunities": _as_list((((_read_json(os.path.join(DATA_DIR, "missed-opportunities.json")) or {}).get("opportunities", [])) or [])),
-        "faq_opportunities": _as_list((((_read_json(os.path.join(DATA_DIR, "faq-opportunities.json")) or {}).get("faqs", [])) or [])),
-        "forum_opportunities": _as_list((((_read_json(os.path.join(DATA_DIR, "forum-opportunities.json")) or {}).get("opportunities", [])) or [])),
-        "reddit_trends": _as_list((((_read_json(os.path.join(DATA_DIR, "reddit-trends.json")) or {}).get("trends", [])) or [])),
-        "reddit_replies": _as_list((((_read_json(os.path.join(DATA_DIR, "reddit-replies.json")) or {}).get("replies", [])) or [])),
+        # reddit_opportunities.json uses schema 'opportunities' (correct)
+        "reddit_pain_points": _read_with_keys(
+            "reddit-opportunities.json", "opportunities", "pain_points", "items"),
+        # golf-news.json uses 'news' (empty today, but try 'items' too)
+        "golf_news": _read_with_keys("golf-news.json", "news", "items", "articles"),
+        # youtube-trends.json has trending_themes (current) — try alternatives
+        "youtube_trends": _read_with_keys(
+            "youtube-trends.json", "trending_themes", "themes", "trends", "videos"),
+        # youtube-ideas.json has ideas (older) and by_format (newer)
+        "youtube_ideas": _read_with_keys(
+            "youtube-ideas.json", "ideas", "by_format.ideas", "items"),
+        # competitor-tracker.json has summary.changes (newer) or changes (older)
+        "competitor_changes": _read_with_keys(
+            "competitor-tracker.json", "summary.changes", "changes", "items"),
+        # missed-opportunities.json is MISSING from data/; fall back to
+        # opportunity-miner output if it exists
+        "missed_opportunities": _read_with_keys(
+            "missed-opportunities.json", "opportunities", "items", "missed"),
+        "faq_opportunities": _read_with_keys(
+            "faq-opportunities.json", "faqs", "items", "opportunities"),
+        "forum_opportunities": _read_with_keys(
+            "forum-opportunities.json", "opportunities", "items"),
+        "reddit_trends": _read_with_keys(
+            "reddit-trends.json", "trends", "items"),
+        "reddit_replies": _read_with_keys(
+            "reddit-replies.json", "replies", "items"),
         "seo_audit": [(_read_json(os.path.join(DATA_DIR, "seo-audit.json")) or {})],
         "seo_rankings": [(_read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {})],
-        "local_opportunities": _as_list((((_read_json(os.path.join(DATA_DIR, "offer-opportunities.json")) or {}).get("offers", [])) or [])),
-        "seasonal_opportunities": _as_list((((_read_json(os.path.join(DATA_DIR, "merchandising-board.json")) or {}).get("sections", [])) or [])),
+        "local_opportunities": _read_with_keys(
+            "offer-opportunities.json", "offers", "items"),
+        "seasonal_opportunities": _read_with_keys(
+            "merchandising-board.json", "sections", "items"),
     }
 
 
@@ -939,13 +983,17 @@ def _used_hooks() -> List[str]:
     return [h for h in used if isinstance(h, str)][:20]
 
 
-def generate_hooks(n: int = 10) -> Dict[str, Any]:
+def generate_hooks(n: int = 10, _skip_dedup: bool = False) -> Dict[str, Any]:
     """Build hook ideas from signals, excluding recently used hooks for diversity.
 
     A per-process cache keyed by today's date prevents the same hooks from
     being regenerated within the same process lifetime (e.g. during a test run
     or rapid API calls). The campaign-data.json `used_hooks` array provides
     cross-process exclusion.
+
+    Pass `_skip_dedup=True` to bypass the dedup cache. Used by the caption
+    generator, which needs raw hook material (a hook already shown today is
+    still good input for a new caption variant).
     """
     pool = _signal_pool()
     out = []
@@ -959,6 +1007,8 @@ def generate_hooks(n: int = 10) -> Dict[str, Any]:
     recent_set = set(recent)
 
     def _is_fresh(h: str) -> bool:
+        if _skip_dedup:
+            return True
         h_lower = h.lower()
         for u in used:
             if u.lower() == h_lower:
@@ -970,11 +1020,13 @@ def generate_hooks(n: int = 10) -> Dict[str, Any]:
 
     def _push(h: str):
         """Track a hook string for deduplication (does NOT append to out)."""
+        if _skip_dedup:
+            return
         recent_set.add(h)
         recent.append(h)
-        if len(recent) > 40:
+        if len(recent) > 200:
             # Keep cache bounded.
-            recent[:] = recent[-40:]
+            recent[:] = recent[-200:]
 
     def _add(h: str, source: str, kind: str):
         """Add a hook dict to the output list."""
@@ -1112,9 +1164,25 @@ def generate_captions(
     seed_bytes = hashlib.sha256(seed_base.encode()).digest()
     rng = _random.Random(int.from_bytes(seed_bytes[:4], "big"))
 
-    pool = generate_hooks(max(3, n)).get("generated", [])
+    # Hook pool. Captions don't care about freshness dedup the way the
+    # hook generator does — a hook that's been generated today is still
+    # perfectly good raw material for a caption variant. We use the full
+    # pool so the captions generator doesn't silently produce 0 variants
+    # once the hook dedup cache is full.
+    pool_raw = generate_hooks(20, _skip_dedup=True).get("generated", [])
+    if not pool_raw:
+        # Last-resort fallback so the button is never silent.
+        pool_raw = [
+            {"hook": "Your clubs might be costing you shots."},
+            {"hook": "Book a TrackMan session and find out."},
+            {"hook": "Indoor golf in JHB beats the range."},
+            {"hook": "Custom fitting changes the game."},
+            {"hook": "Get the data, then make the call."},
+            {"hook": "Why guess when you can measure?"},
+            {"hook": "Swing Shack makes improvement measurable."},
+        ]
     # Shuffle the pool with the seeded RNG so order varies per call.
-    shuffled_pool = list(pool)
+    shuffled_pool = list(pool_raw)
     rng.shuffle(shuffled_pool)
 
     name = (asset.get("name", "") or "") if asset else ""
