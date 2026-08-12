@@ -470,6 +470,20 @@ a:hover{text-decoration:underline}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--tx-2)}
 .btn.ghost:hover{background:var(--bg-3);color:var(--tx)}
 .btn-row{display:flex;gap:.5rem;flex-wrap:wrap}
+/* ── Stale-filter chip — visual urgency when the rotting pile is non-zero.
+   Uses the yellow (--yel) that the age pills already use so the colour
+   language stays consistent across the page (yellow = needs attention). */
+.btn.stale-filter .stale-count{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;margin-left:.15rem;
+  border-radius:9px;background:var(--bg-3);color:var(--tx-2);
+  font-size:11px;font-weight:700;line-height:1
+}
+.btn.stale-filter.has-stale{
+  color:var(--yel);border-color:var(--yel);background:rgba(255,196,0,.08)
+}
+.btn.stale-filter.has-stale .stale-count{background:var(--yel);color:#1a1500}
+.btn.stale-filter.has-stale:hover{background:rgba(255,196,0,.16)}
 
 /* ─── Modal ──────────────────────────────────────────────────── */
 .modal-bg{position:fixed;inset:0;background:var(--scrim);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:100;padding:2rem}
@@ -1100,13 +1114,14 @@ a:hover{text-decoration:underline}
     <!-- ── REVIEW ────────────────────────────────────────── -->
     <section class="section" id="sec-review">
       <div class="section-h">
-        <h2 data-help="The inbox for every draft the agents produced. Click any row to open the review modal where you can approve, reject, or send back for revision. Approve sends it to the Publishing pipeline below; reject archives it. Filter pills (All, Pending, Approved, Rejected) keep the queue narrow when it grows past a few dozen rows. Empty state means the inbox is clean and every draft has been actioned." data-help-title="Review queue">Review queue</h2>
+        <h2 data-help="The inbox for every draft the agents produced. Click any row to open the review modal where you can approve, reject, or send back for revision. Approve sends it to the Publishing pipeline below; reject archives it. Filter pills (All, Pending, Approved, Rejected, Stale) keep the queue narrow when it grows past a few dozen rows. The Stale pill shows every draft older than 7 days so you can triage the rotting pile without scrolling. Empty state means the inbox is clean and every draft has been actioned." data-help-title="Review queue">Review queue</h2>
         <span class="sub" id="review-summary">—</span>
         <div class="btn-row" style="margin-left:auto">
           <button class="btn ghost" data-rfilter="all">All</button>
           <button class="btn ghost" data-rfilter="pending">Pending</button>
           <button class="btn ghost" data-rfilter="approved">Approved</button>
           <button class="btn ghost" data-rfilter="rejected">Rejected</button>
+          <button class="btn ghost stale-filter" data-rfilter="stale" data-help="Show only drafts older than 7 days. Drafts rot quietly in this queue (no reminders), so this filter is the fastest way to triage the backlog. Pairs with the colour-coded age pill on every row (green fresh · yellow stale · red stale 30d+)." data-help-title="Stale only">🕰️ Stale <span id="review-stale-count" class="stale-count">0</span></button>
         </div>
       </div>
       <div class="card">
@@ -7043,14 +7058,30 @@ async function renderReview(){
   // approved/rejected rows have their own age semantics (approval age, not
   // last-edit age) and aren't the bottleneck right now.
   const _now = Date.now();
-  const _stalePending = (r.pending || []).filter(x => {
-    if(!x.updatedAt) return false;
+  const _isStale = (x) => {
+    if(!x || !x.updatedAt) return false;
     const t = new Date(x.updatedAt).getTime();
     return !isNaN(t) && (_now - t) > 7 * 86400000;
-  }).length;
+  };
+  const _stalePending = (r.pending || []).filter(_isStale).length;
   if(_stalePending > 0 && $('#review-summary')){
     $('#review-summary').textContent = `${r.summary} · ${_stalePending} stale (>7d)`;
   }
+  // Stale badge on the Stale filter pill — drives the count without
+  // duplicating the summary line. Hides the badge at 0 so a clean inbox
+  // doesn't shout.
+  const _staleAll = (r.pending || []).filter(_isStale).length
+    + (r.approved || []).filter(_isStale).length
+    + (r.rejected || []).filter(_isStale).length;
+  const _staleBadge = $('#review-stale-count');
+  if (_staleBadge) {
+    _staleBadge.textContent = _staleAll;
+    _staleBadge.style.display = _staleAll > 0 ? '' : 'none';
+  }
+  // Yellow tint on the Stale chip when there's actually something stale —
+  // visual urgency so it doesn't blend in with the other ghost pills.
+  const _staleBtn = document.querySelector('[data-rfilter="stale"]');
+  if (_staleBtn) _staleBtn.classList.toggle('has-stale', _staleAll > 0);
   const renderRow = x => {
     const safeId = esc(x.assetId || '');
     const safeCid = esc(x.campaignId || '');
@@ -7065,6 +7096,9 @@ async function renderReview(){
     // first — the review queue showed 41 rows that all looked identical,
     // 35 of which were 30+ days old.
     const agePill = reviewAgePill(x.updatedAt);
+    // data-stale flag is the source of truth for the new "Stale" filter
+    // button. Mirrors the 7d threshold so behaviour stays consistent.
+    const rowStale = _isStale(x) ? '1' : '0';
     // Pending rows get "Approve + Schedule" as the default — most common action.
     // Approved rows get an explicit "Put on calendar" button.
     // Scheduled rows get "View in calendar" + "Archive".
@@ -7077,7 +7111,7 @@ async function renderReview(){
       ? esc(x.caption || x.issue || x.reason)
       : `<span class="muted">🖼️ Image asset · click to preview</span>`;
     return `
-    <div class="review" data-aid="${safeId}" data-cid="${safeCid}">
+    <div class="review" data-aid="${safeId}" data-cid="${safeCid}" data-stale="${rowStale}">
       <div class="review-cap" onclick="openReview('${safeCid}','${safeId}')" style="cursor:pointer">
         <div class="review-cap-t">${safeName} <span class="muted">· ${prettyCampaign}</span>${prettyBrand ? ` <span class="pill muted" style="font-size:10px;padding:1px 6px">${prettyBrand}</span>` : ''}</div>
         <div class="review-cap-x">${previewLine}</div>
@@ -7283,11 +7317,48 @@ window.reviewScheduleNow = async (cid, aid) => {
 };
 $$('[data-rfilter]').forEach(b => b.addEventListener('click', () => {
   const f = b.dataset.rfilter;
+  // Sync visual "active" state on the filter row so Christelle can see
+  // which view she's on at a glance — the previous handler hid cards
+  // without marking the chosen button.
+  $$('[data-rfilter]').forEach(ob => {
+    ob.classList.toggle('active', ob.dataset.rfilter === f);
+    ob.classList.toggle('primary', ob.dataset.rfilter === f);
+  });
+  if (f === 'stale') {
+    // Show every card (pending/approved/rejected) but only show stale
+    // rows inside each one. Mixed-state filter — different from the
+    // All/Pending/Approved/Rejected cards-only filter.
+    $$('.card', $('#sec-review')).forEach(card => {
+      // Hide the entire card if it has no stale rows left visible.
+      // Otherwise empty-state placeholders ("No assets pending review")
+      // would compete with the filtered view.
+      const staleRows = $$('.review[data-stale="1"]', card).length;
+      card.style.display = staleRows > 0 ? '' : 'none';
+      $$('.review', card).forEach(row => {
+        row.style.display = (row.dataset.stale === '1') ? '' : 'none';
+      });
+    });
+    return;
+  }
   $$('.card', $('#sec-review')).forEach((card, i) => {
-    if(f === 'all') card.style.display = '';
-    else if(f === 'pending' && i === 0) card.style.display = '';
-    else if(f === 'approved' && i === 1) card.style.display = '';
-    else if(f === 'rejected' && i === 2) card.style.display = '';
+    if(f === 'all') {
+      card.style.display = '';
+      // Also restore row visibility — the "Stale" filter hides rows
+      // individually, so leaving rows hidden here would orphan them.
+      $$('.review', card).forEach(row => { row.style.display = ''; });
+    }
+    else if(f === 'pending' && i === 0) {
+      card.style.display = '';
+      $$('.review', card).forEach(row => { row.style.display = ''; });
+    }
+    else if(f === 'approved' && i === 1) {
+      card.style.display = '';
+      $$('.review', card).forEach(row => { row.style.display = ''; });
+    }
+    else if(f === 'rejected' && i === 2) {
+      card.style.display = '';
+      $$('.review', card).forEach(row => { row.style.display = ''; });
+    }
     else if(i !== (f === 'pending' ? 0 : f === 'approved' ? 1 : 2)) card.style.display = 'none';
   });
 }));
