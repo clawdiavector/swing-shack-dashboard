@@ -1719,24 +1719,57 @@ def postiz_overview() -> Dict[str, Any]:
 
     The summary string used to report raw totals (57 in queue / 57 published) while
     the client only renders the first 30 queue + 20 published cards, so the header
-    lied to the user — "Publishing refs: 1. Queue: 57. Scheduled: 0. Published: 57."
+    lied to the user - "Publishing refs: 1. Queue: 57. Scheduled: 0. Published: 57."
     contradicted the card counts it sat above. The summary now mirrors the slice
     the client renders and adds a "(N total)" suffix when the visible slice is
     shorter than the full corpus. Single source of truth = the same slice logic
     used in `queue[:30]` / `published[:20]` below.
+
+    Dedup invariant (v2026-08-13): publish-queue.json was historically never
+    cleaned up when items shipped - every `published_dry` item also sat in
+    `queued`. That made "Drafts" + "Published" columns render the same items
+    twice. We now partition by terminal state so each item_id appears in
+    exactly one bucket. Source of truth for "shipped" is
+    `published-items.json` - anything with a publishStatus in that file's
+    `published` list is excluded from `queued` and `scheduled`.
     """
-    refs = _read_json(os.path.join(DATA_DIR, "publishing-references.json")) or {}
-    queue = _read_json(os.path.join(DATA_DIR, "publish-queue.json")) or {}
+    refs = _read_json(_runtime_data_file("publishing-references.json")) or {}
+    queue = _read_json(_runtime_data_file("publish-queue.json")) or {}
     items = queue.get("queued", []) if isinstance(queue, dict) else []
-    sched = _read_json(os.path.join(DATA_DIR, "scheduled-items.json")) or {}
-    published = _read_json(os.path.join(DATA_DIR, "published-items.json")) or {}
+    sched = _read_json(_runtime_data_file("scheduled-items.json")) or {}
+    published = _read_json(_runtime_data_file("published-items.json")) or {}
     queue_all = items if isinstance(items, list) else []
     sched_all = (sched.get("scheduled", []) if isinstance(sched, dict) else [])
     pub_all = (published.get("published", []) if isinstance(published, dict) else [])
     pub_total_from_file = (published.get("total", 0) if isinstance(published, dict) else 0)
+    # Build the set of shipped item_ids so we can exclude them from queue +
+    # scheduled. An item_id may live under several keys depending on writer.
+    shipped_ids = set()
+    for it in pub_all:
+        if not isinstance(it, dict):
+            continue
+        for k in ("id", "item_id", "asset_id", "assetId", "publish_id", "publishId"):
+            v = it.get(k)
+            if v:
+                shipped_ids.add(str(v))
+                break
+    def _filter_unshipped(items_list):
+        out = []
+        for it in items_list:
+            if not isinstance(it, dict):
+                continue
+            for k in ("id", "item_id", "asset_id", "assetId", "publish_id", "publishId"):
+                v = it.get(k)
+                if v and str(v) in shipped_ids:
+                    break
+            else:
+                out.append(it)
+        return out
+    queue_all_unshipped = _filter_unshipped(queue_all)
+    sched_all_unshipped = _filter_unshipped(sched_all)
     # What the client actually renders (mirrors campaign-os.html:7521-7523):
-    queue_visible = queue_all[:30]
-    sched_visible = sched_all[:30]
+    queue_visible = queue_all_unshipped[:30]
+    sched_visible = sched_all_unshipped[:30]
     pub_visible = pub_all[:20]
     # Use len(pub_visible) so the summary always matches the rendered card count;
     # the legacy `published.get('total')` overcounted by including non-published entries.
@@ -1749,18 +1782,27 @@ def postiz_overview() -> Dict[str, Any]:
         "ts": _now_iso(),
         "summary": (
             f"Publishing refs: {refs.get('count', 0)}. "
-            f"Queue: {_fmt(queue_visible, len(queue_all))}. "
-            f"Scheduled: {_fmt(sched_visible, len(sched_all))}. "
+            f"Queue: {_fmt(queue_visible, len(queue_all_unshipped))}. "
+            f"Scheduled: {_fmt(sched_visible, len(sched_all_unshipped))}. "
             f"Published: {_fmt(pub_visible, max(len(pub_all), pub_total_from_file))}."
         ),
         "publishing_refs": refs if isinstance(refs, dict) else {},
         "queue": queue_visible,
         "scheduled": sched_visible,
         "published": pub_visible,
-        "queue_total": len(queue_all),
-        "scheduled_total": len(sched_all),
+        "queue_total": len(queue_all_unshipped),
+        "queue_total_raw": len(queue_all),
+        "scheduled_total": len(sched_all_unshipped),
         "published_total": max(len(pub_all), pub_total_from_file),
         "note": "Live Postiz sync runs via the truth_collector webhook. This view is the canonical mirror.",
+        # Audit trail: how many raw queue entries were hidden because they
+        # already shipped. Helps diagnose stale-publish-queue writers without
+        # silently swallowing the count.
+        "dedup": {
+            "queue_raw": len(queue_all),
+            "queue_visible": len(queue_visible),
+            "queue_hidden_shipped": len(queue_all) - len(queue_all_unshipped),
+        },
     }
 
 

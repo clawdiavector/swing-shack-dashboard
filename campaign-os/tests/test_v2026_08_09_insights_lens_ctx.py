@@ -1,9 +1,9 @@
-"""v2026-08-09 — Insights v2: insights-lens context banner.
+"""v2026-08-09 - Insights v2: insights-lens context banner.
 
 The Insights tab is a v2 rebuild (renderInsightsV2) that renders its own cards
 (headlines, top IG posts, top pages, ad correlation). The Performance tab is
 the data-first view; the Insights tab is the pattern-finding view. The framing
-difference is invisible to a first-time user — they land on a wall of cards
+difference is invisible to a first-time user - they land on a wall of cards
 without knowing what this view is "for".
 
 Earlier (now-dead) code inside renderInsights() had a "How to read this view"
@@ -19,7 +19,7 @@ renderInsightsV2, immediately before the headlines grid. Banner explains:
   - what the ad-correlation card honestly says when no ad data is wired
   - cross-link to Performance (raw numbers) + Learning (long-memory)
 
-These tests are read-only — they probe the static HTML for the expected
+These tests are read-only - they probe the static HTML for the expected
 markers, so a regression where the banner disappears (or moves into a dead
 branch) fails loudly.
 """
@@ -54,20 +54,19 @@ def _v2_body_template(html: str) -> str:
     return m.group(1)
 
 
-def _ri_body_until_first_return(html: str) -> str:
-    """Return just the LIVE branch of renderInsights() — the early-return
-    lines that delegate to renderInsightsV2. The dead-code below `return;`
-    is intentionally excluded so we can assert the banner marker does NOT
-    live in the dead path.
+def _ri_body(html: str) -> str:
+    """Return the full body of renderInsights(). The function is now a single
+    delegation to renderInsightsV2() (the old clone-into-sec-insights branch
+    was deleted as dead code). Used to assert the banner marker does NOT live
+    in renderInsights itself - it lives in renderInsightsV2 only.
     """
     m = re.search(
-        r"async function renderInsights\(\)\{(.*?)^  await renderInsightsV2\(\);"
-        r"\s*\n\s*return;",
+        r"async function renderInsights\(\)\{(.*?)^\}",
         html,
         re.DOTALL | re.MULTILINE,
     )
     if not m:
-        raise AssertionError("Could not locate renderInsights() live branch")
+        raise AssertionError("Could not locate renderInsights()")
     return m.group(1)
 
 
@@ -76,7 +75,7 @@ class InsightsLensCtxTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = _read(HTML_PATH)
         cls.v2_body = _v2_body_template(cls.html)
-        cls.ri_body = _ri_body_until_first_return(cls.html)
+        cls.ri_body = _ri_body(cls.html)
 
     def test_banner_class_marker_present(self):
         # The .insights-lens-ctx class is what the banner is anchored on.
@@ -87,12 +86,15 @@ class InsightsLensCtxTests(unittest.TestCase):
         self.assertIn("insights-lens-ctx", body)
         self.assertIn("How to read this view", body)
 
-    def test_banner_not_in_renderInsights_live_branch(self):
+    def test_banner_not_in_renderInsights_body(self):
         # The shipped banner lives in renderInsightsV2 (tested above). It
-        # must NOT also be added back into the renderInsights() dead-code
-        # path. If a future refactor unifies the two, this test will fail —
-        # that's intentional, the early-return is a structural invariant.
+        # must NOT also live in renderInsights itself - renderInsights is
+        # now a thin pass-through to renderInsightsV2. If a future refactor
+        # re-introduces content into renderInsights, this test will fail -
+        # that's intentional, the thin-wrapper invariant is structural.
         self.assertNotIn("How to read this view", self.ri_body)
+        # Confirm the thin-wrapper shape: only renderInsightsV2 invocation.
+        self.assertIn("renderInsightsV2()", self.ri_body)
 
     def test_banner_explains_color_legend(self):
         # A first-time user needs to know what green/yellow/red mean.
@@ -118,10 +120,12 @@ class InsightsLensCtxTests(unittest.TestCase):
 
     def test_banner_precedes_headlines_grid(self):
         # The banner should appear in the body template BEFORE the headlines
-        # grid so the user reads the framing first.
+        # grid so the user reads the framing first. The headlines grid
+        # marker in the v2 template is the `ins-headline` class on each
+        # headline card.
         body = self.v2_body
         banner_idx = body.find("insights-lens-ctx")
-        grid_idx = body.find("What happened")
+        grid_idx = body.find("ins-headline")
         self.assertGreater(banner_idx, 0)
         self.assertGreater(grid_idx, 0)
         self.assertLess(banner_idx, grid_idx)

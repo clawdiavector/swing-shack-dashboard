@@ -927,7 +927,10 @@ a:hover{text-decoration:underline}
         <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
         <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
         <div class="nav" data-go="gbp" data-help-title="GBP workspace" data-help="GBP workspace · voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
-        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness."><span class="nav-icon">🤖</span> Agents</div>
+        <!-- AGENTS nav hidden by default (v2026-08-13): the page monitors a
+             fleet that no longer runs on this guild and its data is 80+ days
+             stale. Page remains reachable at /?section=agents for diagnostics. -->
+        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness." hidden><span class="nav-icon">🤖</span> Agents</div>
       </div>
     </div>
 
@@ -954,7 +957,7 @@ a:hover{text-decoration:underline}
         <span class="nav-group-tag">33 · flat list</span>
       </div>
       <div class="nav-group" id="nav-group-all" hidden>
-        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness."><span class="nav-icon">🤖</span> Agents</div>
+        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness." hidden><span class="nav-icon">🤖</span> Agents</div>
         <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Bold, provocative headlines per pillar."><span class="nav-icon">📰</span> Headlines</div>
         <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
         <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Raw content backlog for the active brand."><span class="nav-icon">💡</span> Ideas</div>
@@ -5325,161 +5328,6 @@ async function renderInsights(){
   //   5) "What's working / not working" — layman verdict cards (green/red)
   //   6) 🧠 Learning strip at the bottom (unchanged)
   await renderInsightsV2();
-  return;
-  // (Old code below — kept as a reference but unreachable.)
-  // Render performance into sec-performance first (canonical location)
-  if(typeof renderPerformance === 'function'){
-    await renderPerformance();
-  }
-  // Clone the performance content into sec-insights so it shows under the Insights tab
-  const targetSec = $('#sec-insights');
-  const sourceSec = $('#sec-performance');
-  if(!targetSec || !sourceSec) return;
-  // NOTE: the section explainer flow:
-  //   1. go() pre-mounts EXPLAINERS['performance'] on sec-performance so the
-  //      clone below carries a Performance explainer into sec-insights.
-  //   2. THIS function wipes sec-insights and clones sec-performance's children
-  //      (including the perf explainer) into sec-insights.
-  //   3. go()'s post-loadSection .then() then overwrites sec-insights with
-  //      EXPLAINERS['insights'] (HELP.section removes the cloned perf one
-  //      first), so the user sees the Insights-specific explainer.
-  targetSec.innerHTML = '';
-  let firstNonHeaderPushed = false;
-  Array.from(sourceSec.children).forEach(child => {
-    if(child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE'){
-      const clone = child.cloneNode(true);
-      // Rewrite the first section-h inside this clone so the body matches the tab.
-      // Without this, the Insights tab shows 'Performance' as its H2 (because we
-      // clone the whole performance block), which confuses users — they think
-      // they're on the wrong tab.
-      const sh = clone.classList && clone.classList.contains('section-h') ? clone : clone.querySelector?.('.section-h');
-      if(sh){
-        const h2 = sh.querySelector('h2');
-        const sub = sh.querySelector('.sub');
-        if(h2) h2.textContent = 'Insights';
-        if(sub) sub.textContent = 'Performance signals + what Campaign OS is learning · same data, smarter lens';
-      }
-      targetSec.appendChild(clone);
-      // Insights-lens context banner: appears right after the section-h clone,
-      // before the cloned stat tiles + cards. Frames the Insights tab as a
-      // pattern-finding view (read rising/falling as a distribution signal,
-      // scan recurring failures, watch calibration honesty) rather than a
-      // snapshot of today's numbers. Honors the section-h rewrite above so
-      // the banner sits under the rewritten "Insights" H2.
-      if(!firstNonHeaderPushed){
-        firstNonHeaderPushed = true;
-        const ctx = document.createElement('div');
-        ctx.className = 'card insights-lens-ctx';
-        ctx.style.marginTop = '.75rem';
-        ctx.innerHTML = `
-          <div style="display:flex;gap:.6rem;align-items:flex-start">
-            <div style="font-size:20px;line-height:1">🔍</div>
-            <div style="flex:1;font-size:13px;line-height:1.5;color:var(--tx-2)">
-              <b style="color:var(--tx-1)">How to read this view:</b>
-              the numbers below mirror Performance, but treat them as <i>pattern signals</i>, not today's snapshot.
-              <ul style="margin:.45rem 0 .2rem 1.1rem;line-height:1.65">
-                <li><b>SEO rising vs falling</b>: a distribution shift, not a count. More rising than falling = momentum. Even mix = stagnation.</li>
-                <li><b>GA4 engagement rate</b>: outliers above the brand's 30-day average are the seeds for the next post.</li>
-                <li><b>Top IG posts</b>: scan for shared hook shape, format, or pillar. Repeating patterns beat one-off wins.</li>
-                <li><b>Insights card</b>: each line has a <code>next_step</code> you can act on (regenerate, archive, test).</li>
-              </ul>
-              <div style="margin-top:.4rem;color:var(--tx-3);font-size:12px">The <b>🧠 Learning</b> card below this section is the long-memory view: what hooks, formats, and CTAs have actually paid off across weeks.</div>
-            </div>
-          </div>
-        `;
-        targetSec.appendChild(ctx);
-      }
-    }
-  });
-  // Append the Learning strip
-  // The /api/intel/learning endpoint returns a richer shape than the original
-  // template assumed (it read .patterns / .learnings / .weekly_learnings, all
-  // null). Real keys: what_worked.{hooks,signals}, what_failed[],
-  // recommendation_outcomes, failure_patterns, confidence_bands,
-  // trend_delta, cta_rankings, best_recommendation. Render the actual data
-  // instead of always showing "No learnings yet".
-  let learning = null;
-  try { learning = await API.get('/api/intel/learning'); } catch(_){}
-  const ww = learning?.what_worked || {};
-  const wwHooks = Array.isArray(ww.hooks) ? ww.hooks : [];
-  const wwSignals = Array.isArray(ww.signals) ? ww.signals : [];
-  const wf = Array.isArray(learning?.what_failed) ? learning.what_failed : [];
-  const cb = Array.isArray(learning?.confidence_bands) ? learning.confidence_bands : [];
-  const fp = learning?.failure_patterns || {};
-  const ro = learning?.recommendation_outcomes || {};
-  // Build rows: each row is {title, meta, kind}; render by kind with a pill.
-  const rows = [];
-  wwHooks.slice(0,3).forEach(h => rows.push({
-    kind: 'hook', title: h.hook || h.text || h.title || '(hook)',
-    meta: h.uses != null ? `${h.uses} use${h.uses===1?'':'s'}` : (h.win_rate != null ? `${(h.win_rate*100).toFixed(0)}% win rate` : ''),
-  }));
-  wwSignals.slice(0,3).forEach(s => rows.push({
-    kind: 'signal', title: s.signal || s.name || s.title || '(signal)',
-    meta: s.evidence ? `evidence: ${String(s.evidence).slice(0,80)}` : (s.value != null ? `value: ${s.value}` : ''),
-  }));
-  wf.slice(0,2).forEach(f => rows.push({
-    kind: 'fail', title: f.failure || f.reason || f.title || '(failure)',
-    meta: f.count != null ? `${f.count} occurrence${f.count===1?'':'s'}` : '',
-  }));
-  // Recommendation channel summary as a top-level row
-  if(ro.best_channel && ro.best_channel !== 'unknown'){
-    rows.push({
-      kind: 'channel',
-      title: `Best channel: ${ro.best_channel}`,
-      meta: ro.best_channel_rate != null ? `${(ro.best_channel_rate*100).toFixed(0)}% win rate` : (ro.exec_rate != null ? `${(ro.exec_rate*100).toFixed(0)}% exec rate` : ''),
-    });
-  }
-  // Failure by agent (top 3 partial rates) as a row
-  const byAgent = fp.by_agent_partial && Object.keys(fp.by_agent_partial).length
-    ? Object.entries(fp.by_agent_partial).sort((a,b)=>b[1]-a[1]).slice(0,3)
-    : [];
-  byAgent.forEach(([agent, count]) => rows.push({
-    kind: 'agent', title: `Partial runs: ${agent}`,
-    meta: `${count} partial${count===1?'':'s'} (review needed)`,
-  }));
-  // Confidence calibration: top 2 bands (stated vs actual)
-  cb.slice(0,2).forEach(b => rows.push({
-    kind: 'cal', title: `${b.category || 'category'}: stated ${b.stated || '?'} · actual ${b.actual || '?'}`,
-    meta: b.ok ? '✓ calibration honest' : '⚠ overstated vs actual',
-  }));
-  const totalRows = rows.length;
-  const learnSub = totalRows
-    ? `${totalRows} signal${totalRows===1?'':'s'} from past engagement`
-    : 'No signals yet: keep publishing to surface patterns';
-  // Per-row pill: render only a short tag, then the full meta line on its own.
-  // The pill text is the leading word/symbol so it stays narrow; meta line gets the rest.
-  const learnBody = totalRows ? rows.slice(0,8).map(r => {
-    const pillCls = r.kind === 'hook' ? 'on'
-                  : r.kind === 'signal' ? 'live'
-                  : r.kind === 'fail' ? 'blocked'
-                  : r.kind === 'agent' ? 'warn'
-                  : r.kind === 'channel' ? 'live'
-                  : r.kind === 'cal' ? (r.meta && r.meta.indexOf('⚠') === 0 ? 'blocked' : 'on')
-                  : 'muted';
-    // Pill text is a short tag based on kind (so it never duplicates meta).
-    const pillTxt = r.kind === 'hook' ? 'hook'
-                  : r.kind === 'signal' ? 'signal'
-                  : r.kind === 'fail' ? 'failed'
-                  : r.kind === 'agent' ? 'agent'
-                  : r.kind === 'channel' ? 'channel'
-                  : r.kind === 'cal' ? 'calibration'
-                  : 'pattern';
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(r.title)}</div>${r.meta?`<div class="li-meta">${pill(pillCls, pillTxt)} · ${esc(r.meta)}</div>`:''}</div></li>`;
-  }).join('') : '<li class="empty">No learnings yet: keep posting to surface patterns.</li>';
-  const learnCard = document.createElement('div');
-  learnCard.className = 'card';
-  learnCard.style.marginTop = '1rem';
-  learnCard.innerHTML = `
-    <div class="card-h"><h3 data-help="What the system has learned about this brand's audience, creative, and posting cadence. Pulls from /api/intel/learning: top hooks + signals that worked, failure patterns by agent and time of day, confidence calibration (stated vs actual), and the recommendation channel that is winning. Empty list means the data files have not been written yet (weekly-learnings, recommendation-outcomes, failure-patterns)." data-help-title="Learning" style="cursor:help;border-bottom:1px dotted var(--tx-2)">🧠 Learning</h3><span class="muted">${esc(learnSub)}</span></div>
-    <div class="muted" style="margin-bottom:.5rem">Patterns Campaign OS has learned about this brand (live from data/ files).</div>
-    <ul class="list">${learnBody}</ul>
-  `;
-  targetSec.appendChild(learnCard);
-  // Also re-bind event handlers that renderPerformance attached (since cloneNode doesn't carry them)
-  // For simplicity, we re-run renderInsights-bind for performance widgets if they exist
-  if(typeof bindPerformanceHandlers === 'function') bindPerformanceHandlers();
-  // ── Weekly Report (auto-generated from data/, exports to markdown) ───
-  await renderWeeklyReport(targetSec);
 }
 
 // ─── WEEKLY REPORT ────────────────────────────────────────────────────
@@ -7029,16 +6877,29 @@ async function renderBrief(){
     <div class="card col-3"><div class="stat"><div class="stat-val">${review.length}</div><div class="stat-lbl">Need review</div></div></div>
     <div class="card col-3"><div class="stat"><div class="stat-val">${publish.length}</div><div class="stat-lbl">Ready to publish</div></div></div>
 
-    <div class="card col-12"><div class="card-h"><h3 data-help="The freshest live signals across every source the agent watches: Reddit threads, YouTube golf creators, golf news, competitor moves. Each pill is a 1-line headline with its source. Use this as the temperature check. If a signal here matches a brand pillar, it is worth a Post today slot." data-help-title="Hot right now">🔥 Hot right now</h3><span class="h-meta">Live signals</span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap">${hotTrend.length?hotTrend.map(t => `<span class="pill ${t.kind==='reddit'?'live':t.kind==='youtube'?'warn':'on'}">${esc(t.kind)} · ${esc(t.t.slice(0,60))}</span>`).join(''):'<span class="muted">No signals right now</span>'}</div></div>
-
     <div class="card col-6"><div class="card-h"><h3 data-help="The single highest-leverage action for today, ranked by recency and brand-fit. Start here every morning. If you only do one thing in Campaign OS today, do the first item on this list." data-help-title="Do first">🎯 Do first</h3></div><ul class="list">${dofirst.map(x=>itemHtml(x)).join('') || '<li class="empty">Nothing urgent right now</li>'}</ul></div>
     <div class="card col-6"><div class="card-h"><h3 data-help="Drafts the agent produced that you have not approved or rejected yet. Click any item to open the review modal where you can approve, reject, or send back for revision. Empty state means the inbox is clean." data-help-title="Needs your review">📝 Needs your review</h3></div><ul class="list">${review.map(x => { const a = Object.assign({approvalStatus: 'revisionRequested'}, x); return itemHtml(a); }).join('') || '<li class="empty">No pending review</li>'}</ul></div>
 
     <div class="card col-6"><div class="card-h"><h3 data-help="Drafts you approved that are still sitting in the queue. They have not been pushed to Postiz yet. Open any row to set a publish date or push live now. Until then, nothing here is on any platform." data-help-title="Ready to publish">🚀 Ready to publish</h3></div><ul class="list">${publish.map(x => { const a = Object.assign({approvalStatus: 'approved'}, x); return itemHtml(a); }).join('') || '<li class="empty">Nothing queued yet</li>'}</ul></div>
-    <div class="card col-6"><div class="card-h"><h3 data-help="Trends that already peaked and the brand did not post. The cost of a missed opportunity compounds: the next time the trend recycles, the brand is late again. Pick one retroactively and rewrite with fresh angles." data-help-title="High-impact misses">⚠️ High-impact misses</h3></div><ul class="list">${missed.map(itemHtml).join('') || '<li class="empty">No missed opportunities</li>'}</ul></div>
 
-    <div class="card col-6"><div class="card-h"><h3 data-help="SEO keywords where the brand is already on page 2 of search (positions 11 to 20) and a small content push could land on page 1. These are the cheapest ranking wins because the hardest work (relevance, indexing) is already done." data-help-title="SEO quick wins">🔎 SEO quick wins</h3></div><ul class="list">${seo.map(x => itemHtml({...x, keyword: x.keyword, kind: 'seo-keyword'}, 'seo')).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
-    <div class="card col-6"><div class="card-h"><h3 data-help="Items already scheduled to go live today. If the list is empty, nothing is going out today and a post is overdue. If the list is full, sit back and watch. Each row carries the publish time and the target platform." data-help-title="Post today">📮 Post today</h3></div><ul class="list">${today.map(x => itemHtml(x)).join('') || '<li class="empty">Nothing scheduled today</li>'}</ul></div>
+    <div class="card col-12" style="padding:0">
+      <details class="brief-more-signals" id="brief-more-signals">
+        <summary style="cursor:pointer;padding:1rem;list-style:none;display:flex;align-items:center;gap:.5rem;font-size:13px;color:var(--tx-2)">
+          <span style="font-size:16px">📡</span>
+          <span><b>More signals</b> · Hot trends, SEO quick wins, Post today, High-impact misses</span>
+          <span class="muted" style="margin-left:auto;font-size:12px">click to expand</span>
+        </summary>
+        <div class="grid" style="padding:0 1rem 1rem 1rem">
+          <div class="card col-12" style="margin:0"><div class="card-h"><h3 data-help="The freshest live signals across every source the agent watches: Reddit threads, YouTube golf creators, golf news, competitor moves. Each pill is a 1-line headline with its source. Use this as the temperature check. If a signal here matches a brand pillar, it is worth a Post today slot." data-help-title="Hot right now">🔥 Hot right now</h3><span class="h-meta">Live signals</span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap">${hotTrend.length?hotTrend.map(t => `<span class="pill ${t.kind==='reddit'?'live':t.kind==='youtube'?'warn':'on'}">${esc(t.kind)} · ${esc(t.t.slice(0,60))}</span>`).join(''):'<span class="muted">No signals right now</span>'}</div></div>
+
+          <div class="card col-6" style="margin:0"><div class="card-h"><h3 data-help="Trends that already peaked and the brand did not post. The cost of a missed opportunity compounds: the next time the trend recycles, the brand is late again. Pick one retroactively and rewrite with fresh angles." data-help-title="High-impact misses">⚠️ High-impact misses</h3></div><ul class="list">${missed.map(itemHtml).join('') || '<li class="empty">No missed opportunities</li>'}</ul></div>
+
+          <div class="card col-6" style="margin:0"><div class="card-h"><h3 data-help="SEO keywords where the brand is already on page 2 of search (positions 11 to 20) and a small content push could land on page 1. These are the cheapest ranking wins because the hardest work (relevance, indexing) is already done." data-help-title="SEO quick wins">🔎 SEO quick wins</h3></div><ul class="list">${seo.map(x => itemHtml({...x, keyword: x.keyword, kind: 'seo-keyword'}, 'seo')).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
+
+          <div class="card col-6" style="margin:0"><div class="card-h"><h3 data-help="Items already scheduled to go live today. If the list is empty, nothing is going out today and a post is overdue. If the list is full, sit back and watch. Each row carries the publish time and the target platform." data-help-title="Post today">📮 Post today</h3></div><ul class="list">${today.map(x => itemHtml(x)).join('') || '<li class="empty">Nothing scheduled today</li>'}</ul></div>
+        </div>
+      </details>
+    </div>
   `;
   renderTodayRail();
 }

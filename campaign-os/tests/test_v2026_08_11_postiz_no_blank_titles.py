@@ -1,9 +1,9 @@
-"""v2026-08-11 — Postiz surface must render real queue + refs data, not blanks.
+"""v2026-08-11 - Postiz surface must render real queue + refs data, not blanks.
 
 The pre-pick sweep on 2026-08-11 (scripts/sweep_campaign_os_live.py + a
 focused walk) caught TWO broken renderers inside renderPostiz():
 
-  1. Queue rows (#postiz-queue) — all 20 visible rows rendered with an
+  1. Queue rows (#postiz-queue) - all 20 visible rows rendered with an
      EMPTY title + just "instagram · queued · " in the meta line.
      Root cause: the live data (data/publish-queue.json) carries the
      caption text under `caption_preview` (NOT `caption` or `name`),
@@ -11,8 +11,8 @@ focused walk) caught TWO broken renderers inside renderPostiz():
      timestamp under `scheduled_date` (NOT `publishDate`). The renderer
      read `it.caption || it.name`, so every row fell through to ''.
 
-  2. Refs rows (#postiz-refs) — the single canonical reference rendered
-     as a "—" title with a trailing-empty meta line.
+  2. Refs rows (#postiz-refs) - the single canonical reference rendered
+     as a "-" title with a trailing-empty meta line.
      Root cause: data/publishing-references.json carries the upstream
      postiz id under `postizPostId` (NOT `postizId`) and the lifecycle
      status under `currentStatus` (NOT `publishStatus`). The renderer
@@ -51,7 +51,7 @@ def _read(path):
         return f.read()
 
 
-# ─── 1. STATIC — the renderer must read the canonical field names ─────
+# ─── 1. STATIC - the renderer must read the canonical field names ─────
 class TestPostizRendererReadsCanonicalFields(unittest.TestCase):
     def setUp(self):
         self.html = _read(HTML_PATH)
@@ -66,7 +66,7 @@ class TestPostizRendererReadsCanonicalFields(unittest.TestCase):
         # Without this, all 20 rows render blank.
         self.assertIn(
             "caption_preview", self.body,
-            "renderPostiz() queue branch does not read `caption_preview` — "
+            "renderPostiz() queue branch does not read `caption_preview` - "
             "every queued item will render with an empty title.",
         )
 
@@ -112,15 +112,15 @@ class TestPostizRendererReadsCanonicalFields(unittest.TestCase):
         # The refs title must read `postizPostId` (the upstream id).
         self.assertIn(
             "postizPostId", self.body,
-            "renderPostiz() refs branch does not read `postizPostId` — "
-            "the canonical reference row will render as '—' instead of "
+            "renderPostiz() refs branch does not read `postizPostId` - "
+            "the canonical reference row will render as '-' instead of "
             "the upstream postiz id.",
         )
 
     def test_refs_renderer_reads_current_status(self):
         self.assertIn(
             "currentStatus", self.body,
-            "renderPostiz() refs branch does not read `currentStatus` — "
+            "renderPostiz() refs branch does not read `currentStatus` - "
             "the lifecycle status pill will be blank for every canonical ref.",
         )
 
@@ -146,19 +146,19 @@ class TestPostizRendererReadsCanonicalFields(unittest.TestCase):
 
     def test_no_em_dashes_in_new_code(self):
         # Standing rule: no em-dashes in newly authored strings or
-        # comments. Em-dashes in the UI fallback string ('—' rendered
+        # comments. Em-dashes in the UI fallback string ('-' rendered
         # when ALL fields are missing) are pre-existing intentional
         # placeholder copy, not new authoring.
         diff_block = self.body
         # Look for em-dashes NOT inside a single-quoted string used as
-        # a fallback value (those are the intentional '—' placeholders).
-        em_dashes = [m.start() for m in re.finditer(r"—", diff_block)]
+        # a fallback value (those are the intentional '-' placeholders).
+        em_dashes = [m.start() for m in re.finditer(r"-", diff_block)]
         for pos in em_dashes:
             ctx = diff_block[max(0, pos - 30):pos + 30]
             # OK contexts: inside single-quoted fallback string OR
             # the existing user-facing meta bullets that already used '· '
             # separator style (not em-dash, but defensive)
-            if "'—'" in ctx or '"—"' in ctx:
+            if "'-'" in ctx or '"-"' in ctx:
                 continue
             self.fail(
                 f"renderPostiz() contains em-dash in non-fallback context: "
@@ -166,16 +166,44 @@ class TestPostizRendererReadsCanonicalFields(unittest.TestCase):
             )
 
 
-# ─── 2. DATA — the live fixture really has the new field names ────────
+# ─── 2. DATA - the live fixture really has the new field names ────────
 class TestPostizQueueDataShape(unittest.TestCase):
     def setUp(self):
         with open(QUEUE_DATA, "r", encoding="utf-8") as f:
             self.data = json.load(f)
 
-    def test_queue_has_items(self):
-        q = self.data.get("queued") or []
-        self.assertIsInstance(q, list)
-        self.assertGreater(len(q), 0, "publish-queue.json has no queued items")
+    def test_queue_shape_is_valid(self):
+        # v2026-08-13: publish-queue.json used to keep every shipped item
+        # forever (the same item_id showed up in `published-items.json` AND
+        # in `publish-queue.json`). The dedup invariant in postiz_overview()
+        # now filters shipped ids from the queue view, so this file's
+        # `queued` array legitimately contains only items that have NOT
+        # shipped yet. An empty array is therefore a valid state - it means
+        # "nothing pending right now", not "the writer broke".
+        q = self.data.get("queued")
+        self.assertIsInstance(
+            q, list,
+            "publish-queue.json should expose a list at .queued (got "
+            f"{type(q).__name__})",
+        )
+        # Hard rule: the same item_id may NOT appear both here AND in
+        # published-items.json. (See test_v2026_08_13_postiz_dedup for the
+        # full invariant + runtime enforcement in postiz_overview.)
+        pub_path = os.path.join(os.path.dirname(QUEUE_DATA), "published-items.json")
+        if os.path.exists(pub_path):
+            with open(pub_path) as f:
+                pub = json.load(f)
+            shipped = {it.get("id") or it.get("item_id") for it in pub.get("published", []) if isinstance(it, dict)}
+            shipped = {s for s in shipped if s}
+            queue_ids = {it.get("id") or it.get("item_id") for it in q if isinstance(it, dict)}
+            queue_ids = {s for s in queue_ids if s}
+            overlap = queue_ids & shipped
+            self.assertEqual(
+                overlap, set(),
+                f"publish-queue.json still contains {len(overlap)} shipped item_ids "
+                f"- sample: {sorted(overlap)[:3]}. Use the dedup helper in "
+                f"_lib/intelligence.postiz_overview() or scrub the file.",
+            )
 
     def test_every_queue_item_has_caption_preview(self):
         for i, it in enumerate(self.data.get("queued", [])):
@@ -183,7 +211,7 @@ class TestPostizQueueDataShape(unittest.TestCase):
                 cp = it.get("caption_preview")
                 self.assertIsNotNone(
                     cp,
-                    f"queued[{i}] is missing `caption_preview` — the "
+                    f"queued[{i}] is missing `caption_preview` - the "
                     "renderer will fall through to '(no caption)'.",
                 )
                 self.assertIsInstance(cp, str)
@@ -197,7 +225,7 @@ class TestPostizQueueDataShape(unittest.TestCase):
             with self.subTest(i=i):
                 self.assertIsNotNone(
                     it.get("status"),
-                    f"queued[{i}] is missing `status` — the renderer "
+                    f"queued[{i}] is missing `status` - the renderer "
                     "will show an empty status pill.",
                 )
 
@@ -214,7 +242,7 @@ class TestPostizRefsDataShape(unittest.TestCase):
         # but we need at least 1 for the live test below to be meaningful.
         self.assertGreater(
             len(refs), 0,
-            "publishing-references.json has no references — live test "
+            "publishing-references.json has no references - live test "
             "below will be a no-op. Skipping the live assertions in that "
             "case is intentional (empty-state is honest).",
         )
@@ -224,8 +252,8 @@ class TestPostizRefsDataShape(unittest.TestCase):
             with self.subTest(i=i):
                 self.assertIsNotNone(
                     ref.get("postizPostId"),
-                    f"references[{i}] is missing `postizPostId` — the "
-                    "renderer will render '—' for the canonical id.",
+                    f"references[{i}] is missing `postizPostId` - the "
+                    "renderer will render '-' for the canonical id.",
                 )
 
     def test_every_ref_has_current_status(self):
@@ -233,12 +261,12 @@ class TestPostizRefsDataShape(unittest.TestCase):
             with self.subTest(i=i):
                 self.assertIsNotNone(
                     ref.get("currentStatus"),
-                    f"references[{i}] is missing `currentStatus` — the "
+                    f"references[{i}] is missing `currentStatus` - the "
                     "renderer will render an empty status pill.",
                 )
 
 
-# ─── 3. LIVE — the rendered DOM on the live URL must show real titles ──
+# ─── 3. LIVE - the rendered DOM on the live URL must show real titles ──
 class TestPostizLiveRendersTitles(unittest.TestCase):
     def setUp(self):
         # Skip if no refs in dataset (test_refs_has_references will catch it).
@@ -279,7 +307,7 @@ class TestPostizLiveRendersTitles(unittest.TestCase):
             rows = queue.locator(".li")
             self.assertGreater(
                 rows.count(), 0,
-                "#postiz-queue rendered 0 rows — should be at least 1",
+                "#postiz-queue rendered 0 rows - should be at least 1",
             )
             # Sample the first 5 rows: every title must be non-empty AND
             # not just an em-dash placeholder.
@@ -290,17 +318,17 @@ class TestPostizLiveRendersTitles(unittest.TestCase):
                 t = title.strip()
                 if not t:
                     blank_count += 1
-                if t == "—":
+                if t == "-":
                     emdash_count += 1
             self.assertEqual(
                 blank_count, 0,
-                f"{blank_count}/5 first queue rows have empty titles — "
+                f"{blank_count}/5 first queue rows have empty titles - "
                 "the renderer is still reading the wrong field.",
             )
             self.assertEqual(
                 emdash_count, 0,
                 f"{emdash_count}/5 first queue rows render the em-dash "
-                "placeholder — the renderer fell through every fallback.",
+                "placeholder - the renderer fell through every fallback.",
             )
             b.close()
 
@@ -343,10 +371,10 @@ class TestPostizLiveRendersTitles(unittest.TestCase):
             self.assertGreater(rows.count(), 0, "#postiz-refs rendered 0 rows")
             html = refs_block.inner_html() or ""
             self.assertNotIn(
-                "<li class=\"li\"><div class=\"li-body\"><div class=\"li-title\">—</div>",
+                "<li class=\"li\"><div class=\"li-body\"><div class=\"li-title\">-</div>",
                 html,
                 "First refs row still renders the em-dash placeholder "
-                "title — renderer is not reading `postizPostId`.",
+                "title - renderer is not reading `postizPostId`.",
             )
             # The upstream id must appear in the rendered HTML.
             if expected_id:
