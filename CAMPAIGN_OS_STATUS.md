@@ -584,3 +584,48 @@ Wired 5 modal-context h4 headers with data-help + data-help-title + cursor:help 
 - `renderPerformance()` now renders the top-3 insights as tone-coded inline chips (green/yellow/red dot + label + claim) with margin-right spacing instead of one flat joined line.
 - Commit: a133600 on feat/asset-state-engine. Verified live: Performance strip shows 🟢 ig winner / 🟢 ig winner / 🔴 ig laggard, SEO sidebar shows clean names (custom club fitting, club fitting, putter fitting, simulated golf, indoor golf practice, club fitting near me).
 - Screenshots: /tmp/co-nightshift/walkthrough_20260813T023400Z_performance_strip_FIX.png
+
+## 2026-08-13T03:55Z · Insights 'Did the ad drive this spike?' verdict: real numbers, not stale 153
+
+**Done:** The Insights ad-correlation card was rendering the SAME session count (153) for every Google Ads campaign that pointed at the homepage — two radically different campaigns (R117.50/47 clicks vs R515/206 clicks) showed visually identical verdicts. Two compounding bugs:
+1. **GA4 emits MULTIPLE rows per path** (daily/weekly/monthly snapshots stacked). The correlator did `match_page = next(p for p in pages if p.path == lp)` so it always picked the first match's sessions (153) regardless of how many snapshots existed.
+2. **No ratio or cost** was surfaced — even with the right session count, the verdict just said "GA4 shows N sessions" with no clicks:sessions or cost:session context.
+
+Fix (server-side, `campaign-os/_lib/insights_correlator.py`):
+- Sum all GA4 rows matching the landing page instead of first-match only.
+- Compute clicks:sessions % and cost-per-session, surface both in the verdict string.
+- When no GA4 row matches the landing page the verdict now says "GA4 has no data for that page yet - could be a tracking gap" instead of misleading "0 sessions".
+- New structured fields in each verdict object: `cost_per_session`, `clicks_to_sessions_pct`, `matching_page_engagement` (averaged).
+
+Renderer unchanged (still reads `v.verdict` verbatim). 1 file +68/-12, 1 new test file (3 tests).
+
+**Verified (Playwright LIVE post-deploy):**
+- Google Ads verdicts now show distinct, real numbers:
+  - 202410: R0.26 per session, 10.2% click ratio (R117.50 / 47 clicks / 459 sessions)
+  - 202411: R1.12 per session, 44.9% click ratio
+  - 202412: R1.66 per session, 66.4% click ratio
+  - 202501: R2.08 per session, 83.0% click ratio
+  - 202503: R1.67 per session, 66.9% click ratio
+  - 202505+: R0.01 per session, 0.2% click ratio (low-effort campaigns)
+  Real progression visible: ads got less efficient over time, now actionable.
+- Meta Ads verdicts (organic IG post proxies with 0 spend) honestly report "0 spend, 0 clicks, 459 sessions (0.0% click ratio) - R0.01 per session" instead of the old misleading "153 sessions" line.
+- 0 PAGEERROR, 0 console errors, 0 net 4XX.
+- 16/16 prior insights v2 tests still pass + 3/3 new regression tests = 19/19 of relevant tests.
+
+**Files (2, +284/-12):**
+- `campaign-os/_lib/insights_correlator.py` (1 _verdicts_for rewrite)
+- `campaign-os/tests/test_v2026_08_13_ad_correlation_duplicate_ga4_rows.py` (NEW, 3 tests)
+
+**Commit:** `0bc1ce1` on `feat/asset-state-engine`, pushed. Railway auto-deployed.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (verified by test), 0 schema, 0 auth, 0 deploy-affecting changes.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_20260813T035500Z_ad_correlation_FIX.png` — full Insights tab, 36 distinct verdicts
+
+**Learned:** When a JSON source emits duplicate rows for the same key (GA4 stacked snapshots, instagram-analytics stacked days, etc.) `next(filter)` is almost always wrong — it silently picks one and drops the rest. The bug only surfaces visibly when N>1 rows exist AND the renderer downstream renders the same string for every row. Two compounded for years without anyone noticing because each looked individually correct (153 IS the first row's sessions).
+
+**Next pick:**
+1. The ad-correlation card still doesn't show a "trend across all campaigns" header (e.g., "spend climbed from R117 → R952 → dropped to R310 over 8 months, cost-per-session trended up 8x"). Adding a one-line trend summary at the top of the card would close the remaining "fake feature" gap. Lane for next tick.
+2. The Insights v2 headlines still show `tone-bad` for Instagram when the account's average is 0.20% (because `avg > 1.5 ? 'good' : avg > 1.5 ? 'watch' : 'bad'`). When the WHOLE deck is below 1.5%, 'bad' is technically right but reads alarming. A "your deck is below industry average" caveat would be useful.
+3. Em-dash sweep on the `campaign-os.html` chrome (data files already clean per the earlier walker probe).
