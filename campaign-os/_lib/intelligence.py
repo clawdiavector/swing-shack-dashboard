@@ -880,7 +880,19 @@ def performance_view() -> Dict[str, Any]:
 # ─── LEARNING ─────────────────────────────────────────────────────────
 
 def learning_view() -> Dict[str, Any]:
-    """What worked, what failed, what to repeat."""
+    """What worked, what failed, what to repeat.
+
+    Each list field the client renders goes through ``_flatten_*`` here so the
+    five Learn-tab cards (worked / failed / cta / trend / fail_pat) get
+    non-empty data whenever the underlying JSON has signal — even when the
+    schema stores it as a nested object instead of a flat list. Pre-fix the
+    client saw ``safeList([])`` for 3 of 5 cards and showed "No patterns yet"
+    forever, even though weekly-learnings.json had
+    ``what_worked.signals = ["21 recommendations published this week"]`` and
+    trend-delta.json had a real ``content_format_shift`` entry. Same field-name
+    drift as the failure_patterns fix on 2026-08-11, but applied at the
+    endpoint so the client renderers stay unchanged.
+    """
     rep = _read_json(os.path.join(DATA_DIR, "weekly-learnings.json")) or {}
     rec = _read_json(os.path.join(DATA_DIR, "recommendation-outcomes.json")) or {}
     trend = _read_json(os.path.join(DATA_DIR, "trend-delta.json")) or {}
@@ -890,15 +902,156 @@ def learning_view() -> Dict[str, Any]:
     return {
         "ok": True,
         "ts": _now_iso(),
-        "what_worked": (rep.get("what_worked", []) if isinstance(rep, dict) else []),
-        "what_failed": (rep.get("what_failed", []) if isinstance(rep, dict) else []),
+        "what_worked": _flatten_what_worked(rep.get("what_worked") if isinstance(rep, dict) else None),
+        "what_failed": _flatten_what_failed(
+            rep.get("what_failed") if isinstance(rep, dict) else None,
+            rep.get("what_didnt_work") if isinstance(rep, dict) else None,
+        ),
         "recommendation_outcomes": (rec.get("learned_signals", []) if isinstance(rec, dict) else []),
         "best_recommendation": (rec.get("best_recommendation") if isinstance(rec, dict) else None),
-        "trend_delta": (trend.get("hook_trends", []) if isinstance(trend, dict) else []),
+        "trend_delta": _flatten_trend_delta(trend if isinstance(trend, dict) else {}),
         "cta_rankings": (cta.get("cta_rankings", []) if isinstance(cta, dict) else []),
         "failure_patterns": (fail.get("patterns", []) if isinstance(fail, dict) else []),
         "confidence_bands": (conf.get("honest_confidence_bands", {}) if isinstance(conf, dict) else {}),
     }
+
+
+def _flatten_what_worked(ww):
+    """``weekly-learnings.json`` stores ``what_worked`` as
+    ``{hooks: [...], signals: [...]}``. Pre-fix this dict hit ``safeList()``
+    client-side and got dropped, leaving the Learn "What worked" card
+    perpetually empty. Surface both sub-arrays as a flat list of strings so
+    the renderer (which already accepts strings via ``itemHtml``) shows
+    every signal. Hooks become {hook, signal_kind: 'hook'} objects so the
+    renderer can still format them as a row even when the hook text is the
+    only useful field; signals are plain strings.
+    """
+    if isinstance(ww, list):
+        return ww
+    if not isinstance(ww, dict):
+        return []
+    out = []
+    _hooks = ww.get("hooks")
+    hooks = _hooks if isinstance(_hooks, list) else []
+    _signals = ww.get("signals")
+    signals = _signals if isinstance(_signals, list) else []
+    # Hooks first (the more interesting "what worked"); then signals as bullets.
+    for h in hooks:
+        if isinstance(h, str) and h.strip():
+            out.append({"title": h, "kind": "hook", "why": "Performed above your average this week"})
+        elif isinstance(h, dict):
+            out.append(h)
+    for s in signals:
+        if isinstance(s, str) and s.strip():
+            out.append({"title": s, "kind": "signal"})
+        elif isinstance(s, dict):
+            out.append(s)
+    return out
+
+
+def _flatten_what_failed(wf, wdw):
+    """``weekly-learnings.json`` calls this bucket ``what_didnt_work``
+    (schema: ``{cold_hooks: [], critical_failures: []}``). Pre-fix the
+    endpoint read ``rep.get("what_failed", [])`` which always missed
+    (the file does not have that key) and the "What failed" card showed
+    "No failure patterns yet". Accept both names — the legacy ``what_failed``
+    (flat list) and the actual schema key ``what_didnt_work`` (nested dict).
+    """
+    if isinstance(wf, list):
+        return wf
+    if isinstance(wf, dict):
+        wf = wf  # treat legacy dict shape the same as what_didnt_work
+    else:
+        wf = None
+    src = wf if isinstance(wf, dict) else (wdw if isinstance(wdw, dict) else {})
+    out = []
+    _cold = src.get("cold_hooks")
+    cold = _cold if isinstance(_cold, list) else []
+    _crit = src.get("critical_failures")
+    crit = _crit if isinstance(_crit, list) else []
+    for h in cold:
+        if isinstance(h, str) and h.strip():
+            out.append({"title": h, "kind": "cold_hook", "why": "Underperformed your average this week"})
+        elif isinstance(h, dict):
+            out.append(h)
+    for c in crit:
+        if isinstance(c, str) and c.strip():
+            out.append({"title": c, "kind": "critical_failure"})
+        elif isinstance(c, dict):
+            out.append(c)
+    # Fall back to flat-list "what_failed" if the dict buckets were empty.
+    if not out and isinstance(wf, list):
+        return wf
+    return out
+
+
+def _flatten_trend_delta(trend):
+    """``trend-delta.json`` stores trends under multiple keys:
+    ``hook_trends``, ``cta_trends``, ``content_format_shift``,
+    ``platform_metrics``, ``week_over_week``. Pre-fix the endpoint only
+    surfaced ``hook_trends`` (usually empty) so the trend card showed
+    "No trend data yet" even when ``content_format_shift`` had a real
+    ``{format, current, previous, delta}`` entry. Build a single flat list
+    that prefers hook_trends, then cta_trends, then content_format_shift,
+    then a one-line week-over-week summary. Each entry is normalised to
+    ``{title, kind, delta, current, previous}`` so the renderer's
+    ``itemHtml`` finds the title and the trend meta line is readable.
+    """
+    if not isinstance(trend, dict):
+        return []
+    out = []
+    _hook_trends = trend.get("hook_trends")
+    hook_trends = _hook_trends if isinstance(_hook_trends, list) else []
+    _cta_trends = trend.get("cta_trends")
+    cta_trends = _cta_trends if isinstance(_cta_trends, list) else []
+    _fmt_shift = trend.get("content_format_shift")
+    fmt_shift = _fmt_shift if isinstance(_fmt_shift, list) else []
+    for h in hook_trends:
+        if isinstance(h, dict):
+            title = h.get("title") or h.get("hook") or h.get("name") or h.get("formula") or ""
+            if title:
+                out.append({"title": title, "kind": "hook_trend", "delta": h.get("delta"), "current": h.get("current"), "previous": h.get("previous"), "direction": h.get("direction", "")})
+        elif isinstance(h, str) and h.strip():
+            out.append({"title": h, "kind": "hook_trend"})
+    for c in cta_trends:
+        if isinstance(c, dict):
+            title = c.get("title") or c.get("cta") or c.get("label") or ""
+            if title:
+                out.append({"title": title, "kind": "cta_trend", "delta": c.get("delta")})
+        elif isinstance(c, str) and c.strip():
+            out.append({"title": c, "kind": "cta_trend"})
+    for f in fmt_shift:
+        if not isinstance(f, dict):
+            continue
+        fmt = f.get("format") or "unknown format"
+        cur = f.get("current")
+        prev = f.get("previous")
+        delta = f.get("delta")
+        # Build a concrete title so itemHtml has something to show. Examples:
+        #   "Static: 21 posts this week (was 0)"
+        #   "Reels: -3 vs last week"
+        if cur is not None and prev is not None:
+            direction = "up" if isinstance(delta, (int, float)) and delta > 0 else ("down" if isinstance(delta, (int, float)) and delta < 0 else "flat")
+            title = f"{fmt}: {cur} posts this week (was {prev})"
+            out.append({
+                "title": title,
+                "kind": "format_shift",
+                "format": fmt,
+                "delta": delta,
+                "current": cur,
+                "previous": prev,
+                "direction": direction,
+                "why": f"Format mix shifted {direction} by {delta if isinstance(delta, (int, float)) else '?'} post(s)",
+            })
+    # Last resort: surface week_over_week as a single summary row.
+    if not out and isinstance(trend.get("week_over_week"), dict):
+        wow = trend["week_over_week"]
+        published = wow.get("published_delta")
+        eng = wow.get("engagement_delta")
+        if published or eng:
+            title = f"Week over week: published {published or '?'} · engagement {eng or '?'}"
+            out.append({"title": title, "kind": "week_over_week"})
+    return out
 
 
 # ─── GENERATORS (intelligence helpers) ─────────────────────────────────
