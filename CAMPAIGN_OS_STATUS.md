@@ -522,3 +522,30 @@ Wired 5 modal-context h4 headers with data-help + data-help-title + cursor:help 
 **Learned:** Two `data-` attributes (`data-stale` on rows, `data-rfilter` on the chips) is the cleanest way to add a new filter without growing the existing card-indexing scheme. Using `display: ''` to restore rows works because the previous "Stale" click set them to `display: none`, so the next filter has to undo both the card-level hide and the row-level hide. The pending-vs-cross-bucket scope split between the summary and the chip was a real footgun — when two UI elements both say "stale" they should agree.
 
 **Asks:** None.
+
+## 2026-08-13T00:15Z — fix(calendar): rename 'unspecified' pill to 'no pillar · queue' with help-tip
+
+**Done:** Closed the Calendar pillar-mix honesty gap. The strip under the HUD showed `unspecified 31` next to the real pillar counts (coaching 15, club fitting 6, merch 2, practice 3). The 31 was publisher-queue items whose caption carries no pillar marker (no 🏌/🎯/🤝/📅/🛍/🎮 or pillar token) and whose source record has no pillarName/pillar field. The label told the user nothing actionable. Renamed the pill to `no pillar · queue` and added a `data-help`/`data-help-title` tip explaining the bucket (publisher-queue captions predating the pillar-tagging work, not a config error). The help-tip auto-wire system picked up the new attributes and rendered the popover as expected.
+
+**Commit:** `286ea13` on `feat/asset-state-engine`, +16/-2 across 1 file (campaign-os/campaign-os.html), pushed. Railway auto-deployed in ~25s.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-fix probe (audit): 31 of 57 calendar slots bucketed as "unspecified", 26 had real pillars.
+- Post-fix probe: strip now shows `equipment 0 · club fitting 6 · coaching 15 · community 0 · events 0 · merch 2 · practice 3 · no pillar · queue 31`. All other 7 pills unchanged.
+- Tooltip probe (click on the new pill): `.help-pop` renders with text `NO-PILLAR BUCKET\nPosts whose caption did not match any pillar marker and whose source record carries no pillarName/pillar field. On this brand these are publisher-queue items predating the pillar-tagging work, not a config error.`, visible=true, class `has-help-tip` applied.
+- 0 PAGEERROR, 0 console errors.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260813T001221Z.png` — Calendar, new "no pillar · queue31" pill at the right end of the strip.
+- `/tmp/co-nightshift/walkthrough_20260813T001221Z_calendar_pillar_tooltip.png` — tooltip popover proving the explanation is reachable.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (rename uses middle-dot · + period, help-tip uses commas/periods), 0 schema changes, 0 API changes (purely a label rename + a tooltip attribute).
+
+**Next pick:**
+1. **Real pillar inference for the 31 unclassified queue items** — captions like "That slice costing you yards off the tee? TrackMan found it" are clearly club-fitting content (TrackMan, slice, yards), and "Improve your game with the coaches tip of the day" is clearly coaching. Extending `_PILLAR_CAPTION_HINTS` with keyword-based inference (TrackMan/fitting/slice/driver → club fitting; coach/tip/improve/tempo → coaching; event/compete/tournament → events) would collapse the 31 to roughly 0 unclassified without changing the data layer. Lane for next tick.
+2. The Insights tab still clones Performance widgets verbatim — the "Why lens" promise from 2026-08-06T03:27Z is still unfulfilled.
+3. The `mountSec` ternary lives twice in `go()` — consolidate to `mountSecFor(realSec)` helper.
+
+**Learned:** Pillar metadata is missing on 54% of the calendar's slots because they come from `publish-queue.json` (source=queue), seeded before the pillar-tagging work landed. The `_infer_pillar_from_caption` fallback handles the emoji-marker case but not keyword-only captions. Either rename-bucket (this tick's fix) or extend the keyword hints (next pick) closes the gap; the rename-bucket alone is enough for the user to know the 31 is legacy, not a config error.
+
+**Asks:** None.
