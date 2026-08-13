@@ -7741,8 +7741,8 @@ def intel_winning_theme_ideas_route():
         # brand voice (no em-dashes, no fabricated facts).
         idea_templates = [
             {
-                "title_template": "Book your {primary_theme} fitting at Swing Shack",
-                "caption_hook_template": "{first_word_cap} ball. Wrong setup? Let's fix it.\n\nBook your {primary_theme} fitting today.",
+                "title_template": "Book your {primary_theme_short} at Swing Shack",
+                "caption_hook_template": "{primary_cap}? Yes, that's a thing. \n\nBook your {primary_theme} today.",
                 "why": "Booking-CTA posts historically drive +267% more /bookings/ traffic than baseline. Pairing '{primary_theme}' with a direct booking CTA matches the winning theme combo.",
             },
             {
@@ -7751,7 +7751,7 @@ def intel_winning_theme_ideas_route():
                 "why": "Pain-point hooks (golf_humor + club_fitting combo) generate the highest engagement rate among your top posts. Captures the conversion win without hard-sell language.",
             },
             {
-                "title_template": "{primary_theme} isn't about the brand - it's about the fit",
+                "title_template": "{primary_theme_cap} isn't about the brand - it's about the fit",
                 "caption_hook_template": "Sub 70, Miura, Takomo, Avoda - none of it matters if the shaft's wrong.\n\nBook a fitting. 30 minutes. Sorted.",
                 "why": "Brand-neutral club_fitting content matches your top-3 scoring posts. Positions Swing Shack as the expert, not the reseller.",
             },
@@ -7804,11 +7804,23 @@ def intel_winning_theme_ideas_route():
             primary_slug = pick_primary_for_title(chosen_themes)
             primary = theme_label(primary_slug)
             primary_cap = primary.capitalize()
+            # Short form drops the redundant "fitting" suffix for templates that
+            # already end with "fitting" (e.g. "Book your club fitting" not
+            # "Book your club fitting fitting").
+            primary_short = primary.replace(" fitting", "").replace(" lesson", "").strip() or primary
             secondary_slug = chosen_themes[1] if len(chosen_themes) > 1 else primary_slug
             secondary = theme_label(secondary_slug)
             ideas.append({
-                "title": t["title_template"].format(primary_theme=primary, pain_point=f"play with the wrong setup (and how a {primary} fixes it)"),
-                "caption_hook": t["caption_hook_template"].format(first_word_cap=primary_cap, primary_theme=primary),
+                "title": t["title_template"].format(
+                    primary_theme=primary,
+                    primary_theme_short=primary_short,
+                    primary_theme_cap=primary_cap,
+                    primary_cap=primary_cap,
+                    pain_point=f"play with the wrong setup (and how a {primary} fixes it)"),
+                "caption_hook": t["caption_hook_template"].format(
+                    primary_theme=primary,
+                    primary_cap=primary_cap,
+                    first_word_cap=primary_cap),
                 "format": chosen_format,
                 "themes": chosen_themes,
                 "why": t["why"].format(primary_theme=primary, secondary_theme=secondary),
