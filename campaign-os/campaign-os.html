@@ -8005,11 +8005,25 @@ async function renderCalendar(){
     _pillarCounts[key] = (_pillarCounts[key] || 0) + 1;
   }));
   const _stripOrder = [..._PILLAR_KEYS, 'unspecified'];
-  const _stripLabels = {equipment:'equipment', 'club-fitting':'club fitting', coaching:'coaching', community:'community', events:'events', merch:'merch', practice:'practice', unspecified:'unspecified'};
+  // The 8th pill is the "no pillar tagged" bucket. Before this fix the
+  // pill was labelled "unspecified" with no explanation, and on the swing
+  // shack dataset 31 of 57 calendar slots landed there because they're
+  // publisher-queue items whose source caption carries no pillar marker
+  // (🏌/🎯/🤝/📅/🛍/🎮) or pillar token. The user opens Calendar, sees
+  // "unspecified 31" + "coaching 15", and the mix tells them nothing
+  // actionable — they don't know whether 31 is bad data, an inference gap,
+  // or a workflow they can ignore. Renaming to "no pillar · queue" + a
+  // help-tip spells out exactly what the bucket is and where the data
+  // comes from (publisher-queue captions predate the pillar-tagging work).
+  const _stripLabels = {equipment:'equipment', 'club-fitting':'club fitting', coaching:'coaching', community:'community', events:'events', merch:'merch', practice:'practice', unspecified:'no pillar · queue'};
+  const _stripTips = {
+    'unclassified': 'Posts whose caption did not match any pillar marker and whose source record carries no pillarName/pillar field. On this brand these are publisher-queue items predating the pillar-tagging work, not a config error.',
+  };
   const _stripPills = _stripOrder.map(k => {
     const n = _pillarCounts[k] || 0;
     const cls = n === 0 ? 'cal-pill is-zero' : 'cal-pill';
-    return `<span class="${cls}" data-pillar="${k}"><span class="cal-pill-key"></span><span class="cal-pill-label">${esc(_stripLabels[k])}</span><span class="cal-pill-count">${n}</span></span>`;
+    const tip = k === 'unspecified' ? ` data-help="${esc(_stripTips.unclassified)}" data-help-title="No-pillar bucket"` : '';
+    return `<span class="${cls}" data-pillar="${k}"${tip}><span class="cal-pill-key"></span><span class="cal-pill-label">${esc(_stripLabels[k])}</span><span class="cal-pill-count">${n}</span></span>`;
   }).join('');
   $('#cal-pillar-strip').innerHTML = `<span class="cal-pill-strip-title">🔮 Pillar mix</span>${_stripPills}`;
   // If the strip is empty (zero slots in the window), hide it so we don't
