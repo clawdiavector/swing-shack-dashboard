@@ -629,3 +629,53 @@ Renderer unchanged (still reads `v.verdict` verbatim). 1 file +68/-12, 1 new tes
 1. The ad-correlation card still doesn't show a "trend across all campaigns" header (e.g., "spend climbed from R117 → R952 → dropped to R310 over 8 months, cost-per-session trended up 8x"). Adding a one-line trend summary at the top of the card would close the remaining "fake feature" gap. Lane for next tick.
 2. The Insights v2 headlines still show `tone-bad` for Instagram when the account's average is 0.20% (because `avg > 1.5 ? 'good' : avg > 1.5 ? 'watch' : 'bad'`). When the WHOLE deck is below 1.5%, 'bad' is technically right but reads alarming. A "your deck is below industry average" caveat would be useful.
 3. Em-dash sweep on the `campaign-os.html` chrome (data files already clean per the earlier walker probe).
+
+## 2026-08-13T05:09Z · Ad-correlation 'Did the ad drive this spike?' card: trend headline chip
+
+**Done:** Closed the long-standing "parts but no pattern" gap on the Insights card. The card used to render 16 Google Ads verdicts + 20 Meta Ads verdicts as a flat list — the user saw every number but never the story. "R0.26 → R1.12 → R1.66 → R2.08 per session" across 16 campaigns is unreadable until you see the line spike to R952 in Jan-25 then collapse to R2.5/month in 2026.
+
+Server-side (`campaign-os/_lib/insights_correlator.py`):
+- New `_trend_summary(campaigns, verdicts)` helper computes `campaign_count`, `total_spend`, `total_clicks`, `avg_cost_per_session`, `first_month`, `last_month`, `peak_month`/`peak_spend`, `trough_month`/`trough_spend`, `direction` (`rising`|`falling`|`stable`|`single`|`unknown`), and a pipe-separated `summary_text` string.
+- Attached to each configured platform block (`google_ads.trend_summary`, `meta_ads.trend_summary`) so the renderer reads once and renders once.
+- Direction uses 10% threshold on first-vs-last spend change; `first_spend=0` (organic IG post proxies with zero spend) reports `unknown` instead of dividing by zero.
+- All output numbers come from the actual campaigns the caller handed in — never fabricates. No em-dashes (standing rule).
+
+Client-side (`campaign-os/campaign-os.html`):
+- `adBlock` render refactored: each platform gets its own section with a trend chip tone-coded by direction (red for falling, yellow for rising, green for stable, neutral for single/unknown) and a hover-help "Trend summary" tooltip surfacing peak/trough.
+- Per-campaign verdict cards stay — the trend chip is the headline, the per-campaign list is the detail.
+
+Tests (`campaign-os/tests/test_v2026_08_14_ad_correlation_trend_summary.py` — NEW, 6 tests):
+- Rising spend series → `direction=rising`, peak = last month, trough = first.
+- Falling spend series → `direction=falling`, peak = first, trough = last.
+- Stable series (±5%) → `direction=stable`, no `spend up/down` substring in summary.
+- Single campaign → `direction=single`, both months equal.
+- No campaigns → `trend_summary` key absent (not fabricated).
+- Meta Ads series → same helper, also gets a `trend_summary`.
+
+**Verified (Playwright headless, LIVE post-deploy):**
+- Google Ads chip on the live URL: `📉 16 campaigns from 202410 to 202607 | total spend R5,402 | 2,161 clicks | avg R0.74/session | spend down 96% over the window` (red tone, falling).
+- Meta Ads chip: `📈 20 campaigns from 202602 to 202604 | total spend R14 | avg R0.0/session` (green tone, `unknown` direction since first spend = 0).
+- 0 PAGEERROR, 0 console errors on `/insights` after navigation.
+- 3/3 prior ad-correlation tests still pass + 6/6 new trend-summary tests = 9/9 of relevant tests.
+
+**Files (3, +432/-8):**
+- `campaign-os/_lib/insights_correlator.py` (+131) — new `_trend_summary()` + 2 callsites
+- `campaign-os/campaign-os.html` (+42/-8) — `adBlock` render refactor for per-platform section + tone-coded trend chip
+- `campaign-os/tests/test_v2026_08_14_ad_correlation_trend_summary.py` (NEW, +259) — 6 scenarios
+
+**Commit:** `6894a9d` on `feat/asset-state-engine`, pushed. Railway auto-deployed. `/api/health` returns 200.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_20260813T050900Z_LIVE_ad_trend_chip.png` — full ad-correlation card with both trend chips visible.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (test asserts), 0 schema, 0 auth, 0 deploy-affecting changes (purely additive — `trend_summary` only attached when block is `configured: True`).
+
+**Next pick:**
+1. **The trend chip says "down 96% over the window" but doesn't break out the 22-month active spend period vs the 7-month trickle.** Adding a "since X date" qualifier when there's a 6+ month gap between active and dormant campaigns would prevent the alarm-bell tone when the active-vs-quiet split is intentional.
+2. **Each Meta Ads campaign is a one-day organic IG post proxy with zero clicks/spend** — the trend chip is honest but the per-campaign cards beneath are 20 dead rows. Could collapse to a single "all 20 organic proxies: zero spend, zero clicks → these are IG posts, not ads" line.
+3. **Insight v2 headlines still show `tone-bad` for Instagram when the deck average is 0.20%** (carryover from last tick's notes). When the whole deck is below industry average the "bad" tone reads alarming.
+4. **Two `mountSec` ternaries in `go()`** still consolidate to a `mountSecFor(realSec)` helper.
+
+**Learned:** When a card has N rows of per-item verdicts, the user needs a one-line headline first. Without it, even good numbers look like noise ("16 numbers? which one matters?"). The trick is computing the headline from the SAME data the rows came from, not a separate query — so the headline can never disagree with the detail underneath. Direction thresholds also matter: 10% is the right floor (anything smaller than that is just noise, anything larger is signal).
+
+**Asks:** None.
