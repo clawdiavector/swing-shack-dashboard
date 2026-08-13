@@ -8522,7 +8522,24 @@ async function renderIdeas(){
 async function renderPerformance(){
   const [p, e] = await Promise.all([API.get('/api/intel/performance'), API.get('/api/intel/explain')]);
   S.perf = p;
-  $('#insights-strip-txt').innerHTML = (e.insights||[]).slice(0,3).map(i => `<b>${esc((i.kind||'insight').replace('-',' ').replace(/_/g,' '))}:</b> ${esc(i.claim)}`).join(' &nbsp;·&nbsp; ') || 'No insights yet, connect analytics to see what is working';
+  // Render the top-3 insights as tone-coded chips instead of one flat
+  // joined line. Pre-fix all three read "ig winner:" (even the negative
+  // one), so the strip mixed green and red labels with identical phrasing.
+  // Now each insight gets a label + dot matching its tone (good=green,
+  // watch=yellow, bad=red) so a winner and a laggard sit next to each
+  // other without contradicting themselves.
+  const _toneChip = (kind) => {
+    if (kind === 'ig-laggard' || kind === 'seo-trend-down') return ['bad', '🔴'];
+    if (kind === 'ig-winner' || kind === 'seo-trend-up') return ['good', '🟢'];
+    if (kind === 'traffic') return ['watch', '🟡'];
+    return ['watch', '🟡'];
+  };
+  $('#insights-strip-txt').innerHTML = (e.insights||[]).slice(0,3).map(i => {
+    const [tone, dot] = _toneChip(i.kind || '');
+    const label = (i.kind || 'insight').replace(/-/g, ' ').replace(/_/g, ' ');
+    const toneColor = tone === 'good' ? '#10b981' : tone === 'bad' ? '#ef4444' : '#f59e0b';
+    return `<span style="display:inline-flex;align-items:baseline;gap:.3rem;margin-right:.85rem"><b style="color:${toneColor};font-weight:600">${dot} ${esc(label)}:</b> <span style="color:var(--tx)">${esc(i.claim)}</span></span>`;
+  }).join('') || 'No insights yet, connect analytics to see what is working';
 
   $('#perf-ig-posts').textContent = p.instagram?.total_posts || 0;
   $('#perf-ga-sessions').textContent = (p.ga4?.total_sessions || '—').toLocaleString();

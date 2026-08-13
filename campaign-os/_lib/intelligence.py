@@ -1929,17 +1929,22 @@ def explain_performance() -> Dict[str, Any]:
 
     if posts:
         er_avg = sum(_er(p) for p in posts) / max(len(posts), 1)
-        top = sorted([p for p in posts if isinstance(p, dict)], key=_er, reverse=True)[:3]
-        for t in top:
+        # Sort by ER and split: top 2 are "winners" (green), bottom 1 is the
+        # "laggard" (red). Pre-fix the strip labelled the laggard as "ig-winner"
+        # which was misleading and made the Performance banner visually
+        # contradictory (a winner and a loser side by side, both tagged the same).
+        ranked = sorted([p for p in posts if isinstance(p, dict)], key=_er, reverse=True)
+        winners = ranked[:2]
+        laggard = ranked[-1] if len(ranked) >= 3 else None
+        for t in winners:
             cap = t.get("hook_text") or t.get("captionPreview") or t.get("caption") or ""
             cap = cap[:60]
             ter = _er(t)
             if er_avg > 0 and ter > 0:
                 pct = ((ter - er_avg) / er_avg * 100)
-                direction = "better" if pct >= 0 else "worse"
-                claim = f"\"{cap}…\" is performing {abs(pct):.0f}% {direction} than your Instagram average."
-                next_step = (f"Make a fresh take on this hook for next week · same angle, "
-                             f"different format (reel vs carousel). Drive {direction} winners again.")
+                claim = f"\"{cap}…\" is performing {abs(pct):.0f}% better than your Instagram average."
+                next_step = ("Make a fresh take on this hook for next week · same angle, "
+                             "different format (reel vs carousel). Drive better winners again.")
             else:
                 claim = f"\"{cap}…\" is one of your top Instagram posts by engagement."
                 next_step = "Resurface this hook in a different format this month."
@@ -1949,6 +1954,25 @@ def explain_performance() -> Dict[str, Any]:
                 "kind": "ig-winner",
                 "next_step": next_step,
                 "action": "Generate fresh take",
+            })
+        if laggard is not None:
+            cap = laggard.get("hook_text") or laggard.get("captionPreview") or laggard.get("caption") or ""
+            cap = cap[:60]
+            ter = _er(laggard)
+            if er_avg > 0 and ter > 0:
+                pct = ((er_avg - ter) / er_avg * 100)
+                claim = f"\"{cap}…\" is performing {abs(pct):.0f}% worse than your Instagram average."
+                next_step = ("Update this hook with a stronger angle · ask the Ideas tab to "
+                             "regenerate variations on the same topic.")
+            else:
+                claim = f"\"{cap}…\" is one of your weaker Instagram posts by engagement."
+                next_step = "Consider refreshing this hook or retiring the format."
+            insights.append({
+                "claim": claim,
+                "evidence": {"post_id": laggard.get("id"), "er": ter, "avg": round(er_avg, 2)},
+                "kind": "ig-laggard",
+                "next_step": next_step,
+                "action": "Regenerate hook",
             })
 
     if isinstance(seo, dict):
@@ -1960,23 +1984,36 @@ def explain_performance() -> Dict[str, Any]:
         rising = (seo.get("rising_keywords")
                   if isinstance(seo.get("rising_keywords"), list)
                   else seo.get("rising") or [])
-        if rising:
-            insights.append({
-                "claim": f"Your search visibility is climbing on: {', '.join(str(k) for k in rising[:3])}. Add supporting content to lock the gains.",
-                "evidence": {"keywords": rising[:5]},
-                "kind": "seo-trend-up",
-                "next_step": f"Generate 3 supporting posts around '{rising[0]}' this week to ride the climb.",
-                "action": "Generate SEO content",
-            })
         falling = (seo.get("falling_keywords")
                    if isinstance(seo.get("falling_keywords"), list)
                    else seo.get("falling") or [])
-        if falling:
+
+        # seo-rankings.json entries are objects {keyword, current_rank, ...}
+        # after the field-name drift fix landed. str() of one of those dumps
+        # the whole dict into the claim (e.g. "{'_has_change': True,
+        # 'competition': 0.2, ...}"). Pull the readable term out so the
+        # Performance strip shows names, not dict literals.
+        def _kw_label(k):
+            if isinstance(k, dict):
+                return k.get("keyword") or k.get("query") or k.get("title") or str(k)
+            return str(k)
+
+        if rising:
+            rising_names = [_kw_label(k) for k in rising[:3]]
             insights.append({
-                "claim": f"Watch out: {', '.join(str(k) for k in falling[:3])} lost positions this week.",
+                "claim": f"Your search visibility is climbing on: {', '.join(rising_names)}. Add supporting content to lock the gains.",
+                "evidence": {"keywords": rising[:5]},
+                "kind": "seo-trend-up",
+                "next_step": f"Generate 3 supporting posts around '{_kw_label(rising[0])}' this week to ride the climb.",
+                "action": "Generate SEO content",
+            })
+        if falling:
+            falling_names = [_kw_label(k) for k in falling[:3]]
+            insights.append({
+                "claim": f"Watch out: {', '.join(falling_names)} lost positions this week.",
                 "evidence": {"keywords": falling[:5]},
                 "kind": "seo-trend-down",
-                "next_step": f"Update your '{falling[0]}' landing page with fresher content · old pages lose rank.",
+                "next_step": f"Update your '{_kw_label(falling[0])}' landing page with fresher content · old pages lose rank.",
                 "action": "Update landing page",
             })
 
