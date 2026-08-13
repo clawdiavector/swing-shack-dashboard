@@ -577,3 +577,10 @@ Wired 5 modal-context h4 headers with data-help + data-help-title + cursor:help 
 **Learned:** When a render path ships as "headlines.push(...)" with rich per-object fields (`emoji`, `data`, `take`, `tone`) but the template hard-codes the title text instead of using `h.label`, every card looks identical at a glance. The fastest fix is to add the missing field at the push site rather than overloading emoji-to-text mapping at the renderer (emoji-to-text breaks the day someone swaps an emoji).
 
 **Asks:** None.
+
+## 2026-08-13T02:34Z · Performance strip: colour-coded labels + readable SEO keywords
+- `explain_performance()` now splits the IG posts into 2 winners (kind=ig-winner, "performing X% better") + 1 laggard (kind=ig-laggard, "performing X% worse" / "one of your weaker posts"). Pre-fix all three rows were labelled ig-winner even when one was 20% worse.
+- `explain_performance()` now extracts `.keyword` from rising/falling entries via a `_kw_label()` helper. seo-rankings.json entries are objects after the earlier field-name drift fix; `str(k)` was dumping the whole dict into the claim and next_step strings.
+- `renderPerformance()` now renders the top-3 insights as tone-coded inline chips (green/yellow/red dot + label + claim) with margin-right spacing instead of one flat joined line.
+- Commit: a133600 on feat/asset-state-engine. Verified live: Performance strip shows 🟢 ig winner / 🟢 ig winner / 🔴 ig laggard, SEO sidebar shows clean names (custom club fitting, club fitting, putter fitting, simulated golf, indoor golf practice, club fitting near me).
+- Screenshots: /tmp/co-nightshift/walkthrough_20260813T023400Z_performance_strip_FIX.png
