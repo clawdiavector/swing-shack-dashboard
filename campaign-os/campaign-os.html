@@ -6589,14 +6589,39 @@ document.addEventListener('click', async e => {
 // ─── TODAY RAIL (right-rail Bloomberg-style panel) ─────────────
 async function renderTodayRail(){
   if(!S.todayRail) S.todayRail = await API.get('/api/today/panel');
+  // Also fetch the post-conversion-score recommendation so we can prepend
+  // a 'what to publish next' card to the ticker. Failures are silent.
+  let pcsRec = null;
+  if(S.postConversionRec === undefined){
+    try {
+      const pcs = await API.get('/api/intel/post_conversion_score?top=5');
+      pcsRec = pcs && pcs.ok ? pcs.recommendation : null;
+    } catch(_) { pcsRec = null; }
+    S.postConversionRec = pcsRec || false;
+  } else {
+    pcsRec = S.postConversionRec || null;
+  }
   const r = S.todayRail;
   const el = $('#today-rail-list');
   if(!el) return;
   const lastTs = r.ts || '';
   const tsEl = $('#today-rail-ts');
   if(tsEl) tsEl.textContent = lastTs.slice(11,19) + ' UTC';
+  // Build the recommendation card (if we have one).
+  let recCardHtml = '';
+  if(pcsRec && pcsRec.next_post_themes && pcsRec.next_post_themes.length){
+    const themes = (pcsRec.next_post_themes || []).slice(0,3).map(esc).join(', ');
+    const example = (pcsRec.winning_pattern_caption_examples && pcsRec.winning_pattern_caption_examples[0]) || '';
+    recCardHtml = `
+      <div class="rail-card recommendation" data-id="pcs-recommendation" style="border-left:3px solid #10b981;background:rgba(16,185,129,0.06)">
+        <div class="rail-cap"><span class="rail-kind">📈 Publish next</span><span class="rail-x" data-dismiss="pcs-recommendation">✕</span></div>
+        <div class="rail-title">Combine: ${themes}</div>
+        <div class="rail-sub">${esc(example.slice(0, 90))}</div>
+      </div>`;
+  }
   el.innerHTML = `
     <div class="rail-meta">${esc(lastTs.slice(11,19))} UTC · ${r.count} live</div>
+    ${recCardHtml}
     ${(r.cards||[]).map((c,i) => `
       <div class="rail-card ${c.kind}" data-id="${esc(c.id)}" style="animation-delay:${i*60}ms">
         <div class="rail-cap"><span class="rail-kind">${esc(c.label)}</span><span class="rail-x" data-dismiss="${esc(c.id)}">✕</span></div>
@@ -6606,6 +6631,12 @@ async function renderTodayRail(){
   $$('[data-dismiss]', el).forEach(b => b.addEventListener('click', async (e) => {
     e.stopPropagation();
     const id = b.dataset.dismiss;
+    // Recommendation card is local-only dismiss (no backend persistence).
+    if(id === 'pcs-recommendation'){
+      S.postConversionRec = false;
+      renderTodayRail();
+      return;
+    }
     await API.post('/api/today/panel/dismiss', {id});
     S.todayRail = null; renderTodayRail();
   }));

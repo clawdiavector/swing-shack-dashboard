@@ -3788,6 +3788,103 @@ def _interpret_weekly_report(
         import logging as _logging
         _logging.getLogger(__name__).debug("ga4-attribution block skipped: %s", _exc)
 
+    # ── 3h. POST CONVERSION SCORE (from post-conversion-score.json) ──
+    # The "what to publish more of" answer. Scores every IG post by its
+    # actual /bookings/ contribution per unit of reach, factoring in
+    # time-windowed attribution (people don't click-through instantly)
+    # and historical theme-combo performance.
+    try:
+        pcs_path = _runtime_data_file("post-conversion-score.json")
+        if os.path.exists(pcs_path):
+            pcs = _read_json(pcs_path) or {}
+            if isinstance(pcs, dict):
+                sources_used.append("post-conversion-score.json")
+                summary = pcs.get("summary") or {}
+                recommendation = pcs.get("recommendation") or {}
+                ranked = pcs.get("posts_ranked") or []
+
+                # 1. Top converting post of the period - the headline CMO claim.
+                if ranked and isinstance(ranked[0], dict):
+                    top = ranked[0]
+                    top_caption = top.get("caption_preview", "")[:80]
+                    top_reach = int(top.get("reach", 0))
+                    top_er = float(top.get("engagement_rate_pct", 0))
+                    top_lift = float(top.get("lift_vs_baseline_pct", 0))
+                    top_score = float(top.get("normalized_score", 0))
+                    top_themes = ", ".join(top.get("themes", [])[:3])
+                    working.append({
+                        "claim": (
+                            f"Top converting IG post - {top.get('post_date', 'unknown')}: "
+                            f"{top_reach:,} reach, {top_er:.2f}% engagement, "
+                            f"{top_lift:+.0f}% /bookings/ lift over baseline. "
+                            f"Score {top_score:.0f}/100. Themes: {top_themes}."
+                        ),
+                        "evidence": (
+                            f"post-conversion-score.json ranks every IG post by its "
+                            f"contribution to /bookings/ traffic. Score formula combines "
+                            f"direct hook_id attribution (10x), time-window D+0/+1/+2 "
+                            f"IG /bookings/ sessions (3x), reach (0.001x), and a 1.5x "
+                            f"multiplier for historically winning theme combos (club_fitting "
+                            f"+ booking_cta). Lift % compares to the median IG /bookings/ "
+                            f"traffic in the 30d window."
+                        ),
+                        "source": "post-conversion-score.json",
+                        "category": "content_performance",
+                    })
+
+                # 2. Winning pattern - the CMO recommendation for next post.
+                if recommendation:
+                    themes = recommendation.get("next_post_themes") or []
+                    examples = recommendation.get("winning_pattern_caption_examples") or []
+                    if themes:
+                        examples_str = "; ".join(examples[:2]) if examples else ""
+                        working.append({
+                            "claim": (
+                                f"Next-post recommendation - Combine these themes for max "
+                                f"/bookings/ conversion: {', '.join(themes)}. "
+                                f"Example angles: '{examples_str}'."
+                            ),
+                            "evidence": (
+                                f"post-conversion-score.json recommendation block. Built by "
+                                f"counting theme frequency in the top 5 scoring posts. The "
+                                f"top 5 historically lifted /bookings/ traffic by "
+                                f"50-300% over baseline. This is the recommendation the "
+                                f"content engine should weight when picking the next post idea."
+                            ),
+                            "source": "post-conversion-score.json",
+                            "category": "content_strategy",
+                        })
+
+                # 3. Bottom-ranked posts - LOOK_AT only when we have enough
+                # posts for a statistically meaningful signal. With <12 posts,
+                # the bottom of the ranking is just noise (every theme combo
+                # appears somewhere). Skip the claim and surface only when
+                # we have enough data.
+                if len(ranked) >= 12:
+                    bottom = ranked[-3:]
+                    bottom_themes = []
+                    for p in bottom:
+                        bottom_themes.extend(p.get("themes", []))
+                    bottom_unique = list(set(bottom_themes))
+                    look_at.append({
+                        "claim": (
+                            f"Lowest-converting posts (bottom 3 of {len(ranked)}) "
+                            f"share themes {', '.join(bottom_unique[:4])}. "
+                            f"These patterns are NOT driving /bookings/ traffic - "
+                            f"consider rotating them out of the next-post rotation."
+                        ),
+                        "evidence": (
+                            f"post-conversion-score.json bottom 3 of {len(ranked)} ranked "
+                            f"posts. Lowest scores correlate with these themes. The "
+                            f"content engine should deprioritise these in next-post selection."
+                        ),
+                        "source": "post-conversion-score.json",
+                        "category": "content_strategy",
+                    })
+    except Exception as _exc:
+        import logging as _logging
+        _logging.getLogger(__name__).debug("post-conversion-score block skipped: %s", _exc)
+
     # ── 4. YouTube ───────────────────────────────────────────────────
     if isinstance(youtube, dict):
         themes = youtube.get("active_themes") or []

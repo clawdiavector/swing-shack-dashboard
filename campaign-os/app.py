@@ -6629,6 +6629,62 @@ def today_panel():
     return jsonify({'ok': True, 'ts': _now_iso(), 'summary': brief.get('summary', ''), 'cards': cards, 'dismissed': sorted(hidden), 'count': len(cards)})
 
 
+@app.route('/api/intel/post_conversion_score', methods=['GET'])
+def post_conversion_score_endpoint():
+    """
+    GET /api/intel/post_conversion_score
+
+    Returns the ranked IG post conversion scoring + next-post recommendation
+    so the SPA can render a 'What to publish next' card.
+
+    Reads from data/post-conversion-score.json (produced by
+    scripts/fetch_post_conversion_score.py).
+
+    Optional query params:
+      ?top=N  - return only top N posts (default 10, max 50)
+      ?brand=... - filter to a brand's UTM content if brand-specific scoring
+                   is added later (not implemented; reserved)
+    """
+    try:
+        top_n = min(int(request.args.get('top', 10)), 50)
+    except (TypeError, ValueError):
+        top_n = 10
+    # Use the intelligence helper to find the file (handles runtime DATA_DIR override)
+    from _lib import intelligence as _intel_module
+    pcs_path = _intel_module._runtime_data_file('post-conversion-score.json')
+    if not os.path.exists(pcs_path):
+        return jsonify({
+            'ok': False,
+            'error': 'post-conversion-score.json not found - run scripts/fetch_post_conversion_score.py first',
+            'ts': _now_iso(),
+        }), 404
+    try:
+        with open(pcs_path) as f:
+            pcs = json.load(f)
+    except Exception as e:
+        return jsonify({
+            'ok': False,
+            'error': f'failed to read post-conversion-score.json: {e}',
+            'ts': _now_iso(),
+        }), 500
+    if not isinstance(pcs, dict):
+        return jsonify({'ok': False, 'error': 'invalid post-conversion-score.json', 'ts': _now_iso()}), 500
+    summary = pcs.get('summary') or {}
+    recommendation = pcs.get('recommendation') or {}
+    ranked = (pcs.get('posts_ranked') or [])[:top_n]
+    return jsonify({
+        'ok': True,
+        'ts': _now_iso(),
+        'source': 'post-conversion-score.json',
+        'window': pcs.get('window'),
+        'summary': summary,
+        'recommendation': recommendation,
+        'top_posts': ranked,
+        'scoring_formula': pcs.get('scoring_formula'),
+        'winning_theme_combos': pcs.get('winning_theme_combos'),
+    })
+
+
 # ─── FRESHNESS: lazy on-demand generator ────────────────────────────────
 # When data/freshness.json is missing from both the volume and the bundled
 # repo copy (e.g. a fresh deploy before the daily 07:30 cron has run, or a
