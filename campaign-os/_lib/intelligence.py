@@ -339,11 +339,27 @@ def morning_brief() -> Dict[str, Any]:
     if not recommended_action and do_first and isinstance(do_first, list):
         top = do_first[0]
         if isinstance(top, dict):
+            # The live do_first[0] shape is {emoji, item:{hook, ...}, label, slot, where}
+            # for "post" slots — the actual headline lives under item.hook, not at
+            # the top level. Walk both surfaces so a missing headline never
+            # turns the priority-2 recommendation into a silent no-op
+            # (renderer falls back to "No urgent action" when headline empty).
+            _item = top.get("item") if isinstance(top.get("item"), dict) else {}
+            _headline = (
+                top.get("headline")
+                or top.get("title")
+                or top.get("name")
+                or _item.get("hook")
+                or _item.get("headline")
+                or _item.get("title")
+                or _item.get("name")
+                or top.get("label")
+            )
             recommended_action = {
                 "type": "repost",
-                "hook_id": top.get("hook_id") or top.get("id"),
-                "headline": top.get("headline") or top.get("title") or top.get("name"),
-                "ig_proof": top.get("ig_proof") or top.get("score"),
+                "hook_id": top.get("hook_id") or _item.get("hook_id") or top.get("id") or _item.get("id"),
+                "headline": _headline,
+                "ig_proof": top.get("ig_proof") or _item.get("score") or top.get("score"),
                 "source": top.get("source") or "recommendation-scores",
             }
             rationale = "Top IG performer · make a fresh take this week to ride the wave."
