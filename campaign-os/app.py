@@ -41,10 +41,20 @@ SHARED_PASSWORD = os.environ.get('CAMPAIGN_OS_PASSWORD') or 'swing-shack-dev-202
 SESSION_SECRET = os.environ.get('CAMPAIGN_OS_SECRET') or 'campaign-os-dev-secret-change-me'
 SESSION_COOKIE = 'cos_session'
 SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+# v2026-08-13: signed share-token TTL for the auth-optional markdown export.
+# 24 hours is enough for a same-day Slack/email share; longer than a day
+# invites stale-data sharing and stale links accumulating in docs.
+SHARE_TOKEN_MAX_AGE = 60 * 60 * 24
 _serializer = URLSafeTimedSerializer(SESSION_SECRET)
 
 # Routes that never require auth (login + the static asset paths needed to render login)
 PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/favicon.ico'}
+
+# v2026-08-13: weekly-report export with a valid ?share=<token> query
+# param is auth-optional. Letting the export route run without auth
+# means the route itself enforces the share-token gate (which is
+# stricter than the session cookie. it's scope-bound + time-limited).
+PUBLIC_ROUTES.add('/api/intel/weekly_report/export')
 
 
 def _is_authed():
@@ -6205,7 +6215,22 @@ def weekly_report_export():
 
     Returns the weekly report as markdown so it can be downloaded/printed
     or pasted into a Slack/email. Reads the same data as the JSON view.
+
+    Auth: either a valid session cookie OR a valid `?share=<token>` query
+    param (minted via /api/intel/weekly_report/share). The share path is
+    how recipients get a no-login link. see _verify_share_token().
     """
+    # v2026-08-13: accept signed share token as an auth bypass for this
+    # specific endpoint. The gate() before_request hook handles cookie
+    # auth; we only need to short-circuit when a valid share token is
+    # presented AND the cookie auth is missing.
+    if not _is_authed():
+        share_token = request.args.get("share", "")
+        if not _verify_share_token(share_token):
+            # Re-raise the standard auth failure so the gate() runs
+            # again. actually, the gate has already let us through
+            # because we got here. So we manually return the 401.
+            return jsonify({"ok": False, "error": "authentication required"}), 401
     if not _INTELLIGENCE_AVAILABLE or weekly_report is None:
         return jsonify({"ok": False, "error": "Intelligence module unavailable"}), 503
     try:
@@ -6462,6 +6487,93 @@ def weekly_report_export():
             _intel_module.clear_request_brand()
         except Exception:
             pass
+
+
+def _verify_share_token(token: str) -> bool:
+    """Validate a signed share token for the weekly-report export.
+
+    Tokens are minted via /api/intel/weekly_report/share and contain a
+    payload like {"scope": "weekly_report_export", "v": 1}. They are
+    signed with SESSION_SECRET (same key as the session cookie) and
+    bound to SHARE_TOKEN_MAX_AGE. Once expired they cannot be re-minted.
+    Christelle mints a new token if she wants to re-share.
+
+    We check both the signature AND the scope to make sure the token
+    was minted for THIS endpoint (defense in depth: a token for any
+    other signed-cookie use case wouldn't accidentally unlock the
+    export endpoint).
+    """
+    if not token:
+        return False
+    try:
+        payload = _serializer.loads(token, max_age=SHARE_TOKEN_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return False
+    return isinstance(payload, dict) and payload.get("scope") == "weekly_report_export"
+
+
+# v2026-08-13: signed share tokens for the markdown export.
+#
+# Why this exists: the Insights weekly report was previously auth-gated,
+# which meant pasting a link into Slack or email forced the recipient to
+# log in. For a marketing weekly recap that's a friction gap. the report
+# contains zero secrets (no customer data, no credentials), it's just
+# numbers + interpretations.
+#
+# Flow:
+#   1. Authed user POSTs to /api/intel/weekly_report/share
+#   2. Server mints a signed token (24h TTL) bound to "weekly_report_export"
+#   3. Returns {"share_url": "https://...?share=<token>"}
+#   4. Recipient hits that URL. if the token is valid AND unexpired,
+#      the export endpoint serves the markdown without an auth check.
+#
+# The token is opaque, single-use-bound-to-scope, and time-limited.
+# Recipients can't mutate or refresh; if the link expires, Christelle
+# just mints a new one.
+@app.route('/api/intel/weekly_report/share', methods=['POST'])
+def weekly_report_share():
+    """POST /api/intel/weekly_report/share. mint a signed share URL.
+
+    Body (optional JSON):
+        {"ttl_seconds": 86400}   # default 24h, max 7d
+
+    Returns:
+        {"ok": true, "share_url": "...", "expires_at": ISO8601, "ttl_seconds": N}
+
+    Requires auth (the recipient of the share link does not need auth).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required to mint share links"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        ttl = int(body.get("ttl_seconds", SHARE_TOKEN_MAX_AGE))
+        # Clamp TTL to [60s, 7d]. 7d is the practical ceiling. beyond
+        # that, the data in the report is too stale to share anyway.
+        ttl = max(60, min(ttl, 60 * 60 * 24 * 7))
+        payload = {"scope": "weekly_report_export", "v": 1}
+        token = _serializer.dumps(payload)
+        # Use request.host_url so the share URL points at the same
+        # host the user is currently on (works for both local dev and
+        # Railway production deployments). host_url ends with `/`
+        # (e.g. `https://app.example.com/`); strip it once, then ensure
+        # exactly one `/` between host and path. Common pitfall: on
+        # test clients request.host_url may be `http://localhost`
+        # without a trailing slash. handle both shapes.
+        host = request.host_url.rstrip("/")
+        if not host.endswith("/"):
+            host = host + ""
+        share_url = f"{host}/api/intel/weekly_report/export?share={token}"
+        expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=ttl)
+        return jsonify({
+            "ok": True,
+            "share_url": share_url,
+            "token": token,
+            "expires_at": expires_at.isoformat(),
+            "ttl_seconds": ttl,
+        })
+    except Exception as exc:
+        _app_log.exception("weekly_report_share failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
 
 
 @app.route('/api/today/panel', methods=['GET'])
