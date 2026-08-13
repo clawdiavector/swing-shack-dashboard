@@ -1,0 +1,135 @@
+{
+  "updated": "2026-08-13T11:14:39.518Z",
+  "generated": "generate_capacity_shift.js",
+  "summary": {
+    "total_shifts": 10,
+    "high_urgency": 3,
+    "by_action": {
+      "delay": 3,
+      "format_swap": 3,
+      "fallback_replace": 3,
+      "reassign_to_page": 1
+    },
+    "overloads_found": 0,
+    "fallbacks_found": 0
+  },
+  "shifts": [
+    {
+      "shift_id": "shift_msrf87j2pmaz",
+      "action": "delay",
+      "owner": "Coach Cat",
+      "asset": "🎬 Swing clip (video or photo)",
+      "posts_affected": 1,
+      "reason": "Asset needed for 1 post(s) but urgency is this_week — push to next week",
+      "new_urgency": "next_week",
+      "severity": "low"
+    },
+    {
+      "shift_id": "shift_msrf87j22oz3",
+      "action": "delay",
+      "owner": "Coach Cat / Divan",
+      "asset": "📊 TrackMan screenshot or data graphic",
+      "posts_affected": 1,
+      "reason": "Asset needed for 1 post(s) but urgency is flexible — push to next week",
+      "new_urgency": "next_week",
+      "severity": "low"
+    },
+    {
+      "shift_id": "shift_msrf87j26aju",
+      "action": "delay",
+      "owner": "Divan",
+      "asset": "🎬 Swing clip (video or photo)",
+      "posts_affected": 1,
+      "reason": "Asset needed for 1 post(s) but urgency is flexible — push to next week",
+      "new_urgency": "next_week",
+      "severity": "low"
+    },
+    {
+      "shift_id": "shift_msrf87j2etke",
+      "action": "format_swap",
+      "from_format": "reel",
+      "to_format": "static",
+      "task_title": "POV: First time at Swing Shack",
+      "task_id": "task_msrf87e4etfs",
+      "owner": "Swing Shack page",
+      "reason": "Reel blocked by missing Swing clip or video footage — swap to static to keep timeline",
+      "asset_needed": "Swing clip or video footage",
+      "swap_benefit": "Keeps schedule on track — static image is faster to produce",
+      "severity": "high"
+    },
+    {
+      "shift_id": "shift_msrf87j2fb0o",
+      "action": "format_swap",
+      "from_format": "reel",
+      "to_format": "static",
+      "task_title": "Coach Catherine explains a common swing flaw",
+      "task_id": "task_msrf87e4ifn3",
+      "owner": "Coach Cat",
+      "reason": "Reel blocked by missing Swing clip or lesson photo — swap to static to keep timeline",
+      "asset_needed": "Swing clip or lesson photo",
+      "swap_benefit": "Keeps schedule on track — static image is faster to produce",
+      "severity": "medium"
+    },
+    {
+      "shift_id": "shift_msrf87j20flp",
+      "action": "format_swap",
+      "from_format": "reel",
+      "to_format": "static",
+      "task_title": "Show TrackMan data overlay - before/after swing",
+      "task_id": "task_msrf87e4ej1b",
+      "owner": "Coach Cat / Divan",
+      "reason": "Reel blocked by missing TrackMan screenshot or data graphic — swap to static to keep timeline",
+      "asset_needed": "TrackMan screenshot or data graphic",
+      "swap_benefit": "Keeps schedule on track — static image is faster to produce",
+      "severity": "medium"
+    },
+    {
+      "shift_id": "shift_msrf87j2z8x8",
+      "action": "fallback_replace",
+      "blocked_task": "THAT SLICE COSTING YOU YARDS?",
+      "blocked_id": "task_msrf87e447po",
+      "owner": "Swing Shack page",
+      "replacement": null,
+      "replacement_id": null,
+      "reason": "Blocked: asset_needed:High-quality static image — replace with ready fallback",
+      "swap_benefit": "No fallback available — source asset immediately",
+      "severity": "high"
+    },
+    {
+      "shift_id": "shift_msrf87j21057",
+      "action": "fallback_replace",
+      "blocked_task": "POV: First time at Swing Shack",
+      "blocked_id": "task_msrf87e4etfs",
+      "owner": "Swing Shack page",
+      "replacement": null,
+      "replacement_id": null,
+      "reason": "Blocked: asset_needed:Swing clip or video footage — replace with ready fallback",
+      "swap_benefit": "No fallback available — source asset immediately",
+      "severity": "high"
+    },
+    {
+      "shift_id": "shift_msrf87j2wr9b",
+      "action": "fallback_replace",
+      "blocked_task": "YOUR GOLF NEEDS A MENTOR",
+      "blocked_id": "task_msrf87e4s5lw",
+      "owner": "Swing Shack page",
+      "replacement": null,
+      "replacement_id": null,
+      "reason": "Blocked: asset_needed:High-quality static image — replace with ready fallback",
+      "swap_benefit": "No fallback available — source asset immediately",
+      "severity": "medium"
+    },
+    {
+      "shift_id": "shift_msrf87j29zd5",
+      "action": "reassign_to_page",
+      "from_owner": "Coach Cat",
+      "to_owner": "Swing Shack page",
+      "task_title": "A/B Test: youtube_angle_to_ig",
+      "task_id": "task_msrf87e4v8t3",
+      "reason": "Coach Cat is the highest-loaded specialist — move low-priority non-lesson tasks to page",
+      "new_status": "ready",
+      "urgency_before": "this_week",
+      "severity": "medium"
+    }
+  ]
+}

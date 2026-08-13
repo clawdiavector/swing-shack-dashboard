@@ -79,6 +79,20 @@ const STAGES = [
     ]
   },
   {
+    name: 'Attribution',
+    critical: false,
+    requiredOutputs: ['roi-truth.json', 'conversion-attribution.json'],
+    optionalOutputs: ['booking-events.json', 'post-attribution.json', 'utm-map.json'],
+    steps: [
+      { name: 'fetch_ga4',                       script: `node ${BASE}/scripts/fetch_ga4.js`,                       critical: false },
+      { name: 'run_booking_event_mapper',        script: `node ${BASE}/scripts/run_booking_event_mapper.js`,        critical: false },
+      { name: 'run_roi_truth_engine',            script: `node ${BASE}/scripts/run_roi_truth_engine.js`,            critical: false },
+      { name: 'run_conversion_truth_engine',     script: `node ${BASE}/scripts/run_conversion_truth_engine.js`,     critical: false },
+      { name: 'generate_conversion_attribution', script: `node ${BASE}/scripts/generate_conversion_attribution.js`, critical: false },
+      { name: 'run_postiz_attribution_layer',    script: `node ${BASE}/scripts/run_postiz_attribution_layer.js`,    critical: false },
+    ]
+  },
+  {
     name: 'Plan',
     critical: false,
     requiredOutputs: [],
@@ -245,6 +259,7 @@ const STAGES = [
       { name: 'lead_router_live',            script: `node ${BASE}/scripts/run_lead_router_live.js`,            critical: false },
       { name: 'reputation_responder',         script: `node ${BASE}/scripts/run_reputation_responder.js`,         critical: false },
     ]
+  },
   {
     name: 'TrustAcceleration',
     critical: false,
@@ -257,7 +272,6 @@ const STAGES = [
       { name: 'mode_promotion_manager',     script: `node ${BASE}/scripts/run_mode_promotion_manager.js`,     critical: false },
       { name: 'rollback_simulator',         script: `node ${BASE}/scripts/run_rollback_simulator.js`,         critical: false },
     ]
-  },
   },
   {
     name: 'ReliabilityStrike',
@@ -288,11 +302,11 @@ const STAGES = [
     requiredOutputs: [],
     optionalOutputs: ['post-attribution.json', 'booking-closure.json', 'whatsapp-routing-ready.json', 'whatsapp-template-pack.json', 'meta-auth-health.json', 'roi-truth.json'],
     steps: [
-      { name: 'postiz_attribution_layer',        script: \`node \${BASE}/scripts/run_postiz_attribution_layer.js\`,        critical: false },
-      { name: 'booking_closure_mapper',        script: \`node \${BASE}/scripts/run_booking_closure_mapper.js\`,        critical: false },
-      { name: 'whatsapp_readiness_builder',    script: \`node \${BASE}/scripts/run_whatsapp_readiness_builder.js\`,    critical: false },
-      { name: 'meta_oauth_watchdog',             script: \`node \${BASE}/scripts/run_meta_oauth_watchdog.js\`,             critical: false },
-      { name: 'roi_truth_engine',               script: \`node \${BASE}/scripts/run_roi_truth_engine.js\`,               critical: false },
+      { name: 'postiz_attribution_layer',        script: `node ${BASE}/scripts/run_postiz_attribution_layer.js`,        critical: false },
+      { name: 'booking_closure_mapper',        script: `node ${BASE}/scripts/run_booking_closure_mapper.js`,        critical: false },
+      { name: 'whatsapp_readiness_builder',    script: `node ${BASE}/scripts/run_whatsapp_readiness_builder.js`,    critical: false },
+      { name: 'meta_oauth_watchdog',             script: `node ${BASE}/scripts/run_meta_oauth_watchdog.js`,             critical: false },
+      { name: 'roi_truth_engine',               script: `node ${BASE}/scripts/run_roi_truth_engine.js`,               critical: false },
     ]
   },
   {
@@ -301,11 +315,11 @@ const STAGES = [
     requiredOutputs: [],
     optionalOutputs: ['booking-events.json', 'utm-governance.json', 'conversion-truth.json', 'booking-value-model.json', 'decision-confidence.json'],
     steps: [
-      { name: 'booking_event_mapper',          script: \`node \${BASE}/scripts/run_booking_event_mapper.js\`,          critical: false },
-      { name: 'utm_governor',                 script: \`node \${BASE}/scripts/run_utm_governor.js\`,                 critical: false },
-      { name: 'conversion_truth_engine',       script: \`node \${BASE}/scripts/run_conversion_truth_engine.js\`,       critical: false },
-      { name: 'booking_value_modeler',         script: \`node \${BASE}/scripts/run_booking_value_modeler.js\`,         critical: false },
-      { name: 'decision_confidence_engine',   script: \`node \${BASE}/scripts/run_decision_confidence_engine.js\`,   critical: false },
+      { name: 'booking_event_mapper',          script: `node ${BASE}/scripts/run_booking_event_mapper.js`,          critical: false },
+      { name: 'utm_governor',                 script: `node ${BASE}/scripts/run_utm_governor.js`,                 critical: false },
+      { name: 'conversion_truth_engine',       script: `node ${BASE}/scripts/run_conversion_truth_engine.js`,       critical: false },
+      { name: 'booking_value_modeler',         script: `node ${BASE}/scripts/run_booking_value_modeler.js`,         critical: false },
+      { name: 'decision_confidence_engine',   script: `node ${BASE}/scripts/run_decision_confidence_engine.js`,   critical: false },
     ]
   },
   {
@@ -314,13 +328,14 @@ const STAGES = [
     requiredOutputs: [],
     optionalOutputs: ['tracking-implementation-checklist.json', 'utm-backfill.json', 'event-validation.json', 'tracking-breaks.json', 'verification-promotions.json'],
     steps: [
-      { name: 'tracking_implementation_checklist', script: \`node \${BASE}/scripts/run_tracking_implementation_checklist.js\`, script: \`node \${BASE}/scripts/run_tracking_implementation_checklist.js\`, critical: false },
-      { name: 'utm_backfill_builder',             script: \`node \${BASE}/scripts/run_utm_backfill_builder.js\`,             critical: false },
-      { name: 'event_validation_monitor',         script: \`node \${BASE}/scripts/run_event_validation_monitor.js\`,         critical: false },
-      { name: 'tracking_break_detector',          script: \`node \${BASE}/scripts/run_tracking_break_detector.js\`,          critical: false },
-      { name: 'verification_promotion_engine',    script: \`node \${BASE}/scripts/run_verification_promotion_engine.js\`,    critical: false },
+      { name: 'tracking_implementation_checklist', script: `node ${BASE}/scripts/run_tracking_implementation_checklist.js`, script: `node ${BASE}/scripts/run_tracking_implementation_checklist.js`, critical: false },
+      { name: 'utm_backfill_builder',             script: `node ${BASE}/scripts/run_utm_backfill_builder.js`,             critical: false },
+      { name: 'event_validation_monitor',         script: `node ${BASE}/scripts/run_event_validation_monitor.js`,         critical: false },
+      { name: 'tracking_break_detector',          script: `node ${BASE}/scripts/run_tracking_break_detector.js`,          critical: false },
+      { name: 'verification_promotion_engine',    script: `node ${BASE}/scripts/run_verification_promotion_engine.js`,    critical: false },
     ]
   },
+  {
     name: 'Compile',
     critical: true,
     requiredOutputs: ['dashboard-summary.json'],

@@ -1,0 +1,104 @@
+{
+  "updated": "2026-08-13T11:14:39.687Z",
+  "generated": "generate_auto_messages.js",
+  "summary": {
+    "total": 7,
+    "by_type": {
+      "asset_reminder": 7
+    },
+    "high_sev": 2
+  },
+  "messages": [
+    {
+      "message_id": "msg_msrf87nqpo1a",
+      "nudge_id": "ndg_msrf87k72w2v",
+      "type": "asset_reminder",
+      "owner": "Swing Shack page",
+      "channel": "discord",
+      "subject": "Action needed: asset reminder",
+      "body": "📦 Quick one — need a asset for the upcoming post.\nDrop it in the shared drive or ping me when it's ready.",
+      "reason": "Missing High-quality static image for post_plan post",
+      "severity": "high",
+      "send_window": "now",
+      "status": "draft"
+    },
+    {
+      "message_id": "msg_msrf87nr2qv7",
+      "nudge_id": "ndg_msrf87k7p0bm",
+      "type": "asset_reminder",
+      "owner": "Swing Shack page",
+      "channel": "discord",
+      "subject": "Action needed: asset reminder",
+      "body": "📦 Quick one — need a asset for the upcoming post.\nDrop it in the shared drive or ping me when it's ready.",
+      "reason": "Missing Swing clip or video footage for post_plan post",
+      "severity": "high",
+      "send_window": "now",
+      "status": "draft"
+    },
+    {
+      "message_id": "msg_msrf87nrk0d1",
+      "nudge_id": "ndg_msrf87k7f42z",
+      "type": "asset_reminder",
+      "owner": "Swing Shack page",
+      "channel": "discord",
+      "subject": "Action needed: asset reminder",
+      "body": "📦 Quick one — need a asset for the upcoming post.\nDrop it in the shared drive or ping me when it's ready.",
+      "reason": "Missing High-quality static image for post_plan post",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "draft"
+    },
+    {
+      "message_id": "msg_msrf87nralzs",
+      "nudge_id": "ndg_msrf87k7jgwy",
+      "type": "asset_reminder",
+      "owner": "Coach Cat",
+      "channel": "discord",
+      "subject": "Action needed: asset reminder",
+      "body": "📦 Quick one — need a asset for the upcoming post.\nDrop it in the shared drive or ping me when it's ready.",
+      "reason": "Missing Swing clip or lesson photo for post_plan post",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "draft"
+    },
+    {
+      "message_id": "msg_msrf87nr7cxk",
+      "nudge_id": "ndg_msrf87k7cwvw",
+      "type": "asset_reminder",
+      "owner": "Swing Shack page",
+      "channel": "discord",
+      "subject": "Action needed: asset reminder",
+      "body": "📦 Quick one — need a asset for the upcoming post.\nDrop it in the shared drive or ping me when it's ready.",
+      "reason": "Missing High-quality static image for post_plan post",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "draft"
+    },
+    {
+      "message_id": "msg_msrf87nr3lu7",
+      "nudge_id": "ndg_msrf87k77ws6",
+      "type": "asset_reminder",
+      "owner": "Coach Cat / Divan",
+      "channel": "discord",
+      "subject": "Action needed: asset reminder",
+      "body": "📦 Quick one — need a asset for the upcoming post.\nDrop it in the shared drive or ping me when it's ready.",
+      "reason": "Missing TrackMan screenshot or data graphic for post_plan post",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "draft"
+    },
+    {
+      "message_id": "msg_msrf87nrxsds",
+      "nudge_id": "ndg_msrf87k7hu56",
+      "type": "asset_reminder",
+      "owner": "Divan",
+      "channel": "discord",
+      "subject": "Action needed: asset reminder",
+      "body": "📦 Quick one — need a asset for the upcoming post.\nDrop it in the shared drive or ping me when it's ready.",
+      "reason": "Missing Swing clip or video footage for post_plan post",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "draft"
+    }
+  ]
+}

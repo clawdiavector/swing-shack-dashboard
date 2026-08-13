@@ -1,0 +1,69 @@
+{
+  "updated": "2026-08-13T11:14:39.169Z",
+  "generated": "generate_experiment_queue.js",
+  "summary": {
+    "total_tests": 2,
+    "hook_tests": 0,
+    "cta_tests": 0,
+    "service_tests": 0,
+    "yt_tests": 2,
+    "today_count": 0,
+    "this_week_count": 2
+  },
+  "experiments": [
+    {
+      "test_id": "yt_test_1786619679169_ak95",
+      "type": "youtube_untested",
+      "variable": "youtube_angle_to_ig",
+      "description": "Take trending YouTube angle for \"lessons\" and port to IG",
+      "variant_a": {
+        "hook": "Once You Learn This Technique, The Golf Swing Becomes Effortless",
+        "label": "YouTube angle (proven on YT)"
+      },
+      "variant_b": {
+        "hook": "How to Swing a Golf Club (The EASY way)",
+        "label": "Problem angle (IG-native)"
+      },
+      "yt_evidence": [
+        "Once You Learn This Technique, The Golf Swing Becomes Effortless",
+        "How to Swing a Golf Club (The EASY way)"
+      ],
+      "success_metric": "cross_signal_score > 7 after 2 posts",
+      "target_metric": "cross_signal_score",
+      "owner": "Coach Cat",
+      "channel": "IG Reel",
+      "urgency": "this_week",
+      "upside": "YouTube has 5 videos on this — proven interest, untested on IG",
+      "confidence": 3,
+      "why": "5 YT videos trending on \"lessons\" but no IG coverage",
+      "rank": 1
+    },
+    {
+      "test_id": "yt_test_1786619679169_urtv",
+      "type": "youtube_untested",
+      "variable": "youtube_angle_to_ig",
+      "description": "Take trending YouTube angle for \"driver\" and port to IG",
+      "variant_a": {
+        "hook": "4 Simple Steps For The Perfect Golf Drive",
+        "label": "YouTube angle (proven on YT)"
+      },
+      "variant_b": {
+        "hook": "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO&#39;S &amp; DON&#39;TS!",
+        "label": "Problem angle (IG-native)"
+      },
+      "yt_evidence": [
+        "4 Simple Steps For The Perfect Golf Drive",
+        "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO&#39;S &amp; DON&#39;TS!"
+      ],
+      "success_metric": "cross_signal_score > 7 after 2 posts",
+      "target_metric": "cross_signal_score",
+      "owner": "Swing Shack page",
+      "channel": "IG Static",
+      "urgency": "this_week",
+      "upside": "YouTube has 2 videos on this — proven interest, untested on IG",
+      "confidence": 3,
+      "why": "2 YT videos trending on \"driver\" but no IG coverage",
+      "rank": 2
+    }
+  ]
+}

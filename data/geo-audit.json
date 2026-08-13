@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-22T06:31:14.138Z",
+  "updated": "2026-08-13T11:14:35.114Z",
   "site": "https://swingshack.co.za",
   "geo_score": "GOOD",
   "summary": {
@@ -21,33 +21,15 @@
       "page": "Membership"
     },
     {
-      "type": "missing_price",
-      "severity": "medium",
-      "message": "membership page missing pricing",
-      "page": "Membership"
-    },
-    {
       "type": "no_qa_blocks",
       "severity": "medium",
       "message": "No clear Q&A blocks found - AI summaries may miss key info",
       "page": "Coaching"
     },
     {
-      "type": "missing_price",
-      "severity": "medium",
-      "message": "coaching page missing pricing",
-      "page": "Coaching"
-    },
-    {
       "type": "no_qa_blocks",
       "severity": "medium",
       "message": "No clear Q&A blocks found - AI summaries may miss key info",
-      "page": "Club Fitting"
-    },
-    {
-      "type": "missing_price",
-      "severity": "medium",
-      "message": "fitting page missing pricing",
       "page": "Club Fitting"
     }
   ],
@@ -69,7 +51,7 @@
       "page": "Homepage"
     },
     {
-      "text": "Good content depth (22545 chars)",
+      "text": "Good content depth (25745 chars)",
       "page": "Homepage"
     },
     {
@@ -77,11 +59,15 @@
       "page": "Membership"
     },
     {
+      "text": "membership page has clear pricing, duration, and CTA",
+      "page": "Membership"
+    },
+    {
       "text": "Structured data (JSON-LD/schema.org) detected",
       "page": "Membership"
     },
     {
-      "text": "Good content depth (23679 chars)",
+      "text": "Good content depth (25528 chars)",
       "page": "Membership"
     },
     {
@@ -93,7 +79,7 @@
       "page": "Coaching"
     },
     {
-      "text": "Good content depth (21980 chars)",
+      "text": "Good content depth (24668 chars)",
       "page": "Coaching"
     },
     {
@@ -101,11 +87,15 @@
       "page": "Club Fitting"
     },
     {
+      "text": "fitting page has clear pricing, duration, and CTA",
+      "page": "Club Fitting"
+    },
+    {
       "text": "Structured data (JSON-LD/schema.org) detected",
       "page": "Club Fitting"
     },
     {
-      "text": "Good content depth (23128 chars)",
+      "text": "Good content depth (26169 chars)",
       "page": "Club Fitting"
     }
   ],
@@ -125,25 +115,11 @@
       "fix": "Add FAQ section with clear Q&A format"
     },
     {
-      "type": "missing_price",
-      "severity": "medium",
-      "message": "membership page missing pricing",
-      "page": "Membership",
-      "fix": "Add pricing information with R amount"
-    },
-    {
       "type": "no_qa_blocks",
       "severity": "medium",
       "message": "No clear Q&A blocks found - AI summaries may miss key info",
       "page": "Coaching",
       "fix": "Add FAQ section with clear Q&A format"
-    },
-    {
-      "type": "missing_price",
-      "severity": "medium",
-      "message": "coaching page missing pricing",
-      "page": "Coaching",
-      "fix": "Add pricing information with R amount"
     },
     {
       "type": "missing_duration",
@@ -158,13 +134,6 @@
       "message": "No clear Q&A blocks found - AI summaries may miss key info",
       "page": "Club Fitting",
       "fix": "Add FAQ section with clear Q&A format"
-    },
-    {
-      "type": "missing_price",
-      "severity": "medium",
-      "message": "fitting page missing pricing",
-      "page": "Club Fitting",
-      "fix": "Add pricing information with R amount"
     }
   ]
 }

@@ -21,17 +21,66 @@ function readJson(name) {
   catch { return null; }
 }
 
-const ig     = readJson('ig-analytics.json')           || {};
-const ga4    = readJson('ga4-metrics.json')            || {};
-const hooks  = readJson('hook-bank.json')             || {};
-const sales  = readJson('sales-priority.json')         || {};
-const missed = readJson('missed-opportunities.json')   || {};
-const plan   = readJson('post-plan.json')              || {};
+const igRaw      = readJson('ig-analytics.json')           || {};
+const igBusiness = readJson('ig-business-analytics.json')  || {};
+const ga4        = readJson('ga4-metrics.json')            || {};
+const hooks      = readJson('hook-bank.json')              || {};
+const sales      = readJson('sales-priority.json')         || {};
+const missed     = readJson('missed-opportunities.json')   || {};
+const plan       = readJson('post-plan.json')              || {};
+
+// Normalise IG sources — prefer ig-business-analytics (real reach)
+// over ig-analytics (often reach=0). Map both onto a uniform shape.
+function normaliseIgPosts() {
+  const bizMedia = (igBusiness.media || []).filter(m => m && m.metrics && (m.metrics.reach || 0) > 0);
+  if (bizMedia.length > 0) {
+    return bizMedia.map(m => ({
+      id: m.id,
+      caption: m.caption_preview || '',
+      hook_id: m.hook_id || '',
+      timestamp: m.timestamp || '',
+      media_type: m.media_type || '',
+      reach: parseInt(m.metrics.reach || 0),
+      likes: parseInt(m.metrics.likes || 0),
+      comments: parseInt(m.metrics.comments || 0),
+      saves: parseInt(m.metrics.saved || 0),
+      shares: parseInt(m.metrics.shares || 0),
+      engagementRate: parseFloat(m.engagement_rate_pct || 0),
+      source: 'ig-business-analytics',
+    }));
+  }
+  // Fallback to ig-analytics (daily tracker) — may have reach=0
+  return (igRaw.posts || []).map(p => ({
+    id: p.id || p.postId,
+    caption: p.captionPreview || p.caption || '',
+    hook_id: p.hook_id || '',
+    timestamp: p.timestamp || '',
+    media_type: p.format_type || '',
+    reach: parseInt(p.reach || 0),
+    likes: parseInt(p.likes || 0),
+    comments: parseInt(p.comments || 0),
+    saves: parseInt(p.saves || 0),
+    shares: parseInt(p.shares || 0),
+    engagementRate: parseFloat(p.engagementRate || p.engagement_rate || 0),
+    source: 'ig-analytics',
+  }));
+}
+
+const ig     = { posts: normaliseIgPosts(), source_used: igBusiness.media && igBusiness.media.length > 0 ? 'ig-business-analytics' : 'ig-analytics' };
 
 // ── GA4 Signals ─────────────────────────────────────────────────
 const ga4Pages   = ga4.pages || [];
 const ga4Conv    = ga4.conversions_by_page || {};
 const ga4Traffic = ga4.source_medium || [];
+
+// Normalise GA4 engagement-rate field: fetch_ga4 writes "engRate" as a
+// percent string ("76.8%"); the rest of this file expects a number.
+ga4Pages.forEach(p => {
+  if (typeof p.engagement_rate === 'undefined' && p.engRate) {
+    const parsed = parseFloat(String(p.engRate).replace('%', ''));
+    p.engagement_rate = isNaN(parsed) ? 0 : parsed / 100;
+  }
+});
 
 // High-intent pages (booking, checkout, contact, membership)
 const BOOKING_PAGES = ['book', 'checkout', 'membership', 'contact', 'lesson', 'fitting', 'pricing', 'coaching'];

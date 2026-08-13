@@ -1,0 +1,133 @@
+{
+  "schema": "https://clawdia.io/memory/castle/v1",
+  "memory_id": "mem_daily_20260813_t60b",
+  "date": "2026-08-13",
+  "type": "daily_log",
+  "source_agent": "memory_keeper",
+  "summary": "Daily learning log — 2026-08-13. Trust: 4/10. 11 agents active. Avg score: NaN.",
+  "tags": [
+    "daily",
+    "system",
+    "08-13"
+  ],
+  "importance": 8,
+  "linked_files": [
+    "data/system-health.json",
+    "data/agent-scorecards.json",
+    "data/recommendation-scores.json"
+  ],
+  "next_use": "Reference at start of next session for context",
+  "content": {
+    "trust_score": 4,
+    "top_hook": "Unknown",
+    "top_hook_detail": null,
+    "top_recommendation": "None yet",
+    "top_recommendation_detail": null,
+    "biggest_leak": {
+      "severity": "high"
+    },
+    "biggest_miss": null,
+    "failed_scripts": [],
+    "best_cta": null,
+    "top_experiment": {
+      "hook": {
+        "hook": "Once You Learn This Technique, The Golf Swing Becomes Effortless",
+        "label": "YouTube angle (proven on YT)"
+      },
+      "test": "cross_signal_score > 7 after 2 posts"
+    },
+    "top_scaling": {
+      "action": "Scale Soft / Engagement CTA across all posts"
+    },
+    "agent_scores": [
+      {
+        "agent_id": "pulse_keeper",
+        "name": "Pulse Keeper",
+        "score": 6.4,
+        "trend": "declining"
+      },
+      {
+        "agent_id": "data_harvester",
+        "name": "Data Harvester",
+        "score": 5.5,
+        "trend": "declining"
+      },
+      {
+        "agent_id": "insight_analyst",
+        "name": "Insight Analyst",
+        "score": 5.7,
+        "trend": "declining"
+      },
+      {
+        "agent_id": "hook_smith",
+        "name": "Hook Smith",
+        "score": 7.8,
+        "trend": "declining"
+      },
+      {
+        "agent_id": "taskmaster",
+        "name": "Taskmaster",
+        "score": 5.3,
+        "trend": "declining"
+      },
+      {
+        "agent_id": "nudge_bot",
+        "name": "Nudge Bot",
+        "score": 5.2,
+        "trend": "declining"
+      },
+      {
+        "agent_id": "idea_generator",
+        "name": "Idea Generator",
+        "score": 6.7,
+        "trend": "declining"
+      },
+      {
+        "agent_id": "cta_analyst",
+        "name": "CTA Analyst",
+        "score": 5.8,
+        "trend": "declining"
+      },
+      {
+        "agent_id": "content_architect",
+        "name": "Content Architect",
+        "score": 5.8,
+        "trend": "declining"
+      },
+      {
+        "agent_id": "memory_keeper",
+        "name": "Memory Castle Keeper",
+        "score": 5.5,
+        "trend": "stable"
+      },
+      {
+        "agent_id": "route_task",
+        "name": "Task Router",
+        "score": 5.8,
+        "trend": "declining"
+      }
+    ],
+    "avg_agent_score": null,
+    "what_to_repeat": [
+      "Zero script failures — keep pipeline discipline"
+    ],
+    "what_to_stop": [
+      "Stop: Funnel leak unaddressed: \"undefined\"",
+      "Stop: 20 blocked tasks — clear before adding more"
+    ],
+    "wins_this_week": []
+  },
+  "evidence": {
+    "source_files": [
+      "ig-analytics.json",
+      "recommendation-scores.json",
+      "recommendation-outcomes.json",
+      "system-health.json",
+      "agent-scorecards.json"
+    ],
+    "confidence": 8,
+    "notes": [
+      "Evidence-backed where available. Wins/losses from rec_outcomes. Agent scores from scorecards."
+    ]
+  }
+}

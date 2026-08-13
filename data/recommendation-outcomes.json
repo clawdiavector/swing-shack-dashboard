@@ -1,18 +1,18 @@
 {
-  "updated": "2026-04-22T09:37:27.836Z",
-  "generated": "2026-04-22T09:37:27.836Z",
+  "updated": "2026-08-13T11:14:40.832Z",
+  "generated": "2026-08-13T11:14:40.832Z",
   "summary": {
-    "total_recommended": 12,
+    "total_recommended": 13,
     "executed": 0,
     "won": 0,
     "neutral": 0,
     "lost": 0,
-    "not_executed": 12,
+    "not_executed": 13,
     "stale": 0,
     "exec_rate": 0,
     "overall_win_rate": 0,
-    "baseline_eng_rate": 2.15,
-    "booking_sessions": 179
+    "baseline_eng_rate": 0.26,
+    "booking_sessions": 211
   },
   "type_win_rates": [],
   "learned_signals": {
@@ -28,32 +28,32 @@
   "worst_recommendation": null,
   "ignored": [
     {
-      "id": "rec_214c8267",
-      "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "id": "rec_329f5f27",
+      "hook": "THAT SLICE COSTING YOU YARDS?",
       "type": "post_plan",
       "reason": "no_matching_post_found"
     },
     {
-      "id": "rec_3d1380ba",
-      "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
+      "id": "rec_3d5c2883",
+      "hook": "POV: First time at Swing Shack",
       "type": "post_plan",
       "reason": "no_matching_post_found"
     },
     {
-      "id": "rec_7b2bf00b",
-      "hook": "Book your session with Coach Cat @swingshack ⛳️",
+      "id": "rec_2063c666",
+      "hook": "YOUR GOLF NEEDS A MENTOR",
       "type": "post_plan",
       "reason": "no_matching_post_found"
     },
     {
-      "id": "rec_0e2a6654",
-      "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "id": "rec_2944246b",
+      "hook": "Coach Catherine explains a common swing flaw",
       "type": "post_plan",
       "reason": "no_matching_post_found"
     },
     {
-      "id": "rec_6afb2054",
-      "hook": "Lowest net score wins a *new custom fitted driver!*",
+      "id": "rec_3f4b4cdc",
+      "hook": "YOUR CLUBS ARE HOLDING YOU BACK",
       "type": "post_plan",
       "reason": "no_matching_post_found"
     }
@@ -61,44 +61,17 @@
   "underperformed": [],
   "all_evaluated": [
     {
-      "recommendation_id": "rec_214c8267",
+      "recommendation_id": "rec_329f5f27",
       "source": "post_plan",
       "type": "post_plan",
-      "topic": "driver",
-      "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
-      "cta": "Link in bio · Book your session",
-      "channel": "IG Static",
-      "objective": "reach",
-      "day": "Wednesday",
-      "date": "Apr 22",
-      "owner": "Coach Cat / Divan",
-      "urgency": "today",
-      "score": 5,
-      "expiration_window": "today",
-      "expected_outcome": {
-        "type": "awareness",
-        "label": "reach + engagement"
-      },
-      "source_evidence": "Post plan: Wednesday · static",
-      "created_at": "2026-04-22T06:31:14.766Z",
-      "status": "not_executed",
-      "executed": false,
-      "outcome_status": "not_executed",
-      "matched_post_id": null,
-      "match_confidence": 0
-    },
-    {
-      "recommendation_id": "rec_3d1380ba",
-      "source": "post_plan",
-      "type": "post_plan",
-      "topic": "short_game",
-      "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
-      "cta": "Link in bio · Book your session",
+      "topic": "technique",
+      "hook": "THAT SLICE COSTING YOU YARDS?",
+      "cta": "TrackMan your swing · Book from R250",
       "channel": "IG Static",
       "objective": "reach",
       "day": "Thursday",
-      "date": "Apr 23",
-      "owner": "Coach Cat",
+      "date": "Aug 13",
+      "owner": "Swing Shack page",
       "urgency": "today",
       "score": 5,
       "expiration_window": "today",
@@ -107,7 +80,7 @@
         "label": "reach + engagement"
       },
       "source_evidence": "Post plan: Thursday · static",
-      "created_at": "2026-04-22T06:31:14.766Z",
+      "created_at": "2026-08-13T11:14:39.127Z",
       "status": "not_executed",
       "executed": false,
       "outcome_status": "not_executed",
@@ -115,53 +88,26 @@
       "match_confidence": 0
     },
     {
-      "recommendation_id": "rec_7b2bf00b",
+      "recommendation_id": "rec_3d5c2883",
       "source": "post_plan",
       "type": "post_plan",
-      "topic": "lessons",
-      "hook": "Book your session with Coach Cat @swingshack ⛳️",
-      "cta": "Book your session · Link in bio",
-      "channel": "IG Static",
-      "objective": "bookings",
-      "day": "Friday",
-      "date": "Apr 24",
-      "owner": "Coach Cat",
-      "urgency": "flexible",
-      "score": 5,
-      "expiration_window": "today",
-      "expected_outcome": {
-        "type": "awareness",
-        "label": "reach + engagement"
-      },
-      "source_evidence": "Post plan: Friday · static",
-      "created_at": "2026-04-22T06:31:14.766Z",
-      "status": "not_executed",
-      "executed": false,
-      "outcome_status": "not_executed",
-      "matched_post_id": null,
-      "match_confidence": 0
-    },
-    {
-      "recommendation_id": "rec_0e2a6654",
-      "source": "post_plan",
-      "type": "post_plan",
-      "topic": "lessons",
-      "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
+      "topic": "general",
+      "hook": "POV: First time at Swing Shack",
       "cta": "Save this · Share with a golfer",
       "channel": "IG Static",
-      "objective": "saves",
-      "day": "Saturday",
-      "date": "Apr 25",
-      "owner": "Coach Cat",
-      "urgency": "this_week",
+      "objective": "reach",
+      "day": "Friday",
+      "date": "Aug 14",
+      "owner": "Swing Shack page",
+      "urgency": "today",
       "score": 5,
       "expiration_window": "today",
       "expected_outcome": {
         "type": "awareness",
         "label": "reach + engagement"
       },
-      "source_evidence": "Post plan: Saturday · static",
-      "created_at": "2026-04-22T06:31:14.766Z",
+      "source_evidence": "Post plan: Friday · reel",
+      "created_at": "2026-08-13T11:14:39.127Z",
       "status": "not_executed",
       "executed": false,
       "outcome_status": "not_executed",
@@ -169,43 +115,16 @@
       "match_confidence": 0
     },
     {
-      "recommendation_id": "rec_6afb2054",
-      "source": "post_plan",
-      "type": "post_plan",
-      "topic": "driver",
-      "hook": "Lowest net score wins a *new custom fitted driver!*",
-      "cta": "Enter now · Link in bio",
-      "channel": "IG Static",
-      "objective": "awareness",
-      "day": "Sunday",
-      "date": "Apr 26",
-      "owner": "Divan",
-      "urgency": "flexible",
-      "score": 5,
-      "expiration_window": "today",
-      "expected_outcome": {
-        "type": "awareness",
-        "label": "reach + engagement"
-      },
-      "source_evidence": "Post plan: Sunday · static",
-      "created_at": "2026-04-22T06:31:14.766Z",
-      "status": "not_executed",
-      "executed": false,
-      "outcome_status": "not_executed",
-      "matched_post_id": null,
-      "match_confidence": 0
-    },
-    {
-      "recommendation_id": "rec_10efc1d9",
+      "recommendation_id": "rec_2063c666",
       "source": "post_plan",
       "type": "post_plan",
       "topic": "coaching",
-      "hook": "Go to your coaching sessions. Your ball deserves better 🫂",
-      "cta": "Link in bio · Book your session",
+      "hook": "YOUR GOLF NEEDS A MENTOR",
+      "cta": "Coaching from R850 · TrackMan + certified instructors",
       "channel": "IG Static",
-      "objective": "awareness",
-      "day": "Monday",
-      "date": "Apr 27",
+      "objective": "bookings",
+      "day": "Saturday",
+      "date": "Aug 15",
       "owner": "Swing Shack page",
       "urgency": "this_week",
       "score": 5,
@@ -214,8 +133,8 @@
         "type": "awareness",
         "label": "reach + engagement"
       },
-      "source_evidence": "Post plan: Monday · static",
-      "created_at": "2026-04-22T06:31:14.766Z",
+      "source_evidence": "Post plan: Saturday · static",
+      "created_at": "2026-08-13T11:14:39.127Z",
       "status": "not_executed",
       "executed": false,
       "outcome_status": "not_executed",
@@ -223,17 +142,17 @@
       "match_confidence": 0
     },
     {
-      "recommendation_id": "rec_1a5c530b",
+      "recommendation_id": "rec_2944246b",
       "source": "post_plan",
       "type": "post_plan",
-      "topic": "equipment",
-      "hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
-      "cta": "Link in bio · Book your session",
+      "topic": "general",
+      "hook": "Coach Catherine explains a common swing flaw",
+      "cta": "Save this · Share with a golfer",
       "channel": "IG Static",
-      "objective": "awareness",
-      "day": "Tuesday",
-      "date": "Apr 28",
-      "owner": "Divan",
+      "objective": "saves",
+      "day": "Sunday",
+      "date": "Aug 16",
+      "owner": "Coach Cat",
       "urgency": "this_week",
       "score": 5,
       "expiration_window": "today",
@@ -241,8 +160,89 @@
         "type": "awareness",
         "label": "reach + engagement"
       },
-      "source_evidence": "Post plan: Tuesday · static",
-      "created_at": "2026-04-22T06:31:14.766Z",
+      "source_evidence": "Post plan: Sunday · reel",
+      "created_at": "2026-08-13T11:14:39.127Z",
+      "status": "not_executed",
+      "executed": false,
+      "outcome_status": "not_executed",
+      "matched_post_id": null,
+      "match_confidence": 0
+    },
+    {
+      "recommendation_id": "rec_3f4b4cdc",
+      "source": "post_plan",
+      "type": "post_plan",
+      "topic": "equipment",
+      "hook": "YOUR CLUBS ARE HOLDING YOU BACK",
+      "cta": "TrackMan Fitting · from R900",
+      "channel": "IG Static",
+      "objective": "awareness",
+      "day": "Monday",
+      "date": "Aug 17",
+      "owner": "Swing Shack page",
+      "urgency": "flexible",
+      "score": 5,
+      "expiration_window": "today",
+      "expected_outcome": {
+        "type": "awareness",
+        "label": "reach + engagement"
+      },
+      "source_evidence": "Post plan: Monday · static",
+      "created_at": "2026-08-13T11:14:39.127Z",
+      "status": "not_executed",
+      "executed": false,
+      "outcome_status": "not_executed",
+      "matched_post_id": null,
+      "match_confidence": 0
+    },
+    {
+      "recommendation_id": "rec_7e9d88a9",
+      "source": "post_plan",
+      "type": "post_plan",
+      "topic": "general",
+      "hook": "Show TrackMan data overlay - before/after swing",
+      "cta": "Save this · Share with a golfer",
+      "channel": "IG Static",
+      "objective": "awareness",
+      "day": "Tuesday",
+      "date": "Aug 18",
+      "owner": "Coach Cat / Divan",
+      "urgency": "flexible",
+      "score": 5,
+      "expiration_window": "today",
+      "expected_outcome": {
+        "type": "awareness",
+        "label": "reach + engagement"
+      },
+      "source_evidence": "Post plan: Tuesday · reel",
+      "created_at": "2026-08-13T11:14:39.127Z",
+      "status": "not_executed",
+      "executed": false,
+      "outcome_status": "not_executed",
+      "matched_post_id": null,
+      "match_confidence": 0
+    },
+    {
+      "recommendation_id": "rec_213e9898",
+      "source": "post_plan",
+      "type": "post_plan",
+      "topic": "general",
+      "hook": "Time-lapse of a full fitting session",
+      "cta": "Save this · Share with a golfer",
+      "channel": "IG Static",
+      "objective": "awareness",
+      "day": "Wednesday",
+      "date": "Aug 19",
+      "owner": "Divan",
+      "urgency": "flexible",
+      "score": 5,
+      "expiration_window": "today",
+      "expected_outcome": {
+        "type": "awareness",
+        "label": "reach + engagement"
+      },
+      "source_evidence": "Post plan: Wednesday · reel",
+      "created_at": "2026-08-13T11:14:39.127Z",
       "status": "not_executed",
       "executed": false,
       "outcome_status": "not_executed",
@@ -263,8 +263,8 @@
         "delta": "+20-35%",
         "label": "+20-35% booking rate from IG push"
       },
-      "source_evidence": "179 sessions on booking page but 0 booking CTAs in recent IG posts",
-      "created_at": "2026-04-22T06:31:14.766Z",
+      "source_evidence": "211 sessions on booking page but 0 booking CTAs in recent IG posts",
+      "created_at": "2026-08-13T11:14:39.127Z",
       "status": "not_executed",
       "executed": false,
       "outcome_status": "not_executed",
@@ -279,15 +279,38 @@
       "hook": "Off-the-rack clubs are costing you yards. Here's what TrackMan found.",
       "cta": "Get your clubs custom fitted · swingshack.co.za/membership · TrackMan powered",
       "channel": "IG Static",
-      "urgency": "this_week",
-      "expiration_window": "48h",
+      "urgency": "today",
+      "expiration_window": "today",
       "expected_outcome": {
         "type": "bookings",
         "delta": "+10-20%",
         "label": "+10-20% sessions from IG push"
       },
-      "source_evidence": "61 GA4 sessions on /customer-portal/ with no IG coverage this week",
-      "created_at": "2026-04-22T06:31:14.766Z",
+      "source_evidence": "92 GA4 sessions on /customer-portal/ with no IG coverage this week",
+      "created_at": "2026-08-13T11:14:39.127Z",
+      "status": "not_executed",
+      "executed": false,
+      "outcome_status": "not_executed",
+      "matched_post_id": null,
+      "match_confidence": 0
+    },
+    {
+      "recommendation_id": "rec_4f6a43ec",
+      "source": "retarget",
+      "type": "promo_plus_booking",
+      "topic": "Lessons value proposition",
+      "hook": "Lowest net score wins a custom driver fitting. Or get one anyway.",
+      "cta": "Enter now · Or book your fitting → swingshack.co.za/membership",
+      "channel": "IG Static",
+      "urgency": "this_week",
+      "expiration_window": "this_week",
+      "expected_outcome": {
+        "type": "awareness",
+        "delta": "+reach + bookings",
+        "label": "+reach (contest) + bookings (CTA)"
+      },
+      "source_evidence": "Contest drives reach; booking CTA converts high-intent audience",
+      "created_at": "2026-08-13T11:14:39.127Z",
       "status": "not_executed",
       "executed": false,
       "outcome_status": "not_executed",
@@ -299,18 +322,18 @@
       "source": "service_push",
       "type": "service_push",
       "topic": "Club Fitting",
-      "hook": "Push Club Fitting — Strong IG engagement (8)",
+      "hook": "Push Club Fitting — High website traffic (10)",
       "cta": "Book your fit · swingshack.co.za/membership",
       "channel": "IG Static",
       "urgency": "this_week",
-      "score": 7.4,
+      "score": 4.6,
       "expiration_window": "48h",
       "expected_outcome": {
         "type": "bookings",
         "label": "+10-20% booking rate"
       },
-      "source_evidence": "Service priority #1 · score 7.4/10",
-      "created_at": "2026-04-22T06:31:14.766Z",
+      "source_evidence": "Service priority #1 · score 4.6/10",
+      "created_at": "2026-08-13T11:14:39.127Z",
       "status": "not_executed",
       "executed": false,
       "outcome_status": "not_executed",
@@ -322,18 +345,18 @@
       "source": "service_push",
       "type": "service_push",
       "topic": "Golf Lessons",
-      "hook": "Push Golf Lessons — Strong IG engagement (8)",
+      "hook": "Push Golf Lessons — Seasonal boost (7)",
       "cta": "Book a lesson · swingshack.co.za/membership",
       "channel": "IG Static",
       "urgency": "this_week",
-      "score": 4.8,
+      "score": 1.7,
       "expiration_window": "48h",
       "expected_outcome": {
         "type": "bookings",
         "label": "+10-20% booking rate"
       },
-      "source_evidence": "Service priority #2 · score 4.8/10",
-      "created_at": "2026-04-22T06:31:14.766Z",
+      "source_evidence": "Service priority #2 · score 1.7/10",
+      "created_at": "2026-08-13T11:14:39.127Z",
       "status": "not_executed",
       "executed": false,
       "outcome_status": "not_executed",
@@ -349,19 +372,168 @@
       "cta": "Book a session · swingshack.co.za/practice",
       "channel": "IG Static",
       "urgency": "this_week",
-      "score": 4.4,
+      "score": 1.1,
       "expiration_window": "48h",
       "expected_outcome": {
         "type": "bookings",
         "label": "+10-20% booking rate"
       },
-      "source_evidence": "Service priority #3 · score 4.4/10",
-      "created_at": "2026-04-22T06:31:14.766Z",
+      "source_evidence": "Service priority #3 · score 1.1/10",
+      "created_at": "2026-08-13T11:14:39.127Z",
       "status": "not_executed",
       "executed": false,
       "outcome_status": "not_executed",
       "matched_post_id": null,
       "match_confidence": 0
+    }
+  ],
+  "outcomes": [
+    {
+      "recommendation_id": "cap-2026-08-13-mwbcy069",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "cap-2026-08-13-9b1h8ojw",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "cap-2026-08-13-bcb9apof",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "cap-2026-08-13-9rhx91cc",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "cap-2026-08-13-b6yff00k",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "cap-2026-08-13-84p75tyz",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "cap-2026-08-13-o4gn80m5",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "cap-2026-08-13-2q2sxpne",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "ip-h0j4zfbj",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "ip-hrg6uxv8",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "ip-w2orzvz2",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "ip-nvzvip0n",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "ip-ddiksa7h",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "ip-frzfezfu",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "ip-4o40fuex",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "ip-6obfsjxz",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "vb-1edd5x5i",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "vb-ih42vnoz",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "vb-iffbehhr",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "vb-tbu6ib1s",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
+    },
+    {
+      "recommendation_id": "vb-7q0sk9fe",
+      "outcome": "published",
+      "outcome_timestamp": "2026-08-13T11:14:40.832Z",
+      "platform": "instagram",
+      "attribution": "instagram"
     }
   ],
   "schema": "https://clawdia.io/recommendations/outcomes/v1"

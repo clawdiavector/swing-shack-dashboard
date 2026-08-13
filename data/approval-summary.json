@@ -1,8 +1,8 @@
 {
   "schema": "https://clawdia.io/agents/approval-captain/v1",
-  "generated": "2026-04-22T09:10:48.449Z",
-  "total_items": 88,
-  "actionable": 85,
+  "generated": "2026-08-13T11:14:40.564Z",
+  "total_items": 40,
+  "actionable": 37,
   "blocked": 3,
   "approved_and_ready": 0,
   "high_priority": 3,

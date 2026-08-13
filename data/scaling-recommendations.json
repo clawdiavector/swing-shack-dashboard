@@ -1,0 +1,42 @@
+{
+  "updated": "2026-08-13T11:14:39.212Z",
+  "generated": "generate_scaling_recommendations.js",
+  "summary": {
+    "total": 2,
+    "hook_series": 0,
+    "cta_scales": 1,
+    "service_scales": 1,
+    "retarget_scales": 0,
+    "landing_pages": 0,
+    "email_nurtures": 0
+  },
+  "recommendations": [
+    {
+      "type": "cta_scale",
+      "action": "Scale Soft / Engagement CTA across all posts",
+      "cta_type": "SOFT",
+      "current_perf": "eng 0.26% | save rate undefined% | signal 0.13",
+      "recommendation": "Increase soft / engagement cta CTA usage by 40% — highest conversion signal of all CTA types",
+      "expected_impact": "save_rate +0.3% | booking_intent +15%",
+      "owner": "Swing Shack page",
+      "urgency": "this_week",
+      "confidence": 4,
+      "why": "SOFT has best conversion signal (0.13)",
+      "rank": 1
+    },
+    {
+      "type": "service_scale",
+      "action": "Push Club Fitting harder this week",
+      "service": "Club Fitting",
+      "score": 4.6,
+      "reason": "4.6/10 — High website traffic (10)",
+      "recommendation": "Create 2 posts this week around Club Fitting",
+      "expected_impact": "booking sessions +20-30%",
+      "owner": "Divan",
+      "urgency": "this_week",
+      "confidence": 4,
+      "why": "Service priority #1 with score 4.6/10 — strong multi-signal consensus",
+      "rank": 2
+    }
+  ]
+}

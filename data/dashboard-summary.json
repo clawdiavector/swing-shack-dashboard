@@ -1,42 +1,42 @@
 {
-  "updated": "2026-07-02T07:10:31.011Z",
+  "updated": "2026-08-13T11:14:43.872Z",
   "sources": [
     {
       "name": "IG Analytics",
-      "updated": "2026-06-01T05:05:14.182Z"
+      "updated": "2026-08-11T04:30:07.445Z"
     },
     {
       "name": "GA4",
-      "updated": "2026-04-22T06:31:02.569Z"
+      "updated": "2026-08-13T11:14:38.314Z"
     },
     {
       "name": "Reddit",
-      "updated": "2026-04-22T06:30:52.182Z"
+      "updated": "2026-08-13T11:13:56.137Z"
     },
     {
       "name": "Golf News",
-      "updated": "2026-06-02T05:04:42.326Z"
+      "updated": "2026-08-13T11:13:55.738Z"
     },
     {
       "name": "SEO Rankings",
-      "updated": "2026-04-22T06:31:00.312Z"
+      "updated": "2026-08-13T11:14:03.371Z"
     },
     {
       "name": "SEO Audit",
-      "updated": "2026-04-22T06:31:10.454Z"
+      "updated": "2026-08-13T11:14:24.856Z"
     },
     {
       "name": "Hook Bank",
-      "updated": "2026-06-02T05:04:42.452Z"
+      "updated": "2026-08-13T11:14:08.863Z"
     },
     {
       "name": "Ideas",
-      "updated": "2026-06-02T05:04:42.406Z"
+      "updated": "2026-08-13T11:14:08.907Z"
     }
   ],
-  "stale_count": 8,
-  "top_recommendation": "TRACKMAN SHOWS WHAT YOUR SWING CANT FEEL",
-  "total_posts": 89,
-  "total_ideas": 15,
-  "hooks_tracked": 23
+  "stale_count": 1,
+  "top_recommendation": "THAT SLICE COSTING YOU YARDS?",
+  "total_posts": 10,
+  "total_ideas": 8,
+  "hooks_tracked": 3
 }

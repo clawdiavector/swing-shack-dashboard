@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/offer-engine/v1",
-  "generated": "2026-04-22T12:24:55.266Z",
+  "generated": "2026-08-13T11:14:41.661Z",
   "demand_signals_present": true,
   "summary": {
     "total_offers": 3,
@@ -10,9 +10,9 @@
   },
   "offers": [
     {
-      "offer_id": "off-hun0q9hg",
+      "offer_id": "off-p2uc4gz8",
       "schema": "https://clawdia.io/agents/offer-engine/v1",
-      "generated": "2026-04-22T12:24:55.266Z",
+      "generated": "2026-08-13T11:14:41.661Z",
       "concept": "Practice Pack — 5 Sessions",
       "service": "Practice",
       "bundle": "5 Practice Sessions",
@@ -32,9 +32,9 @@
       "landing_page": "swingshack.co.za/practice"
     },
     {
-      "offer_id": "off-eyy63jar",
+      "offer_id": "off-gnb8vu1z",
       "schema": "https://clawdia.io/agents/offer-engine/v1",
-      "generated": "2026-04-22T12:24:55.266Z",
+      "generated": "2026-08-13T11:14:41.661Z",
       "concept": "Comprehensive Fitting Day",
       "service": "Club Fitting",
       "bundle": "Full Bag Fitting + Loft & Lie (usually R2,600)",
@@ -54,9 +54,9 @@
       "landing_page": "swingshack.co.za/club-fitting"
     },
     {
-      "offer_id": "off-dd0ak8pk",
+      "offer_id": "off-gupidtcq",
       "schema": "https://clawdia.io/agents/offer-engine/v1",
-      "generated": "2026-04-22T12:24:55.266Z",
+      "generated": "2026-08-13T11:14:41.661Z",
       "concept": "Coaching Intro — Assessment + 1 Lesson",
       "service": "Coaching",
       "bundle": "TPI Assessment + 1 Lesson (usually R2,100)",

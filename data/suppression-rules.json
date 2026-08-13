@@ -1,0 +1,96 @@
+{
+  "updated": "2026-08-13T11:14:39.730Z",
+  "generated": "generate_suppression_rules.js",
+  "summary": {
+    "total_rules": 8,
+    "active_rules": 8,
+    "suppressed": 0,
+    "reasons": {}
+  },
+  "rules": [
+    {
+      "rule_id": "spr_msrf87oyjl0j",
+      "type": "already_done",
+      "name": "Task already done",
+      "description": "Suppress nudge if the related task is marked done or scheduled",
+      "condition": "task.status === \"done\" || task.status === \"scheduled\"",
+      "action": "suppress",
+      "severity": "high",
+      "active": true
+    },
+    {
+      "rule_id": "spr_msrf87oy1j85",
+      "type": "duplicate_nudge",
+      "name": "Duplicate nudge within 24h",
+      "description": "Do not send the same nudge type to the same owner within 24 hours",
+      "condition": "same_owner && same_type && last_sent_within_24h",
+      "action": "suppress",
+      "window_hours": 24,
+      "severity": "high",
+      "active": true
+    },
+    {
+      "rule_id": "spr_msrf87oyvmqx",
+      "type": "spam_owner",
+      "name": "Max 3 nudges per owner per day",
+      "description": "Never send more than 3 nudges to the same owner in a single day",
+      "condition": "nudge_count_for_owner_today >= 3",
+      "action": "suppress_low_priority",
+      "max_per_day": 3,
+      "severity": "medium",
+      "active": true
+    },
+    {
+      "rule_id": "spr_msrf87oyjo62",
+      "type": "low_priority_spam",
+      "name": "Suppress low-priority during overload",
+      "description": "When an owner is overloaded (5+ tasks), suppress low-severity nudges",
+      "condition": "owner_task_count >= 5 && nudge.severity === \"low\"",
+      "action": "suppress",
+      "threshold": 5,
+      "severity": "medium",
+      "active": true
+    },
+    {
+      "rule_id": "spr_msrf87oyl3rx",
+      "type": "weekend_grace",
+      "name": "No nudges on weekends",
+      "description": "Suppress all nudges on Saturday and Sunday",
+      "condition": "day === \"Saturday\" || day === \"Sunday\"",
+      "action": "defer_to_monday",
+      "severity": "low",
+      "active": true
+    },
+    {
+      "rule_id": "spr_msrf87oy74zc",
+      "type": "approval_already_requested",
+      "name": "Approval already requested",
+      "description": "Suppress approval reminder if it was already sent today",
+      "condition": "same_item && type === \"approval_reminder\" && sent_today",
+      "action": "suppress",
+      "severity": "high",
+      "active": true
+    },
+    {
+      "rule_id": "spr_msrf87oymfd2",
+      "type": "task_not_due",
+      "name": "Only nudge on the due day",
+      "description": "Suppress reminder if the task is not due today or tomorrow",
+      "condition": "task.due_date !== today && task.due_date !== tomorrow",
+      "action": "defer",
+      "severity": "low",
+      "active": true
+    },
+    {
+      "rule_id": "spr_msrf87oys3sc",
+      "type": "fallback_exists",
+      "name": "Fallback available — no asset nudge needed",
+      "description": "If a fallback exists for a blocked post, suppress asset nudge and send fallback instead",
+      "condition": "fallback_available && nudge.type === \"asset_reminder\"",
+      "action": "swap_to_fallback",
+      "severity": "high",
+      "active": true
+    }
+  ],
+  "suppressed_nudges": []
+}

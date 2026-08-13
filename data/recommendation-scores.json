@@ -1,13 +1,13 @@
 {
-  "updated": "2026-04-22T06:31:14.723Z",
+  "updated": "2026-08-13T11:14:39.084Z",
   "generated": "generate_recommendation_scores.js",
   "summary": {
-    "overall_priority_score": 9.6,
+    "overall_priority_score": 9.2,
     "do_first_count": 4,
-    "retarget_items_scored": 2,
+    "retarget_items_scored": 3,
     "top_retarget_score": 15,
     "best_post_score": 7,
-    "best_service_score": 7.4
+    "best_service_score": 4.6
   },
   "do_first": [
     {
@@ -15,35 +15,30 @@
       "label": "Post this first",
       "emoji": "🎯",
       "item": {
-        "day": "Wednesday",
-        "date": "Apr 22",
-        "dateISO": "2026-04-22",
+        "day": "Thursday",
+        "date": "Aug 13",
+        "dateISO": "2026-08-13",
         "platform": "instagram",
         "format": "static",
-        "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
-        "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
-        "cta": "Link in bio · Book your session",
+        "hook": "THAT SLICE COSTING YOU YARDS?",
+        "hook_id": "THAT_SLICE_COSTING_YOU_YARDS?",
+        "cta": "TrackMan your swing · Book from R250",
         "objective": "reach",
-        "why_chosen": "Cross-signal score 8.0: IG proof 10 + YouTube alignment 10 · optimised for reach",
+        "why_chosen": "Content idea score 9/10 · optimised for reach",
         "evidence": [
-          "Possibly The BEST DRIVER Tip Ever In GOLF",
-          "5 Powerful Tips to Unleash Your Senior Driver Swing"
+          "All-time winning hook formula - 5.77% engagement"
         ],
         "status": "ready",
         "topics": [
-          "driver",
-          "slice_fix",
-          "simulator",
-          "swing",
-          "distance"
+          "technique"
         ],
-        "ig_score": 10,
-        "yt_score": 10,
-        "cross_score": 8,
-        "owner": "Coach Cat / Divan",
-        "asset_needed": "TrackMan screenshot or data graphic",
+        "ig_score": 0,
+        "yt_score": 0,
+        "cross_score": 9,
+        "owner": "Swing Shack page",
+        "asset_needed": "High-quality static image",
         "urgency": "today",
-        "suggested_source_section": "WATCHED + WORKED",
+        "suggested_source_section": "Hook Bank / Content Ideas",
         "score": 7,
         "reason": "Freshness 7/10 · reach · static",
         "type": "post"
@@ -56,13 +51,13 @@
       "emoji": "💰",
       "item": {
         "service": "Club Fitting",
-        "score": 7.4,
-        "reason": "7.4/10 · Strong IG engagement (8)",
+        "score": 4.6,
+        "reason": "4.6/10 — High website traffic (10)",
         "cta": "Book your fit · swingshack.co.za/membership",
-        "priority": "high",
+        "priority": "medium",
         "type": "service"
       },
-      "score_note": "7.4/10"
+      "score_note": "4.6/10"
     },
     {
       "slot": "retarget",
@@ -70,8 +65,8 @@
       "emoji": "🔁",
       "item": {
         "type": "push_booking_cta",
-        "action": "Push booking CTA · traffic is hot",
-        "sessions": 179,
+        "action": "Push booking CTA — traffic is hot",
+        "sessions": 211,
         "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
         "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
         "format": "static",
@@ -82,7 +77,7 @@
           "label": "+20-35% booking rate from IG push"
         },
         "expiration_window": "today",
-        "source_evidence": "179 sessions on booking page but 0 booking CTAs in recent IG posts",
+        "source_evidence": "211 sessions on booking page but 0 booking CTAs in recent IG posts",
         "urgency": "high",
         "owner": "Swing Shack page",
         "why": "Booking page traffic hot with no retargeting",
@@ -116,24 +111,24 @@
       "item": {
         "type": "funnel_leak",
         "page": "/bookings/",
-        "sessions": 179,
+        "sessions": 211,
         "severity": "high",
-        "revenue_impact": "179 sessions on booking page but < 2 booking CTAs in recent IG posts",
-        "easy_fix": "Push booking CTA on IG this week · booking page traffic is there",
+        "revenue_impact": "211 sessions on booking page but < 2 booking CTAs in recent IG posts",
+        "easy_fix": "Push booking CTA on IG this week — booking page traffic is there",
         "owner": "Swing Shack page",
         "rank": 1,
-        "score": 8.95,
-        "reason": "Push booking CTA on IG this week · booking page traffic is there",
+        "score": 10,
+        "reason": "Push booking CTA on IG this week — booking page traffic is there",
         "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250"
       },
-      "score_note": "179 sessions"
+      "score_note": "211 sessions"
     }
   ],
   "ranked_items": [
     {
       "type": "push_booking_cta",
-      "action": "Push booking CTA · traffic is hot",
-      "sessions": 179,
+      "action": "Push booking CTA — traffic is hot",
+      "sessions": 211,
       "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
       "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
       "format": "static",
@@ -144,7 +139,7 @@
         "label": "+20-35% booking rate from IG push"
       },
       "expiration_window": "today",
-      "source_evidence": "179 sessions on booking page but 0 booking CTAs in recent IG posts",
+      "source_evidence": "211 sessions on booking page but 0 booking CTAs in recent IG posts",
       "urgency": "high",
       "owner": "Swing Shack page",
       "why": "Booking page traffic hot with no retargeting",
@@ -174,7 +169,7 @@
       "action": "Publish service reminder post",
       "service": "Club Fitting",
       "page": "/customer-portal/",
-      "sessions": 61,
+      "sessions": 92,
       "suggested_hook": "Off-the-rack clubs are costing you yards. Here's what TrackMan found.",
       "suggested_cta": "Get your clubs custom fitted · swingshack.co.za/membership · TrackMan powered",
       "format": "static",
@@ -184,21 +179,61 @@
         "delta": "+10-20%",
         "label": "+10-20% sessions from IG push"
       },
-      "expiration_window": "48h",
-      "source_evidence": "61 GA4 sessions on /customer-portal/ with no IG coverage this week",
-      "urgency": "this_week",
+      "expiration_window": "today",
+      "source_evidence": "92 GA4 sessions on /customer-portal/ with no IG coverage this week",
+      "urgency": "today",
       "owner": "Divan",
-      "why": "61 sessions with no social conversion path",
+      "why": "92 sessions with no social conversion path",
       "rank": 2,
-      "score": 6,
+      "score": 11.25,
       "breakdown": {
         "revenue_impact": {
           "value": 5,
           "label": "bookings (5/5)"
         },
         "urgency": {
-          "value": 4,
-          "label": "48h (4/5)"
+          "value": 5,
+          "label": "today (5/5)"
+        },
+        "ease": {
+          "value": 3,
+          "label": "IG Static (3/5)"
+        },
+        "confidence": {
+          "value": 3,
+          "label": "signal-based (3/5)"
+        }
+      }
+    },
+    {
+      "type": "promo_plus_booking",
+      "action": "Pair contest hook with direct booking CTA",
+      "topic": "Lessons value proposition",
+      "hook": "\"Lessons value proposition\" hasn't been pushed this week despite relevance.",
+      "suggested_hook": "Lowest net score wins a custom driver fitting. Or get one anyway.",
+      "suggested_cta": "Enter now · Or book your fitting → swingshack.co.za/membership",
+      "format": "static",
+      "channel": "IG Static",
+      "expected_outcome": {
+        "type": "awareness",
+        "delta": "+reach + bookings",
+        "label": "+reach (contest) + bookings (CTA)"
+      },
+      "expiration_window": "this_week",
+      "source_evidence": "Contest drives reach; booking CTA converts high-intent audience",
+      "urgency": "this_week",
+      "owner": "Swing Shack page",
+      "why": "Contest hooks get reach but no conversion — pair with direct CTA",
+      "rank": 3,
+      "score": 1.8,
+      "breakdown": {
+        "revenue_impact": {
+          "value": 2,
+          "label": "awareness (2/5)"
+        },
+        "urgency": {
+          "value": 3,
+          "label": "this_week (3/5)"
         },
         "ease": {
           "value": 3,
@@ -214,8 +249,8 @@
   "all_items": [
     {
       "type": "push_booking_cta",
-      "action": "Push booking CTA · traffic is hot",
-      "sessions": 179,
+      "action": "Push booking CTA — traffic is hot",
+      "sessions": 211,
       "suggested_hook": "Your clubs are waiting. Your handicap won't fix itself. ⛳",
       "suggested_cta": "Book a session · swingshack.co.za/bookings · From R250",
       "format": "static",
@@ -226,7 +261,7 @@
         "label": "+20-35% booking rate from IG push"
       },
       "expiration_window": "today",
-      "source_evidence": "179 sessions on booking page but 0 booking CTAs in recent IG posts",
+      "source_evidence": "211 sessions on booking page but 0 booking CTAs in recent IG posts",
       "urgency": "high",
       "owner": "Swing Shack page",
       "why": "Booking page traffic hot with no retargeting",
@@ -256,7 +291,7 @@
       "action": "Publish service reminder post",
       "service": "Club Fitting",
       "page": "/customer-portal/",
-      "sessions": 61,
+      "sessions": 92,
       "suggested_hook": "Off-the-rack clubs are costing you yards. Here's what TrackMan found.",
       "suggested_cta": "Get your clubs custom fitted · swingshack.co.za/membership · TrackMan powered",
       "format": "static",
@@ -266,21 +301,61 @@
         "delta": "+10-20%",
         "label": "+10-20% sessions from IG push"
       },
-      "expiration_window": "48h",
-      "source_evidence": "61 GA4 sessions on /customer-portal/ with no IG coverage this week",
-      "urgency": "this_week",
+      "expiration_window": "today",
+      "source_evidence": "92 GA4 sessions on /customer-portal/ with no IG coverage this week",
+      "urgency": "today",
       "owner": "Divan",
-      "why": "61 sessions with no social conversion path",
+      "why": "92 sessions with no social conversion path",
       "rank": 2,
-      "score": 6,
+      "score": 11.25,
       "breakdown": {
         "revenue_impact": {
           "value": 5,
           "label": "bookings (5/5)"
         },
         "urgency": {
-          "value": 4,
-          "label": "48h (4/5)"
+          "value": 5,
+          "label": "today (5/5)"
+        },
+        "ease": {
+          "value": 3,
+          "label": "IG Static (3/5)"
+        },
+        "confidence": {
+          "value": 3,
+          "label": "signal-based (3/5)"
+        }
+      }
+    },
+    {
+      "type": "promo_plus_booking",
+      "action": "Pair contest hook with direct booking CTA",
+      "topic": "Lessons value proposition",
+      "hook": "\"Lessons value proposition\" hasn't been pushed this week despite relevance.",
+      "suggested_hook": "Lowest net score wins a custom driver fitting. Or get one anyway.",
+      "suggested_cta": "Enter now · Or book your fitting → swingshack.co.za/membership",
+      "format": "static",
+      "channel": "IG Static",
+      "expected_outcome": {
+        "type": "awareness",
+        "delta": "+reach + bookings",
+        "label": "+reach (contest) + bookings (CTA)"
+      },
+      "expiration_window": "this_week",
+      "source_evidence": "Contest drives reach; booking CTA converts high-intent audience",
+      "urgency": "this_week",
+      "owner": "Swing Shack page",
+      "why": "Contest hooks get reach but no conversion — pair with direct CTA",
+      "rank": 3,
+      "score": 1.8,
+      "breakdown": {
+        "revenue_impact": {
+          "value": 2,
+          "label": "awareness (2/5)"
+        },
+        "urgency": {
+          "value": 3,
+          "label": "this_week (3/5)"
         },
         "ease": {
           "value": 3,

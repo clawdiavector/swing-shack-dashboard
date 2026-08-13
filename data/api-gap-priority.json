@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/api-gap-prioritiser/v1",
-  "generated": "2026-04-23T10:34:41.790Z",
+  "generated": "2026-08-13T11:14:43.178Z",
   "summary": {
     "total_gaps": 6,
     "immediate_priority": "WhatsApp Business API",

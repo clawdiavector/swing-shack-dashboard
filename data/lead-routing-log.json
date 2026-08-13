@@ -1,7 +1,7 @@
 {
   "schema": "https://clawdia.io/agents/lead-router-live/v1",
-  "generated": "2026-04-23T09:20:46.770Z",
-  "mode": "MINIMAL",
+  "generated": "2026-08-13T11:14:42.622Z",
+  "mode": "LIVE",
   "thresholds": {
     "hot": 80,
     "warm": 55,
@@ -14,54 +14,84 @@
   },
   "actions": [
     {
-      "action_id": "rte-mob9ucojgd4e",
+      "action_id": "rte-msrf89xbnsdp",
       "lead_id": "lead-2026-03-19-6",
-      "type": "blocked",
-      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
-      "status": "blocked"
+      "type": "route_nurture",
+      "service": "fitting",
+      "sequence": "cold_nurture_v1",
+      "why": "Cold lead (score:undefined). Nurture sequence.",
+      "confidence": 0.6,
+      "rule": "cold_nurture",
+      "reversible": false,
+      "status": "queued"
     },
     {
-      "action_id": "rte-mob9ucojfvvm",
+      "action_id": "rte-msrf89xbksoq",
       "lead_id": "lead-2026-03-19-1",
-      "type": "blocked",
-      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
-      "status": "blocked"
+      "type": "route_nurture",
+      "service": "practice",
+      "sequence": "cold_nurture_v1",
+      "why": "Cold lead (score:undefined). Nurture sequence.",
+      "confidence": 0.6,
+      "rule": "cold_nurture",
+      "reversible": false,
+      "status": "queued"
     },
     {
-      "action_id": "rte-mob9ucoj91ra",
+      "action_id": "rte-msrf89xbtcq6",
       "lead_id": "lead-2026-03-19-5",
-      "type": "blocked",
-      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
-      "status": "blocked"
+      "type": "route_nurture",
+      "service": "coaching",
+      "sequence": "cold_nurture_v1",
+      "why": "Cold lead (score:undefined). Nurture sequence.",
+      "confidence": 0.6,
+      "rule": "cold_nurture",
+      "reversible": false,
+      "status": "queued"
     },
     {
-      "action_id": "rte-mob9ucojgaek",
+      "action_id": "rte-msrf89xbjfay",
       "lead_id": "lead-2026-03-19-2",
-      "type": "blocked",
-      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
-      "status": "blocked"
+      "type": "route_nurture",
+      "service": "other",
+      "sequence": "cold_nurture_v1",
+      "why": "Cold lead (score:undefined). Nurture sequence.",
+      "confidence": 0.6,
+      "rule": "cold_nurture",
+      "reversible": false,
+      "status": "queued"
     },
     {
-      "action_id": "rte-mob9ucoj2en5",
+      "action_id": "rte-msrf89xbqa1z",
       "lead_id": "lead-2026-03-19-3",
-      "type": "blocked",
-      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
-      "status": "blocked"
+      "type": "route_nurture",
+      "service": "practice",
+      "sequence": "cold_nurture_v1",
+      "why": "Cold lead (score:undefined). Nurture sequence.",
+      "confidence": 0.6,
+      "rule": "cold_nurture",
+      "reversible": false,
+      "status": "queued"
     },
     {
-      "action_id": "rte-mob9ucoj66oh",
+      "action_id": "rte-msrf89xb4csl",
       "lead_id": "lead-2026-03-19-4",
-      "type": "blocked",
-      "why": "Mode=MINIMAL. Need LIVE mode for lead routing.",
-      "status": "blocked"
+      "type": "route_nurture",
+      "service": "fitting",
+      "sequence": "cold_nurture_v1",
+      "why": "Cold lead (score:undefined). Nurture sequence.",
+      "confidence": 0.6,
+      "rule": "cold_nurture",
+      "reversible": false,
+      "status": "queued"
     }
   ],
   "summary": {
     "total": 6,
     "hot": 0,
     "warm": 0,
-    "cold": 0,
-    "blocked": 6,
+    "cold": 6,
+    "blocked": 0,
     "note": "No live CRM/WhatsApp Business API connected. Placeholder routing — connects when Christelle enables WhatsAppflows."
   }
 }

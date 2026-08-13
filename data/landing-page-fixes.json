@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
-  "generated": "2026-08-06T09:03:26.426Z",
+  "generated": "2026-08-13T11:14:41.533Z",
   "summary": {
     "total_fixes": 8,
     "high_severity": 4,
@@ -10,9 +10,9 @@
   },
   "fixes": [
     {
-      "fix_id": "fpf-screrbo5",
+      "fix_id": "fpf-brldf9mm",
       "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
-      "generated": "2026-08-06T09:03:26.426Z",
+      "generated": "2026-08-13T11:14:41.533Z",
       "page": "/membership",
       "issue": "pricing_clarity",
       "evidence": "best_practice",
@@ -23,9 +23,9 @@
       "priority": 1
     },
     {
-      "fix_id": "fpf-uwftwzao",
+      "fix_id": "fpf-wfd1l3um",
       "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
-      "generated": "2026-08-06T09:03:26.426Z",
+      "generated": "2026-08-13T11:14:41.533Z",
       "page": "/membership",
       "issue": "cta_weak",
       "evidence": "best_practice",
@@ -36,9 +36,9 @@
       "priority": 1
     },
     {
-      "fix_id": "fpf-6ybr374d",
+      "fix_id": "fpf-e6l4c831",
       "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
-      "generated": "2026-08-06T09:03:26.426Z",
+      "generated": "2026-08-13T11:14:41.533Z",
       "page": "/club-fitting",
       "issue": "intent_mismatch",
       "evidence": "best_practice",
@@ -49,9 +49,9 @@
       "priority": 1
     },
     {
-      "fix_id": "fpf-f7br1xe9",
+      "fix_id": "fpf-0v8kfnvm",
       "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
-      "generated": "2026-08-06T09:03:26.426Z",
+      "generated": "2026-08-13T11:14:41.533Z",
       "page": "/book",
       "issue": "friction",
       "evidence": "best_practice",
@@ -62,9 +62,9 @@
       "priority": 1
     },
     {
-      "fix_id": "fpf-2bawrnr9",
+      "fix_id": "fpf-m7jijmo4",
       "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
-      "generated": "2026-08-06T09:03:26.426Z",
+      "generated": "2026-08-13T11:14:41.533Z",
       "page": "/coaching",
       "issue": "trust_gap",
       "evidence": "best_practice",
@@ -75,9 +75,9 @@
       "priority": 2
     },
     {
-      "fix_id": "fpf-ro7uetlm",
+      "fix_id": "fpf-z3paw4tc",
       "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
-      "generated": "2026-08-06T09:03:26.426Z",
+      "generated": "2026-08-13T11:14:41.533Z",
       "page": "/coaching",
       "issue": "faq_missing",
       "evidence": "best_practice",
@@ -88,9 +88,9 @@
       "priority": 2
     },
     {
-      "fix_id": "fpf-7ar83670",
+      "fix_id": "fpf-po3isf5j",
       "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
-      "generated": "2026-08-06T09:03:26.426Z",
+      "generated": "2026-08-13T11:14:41.533Z",
       "page": "/",
       "issue": "hero_message",
       "evidence": "best_practice",
@@ -101,9 +101,9 @@
       "priority": 2
     },
     {
-      "fix_id": "fpf-bq8cpvpz",
+      "fix_id": "fpf-qj8dbett",
       "schema": "https://clawdia.io/agents/landing-page-optimizer/v1",
-      "generated": "2026-08-06T09:03:26.426Z",
+      "generated": "2026-08-13T11:14:41.533Z",
       "page": "/practice",
       "issue": "awareness_gap",
       "evidence": "best_practice",

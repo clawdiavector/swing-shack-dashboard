@@ -1,101 +1,74 @@
 {
-  "updated": "2026-08-06T08:58:44.028Z",
-  "data_window": "2026-04-15 to 2026-04-22",
-  "total_sessions": 1071,
+  "updated": "2026-08-13T11:14:35.193Z",
+  "data_window": "2026-08-06 to 2026-08-13",
+  "total_sessions": 880,
   "source_share": {
-    "organic_pct": "59.6",
+    "organic_pct": "61.5",
     "direct_pct": "0.0",
-    "social_pct": "0.0",
-    "organic_sessions": 638,
+    "social_pct": "1.1",
+    "organic_sessions": 541,
     "direct_sessions": 0,
-    "social_sessions": 0,
-    "total": 1071
+    "social_sessions": 10,
+    "total": 880
   },
   "funnel": {
     "booking_pages": {
-      "sessions": 201,
+      "sessions": 211,
       "paths": [
-        "/bookings/",
         "/bookings/"
       ]
     },
     "checkout_pages": {
-      "sessions": 25,
-      "paths": [
-        "/checkout/"
-      ]
+      "sessions": 0,
+      "paths": []
     },
     "coaching_pages": {
       "sessions": 0,
       "paths": []
     },
     "fitting_pages": {
-      "sessions": 32,
+      "sessions": 80,
       "paths": [
-        "/club-fitting/"
+        "/club-fitting/",
+        "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/"
       ]
     }
   },
-  "weak_ctas": [
-    {
-      "page": "/",
-      "sessions": 95,
-      "engagement": "32.6%",
-      "severity": "HIGH",
-      "likely_issue": "Weak or missing CTA",
-      "fix": "Add prominent CTA to /"
-    }
-  ],
+  "weak_ctas": [],
   "top_pages": [
     {
-      "path": "/checkout/",
-      "sessions": 25,
-      "engagement": "92.0%"
+      "path": "/philosophy/",
+      "sessions": 12,
+      "engagement": "91.7%"
     },
     {
       "path": "/club-fitting/",
-      "sessions": 32,
-      "engagement": "90.6%"
+      "sessions": 67,
+      "engagement": "88.1%"
     },
     {
-      "path": "/",
-      "sessions": 281,
-      "engagement": "73.7%"
+      "path": "/bookings/",
+      "sessions": 211,
+      "engagement": "76.8%"
     }
   ],
   "recommendations": [
     {
-      "issue": "High-traffic pages with weak CTA",
-      "severity": "HIGH",
-      "evidence": "1 page(s) with >50 sessions but <20% engagement. Pages: / (95 sess, 32.6% eng)",
-      "recommended_fix": "Add prominent \"Book Now\" CTA to: /. Test button contrast, size, and above-fold placement.",
-      "source_metric": "ga4.pages.engagementRate"
-    },
-    {
-      "issue": "Booking funnel drop-off detected",
-      "severity": "HIGH",
-      "evidence": "201 booking page sessions → 25 checkout sessions (12.4% conversion rate)",
-      "recommended_fix": "URGENT: Review booking flow for friction. Likely causes: form too long, page speed, or unclear next step. Test a single-field \"Book a Session\" CTA first.",
-      "source_metric": "ga4.funnel.booking_to_checkout_ratio"
-    },
-    {
       "issue": "Organic traffic without clear booking path",
       "severity": "MEDIUM",
-      "evidence": "638 organic sessions (59.6% of all traffic)",
+      "evidence": "541 organic sessions (61.5% of all traffic)",
       "recommended_fix": "Ensure every high-engagement page has a \"Book a TrackMan Session\" CTA visible in first viewport scroll. TrackMan keyword intent = high commercial intent.",
       "source_metric": "ga4.sessions.organic"
     }
   ],
   "insights": [
-    "⚠️ 1 pages with high traffic but weak CTAs",
-    "⚠️ Booking funnel: 201 → 25 checkout (12% conv)",
-    "✅ Top: /checkout/ (92.0% eng), /club-fitting/ (90.6% eng), / (73.7% eng)"
+    "✅ Top: /philosophy/ (91.7% eng), /club-fitting/ (88.1% eng), /bookings/ (76.8% eng)"
   ],
   "summary": {
-    "health_score": "NEEDS_ATTENTION",
-    "critical_count": 2,
+    "health_score": "FAIR",
+    "critical_count": 0,
     "medium_count": 1,
     "low_count": 0,
-    "top_priority": "High-traffic pages with weak CTA"
+    "top_priority": "Organic traffic without clear booking path"
   }
 }

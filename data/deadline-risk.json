@@ -1,0 +1,12 @@
+{
+  "updated": "2026-08-13T11:14:39.431Z",
+  "generated": "generate_deadline_risk.js",
+  "summary": {
+    "total_risks": 0,
+    "high_urgency": 0,
+    "medium_urgency": 0,
+    "today_slip": 0,
+    "this_week_slips": 0
+  },
+  "risks": []
+}

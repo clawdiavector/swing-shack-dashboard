@@ -1,0 +1,53 @@
+{
+  "updated": "2026-08-13T11:14:39.254Z",
+  "generated": "generate_kill_list.js",
+  "summary": {
+    "total": 3,
+    "high_urgency": 2,
+    "medium_urgency": 1,
+    "low_urgency": 0,
+    "by_type": {
+      "cta_kill": 1,
+      "service_deprioritise": 1,
+      "posting_pattern_kill": 1
+    }
+  },
+  "items": [
+    {
+      "type": "cta_kill",
+      "action": "Stop using Soft / Engagement CTA as primary CTA",
+      "cta_type": "SOFT",
+      "signal": 0.13,
+      "eng_rate": 0.26,
+      "severity": "high",
+      "fix": "Replace with Soft / Engagement CTA — weak conversion signal",
+      "confidence": 5,
+      "why": "Soft / Engagement CTA has lowest conversion signal (0.13) — stop using as primary",
+      "rank": 1
+    },
+    {
+      "type": "service_deprioritise",
+      "action": "Stop actively pushing Events & Competitions",
+      "service": "Events & Competitions",
+      "score": 0.6,
+      "reason": "",
+      "severity": "high",
+      "fix": "Move Events & Competitions to bottom of priority list — weak demand signal",
+      "confidence": 4,
+      "why": "Service priority #5 with score 0.6/10 — low ROI on promotion",
+      "rank": 2
+    },
+    {
+      "type": "posting_pattern_kill",
+      "action": "Stop posting without proper hook — 10 low-reach posts this month",
+      "pattern": "low_reach_posts",
+      "count": 10,
+      "avg_reach": 0,
+      "severity": "medium",
+      "fix": "Always run new posts through hook bank before publishing — do not post raw",
+      "confidence": 4,
+      "why": "10 posts with <30 reach this month — posting without hook validation",
+      "rank": 3
+    }
+  ]
+}

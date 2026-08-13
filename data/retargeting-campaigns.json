@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/retargeting-campaign-builder/v1",
-  "generated": "2026-04-22T12:24:55.185Z",
+  "generated": "2026-08-13T11:14:41.576Z",
   "summary": {
     "total_campaigns": 2,
     "high_priority": 0,
@@ -8,9 +8,9 @@
   },
   "campaigns": [
     {
-      "campaign_id": "rtc-vjakiv31",
+      "campaign_id": "rtc-y3zx9wav",
       "schema": "https://clawdia.io/agents/retargeting-campaign-builder/v1",
-      "generated": "2026-04-22T12:24:55.185Z",
+      "generated": "2026-08-13T11:14:41.576Z",
       "name": "Service Demand Recovery: Club Fitting",
       "objective": "recover_service_intent",
       "audience": "visitors_interested_in_club_fitting",
@@ -26,9 +26,9 @@
       "reason": "Service intent leak — N visitors lost"
     },
     {
-      "campaign_id": "rtc-c349qinu",
+      "campaign_id": "rtc-2wkx4sl5",
       "schema": "https://clawdia.io/agents/retargeting-campaign-builder/v1",
-      "generated": "2026-04-22T12:24:55.185Z",
+      "generated": "2026-08-13T11:14:41.576Z",
       "name": "Evergreen Awareness — Social Proof",
       "objective": "build_awareness_and_trust",
       "audience": "lookalike_engaged_users",

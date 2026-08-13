@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/whatsapp-readiness-builder/v1",
-  "generated": "2026-04-23T10:54:50.063Z",
+  "generated": "2026-08-13T11:14:43.307Z",
   "readiness": {
     "routing_rules_ready": 5,
     "total_routing_rules": 5,

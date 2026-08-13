@@ -1,0 +1,232 @@
+{
+  "updated": "2026-08-13T11:14:39.475Z",
+  "generated": "generate_blockers.js",
+  "summary": {
+    "total_blockers": 20,
+    "by_type": {
+      "asset_needed_today": 2,
+      "missing_asset": 7,
+      "not_scheduled": 3,
+      "no_owner": 8
+    },
+    "high_severity": 6,
+    "today_urgency": 6,
+    "actionable": 20
+  },
+  "blockers": [
+    {
+      "blocker_id": "blk_msrf87hv98pm",
+      "type": "asset_needed_today",
+      "blocker": "Asset needed today",
+      "affected": "🖼 High-quality static image",
+      "affected_id": null,
+      "owner": "Swing Shack page",
+      "fix": "Source High-quality static image — 3 post(s) need this today",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_msrf87hvlozf",
+      "type": "asset_needed_today",
+      "blocker": "Asset needed today",
+      "affected": "🎬 Swing clip (video or photo)",
+      "affected_id": null,
+      "owner": "Swing Shack page",
+      "fix": "Source Swing clip or video footage — 1 post(s) need this today",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_msrf87hvm3r2",
+      "type": "missing_asset",
+      "blocker": "Missing: High-quality static image",
+      "affected": "THAT SLICE COSTING YOU YARDS?",
+      "affected_id": "task_msrf87e48pyw",
+      "owner": "Swing Shack page",
+      "fix": "Source or create High-quality static image — needed for post_plan post",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_msrf87hvsj8a",
+      "type": "missing_asset",
+      "blocker": "Missing: Swing clip or video footage",
+      "affected": "POV: First time at Swing Shack",
+      "affected_id": "task_msrf87e47ekr",
+      "owner": "Swing Shack page",
+      "fix": "Source or create Swing clip or video footage — needed for post_plan post",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_msrf87hv5eek",
+      "type": "not_scheduled",
+      "blocker": "Ready but not in schedule",
+      "affected": "Push booking CTA — traffic is hot",
+      "owner": "Swing Shack page",
+      "fix": "Add to this week's post schedule before expiration window closes",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_msrf87hvor3a",
+      "type": "not_scheduled",
+      "blocker": "Ready but not in schedule",
+      "affected": "Publish service reminder post",
+      "owner": "Divan",
+      "fix": "Add to this week's post schedule before expiration window closes",
+      "urgency": "today",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "blk_msrf87hvik6l",
+      "type": "missing_asset",
+      "blocker": "Missing: High-quality static image",
+      "affected": "YOUR GOLF NEEDS A MENTOR",
+      "affected_id": "task_msrf87e48god",
+      "owner": "Swing Shack page",
+      "fix": "Source or create High-quality static image — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hvgln2",
+      "type": "missing_asset",
+      "blocker": "Missing: Swing clip or lesson photo",
+      "affected": "Coach Catherine explains a common swing flaw",
+      "affected_id": "task_msrf87e4r1rt",
+      "owner": "Coach Cat",
+      "fix": "Source or create Swing clip or lesson photo — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hvptfe",
+      "type": "missing_asset",
+      "blocker": "Missing: High-quality static image",
+      "affected": "YOUR CLUBS ARE HOLDING YOU BACK",
+      "affected_id": "task_msrf87e4md1v",
+      "owner": "Swing Shack page",
+      "fix": "Source or create High-quality static image — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hvm4mi",
+      "type": "missing_asset",
+      "blocker": "Missing: TrackMan screenshot or data graphic",
+      "affected": "Show TrackMan data overlay - before/after swing",
+      "affected_id": "task_msrf87e4r3oq",
+      "owner": "Coach Cat / Divan",
+      "fix": "Source or create TrackMan screenshot or data graphic — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hvmesp",
+      "type": "missing_asset",
+      "blocker": "Missing: Swing clip or video footage",
+      "affected": "Time-lapse of a full fitting session",
+      "affected_id": "task_msrf87e4ilss",
+      "owner": "Divan",
+      "fix": "Source or create Swing clip or video footage — needed for post_plan post",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hv0k4i",
+      "type": "not_scheduled",
+      "blocker": "Ready but not in schedule",
+      "affected": "Pair contest hook with direct booking CTA",
+      "owner": "Swing Shack page",
+      "fix": "Add to this week's post schedule before expiration window closes",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hv04h3",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "THAT SLICE COSTING YOU YARDS?",
+      "affected_id": "task_msrf87e48pyw",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this post_plan?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hv6qf0",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "POV: First time at Swing Shack",
+      "affected_id": "task_msrf87e47ekr",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this post_plan?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hve0uu",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "YOUR GOLF NEEDS A MENTOR",
+      "affected_id": "task_msrf87e48god",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this post_plan?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hv9z33",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "Push booking CTA — traffic is hot",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this retarget?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hv9xiz",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "Scale: Scale Soft / Engagement CTA across all posts",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this scale?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hv8e4o",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "A/B Test: youtube_angle_to_ig",
+      "affected_id": "yt_test_1786619679169_urtv",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this experiment?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hvzb9r",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "YOUR CLUBS ARE HOLDING YOU BACK",
+      "affected_id": "task_msrf87e4md1v",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this post_plan?",
+      "urgency": "this_week",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "blk_msrf87hvgmkf",
+      "type": "no_owner",
+      "blocker": "No owner assigned",
+      "affected": "Pair contest hook with direct booking CTA",
+      "owner": "Unassigned",
+      "fix": "Assign owner — who is responsible for this retarget?",
+      "urgency": "this_week",
+      "severity": "medium"
+    }
+  ]
+}

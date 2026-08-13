@@ -1,33 +1,33 @@
 {
   "schema": "https://clawdia.io/agents/event-validation-monitor/v1",
-  "generated": "2026-04-23T12:02:54.323Z",
+  "generated": "2026-08-13T11:14:43.733Z",
   "checks": [
     {
       "name": "booking_confirmation_event",
       "check": "GA4 has custom event booking_confirmation in last 7 days",
       "status": "NOT_FIRING",
-      "last_checked": "2026-04-23T12:02:54.323Z",
+      "last_checked": "2026-08-13T11:14:43.733Z",
       "evidence": "No GA4 event data received"
     },
     {
       "name": "service_param_in_url",
       "check": "Confirmation URL includes ?service=X",
       "status": "NOT_CONFIGURED",
-      "last_checked": "2026-04-23T12:02:54.323Z",
+      "last_checked": "2026-08-13T11:14:43.733Z",
       "evidence": "Swing Shack dev has not implemented"
     },
     {
       "name": "hook_id_in_utm",
       "check": "UTM content param contains hook_id",
       "status": "NOT_PRESENT",
-      "last_checked": "2026-04-23T12:02:54.323Z",
+      "last_checked": "2026-08-13T11:14:43.733Z",
       "evidence": "All existing posts lack hook_id"
     },
     {
       "name": "recommendation_id_in_utm",
       "check": "UTM contains recommendation_id",
       "status": "NOT_PRESENT",
-      "last_checked": "2026-04-23T12:02:54.323Z",
+      "last_checked": "2026-08-13T11:14:43.733Z",
       "evidence": "recommendation_id never linked to UTM chain"
     }
   ],

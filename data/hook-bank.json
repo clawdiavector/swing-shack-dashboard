@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-06T09:03:26.204Z",
+  "updated": "2026-08-13T11:14:08.863Z",
   "total_hooks": 10,
   "cross_signal_sources": {
     "ig_weight": "60%",
@@ -14,10 +14,10 @@
       {
         "hook_text": "And we certainly do have spirit 🤣. Visit SwingShack today for all your golfing ",
         "hook_id": "and-we-certainly-do-have-spirit-----visit-swingsha",
-        "ig_proof_score": 1.28,
+        "ig_proof_score": 1.44,
         "youtube_alignment_score": 3,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 1.4,
+        "cross_signal_score": 1.5,
         "youtube_topic_match": [
           "swing"
         ],
@@ -26,7 +26,7 @@
           "5 Powerful Tips to Unleash Your Senior Driver Swing",
           "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "0.64",
+        "engagementRate": "0.72",
         "saveRate": "0.00",
         "shareRate": "0.00",
         "reach": 0,
@@ -60,16 +60,14 @@
         "formula_type": "stat-demand",
         "signal_bucket": "proven_only",
         "post_id": "18032418161824737"
-      }
-    ],
-    "trending_to_test": [
+      },
       {
         "hook_text": "Sub 70 clubs are now available for fitting at Swing Shack.",
         "hook_id": "sub-70-clubs-are-now-available-for-fitting-at-swin",
-        "ig_proof_score": 0,
+        "ig_proof_score": 0.16,
         "youtube_alignment_score": 3,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 0.6,
+        "cross_signal_score": 0.7,
         "youtube_topic_match": [
           "swing"
         ],
@@ -78,29 +76,30 @@
           "5 Powerful Tips to Unleash Your Senior Driver Swing",
           "4 Simple Steps For The Perfect Golf Drive"
         ],
-        "engagementRate": "0.00",
+        "engagementRate": "0.08",
         "saveRate": "0.00",
         "shareRate": "0.00",
         "reach": 0,
         "topic_cluster": "equipment",
         "format_type": "reel",
         "formula_type": "general",
-        "signal_bucket": "trending_to_test",
+        "signal_bucket": "proven_only",
         "post_id": "18098215292347008"
       }
     ],
+    "trending_to_test": [],
     "retire": [
       {
         "hook_text": "Tired of the same old setup 🥱 try Avoda today! ",
         "hook_id": "tired-of-the-same-old-setup----try-avoda-today--",
-        "ig_proof_score": 1.2,
+        "ig_proof_score": 1.28,
         "youtube_alignment_score": 0,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 0.7,
+        "cross_signal_score": 0.8,
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "0.60",
+        "engagementRate": "0.64",
         "saveRate": "0.00",
         "shareRate": "0.00",
         "reach": 0,
@@ -113,14 +112,14 @@
       {
         "hook_text": "You've seen the reviews.",
         "hook_id": "you-ve-seen-the-reviews-",
-        "ig_proof_score": 0.32,
+        "ig_proof_score": 0.48,
         "youtube_alignment_score": 0,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 0.2,
+        "cross_signal_score": 0.3,
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "0.16",
+        "engagementRate": "0.24",
         "saveRate": "0.00",
         "shareRate": "0.00",
         "reach": 0,
@@ -133,14 +132,14 @@
       {
         "hook_text": "𝗦𝘂𝗯 𝟳𝟬 𝗵𝗮𝘀 𝗮𝗿𝗿𝗶𝘃𝗲𝗱 𝗮𝘁 𝗦𝘄𝗶𝗻𝗴 𝗦𝗵𝗮𝗰𝗸.",
         "hook_id": "--------------------------------------------------",
-        "ig_proof_score": 0.16,
+        "ig_proof_score": 0.32,
         "youtube_alignment_score": 0,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 0.1,
+        "cross_signal_score": 0.2,
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "0.08",
+        "engagementRate": "0.16",
         "saveRate": "0.00",
         "shareRate": "0.00",
         "reach": 0,
@@ -153,14 +152,14 @@
       {
         "hook_text": "Your ball affects every shot. Book your fitting today and find the one that actu",
         "hook_id": "your-ball-affects-every-shot--book-your-fitting-to",
-        "ig_proof_score": 0.16,
+        "ig_proof_score": 0.4,
         "youtube_alignment_score": 0,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 0.1,
+        "cross_signal_score": 0.2,
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "0.08",
+        "engagementRate": "0.20",
         "saveRate": "0.00",
         "shareRate": "0.00",
         "reach": 0,
@@ -173,14 +172,14 @@
       {
         "hook_text": "Wrong ball? Let’s fix it. ",
         "hook_id": "wrong-ball--let-s-fix-it--",
-        "ig_proof_score": 0.16,
+        "ig_proof_score": 0.4,
         "youtube_alignment_score": 0,
         "reddit_relevance_score": 0,
-        "cross_signal_score": 0.1,
+        "cross_signal_score": 0.2,
         "youtube_topic_match": [],
         "youtube_format_match": [],
         "youtube_evidence_titles": [],
-        "engagementRate": "0.08",
+        "engagementRate": "0.20",
         "saveRate": "0.00",
         "shareRate": "0.00",
         "reach": 0,
@@ -204,13 +203,13 @@
       "formula": "general",
       "count": 5,
       "best_example": "Tired of the same old setup 🥱 try Avoda today! ",
-      "avg_cross_score": "0.3"
+      "avg_cross_score": "0.4"
     },
     {
       "formula": "question",
       "count": 1,
       "best_example": "Wrong ball? Let’s fix it. ",
-      "avg_cross_score": "0.1"
+      "avg_cross_score": "0.2"
     },
     {
       "formula": "pain-point",

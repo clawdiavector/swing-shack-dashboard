@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/self-heal-engine/v1",
-  "generated": "2026-04-23T09:45:45.536Z",
+  "generated": "2026-08-13T11:14:42.964Z",
   "allowed_actions": [
     "retry_transient",
     "rebuild_missing",
@@ -14,54 +14,45 @@
     "skip_validation",
     "force_success"
   ],
-  "heals_this_run": 5,
-  "heals_applied": 1,
+  "heals_this_run": 4,
+  "heals_applied": 0,
   "heals_blocked": 4,
   "this_run": [
     {
-      "id": "heal-mobaqh4w3sfe",
-      "agent": "reddit_ghost",
-      "type": "use_last_known",
-      "what": "Retain previous good output for reddit_ghost — current is degraded",
-      "status": "applied",
-      "timestamp": "2026-04-23T09:45:45.536Z",
-      "rule": "PARTIAL on non-critical agent = keep last known good"
-    },
-    {
-      "id": "heal-mobaqh4wahgv",
+      "id": "heal-msrf8a6tf3qa",
       "agent": "system",
       "type": "hide_failure",
       "what": "BLOCKED — hide_failure",
       "status": "blocked",
       "reason": "Never allowed. Would hide real failures.",
-      "timestamp": "2026-04-23T09:45:45.536Z"
+      "timestamp": "2026-08-13T11:14:42.964Z"
     },
     {
-      "id": "heal-mobaqh4w7qvx",
+      "id": "heal-msrf8a6trozl",
       "agent": "system",
       "type": "delete_critical",
       "what": "BLOCKED — delete_critical",
       "status": "blocked",
       "reason": "Never allowed. Would hide real failures.",
-      "timestamp": "2026-04-23T09:45:45.536Z"
+      "timestamp": "2026-08-13T11:14:42.964Z"
     },
     {
-      "id": "heal-mobaqh4w5tht",
+      "id": "heal-msrf8a6typwv",
       "agent": "system",
       "type": "skip_validation",
       "what": "BLOCKED — skip_validation",
       "status": "blocked",
       "reason": "Never allowed. Would hide real failures.",
-      "timestamp": "2026-04-23T09:45:45.536Z"
+      "timestamp": "2026-08-13T11:14:42.964Z"
     },
     {
-      "id": "heal-mobaqh4w1j9k",
+      "id": "heal-msrf8a6tn8vl",
       "agent": "system",
       "type": "force_success",
       "what": "BLOCKED — force_success",
       "status": "blocked",
       "reason": "Never allowed. Would hide real failures.",
-      "timestamp": "2026-04-23T09:45:45.536Z"
+      "timestamp": "2026-08-13T11:14:42.964Z"
     }
   ],
   "recovery_log": {
@@ -90,7 +81,7 @@
       "applied": 2,
       "blocked": 0
     },
-    "updated": "2026-04-23T09:45:45.536Z"
+    "updated": "2026-08-13T11:14:42.964Z"
   },
   "summary": {
     "total_heals_ever": 2,

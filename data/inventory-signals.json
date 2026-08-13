@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/inventory-signal-engine/v1",
-  "generated": "2026-04-23T09:05:42.955Z",
+  "generated": "2026-08-13T11:14:42.367Z",
   "data_mode": "manual_placeholder",
   "confidence": "low",
   "note": "No live POS/inventory data connected. All signals below are estimated. Connect actual inventory system for high-confidence signals.",

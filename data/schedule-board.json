@@ -1,7 +1,7 @@
 {
   "schema": "https://clawdia.io/agents/schedule-captain/v1",
-  "generated": "2026-04-22T09:37:27.923Z",
-  "date": "2026-04-22",
+  "generated": "2026-08-13T11:14:40.920Z",
+  "date": "2026-08-13",
   "total_slots": 1,
   "filled_slots": 1,
   "open_slots": 0,
@@ -20,19 +20,19 @@
   ],
   "schedule": [
     {
-      "slot_id": "slot-ep7uujvu",
+      "slot_id": "slot-jvazm2d4",
       "schema": "https://clawdia.io/agents/schedule-captain/v1",
-      "generated": "2026-04-22T09:37:27.923Z",
-      "scheduled_date": "2026-04-22",
+      "generated": "2026-08-13T11:14:40.920Z",
+      "scheduled_date": "2026-08-13",
       "time": "09:00",
       "slot_label": "Morning — high reach",
-      "item_id": "that-slice-costing-you-yards-off-the-tee--trackman",
-      "hook_text": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
+      "item_id": "THAT_SLICE_COSTING_YOU_YARDS?",
+      "hook_text": "THAT SLICE COSTING YOU YARDS?",
       "platform": "instagram",
       "format": "static",
       "service": "Practice",
       "status": "planned",
-      "cta": "Link in bio · Book your session",
+      "cta": "TrackMan your swing · Book from R250",
       "objective": "reach"
     }
   ]

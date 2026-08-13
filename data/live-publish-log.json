@@ -1,19 +1,25 @@
 {
   "schema": "https://clawdia.io/agents/autonomous-publisher-live/v1",
-  "generated": "2026-04-23T09:20:46.691Z",
-  "mode": "MINIMAL",
+  "generated": "2026-08-13T11:14:42.538Z",
+  "mode": "LIVE",
   "allowed_actions": [
     "reporting",
     "dashboard",
     "alerts",
     "discord_nudge",
-    "fallback_swap"
+    "fallback_swap",
+    "story_scheduling",
+    "evergreen_repost",
+    "approval_auto_promote",
+    "low_risk_publish",
+    "lead_routing",
+    "tiny_ad_shift"
   ],
   "blocked_reason": null,
   "actions_taken": 1,
   "actions": [
     {
-      "action_id": "pub-mob9ucmcmi02",
+      "action_id": "pub-msrf89uzvf6k",
       "type": "discord_nudge",
       "target": "research_agent",
       "why": "Trending topic window open. Nudge research for relevant hook.",
@@ -22,7 +28,7 @@
       "reversible": false,
       "rollback": null,
       "status": "sent",
-      "mode": "MINIMAL"
+      "mode": "LIVE"
     }
   ],
   "summary": {

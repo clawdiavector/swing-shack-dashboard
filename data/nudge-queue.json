@@ -1,0 +1,102 @@
+{
+  "updated": "2026-08-13T11:14:39.559Z",
+  "generated": "generate_nudge_queue.js",
+  "summary": {
+    "total": 7,
+    "by_status": {
+      "ready": 7,
+      "suppressed": 0,
+      "sent": 0
+    },
+    "by_type": {
+      "asset_reminder": 7
+    },
+    "high_severity": 2
+  },
+  "nudges": [
+    {
+      "nudge_id": "ndg_msrf87k72w2v",
+      "type": "asset_reminder",
+      "owner": "Swing Shack page",
+      "channel": "discord",
+      "reason": "Missing High-quality static image for post_plan post",
+      "related_task_id": "task_msrf87e447po",
+      "severity": "high",
+      "send_window": "now",
+      "status": "ready",
+      "suppressed": false
+    },
+    {
+      "nudge_id": "ndg_msrf87k7p0bm",
+      "type": "asset_reminder",
+      "owner": "Swing Shack page",
+      "channel": "discord",
+      "reason": "Missing Swing clip or video footage for post_plan post",
+      "related_task_id": "task_msrf87e4etfs",
+      "severity": "high",
+      "send_window": "now",
+      "status": "ready",
+      "suppressed": false
+    },
+    {
+      "nudge_id": "ndg_msrf87k7f42z",
+      "type": "asset_reminder",
+      "owner": "Swing Shack page",
+      "channel": "discord",
+      "reason": "Missing High-quality static image for post_plan post",
+      "related_task_id": "task_msrf87e4s5lw",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "ready",
+      "suppressed": false
+    },
+    {
+      "nudge_id": "ndg_msrf87k7jgwy",
+      "type": "asset_reminder",
+      "owner": "Coach Cat",
+      "channel": "discord",
+      "reason": "Missing Swing clip or lesson photo for post_plan post",
+      "related_task_id": "task_msrf87e4ifn3",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "ready",
+      "suppressed": false
+    },
+    {
+      "nudge_id": "ndg_msrf87k7cwvw",
+      "type": "asset_reminder",
+      "owner": "Swing Shack page",
+      "channel": "discord",
+      "reason": "Missing High-quality static image for post_plan post",
+      "related_task_id": "task_msrf87e4twcj",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "ready",
+      "suppressed": false
+    },
+    {
+      "nudge_id": "ndg_msrf87k77ws6",
+      "type": "asset_reminder",
+      "owner": "Coach Cat / Divan",
+      "channel": "discord",
+      "reason": "Missing TrackMan screenshot or data graphic for post_plan post",
+      "related_task_id": "task_msrf87e4ej1b",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "ready",
+      "suppressed": false
+    },
+    {
+      "nudge_id": "ndg_msrf87k7hu56",
+      "type": "asset_reminder",
+      "owner": "Divan",
+      "channel": "discord",
+      "reason": "Missing Swing clip or video footage for post_plan post",
+      "related_task_id": "task_msrf87e4ypze",
+      "severity": "medium",
+      "send_window": "this_week",
+      "status": "ready",
+      "suppressed": false
+    }
+  ]
+}

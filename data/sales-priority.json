@@ -1,0 +1,129 @@
+{
+  "updated": "2026-08-13T11:14:38.687Z",
+  "generated": "generate_sales_priority.js",
+  "this_week": "August 13",
+  "priorities": [
+    {
+      "service": "club_fitting",
+      "label": "Club Fitting",
+      "score": 4.6,
+      "priority_level": "medium",
+      "confidence": 3.3,
+      "confidence_band": "low",
+      "signals": {
+        "ig": 0,
+        "ga4": 10,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 5
+      },
+      "supporting_signals": [
+        {
+          "signal": "website_traffic",
+          "strength": 10
+        }
+      ],
+      "reasons": [
+        "High website traffic (10)"
+      ],
+      "recommended_cta": "Book your fit · swingshack.co.za/membership"
+    },
+    {
+      "service": "lessons",
+      "label": "Golf Lessons",
+      "score": 1.7,
+      "priority_level": "low",
+      "confidence": 0.5,
+      "confidence_band": "unsubstantiated",
+      "signals": {
+        "ig": 0,
+        "ga4": 1.4,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 7
+      },
+      "supporting_signals": [
+        {
+          "signal": "seasonality",
+          "strength": 7
+        }
+      ],
+      "reasons": [
+        "Seasonal boost (7)"
+      ],
+      "recommended_cta": "Book a lesson · swingshack.co.za/membership"
+    },
+    {
+      "service": "simulator_sessions",
+      "label": "Simulator Sessions",
+      "score": 1.1,
+      "priority_level": "low",
+      "confidence": 0,
+      "confidence_band": "unsubstantiated",
+      "signals": {
+        "ig": 0,
+        "ga4": 0,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 8
+      },
+      "supporting_signals": [
+        {
+          "signal": "seasonality",
+          "strength": 8
+        }
+      ],
+      "reasons": [
+        "Seasonal boost (8)"
+      ],
+      "recommended_cta": "Book a session · swingshack.co.za/practice"
+    },
+    {
+      "service": "membership",
+      "label": "Membership",
+      "score": 0.9,
+      "priority_level": "low",
+      "confidence": 0,
+      "confidence_band": "unsubstantiated",
+      "signals": {
+        "ig": 0,
+        "ga4": 0,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 6
+      },
+      "supporting_signals": [],
+      "reasons": [],
+      "recommended_cta": "Join now · swingshack.co.za/membership"
+    },
+    {
+      "service": "events",
+      "label": "Events & Competitions",
+      "score": 0.6,
+      "priority_level": "low",
+      "confidence": 0,
+      "confidence_band": "unsubstantiated",
+      "signals": {
+        "ig": 0,
+        "ga4": 0,
+        "reddit": 0,
+        "youtube": 0,
+        "news": 0,
+        "seasonal": 4
+      },
+      "supporting_signals": [],
+      "reasons": [],
+      "recommended_cta": "Enter · swingshack.co.za/events"
+    }
+  ],
+  "meta": {
+    "top_service": "Club Fitting",
+    "top_score": 4.6,
+    "runner_up": "Golf Lessons",
+    "season_note": "Standard week · balance lessons + fittings"
+  }
+}

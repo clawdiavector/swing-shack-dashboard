@@ -1,0 +1,34 @@
+{
+  "updated": "2026-08-13T11:14:38.954Z",
+  "generated": "generate_funnel_leaks.js",
+  "summary": {
+    "total_leaks": 2,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "most_urgent": "(high) Push booking CTA on IG this week — booking page traffic is t"
+  },
+  "leaks": [
+    {
+      "type": "booking_traffic_no_retargeting",
+      "page": "/bookings/",
+      "sessions": 211,
+      "severity": "high",
+      "revenue_impact": "211 sessions on booking page but < 2 booking CTAs in recent IG posts",
+      "easy_fix": "Push booking CTA on IG this week — booking page traffic is there",
+      "owner": "Swing Shack page",
+      "rank": 1
+    },
+    {
+      "type": "service_page_no_ig",
+      "service": "Club Fitting",
+      "page": "/customer-portal/",
+      "sessions": 92,
+      "severity": "high",
+      "revenue_impact": "92 sessions with no IG content pushing this service",
+      "easy_fix": "Create IG post about Club Fitting — GA4 shows 92 sessions this week",
+      "owner": "Divan",
+      "rank": 2
+    }
+  ]
+}

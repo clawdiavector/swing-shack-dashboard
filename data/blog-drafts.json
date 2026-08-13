@@ -1,14 +1,14 @@
 {
   "schema": "https://clawdia.io/agents/blog-beast/v1",
-  "generated": "2026-04-23T09:37:27.915Z",
+  "generated": "2026-08-13T11:14:40.305Z",
   "total": 3,
   "ready_for_qa": 3,
   "drafts": [
     {
-      "draft_id": "bd-3wysuq3h",
+      "draft_id": "bd-s58ozgqk",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
-      "linked_brief_id": "bb-jmv58rrq",
+      "generated": "2026-08-13T11:14:40.304Z",
+      "linked_brief_id": "bb-0eu4mq5v",
       "target_keyword": "trackman golf",
       "headline": "What TrackMan Golf Technology Means for Your Game",
       "search_intent": "informational",
@@ -44,10 +44,10 @@
       "next_action": "QA: check SEO score, brand voice, links, CTA"
     },
     {
-      "draft_id": "bd-2ptrd4p3",
+      "draft_id": "bd-tb8xlgf6",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
-      "linked_brief_id": "bb-imaelxeh",
+      "generated": "2026-08-13T11:14:40.304Z",
+      "linked_brief_id": "bb-zq1zown6",
       "target_keyword": "trackman golf",
       "headline": "What TrackMan Golf Technology Means for Your Game",
       "search_intent": "informational",
@@ -83,10 +83,10 @@
       "next_action": "QA: check SEO score, brand voice, links, CTA"
     },
     {
-      "draft_id": "bd-14zo48t6",
+      "draft_id": "bd-r1mkqwca",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
-      "linked_brief_id": "bb-wh1petuq",
+      "generated": "2026-08-13T11:14:40.304Z",
+      "linked_brief_id": "bb-nqlg1w51",
       "target_keyword": "trackman golf",
       "headline": "What TrackMan Golf Technology Means for Your Game",
       "search_intent": "informational",

@@ -1,17 +1,8 @@
 {
-  "fetched_at": "2026-04-22T06:31:06.525Z",
+  "fetched_at": "2026-08-13T11:14:13.372Z",
   "source_file": "youtube-trends.json",
   "videos_analyzed": 10,
   "top_videos": [
-    {
-      "title": "Possibly The BEST DRIVER Tip Ever In GOLF",
-      "description": "Possibly The BEST DRIVER Tip Ever In GOLF Alistair Davies golf Uk Top 50 Golf Coach shares with you a super simple driver ...",
-      "videoId": "Db6oNu9p6Kc",
-      "channelTitle": "Alistair Davies Golf",
-      "publishedAt": "2023-04-09T11:00:08Z",
-      "source": "youtube_api_v3",
-      "query": "golf swing tips"
-    },
     {
       "title": "How to hit irons Consistently (Simple Golf Tips)",
       "description": "In this video PGA Golf Professional Rick Shiels shows you the simple and easy way to hit your golf irons more consistently.",
@@ -22,11 +13,11 @@
       "query": "golf swing tips"
     },
     {
-      "title": "5 Powerful Tips to Unleash Your Senior Driver Swing",
-      "description": "Learn how to hit driver for senior golfers with this great golf lesson from Todd Kolb! In this video, we're going to show you 5 ...",
-      "videoId": "aGdAdJu9Zr8",
-      "channelTitle": "US GOLF TV",
-      "publishedAt": "2023-09-15T11:00:01Z",
+      "title": "Once You Learn This Technique, The Golf Swing Becomes Effortless",
+      "description": "If you're working hard on your golf swing but still struggling with strike, consistency or control, there's a chance you're practising ...",
+      "videoId": "cB-oAwcSIm0",
+      "channelTitle": "Danny Maude",
+      "publishedAt": "2026-08-08T11:39:09Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -40,11 +31,20 @@
       "query": "golf swing tips"
     },
     {
-      "title": "Senior Golf Tips from Legend Tom Watson",
-      "description": "Senior Golf Tips from Legend Tom Watson when I'm asked about Senior Golf there are a few things I talk about before I even talk ...",
-      "videoId": "dWZuKgvTS28",
-      "channelTitle": "Golf Secrets",
-      "publishedAt": "2024-01-10T21:00:20Z",
+      "title": "How to Swing a Golf Club (The EASY way)",
+      "description": "How to hold golf club: https://youtu.be/RwNWtm_RRqw Discover the easiest way to swing a golf club with this comprehensive ...",
+      "videoId": "me5gjIUe1Ks",
+      "channelTitle": "Rick Shiels Golf",
+      "publishedAt": "2023-06-05T16:19:34Z",
+      "source": "youtube_api_v3",
+      "query": "golf swing tips"
+    },
+    {
+      "title": "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO&#39;S &amp; DON&#39;TS!",
+      "description": "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO'S & DON'TS! In this video PGA Golf Professional Rick Shiels gives you 5 simple ...",
+      "videoId": "r5u52YuNVG8",
+      "channelTitle": "Rick Shiels Golf",
+      "publishedAt": "2020-08-03T15:00:12Z",
       "source": "youtube_api_v3",
       "query": "golf swing tips"
     },
@@ -58,15 +58,6 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "Beginner golf lessons ⛳️ #golf",
-      "description": "",
-      "videoId": "8m8_lt3_H9I",
-      "channelTitle": " Durnian Golf",
-      "publishedAt": "2023-10-10T07:42:37Z",
-      "source": "youtube_api_v3",
-      "query": "golf lesson tutorial"
-    },
-    {
       "title": "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
       "description": "Stop wasting time working on the wrong things. Take our free 7-question Game Assessment and discover the #1 thing you need to ...",
       "videoId": "n4aOMLSRGrI",
@@ -76,20 +67,29 @@
       "query": "golf lesson tutorial"
     },
     {
-      "title": "Better Golf Swing In 2 Minutes",
-      "description": "Better Golf Swing In 2 Minutes Do not force your left arm straight when starting the backswing. This will... Cause you to ...",
-      "videoId": "j-g1SlpOm3g",
-      "channelTitle": "Kerrod Gray Golf",
-      "publishedAt": "2024-04-26T22:02:20Z",
+      "title": "Beginner golf lessons ⛳️ #golf",
+      "description": "",
+      "videoId": "8m8_lt3_H9I",
+      "channelTitle": " Durnian Golf",
+      "publishedAt": "2023-10-10T07:42:37Z",
       "source": "youtube_api_v3",
       "query": "golf lesson tutorial"
     },
     {
-      "title": "Avoid These Golf Simulator Mistakes at All Costs!",
-      "description": "7 mistakes to avoid when building a golf simulator. Get a Sim Enclosure: ...",
-      "videoId": "LXHmx-wyWbs",
-      "channelTitle": "Lets Play Thru",
-      "publishedAt": "2024-09-23T17:30:02Z",
+      "title": "The Only Golf Lesson You&#39;ll Ever Need - Proven Results!",
+      "description": "shorts ▻ FREE - Discover the Top 3 Things You Need to be a Great Ball Striker - https://saguto.golf/free-golf-tips/ ▻ JOIN my ...",
+      "videoId": "EBgsRGetoKw",
+      "channelTitle": "SagutoGolf",
+      "publishedAt": "2023-07-23T11:59:59Z",
+      "source": "youtube_api_v3",
+      "query": "golf lesson tutorial"
+    },
+    {
+      "title": "Completed my home golf simulator with the Garmin R10 and GS Pro! #garminr10 #gspro #gosports",
+      "description": "Go sports screen, shank nets and mat - Garmin r10 launch monitor - GS Pro software - GooDee YG600 Plus Projector.",
+      "videoId": "7XqDbHaPsTM",
+      "channelTitle": "golfwsoap",
+      "publishedAt": "2024-02-27T23:18:39Z",
       "source": "youtube_api_v3",
       "query": "golf simulator indoor"
     }
@@ -101,30 +101,37 @@
         "count": 3,
         "examples": [
           "How to hit irons Consistently (Simple Golf Tips)",
-          "Senior Golf Tips from Legend Tom Watson"
+          "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO&#39;S &amp; DON&#39;TS!"
         ]
       },
       {
         "phrase": "golf swing",
         "count": 2,
         "examples": [
+          "Once You Learn This Technique, The Golf Swing Becomes Effortless",
+          "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)"
+        ]
+      },
+      {
+        "phrase": "golf lesson",
+        "count": 2,
+        "examples": [
           "Golf Swing Basics - Golf Lesson For Beginners Part 1 (2022)",
-          "Better Golf Swing In 2 Minutes"
+          "Beginner golf lessons ⛳️ #golf"
         ]
       },
       {
         "phrase": "beginner golf",
         "count": 2,
         "examples": [
-          "Beginner golf lessons ⛳️ #golf",
-          "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips"
+          "HOW TO PLAY GOLF - Top 5 BEGINNER Golf Tips",
+          "Beginner golf lessons ⛳️ #golf"
         ]
       }
     ],
     "topic_clusters": {
-      "driver": 3,
-      "senior": 2,
-      "beginner": 4,
+      "driver": 2,
+      "beginner": 3,
       "irons": 1,
       "simulator": 1,
       "lessons": 6,
@@ -137,40 +144,31 @@
         "example": "How to hit irons Consistently (Simple Golf Tips)"
       },
       {
-        "label": "\"Best\" superlative",
-        "example": "Possibly The BEST DRIVER Tip Ever In GOLF"
+        "label": "\"Easy\" simplicity",
+        "example": "How to Swing a Golf Club (The EASY way)"
       },
       {
         "label": "\"Simple\" promise",
         "example": "How to hit irons Consistently (Simple Golf Tips)"
-      },
-      {
-        "label": "Mistake framing",
-        "example": "Avoid These Golf Simulator Mistakes at All Costs!"
       }
     ],
-    "urgency_score": 7,
+    "urgency_score": 10,
     "urgency_language": [
       "how to",
-      "mistake"
+      "learn",
+      "prove"
     ],
     "has_before_after": false,
     "before_after_examples": [],
-    "has_mistake_fix": true,
-    "mistake_fix_examples": [
-      "Avoid These Golf Simulator Mistakes at All Costs!"
-    ],
+    "has_mistake_fix": false,
+    "mistake_fix_examples": [],
     "top_channels": [
       [
-        "Alistair Davies Golf",
-        1
-      ],
-      [
         "Rick Shiels Golf",
-        1
+        3
       ],
       [
-        "US GOLF TV",
+        "Danny Maude",
         1
       ],
       [
@@ -178,7 +176,11 @@
         1
       ],
       [
-        "Golf Secrets",
+        "New Nine Golf | Brandon Cubitt",
+        1
+      ],
+      [
+        "Meandmygolf",
         1
       ]
     ],
@@ -186,32 +188,26 @@
       {
         "template": "How to [skill] — [specific benefit]",
         "source": "how-to-format",
-        "count": 2
-      },
-      {
-        "template": "The Truth About [common_mistake]",
-        "source": "mistake-reveal",
-        "count": 1
+        "count": 3
       },
       {
         "template": "[Player Type]: [advice]",
         "source": "player-specific",
-        "count": 5
+        "count": 3
       }
     ]
   },
   "summary": {
     "dominant_topics": [
       "lessons",
-      "beginner",
-      "swing"
+      "swing",
+      "beginner"
     ],
     "dominant_formats": [
       "How to...",
-      "\"Best\" superlative",
-      "\"Simple\" promise",
-      "Mistake framing"
+      "\"Easy\" simplicity",
+      "\"Simple\" promise"
     ],
-    "top_template": "[Player Type]: [advice]"
+    "top_template": "How to [skill] — [specific benefit]"
   }
 }

@@ -1,56 +1,46 @@
 {
-  "updated": "2026-04-22T06:31:15.280Z",
+  "updated": "2026-08-13T11:14:39.645Z",
   "generated": "generate_next_day_queue.js",
   "summary": {
-    "date": "2026-04-23",
-    "day_name": "Thursday",
+    "date": "2026-08-14",
+    "day_name": "Friday",
     "posts_ready": 0,
     "posts_blocked": 0,
     "needs_approval": 0,
     "will_slip": 0,
-    "assets_needed": 4,
+    "assets_needed": 3,
     "confidence": "low"
   },
   "post_queue": [],
   "blocked_items": [],
   "assets_needed": [
     {
-      "asset": "📊 TrackMan screenshot or data graphic",
-      "owner": "Coach Cat / Divan",
+      "asset": "🖼 High-quality static image",
+      "owner": "Swing Shack page",
+      "posts_count": 3,
+      "urgency": "today",
+      "posts": [
+        "THAT SLICE COSTING YOU YARDS?",
+        "YOUR GOLF NEEDS A MENTOR",
+        "YOUR CLUBS ARE HOLDING YOU BACK"
+      ]
+    },
+    {
+      "asset": "🎬 Swing clip (video or photo)",
+      "owner": "Swing Shack page",
       "posts_count": 1,
       "urgency": "today",
       "posts": [
-        "That slice costing you yards off the tee? TrackMan"
+        "POV: First time at Swing Shack"
       ]
     },
     {
       "asset": "🎬 Swing clip (video or photo)",
       "owner": "Coach Cat",
-      "posts_count": 4,
-      "urgency": "today",
-      "posts": [
-        "Need some help with your putting? Coach Cat explai",
-        "Need to relax and find your golf swing tempo? Join",
-        "Zero to 18 handicap in 6 months. Cat breaks down t"
-      ]
-    },
-    {
-      "asset": "🖼 High-quality static image",
-      "owner": "Divan",
-      "posts_count": 2,
-      "urgency": "this_week",
-      "posts": [
-        "Lowest net score wins a *new custom fitted driver!",
-        "Have you ever been for an elite level Custom Fitti"
-      ]
-    },
-    {
-      "asset": "🖼 High-quality static image",
-      "owner": "Swing Shack page",
       "posts_count": 1,
       "urgency": "this_week",
       "posts": [
-        "Go to your coaching sessions. Your ball deserves b"
+        "Coach Catherine explains a common swing flaw"
       ]
     }
   ],

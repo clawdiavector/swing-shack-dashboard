@@ -1,0 +1,245 @@
+{
+  "updated": "2026-08-13T11:14:38.912Z",
+  "generated": "generate_conversion_attribution.js",
+  "summary": {
+    "total_ig_posts_analysed": 16,
+    "total_ga4_pages": 10,
+    "booking_sessions": 291,
+    "avg_booking_eng_rate": 0.78,
+    "top_converting_service": "Club Fitting",
+    "top_converting_cta": "BOOKING",
+    "top_booking_page": "/bookings/",
+    "top_hook_theme": "TrackMan / Stats"
+  },
+  "cta_performance": [
+    {
+      "cta_type": "BOOKING",
+      "post_count": 12,
+      "avg_eng_rate": 2.68,
+      "avg_save_rate": 0,
+      "conversion_signal": 0,
+      "conversion_rank": 1
+    },
+    {
+      "cta_type": "LESSONS",
+      "post_count": 2,
+      "avg_eng_rate": 2.75,
+      "avg_save_rate": 0,
+      "conversion_signal": 0,
+      "conversion_rank": 2
+    },
+    {
+      "cta_type": "FITTING",
+      "post_count": 1,
+      "avg_eng_rate": 3.8,
+      "avg_save_rate": 0,
+      "conversion_signal": 0,
+      "conversion_rank": 3
+    },
+    {
+      "cta_type": "SOFT",
+      "post_count": 1,
+      "avg_eng_rate": 2.92,
+      "avg_save_rate": 0,
+      "conversion_signal": 0,
+      "conversion_rank": 4
+    }
+  ],
+  "service_correlation": [
+    {
+      "service": "Club Fitting",
+      "post_count": 12,
+      "reach_share": 52.2,
+      "avg_engagement": 3.01,
+      "total_reach": 2326,
+      "total_saves": 0,
+      "save_rate": 0,
+      "ig_signal": 3.01
+    },
+    {
+      "service": "Golf Lessons",
+      "post_count": 12,
+      "reach_share": 83.6,
+      "avg_engagement": 2.49,
+      "total_reach": 3727,
+      "total_saves": 0,
+      "save_rate": 0,
+      "ig_signal": 2.49
+    },
+    {
+      "service": "Simulator",
+      "post_count": 0,
+      "reach_share": 0,
+      "avg_engagement": 0,
+      "total_reach": 0,
+      "total_saves": 0,
+      "save_rate": 0,
+      "ig_signal": 0
+    },
+    {
+      "service": "Membership",
+      "post_count": 0,
+      "reach_share": 0,
+      "avg_engagement": 0,
+      "total_reach": 0,
+      "total_saves": 0,
+      "save_rate": 0,
+      "ig_signal": 0
+    },
+    {
+      "service": "Events",
+      "post_count": 0,
+      "reach_share": 0,
+      "avg_engagement": 0,
+      "total_reach": 0,
+      "total_saves": 0,
+      "save_rate": 0,
+      "ig_signal": 0
+    }
+  ],
+  "hook_themes": [
+    {
+      "theme_id": "stats_trackman",
+      "theme_label": "TrackMan / Stats",
+      "post_count": 3,
+      "avg_engagement": 3.6,
+      "avg_saves": 0,
+      "save_rate": 0,
+      "total_reach": 936,
+      "conversion_proxy": 3.6
+    },
+    {
+      "theme_id": "fitting",
+      "theme_label": "Club Fitting",
+      "post_count": 12,
+      "avg_engagement": 3.01,
+      "avg_saves": 0,
+      "save_rate": 0,
+      "total_reach": 2326,
+      "conversion_proxy": 3.01
+    },
+    {
+      "theme_id": "slice_fix",
+      "theme_label": "Slice Fix",
+      "post_count": 3,
+      "avg_engagement": 2.81,
+      "avg_saves": 0,
+      "save_rate": 0,
+      "total_reach": 424,
+      "conversion_proxy": 2.81
+    },
+    {
+      "theme_id": "contest",
+      "theme_label": "Contest / Promo",
+      "post_count": 10,
+      "avg_engagement": 2.78,
+      "avg_saves": 0,
+      "save_rate": 0,
+      "total_reach": 2390,
+      "conversion_proxy": 2.78
+    },
+    {
+      "theme_id": "lessons",
+      "theme_label": "Golf Lessons",
+      "post_count": 5,
+      "avg_engagement": 2.47,
+      "avg_saves": 0,
+      "save_rate": 0,
+      "total_reach": 2647,
+      "conversion_proxy": 2.47
+    },
+    {
+      "theme_id": "membership",
+      "theme_label": "Membership",
+      "post_count": 1,
+      "avg_engagement": 1.9,
+      "avg_saves": 0,
+      "save_rate": 0,
+      "total_reach": 158,
+      "conversion_proxy": 1.9
+    },
+    {
+      "theme_id": "putting",
+      "theme_label": "Putting",
+      "post_count": 0,
+      "avg_engagement": 0,
+      "avg_saves": 0,
+      "save_rate": 0,
+      "total_reach": 0,
+      "conversion_proxy": 0
+    },
+    {
+      "theme_id": "simulator",
+      "theme_label": "Simulator",
+      "post_count": 0,
+      "avg_engagement": 0,
+      "avg_saves": 0,
+      "save_rate": 0,
+      "total_reach": 0,
+      "conversion_proxy": 0
+    }
+  ],
+  "top_booking_pages": [
+    {
+      "path": "/bookings/",
+      "sessions": 211,
+      "engRate": 0.768,
+      "isBooking": true
+    },
+    {
+      "path": "/club-fitting/",
+      "sessions": 67,
+      "engRate": 0.8809999999999999,
+      "isBooking": true
+    },
+    {
+      "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
+      "sessions": 13,
+      "engRate": 0.6920000000000001,
+      "isBooking": true
+    }
+  ],
+  "service_coverage": [
+    {
+      "service": "Golf Lessons",
+      "has_ig_content": true,
+      "has_booking_page": true,
+      "ig_post_count": 12,
+      "ga4_sessions": 23,
+      "coverage_score": 3
+    },
+    {
+      "service": "Club Fitting",
+      "has_ig_content": true,
+      "has_booking_page": true,
+      "ig_post_count": 12,
+      "ga4_sessions": 80,
+      "coverage_score": 3
+    },
+    {
+      "service": "Simulator",
+      "has_ig_content": false,
+      "has_booking_page": false,
+      "ig_post_count": 0,
+      "ga4_sessions": 0,
+      "coverage_score": 0
+    },
+    {
+      "service": "Membership",
+      "has_ig_content": false,
+      "has_booking_page": false,
+      "ig_post_count": 0,
+      "ga4_sessions": 0,
+      "coverage_score": 0
+    },
+    {
+      "service": "Events",
+      "has_ig_content": false,
+      "has_booking_page": false,
+      "ig_post_count": 0,
+      "ga4_sessions": 0,
+      "coverage_score": 0
+    }
+  ],
+  "quick_wins": []
+}

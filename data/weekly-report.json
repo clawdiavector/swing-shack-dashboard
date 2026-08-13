@@ -1,21 +1,23 @@
 {
   "schema": "https://clawdia.io/agents/weekly-reporter/v1",
-  "generated": "2026-04-22T10:33:46.065Z",
+  "generated": "2026-08-13T11:14:41.051Z",
   "period": {
-    "from": "2026-04-15",
-    "to": "2026-04-22"
+    "from": "2026-08-06",
+    "to": "2026-08-13"
   },
   "summary": {
-    "total_recommendations": 0,
-    "published_count": 0,
-    "publish_success_rate": "0%",
+    "total_recommendations": 21,
+    "published_count": 21,
+    "publish_success_rate": "100%",
     "publish_failures": 0,
-    "used_items_marked": 0,
-    "agent_runs": 38,
-    "agent_pass_rate": "76%",
+    "used_items_marked": 21,
+    "agent_runs": 51,
+    "agent_pass_rate": "80%",
     "critical_alerts": 0,
     "missed_opportunities": 0,
-    "overload_owners": []
+    "overload_owners": [
+      "clawdia"
+    ]
   },
   "wins": {
     "top_hook": null,
@@ -31,6 +33,11 @@
     "published_change": "+100%",
     "recommendation_change": "+100%"
   },
-  "owners": {},
+  "owners": {
+    "clawdia": {
+      "published": 21,
+      "failed": 0
+    }
+  },
   "alerts": []
 }

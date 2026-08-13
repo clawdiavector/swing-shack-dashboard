@@ -1,0 +1,192 @@
+{
+  "updated": "2026-08-13T11:14:38.868Z",
+  "generated": "generate_owner_workload.js",
+  "total_owners": 5,
+  "total_items": 9,
+  "today_total": 2,
+  "this_week_total": 4,
+  "most_loaded": "Swing Shack page",
+  "most_loaded_count": 4,
+  "owners": [
+    {
+      "owner": "Swing Shack page",
+      "items": [
+        {
+          "source": "post_plan",
+          "urgency": "today",
+          "hook": "THAT SLICE COSTING YOU YARDS?",
+          "cta": "TrackMan your swing · Book from R250",
+          "day": "Thursday Aug 13",
+          "objective": "reach",
+          "format": "static",
+          "topics": [
+            "technique"
+          ]
+        },
+        {
+          "source": "post_plan",
+          "urgency": "today",
+          "hook": "POV: First time at Swing Shack",
+          "cta": "Save this · Share with a golfer",
+          "day": "Friday Aug 14",
+          "objective": "reach",
+          "format": "reel",
+          "topics": [
+            "general"
+          ]
+        },
+        {
+          "source": "post_plan",
+          "urgency": "this_week",
+          "hook": "YOUR GOLF NEEDS A MENTOR",
+          "cta": "Coaching from R850 · TrackMan + certified instructors",
+          "day": "Saturday Aug 15",
+          "objective": "bookings",
+          "format": "static",
+          "topics": [
+            "coaching"
+          ]
+        },
+        {
+          "source": "post_plan",
+          "urgency": "flexible",
+          "hook": "YOUR CLUBS ARE HOLDING YOU BACK",
+          "cta": "TrackMan Fitting · from R900",
+          "day": "Monday Aug 17",
+          "objective": "awareness",
+          "format": "static",
+          "topics": [
+            "equipment"
+          ]
+        }
+      ],
+      "by_urgency": {
+        "today": 2,
+        "this_week": 1,
+        "flexible": 1
+      },
+      "by_source": {
+        "post_plan": 4,
+        "follow_up_queue": 0,
+        "missed_opportunity": 0
+      },
+      "total": 4
+    },
+    {
+      "owner": "Divan",
+      "items": [
+        {
+          "source": "missed_opportunity",
+          "urgency": "this_week",
+          "topic": null,
+          "hook": null,
+          "suggested_fix": "Create IG content targeting \"/club-fitting/\" · 67 sessions with no social link.",
+          "category": "content_gap"
+        },
+        {
+          "source": "post_plan",
+          "urgency": "flexible",
+          "hook": "Time-lapse of a full fitting session",
+          "cta": "Save this · Share with a golfer",
+          "day": "Wednesday Aug 19",
+          "objective": "awareness",
+          "format": "reel",
+          "topics": [
+            "general"
+          ]
+        }
+      ],
+      "by_urgency": {
+        "today": 0,
+        "this_week": 1,
+        "flexible": 1
+      },
+      "by_source": {
+        "post_plan": 1,
+        "follow_up_queue": 0,
+        "missed_opportunity": 1
+      },
+      "total": 2
+    },
+    {
+      "owner": "Coach Cat",
+      "items": [
+        {
+          "source": "post_plan",
+          "urgency": "this_week",
+          "hook": "Coach Catherine explains a common swing flaw",
+          "cta": "Save this · Share with a golfer",
+          "day": "Sunday Aug 16",
+          "objective": "saves",
+          "format": "reel",
+          "topics": [
+            "general"
+          ]
+        }
+      ],
+      "by_urgency": {
+        "today": 0,
+        "this_week": 1,
+        "flexible": 0
+      },
+      "by_source": {
+        "post_plan": 1,
+        "follow_up_queue": 0,
+        "missed_opportunity": 0
+      },
+      "total": 1
+    },
+    {
+      "owner": "Coach Cat / Divan",
+      "items": [
+        {
+          "source": "post_plan",
+          "urgency": "flexible",
+          "hook": "Show TrackMan data overlay - before/after swing",
+          "cta": "Save this · Share with a golfer",
+          "day": "Tuesday Aug 18",
+          "objective": "awareness",
+          "format": "reel",
+          "topics": [
+            "general"
+          ]
+        }
+      ],
+      "by_urgency": {
+        "today": 0,
+        "this_week": 0,
+        "flexible": 1
+      },
+      "by_source": {
+        "post_plan": 1,
+        "follow_up_queue": 0,
+        "missed_opportunity": 0
+      },
+      "total": 1
+    },
+    {
+      "owner": "Nancy / Front Desk",
+      "items": [
+        {
+          "source": "missed_opportunity",
+          "urgency": "this_week",
+          "topic": null,
+          "hook": null,
+          "suggested_fix": "Create IG content targeting \"/bookings/\" · 211 sessions with no social link.",
+          "category": "content_gap"
+        }
+      ],
+      "by_urgency": {
+        "today": 0,
+        "this_week": 1,
+        "flexible": 0
+      },
+      "by_source": {
+        "post_plan": 0,
+        "follow_up_queue": 0,
+        "missed_opportunity": 1
+      },
+      "total": 1
+    }
+  ]
+}

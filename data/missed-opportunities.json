@@ -1,0 +1,133 @@
+{
+  "updated": "2026-08-13T11:14:38.731Z",
+  "generated": "detect_missed_opportunities.js",
+  "count": 9,
+  "by_severity": {
+    "high": 5,
+    "medium": 3,
+    "low": 1
+  },
+  "by_category": {
+    "follow_up_gap": 0,
+    "content_gap": 8,
+    "seo_gap": 0,
+    "conversion_gap": 0,
+    "offer_gap": 1
+  },
+  "by_owner": {
+    "Divan": 1,
+    "Nancy / Front Desk": 1,
+    "Swing Shack page": 7
+  },
+  "opportunities": [
+    {
+      "type": "traffic_no_content",
+      "category": "content_gap",
+      "severity": "high",
+      "page": "/",
+      "sessions": 370,
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG content targeting \"/\" · 370 sessions with no social link.",
+      "suggestion": "Page \"/\" gets 370 sessions but no IG post links to it. Create content.",
+      "why": "370 sessions with no social presence"
+    },
+    {
+      "type": "traffic_no_content",
+      "category": "content_gap",
+      "severity": "high",
+      "page": "/bookings/",
+      "sessions": 211,
+      "owner": "Nancy / Front Desk",
+      "suggested_fix": "Create IG content targeting \"/bookings/\" · 211 sessions with no social link.",
+      "suggestion": "Page \"/bookings/\" gets 211 sessions but no IG post links to it. Create content.",
+      "why": "211 sessions with no social presence"
+    },
+    {
+      "type": "traffic_no_content",
+      "category": "content_gap",
+      "severity": "high",
+      "page": "/customer-portal/",
+      "sessions": 92,
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG content targeting \"/customer-portal/\" · 92 sessions with no social link.",
+      "suggestion": "Page \"/customer-portal/\" gets 92 sessions but no IG post links to it. Create content.",
+      "why": "92 sessions with no social presence"
+    },
+    {
+      "type": "traffic_no_content",
+      "category": "content_gap",
+      "severity": "high",
+      "page": "/takomo-irons-south-africa-are-they-actually-worth-it/",
+      "sessions": 72,
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG content targeting \"/takomo-irons-south-africa-are-they-actually-worth-it/\" · 72 sessions with no social link.",
+      "suggestion": "Page \"/takomo-irons-south-africa-are-they-actually-worth-it/\" gets 72 sessions but no IG post links to it. Create content.",
+      "why": "72 sessions with no social presence"
+    },
+    {
+      "type": "traffic_no_content",
+      "category": "content_gap",
+      "severity": "high",
+      "page": "/club-fitting/",
+      "sessions": 67,
+      "owner": "Divan",
+      "suggested_fix": "Create IG content targeting \"/club-fitting/\" · 67 sessions with no social link.",
+      "suggestion": "Page \"/club-fitting/\" gets 67 sessions but no IG post links to it. Create content.",
+      "why": "67 sessions with no social presence"
+    },
+    {
+      "type": "youtube_trend_no_ig",
+      "category": "content_gap",
+      "severity": "medium",
+      "topic": "lessons",
+      "yt_video_count": 4,
+      "yt_examples": [
+        "Once You Learn This Technique, The Golf Swing Becomes Effortless",
+        "How to Swing a Golf Club (The EASY way)"
+      ],
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG post on \"lessons\" · YouTube has 4 trending videos.",
+      "suggestion": "YouTube has 4 videos on \"lessons\" but IG hasn't covered it.",
+      "why": "4 YouTube videos trending on this topic"
+    },
+    {
+      "type": "youtube_trend_no_ig",
+      "category": "content_gap",
+      "severity": "medium",
+      "topic": "driver",
+      "yt_video_count": 2,
+      "yt_examples": [
+        "4 Simple Steps For The Perfect Golf Drive",
+        "TOP 5 DRIVER GOLF TIPS - IMPORTANT DO&#39;S &amp; DON&#39;TS!"
+      ],
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG post on \"driver\" · YouTube has 2 trending videos.",
+      "suggestion": "YouTube has 2 videos on \"driver\" but IG hasn't covered it.",
+      "why": "2 YouTube videos trending on this topic"
+    },
+    {
+      "type": "youtube_trend_no_ig",
+      "category": "content_gap",
+      "severity": "medium",
+      "topic": "fitting",
+      "yt_video_count": 1,
+      "yt_examples": [
+        "How to hit irons Consistently (Simple Golf Tips)"
+      ],
+      "owner": "Swing Shack page",
+      "suggested_fix": "Create IG post on \"fitting\" · YouTube has 1 trending videos.",
+      "suggestion": "YouTube has 1 videos on \"fitting\" but IG hasn't covered it.",
+      "why": "1 YouTube videos trending on this topic"
+    },
+    {
+      "type": "sale_angle_not_pushed",
+      "category": "offer_gap",
+      "severity": "low",
+      "angle_label": "Lessons value proposition",
+      "owner": "Swing Shack page",
+      "suggested_fix": "Schedule a promotional IG post around \"Lessons value proposition\".",
+      "suggestion": "\"Lessons value proposition\" hasn't been pushed this week despite relevance.",
+      "why": "No sale/promo angle found in recent IG posts"
+    }
+  ]
+}

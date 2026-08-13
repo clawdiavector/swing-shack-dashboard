@@ -1,164 +1,73 @@
 {
-  "updated": "2026-04-22T06:31:14.278Z",
+  "updated": "2026-08-13T11:14:38.636Z",
   "generated": "generate_post_plan.js",
   "plan_length": 7,
   "plan": [
     {
-      "day": "Wednesday",
-      "date": "Apr 22",
-      "dateISO": "2026-04-22",
-      "platform": "instagram",
-      "format": "static",
-      "hook": "That slice costing you yards off the tee? TrackMan found it in 3 swings. One ses",
-      "hook_id": "that-slice-costing-you-yards-off-the-tee--trackman",
-      "cta": "Link in bio · Book your session",
-      "objective": "reach",
-      "why_chosen": "Cross-signal score 8.0: IG proof 10 + YouTube alignment 10 · optimised for reach",
-      "evidence": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "5 Powerful Tips to Unleash Your Senior Driver Swing"
-      ],
-      "status": "ready",
-      "topics": [
-        "driver",
-        "slice_fix",
-        "simulator",
-        "swing",
-        "distance"
-      ],
-      "ig_score": 10,
-      "yt_score": 10,
-      "cross_score": 8,
-      "owner": "Coach Cat / Divan",
-      "asset_needed": "TrackMan screenshot or data graphic",
-      "urgency": "today",
-      "suggested_source_section": "WATCHED + WORKED"
-    },
-    {
       "day": "Thursday",
-      "date": "Apr 23",
-      "dateISO": "2026-04-23",
+      "date": "Aug 13",
+      "dateISO": "2026-08-13",
       "platform": "instagram",
       "format": "static",
-      "hook": "Need some help with your putting? Coach Cat explains what makes these zero torqu",
-      "hook_id": "need-some-help-with-your-putting--coach-cat-explai",
-      "cta": "Link in bio · Book your session",
+      "hook": "THAT SLICE COSTING YOU YARDS?",
+      "hook_id": "THAT_SLICE_COSTING_YOU_YARDS?",
+      "cta": "TrackMan your swing · Book from R250",
       "objective": "reach",
-      "why_chosen": "Cross-signal score 7.1: IG proof 9.82 + YouTube alignment 6 · optimised for reach",
+      "why_chosen": "Content idea score 9/10 · optimised for reach",
       "evidence": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "How to hit irons Consistently (Simple Golf Tips)"
+        "All-time winning hook formula - 5.77% engagement"
       ],
       "status": "ready",
       "topics": [
-        "short_game",
-        "lessons"
+        "technique"
       ],
-      "ig_score": 9.82,
-      "yt_score": 6,
-      "cross_score": 7.1,
-      "owner": "Coach Cat",
-      "asset_needed": "Swing clip or lesson photo",
+      "ig_score": 0,
+      "yt_score": 0,
+      "cross_score": 9,
+      "owner": "Swing Shack page",
+      "asset_needed": "High-quality static image",
       "urgency": "today",
-      "suggested_source_section": "WATCHED + WORKED"
+      "suggested_source_section": "Hook Bank / Content Ideas"
     },
     {
       "day": "Friday",
-      "date": "Apr 24",
-      "dateISO": "2026-04-24",
-      "platform": "instagram",
-      "format": "static",
-      "hook": "Book your session with Coach Cat @swingshack ⛳️",
-      "hook_id": "book-your-session-with-coach-cat--swingshack---",
-      "cta": "Book your session · Link in bio",
-      "objective": "bookings",
-      "why_chosen": "Cross-signal score 6.7: IG proof 9.129999999999999 + YouTube alignment 6 · optimised for bookings",
+      "date": "Aug 14",
+      "dateISO": "2026-08-14",
+      "platform": "tiktok",
+      "format": "reel",
+      "hook": "POV: First time at Swing Shack",
+      "hook_id": "POV:_First_time_at_Swing_Shack",
+      "cta": "Save this · Share with a golfer",
+      "objective": "reach",
+      "why_chosen": "Content idea score 9/10 · optimised for reach",
       "evidence": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "How to hit irons Consistently (Simple Golf Tips)"
+        "Reel format outperforms static for golf content"
       ],
       "status": "ready",
       "topics": [
-        "lessons",
-        "swing"
+        "general"
       ],
-      "ig_score": 9.129999999999999,
-      "yt_score": 6,
-      "cross_score": 6.7,
-      "owner": "Coach Cat",
-      "asset_needed": "Text graphic or booking CTA image",
-      "urgency": "flexible",
-      "suggested_source_section": "WATCHED + WORKED"
+      "ig_score": 0,
+      "yt_score": 0,
+      "cross_score": 9,
+      "owner": "Swing Shack page",
+      "asset_needed": "Swing clip or video footage",
+      "urgency": "today",
+      "suggested_source_section": "Hook Bank / Content Ideas"
     },
     {
       "day": "Saturday",
-      "date": "Apr 25",
-      "dateISO": "2026-04-25",
+      "date": "Aug 15",
+      "dateISO": "2026-08-15",
       "platform": "instagram",
       "format": "static",
-      "hook": "Need to relax and find your golf swing tempo? Join Coach Cat this holiday to kee",
-      "hook_id": "need-to-relax-and-find-your-golf-swing-tempo--join",
-      "cta": "Save this · Share with a golfer",
-      "objective": "saves",
-      "why_chosen": "Cross-signal score 7.4: IG proof 10 + YouTube alignment 7 · optimised for saves",
+      "hook": "YOUR GOLF NEEDS A MENTOR",
+      "hook_id": "YOUR_GOLF_NEEDS_A_MENTOR",
+      "cta": "Coaching from R850 · TrackMan + certified instructors",
+      "objective": "bookings",
+      "why_chosen": "Content idea score 8/10 · optimised for bookings",
       "evidence": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "How to hit irons Consistently (Simple Golf Tips)"
-      ],
-      "status": "ready",
-      "topics": [
-        "lessons",
-        "swing"
-      ],
-      "ig_score": 10,
-      "yt_score": 7,
-      "cross_score": 7.4,
-      "owner": "Coach Cat",
-      "asset_needed": "Swing clip or lesson photo",
-      "urgency": "this_week",
-      "suggested_source_section": "WATCHED + WORKED"
-    },
-    {
-      "day": "Sunday",
-      "date": "Apr 26",
-      "dateISO": "2026-04-26",
-      "platform": "instagram",
-      "format": "static",
-      "hook": "Lowest net score wins a *new custom fitted driver!*",
-      "hook_id": "lowest-net-score-wins-a--new-custom-fitted-driver-",
-      "cta": "Enter now · Link in bio",
-      "objective": "awareness",
-      "why_chosen": "Cross-signal score 6.8: IG proof 9.33 + YouTube alignment 6 · optimised for awareness",
-      "evidence": [
-        "Possibly The BEST DRIVER Tip Ever In GOLF",
-        "5 Powerful Tips to Unleash Your Senior Driver Swing"
-      ],
-      "status": "ready",
-      "topics": [
-        "driver",
-        "fitness"
-      ],
-      "ig_score": 9.33,
-      "yt_score": 6,
-      "cross_score": 6.8,
-      "owner": "Divan",
-      "asset_needed": "Contest/prize image or graphic",
-      "urgency": "flexible",
-      "suggested_source_section": "WATCHED + WORKED"
-    },
-    {
-      "day": "Monday",
-      "date": "Apr 27",
-      "dateISO": "2026-04-27",
-      "platform": "instagram",
-      "format": "static",
-      "hook": "Go to your coaching sessions. Your ball deserves better 🫂",
-      "hook_id": "Go_to_your_coaching_sessions._Your_ball_",
-      "cta": "Link in bio · Book your session",
-      "objective": "awareness",
-      "why_chosen": "Content idea score 9/10 · optimised for awareness",
-      "evidence": [
-        "Hook generated 4.99% eng, 381 reach"
+        "Coaching content hit 4.99% engagement - community/humor angle"
       ],
       "status": "ready",
       "topics": [
@@ -166,25 +75,51 @@
       ],
       "ig_score": 0,
       "yt_score": 0,
-      "cross_score": 9,
+      "cross_score": 8,
       "owner": "Swing Shack page",
       "asset_needed": "High-quality static image",
       "urgency": "this_week",
       "suggested_source_section": "Hook Bank / Content Ideas"
     },
     {
-      "day": "Tuesday",
-      "date": "Apr 28",
-      "dateISO": "2026-04-28",
+      "day": "Sunday",
+      "date": "Aug 16",
+      "dateISO": "2026-08-16",
+      "platform": "tiktok",
+      "format": "reel",
+      "hook": "Coach Catherine explains a common swing flaw",
+      "hook_id": "Coach_Catherine_explains_a_common_swing_",
+      "cta": "Save this · Share with a golfer",
+      "objective": "saves",
+      "why_chosen": "Content idea score 8/10 · optimised for saves",
+      "evidence": [
+        "Reel format outperforms static for golf content"
+      ],
+      "status": "ready",
+      "topics": [
+        "general"
+      ],
+      "ig_score": 0,
+      "yt_score": 0,
+      "cross_score": 8,
+      "owner": "Coach Cat",
+      "asset_needed": "Swing clip or lesson photo",
+      "urgency": "this_week",
+      "suggested_source_section": "Hook Bank / Content Ideas"
+    },
+    {
+      "day": "Monday",
+      "date": "Aug 17",
+      "dateISO": "2026-08-17",
       "platform": "instagram",
       "format": "static",
-      "hook": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
-      "hook_id": "Have_you_ever_been_for_an_elite_level_Cu",
-      "cta": "Link in bio · Book your session",
+      "hook": "YOUR CLUBS ARE HOLDING YOU BACK",
+      "hook_id": "YOUR_CLUBS_ARE_HOLDING_YOU_BACK",
+      "cta": "TrackMan Fitting · from R900",
       "objective": "awareness",
-      "why_chosen": "Content idea score 9/10 · optimised for awareness",
+      "why_chosen": "Content idea score 7/10 · optimised for awareness",
       "evidence": [
-        "Hook generated 4.35% eng, 161 reach"
+        "Custom fitting consistently 4%+-engagement - high-intent buyers"
       ],
       "status": "ready",
       "topics": [
@@ -192,10 +127,62 @@
       ],
       "ig_score": 0,
       "yt_score": 0,
-      "cross_score": 9,
-      "owner": "Divan",
+      "cross_score": 7,
+      "owner": "Swing Shack page",
       "asset_needed": "High-quality static image",
-      "urgency": "this_week",
+      "urgency": "flexible",
+      "suggested_source_section": "Hook Bank / Content Ideas"
+    },
+    {
+      "day": "Tuesday",
+      "date": "Aug 18",
+      "dateISO": "2026-08-18",
+      "platform": "tiktok",
+      "format": "reel",
+      "hook": "Show TrackMan data overlay - before/after swing",
+      "hook_id": "Show_TrackMan_data_overlay_-_before/afte",
+      "cta": "Save this · Share with a golfer",
+      "objective": "awareness",
+      "why_chosen": "Content idea score 7/10 · optimised for awareness",
+      "evidence": [
+        "Reel format outperforms static for golf content"
+      ],
+      "status": "ready",
+      "topics": [
+        "general"
+      ],
+      "ig_score": 0,
+      "yt_score": 0,
+      "cross_score": 7,
+      "owner": "Coach Cat / Divan",
+      "asset_needed": "TrackMan screenshot or data graphic",
+      "urgency": "flexible",
+      "suggested_source_section": "Hook Bank / Content Ideas"
+    },
+    {
+      "day": "Wednesday",
+      "date": "Aug 19",
+      "dateISO": "2026-08-19",
+      "platform": "tiktok",
+      "format": "reel",
+      "hook": "Time-lapse of a full fitting session",
+      "hook_id": "Time-lapse_of_a_full_fitting_session",
+      "cta": "Save this · Share with a golfer",
+      "objective": "awareness",
+      "why_chosen": "Content idea score 7/10 · optimised for awareness",
+      "evidence": [
+        "Reel format outperforms static for golf content"
+      ],
+      "status": "ready",
+      "topics": [
+        "general"
+      ],
+      "ig_score": 0,
+      "yt_score": 0,
+      "cross_score": 7,
+      "owner": "Divan",
+      "asset_needed": "Swing clip or video footage",
+      "urgency": "flexible",
       "suggested_source_section": "Hook Bank / Content Ideas"
     }
   ],
@@ -211,57 +198,57 @@
     ],
     "urgency_breakdown": {
       "today": 2,
-      "this_week": 3,
-      "flexible": 2
+      "this_week": 2,
+      "flexible": 3
     },
     "owner_breakdown": {
+      "Swing Shack page": 4,
+      "Coach Cat": 1,
       "Coach Cat / Divan": 1,
-      "Coach Cat": 3,
-      "Divan": 2,
-      "Swing Shack page": 1
+      "Divan": 1
     },
     "asset_alerts": [
       {
-        "owner": "Coach Cat / Divan",
-        "asset": "TrackMan screenshot or data graphic",
-        "day": "Wednesday Apr 22",
-        "hook": "That slice costing you yards off the tee? TrackMan"
+        "owner": "Swing Shack page",
+        "asset": "High-quality static image",
+        "day": "Thursday Aug 13",
+        "hook": "THAT SLICE COSTING YOU YARDS?"
       },
       {
-        "owner": "Coach Cat",
-        "asset": "Swing clip or lesson photo",
-        "day": "Thursday Apr 23",
-        "hook": "Need some help with your putting? Coach Cat explai"
-      },
-      {
-        "owner": "Coach Cat",
-        "asset": "Text graphic or booking CTA image",
-        "day": "Friday Apr 24",
-        "hook": "Book your session with Coach Cat @swingshack ⛳️"
-      },
-      {
-        "owner": "Coach Cat",
-        "asset": "Swing clip or lesson photo",
-        "day": "Saturday Apr 25",
-        "hook": "Need to relax and find your golf swing tempo? Join"
-      },
-      {
-        "owner": "Divan",
-        "asset": "Contest/prize image or graphic",
-        "day": "Sunday Apr 26",
-        "hook": "Lowest net score wins a *new custom fitted driver!"
+        "owner": "Swing Shack page",
+        "asset": "Swing clip or video footage",
+        "day": "Friday Aug 14",
+        "hook": "POV: First time at Swing Shack"
       },
       {
         "owner": "Swing Shack page",
         "asset": "High-quality static image",
-        "day": "Monday Apr 27",
-        "hook": "Go to your coaching sessions. Your ball deserves b"
+        "day": "Saturday Aug 15",
+        "hook": "YOUR GOLF NEEDS A MENTOR"
+      },
+      {
+        "owner": "Coach Cat",
+        "asset": "Swing clip or lesson photo",
+        "day": "Sunday Aug 16",
+        "hook": "Coach Catherine explains a common swing flaw"
+      },
+      {
+        "owner": "Swing Shack page",
+        "asset": "High-quality static image",
+        "day": "Monday Aug 17",
+        "hook": "YOUR CLUBS ARE HOLDING YOU BACK"
+      },
+      {
+        "owner": "Coach Cat / Divan",
+        "asset": "TrackMan screenshot or data graphic",
+        "day": "Tuesday Aug 18",
+        "hook": "Show TrackMan data overlay - before/after swing"
       },
       {
         "owner": "Divan",
-        "asset": "High-quality static image",
-        "day": "Tuesday Apr 28",
-        "hook": "Have you ever been for an elite level Custom Fitti"
+        "asset": "Swing clip or video footage",
+        "day": "Wednesday Aug 19",
+        "hook": "Time-lapse of a full fitting session"
       }
     ]
   }

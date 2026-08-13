@@ -3218,16 +3218,15 @@ def _interpret_weekly_report(
         if isinstance(roi, dict):
             sources_used.append("roi-truth.json")
             summary = roi.get("summary") or {}
+            total = int(summary.get("total", 0))
+            direct = int(summary.get("direct", 0))
+            strong = int(summary.get("strong_proxy", 0))
+            weak = int(summary.get("weak_proxy", 0))
+            unmeasurable = int(summary.get("unmeasurable", 0))
             verdict = summary.get("verdict", "")
-            total = summary.get("total", 0)
-            direct = summary.get("direct", 0)
-            strong = summary.get("strong_proxy", 0)
-            weak = summary.get("weak_proxy", 0)
-            unmeasurable = summary.get("unmeasurable", 0)
             roi_generated = (roi.get("generated") or "")[:10]
 
-            if verdict:
-                # Build the band breakdown if we have counts
+            if verdict or direct or strong or weak or unmeasurable:
                 band_breakdown = (
                     f"{direct} DIRECT · {strong} STRONG_PROXY · "
                     f"{weak} WEAK_PROXY · {unmeasurable} UNMEASURABLE "
@@ -3235,8 +3234,7 @@ def _interpret_weekly_report(
                 )
                 working.append({
                     "claim": (
-                        f"Conversion truth band - {verdict} "
-                        f"[{band_breakdown}]. "
+                        f"Conversion truth band - {verdict or band_breakdown}. "
                         f"Last engine run: {roi_generated or 'unknown'}."
                     ),
                     "evidence": (
@@ -3261,13 +3259,11 @@ def _interpret_weekly_report(
                     key=lambda r: r.get("priority", 99),
                 )[:2]
                 if top_recs:
-                    names = [r.get("name", "?") for r in top_recs]
                     actions = [r.get("action", "?") for r in top_recs]
                     working.append({
                         "claim": (
                             f"Top attribution unblocker - "
-                            f"{', '.join(names)}: "
-                            f"{'; '.join(a.split(' - ')[0] for a in actions)}. "
+                            f"{'; '.join(actions)}. "
                             f"Closing either lifts the affected sources from "
                             f"unmeasurable to verified revenue."
                         ),
@@ -3355,6 +3351,147 @@ def _interpret_weekly_report(
         # Never let a single source's parse error break the whole report.
         import logging as _logging
         _logging.getLogger(__name__).debug("conversion-truth block skipped: %s", _exc)
+
+    # ── 3f. CONVERSION ATTRIBUTION (from conversion-attribution.json) ──
+    # The post-to-booking join. Now that the JS pipeline produces a fresh
+    # conversion-attribution.json (was missing for 113 days), surface the
+    # CMO-grade signals: top converting CTA bucket, top service by IG signal,
+    # top booking page by sessions, and the hook theme that's winning.
+    #
+    # This is the layer that answers "which post type actually moves people
+    # to /bookings/?" - bridging content engagement with site intent.
+    try:
+        ca_path = _runtime_data_file("conversion-attribution.json")
+        if os.path.exists(ca_path):
+            ca = _read_json(ca_path) or {}
+            if isinstance(ca, dict):
+                sources_used.append("conversion-attribution.json")
+                ca_summary = ca.get("summary") or {}
+                booking_sessions = int(ca_summary.get("booking_sessions") or 0)
+                top_service = ca_summary.get("top_converting_service") or "n/a"
+                top_cta = ca_summary.get("top_converting_cta") or "n/a"
+                top_page = ca_summary.get("top_booking_page") or "n/a"
+                top_theme = ca_summary.get("top_hook_theme") or "n/a"
+
+                # 1. Top booking page by sessions - the actual conversion funnel entry.
+                #    GA4 tells us how many sessions hit /bookings/, /club-fitting/, etc.
+                if booking_sessions > 0:
+                    working.append({
+                        "claim": (
+                            f"Booking funnel volume - {booking_sessions} sessions "
+                            f"to high-intent pages in the last 7d. "
+                            f"Top entry: {top_page}."
+                        ),
+                        "evidence": (
+                            f"conversion-attribution.json joins GA4 page traffic "
+                            f"with IG content engagement. {booking_sessions} sessions "
+                            f"hit pages matching booking/fitting/contact patterns. "
+                            f"This is the live conversion-funnel volume - the number "
+                            f"every post should ultimately be measured against."
+                        ),
+                        "source": "conversion-attribution.json",
+                        "category": "attribution",
+                    })
+
+                # 2. Top converting CTA bucket - tells the content engine which
+                #    call-to-action style actually engages the audience.
+                cta_perf = ca.get("cta_performance") or []
+                if cta_perf and isinstance(cta_perf[0], dict):
+                    top_cta_row = cta_perf[0]
+                    cta_label = top_cta_row.get("cta_type") or "n/a"
+                    cta_eng = float(top_cta_row.get("avg_eng_rate") or 0)
+                    cta_posts = int(top_cta_row.get("post_count") or 0)
+                    if cta_eng > 0 and cta_posts > 0:
+                        working.append({
+                            "claim": (
+                                f"Top converting CTA type - {cta_label}: "
+                                f"{cta_eng:.2f}% avg engagement across {cta_posts} posts. "
+                                f"More effective than {len(cta_perf) - 1} other CTA buckets."
+                            ),
+                            "evidence": (
+                                f"conversion-attribution.json cta_performance[]. "
+                                f"Captions bucketed by keyword (BOOKING/LESSONS/FITTING/"
+                                f"PROMO/ENGAGEMENT/SOFT) then ranked by avg engagement "
+                                f"rate. The top bucket is what the content engine should "
+                                f"default to for max IG engagement."
+                            ),
+                            "source": "conversion-attribution.json",
+                            "category": "attribution",
+                        })
+
+                # 3. Top service by IG signal - which service category actually
+                #    drives content engagement, vs which has the most page traffic.
+                svc_corr = ca.get("service_correlation") or []
+                if svc_corr and isinstance(svc_corr[0], dict):
+                    top_svc = svc_corr[0]
+                    svc_name = top_svc.get("service") or "n/a"
+                    svc_posts = int(top_svc.get("post_count") or 0)
+                    svc_eng = float(top_svc.get("avg_engagement") or 0)
+                    svc_reach = int(top_svc.get("total_reach") or 0)
+                    if svc_eng > 0 and svc_posts > 0:
+                        working.append({
+                            "claim": (
+                                f"Top service by content engagement - {svc_name}: "
+                                f"{svc_eng:.2f}% avg engagement, {svc_reach:,} reach "
+                                f"across {svc_posts} posts in window."
+                            ),
+                            "evidence": (
+                                f"conversion-attribution.json service_correlation[]. "
+                                f"Posts matched to Golf Lessons/Club Fitting/Simulator/"
+                                f"Membership/Events by caption keywords. {svc_name} is "
+                                f"the leader - the content engine should weight this "
+                                f"service higher when picking the next post topic."
+                            ),
+                            "source": "conversion-attribution.json",
+                            "category": "attribution",
+                        })
+
+                # 4. Top hook theme - which content angle drives engagement.
+                themes = ca.get("hook_themes") or []
+                if themes and isinstance(themes[0], dict):
+                    top_theme_row = themes[0]
+                    theme_label = top_theme_row.get("theme_label") or "n/a"
+                    theme_eng = float(top_theme_row.get("avg_engagement") or 0)
+                    theme_posts = int(top_theme_row.get("post_count") or 0)
+                    if theme_eng > 0 and theme_posts > 0:
+                        working.append({
+                            "claim": (
+                                f"Top hook theme - {theme_label}: "
+                                f"{theme_eng:.2f}% avg engagement across {theme_posts} posts."
+                            ),
+                            "evidence": (
+                                f"conversion-attribution.json hook_themes[]. Posts matched "
+                                f"to themes by caption keywords (TrackMan/Slice Fix/Lessons/"
+                                f"Putting/Fitting/Contest/Membership/Simulator). "
+                                f"{theme_label} is the highest-converting angle."
+                            ),
+                            "source": "conversion-attribution.json",
+                            "category": "attribution",
+                        })
+
+                # 5. Quick wins - services that show high engagement but low
+                #    booking-page coverage (i.e. content exists but site funnel
+                #    is missing for them). This is the "what to build next" claim.
+                qw = ca.get("quick_wins") or []
+                if isinstance(qw, list) and qw:
+                    actions = [q.get("action", "?") for q in qw[:2]]
+                    working.append({
+                        "claim": (
+                            f"Conversion quick wins - "
+                            f"{'; '.join(actions)}."
+                        ),
+                        "evidence": (
+                            f"conversion-attribution.json quick_wins[]: services "
+                            f"with high IG signal but thin booking-page coverage. "
+                            f"These are the highest-leverage gaps to close in the "
+                            f"site funnel."
+                        ),
+                        "source": "conversion-attribution.json",
+                        "category": "attribution",
+                    })
+    except Exception as _exc:
+        import logging as _logging
+        _logging.getLogger(__name__).debug("conversion-attribution block skipped: %s", _exc)
 
     # ── 4. YouTube ───────────────────────────────────────────────────
     if isinstance(youtube, dict):

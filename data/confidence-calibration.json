@@ -1,10 +1,10 @@
 {
   "schema": "https://clawdia.io/agents/confidence-calibrator/v1",
-  "generated": "2026-04-23T09:28:42.521Z",
+  "generated": "2026-08-13T11:14:42.794Z",
   "summary": {
     "overall_honest": "MEDIUM — some stated confidence too high, needs more outcome data",
     "slow_scripts": null,
-    "autonomous_success_rate": "8%"
+    "autonomous_success_rate": "7%"
   },
   "honest_confidence_bands": [
     {
@@ -31,8 +31,8 @@
     {
       "category": "autonomous_actions",
       "stated": "safe",
-      "actual": "1 of 13 succeeded",
-      "honest": "8% success rate",
+      "actual": "1 of 14 succeeded",
+      "honest": "7% success rate",
       "ok": false
     }
   ],
@@ -64,8 +64,8 @@
   ],
   "outcome_tracking": {
     "success": 1,
-    "blocked": 9,
+    "blocked": 2,
     "failure": 0,
-    "unknown": 3
+    "unknown": 11
   }
 }

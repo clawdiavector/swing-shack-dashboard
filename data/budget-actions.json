@@ -1,7 +1,7 @@
 {
   "schema": "https://clawdia.io/agents/auto-budget-shifter/v1",
-  "generated": "2026-04-23T09:20:46.731Z",
-  "mode": "MINIMAL",
+  "generated": "2026-08-13T11:14:42.580Z",
+  "mode": "LIVE",
   "rules": {
     "max_daily_r": 100,
     "max_pct_per_campaign": 0.1
@@ -37,18 +37,36 @@
   ],
   "actions": [
     {
-      "action_id": "bud-mob9ucngwmlq",
-      "type": "blocked",
-      "detail": "tiny_ad_shift",
-      "why": "Mode=MINIMAL. Need LIVE mode for ad budget shifts.",
-      "rule": "mode_restriction",
-      "status": "blocked"
+      "action_id": "bud-msrf89w40zv5",
+      "type": "pause",
+      "campaign": "Brand Awareness",
+      "amount": 300,
+      "from": "Brand Awareness",
+      "why": "ROAS 1.4 < 1.5 threshold. Pausing to save spend.",
+      "confidence": 0.85,
+      "rule": "roas_threshold",
+      "reversible": true,
+      "rollback": "unpause_campaign",
+      "status": "recommended"
+    },
+    {
+      "action_id": "bud-msrf89w45w4i",
+      "type": "boost",
+      "campaign": "Booking Intent — IG",
+      "amount": 25,
+      "from": "unallocated",
+      "why": "ROAS 3.2 > 2.5. Small boost within R100 daily limit.",
+      "confidence": 0.8,
+      "rule": "roas_winner",
+      "reversible": true,
+      "rollback": "reduce_budget",
+      "status": "recommended"
     }
   ],
   "summary": {
-    "total_actions": 1,
-    "recommended": 0,
-    "blocked": 1,
+    "total_actions": 2,
+    "recommended": 2,
+    "blocked": 0,
     "total_budget_r": 1000,
     "shift_capacity_r": 100
   },

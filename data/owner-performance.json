@@ -1,109 +1,123 @@
 {
   "schema": "https://clawdia.io/agents/owner-performance-reporter/v1",
-  "generated": "2026-04-22T10:33:26.890Z",
-  "period_from": "2026-04-15",
-  "period_to": "2026-04-22",
+  "generated": "2026-08-13T11:14:41.183Z",
+  "period_from": "2026-08-06",
+  "period_to": "2026-08-13",
   "summary": {
-    "total_owners": 0,
-    "total_published": 0,
+    "total_owners": 1,
+    "total_published": 21,
     "total_failed": 0,
     "approval_delays": 0,
     "promote_count": 0,
     "blocked_tasks": 0,
-    "overloaded_owners": [],
-    "owner_list": []
+    "overloaded_owners": [
+      "clawdia"
+    ],
+    "owner_list": [
+      "clawdia"
+    ]
   },
-  "by_owner": [],
+  "by_owner": [
+    {
+      "owner": "clawdia",
+      "published": 21,
+      "failed": 0,
+      "wins": 0,
+      "hook_count": 3,
+      "cta_count": 2,
+      "is_overload": true
+    }
+  ],
   "agent_runs": {
     "pulse_keeper": {
-      "total": 5,
-      "passed": 2,
-      "failed": 3,
-      "pass_rate": "40%"
+      "total": 0,
+      "passed": 0,
+      "failed": 0,
+      "pass_rate": "0%"
     },
     "data_harvester": {
-      "total": 1,
-      "passed": 1,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "pass_rate": "100%"
+      "pass_rate": "0%"
     },
     "insight_analyst": {
-      "total": 1,
-      "passed": 1,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "pass_rate": "100%"
+      "pass_rate": "0%"
     },
     "memory_keeper": {
-      "total": 1,
-      "passed": 1,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "pass_rate": "100%"
+      "pass_rate": "0%"
     },
     "taskmaster": {
-      "total": 1,
-      "passed": 1,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "pass_rate": "100%"
+      "pass_rate": "0%"
     },
     "content_architect": {
-      "total": 2,
-      "passed": 2,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "pass_rate": "100%"
+      "pass_rate": "0%"
     },
     "cta_analyst": {
-      "total": 2,
-      "passed": 2,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "pass_rate": "100%"
+      "pass_rate": "0%"
     },
     "hook_smith": {
-      "total": 3,
+      "total": 0,
       "passed": 0,
-      "failed": 3,
+      "failed": 0,
       "pass_rate": "0%"
     },
     "idea_generator": {
-      "total": 2,
-      "passed": 2,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "pass_rate": "100%"
+      "pass_rate": "0%"
     },
     "nudge_bot": {
-      "total": 2,
-      "passed": 2,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "pass_rate": "100%"
+      "pass_rate": "0%"
     },
     "caption_closer": {
-      "total": 2,
-      "passed": 2,
+      "total": 1,
+      "passed": 1,
       "failed": 0,
       "pass_rate": "100%"
     },
     "visual_forge": {
-      "total": 2,
-      "passed": 2,
+      "total": 1,
+      "passed": 1,
       "failed": 0,
       "pass_rate": "100%"
     },
     "blog_beast": {
-      "total": 3,
-      "passed": 2,
-      "failed": 1,
-      "pass_rate": "67%"
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "pass_rate": "100%"
     },
     "reddit_ghost": {
-      "total": 2,
+      "total": 1,
       "passed": 1,
-      "failed": 1,
-      "pass_rate": "50%"
+      "failed": 0,
+      "pass_rate": "100%"
     },
     "qa_inspector": {
-      "total": 2,
-      "passed": 1,
+      "total": 1,
+      "passed": 0,
       "failed": 1,
-      "pass_rate": "50%"
+      "pass_rate": "0%"
     },
     "approval_captain": {
       "total": 1,
@@ -118,8 +132,8 @@
       "pass_rate": "100%"
     },
     "publisher": {
-      "total": 2,
-      "passed": 2,
+      "total": 1,
+      "passed": 1,
       "failed": 0,
       "pass_rate": "100%"
     },
@@ -140,7 +154,25 @@
       "passed": 1,
       "failed": 0,
       "pass_rate": "100%"
+    },
+    "weekly_reporter": {
+      "total": 0,
+      "passed": 0,
+      "failed": 0,
+      "pass_rate": "0%"
+    },
+    "live_action_auditor": {
+      "total": 0,
+      "passed": 0,
+      "failed": 0,
+      "pass_rate": "0%"
     }
   },
-  "risk_flags": []
+  "risk_flags": [
+    {
+      "type": "overload",
+      "owner": "clawdia",
+      "message": "Owner clawdia has 21 publishes — above threshold of 5"
+    }
+  ]
 }
