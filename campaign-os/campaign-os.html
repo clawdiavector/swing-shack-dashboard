@@ -10427,11 +10427,48 @@ async function renderReddit(){
 // NEVER fall back to JSON.stringify(it): that was a silent "render a wall of
 // braces" bug. The empty-state HTML is the honest fallback when the data
 // doesn't carry a question we can read.
+//
+// Dedup + stale-topic filter:
+//   • The blog_beast agent sometimes emits N copies of the same FAQ set
+//     (same cluster + target_keyword) and occasionally uses literal URL
+//     slugs (`/bookings/`, `/club-fitting/`) as the target_keyword. Both
+//     surface as visibly broken UI: "What is /bookings/?" titles and 5
+//     duplicate "What is trackman golf?" rows in a row.
+//   • We collapse duplicates by (cluster, target_keyword, first-question)
+//     and surface a tiny deduped/skipped count so Christelle can see the
+//     underlying health without us hiding it.
+//   • We refuse to render rows whose target_keyword is just a URL path.
+//     They are listed in a one-line "stale topics" hint so the data
+//     issue stays visible to the next agent run.
+const _FAQ_URL_SLUG_RE = /^\s*\/?[a-z0-9-]+\/?\s*$/i;
 async function renderFAQs(){
   const r = await API.get('/api/intel/faq_generator');
-  const items = safeList(r.faqs, 30);
+  const raw = safeList(r.faqs, 60);
+  // Dedup by (cluster | target_keyword | first question).
+  const seen = new Map();
+  const stale = [];
+  let dupes = 0;
+  for(const it of raw){
+    const qs = Array.isArray(it.questions) ? it.questions.filter(q => typeof q === 'string' && q.trim()) : [];
+    const firstQ = (qs[0] || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const tk = (it.target_keyword || '').toString().trim();
+    if(_FAQ_URL_SLUG_RE.test(tk) && !firstQ){
+      stale.push(tk);
+      continue;
+    }
+    const key = `${(it.cluster||'').toLowerCase()}|${tk.toLowerCase()}|${firstQ}`;
+    if(seen.has(key)){ dupes++; continue; }
+    seen.set(key, it);
+  }
+  const items = Array.from(seen.values()).slice(0, 30);
+  const hint = stale.length
+    ? `<div class="empty" style="margin-bottom:.75rem">⚠️ ${stale.length} FAQ set${stale.length===1?'':'s'} skipped — target_keyword looks like a URL path (${stale.slice(0,3).map(s => '`'+s+'`').join(', ')}${stale.length>3?'…':''}). Re-run blog_beast with a fresh seed.</div>`
+    : '';
+  const countHint = dupes
+    ? `<div class="muted" style="font-size:11px;margin-bottom:.5rem">${raw.length - dupes} unique set${raw.length - dupes===1?'':'s'} · ${dupes} duplicate${dupes===1?'':'s'} collapsed</div>`
+    : '';
   const html = items.length
-    ? items.map(it => {
+    ? countHint + items.map(it => {
         const qs = Array.isArray(it.questions) ? it.questions.filter(q => typeof q === 'string' && q.trim()) : [];
         const title = qs[0] || it.cluster || 'Untitled FAQ set';
         const rest = qs.slice(1, 3);
@@ -10447,7 +10484,7 @@ async function renderFAQs(){
         return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${preview}${meta}</div></li>`;
       }).join('')
     : '<div class="empty">No FAQ opportunities</div>';
-  $('#faqs-list').innerHTML = html;
+  $('#faqs-list').innerHTML = hint + html;
 }
 
 // ─── POSTIZ ─────────────────────────────────────────────────────
