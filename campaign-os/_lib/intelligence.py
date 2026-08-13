@@ -1315,9 +1315,16 @@ def _signal_pool() -> Dict[str, List[Any]]:
             "reddit-opportunities.json", "opportunities", "pain_points", "items"),
         # golf-news.json uses 'news' (empty today, but try 'items' too)
         "golf_news": _read_with_keys("golf-news.json", "news", "items", "articles"),
-        # youtube-trends.json has trending_themes (current) — try alternatives
+        # youtube-trends.json has top_videos (10 real videos from YouTube API v3)
+        # plus trending_themes as a {theme: bool} flag map. The flag-map shape
+        # never matched the renderer's list-of-items contract, so the YouTube
+        # panel on the Trends tab rendered "No signals" even when 10 fresh
+        # videos sat in top_videos. Adding "top_videos" as a fallback makes
+        # the panel render those rows via renderYT's default branch (which
+        # picks `title` as the row text — already present on every top_video).
         "youtube_trends": _read_with_keys(
-            "youtube-trends.json", "trending_themes", "themes", "trends", "videos"),
+            "youtube-trends.json", "top_videos", "videos", "trending_themes",
+            "themes", "trends"),
         # youtube-ideas.json has ideas (older) and by_format (newer)
         "youtube_ideas": _read_with_keys(
             "youtube-ideas.json", "ideas", "by_format.ideas", "items"),

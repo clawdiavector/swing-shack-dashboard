@@ -8258,8 +8258,16 @@ async function renderTrends(){
   }
   $('#tr-v2-count').textContent = `${v2.count || 0} ranked signals`;
   $('#tr-v2').innerHTML = (v2.signals||[]).map(s => `<div class="card col-4"><div class="li-title">${esc(s.title)}</div><div class="li-meta"><span class="pill on">${esc(s.source.replace(/-/g,' '))}</span> <b>${s.relevance}/100</b></div><p class="muted" style="font-size:12px">${esc(s.detail)}</p><div style="font-size:12px;color:var(--ac)">→ ${esc(s.suggested_response)}</div></div>`).join('');
-  // YouTube signals come as {key, value} dicts — render as {topic, hot}
-  const renderYT = arr => safeList(arr, 12).map((it, idx) => {
+  // Source-specific empty message: tells the user WHICH source is empty and
+  // (for the ones that are "source fetched but returned nothing") whether
+  // the fetch ran successfully or not. The bare "No signals" copy used to
+  // read as a bug — three panels on the Trends tab had the same text even
+  // though Reddit was fetched-but-empty (legit) and YouTube / golf-news
+  // were either source-failed or shape-mismatched (fixable). With the
+  // YouTube top_videos fix above, the YouTube panel should rarely be empty
+  // — the label only surfaces when it is.
+  const emptyMsg = (src) => `<li class="empty" data-help="Source-scoped empty. The ${src} fetch ran successfully but returned no matching items this cycle. This is a SOURCE state, not a renderer bug. Re-run the fetcher (Refresh trends) to retry." data-help-title="${esc(src)} empty">No ${esc(src)} signals right now · <span style="color:var(--tx-3);font-size:11px">try Refresh trends</span></li>`;
+  const renderYT = (arr, src) => safeList(arr, 12).map((it, idx) => {
     if(it.key !== undefined){
       return `<li class="li"><div class="li-body"><div class="li-title">${esc(String(it.key).replace(/_/g,' '))}</div><div class="li-meta">${pill(it.value==true||it.value==='true'?'on':'muted', it.value==true||it.value==='true'?'trending':'cooling')} · youtube</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(it.key).replace(/_/g,' '))}">Use →</button></div></li>`;
     }
@@ -8288,10 +8296,10 @@ async function renderTrends(){
     const title = it.title || it.headline || it.name || it.theme || it.angle || it.change || it.summary || it.suggested_angle || it.trend_pain_point || it.thread_topic || it.body || it.text || JSON.stringify(it).slice(0,80);
     const src = it._src ? it._src.replace(/_/g,' ') : (it.kind || it.source || '');
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${src?`<div class="li-meta"><span class="muted">${esc(src)}</span></div>`:''}</div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(title).slice(0,80))}">Use →</button></div></li>`;
-  }).join('') || '<li class="empty">No signals</li>';
-  $('#tr-reddit').innerHTML = renderYT(t.reddit);
-  $('#tr-yt').innerHTML = renderYT(t.youtube);
-  $('#tr-news').innerHTML = renderYT(t.golf_news);
+  }).join('') || emptyMsg(src || 'this source');
+  $('#tr-reddit').innerHTML = renderYT(t.reddit, 'reddit');
+  $('#tr-yt').innerHTML = renderYT(t.youtube, 'youtube');
+  $('#tr-news').innerHTML = renderYT(t.golf_news, 'golf news');
   $('#tr-comp').innerHTML = renderYT(t.competitor_changes);
   // bind "Use" buttons (delegated)
   ['#tr-reddit','#tr-yt','#tr-news','#tr-comp'].forEach(sel => {
