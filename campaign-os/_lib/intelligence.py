@@ -594,7 +594,18 @@ def _infer_pillar_from_caption(text: str) -> str:
 # ─── REVIEW INBOX ──────────────────────────────────────────────────────
 
 def review_inbox() -> Dict[str, Any]:
-    """All assets needing decision, sorted by priority."""
+    """All assets needing decision, sorted by priority.
+
+    The pending queue surfaces rotting drafts first: anything older than
+    7 days is floated to the top (oldest first within stale). Within the
+    fresh bucket, most-recently-updated items come first so a campaign
+    that was just regenerated lands at the top of the fresh section.
+    Items with no `updatedAt` sink to the bottom of the fresh bucket
+    (no age signal = no priority). Approved and rejected queues are
+    left in natural order (their counts are already capped at 20 / 10
+    so staleness isn't a UX problem there). The docstring promised
+    "sorted by priority" — this commit makes the promise true.
+    """
     cd = _campaign_data()
     campaigns = cd.get("campaigns", {})
 
@@ -616,6 +627,35 @@ def review_inbox() -> Dict[str, Any]:
                 pass
             else:
                 pending.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "caption": asset.get("caption", "")[:200], "approvalStatus": aps, "publishStatus": ps, "platform": asset.get("platform") or asset.get("integration", "instagram"), "updatedAt": asset.get("updatedAt")})
+
+    # Sort pending so stale (>7d) items float to the top, oldest first.
+    # Items with no updatedAt fall to the bottom of the fresh bucket —
+    # they have no age signal, so they shouldn't push real fresh work down.
+    _now = datetime.datetime.now(datetime.timezone.utc)
+    def _pending_sort_key(row):
+        ua = row.get("updatedAt")
+        if not ua:
+            return (2, 0)  # no age = bottom of fresh
+        t = _parse_iso_date(ua)
+        if t is None:
+            return (2, 0)
+        # _parse_iso_date returns naive when input has no offset; treat as UTC.
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=datetime.timezone.utc)
+        age_ms = (_now - t).total_seconds() * 1000
+        is_stale = age_ms > 7 * 86400000
+        # Bucket ordering:
+        #   0 = stale (>7d)        → emitted first
+        #   1 = fresh (≤7d, with age) → emitted after
+        #   2 = no age signal        → emitted last
+        # Within bucket 0: sort oldest first (-age_ms ascending = larger
+        # age first → most rotting rows at the top).
+        # Within bucket 1: sort most-recent first (+age_ms ascending =
+        # smaller age first → just-regenerated drafts surface at the top
+        # of the fresh section).
+        return (0 if is_stale else 1, -age_ms if is_stale else age_ms)
+
+    pending.sort(key=_pending_sort_key)
 
     return {
         "ok": True,
