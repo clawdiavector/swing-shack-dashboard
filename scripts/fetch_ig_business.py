@@ -74,7 +74,10 @@ DEFAULT_TOKEN_FILE = (
     "clients/swing-shack/credentials/meta-token.json"
 )
 DEFAULT_WINDOW_DAYS = 30
-DEFAULT_MEDIA_LIMIT = 25
+# v2026-08-13: bumped from 25 → 100 so post-conversion scoring has enough
+# posts for noise rejection on bottom-rank (skill note: needs 30+ posts).
+# Meta API page limit is 250; we paginate within the script if needed.
+DEFAULT_MEDIA_LIMIT = 100
 DEFAULT_GRAPH_VERSION = "v21.0"
 DEFAULT_MAX_WORKERS = 8
 

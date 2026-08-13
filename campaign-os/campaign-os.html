@@ -6591,15 +6591,28 @@ async function renderTodayRail(){
   if(!S.todayRail) S.todayRail = await API.get('/api/today/panel');
   // Also fetch the post-conversion-score recommendation so we can prepend
   // a 'what to publish next' card to the ticker. Failures are silent.
+  // v2026-08-13: also fetch summary so we can show the lift + sample size
+  // in the card, not just the theme names.
   let pcsRec = null;
+  let pcsSummary = {};
   if(S.postConversionRec === undefined){
     try {
       const pcs = await API.get('/api/intel/post_conversion_score?top=5');
-      pcsRec = pcs && pcs.ok ? pcs.recommendation : null;
+      if (pcs && pcs.ok) {
+        pcsRec = pcs.recommendation;
+        pcsSummary = {
+          postsScored: (pcs.summary && pcs.summary.posts_scored) || 0,
+          reelCount: (pcs.summary && pcs.summary.reel_count) || 0,
+          imageCount: (pcs.summary && pcs.summary.image_count) || 0,
+          topLift: (pcs.posts_ranked && pcs.posts_ranked[0] && pcs.posts_ranked[0].lift_vs_baseline_pct) || 0,
+        };
+        S.postConversionSummary = pcsSummary;
+      }
     } catch(_) { pcsRec = null; }
     S.postConversionRec = pcsRec || false;
   } else {
     pcsRec = S.postConversionRec || null;
+    pcsSummary = S.postConversionSummary || {};
   }
   const r = S.todayRail;
   const el = $('#today-rail-list');
@@ -6608,15 +6621,31 @@ async function renderTodayRail(){
   const tsEl = $('#today-rail-ts');
   if(tsEl) tsEl.textContent = lastTs.slice(11,19) + ' UTC';
   // Build the recommendation card (if we have one).
+  // v2026-08-13: readability pass - show the WHY (lift %, theme combo,
+  // suggested format) not just the theme names. One-click "Generate ideas"
+  // CTA pulls winning-theme-driven ideas from the new endpoint.
   let recCardHtml = '';
   if(pcsRec && pcsRec.next_post_themes && pcsRec.next_post_themes.length){
-    const themes = (pcsRec.next_post_themes || []).slice(0,3).map(esc).join(', ');
+    const themes = (pcsRec.next_post_themes || []).slice(0,3).map(esc).join(' + ');
+    const format = pcsRec.next_post_format || 'image';
     const example = (pcsRec.winning_pattern_caption_examples && pcsRec.winning_pattern_caption_examples[0]) || '';
+    // Read summary stats from the parent response (cached after first fetch)
+    const pcsSummary = S.postConversionSummary || {};
+    const liftLine = pcsSummary.topLift ? `<div class="rail-sub" style="margin-top:4px;color:#10b981;font-weight:600">↑ Top post: +${Math.round(pcsSummary.topLift)}% /bookings/ lift vs baseline</div>` : '';
+    const winningCount = pcsSummary.postsScored ? `<div class="rail-sub" style="font-size:11px;opacity:0.7">Based on ${pcsSummary.postsScored} posts analysed (${pcsSummary.reelCount || 0} reels, ${pcsSummary.imageCount || 0} images)</div>` : '';
     recCardHtml = `
-      <div class="rail-card recommendation" data-id="pcs-recommendation" style="border-left:3px solid #10b981;background:rgba(16,185,129,0.06)">
-        <div class="rail-cap"><span class="rail-kind">📈 Publish next</span><span class="rail-x" data-dismiss="pcs-recommendation">✕</span></div>
-        <div class="rail-title">Combine: ${themes}</div>
-        <div class="rail-sub">${esc(example.slice(0, 90))}</div>
+      <div class="rail-card recommendation" data-id="pcs-recommendation" style="border-left:3px solid #10b981;background:rgba(16,185,129,0.06);padding:14px">
+        <div class="rail-cap"><span class="rail-kind">📈 Publish next - what works</span><span class="rail-x" data-dismiss="pcs-recommendation">✕</span></div>
+        <div style="font-size:13px;line-height:1.5;margin-top:6px">
+          <div style="font-weight:600;color:#e8eaed">Combine these themes:</div>
+          <div style="font-size:15px;color:#10b981;font-weight:700;margin:4px 0 8px">${themes}</div>
+          <div style="font-size:12px;color:#9aa0a6;margin-bottom:4px">Suggested format: <strong style="color:#e8eaed">${format === 'reel' ? 'Reel (video)' : 'Image post'}</strong></div>
+          ${liftLine}
+          <div style="font-size:12px;color:#9aa0a6;margin-top:8px;font-style:italic">"${esc(example.slice(0, 80))}${example.length > 80 ? '…' : ''}"</div>
+          ${winningCount}
+          <button class="generate-ideas-btn" data-action="winning-theme-ideas" style="margin-top:10px;padding:8px 12px;background:#10b981;color:#0c0d10;border:none;border-radius:6px;font-weight:600;font-size:12px;cursor:pointer;width:100%">⚡ Generate 5 winning-theme ideas</button>
+          <div class="winning-theme-ideas-out" style="margin-top:8px"></div>
+        </div>
       </div>`;
   }
   el.innerHTML = `
@@ -6640,6 +6669,39 @@ async function renderTodayRail(){
     await API.post('/api/today/panel/dismiss', {id});
     S.todayRail = null; renderTodayRail();
   }));
+  // v2026-08-13: Generate-ideas button on the recommendation card.
+  // Hitting the new /api/intel/winning_theme_ideas endpoint turns the
+  // winning themes + captions into ready-to-use content ideas.
+  $$('.generate-ideas-btn[data-action="winning-theme-ideas"]', el).forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const out = btn.parentElement.querySelector('.winning-theme-ideas-out');
+      if(!out) return;
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+      out.innerHTML = '<div style="font-size:11px;color:#9aa0a6">Working on it...</div>';
+      try {
+        const res = await API.get('/api/intel/winning_theme_ideas?n=5');
+        if (res && res.ok && res.ideas) {
+          out.innerHTML = res.ideas.map((idea, idx) => `
+            <div style="border-top:1px solid rgba(16,185,129,0.2);padding:8px 0;margin-top:6px">
+              <div style="font-size:11px;color:#10b981;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">${esc(idea.format)} · Idea ${idx+1}</div>
+              <div style="font-weight:600;color:#e8eaed;margin-top:2px;font-size:13px">${esc(idea.title)}</div>
+              <div style="font-size:12px;color:#9aa0a6;margin-top:4px;white-space:pre-wrap">${esc(idea.caption_hook)}</div>
+              <div style="font-size:11px;color:#6e7681;margin-top:4px;font-style:italic">Why: ${esc(idea.why)}</div>
+            </div>
+          `).join('');
+        } else {
+          out.innerHTML = '<div style="font-size:11px;color:#f85149">No ideas yet - re-run scripts/fetch_post_conversion_score.py</div>';
+        }
+      } catch (err) {
+        out.innerHTML = '<div style="font-size:11px;color:#f85149">Error: ' + esc(String(err)) + '</div>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡ Regenerate ideas';
+      }
+    });
+  });
 }
 
 // ─── BRIEF ──────────────────────────────────────────────────────

@@ -1,561 +1,91 @@
 {
-  "generated": "2026-08-13T09:47:55.039Z",
+  "generated": "2026-08-13T12:52:29.852Z",
   "stale_days_threshold": 14,
-  "total_files": 313,
+  "total_files": 336,
   "by_staleness": {
-    "fresh": 20,
-    "stale": 10,
-    "rotten": 99,
-    "unknown": 3,
-    "static": 180
+    "fresh": 114,
+    "stale": 4,
+    "rotten": 11,
+    "unknown": 24,
+    "static": 182
   },
   "stale_files": [
     {
       "path": "data/campaign-data.json",
-      "age_days": 36.4,
+      "age_days": 36.5,
       "newest_ts": "2026-07-08T00:00:00.000Z"
     },
     {
-      "path": "data/api-connections.json",
-      "age_days": 22.9,
-      "newest_ts": "2026-07-21T11:54:08.232Z"
-    },
-    {
-      "path": "data/publish-failures.json",
-      "age_days": 22.9,
-      "newest_ts": "2026-07-21T11:54:08.189Z"
-    },
-    {
-      "path": "data/publish-queue.json",
-      "age_days": 22.9,
-      "newest_ts": "2026-07-21T11:54:08.189Z"
-    },
-    {
-      "path": "data/published-items.json",
-      "age_days": 22.9,
-      "newest_ts": "2026-07-21T11:54:08.189Z"
-    },
-    {
-      "path": "data/scheduled-items.json",
-      "age_days": 22.9,
-      "newest_ts": "2026-07-21T11:54:08.189Z"
-    },
-    {
-      "path": "data/ready-for-approval.json",
-      "age_days": 20.9,
-      "newest_ts": "2026-07-23T11:44:41.472Z"
-    },
-    {
       "path": "data/publishing-references.json",
-      "age_days": 20,
+      "age_days": 20.1,
       "newest_ts": "2026-07-24T10:14:07.017Z"
     },
     {
       "path": "data/brand-directory/stick/source.json",
-      "age_days": 15.4,
+      "age_days": 15.5,
       "newest_ts": "2026-07-29T00:00:00.000Z"
     },
     {
       "path": "data/brand-directory/swing-shack/source.json",
-      "age_days": 15.4,
+      "age_days": 15.5,
       "newest_ts": "2026-07-29T00:00:00.000Z"
     }
   ],
   "rotten_files": [
     {
       "path": "data/leads.json",
-      "age_days": 147.4,
+      "age_days": 147.5,
       "newest_ts": "2026-03-19T00:00:00.000Z"
     },
     {
       "path": "data/analytics/instagram-analytics.json",
-      "age_days": 125.2,
+      "age_days": 125.3,
       "newest_ts": "2026-04-10T05:04:06.680Z"
     },
     {
       "path": "data/route-log.json",
-      "age_days": 113.8,
+      "age_days": 114,
       "newest_ts": "2026-04-21T14:01:37.858Z"
     },
     {
-      "path": "data/delivery-audit.json",
-      "age_days": 113.4,
-      "newest_ts": "2026-04-22T00:00:00.000Z"
-    },
-    {
-      "path": "data/youtube-hook-signals.json",
-      "age_days": 113.1,
-      "newest_ts": "2026-04-22T06:31:06.525Z"
-    },
-    {
-      "path": "data/approval-actions.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:37:28.007Z"
-    },
-    {
-      "path": "data/approval-expiry.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:37:28.007Z"
-    },
-    {
-      "path": "data/approval-queue.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:10:48.449Z"
-    },
-    {
-      "path": "data/approval-summary.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:10:48.449Z"
-    },
-    {
-      "path": "data/brand-guard-report.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:10:48.533Z"
-    },
-    {
-      "path": "data/caption-variants.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T08:51:13.725Z"
-    },
-    {
-      "path": "data/captions.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T08:51:13.725Z"
-    },
-    {
-      "path": "data/executive-brief.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T10:33:26.848Z"
-    },
-    {
-      "path": "data/owner-performance.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T10:33:26.890Z"
-    },
-    {
-      "path": "data/postback-log.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:37:27.836Z"
-    },
-    {
-      "path": "data/recommendation-outcomes.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:37:27.836Z"
-    },
-    {
-      "path": "data/reschedule-log.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:37:27.923Z"
-    },
-    {
-      "path": "data/schedule-board.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:37:27.923Z"
-    },
-    {
-      "path": "data/tone-violations.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T09:10:48.533Z"
-    },
-    {
-      "path": "data/trend-delta.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T10:33:26.929Z"
-    },
-    {
-      "path": "data/weekly-learnings.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T10:33:26.807Z"
-    },
-    {
-      "path": "data/weekly-report.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T10:33:46.065Z"
-    },
-    {
-      "path": "data/what-to-repeat.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T10:33:26.807Z"
-    },
-    {
-      "path": "data/what-to-stop.json",
-      "age_days": 113,
-      "newest_ts": "2026-04-22T10:33:26.807Z"
-    },
-    {
-      "path": "data/auto-approval-actions.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:16:16.992Z"
-    },
-    {
-      "path": "data/auto-swaps.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:16:16.952Z"
-    },
-    {
-      "path": "data/autonomy-decisions.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:16:16.870Z"
-    },
-    {
-      "path": "data/autonomy-rules.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:16:16.870Z"
-    },
-    {
-      "path": "data/autopublished-items.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:16:17.032Z"
-    },
-    {
-      "path": "data/booking-flow-improvements.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:29:45.753Z"
-    },
-    {
-      "path": "data/bundle-opportunities.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:29:45.793Z"
-    },
-    {
-      "path": "data/counter-moves.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:50:04.614Z"
-    },
-    {
-      "path": "data/email-nurtures.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:24:55.226Z"
-    },
-    {
-      "path": "data/lead-capture-fixes.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:29:45.710Z"
-    },
-    {
-      "path": "data/lead-quality.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:29:45.833Z"
-    },
-    {
-      "path": "data/lead-recovery.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:24:44.125Z"
-    },
-    {
-      "path": "data/live-nudge-log.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:16:16.912Z"
-    },
-    {
-      "path": "data/market-gaps.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:50:04.537Z"
-    },
-    {
-      "path": "data/offer-opportunities.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:24:55.266Z"
-    },
-    {
-      "path": "data/retargeting-campaigns.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:24:55.185Z"
-    },
-    {
-      "path": "data/review-domination.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:50:55.326Z"
-    },
-    {
-      "path": "data/share-of-voice.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:50:04.575Z"
-    },
-    {
-      "path": "data/whatsapp-flows.json",
-      "age_days": 112.9,
-      "newest_ts": "2026-04-22T12:29:45.873Z"
-    },
-    {
-      "path": "data/next-day-queue.json",
-      "age_days": 112.4,
-      "newest_ts": "2026-04-23T00:00:00.000Z"
-    },
-    {
-      "path": "data/tomorrow-slots.json",
-      "age_days": 112.4,
-      "newest_ts": "2026-04-23T00:00:00.000Z"
-    },
-    {
-      "path": "data/agent-scorecards.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:37:15.392Z"
-    },
-    {
-      "path": "data/api-gap-priority.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:34:41.790Z"
-    },
-    {
       "path": "data/autonomy-performance.json",
-      "age_days": 112,
+      "age_days": 112.1,
       "newest_ts": "2026-04-23T10:05:09.142Z"
     },
     {
-      "path": "data/blog-briefs.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:37:27.915Z"
-    },
-    {
-      "path": "data/blog-drafts.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:37:27.915Z"
-    },
-    {
-      "path": "data/booking-closure.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:54:56.882Z"
-    },
-    {
-      "path": "data/budget-actions.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:20:46.731Z"
-    },
-    {
-      "path": "data/capability-unlocks.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:34:41.668Z"
-    },
-    {
-      "path": "data/confidence-calibration.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:28:42.521Z"
-    },
-    {
-      "path": "data/failure-patterns.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:45:45.495Z"
-    },
-    {
-      "path": "data/faq-opportunities.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:37:27.915Z"
-    },
-    {
-      "path": "data/integration-health.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:34:41.608Z"
-    },
-    {
-      "path": "data/inventory-signals.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:05:42.955Z"
-    },
-    {
-      "path": "data/lead-routing-log.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:20:46.770Z"
-    },
-    {
       "path": "data/live-action-audit.json",
-      "age_days": 112,
+      "age_days": 112.1,
       "newest_ts": "2026-04-23T10:28:04.691Z"
     },
     {
       "path": "data/live-mode-scorecard.json",
-      "age_days": 112,
+      "age_days": 112.1,
       "newest_ts": "2026-04-23T10:05:09.329Z"
     },
     {
-      "path": "data/live-mode.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:45:45.332Z"
-    },
-    {
-      "path": "data/live-publish-log.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:20:46.691Z"
-    },
-    {
-      "path": "data/merchandising-board.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:05:42.910Z"
-    },
-    {
-      "path": "data/meta-auth-health.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:54:50.122Z"
-    },
-    {
-      "path": "data/mode-eligibility.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:45:45.455Z"
-    },
-    {
       "path": "data/mode-guardian.json",
-      "age_days": 112,
+      "age_days": 112.1,
       "newest_ts": "2026-04-23T10:05:09.204Z"
     },
     {
-      "path": "data/offer-margin-checks.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:05:42.994Z"
-    },
-    {
-      "path": "data/post-attribution.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:54:49.940Z"
-    },
-    {
-      "path": "data/product-priority.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:04:20.713Z"
-    },
-    {
-      "path": "data/qa-failures.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:37:42.868Z"
-    },
-    {
-      "path": "data/qa-report.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:37:42.867Z"
-    },
-    {
-      "path": "data/review-actions.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:20:46.809Z"
-    },
-    {
-      "path": "data/roi-coverage.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:34:41.728Z"
-    },
-    {
-      "path": "data/roi-truth.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:54:50.186Z"
-    },
-    {
       "path": "data/rollback-log.json",
-      "age_days": 112,
+      "age_days": 112.1,
       "newest_ts": "2026-04-23T09:20:46.849Z"
     },
     {
       "path": "data/rollback-rehearsals.json",
-      "age_days": 112,
+      "age_days": 112.1,
       "newest_ts": "2026-04-23T10:05:09.267Z"
     },
     {
-      "path": "data/rollback-tests.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:28:42.603Z"
-    },
-    {
-      "path": "data/self-heal-actions.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:45:45.536Z"
-    },
-    {
-      "path": "data/stability-report.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:45:45.415Z"
-    },
-    {
-      "path": "data/system-health.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:37:09.456Z"
-    },
-    {
-      "path": "data/trust-gaps.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:45:45.373Z"
-    },
-    {
-      "path": "data/upsell-opportunities.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T09:04:20.753Z"
-    },
-    {
-      "path": "data/utm-map.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:54:49.940Z"
-    },
-    {
-      "path": "data/whatsapp-routing-ready.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:54:50.063Z"
-    },
-    {
-      "path": "data/whatsapp-template-pack.json",
-      "age_days": 112,
-      "newest_ts": "2026-04-23T10:54:50.063Z"
-    },
-    {
-      "path": "data/booking-events.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T11:35:20.883Z"
-    },
-    {
-      "path": "data/booking-value-model.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T11:35:21.006Z"
-    },
-    {
-      "path": "data/conversion-truth.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T11:35:20.964Z"
-    },
-    {
-      "path": "data/decision-confidence.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T11:35:21.045Z"
-    },
-    {
-      "path": "data/event-validation.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T12:02:54.323Z"
-    },
-    {
-      "path": "data/tracking-breaks.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T12:02:54.364Z"
-    },
-    {
-      "path": "data/tracking-implementation-checklist.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T12:02:54.237Z"
-    },
-    {
       "path": "data/tracking-launch-checklist.json",
-      "age_days": 111.9,
+      "age_days": 112,
       "newest_ts": "2026-04-23T12:15:00.000Z"
-    },
-    {
-      "path": "data/utm-backfill.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T12:02:54.282Z"
     },
     {
       "path": "data/utm-enforcement-live.json",
-      "age_days": 111.9,
+      "age_days": 112,
       "newest_ts": "2026-04-23T12:15:00.000Z"
-    },
-    {
-      "path": "data/utm-governance.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T11:35:20.923Z"
-    },
-    {
-      "path": "data/verification-promotions.json",
-      "age_days": 111.9,
-      "newest_ts": "2026-04-23T12:02:54.405Z"
-    },
-    {
-      "path": "data/build-meta.json",
-      "age_days": 42.1,
-      "newest_ts": "2026-07-02T07:10:31.011Z"
     }
   ]
 }

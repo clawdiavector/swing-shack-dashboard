@@ -127,7 +127,7 @@
     },
     {
       "date": "2026-08-13",
-      "value": 13
+      "value": 347
     }
   ],
   "media": [
@@ -453,15 +453,15 @@
     }
   ],
   "metadata": {
-    "fetched_at": "2026-08-13T08:42:46.150994+00:00",
+    "fetched_at": "2026-08-13T12:44:21.615339+00:00",
     "graph_version": "v21.0",
     "instagram_business_id": "17841456713897671",
-    "media_limit": 25,
+    "media_limit": 100,
     "metrics_skipped": [],
     "page_id": "198859063301219",
-    "since_ts": 1784018566,
+    "since_ts": 1784033061,
     "source": "meta_graph_api.instagram_business",
-    "until_ts": 1786610566,
+    "until_ts": 1786625061,
     "username": "swingshack",
     "window_days": 30
   },

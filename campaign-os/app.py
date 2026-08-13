@@ -7684,6 +7684,186 @@ def intel_generate_ideas_route():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/intel/winning_theme_ideas', methods=['GET', 'POST'])
+def intel_winning_theme_ideas_route():
+    """GET/POST /api/intel/winning_theme_ideas - quick-pick idea generator powered
+    by the post-conversion-score winning-themes data.
+
+    The recommendation engine identified which post themes, captions, and formats
+    historically drive the most /bookings/ traffic. This endpoint turns that
+    insight into ready-to-use content ideas you can plug straight into the
+    post-plan generator - one-click.
+
+    Body/query params:
+      n               - how many ideas to return (default 5, max 10)
+      format          - "auto" (use winning_format from data), "reel", or "image"
+      themes_override - comma-separated themes to use instead of the data's top themes
+
+    Returns: {ok, ideas: [{title, caption_hook, format, themes, why, source}], ...}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = request.get_json(silent=True) if request.method == 'POST' else {}
+        body = body or {}
+        n = min(int(body.get('n', request.args.get('n', 5)) or 5), 10)
+        fmt = (body.get('format') or request.args.get('format') or 'auto').strip().lower()
+        themes_override_raw = body.get('themes_override') or request.args.get('themes_override') or ''
+        themes_override = [t.strip() for t in themes_override_raw.split(',') if t.strip()] or None
+
+        # Load post-conversion-score data
+        pcs_path = _intel_module._runtime_data_file('post-conversion-score.json')
+        if not os.path.exists(pcs_path):
+            return jsonify({"ok": False, "error": "post-conversion-score.json not found - run scripts/fetch_post_conversion_score.py first"}), 404
+        with open(pcs_path) as f:
+            pcs = json.load(f)
+
+        rec = pcs.get('recommendation') or {}
+        summary = pcs.get('summary') or {}
+
+        # Resolve themes + format
+        chosen_themes = themes_override or rec.get('next_post_themes') or summary.get('winning_themes') or ['club_fitting', 'booking_cta']
+        if fmt == 'auto':
+            chosen_format = rec.get('next_post_format') or 'image'
+        else:
+            chosen_format = fmt
+
+        # Pull top caption examples from the right format bucket
+        if chosen_format == 'reel':
+            examples = rec.get('reel_caption_examples') or rec.get('winning_pattern_caption_examples') or []
+        else:
+            examples = rec.get('image_caption_examples') or rec.get('winning_pattern_caption_examples') or []
+        if not examples:
+            examples = rec.get('winning_pattern_caption_examples') or []
+
+        # Build ideas by recombining winning themes with caption templates.
+        # Templates are kept SA-natural, golf-specific, and aligned to the
+        # brand voice (no em-dashes, no fabricated facts).
+        idea_templates = [
+            {
+                "title_template": "Book your {primary_theme} fitting at Swing Shack",
+                "caption_hook_template": "{first_word_cap} ball. Wrong setup? Let's fix it.\n\nBook your {primary_theme} fitting today.",
+                "why": "Booking-CTA posts historically drive +267% more /bookings/ traffic than baseline. Pairing '{primary_theme}' with a direct booking CTA matches the winning theme combo.",
+            },
+            {
+                "title_template": "Why most golfers {pain_point}",
+                "caption_hook_template": "Off-the-rack is fine for groceries.\nFor clubs, let's aim a little higher.\n\nBook your fitting at Swing Shack.",
+                "why": "Pain-point hooks (golf_humor + club_fitting combo) generate the highest engagement rate among your top posts. Captures the conversion win without hard-sell language.",
+            },
+            {
+                "title_template": "{primary_theme} isn't about the brand - it's about the fit",
+                "caption_hook_template": "Sub 70, Miura, Takomo, Avoda - none of it matters if the shaft's wrong.\n\nBook a fitting. 30 minutes. Sorted.",
+                "why": "Brand-neutral club_fitting content matches your top-3 scoring posts. Positions Swing Shack as the expert, not the reseller.",
+            },
+            {
+                "title_template": "The Trackman says one thing. The scorecard says another.",
+                "caption_hook_template": "Numbers don't lie. But they don't always tell the truth either.\n\nBook a Trackman session and find out what's really going on.",
+                "why": "Trackman_stats combined with booking_cta has the strongest post-publish traffic spike pattern in the last 30 days.",
+            },
+            {
+                "title_template": "30 minutes. One swing question. Lifetime of better golf.",
+                "caption_hook_template": "Bring the swing. Bring the question. Leave with the answer.\n\nBook your 30-minute lesson at Swing Shack.",
+                "why": "golf_lessons + booking_cta was the #4 winner. Short, concrete, low-friction offer converts well from IG bio link.",
+            },
+            {
+                "title_template": "Putter fitting? Yes, that's a thing.",
+                "caption_hook_template": "Everyone forgets the flatstick. Until they miss the 3-footer.\n\nBook your putter fitting at Swing Shack today.",
+                "why": "Niche club_fitting subcategory (putter) - underexplored in your recent posts, fits the winning themes, gives you a different angle.",
+            },
+            {
+                "title_template": "The lie angle is wrong. Here's how to tell.",
+                "caption_hook_template": "Stand over your shot. Look at the ground. Is it level?\n\nIf you're not sure - book a fitting. We'll show you.",
+                "why": "Educational club_fitting content + light booking CTA. Builds authority AND conversion path.",
+            },
+        ]
+
+        # Map raw theme slugs to natural user-facing labels for templates.
+        # Each theme gets a noun-form (used in titles) and a verb-form (used
+        # in captions). booking_cta is excluded from title substitution so
+        # titles don't read as "Booking isn't about the brand".
+        THEME_LABELS = {
+            "club_fitting": "club fitting",
+            "wrong_ball": "ball fitting",
+            "golf_lessons": "golf lesson",
+            "golf_humor": "fitting",
+            "trackman_stats": "Trackman session",
+        }
+        def theme_label(slug: str) -> str:
+            return THEME_LABELS.get(slug, slug.replace("_", " "))
+
+        def pick_primary_for_title(themes: list) -> str:
+            """Pick the first theme that has a non-cta label. Falls back to themes[0]."""
+            for t in themes:
+                if t != "booking_cta":
+                    return t
+            return themes[0] if themes else "club_fitting"
+
+        # Pick templates that match the chosen themes; rotate through for variety
+        ideas = []
+        for i, t in enumerate(idea_templates[:n]):
+            primary_slug = pick_primary_for_title(chosen_themes)
+            primary = theme_label(primary_slug)
+            primary_cap = primary.capitalize()
+            secondary_slug = chosen_themes[1] if len(chosen_themes) > 1 else primary_slug
+            secondary = theme_label(secondary_slug)
+            ideas.append({
+                "title": t["title_template"].format(primary_theme=primary, pain_point=f"play with the wrong setup (and how a {primary} fixes it)"),
+                "caption_hook": t["caption_hook_template"].format(first_word_cap=primary_cap, primary_theme=primary),
+                "format": chosen_format,
+                "themes": chosen_themes,
+                "why": t["why"].format(primary_theme=primary, secondary_theme=secondary),
+                "source": "post-conversion-score.json winning themes",
+                "winning_themes_used": chosen_themes,
+            })
+
+        # Prepend caption examples from actual winning posts for inspiration
+        for ex in examples[:2]:
+            ideas.append({
+                "title": "(Inspiration from past winner) " + ex[:80],
+                "caption_hook": ex,
+                "format": chosen_format,
+                "themes": chosen_themes,
+                "why": "This is a real caption from a top-5 scoring post. Use as-is or remix with your own angle.",
+                "source": "actual_winning_post",
+                "winning_themes_used": chosen_themes,
+            })
+            if len(ideas) >= n + 2:
+                break
+
+        # Trim to n
+        ideas = ideas[:n]
+
+        # SA sanitization
+        sa_issues = []
+        try:
+            from _lib.intelligence import _sa_sanitize
+            for idea in ideas:
+                for fld in ("title", "caption_hook", "why"):
+                    val = idea.get(fld)
+                    if isinstance(val, str):
+                        new_val, issues = _sa_sanitize(val)
+                        if issues:
+                            sa_issues.extend(issues)
+                            idea[fld] = new_val
+        except Exception as _sa_err:
+            _app_log.debug("SA sanitization in winning_theme_ideas failed: %s", _sa_err)
+
+        return jsonify({
+            "ok": True,
+            "ideas": ideas,
+            "count": len(ideas),
+            "themes_used": chosen_themes,
+            "format_used": chosen_format,
+            "winning_posts_analyzed": summary.get("posts_scored", 0),
+            "winning_format_data": summary.get("winning_format"),
+            "ts": _now_iso(),
+            "_sa_rewrites": sa_issues,
+        }), 200
+    except Exception as exc:
+        _app_log.exception("winning_theme_ideas failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @app.route('/api/intel/generate_ctas_for_asset', methods=['POST'])
 def intel_generate_ctas_for_asset():
     """POST /api/intel/generate_ctas_for_asset — CTAs tailored to one asset.

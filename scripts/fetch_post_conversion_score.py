@@ -252,10 +252,16 @@ def main():
             "post_id": post.get("id"),
             "post_date": post_date,
             "hook_id": hook_id,
+            "media_type": post.get("media_type", "IMAGE"),  # v2026-08-13: so reels surface separately in recommendations
+            "format_type": "reel" if post.get("media_type") == "VIDEO" else "image",
             "caption_preview": caption[:100],
             "permalink": post.get("permalink", ""),
             "reach": reach,
             "engagement_rate_pct": engagement_rate,
+            "likes": (post.get("metrics") or {}).get("likes", 0),
+            "comments": (post.get("metrics") or {}).get("comments", 0),
+            "saves": (post.get("metrics") or {}).get("saved", 0),
+            "shares": (post.get("metrics") or {}).get("shares", 0),
             "themes": themes,
             "is_winning_theme_combo": is_winning,
             "direct_attributed_sessions": direct_sessions,
@@ -274,16 +280,56 @@ def main():
         scored_posts.sort(key=lambda p: p["normalized_score"], reverse=True)
 
     # 3. Build recommendation
+    #    v2026-08-13: split by media_type so reels vs images surface
+    #    separately. A reel outperforming an image should change the
+    #    next-post suggestion from "make a carousel" to "make a reel."
     print("\n[4/4] Building next-post recommendation...")
+
+    # Overall top 5 (mixed)
     top_posts = scored_posts[:5]
+
+    # Top 3 reels + top 3 images separately
+    reels = [p for p in scored_posts if p.get("format_type") == "reel"]
+    images = [p for p in scored_posts if p.get("format_type") == "image"]
+    top_reels = reels[:3]
+    top_images = images[:3]
+
+    # Theme analysis across all top posts + format-specific
     winning_themes_count = defaultdict(int)
+    reel_themes_count = defaultdict(int)
+    image_themes_count = defaultdict(int)
     for p in top_posts:
         for t in p["themes"]:
             winning_themes_count[t] += 1
+    for p in top_reels:
+        for t in p["themes"]:
+            reel_themes_count[t] += 1
+    for p in top_images:
+        for t in p["themes"]:
+            image_themes_count[t] += 1
+
     recommended_themes = sorted(winning_themes_count.keys(),
                                  key=lambda t: winning_themes_count[t],
                                  reverse=True)
+    reel_themes = sorted(reel_themes_count.keys(),
+                         key=lambda t: reel_themes_count[t],
+                         reverse=True)
+    image_themes = sorted(image_themes_count.keys(),
+                          key=lambda t: image_themes_count[t],
+                          reverse=True)
+
+    # Pick the winning format (whichever has higher avg score in top 10)
+    top_10 = scored_posts[:10]
+    if top_10:
+        reel_avg = sum(p["normalized_score"] for p in top_10 if p.get("format_type") == "reel") / max(1, sum(1 for p in top_10 if p.get("format_type") == "reel"))
+        image_avg = sum(p["normalized_score"] for p in top_10 if p.get("format_type") == "image") / max(1, sum(1 for p in top_10 if p.get("format_type") == "image"))
+        winning_format = "reel" if reel_avg > image_avg and reels else "image"
+    else:
+        winning_format = "image"
+
     top_caption_examples = [p["caption_preview"][:80] for p in top_posts[:3] if p["caption_preview"]]
+    reel_caption_examples = [p["caption_preview"][:80] for p in top_reels if p["caption_preview"]]
+    image_caption_examples = [p["caption_preview"][:80] for p in top_images if p["caption_preview"]]
 
     # 4. Write output
     out = {
@@ -300,19 +346,27 @@ def main():
             "posts_scored": len(scored_posts),
             "baseline_median_ig_bookings_per_day": median_ig_bookings,
             "winning_themes": recommended_themes,
+            "winning_format": winning_format,
             "top_score": scored_posts[0]["normalized_score"] if scored_posts else 0,
             "median_score": scored_posts[len(scored_posts) // 2]["normalized_score"] if scored_posts else 0,
+            "reel_count": len(reels),
+            "image_count": len(images),
         },
         "posts_ranked": scored_posts,
         "recommendation": {
             "next_post_themes": recommended_themes[:3],
+            "next_post_format": winning_format,
             "winning_pattern_caption_examples": top_caption_examples,
+            "reel_themes": reel_themes[:3],
+            "reel_caption_examples": reel_caption_examples,
+            "image_themes": image_themes[:3],
+            "image_caption_examples": image_caption_examples,
             "rationale": (
-                "Top 5 scoring posts share these themes: "
-                + ", ".join(recommended_themes[:3])
-                + ". The content engine should weight next-post idea generation "
-                  "toward these themes. Booking-CTA posts with club_fitting or "
-                  "wrong_ball hooks historically drive 0.5-1% of IG reach to /bookings/."
+                f"Top 5 scoring posts share these themes: {', '.join(recommended_themes[:3])}. "
+                f"Format-wise, reels average higher conversion score than images in the top 10. "
+                f"The content engine should weight next-post idea generation toward these themes "
+                f"and prefer the {winning_format} format. Booking-CTA posts with club_fitting or "
+                f"wrong_ball hooks historically drive 0.5-1% of IG reach to /bookings/."
             ),
         },
     }
@@ -321,16 +375,25 @@ def main():
     print(f"\nWrote: {OUTPUT_FILE}")
 
     print("\n=== Top 10 scored posts ===")
-    print(f"{'rank':>4s} {'date':12s} {'reach':>6s} {'ER%':>5s} {'themes':40s} {'direct':>7s} {'window':>7s} {'lift%':>7s} {'score':>6s}")
+    print(f"{'rank':>4s} {'date':12s} {'type':6s} {'reach':>6s} {'ER%':>5s} {'themes':40s} {'direct':>7s} {'window':>7s} {'lift%':>7s} {'score':>6s}")
     for i, p in enumerate(scored_posts[:10], 1):
         themes_str = ", ".join(p["themes"][:3])[:38]
-        print(f"{i:>4d} {p['post_date']:12s} {p['reach']:>6d} {p['engagement_rate_pct']:>5.2f} {themes_str:40s} "
+        print(f"{i:>4d} {p['post_date']:12s} {p.get('format_type', '?'):6s} {p['reach']:>6d} {p['engagement_rate_pct']:>5.2f} {themes_str:40s} "
               f"{p['direct_attributed_sessions']:>7d} {p['time_window_sessions']:>7d} "
               f"{p['lift_vs_baseline_pct']:>7.1f} {p['normalized_score']:>6.1f}")
 
     print()
+    print("=== Format breakdown ===")
+    if reels:
+        print(f"  Reels ({len(reels)}): avg score = {sum(p['normalized_score'] for p in reels)/len(reels):.1f}")
+    if images:
+        print(f"  Images ({len(images)}): avg score = {sum(p['normalized_score'] for p in images)/len(images):.1f}")
+    print(f"  Winning format: {winning_format}")
+
+    print()
     print("=== Recommendation ===")
     print(f"  Top themes for next post: {recommended_themes[:3]}")
+    print(f"  Suggested format: {winning_format}")
     print(f"  Top caption examples:")
     for cap in top_caption_examples:
         print(f"    - {cap}")

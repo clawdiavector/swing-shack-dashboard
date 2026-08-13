@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/ga4-post-attribution/v1",
-  "updated": "2026-08-13T11:42:09.264085Z",
+  "updated": "2026-08-13T11:53:39.734178Z",
   "generated_by": "fetch_ga4_attribution.py",
   "window": {
     "start": "2026-07-14",
@@ -620,7 +620,7 @@
       },
       {
         "event_name": "user_engagement",
-        "count": 3801
+        "count": 3802
       },
       {
         "event_name": "session_start",
@@ -655,7 +655,7 @@
         "count": 1
       }
     ],
-    "total_events": 14541
+    "total_events": 14542
   },
   "top_converting_posts": [],
   "summary": {

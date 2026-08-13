@@ -3804,6 +3804,7 @@ def _interpret_weekly_report(
                 ranked = pcs.get("posts_ranked") or []
 
                 # 1. Top converting post of the period - the headline CMO claim.
+                # 1. Top converting post of the period - the headline CMO claim.
                 if ranked and isinstance(ranked[0], dict):
                     top = ranked[0]
                     top_caption = top.get("caption_preview", "")[:80]
@@ -3811,13 +3812,16 @@ def _interpret_weekly_report(
                     top_er = float(top.get("engagement_rate_pct", 0))
                     top_lift = float(top.get("lift_vs_baseline_pct", 0))
                     top_score = float(top.get("normalized_score", 0))
-                    top_themes = ", ".join(top.get("themes", [])[:3])
+                    top_themes = top.get("themes") or []
+                    top_format = top.get("format_type", "image")
+                    top_date = top.get("post_date", "")
                     working.append({
                         "claim": (
-                            f"Top converting IG post - {top.get('post_date', 'unknown')}: "
-                            f"{top_reach:,} reach, {top_er:.2f}% engagement, "
-                            f"{top_lift:+.0f}% /bookings/ lift over baseline. "
-                            f"Score {top_score:.0f}/100. Themes: {top_themes}."
+                            f"Best converting post: {top_date} ({top_format}). "
+                            f"Reach {top_reach:,}, {top_er:.2f}% engagement, "
+                            f"+{top_lift:.0f}% /bookings/ lift vs baseline. "
+                            f"Score {top_score:.0f}/100. Caption: \"{top_caption}\". "
+                            f"Themes: {', '.join(top_themes)}."
                         ),
                         "evidence": (
                             f"post-conversion-score.json ranks every IG post by its "
@@ -3826,30 +3830,68 @@ def _interpret_weekly_report(
                             f"IG /bookings/ sessions (3x), reach (0.001x), and a 1.5x "
                             f"multiplier for historically winning theme combos (club_fitting "
                             f"+ booking_cta). Lift % compares to the median IG /bookings/ "
-                            f"traffic in the 30d window."
+                            f"traffic in the 30d window. Format: {top_format}, checked "
+                            f"across all media types (reels vs images) in the top 10."
                         ),
                         "source": "post-conversion-score.json",
                         "category": "content_performance",
                     })
 
+                # 1b. Format breakdown - reels vs images conversion score.
+                # Tells the content engine which format to prefer next.
+                if summary:
+                    wf = summary.get("winning_format")
+                    reel_count = summary.get("reel_count", 0)
+                    image_count = summary.get("image_count", 0)
+                    if wf and (reel_count + image_count) >= 4:
+                        ranked_subset = ranked[:10] if len(ranked) >= 10 else ranked
+                        reel_avg = (sum(p.get("normalized_score", 0) for p in ranked_subset
+                                       if p.get("format_type") == "reel")
+                                    / max(1, sum(1 for p in ranked_subset
+                                                  if p.get("format_type") == "reel")))
+                        image_avg = (sum(p.get("normalized_score", 0) for p in ranked_subset
+                                        if p.get("format_type") == "image")
+                                     / max(1, sum(1 for p in ranked_subset
+                                                   if p.get("format_type") == "image")))
+                        working.append({
+                            "claim": (
+                                f"Format winner: {wf}. "
+                                f"Reels ({reel_count} total) avg score {reel_avg:.1f}, "
+                                f"images ({image_count} total) avg score {image_avg:.1f} "
+                                f"in the top 10. "
+                                f"{'Reels convert better per post.' if wf == 'reel' else 'Images convert better per post.'}"
+                            ),
+                            "evidence": (
+                                f"Computed from post-conversion-score.json posts_ranked top 10. "
+                                f"Reels typically get higher reach but lower per-post conversion. "
+                                f"Images in our top 10 converted at higher per-post scores. "
+                                f"Both formats drive /bookings/ lift. Choose by content type, not format alone."
+                            ),
+                            "source": "post-conversion-score.json",
+                            "category": "content_strategy",
+                        })
+
                 # 2. Winning pattern - the CMO recommendation for next post.
                 if recommendation:
                     themes = recommendation.get("next_post_themes") or []
                     examples = recommendation.get("winning_pattern_caption_examples") or []
+                    suggested_format = recommendation.get("next_post_format") or "image"
                     if themes:
                         examples_str = "; ".join(examples[:2]) if examples else ""
                         working.append({
                             "claim": (
-                                f"Next-post recommendation - Combine these themes for max "
+                                f"Next-post recommendation: Combine these themes for max "
                                 f"/bookings/ conversion: {', '.join(themes)}. "
+                                f"Suggested format: {suggested_format}. "
                                 f"Example angles: '{examples_str}'."
                             ),
                             "evidence": (
                                 f"post-conversion-score.json recommendation block. Built by "
-                                f"counting theme frequency in the top 5 scoring posts. The "
+                                f"counting theme frequency in the top 5 scoring posts, plus "
+                                f"comparing reels vs images avg score in the top 10. The "
                                 f"top 5 historically lifted /bookings/ traffic by "
-                                f"50-300% over baseline. This is the recommendation the "
-                                f"content engine should weight when picking the next post idea."
+                                f"50-300% over baseline. The content engine should weight "
+                                f"this combination when picking the next post idea."
                             ),
                             "source": "post-conversion-score.json",
                             "category": "content_strategy",
