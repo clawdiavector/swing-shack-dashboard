@@ -839,8 +839,12 @@ async function loadRecipePanel() {
 }
 
 function renderRecipePanel(r) {
-  // Subtitle: short summary
-  $('recipe-subtitle').textContent = r.summary || r.brand_id;
+  // Subtitle: short summary + bible status badge (set once per render so
+  // re-renders after image generation don't keep appending " - bible PLACEHOLDER").
+  const bibleBadge = r.bible_loaded
+    ? ' - bible active'
+    : (r.bible_placeholder ? ' - bible PLACEHOLDER' : '');
+  $('recipe-subtitle').textContent = (r.summary || r.brand_id || '') + bibleBadge;
 
   // Status
   const statusEl = $('recipe-status-value');
@@ -900,12 +904,8 @@ function renderRecipePanel(r) {
   // System message preview
   $('recipe-system-preview').textContent = r.system_message_preview || '(no system message)';
 
-  // Add bible-loaded indicator
-  if (r.bible_loaded) {
-    $('recipe-subtitle').textContent += ' - bible active';
-  } else if (r.bible_placeholder) {
-    $('recipe-subtitle').textContent += ' - bible PLACEHOLDER';
-  }
+  // Bible status badge is set ONCE in the subtitle at the top of renderRecipePanel
+  // so re-renders (e.g. after image generation) don't keep appending " - bible PLACEHOLDER".
 }
 
 function setupRecipePanelToggle() {
