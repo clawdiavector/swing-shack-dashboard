@@ -2503,6 +2503,31 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
         {"subreddit": s, "count": c} for s, c in subreddit_counts.most_common(5)
     ]
 
+    # ── 12b. NEW (v2026-08-13) · IG Business live-account metrics ·─
+    # Pulled by scripts/fetch_ig_business.py via launchd (06:00 SAST).
+    # This is the source of truth for the IG reach / engagement / top
+    # post claims in the weekly report. ig-analytics.json can't get
+    # these because its legacy sync doesn't write reach.
+    igb = _read_json(os.path.join(DATA_DIR, "ig-business-analytics.json")) or {}
+    igb_window_totals = igb.get("window_totals") if isinstance(igb, dict) else None
+    igb_daily_reach = igb.get("daily_reach") if isinstance(igb, dict) else None
+    igb_top_post = igb.get("top_post") if isinstance(igb, dict) else None
+    igb_account = igb.get("account") if isinstance(igb, dict) else None
+    igb_media = igb.get("media") if isinstance(igb, dict) else []
+    if not isinstance(igb_media, list):
+        igb_media = []
+    igb_summary = {
+        "fetched_at": igb.get("metadata", {}).get("fetched_at") if isinstance(igb, dict) else None,
+        "stale": igb.get("_stale", False),
+        "username": igb.get("metadata", {}).get("username") if isinstance(igb, dict) else None,
+        "followers_count": igb_account.get("followers_count") if isinstance(igb_account, dict) else None,
+        "media_count": igb_account.get("media_count") if isinstance(igb_account, dict) else None,
+        "window_totals": igb_window_totals if isinstance(igb_window_totals, dict) else {},
+        "daily_reach_points": len(igb_daily_reach) if isinstance(igb_daily_reach, list) else 0,
+        "media_in_window": len(igb_media),
+        "top_post": igb_top_post if isinstance(igb_top_post, dict) else None,
+    }
+
     # ── 13. Markdown export path ──────────────────────────────────────
     md_path = os.path.join(DATA_DIR, "weekly-report.md")
 
@@ -2548,6 +2573,7 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
                     "in_pub_not_hook_bank": len(pub_in_pub_not_hb),
                     "hook_bank_total": len(all_hb_hook_ids)},
         hook_bank_buckets=hook_bank_summary,
+        ig_business=igb,
     )
 
     return {
@@ -2598,6 +2624,8 @@ def weekly_report(brand: Optional[str] = None) -> Dict[str, Any]:
         "ga4": ga4_summary,
         "youtube": yt_summary,
         "reddit": reddit_summary,
+        # NEW (v2026-08-13) · 7th data source
+        "ig_business": igb_summary,
         "seo_health": {
             "keywords_total": seo_keyword_count,
             "with_rank": seo_keywords_with_rank,
@@ -2634,6 +2662,7 @@ def _interpret_weekly_report(
     ig_analytics=None, ga4=None, youtube=None,
     reddit_opps=None, reddit_replies=None, seo=None,
     hook_match=None, hook_bank_buckets=None,
+    ig_business=None,
 ):
     """Translate raw numbers into WHAT'S WORKING / WHAT'S NOT / WHAT TO LOOK AT.
 
@@ -3200,6 +3229,90 @@ def _interpret_weekly_report(
                 "source": "published-items.json + hook-bank.json",
                 "category": "voice",
                 "severity": "low",
+            })
+
+    # ── 7. NEW (v2026-08-13) · IG Business live-account metrics ·─
+    # Reads data/ig-business-analytics.json (written by
+    # scripts/fetch_ig_business.py via launchd). Surface:
+    #   - 30d window_total for reach, accounts_engaged, total_interactions
+    #   - 30d daily reach series (trend direction)
+    #   - top post by reach (with caption hook + permalink)
+    #   - follower delta (current snapshot vs ~30d ago)
+    if isinstance(ig_business, dict) and (ig_business.get("window_totals") or ig_business.get("account")):
+        sources_used.append("ig-business-analytics.json")
+        win = ig_business.get("window_totals") or {}
+        daily_reach = ig_business.get("daily_reach") or []
+        top_post = ig_business.get("top_post") or {}
+        account = ig_business.get("account") or {}
+
+        # Reach trend (last half vs prior half) · early-warning on
+        # audience contraction.
+        if len(daily_reach) >= 14:
+            mid = len(daily_reach) // 2
+            prior_avg = sum(d["value"] for d in daily_reach[:mid]) / max(mid, 1)
+            recent_avg = sum(d["value"] for d in daily_reach[mid:]) / max(len(daily_reach) - mid, 1)
+            if prior_avg > 0 and recent_avg < prior_avg * 0.5:
+                not_working.append({
+                    "claim": f"Daily IG reach has fallen {(1 - recent_avg/prior_avg)*100:.0f}% over the past {len(daily_reach[mid:])}d (vs the prior {mid}d).",
+                    "evidence": f"From ig-business-analytics.json daily_reach: prior {mid}d avg={prior_avg:.0f}, recent {len(daily_reach)-mid}d avg={recent_avg:.0f}. Reach contraction is the earliest signal of an audience that the algorithm has stopped pushing.",
+                    "source": "ig-business-analytics.json",
+                    "category": "ig_engagement",
+                    "severity": "high",
+                })
+            elif prior_avg > 0 and recent_avg > prior_avg * 1.25:
+                working.append({
+                    "claim": f"Daily IG reach is up {(recent_avg/prior_avg-1)*100:.0f}% over the past {len(daily_reach[mid:])}d (vs the prior {mid}d).",
+                    "evidence": f"From ig-business-analytics.json daily_reach: prior {mid}d avg={prior_avg:.0f}, recent {len(daily_reach)-mid}d avg={recent_avg:.0f}.",
+                    "source": "ig-business-analytics.json",
+                    "category": "ig_engagement",
+                })
+
+        # Window totals · sum daily_reach as fallback if window_totals.reach
+        # is missing (which can happen if `reach` is only available via
+        # daily timeseries for some account types).
+        reach_30d = win.get("reach")
+        if not isinstance(reach_30d, (int, float)) and daily_reach:
+            reach_30d = sum(d["value"] for d in daily_reach)
+        engaged_30d = win.get("accounts_engaged")
+        interactions_30d = win.get("total_interactions")
+        if isinstance(reach_30d, (int, float)) and reach_30d > 0:
+            working.append({
+                "claim": f"IG account reached {int(reach_30d):,} unique accounts in the last 30d.",
+                "evidence": f"From ig-business-analytics.json window_totals.reach ({int(reach_30d)}); accounts_engaged={engaged_30d}, total_interactions={interactions_30d}. This is the live Graph API number. ig-analytics.json's reach field stays 0 because the legacy sync doesn't populate it.",
+                "source": "ig-business-analytics.json",
+                "category": "ig_engagement",
+            })
+        if isinstance(engaged_30d, (int, float)) and isinstance(reach_30d, (int, float)) and reach_30d > 0:
+            er_30d = round(engaged_30d / reach_30d * 100, 2)
+            working.append({
+                "claim": f"30d IG account engagement rate is {er_30d}%.",
+                "evidence": f"accounts_engaged={engaged_30d} / reach={int(reach_30d)}. Industry baseline for indoor-golf niche is ~2-5%; anything above 5% is strong signal of an audience that returns.",
+                "source": "ig-business-analytics.json",
+                "category": "ig_engagement",
+            })
+
+        # Top post
+        if isinstance(top_post.get("reach"), (int, float)) and top_post.get("reach", 0) > 0:
+            cap = (top_post.get("caption_preview") or "").strip().split("\n", 1)[0]
+            claim = f"Top IG post in window reached {int(top_post['reach']):,} accounts"
+            if top_post.get("interactions"):
+                claim += f" with {int(top_post['interactions'])} interactions"
+            claim += "."
+            working.append({
+                "claim": claim,
+                "evidence": f"Caption hook: \"{cap[:80]}\". Permalink: {top_post.get('permalink')}. From ig-business-analytics.json top_post.",
+                "source": "ig-business-analytics.json",
+                "category": "ig_engagement",
+            })
+
+        # Account snapshot (follower count)
+        followers = account.get("followers_count")
+        if isinstance(followers, (int, float)):
+            look_at.append({
+                "claim": f"@swingshack has {int(followers):,} IG followers as of this fetch.",
+                "evidence": "From ig-business-analytics.json account.followers_count. Compare against next fetch to detect follower-delta direction.",
+                "source": "ig-business-analytics.json",
+                "category": "ig_engagement",
             })
 
     # ── Headline take
