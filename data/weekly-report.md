@@ -44,8 +44,8 @@
 - **win_rate_pct:** 100.0% (prev: —)
 - **agent_runs:** 0 (prev: 0)
 
-### Sources read (9)
-`ga4-metrics.json`, `hook-bank.json`, `ig-analytics.json`, `ig-business-analytics.json`, `reddit-opportunities.json + reddit-replies.json`, `seo-rankings.json`, `ubersuggest-competitors.json`, `ubersuggest-domain.json`, `youtube-trends.json`
+### Sources read (11)
+`booking-events.json`, `ga4-metrics.json`, `hook-bank.json`, `ig-analytics.json`, `ig-business-analytics.json`, `reddit-opportunities.json + reddit-replies.json`, `roi-truth.json`, `seo-rankings.json`, `ubersuggest-competitors.json`, `ubersuggest-domain.json`, `youtube-trends.json`
 
 ## What's working
 - **Win rate is healthy at 100.0%.** _(category: publishing, source: `published-items.json`)_
@@ -66,6 +66,12 @@
   - seo-rankings.json average_position_trend (6 points, 2026-06-30 → 2026-08-04). Source: Ubersuggest via fetch_ubersuggest.py.
 - **SEO domain snapshot — organic traffic = 967; organic keywords = 51; domain authority = 13; backlinks = 24; referring domains = 9.** _(category: seo, source: `ubersuggest-domain.json`)_
   - ubersuggest-domain.json via daily fetch_ubersuggest.py cron. Last fetch: 2026-08-10. Pulled from `swingshack.co.za` `domain_overview` + `backlinks_overview` MCP tools.
+- **Conversion truth band - Publishing ROI is STRONG_PROXY. Lead and ad ROI is UNMEASURABLE. Only DIRECT comes when GA4 → booking system integrates. [1 DIRECT · 3 STRONG_PROXY · 2 WEAK_PROXY · 2 UNMEASURABLE (of 8 revenue sources)]. Last engine run: 2026-04-23.** _(category: attribution, source: `roi-truth.json`)_
+  - roi-truth.json reclassifies every revenue source (publishing, lead routing, ad budget, etc.) into a confidence band based on whether the GA4 booking confirmation event is live. DIRECT = booking-confirmed; STRONG_PROXY = UTM chain + session trackable; WEAK_PROXY = indirect correlation only; UNMEASURABLE = no data path.
+- **Top attribution unblocker - Lead Routing, Budget Shifts: WhatsApp Business API + CRM → booking system integration; Meta Ads API + GA4 goal tracking + ROAS calculation. Closing either lifts the affected sources from unmeasurable to verified revenue.** _(category: attribution, source: `roi-truth.json`)_
+  - roi-truth.json recommendations (priority 1). These are the two highest-leverage integrations that would convert the current UNMEASURABLE / WEAK_PROXY sources into DIRECT (booking-confirmed) attribution. Each recommendation cites the specific API + tracking event that closes the loop.
+- **GA4 booking events - 2 of 6 measurable. Priority-1 events not yet tracking: booking_completed.** _(category: attribution, source: `booking-events.json`)_
+  - booking-events.json inventory. These are the specific GA4 events that need to be instrumented on the booking funnel (form_submit, booking_completed, service_selected) to convert the conversion-truth band from STRONG_PROXY to DIRECT (verified revenue).
 - **YouTube trends pulled; active themes this week: trackman, slice_fix, practice, indoor, lessons.** _(category: youtube_trends, source: `youtube-trends.json`)_
   - From youtube-trends.json trending_themes (5/8 themes active) + 10 candidate videos fetched.
 - **All 5 Reddit opportunity threads have drafted ghost replies (5 drafts).** _(category: reddit_outreach, source: `reddit-opportunities.json + reddit-replies.json`)_
@@ -96,6 +102,8 @@
   - Reach counter is 0 across all posts. Either engagement metrics haven't synced, or the sync ran before the IG API returned metrics. Re-run sync_ig_analytics.js to verify.
 - ? **Hook-ID overlap between published-items and IG is 0 (0 expected signal).** _(source: `ig-analytics.json + published-items.json`)_
   - in_pub_not_ig=17, in_ig_not_pub=10. Either the sync is showing different content from what was published, or hook_ids aren't linking between sources.
+- ? **2 revenue source(s) still unmeasurable - Lead Routing, Budget Shifts. We are publishing and spending on these without being able to attribute any revenue to them.** _(source: `roi-truth.json`)_
+  - roi-truth.json sources[] filtered by can_measure='UNMEASURABLE'. Until the recommended integrations land (WhatsApp Business, Meta Ads + GA4 goal tracking, GA4 booking confirmation event), these channels are operating blind.
 - ? **@swingshack has 2,490 IG followers as of this fetch.** _(source: `ig-business-analytics.json`)_
   - From ig-business-analytics.json account.followers_count. Compare against next fetch to detect follower-delta direction.
 
