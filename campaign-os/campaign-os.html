@@ -391,6 +391,11 @@ a:hover{text-decoration:underline}
 .rail-skel-card{background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.6rem .75rem;margin-bottom:.5rem}
 .rail-skel-hint{font-size:11px;margin-top:.5rem;text-align:center;letter-spacing:.02em}
 .brief-rec-skel{padding:.25rem 0}
+/* More-signals collapsible: swap "click to expand" / "click to collapse" labels
+   based on the <details> open state. Without this, the label is always
+   "click to expand" even after the panel is opened. */
+.brief-more-signals:not([open]) .when-open{display:none}
+.brief-more-signals[open] .when-closed{display:none}
 
 .col-3{grid-column:span 3}
 .col-4{grid-column:span 4}
@@ -6980,14 +6985,21 @@ async function renderBrief(){
         <summary style="cursor:pointer;padding:1rem;list-style:none;display:flex;align-items:center;gap:.5rem;font-size:13px;color:var(--tx-2)">
           <span style="font-size:16px">📡</span>
           <span><b>More signals</b> · Hot trends, SEO quick wins, Post today, High-impact misses</span>
-          <span class="muted" style="margin-left:auto;font-size:12px">click to expand</span>
+          <span class="muted brief-more-signals-toggle" style="margin-left:auto;font-size:12px"><span class="when-closed">click to expand</span><span class="when-open">click to collapse</span></span>
         </summary>
         <div class="grid" style="padding:0 1rem 1rem 1rem">
           <div class="card col-12" style="margin:0"><div class="card-h"><h3 data-help="The freshest live signals across every source the agent watches: Reddit threads, YouTube golf creators, golf news, competitor moves. Each pill is a 1-line headline with its source. Use this as the temperature check. If a signal here matches a brand pillar, it is worth a Post today slot." data-help-title="Hot right now">🔥 Hot right now</h3><span class="h-meta">Live signals</span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap">${hotTrend.length?hotTrend.map(t => `<span class="pill ${t.kind==='reddit'?'live':t.kind==='youtube'?'warn':'on'}">${esc(t.kind)} · ${esc(t.t.slice(0,60))}</span>`).join(''):'<span class="muted">No signals right now</span>'}</div></div>
 
           <div class="card col-6" style="margin:0"><div class="card-h"><h3 data-help="Trends that already peaked and the brand did not post. The cost of a missed opportunity compounds: the next time the trend recycles, the brand is late again. Pick one retroactively and rewrite with fresh angles." data-help-title="High-impact misses">⚠️ High-impact misses</h3></div><ul class="list">${missed.map(itemHtml).join('') || '<li class="empty">No missed opportunities</li>'}</ul></div>
 
-          <div class="card col-6" style="margin:0"><div class="card-h"><h3 data-help="SEO keywords where the brand is already on page 2 of search (positions 11 to 20) and a small content push could land on page 1. These are the cheapest ranking wins because the hardest work (relevance, indexing) is already done." data-help-title="SEO quick wins">🔎 SEO quick wins</h3></div><ul class="list">${seo.map(x => itemHtml({...x, keyword: x.keyword, kind: 'seo-keyword'}, 'seo')).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
+          <div class="card col-6" style="margin:0"><div class="card-h"><h3 data-help="SEO keywords where the brand is already on page 2 of search (positions 11 to 20) and a small content push could land on page 1. These are the cheapest ranking wins because the hardest work (relevance, indexing) is already done." data-help-title="SEO quick wins">🔎 SEO quick wins</h3></div><ul class="list">${seo.map(x => {
+            // seo_quick_wins arrives as plain strings from /api/intel/morning_brief.
+            // Spreading a string yields {0:'i',1:'n',...} which itemHtml then JSON.stringifies
+            // as the title (the "{\"0\":\"n\",\"1\":\"n\",...}" garbage). Wrap each string in an
+            // object so the { keyword, kind: 'seo-keyword' } shape lines up with itemHtml.
+            const wrapped = (typeof x === 'string') ? { keyword: x, kind: 'seo-keyword' } : { ...x, keyword: x.keyword, kind: 'seo-keyword' };
+            return itemHtml(wrapped, 'seo');
+          }).join('') || '<li class="empty">No quick wins yet</li>'}</ul></div>
 
           <div class="card col-6" style="margin:0"><div class="card-h"><h3 data-help="Items already scheduled to go live today. If the list is empty, nothing is going out today and a post is overdue. If the list is full, sit back and watch. Each row carries the publish time and the target platform." data-help-title="Post today">📮 Post today</h3></div><ul class="list">${today.map(x => itemHtml(x)).join('') || '<li class="empty">Nothing scheduled today</li>'}</ul></div>
         </div>
