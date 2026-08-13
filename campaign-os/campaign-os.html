@@ -8499,13 +8499,36 @@ async function renderIdeas(){
     </li>`;
   };
   const renderList = (arr, fmt) => safeList(arr, 8).map(fmt === 'idea' ? renderIdeaCard : itemHtml).join('') || '<div class="empty">Nothing here</div>';
+  // Empty-state cards for Ideas sections that need a friendlier "nothing here"
+  // than the generic "Nothing here". These two cards routinely empty because the
+  // source JSON is missing or has no rows; the bare empty pill looks like a bug.
+  // The missed-opportunities card and the funnel-leaks card have very different
+  // meanings when empty, so each gets its own copy.
+  const renderMissedEmpty = () => {
+    // No missed trends = the brand kept up with every trend that peaked. Positive.
+    return `<div class="empty-card ideas-empty-friendly" style="border-left:3px solid #34d399">
+      <div style="font-size:18px;line-height:1">✅</div>
+      <div style="margin-top:.35rem;font-size:13px;color:var(--tx-1);font-weight:600">No missed opportunities</div>
+      <div class="muted" style="margin-top:.25rem;font-size:12px;line-height:1.5">Every trend that peaked in the window already has a post in the queue or Review. Nothing to chase up retroactively.</div>
+    </div>`;
+  };
+  const renderFunnelEmpty = () => {
+    // Funnel leaks requires GA4 page-view + conversion data. Empty usually means
+    // GA4 is not connected yet OR there are no high-traffic pages with poor
+    // conversion. Tell the user both.
+    return `<div class="empty-card ideas-empty-friendly" style="border-left:3px solid #f59e0b">
+      <div style="font-size:18px;line-height:1">🪠</div>
+      <div style="margin-top:.35rem;font-size:13px;color:var(--tx-1);font-weight:600">No funnel leaks detected</div>
+      <div class="muted" style="margin-top:.25rem;font-size:12px;line-height:1.5">This list needs GA4 page views + conversion events to spot high-traffic pages that fail to convert. If GA4 is not connected yet, ask Heidi to spin up the setup-portal at <code>/meta</code> (same pattern as Drive).</div>
+    </div>`;
+  };
   $('#ideas-list').innerHTML = renderList(d.ideas, 'idea');
   $('#ideas-today').innerHTML = renderList(d.post_today, 'idea');
   $('#ideas-week').innerHTML = renderList(d.this_week, 'idea');
-  $('#ideas-missed').innerHTML = renderList(d.missed);
+  $('#ideas-missed').innerHTML = (d.missed && d.missed.length) ? renderList(d.missed) : renderMissedEmpty();
   $('#ideas-upsell').innerHTML = renderList(d.upsells);
   $('#ideas-bundles').innerHTML = renderList(d.bundles);
-  $('#ideas-funnel').innerHTML = renderList(d.funnel_leaks);
+  $('#ideas-funnel').innerHTML = (d.funnel_leaks && d.funnel_leaks.length) ? renderList(d.funnel_leaks) : renderFunnelEmpty();
   $('#ideas-landing').innerHTML = renderList(d.landing_fixes);
   // "Just generated" card: initialize the empty state on first render so the card
   // is not a tall blank box. The Generate button click overwrites this with the
