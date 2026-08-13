@@ -6296,6 +6296,68 @@ function empty(id, msg='Nothing here yet'){
 }
 function pill(kind, text){ return `<span class="pill ${kind}">${esc(text)}</span>`; }
 function safeList(arr, cap=10){ return Array.isArray(arr) ? arr.slice(0, cap) : []; }
+
+// SEO keyword row renderer. The default `itemHtml` only lifts `keyword` from the
+// payload and ignores `current_rank`, `target_url`, `search_intent`, and `note` —
+// so every row on the SEO Rankings card reads as a bare keyword with no signal
+// about whether the site is ranking, what URL the keyword should land on, or
+// what the tracker said. The new tracker state for Swing Shack is 10 tracked /
+// 0 found / 10 quick_wins, so without this renderer the "10 quick wins" badge
+// at the top reads as false-positive: the user thinks they're close to page 1
+// when in fact the keyword hasn't ranked at all yet.
+//
+// The renderer surfaces:
+//   - keyword (title)
+//   - rank pill (`pos N` when ranked, `not ranked` when null)
+//   - intent pill (commercial / informational / mixed)
+//   - expandable detail: note + target_url (clipped to fit, full URL in title)
+//   - per-row `quick win` pill so the top header still sums correctly
+//
+// Cheap regex over the short URL keeps the markup thin (no external link
+// component) and the rank pill uses the existing `.pill` classes so it
+// themes automatically.
+function seoKeywordHtml(k){
+  if(!k || typeof k !== 'object') return '';
+  const kw = k.keyword || k.query || k.title || '';
+  const rank = (k.current_rank === null || k.current_rank === undefined) ? null : Number(k.current_rank);
+  const rankPill = rank !== null && !Number.isNaN(rank) && rank > 0
+    ? pill('live', `pos ${rank}`)
+    : pill('draft', 'not ranked');
+  const intentRaw = (k.search_intent || '').toString().trim();
+  const intentKey = intentRaw.toLowerCase();
+  const intentKind = intentKey === 'commercial' ? 'on'
+    : intentKey === 'informational' ? 'review'
+    : 'warn';
+  const intentPill = intentRaw ? pill(intentKind, intentRaw) : '';
+  const note = k.note || '';
+  const target = (k.target_url || '').toString();
+  let host = '';
+  try { if(target) host = new URL(target).host; } catch(_) {}
+  // Cheap URL scheme defense: data is trusted (seo-rankings.json is server-
+  // authored) but if the source ever drifts we don't want a javascript: or
+  // data: URL slipping into href. Block everything except http(s).
+  let safeHref = '';
+  if(target){
+    try {
+      const u = new URL(target);
+      if(u.protocol === 'http:' || u.protocol === 'https:') safeHref = target;
+    } catch(_) { /* malformed → render as text, no link */ }
+  }
+  // Quick-win pill per row so the top header math still works AND the user
+  // can see which row earned the tag (the row may be in quick_wins while
+  // not being a real "page 2" win on a new tracker).
+  const qw = Array.isArray(k._quick_wins) || (k.in_quick_wins === true);
+  const qwPill = qw ? pill('live', 'quick win') : '';
+  const detail = (note || target) ? `<div class="li-meta" style="margin-top:.35rem">${note ? `<div style="color:var(--tx-3);font-size:12px;margin-bottom:.15rem">${esc(note)}</div>` : ''}${safeHref ? `<a href="${esc(safeHref)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--ac);text-decoration:none" title="${esc(safeHref)}">${esc(host || safeHref)}</a>` : (target ? `<span style="font-size:11px;color:var(--tx-3)" title="${esc(target)}">${esc(target)}</span>` : '')}</div>` : '';
+  return `<li class="li" onclick="this.classList.toggle('open')">
+    <div class="li-body">
+      <div class="li-title">${esc(kw)}</div>
+      <div class="li-meta">${rankPill}${intentPill}${qwPill}</div>
+      ${detail}
+    </div>
+    <span class="li-chevron">▶</span>
+  </li>`;
+}
 function pretty(obj){
   const s = JSON.stringify(obj || {}, null, 2);
   return `<pre style="white-space:pre-wrap;font-size:11px;background:var(--bg-3);padding:.5rem;border-radius:6px;margin-top:.5rem;max-height:200px;overflow:auto">${esc(s)}</pre>`;
@@ -10107,7 +10169,16 @@ async function renderSEO(){
   const lo  = auditSum.low_severity   ?? '—';
   $('#seo-audit').innerHTML = `<dl class="kvs"><dt>Findings</dt><dd>${tot}</dd><dt>High</dt><dd>${hi}</dd><dt>Medium</dt><dd>${mid}</dd><dt>Low</dt><dd>${lo}</dd></dl>` + safeList(highPrio, 8).map(itemHtml).join('');
   const rank = s.rankings;
-  $('#seo-rank').innerHTML = `<div class="row gap-1" style="margin-bottom:.75rem">${pill('on',(rank?.rising||[]).length+' rising')} ${pill('blocked',(rank?.falling||[]).length+' falling')} ${pill('live',(rank?.quick_wins||[]).length+' quick wins')}</div>` + safeList(rank?.keywords, 10).map(itemHtml).join('');
+  // Decorate every keyword with its quick-wins flag so the per-row pill can
+  // surface it. The keyword objects don't carry this flag from the backend
+  // (the API exposes `quick_wins` as a separate list of keyword strings), so
+  // we look it up by exact keyword match here.
+  const qwSet = new Set(Array.isArray(rank?.quick_wins) ? rank.quick_wins : []);
+  const kwArr = (rank?.keywords || []).map(k => ({
+    ...k,
+    in_quick_wins: qwSet.has(k.keyword),
+  }));
+  $('#seo-rank').innerHTML = `<div class="row gap-1" style="margin-bottom:.75rem">${pill('on',(rank?.rising||[]).length+' rising')} ${pill('blocked',(rank?.falling||[]).length+' falling')} ${pill('live',(rank?.quick_wins||[]).length+' quick wins')}</div>` + kwArr.map(seoKeywordHtml).join('');
   // GEO high_priority is often empty on a healthy site; fall back to recommendations
   // (medium/low) so the card isn't mostly blank. Show positive_signals as a footer
   // when we have no items at all.
