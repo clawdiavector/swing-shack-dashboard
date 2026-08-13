@@ -549,3 +549,31 @@ Wired 5 modal-context h4 headers with data-help + data-help-title + cursor:help 
 **Learned:** Pillar metadata is missing on 54% of the calendar's slots because they come from `publish-queue.json` (source=queue), seeded before the pillar-tagging work landed. The `_infer_pillar_from_caption` fallback handles the emoji-marker case but not keyword-only captions. Either rename-bucket (this tick's fix) or extend the keyword hints (next pick) closes the gap; the rename-bucket alone is enough for the user to know the 31 is legacy, not a config error.
 
 **Asks:** None.
+
+## 2026-08-13T03:20Z — fix(insights): label each v2 headline card (not three 'What happened' rows)
+
+**Done:** Closed a long-standing copy bug on the Insights tab. The three v2 "headline" cards at the top (Site traffic / Instagram / SEO keywords) all rendered the same placeholder label `What happened`, telling the user nothing about what each card actually measured. Each headline object already carries a unique `emoji` (📊/📱/🔎) but the renderer hard-coded the same `<span>What happened</span>` text on every card. Added a `label` field to each headline push (Site traffic / Instagram / SEO keywords / No data fallback) and switched the renderer to `${esc(h.label || 'Signal')}` so each card now reads "1. Site traffic · 1,008 website sessions (recent)", "2. Instagram · 10 recent IG posts...", "3. SEO keywords · 5 keywords rising · 2 falling on Google". The data, tone, and emoji were already correct; only the label was generic.
+
+**Commit:** `9b64939` on `feat/asset-state-engine`, +5/-1 across 1 file (campaign-os/campaign-os.html), pushed. Railway auto-deployed in ~15s.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-fix (probe): all 3 headline `<span>`s = `'What happened'`.
+- Post-fix probe: labels = `['Site traffic', 'Instagram', 'SEO keywords']` — all distinct, match the data source each card summarises.
+- Idempotency check (Insights → Performance → Insights): labels still `['Site traffic', 'Instagram', 'SEO keywords']`. No duplicate, no orphan.
+- Global check: `'What happened'` no longer appears anywhere in `document.body.innerText`.
+- 0 PAGEERROR, 0 console errors.
+
+**Screenshot (LIVE):**
+- `/tmp/co-nightshift/walkthrough_insights_labels_FIX_20260813T012024Z.png` — Insights tab, three cards now labelled 1. Site traffic / 2. Instagram / 3. SEO keywords, each with its own emoji and one-line takeaway.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (labels are plain nouns, no copy change outside the placeholder string), 0 schema changes, 0 API changes (purely a label render swap on existing data).
+
+**Next pick:**
+1. **The empty-state copy on the Insights cards still hard-codes "No data" + "No analytics connected yet" + "Connect Meta + GA4 to see what is working."** when no headline data exists — fine for now, but if Analytics hits a partial state (e.g. GA4 ok but IG missing) the existing fallback hides everything. Consider surfacing partial signals.
+2. **Two `mountSec` ternaries in `go()`** still consolidate cleanly to a `mountSecFor(realSec)` helper.
+3. **Em-dash sweep on campaign-os.html** — most surfaced copy already clean, but the inline `data-help` and `data-help-title` strings drift over time.
+4. **Insights v2's "Did the ad drive this spike?" card** sometimes renders the ad-correlation placeholder forever when ad data is missing — consider a one-line "wire up Google Ads to enable this" CTA instead of the current ghost state.
+
+**Learned:** When a render path ships as "headlines.push(...)" with rich per-object fields (`emoji`, `data`, `take`, `tone`) but the template hard-codes the title text instead of using `h.label`, every card looks identical at a glance. The fastest fix is to add the missing field at the push site rather than overloading emoji-to-text mapping at the renderer (emoji-to-text breaks the day someone swaps an emoji).
+
+**Asks:** None.
