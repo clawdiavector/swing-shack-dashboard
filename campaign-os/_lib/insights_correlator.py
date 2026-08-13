@@ -242,6 +242,125 @@ def get_content_traffic_correlations(days: int = 30) -> dict[str, Any]:
     }
 
 
+def _trend_summary(campaigns: list[dict[str, Any]],
+                   verdicts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compute a one-line trend summary over a campaign series.
+
+    Returns a structured object the Insights renderer can drop above the
+    per-campaign verdict list so the user sees the pattern, not just the
+    parts. Honest about scale (only ever reports numbers from the campaigns
+    the caller handed us), never fabricates a trend.
+
+    Shape:
+      {
+        campaign_count: int,
+        total_spend: float,            # sum across campaigns
+        total_clicks: int,
+        avg_cost_per_session: float|None,
+        first_month: str|None,        # "202410" of earliest start_date
+        last_month: str|None,         # "202608" of latest start_date
+        peak_month: str|None,
+        peak_spend: float|None,
+        trough_month: str|None,
+        trough_spend: float|None,
+        direction: "rising"|"falling"|"stable"|"single"|"unknown",
+        summary_text: str,            # human-friendly one liner
+      }
+    """
+    if not campaigns:
+        return {
+            "campaign_count": 0,
+            "total_spend": 0.0,
+            "total_clicks": 0,
+            "avg_cost_per_session": None,
+            "first_month": None,
+            "last_month": None,
+            "peak_month": None,
+            "peak_spend": None,
+            "trough_month": None,
+            "trough_spend": None,
+            "direction": "unknown",
+            "summary_text": "",
+        }
+
+    def _month_key(c: dict[str, Any]) -> str:
+        sd = (c.get("start_date") or "").strip()
+        # Accept "202410-01" or "2024-10-01" or "202410".
+        clean = sd.replace("-", "")
+        if len(clean) >= 6 and clean[:6].isdigit():
+            return clean[:6]
+        return sd or "?"
+
+    def _num(value: Any) -> float:
+        try:
+            return float(value or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    sorted_by_month = sorted(campaigns, key=_month_key)
+    first_month = _month_key(sorted_by_month[0])
+    last_month = _month_key(sorted_by_month[-1])
+    peak = max(campaigns, key=lambda c: _num(c.get("spend")))
+    trough = min(campaigns, key=lambda c: _num(c.get("spend")))
+    total_spend = sum(_num(c.get("spend")) for c in campaigns)
+    total_clicks = int(sum(_num(c.get("clicks")) for c in campaigns))
+
+    cps_values = [v.get("cost_per_session") for v in verdicts
+                  if isinstance(v.get("cost_per_session"), (int, float))]
+    avg_cps = round(sum(cps_values) / len(cps_values), 2) if cps_values else None
+
+    if len(sorted_by_month) < 2:
+        direction = "single"
+    else:
+        first_spend = _num(sorted_by_month[0].get("spend"))
+        last_spend = _num(sorted_by_month[-1].get("spend"))
+        if first_spend <= 0:
+            direction = "unknown"
+        else:
+            change_pct = (last_spend - first_spend) / first_spend
+            if change_pct > 0.10:
+                direction = "rising"
+            elif change_pct < -0.10:
+                direction = "falling"
+            else:
+                direction = "stable"
+
+    # Build a one-line human summary. We deliberately avoid em-dashes
+    # (standing rule) and keep it under ~140 chars so it fits as a chip.
+    pieces: list[str] = []
+    if len(sorted_by_month) >= 2:
+        pieces.append(
+            f"{len(campaigns)} campaigns from {first_month} to {last_month}"
+        )
+    else:
+        pieces.append(f"1 campaign ({first_month})")
+    pieces.append(f"total spend R{total_spend:,.0f}")
+    if total_clicks:
+        pieces.append(f"{int(total_clicks):,} clicks")
+    if avg_cps is not None:
+        pieces.append(f"avg R{avg_cps}/session")
+    if len(sorted_by_month) >= 2 and direction in ("rising", "falling"):
+        change_pct = (_num(sorted_by_month[-1].get("spend")) - _num(sorted_by_month[0].get("spend"))) / max(_num(sorted_by_month[0].get("spend")), 1)
+        sign = "up" if direction == "rising" else "down"
+        pieces.append(f"spend {sign} {abs(change_pct) * 100:.0f}% over the window")
+    summary_text = " | ".join(pieces)
+
+    return {
+        "campaign_count": len(campaigns),
+        "total_spend": round(total_spend, 2),
+        "total_clicks": total_clicks,
+        "avg_cost_per_session": avg_cps,
+        "first_month": first_month,
+        "last_month": last_month,
+        "peak_month": _month_key(peak),
+        "peak_spend": round(_num(peak.get("spend")), 2),
+        "trough_month": _month_key(trough),
+        "trough_spend": round(_num(trough.get("spend")), 2),
+        "direction": direction,
+        "summary_text": summary_text,
+    }
+
+
 def get_ad_correlation_verdicts(days: int = 30) -> dict[str, Any]:
     """JOIN: when did a paid campaign go live vs when did traffic spike?
 
@@ -370,6 +489,18 @@ def get_ad_correlation_verdicts(days: int = 30) -> dict[str, Any]:
 
     gads_block = _verdicts_for(gads_data, "Google Ads")
     mads_block = _verdicts_for(mads_data, "Meta Ads")
+    # Attach a one-line trend summary per platform so the renderer can show
+    # the user the pattern across campaigns, not just the per-campaign parts.
+    if gads_block.get("configured"):
+        gads_block["trend_summary"] = _trend_summary(
+            gads_block.get("campaigns", []),
+            gads_block.get("verdicts", []),
+        )
+    if mads_block.get("configured"):
+        mads_block["trend_summary"] = _trend_summary(
+            mads_block.get("campaigns", []),
+            mads_block.get("verdicts", []),
+        )
 
     if not gads_configured and not mads_configured:
         summary = (

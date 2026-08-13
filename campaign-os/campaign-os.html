@@ -5211,15 +5211,49 @@ async function renderInsightsV2(){
 
     const adBlock = $('#ins-ad-block');
     const adStatus = $('#ins-ad-status');
-    adStatus.textContent = adCorr.configured ? `${(adCorr.google_ads?.campaigns?.length||0) + (adCorr.meta_ads?.campaigns?.length||0)} campaigns wired` : '⚪ not configured';
+    const gN = adCorr.google_ads?.campaigns?.length || 0;
+    const mN = adCorr.meta_ads?.campaigns?.length || 0;
+    adStatus.textContent = adCorr.configured ? `${gN + mN} campaigns wired` : '⚪ not configured';
     if(adCorr.configured){
-      const allVerdicts = [...(adCorr.google_ads?.verdicts || []), ...(adCorr.meta_ads?.verdicts || [])];
-      adBlock.innerHTML = allVerdicts.length ? allVerdicts.map(v => `
-        <div style="border-left:3px solid var(--ac);padding:.6rem .75rem;background:var(--bg-2);border-radius:6px;margin-bottom:.5rem">
-          <div style="font-size:12px;color:var(--tx-3);margin-bottom:.2rem">${esc(v.start_date || '?')} → ${esc(v.end_date || 'ongoing')} · ${esc(v.campaign_name || v.campaign_id || '')}</div>
-          <div style="font-size:13px">${esc(v.verdict || '')}</div>
-        </div>
-      `).join('') : '<div class="muted" style="padding:.5rem">No campaign verdicts yet.</div>';
+      const trendChip = (trend, label) => {
+        if(!trend || !trend.summary_text) return '';
+        const dir = trend.direction;
+        // Tone the chip by direction (rising = watch, falling = bad, stable = neutral, single = good).
+        let bg = 'var(--bg-2)', fg = 'var(--tx-2)', bd = 'var(--bd)', icon = '📈';
+        if(dir === 'rising') { bg = 'rgba(234,179,8,.10)'; fg = '#a16207'; bd = 'rgba(234,179,8,.35)'; icon = '📈'; }
+        else if(dir === 'falling') { bg = 'rgba(239,68,68,.08)'; fg = '#b91c1c'; bd = 'rgba(239,68,68,.30)'; icon = '📉'; }
+        else if(dir === 'stable') { bg = 'rgba(34,197,94,.08)'; fg = '#15803d'; bd = 'rgba(34,197,94,.30)'; icon = '📊'; }
+        else if(dir === 'single') { bg = 'var(--bg-2)'; fg = 'var(--tx-2)'; bd = 'var(--bd)'; icon = '📍'; }
+        const peak = (trend.peak_spend && trend.peak_spend > 0)
+          ? ` · peak R${Number(trend.peak_spend).toFixed(0)} (${trend.peak_month})` : '';
+        const trough = (trend.trough_spend != null && trend.trough_month && trend.trough_spend !== trend.peak_spend)
+          ? ` · low R${Number(trend.trough_spend).toFixed(0)} (${trend.trough_month})` : '';
+        return `<div data-help="${esc(`Trend across all ${trend.campaign_count} ${label} campaigns, not just this card. ${peak}${trough}.`)}" data-help-title="Trend summary" style="display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .55rem;border-radius:999px;background:${bg};color:${fg};border:1px solid ${bd};font-size:11px;font-weight:500;margin-bottom:.55rem">${icon} <span>${esc(trend.summary_text)}</span></div>`;
+      };
+      const platformSection = (label, block) => {
+        const verdicts = block?.verdicts || [];
+        if(!verdicts.length) return '';
+        const trend = block?.trend_summary;
+        return `
+          <div style="margin-bottom:.85rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem">
+              <div style="font-weight:600;font-size:12px;color:var(--tx-2)">${esc(label)}</div>
+              ${trend ? trendChip(trend, label) : ''}
+            </div>
+            ${verdicts.map(v => `
+              <div style="border-left:3px solid var(--ac);padding:.55rem .7rem;background:var(--bg-2);border-radius:6px;margin-bottom:.4rem">
+                <div style="font-size:11px;color:var(--tx-3);margin-bottom:.15rem">${esc(v.start_date || '?')} → ${esc(v.end_date || 'ongoing')} · ${esc(v.campaign_name || v.campaign_id || '')}</div>
+                <div style="font-size:12.5px">${esc(v.verdict || '')}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      };
+      const sectionsHtml = [
+        platformSection('Google Ads', adCorr.google_ads),
+        platformSection('Meta Ads', adCorr.meta_ads),
+      ].filter(Boolean).join('');
+      adBlock.innerHTML = sectionsHtml || '<div class="muted" style="padding:.5rem">No campaign verdicts yet.</div>';
     } else {
       adBlock.innerHTML = `
         <div style="border:1px dashed var(--bd);border-radius:8px;padding:.85rem;background:var(--bg-2);font-size:12px;color:var(--tx-2);line-height:1.5">
