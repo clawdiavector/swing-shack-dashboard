@@ -6209,6 +6209,24 @@ def intel_dispatch(name):
     return jsonify(payload), status
 
 
+def _esc_html(s):
+    """Minimal HTML escape. Use stdlib html.escape with quote=False so we
+    don't over-escape apostrophes (they're fine inside text)."""
+    from _lib.report_html import _esc_html as _impl
+    return _impl(s)
+
+
+def _render_weekly_report_html(data: dict, md_lines: list, brand: str = "") -> str:
+    """Render the weekly report as a self-contained HTML page.
+
+    Thin wrapper that delegates to `_lib.report_html.render_weekly_report_html`
+    so the renderer lives in its own import-safe module (app.py triggers a
+    `os.makedirs('/data')` at import time that breaks test imports).
+    """
+    from _lib.report_html import render_weekly_report_html as _impl
+    return _impl(data, md_lines, brand)
+
+
 @app.route('/api/intel/weekly_report/export', methods=['GET'])
 def weekly_report_export():
     """GET /api/intel/weekly_report/export — markdown export of the weekly report.
@@ -6477,6 +6495,25 @@ def weekly_report_export():
                     f.write(md)
         except OSError as exc:
             _app_log.warning("weekly_report.md write failed: %s", exc)
+
+        # v2026-08-13: sibling HTML format. ?format=html returns a
+        # pretty self-contained page (inline CSS, no external deps) so
+        # share recipients can open the link in a browser and read it
+        # without markdown rendering. Same data, same share token, just
+        # a different render. Default (?format=md or omitted) keeps the
+        # existing markdown behaviour.
+        fmt = (request.args.get("format") or "md").lower()
+        if fmt == "html":
+            html_body = _render_weekly_report_html(
+                data=data,
+                md_lines=md_lines,
+                brand=get_brand_id(),
+            )
+            return Response(
+                html_body,
+                mimetype="text/html; charset=utf-8",
+                headers={"Content-Disposition": "inline; filename=weekly-report.html"},
+            )
 
         return Response(md, mimetype="text/markdown", headers={"Content-Disposition": "attachment; filename=weekly-report.md"})
     except Exception as exc:
