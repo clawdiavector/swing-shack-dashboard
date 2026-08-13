@@ -285,30 +285,86 @@ def get_ad_correlation_verdicts(days: int = 30) -> dict[str, Any]:
                 "campaigns": [],
                 "verdicts": [],
             }
-        # Compute simple verdict: campaign went live + landing page sessions
+        # Compute simple verdict: campaign went live + landing page sessions.
+        # GA4 may emit MULTIPLE rows for the same path (one per date window), so
+        # we SUM matching sessions across all rows to give an honest total instead
+        # of silently picking the first match and reporting the same number for
+        # every campaign. We also compute clicks:sessions ratio and cost:session
+        # so the verdict says something actionable instead of a static number.
         campaigns = platform_data.get("campaigns", [])
         pages = (ga4.get("pages", []) if isinstance(ga4, dict) else [])
         verdicts = []
         for c in campaigns:
             lp = c.get("landing_page", "")
-            match_page = next((p for p in pages if p.get("path") == lp), None)
+            matching_pages = [p for p in pages if p.get("path") == lp]
+            total_sessions = sum(
+                (p.get("sessions") or 0) for p in matching_pages
+            )
+            eng_rates = []
+            for p in matching_pages:
+                er = p.get("engRate")
+                if er is None:
+                    continue
+                if isinstance(er, (int, float)):
+                    eng_rates.append(float(er))
+                elif isinstance(er, str):
+                    stripped = er.replace("%", "").strip()
+                    try:
+                        eng_rates.append(float(stripped))
+                    except ValueError:
+                        continue
+            avg_eng = (sum(eng_rates) / len(eng_rates)) if eng_rates else None
+            clicks = c.get("clicks")
+            spend = c.get("spend")
+            try:
+                cps = round(float(spend) / float(total_sessions), 2) if (spend not in (None, "", 0) and total_sessions) else None
+            except (TypeError, ValueError):
+                cps = None
+            try:
+                ctr_pct = round((float(clicks) / float(total_sessions)) * 100, 1) if (clicks not in (None, "") and total_sessions) else None
+            except (TypeError, ValueError, ZeroDivisionError):
+                ctr_pct = None
+            # Verdict string: prefer the enriched one (clicks→sessions ratio +
+            # cost-per-session) when we have both numbers. Falls back to the
+            # plain "X clicks, Y sessions" line when one side is missing.
+            if matching_pages and total_sessions:
+                base = (
+                    f"Campaign '{c.get('name')}' spent {spend or '—'} "
+                    f"and drove {clicks or '—'} clicks to {lp}. "
+                    f"GA4 shows {total_sessions} sessions on that page"
+                )
+                if ctr_pct is not None:
+                    base += f" (clicks were {ctr_pct}% of sessions)"
+                if cps is not None:
+                    base += f" - R{cps} per session"
+                base += "."
+                verdict = base
+            elif matching_pages:
+                verdict = (
+                    f"Campaign '{c.get('name')}' spent {spend or '—'} and drove "
+                    f"{clicks or '—'} clicks to {lp}. GA4 has the page in its "
+                    f"index but no session count yet for that path."
+                )
+            else:
+                verdict = (
+                    f"Campaign '{c.get('name')}' spent {spend or '—'} and drove "
+                    f"{clicks or '—'} clicks to {lp}. GA4 has no data for that "
+                    f"page yet — could be a tracking gap or a low-traffic URL."
+                )
             verdicts.append({
                 "campaign_id": c.get("id"),
                 "campaign_name": c.get("name"),
                 "start_date": c.get("start_date"),
                 "end_date": c.get("end_date"),
-                "spend": c.get("spend"),
-                "clicks": c.get("clicks"),
+                "spend": spend,
+                "clicks": clicks,
                 "impressions": c.get("impressions"),
                 "landing_page": lp,
-                "matching_page_sessions": match_page.get("sessions") if match_page else None,
-                "matching_page_engagement": match_page.get("engRate") if match_page else None,
-                "verdict": (
-                    f"Campaign '{c.get('name')}' spent {c.get('spend', '—')} "
-                    f"and drove {c.get('clicks', '—')} clicks to {lp}. "
-                    f"GA4 shows {match_page.get('sessions') if match_page else 'no'} "
-                    f"sessions on that page."
-                ),
+                "matching_page_sessions": total_sessions,
+                "matching_page_engagement": avg_eng,
+                "cost_per_session": cps,
+                "clicks_to_sessions_pct": ctr_pct,
+                "verdict": verdict,
             })
         return {"configured": True, "campaigns": campaigns, "verdicts": verdicts}
 
