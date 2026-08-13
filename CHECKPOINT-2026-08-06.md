@@ -36,20 +36,37 @@ at `sync_ig_analytics.js`.
 ---
 
 ## What's live right now
+## What's live right now (2026-08-13)
+|| Surface | URL | Status |
+||---|---|---|
+|| Campaign OS home | `https://swing-shack-dashboard-production.up.railway.app/` | live, auth-gated |
+|| Insights tab (default-open since 2026-08-13) | `/` → 📈 Insights | live, group expanded by default |
+|| Weekly report | `/api/intel/weekly_report` | live, 9 sources (added ig-business-analytics.json) |
+|| Markdown export (cookie) | `/api/intel/weekly_report/export` | live, auth-gated |
+|| Markdown export (share token) | `/api/intel/weekly_report/export?share=<token>` | live, signed-share-token, TTL 24h default / 7d max |
+|| Share-token mint | `POST /api/intel/weekly_report/share` | live, auth-gated |
+|| IG Business fetch | `scripts/fetch_ig_business.py` + plist `com.swing-shack.ig-business-fetch` (04:00 UTC) | live, 16 posts + 30d reach, claims surface in weekly report |
 
-| Surface | URL | Status |
-|---|---|---|
-| Campaign OS home | `https://swing-shack-dashboard-production.up.railway.app/` | live, auth-gated |
-| Insights tab (where the weekly report lives) | `/` → click **+ More tools** → **📈 Insights** → scroll to bottom | live |
-| JSON endpoint | `/api/intel/weekly_report` | live, auth-gated |
-| Markdown export | `/api/intel/weekly_report/export` | live, auth-gated |
-| `/api/health` | `/api/health` | live, public |
-| Local dev server | `.venv/bin/python3 app.py` (in campaign-os/) | works locally with same auth |
-| **Ubersuggest status** | `/api/intel/ubersuggest/status` | **live, returns 200 + "not configured" until OAuth done** |
-| **Ubersuggest keyword endpoint** | `/api/intel/ubersuggest/keyword_overview?keyword=X` | **live, returns 503 until OAuth done** |
-| **Ubersuggest domain endpoint** | `/api/intel/ubersuggest/domain_overview?domain=X` | **live, returns 503 until OAuth done** |
-| **Daily fetch launchd** | `com.swing-shack.ubersuggest-fetch` | **loaded, fires 04:30 SAST daily, currently exits 2 (no creds)** |
-| **Weekly refresh launchd** | `com.swing-shack.ubersuggest-refresh` | **loaded, fires Tuesday 04:30 SAST, currently exits 2 (no creds)** |
+## What landed 2026-08-13 (Wednesday)
+
+1. **IG Business live-account metrics as 7th data source** (commit `a854101`)
+   - `scripts/fetch_ig_business.py` — pulls account-level daily reach, accounts_engaged, total_interactions, profile_views, profile_links_taps, follower_count + media-level lifetime reach/interactions/likes/comments/shares/saved for last 25 posts.
+   - `data/ig-business-analytics.json` (14KB, 16 posts × 7 metrics + 30d daily reach series).
+   - `weekly_report()` now surfaces 4 new claims: 30d reach (25,231), 30d ER (0.67%), top post (1,400 reach), high-severity 64% daily reach contraction, follower snapshot (2,490).
+   - 21 unit tests + launchd plist at `~/Library/LaunchAgents/com.swing-shack.ig-business-fetch.plist`.
+
+2. **Insights nav open by default + signed share-token markdown export** (commit `3176b6e`)
+   - `Insight` nav group boots expanded — no more 2-click discoverability gap.
+   - New `POST /api/intel/weekly_report/share` mints signed share URLs (default 24h TTL, max 7d, scope-bound).
+   - `GET /api/intel/weekly_report/export?share=<token>` serves the markdown without a cookie for the recipient.
+   - 13 unit tests (4 nav + 9 share-token), 0 em-dashes, cookie auth still works.
+
+## Carry-over (queued for next session)
+
+1. **Postiz-analytics wire (8th data source).** Postiz API is now LIVE (verified 2026-08-13 09:10 UTC: `https://api.postiz.com/public/v1/posts?integrationId=cmnfoum2703e6ql0yiajgcg21&startDate=...&endDate=...` returns published FB posts with `publishDate`, `releaseURL`, `state`, `integration`). Existing `scripts/fetch_postiz_analytics.js` was broken because the connector returned 401; now it should work as-is. Wire `data/postiz-analytics.json` (output of the existing JS) into `weekly_report()` as an 8th source. Expected claims: top-channel-by-publishes, win-rate-per-platform, average time-to-publish, scheduling-coverage-gaps. Effort ~1.5h.
+2. **Reddit engagement fetcher** (carry-over from CHECKPOINT-2026-08-06): PRAW or similar to close the loop on ghost-reply upvotes. Effort ~4-6h.
+3. **Auth-optional HTML export** — sibling of the new markdown share. The route `/api/weekly-report?format=html` should accept the same share token (currently cookie-only). Effort ~30min.
+4. **`${esc(cname)}` brand-scope expansion** — only swingshack.co.za is wired into Ubersuggest. Stick + bag-drop pending Christelle's scope decision.
 
 **Currently observing live (verified just now):**
 
