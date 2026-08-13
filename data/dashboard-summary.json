@@ -1,42 +1,800 @@
 {
-  "updated": "2026-08-13T11:14:43.872Z",
-  "sources": [
+  "pipeline_status": "PARTIAL",
+  "timestamp": "2026-08-13T11:14:47.246Z",
+  "trust_score": 8,
+  "trust_deductions": [
+    "IG Analytics stale (-1)",
+    "A/B Test Input stale (-1)"
+  ],
+  "stage_results": [
     {
-      "name": "IG Analytics",
-      "updated": "2026-08-11T04:30:07.445Z"
+      "stage": "Research",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "sync_ig_analytics",
+          "status": "PASS"
+        },
+        {
+          "name": "fetch_golf_news",
+          "status": "PASS"
+        },
+        {
+          "name": "fetch_reddit_trends",
+          "status": "PASS"
+        },
+        {
+          "name": "fetch_seo_rankings",
+          "status": "PASS"
+        },
+        {
+          "name": "fetch_ga4",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "GA4",
-      "updated": "2026-08-13T11:14:38.314Z"
+      "stage": "Analysis",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "analyse_hooks",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "Reddit",
-      "updated": "2026-08-13T11:13:56.137Z"
+      "stage": "Ideas",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "generate_content_ideas",
+          "status": "PASS"
+        },
+        {
+          "name": "update_used_items",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "Golf News",
-      "updated": "2026-08-13T11:13:55.738Z"
+      "stage": "YouTube",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "fetch_youtube_trends",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_youtube_ideas",
+          "status": "PASS"
+        },
+        {
+          "name": "extract_youtube_signals",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "SEO Rankings",
-      "updated": "2026-08-13T11:14:03.371Z"
+      "stage": "Audit",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "run_seo_audit",
+          "status": "PASS"
+        },
+        {
+          "name": "run_geo_audit",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "SEO Audit",
-      "updated": "2026-08-13T11:14:24.856Z"
+      "stage": "Insights",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "fetch_website_insights",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "Hook Bank",
-      "updated": "2026-08-13T11:14:08.863Z"
+      "stage": "Attribution",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "fetch_ga4",
+          "status": "PASS"
+        },
+        {
+          "name": "run_booking_event_mapper",
+          "status": "PASS"
+        },
+        {
+          "name": "run_roi_truth_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "run_conversion_truth_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_conversion_attribution",
+          "status": "PASS"
+        },
+        {
+          "name": "run_postiz_attribution_layer",
+          "status": "PASS"
+        }
+      ]
     },
     {
-      "name": "Ideas",
-      "updated": "2026-08-13T11:14:08.907Z"
+      "stage": "Plan",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "generate_post_plan",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_sales_priority",
+          "status": "PASS"
+        },
+        {
+          "name": "detect_missed_opportunities",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_follow_up_queue",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_asset_needs",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_owner_workload",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_conversion_attribution",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_funnel_leaks",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_cta_performance",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_retargeting_recommendations",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_recommendation_scores",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_recommendation_outcomes",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_experiment_queue",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_scaling_recommendations",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_kill_list",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_anomaly_alerts",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_daily_task_cards",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_approval_queue",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_deadline_risk",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_blockers",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_capacity_shift",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_nudge_queue",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_fallback_queue",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_next_day_queue",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_auto_messages",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_suppression_rules",
+          "status": "PASS"
+        },
+        {
+          "name": "send_discord_nudges",
+          "status": "PASS"
+        },
+        {
+          "name": "log_discord_deliveries",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_delivery_audit",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_pulse_keeper",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_content_blueprints",
+          "status": "PASS"
+        },
+        {
+          "name": "store_daily_learnings",
+          "status": "PASS"
+        },
+        {
+          "name": "generate_agent_scorecards",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "Production",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "caption_closer",
+          "status": "PASS"
+        },
+        {
+          "name": "visual_forge",
+          "status": "PASS"
+        },
+        {
+          "name": "blog_beast",
+          "status": "PASS"
+        },
+        {
+          "name": "reddit_ghost",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "QA",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "qa_inspector",
+          "status": "PASS"
+        },
+        {
+          "name": "approval_captain",
+          "status": "PASS"
+        },
+        {
+          "name": "brand_guard",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "Publishing",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "publisher",
+          "status": "PASS"
+        },
+        {
+          "name": "postback_logger",
+          "status": "PASS"
+        },
+        {
+          "name": "schedule_captain",
+          "status": "PASS"
+        },
+        {
+          "name": "approval_runner",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "Reporting",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "weekly_reporter",
+          "status": "PASS"
+        },
+        {
+          "name": "learning_summariser",
+          "status": "PASS"
+        },
+        {
+          "name": "executive_brief_builder",
+          "status": "PASS"
+        },
+        {
+          "name": "owner_performance_reporter",
+          "status": "PASS"
+        },
+        {
+          "name": "trend_delta_reporter",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "Autonomy",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "autonomy_rules_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "live_nudge_dispatcher",
+          "status": "PASS"
+        },
+        {
+          "name": "fallback_auto_swapper",
+          "status": "PASS"
+        },
+        {
+          "name": "approval_auto_promoter",
+          "status": "PASS"
+        },
+        {
+          "name": "low_risk_publisher",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "RevenueRecovery",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "lead_recovery_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "landing_page_optimizer",
+          "status": "PASS"
+        },
+        {
+          "name": "retargeting_campaign_builder",
+          "status": "PASS"
+        },
+        {
+          "name": "email_nurture_builder",
+          "status": "PASS"
+        },
+        {
+          "name": "offer_engine",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "CommerceCapture",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "lead_capture_optimizer",
+          "status": "PASS"
+        },
+        {
+          "name": "booking_flow_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "bundle_builder",
+          "status": "PASS"
+        },
+        {
+          "name": "lead_quality_scorer",
+          "status": "PASS"
+        },
+        {
+          "name": "whatsapp_conversion_builder",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "CompetitorDomination",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "competitor_tracker",
+          "status": "PASS"
+        },
+        {
+          "name": "gap_hunter",
+          "status": "PASS"
+        },
+        {
+          "name": "share_of_voice_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "counter_offer_builder",
+          "status": "PASS"
+        },
+        {
+          "name": "review_domination_engine",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "ProductCommerce",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "product_priority_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "upsell_builder",
+          "status": "PASS"
+        },
+        {
+          "name": "merchandising_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "inventory_signal_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "offer_margin_guard",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "SelectiveAutonomy",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "live_mode_controller",
+          "status": "PASS"
+        },
+        {
+          "name": "rollback_guard",
+          "status": "FAIL"
+        },
+        {
+          "name": "autonomous_publisher_live",
+          "status": "PASS"
+        },
+        {
+          "name": "auto_budget_shifter",
+          "status": "PASS"
+        },
+        {
+          "name": "lead_router_live",
+          "status": "PASS"
+        },
+        {
+          "name": "reputation_responder",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "TrustAcceleration",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "trust_optimizer",
+          "status": "PASS"
+        },
+        {
+          "name": "stability_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "confidence_calibrator",
+          "status": "PASS"
+        },
+        {
+          "name": "mode_promotion_manager",
+          "status": "PASS"
+        },
+        {
+          "name": "rollback_simulator",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "ReliabilityStrike",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "failure_pattern_detector",
+          "status": "PASS"
+        },
+        {
+          "name": "self_heal_engine",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "APIConnections",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "api_connection_registry",
+          "status": "PASS"
+        },
+        {
+          "name": "integration_health_monitor",
+          "status": "PASS"
+        },
+        {
+          "name": "capability_unlock_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "roi_measurement_connector",
+          "status": "PASS"
+        },
+        {
+          "name": "api_gap_prioritiser",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "AttributionClosure",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "postiz_attribution_layer",
+          "status": "PASS"
+        },
+        {
+          "name": "booking_closure_mapper",
+          "status": "PASS"
+        },
+        {
+          "name": "whatsapp_readiness_builder",
+          "status": "PASS"
+        },
+        {
+          "name": "meta_oauth_watchdog",
+          "status": "PASS"
+        },
+        {
+          "name": "roi_truth_engine",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "RevenueTruth",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "booking_event_mapper",
+          "status": "PASS"
+        },
+        {
+          "name": "utm_governor",
+          "status": "PASS"
+        },
+        {
+          "name": "conversion_truth_engine",
+          "status": "PASS"
+        },
+        {
+          "name": "booking_value_modeler",
+          "status": "PASS"
+        },
+        {
+          "name": "decision_confidence_engine",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "TrackingImplementation",
+      "status": "PARTIAL",
+      "steps": [
+        {
+          "name": "tracking_implementation_checklist",
+          "status": "PASS"
+        },
+        {
+          "name": "utm_backfill_builder",
+          "status": "FAIL"
+        },
+        {
+          "name": "event_validation_monitor",
+          "status": "PASS"
+        },
+        {
+          "name": "tracking_break_detector",
+          "status": "PASS"
+        },
+        {
+          "name": "verification_promotion_engine",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "Compile",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "compile_dashboard",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "stage": "Publish",
+      "status": "PASS",
+      "steps": [
+        {
+          "name": "publish_github",
+          "status": "PASS"
+        }
+      ]
     }
   ],
-  "stale_count": 1,
-  "top_recommendation": "THAT SLICE COSTING YOU YARDS?",
-  "total_posts": 10,
-  "total_ideas": 8,
-  "hooks_tracked": 3
+  "stale_sources": [
+    "IG Analytics",
+    "A/B Test Input"
+  ],
+  "failed_sources": [],
+  "synthetic_sources": [],
+  "script_failures": [],
+  "fallbacks_used": [],
+  "top_action_today": {
+    "idea": "THAT SLICE COSTING YOU YARDS?",
+    "format": "static",
+    "reason": "All-time winning hook formula - 5.77% engagement",
+    "cta": "TrackMan your swing · Book from R250",
+    "freshness_score": 9
+  },
+  "data_summary": {
+    "ig_posts": 10,
+    "ideas_generated": 8,
+    "hooks_tracked": 10
+  },
+  "validator": {
+    "overall_status": "PARTIAL",
+    "live_fresh": 12,
+    "synthetic": 0,
+    "stale": 2,
+    "failed": 0,
+    "total": 16,
+    "script_failures": 0,
+    "fallbacks_used": 0,
+    "qa_warnings": [],
+    "source_integrity": [
+      {
+        "label": "IG Analytics",
+        "mode": "LIVE",
+        "status": "STALE"
+      },
+      {
+        "label": "Hook Bank",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "Content Ideas",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "Dashboard Summary",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "Golf News",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "Reddit Trends",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "GA4 Metrics",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "SEO Rankings",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "SEO Audit",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "GEO Audit",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "A/B Test Input",
+        "mode": "LIVE",
+        "status": "STALE"
+      },
+      {
+        "label": "Used Items",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "YouTube Trends",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "YouTube Ideas",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "Website Insights",
+        "mode": "LIVE",
+        "status": "PASS"
+      },
+      {
+        "label": "Dashboard HTML",
+        "mode": "LIVE",
+        "status": "PASS"
+      }
+    ]
+  },
+  "weakest_sources": [
+    "IG Analytics",
+    "A/B Test Input"
+  ]
 }

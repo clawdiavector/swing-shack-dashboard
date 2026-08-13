@@ -29,7 +29,7 @@ const sales      = readJson('sales-priority.json')         || {};
 const missed     = readJson('missed-opportunities.json')   || {};
 const plan       = readJson('post-plan.json')              || {};
 
-// Normalise IG sources — prefer ig-business-analytics (real reach)
+// Normalise IG sources - prefer ig-business-analytics (real reach)
 // over ig-analytics (often reach=0). Map both onto a uniform shape.
 function normaliseIgPosts() {
   const bizMedia = (igBusiness.media || []).filter(m => m && m.metrics && (m.metrics.reach || 0) > 0);
@@ -49,7 +49,7 @@ function normaliseIgPosts() {
       source: 'ig-business-analytics',
     }));
   }
-  // Fallback to ig-analytics (daily tracker) — may have reach=0
+  // Fallback to ig-analytics (daily tracker) - may have reach=0
   return (igRaw.posts || []).map(p => ({
     id: p.id || p.postId,
     caption: p.captionPreview || p.caption || '',
@@ -300,7 +300,7 @@ const output = {
       service:     s.service,
       ig_signal:   s.ig_signal,
       save_rate:   s.save_rate,
-      action:      `Push ${s.service} — ${s.post_count} posts, ${s.save_rate}% save rate, ${s.avg_engagement}% avg eng`,
+      action:      `Push ${s.service} - ${s.post_count} posts, ${s.save_rate}% save rate, ${s.avg_engagement}% avg eng`,
     })),
 };
 
@@ -310,6 +310,6 @@ console.log(`   Booking sessions: ${totalBookingSessions} | Top service: ${topSe
 console.log(`   Top CTA: ${topCTA.cta_type} (signal: ${topCTA.conversion_signal.toFixed(3)}) | Top theme: ${topTheme.theme_label}`);
 console.log(`   Top booking page: ${topPage.path} (${topPage.sessions} sessions)`);
 console.log(`CTA rankings:`);
-ctaRankings.slice(0, 4).forEach(c => console.log(`   ${c.conversion_rank}. ${c.cta_type} — eng:${c.avg_eng_rate}% save:${c.avg_save_rate}% sig:${c.conversion_signal.toFixed(3)}`));
+ctaRankings.slice(0, 4).forEach(c => console.log(`   ${c.conversion_rank}. ${c.cta_type} - eng:${c.avg_eng_rate}% save:${c.avg_save_rate}% sig:${c.conversion_signal.toFixed(3)}`));
 console.log(`Service correlation:`);
 serviceCorrelation.slice(0, 4).forEach(s => console.log(`   ${s.service}: sig:${s.ig_signal} eng:${s.avg_engagement}% saves:${s.total_saves}`));

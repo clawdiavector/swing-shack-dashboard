@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-04-22T06:31:19.690Z",
+  "timestamp": "2026-08-13T11:14:47.239Z",
   "overall_status": "PARTIAL",
   "summary": {
-    "pass": 15,
-    "stale": 1,
+    "pass": 14,
+    "stale": 2,
     "fail": 0,
     "script_failures": 0,
     "fallbacks_used": 0,
-    "live_fresh": 13,
+    "live_fresh": 12,
     "synthetic": 0,
     "failed": 0,
     "total": 16
@@ -19,14 +19,13 @@
       "file": "ig-analytics.json",
       "label": "IG Analytics",
       "critical": true,
-      "data_status": "PASS",
+      "data_status": "STALE",
+      "qa_warnings": [],
       "script_status": "PASS",
       "fallback_used": false,
-      "source_mode": "LIVE",
-      "age_hours": 1.5,
-      "reason": "Fresh - 1.5h old",
-      "next_action": "No action needed",
-      "qa_warnings": []
+      "age_hours": 54.7,
+      "reason": "54.7h old (stale threshold 26h)",
+      "next_action": "Refresh ig-analytics.json - data is stale"
     },
     {
       "file": "hook-bank.json",
@@ -64,7 +63,7 @@
       "age_hours": 0,
       "reason": "Fresh - 0.0h old",
       "next_action": "No action needed",
-      "last_build": "2026-04-22T06:31:15.668Z"
+      "last_build": "2026-08-13T11:14:43.872Z"
     },
     {
       "file": "golf-news.json",
@@ -152,8 +151,8 @@
       "qa_warnings": [],
       "script_status": "PASS",
       "fallback_used": false,
-      "age_hours": 138.7,
-      "reason": "138.7h old (stale threshold 26h)",
+      "age_hours": 2855.5,
+      "reason": "2855.5h old (stale threshold 26h)",
       "next_action": "Refresh ab-tests.json - data is stale"
     },
     {
@@ -216,9 +215,9 @@
       "script_status": "PASS",
       "fallback_used": false,
       "age_hours": 0,
-      "reason": "Last build 2026/04/22, 08:31:15",
+      "reason": "Last build 2026/08/13, 13:14:43",
       "next_action": "No action needed",
-      "last_build": "2026/04/22, 08:31:15"
+      "last_build": "2026/08/13, 13:14:43"
     }
   ]
 }

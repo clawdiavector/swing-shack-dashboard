@@ -1,5 +1,5 @@
 #!/bin/bash
-# Path 2 chain — fires only the scripts that have working upstream feeds.
+# Path 2 chain - fires only the scripts that have working upstream feeds.
 # Captures exit status per step, logs to file. NEVER fails the wrap.
 set +e
 
@@ -44,6 +44,15 @@ run "generate_content_blueprints" node scripts/generate_content_blueprints.js
 run "generate_visual_briefs"   node scripts/generate_visual_briefs.js
 run "generate_reddit_ghost"    node scripts/generate_reddit_ghost.js
 run "landing_page_optimizer"   node scripts/run_landing_page_optimizer.js
+
+# Stage 4: conversion attribution chain (CMO-brain layer)
+# Was previously missing from this chain - caused the entire
+# attribution layer to be 113 days stale. Now wired in.
+run "run_booking_event_mapper"        node scripts/run_booking_event_mapper.js
+run "run_roi_truth_engine"            node scripts/run_roi_truth_engine.js
+run "run_conversion_truth_engine"     node scripts/run_conversion_truth_engine.js
+run "generate_conversion_attribution" node scripts/generate_conversion_attribution.js
+run "run_postiz_attribution_layer"    node scripts/run_postiz_attribution_layer.js
 
 echo ""
 echo "[$(ts)] PATH 2 CHAIN END" | tee -a "$LOG"
