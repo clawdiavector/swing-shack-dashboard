@@ -1521,3 +1521,42 @@ Files: `campaign-os/image-lab.html` (+6/-8), `tests/test_v2026_08_13_recipe_subt
 Commit: `9306b95` on `feat/asset-state-engine`, pushed, Railway auto-deployed, /api/health 200.
 Screenshot: `/tmp/co-nightshift/walkthrough_recipe_card_after_1786602264.png`.
 Next: the summary string still embeds `bible=placeholder` inline (from _lib/brand_dna.py:220) which duplicates the appended badge — redundant but server-contract-owned, leave for daytime approval before touching the API surface. Next small pick: Meta Portal hint area showed a faded underline (likely a low-contrast selection artefact on the link styling); worth a 5-min fix.
+
+## 2026-08-13T07:35Z — fix(ideas): friendly empty states for missed-opportunities and funnel-leaks
+
+**Done:** Two Ideas cards no longer show the bare "Nothing here" pill when empty. They now render distinct, contextual empty cards.
+
+- `ideas-missed` (Trends that already peaked and the brand did not post): empty = POSITIVE. Now shows a green-bordered "✅ No missed opportunities" card explaining "Every trend that peaked in the window already has a post in the queue or Review. Nothing to chase up retroactively."
+- `ideas-funnel` (Pages that get traffic but fail to convert): empty = usually data-driven. Now shows an amber-bordered "🪠 No funnel leaks detected" card explaining the GA4 dependency and pointing to `/meta` setup-portal (same pattern as Drive / GA4 connect).
+- Other 5 Ideas cards (`ideas-list`, `ideas-today`, `ideas-week`, `ideas-upsell`, `ideas-bundles`, `ideas-landing`) keep the generic `renderList()` path; the change targets only the two that routinely empty because the source JSON has no rows.
+
+**Why now:** Both cards routinely empty on the Swing Shack brand (missed-opportunities.json has no high-severity rows; funnel-leaks.json needs GA4 events that aren't wired yet). The bare "Nothing here" reads like a bug and gives no signal about whether it's a positive empty (caught up) or a wiring gap (data source missing).
+
+**Verified (Playwright LIVE on Railway, post-deploy):**
+- DOM probe confirms `#ideas-missed` and `#ideas-funnel` now have `.empty-card.ideas-empty-friendly` children with `border-left-color` = `rgb(52, 211, 153)` (green) and `rgb(245, 158, 11)` (amber) respectively.
+- DOM probe confirms copy matches the friendly spec ("No missed opportunities" / "No funnel leaks detected" + explainer body).
+- 0 pageerrors, 0 console warnings, 0 net failures during walkthrough.
+- /api/health 200, deployed commit = 72d81fe.
+
+**Test (new):** `campaign-os/tests/test_v2026_08_13_ideas_empty_states.py` (7 tests, all green):
+1. test_missed_special_case_exists — renderMissedEmpty helper exists; ideas-missed short-circuits when d.missed empty.
+2. test_funnel_special_case_exists — renderFunnelEmpty helper exists; ideas-funnel short-circuits when d.funnel_leaks empty.
+3. test_missed_empty_copy_is_friendly — keeps "No missed opportunities" + positive framing.
+4. test_funnel_empty_copy_is_friendly — keeps "No funnel leaks detected" + GA4 / setup-portal reference.
+5. test_other_ideas_cards_kept_generic — other 5 cards still use generic renderList() (no churn).
+6. test_no_double_assignment — exactly one innerHTML assignment per card (guards against generic fallback re-stamping over the friendly card).
+7. test_no_em_dash_in_published_copy — standing rule: new visible copy has no em-dashes.
+
+**Files (2, +193/-2):**
+- `campaign-os/campaign-os.html` (+25/-2): two new helper functions + two special-cased assignments inside renderIdeas.
+- `campaign-os/tests/test_v2026_08_13_ideas_empty_states.py` (+168, NEW): source-shape regression tests.
+
+**Commit:** `72d81fe` on `feat/asset-state-engine`, pushed. Railway auto-deployed.
+
+**Screenshots:**
+- `/tmp/co-nightshift/walkthrough_ideas_missed_20260813T073659Z.png` — Ideas tab, missed-opportunities card showing green ✅ "No missed opportunities" empty state.
+- `/tmp/co-nightshift/walkthrough_ideas_funnel_20260813T073659Z.png` — Ideas tab, funnel-leaks card showing amber 🪠 "No funnel leaks detected" empty state with GA4 / setup-portal pointer.
+
+**Learned:** A "nothing here" empty state is technically correct but reads like a bug when the underlying meaning is nuanced (positive vs. data-driven vs. wiring-gap). Two distinct empty messages with colour-coded left borders (green = caught up, amber = needs setup) turn silent gaps into legible signal. Same visual idiom as `.card:has(> div > .empty:only-child)` already used elsewhere — kept the same `padding:1.5rem; border:1px dashed` so the new cards look like native siblings.
+
+**Next pick:** Two productive lanes remain: (a) the same friendly-empty treatment for the other 5 Ideas cards (only if they routinely empty — most don't on Swing Shack); (b) the `ideas-today` card when `post_today` is empty — current fallback is "Nothing here" but a "No 'post today' picks right now — try Generate new ideas above" would be more actionable; or (c) extend the same idiom to the Calendar sub-cards (pillar-strip when no scheduled posts in window) where "no rows" currently looks like a render failure.
