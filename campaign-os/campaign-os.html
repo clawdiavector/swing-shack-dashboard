@@ -10475,8 +10475,9 @@ async function renderFAQs(){
   const hint = stale.length
     ? `<div class="empty" style="margin-bottom:.75rem">⚠️ ${stale.length} FAQ set${stale.length===1?'':'s'} skipped — target_keyword looks like a URL path (${stale.slice(0,3).map(s => '`'+s+'`').join(', ')}${stale.length>3?'…':''}). Re-run blog_beast with a fresh seed.</div>`
     : '';
-  const countHint = dupes
-    ? `<div class="muted" style="font-size:11px;margin-bottom:.5rem">${raw.length - dupes} unique set${raw.length - dupes===1?'':'s'} · ${dupes} duplicate${dupes===1?'':'s'} collapsed</div>`
+  const uniqueCount = seen.size;
+  const countHint = (dupes || stale.length)
+    ? `<div class="muted" style="font-size:11px;margin-bottom:.5rem">${uniqueCount} unique set${uniqueCount===1?'':'s'} · ${dupes} duplicate${dupes===1?'':'s'} collapsed${stale.length ? ` · ${stale.length} URL-slug skipped` : ''}</div>`
     : '';
   const html = items.length
     ? countHint + items.map(it => {
