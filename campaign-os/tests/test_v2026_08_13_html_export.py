@@ -4,7 +4,7 @@ The markdown export endpoint (`/api/intel/weekly_report/export`) is
 useful for piping into Slack/email but unreadable in a browser without
 markdown rendering. This commit adds a sibling HTML format triggered by
 `?format=html` that returns a self-contained pretty page. Same data,
-same share-token auth, same response — just different render.
+same share-token auth, same response - just different render.
 
 Tests pin:
   - ?format=html returns Content-Type: text/html

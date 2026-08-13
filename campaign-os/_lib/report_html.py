@@ -107,7 +107,7 @@ def render_weekly_report_html(data: Dict[str, Any], md_lines: List[str], brand: 
     ]:
         v = kpis.get(key)
         if v is None:
-            v = "—"
+            v = "-"
         if isinstance(v, float) and key.endswith("_pct"):
             v = f"{v:.1f}%"
         kpi_cards.append(
