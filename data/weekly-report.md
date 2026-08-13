@@ -1,8 +1,8 @@
-# Weekly Marketing Report · 2026-07-30 to 2026-08-06
+# Weekly Marketing Report · 2026-08-06 to 2026-08-13
 
 **Brand:** swing-shack
 
-**Window:** 2026-07-21 → 2026-07-22 (last active publish window before pause · 15d ago)
+**Window:** 2026-07-21 → 2026-07-22 (last active publish window before pause · 22d ago)
 
 > ⚠️ **Pipeline in rest-mode: no publishes in the last 7 days. Showing last active publish window (57 posts, 2026-07-21 → 2026-07-22). Approve an active campaign or restart the cron to refresh.**
 
@@ -29,36 +29,65 @@
 - improve-your-game-with-the-coaches-tip-of-the-day- (3 uses)
 - swingshack-merch-coming-in-hot--- (3 uses)
 
+## SEO movers
+- ↑ custom club fitting (rank 6)
+- ↑ club fitting (rank 3)
+- ↑ putter fitting (rank 27)
+- ↑ simulated golf (rank 2)
+- ↑ golf lessons for beginners in johannesburg (rank 9)
+- ↓ indoor golf practice (rank 3)
+- ↓ club fitting near me (rank 5)
+
 ## Week-on-week
 - **published:** 57 (prev: 0)
 - **failed:** 0 (prev: 0)
 - **win_rate_pct:** 100.0% (prev: —)
 - **agent_runs:** 0 (prev: 0)
 
-### Sources read (6)
-`ga4-metrics.json`, `hook-bank.json`, `ig-analytics.json`, `reddit-opportunities.json + reddit-replies.json`, `seo-rankings.json`, `youtube-trends.json`
+### Sources read (9)
+`ga4-metrics.json`, `hook-bank.json`, `ig-analytics.json`, `ig-business-analytics.json`, `reddit-opportunities.json + reddit-replies.json`, `seo-rankings.json`, `ubersuggest-competitors.json`, `ubersuggest-domain.json`, `youtube-trends.json`
 
 ## What's working
 - **Win rate is healthy at 100.0%.** _(category: publishing, source: `published-items.json`)_
   - 57 published, 0 failed this week (threshold: ≥80% = good).
+- **5 SEO keywords moved up this week.** _(category: seo, source: `seo-rankings.json`)_
+  - custom club fitting, club fitting, putter fitting
 - **Instagram is the dominant publish channel (57 posts).** _(category: channels, source: `published-items.json`)_
   - Consider replicating winning formats to underused channels.
 - **Tue is your strongest publish day this week.** _(category: cadence, source: `published-items.json`)_
   - 57 posts went out on that day.
 - **GA4 recorded 1,008 website sessions; google is your top acquisition channel (396 sessions).** _(category: web_traffic, source: `ga4-metrics.json`)_
   - Source breakdown from ga4-metrics.json across 5 sources. Last fetch: 2026-08-06T09:03:26.066Z.
+- **5 SEO keyword(s) moved up this week.** _(category: seo, source: `seo-rankings.json`)_
+  - Cross-cut from seo-rankings.json movers list.
+- **Biggest SEO mover: 'custom club fitting' rose from #24 to #6.** _(category: seo, source: `seo-rankings.json`)_
+  - seo-rankings.json — 5 keyword(s) ranked up this period, 2 ranked down, 9 unchanged. Source: Ubersuggest via daily fetch_ubersuggest.py cron.
+- **Avg position for swingshack.co.za improved 3.0 places over 6 weekly snapshots (#8.42 → #5.42).** _(category: seo, source: `seo-rankings.json`)_
+  - seo-rankings.json average_position_trend (6 points, 2026-06-30 → 2026-08-04). Source: Ubersuggest via fetch_ubersuggest.py.
+- **SEO domain snapshot — organic traffic = 967; organic keywords = 51; domain authority = 13; backlinks = 24; referring domains = 9.** _(category: seo, source: `ubersuggest-domain.json`)_
+  - ubersuggest-domain.json via daily fetch_ubersuggest.py cron. Last fetch: 2026-08-10. Pulled from `swingshack.co.za` `domain_overview` + `backlinks_overview` MCP tools.
 - **YouTube trends pulled; active themes this week: trackman, slice_fix, practice, indoor, lessons.** _(category: youtube_trends, source: `youtube-trends.json`)_
   - From youtube-trends.json trending_themes (5/8 themes active) + 10 candidate videos fetched.
 - **All 5 Reddit opportunity threads have drafted ghost replies (5 drafts).** _(category: reddit_outreach, source: `reddit-opportunities.json + reddit-replies.json`)_
   - 5 drafts in reddit-replies.json vs 5 opportunities in reddit-opportunities.json. ready_for_qa: opp=5, reply=5.
 - **2 IG-proven hooks aren't being used in publishing this week.** _(category: voice, source: `hook-bank.json + published-items.json`)_
   - Cross-cut: hook-bank.json output_buckets.proven_only (2 hooks) vs published-items.json linked_hook_ids (17 of those not in IG analytics). Opportunity to rotate them in.
+- **IG account reached 25,231 unique accounts in the last 30d.** _(category: ig_engagement, source: `ig-business-analytics.json`)_
+  - From ig-business-analytics.json window_totals.reach (25231); accounts_engaged=169, total_interactions=372. This is the live Graph API number. ig-analytics.json's reach field stays 0 because the legacy sync doesn't populate it.
+- **30d IG account engagement rate is 0.67%.** _(category: ig_engagement, source: `ig-business-analytics.json`)_
+  - accounts_engaged=169 / reach=25231. Industry baseline for indoor-golf niche is ~2-5%; anything above 5% is strong signal of an audience that returns.
+- **Top IG post in window reached 1,400 accounts with 20 interactions.** _(category: ig_engagement, source: `ig-business-analytics.json`)_
+  - Caption hook: "Tired of the same old setup 🥱 try Avoda today! ". Permalink: https://www.instagram.com/reel/DbVgJmCMZZC/. From ig-business-analytics.json top_post.
 
 ## What's not working
-- ⚠️ **10 SEO keywords tracked but zero have rank data — rankings fetcher is offline.** _(severity: medium, source: `seo-rankings.json`)_
-  - seo-rankings.json has 10 keywords, all current_rank: null. Need a live rank fetcher (Ubersuggest MCP wired). Last update: 2026-04-22T06:31:00.312Z.
+- • **2 SEO keywords moved down this week.** _(severity: low, source: `seo-rankings.json`)_
+  - indoor golf practice, club fitting near me
+- ⚠️ **Strongest organic competitor: worldofgolf.co.za — 52 shared keywords, DA 26 (us: 13).** _(severity: medium, source: `ubersuggest-competitors.json`)_
+  - ubersuggest-competitors.json via fetch_ubersuggest.py. Top of list by commonKeywordCount. Gap keywords (we don't rank but they do): 300. Last fetch: 2026-08-10.
 - • **17 of your published hook_ids aren't in the hook-bank at all.** _(severity: low, source: `published-items.json + hook-bank.json`)_
   - published-items.json has unique hook_ids in use, hook-bank.json only contains 8 entries (across all buckets). Hook-bank has been regenerated independently and lost the published history.
+- 🛑 **Daily IG reach has fallen 64% over the past 15d (vs the prior 15d).** _(severity: high, source: `ig-business-analytics.json`)_
+  - From ig-business-analytics.json daily_reach: prior 15d avg=1237, recent 15d avg=445. Reach contraction is the earliest signal of an audience that the algorithm has stopped pushing.
 
 ## Look at
 - ? **Only publishing to instagram this week.** _(source: `published-items.json`)_
@@ -67,6 +96,8 @@
   - Reach counter is 0 across all posts. Either engagement metrics haven't synced, or the sync ran before the IG API returned metrics. Re-run sync_ig_analytics.js to verify.
 - ? **Hook-ID overlap between published-items and IG is 0 (0 expected signal).** _(source: `ig-analytics.json + published-items.json`)_
   - in_pub_not_ig=17, in_ig_not_pub=10. Either the sync is showing different content from what was published, or hook_ids aren't linking between sources.
+- ? **@swingshack has 2,490 IG followers as of this fetch.** _(source: `ig-business-analytics.json`)_
+  - From ig-business-analytics.json account.followers_count. Compare against next fetch to detect follower-delta direction.
 
 > **Headline take:** Win rate is healthy at 100.0%.
 
@@ -76,7 +107,7 @@
 - **GA4 (`ga4-metrics.json`)** — 1,008 sessions · top source: **google** (396 sessions) · 5 sources tracked · fetched: 2026-08-06
 - **YouTube trends (`youtube-trends.json`)** — 19 videos found · top 10 · active themes: trackman, slice_fix, practice, indoor, lessons
 - **Reddit (`reddit-opportunities.json + reddit-replies.json`)** — 5 opportunities · 5 drafted replies · ready_for_qa (opps: 5, replies: 5) · subs: r/golf=3, r/golftips=1, r/Johannesburg=1
-- **SEO (`seo-rankings.json`)** — 10 keywords · 0 have rank data · rising=0 falling=0 · freshness: 2026-04-22 ⚠️ fetcher offline
+- **SEO (`seo-rankings.json`)** — 16 keywords · 12 have rank data · rising=5 falling=2 · freshness: never
 - **Hook bank (`hook-bank.json`)** — proven_and_trending=0 · proven_only=2 · trending_to_test=1 · retire=5
   - ⚠️ **hook-bank mismatch:** 17 of published hook_ids are NOT in hook-bank (8 bank entries). Bank regenerated independently of publish history.
 
