@@ -4991,6 +4991,7 @@ async function renderInsightsV2(){
     if(perf.ga4?.total_sessions){
       headlines.push({
         emoji: '📊',
+        label: 'Site traffic',
         data: `${perf.ga4.total_sessions.toLocaleString()} website sessions (${ga4Window(perf)})`,
         take: topGA4Take(ga4Pages),
         tone: 'good',
@@ -5001,6 +5002,7 @@ async function renderInsightsV2(){
       const top = igPosts[0];
       headlines.push({
         emoji: '📱',
+        label: 'Instagram',
         data: `${igPosts.length} recent IG posts · avg engagement ${avg.toFixed(2)}%`,
         take: top ? `"${(top.caption || top.hook_text || '').slice(0, 60)}…" is your top performer at ${parseFloat(top.engagementRate || 0).toFixed(2)}%` : '',
         tone: avg > 3 ? 'good' : avg > 1.5 ? 'watch' : 'bad',
@@ -5009,6 +5011,7 @@ async function renderInsightsV2(){
     if(rising.length || falling.length){
       headlines.push({
         emoji: '🔎',
+        label: 'SEO keywords',
         data: `${rising.length} keywords rising · ${falling.length} falling on Google`,
         take: rising.length > falling.length ? `More keywords moving up than down — your SEO is gaining traction.`
              : falling.length > rising.length ? `More keywords dropping than rising — content refresh needed.`
@@ -5019,6 +5022,7 @@ async function renderInsightsV2(){
     if(!headlines.length){
       headlines.push({
         emoji: '📊',
+        label: 'No data',
         data: 'No analytics connected yet',
         take: 'Connect Meta + GA4 to see what is working.',
         tone: 'watch',
@@ -5059,7 +5063,7 @@ async function renderInsightsV2(){
           return hs.map((h, i) => `
           <div class="card ${colCls} ins-headline tone-${h.tone}">
             <div class="card-h">
-              <h3 style="margin:0">${h.emoji} ${i+1}. <span style="color:var(--tx-3);font-weight:500">What happened</span></h3>
+              <h3 style="margin:0">${h.emoji} ${i+1}. <span style="color:var(--tx-3);font-weight:500">${esc(h.label || 'Signal')}</span></h3>
             </div>
             <div class="ins-data">${esc(h.data)}</div>
             <div class="ins-take">${esc(h.take)}</div>
