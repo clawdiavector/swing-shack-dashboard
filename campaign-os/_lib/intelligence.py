@@ -304,7 +304,22 @@ def morning_brief() -> Dict[str, Any]:
 
     for cid, c in campaigns.items():
         for aid, asset in (c.get("assets") or {}).items():
-            already_scheduled = aid in scheduled_set or bool(asset.get("scheduledFor"))
+            # An asset is "already on the rail" if ANY of these are true:
+            #   (a) its assetId is in the runtime schedule manifest
+            #   (b) it carries its own scheduledFor timestamp
+            #   (c) its publishStatus flag is set to scheduled or published
+            #     — campaign-data.json is the canonical source of truth, and
+            #     assets flagged publishStatus=scheduled have already been
+            #     scheduled via the editor even if the runtime manifest
+            #     hasn't been updated. Without (c) the brief recommends
+            #     rescheduling assets that are already on the rail, and
+            #     clicking the CTA silently overwrites their slot.
+            _ps = (asset.get("publishStatus") or "").lower()
+            already_scheduled = (
+                aid in scheduled_set
+                or bool(asset.get("scheduledFor"))
+                or _ps in ("scheduled", "published")
+            )
             if asset.get("approvalStatus") == "approved" and not already_scheduled:
                 recommended_action = {
                     "type": "schedule",
