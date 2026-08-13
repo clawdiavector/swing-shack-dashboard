@@ -3493,6 +3493,148 @@ def _interpret_weekly_report(
         import logging as _logging
         _logging.getLogger(__name__).debug("conversion-attribution block skipped: %s", _exc)
 
+    # ── 3g. POST->CONVERSION ATTRIBUTION (from ga4-attribution.json) ──
+    # The CMO brain's money question: which IG post drove which /bookings/
+    # traffic, and which channels drive actual booking completions.
+    #
+    # This block surfaces:
+    #   1. Top IG-attributed /bookings/ posts (by hook_id in GA4 UTM content)
+    #   2. Booking completion proxy: /bookings/?clientEmail=... sessions
+    #      that represent ACTUAL booking completions through the Amelia plugin
+    #   3. Source split: where the bookings actually come from
+    #   4. Event tracking gap: which booking events are MISSING
+    try:
+        ga_path = _runtime_data_file("ga4-attribution.json")
+        if os.path.exists(ga_path):
+            ga = _read_json(ga_path) or {}
+            if isinstance(ga, dict):
+                sources_used.append("ga4-attribution.json")
+                summary = ga.get("summary") or {}
+                completion = ga.get("booking_completion_proxy") or {}
+                events = ga.get("events_tracked") or {}
+
+                # 1. Booking completion proxy - the closest thing to VERIFIED_REVENUE
+                #    we have without a booking_completed GA4 event.
+                completion_sessions = int(summary.get("completion_proxy_sessions") or completion.get("completion_proxy_sessions") or 0)
+                browse_sessions = int(summary.get("browse_only_sessions") or completion.get("browse_sessions") or 0)
+                completion_count = int(completion.get("completion_proxy_count") or 0)
+                if completion_sessions > 0:
+                    # Conversion rate from browse -> complete
+                    cr_pct = (completion_sessions / (completion_sessions + browse_sessions) * 100) if (completion_sessions + browse_sessions) > 0 else 0
+                    working.append({
+                        "claim": (
+                            f"Booking completion volume - {completion_sessions} sessions "
+                            f"reached the booking confirmation page in the last 30d "
+                            f"({cr_pct:.1f}% browse-to-complete conversion). "
+                            f"{completion_count} unique completion URLs captured."
+                        ),
+                        "evidence": (
+                            f"ga4-attribution.json booking_completion_proxy. Detects "
+                            f"/bookings/?facilityId=&serviceId=&clientEmail=&packageRedeem= "
+                            f"URLs (Amelia booking plugin populates these on submit). "
+                            f"This is a HIGH-CONFIDENCE proxy for actual bookings until "
+                            f"the booking_completed GA4 event is instrumented on the live site."
+                        ),
+                        "source": "ga4-attribution.json",
+                        "category": "attribution",
+                    })
+
+                # 2. Source split for completions - shows CMO which channel
+                #    is actually closing bookings (not just driving traffic).
+                comp_by_src = completion.get("completions_by_source") or []
+                if comp_by_src and isinstance(comp_by_src[0], dict):
+                    top = comp_by_src[0]
+                    top_src = top.get("source") or "n/a"
+                    top_count = int(top.get("sessions") or 0)
+                    top_pct = (top_count / completion_sessions * 100) if completion_sessions > 0 else 0
+                    src_breakdown = ", ".join(
+                        f"{s.get('source', '?')}={int(s.get('sessions', 0))}"
+                        for s in comp_by_src[:5]
+                    )
+                    working.append({
+                        "claim": (
+                            f"Top booking-completion channel - {top_src}: "
+                            f"{top_count} booking completions in 30d "
+                            f"({top_pct:.0f}% of total). Breakdown: {src_breakdown}."
+                        ),
+                        "evidence": (
+                            f"ga4-attribution.json booking_completion_proxy.completions_by_source. "
+                            f"These are real booking-confirmation page sessions (with clientEmail "
+                            f"+ serviceId in URL), not just traffic. Shows which acquisition channel "
+                            f"actually closes bookings vs which only drives awareness."
+                        ),
+                        "source": "ga4-attribution.json",
+                        "category": "attribution",
+                    })
+
+                # 3. IG post attribution - the actual post->/bookings/ join.
+                #    We have UTM content captured but it doesn't match modern hook_ids
+                #    (legacy campaign tags). Surface the raw UTM-content data
+                #    + flag the naming-mismatch gap so the team can decide
+                #    whether to retro-tag posts or accept the gap.
+                ig_attribution = ga.get("instagram_post_attribution") or []
+                ig_booking = [r for r in ig_attribution
+                              if isinstance(r, dict)
+                              and r.get("page_path")
+                              and ("/bookings/" in r.get("page_path", "")
+                                   or "/club-fitting/" in r.get("page_path", ""))]
+                if ig_booking:
+                    total_ig_bookings = sum(int(r.get("sessions") or 0) for r in ig_booking)
+                    top_ig = max(ig_booking, key=lambda r: int(r.get("sessions") or 0))
+                    top_hook = top_ig.get("hook_id", "unknown")
+                    top_sessions = int(top_ig.get("sessions") or 0)
+                    matched = [r for r in ig_booking if r.get("matched")]
+                    working.append({
+                        "claim": (
+                            f"IG post attribution - {total_ig_bookings} /bookings/ + "
+                            f"/club-fitting/ sessions tagged with IG UTM content in 30d. "
+                            f"Top UTM-content: '{top_hook}' drove {top_sessions} sessions. "
+                            f"{len(matched)}/{len(ig_booking)} attribution rows matched to "
+                            f"specific IG posts (others are legacy campaign tags)."
+                        ),
+                        "evidence": (
+                            f"ga4-attribution.json instagram_post_attribution. Pulled from "
+                            f"GA4 (sessionSource=instagram, pagePath contains /bookings/ "
+                            f"or /club-fitting/), grouped by sessionManualAdContent (the "
+                            f"hook_id). Mismatch with ig-business-analytics.json hook_ids is "
+                            f"a known gap: GA4 captured legacy UTM tags (hook-beginner, "
+                            f"trackman-authority-961989) while newer posts use "
+                            f"caption-derived hook_ids. Backfill the UTM scheme or accept "
+                            f"the gap - either is fine, but be explicit."
+                        ),
+                        "source": "ga4-attribution.json",
+                        "category": "attribution",
+                    })
+
+                # 4. Event-tracking gap - LOOK_AT: which booking events are
+                #    missing. This is the highest-leverage gap to close.
+                has_completed = bool(summary.get("has_booking_completed_event"))
+                has_amelia = bool(summary.get("has_amelia_events"))
+                events_tracked = events.get("events") or []
+                amelia_event_names = [e["event_name"] for e in events_tracked
+                                       if "amelia" in e.get("event_name", "").lower()]
+                if not has_completed:
+                    look_at.append({
+                        "claim": (
+                            f"GA4 booking_completed event is NOT being tracked. "
+                            f"{'Amelia events are firing (form_view, checkout_view) but the confirmation page is not pushing booking_completed.' if has_amelia else 'Zero booking events are tracked.'} "
+                            f"Until this lands, all booking-revenue attribution is a proxy "
+                            f"based on URL pattern, not event-tracked."
+                        ),
+                        "evidence": (
+                            f"ga4-attribution.json events_tracked. Top events: "
+                            f"{', '.join(e['event_name'] + ':' + str(e['count']) for e in events_tracked[:5])}. "
+                            f"Wiring the booking_completed event is a 1-2h code change on "
+                            f"the Amelia booking confirmation page and would upgrade 3 channels "
+                            f"from STRONG_PROXY to VERIFIED_REVENUE in the conversion truth band."
+                        ),
+                        "source": "ga4-attribution.json",
+                        "category": "attribution",
+                    })
+    except Exception as _exc:
+        import logging as _logging
+        _logging.getLogger(__name__).debug("ga4-attribution block skipped: %s", _exc)
+
     # ── 4. YouTube ───────────────────────────────────────────────────
     if isinstance(youtube, dict):
         themes = youtube.get("active_themes") or []

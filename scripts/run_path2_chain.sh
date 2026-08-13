@@ -53,6 +53,7 @@ run "run_roi_truth_engine"            node scripts/run_roi_truth_engine.js
 run "run_conversion_truth_engine"     node scripts/run_conversion_truth_engine.js
 run "generate_conversion_attribution" node scripts/generate_conversion_attribution.js
 run "run_postiz_attribution_layer"    node scripts/run_postiz_attribution_layer.js
+run "fetch_ga4_attribution"           python3 scripts/fetch_ga4_attribution.py
 
 echo ""
 echo "[$(ts)] PATH 2 CHAIN END" | tee -a "$LOG"

@@ -1,0 +1,671 @@
+{
+  "schema": "https://clawdia.io/agents/ga4-post-attribution/v1",
+  "updated": "2026-08-13T11:42:09.264085Z",
+  "generated_by": "fetch_ga4_attribution.py",
+  "window": {
+    "start": "2026-07-14",
+    "end": "2026-08-13"
+  },
+  "property_id": "427380680",
+  "instagram_post_attribution": [
+    {
+      "hook_id": "trackman-authority-961989",
+      "page_path": "/bookings/",
+      "sessions": 14,
+      "engagement_rate": 0.6428571428571429,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/bookings/",
+      "matched": false,
+      "is_booking_intent": true
+    },
+    {
+      "hook_id": "hook-beginner",
+      "page_path": "/bookings/",
+      "sessions": 10,
+      "engagement_rate": 0.5,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/bookings/",
+      "matched": false,
+      "is_booking_intent": true
+    },
+    {
+      "hook_id": "hook-practice",
+      "page_path": "/bookings/",
+      "sessions": 10,
+      "engagement_rate": 0.4,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/bookings/",
+      "matched": false,
+      "is_booking_intent": true
+    },
+    {
+      "hook_id": "hook-slice",
+      "page_path": "/bookings/",
+      "sessions": 8,
+      "engagement_rate": 0.75,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/bookings/",
+      "matched": false,
+      "is_booking_intent": true
+    },
+    {
+      "hook_id": "hook-putter",
+      "page_path": "/bookings/",
+      "sessions": 3,
+      "engagement_rate": 0.6666666666666666,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/bookings/",
+      "matched": false,
+      "is_booking_intent": true
+    },
+    {
+      "hook_id": "hook-putter",
+      "page_path": "/club-fitting/",
+      "sessions": 1,
+      "engagement_rate": 1.0,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/club-fitting/",
+      "matched": false,
+      "is_booking_intent": true
+    },
+    {
+      "hook_id": "hook-slice",
+      "page_path": "/club-fitting/",
+      "sessions": 1,
+      "engagement_rate": 1.0,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/club-fitting/",
+      "matched": false,
+      "is_booking_intent": true
+    },
+    {
+      "hook_id": "trackman-authority-961989",
+      "page_path": "/club-fitting/",
+      "sessions": 1,
+      "engagement_rate": 1.0,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/club-fitting/",
+      "matched": false,
+      "is_booking_intent": true
+    },
+    {
+      "hook_id": "hook-beginner",
+      "page_path": "/customer-portal/",
+      "sessions": 2,
+      "engagement_rate": 1.0,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/customer-portal/",
+      "matched": false,
+      "is_booking_intent": false
+    },
+    {
+      "hook_id": "trackman-authority-961989",
+      "page_path": "/customer-portal/",
+      "sessions": 1,
+      "engagement_rate": 1.0,
+      "conversions": 0,
+      "source": "instagram",
+      "high_intent_match": "/customer-portal/",
+      "matched": false,
+      "is_booking_intent": false
+    }
+  ],
+  "booking_completion_proxy": {
+    "total_sessions": 331,
+    "completion_proxy_sessions": 58,
+    "browse_sessions": 273,
+    "completion_proxy_count": 31,
+    "browse_count": 16,
+    "completion_proxy_paths": [
+      {
+        "url": "/bookings/?facilityId=6",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 8,
+        "engagement_rate": 0.5,
+        "users": 4
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Andrew+Shaw&clientPhone=%2B27816521120",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 4,
+        "engagement_rate": 0.25,
+        "users": 2
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Ben+van+Wyk&clientPhone=%2B27724798235",
+        "source": "(direct)",
+        "medium": "(none)",
+        "campaign": "(not set)",
+        "sessions": 4,
+        "engagement_rate": 0.25,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Ralph+Tsatsi&clientPhone=%2B27711349670",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 4,
+        "engagement_rate": 0.25,
+        "users": 2
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=David+Roux&clientPhone=0827292121",
+        "source": "(direct)",
+        "medium": "(none)",
+        "campaign": "(not set)",
+        "sessions": 3,
+        "engagement_rate": 0.3333333333333333,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Gareth+Glyn&clientPhone=%2B27846574700",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 3,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Tim+Hutchinson&clientPhone=0658131851",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 3,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=25&packageRedeem=1&clientEmail=(redacted)&clientName=Kabelo+Pule&clientPhone=0817100346",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 3,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6",
+        "source": "(direct)",
+        "medium": "(none)",
+        "campaign": "(not set)",
+        "sessions": 2,
+        "engagement_rate": 1.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Adam+Bogatsu&clientPhone=0616908383",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 2,
+        "engagement_rate": 1.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Darryn+Tolley&clientPhone=%2B27832270425",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 2,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6",
+        "source": "(not set)",
+        "medium": "(not set)",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6",
+        "source": "c.yoco.com",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6",
+        "source": "google",
+        "medium": "organic",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Alexander+Sullwald&clientPhone=%2B27714736777",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Andrew+Shaw&clientPhone=%2B27816521120",
+        "source": "(direct)",
+        "medium": "(none)",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 1.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Barend+Fourie&clientPhone=%2B27835013262",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Ben+van+Wyk&clientPhone=%2B27724798235",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Chad+Shering&clientPhone=%2B27781704844",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Chad+Shering&clientPhone=%2B27781704844",
+        "source": "google",
+        "medium": "organic",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Daniel+Venter&clientPhone=0662673348",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 1.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Luca+Paparas&clientPhone=0827335511",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Mark+Freeman&clientPhone=%2B27714009964",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Martin+Sutherland&clientPhone=%2B27834531593",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Rayno+Button&clientPhone=%2B27609664889",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=1&packageRedeem=1&clientEmail=(redacted)&clientName=Richard+Fraser&clientPhone=%2B27833075360",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 1.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=25&packageRedeem=1&clientEmail=(redacted)&clientName=Daniel+Venter&clientPhone=0662673348",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=25&packageRedeem=1&clientEmail=(redacted)&clientName=Hlaluko+Sithole&clientPhone=%2B27+69+117+6578",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 1.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=25&packageRedeem=1&clientEmail=(redacted)&clientName=Nicholas+Puntigam&clientPhone=%2B27828250930",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?facilityId=6&serviceId=26&packageRedeem=1&clientEmail=(redacted)&clientName=David+De+Villiers&clientPhone=%2B27713827371",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      }
+    ],
+    "browse_paths": [
+      {
+        "url": "/bookings/",
+        "source": "google",
+        "medium": "organic",
+        "campaign": "(not set)",
+        "sessions": 120,
+        "engagement_rate": 0.375,
+        "users": 71
+      },
+      {
+        "url": "/bookings/",
+        "source": "(direct)",
+        "medium": "(none)",
+        "campaign": "(not set)",
+        "sessions": 44,
+        "engagement_rate": 0.3409090909090909,
+        "users": 34
+      },
+      {
+        "url": "/bookings/",
+        "source": "instagram",
+        "medium": "bio",
+        "campaign": "(not set)",
+        "sessions": 44,
+        "engagement_rate": 0.5681818181818182,
+        "users": 44
+      },
+      {
+        "url": "/bookings/",
+        "source": "clublab.app",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 43,
+        "engagement_rate": 0.6511627906976745,
+        "users": 14
+      },
+      {
+        "url": "/bookings/",
+        "source": "bing",
+        "medium": "organic",
+        "campaign": "(not set)",
+        "sessions": 6,
+        "engagement_rate": 0.16666666666666666,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?fbclid=PAVERFWATWS4NwZG9mAmV4dG4DYWVtAjEwAHNydGMGYXBwX2lkDzEyNDAyNDU3NDI4NzQxNAABp0vIkyuljBYUDc9DXeqTCWvOph1NOUHrPBeMeiMS3jhtbPDHoJv-zHL2bXhs_aem_8lQiPOc629Kp2Nd1VPg_Ig",
+        "source": "(direct)",
+        "medium": "(none)",
+        "campaign": "(not set)",
+        "sessions": 3,
+        "engagement_rate": 0.0,
+        "users": 2
+      },
+      {
+        "url": "/bookings/",
+        "source": "(not set)",
+        "medium": "(not set)",
+        "campaign": "(not set)",
+        "sessions": 2,
+        "engagement_rate": 0.0,
+        "users": 2
+      },
+      {
+        "url": "/bookings/",
+        "source": "maps.apple.com",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 2,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/",
+        "source": "startpage.com",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 2,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/404.html?page=/bookings/%23?fbclid=IwcGRvZgRleHRuA2FlbQIxMQBzcnRjBmFwcF9pZAwyNTYyODEwNDA1NTgAAR4qQUbxM3YYYia59cOkt6uBsrXyLhGeQC_JSw9rpGFFlu94mXaRvxWfEyAWRQ_aem_qN0q4XfWjyKl5GHhU30QiQ&from=http://m.facebook.com#/?fbclid=IwcGRvZgRleHRuA2FlbQIxMQBzcnRjBmFwcF9pZAwyNTYyODEwNDA1NTgAAR4qQUbxM3YYYia59cOkt6uBsrXyLhGeQC_JSw9rpGFFlu94mXaRvxWfEyAWRQ_aem_qN0q4XfWjyKl5GHhU30QiQ",
+        "source": "m.facebook.com",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/404.html?page=/bookings/%23?fbclid=IwcGRvZgRleHRuA2FlbQIxMQBzcnRjBmFwcF9pZAwyNTYyODEwNDA1NTgAAR5DXRXVc4EbQ1lkguV8oS37tf5obqkvrRmLhBePT06UpsHNi7zXAnECCK8xKg_aem_CdgHw2f8HvNrG0MpCzbfEQ&from=http://m.facebook.com#/?fbclid=IwcGRvZgRleHRuA2FlbQIxMQBzcnRjBmFwcF9pZAwyNTYyODEwNDA1NTgAAR5DXRXVc4EbQ1lkguV8oS37tf5obqkvrRmLhBePT06UpsHNi7zXAnECCK8xKg_aem_CdgHw2f8HvNrG0MpCzbfEQ",
+        "source": "m.facebook.com",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/404.html?page=/bookings/%23?utm_source=ig&fbclid=PAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQPNTY3MDY3MzQzMzUyNDI3AAGnIDbAxb7ndsOgPTOgzqz_gkhm6BXmcKsgYNczIRqFFLMucd0IV9cUHRuKdsU_aem__8WsZ7U4y5F_kpZ1qh6YpA&from=https://l.instagram.com/#/?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQPNTY3MDY3MzQzMzUyNDI3AAGnIDbAxb7ndsOgPTOgzqz_gkhm6BXmcKsgYNczIRqFFLMucd0IV9cUHRuKdsU_aem__8WsZ7U4y5F_kpZ1qh6YpA",
+        "source": "l.instagram.com",
+        "medium": "social",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 1.0,
+        "users": 1
+      },
+      {
+        "url": "/404.html?page=/bookings/%23?utm_source=ig&fbclid=PAcGRvZgJleHRuA2FlbQIxMQBzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAaeflwKv4HbervQ0Rk6Wi4CvZmEfYccHbxjhd1SfDkaNebJNMvTx60_lcPkyeQ_aem_H0K2KBO4WkS_VODE41EARQ&from=https://l.instagram.com/#/?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAcGRvZgJleHRuA2FlbQIxMQBzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAaeflwKv4HbervQ0Rk6Wi4CvZmEfYccHbxjhd1SfDkaNebJNMvTx60_lcPkyeQ_aem_H0K2KBO4WkS_VODE41EARQ",
+        "source": "l.instagram.com",
+        "medium": "social",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/404.html?page=/bookings/%23?utm_source=ig&fbclid=PAcGRvZgJleHRuA2FlbQIxMQBzcnRjBmFwcF9pZA8xMjQwMjQ1NzQyODc0MTQAAac3mRTiFn68zZFwRDq1QA0sTeYZc3lrtsj-KYghXWSSWKe8zzV995enKsn-Bg_aem_RLaRYJEMx375rMPC20kAgg&from=https://l.instagram.com/#/?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAcGRvZgJleHRuA2FlbQIxMQBzcnRjBmFwcF9pZA8xMjQwMjQ1NzQyODc0MTQAAac3mRTiFn68zZFwRDq1QA0sTeYZc3lrtsj-KYghXWSSWKe8zzV995enKsn-Bg_aem_RLaRYJEMx375rMPC20kAgg",
+        "source": "l.instagram.com",
+        "medium": "social",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/",
+        "source": "c.yoco.com",
+        "medium": "referral",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 0.0,
+        "users": 1
+      },
+      {
+        "url": "/bookings/?fbclid=PAQ0xDSwTWnTZwZG9mAmV4dG4DYWVtAjEwAHNydGMGYXBwX2lkDzEyNDAyNDU3NDI4NzQxNAABp-UU5JF2wRnsbpg6BQUkZFUdnPfXZnNwTle1cVkPuBm0bfiDCfMzI3MTbLvB_aem_qnAbI3ezuSj-KobvPwX9PA",
+        "source": "instagram",
+        "medium": "bio",
+        "campaign": "(not set)",
+        "sessions": 1,
+        "engagement_rate": 1.0,
+        "users": 1
+      }
+    ],
+    "by_source": [
+      {
+        "source": "google",
+        "sessions": 122
+      },
+      {
+        "source": "clublab.app",
+        "sessions": 87
+      },
+      {
+        "source": "(direct)",
+        "sessions": 57
+      },
+      {
+        "source": "instagram",
+        "sessions": 45
+      },
+      {
+        "source": "bing",
+        "sessions": 6
+      },
+      {
+        "source": "(not set)",
+        "sessions": 3
+      },
+      {
+        "source": "l.instagram.com",
+        "sessions": 3
+      },
+      {
+        "source": "maps.apple.com",
+        "sessions": 2
+      },
+      {
+        "source": "startpage.com",
+        "sessions": 2
+      },
+      {
+        "source": "m.facebook.com",
+        "sessions": 2
+      },
+      {
+        "source": "c.yoco.com",
+        "sessions": 2
+      }
+    ],
+    "completions_by_source": [
+      {
+        "source": "clublab.app",
+        "sessions": 44
+      },
+      {
+        "source": "(direct)",
+        "sessions": 10
+      },
+      {
+        "source": "google",
+        "sessions": 2
+      },
+      {
+        "source": "(not set)",
+        "sessions": 1
+      },
+      {
+        "source": "c.yoco.com",
+        "sessions": 1
+      }
+    ]
+  },
+  "events_tracked": {
+    "events": [
+      {
+        "event_name": "page_view",
+        "count": 5325
+      },
+      {
+        "event_name": "user_engagement",
+        "count": 3801
+      },
+      {
+        "event_name": "session_start",
+        "count": 3206
+      },
+      {
+        "event_name": "first_visit",
+        "count": 2169
+      },
+      {
+        "event_name": "tel",
+        "count": 12
+      },
+      {
+        "event_name": "mailto",
+        "count": 9
+      },
+      {
+        "event_name": "contact",
+        "count": 8
+      },
+      {
+        "event_name": "click",
+        "count": 6
+      },
+      {
+        "event_name": "amelia_customer_form_view",
+        "count": 4
+      },
+      {
+        "event_name": "amelia_checkout_view",
+        "count": 1
+      }
+    ],
+    "total_events": 14541
+  },
+  "top_converting_posts": [],
+  "summary": {
+    "ig_attribution_rows": 10,
+    "ig_attribution_matched_to_posts": 0,
+    "total_booking_intent_sessions": 0,
+    "completion_proxy_sessions": 58,
+    "browse_only_sessions": 273,
+    "events_tracked_count": 10,
+    "has_booking_completed_event": false,
+    "has_amelia_events": true
+  }
+}

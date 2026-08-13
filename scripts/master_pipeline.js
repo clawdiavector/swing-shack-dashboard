@@ -82,7 +82,7 @@ const STAGES = [
     name: 'Attribution',
     critical: false,
     requiredOutputs: ['roi-truth.json', 'conversion-attribution.json'],
-    optionalOutputs: ['booking-events.json', 'post-attribution.json', 'utm-map.json'],
+    optionalOutputs: ['booking-events.json', 'post-attribution.json', 'utm-map.json', 'ga4-attribution.json'],
     steps: [
       { name: 'fetch_ga4',                       script: `node ${BASE}/scripts/fetch_ga4.js`,                       critical: false },
       { name: 'run_booking_event_mapper',        script: `node ${BASE}/scripts/run_booking_event_mapper.js`,        critical: false },
@@ -90,6 +90,7 @@ const STAGES = [
       { name: 'run_conversion_truth_engine',     script: `node ${BASE}/scripts/run_conversion_truth_engine.js`,     critical: false },
       { name: 'generate_conversion_attribution', script: `node ${BASE}/scripts/generate_conversion_attribution.js`, critical: false },
       { name: 'run_postiz_attribution_layer',    script: `node ${BASE}/scripts/run_postiz_attribution_layer.js`,    critical: false },
+      { name: 'fetch_ga4_attribution',           script: `python3 ${BASE}/scripts/fetch_ga4_attribution.py`,        critical: false },
     ]
   },
   {
