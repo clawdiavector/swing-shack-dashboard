@@ -73,12 +73,45 @@ class TestFAQsDedupAndStaleUrlSlugs(unittest.TestCase):
 
     def test_url_slug_regex_is_defined(self):
         # The URL-slug detector must exist as a top-level const so the
-        # regex is shared (not duplicated inside renderFAQs).
+        # regex is shared (not duplicated inside renderFAQs). It must be
+        # strict enough to require BOTH surrounding slashes (so it matches
+        # "/bookings/" but NOT a bare keyword like "club-fitting").
         self.assertRegex(
             self.html,
             r"const\s+_FAQ_URL_SLUG_RE\s*=\s*/[^/]+/",
             "_FAQ_URL_SLUG_RE regex must be declared so renderFAQs() can "
             "filter target_keyword values that look like URL paths.",
+        )
+        # Pull the full assignment line and verify it requires BOTH a
+        # leading '/' and a trailing '/' around the path segment. We
+        # match the literal assignment up to the closing semicolon so
+        # the test isn't confused by the slash characters inside the
+        # regex body itself.
+        m = re.search(
+            r"const\s+_FAQ_URL_SLUG_RE\s*=\s*(/\^[^;]+/\w*\s*);",
+            self.html,
+        )
+        self.assertIsNotNone(
+            m, "Could not extract _FAQ_URL_SLUG_RE full assignment",
+        )
+        assignment = m.group(1)
+        # The assignment must require BOTH `\/` (escaped slash) tokens:
+        # one near the start (anchoring the leading slash) and one near
+        # the end (anchoring the trailing slash). Bare keyword regexes
+        # like /club-fitting/ WITHOUT surrounding slashes are not safe —
+        # they would over-match real keywords.
+        # Count the number of `\/` literals in the assignment; we expect
+        # at least 2 (one for leading, one for trailing). A broken
+        # implementation that uses just `\/?` (optional slash on each
+        # side) would match real keywords like "club-fitting" and skip
+        # valid FAQ rows by mistake.
+        escaped_slashes = assignment.count(r"\/")
+        self.assertGreaterEqual(
+            escaped_slashes, 2,
+            f"_FAQ_URL_SLUG_RE must require BOTH a leading '/' and a "
+            f"trailing '/' around the path segment (i.e. at least 2 "
+            f"escaped-slash tokens `\\/`). Found only {escaped_slashes} "
+            f"in: {assignment!r}",
         )
 
     def test_stale_topics_render_as_hint_not_as_question_rows(self):

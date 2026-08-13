@@ -10440,11 +10440,22 @@ async function renderReddit(){
 //   • We refuse to render rows whose target_keyword is just a URL path.
 //     They are listed in a one-line "stale topics" hint so the data
 //     issue stays visible to the next agent run.
-const _FAQ_URL_SLUG_RE = /^\s*\/?[a-z0-9-]+\/?\s*$/i;
+// Stricter URL-slug detector: the entire target_keyword must be a
+// single path segment bracketed by slashes (e.g. "/bookings/",
+// "/club-fitting/", "/philosophy/"). Bare slugs without surrounding
+// slashes ("club-fitting", "bookings") are real keywords and stay.
+// Spaces inside the string disqualify it ("trackman golf" is fine even
+// though each word is short).
+const _FAQ_URL_SLUG_RE = /^\s*\/[a-z0-9-]+\/\s*$/i;
 async function renderFAQs(){
   const r = await API.get('/api/intel/faq_generator');
   const raw = safeList(r.faqs, 60);
-  // Dedup by (cluster | target_keyword | first question).
+  // Dedup by (cluster | target_keyword | first question). Rows whose
+  // target_keyword is just a URL path (`/bookings/`, `/club-fitting/`,
+  // `/philosophy/`) are skipped — those are leaked sitemap entries from
+  // blog_beast, and templating them into "What is /bookings/?" looks like
+  // a render bug. We surface them in a hint so the data issue stays
+  // visible to the next agent run.
   const seen = new Map();
   const stale = [];
   let dupes = 0;
@@ -10452,8 +10463,8 @@ async function renderFAQs(){
     const qs = Array.isArray(it.questions) ? it.questions.filter(q => typeof q === 'string' && q.trim()) : [];
     const firstQ = (qs[0] || '').toLowerCase().replace(/\s+/g, ' ').trim();
     const tk = (it.target_keyword || '').toString().trim();
-    if(_FAQ_URL_SLUG_RE.test(tk) && !firstQ){
-      stale.push(tk);
+    if(_FAQ_URL_SLUG_RE.test(tk)){
+      stale.push(tk || '(empty)');
       continue;
     }
     const key = `${(it.cluster||'').toLowerCase()}|${tk.toLowerCase()}|${firstQ}`;
