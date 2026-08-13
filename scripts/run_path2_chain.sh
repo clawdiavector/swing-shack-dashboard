@@ -56,5 +56,11 @@ run "run_postiz_attribution_layer"    node scripts/run_postiz_attribution_layer.
 run "fetch_ga4_attribution"           python3 scripts/fetch_ga4_attribution.py
 run "fetch_post_conversion_score"     python3 scripts/fetch_post_conversion_score.py
 
+# Stage 5: deploy-wiring self-check (the 2026-08-13 phantom-commit lesson)
+# Catches: missing GITHUB_TOKEN, repo auth issues, live endpoint down,
+# stale data files, branch misconfiguration. Outputs JSON so the next
+# pipeline stage (or alerting) can ingest it.
+run "validate_railway_deploy_wiring" python3 scripts/validate_railway_deploy_wiring.py --json
+
 echo ""
 echo "[$(ts)] PATH 2 CHAIN END" | tee -a "$LOG"

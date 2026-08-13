@@ -481,6 +481,12 @@ def env_debug():
         "CAMPAIGN_OS_IMAGE_MODEL",
         "DATA_DIR",
         "PORT",
+        # v2026-08-13: added for the validate_railway_deploy_wiring.py script.
+        # Tells the validator whether the GitHub PAT is wired for auto-deploys.
+        "GITHUB_TOKEN",
+        "GH_TOKEN",
+        "CAMPAIGN_OS_PASSWORD",
+        "CAMPAIGN_OS_SECRET",
     ]
     out = {}
     for k in keys_of_interest:
