@@ -6564,6 +6564,15 @@ function _deriveAction(outer, inner, fmt){
 
 // Wire action button clicks (delegated)
 document.addEventListener('click', async e => {
+  // Use capture phase so this fires BEFORE the inline
+  // `onclick="event.stopPropagation()"` on each action button — that
+  // inline handler was silently breaking delegation: it stopped the
+  // click from bubbling to this listener, so every "✍️ Caption" /
+  // "🚀 Run it" / "🔧 Fix CTA" / "📝 Draft" / "✅ Review" button
+  // rendered by itemHtml() did literally nothing. capture-phase +
+  // e.stopPropagation() here also prevents the row's own onclick
+  // (`openReview(...)` or `this.classList.toggle('open')`) from
+  // running when the user clicks the button itself.
   const btn = e.target.closest('.action-btn');
   if(!btn) return;
   e.stopPropagation();
@@ -6651,7 +6660,7 @@ document.addEventListener('click', async e => {
     btn.disabled = false;
     btn.textContent = origLabel;
   }
-});
+}, true);
 
 // ─── TODAY RAIL (right-rail Bloomberg-style panel) ─────────────
 async function renderTodayRail(){
