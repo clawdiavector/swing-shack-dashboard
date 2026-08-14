@@ -9883,14 +9883,27 @@ def _weekly_collect_current(bid):
     # 3) Meta Graph API — for Facebook (last 28 days)
     # Honest "not configured" if tokens missing
     try:
-        from meta_api import list_recent_posts  # local helper if available
-        posts = list_recent_posts(days=28) or []
-        if posts:
-            out['sources'].append({'name': 'meta_graph', 'posts': len(posts)})
-            out['28d']['fb_posts'] = len(posts)
-            out['28d']['fb_top_posts'] = sorted(posts, key=lambda p: -(p.get('views') or p.get('like_count', 0)))[:5]
+        from _lib import meta_api as _meta  # uses the package path
+        meta_ok = _meta.meta_credentials_present()
+        if meta_ok:
+            try:
+                posts = _meta.list_recent_posts(limit=50) or []
+                if posts:
+                    out['sources'].append({'name': 'meta_graph', 'posts': len(posts),
+                                           'configured': True})
+                    out['28d']['fb_posts'] = len(posts)
+                    out['28d']['fb_top_posts'] = sorted(
+                        posts, key=lambda p: -(p.get('views') or p.get('like_count', 0))
+                    )[:5]
+            except Exception as e:
+                out['sources'].append({'name': 'meta_graph', 'configured': True,
+                                       'fetch_error': str(e)[:200]})
+        else:
+            out['sources'].append({'name': 'meta_graph', 'configured': False,
+                                   'reason': 'META_APP_ID + META_ACCESS_TOKEN + META_INSTAGRAM_BUSINESS_ACCOUNT_ID missing'})
     except Exception:
-        out['sources'].append({'name': 'meta_graph', 'configured': False})
+        out['sources'].append({'name': 'meta_graph', 'configured': False,
+                               'reason': 'meta_api module unavailable'})
 
     # 4) Google Ads — honest "not configured" if no token; fallback to bundled
     google_ads_path = _resolve_data_path('google-ads.json')
@@ -9932,10 +9945,33 @@ def _weekly_collect_current(bid):
 
     # 7) Review queue depth — drafts waiting for human review
     try:
-        rq = _read_json_file(os.path.join(DATA_DIR, 'approval-queue.json')) or {}
-        out['weekly']['review_pending'] = rq.get('total', 0)
+        rq_path = os.path.join(DATA_DIR, 'approval-queue.json')
+        if os.path.exists(rq_path):
+            rq = _read_json_file(rq_path) or {}
+            out['weekly']['review_pending'] = rq.get('total', 0)
+            out['sources'].append({'name': 'review_queue', 'configured': True,
+                                   'depth': rq.get('total', 0)})
+        else:
+            out['weekly']['review_pending'] = 0
+            out['sources'].append({'name': 'review_queue', 'configured': False,
+                                   'reason': 'approval-queue.json not found'})
     except Exception:
         out['weekly']['review_pending'] = 0
+        out['sources'].append({'name': 'review_queue', 'configured': False,
+                               'reason': 'load failed'})
+
+    # 8) Lead source — separate from Meta, in case you wire HubSpot, GA4 events,
+    # Facebook Lead Ads, etc. in future. For now we have nothing wired.
+    leads_path = os.path.join(DATA_DIR, 'leads.json')
+    if os.path.exists(leads_path):
+        ld = _read_json_file(leads_path) or {}
+        out['weekly']['leads'] = ld.get('weekly_total', 0)
+        out['sources'].append({'name': 'leads', 'configured': True,
+                               'weekly_total': ld.get('weekly_total', 0)})
+    else:
+        out['weekly']['leads'] = 0
+        out['sources'].append({'name': 'leads', 'configured': False,
+                               'reason': 'no lead source wired'})
 
     return out
 
@@ -9996,67 +10032,109 @@ def _weekly_compute_metrics(bid):
     p_weekly = (prev or {}).get('weekly', {}) or {}
     p_28d = (prev or {}).get('28d', {}) or {}
 
-    # Build comparison table rows: (label, curr, prev, fmt)
+    # Build comparison table rows: (label, curr, prev, fmt, has_source, missing_reason)
+    # has_source/missing_reason drive honest "—" display when data source is dead
+    # (e.g. Meta not configured → Facebook metrics show as "—" not "0").
+    meta_configured = any(s.get('name') == 'meta_graph' and s.get('posts')
+                          for s in (current.get('sources') or []))
+    ig_configured = any(s.get('name') == 'instagram'
+                        and (s.get('posts_tracked') or s.get('fetched_at'))
+                        for s in (current.get('sources') or []))
+    leads_configured = any(s.get('name') == 'leads' for s in (current.get('sources') or []))
+    review_configured = any(s.get('name') == 'review_queue' for s in (current.get('sources') or []))
+
+    def _row(label, current_v, previous_v, fmt, has_source, missing_reason):
+        return {
+            'label': label,
+            'current': current_v,
+            'previous': previous_v,
+            'fmt': fmt,
+            'has_source': has_source,
+            'missing_reason': missing_reason,
+        }
+
     rows = [
-        {
-            'label': 'Content published',
-            'current': c_weekly.get('content_published', 0),
-            'previous': p_weekly.get('content_published', 0),
-            'fmt': 'int',
-        },
-        {
-            'label': 'Facebook reach',
-            'current': c_28d.get('fb_reach', 0),
-            'previous': p_28d.get('fb_reach', 0),
-            'fmt': 'k',  # formatted as "1.2K"
-        },
-        {
-            'label': 'Instagram reach',
-            'current': c_28d.get('ig_reach', 0),
-            'previous': p_28d.get('ig_reach', 0),
-            'fmt': 'k',
-        },
-        {
-            'label': 'Instagram interactions',
-            'current': c_28d.get('ig_interactions', 0),
-            'previous': p_28d.get('ig_interactions', 0),
-            'fmt': 'int',
-        },
-        {
-            'label': 'New contacts / leads',
-            'current': c_weekly.get('leads', 0),
-            'previous': p_weekly.get('leads', 0),
-            'fmt': 'int',
-        },
-        {
-            'label': 'Website sessions (GA4)',
-            'current': c_weekly.get('ga4_sessions', 0),
-            'previous': p_weekly.get('ga4_sessions', 0),
-            'fmt': 'int',
-        },
-        {
-            'label': 'Review queue depth',
-            'current': c_weekly.get('review_pending', 0),
-            'previous': p_weekly.get('review_pending', 0),
-            'fmt': 'int',
-        },
+        _row('Content published',
+             c_weekly.get('content_published', 0),
+             p_weekly.get('content_published', 0),
+             'int', True, None),
+        _row('Facebook reach',
+             c_28d.get('fb_reach', 0),
+             p_28d.get('fb_reach', 0),
+             'k', meta_configured,
+             None if meta_configured else 'Meta not connected'),
+        _row('Instagram reach',
+             c_28d.get('ig_reach', 0),
+             p_28d.get('ig_reach', 0),
+             'k', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
+        _row('Instagram interactions',
+             c_28d.get('ig_interactions', 0),
+             p_28d.get('ig_interactions', 0),
+             'int', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
+        _row('New contacts / leads',
+             c_weekly.get('leads', 0),
+             p_weekly.get('leads', 0),
+             'int', leads_configured,
+             None if leads_configured else 'Lead source not wired'),
+        _row('Website sessions (GA4)',
+             c_weekly.get('ga4_sessions', 0),
+             p_weekly.get('ga4_sessions', 0),
+             'int', True, None),
+        _row('Review queue depth',
+             c_weekly.get('review_pending', 0),
+             p_weekly.get('review_pending', 0),
+             'int', review_configured,
+             None if review_configured else 'Approval queue not wired'),
+        _row('Facebook posts',
+             c_28d.get('fb_posts', 0),
+             p_28d.get('fb_posts', 0),
+             'int', meta_configured,
+             None if meta_configured else 'Meta not connected'),
+        _row('Facebook Stories',
+             c_28d.get('fb_stories', 0),
+             p_28d.get('fb_stories', 0),
+             'int', meta_configured,
+             None if meta_configured else 'Meta not connected'),
+        _row('Instagram posts',
+             c_28d.get('ig_posts', 0),
+             p_28d.get('ig_posts', 0),
+             'int', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
+        _row('Instagram Stories',
+             c_28d.get('ig_stories', 0),
+             p_28d.get('ig_stories', 0),
+             'int', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
     ]
 
-    # 28d tables (Facebook, Instagram)
+    # 28d tables (Facebook, Instagram) — same has_source/missing_reason pattern
     fb_rows = [
-        {'label': 'Views', 'current': c_28d.get('fb_views', 0), 'previous': p_28d.get('fb_views', 0), 'fmt': 'k'},
-        {'label': 'Reach', 'current': c_28d.get('fb_reach', 0), 'previous': p_28d.get('fb_reach', 0), 'fmt': 'k'},
-        {'label': 'Link clicks', 'current': c_28d.get('fb_link_clicks', 0), 'previous': p_28d.get('fb_link_clicks', 0), 'fmt': 'k'},
-        {'label': 'Interactions', 'current': c_28d.get('fb_interactions', 0), 'previous': p_28d.get('fb_interactions', 0), 'fmt': 'int'},
-        {'label': 'Conversations started', 'current': c_28d.get('fb_conversations', 0), 'previous': p_28d.get('fb_conversations', 0), 'fmt': 'int'},
-        {'label': 'New contacts', 'current': c_28d.get('fb_new_contacts', 0), 'previous': p_28d.get('fb_new_contacts', 0), 'fmt': 'int'},
+        _row('Views', c_28d.get('fb_views', 0), p_28d.get('fb_views', 0), 'k',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('Reach', c_28d.get('fb_reach', 0), p_28d.get('fb_reach', 0), 'k',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('Link clicks', c_28d.get('fb_link_clicks', 0), p_28d.get('fb_link_clicks', 0), 'k',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('Interactions', c_28d.get('fb_interactions', 0), p_28d.get('fb_interactions', 0), 'int',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('Conversations started', c_28d.get('fb_conversations', 0), p_28d.get('fb_conversations', 0), 'int',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('New contacts', c_28d.get('fb_new_contacts', 0), p_28d.get('fb_new_contacts', 0), 'int',
+             meta_configured, None if meta_configured else 'Meta not connected'),
     ]
     ig_rows = [
-        {'label': 'Views', 'current': c_28d.get('ig_views', 0), 'previous': p_28d.get('ig_views', 0), 'fmt': 'k'},
-        {'label': 'Reach', 'current': c_28d.get('ig_reach', 0), 'previous': p_28d.get('ig_reach', 0), 'fmt': 'k'},
-        {'label': 'Interactions', 'current': c_28d.get('ig_interactions', 0), 'previous': p_28d.get('ig_interactions', 0), 'fmt': 'int'},
-        {'label': 'Follows', 'current': c_28d.get('ig_follows', 0), 'previous': p_28d.get('ig_follows', 0), 'fmt': 'int'},
-        {'label': 'Conversations started', 'current': c_28d.get('ig_conversations', 0), 'previous': p_28d.get('ig_conversations', 0), 'fmt': 'int'},
+        _row('Views', c_28d.get('ig_views', 0), p_28d.get('ig_views', 0), 'k',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
+        _row('Reach', c_28d.get('ig_reach', 0), p_28d.get('ig_reach', 0), 'k',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
+        _row('Interactions', c_28d.get('ig_interactions', 0), p_28d.get('ig_interactions', 0), 'int',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
+        _row('Follows', c_28d.get('ig_follows', 0), p_28d.get('ig_follows', 0), 'int',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
+        _row('Conversations started', c_28d.get('ig_conversations', 0), p_28d.get('ig_conversations', 0), 'int',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
     ]
 
     # What's working / Needs attention — derived from deltas
@@ -10121,6 +10199,7 @@ def _weekly_render_html(bid, data_bid=None):
     meta = _weekly_brand_meta(bid)
     metrics = _weekly_compute_metrics(data_bid or bid)
     cur = metrics['current']
+    prev = metrics.get('prev') or {}
     now = datetime.datetime.now(datetime.timezone.utc)
     today = now.strftime('%d %b %Y')
     week_start = (now - datetime.timedelta(days=7)).strftime('%d %b')
@@ -10128,35 +10207,205 @@ def _weekly_render_html(bid, data_bid=None):
     pcp_start = (now - datetime.timedelta(days=14)).strftime('%d %b')
     pcp_end = (now - datetime.timedelta(days=8)).strftime('%d %b %Y')
 
-    # Helpers
+    # Source status - derived once at the top so templates can show
+    # "-" with reason text instead of misleading "0" values
+    cur_sources = cur.get('sources') or []
+    meta_configured = any(s.get('name') == 'meta_graph' and s.get('configured') is not False
+                          for s in cur_sources)
+    ig_configured = any(s.get('name') == 'instagram'
+                        and (s.get('posts_tracked') or s.get('fetched_at'))
+                        for s in cur_sources)
+    leads_configured = any(s.get('name') == 'leads' and s.get('configured') is not False
+                            for s in cur_sources)
+    review_configured = any(s.get('name') == 'review_queue' and s.get('configured') is not False
+                            for s in cur_sources)
+    ga4_configured = any(s.get('name') == 'ga4' for s in cur_sources)
+
+    # Helpers - handle missing-data sources honestly
     def change_html(row):
+        if not row.get('has_source', True):
+            return f"<span class=\\\"muted small\\\">{esc_html(row.get('missing_reason', 'no data'))}</span>"
         c = row.get('current', 0)
         p = row.get('previous', 0)
         pct, direction, raw = _weekly_pct(c, p)
         cls = {'up':'up', 'down':'down', 'neutral':'neutral'}.get(direction, 'neutral')
-        return f"<span class=\"{cls}\">{pct}</span>"
+        return f"<span class=\\\"{cls}\\\">{pct}</span>"
 
     def fmt_row(row):
+        if not row.get('has_source', True):
+            return '—'
         return _weekly_format_num(row['current'], row.get('fmt', 'int'))
 
     def prev_fmt_row(row):
+        if not row.get('has_source', True):
+            return '—'
         if metrics['has_prev']:
             return _weekly_format_num(row['previous'], row.get('fmt', 'int'))
         return '—'
 
-    # TL;DR — top 5 bullets. Built from real deltas + brand voice.
-    tldr_bullets = []
+    # TL;DR - always 5 bullets with bolded insight + context sentence.
+    # When sources are missing, the bullet tells you so instead of silently
+    # dropping the topic.
     weekly = cur.get('weekly', {}) or {}
+    c_28d_full = cur.get('28d', {}) or {}
+    ig_reach = c_28d_full.get('ig_reach', 0)
+    ig_int = c_28d_full.get('ig_interactions', 0)
+    ig_posts_count = c_28d_full.get('ig_posts', 0)
+    ig_configured_now = ig_configured
+    meta_configured_now = meta_configured
+    ga4 = weekly.get('ga4_sessions', 0)
+    pub = weekly.get('content_published', 0)
+    rev = weekly.get('review_pending', 0)
+
+    # Pull previous-week numbers for deltas (when available)
+    prev_28d = (prev or {}).get('28d', {}) or {}
+    prev_weekly = (prev or {}).get('weekly', {}) or {}
+
+    tldr_bullets = []
+
+    # 1) Reach status - Facebook + Instagram (or one if the other is missing)
+    if meta_configured_now and ig_configured_now:
+        ig_pct = _weekly_pct(ig_reach, prev_28d.get('ig_reach', 0))[2] or 0
+        fb_pct = _weekly_pct(c_28d_full.get('fb_reach', 0),
+                              prev_28d.get('fb_reach', 0))[2] or 0
+        if abs(ig_pct) > 5 or abs(fb_pct) > 5:
+            direction_word = 'cooled' if (ig_pct + fb_pct) / 2 < 0 else 'grew'
+            tldr_bullets.append(
+                f"<strong>Reach {direction_word} this week</strong>. "
+                f"Facebook {_weekly_pct(c_28d_full.get('fb_reach', 0), prev_28d.get('fb_reach', 0))[0]}, "
+                f"Instagram {_weekly_pct(ig_reach, prev_28d.get('ig_reach', 0))[0]} vs last week's report."
+            )
+        else:
+            tldr_bullets.append(
+                f"<strong>Reach held steady</strong> across Facebook and Instagram — "
+                f"no big swings either direction this week."
+            )
+    elif meta_configured_now:
+        tldr_bullets.append(
+            f"<strong>Facebook reach:</strong> {_weekly_format_num(c_28d_full.get('fb_reach', 0), 'k')} in the last 28 days. "
+            f"Instagram data is not yet connected."
+        )
+    elif ig_configured_now:
+        tldr_bullets.append(
+            f"<strong>Instagram reach:</strong> {_weekly_format_num(ig_reach, 'k')} in the last 28 days across "
+            f"{ig_posts_count} posts. Facebook data is not yet connected."
+        )
+    else:
+        tldr_bullets.append(
+            f"<strong>Reach data not connected</strong>. Both Facebook and Instagram need tokens wired to start measuring."
+        )
+
+    # 2) Strongest acquisition engine - picks the highest positive delta
+    if metrics['has_prev']:
+        candidates = []
+        for r in metrics['rows'] + metrics['fb_rows'] + metrics['ig_rows']:
+            if not r.get('has_source', True):
+                continue
+            try:
+                c = float(r['current']); p = float(r['previous'])
+                if p == 0 or c == 0:
+                    continue
+                delta = (c - p) / p
+                candidates.append((delta, r['label'], r['current']))
+            except (ValueError, TypeError):
+                continue
+        if candidates:
+            best = max(candidates, key=lambda x: x[0])
+            if best[0] > 0.10:
+                tldr_bullets.append(
+                    f"<strong>{best[1]} is the strongest acquisition signal</strong>. "
+                    f"Up {_weekly_pct(best[2], prev_28d.get(best[1].lower().replace(' ', '_').replace('/', '_'), 0))[0]} vs last week — "
+                    f"this is where new attention is coming from."
+                )
+            else:
+                tldr_bullets.append(
+                    f"<strong>Acquisition is broadly stable</strong>. No single channel spiked this week — a clean week for doubling down on what works."
+                )
+
+    # 3) Engagement quality - interactions, follows, response rate
+    if ig_configured_now:
+        prev_int = prev_28d.get('ig_interactions', 0)
+        prev_follows = prev_28d.get('ig_follows', 0)
+        int_delta = _weekly_pct(ig_int, prev_int)[0]
+        follows_delta = _weekly_pct(c_28d_full.get('ig_follows', 0), prev_follows)[0]
+        tldr_bullets.append(
+            f"<strong>Instagram engagement</strong>: {ig_int:,} interactions across {ig_posts_count} posts "
+            f"({int_delta} vs prev report), {c_28d_full.get('ig_follows', 0)} follows ({follows_delta}). "
+            f"Quality of attention, not just quantity."
+        )
+
+    # 4) Website traffic + paid/organic
+    if ga4 > 0:
+        ga4_delta = _weekly_pct(ga4, prev_weekly.get('ga4_sessions', 0))[0]
+        tldr_bullets.append(
+            f"<strong>Website traffic</strong>: {ga4:,} sessions in the last 7 days ({ga4_delta} vs prev report). "
+            f"Real website behaviour — people clicking through from your socials and ads."
+        )
+
+    # 5) Pipeline flag - reviews, drafts, or conversion flow
+    if rev > 0:
+        tldr_bullets.append(
+            f"<strong>Pipeline flag</strong>: {rev} drafts are sitting in Review waiting for your call. "
+            f"These are assets that have already been generated — just need a yes/no to ship."
+        )
+    elif weekly.get('content_published', 0) == 0:
+        tldr_bullets.append(
+            f"<strong>No content shipped this week</strong>. Worth a cadence check — is the content engine paused, or are drafts stuck somewhere upstream?"
+        )
+    else:
+        tldr_bullets.append(
+            f"<strong>Pipeline is clean</strong>: {pub} pieces shipped this week, no drafts stuck in Review. Healthy cadence."
+        )
+
+    # Pad to exactly 5 if we didn't reach it (data-poor brand)
+    while len(tldr_bullets) < 5:
+        tldr_bullets.append(
+            f"<strong>More data needed</strong> — once you connect Meta, GA4, or a lead source, this report will fill in."
+        )
+
+    # Hero h1 - interpretive headline from best/worst delta
+    hero_h1 = f"Weekly review for {meta['display_name']}"
+    if metrics['has_prev']:
+        # Pick the single most-striking delta - up or down
+        candidates = []
+        for r in metrics['rows'] + metrics['fb_rows'] + metrics['ig_rows']:
+            if not r.get('has_source', True):
+                continue
+            try:
+                c = float(r['current']); p = float(r['previous'])
+                if p == 0:
+                    continue
+                delta = (c - p) / p
+                candidates.append((delta, r['label']))
+            except (ValueError, TypeError):
+                continue
+        if candidates:
+            # Sort by absolute delta magnitude
+            candidates.sort(key=lambda x: -abs(x[0]))
+            top_delta, top_label = candidates[0]
+            if abs(top_delta) > 0.20:  # 20%+ move = headline-worthy
+                direction = 'up' if top_delta > 0 else 'down'
+                if direction == 'up' and top_label in ('New contacts / leads', 'Instagram interactions',
+                                                       'Conversations started', 'New contacts'):
+                    hero_h1 = f"{top_label.replace(' / leads', '')} are converting more than last week."
+                elif direction == 'up':
+                    hero_h1 = f"{top_label} is up this week — keep the momentum."
+                elif top_label in ('Facebook reach', 'Instagram reach'):
+                    hero_h1 = f"Reach cooled this week — let's look at why."
+                elif top_label in ('New contacts / leads', 'Conversations started'):
+                    hero_h1 = f"Conversions slowed this week — worth a closer look."
+                else:
+                    hero_h1 = f"{top_label} is down this week — needs attention."
+
+    # Subtitle - supports the hero
+    subtitle_parts = []
     if weekly.get('content_published', 0) > 0:
-        tldr_bullets.append(f"<strong>{weekly.get('content_published', 0)} pieces of content published</strong> this week for {meta['display_name']}.")
+        subtitle_parts.append(f"{weekly.get('content_published', 0)} pieces shipped this week")
     if weekly.get('ga4_sessions', 0) > 0:
-        tldr_bullets.append(f"<strong>Website traffic:</strong> {weekly.get('ga4_sessions', 0)} sessions in the last 7 days.")
-    if weekly.get('review_pending', 0) > 0:
-        tldr_bullets.append(f"<strong>{weekly.get('review_pending', 0)} drafts</strong> are sitting in Review waiting for your call.")
-    if cur.get('28d', {}).get('ig_interactions', 0) > 0:
-        tldr_bullets.append(f"<strong>Instagram (28d):</strong> {cur['28d'].get('ig_interactions', 0):,} interactions across {cur['28d'].get('ig_posts', 0)} posts.")
-    if not tldr_bullets:
-        tldr_bullets.append(f"<strong>No content published</strong> in the last 7 days for {meta['display_name']}. Worth a check-in — is the cadence working?")
+        subtitle_parts.append(f"{weekly.get('ga4_sessions', 0):,} website sessions")
+    if ig_configured_now and ig_int > 0:
+        subtitle_parts.append(f"{ig_int:,} IG interactions across {ig_posts_count} posts")
+    subtitle = ' · '.join(subtitle_parts) or f"Brand review for {meta['display_name']} — {today}."
 
     # Focus pills from brand pillars
     focus_pills = (meta.get('pillar_defaults') or [])[:5] or ['Brand voice', 'Top content', 'Lead flow', 'Web traffic', 'Reviews']
@@ -10180,10 +10429,30 @@ def _weekly_render_html(bid, data_bid=None):
             continue
         ig_rows_html += f"<tr><td>{r['label']}</td><td>{fmt_row(r)}</td><td>{prev_fmt_row(r)}</td><td>{change_html(r)}</td></tr>"
 
-    # Meta config status
-    meta_configured = any(s.get('name') == 'meta_graph' and s.get('posts') for s in (cur.get('sources') or []))
+    # Meta config status + section (now with Strong/Watch boxes per Stick reference)
     meta_section_html = ''
     if meta_configured:
+        # Strong / Watch callouts from the FB rows
+        fb_deltas = []
+        for r in metrics['fb_rows']:
+            if not r.get('has_source', True):
+                continue
+            try:
+                c = float(r['current']); p = float(r['previous'])
+                if p == 0:
+                    continue
+                fb_deltas.append((r['label'], (c - p) / p))
+            except (ValueError, TypeError):
+                continue
+        strong_html = ''
+        watch_html = ''
+        if fb_deltas:
+            biggest_up = max(fb_deltas, key=lambda x: x[1])
+            biggest_dn = min(fb_deltas, key=lambda x: x[1])
+            if biggest_up[1] > 0.10:
+                strong_html = f'''<div class="highlight"><strong>Strong:</strong> {esc_html(biggest_up[0])} rose {biggest_up[1]*100:+.0f}% this period.</div>'''
+            if biggest_dn[1] < -0.10:
+                watch_html = f'''<div class="highlight warning"><strong>Watch:</strong> {esc_html(biggest_dn[0])} dropped {abs(biggest_dn[1])*100:.0f}% this period.</div>'''
         meta_section_html = f'''
 <section class="section">
   <h2>Facebook</h2>
@@ -10194,17 +10463,57 @@ def _weekly_render_html(bid, data_bid=None):
       <tbody>{fb_rows_html or '<tr><td colspan="4" class="muted">No Facebook data returned yet</td></tr>'}</tbody>
     </table>
   </div>
+  {('<div class="two-col">' + strong_html + watch_html + '</div>') if (strong_html or watch_html) else ''}
 </section>'''
     else:
         meta_section_html = '''
 <section class="section">
   <h2>Facebook</h2>
   <div class="highlight warning">
-    <strong>Meta data not configured.</strong> The 28-day Facebook table will appear here once the Meta Graph API token is added to Railway. The expected shape (views, reach, link clicks, interactions, conversations, new contacts) is already wired — drop a token in and it'll fill in.
+    <strong>Meta data not connected.</strong> The 28-day Facebook table will appear here once the Meta Graph API token is added to Railway.
+    <br><br>
+    <strong>What's missing right now:</strong> views, reach, link clicks, interactions, conversations, new contacts - all from Facebook Pages.
+    <br><br>
+    <strong>How to fix:</strong> add <code>META_APP_ID</code>, <code>META_ACCESS_TOKEN</code>, <code>META_INSTAGRAM_BUSINESS_ACCOUNT_ID</code>, and <code>META_PAGE_ID</code> as service-level env vars on Railway. The shape is already wired - drop the tokens in and it'll fill in on next refresh.
   </div>
 </section>'''
 
-    # Top content — IG top performers
+    # Instagram section with Read box per Stick reference
+    ig_section_html = ''
+    if ig_configured:
+        # Build the IG read box
+        ig_inter = c_28d_full.get('ig_interactions', 0)
+        ig_follows_count = c_28d_full.get('ig_follows', 0)
+        ig_views = c_28d_full.get('ig_views', 0)
+        read_line = ''
+        if ig_inter > 0 and metrics['has_prev']:
+            prev_int = prev_28d.get('ig_interactions', 0)
+            int_pct = _weekly_pct(ig_inter, prev_int)[0]
+            read_line = f"<strong>Read:</strong> Instagram engagement quality moved {int_pct} vs last report. {ig_inter:,} interactions across {ig_posts_count} posts over the last 28 days."
+        else:
+            read_line = f"<strong>Read:</strong> {ig_inter:,} interactions across {ig_posts_count} posts in the last 28 days. Engagement quality holding."
+        ig_section_html = f'''
+<section class="section">
+  <h2>Instagram</h2>
+  <p><span class="date-note">Current 28 days: {pcp_start}–{today} • Previous report: {pcp_start}–{pcp_end}</span></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Movement</th></tr></thead>
+      <tbody>{ig_rows_html or '<tr><td colspan="4" class="muted">No Instagram data available yet</td></tr>'}</tbody>
+    </table>
+  </div>
+  <div class="highlight">{read_line}</div>
+</section>'''
+    else:
+        ig_section_html = '''
+<section class="section">
+  <h2>Instagram</h2>
+  <div class="highlight warning">
+    <strong>Instagram analytics not connected.</strong> The 28-day table will fill in once the IG business account is wired.
+  </div>
+</section>'''
+
+    # Top content - IG top performers
     top_performers = cur.get('28d', {}).get('ig_top_performers', []) or []
     top_content_html = ''
     if top_performers:
@@ -10235,7 +10544,7 @@ def _weekly_render_html(bid, data_bid=None):
 </section>'''
 
     # Google Ads section
-    ga_configured = any(s.get('name') == 'google_ads' and s.get('configured') for s in (cur.get('sources') or []))
+    ga_configured = any(s.get('name') == 'google_ads' and s.get('configured') for s in cur_sources)
     ga_section_html = ''
     if ga_configured:
         ga_data = weekly.get('google_ads', {}) or {}
@@ -10243,6 +10552,8 @@ def _weekly_render_html(bid, data_bid=None):
         impressions = ga_data.get('impressions', 0)
         clicks = ga_data.get('clicks', 0)
         conversions = ga_data.get('conversions', 0)
+        local_actions = ga_data.get('local_actions', 0)
+        calls = ga_data.get('calls', 0)
         ctr = _weekly_safe_div(clicks, impressions) * 100
         cpc = _weekly_safe_div(spend, clicks)
         ga_section_html = f'''
@@ -10252,7 +10563,7 @@ def _weekly_render_html(bid, data_bid=None):
     <div class="card span-3"><div class="metric-label">Spend</div><div class="metric-value">{_weekly_format_num(spend, "rand")}</div><div class="metric-note">Current week</div></div>
     <div class="card span-3"><div class="metric-label">Impressions</div><div class="metric-value">{_weekly_format_num(impressions, "int")}</div><div class="metric-note">CTR {ctr:.1f}%</div></div>
     <div class="card span-3"><div class="metric-label">Clicks</div><div class="metric-value">{_weekly_format_num(clicks, "int")}</div><div class="metric-note">CPC {_weekly_format_num(cpc, "rand")}</div></div>
-    <div class="card span-3"><div class="metric-label">Conversions</div><div class="metric-value">{_weekly_format_num(conversions, "int")}</div><div class="metric-note">Tracked</div></div>
+    <div class="card span-3"><div class="metric-label">Local actions</div><div class="metric-value">{_weekly_format_num(local_actions, "int")}</div><div class="metric-note">{calls} calls · {conversions} tracked conversions</div></div>
   </div>
 </section>'''
     else:
@@ -10260,14 +10571,14 @@ def _weekly_render_html(bid, data_bid=None):
 <section class="section">
   <h2>Google Ads this week</h2>
   <div class="highlight warning">
-    <strong>Google Ads not configured.</strong> Drop a <code>data/google-ads.json</code> file with the shape <code>{spend, impressions, clicks, conversions}</code> and the spend / CTR / CPC cards will fill in here.
+    <strong>Google Ads not configured.</strong> Drop a <code>data/google-ads.json</code> file with the shape <code>{spend, impressions, clicks, conversions, local_actions, calls}</code> and the spend / CTR / CPC cards will fill in here.
   </div>
 </section>'''
 
     # GA4 top pages / sources
     top_pages = weekly.get('ga4_top_pages', []) or []
     sources = weekly.get('ga4_sources', []) or []
-    pages_rows = ''.join(f"<tr><td>{p.get('path')}</td><td>{p.get('sessions', 0)}</td><td>{p.get('engagement_rate', '—')}</td></tr>" for p in top_pages)
+    pages_rows = ''.join(f"<tr><td>{p.get('path')}</td><td>{p.get('sessions', 0)}</td><td>{p.get('engagement_rate', '-')}</td></tr>" for p in top_pages)
     sources_rows = ''.join(f"<tr><td>{s.get('source')}</td><td>{s.get('sessions', 0)}</td></tr>" for s in sources)
     ga4_section_html = f'''
 <section class="section">
@@ -10288,10 +10599,13 @@ def _weekly_render_html(bid, data_bid=None):
     attention_html = ''.join(f'<li>{a}</li>' for a in metrics['attention'])
     focus_pills_html = ''.join(f'<div class="pill">{esc_html(p)}</div>' for p in focus_pills)
 
-    # Hero subtitle — derived from best delta
+    # Hero subtitle derived from real data + an interpretive headline from the
+    # largest week-on-week delta. The hero h1 is what makes this Stick-style
+    # instead of a generic dashboard view.
     subtitle_parts = []
     best_up = max(
-        [(r['label'], _weekly_pct(r['current'], r['previous'])[2] or 0) for r in metrics['rows']],
+        [(r['label'], _weekly_pct(r['current'], r['previous'])[2] or 0) for r in metrics['rows']
+         if r.get('has_source', True)],
         key=lambda x: x[1] or 0,
         default=(None, 0),
     )
@@ -10300,8 +10614,8 @@ def _weekly_render_html(bid, data_bid=None):
     if weekly.get('review_pending', 0) > 5:
         subtitle_parts.append(f"{weekly['review_pending']} drafts are waiting on Review.")
     if weekly.get('content_published', 0) == 0:
-        subtitle_parts.append("No content shipped in the last 7 days — worth a cadence check.")
-    subtitle = ' '.join(subtitle_parts) or f"Weekly review for {meta['display_name']} — {today}."
+        subtitle_parts.append("No content shipped in the last 7 days - worth a cadence check.")
+    subtitle = ' '.join(subtitle_parts) or f"Brand review for {meta['display_name']} — {today}."
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -10354,6 +10668,13 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
 .toolbar select{{background:var(--bg-2,#1d2733);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700}}
 @media print {{ .toolbar{{display:none}} body{{background:#fff;color:#000}} .section,.card,.hero{{background:#fff;color:#000;border-color:#999}} h1,h2,h3,strong{{color:#000}} .subtitle,p,li,td,.metric-note{{color:#333}} .up{{color:#0a8}} .down{{color:#c33}} }}
 @media(max-width:900px){{.span-3,.span-4,.span-6{{grid-column:span 12}}.two-col{{grid-template-columns:1fr}}.hero,.section{{padding:22px}}}}
+.data-sources{{padding:18px 22px}}
+.data-source-grid{{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 12px}}
+.ds-pill{{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;font-family:monospace}}
+.ds-pill.live{{border-color:rgba(93,255,157,.4);color:var(--green)}}
+.ds-pill.off{{border-color:rgba(255,122,122,.4);color:var(--red);opacity:.85}}
+.tldr-list li{{font-size:14.5px;line-height:1.5}}
+.focus-list li{{font-size:14px;line-height:1.5}}
 </style>
 </head>
 <body>
@@ -10374,17 +10695,29 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
 
 <section class="hero">
   <div class="eyebrow">{meta['display_name']} • Weekly Marketing Report • {today}</div>
-  <h1>{esc_html(meta.get('tagline', f'Your {today} snapshot.'))}</h1>
+  <h1>{hero_h1}</h1>
   <p class="subtitle">{subtitle}</p>
   <div class="focus-strip">
     {focus_pills_html}
   </div>
 </section>
 
+<section class="section data-sources">
+  <div class="date-note">Data sources — what powered this report</div>
+  <div class="data-source-grid">
+    <div class="ds-pill {'live' if ga4_configured else 'off'}">📊 GA4 {('live' if ga4_configured else 'not connected')}</div>
+    <div class="ds-pill {'live' if ig_configured else 'off'}">📱 Instagram {('live' if ig_configured else 'not connected')}</div>
+    <div class="ds-pill {'live' if meta_configured else 'off'}">📘 Facebook {('live' if meta_configured else 'not connected')}</div>
+    <div class="ds-pill {'live' if leads_configured else 'off'}">📞 Leads {('live' if leads_configured else 'no source wired')}</div>
+    <div class="ds-pill {'live' if review_configured else 'off'}">📋 Review queue {('live' if review_configured else 'not wired')}</div>
+  </div>
+  <p class="small">Anything showing "not connected" or "not wired" means that data source isn't measuring yet — those numbers below will read as <code>—</code> instead of misleading zeros. Tell us when you want any of them wired.</p>
+</section>
+
 <section class="section">
   <h2>TL;DR</h2>
-  <ul>
-    {"".join(f'<li>{b}</li>' for b in tldr_bullets)}
+  <ul class="tldr-list">
+    {"".join(f'<li>{b}</li>' for b in tldr_bullets[:5])}
   </ul>
 </section>
 
@@ -10410,16 +10743,7 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
 
 {meta_section_html}
 
-<section class="section">
-  <h2>Instagram</h2>
-  <p><span class="date-note">Current 28 days: {pcp_start}–{today} • Previous report: {pcp_start}–{pcp_end}</span></p>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Movement</th></tr></thead>
-      <tbody>{ig_rows_html or '<tr><td colspan="4" class="muted">No Instagram data available yet</td></tr>'}</tbody>
-    </table>
-  </div>
-</section>
+{ig_section_html}
 
 {top_content_html}
 
@@ -10427,22 +10751,25 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
 
 {ga_section_html}
 
-<section class="section">
-  <h2>What is working</h2>
-  <ul>{working_html}</ul>
-</section>
-
-<section class="section">
-  <h2>What needs attention</h2>
-  <ul>{attention_html}</ul>
+<section class="section two-col">
+  <div>
+    <h2>What is working</h2>
+    <ul>{working_html}</ul>
+  </div>
+  <div>
+    <h2>What needs attention</h2>
+    <ul>{attention_html}</ul>
+  </div>
 </section>
 
 <section class="section">
   <h2>This week's focus</h2>
-  <ul>
-    {"".join(f'<li>Keep <strong>{esc_html(p)}</strong> content visible and on-cadence.</li>' for p in focus_pills)}
-    <li>Clear the <strong>{weekly.get('review_pending', 0)} drafts</strong> sitting in Review.</li>
+  <ul class="focus-list">
+    {"".join(f'<li>Keep <strong>{esc_html(p)}</strong> content visible and on-cadence.</li>' for p in focus_pills[:3])}
+    {('<li>Clear the <strong>' + str(rev) + ' drafts</strong> sitting in Review.</li>') if rev > 0 else ''}
     <li>Check what worked last week and ship at least one more of it.</li>
+    {('<li>Reconnect <strong>Meta / Facebook</strong> so the 28-day FB table fills in.') if not meta_configured else ''}
+    {('<li>Wire a <strong>lead source</strong> (HubSpot, Facebook Lead Ads, GA4 events) so "New contacts" reads real numbers instead of <code>—</code>.') if not leads_configured else ''}
   </ul>
 </section>
 
