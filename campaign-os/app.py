@@ -10751,17 +10751,21 @@ def _weekly_build_brain(metrics, cur, prev, today):
         content_published = weekly.get('content_published', 0) or 0
         ga4_sessions = weekly.get('ga4_sessions', 0) or 0
 
-        # Load every data file we have
+        # Load every data file we have. Use _resolve_data_path so we fall
+        # back to BUNDLED_DATA_DIR when the Railway volume is empty
+        # (post-deploy, before the data-sync endpoint has run). Without
+        # this fallback the brain renders an empty section instead of
+        # the full CMO read.
         data_dir = DATA_DIR
-        funnel_leaks = _weekly_load_json(os.path.join(data_dir, 'funnel-leaks.json'))
-        seo = _weekly_load_json(os.path.join(data_dir, 'seo-rankings.json'))
-        comp = _weekly_load_json(os.path.join(data_dir, 'competitor-tracker.json'))
-        pcs = _weekly_load_json(os.path.join(data_dir, 'post-conversion-score.json'))
-        counter = _weekly_load_json(os.path.join(data_dir, 'counter-moves.json'))
-        bvm = _weekly_load_json(os.path.join(data_dir, 'booking-value-model.json'))
-        meta_ads = _weekly_load_json(os.path.join(data_dir, 'meta-ads.json'))
-        rec_outcomes = _weekly_load_json(os.path.join(data_dir, 'recommendation-outcomes.json'))
-        retarget_recs = _weekly_load_json(os.path.join(data_dir, 'retargeting-recommendations.json'))
+        funnel_leaks = _weekly_load_json(_resolve_data_path('funnel-leaks.json'))
+        seo = _weekly_load_json(_resolve_data_path('seo-rankings.json'))
+        comp = _weekly_load_json(_resolve_data_path('competitor-tracker.json'))
+        pcs = _weekly_load_json(_resolve_data_path('post-conversion-score.json'))
+        counter = _weekly_load_json(_resolve_data_path('counter-moves.json'))
+        bvm = _weekly_load_json(_resolve_data_path('booking-value-model.json'))
+        meta_ads = _weekly_load_json(_resolve_data_path('meta-ads.json'))
+        rec_outcomes = _weekly_load_json(_resolve_data_path('recommendation-outcomes.json'))
+        retarget_recs = _weekly_load_json(_resolve_data_path('retargeting-recommendations.json'))
 
         # === Cross-reference primitives (used by every section below) ===
         meta_ads_note = (meta_ads.get('_meta') or {}).get('note') or ''
