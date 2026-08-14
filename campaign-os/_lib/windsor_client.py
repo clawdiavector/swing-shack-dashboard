@@ -116,7 +116,22 @@ def _http_get_json(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict:
             body = e.read().decode("utf-8", errors="replace")
         except Exception:
             body = ""
-        return {"error": f"HTTP {e.code}: {e.reason}", "body": body[:500]}
+        # Windsor returns JSON errors like {"error": "Please check the API key used: ..."}.
+        # Surface that text instead of the opaque "HTTP 400: BAD REQUEST" - it tells us
+        # whether the failure is auth (key bad), validation (field name), or upstream.
+        msg = f"HTTP {e.code}: {e.reason}"
+        if body:
+            try:
+                parsed = json.loads(body)
+                if isinstance(parsed, dict) and parsed.get("error"):
+                    msg = f"{msg} - {parsed['error']}"
+                elif isinstance(parsed, dict) and parsed.get("message"):
+                    msg = f"{msg} - {parsed['message']}"
+                else:
+                    msg = f"{msg} - {body[:200]}"
+            except (json.JSONDecodeError, ValueError):
+                msg = f"{msg} - {body[:200]}"
+        return {"error": msg, "body": body[:500], "status": e.code}
     except Exception as e:
         return {"error": f"network error: {type(e).__name__}: {e}"}
 
