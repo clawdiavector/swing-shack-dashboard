@@ -10580,7 +10580,25 @@ async function renderGBP(){
   const g = S.gbp;
   const inp = g.input || {};
   const services = (inp.services || []).filter(s => typeof s === 'string' && s.trim());
-  $('#gbp-profile').innerHTML = `<dl class="kvs"><dt>Business</dt><dd>${esc(inp.business_name||'—')}</dd><dt>Location</dt><dd>${esc(_gmb_location_line(inp))}</dd><dt>Services</dt><dd>${esc(services.join(', '))}</dd></dl>` + safeList(inp.seo_opportunities, 6).map(itemHtml).join('');
+  // seo_opportunities items are {intent, query, volume}; the generic itemHtml
+  // has no field name that matches, so every card previously rendered the same
+  // `{"intent":"...","query":"...` JSON prefix. Render them as a focused list
+  // with the actual search query as the title (the user-visible "what to rank
+  // for") and intent + volume as pills, so each row is distinct and actionable.
+  const seoRows = safeList(inp.seo_opportunities, 6).map(o => {
+    const query = (o && typeof o === 'object') ? (o.query || '') : (typeof o === 'string' ? o : '');
+    const intent = (o && o.intent) || '';
+    const volume = (o && o.volume) || '';
+    if(!query) return '';
+    const meta = [];
+    if(intent) meta.push(pill(intent === 'high-intent purchase intent' ? 'blocked' : 'live', intent));
+    if(volume) meta.push(pill(volume === 'high' ? 'blocked' : 'draft', `volume · ${volume}`));
+    return `<li class="li" onclick="this.classList.toggle('open')"><div class="li-body"><div class="li-title">🔍 ${esc(query)}</div>${meta.length ? `<div class="li-meta">${meta.join(' ')}</div>` : ''}</div><span class="li-chevron">▶</span></li>`;
+  }).filter(Boolean).join('');
+  const seoBlock = seoRows
+    ? `<div style="margin-top:.75rem"><div class="card-h"><h3 style="cursor:help;border-bottom:1px dotted var(--tx-2);font-size:12px" data-help="High-intent Google search queries this GBP profile could rank for. Click to expand. Volume = local monthly search tier; intent = what the searcher wants to do." data-help-title="SEO opportunities">🎯 SEO opportunities to rank for</h3></div><ul style="list-style:none;padding:0;margin:.5rem 0 0">${seoRows}</ul></div>`
+    : '';
+  $('#gbp-profile').innerHTML = `<dl class="kvs"><dt>Business</dt><dd>${esc(inp.business_name||'—')}</dd><dt>Location</dt><dd>${esc(_gmb_location_line(inp))}</dd><dt>Services</dt><dd>${esc(services.join(', '))}</dd></dl>` + seoBlock;
   const last = g.last_post || {};
   $('#gbp-last').innerHTML = `<div style="margin-bottom:.75rem"><b>Last angle:</b> ${esc(last.chosen_angle||'—')}</div><div class="muted" style="font-size:12px">${esc(last.why_this_angle_wins||'')}</div>` + safeList(last.seo_signals_used, 4).map(itemHtml).join('');
 }
