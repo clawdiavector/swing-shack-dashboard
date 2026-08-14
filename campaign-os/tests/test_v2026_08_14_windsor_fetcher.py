@@ -56,12 +56,25 @@ os.environ["DATA_DIR"] = _TEST_DATA_DIR
 
 
 def _load_fetcher_module():
-    """Load scripts/fetch_windsor.py fresh each time so tests don't share state."""
+    """Load campaign-os/_lib/windsor_fetcher.py fresh each time so tests don't share state.
+
+    The fetcher module does `from . import windsor_client as _w` which only works
+    when loaded as part of the _lib package. We register _lib as a package alias
+    so both relative and absolute imports resolve correctly.
+    """
+    import types
+    pkg = types.ModuleType("_lib")
+    pkg.__path__ = [os.path.join(REPO, "campaign-os", "_lib")]
+    sys.modules["_lib"] = pkg
+    # Pre-load the dependent module under the right name
+    import _lib.windsor_client as _wc_pkg
+    sys.modules["windsor_client"] = _wc_pkg  # so the fetcher's fallback works too
     spec = _ilu.spec_from_file_location(
-        "_fetch_windsor_under_test",
-        os.path.join(REPO, "scripts", "fetch_windsor.py"),
+        "_lib.windsor_fetcher",
+        os.path.join(REPO, "campaign-os", "_lib", "windsor_fetcher.py"),
+        submodule_search_locations=pkg.__path__,
     )
-    assert spec is not None, "Failed to create module spec for fetch_windsor.py"
+    assert spec is not None, "Failed to create module spec for windsor_fetcher.py"
     mod = _ilu.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

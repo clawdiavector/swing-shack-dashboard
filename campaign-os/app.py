@@ -5004,23 +5004,12 @@ def admin_windsor_refresh():
                 "fix": "POST /api/admin/secrets-sync with {service: 'windsor-api', contents: '{\"api_key\":\"<your-key>\"}'}",
             }), 400
 
-        # Import the fetcher builders. Same code as scripts/fetch_windsor.py.
-        # Importing at call time (not module load) avoids loading on every
-        # request - only when this endpoint is hit.
+        # Import the fetcher builders + atomic writer from _lib (same code as
+        # scripts/fetch_windsor.py). This avoids the cross-path
+        # ../scripts/fetch_windsor.py problem on Railway where the deploy
+        # structure doesn't include scripts/ at the resolved path.
         try:
-            import importlib.util as _ilu
-            _spec = _ilu.spec_from_file_location(
-                "_fetch_windsor_local",
-                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                             "scripts", "fetch_windsor.py"),
-            )
-            if _spec and _spec.loader:
-                _mod = _ilu.module_from_spec(_spec)
-                _spec.loader.exec_module(_mod)
-                build_meta_ads = _mod.build_meta_ads
-                build_google_ads = _mod.build_google_ads
-            else:
-                raise RuntimeError("Could not load fetch_windsor.py module spec")
+            from _lib.windsor_fetcher import build_meta_ads, build_google_ads, _atomic_write
         except Exception as e:
             return jsonify({"ok": False, "error": f"failed to load fetcher: {e}"}), 500
 
@@ -5032,18 +5021,8 @@ def admin_windsor_refresh():
         for payload, name in [(meta_payload, 'meta-ads.json'),
                               (ga_payload, 'google-ads.json')]:
             path = os.path.join(DATA_DIR, name)
-            tmp = path + '.tmp'
             try:
-                os.makedirs(DATA_DIR, exist_ok=True)
-                with open(tmp, 'w', encoding='utf-8') as f:
-                    json.dump(payload, f, indent=2, default=str)
-                    f.flush()
-                    os.fsync(f.fileno())
-                os.replace(tmp, path)
-                try:
-                    os.chmod(path, 0o600)
-                except Exception:
-                    pass
+                _atomic_write(path, payload)
                 wrote.append(path)
             except Exception as e:
                 _app_log.warning('windsor-refresh write %s failed: %s', path, e)
