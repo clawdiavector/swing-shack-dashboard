@@ -9915,30 +9915,107 @@ def _weekly_collect_current(bid):
     except Exception:
         pass
 
-    # 3) Meta Graph API — for Facebook (last 28 days)
-    # Honest "not configured" if tokens missing
+    # 3) Meta Graph API — for Facebook (last 28 days, page-level + post-level)
+    # Resolves creds from env (preferred) OR data/meta-tokens.json (bundled fallback)
     try:
-        from _lib import meta_api as _meta  # uses the package path
-        meta_ok = _meta.meta_credentials_present()
-        if meta_ok:
+        from _lib import meta_api as _meta
+        page_ok = _meta._page_credentials_present()
+        ig_ok = _meta.meta_credentials_present()
+        if page_ok or ig_ok:
             try:
-                posts = _meta.list_recent_posts(limit=50) or []
+                # Page-level metrics — fans, followers, views, impressions, reach, engaged users
+                page_info = {}
+                page_insights = {}
+                if page_ok:
+                    try:
+                        page_info = _meta.get_page_info() or {}
+                        out['sources'].append({'name': 'meta_page_info', 'page_id': page_info.get('id'),
+                                               'fan_count': page_info.get('fan_count'),
+                                               'followers_count': page_info.get('followers_count')})
+                    except Exception as e:
+                        out['sources'].append({'name': 'meta_page_info', 'fetch_error': str(e)[:200]})
+                    try:
+                        page_insights = _meta.get_page_insights(period='days_28') or {}
+                        flat_insights = page_insights.get('_flat', {})
+                        out['sources'].append({'name': 'meta_page_insights', 'metrics': list(flat_insights.keys()),
+                                               'period': 'days_28'})
+                        # Map Graph API metric names -> our internal keys
+                        # Views: page_views_total (cumulative page views)
+                        # Reach: page_impressions_unique (unique people)
+                        # Impressions: page_impressions (total)
+                        # Engaged users: page_engaged_users
+                        # Post engagements: page_post_engagements
+                        out['28d']['fb_views'] = int(flat_insights.get('page_views_total') or 0)
+                        out['28d']['fb_reach'] = int(flat_insights.get('page_impressions_unique') or 0)
+                        out['28d']['fb_impressions'] = int(flat_insights.get('page_impressions') or 0)
+                        out['28d']['fb_engaged_users'] = int(flat_insights.get('page_engaged_users') or 0)
+                        out['28d']['fb_post_engagements'] = int(flat_insights.get('page_post_engagements') or 0)
+                    except Exception as e:
+                        out['sources'].append({'name': 'meta_page_insights', 'fetch_error': str(e)[:200]})
+                    out['28d']['fb_fans'] = int(page_info.get('fan_count') or 0)
+                    out['28d']['fb_followers'] = int(page_info.get('followers_count') or 0)
+                    out['28d']['fb_name'] = page_info.get('name', '')
+
+                # Post-level - recent posts + their insights (reach, link clicks, etc.)
+                posts = []
+                posts_source = 'instagram'
+                if ig_ok:
+                    try:
+                        posts = _meta.list_recent_posts(limit=50) or []
+                    except Exception as e:
+                        out['sources'].append({'name': 'meta_graph_ig_fetch_error', 'error': str(e)[:200]})
+                if not posts and page_ok:
+                    try:
+                        posts = _meta.list_page_posts(limit=50) or []
+                        posts_source = 'facebook_page'
+                    except Exception as e:
+                        out['sources'].append({'name': 'meta_graph_fb_fetch_error', 'error': str(e)[:200]})
                 if posts:
                     out['sources'].append({'name': 'meta_graph', 'posts': len(posts),
-                                           'configured': True})
+                                           'configured': True,
+                                           'posts_source': posts_source,
+                                           'has_page_info': bool(page_info),
+                                           'has_page_insights': bool(page_insights.get('_flat'))})
                     out['28d']['fb_posts'] = len(posts)
-                    out['28d']['fb_top_posts'] = sorted(
-                        posts, key=lambda p: -(p.get('views') or p.get('like_count', 0))
-                    )[:5]
+                    out['28d']['fb_posts_source'] = posts_source
+                    # FB posts use 'shares' (dict with 'count') OR plain int; IG posts use 'like_count'.
+                    # Normalize into a 'views' field for the sort key so both work.
+                    def _sort_views(p):
+                        if not isinstance(p, dict):
+                            return 0
+                        v = p.get('views')
+                        if v:
+                            return v
+                        v = p.get('like_count', 0)
+                        if v:
+                            return v
+                        sh = p.get('shares')
+                        if isinstance(sh, dict):
+                            return sh.get('count', 0)
+                        if isinstance(sh, (int, float)):
+                            return sh
+                        return 0
+                    sorted_posts = sorted(posts, key=_sort_views, reverse=True)
+                    out['28d']['fb_top_posts'] = sorted_posts[:5]
             except Exception as e:
                 out['sources'].append({'name': 'meta_graph', 'configured': True,
                                        'fetch_error': str(e)[:200]})
         else:
+            # Distinguish "no creds at all" from "creds partially present" so
+            # the renderer can tell the user exactly what's missing.
+            from _lib.meta_api import _read_meta_access_token, _read_meta_id
+            missing = []
+            if not _read_meta_id('META_APP_ID', 'app_id'): missing.append('META_APP_ID')
+            if not _read_meta_access_token(): missing.append('META_ACCESS_TOKEN')
+            if not _read_meta_id('META_INSTAGRAM_BUSINESS_ACCOUNT_ID', 'instagram_account_id'):
+                missing.append('META_INSTAGRAM_BUSINESS_ACCOUNT_ID')
+            if not _read_meta_id('META_PAGE_ID', 'page_id'): missing.append('META_PAGE_ID')
             out['sources'].append({'name': 'meta_graph', 'configured': False,
-                                   'reason': 'META_APP_ID + META_ACCESS_TOKEN + META_INSTAGRAM_BUSINESS_ACCOUNT_ID missing'})
-    except Exception:
+                                   'reason': f"missing: {', '.join(missing) or 'unknown'}",
+                                   'hint': 'Set as Railway env vars OR drop data/meta-tokens.json with app_id, page_id, instagram_business_account_id, access_token'})
+    except Exception as e:
         out['sources'].append({'name': 'meta_graph', 'configured': False,
-                               'reason': 'meta_api module unavailable'})
+                               'reason': f'meta_api module unavailable: {e}'})
 
     # 4) Google Ads — honest "not configured" if no token; fallback to bundled
     google_ads_path = _resolve_data_path('google-ads.json')
@@ -10144,6 +10221,12 @@ def _weekly_compute_metrics(bid):
     # (e.g. Meta not configured → Facebook metrics show as "—" not "0").
     meta_configured = any(s.get('name') == 'meta_graph' and s.get('posts')
                           for s in (current.get('sources') or []))
+    # Also consider Meta "configured" when page-level data is wired up (page_info
+    # or page_insights) - those can exist even with 0 posts in the 28d window.
+    if not meta_configured:
+        meta_configured = any(s.get('name') in ('meta_page_info', 'meta_page_insights')
+                              and not s.get('fetch_error')
+                              for s in (current.get('sources') or []))
     ig_configured = any(s.get('name') == 'instagram'
                         and (s.get('posts_tracked') or s.get('fetched_at'))
                         for s in (current.get('sources') or []))
@@ -10352,6 +10435,10 @@ def _weekly_render_html(bid, data_bid=None):
     cur_sources = cur.get('sources') or []
     meta_configured = any(s.get('name') == 'meta_graph' and s.get('configured') is not False
                           for s in cur_sources)
+    if not meta_configured:
+        meta_configured = any(s.get('name') in ('meta_page_info', 'meta_page_insights')
+                              and not s.get('fetch_error')
+                              for s in cur_sources)
     ig_configured = any(s.get('name') == 'instagram'
                         and (s.get('posts_tracked') or s.get('fetched_at'))
                         for s in cur_sources)
@@ -10508,6 +10595,18 @@ def _weekly_render_html(bid, data_bid=None):
             f"Real website behaviour — people clicking through from your socials and ads."
         )
 
+    # 4b) Facebook page-level summary - surface page fans/followers/posts so
+    # the reader sees real Facebook numbers even when reach metrics are
+    # blocked by App Review.
+    fb_fans_now = c_28d_full.get('fb_fans', 0)
+    fb_followers_now = c_28d_full.get('fb_followers', 0)
+    fb_posts_now = c_28d_full.get('fb_posts', 0)
+    if fb_fans_now or fb_followers_now:
+        tldr_bullets.append(
+            f"<strong>Facebook page</strong>: {fb_fans_now:,} fans, {fb_followers_now:,} followers, {fb_posts_now} posts in the last 28 days. "
+            f"<span class=\"muted small\">Reach metrics require App Review for read_insights scope.</span>"
+        )
+
     # 5) Pipeline flag - reviews, drafts, or conversion flow
     if rev > 0:
         tldr_bullets.append(
@@ -10629,16 +10728,42 @@ def _weekly_render_html(bid, data_bid=None):
                 strong_html = f'''<div class="highlight"><strong>Strong:</strong> {esc_html(biggest_up[0])} rose {biggest_up[1]*100:+.0f}% this period.</div>'''
             if biggest_dn[1] < -0.10:
                 watch_html = f'''<div class="highlight warning"><strong>Watch:</strong> {esc_html(biggest_dn[0])} dropped {abs(biggest_dn[1])*100:.0f}% this period.</div>'''
+        # Page-level mini-grid (fans, followers, posts in 28d). Even when page
+        # insights return no data, these come straight from /{page_id} so they
+        # always show real numbers.
+        page_fans = c_28d_full.get('fb_fans', 0)
+        page_followers = c_28d_full.get('fb_followers', 0)
+        page_name = c_28d_full.get('fb_name', 'Facebook Page')
+        fb_posts_count = c_28d_full.get('fb_posts', 0)
+        fb_posts_source = c_28d_full.get('fb_posts_source', 'instagram')
+        page_metrics_html = ''
+        if page_fans or page_followers or fb_posts_count:
+            page_metrics_html = f'''
+  <div class="grid">
+    <div class="card span-3"><div class="metric-label">Page fans</div><div class="metric-value">{page_fans:,}</div><div class="metric-note">People who like {esc_html(page_name)}</div></div>
+    <div class="card span-3"><div class="metric-label">Page followers</div><div class="metric-value">{page_followers:,}</div><div class="metric-note">Followers (separate from likes since 2024)</div></div>
+    <div class="card span-3"><div class="metric-label">Posts (28d)</div><div class="metric-value">{fb_posts_count}</div><div class="metric-note">Source: {fb_posts_source}</div></div>
+    <div class="card span-3"><div class="metric-label">Page</div><div class="metric-value" style="font-size:18px">{esc_html(page_name)}</div><div class="metric-note">ID set in META_PAGE_ID</div></div>
+  </div>'''
+        # What's still missing explanation
+        missing_html = ''
+        if not fb_rows_html or all(r.get('current', 0) == 0 for r in metrics['fb_rows']):
+            missing_html = '''
+  <div class="highlight muted">
+    <strong>Page-level insights not yet available.</strong> The numbers above (fans, followers, posts) come straight from the Facebook Page metadata. Reach, views, link clicks and engaged users require <code>read_insights</code> scope on the Meta app — currently these return "must be a valid insights metric" for Swing Shack. Submitting the page for App Review will unlock them.
+  </div>'''
         meta_section_html = f'''
 <section class="section">
   <h2>Facebook</h2>
   <p><span class="date-note">Current 28 days: {pcp_start}–{today} • Previous report: {pcp_start}–{pcp_end}</span></p>
+  {page_metrics_html}
   <div class="table-wrap">
     <table>
       <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Movement</th></tr></thead>
-      <tbody>{fb_rows_html or '<tr><td colspan="4" class="muted">No Facebook data returned yet</td></tr>'}</tbody>
+      <tbody>{fb_rows_html or '<tr><td colspan="4" class="muted">No Facebook insights returned yet</td></tr>'}</tbody>
     </table>
   </div>
+  {missing_html}
   {('<div class="two-col">' + strong_html + watch_html + '</div>') if (strong_html or watch_html) else ''}
 </section>'''
     else:

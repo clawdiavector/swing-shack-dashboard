@@ -34,12 +34,17 @@ GRAPH_API_BASE = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
 # ── Credential resolution (mirrors truth_collector._read_meta_access_token) ──
 
 def meta_credentials_present() -> bool:
-    """True if all of: META_APP_ID, an access token, and an IG business account id are set."""
-    if not os.environ.get("META_APP_ID"):
+    """True if all of: META_APP_ID, an access token, and an IG business account id are set.
+
+    Env vars take priority; data/meta-tokens.json is the bundled fallback so the
+    app works even when Railway env vars are missing and the file was synced via
+    data-sync-to-railway.py.
+    """
+    if not _read_meta_id("META_APP_ID", "app_id"):
         return False
     if not (_read_meta_access_token()):
         return False
-    if not os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID"):
+    if not _read_meta_id("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "instagram_account_id"):
         return False
     return True
 
@@ -47,7 +52,8 @@ def meta_credentials_present() -> bool:
 def _read_meta_access_token() -> Optional[str]:
     """Read Meta access token from (in order):
       1. META_ACCESS_TOKEN_FILE — JSON file with {"access_token": "..."}
-      2. META_ACCESS_TOKEN — raw env value
+      2. data/meta-tokens.json — bundled credentials fallback (same shape)
+      3. META_ACCESS_TOKEN — raw env value
     Returns None if not configured.
     """
     from_file = os.environ.get("META_ACCESS_TOKEN_FILE")
@@ -60,6 +66,24 @@ def _read_meta_access_token() -> Optional[str]:
                 return str(tok).strip()
         except Exception as e:
             _LOG.warning("could not read META_ACCESS_TOKEN_FILE=%s: %s", from_file, e)
+    # Bundled fallback: data/meta-tokens.json — same shape as the *_FILE pattern.
+    # Production should still set META_ACCESS_TOKEN (or *_FILE pointing at the
+    # same file) but this lets local-dev + Railway-without-env-vars work when
+    # the file is force-added to the repo or synced via data-sync-to-railway.py.
+    for bundled in ("data/meta-tokens.json",
+                    os.path.join(os.environ.get("DATA_DIR", ""), "meta-tokens.json")):
+        if not bundled:
+            continue
+        try:
+            with open(bundled) as f:
+                data = json.load(f)
+            tok = data.get("access_token") or data.get("token")
+            if tok:
+                return str(tok).strip()
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            _LOG.warning("could not read bundled %s: %s", bundled, e)
     raw = os.environ.get("META_ACCESS_TOKEN")
     if raw and raw.strip():
         return raw.strip()
@@ -82,7 +106,9 @@ def _read_meta_page_token() -> Optional[str]:
       1. META_PAGE_ACCESS_TOKEN_FILE — JSON file with {"access_token": "..."}
       2. META_PAGE_ACCESS_TOKEN — raw env value
       3. META_PAGE_TOKEN_FILE — alias
-      4. Fall back to user token (_read_meta_access_token)
+      4. data/meta-tokens.json — bundled fallback (same shape; falls back to
+         bundled user token if no page_token field)
+      5. Fall back to user token (_read_meta_access_token)
     """
     for env_key in ("META_PAGE_ACCESS_TOKEN_FILE", "META_PAGE_TOKEN_FILE"):
         path = os.environ.get(env_key)
@@ -99,9 +125,50 @@ def _read_meta_page_token() -> Optional[str]:
         raw = os.environ.get(env_key)
         if raw and raw.strip():
             return raw.strip()
+    # Bundled fallback — same pattern as user token. If the bundled file has
+    # an explicit page_token field use that; otherwise fall through to user token.
+    for bundled in ("data/meta-tokens.json",
+                    os.path.join(os.environ.get("DATA_DIR", ""), "meta-tokens.json")):
+        if not bundled:
+            continue
+        try:
+            with open(bundled) as f:
+                data = json.load(f)
+            tok = data.get("page_access_token") or data.get("page_token")
+            if tok:
+                return str(tok).strip()
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            _LOG.warning("could not read bundled %s: %s", bundled, e)
     # Fallback: user token. May not work for page endpoints (Meta requires
     # page-scoped token post-2024 for /{page_id}/posts).
     return _read_meta_access_token()
+
+
+def _read_meta_id(env_key: str, bundled_key: str) -> Optional[str]:
+    """Resolve a Meta ID (page_id, ig_account_id, app_id) from env + bundled fallback.
+
+    Env wins. Falls back to data/meta-tokens.json[bundled_key]. Returns None if not set.
+    """
+    raw = os.environ.get(env_key)
+    if raw and raw.strip():
+        return raw.strip()
+    for bundled in ("data/meta-tokens.json",
+                    os.path.join(os.environ.get("DATA_DIR", ""), "meta-tokens.json")):
+        if not bundled:
+            continue
+        try:
+            with open(bundled) as f:
+                data = json.load(f)
+            val = data.get(bundled_key)
+            if val:
+                return str(val).strip()
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            _LOG.warning("could not read bundled %s: %s", bundled, e)
+    return None
 
 
 # ── Low-level Graph API caller ────────────────────────────────────────────────
@@ -169,8 +236,10 @@ def list_recent_posts(limit: int = 25, fields: Optional[list[str]] = None) -> di
       }
     """
     if not meta_credentials_present():
-        raise MetaAuthError("Meta credentials not configured — set META_APP_ID, META_ACCESS_TOKEN[_FILE], META_INSTAGRAM_BUSINESS_ACCOUNT_ID")
-    ig_account_id = os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "").strip()
+        raise MetaAuthError("Meta credentials not configured - set META_APP_ID, META_ACCESS_TOKEN[_FILE], META_INSTAGRAM_BUSINESS_ACCOUNT_ID")
+    ig_account_id = _read_meta_id("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "instagram_account_id") or ""
+    if not ig_account_id.isdigit():
+        raise ValueError(f"META_INSTAGRAM_BUSINESS_ACCOUNT_ID must be numeric, got: {ig_account_id!r}")
     default_fields = [
         "id",
         "caption",
@@ -310,12 +379,14 @@ def _page_credentials_present() -> bool:
 
     Unlike meta_credentials_present(), this does NOT require an IG business
     account id — the FB-page endpoints work with just the page id.
+
+    Env vars take priority; data/meta-tokens.json is the bundled fallback.
     """
-    if not os.environ.get("META_APP_ID"):
+    if not _read_meta_id("META_APP_ID", "app_id"):
         return False
     if not _read_meta_access_token():
         return False
-    if not os.environ.get("META_PAGE_ID"):
+    if not _read_meta_id("META_PAGE_ID", "page_id"):
         return False
     return True
 
@@ -338,7 +409,7 @@ def list_page_posts(limit: int = 25, fields: Optional[list[str]] = None) -> dict
             "FB-page credentials not configured — set META_APP_ID, META_PAGE_ID, "
             "META_ACCESS_TOKEN[_FILE]"
         )
-    page_id = os.environ.get("META_PAGE_ID", "").strip()
+    page_id = _read_meta_id("META_PAGE_ID", "page_id") or ""
     if not page_id.isdigit():
         raise ValueError(f"META_PAGE_ID must be numeric, got: {page_id!r}")
     default_fields = [
@@ -346,12 +417,7 @@ def list_page_posts(limit: int = 25, fields: Optional[list[str]] = None) -> dict
         "message",
         "created_time",
         "permalink_url",
-        "full_picture",
-        "reactions.limit(0).summary(true)",
-        "comments.limit(0).summary(true)",
-        "shares",
-        "status_type",
-        "is_published",
+        "shares",  # safe - no extra scope needed
     ]
     fields = fields or default_fields
     params = {
@@ -478,6 +544,124 @@ def get_page_post_comments(post_id: str, limit: int = 50) -> dict:
         "post_id": post_id,
         "fetched": len(out.get("data", [])),
         "endpoint": f"/{post_id}/comments",
+        "source": "facebook_page",
+    }
+    return out
+
+
+def get_page_info(fields: Optional[list[str]] = None) -> dict:
+    """GET /{page_id} — read the Page's own metadata.
+
+    Requires scope: pages_show_list, pages_read_engagement.
+
+    Returns flat dict with: id, name, fan_count, followers_count, link, picture, etc.
+    Useful for the weekly report's "Facebook page fans / followers" headline numbers.
+    """
+    if not _page_credentials_present():
+        raise MetaAuthError(
+            "FB-page credentials not configured - set META_APP_ID, META_PAGE_ID, META_ACCESS_TOKEN[_FILE]"
+        )
+    page_id = _read_meta_id("META_PAGE_ID", "page_id") or ""
+    if not page_id.isdigit():
+        raise ValueError(f"META_PAGE_ID must be numeric, got: {page_id!r}")
+    default_fields = [
+        "id",
+        "name",
+        "username",
+        "fan_count",          # people who liked the page
+        "followers_count",    # people who follow (different metric since 2024)
+        "link",
+        "picture.type(large)",
+        "about",
+        "category",
+        "verification_status",
+        "website",
+    ]
+    params = {
+        "fields": ",".join(fields or default_fields),
+    }
+    out = _graph_get(f"/{page_id}", params, use_page_token=True)
+    out["_meta"] = {
+        "page_id": page_id,
+        "fetched": len([k for k in out.keys() if not k.startswith("_")]),
+        "endpoint": f"/{page_id}",
+        "source": "facebook_page",
+    }
+    return out
+
+
+def get_page_insights(metrics: Optional[list[str]] = None, period: str = "days_28") -> dict:
+    """GET /{page_id}/insights?metric=...&period=days_28 - read page-level metrics.
+
+    Requires scope: read_insights, pages_read_engagement.
+
+    Default metrics (the standard 28-day view):
+      - page_views_total: total page views
+      - page_impressions: number of times the page was shown (unique + repeat)
+      - page_impressions_unique: unique people who saw the page (= reach)
+      - page_engaged_users: unique people who engaged (any action)
+      - page_post_engagements: total post engagements
+
+    Other useful metrics (valid for days_28 / week / day):
+      - page_fan_adds_unique, page_fan_removes_unique
+      - page_fans_gender_age
+      - page_tab_views_login, page_tab_views_logout
+      - page_actions_post_reactions_total
+
+    Returns:
+      {
+        "_flat": {metric_name: value},
+        "data": [raw upstream per-metric blocks],
+        "_meta": {page_id, metrics, period, source}
+      }
+    """
+    if not _page_credentials_present():
+        raise MetaAuthError(
+            "FB-page credentials not configured - set META_APP_ID, META_PAGE_ID, META_ACCESS_TOKEN[_FILE]"
+        )
+    page_id = _read_meta_id("META_PAGE_ID", "page_id") or ""
+    if not page_id.isdigit():
+        raise ValueError(f"META_PAGE_ID must be numeric, got: {page_id!r}")
+    default_metrics = [
+        # Only request metrics we know this page+app can read. If a metric is
+        # not in the page's whitelist, Meta returns 400 and the WHOLE call
+        # fails - so we call each metric individually below and skip failures.
+        "page_views_total",
+        "page_post_engagements",
+        "page_actions_post_reactions_total",
+        "page_actions_post_reactions_like_total",
+        "page_fan_adds",
+        "page_fan_removes",
+    ]
+    metrics_to_try = metrics or default_metrics
+    flat: dict[str, Any] = {}
+    per_metric_errors: dict[str, str] = {}
+    for metric in metrics_to_try:
+        params = {"metric": metric, "period": period}
+        try:
+            single = _graph_get(f"/{page_id}/insights", params, use_page_token=True)
+            for entry in single.get("data", []):
+                name = entry.get("name", "?")
+                values = entry.get("values", [])
+                if values and isinstance(values, list) and values:
+                    v = values[0].get("value")
+                    if not isinstance(v, (dict, list)):
+                        flat[name] = v
+        except MetaAuthError:
+            raise  # propagate auth errors - token issues are not recoverable per-metric
+        except (MetaUpstreamError, MetaNetworkError) as e:
+            # Skip this metric - likely "value must be a valid insights metric"
+            # (Meta app review not approved for this metric on this page)
+            per_metric_errors[metric] = str(e)[:100]
+    out = {"data": [{"name": k, "values": [{"value": v}]} for k, v in flat.items()]}
+    out["_flat"] = flat
+    out["_meta"] = {
+        "page_id": page_id,
+        "metrics": metrics_to_try,
+        "metrics_returned": list(flat.keys()),
+        "metrics_blocked": per_metric_errors,
+        "period": period,
+        "fetched": len(flat),
         "source": "facebook_page",
     }
     return out
