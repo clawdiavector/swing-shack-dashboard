@@ -3943,21 +3943,35 @@ def ubersuggest_keyword_overview():
     """GET /api/intel/ubersuggest/keyword_overview — single-keyword snapshot.
 
     Query params: keyword (required), loc_id (default 2840 = US, 2076 = SA),
-    lang (default 'en'). Uses the cached access token + auto-refresh; returns
-    503 if the OAuth dance hasn't been run yet.
+    or location (default 'ZA'). lang (default 'en'). Uses the cached access
+    token + auto-refresh; returns 503 if the OAuth dance hasn't been run yet.
+
+    NOTE: the MCP server's `keyword_overview` tool only accepts `location` as a
+    country STRING (e.g. "ZA", "US"); it rejects numeric `locId` with
+    `Invalid "location" parameter.` We translate the numeric `loc_id` to its
+    country code here so the public API still accepts the documented
+    loc_id query param.
     """
+    # Numeric Ubersuggest location IDs → country code (MCP server expects a
+    # string). Subset is enough for the audiences Swing Shack targets.
+    _LOC_ID_TO_COUNTRY = {2840: "US", 2076: "ZA", 2826: "GB", 2276: "DE", 2250: "FR", 2380: "IT", 2724: "ES", 2300: "GR"}
     try:
         from _lib import ubersuggest_mcp as _us
         keyword = (request.args.get("keyword") or "").strip()
         if not keyword:
             return jsonify({"ok": False, "error": "keyword query param required"}), 400
-        try:
-            loc_id = int(request.args.get("loc_id", "2840"))
-        except ValueError:
-            loc_id = 2840
+        # Prefer the explicit `location` string if provided; otherwise translate
+        # the legacy numeric `loc_id` (default US/2840) to its country code.
+        location = (request.args.get("location") or "").strip().upper()
+        if not location:
+            try:
+                loc_id = int(request.args.get("loc_id", "2840"))
+            except ValueError:
+                loc_id = 2840
+            location = _LOC_ID_TO_COUNTRY.get(loc_id, "ZA")
         lang = (request.args.get("lang") or "en").strip()
-        result = _us.keyword_overview(keyword, loc_id=loc_id, lang=lang)
-        return jsonify({"ok": True, "keyword": keyword, **result}), 200
+        result = _us.keyword_overview(keyword, location=location, lang=lang)
+        return jsonify({"ok": True, "keyword": keyword, "location": location, **result}), 200
     except _us.UbersuggestAuthError as e:
         return jsonify({
             "ok": False,
