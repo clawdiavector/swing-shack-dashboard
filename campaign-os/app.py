@@ -4871,6 +4871,93 @@ def admin_secrets_sync():
     })
 
 
+@app.route('/api/admin/data-sync', methods=['POST'])
+def admin_data_sync():
+    """POST /api/admin/data-sync — paste contents of any data/ JSON file.
+
+    Single-source-of-truth bridge: copy the JSON from
+    ~/.openclaw-instance2/workspace/clients/swing-shack/data/ on your Mac,
+    paste it here. Server writes to DATA_DIR/<filename> so the brain +
+    weekly report can read the latest numbers.
+
+    Body: { filename: "funnel-leaks.json", contents: <full JSON as string OR object> }
+
+    Filename is validated against an allowlist of files the brain actually
+    reads - refuses anything else so we don't accidentally clobber state.
+    """
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"invalid JSON: {e}"}), 400
+
+    filename = (body.get('filename') or '').strip()
+    contents = body.get('contents')
+    if not filename:
+        return jsonify({"ok": False, "error": "filename is required"}), 400
+    if contents is None:
+        return jsonify({"ok": False, "error": "contents is required"}), 400
+
+    # Allowlist: only files the brain + report actually read. Refuses any
+    # other filename to prevent accidental overwrites of mission-critical state.
+    ALLOWED = {
+        'funnel-leaks.json', 'seo-rankings.json', 'competitor-tracker.json',
+        'post-conversion-score.json', 'counter-moves.json', 'meta-ads.json',
+        'recommendation-outcomes.json', 'retargeting-recommendations.json',
+        'booking-value-model.json', 'ig-business-analytics.json',
+        'ig-analytics.json', 'meta-tokens.json', 'ga4-metrics.json',
+        'weekly-learnings.json', 'what-to-repeat.json', 'what-to-stop.json',
+        'recommendation-scores.json', 'lead-quality.json', 'leads.json',
+        'retargeting-campaigns.json', 'booking-events.json',
+        'booking-closure.json', 'conversion-attribution.json',
+        'conversion-truth.json', 'post-attribution.json', 'ga4-attribution.json',
+        'review-domination.json', 'cta-performance.json',
+        'format-model-refit.json', 'ab-tests.json',
+        'agent-scorecards.json',
+    }
+    if filename not in ALLOWED:
+        return jsonify({
+            "ok": False,
+            "error": f"filename '{filename}' is not in the allowlist. Allowed: {sorted(ALLOWED)}",
+        }), 400
+
+    # Path safety: refuse any filename with slashes or '..' even if it
+    # somehow passes the allowlist.
+    if '/' in filename or '\\' in filename or '..' in filename:
+        return jsonify({"ok": False, "error": "filename must be a bare filename, no path separators"}), 400
+
+    # Accept contents as JSON string or object
+    if isinstance(contents, str):
+        try:
+            contents_obj = json.loads(contents)
+        except json.JSONDecodeError as e:
+            return jsonify({"ok": False, "error": f"contents not valid JSON: {e}"}), 400
+    elif isinstance(contents, dict) or isinstance(contents, list):
+        contents_obj = contents
+    else:
+        return jsonify({"ok": False, "error": "contents must be JSON string, object, or array"}), 400
+
+    payload_str = json.dumps(contents_obj, indent=2, default=str)
+    target_path = os.path.join(DATA_DIR, filename)
+    wrote = []
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(target_path, 'w') as f:
+            f.write(payload_str)
+        os.chmod(target_path, 0o600)
+        wrote.append(target_path)
+    except Exception as e:
+        _app_log.warning('data-sync write %s failed: %s', target_path, e)
+        return jsonify({"ok": False, "error": f"write failed: {e}"}), 500
+
+    return jsonify({
+        "ok": True,
+        "filename": filename,
+        "wrote": wrote,
+        "bytes": len(payload_str),
+        "note": "Data file now visible to brain + weekly report on next render. Survives Railway restarts because DATA_DIR is a persistent volume.",
+    })
+
+
 @app.route('/meta-portal', methods=['GET'])
 @app.route('/meta-portal.html', methods=['GET'])
 def meta_portal_form():
