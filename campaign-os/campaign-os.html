@@ -417,6 +417,7 @@ a:hover{text-decoration:underline}
 
 /* ─── Lists ───────────────────────────────────────────────────── */
 .list{list-style:none}
+ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 .li{padding:.6rem .75rem;border-radius:var(--r-s);background:var(--bg-3);margin-bottom:.4rem;display:flex;align-items:flex-start;gap:.75rem;transition:background var(--t);cursor:pointer;border:1px solid transparent}
 .li:hover{background:var(--bg-4);border-color:var(--bd-2)}
 .li-body{flex:1;min-width:0}
@@ -8916,7 +8917,18 @@ async function renderHooks(){
   $('#hooks-ww').innerHTML = safeList(h.all_hooks, 20).map(renderHook).join('') || '<div class="empty">No hooks yet</div>';
   const renderFormula = it => `<li class="li"><div class="li-body"><div class="li-title">${esc((it.best_example || '').slice(0,120))}</div><div class="li-meta">${pill('live', it.formula || '')} ${it.count?` · ${it.count} uses`:''} ${it.avg_cross_score?` · avg score ${it.avg_cross_score}`:''}</div></div></li>`;
   $('#hooks-formulas').innerHTML = safeList(h.hook_formulas, 20).map(renderFormula).join('') || '<div class="empty">No formulas</div>';
-  empty('hooks-generated', 'Click Generate to produce fresh hooks from current signals');
+  // Before this fix the empty state was a single line of grey text buried
+  // at the bottom of the page ("Click Generate to produce fresh hooks from
+  // current signals"). The actual Generate button (#hooks-gen) sat in the
+  // top-right of the section header — users scrolled to the empty card,
+  // saw nothing actionable, and left without generating. Inline the CTA
+  // into the empty card so the next action is obvious.
+  $('#hooks-generated').innerHTML = `
+    <div class="empty" style="text-align:center">
+      <div class="empty-title">No fresh hooks yet</div>
+      <div class="empty-sub">Hooks generated from current signals: trending Reddit threads, golf news, YouTube titles, competitor moves. New each refresh. Treat as raw material, edit before approving. None of these auto-publish.</div>
+      <button class="btn primary" style="margin-top:.7rem;font-size:12px;padding:.35rem .75rem" onclick="document.getElementById('hooks-gen')?.click()">⚡ Generate 10 fresh hooks →</button>
+    </div>`;
 }
 $('#hooks-gen').addEventListener('click', async () => {
   const r = await API.get('/api/intel/hooks_generate');
@@ -8930,7 +8942,12 @@ $('#hooks-gen').addEventListener('click', async () => {
     return;
   }
   const saChip = renderSaRewritesBadge(r._sa_rewrites);
-  $('#hooks-generated').innerHTML = `${saChip}<ul class="li">${safeList(r.generated, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.hook)}</div><div class="li-meta">${esc(it.source||'')} · ${pill(it.kind||'live', it.kind||'live')}</div></div></li>`).join('')}</ul>`;
+  // Before this fix the wrapper was <ul class="li">. The .li class sets
+  // `display:flex` which made the list turn into a flex row of 525px-wide
+  // columns, so each hook text wrapped every 3-4 words and the section
+  // became unreadable. Wrap in a plain <ul> (no class) so the children
+  // render as a single vertical stack of cards. Em-dash banned rule.
+  $('#hooks-generated').innerHTML = `${saChip}<ul class="hooks-generated-list">${safeList(r.generated, 12).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.hook)}</div><div class="li-meta">${esc(it.source||'')} · ${pill(it.kind||'live', it.kind||'live')}</div></div></li>`).join('')}</ul>`;
   toast('Generated '+r.count+' fresh hooks');
 });
 
