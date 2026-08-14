@@ -10675,23 +10675,78 @@ async function renderReddit(){
 // Spaces inside the string disqualify it ("trackman golf" is fine even
 // though each word is short).
 const _FAQ_URL_SLUG_RE = /^\s*\/[a-z0-9-]+\/\s*$/i;
+// Known URL-slug → human keyword map. The blog_beast agent occasionally
+// emits a sitemap path as the FAQ target_keyword (e.g. `/club-fitting/`,
+// `/bookings/`) and templates it into every question, producing titles
+// like "What is /club-fitting/?". For mappings we recognise we
+// substitute the slug back into the real keyword — both in
+// target_keyword AND in every question string — so the FAQ set is
+// usable. Unknown slugs fall through to the existing "skipped" hint.
+const _FAQ_SLUG_MAP = {
+  '/club-fitting/':  'club fitting',
+  '/club-fitting':   'club fitting',
+  '/bookings/':      'book a session',
+  '/bookings':       'book a session',
+  '/philosophy/':    'philosophy',
+  '/philosophy':     'philosophy',
+  '/membership/':    'membership',
+  '/membership':     'membership',
+  '/coaching/':      'coaching',
+  '/coaching':       'coaching',
+  '/contact/':       'contact',
+  '/contact':        'contact',
+  '/lessons/':       'golf lessons',
+  '/lessons':        'golf lessons',
+};
+function _faqSalvageSlugKeyword(it, slugTk){
+  // Returns a *shallow-cloned* FAQ item with the slug swapped for the
+  // real keyword in both target_keyword and every question. Returns
+  // null if we don't know the mapping.
+  const replacement = _FAQ_SLUG_MAP[slugTk.toLowerCase()];
+  if(!replacement) return null;
+  const out = Object.assign({}, it);
+  out.target_keyword = replacement;
+  const qs = Array.isArray(it.questions) ? it.questions : [];
+  out.questions = qs.map(q => typeof q === 'string'
+    ? q.split(slugTk).join(replacement).split(slugTk.replace(/\/$/, '')).join(replacement)
+    : q);
+  // Guard: if substitution emptied the first question, abandon salvage.
+  const first = (out.questions[0] || '').trim();
+  if(!first) return null;
+  return out;
+}
 async function renderFAQs(){
   const r = await API.get('/api/intel/faq_generator');
   const raw = safeList(r.faqs, 60);
   // Dedup by (cluster | target_keyword | first question). Rows whose
   // target_keyword is just a URL path (`/bookings/`, `/club-fitting/`,
-  // `/philosophy/`) are skipped — those are leaked sitemap entries from
-  // blog_beast, and templating them into "What is /bookings/?" looks like
-  // a render bug. We surface them in a hint so the data issue stays
-  // visible to the next agent run.
+  // `/philosophy/`) are usually leaked sitemap entries from blog_beast
+  // and would templated into "What is /bookings/?" titles. For slugs
+  // we recognise, salvage the row by substituting the real keyword
+  // back into target_keyword and every question, so the FAQ set is
+  // usable. Unknown slugs fall through to the "skipped" hint so the
+  // data issue stays visible to the next agent run.
   const seen = new Map();
   const stale = [];
+  const salvaged = [];
   let dupes = 0;
-  for(const it of raw){
+  for(let rawItem of raw){
+    const it = rawItem;
     const qs = Array.isArray(it.questions) ? it.questions.filter(q => typeof q === 'string' && q.trim()) : [];
     const firstQ = (qs[0] || '').toLowerCase().replace(/\s+/g, ' ').trim();
     const tk = (it.target_keyword || '').toString().trim();
     if(_FAQ_URL_SLUG_RE.test(tk)){
+      const fixed = _faqSalvageSlugKeyword(it, tk);
+      if(fixed){
+        const fixedQs = Array.isArray(fixed.questions) ? fixed.questions.filter(q => typeof q === 'string' && q.trim()) : [];
+        const fixedFirstQ = (fixedQs[0] || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        const fixedTk = (fixed.target_keyword || '').trim();
+        const key = `${(fixed.cluster||'').toLowerCase()}|${fixedTk.toLowerCase()}|${fixedFirstQ}`;
+        if(seen.has(key)){ dupes++; continue; }
+        seen.set(key, fixed);
+        salvaged.push(tk);
+        continue;
+      }
       stale.push(tk || '(empty)');
       continue;
     }
@@ -10700,12 +10755,16 @@ async function renderFAQs(){
     seen.set(key, it);
   }
   const items = Array.from(seen.values()).slice(0, 30);
+  // Hint: if any rows were skipped (URL-slug we couldn't salvage),
+  // surface the count + the offending slugs so the data issue stays
+  // visible. Salvaged rows are credited in the count line below, not
+  // in this warning, so the warning stays narrow and actionable.
   const hint = stale.length
     ? `<div class="empty" style="margin-bottom:.75rem">⚠️ ${stale.length} FAQ set${stale.length===1?'':'s'} skipped — target_keyword looks like a URL path (${stale.slice(0,3).map(s => '`'+s+'`').join(', ')}${stale.length>3?'…':''}). Re-run blog_beast with a fresh seed.</div>`
     : '';
   const uniqueCount = seen.size;
-  const countHint = (dupes || stale.length)
-    ? `<div class="muted" style="font-size:11px;margin-bottom:.5rem">${uniqueCount} unique set${uniqueCount===1?'':'s'} · ${dupes} duplicate${dupes===1?'':'s'} collapsed${stale.length ? ` · ${stale.length} URL-slug skipped` : ''}</div>`
+  const countHint = (dupes || stale.length || salvaged.length)
+    ? `<div class="muted" style="font-size:11px;margin-bottom:.5rem">${uniqueCount} unique set${uniqueCount===1?'':'s'} · ${dupes} duplicate${dupes===1?'':'s'} collapsed${stale.length ? ` · ${stale.length} URL-slug skipped` : ''}${salvaged.length ? ` · ${salvaged.length} slug auto-fixed` : ''}</div>`
     : '';
   const html = items.length
     ? countHint + items.map(it => {

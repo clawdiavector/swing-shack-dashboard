@@ -54,21 +54,35 @@ class TestFAQsDedupAndStaleUrlSlugs(unittest.TestCase):
         # question. Any narrower key (just title, just cluster) leaks dupes.
         # The implementation uses a template literal (`${...}${...}${...}`).
         # Look for all three references appearing together in the same
-        # template literal assignment to `key`.
+        # template literal assignment to `key`. The salvage branch added
+        # 2026-08-15 uses a cloned object (`fixed`) with renamed locals
+        # (`fixedTk`, `fixedFirstQ`, `fixed.cluster`) — accept either form
+        # so the contract stays "cluster + target_keyword + first question".
         body = self._render_faqs_body()
-        m = re.search(r"const\s+key\s*=\s*`([^`]+)`", body)
-        self.assertIsNotNone(
-            m,
-            "renderFAQs() must build the dedup key from a template literal "
+        keys = re.findall(r"const\s+key\s*=\s*`([^`]+)`", body)
+        self.assertGreaterEqual(
+            len(keys), 1,
+            "renderFAQs() must build at least one dedup key from a template literal "
             "assigned to a `key` variable.",
         )
-        key_body = m.group(1)
-        for token in ("it.cluster", "tk", "firstQ"):
-            self.assertIn(
-                token,
-                key_body,
-                f"renderFAQs() dedup key must include {token!r} so duplicate "
-                f"FAQ sets actually collapse. Key body was: {key_body!r}",
+        for i, key_body in enumerate(keys):
+            cluster_ok = ("it.cluster" in key_body) or ("fixed.cluster" in key_body)
+            tk_ok = ("tk" in key_body) or ("fixedTk" in key_body)
+            fq_ok = ("firstQ" in key_body) or ("fixedFirstQ" in key_body)
+            self.assertTrue(
+                cluster_ok,
+                f"renderFAQs() dedup key #{i} must reference the cluster field. "
+                f"Key body was: {key_body!r}",
+            )
+            self.assertTrue(
+                tk_ok,
+                f"renderFAQs() dedup key #{i} must reference the target_keyword token. "
+                f"Key body was: {key_body!r}",
+            )
+            self.assertTrue(
+                fq_ok,
+                f"renderFAQs() dedup key #{i} must reference the first-question token. "
+                f"Key body was: {key_body!r}",
             )
 
     def test_url_slug_regex_is_defined(self):
