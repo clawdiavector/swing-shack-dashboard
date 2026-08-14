@@ -503,7 +503,11 @@ class TestBrainPaidReachWarning(unittest.TestCase):
             "campaigns": [{"spend": 1.5, "name": "fake"}],
         }
         html = self._run_brain(meta, {})
-        self.assertIn("Paid reach is invisible", html)
+        # 2026-08-14 bullet-driven rebuild: the synthesised warning now
+        # surfaces as "Paid reach is synthesised" + an explicit
+        # "synthesised from organic IG" bullet (no more "Paid reach is
+        # invisible" prose wall).
+        self.assertIn("synthesised", html.lower())
         self.assertIn("Windsor", html)
         self.assertNotIn("is live", html)
 
@@ -519,15 +523,16 @@ class TestBrainPaidReachWarning(unittest.TestCase):
             "campaigns": [{"id": "1"}, {"id": "2"}, {"id": "3"}],
         }
         html = self._run_brain(meta, {})
-        # New brain (2026-08-14 value-add rebuild): synthesised warning must
-        # NOT appear. Live data must appear in the new "Where attention is
-        # actually coming from" section (cross-references paid vs organic).
-        self.assertNotIn("Paid reach is invisible", html)
-        self.assertIn("Paid", html)  # paid reach now surfaced
-        self.assertIn("1,234", html)  # spend formatted (as Rand figure)
-        self.assertIn("32,000", html)  # reach
-        self.assertIn("CTR", html)
-        self.assertIn("CPC", html)
+        # 2026-08-14 bullet-driven rebuild: synthesised warning must NOT
+        # appear. Live data appears in TL;DR + Rand stake section + (when
+        # organic reach > 0) the cross-referenced "Where attention is
+        # coming from." section. The test fixture has no IG organic so
+        # we assert against the simpler data paths.
+        self.assertNotIn("synthesised", html.lower())
+        self.assertIn("Paid", html)  # paid reach surfaces in TL;DR
+        self.assertIn("1,234", html)  # spend formatted (ZAR stake)
+        self.assertIn("CTR", html)  # CTR in TL;DR
+        self.assertIn("CPC", html)  # CPC in TL;DR
 
     def test_live_google_ads_replaces_warning(self):
         ga = {
@@ -542,9 +547,9 @@ class TestBrainPaidReachWarning(unittest.TestCase):
             "conversions": 2,
         }
         html = self._run_brain({}, ga)
-        # New brain: synthesised warning must NOT appear. Live Google Ads
-        # data surfaces in the Rand stake section and headline.
-        self.assertNotIn("Paid reach is invisible", html)
+        # 2026-08-14 bullet-driven rebuild: synthesised warning must NOT
+        # appear. Google Ads live data surfaces in the Rand stake section.
+        self.assertNotIn("synthesised", html.lower())
         self.assertIn("500", html)
         self.assertIn("12,000", html)
 

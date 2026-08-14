@@ -98,10 +98,10 @@ class TestBrainFallsBackToBundledData(unittest.TestCase):
         cur = metrics['current']
         brain = self._app._weekly_build_brain(metrics, cur, None, '2026-08-14')
 
-        # All key sections must be present, not just the verdict + gaps
-        self.assertIn('Verdict:', brain)
-        self.assertIn('SEO momentum', brain)
-        self.assertIn('Funnel leak', brain) if False else None  # new phrasing
+        # All key sections must be present, not just TL;DR + Gaps
+        # (2026-08-14 bullet-driven rebuild: TL;DR replaces "Verdict:")
+        self.assertIn('TL;DR', brain)
+        self.assertIn('SEO this week', brain)
         self.assertIn('money is leaking', brain)
         self.assertIn('Golf Bar', brain)
         self.assertIn('putter fitting', brain)

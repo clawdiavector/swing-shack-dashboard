@@ -10822,107 +10822,96 @@ def _weekly_build_brain(metrics, cur, prev, today):
         bvm_total_bookings = bvm_summary.get('total_modelled_bookings', 0) or 0
         avg_basket = (bvm.get('modelled_revenue', {}) or {}).get('google', {}).get('avg_basket', 850)
 
-        # ── 1. THE HEADLINE ──
-        # One CMO-grade sentence: status of content + status of paid + status of leaks
-        parts = []
-        if content_published == 0:
-            parts.append('Content engine paused this week')
-        else:
-            parts.append(str(content_published) + ' pieces shipped')
-        if meta_ads_live:
-            # Paid reach is the new lens. Compare organic vs paid.
-            if ig_reach_28d > 0 and m_reach_30 > 0:
-                ratio = round(m_reach_30 / ig_reach_28d, 1)
-                parts.append(
-                    'paid reach now ' + str(ratio) + 'x organic '
-                    + '(' + format(int(m_reach_30), ',') + ' Meta Ads vs '
-                    + format(int(ig_reach_28d), ',') + ' IG 28d)'
-                )
-            elif m_reach_30 > 0:
-                parts.append('paid reach is ' + format(int(m_reach_30), ',') + ' over 30 days')
-        elif meta_ads_failed:
-            parts.append('paid reach attempted but Windsor fetch failed')
-        elif meta_ads_synth:
-            parts.append('paid reach is synthesised (no live API)')
-        elif ga_live:
-            g_totals = (ga_weekly.get('totals') or {})
-            g_spend_30 = g_totals.get('spend', 0) or 0
-            g_reach_30 = g_totals.get('reach', 0) or g_totals.get('clicks', 0) or 0
-            if g_reach_30 > 0:
-                parts.append('Google Ads reached ' + format(int(g_reach_30), ',') + ' over 30 days')
-        if high_leak:
-            sessions_lost = high_leak.get('sessions', 0)
-            page = high_leak.get('page') or high_leak.get('service', '')
-            parts.append(
-                str(sessions_lost) + ' hot sessions on ' + str(page)
-                + ' with no retargeting'
-            )
-        # Conclude with the implication
-        if meta_ads_live and high_leak and total_leak_sessions > 0:
-            parts.append(
-                'the leak is the priority, not the engine pause'
-            )
-        headline_html = ' '.join(parts) + '.'
+        # ── Render (bullet-driven layout) ──
+        # Each section: heading + short bullet list + 1-line conclusion.
+        # Data first, conclusion last. No repetition.
 
-        # ── 2. WHERE ATTENTION IS ACTUALLY COMING FROM ──
-        reach_lines = []
-        # Sub-section: paid vs organic (the big cross-reference).
-        # When paid is live and IG organic > 0: do the cross-reference.
-        # When paid is live but IG organic is zero: still surface the paid
-        # numbers so the brain doesn't go silent when organic is missing.
+        def _bullets_html(items):
+            if not items:
+                return ''
+            return '<ul>' + ''.join('<li>' + it + '</li>' for it in items) + '</ul>'
+
+        def _conclusion_html(text):
+            if not text:
+                return ''
+            return '<p class="brain-conclusion"><strong>Bottom line:</strong> ' + text + '</p>'
+
+        # ── Section A: TL;DR (top of the brain, 3-4 bullets max) ──
+        tldr_bullets = []
         if meta_ads_live and m_reach_30 > 0 and ig_reach_28d > 0:
-            ratio = m_reach_30 / ig_reach_28d
+            ratio = round(m_reach_30 / ig_reach_28d, 1)
+            tldr_bullets.append(
+                'Paid reach is <strong>' + str(ratio) + 'x</strong> organic reach '
+                '(' + format(int(m_reach_30), ',') + ' Meta Ads vs '
+                + format(int(ig_reach_28d), ',') + ' IG in 28d).'
+            )
+        elif meta_ads_failed:
+            tldr_bullets.append(
+                'Paid reach attempted but Windsor fetch failed - numbers stay at zero, not synthesised.'
+            )
+        elif meta_ads_synth:
+            tldr_bullets.append('Paid reach is synthesised (no live API) - numbers below are stale.')
+        if high_leak and total_leak_sessions > 0:
+            page = high_leak.get('page') or high_leak.get('service', '')
+            tldr_bullets.append(
+                '<strong>' + format(total_leak_sessions, ',') + ' hot sessions</strong> on '
+                + esc_html(str(page)) + ' with no IG retargeting this week.'
+            )
+        if content_published == 0:
+            tldr_bullets.append('0 pieces shipped this week - content engine paused.')
+        elif content_published > 0:
+            tldr_bullets.append(str(content_published) + ' pieces shipped this week.')
+        if m_ctr_30 > 1.0 and m_cpc_30 < 5.0:
+            tldr_bullets.append(
+                'Paid quality is strong: CTR <strong>' + format(round(m_ctr_30, 2), ',') + '%</strong>, '
+                'CPC ZAR ' + format(round(m_cpc_30, 2), ',') + '.'
+            )
+        # TL;DR conclusion = the single most important thing to do
+        if meta_ads_live and high_leak and total_leak_sessions > 0:
+            tldr_conclusion = 'Ship the booking-CTA retargeting post today to convert the ' + format(total_leak_sessions, ',') + ' warm sessions.'
+        elif m_ctr_30 > 1.0 and m_cpc_30 < 5.0 and m_spend_30 > 0:
+            tldr_conclusion = 'Paid is performing - scale the budget, do not change creative yet.'
+        elif content_published == 0 and meta_ads_synth:
+            tldr_conclusion = 'Two gaps to close: content cadence and a live paid-media API.'
+        elif content_published == 0:
+            tldr_conclusion = 'Resume publishing - the leak will not fix itself.'
+        else:
+            tldr_conclusion = 'Maintain cadence and watch the funnel.'
+
+        # ── Section B: Reach (paid vs organic cross-reference) ──
+        reach_bullets = []
+        if meta_ads_live and m_reach_30 > 0 and ig_reach_28d > 0:
+            ratio = round(m_reach_30 / ig_reach_28d, 1)
             if ratio >= 2:
-                # Paid is dominant - this is the insight
-                # How many clicks actually landed on IG-tagged URLs?
-                ig_sessions_in = sum(
-                    v.get('sessions', 0)
-                    for v in (bvm.get('modelled_revenue', {}) or {}).values()
-                    if isinstance(v, dict) and v.get('sessions', 0) > 0
-                    and 'instagram' in str(v).lower()
-                ) or 0
-                reach_lines.append(
-                    '<strong>Paid is now the dominant reach channel.</strong> '
-                    + 'Meta Ads reached <strong>' + format(int(m_reach_30), ',') + '</strong> in 30 days. '
-                    + 'IG organic reached <strong>' + format(int(ig_reach_28d), ',') + '</strong> in 28 days. '
-                    + 'Paid is <strong>' + str(round(ratio, 1)) + 'x organic</strong> on pure reach. '
-                    + '<br><strong>The catch:</strong> of those ' + format(int(m_reach_30), ',')
-                    + ' paid impressions, only a fraction are tagged with UTM and tracked to /bookings/. '
-                    + 'We are paying for reach we cannot prove converts.'
+                reach_bullets.append(
+                    '<strong>Paid reach dominates.</strong> Meta Ads reached '
+                    + format(int(m_reach_30), ',') + ' in 30 days; IG organic reached '
+                    + format(int(ig_reach_28d), ',') + ' in 28d. Paid is '
+                    + str(ratio) + 'x organic.'
+                )
+                reach_bullets.append(
+                    'But most of those paid impressions are not tagged with UTM - '
+                    'so we cannot prove any of it converts to /bookings/.'
                 )
             elif ratio >= 1:
-                reach_lines.append(
-                    '<strong>Paid and organic are pulling similar weight.</strong> '
-                    + 'Meta Ads: ' + format(int(m_reach_30), ',') + ' reach 30d. '
-                    + 'IG organic: ' + format(int(ig_reach_28d), ',') + ' reach 28d. '
-                    + 'Do not pick a winner on volume - both are earning attention. '
-                    + 'Pick on cost-per-booking once we have that data.'
+                reach_bullets.append(
+                    'Meta Ads reached ' + format(int(m_reach_30), ',') + ' in 30d; '
+                    'IG organic reached ' + format(int(ig_reach_28d), ',') + ' in 28d. '
+                    'Roughly comparable - pick on cost-per-booking once we have it.'
                 )
             else:
-                reach_lines.append(
-                    '<strong>Organic is still outpacing paid.</strong> '
-                    + 'IG organic: ' + format(int(ig_reach_28d), ',') + ' reach 28d. '
-                    + 'Meta Ads: ' + format(int(m_reach_30), ',') + ' reach 30d. '
-                    + 'Organic is ' + str(round(1/ratio, 1)) + 'x paid reach on volume. '
-                    + 'Spend on what already works: more IG content + more winners like the top post.'
+                reach_bullets.append(
+                    'IG organic still leads: ' + format(int(ig_reach_28d), ',') + ' in 28d vs '
+                    + format(int(m_reach_30), ',') + ' paid in 30d. '
+                    'Organic is ' + str(round(1 / ratio, 1)) + 'x paid on volume.'
                 )
-            # Quality of paid: CTR + CPC benchmarks
-            if m_ctr_30 > 0 and m_cpc_30 > 0:
-                benchmark_ctr = 1.0  # Meta avg
-                benchmark_cpc = 5.0   # SA golf/entertainment conservative
-                ctr_label = 'above Meta benchmark (~1%)' if m_ctr_30 > benchmark_ctr else 'below Meta benchmark'
-                cpc_label = 'cheaper than SA golf avg (~R5)' if m_cpc_30 < benchmark_cpc else 'above SA golf avg'
-                reach_lines.append(
-                    '<strong>Paid quality is '
-                    + ('good' if m_ctr_30 > benchmark_ctr and m_cpc_30 < benchmark_cpc else 'mixed')
-                    + '.</strong> '
-                    + 'CTR <strong>' + format(round(m_ctr_30, 2), ',') + '%</strong> is ' + ctr_label + '. '
-                    + 'CPC <strong>' + m_cur + ' ' + format(round(m_cpc_30, 2), ',') + '</strong> is ' + cpc_label + '. '
-                    + ('Scale the budget on the campaigns that are pulling these numbers, '
-                       'do not change creative yet.' if m_ctr_30 > benchmark_ctr and m_cpc_30 < benchmark_cpc
-                       else 'Pause underperforming campaigns before adding more spend.')
-                )
-            # Week-over-week paid trend
+            # Quality
+            reach_bullets.append(
+                '<strong>Paid quality.</strong> CTR ' + format(round(m_ctr_30, 2), ',')
+                + '% vs Meta benchmark ~1%. CPC ' + m_cur + ' '
+                + format(round(m_cpc_30, 2), ',') + ' vs SA golf avg ~R5.'
+            )
+            # Spend trend
             if m_spend_7 > 0 and m_spend_30 > 0:
                 avg_daily_30 = m_spend_30 / 30
                 avg_daily_7 = m_spend_7 / 7
@@ -10930,215 +10919,173 @@ def _weekly_build_brain(metrics, cur, prev, today):
                     spend_change = ((avg_daily_7 - avg_daily_30) / avg_daily_30) * 100
                     if abs(spend_change) > 20:
                         direction = 'up' if spend_change > 0 else 'down'
-                        reach_lines.append(
-                            '<strong>Paid spend ' + direction + ' this week</strong> '
-                            + '(' + format(round(avg_daily_30, 2), ',') + '/day 30d avg -> '
-                            + format(round(avg_daily_7, 2), ',') + '/day 7d avg, '
+                        reach_bullets.append(
+                            '<strong>Spend ' + direction + '</strong> this week: '
+                            + m_cur + ' ' + format(round(avg_daily_30, 2), ',') + '/day (30d avg) -> '
+                            + m_cur + ' ' + format(round(avg_daily_7, 2), ',') + '/day (7d avg), '
                             + format(round(abs(spend_change), 0), ',') + '% '
-                            + direction + '). '
-                            + ('If this was a deliberate pause, fine - but document the call so we can '
-                               'measure downstream impact on bookings next week.' if direction == 'down'
-                               else 'If the budget is working, the move is to scale it, not throttle it. '
-                                    'Watch spend vs booking volume weekly.')
+                            + direction + '.'
                         )
-        elif meta_ads_live and m_reach_30 > 0 and ig_reach_28d == 0:
-            # Paid is live but organic reach is zero (e.g. test fixture or
-            # IG data missing). Still surface the paid numbers - don't go
-            # silent on real spend/reach just because organic is missing.
-            spend_str = (m_cur + ' ' + format(round(m_spend_30, 2), ',')) if m_spend_30 > 0 else ''
-            reach_lines.append(
-                '<strong>Paid reach is live</strong> via Windsor.ai. '
-                + 'Meta Ads reached <strong>' + format(int(m_reach_30), ',') + '</strong> in 30 days, '
-                + format(int(m_imps_30), ',') + ' impressions, '
-                + format(int(m_clicks_30), ',') + ' clicks, '
-                + ('spend ' + spend_str + ', ' if spend_str else '')
-                + 'CTR <strong>' + format(round(m_ctr_30, 2), ',') + '%</strong>, '
-                + 'CPC <strong>' + m_cur + ' ' + format(round(m_cpc_30, 2), ',') + '</strong>. '
-                + '<em>Organic IG reach is zero or missing for this period - the paid number '
-                'is what we have to work with.</em>'
+        elif meta_ads_failed:
+            reach_bullets.append('Paid reach attempted but Windsor fetch failed.')
+            reach_bullets.append(esc_html(meta_ads_note))
+            reach_bullets.append('Until Windsor comes back, paid numbers stay at zero.')
+        elif meta_ads_synth:
+            total_meta_spend = sum((c.get('spend') or 0) for c in (meta_ads.get('campaigns') or []))
+            reach_bullets.append(
+                'All "ad" data is synthesised from organic IG (R'
+                + format(int(total_meta_spend), ',') + ' lifetime, stale).'
             )
-        elif ga_live and (not meta_ads_live):
-            # Google Ads is live but Meta Ads is not - surface GA numbers
+            reach_bullets.append('Connect Windsor.ai to get real paid-media numbers.')
+        elif ga_live and not meta_ads_live:
             g_totals = (ga_weekly.get('totals') or {})
             g_spend_30 = g_totals.get('spend', 0) or 0
             g_imps_30 = g_totals.get('impressions', 0) or 0
             g_clicks_30 = g_totals.get('clicks', 0) or 0
             g_cur = (g_totals.get('currency') or 'ZAR')
-            if g_imps_30 > 0 or g_spend_30 > 0:
-                reach_lines.append(
-                    '<strong>Google Ads is live</strong> via Windsor.ai. '
-                    + '30d spend <strong>' + g_cur + ' ' + format(round(g_spend_30, 2), ',') + '</strong>, '
-                    + format(int(g_imps_30), ',') + ' impressions, '
-                    + format(int(g_clicks_30), ',') + ' clicks.'
-                )
-        elif meta_ads_failed:
-            reach_lines.append(
-                '<strong>Paid reach attempted but Windsor fetch failed.</strong> '
-                + esc_html(meta_ads_note) + ' '
-                + 'Until it succeeds, paid-media numbers stay at zero (not synthesised).'
+            reach_bullets.append(
+                'Google Ads is live (Meta Ads is not yet). '
+                + g_cur + ' ' + format(round(g_spend_30, 2), ',') + ' spend in 30d, '
+                + format(int(g_imps_30), ',') + ' impressions, '
+                + format(int(g_clicks_30), ',') + ' clicks.'
             )
-        elif meta_ads_synth:
-            # Old synthesised fallback - surface the warning (kept for tests + users)
-            total_meta_spend = sum((c.get('spend') or 0) for c in (meta_ads.get('campaigns') or []))
-            note = meta_ads['_meta']['note']
-            reach_lines.append(
-                '<strong>Paid reach is invisible right now.</strong> '
-                'meta-ads.json source note: "' + esc_html(note) + '". '
-                'All "ad" data is synthesised from organic IG reach '
-                '(R' + format(int(total_meta_spend), ',') + ' lifetime, all Feb-Apr 2026 - stale). '
-                'Google Ads API also shows R0 this week. '
-                '<strong>Connect Windsor.ai via /secrets-sync (service=windsor-api) '
-                'to replace synthesised data with live paid-media numbers.</strong>'
-            )
-        # Sub-section: stories efficiency (the original signal, still useful)
+        # Stories efficiency
         if story_per_hr and post_per_hr:
             if story_per_hr > post_per_hr * 1.5:
                 ratio = round(story_per_hr / post_per_hr, 1)
-                reach_lines.append(
-                    '<strong>Stories are beating posts right now.</strong> '
-                    + str(stories_combined) + ' currently-live stories ('
-                    + str(stories_ig) + ' IG, ' + str(stories_fb) + ' FB Page) drove '
-                    + str(stories_reach) + ' reach in 24h = '
-                    + str(story_per_hr) + '/hr per story. '
-                    + 'Top post 28d = ' + format(top_post_reach, ',')
-                    + ' reach over the full 28 days = ' + str(post_per_hr) + '/hr. '
-                    + '<strong>Stories are ' + str(ratio) + 'x more efficient per hour.</strong> '
-                    + 'Cadence: ship 1-2 stories/day for the next 7 days.'
+                reach_bullets.append(
+                    '<strong>Stories beat posts on efficiency.</strong> '
+                    + str(stories_combined) + ' live stories drive '
+                    + str(story_per_hr) + ' reach/hr vs top post at '
+                    + str(post_per_hr) + ' reach/hr (' + str(ratio) + 'x faster).'
                 )
             elif story_per_hr < post_per_hr * 0.5:
-                reach_lines.append(
-                    '<strong>Posts are doing the heavy lifting.</strong> '
-                    + 'Stories live now (' + str(stories_combined) + ') drove '
-                    + str(stories_reach) + ' reach in 24h ('
-                    + str(story_per_hr) + '/hr per story). '
-                    + 'Top post 28d = ' + format(top_post_reach, ',')
-                    + ' reach = ' + str(post_per_hr) + '/hr. '
-                    + 'Stories are ' + str(round(post_per_hr / story_per_hr, 1))
-                    + 'x less efficient. Keep stories for stay-top-of-mind, not reach.'
+                reach_bullets.append(
+                    '<strong>Posts do the heavy lifting.</strong> '
+                    + 'Top post = ' + str(post_per_hr) + ' reach/hr; stories = '
+                    + str(story_per_hr) + '/hr. Stories still useful for top-of-mind.'
                 )
             else:
-                reach_lines.append(
-                    '<strong>Posts and stories are roughly comparable.</strong> '
-                    + 'Posts ' + str(post_per_hr) + '/hr, stories '
-                    + str(story_per_hr) + '/hr. Mix both daily.'
+                reach_bullets.append(
+                    'Posts and stories comparable: ' + str(post_per_hr) + ' vs '
+                    + str(story_per_hr) + ' reach/hr.'
                 )
         elif stories_combined > 0:
-            reach_lines.append(
-                '<strong>' + str(stories_combined) + ' stories live</strong> ('
-                + str(stories_ig) + ' IG, ' + str(stories_fb) + ' FB Page) drove '
-                + str(stories_reach) + ' reach in 24h. Stories keep top-of-funnel warm '
-                'between long-form posts.'
+            reach_bullets.append(
+                str(stories_combined) + ' stories live drove '
+                + str(stories_reach) + ' reach in 24h.'
             )
-
-        # ── 3. WHERE THE MONEY IS LEAKING ──
-        leak_html = ''
-        leak_interpretation = ''
-        if leaks:
-            leak_items_html = []
-            for lk in leaks:
-                sessions = lk.get('sessions', 0)
-                page = lk.get('page') or lk.get('service', '?')
-                fix = lk.get('easy_fix', '')
-                rev_impact = lk.get('revenue_impact', '')
-                leak_items_html.append(
-                    '<li><strong>' + esc_html(str(page)) + '</strong> - '
-                    + format(sessions, ',') + ' sessions, '
-                    + str(lk.get('severity', 'medium')) + ' severity. '
-                    + '<span class="muted small">' + esc_html(str(rev_impact)) + '</span><br>'
-                    + '<strong>Fix:</strong> ' + esc_html(str(fix)) + '</li>'
-                )
-            leak_html = '<ul style="margin:8px 0 0 18px">' + ''.join(leak_items_html) + '</ul>'
-            # The interpretation: traffic is hot, but content is not pointing at it.
-            # Two branches depending on whether paid reach is live or not.
-            if meta_ads_live and m_reach_30 > 0:
-                paid_context = (
-                    ' The paid reach (' + format(int(m_reach_30), ',') + ' people over 30 days) '
-                    'is bringing impressions but no IG-side follow-up to convert intent into bookings.'
-                )
+        reach_conclusion = ''
+        if meta_ads_live and m_ctr_30 > 1.0 and m_cpc_30 < 5.0:
+            if m_reach_30 > ig_reach_28d * 2:
+                reach_conclusion = 'Paid is dominant and performing well - but the conversion path is invisible.'
             else:
-                paid_context = (
-                    ' When paid reach comes back online, expect this gap to widen: '
-                    'paid impressions without IG retargeting = spending on awareness, not bookings.'
-                )
-            leak_interpretation = (
-                '<strong>Why this matters:</strong> people are looking up the booking page on Google '
-                '(541 google sessions to /bookings/ and /customer-portal/ combined). They are not '
-                'finding IG retargeting when they leave the site.' + paid_context + ' '
-                '<strong>One targeted IG post per leak closes the loop.</strong>'
+                reach_conclusion = 'Paid quality is solid. Watch the conversion path next.'
+        elif meta_ads_failed or meta_ads_synth:
+            reach_conclusion = 'No trustworthy paid numbers yet. Wire Windsor.'
+        else:
+            reach_conclusion = 'Reach is healthy on both surfaces.'
+
+        # ── Section C: Funnel leak ──
+        leak_bullets = []
+        leak_conclusion = ''
+        for lk in leaks:
+            sessions = lk.get('sessions', 0)
+            page = lk.get('page') or lk.get('service', '?')
+            fix = lk.get('easy_fix', '')
+            rev_impact = lk.get('revenue_impact', '')
+            leak_bullets.append(
+                '<strong>' + esc_html(str(page)) + '</strong> - '
+                + format(sessions, ',') + ' sessions, '
+                + str(lk.get('severity', 'medium')) + ' severity. '
+                + esc_html(str(rev_impact)) + '. '
+                '<em>Fix:</em> ' + esc_html(str(fix)) + '.'
+            )
+        if leak_bullets and meta_ads_live and m_reach_30 > 0:
+            leak_bullets.append(
+                '<strong>Why this matters:</strong> the paid engine brought '
+                + format(int(m_reach_30), ',') + ' impressions over 30 days, '
+                'but none of those clicks land on /bookings/ or /customer-portal/ '
+                'with a retargeting post.'
+            )
+        elif leak_bullets:
+            leak_bullets.append(
+                '<strong>Why this matters:</strong> these are people who already want to book. '
+                'Without an IG post pointing them to the booking page, they leave.'
+            )
+        if leaks and total_leak_sessions > 0:
+            leak_conclusion = (
+                format(total_leak_sessions, ',') + ' warm sessions are walking past '
+                'the booking page with no IG follow-up. One targeted post per leak closes the loop.'
             )
 
-        # ── 4. WHAT'S AT STAKE IN RANDS THIS WEEK ──
-        rand_html = ''
-        if leaks or bvm_total_modelled > 0:
+        # ── Section D: What's at stake in Rands this week ──
+        rand_bullets = []
+        if leaks and total_leak_sessions > 0:
             leak_bookings_low = round(total_leak_sessions * 0.01)
             leak_rev_low = leak_bookings_low * avg_basket
             leak_bookings_high = round(total_leak_sessions * 0.02)
             leak_rev_high = leak_bookings_high * avg_basket
-            pieces = []
-            if leaks and total_leak_sessions > 0:
-                pieces.append(
-                    '<strong>R' + format(int(leak_rev_low), ',')
-                    + ' - R' + format(int(leak_rev_high), ',')
-                    + '/week modelled</strong> from the '
-                    + str(total_leak_sessions) + ' leak sessions (1-2% conversion x R'
-                    + format(int(avg_basket), ',') + ' basket, '
-                    + str(leak_bookings_low) + '-' + str(leak_bookings_high) + ' bookings)'
-                )
-            if bvm_total_modelled > 0:
-                pieces.append(
-                    'R' + format(int(bvm_total_modelled), ',')
-                    + '/week modelled across all channels ('
-                    + str(bvm_total_bookings) + ' bookings @ 1% conversion)'
-                )
-            if meta_ads_live and m_spend_30 > 0:
-                pieces.append(
-                    'R' + format(int(m_spend_30), ',')
-                    + ' Meta Ads spend over 30 days to fund this engine'
-                )
-            rand_html = (
-                '<strong>Money on the table:</strong> '
-                + ' &middot; '.join(pieces)
-                + '. <span class="muted small">(Modelled = sessions x conversion x basket, not real revenue. '
-                + 'Real revenue requires booking system wiring.)</span>'
+            rand_bullets.append(
+                'Leak exposure: <strong>R' + format(int(leak_rev_low), ',')
+                + ' - R' + format(int(leak_rev_high), ',')
+                + '/week modelled</strong> from the '
+                + format(total_leak_sessions, ',') + ' warm sessions '
+                '(' + str(leak_bookings_low) + '-' + str(leak_bookings_high) + ' bookings).'
             )
+        if bvm_total_modelled > 0:
+            rand_bullets.append(
+                'All-channel modelled: R' + format(int(bvm_total_modelled), ',')
+                + '/week (' + str(bvm_total_bookings) + ' bookings @ 1% conversion).'
+            )
+        if meta_ads_live and m_spend_30 > 0:
+            rand_bullets.append(
+                'Meta Ads spend funding this engine: '
+                + m_cur + ' ' + format(int(m_spend_30), ',') + ' over 30 days.'
+            )
+        if leaks and total_leak_sessions > 0 and bvm_total_modelled > 0:
+            rand_conclusion = (
+                'Modelled, not real revenue. Booking-system wiring would convert these guesses into verified numbers.'
+            )
+        elif leaks:
+            rand_conclusion = 'One post can convert these sessions into bookings.'
+        else:
+            rand_conclusion = 'No measurable exposure this week.'
 
-        # ── 5. WHAT GOOGLE SEES ──
-        seo_lines = []
+        # ── Section E: SEO ──
+        seo_bullets = []
         rising = seo.get('rising', []) or []
         falling = seo.get('falling', []) or []
         avg_pos_trend = seo.get('average_position_trend') or []
         binned = seo.get('binned') or {}
-        # Trend story
         if len(avg_pos_trend) >= 2:
             first = avg_pos_trend[0].get('position', 0)
             last = avg_pos_trend[-1].get('position', 0)
             if first and last and first > last:
-                seo_lines.append(
-                    '<strong>Average position improved ' + format(round(first - last, 1), ',')
+                seo_bullets.append(
+                    'Average position improved <strong>'
+                    + format(round(first - last, 1), ',')
                     + ' places</strong> over '
                     + str(len(avg_pos_trend)) + ' weeks ('
-                    + format(first, ',') + ' -> ' + format(last, ',') + ')'
+                    + format(first, ',') + ' -> ' + format(last, ',') + ').'
                 )
-        # Binned story
         if binned:
             top3_new = (binned.get('top_3') or {}).get('new', 0)
             top3_old = (binned.get('top_3') or {}).get('old', 0)
-            top10_new = (binned.get('top_10') or {}).get('new', 0)
-            top10_old = (binned.get('top_10') or {}).get('old', 0)
             not_ranking_new = (binned.get('not_ranking') or {}).get('new', 0)
             not_ranking_old = (binned.get('not_ranking') or {}).get('old', 0)
             if top3_new > top3_old:
-                seo_lines.append(
-                    '<span class="up"><strong>Top-3 count grew:</strong></span> '
-                    + str(top3_old) + ' -> ' + str(top3_new) + ' keywords now ranking on page 1 top 3'
+                seo_bullets.append(
+                    'Top-3 keyword count grew: '
+                    + str(top3_old) + ' -> ' + str(top3_new)
+                    + ' keywords now on page 1.'
                 )
             if not_ranking_new < not_ranking_old:
-                seo_lines.append(
-                    '<span class="up"><strong>Not-ranking count shrank:</strong></span> '
+                seo_bullets.append(
+                    'Not-ranking count shrank: '
                     + str(not_ranking_old) + ' -> ' + str(not_ranking_new)
-                    + ' keywords moved into ranking range'
+                    + ' keywords moved into ranking range.'
                 )
-        # Rising keywords - the wins
         for r in rising[:3]:
             prev_r = r.get('previous_rank', 0)
             cur_r = r.get('current_rank', 0)
@@ -11146,20 +11093,17 @@ def _weekly_build_brain(metrics, cur, prev, today):
             kw = r.get('keyword', '?')
             jump = prev_r - cur_r if prev_r and cur_r else 0
             if jump > 0:
-                # Only lead with the high-volume winners
                 if vol >= 100 or jump >= 10:
-                    seo_lines.append(
-                        '<span class="up"><strong>' + esc_html(str(kw)) + '</strong></span> '
-                        + '#' + str(prev_r) + ' -> #' + str(cur_r)
-                        + ' (vol ' + str(vol) + '/mo, -' + str(jump) + ' places) - write more like this'
+                    seo_bullets.append(
+                        '<strong>' + esc_html(str(kw)) + '</strong> rose #'
+                        + str(prev_r) + ' -> #' + str(cur_r)
+                        + ' (vol ' + str(vol) + '/mo, -' + str(jump) + ' places).'
                     )
                 else:
-                    seo_lines.append(
-                        '<span class="up"><strong>' + esc_html(str(kw)) + '</strong></span> '
-                        + '#' + str(prev_r) + ' -> #' + str(cur_r)
-                        + ' - write more like this'
+                    seo_bullets.append(
+                        esc_html(str(kw)) + ' rose #' + str(prev_r) + ' -> #'
+                        + str(cur_r) + '.'
                     )
-        # Falling keywords - the losses
         for r in falling[:3]:
             prev_r = r.get('previous_rank', 0)
             cur_r = r.get('current_rank', 0)
@@ -11167,19 +11111,32 @@ def _weekly_build_brain(metrics, cur, prev, today):
             kw = r.get('keyword', '?')
             drop = cur_r - prev_r if prev_r and cur_r else 0
             if drop > 0:
-                # The interpretation: even #1 ranks can slip if we stop publishing
-                severity = 'high' if prev_r == 1 else 'medium'
-                seo_lines.append(
-                    '<span class="down"><strong>' + esc_html(str(kw)) + '</strong></span> '
-                    + '#' + str(prev_r) + ' -> #' + str(cur_r)
-                    + ' (vol ' + str(vol) + '/mo, +' + str(drop) + ' places, '
-                    + severity + ') - '
-                    + ('lost #1 - refresh the page now' if prev_r == 1 else 'content refresh needed')
-                )
-        seo_html = ' &middot; '.join(seo_lines) if seo_lines else '<span class="muted">No SEO movers this week</span>'
+                if prev_r == 1:
+                    seo_bullets.append(
+                        '<strong>' + esc_html(str(kw)) + '</strong> lost #1: '
+                        + '#' + str(prev_r) + ' -> #' + str(cur_r)
+                        + ' (vol ' + str(vol) + '/mo). High severity.'
+                    )
+                else:
+                    seo_bullets.append(
+                        esc_html(str(kw)) + ' slipped #' + str(prev_r)
+                        + ' -> #' + str(cur_r)
+                        + ' (vol ' + str(vol) + '/mo).'
+                    )
+        if seo_bullets:
+            # The conclusion: where is SEO heading?
+            if any('lost #1' in b for b in seo_bullets):
+                seo_conclusion = 'A #1 spot is slipping - refresh that page before rankings decay further.'
+            elif any('rose #' in b and ('vol 2400' in b or '-18' in b) for b in seo_bullets):
+                seo_conclusion = 'Real momentum. Double down on the topic that is climbing.'
+            else:
+                seo_conclusion = 'Mixed movement. Watch the losers.'
+        else:
+            seo_conclusion = ''
 
-        # ── 6. THE RACE (competitor) ──
-        comp_html = ''
+        # ── Section F: Competitor ──
+        comp_bullets = []
+        comp_conclusion = ''
         comps = comp.get('competitors', []) or []
         high_threats = [c for c in comps if c.get('threat') == 'high']
         if high_threats:
@@ -11198,6 +11155,15 @@ def _weekly_build_brain(metrics, cur, prev, today):
                 elif 'daily' in their_freq.lower():
                     their_per_week = 7.0
             gap_posts = round(their_per_week - our_posts_wk, 1)
+            comp_bullets.append(
+                '<strong>' + esc_html(str(c0.get('name', 'Competitor'))) + '</strong> '
+                'posts ' + str(their_freq) + ' (last update '
+                + str(c0.get('last_updated', '?'))[:10] + ').'
+            )
+            comp_bullets.append(
+                'You posted <strong>' + str(our_posts_wk) + '</strong> this week. '
+                'Cadence gap: <strong>' + str(gap_posts) + ' posts/week behind</strong>.'
+            )
             cmoves = counter.get('moves', []) or []
             relevant_move = next(
                 (m for m in cmoves
@@ -11207,120 +11173,154 @@ def _weekly_build_brain(metrics, cur, prev, today):
             )
             if not relevant_move:
                 relevant_move = next((m for m in cmoves if m.get('priority') == 'high'), None)
-            comp_html = (
-                '<strong>' + esc_html(str(c0.get('name', 'Competitor'))) + '</strong> is the active threat. '
-                + 'They post ' + str(their_freq) + ' (last update '
-                + str(c0.get('last_updated', '?'))[:10] + '). '
-                + 'You posted <strong>' + str(our_posts_wk) + '</strong> this week. '
-                + '<strong>Cadence gap: ' + str(gap_posts) + ' posts/week behind.</strong>'
-            )
             if relevant_move:
-                comp_html += (
-                    '<br><strong>The only counter-move that works</strong> '
-                    + '(' + str(relevant_move.get('priority', '?')) + ' priority): '
-                    + '<em>' + esc_html(str(relevant_move.get('competitor_move', ''))) + '</em> -> '
-                    + '<strong>' + esc_html(str(relevant_move.get('our_counter', '')))[:300] + '</strong>'
+                comp_bullets.append(
+                    'Counter-move ready: '
+                    '<em>' + esc_html(str(relevant_move.get('our_counter', '')))[:200] + '</em>'
                 )
+            comp_conclusion = 'They are posting more often. Pick one move and ship it this week.'
 
-        # ── 7. THE SINGLE POST TO SHIP THIS WEEK ──
-        ship_lines = []
+        # ── Section G: Ship this week ──
+        ship_bullets = []
+        ship_conclusion = ''
+        retarget_recs_list = retarget_recs.get('recommendations', []) or []
+        if retarget_recs_list:
+            r1 = retarget_recs_list[0]
+            ship_bullets.append(
+                '<strong>Today:</strong> ' + esc_html(str(r1.get('action', ''))) + '.'
+            )
+            ship_bullets.append(
+                '<em>Hook:</em> "' + esc_html(str(r1.get('suggested_hook', '')))[:140] + '".'
+            )
+            ship_bullets.append(
+                '<em>CTA:</em> "' + esc_html(str(r1.get('suggested_cta', '')))[:140] + '".'
+            )
+            ship_bullets.append(
+                'Format: ' + esc_html(str(r1.get('format', 'image'))) + ' on '
+                + esc_html(str(r1.get('channel', 'IG')))
+                + '. Expected: ' + esc_html(str(r1.get('expected_outcome', {}).get('label', 'n/a')))
+                + '.'
+            )
+        # Pattern that wins
         pcs_summary = pcs.get('summary', {}) or {}
         winning_themes = pcs_summary.get('winning_themes', []) or []
         winning_format = pcs_summary.get('winning_format', '')
         winning_combos = pcs.get('winning_theme_combos', []) or []
-        retarget_recs_list = retarget_recs.get('recommendations', []) or []
-
-        # Lead with the #1 retargeting recommendation - this is the highest-ROI action
-        if retarget_recs_list:
-            r1 = retarget_recs_list[0]
-            ship_lines.append(
-                '<strong>Ship today (rank #1 retargeting rec):</strong> '
-                + esc_html(str(r1.get('action', ''))) + '. '
-                + '<em>Hook:</em> "' + esc_html(str(r1.get('suggested_hook', '')))[:140] + '". '
-                + '<em>CTA:</em> "' + esc_html(str(r1.get('suggested_cta', '')))[:140] + '". '
-                + 'Format: ' + esc_html(str(r1.get('format', 'image'))) + ' on '
-                + esc_html(str(r1.get('channel', 'IG'))) + '. '
-                + 'Expected: ' + esc_html(str(r1.get('expected_outcome', {}).get('label', 'n/a')))
-                + '.'
-            )
-
-        # Then: what content pattern is proven to win
         if winning_themes:
-            ship_lines.append(
-                '<strong>Pattern that wins</strong> (from ' + str(pcs_summary.get('posts_scored', 0))
-                + ' scored posts): themes '
+            ship_bullets.append(
+                '<strong>Pattern:</strong> themes '
                 + ', '.join(winning_themes[:3])
-                + '. Format winner: <strong>' + str(winning_format) + '</strong>. '
-                + 'Top combo: ' + ' + '.join(winning_combos[0]) if winning_combos else 'club_fitting + booking_cta'
-                + '.'
+                + '. Format: <strong>' + str(winning_format) + '</strong>.'
             )
-        # A specific post to model the next one on
+            if winning_combos:
+                ship_bullets.append(
+                    '<strong>Top combo:</strong> '
+                    + ' + '.join(winning_combos[0]) + '.'
+                )
+        # Specific winner to model
         posts_ranked = pcs.get('posts_ranked', []) or []
         for p in posts_ranked[:2]:
             if p.get('is_winning_theme_combo'):
-                ship_lines.append(
-                    '<strong>Model your post on this winner:</strong> '
+                ship_bullets.append(
+                    '<strong>Model on this winner:</strong> '
                     + '<em>"' + esc_html(str(p.get('caption_preview', '')))[:160] + '..."</em> '
-                    + '(' + str(p.get('reach', 0)) + ' reach, '
-                    + str(p.get('engagement_rate_pct', 0)) + '% engagement, '
-                    + 'themes ' + ', '.join(p.get('themes') or []) + ').'
+                    + '(' + str(p.get('reach', 0)) + ' reach).'
                 )
                 break
+        if ship_bullets:
+            if retarget_recs_list:
+                ship_conclusion = (
+                    'Ship the #1 retargeting post today. The hook and CTA are written. '
+                    'Expected: ' + esc_html(str(retarget_recs_list[0].get('expected_outcome', {}).get('label', '+20-35% booking rate')))
+                    + '.'
+                )
+            else:
+                ship_conclusion = 'Pick the strongest winner pattern and publish today.'
 
-        # ── 8. GAPS ──
-        gap_lines = []
+        # ── Section H: Gaps ──
+        gaps_bullets = []
         if meta_ads_failed:
-            gap_lines.append('Windsor.ai fetch (last attempt failed)')
+            gaps_bullets.append('Windsor.ai fetch (last attempt failed)')
         if not meta_ads_live and not meta_ads_failed and not meta_ads_synth:
-            gap_lines.append('Meta Ads API')
+            gaps_bullets.append('Meta Ads API')
         if not retarget_recs_list:
-            gap_lines.append('Retargeting audiences')
+            gaps_bullets.append('Retargeting audiences')
         if not leaks:
-            gap_lines.append('Funnel-leak detector (not run yet)')
+            gaps_bullets.append('Funnel-leak detector (not run yet)')
         rec_exec_rate = (rec_outcomes.get('summary') or {}).get('exec_rate', 1)
         if rec_exec_rate == 0:
-            gap_lines.append(
+            gaps_bullets.append(
                 'Recommendation execution loop (0% exec rate - recommends, nothing ships)'
             )
-        gap_html = ''
-        if gap_lines:
-            gap_html = (
-                '<strong>What the brain cannot see yet:</strong> '
-                + ', '.join(gap_lines)
-                + '. These are the next connectors to wire.'
-            )
+        gaps_conclusion = ''
+        if gaps_bullets:
+            gaps_conclusion = 'These are the connectors that turn recommendations into verified results.'
 
-        # ── Render ──
-        reach_html = ''
-        if reach_lines:
-            reach_html = '<br><br>'.join(reach_lines)
+        # ── Assemble the brain ──
+        # Layout: TL;DR first (boxed at top), then numbered sections each with
+        # heading + bullets + one-line conclusion. Sections hidden when empty.
+        parts = []
+        parts.append('<section class="section brain">')
+        parts.append('<h2>This week, in one read</h2>')
 
-        ship_html = ''
-        if ship_lines:
-            ship_html = '<br>'.join(ship_lines)
+        # TL;DR box - prominent at the top
+        parts.append('<div class="highlight"><strong>TL;DR.</strong>')
+        parts.append(_bullets_html(tldr_bullets))
+        parts.append(_conclusion_html(tldr_conclusion))
+        parts.append('</div>')
 
-        brain = (
-            '<section class="section brain">\n'
-            '<h2>The marketing read</h2>\n'
-            '<p class="lead"><strong>Verdict:</strong> ' + headline_html + '</p>\n'
-            + ('<div class="highlight"><strong>Where attention is actually coming from.</strong> '
-               + reach_html + '</div>\n' if reach_html else '')
-            + ('<div class="highlight ' + ('warning' if any(lk.get('severity') == 'high' for lk in leaks) else '')
-               + '"><strong>Where the money is leaking.</strong> '
-               + (leak_interpretation + '<br>' if leak_interpretation else '')
-               + leak_html + '</div>\n' if leak_html else '')
-            + ('<div class="highlight"><strong>What is at stake in Rands this week.</strong> '
-               + rand_html + '</div>\n' if rand_html else '')
-            + ('<div class="highlight"><strong>SEO momentum.</strong> ' + seo_html + '</div>\n'
-               if seo_html else '')
-            + ('<div class="highlight warning"><strong>Competitor context.</strong> '
-               + comp_html + '</div>\n' if comp_html else '')
-            + ('<div class="highlight"><strong>What to ship this week.</strong><br>'
-               + ship_html + '</div>\n' if ship_html else '')
-            + ('<div class="highlight muted small"><strong>Gaps.</strong> '
-               + gap_html + '</div>\n' if gap_html else '')
-            + '</section>'
-        )
+        if reach_bullets:
+            parts.append('<div class="highlight">')
+            parts.append('<strong>Where attention is coming from.</strong>')
+            parts.append(_bullets_html(reach_bullets))
+            parts.append(_conclusion_html(reach_conclusion))
+            parts.append('</div>')
+
+        if leak_bullets:
+            leak_cls = 'highlight warning' if any(lk.get('severity') == 'high' for lk in leaks) else 'highlight'
+            parts.append('<div class="' + leak_cls + '">')
+            parts.append('<strong>Where the money is leaking.</strong>')
+            parts.append(_bullets_html(leak_bullets))
+            parts.append(_conclusion_html(leak_conclusion))
+            parts.append('</div>')
+
+        if rand_bullets:
+            parts.append('<div class="highlight">')
+            parts.append('<strong>What is at stake in Rands.</strong>')
+            parts.append(_bullets_html(rand_bullets))
+            parts.append(_conclusion_html(rand_conclusion))
+            parts.append('</div>')
+
+        if seo_bullets:
+            parts.append('<div class="highlight">')
+            parts.append('<strong>SEO this week.</strong>')
+            parts.append(_bullets_html(seo_bullets))
+            parts.append(_conclusion_html(seo_conclusion))
+            parts.append('</div>')
+
+        if comp_bullets:
+            parts.append('<div class="highlight warning">')
+            parts.append('<strong>The race.</strong>')
+            parts.append(_bullets_html(comp_bullets))
+            parts.append(_conclusion_html(comp_conclusion))
+            parts.append('</div>')
+
+        if ship_bullets:
+            parts.append('<div class="highlight">')
+            parts.append('<strong>Ship this week.</strong>')
+            parts.append(_bullets_html(ship_bullets))
+            parts.append(_conclusion_html(ship_conclusion))
+            parts.append('</div>')
+
+        if gaps_bullets:
+            parts.append('<div class="highlight muted small">')
+            parts.append('<strong>Still missing.</strong>')
+            parts.append(_bullets_html(gaps_bullets))
+            parts.append(_conclusion_html(gaps_conclusion))
+            parts.append('</div>')
+
+        parts.append('</section>')
+        brain = '\n'.join(parts)
         return brain
     except Exception as e:
         return '<!-- brain build failed: ' + esc_html(str(e))[:200] + ' -->'
@@ -11946,6 +11946,8 @@ li:before{{content:"";width:6px;height:6px;border-radius:50%;background:var(--bl
 .two-col{{display:grid;grid-template-columns:1fr 1fr;gap:18px}}
 .highlight{{border-left:4px solid var(--green);background:var(--soft);border-radius:14px;padding:16px;margin-top:14px;color:var(--text)}}
 .gold{{border-left-color:var(--gold)}} .warning{{border-left-color:var(--red)}}
+.brain-conclusion{{margin:10px 0 0;padding:10px 12px;border-left:3px solid var(--gold);background:rgba(255,255,255,.04);border-radius:8px;font-size:13.5px;color:var(--text);line-height:1.45}}
+.brain-conclusion strong{{color:var(--gold);font-size:12px;letter-spacing:.04em;text-transform:uppercase;margin-right:6px}}
 .table-wrap{{overflow-x:auto;border:1px solid var(--line);border-radius:14px;margin-top:10px}}
 table{{width:100%;border-collapse:collapse;min-width:680px}}
 th,td{{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}}
