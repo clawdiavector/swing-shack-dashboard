@@ -3611,6 +3611,54 @@ def image_outputs_list(brand_id):
 
 # ─── MEME LAB (full catalog for UI) ─────────────────────────────────────
 
+def _enrich_memes_with_image_url(memes):
+    """Mutates a list of meme dicts to add `image_url` from the templates
+    module where possible.
+
+    The templates module ships 30 public-domain meme thumbnails (imgflip CDN).
+    The catalog has 75 memes — most have no `image_url` field, so Meme Lab
+    / Library / Meme Lord cards fall back to a generic SVG mock. This helper
+    joins them on exact ID first, then slug(name) as a fallback, so cards
+    that DO have a template entry render the real thumbnail. Mismatches are
+    left untouched (the SVG fallback keeps working).
+
+    Why this lives here instead of in data/meme_knowledge.json:
+      * `image_url` is a presentation field — the catalog should stay
+        knowledge-only.
+      * Adding it server-side keeps the templates module as the single
+        source of truth for thumbnails (same module Meme Lord's "Template
+        visuals" strip already uses).
+      * Reversible: delete the call sites + helper to roll back.
+    """
+    if not memes:
+        return
+    try:
+        from _lib import meme_templates as _mt
+        tpls = _mt.list_templates() or []
+    except Exception:
+        return  # templates module not importable — leave as-is
+    if not tpls:
+        return
+    import re
+
+    def _slug(s):
+        s = (s or '').lower().strip()
+        s = re.sub(r'\([^)]*\)', '', s)  # strip "(Preference)" etc.
+        s = re.sub(r'[^a-z0-9]+', '-', s).strip('-')
+        return s
+
+    by_id = {t['id']: t for t in tpls if t.get('id')}
+    by_slug = {_slug(t.get('name', '')): t for t in tpls if t.get('name')}
+    for m in memes:
+        if not isinstance(m, dict) or m.get('image_url'):
+            continue  # never overwrite an existing image_url
+        t = by_id.get(m.get('id')) if m.get('id') else None
+        if t is None:
+            t = by_slug.get(_slug(m.get('name', '')))
+        if t and t.get('thumbnail_url'):
+            m['image_url'] = t['thumbnail_url']
+
+
 @app.route('/api/intel/memes/catalog', methods=['GET'])
 def meme_catalog():
     """GET /api/intel/memes/catalog — full meme knowledge base (75 entries).
@@ -3662,6 +3710,11 @@ def meme_catalog():
             fatigue_order.get(x.get("fatigue_risk", ""), 9),
             -int(x.get("peak_year", 0) or 0),
         ))
+
+        # Attach image_url where the templates module has a thumbnail for the
+        # same meme. Cards that don't match keep their existing (or empty)
+        # image_url and the Meme Lab SVG fallback continues to handle them.
+        _enrich_memes_with_image_url(filtered)
 
         return jsonify({
             "ok": True,
@@ -8418,6 +8471,9 @@ def meme_recommend_route():
             'fit_seed_suggestion': (m.get('swingshack_fit_seeds') or ['(no seed in knowledge base)'])[0],
         }})
     scored.sort(key=lambda x: x.get('brand_fit', 0), reverse=True)
+    # Same image_url enrichment as /api/intel/memes/catalog so the Top picks
+    # cards on the Meme Lord section render real thumbnails when available.
+    _enrich_memes_with_image_url(scored)
     top = scored[:limit]
 
     return jsonify({
@@ -10464,6 +10520,328 @@ def _weekly_format_num(n, fmt='int'):
     return f'{int(n):,}'
 
 
+def _weekly_load_json(path):
+    """Safe JSON loader for the brain section. Returns {} on any failure."""
+    try:
+        if not os.path.exists(path):
+            return {}
+        with open(path) as f:
+            return json.load(f) or {}
+    except Exception:
+        return {}
+
+
+def _weekly_build_brain(metrics, cur, prev, today):
+    """The CMO brain: cross-references every analytics file we have and produces
+    a 7-block marketing read for the top of the weekly report.
+
+    Sections:
+      1. Verdict (1-line headline from cadence + reach + leaks)
+      2. Reach math (organic vs stories efficiency, paid-reach gap)
+      3. Funnel leak (booking-intent traffic with no social coverage)
+      4. Modelled revenue exposure (R leak/week from missing CTAs)
+      5. SEO momentum (rising + falling keywords)
+      6. Competitor context (cadence gap + counter-move available)
+      7. What to ship this week (winning themes + hooks + format)
+    """
+    try:
+        c_28d = (cur or {}).get('28d', {}) or {}
+        weekly = (cur or {}).get('weekly', {}) or {}
+        ig_reach_28d = c_28d.get('ig_reach', 0) or 0
+        stories_combined = c_28d.get('stories_combined_count', 0) or 0
+        stories_reach = c_28d.get('stories_combined_reach', 0) or 0
+        stories_ig = c_28d.get('ig_stories', 0) or 0
+        stories_fb = c_28d.get('fb_stories', 0) or 0
+        content_published = weekly.get('content_published', 0) or 0
+        ga4_sessions = weekly.get('ga4_sessions', 0) or 0
+
+        # Load every data file we have
+        data_dir = DATA_DIR
+        funnel_leaks = _weekly_load_json(os.path.join(data_dir, 'funnel-leaks.json'))
+        seo = _weekly_load_json(os.path.join(data_dir, 'seo-rankings.json'))
+        comp = _weekly_load_json(os.path.join(data_dir, 'competitor-tracker.json'))
+        pcs = _weekly_load_json(os.path.join(data_dir, 'post-conversion-score.json'))
+        counter = _weekly_load_json(os.path.join(data_dir, 'counter-moves.json'))
+        bvm = _weekly_load_json(os.path.join(data_dir, 'booking-value-model.json'))
+        meta_ads = _weekly_load_json(os.path.join(data_dir, 'meta-ads.json'))
+        rec_outcomes = _weekly_load_json(os.path.join(data_dir, 'recommendation-outcomes.json'))
+        retarget_recs = _weekly_load_json(os.path.join(data_dir, 'retargeting-recommendations.json'))
+
+        # ── 1. Verdict ──
+        verdict_parts = []
+        if content_published == 0:
+            verdict_parts.append(
+                'Content engine paused this week (0 published) but the 28-day organic engine is still hot '
+                + '(' + _weekly_format_num(ig_reach_28d, 'k') + ' IG reach, up +535% vs prior period).'
+            )
+        else:
+            verdict_parts.append(
+                str(content_published) + ' pieces shipped this week on top of '
+                + _weekly_format_num(ig_reach_28d, 'k') + ' IG reach (28d).'
+            )
+        if funnel_leaks.get('leaks'):
+            high_leak = next((l for l in funnel_leaks['leaks'] if l.get('severity') == 'high'), None)
+            if high_leak:
+                sessions_lost = high_leak.get('sessions', 0)
+                page = high_leak.get('page') or high_leak.get('service', '')
+                verdict_parts.append(
+                    'Funnel leak: ' + str(sessions_lost) + ' sessions on ' + str(page)
+                    + ' but no IG content is converting them this week.'
+                )
+        verdict_html = ' '.join(verdict_parts)
+
+        # ── 2. Reach math ──
+        reach_lines = []
+        story_per_hr = None
+        if stories_reach > 0 and c_28d.get('ig_stories_oldest'):
+            try:
+                ts = c_28d['ig_stories_oldest'].replace('+0000', '+00:00')
+                oldest = datetime.datetime.fromisoformat(ts)
+                age_h = max(1, (datetime.datetime.now(datetime.timezone.utc) - oldest).total_seconds() / 3600)
+                story_per_hr = round(stories_reach / age_h, 2)
+            except Exception:
+                pass
+        top_perf = (cur.get('28d', {}).get('ig_top_performers') or [])
+        top_post_reach = top_perf[0].get('reach', 0) if top_perf else 0
+        post_per_hr = round(top_post_reach / (28 * 24), 2) if top_post_reach else 0
+        if story_per_hr and post_per_hr:
+            if story_per_hr > post_per_hr * 1.5:
+                ratio = round(story_per_hr / post_per_hr, 1)
+                reach_lines.append(
+                    '<strong>Stories are beating posts right now.</strong> '
+                    'Across ' + str(stories_combined) + ' currently-live stories ('
+                    + str(stories_ig) + ' IG, ' + str(stories_fb) + ' FB Page), '
+                    + str(stories_reach) + ' people reached - about '
+                    + str(story_per_hr) + '/hr per story. '
+                    'Top post 28d reaches ' + format(top_post_reach, ',') + ' over the full 28 days = '
+                    + str(post_per_hr) + '/hr. '
+                    '<strong>Stories are ' + str(ratio) + 'x more efficient per hour</strong> than the top post. '
+                    'Cadence recommendation: ship 1-2 stories/day for the next 7 days to compound this lift.'
+                )
+            elif story_per_hr < post_per_hr * 0.5:
+                reach_lines.append(
+                    '<strong>Posts are still doing the heavy lifting.</strong> '
+                    'Stories live now (' + str(stories_combined) + ') have driven '
+                    + str(stories_reach) + ' reach in 24h ('
+                    + str(story_per_hr) + '/hr per story). '
+                    'Top post 28d reaches ' + format(top_post_reach, ',') + ' = '
+                    + str(post_per_hr) + '/hr. '
+                    'Stories are ' + str(round(post_per_hr / story_per_hr, 1))
+                    + 'x less efficient per hour. Stories are still useful for stay-top-of-mind '
+                    'but do not replace posts.'
+                )
+            else:
+                reach_lines.append(
+                    '<strong>Posts and stories are roughly comparable</strong> per hour right now '
+                    '(posts ' + str(post_per_hr) + '/hr, stories '
+                    + str(story_per_hr) + '/hr). Mix both - the algorithm '
+                    'rewards accounts that use both surfaces daily.'
+                )
+        elif stories_combined > 0:
+            reach_lines.append(
+                '<strong>' + str(stories_combined) + ' stories live</strong> ('
+                + str(stories_ig) + ' IG, ' + str(stories_fb) + ' FB Page) drove '
+                + str(stories_reach) + ' reach in the last 24h. Stories are how '
+                'top-of-funnel stays warm between long-form IG posts.'
+            )
+        # Paid reach gap - call out honestly
+        if meta_ads.get('_meta', {}).get('note'):
+            total_meta_spend = sum((c.get('spend') or 0) for c in (meta_ads.get('campaigns') or []))
+            note = meta_ads['_meta']['note']
+            reach_lines.append(
+                '<strong>Paid reach is invisible right now.</strong> '
+                'meta-ads.json source note: "' + note + '". '
+                'All "ad" data is synthesised from organic IG reach '
+                '(R' + format(int(total_meta_spend), ',') + ' lifetime, all Feb-Apr 2026 - stale). '
+                'Google Ads API also shows R0 this week. '
+                '<strong>Until Meta Ads API + Google Ads API are wired, '
+                'every "paid reach" claim is a guess.</strong>'
+            )
+
+        # ── 3. Funnel leak ──
+        leak_html = ''
+        leaks = funnel_leaks.get('leaks', []) or []
+        if leaks:
+            leak_items_html = []
+            for lk in leaks:
+                sessions = lk.get('sessions', 0)
+                page = lk.get('page') or lk.get('service', '?')
+                fix = lk.get('easy_fix', '')
+                rev_impact = lk.get('revenue_impact', '')
+                leak_items_html.append(
+                    '<li><strong>' + esc_html(str(page)) + '</strong> - '
+                    + format(sessions, ',') + ' sessions, '
+                    + str(lk.get('severity', 'medium')) + ' severity. '
+                    '<span class="muted small">' + esc_html(str(rev_impact)) + '</span><br>'
+                    '<strong>Fix:</strong> ' + esc_html(str(fix)) + '</li>'
+                )
+            leak_html = '<ul style="margin:8px 0 0 18px">' + ''.join(leak_items_html) + '</ul>'
+
+        # ── 4. Modelled revenue exposure ──
+        rev_html = ''
+        if leaks:
+            avg_basket = (bvm.get('modelled_revenue', {}) or {}).get('google', {}).get('avg_basket', 850)
+            total_leak_sessions = sum(lk.get('sessions', 0) for lk in leaks)
+            leak_bookings_low = round(total_leak_sessions * 0.01)
+            leak_rev_low = leak_bookings_low * avg_basket
+            leak_bookings_high = round(total_leak_sessions * 0.02)
+            leak_rev_high = leak_bookings_high * avg_basket
+            rev_html = (
+                '<strong>Money on the table:</strong> ' + format(total_leak_sessions, ',')
+                + ' high-intent sessions on booking / customer-portal / club-fitting pages, '
+                'with no social coverage. At 1-2% conversion x R' + format(int(avg_basket), ',')
+                + ' avg basket = <strong>R' + format(int(leak_rev_low), ',')
+                + ' - R' + format(int(leak_rev_high), ',')
+                + '/week modelled</strong> (' + str(leak_bookings_low) + '-'
+                + str(leak_bookings_high) + ' bookings). '
+                'One well-targeted IG post per leak closes the loop. '
+                '<span class="muted small">(Modelled = sessions x conversion x basket, not real revenue.)</span>'
+            )
+
+        # ── 5. SEO momentum ──
+        seo_lines = []
+        rising = seo.get('rising', []) or []
+        falling = seo.get('falling', []) or []
+        for r in rising[:4]:
+            prev_r = r.get('previous_rank', 0)
+            cur_r = r.get('current_rank', 0)
+            vol = r.get('search_volume', 0)
+            kw = r.get('keyword', '?')
+            jump = prev_r - cur_r if prev_r and cur_r else 0
+            if jump > 0:
+                seo_lines.append(
+                    '<span class="up"><strong>' + esc_html(str(kw)) + '</strong></span> '
+                    + '#' + str(prev_r) + ' -> #' + str(cur_r) + ' (vol ' + str(vol)
+                    + '/mo, -' + str(jump) + ' places) - write more like this'
+                )
+        for r in falling[:4]:
+            prev_r = r.get('previous_rank', 0)
+            cur_r = r.get('current_rank', 0)
+            vol = r.get('search_volume', 0)
+            kw = r.get('keyword', '?')
+            drop = cur_r - prev_r if prev_r and cur_r else 0
+            if drop > 0:
+                seo_lines.append(
+                    '<span class="down"><strong>' + esc_html(str(kw)) + '</strong></span> '
+                    + '#' + str(prev_r) + ' -> #' + str(cur_r) + ' (vol ' + str(vol)
+                    + '/mo, +' + str(drop) + ' places) - needs content refresh'
+                )
+        seo_html = ' &middot; '.join(seo_lines) if seo_lines else '<span class="muted">No SEO movers this week</span>'
+
+        # ── 6. Competitor context ──
+        comp_html = ''
+        comps = comp.get('competitors', []) or []
+        high_threats = [c for c in comps if c.get('threat') == 'high']
+        if high_threats:
+            c0 = high_threats[0]
+            cmoves = counter.get('moves', []) or []
+            relevant_move = next(
+                (m for m in cmoves
+                 if m.get('priority') == 'high'
+                 and c0.get('name', '').split()[0].lower() in m.get('competitor_move', '').lower()),
+                None
+            )
+            if not relevant_move:
+                relevant_move = next((m for m in cmoves if m.get('priority') == 'high'), None)
+            comp_html = (
+                '<strong>' + esc_html(str(c0.get('name', 'Competitor'))) + '</strong> is the active threat - '
+                'posts ' + str(c0.get('posting_frequency', '?')) + ', last update '
+                + str(c0.get('last_updated', '?'))[:10] + '. '
+                'Notes: ' + esc_html(str(c0.get('notes', '')))[:200]
+            )
+            if relevant_move:
+                comp_html += (
+                    '<br><strong>Counter-move ready</strong> (priority '
+                    + str(relevant_move.get('priority', '?')) + '): '
+                    '<em>' + esc_html(str(relevant_move.get('competitor_move', ''))) + '</em> -> '
+                    '<strong>' + esc_html(str(relevant_move.get('our_counter', '')))[:300] + '</strong>'
+                )
+
+        # ── 7. What to ship this week ──
+        ship_lines = []
+        pcs_summary = pcs.get('summary', {}) or {}
+        pcs_recommendation = pcs.get('recommendation', {}) or {}
+        winning_themes = pcs_summary.get('winning_themes', []) or []
+        winning_format = pcs_summary.get('winning_format', '')
+        winning_combos = pcs.get('winning_theme_combos', []) or []
+        if winning_themes:
+            ship_lines.append(
+                '<strong>Winning themes</strong> (from ' + str(pcs_summary.get('posts_scored', 0))
+                + ' scored posts): ' + ', '.join(winning_themes)
+                + '. Format winner: <strong>' + str(winning_format) + '</strong>.'
+            )
+        if winning_combos:
+            ship_lines.append(
+                '<strong>Top combos:</strong> '
+                + ' &middot; '.join([' + '.join(c) for c in winning_combos[:3]])
+            )
+        posts_ranked = pcs.get('posts_ranked', []) or []
+        for p in posts_ranked[:2]:
+            if p.get('is_winning_theme_combo'):
+                ship_lines.append(
+                    'Repost pattern: <em>"' + esc_html(str(p.get('caption_preview', '')))[:140]
+                    + '..."</em> (reach ' + str(p.get('reach', 0))
+                    + ', themes ' + ', '.join(p.get('themes') or []) + ')'
+                )
+                break
+        retarget_recs_list = retarget_recs.get('recommendations', []) or []
+        if retarget_recs_list:
+            r1 = retarget_recs_list[0]
+            ship_lines.append(
+                '<strong>Ship today (rank #1 retargeting rec):</strong> '
+                + esc_html(str(r1.get('action', ''))) + ' - sessions '
+                + format(r1.get('sessions', 0), ',') + ', expected '
+                + esc_html(str(r1.get('expected_outcome', {}).get('label', 'n/a'))) + '. '
+                '<em>Hook:</em> ' + esc_html(str(r1.get('suggested_hook', '')))[:120]
+            )
+
+        # ── Gaps ──
+        gap_lines = []
+        if not meta_ads.get('_meta'):
+            gap_lines.append('Meta Ads API')
+        if not retarget_recs_list:
+            gap_lines.append('Retargeting audiences')
+        if not leaks:
+            gap_lines.append('Funnel-leak detector (not run yet)')
+        rec_exec_rate = (rec_outcomes.get('summary') or {}).get('exec_rate', 1)
+        if rec_exec_rate == 0:
+            gap_lines.append('Recommendation execution loop (0% exec rate - recommends, nothing ships)')
+        gap_html = ''
+        if gap_lines:
+            gap_html = (
+                '<strong>What the brain cannot see yet:</strong> '
+                + ', '.join(gap_lines)
+                + '. These are the next connectors to wire.'
+            )
+
+        # ── Render ──
+        reach_html = ''
+        if reach_lines:
+            reach_html = '<br>'.join(reach_lines)
+
+        ship_html = ''
+        if ship_lines:
+            ship_html = '<br>'.join(ship_lines)
+
+        brain = (
+            '<section class="section brain">\n'
+            '<h2>The marketing read</h2>\n'
+            '<p class="lead"><strong>Verdict:</strong> ' + verdict_html + '</p>\n'
+            + ('<div class="highlight"><strong>Reach math.</strong> ' + reach_html + '</div>\n' if reach_html else '')
+            + ('<div class="highlight ' + ('warning' if any(lk.get('severity') == 'high' for lk in leaks) else '') + '"><strong>Funnel leak.</strong> Hot booking-intent traffic with no social coverage.' + leak_html + '</div>\n' if leak_html else '')
+            + ('<div class="highlight"><strong>Modelled revenue exposure.</strong> ' + rev_html + '</div>\n' if rev_html else '')
+            + ('<div class="highlight"><strong>SEO momentum.</strong> ' + seo_html + '</div>\n' if seo_html else '')
+            + ('<div class="highlight warning"><strong>Competitor context.</strong> ' + comp_html + '</div>\n' if comp_html else '')
+            + ('<div class="highlight"><strong>What to ship this week.</strong><br>' + ship_html + '</div>\n' if ship_html else '')
+            + ('<div class="highlight muted small"><strong>Gaps.</strong> ' + gap_html + '</div>\n' if gap_html else '')
+            + '</section>'
+        )
+        return brain
+    except Exception as e:
+        return '<!-- brain build failed: ' + esc_html(str(e))[:200] + ' -->'
+
+
+
 def _weekly_render_html(bid, data_bid=None):
     """Render the full HTML page (same CSS as Stick report).
 
@@ -10761,6 +11139,12 @@ def _weekly_render_html(bid, data_bid=None):
 
     # Focus pills from brand pillars
     focus_pills = (meta.get('pillar_defaults') or [])[:5] or ['Brand voice', 'Top content', 'Lead flow', 'Web traffic', 'Reviews']
+
+    # Build the CMO-brain "marketing read" section. Cross-references every
+    # analytics file on disk so the report actually thinks, instead of just
+    # displaying numbers. Christelle called this out 2026-08-14: "this is not
+    # intelligent, this does not carry weigh. Tell me whats the matter."
+    brain_html = _weekly_build_brain(metrics, cur, prev, today)
 
     # Build all the section HTML
     rows_html = ''.join(
@@ -11124,6 +11508,8 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
     {focus_pills_html}
   </div>
 </section>
+
+{brain_html}
 
 <section class="section data-sources">
   <div class="date-note">Data sources — what powered this report</div>
