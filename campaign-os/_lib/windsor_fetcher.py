@@ -94,8 +94,8 @@ def _normalise_google_rows(rows: list[dict]) -> list[dict]:
     out = []
     for r in rows:
         out.append({
-            "id": _safe_str(r.get("campaign_id") or r.get("adgroup_id")),
-            "name": _safe_str(r.get("campaign") or r.get("adgroup")),
+            "id": _safe_str(r.get("campaign_id")),
+            "name": _safe_str(r.get("campaign")),
             "date": _iso_date(r.get("date")),
             "start_date": _iso_date(r.get("date")),
             "end_date": _iso_date(r.get("date")),
@@ -103,8 +103,9 @@ def _normalise_google_rows(rows: list[dict]) -> list[dict]:
             "currency": _safe_str(r.get("currency"), default="USD").upper(),
             "clicks": _safe_num(r.get("clicks")),
             "impressions": _safe_num(r.get("impressions")),
-            "conversions": _safe_num(r.get("conversions")),
-            "cost_per_conversion": _safe_num(r.get("cost_per_conversion")),
+            # google_ads field set kept tight per Windsor's validator
+            # (HTTP 400 if any unknown field). Add conversions /
+            # cost_per_conversion once we know they're valid for our tier.
             "source": "windsor-google-ads",
             "note": "Live data via Windsor.ai google_ads connector",
         })

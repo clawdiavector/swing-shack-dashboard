@@ -202,18 +202,17 @@ def month_window(days_back: int = 30) -> tuple[str, str]:
 
 # Conservative field set per connector. Windsor returns these straight from the
 # underlying ad API. Adding fields is cheap; missing fields just come back null.
+# IMPORTANT: Windsor validates field names against the upstream ad API
+# (Facebook Marketing API, Google Ads API) and rejects the whole request with
+# HTTP 400 if ANY field name is unknown. So we keep this list tight to the
+# fields Windsor docs explicitly list as supported.
 FACEBOOK_FIELDS = [
     "date",
     "campaign",
     "campaign_id",
-    "adset",
-    "adset_id",
-    "ad",
-    "ad_id",
     "spend",
     "impressions",
     "clicks",
-    "clicks_all",
     "reach",
     "frequency",
     "currency",
@@ -223,12 +222,8 @@ GOOGLE_ADS_FIELDS = [
     "date",
     "campaign",
     "campaign_id",
-    "adgroup",
-    "adgroup_id",
     "spend",
     "impressions",
     "clicks",
-    "conversions",
-    "cost_per_conversion",
     "currency",
 ]

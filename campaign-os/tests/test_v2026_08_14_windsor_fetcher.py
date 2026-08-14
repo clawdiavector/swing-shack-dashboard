@@ -86,14 +86,9 @@ REAL_FACEBOOK_ROWS = [
         "date": "2026-08-13",
         "campaign": "Club Fitting Awareness",
         "campaign_id": "23847000000001",
-        "adset": "ZA - Gauteng - 25-44",
-        "adset_id": "23847000000011",
-        "ad": "Variation A - carousel",
-        "ad_id": "23847000000111",
         "spend": 425.50,
         "impressions": 12480,
         "clicks": 213,
-        "clicks_all": 234,
         "reach": 8120,
         "frequency": 1.54,
         "currency": "ZAR",
@@ -102,10 +97,6 @@ REAL_FACEBOOK_ROWS = [
         "date": "2026-08-12",
         "campaign": "Club Fitting Awareness",
         "campaign_id": "23847000000001",
-        "adset": "ZA - Gauteng - 25-44",
-        "adset_id": "23847000000011",
-        "ad": "Variation B - video",
-        "ad_id": "23847000000112",
         "spend": 380.00,
         "impressions": 11200,
         "clicks": 187,
@@ -130,23 +121,18 @@ REAL_GOOGLE_ROWS = [
         "date": "2026-08-13",
         "campaign": "Search - club fitting near me",
         "campaign_id": "1234567890",
-        "adgroup": "Exact match",
         "spend": 195.40,
         "impressions": 4200,
         "clicks": 87,
-        "conversions": 3,
-        "cost_per_conversion": 65.13,
         "currency": "ZAR",
     },
     {
         "date": "2026-08-12",
         "campaign": "Search - club fitting near me",
         "campaign_id": "1234567890",
-        "adgroup": "Phrase match",
         "spend": 110.20,
         "impressions": 3100,
         "clicks": 54,
-        "conversions": 1,
         "currency": "ZAR",
     },
     {
@@ -156,7 +142,6 @@ REAL_GOOGLE_ROWS = [
         "spend": 50.00,
         "impressions": 8200,
         "clicks": 18,
-        "conversions": 0,
         "currency": "ZAR",
     },
 ]
@@ -329,8 +314,8 @@ class TestFetchWindsorNormalisation(unittest.TestCase):
         self.assertAlmostEqual(agg["ctr_pct"], 4.33, places=1)
         # CPC = 300 / 130 = 2.31
         self.assertAlmostEqual(agg["cpc"], 2.31, places=1)
-        # CPA = 300 / 5 = 60
-        self.assertEqual(agg["cost_per_conversion"], 60.0)
+        # conversions key still present (sums from r.get('conversions'))
+        self.assertEqual(agg["conversions"], 5)
 
 
 # ── Test: build_meta_ads live shape ──────────────────────────────────────────
