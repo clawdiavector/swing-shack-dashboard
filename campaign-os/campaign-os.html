@@ -238,7 +238,7 @@ a:hover{text-decoration:underline}
   position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);
   background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:var(--r-s);
   padding:.65rem .85rem;font-size:12px;line-height:1.5;font-weight:400;
-  width:280px;max-width:90vw;z-index:60;
+  width:280px;max-width:min(280px,calc(100vw - 32px));z-index:60;
   box-shadow:0 8px 24px rgba(0,0,0,.2);
   pointer-events:none;opacity:0;transition:opacity var(--t);
   white-space:normal;text-align:left;
@@ -247,6 +247,15 @@ a:hover{text-decoration:underline}
 .section-explain-tip::after{
   content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
   border:6px solid transparent;border-top-color:var(--bd);
+}
+/* When the help trigger sits near the right edge of the content area, anchor the
+   tooltip to the right edge of the trigger so it stays inside the viewport
+   instead of overflowing ~100px off-screen (right edge of the section header). */
+.section-h .section-explain .section-explain-tip{
+  left:auto;right:0;transform:none;
+}
+.section-h .section-explain .section-explain-tip::after{
+  left:auto;right:10px;transform:none;
 }
 
 
