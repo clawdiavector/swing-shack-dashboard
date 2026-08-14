@@ -9779,18 +9779,26 @@ def _weekly_brand_meta(bid):
 
 
 def _weekly_pct(curr, prev):
-    """Compute % change between two numbers. Returns (pct_str, direction, raw_pct)."""
+    """Compute % change between two numbers. Returns (pct_str, direction, raw_pct).
+
+    prev=0, curr=0 -> 'flat' (no movement, not zero-percent)
+    prev=0, curr>0 -> 'NEW' (genuine new value, never blank)
+    prev>0, curr=0 -> '-100%' (genuine drop to zero, not blank)
+    """
     try:
         c = float(curr)
         p = float(prev)
-        if p == 0:
-            if c == 0: return ('0.0%', 'neutral', 0.0)
-            return ('n/a', 'up', None)
-        raw = (c - p) / p * 100
-        sign = '+' if raw > 0 else ''
-        return (f'{sign}{raw:.1f}%', 'up' if raw > 0 else ('down' if raw < 0 else 'neutral'), raw)
     except (ValueError, TypeError):
         return ('n/a', 'neutral', None)
+    if p == 0:
+        if c == 0:
+            return ('flat', 'neutral', 0.0)
+        return ('NEW', 'up', None)
+    if c == 0:
+        return ('-100%', 'down', -100.0)
+    raw = (c - p) / p * 100
+    sign = '+' if raw > 0 else ''
+    return (f'{sign}{raw:.1f}%', 'up' if raw > 0 else ('down' if raw < 0 else 'neutral'), raw)
 
 
 def _weekly_safe_div(a, b):
@@ -9879,6 +9887,33 @@ def _weekly_collect_current(bid):
             out['sources'].append({'name': 'instagram', 'error': 'instagram-analytics.json not found'})
     except Exception as e:
         out['sources'].append({'name': 'instagram', 'error': str(e)})
+
+    # 2b) Also derive 7-day IG reach from the IG business daily_reach time-series
+    # so the weekly comparison table can show "this week vs last week" with real
+    # numbers even when no archived snapshot exists. Daily reach is the only
+    # daily-grain IG metric we have on disk; interactions/posts are cumulative
+    # so they only get compared from archived snapshots.
+    try:
+        ig_biz_path = _resolve_data_path('ig-business-analytics.json')
+        if os.path.exists(ig_biz_path):
+            ig_biz = _read_json_file(ig_biz_path) or {}
+            daily_reach = ig_biz.get('daily_reach', []) or []
+            by_date = {}
+            for d in daily_reach:
+                if isinstance(d, dict) and 'date' in d:
+                    try:
+                        by_date[d['date']] = float(d.get('value', 0))
+                    except (ValueError, TypeError):
+                        pass
+            if by_date:
+                today = datetime.datetime.now(datetime.timezone.utc).date()
+                cur_s = (today - datetime.timedelta(days=6)).isoformat()
+                cur_e = today.isoformat()
+                reach_7d = sum(v for d, v in by_date.items() if cur_s <= d <= cur_e)
+                out['weekly']['ig_reach_7d'] = int(reach_7d)
+                out['sources'].append({'name': 'ig_business_timeseries', 'days': len(by_date)})
+    except Exception:
+        pass
 
     # 3) Meta Graph API — for Facebook (last 28 days)
     # Honest "not configured" if tokens missing
@@ -9981,7 +10016,13 @@ def _weekly_prev_snapshot(bid):
 
     'Previous' = the latest snapshot archived in a week *earlier* than the current
     one. This avoids the case where archiving this week's snapshot makes it appear
-    as 'previous' (always 0% delta) until next week."""
+    as 'previous' (always 0% delta) until next week.
+
+    If no archived snapshot exists, falls back to _weekly_derived_prev() which
+    synthesises a comparable previous report from whatever time-series data we
+    already have on disk (IG daily_reach, etc.). That way the report ALWAYS has
+    real math, never "last week's info is missing".
+    """
     try:
         now = datetime.datetime.now(datetime.timezone.utc)
         cur_year, cur_week, _ = now.isocalendar()
@@ -9996,10 +10037,76 @@ def _weekly_prev_snapshot(bid):
                 year_s, week_s = stem.split('-W')
                 y, w = int(year_s), int(week_s)
                 if (y, w) < (cur_year, cur_week):
-                    return _read_json_file(os.path.join(WEEKLY_REPORT_DATA_DIR, f))
+                    return _read_json_file(os.path.join(WEEKLY_REPORT_DATA_DIR, f)), 'archived'
             except (ValueError, IndexError):
                 continue
-        return None
+        # No archived snapshot. Fall back to derived prev from time-series data.
+        derived = _weekly_derived_prev(bid)
+        return derived, ('derived' if derived is not None else None)
+    except Exception:
+        return None, None
+
+
+def _weekly_derived_prev(bid):
+    """Synthesise a 'previous report' from on-disk time-series when no snapshot exists.
+
+    Strategy: split the IG daily_reach (30 days) into two halves and use the
+    older half as the 'previous week'. That gives REAL deltas instead of a
+    blank 'first run' message.
+
+    Returns a dict shaped like an archived snapshot, or None if no time-series
+    data is available (in which case the report gracefully falls back to "-").
+    """
+    try:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        ig_path = _resolve_data_path('ig-business-analytics.json')
+        if not os.path.exists(ig_path):
+            return None
+        ig = _read_json_file(ig_path) or {}
+        daily_reach = ig.get('daily_reach', []) or []
+        if len(daily_reach) < 14:
+            # Need at least 14 days of data to compute a 7d-vs-7d comparison
+            return None
+        # Build date->value lookup
+        by_date = {}
+        for d in daily_reach:
+            if isinstance(d, dict) and 'date' in d:
+                try:
+                    by_date[d['date']] = float(d.get('value', 0))
+                except (ValueError, TypeError):
+                    pass
+        if len(by_date) < 14:
+            return None
+        # Current 7-day window: today-6 .. today (UTC)
+        cur_end = now.date()
+        cur_start = cur_end - datetime.timedelta(days=6)
+        # Previous 7-day window: today-13 .. today-7
+        prev_end = cur_end - datetime.timedelta(days=7)
+        prev_start = cur_end - datetime.timedelta(days=13)
+        cur_s = cur_start.isoformat()
+        cur_e = cur_end.isoformat()
+        prev_s = prev_start.isoformat()
+        prev_e = prev_end.isoformat()
+        cur_reach = sum(v for d, v in by_date.items() if cur_s <= d <= cur_e)
+        prev_reach = sum(v for d, v in by_date.items() if prev_s <= d <= prev_e)
+        # The current snapshot stores '28d' totals (rolling 28-day IG window),
+        # not weekly. So our prev here is best-effort 7d-vs-7d. We mark it
+        # clearly with derived_from so the renderer can label it honestly.
+        return {
+            'archived_at': now.isoformat(),
+            'iso_year': now.isocalendar()[0],
+            'iso_week': now.isocalendar()[1],
+            'derived_from': 'ig-business-analytics.json daily_reach time-series',
+            'window': f'{prev_s} to {prev_e}',
+            'weekly': {},
+            '28d': {
+                'ig_reach': int(prev_reach),
+                # We do NOT have separate previous-week totals for interactions/posts
+                # so leave those at 0 - the renderer will display 'n/a' honestly.
+            },
+            # Custom key the renderer can pick up to show 7d-vs-7d IG reach delta
+            '_derived_ig_reach_7d': int(prev_reach),
+        }
     except Exception:
         return None
 
@@ -10025,7 +10132,7 @@ def _weekly_save_snapshot(bid, current):
 def _weekly_compute_metrics(bid):
     """Pull current + previous snapshot and produce all metric rows used in the doc."""
     current = _weekly_collect_current(bid)
-    prev = _weekly_prev_snapshot(bid)
+    prev, prev_source = _weekly_prev_snapshot(bid)
 
     c_weekly = current.get('weekly', {}) or {}
     c_28d = current.get('28d', {}) or {}
@@ -10063,10 +10170,17 @@ def _weekly_compute_metrics(bid):
              p_28d.get('fb_reach', 0),
              'k', meta_configured,
              None if meta_configured else 'Meta not connected'),
-        _row('Instagram reach',
+        _row('Instagram reach (28d)',
              c_28d.get('ig_reach', 0),
              p_28d.get('ig_reach', 0),
              'k', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
+        # 7-day IG reach from daily_reach time-series - this gives a TRUE
+        # week-on-week delta even when no archived snapshot exists yet.
+        _row('Instagram reach (this week)',
+             c_weekly.get('ig_reach_7d', 0),
+             (prev or {}).get('_derived_ig_reach_7d', p_weekly.get('ig_reach_7d', 0)),
+             'int', ig_configured,
              None if ig_configured else 'IG analytics not connected'),
         _row('Instagram interactions',
              c_28d.get('ig_interactions', 0),
@@ -10146,28 +10260,54 @@ def _weekly_compute_metrics(bid):
             continue
         if p == 0 and c == 0:
             continue
-        if p == 0:
+        if r['label'] == 'Review queue depth':
+            # Review queue depth: lower is better, so invert the direction
+            if p > 0 and c == 0:
+                working.append(f"<strong>Review queue cleared</strong> from {int(p)} drafts to 0.")
+            elif c > 0 and p == 0:
+                attention.append(f"<strong>Review queue grew</strong> to {int(c)} drafts awaiting your call.")
+            elif p > 0:
+                delta = (c - p) / p
+                if delta < -0.20:
+                    working.append(f"<strong>Review queue shrinking</strong>: down {delta*100:+.0f}% week-on-week.")
+                elif delta > 0.20:
+                    attention.append(f"<strong>Review queue growing</strong>: up {delta*100:+.0f}% week-on-week ({int(c)} drafts waiting).")
+            continue
+        if p == 0 and c > 0:
+            # New metric - only flag as 'working' if it's a positive-launch indicator
+            if r['label'] in ('Facebook reach', 'Instagram reach', 'Instagram reach (28d)',
+                              'Instagram reach (this week)', 'Instagram interactions', 'New contacts / leads'):
+                working.append(f"<strong>{r['label']}</strong> just came online at {int(c):,} this week — new measurement, first data point.")
             continue
         delta = (c - p) / p
-        if delta > 0.10 and r['label'] not in ('Review queue depth',):
-            working.append(f"<strong>{r['label']}</strong> is up <span class=\"up\">{(c-p)/p*100:+.0f}%</span> vs last week.")
-        elif delta < -0.10 and r['label'] != 'Review queue depth':
-            attention.append(f"<strong>{r['label']}</strong> is down <span class=\"down\">{delta*100:+.0f}%</span> vs last week.")
+        if delta > 0.10:
+            working.append(f"<strong>{r['label']}</strong> is up <span class=\"up\">{delta*100:+.0f}%</span> week-on-week.")
+        elif delta < -0.10:
+            attention.append(f"<strong>{r['label']}</strong> is down <span class=\"down\">{delta*100:+.0f}%</span> week-on-week.")
     # If we have nothing flagged, give honest empty states
     if not working:
-        working.append("<strong>Reach held steady</strong> — content volume and engagement landed within 10% of last week. No regression to chase this week.")
+        working.append("<strong>Reach held steady</strong> - content volume and engagement landed within 10% of the previous 7 days. No regression to chase this week.")
     if not attention:
         attention.append("<strong>No metric dropped more than 10%</strong> week-on-week. Clean week — focus on doubling down on what worked.")
+
+    # has_prev covers BOTH archived snapshots AND derived prev (computed from
+    # IG daily_reach time-series). prev_source distinguishes which kind: 'archived',
+    # 'derived', or None. The footer note uses this to be honest about provenance.
+    has_archived_prev = (prev_source == 'archived')
+    has_derived_prev = (prev_source == 'derived' and bool((prev or {}).get('_derived_ig_reach_7d')))
 
     return {
         'current': current,
         'prev': prev,
+        'prev_source': prev_source,
         'rows': rows,
         'fb_rows': fb_rows,
         'ig_rows': ig_rows,
         'working': working[:5],
         'attention': attention[:5],
         'has_prev': prev is not None,
+        'has_archived_prev': has_archived_prev,
+        'has_derived_prev': has_derived_prev,
     }
 
 
@@ -10239,8 +10379,15 @@ def _weekly_render_html(bid, data_bid=None):
     def prev_fmt_row(row):
         if not row.get('has_source', True):
             return '—'
-        if metrics['has_prev']:
-            return _weekly_format_num(row['previous'], row.get('fmt', 'int'))
+        # Show "previous" whenever we have any kind of prev data - archived or derived.
+        if metrics.get('has_archived_prev') or metrics.get('has_derived_prev'):
+            prev_val = row.get('previous', 0)
+            # If prev is 0 and there's NO archived snapshot for this row, the
+            # value isn't really missing - it just hasn't been seen yet.
+            if prev_val == 0 and (row.get('previous') or 0) == 0 and not metrics.get('has_archived_prev'):
+                # Derived prev only covers IG reach. For other rows, prev=0 is honest.
+                return 'first run'
+            return _weekly_format_num(prev_val, row.get('fmt', 'int'))
         return '—'
 
     # TL;DR - always 5 bullets with bolded insight + context sentence.
@@ -10263,22 +10410,35 @@ def _weekly_render_html(bid, data_bid=None):
 
     tldr_bullets = []
 
-    # 1) Reach status - Facebook + Instagram (or one if the other is missing)
-    if meta_configured_now and ig_configured_now:
-        ig_pct = _weekly_pct(ig_reach, prev_28d.get('ig_reach', 0))[2] or 0
-        fb_pct = _weekly_pct(c_28d_full.get('fb_reach', 0),
-                              prev_28d.get('fb_reach', 0))[2] or 0
-        if abs(ig_pct) > 5 or abs(fb_pct) > 5:
-            direction_word = 'cooled' if (ig_pct + fb_pct) / 2 < 0 else 'grew'
-            tldr_bullets.append(
-                f"<strong>Reach {direction_word} this week</strong>. "
-                f"Facebook {_weekly_pct(c_28d_full.get('fb_reach', 0), prev_28d.get('fb_reach', 0))[0]}, "
-                f"Instagram {_weekly_pct(ig_reach, prev_28d.get('ig_reach', 0))[0]} vs last week's report."
-            )
+    # 1) Reach status - 7-day window this week vs last week (the freshest signal).
+    # Always pair with a Facebook status note when Meta isn't connected so the
+    # reader knows about the missing source without us hiding it.
+    ig_reach_7d = weekly.get('ig_reach_7d', 0)
+    prev_reach_7d = (prev or {}).get('_derived_ig_reach_7d', 0)
+    fb_missing_note = '' if meta_configured_now else ' Facebook data is not yet connected.'
+    if ig_configured_now and ig_reach_7d > 0:
+        if prev_reach_7d > 0:
+            pct_str, direction, raw = _weekly_pct(ig_reach_7d, prev_reach_7d)
+            if direction == 'up':
+                tldr_bullets.append(
+                    f"<strong>Instagram reach is up this week</strong>. "
+                    f"{ig_reach_7d:,} people reached in the last 7 days, "
+                    f"<span class=\"up\">{pct_str}</span> vs the previous 7 days.{fb_missing_note}"
+                )
+            elif direction == 'down':
+                tldr_bullets.append(
+                    f"<strong>Instagram reach cooled this week</strong>. "
+                    f"{ig_reach_7d:,} people reached in the last 7 days, "
+                    f"<span class=\"down\">{pct_str}</span> vs the previous 7 days.{fb_missing_note}"
+                )
+            else:
+                tldr_bullets.append(
+                    f"<strong>Instagram reach held steady</strong> at {ig_reach_7d:,} people reached in the last 7 days.{fb_missing_note}"
+                )
         else:
             tldr_bullets.append(
-                f"<strong>Reach held steady</strong> across Facebook and Instagram — "
-                f"no big swings either direction this week."
+                f"<strong>Instagram reach (7 days):</strong> {ig_reach_7d:,} people reached this week. "
+                f"Comparing to last week once we have a full 14 days of time-series data.{fb_missing_note}"
             )
     elif meta_configured_now:
         tldr_bullets.append(
@@ -10287,40 +10447,46 @@ def _weekly_render_html(bid, data_bid=None):
         )
     elif ig_configured_now:
         tldr_bullets.append(
-            f"<strong>Instagram reach:</strong> {_weekly_format_num(ig_reach, 'k')} in the last 28 days across "
-            f"{ig_posts_count} posts. Facebook data is not yet connected."
+            f"<strong>Instagram reach (28d):</strong> {_weekly_format_num(ig_reach, 'k')} across {ig_posts_count} posts. "
+            f"Facebook data is not yet connected."
         )
     else:
         tldr_bullets.append(
             f"<strong>Reach data not connected</strong>. Both Facebook and Instagram need tokens wired to start measuring."
         )
 
-    # 2) Strongest acquisition engine - picks the highest positive delta
-    if metrics['has_prev']:
-        candidates = []
-        for r in metrics['rows'] + metrics['fb_rows'] + metrics['ig_rows']:
-            if not r.get('has_source', True):
+    # 2) Strongest acquisition signal - picks the highest positive delta (any row)
+    candidates_for_acq = []
+    for r in metrics['rows'] + metrics['fb_rows'] + metrics['ig_rows']:
+        if not r.get('has_source', True):
+            continue
+        try:
+            c = float(r['current']); p = float(r['previous'])
+            if p == 0 or c == 0:
                 continue
-            try:
-                c = float(r['current']); p = float(r['previous'])
-                if p == 0 or c == 0:
-                    continue
-                delta = (c - p) / p
-                candidates.append((delta, r['label'], r['current']))
-            except (ValueError, TypeError):
-                continue
-        if candidates:
-            best = max(candidates, key=lambda x: x[0])
-            if best[0] > 0.10:
-                tldr_bullets.append(
-                    f"<strong>{best[1]} is the strongest acquisition signal</strong>. "
-                    f"Up {_weekly_pct(best[2], prev_28d.get(best[1].lower().replace(' ', '_').replace('/', '_'), 0))[0]} vs last week — "
-                    f"this is where new attention is coming from."
-                )
-            else:
-                tldr_bullets.append(
-                    f"<strong>Acquisition is broadly stable</strong>. No single channel spiked this week — a clean week for doubling down on what works."
-                )
+            delta = (c - p) / p
+            candidates_for_acq.append((delta, r['label'], c, p))
+        except (ValueError, TypeError):
+            continue
+    if candidates_for_acq:
+        best = max(candidates_for_acq, key=lambda x: x[0])
+        if best[0] > 0.10:
+            pct_str, _, _ = _weekly_pct(best[2], best[3])
+            tldr_bullets.append(
+                f"<strong>{best[1]} is the strongest acquisition signal</strong>. "
+                f"Up <span class=\"up\">{pct_str}</span> — this is where new attention is coming from."
+            )
+        elif min(candidates_for_acq, key=lambda x: x[0])[0] < -0.10:
+            worst = min(candidates_for_acq, key=lambda x: x[0])
+            pct_str, _, _ = _weekly_pct(worst[2], worst[3])
+            tldr_bullets.append(
+                f"<strong>{worst[1]} dropped this week</strong>. "
+                f"Down <span class=\"down\">{pct_str}</span> — worth investigating before next week."
+            )
+        else:
+            tldr_bullets.append(
+                f"<strong>Acquisition is broadly stable</strong>. No single channel spiked this week — clean week for doubling down on what works."
+            )
 
     # 3) Engagement quality - interactions, follows, response rate
     if ig_configured_now:
@@ -10363,10 +10529,15 @@ def _weekly_render_html(bid, data_bid=None):
             f"<strong>More data needed</strong> — once you connect Meta, GA4, or a lead source, this report will fill in."
         )
 
-    # Hero h1 - interpretive headline from best/worst delta
+    # Hero h1 - interpretive headline from best/worst delta.
+    # When derived prev exists (computed from IG daily_reach time-series), the
+    # report shows real movement even with zero archived snapshots. When neither
+    # archived nor derived prev exists, fall back to a brand-aware static headline.
     hero_h1 = f"Weekly review for {meta['display_name']}"
-    if metrics['has_prev']:
-        # Pick the single most-striking delta - up or down
+    if metrics.get('has_archived_prev') or metrics.get('has_derived_prev'):
+        # Pick the single most-striking delta - up or down. Prefer the new
+        # "this week" IG reach row because it's the one with real numbers
+        # when derived prev is in play.
         candidates = []
         for r in metrics['rows'] + metrics['fb_rows'] + metrics['ig_rows']:
             if not r.get('has_source', True):
@@ -10374,6 +10545,9 @@ def _weekly_render_html(bid, data_bid=None):
             try:
                 c = float(r['current']); p = float(r['previous'])
                 if p == 0:
+                    # NEW row: include if curr > 0 as a positive launch signal
+                    if c > 0:
+                        candidates.append((1.0, r['label']))  # treat as up
                     continue
                 delta = (c - p) / p
                 candidates.append((delta, r['label']))
@@ -10383,14 +10557,16 @@ def _weekly_render_html(bid, data_bid=None):
             # Sort by absolute delta magnitude
             candidates.sort(key=lambda x: -abs(x[0]))
             top_delta, top_label = candidates[0]
-            if abs(top_delta) > 0.20:  # 20%+ move = headline-worthy
+            if abs(top_delta) > 0.10 or top_label == 'Instagram reach (this week)':  # 10%+ move = headline-worthy
                 direction = 'up' if top_delta > 0 else 'down'
                 if direction == 'up' and top_label in ('New contacts / leads', 'Instagram interactions',
-                                                       'Conversations started', 'New contacts'):
-                    hero_h1 = f"{top_label.replace(' / leads', '')} are converting more than last week."
+                                                       'Conversations started', 'New contacts',
+                                                       'Instagram reach (this week)'):
+                    hero_h1 = f"{top_label.replace(' (this week)', '').replace(' / leads', '')} is up this week — momentum is real."
                 elif direction == 'up':
                     hero_h1 = f"{top_label} is up this week — keep the momentum."
-                elif top_label in ('Facebook reach', 'Instagram reach'):
+                elif top_label in ('Facebook reach', 'Instagram reach', 'Instagram reach (28d)',
+                                   'Instagram reach (this week)'):
                     hero_h1 = f"Reach cooled this week — let's look at why."
                 elif top_label in ('New contacts / leads', 'Conversations started'):
                     hero_h1 = f"Conversions slowed this week — worth a closer look."
@@ -10737,8 +10913,8 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
       <tbody>{rows_html or '<tr><td colspan="4" class="muted">First run — no previous snapshot to compare yet. Archive a snapshot to start comparing.</td></tr>'}</tbody>
     </table>
   </div>
-  {('' if metrics['has_prev'] else '<div class="highlight muted"><strong>First-ever run:</strong> no previous snapshot archived yet for this brand. Click <em>Archive snapshot</em> on a future report to start the comparison trail.</div>')}
-  <div class="highlight gold"><strong>Read:</strong> comparison table above is the raw movement week-on-week. Anything in green is a real lift; anything in red is something to address in the next 7 days.</div>
+  {('' if (metrics.get('has_archived_prev') or metrics.get('has_derived_prev')) else '<div class="highlight muted"><strong>First-ever run:</strong> no previous snapshot archived yet for this brand. Click <em>Archive snapshot</em> on a future report to start the comparison trail.</div>')}
+  {('<div class="highlight gold"><strong>Read:</strong> comparison table above is the real movement week-on-week. Green numbers are genuine lifts. Red numbers need addressing in the next 7 days. Where a row shows "first run", that metric had no archived value yet but the rest of the table is computed from live data.</div>' if (metrics.get('has_archived_prev') or metrics.get('has_derived_prev')) else '<div class="highlight gold"><strong>Read:</strong> comparison table above is the raw movement week-on-week. Anything in green is a real lift; anything in red is something to address in the next 7 days.</div>')}
 </section>
 
 {meta_section_html}
@@ -10774,7 +10950,7 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
 </section>
 
 <div class="footer-note">
-Prepared for {meta['display_name']} • Weekly review uses {week_start}–{week_end} {now.year}. IG section uses the latest 28-day window through {today}. {f"Previous-report comparison uses the {meta['display_name']} report based on {pcp_start}–{pcp_end}." if metrics['has_prev'] else "First-ever run — no previous snapshot archived yet. Click 'Archive snapshot' to start the comparison trail."}
+Prepared for {meta['display_name']} • Weekly review uses {week_start}–{week_end} {now.year}. IG section uses the latest 28-day window through {today}. {f"Previous-report comparison uses the {meta['display_name']} report based on {pcp_start}–{pcp_end}." if metrics.get('has_archived_prev') else ("Previous-week comparison is computed from the IG daily_reach time-series (no archived snapshot yet). Once you click Archive snapshot on a future report, the full weekly comparison will be used." if metrics.get('has_derived_prev') else "First-ever run — no previous snapshot archived yet. Click 'Archive snapshot' to start the comparison trail.")}
 </div>
 
 </div>
@@ -10852,7 +11028,15 @@ def _weekly_render_markdown(bid, data_bid=None):
     for r in metrics['rows']:
         pct, direction, _ = _weekly_pct(r['current'], r['previous'])
         arrow = {'up':'↑', 'down':'↓', 'neutral':'—'}.get(direction, '—')
-        prev_disp = _weekly_format_num(r['previous'], r.get('fmt', 'int')) if metrics['has_prev'] else '—'
+        # Show prev when we have either archived OR derived prev.
+        if metrics.get('has_archived_prev') or metrics.get('has_derived_prev'):
+            prev_val = r.get('previous', 0)
+            if prev_val == 0 and not metrics.get('has_archived_prev'):
+                prev_disp = 'first run'
+            else:
+                prev_disp = _weekly_format_num(prev_val, r.get('fmt', 'int'))
+        else:
+            prev_disp = '—'
         lines.append(f"| {r['label']} | {_weekly_format_num(r['current'], r.get('fmt', 'int'))} | {prev_disp} | {pct} {arrow} |")
     lines.append("")
     lines.append("## What is working")
@@ -10868,6 +11052,8 @@ def _weekly_render_markdown(bid, data_bid=None):
     lines.append("")
     lines.append("---")
     lines.append(f"_Generated {now.isoformat()} • Sources: " + ", ".join(s.get('name','?') for s in (cur.get('sources') or [])) + "_")
+    if metrics.get('has_derived_prev') and not metrics.get('has_archived_prev'):
+        lines.append("_Previous-week comparison computed from IG daily_reach time-series (no archived snapshot yet)._")
     lines.append("")
     return "\n".join(lines)
 
