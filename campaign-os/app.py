@@ -11968,7 +11968,6 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
 .ds-pill.live{{border-color:rgba(93,255,157,.4);color:var(--green)}}
 .ds-pill.off{{border-color:rgba(255,122,122,.4);color:var(--red);opacity:.85}}
 .tldr-list li{{font-size:14.5px;line-height:1.5}}
-.focus-list li{{font-size:14px;line-height:1.5}}
 </style>
 </head>
 <body>
@@ -12037,17 +12036,6 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
     <h2>What needs attention</h2>
     <ul>{attention_html}</ul>
   </div>
-</section>
-
-<section class="section">
-  <h2>This week's focus</h2>
-  <ul class="focus-list">
-    {"".join(f'<li>Keep <strong>{esc_html(p)}</strong> content visible and on-cadence.</li>' for p in focus_pills[:3])}
-    {('<li>Clear the <strong>' + str(rev) + ' drafts</strong> sitting in Review.</li>') if rev > 0 else ''}
-    <li>Check what worked last week and ship at least one more of it.</li>
-    {('<li>Reconnect <strong>Meta / Facebook</strong> so the 28-day FB table fills in.') if not meta_configured else ''}
-    {('<li>Wire a <strong>lead source</strong> (HubSpot, Facebook Lead Ads, GA4 events) so "New contacts" reads real numbers instead of <code>—</code>.') if not leads_configured else ''}
-  </ul>
 </section>
 
 <div class="footer-note">
