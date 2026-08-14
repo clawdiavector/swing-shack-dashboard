@@ -76,6 +76,8 @@ def read_api_key() -> str:
     # Common defaults
     candidates.append("/data/credentials/windsor-api.json")
     candidates.append("/data/windsor-api.json")
+    candidates.append("/data/campaign-os/credentials/windsor-api.json")
+    candidates.append("/data/campaign-os/windsor-api.json")
     candidates.append(os.path.expanduser("~/.openclaw-instance2/workspace/swing-shack-dashboard/credentials/windsor-api.json"))
 
     for path in candidates:

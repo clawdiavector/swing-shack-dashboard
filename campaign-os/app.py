@@ -11998,25 +11998,6 @@ td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
 
 {brain_html}
 
-<section class="section data-sources">
-  <div class="date-note">Data sources — what powered this report</div>
-  <div class="data-source-grid">
-    <div class="ds-pill {'live' if ga4_configured else 'off'}">📊 GA4 {('live' if ga4_configured else 'not connected')}</div>
-    <div class="ds-pill {'live' if ig_configured else 'off'}">📱 Instagram {('live' if ig_configured else 'not connected')}</div>
-    <div class="ds-pill {'live' if meta_configured else 'off'}">📘 Facebook {('live' if meta_configured else 'not connected')}</div>
-    <div class="ds-pill {'live' if leads_configured else 'off'}">📞 Leads {('live' if leads_configured else 'no source wired')}</div>
-    <div class="ds-pill {'live' if review_configured else 'off'}">📋 Review queue {('live' if review_configured else 'not wired')}</div>
-  </div>
-  <p class="small">Anything showing "not connected" or "not wired" means that data source isn't measuring yet — those numbers below will read as <code>—</code> instead of misleading zeros. Tell us when you want any of them wired.</p>
-</section>
-
-<section class="section">
-  <h2>TL;DR</h2>
-  <ul class="tldr-list">
-    {"".join(f'<li>{b}</li>' for b in tldr_bullets[:5])}
-  </ul>
-</section>
-
 <section class="grid">
   <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">Content published</div><div class="metric-value">{_weekly_format_num(weekly.get('content_published', 0), 'int')}</div><div class="metric-note">Last 7 days</div></div>
   <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">Website sessions</div><div class="metric-value">{_weekly_format_num(weekly.get('ga4_sessions', 0), 'int')}</div><div class="metric-note">GA4 last 7 days</div></div>
@@ -12249,6 +12230,45 @@ def weekly_report_page():
 # ─── STARTUP ────────────────────────────────────────────────────────────
 
 
+def _boot_load_persisted_secrets():
+    """Re-read credentials that the running process lost across deploys.
+
+    Railway restarts wipe in-process os.environ. secrets-sync writes
+    credential JSON files to /data/campaign-os/credentials/ on the
+    persistent volume - those survive deploys. On boot, re-hydrate
+    os.environ from those files so Windsor (and any future service)
+    works immediately, without the operator re-running secrets-sync.
+
+    Also pre-loads WINDSOR_API_KEY into os.environ so the brain's
+    first render after deploy sees live data, not the synthesised
+    fallback that has been confusing Christelle.
+    """
+    try:
+        from _lib import windsor_client as _w
+        # The windsor_client already does the right thing - it checks
+        # /data/campaign-os/credentials/windsor-api.json too now (we
+        # added those candidates 2026-08-14). All we need to do on boot
+        # is force the env var so any code path that reads WINDSOR_API_KEY
+        # directly (without going through read_api_key()) sees it.
+        key = _w.read_api_key()
+        if key and not os.environ.get('WINDSOR_API_KEY'):
+            os.environ['WINDSOR_API_KEY'] = key
+            _app_log.info('Boot: re-hydrated WINDSOR_API_KEY from persistent volume')
+        # Also wire the *_FILE env var so the runtime creds path is known
+        if key and not os.environ.get('WINDSOR_API_KEY_FILE'):
+            # Prefer the volume-resident path
+            for candidate in (
+                '/data/campaign-os/credentials/windsor-api.json',
+                '/data/credentials/windsor-api.json',
+            ):
+                if os.path.exists(candidate):
+                    os.environ['WINDSOR_API_KEY_FILE'] = candidate
+                    break
+    except Exception as e:
+        _app_log.warning('Boot secret rehydration failed: %s', e)
+
+
 if __name__ == '__main__':
+    _boot_load_persisted_secrets()
     port = int(os.environ.get('PORT', 8000))
     app.run(host='0.0.0.0', port=port)
