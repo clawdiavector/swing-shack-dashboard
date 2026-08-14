@@ -4713,12 +4713,17 @@ def admin_secrets_sync():
 
     Body: { service: "meta-token" | "openai-api" | "openrouter-api" |
             "instagram-api-token" | "ubersuggest-api" | "google-analytics"
-            | "google-service-account" | "postiz-api-key" | "youtube-api",
+            | "google-service-account" | "postiz-api-key" | "youtube-api"
+            | "windsor-api",
             contents: <full JSON as a string OR object> }
 
     For 'meta-token' specifically, also sets META_APP_ID + META_ACCESS_TOKEN
     + META_INSTAGRAM_BUSINESS_ACCOUNT_ID in os.environ so Graph API works
     immediately.
+
+    For 'windsor-api' specifically, sets WINDSOR_API_KEY in os.environ so
+    the Windsor.ai paid-media connectors (facebook, google_ads, ...) work
+    immediately. Body shape: ``{"api_key": "<windsor-key>"}``.
     """
     try:
         body = request.get_json(force=True, silent=True) or {}
@@ -4845,6 +4850,25 @@ def admin_secrets_sync():
             if os.path.exists(rt_path):
                 os.environ['OPENAI_API_KEY_FILE'] = rt_path
                 env_wired.append('OPENAI_API_KEY_FILE')
+    elif service == 'windsor-api':
+        # Windsor.ai aggregator: single api_key unlocks all paid-media connectors
+        # (facebook, google_ads, tiktok, linkedin, ...). _lib.windsor_client
+        # resolves via WINDSOR_API_KEY env var first, then on-disk creds file.
+        if contents_obj.get('api_key'):
+            os.environ['WINDSOR_API_KEY'] = contents_obj['api_key']
+            env_wired.append('WINDSOR_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['WINDSOR_API_KEY_FILE'] = rt_path
+                env_wired.append('WINDSOR_API_KEY_FILE')
+        # Also allow the field to be named just 'key' for muscle-memory parity
+        elif contents_obj.get('key'):
+            os.environ['WINDSOR_API_KEY'] = contents_obj['key']
+            env_wired.append('WINDSOR_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['WINDSOR_API_KEY_FILE'] = rt_path
+                env_wired.append('WINDSOR_API_KEY_FILE')
 
     # Bust any caches that would hide the new keys
     try:
@@ -4956,6 +4980,108 @@ def admin_data_sync():
         "bytes": len(payload_str),
         "note": "Data file now visible to brain + weekly report on next render. Survives Railway restarts because DATA_DIR is a persistent volume.",
     })
+
+
+@app.route('/api/admin/windsor-refresh', methods=['POST'])
+def admin_windsor_refresh():
+    """POST /api/admin/windsor-refresh - pull live Meta Ads + Google Ads now.
+
+    Runs fetch_windsor.py in-process. Reads WINDSOR_API_KEY from env or
+    credentials/windsor-api.json. Writes data/meta-ads.json and
+    data/google-ads.json on Railway's persistent /data/ volume so the next
+    weekly-report render sees real paid-media numbers.
+
+    Returns JSON with ok, files written, totals. On failure, ok=False with
+    the specific error (so the caller knows whether to fix creds vs network).
+    """
+    try:
+        from _lib import windsor_client as _w
+        api_key = _w.read_api_key()
+        if not api_key:
+            return jsonify({
+                "ok": False,
+                "error": "WINDSOR_API_KEY not configured",
+                "fix": "POST /api/admin/secrets-sync with {service: 'windsor-api', contents: '{\"api_key\":\"<your-key>\"}'}",
+            }), 400
+
+        # Import the fetcher builders. Same code as scripts/fetch_windsor.py.
+        # Importing at call time (not module load) avoids loading on every
+        # request - only when this endpoint is hit.
+        try:
+            import importlib.util as _ilu
+            _spec = _ilu.spec_from_file_location(
+                "_fetch_windsor_local",
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             "scripts", "fetch_windsor.py"),
+            )
+            if _spec and _spec.loader:
+                _mod = _ilu.module_from_spec(_spec)
+                _spec.loader.exec_module(_mod)
+                build_meta_ads = _mod.build_meta_ads
+                build_google_ads = _mod.build_google_ads
+            else:
+                raise RuntimeError("Could not load fetch_windsor.py module spec")
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"failed to load fetcher: {e}"}), 500
+
+        meta_payload = build_meta_ads(api_key)
+        ga_payload = build_google_ads(api_key)
+
+        # Atomic write to DATA_DIR (Railway persistent volume)
+        wrote = []
+        for payload, name in [(meta_payload, 'meta-ads.json'),
+                              (ga_payload, 'google-ads.json')]:
+            path = os.path.join(DATA_DIR, name)
+            tmp = path + '.tmp'
+            try:
+                os.makedirs(DATA_DIR, exist_ok=True)
+                with open(tmp, 'w', encoding='utf-8') as f:
+                    json.dump(payload, f, indent=2, default=str)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(tmp, path)
+                try:
+                    os.chmod(path, 0o600)
+                except Exception:
+                    pass
+                wrote.append(path)
+            except Exception as e:
+                _app_log.warning('windsor-refresh write %s failed: %s', path, e)
+
+        ok_live = meta_payload.get('live') or ga_payload.get('live')
+        return jsonify({
+            "ok": bool(ok_live),
+            "fetched_at": meta_payload.get('_meta', {}).get('fetched_at'),
+            "wrote": wrote,
+            "meta_ads": {
+                "live": meta_payload.get('live', False),
+                "campaigns_count": len(meta_payload.get('campaigns') or []),
+                "totals": meta_payload.get('totals', {}),
+                "week": meta_payload.get('week', {}),
+                "error": meta_payload.get('error'),
+            },
+            "google_ads": {
+                "live": ga_payload.get('live', False),
+                "campaigns_count": len(ga_payload.get('campaigns') or []),
+                "totals": ga_payload.get('totals', {}),
+                "week": ga_payload.get('week', {}),
+                "spend": ga_payload.get('spend', 0),
+                "impressions": ga_payload.get('impressions', 0),
+                "clicks": ga_payload.get('clicks', 0),
+                "conversions": ga_payload.get('conversions', 0),
+                "error": ga_payload.get('error'),
+            },
+            "note": (
+                "Live paid-media data written. Next weekly-report render will "
+                "show real Meta Ads + Google Ads spend / reach / clicks instead "
+                "of the synthesised fallback."
+                if ok_live else
+                "Fetch failed; existing data files left in place. Check api_key + network."
+            ),
+        })
+    except Exception as e:
+        _app_log.exception('windsor-refresh crashed')
+        return jsonify({"ok": False, "error": f"unhandled: {e}"}), 500
 
 
 @app.route('/meta-portal', methods=['GET'])
@@ -10731,18 +10857,91 @@ def _weekly_build_brain(metrics, cur, prev, today):
                 + str(stories_reach) + ' reach in the last 24h. Stories are how '
                 'top-of-funnel stays warm between long-form IG posts.'
             )
-        # Paid reach gap - call out honestly
-        if meta_ads.get('_meta', {}).get('note'):
+        # Paid reach - now data-aware: live data from Windsor.ai vs synthesised vs no data
+        meta_ads_note = (meta_ads.get('_meta') or {}).get('note') or ''
+        # "live" means the fetch succeeded and we have real data. The fetch
+        # note for a live payload says "Live Meta Ads data via Windsor.ai" or
+        # "Live Google Ads data via Windsor.ai". The note for a failed fetch
+        # starts with "Windsor fetch failed" - we treat that as NOT live.
+        meta_ads_live = bool(meta_ads.get('live')) or meta_ads_note.startswith('Live ')
+        meta_ads_failed = (not meta_ads_live) and (
+            'Windsor fetch failed' in meta_ads_note or 'fetch failed' in meta_ads_note.lower()
+        )
+        ga_weekly = weekly.get('google_ads') or {}
+        ga_meta_note = (ga_weekly.get('_meta') or {}).get('note') or ''
+        ga_live = bool(ga_weekly.get('live')) or ga_meta_note.startswith('Live ')
+        ga_week_spend = ga_weekly.get('spend', 0) if isinstance(ga_weekly.get('spend'), (int, float)) else 0
+        ga_week_imps = ga_weekly.get('impressions', 0) if isinstance(ga_weekly.get('impressions'), (int, float)) else 0
+        ga_week_clicks = ga_weekly.get('clicks', 0) if isinstance(ga_weekly.get('clicks'), (int, float)) else 0
+
+        if meta_ads_live or ga_live:
+            # At least one paid-media source is live - show real numbers, no warning
+            parts = []
+            if meta_ads_live:
+                mt = meta_ads.get('totals') or {}
+                mw = meta_ads.get('week') or {}
+                mcur = (mt.get('currency') or 'USD')
+                m_spend = mt.get('spend', 0)
+                m_imps = mt.get('impressions', 0)
+                m_clicks = mt.get('clicks', 0)
+                m_reach = mt.get('reach', 0)
+                w_spend = mw.get('spend', 0)
+                w_imps = mw.get('impressions', 0)
+                w_clicks = mw.get('clicks', 0)
+                ctr_m = mt.get('ctr_pct', 0)
+                cpc_m = mt.get('cpc', 0)
+                m_camp_n = len(meta_ads.get('campaigns') or [])
+                parts.append(
+                    '<strong>Meta Ads is live</strong> via Windsor.ai. '
+                    + str(m_camp_n) + ' campaigns, '
+                    + mcur + ' ' + format(round(m_spend, 2), ',') + ' 30d spend, '
+                    + format(int(m_imps), ',') + ' 30d impressions, '
+                    + format(int(m_reach), ',') + ' 30d reach. '
+                    + 'Last 7 days: ' + mcur + ' ' + format(round(w_spend, 2), ',') + ' spend, '
+                    + format(int(w_imps), ',') + ' impressions, '
+                    + format(int(w_clicks), ',') + ' clicks. '
+                    + 'CTR ' + format(round(ctr_m, 2), ',') + '%, '
+                    + 'CPC ' + mcur + ' ' + format(round(cpc_m, 2), ',') + '.'
+                )
+            if ga_live:
+                gcur = ((ga_weekly.get('totals') or {}).get('currency') or 'USD')
+                g_spend = (ga_weekly.get('totals') or {}).get('spend', 0)
+                g_imps = (ga_weekly.get('totals') or {}).get('impressions', 0)
+                g_clicks = (ga_weekly.get('totals') or {}).get('clicks', 0)
+                g_conv = (ga_weekly.get('totals') or {}).get('conversions', 0)
+                g_camp_n = len(ga_weekly.get('campaigns') or [])
+                parts.append(
+                    '<strong>Google Ads is live</strong> via Windsor.ai. '
+                    + str(g_camp_n) + ' campaigns, '
+                    + gcur + ' ' + format(round(g_spend, 2), ',') + ' 30d spend, '
+                    + format(int(g_imps), ',') + ' 30d impressions, '
+                    + format(int(g_clicks), ',') + ' 30d clicks, '
+                    + format(int(g_conv), ',') + ' conversions. '
+                    + 'Last 7 days: ' + gcur + ' ' + format(round(ga_week_spend, 2), ',')
+                    + ' spend, ' + format(int(ga_week_imps), ',') + ' impressions, '
+                    + format(int(ga_week_clicks), ',') + ' clicks.'
+                )
+            reach_lines.append(' '.join(parts))
+        elif meta_ads_failed:
+            # Fetch tried but failed - honest about it
+            reach_lines.append(
+                '<strong>Paid reach attempted but Windsor fetch failed.</strong> '
+                + esc_html(meta_ads_note) + ' '
+                + 'Check the WINDSOR_API_KEY in /secrets-sync (service=windsor-api). '
+                + 'Until it succeeds, paid-media numbers stay at zero (not synthesised).'
+            )
+        elif meta_ads.get('_meta', {}).get('note'):
+            # Old synthesised fallback - keep the existing warning so users see it
             total_meta_spend = sum((c.get('spend') or 0) for c in (meta_ads.get('campaigns') or []))
             note = meta_ads['_meta']['note']
             reach_lines.append(
                 '<strong>Paid reach is invisible right now.</strong> '
-                'meta-ads.json source note: "' + note + '". '
+                'meta-ads.json source note: "' + esc_html(note) + '". '
                 'All "ad" data is synthesised from organic IG reach '
                 '(R' + format(int(total_meta_spend), ',') + ' lifetime, all Feb-Apr 2026 - stale). '
                 'Google Ads API also shows R0 this week. '
-                '<strong>Until Meta Ads API + Google Ads API are wired, '
-                'every "paid reach" claim is a guess.</strong>'
+                '<strong>Connect Windsor.ai via /secrets-sync (service=windsor-api) '
+                'to replace synthesised data with live paid-media numbers.</strong>'
             )
 
         # ── 3. Funnel leak ──
@@ -11465,7 +11664,7 @@ def _weekly_render_html(bid, data_bid=None):
 <section class="section">
   <h2>Google Ads this week</h2>
   <div class="highlight warning">
-    <strong>Google Ads not configured.</strong> Drop a <code>data/google-ads.json</code> file with the shape <code>{spend, impressions, clicks, conversions, local_actions, calls}</code> and the spend / CTR / CPC cards will fill in here.
+    <strong>Google Ads not configured.</strong> Drop a <code>data/google-ads.json</code> file with the shape <code>{spend, impressions, clicks, conversions, local_actions, calls}</code> and the spend / CTR / CPC cards will fill in here. Or connect Windsor.ai via <code>/secrets-sync</code> (service=windsor-api) and the fetcher will populate this automatically.
   </div>
 </section>'''
 
