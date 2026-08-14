@@ -10646,21 +10646,12 @@ def _weekly_render_html(bid, data_bid=None):
             f"Real website behaviour — people clicking through from your socials and ads."
         )
 
-    # 4b) Facebook page-level summary - surface page fans/followers/posts so
-    # the reader sees real Facebook numbers even when reach metrics are
-    # blocked by App Review.
-    fb_fans_now = c_28d_full.get('fb_fans', 0)
-    fb_followers_now = c_28d_full.get('fb_followers', 0)
-    fb_posts_now = c_28d_full.get('fb_posts', 0)
-    if fb_fans_now or fb_followers_now:
-        tldr_bullets.append(
-            f"<strong>Facebook page</strong>: {fb_fans_now:,} fans, {fb_followers_now:,} followers, {fb_posts_now} posts in the last 28 days. "
-            f"<span class=\"muted small\">Reach metrics require App Review for read_insights scope.</span>"
-        )
-
-    # 4c) Stories (IG + FB page cross-referenced) — surface the live count
+    # 4b) Stories (IG + FB page cross-referenced) - surface the live count
     # and combined reach so silent "0 Stories" lies never reappear. Active
-    # window is <=24h because Meta expires stories automatically.
+    # window is <=24h because Meta expires stories automatically. Placed
+    # BEFORE the static Facebook page summary so it always makes the TL;DR
+    # cut when Meta is connected - Stories is the freshest, most
+    # time-sensitive signal we have.
     ig_st_count = c_28d_full.get('ig_stories', 0)
     fb_st_count = c_28d_full.get('fb_stories', 0)
     st_combined = c_28d_full.get('stories_combined_count', 0)
@@ -10677,8 +10668,20 @@ def _weekly_render_html(bid, data_bid=None):
         else:
             reach_phrase = " (reach metrics pending first views)"
         tldr_bullets.append(
-            f"<strong>Stories live right now</strong>: {st_combined} combined — {source_note}{reach_phrase}. "
+            f"<strong>Stories live right now</strong>: {st_combined} combined - {source_note}{reach_phrase}. "
             f"<span class=\"muted small\">Stories expire after 24h, so this is a real-time snapshot, not a 28d count.</span>"
+        )
+
+    # 4c) Facebook page-level summary - surface page fans/followers/posts so
+    # the reader sees real Facebook numbers even when reach metrics are
+    # blocked by App Review.
+    fb_fans_now = c_28d_full.get('fb_fans', 0)
+    fb_followers_now = c_28d_full.get('fb_followers', 0)
+    fb_posts_now = c_28d_full.get('fb_posts', 0)
+    if fb_fans_now or fb_followers_now:
+        tldr_bullets.append(
+            f"<strong>Facebook page</strong>: {fb_fans_now:,} fans, {fb_followers_now:,} followers, {fb_posts_now} posts in the last 28 days. "
+            f"<span class=\"muted small\">Reach metrics require App Review for read_insights scope.</span>"
         )
 
     # 5) Pipeline flag - reviews, drafts, or conversion flow
