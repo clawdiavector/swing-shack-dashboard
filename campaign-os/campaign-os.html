@@ -8924,7 +8924,27 @@ async function renderHooks(){
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,120))}</div>${sc?`<div class="li-meta">${pill('on','score '+sc)} ${it._bucket?pill('live', it._bucket.replace(/_/g,' ')):''}</div>`:''}</div></li>`;
   };
   $('#hooks-ww').innerHTML = safeList(h.all_hooks, 20).map(renderHook).join('') || '<div class="empty">No hooks yet</div>';
-  const renderFormula = it => `<li class="li"><div class="li-body"><div class="li-title">${esc((it.best_example || '').slice(0,120))}</div><div class="li-meta">${pill('live', it.formula || '')} ${it.count?` · ${it.count} uses`:''} ${it.avg_cross_score?` · avg score ${it.avg_cross_score}`:''}</div></div></li>`;
+  // Before this fix, each formula row repeated its `best_example` hook text
+  // verbatim — and because `best_example` is, by construction, the top-scoring
+  // hook in that bucket, the same hook appeared twice on the page (once in
+  // Watched + worked, once in Hook formulas). Users read the same line twice
+  // and skipped the second panel. Build a normalised lookup so formula rows
+  // can cross-reference the matching WW entry instead of duplicating it.
+  const _normHook = s => (s || '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 120);
+  const _wwByKey = new Map();
+  safeList(h.all_hooks, 20).forEach((it, idx) => {
+    const t = _normHook(it.hook_text || it.hook || it.text || it.title);
+    if (t && !_wwByKey.has(t)) _wwByKey.set(t, idx + 1);
+  });
+  const renderFormula = it => {
+    const ex = it.best_example || '';
+    const exKey = _normHook(ex);
+    const dup = exKey && _wwByKey.has(exKey);
+    const title = dup
+      ? `<span class="muted">see top ${esc(it.formula || '')} hook above</span>`
+      : esc(ex.slice(0, 120));
+    return `<li class="li"><div class="li-body"><div class="li-title">${title}</div><div class="li-meta">${pill('live', it.formula || '')} ${it.count?` · ${it.count} uses`:''} ${it.avg_cross_score?` · avg score ${it.avg_cross_score}`:''}</div></div></li>`;
+  };
   $('#hooks-formulas').innerHTML = safeList(h.hook_formulas, 20).map(renderFormula).join('') || '<div class="empty">No formulas</div>';
   // Before this fix the empty state was a single line of grey text buried
   // at the bottom of the page ("Click Generate to produce fresh hooks from
