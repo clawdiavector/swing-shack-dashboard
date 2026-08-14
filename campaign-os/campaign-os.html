@@ -9524,11 +9524,34 @@ function _saveHeadHistory(){
   try { localStorage.setItem('ss:headlines:history', JSON.stringify(HEAD_STATE.history.slice(0, 60))); }
   catch(e){}
 }
+// ─── EMPTY STATES — Headlines + CTAs ─────────────────────────────────────
+// Single helper renders the empty-card for both the "Just generated" panel
+// (when no generation has happened this session) and the "History" panel
+// (when nothing is saved in localStorage yet). Teaches the user what goes
+// here, names the existing Generate button so they can find it, and points
+// at the Clear-history link as the reset action. Mirrors the .empty-card
+// pattern used by Ideas (line ~8614) and Library (line ~5279) so the page
+// has consistent empty-state voice across generators.
+function _genEmptyState({kind, title, sub, primaryId, primaryLabel}){
+  const isFresh = kind === 'fresh';
+  return `<div class="empty-card" style="margin:.4rem 0">
+    <div style="font-size:22px;line-height:1;margin-bottom:.4rem">${isFresh ? '⚡' : '📜'}</div>
+    <div class="empty-title">${esc(title || (isFresh ? 'Nothing generated yet' : 'No saved batches yet'))}</div>
+    <div class="empty-sub">${esc(sub || '')}</div>
+    ${isFresh && primaryId
+      ? `<div style="margin-top:.6rem"><a class="mini-link" href="#" data-gen-cta="${esc(primaryId)}">Tap "${esc(primaryLabel || '')}" above to start →</a></div>`
+      : ''}
+  </div>`;
+}
 function _renderHeadHistory(){
   const hist = HEAD_STATE.history || [];
   $('#head-hist-count').textContent = String(hist.length);
   if(!hist.length){
-    $('#head-history').innerHTML = '<div class="empty">No history yet. Every generation is saved here.</div>';
+    $('#head-history').innerHTML = _genEmptyState({
+      kind: 'history',
+      title: 'No saved headline batches yet',
+      sub: 'Saved headline batches are kept in this browser so you can re-roll or edit them across sessions. Wipe any time with the trash button above.',
+    });
     return;
   }
   $('#head-history').innerHTML = hist.map((batch, i) => {
@@ -9560,6 +9583,28 @@ function _renderHeadHistory(){
 async function renderHeadlines(){
   _loadHeadHistory();
   _renderHeadHistory();
+  // First-render empty state for "Just generated": a tall blank card is the
+  // single most common confusion when a marketer lands on Headlines. The
+  // count pill in the header (Just generated · 0) is small; the body needs
+  // to teach the action. Mirrors the Ideas > Just generated pattern (line
+  // ~8612) — empty-card with a link that clicks the existing generate button.
+  // Skip if we have ever rendered a real batch on this page (data-gen-state
+  // toggles to "filled" inside _generateHeadlines so a refresh keeps the
+  // empty state but a successful generation does not re-blank it).
+  if(!$('#head-list').dataset.genState){
+    $('#head-list').dataset.genState = 'empty';
+    $('#head-list').innerHTML = _genEmptyState({
+      kind: 'fresh',
+      title: 'No headlines generated yet',
+      sub: 'Generated batches land here with copy + use-in-caption buttons. Pick voice + pillar (or leave at any) above, then click Generate 5.',
+      primaryId: 'head-gen',
+      primaryLabel: '⚡ Generate 5',
+    });
+    const link = $('#head-list [data-gen-cta]');
+    if(link) link.addEventListener('click', (e) => {
+      e.preventDefault(); $('#head-gen')?.click(); link.blur();
+    });
+  }
   $('#head-summary').textContent = HEAD_STATE.history.length
     ? `${HEAD_STATE.history.length} saved batches · click history to re-run`
     : 'Click Generate to produce 5 fresh headlines from current signals.';
@@ -9591,6 +9636,7 @@ async function _generateHeadlines(){
         </div>
       </div>`).join('');
     $('#head-list').innerHTML = html;
+    $('#head-list').dataset.genState = 'filled';  // suppress empty-state on next visit
     $('#head-gen-count').textContent = String(r.count);
     // Save to history
     HEAD_STATE.history.unshift({voice: HEAD_STATE.voice, pillar: HEAD_STATE.pillar, count: HEAD_STATE.count, headlines: r.headlines, ts: new Date().toISOString()});
@@ -9662,7 +9708,11 @@ function _renderCtaHistory(){
   const hist = CTA_STATE.history || [];
   $('#cta-hist-count').textContent = String(hist.length);
   if(!hist.length){
-    $('#cta-history').innerHTML = '<div class="empty">No history yet. Every generation is saved here.</div>';
+    $('#cta-history').innerHTML = _genEmptyState({
+      kind: 'history',
+      title: 'No saved CTA batches yet',
+      sub: 'Saved CTA batches are kept in this browser so you can re-roll or edit them across sessions. Wipe any time with the trash button above.',
+    });
     return;
   }
   $('#cta-history').innerHTML = hist.map((batch, i) => {
@@ -9701,6 +9751,22 @@ function _renderCtaHistory(){
 async function renderCTAs(){
   _loadCtaHistory();
   _renderCtaHistory();
+  // First-render empty state for "Just generated" — see renderHeadlines()
+  // comment for rationale. Mirrors the Ideas > Just generated pattern.
+  if(!$('#cta-list').dataset.genState){
+    $('#cta-list').dataset.genState = 'empty';
+    $('#cta-list').innerHTML = _genEmptyState({
+      kind: 'fresh',
+      title: 'No CTAs generated yet',
+      sub: 'Generated CTA batches land here with copy + use-in-caption buttons. Pick voice + pillar + platform (or leave at any) above, then click Generate 5.',
+      primaryId: 'cta-gen',
+      primaryLabel: '⚡ Generate 5',
+    });
+    const link = $('#cta-list [data-gen-cta]');
+    if(link) link.addEventListener('click', (e) => {
+      e.preventDefault(); $('#cta-gen')?.click(); link.blur();
+    });
+  }
   $('#cta-summary').textContent = CTA_STATE.history.length
     ? `${CTA_STATE.history.length} saved batches · filter + re-roll any time`
     : 'Click Generate to produce 5 fresh CTAs from current signals.';
@@ -9747,6 +9813,7 @@ async function _generateCtas(){
       </div>`;
     }).join('');
     $('#cta-list').innerHTML = html;
+    $('#cta-list').dataset.genState = 'filled';  // suppress empty-state on next visit
     $('#cta-gen-count').textContent = String(r.count);
     // Save to history
     CTA_STATE.history.unshift({voice: CTA_STATE.voice, pillar: CTA_STATE.pillar, platform: CTA_STATE.platform, category: CTA_STATE.category, ctas: r.ctas.map(c => ({text: c.text, category: c.category, score: c.score})), ts: new Date().toISOString()});
@@ -9808,6 +9875,7 @@ async function _recommendCtas(){
       </div>`;
     }).join('');
     $('#cta-list').innerHTML = html;
+    $('#cta-list').dataset.genState = 'filled';  // suppress empty-state on next visit
     $('#cta-gen-count').textContent = String(r.count);
     // Save to history
     CTA_STATE.history.unshift({voice: CTA_STATE.voice, pillar: CTA_STATE.pillar, platform: CTA_STATE.platform, ctas: r.ctas, ts: new Date().toISOString()});
