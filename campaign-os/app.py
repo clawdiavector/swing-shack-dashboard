@@ -12256,7 +12256,57 @@ def _boot_load_persisted_secrets():
         _app_log.warning('Boot secret rehydration failed: %s', e)
 
 
+def _boot_selfheal_windsor():
+    """If meta-ads.json is stale (synthesised note) but the Windsor key is
+    present, re-pull in a background thread so the first render after deploy
+    shows live data instead of the bundled synthesised fallback.
+
+    Runs only on the master process (i.e. direct `python app.py`, not every
+    gunicorn worker). Self-heal is best-effort: any failure is logged and
+    swallowed - the request path still works with whatever data is on disk.
+    """
+    try:
+        meta_path = os.path.join(DATA_DIR, 'meta-ads.json')
+        is_stale = False
+        if os.path.exists(meta_path):
+            with open(meta_path, 'r', encoding='utf-8') as f:
+                head = f.read(2000)
+            if 'Synthesised from IG post engagement' in head:
+                is_stale = True
+        # Also self-heal if the file is simply missing.
+        if not os.path.exists(meta_path):
+            is_stale = True
+        if not is_stale:
+            return
+        from _lib import windsor_client as _w
+        key = _w.read_api_key()
+        if not key:
+            _app_log.info('Boot self-heal: meta-ads.json is stale but no Windsor key on disk - skipping')
+            return
+        # Fire-and-forget background refresh. Use a thread so app.run()
+        # isn't blocked on the network call.
+        import threading
+
+        def _refresh():
+            try:
+                from _lib.windsor_fetcher import build_meta_ads, build_google_ads, _atomic_write
+                _app_log.info('Boot self-heal: pulling live Meta Ads from Windsor...')
+                meta = build_meta_ads(key)
+                ga = build_google_ads(key)
+                _atomic_write(os.path.join(DATA_DIR, 'meta-ads.json'), meta)
+                _atomic_write(os.path.join(DATA_DIR, 'google-ads.json'), ga)
+                _app_log.info('Boot self-heal: live Meta Ads written to %s', DATA_DIR)
+            except Exception as e:
+                _app_log.warning('Boot self-heal refresh failed: %s', e)
+
+        t = threading.Thread(target=_refresh, daemon=True, name='boot-selfheal-windsor')
+        t.start()
+    except Exception as e:
+        _app_log.warning('Boot self-heal dispatch failed: %s', e)
+
+
 if __name__ == '__main__':
     _boot_load_persisted_secrets()
+    _boot_selfheal_windsor()
     port = int(os.environ.get('PORT', 8000))
     app.run(host='0.0.0.0', port=port)
