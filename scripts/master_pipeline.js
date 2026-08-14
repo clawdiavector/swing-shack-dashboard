@@ -92,6 +92,7 @@ const STAGES = [
       { name: 'run_postiz_attribution_layer',    script: `node ${BASE}/scripts/run_postiz_attribution_layer.js`,    critical: false },
       { name: 'fetch_ga4_attribution',           script: `python3 ${BASE}/scripts/fetch_ga4_attribution.py`,        critical: false },
       { name: 'fetch_post_conversion_score',     script: `python3 ${BASE}/scripts/fetch_post_conversion_score.py`,  critical: false },
+      { name: 'refit_format_model',             script: `python3 ${BASE}/scripts/refit_format_model.py`,          critical: false },
     ]
   },
   {

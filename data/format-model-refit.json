@@ -1,0 +1,508 @@
+{
+  "schema": "https://clawdia.io/scripts/format-model-refit/v1",
+  "generated_at": "2026-08-14T07:46:11.575841+00:00",
+  "source_data": {
+    "post_conversion_score": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/post-conversion-score.json",
+    "ig_business_analytics": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/ig-business-analytics.json"
+  },
+  "scoring": {
+    "old_formula": "raw_score = (direct_attributed * 10 + (window_total/3) * 3 + reach * 0.001) * theme_mult | normalized_score = raw / max(raw) * 100",
+    "new_formula": "(direct*10 + (sessions/3)*3 + reach*0.001 + efficiency*50) * theme_mult * format_mult",
+    "median_conversion_efficiency": 0.0253,
+    "format_multipliers": {
+      "image": 2.303,
+      "reel": 0.324
+    }
+  },
+  "format_stats": {
+    "image": {
+      "count": 10,
+      "avg_reach": 127.9,
+      "avg_sessions": 7.1,
+      "avg_conversion_efficiency": 0.0583,
+      "avg_engagement_rate_pct": 2.935
+    },
+    "reel": {
+      "count": 6,
+      "avg_reach": 529.8,
+      "avg_sessions": 3.5,
+      "avg_conversion_efficiency": 0.0082,
+      "avg_engagement_rate_pct": 2.502
+    }
+  },
+  "old_format_avg_scores": {
+    "image": 61.6,
+    "reel": 28.5
+  },
+  "new_format_avg_scores": {
+    "image": 61.3,
+    "reel": 3.2
+  },
+  "old_winning_format": "image",
+  "new_winning_format": "image",
+  "format_flip": false,
+  "verdict": [
+    "Old model said: image wins (avg score 61.6)",
+    "New model says: image wins (avg score 61.3)",
+    "No format flip. Image still wins, with bigger margin.",
+    "6 posts moved >= 3 ranks:",
+    "  up 5 places: 182418080923 (image, 1 sessions, eff 0.008)",
+    "  up 4 places: golf-is-easier-when-the-club-is-built-around-your- (image, 4 sessions, eff 0.036)",
+    "  down 4 places: golf-s-a-tough-sport-book-your-coaching-session-sw (reel, 5 sessions, eff 0.011)",
+    "  down 4 places: build-of-the-week (reel, 7 sessions, eff 0.021)",
+    "  down 4 places: tired-of-the-same-old-setup-try-avoda-today (reel, 5 sessions, eff 0.004)"
+  ],
+  "rank_movers": [
+    {
+      "post_id": "18241808092308155",
+      "hook_id": "",
+      "post_date": "2026-07-30",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "booking_cta"
+      ],
+      "reach": 122,
+      "sessions": 1,
+      "conversion_efficiency": 0.0082,
+      "format_mult": 2.303,
+      "old_normalized": 10.0,
+      "new_normalized": 9.8,
+      "delta_normalized": -0.2,
+      "old_rank": 15,
+      "new_rank": 10,
+      "rank_change": 5
+    },
+    {
+      "post_id": "18088768850420016",
+      "hook_id": "golf-is-easier-when-the-club-is-built-around-your-",
+      "post_date": "2026-07-21",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "golf_humor",
+        "booking_cta"
+      ],
+      "reach": 111,
+      "sessions": 4,
+      "conversion_efficiency": 0.036,
+      "format_mult": 2.303,
+      "old_normalized": 36.8,
+      "new_normalized": 37.7,
+      "delta_normalized": 0.9,
+      "old_rank": 11,
+      "new_rank": 7,
+      "rank_change": 4
+    },
+    {
+      "post_id": "18346664380175442",
+      "hook_id": "golf-s-a-tough-sport-book-your-coaching-session-sw",
+      "post_date": "2026-07-17",
+      "format": "reel",
+      "themes": [
+        "golf_lessons",
+        "booking_cta"
+      ],
+      "reach": 453,
+      "sessions": 5,
+      "conversion_efficiency": 0.011,
+      "format_mult": 0.324,
+      "old_normalized": 48.8,
+      "new_normalized": 5.4,
+      "delta_normalized": -43.4,
+      "old_rank": 7,
+      "new_rank": 11,
+      "rank_change": -4
+    },
+    {
+      "post_id": "18383194084200293",
+      "hook_id": "build-of-the-week",
+      "post_date": "2026-07-22",
+      "format": "reel",
+      "themes": [
+        "club_fitting"
+      ],
+      "reach": 342,
+      "sessions": 7,
+      "conversion_efficiency": 0.0205,
+      "format_mult": 0.324,
+      "old_normalized": 43.8,
+      "new_normalized": 5.0,
+      "delta_normalized": -38.8,
+      "old_rank": 8,
+      "new_rank": 12,
+      "rank_change": -4
+    },
+    {
+      "post_id": "18083616452674797",
+      "hook_id": "tired-of-the-same-old-setup-try-avoda-today",
+      "post_date": "2026-07-28",
+      "format": "reel",
+      "themes": [
+        "club_fitting",
+        "golf_lessons",
+        "golf_humor"
+      ],
+      "reach": 1400,
+      "sessions": 5,
+      "conversion_efficiency": 0.0036,
+      "format_mult": 0.324,
+      "old_normalized": 38.2,
+      "new_normalized": 3.9,
+      "delta_normalized": -34.3,
+      "old_rank": 9,
+      "new_rank": 13,
+      "rank_change": -4
+    },
+    {
+      "post_id": "17935510203346465",
+      "hook_id": "your-ball-affects-every-shot-book-your-fitting-tod",
+      "post_date": "2026-07-29",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "booking_cta"
+      ],
+      "reach": 127,
+      "sessions": 3,
+      "conversion_efficiency": 0.0236,
+      "format_mult": 2.303,
+      "old_normalized": 28.0,
+      "new_normalized": 27.5,
+      "delta_normalized": -0.5,
+      "old_rank": 12,
+      "new_rank": 9,
+      "rank_change": 3
+    }
+  ],
+  "posts": [
+    {
+      "post_id": "18032418161824737",
+      "hook_id": "book-your-ball-fitting-at-swing-shack-today-dm-us-",
+      "post_date": "2026-07-24",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "wrong_ball",
+        "booking_cta"
+      ],
+      "reach": 121,
+      "sessions": 11,
+      "conversion_efficiency": 0.0909,
+      "format_mult": 2.303,
+      "old_normalized": 99.5,
+      "new_normalized": 100.0,
+      "delta_normalized": 0.5,
+      "old_rank": 3,
+      "new_rank": 1,
+      "rank_change": 2
+    },
+    {
+      "post_id": "17866901091651089",
+      "hook_id": "wrong-ball-let-s-fix-it",
+      "post_date": "2026-07-27",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "wrong_ball",
+        "booking_cta"
+      ],
+      "reach": 136,
+      "sessions": 11,
+      "conversion_efficiency": 0.0809,
+      "format_mult": 2.303,
+      "old_normalized": 99.6,
+      "new_normalized": 96.9,
+      "delta_normalized": -2.7,
+      "old_rank": 2,
+      "new_rank": 2,
+      "rank_change": 0
+    },
+    {
+      "post_id": "18335254792283425",
+      "hook_id": "off-the-rack-is-fine-for-groceries",
+      "post_date": "2026-07-25",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "golf_humor",
+        "booking_cta"
+      ],
+      "reach": 178,
+      "sessions": 11,
+      "conversion_efficiency": 0.0618,
+      "format_mult": 2.303,
+      "old_normalized": 100.0,
+      "new_normalized": 91.1,
+      "delta_normalized": -8.9,
+      "old_rank": 1,
+      "new_rank": 3,
+      "rank_change": -2
+    },
+    {
+      "post_id": "17959043976175458",
+      "hook_id": "the-woods-are-lovely-this-time-of-year",
+      "post_date": "2026-07-23",
+      "format": "image",
+      "themes": [
+        "golf_lessons",
+        "golf_humor",
+        "booking_cta"
+      ],
+      "reach": 121,
+      "sessions": 9,
+      "conversion_efficiency": 0.0744,
+      "format_mult": 2.303,
+      "old_normalized": 81.6,
+      "new_normalized": 82.0,
+      "delta_normalized": 0.4,
+      "old_rank": 4,
+      "new_rank": 4,
+      "rank_change": 0
+    },
+    {
+      "post_id": "18024027806681782",
+      "hook_id": "wrong-ball-wrong-numbers-wrong-feel",
+      "post_date": "2026-07-26",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "wrong_ball"
+      ],
+      "reach": 79,
+      "sessions": 10,
+      "conversion_efficiency": 0.1266,
+      "format_mult": 2.303,
+      "old_normalized": 60.1,
+      "new_normalized": 69.8,
+      "delta_normalized": 9.7,
+      "old_rank": 6,
+      "new_rank": 5,
+      "rank_change": 1
+    },
+    {
+      "post_id": "18159912388465452",
+      "hook_id": "stop-wasting-shots-with-the-wrong-ball-book-your-f",
+      "post_date": "2026-07-22",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "wrong_ball",
+        "booking_cta"
+      ],
+      "reach": 126,
+      "sessions": 7,
+      "conversion_efficiency": 0.0556,
+      "format_mult": 2.303,
+      "old_normalized": 63.7,
+      "new_normalized": 63.2,
+      "delta_normalized": -0.5,
+      "old_rank": 5,
+      "new_rank": 6,
+      "rank_change": -1
+    },
+    {
+      "post_id": "18088768850420016",
+      "hook_id": "golf-is-easier-when-the-club-is-built-around-your-",
+      "post_date": "2026-07-21",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "golf_humor",
+        "booking_cta"
+      ],
+      "reach": 111,
+      "sessions": 4,
+      "conversion_efficiency": 0.036,
+      "format_mult": 2.303,
+      "old_normalized": 36.8,
+      "new_normalized": 37.7,
+      "delta_normalized": 0.9,
+      "old_rank": 11,
+      "new_rank": 7,
+      "rank_change": 4
+    },
+    {
+      "post_id": "17997561656977299",
+      "hook_id": "a-few-small-changes-can-save-a-lot-of-golf-balls",
+      "post_date": "2026-07-20",
+      "format": "image",
+      "themes": [
+        "golf_lessons",
+        "booking_cta"
+      ],
+      "reach": 158,
+      "sessions": 4,
+      "conversion_efficiency": 0.0253,
+      "format_mult": 2.303,
+      "old_normalized": 37.2,
+      "new_normalized": 34.6,
+      "delta_normalized": -2.6,
+      "old_rank": 10,
+      "new_rank": 8,
+      "rank_change": 2
+    },
+    {
+      "post_id": "17935510203346465",
+      "hook_id": "your-ball-affects-every-shot-book-your-fitting-tod",
+      "post_date": "2026-07-29",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "booking_cta"
+      ],
+      "reach": 127,
+      "sessions": 3,
+      "conversion_efficiency": 0.0236,
+      "format_mult": 2.303,
+      "old_normalized": 28.0,
+      "new_normalized": 27.5,
+      "delta_normalized": -0.5,
+      "old_rank": 12,
+      "new_rank": 9,
+      "rank_change": 3
+    },
+    {
+      "post_id": "18241808092308155",
+      "hook_id": "",
+      "post_date": "2026-07-30",
+      "format": "image",
+      "themes": [
+        "club_fitting",
+        "booking_cta"
+      ],
+      "reach": 122,
+      "sessions": 1,
+      "conversion_efficiency": 0.0082,
+      "format_mult": 2.303,
+      "old_normalized": 10.0,
+      "new_normalized": 9.8,
+      "delta_normalized": -0.2,
+      "old_rank": 15,
+      "new_rank": 10,
+      "rank_change": 5
+    },
+    {
+      "post_id": "18346664380175442",
+      "hook_id": "golf-s-a-tough-sport-book-your-coaching-session-sw",
+      "post_date": "2026-07-17",
+      "format": "reel",
+      "themes": [
+        "golf_lessons",
+        "booking_cta"
+      ],
+      "reach": 453,
+      "sessions": 5,
+      "conversion_efficiency": 0.011,
+      "format_mult": 0.324,
+      "old_normalized": 48.8,
+      "new_normalized": 5.4,
+      "delta_normalized": -43.4,
+      "old_rank": 7,
+      "new_rank": 11,
+      "rank_change": -4
+    },
+    {
+      "post_id": "18383194084200293",
+      "hook_id": "build-of-the-week",
+      "post_date": "2026-07-22",
+      "format": "reel",
+      "themes": [
+        "club_fitting"
+      ],
+      "reach": 342,
+      "sessions": 7,
+      "conversion_efficiency": 0.0205,
+      "format_mult": 0.324,
+      "old_normalized": 43.8,
+      "new_normalized": 5.0,
+      "delta_normalized": -38.8,
+      "old_rank": 8,
+      "new_rank": 12,
+      "rank_change": -4
+    },
+    {
+      "post_id": "18083616452674797",
+      "hook_id": "tired-of-the-same-old-setup-try-avoda-today",
+      "post_date": "2026-07-28",
+      "format": "reel",
+      "themes": [
+        "club_fitting",
+        "golf_lessons",
+        "golf_humor"
+      ],
+      "reach": 1400,
+      "sessions": 5,
+      "conversion_efficiency": 0.0036,
+      "format_mult": 0.324,
+      "old_normalized": 38.2,
+      "new_normalized": 3.9,
+      "delta_normalized": -34.3,
+      "old_rank": 9,
+      "new_rank": 13,
+      "rank_change": -4
+    },
+    {
+      "post_id": "17980153908061122",
+      "hook_id": "you-ve-seen-the-reviews",
+      "post_date": "2026-07-31",
+      "format": "reel",
+      "themes": [
+        "club_fitting",
+        "booking_cta"
+      ],
+      "reach": 260,
+      "sessions": 2,
+      "conversion_efficiency": 0.0077,
+      "format_mult": 0.324,
+      "old_normalized": 20.2,
+      "new_normalized": 2.4,
+      "delta_normalized": -17.8,
+      "old_rank": 13,
+      "new_rank": 14,
+      "rank_change": -1
+    },
+    {
+      "post_id": "18098215292347008",
+      "hook_id": "sub-70-clubs-are-now-available-for-fitting-at-swin",
+      "post_date": "2026-08-05",
+      "format": "reel",
+      "themes": [
+        "club_fitting",
+        "booking_cta"
+      ],
+      "reach": 209,
+      "sessions": 1,
+      "conversion_efficiency": 0.0048,
+      "format_mult": 0.324,
+      "old_normalized": 10.8,
+      "new_normalized": 1.3,
+      "delta_normalized": -9.5,
+      "old_rank": 14,
+      "new_rank": 15,
+      "rank_change": -1
+    },
+    {
+      "post_id": "18360953572213385",
+      "hook_id": "and-we-certainly-do-have-spirit-visit-swingshack-t",
+      "post_date": "2026-07-30",
+      "format": "reel",
+      "themes": [
+        "club_fitting",
+        "golf_lessons",
+        "golf_humor",
+        "trackman_stats"
+      ],
+      "reach": 515,
+      "sessions": 1,
+      "conversion_efficiency": 0.0019,
+      "format_mult": 0.324,
+      "old_normalized": 9.1,
+      "new_normalized": 1.0,
+      "delta_normalized": -8.1,
+      "old_rank": 16,
+      "new_rank": 16,
+      "rank_change": 0
+    }
+  ]
+}

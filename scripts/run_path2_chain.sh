@@ -55,6 +55,7 @@ run "generate_conversion_attribution" node scripts/generate_conversion_attributi
 run "run_postiz_attribution_layer"    node scripts/run_postiz_attribution_layer.js
 run "fetch_ga4_attribution"           python3 scripts/fetch_ga4_attribution.py
 run "fetch_post_conversion_score"     python3 scripts/fetch_post_conversion_score.py
+run "refit_format_model"             python3 scripts/refit_format_model.py
 
 # Stage 5: deploy-wiring self-check (the 2026-08-13 phantom-commit lesson)
 # Catches: missing GITHUB_TOKEN, repo auth issues, live endpoint down,

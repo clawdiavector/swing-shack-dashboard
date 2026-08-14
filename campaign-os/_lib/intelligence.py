@@ -3949,6 +3949,52 @@ def _interpret_weekly_report(
                             "category": "content_strategy",
                         })
 
+                # 1b-refit. Format-aware model refit (uses format-model-refit.json).
+                # New layer of insight: which format converts /bookings/ traffic per reach.
+                refit_path = _runtime_data_file("format-model-refit.json")
+                if os.path.exists(refit_path):
+                    try:
+                        refit = _read_json(refit_path) or {}
+                        fmt_stats = refit.get("format_stats") or {}
+                        mults = (refit.get("scoring") or {}).get("format_multipliers") or {}
+                        new_winner = refit.get("new_winning_format")
+                        verdict = refit.get("verdict") or []
+                        if fmt_stats and mults and new_winner:
+                            # Pull out image vs reel stats for the claim
+                            img = fmt_stats.get("image", {})
+                            reel = fmt_stats.get("reel", {})
+                            img_mult = mults.get("image", 1.0)
+                            reel_mult = mults.get("reel", 1.0)
+                            ratio = round(img_mult / reel_mult, 1) if reel_mult else None
+                            img_eff = img.get("avg_conversion_efficiency", 0)
+                            reel_eff = reel.get("avg_conversion_efficiency", 0)
+                            ratio_str = (
+                                f"images convert {ratio}x better per reach than reels"
+                                if ratio and ratio > 1
+                                else (f"reels convert {1/ratio:.1f}x better per reach than images"
+                                      if ratio and ratio < 1 else "both formats convert similarly")
+                            )
+                            working.append({
+                                "claim": (
+                                    f"Format refit: {new_winner} wins, but the reason matters. "
+                                    f"{ratio_str.capitalize()}. "
+                                    f"Reels avg reach {reel.get('avg_reach', 0):.0f} vs images {img.get('avg_reach', 0):.0f}, "
+                                    f"but conversion per reach is {img_eff:.3f} (images) vs {reel_eff:.3f} (reels). "
+                                    f"Reels attract browsers, images attract buyers."
+                                ),
+                                "evidence": (
+                                    f"format-model-refit.json re-scores all {len(ranked)} posts with a format-aware formula: "
+                                    f"(direct*10 + (sessions/3)*3 + reach*0.001 + efficiency*50) * theme_mult * format_mult. "
+                                    f"Format multipliers: image={img_mult:.2f}, reel={reel_mult:.2f}. "
+                                    f"Verdict: {' | '.join(verdict[:3])}"
+                                ),
+                                "source": "format-model-refit.json",
+                                "category": "content_strategy",
+                            })
+                            sources_used.append("format-model-refit.json")
+                    except Exception as _exc:  # noqa: BLE001
+                        _logging.getLogger(__name__).debug("format-model-refit block skipped: %s", _exc)
+
                 # 2. Winning pattern - the CMO recommendation for next post.
                 if recommendation:
                     themes = recommendation.get("next_post_themes") or []
