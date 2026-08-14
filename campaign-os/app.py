@@ -4712,6 +4712,25 @@ def admin_secrets_sync():
         except Exception as e:
             _app_log.warning('secrets-sync write %s failed: %s', p, e)
 
+    # Meta also writes the bundled-fallback filename that _read_meta_access_token()
+    # looks up directly (data/meta-tokens.json). This survives Railway restarts
+    # because DATA_DIR (/data/) is a persistent volume, and serves as a fallback
+    # if env vars are lost between deploys.
+    if service == 'meta-token':
+        bundled_path = ''
+        for bundled_dir in (runtime_creds_dir, os.path.join(DATA_DIR, '').rstrip('/'),
+                            os.path.dirname(DATA_DIR)):
+            try:
+                bundled_path = os.path.join(bundled_dir, 'meta-tokens.json')
+                os.makedirs(bundled_dir, exist_ok=True)
+                with open(bundled_path, 'w') as f:
+                    f.write(payload_str)
+                os.chmod(bundled_path, 0o600)
+                wrote.append(bundled_path)
+            except Exception as e:
+                _app_log.warning('secrets-sync bundled-fallback write %s failed: %s',
+                                 bundled_path, e)
+
     # Service-specific env-var wiring for the running process
     env_wired = []
     if service == 'meta-token':
