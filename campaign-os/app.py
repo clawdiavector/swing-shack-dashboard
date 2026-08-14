@@ -9975,6 +9975,38 @@ def _weekly_collect_current(bid):
                     out['28d']['fb_followers'] = int(page_info.get('followers_count') or 0)
                     out['28d']['fb_name'] = page_info.get('name', '')
 
+                # Stories — IG (/{ig_account_id}/stories) + FB page (/{page_id}/stories).
+                # Cross-reference both data streams and de-dup by id so we don't
+                # double-count cross-posted stories (same story posted to both
+                # IG and FB Page surfaces within seconds is common).
+                try:
+                    stories_summary = _meta.summarize_stories()
+                    out['28d']['ig_stories'] = int(stories_summary.get('ig_stories', {}).get('count') or 0)
+                    out['28d']['ig_stories_reach'] = int(stories_summary.get('ig_stories', {}).get('reach_total') or 0)
+                    out['28d']['ig_stories_follows'] = int(stories_summary.get('ig_stories', {}).get('follows_total') or 0)
+                    out['28d']['ig_stories_interactions'] = int(stories_summary.get('ig_stories', {}).get('total_interactions_total') or 0)
+                    out['28d']['ig_stories_oldest'] = stories_summary.get('ig_stories', {}).get('oldest')
+                    out['28d']['ig_stories_newest'] = stories_summary.get('ig_stories', {}).get('newest')
+                    out['28d']['ig_stories_items'] = stories_summary.get('ig_stories', {}).get('items', [])
+                    out['28d']['fb_stories'] = int(stories_summary.get('fb_page_stories', {}).get('count') or 0)
+                    out['28d']['fb_stories_oldest'] = stories_summary.get('fb_page_stories', {}).get('oldest')
+                    out['28d']['fb_stories_newest'] = stories_summary.get('fb_page_stories', {}).get('newest')
+                    out['28d']['fb_stories_items'] = stories_summary.get('fb_page_stories', {}).get('items', [])
+                    out['28d']['stories_combined_count'] = int(stories_summary.get('combined_count') or 0)
+                    out['28d']['stories_combined_reach'] = int(stories_summary.get('combined_reach') or 0)
+                    out['28d']['stories_truth_note'] = stories_summary.get('truth_note')
+                    out['sources'].append({
+                        'name': 'meta_stories',
+                        'ig_count': out['28d']['ig_stories'],
+                        'fb_page_count': out['28d']['fb_stories'],
+                        'combined': out['28d']['stories_combined_count'],
+                        'reach_total': out['28d']['ig_stories_reach'],
+                        'overlap_ids': stories_summary.get('overlap_ids', []),
+                        'window_label': stories_summary.get('window_label'),
+                    })
+                except Exception as e:
+                    out['sources'].append({'name': 'meta_stories', 'fetch_error': str(e)[:200]})
+
                 # Post-level - recent posts + their insights (reach, link clicks, etc.)
                 posts = []
                 posts_source = 'instagram'
@@ -10626,6 +10658,29 @@ def _weekly_render_html(bid, data_bid=None):
             f"<span class=\"muted small\">Reach metrics require App Review for read_insights scope.</span>"
         )
 
+    # 4c) Stories (IG + FB page cross-referenced) — surface the live count
+    # and combined reach so silent "0 Stories" lies never reappear. Active
+    # window is <=24h because Meta expires stories automatically.
+    ig_st_count = c_28d_full.get('ig_stories', 0)
+    fb_st_count = c_28d_full.get('fb_stories', 0)
+    st_combined = c_28d_full.get('stories_combined_count', 0)
+    st_reach = c_28d_full.get('stories_combined_reach', 0)
+    if (ig_st_count or fb_st_count) and st_combined > 0:
+        if ig_st_count and fb_st_count:
+            source_note = f"{ig_st_count} on Instagram, {fb_st_count} on the Facebook Page"
+        elif ig_st_count:
+            source_note = f"all {ig_st_count} on Instagram (FB Page has none live)"
+        else:
+            source_note = f"all {fb_st_count} on the Facebook Page (no IG stories live)"
+        if st_reach:
+            reach_phrase = f", reaching {st_reach} people"
+        else:
+            reach_phrase = " (reach metrics pending first views)"
+        tldr_bullets.append(
+            f"<strong>Stories live right now</strong>: {st_combined} combined — {source_note}{reach_phrase}. "
+            f"<span class=\"muted small\">Stories expire after 24h, so this is a real-time snapshot, not a 28d count.</span>"
+        )
+
     # 5) Pipeline flag - reviews, drafts, or conversion flow
     if rev > 0:
         tldr_bullets.append(
@@ -10764,6 +10819,50 @@ def _weekly_render_html(bid, data_bid=None):
     <div class="card span-3"><div class="metric-label">Posts (28d)</div><div class="metric-value">{fb_posts_count}</div><div class="metric-note">Source: {fb_posts_source}</div></div>
     <div class="card span-3"><div class="metric-label">Page</div><div class="metric-value" style="font-size:18px">{esc_html(page_name)}</div><div class="metric-note">ID set in META_PAGE_ID</div></div>
   </div>'''
+
+        # Stories live now - IG + FB page cross-referenced. Active window is
+        # ≤24h because Meta expires stories automatically. Reach metric is
+        # IG-only (FB page /stories endpoint has no reach field).
+        stories_html = ''
+        st_combined = c_28d_full.get('stories_combined_count', 0)
+        st_ig = c_28d_full.get('ig_stories', 0)
+        st_fb = c_28d_full.get('fb_stories', 0)
+        st_reach = c_28d_full.get('stories_combined_reach', 0)
+        st_ig_oldest = c_28d_full.get('ig_stories_oldest')
+        st_ig_newest = c_28d_full.get('ig_stories_newest')
+        st_fb_oldest = c_28d_full.get('fb_stories_oldest')
+        st_fb_newest = c_28d_full.get('fb_stories_newest')
+        if st_combined > 0 or st_ig or st_fb:
+            items_html_parts = []
+            # IG stories list
+            for s in (c_28d_full.get('ig_stories_items') or []):
+                ts = (s.get('timestamp') or '').replace('+0000', '').strip()
+                reach_v = s.get('reach') or 0
+                permalink = s.get('permalink') or ''
+                items_html_parts.append(
+                    f'<li><a href="{esc_html(permalink)}" target="_blank" rel="noopener">IG story</a> '
+                    f'@ {esc_html(ts)} — {reach_v} reach</li>'
+                )
+            for s in (c_28d_full.get('fb_stories_items') or []):
+                ct = (s.get('created_time') or '').replace('+00:00', '').strip()
+                items_html_parts.append(
+                    f'<li>FB Page story @ {esc_html(ct)}</li>'
+                )
+            items_html = ''.join(items_html_parts) or '<li class="muted">No items returned</li>'
+            stories_html = f'''
+  <div class="highlight">
+    <strong>Stories live right now:</strong> {st_combined} combined ({st_ig} Instagram, {st_fb} Facebook Page), {st_reach:,} reach across currently-live stories.
+    <span class="muted small">Stories expire 24h after posting — this is a real-time snapshot, not a 28d count.</span>
+    <ul style="margin:8px 0 0 18px">{items_html}</ul>
+  </div>'''
+        elif st_combined == 0 and (st_ig == 0 and st_fb == 0) and meta_configured:
+            # Honest "no stories" rather than silent zero - only if Meta is
+            # connected (otherwise it's noise).
+            stories_html = '''
+  <div class="highlight muted">
+    <strong>No stories live right now.</strong> Swing Shack has 0 active Instagram or Facebook Page stories at the moment. This is honest zero, not a fetch failure — Meta expires stories after 24h.
+  </div>'''
+
         # What's still missing explanation
         missing_html = ''
         if not fb_rows_html or all(r.get('current', 0) == 0 for r in metrics['fb_rows']):
@@ -10776,6 +10875,7 @@ def _weekly_render_html(bid, data_bid=None):
   <h2>Facebook</h2>
   <p><span class="date-note">Current 28 days: {pcp_start}–{today} • Previous report: {pcp_start}–{pcp_end}</span></p>
   {page_metrics_html}
+  {stories_html}
   <div class="table-wrap">
     <table>
       <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Movement</th></tr></thead>
