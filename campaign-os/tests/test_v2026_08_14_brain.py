@@ -103,7 +103,9 @@ class TestWeeklyBuildBrain(unittest.TestCase):
         brain = self._app._weekly_build_brain(metrics, cur, None, '2026-08-14')
         # The funnel-leaks file mentions /bookings/ specifically
         self.assertIn('/bookings/', brain)
-        self.assertIn('Funnel leak', brain)
+        # Renamed section "Funnel leak" -> "Where the money is leaking" in
+        # 2026-08-14 value-add rebuild. Test checks the new phrasing.
+        self.assertIn('money is leaking', brain)
 
     def test_brain_references_seo_movers(self):
         metrics = self._app._weekly_compute_metrics('swing-shack')
@@ -118,7 +120,9 @@ class TestWeeklyBuildBrain(unittest.TestCase):
         cur = metrics['current']
         brain = self._app._weekly_build_brain(metrics, cur, None, '2026-08-14')
         self.assertIn('Golf Bar', brain)
-        self.assertIn('Counter-move', brain)
+        # Renamed "Counter-move ready" -> "The only counter-move that works" in
+        # 2026-08-14 value-add rebuild. Test checks the new phrasing.
+        self.assertIn('counter-move', brain.lower())
 
     def test_brain_references_winning_themes(self):
         metrics = self._app._weekly_compute_metrics('swing-shack')

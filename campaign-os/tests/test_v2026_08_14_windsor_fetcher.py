@@ -519,12 +519,15 @@ class TestBrainPaidReachWarning(unittest.TestCase):
             "campaigns": [{"id": "1"}, {"id": "2"}, {"id": "3"}],
         }
         html = self._run_brain(meta, {})
+        # New brain (2026-08-14 value-add rebuild): synthesised warning must
+        # NOT appear. Live data must appear in the new "Where attention is
+        # actually coming from" section (cross-references paid vs organic).
         self.assertNotIn("Paid reach is invisible", html)
-        self.assertIn("Meta Ads is live", html)
-        self.assertIn("via Windsor.ai", html)
-        self.assertIn("1,234.5", html)  # spend formatted
-        self.assertIn("50,000", html)   # impressions
-        self.assertIn("3 campaigns", html)
+        self.assertIn("Paid", html)  # paid reach now surfaced
+        self.assertIn("1,234", html)  # spend formatted (as Rand figure)
+        self.assertIn("32,000", html)  # reach
+        self.assertIn("CTR", html)
+        self.assertIn("CPC", html)
 
     def test_live_google_ads_replaces_warning(self):
         ga = {
@@ -539,10 +542,11 @@ class TestBrainPaidReachWarning(unittest.TestCase):
             "conversions": 2,
         }
         html = self._run_brain({}, ga)
+        # New brain: synthesised warning must NOT appear. Live Google Ads
+        # data surfaces in the Rand stake section and headline.
         self.assertNotIn("Paid reach is invisible", html)
-        self.assertIn("Google Ads is live", html)
-        self.assertIn("500.0", html)    # totals spend
-        self.assertIn("12,000", html)   # totals impressions
+        self.assertIn("500", html)
+        self.assertIn("12,000", html)
 
     def test_failed_fetch_shows_attempted_but_failed(self):
         meta = {
@@ -567,7 +571,9 @@ class TestBrainPaidReachWarning(unittest.TestCase):
             "campaigns": [{"id": "1"}],
         }
         html = self._run_brain(meta, {})
-        # USD flag must be visible so the brain doesn't pretend it's ZAR
+        # USD flag must appear somewhere when Meta Ads is live (currency
+        # appears in the Rand stake section as the "Meta Ads spend over 30
+        # days" line).
         self.assertIn("USD", html)
 
 
