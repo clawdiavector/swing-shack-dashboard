@@ -2039,8 +2039,55 @@ def postiz_overview() -> Dict[str, Any]:
 
 # ─── SEARCH ────────────────────────────────────────────────────────────
 
+def _preview_around(haystack: str, needle: str, window: int = 180) -> str:
+    """Return up to ~`window` chars of `haystack` centered on the first
+    case-insensitive occurrence of `needle`, with ellipses on both sides
+    if truncated. Falls back to a plain head-truncate if the needle is
+    not literally present (should not happen for matches, but defensive).
+    """
+    if not haystack:
+        return ""
+    if not needle:
+        return str(haystack)[:window]
+    low = haystack.lower()
+    idx = low.find(needle.lower())
+    if idx < 0:
+        return str(haystack)[:window]
+    half = window // 2
+    start = max(0, idx - half)
+    end = min(len(haystack), start + window)
+    start = max(0, end - window)
+    prefix = "…" if start > 0 else ""
+    suffix = "…" if end < len(haystack) else ""
+    return prefix + haystack[start:end].strip() + suffix
+
+
+def _best_preview_string(item: dict, needle: str) -> str:
+    """Pick the longest string field on `item` that contains the needle
+    and return a needle-centered snippet. Used for data-file scan rows
+    that don't have a dedicated caption.
+    """
+    best = ""
+    best_len = 0
+    for v in (item or {}).values():
+        if not isinstance(v, str):
+            continue
+        if needle.lower() in v.lower() and len(v) > best_len:
+            best = v
+            best_len = len(v)
+    if not best:
+        return ""
+    return _preview_around(best, needle, window=180)
+
+
 def universal_search(q: str, limit: int = 30) -> Dict[str, Any]:
-    """Search across every data file by substring match."""
+    """Search across every data file by substring match.
+
+    Each match row carries a `preview` field: a needle-centered snippet
+    (~180 chars) so the UI can show what the row actually is instead of
+    a wall of titles. For asset rows the preview comes from the caption;
+    for data-file scan rows it is the longest matching string field.
+    """
     if not q or len(q.strip()) < 2:
         return {"ok": False, "error": "Query must be at least 2 chars", "results": []}
 
@@ -2059,7 +2106,15 @@ def universal_search(q: str, limit: int = 30) -> Dict[str, Any]:
                 asset.get("approvalStatus"), asset.get("publishStatus")
             ] if v).lower()
             if needle in fields_text:
-                results.append({"kind": "asset", "id": aid, "campaignId": cid, "title": asset.get("name", aid), "score": 80})
+                caption = asset.get("caption") or asset.get("visualBrief") or asset.get("name") or ""
+                results.append({
+                    "kind": "asset",
+                    "id": aid,
+                    "campaignId": cid,
+                    "title": asset.get("name", aid),
+                    "preview": _preview_around(caption, needle, window=180) if caption else "",
+                    "score": 80,
+                })
 
     # Scan data files
     for f in _all_data_files():
@@ -2085,7 +2140,13 @@ def universal_search(q: str, limit: int = 30) -> Dict[str, Any]:
                 )
                 if not isinstance(title, str):
                     title = str(it)[:80]
-                results.append({"kind": fname, "id": str(it.get("id") or it.get("assetId") or it.get("post_id") or ""), "title": title[:120], "score": 50})
+                results.append({
+                    "kind": fname,
+                    "id": str(it.get("id") or it.get("assetId") or it.get("post_id") or ""),
+                    "title": title[:120],
+                    "preview": _best_preview_string(it, needle),
+                    "score": 50,
+                })
 
     # Brand-directory images (filename + OCR + products + palette) — search across ALL brands
     try:
