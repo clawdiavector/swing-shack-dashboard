@@ -7263,7 +7263,60 @@ async function renderGmb() {
   const drafts = r.drafts || [];
   if (summary) summary.textContent = `${drafts.length} draft${drafts.length === 1 ? '' : 's'} for ${S.brand || 'active brand'}`;
   if (count) count.textContent = drafts.length;
-  if (!drafts.length) { list.innerHTML = '<div class="empty">No GMB drafts yet. Click + New draft above to start.</div>'; return; }
+  if (!drafts.length) {
+    // Empty state: surface actionable templates so the user can start from
+    // real content instead of a blank form. The "last GBP angle" comes from
+    // the gbp-output.json file already loaded into S.gbp; the other pills
+    // are generic GMB post archetypes (event, offer, what's new) so the
+    // workspace isn't a dead-end even on a brand-new setup.
+    let lastAngle = null;
+    try {
+      if (!S.gbp) S.gbp = await API.get('/api/intel/gbp_suggestions');
+      lastAngle = (S.gbp && S.gbp.last_post) || null;
+    } catch (_) { /* gbp offline → fall back to generic templates */ }
+    const tplCards = [];
+    if (lastAngle && (lastAngle.headline || lastAngle.body)) {
+      const t = {
+        title: lastAngle.headline || '',
+        body: lastAngle.body || '',
+        cta: (lastAngle.cta_type || 'Book').toString().toLowerCase().replace(/^./, c => c.toUpperCase()),
+        link: lastAngle.button_url || '',
+      };
+      tplCards.push({...t, pill: '✨ From last GBP angle', sub: (lastAngle.chosen_angle || 'agent-drafted').toString().slice(0, 80)});
+    }
+    tplCards.push(
+      {title: 'This week at Swing Shack', body: "What's new: a fresh batch of TrackMan sessions, club fitting slots, and after-work leagues. Stop by and see what the simulator is doing this week.", cta: 'Learn more', link: 'https://swingshack.co.za/', pill: '📅 This week', sub: 'generic weekly update'},
+      {title: 'Special offer this month', body: 'Limited slots: book a [LESSON / FITTING / PRACTICE] session and get [OFFER DETAILS]. First come, first served.', cta: 'Book', link: 'https://swingshack.co.za/bookings/', pill: '🎯 Offer', sub: 'generic promo'},
+      {title: 'New at Swing Shack', body: 'Just added: [NEW SERVICE / NEW PRODUCT / NEW TIME SLOT]. Short description of why it matters and how to book.', cta: 'Learn more', link: 'https://swingshack.co.za/', pill: '🆕 What is new', sub: 'generic announcement'},
+    );
+    const tplHtml = tplCards.map((t, i) => `
+      <button class="gmb-tpl" data-tpl-idx="${i}" style="text-align:left;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);padding:.7rem .85rem;cursor:pointer;display:flex;flex-direction:column;gap:.25rem;width:100%;transition:border-color .15s,background .15s"
+        onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--bd)'">
+        <span style="font-size:11px;color:var(--ac);font-weight:600">${esc(t.pill)}</span>
+        <span style="font-weight:600;font-size:13px;color:var(--tx);line-height:1.3">${esc(t.title)}</span>
+        <span class="muted" style="font-size:11px;line-height:1.4">${esc(t.sub)}</span>
+      </button>
+    `).join('');
+    list.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6rem;margin-bottom:.85rem">
+        ${tplHtml}
+      </div>
+      <div class="empty">Or click <b>+ New draft</b> above to start from a blank form.</div>
+    `;
+    // Cache templates for click-handlers
+    list._gmbTemplates = tplCards;
+    $$('#gmb-list .gmb-tpl').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.tplIdx, 10);
+        const t = list._gmbTemplates[idx];
+        if (!t) return;
+        // Strip the helper keys (pill, sub) before handing to the editor
+        const {pill, sub, ...draft} = t;
+        window.openGmbEdit(draft);
+      });
+    });
+    return;
+  }
   list.innerHTML = drafts.map(d => {
     const isScheduled = (d.status || '').toLowerCase() === 'scheduled';
     const isDraft = (d.status || '').toLowerCase() !== 'scheduled';
@@ -7302,10 +7355,20 @@ async function renderGmb() {
   $$('#gmb-list [data-gmb-delete]').forEach(b => b.addEventListener('click', () => deleteGmb(b.dataset.gmbDelete)));
 }
 
-window.openGmbEdit = async (id) => {
-  let r;
-  try { r = await API.get('/api/intel/gmb/drafts'); } catch (e) { toast('Load failed', 'err'); return; }
-  const d = (r.drafts || []).find(x => x.id === id) || { id, title: '', body: '', cta: '', link: '', imageUrl: '' };
+window.openGmbEdit = async (idOrDraft) => {
+  // Back-compat: idOrDraft can be a string id (existing draft) or an object
+  // (pre-filled draft from a template) or null/undefined (blank new draft).
+  let d = { id: null, title: '', body: '', cta: '', link: '', imageUrl: '' };
+  if (idOrDraft && typeof idOrDraft === 'object') {
+    d = { ...d, ...idOrDraft };
+  } else {
+    const id = idOrDraft;
+    try {
+      const r = await API.get('/api/intel/gmb/drafts');
+      d = (r.drafts || []).find(x => x.id === id) || { ...d, id };
+    } catch (e) { toast('Load failed', 'err'); return; }
+  }
+  const id = d.id || null;
   modal(`
     <h3 data-help="Google Business Profile draft editor. Edit mode: loads the saved draft (title, body, CTA, link, image). New mode: creates a fresh draft. Saving does NOT auto-publish; the draft then shows up in the GMB drafts list where you can push to Postiz to schedule on the GBP listing." data-help-title="${id ? 'Edit GMB draft' : 'New GMB draft'}">${id ? '✏️ Edit GMB draft' : '+ New GMB draft'}</h3>
     <div class="sub">${esc(S.brand || 'active brand')}</div>
