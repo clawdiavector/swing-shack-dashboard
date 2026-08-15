@@ -576,6 +576,23 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 @media (max-width:900px){.cal-grid{grid-template-columns:repeat(4,minmax(150px,1fr));overflow-x:auto;padding-bottom:.5rem}.cal-h{display:none}.cal-d{min-width:150px}}
 @media (max-width:600px){.cal-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}.cal-d{min-width:0}}
 
+/* ─── Calendar empty-state ────────────────────────────────────── */
+/* Replaces the 14×7 grid of zeros when nothing is scheduled. The grid container
+   is a CSS grid, so the empty-state spans every column by default (1 / -1) and
+   sits as a wide card. We keep the height generous but bounded so it doesn't
+   push the duplicate-zone off-screen on a 14" laptop. The two CTAs sit on a
+   row that wraps to mobile — primary on the left, secondary on the right. */
+.cal-empty-state{grid-column:1 / -1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2.4rem 1.5rem;background:var(--bg-2);border:1px dashed var(--bd);border-radius:var(--r);min-height:280px}
+.cal-empty-icon{font-size:34px;margin-bottom:.7rem;opacity:.85;line-height:1}
+.cal-empty-title{font-size:15px;font-weight:600;color:var(--tx);letter-spacing:.01em;margin-bottom:.4rem}
+.cal-empty-sub{font-size:13px;color:var(--tx-2);max-width:46ch;line-height:1.45;margin-bottom:1.1rem}
+.cal-empty-ctas{display:flex;gap:.65rem;flex-wrap:wrap;justify-content:center}
+.cal-empty-ctas .btn{padding:.55rem 1.05rem;font-size:13px;border-radius:var(--r-s);background:var(--bg-3);border:1px solid var(--bd);color:var(--tx);cursor:pointer;transition:all var(--t)}
+.cal-empty-ctas .btn:hover{border-color:var(--bd-2);background:var(--bg-4)}
+.cal-empty-ctas .btn.primary{background:var(--ac);color:var(--bg);border-color:var(--ac);font-weight:600}
+.cal-empty-ctas .btn.primary:hover{background:var(--ac-2);border-color:var(--ac-2);box-shadow:0 0 0 4px var(--ac-glow)}
+@media (max-width:600px){.cal-empty-state{padding:1.6rem 1rem;min-height:200px}.cal-empty-ctas .btn{flex:1 1 auto;text-align:center}}
+
 /* ─── Review row ─────────────────────────────────────────────── */
 .review{padding:.75rem 1rem;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);display:flex;align-items:flex-start;gap:1rem;margin-bottom:.5rem;transition:all var(--t)}
 .review:hover{border-color:var(--bd-2)}
@@ -8206,6 +8223,53 @@ async function renderCalendar(){
     ...d,
     slots: (d.slots || []).filter(s => (!filterPlatform || s.platform === filterPlatform) && (!filterCampaign || (s.campaignName || s.campaignId) === filterCampaign))
   }));
+  // ─── Empty-state when the whole 14-day window has zero scheduled items ───
+  // Before this fix the calendar rendered a 14-row × 7-col grid of all-zero day
+  // cells whenever nothing was scheduled, plus a single-line summary saying
+  // "0 planned in next 14 days". For a brand sitting on 8+ review-queue items
+  // (the swing-shack norm) that left no path forward: the user could see the
+  // grid was empty but had no clue where to go next. Replace the grid with an
+  // actionable empty-state that surfaces how many review items are waiting and
+  // hands the user a primary CTA straight into Review (where the schedule
+  // affordance lives) plus a secondary CTA into Create (to generate fresh
+  // copy). The HUD strip + summary stay intact so the page header still tells
+  // the truth about the 14-day window. If even one day has a slot, fall back
+  // to the normal grid rendering.
+  const totalSlots = days.reduce((acc, d) => acc + (d.slots || []).length, 0);
+  if(totalSlots === 0){
+    let reviewCount = 0;
+    try {
+      const panel = S.todayRail || await API.get('/api/today/panel');
+      S.todayRail = panel;
+      reviewCount = (panel?.cards || []).filter(c => c.kind === 'review').length
+                  || (panel?.count ?? 0);
+    } catch(_){ /* keep zero — the CTA still works without a count */ }
+    grid.innerHTML = `
+      <div class="cal-empty-state" role="status" aria-live="polite">
+        <div class="cal-empty-icon" aria-hidden="true">📅</div>
+        <div class="cal-empty-title">Calendar is empty for the next 14 days</div>
+        <div class="cal-empty-sub">${reviewCount > 0
+          ? `${reviewCount} review-queue item${reviewCount === 1 ? '' : 's'} waiting for your sign-off. Approve + schedule one to break the empty streak.`
+          : `Nothing in the queue either. Generate a fresh post from Create and it lands here automatically after you schedule it.`}</div>
+        <div class="cal-empty-ctas">
+          <button type="button" class="btn primary cal-empty-cta-primary" data-cal-empty-action="review">${reviewCount > 0 ? `Open Review (${reviewCount}) →` : `Open Review →`}</button>
+          <button type="button" class="btn cal-empty-cta-secondary" data-cal-empty-action="create">Generate new post →</button>
+        </div>
+        <div class="cal-empty-tip muted" style="font-size:11px;margin-top:.9rem">Tip: drag-and-drop a card from Review onto any day to schedule it. The grid above will start filling as soon as you do.</div>
+      </div>
+    `;
+    // Wire the buttons. The calendar re-renders on filter change, so this
+    // listener fires once per render — no double-binding risk because we
+    // replace innerHTML wholesale above.
+    grid.querySelectorAll('[data-cal-empty-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.getAttribute('data-cal-empty-action');
+        if(action === 'review') go('review');
+        else if(action === 'create') go('create');
+      });
+    });
+    return;
+  }
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   let html = dayNames.map(d => `<div class="cal-h">${d}</div>`).join('');
   const firstDow = (new Date((days[0]||{}).date || data.today)).getDay();
