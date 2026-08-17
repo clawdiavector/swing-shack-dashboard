@@ -7034,8 +7034,14 @@ async function renderBrief(){
   }
 
   const c = b.counts;
+  // Truthful "needs review" total — every asset that isn't approved/rejected/
+  // scheduled/published/archived. Comes straight from the backend count so it
+  // matches the server's review_inbox() semantics and the hero strip's summary.
+  // The needs_review array is capped server-side at 10 (display slice), so we
+  // must NOT use its length here — that's what caused the old 8/41 mismatch.
+  const reviewTotal = (c.review||0) + (c.draft||0);
   const dofirst = safeList(b.do_first, 8);
-  const review = safeList(b.needs_review, 8);
+  const review = safeList(b.needs_review, 8);  // display slice (≤ 8 of reviewTotal)
   const publish = safeList(b.ready_to_publish, 8);
   const missed = safeList(b.missed_high_impact, 6);
   const seo = safeList(b.seo_quick_wins, 6);
@@ -7093,7 +7099,7 @@ async function renderBrief(){
     </div>
   ` : '';
 
-  const homeCount = dofirst.length + review.length;
+  const homeCount = dofirst.length + reviewTotal;
   const homeBadge = $('#nav-home-count');
   if(homeBadge){
     if(homeCount > 0){
@@ -7104,7 +7110,7 @@ async function renderBrief(){
     }
   }
   const reviewBadge = $('#nav-review-count');
-  if(reviewBadge){ reviewBadge.textContent = review.length; }
+  if(reviewBadge){ reviewBadge.textContent = reviewTotal; }
   const publishBadge = $('#nav-publish-count');
   if(publishBadge){ publishBadge.textContent = publish.length; }
 
@@ -7120,13 +7126,13 @@ async function renderBrief(){
     ${whatsNewHtml}
     <div class="card col-3"><div class="stat"><div class="stat-val">${c.total||0}</div><div class="stat-lbl">Total assets</div></div></div>
     <div class="card col-3"><div class="stat"><div class="stat-val">${c.approved||0}</div><div class="stat-lbl">Approved</div><div class="stat-trend">${c.scheduled||0} scheduled</div></div></div>
-    <div class="card col-3"><div class="stat"><div class="stat-val">${review.length}</div><div class="stat-lbl">Need review</div></div></div>
+    <div class="card col-3"><div class="stat"><div class="stat-val">${reviewTotal}</div><div class="stat-lbl">Need review</div></div></div>
     <div class="card col-3"><div class="stat"><div class="stat-val">${publish.length}</div><div class="stat-lbl">Ready to publish</div></div></div>
 
     <div class="card col-6"><div class="card-h"><h3 data-help="The single highest-leverage action for today, ranked by recency and brand-fit. Start here every morning. If you only do one thing in Campaign OS today, do the first item on this list." data-help-title="Do first">🎯 Do first</h3></div><ul class="list">${dofirst.map(x=>itemHtml(x)).join('') || '<li class="empty">Nothing urgent right now</li>'}</ul></div>
-    <div class="card col-6"><div class="card-h"><h3 data-help="Drafts the agent produced that you have not approved or rejected yet. Click any item to open the review modal where you can approve, reject, or send back for revision. Empty state means the inbox is clean." data-help-title="Needs your review">📝 Needs your review</h3></div><ul class="list">${review.map(x => { const a = Object.assign({approvalStatus: 'revisionRequested'}, x); return itemHtml(a); }).join('') || '<li class="empty">No pending review</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3 data-help="Drafts the agent produced that you have not approved or rejected yet. Click any item to open the review modal where you can approve, reject, or send back for revision. Empty state means the inbox is clean." data-help-title="Needs your review">📝 Needs your review</h3>${reviewTotal > review.length ? `<span class="muted" style="font-size:11px">showing ${review.length} of ${reviewTotal}</span>` : ''}</div><ul class="list">${review.map(x => { const a = Object.assign({approvalStatus: 'revisionRequested'}, x); return itemHtml(a); }).join('') || '<li class="empty">No pending review</li>'}</ul>${reviewTotal > review.length ? `<div style="padding:.4rem .25rem 0;font-size:12px"><button type="button" class="btn" data-home-empty-action="review">Open Review (${reviewTotal}) \u2192</button></div>` : ''}</div>
 
-    <div class="card col-6"><div class="card-h"><h3 data-help="Drafts you approved that are still sitting in the queue. They have not been pushed to Postiz yet. Open any row to set a publish date or push live now. Until then, nothing here is on any platform." data-help-title="Ready to publish">🚀 Ready to publish</h3></div><ul class="list">${publish.map(x => { const a = Object.assign({approvalStatus: 'approved'}, x); return itemHtml(a); }).join('') || `<li class="empty home-empty-state" data-home-empty="publish"><div class="cal-empty-icon" aria-hidden="true">\u{1F680}</div><div class="cal-empty-title">Nothing approved and waiting</div><div class="cal-empty-sub">${review.length > 0 ? `${review.length} draft${review.length === 1 ? '' : 's'} still need your sign-off. Approve one and it lands here, ready to schedule.` : `No drafts in review either. Generate a fresh post and it flows through review into this queue.`}</div><div class="cal-empty-ctas">${review.length > 0 ? `<button type="button" class="btn primary" data-home-empty-action="review">Open Review (${review.length}) \u2192</button>` : `<button type="button" class="btn primary" data-home-empty-action="create">Generate new post \u2192</button>`}<button type="button" class="btn" data-home-empty-action="calendar">View Calendar \u2192</button></div></li>`}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3 data-help="Drafts you approved that are still sitting in the queue. They have not been pushed to Postiz yet. Open any row to set a publish date or push live now. Until then, nothing here is on any platform." data-help-title="Ready to publish">🚀 Ready to publish</h3></div><ul class="list">${publish.map(x => { const a = Object.assign({approvalStatus: 'approved'}, x); return itemHtml(a); }).join('') || `<li class="empty home-empty-state" data-home-empty="publish"><div class="cal-empty-icon" aria-hidden="true">\u{1F680}</div><div class="cal-empty-title">Nothing approved and waiting</div><div class="cal-empty-sub">${reviewTotal > 0 ? `${reviewTotal} draft${reviewTotal === 1 ? '' : 's'} still need your sign-off. Approve one and it lands here, ready to schedule.` : `No drafts in review either. Generate a fresh post and it flows through review into this queue.`}</div><div class="cal-empty-ctas">${reviewTotal > 0 ? `<button type="button" class="btn primary" data-home-empty-action="review">Open Review (${reviewTotal}) \u2192</button>` : `<button type="button" class="btn primary" data-home-empty-action="create">Generate new post \u2192</button>`}<button type="button" class="btn" data-home-empty-action="calendar">View Calendar \u2192</button></div></li>`}</ul></div>
 
     <div class="card col-12" style="padding:0">
       <details class="brief-more-signals" id="brief-more-signals">
