@@ -10979,13 +10979,35 @@ async function renderPostiz(){
   // `caption || name`, so every one of the 20 visible queue rows rendered
   // as a blank title + just "instagram · queued · ". Mirrors the publish
   // page's pickTitle() chain so the two surfaces read the same field names.
+  //
+  // When the queue is empty we surface an actionable empty state instead of
+  // a flat "Queue empty" italic line: if the Review inbox has drafts
+  // waiting on approval, the card tells them to go approve one (which
+  // then flows into the publish-queue.json). Mirrors the BB_EMPTY pattern
+  // (richer .empty-title + .empty-sub + inline CTA button) so the page
+  // never shows a dead grey line when there is a one-click path to fill
+  // it. Falls back to a "generate fresh" CTA when the inbox is clean.
+  // Em-dash banned in copy (pipes + commas only).
+  let postizQueueEmptyHtml = '';
+  if (!safeList(p.queue, 20).length) {
+    let pendingCount = 0;
+    try {
+      if (!S.review) S.review = await API.get('/api/intel/review_inbox');
+      pendingCount = (S.review && Array.isArray(S.review.pending)) ? S.review.pending.length : 0;
+    } catch (_) { /* fall through to the no-review-data branch */ }
+    if (pendingCount > 0) {
+      postizQueueEmptyHtml = `<li class="empty home-empty-state" data-postiz-empty="review"><div class="cal-empty-icon" aria-hidden="true">📭</div><div class="cal-empty-title">Nothing waiting for Postiz yet</div><div class="cal-empty-sub">${pendingCount} draft${pendingCount === 1 ? '' : 's'} approved / pending approval in Review. Approve + push one and it lands here, ready to schedule on Postiz.</div><div class="cal-empty-ctas"><button type="button" class="btn primary" onclick="go('review')">Open Review (${pendingCount}) →</button><button type="button" class="btn" onclick="go('calendar')">View Calendar →</button></div></li>`;
+    } else {
+      postizQueueEmptyHtml = `<li class="empty home-empty-state" data-postiz-empty="blank"><div class="cal-empty-icon" aria-hidden="true">📭</div><div class="cal-empty-title">Queue is empty</div><div class="cal-empty-sub">The Postiz publish queue mirrors every approved draft. Review is clean too, so the queue will refill next time you generate and approve a post.</div><div class="cal-empty-ctas"><button type="button" class="btn primary" onclick="go('create')">Generate new post →</button><button type="button" class="btn" onclick="go('review')">Open Review →</button></div></li>`;
+    }
+  }
   $('#postiz-queue').innerHTML = safeList(p.queue, 20).map(it => {
     const rawTitle = it.caption_preview || it.caption || it.name || it.linked_hook_id || '(no caption)';
     const title = String(rawTitle).replace(/\s+/g, ' ').trim().slice(0, 90);
     const status = it.publishStatus || it.status || '';
     const date = it.scheduled_date || it.publishDate || '';
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div><div class="li-meta">${esc(it.platform||'')} · ${esc(status)}${date ? ` · <span class="muted">${esc(date.slice(0,16))}</span>` : ''}</div></div></li>`;
-  }).join('') || '<div class="empty">Queue empty</div>';
+  }).join('') || postizQueueEmptyHtml;
   // Refs rows: publishing-references.json carries one canonical row per
   // post under `publishing_refs.references[]` with the upstream postiz id
   // under `postizPostId` (NOT `postizId`) and the lifecycle status under
