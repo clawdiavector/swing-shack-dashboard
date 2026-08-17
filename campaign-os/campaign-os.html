@@ -8428,8 +8428,31 @@ async function renderSocials(){
       // noise — the CTA already says that more prominently. Suppress the
       // inline card in that case. When the CTA is hidden (sources ARE wired
       // but no posts in window), keep the "widen the range" hint.
+      //
+      // Nightshift 2026-08-18: leaving the grid literally empty (height 0)
+      // produced 800px of blank space below the filter row that read as
+      // "the page is broken". Render a small "wire pending" placeholder
+      // grid item so the user can see the surface is alive + waiting,
+      // with a one-click "retry" action that re-runs the same fetch. The
+      // CTA above stays the primary surface; this card is just a heartbeat.
       if(graphEmpty){
-        grid.innerHTML = '';
+        const gridHtml = `
+          <div class="card col-12 socials-pending" style="border:1px dashed var(--bd);background:var(--bg-2)">
+            <div style="display:flex;gap:1rem;align-items:center;padding:1rem">
+              <div style="font-size:28px;line-height:1;opacity:.7">🪩</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:600;color:var(--tx-1);margin-bottom:.25rem">Waiting for Instagram wire</div>
+                <div style="font-size:12px;color:var(--tx-2);line-height:1.5">
+                  The grid below stays empty until Meta Graph starts returning posts for the active brand. Once the long-lived token lands (see the Connect Instagram card above), this surface populates with the last 30 days of posts and falls back to oEmbed for older ones. Try a refresh below if the token was just added.
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:.4rem;flex-shrink:0">
+                <button class="btn-mini" onclick="renderSocials()">🔄 Retry fetch</button>
+                <span class="muted" style="font-size:10px;align-self:center">no posts in ${days}d window</span>
+              </div>
+            </div>
+          </div>`;
+        grid.innerHTML = gridHtml;
         return;
       }
       grid.innerHTML = `<div class="card col-12"><div class="muted" style="padding:1rem;line-height:1.5">No posts in the last ${days} days. Try widening the range.</div></div>`;
