@@ -2453,3 +2453,38 @@ Next pick: ~26 EXPLAINERS blocks still reference 2026-07-30-era card names; the 
 Learned: Section subtitle pattern consistency is invisible until you audit it. Every section of a SPA should have the same orientation strip under its title — when six sections drop the strip, the user reads that as "this section is unfinished / less important" even when the surface behind it is core infrastructure (GBP, Agents). Worth adding to the standard audit checklist when adding new sections.
 
 Asks: None.
+
+## 2026-08-17T23:45Z — fix(faqs): surface "auto-fixed from /slug/" badge on salvaged rows
+
+Pre-flight clean. Picked Priority #4 (weak UX: confusing salvaged FAQ rows looked like data errors).
+
+Root cause: blog_beast occasionally emits a sitemap path (e.g. `/philosophy/`, `/club-fitting/`, `/bookings/`) as `target_keyword` for an FAQ set. The slug-salvage helper rewrites the slug back into the real keyword in both `target_keyword` and every question, but the rendered row still shows the *original* cluster (often wrong — e.g. "What is philosophy?" sits inside a `TrackMan Golf Technology` cluster). With no visible signal, the user reading the row would reasonably assume the row was a content bug rather than a known data-quality limiter. The previous "5 unique sets · 3 duplicates collapsed · 3 slug auto-fixed" count line credits the salvage, but the user has to mentally connect that count to the matching rows.
+
+Fix (2 files, +14 / -0 in HTML, +208 / -0 new test):
+
+- `campaign-os/campaign-os.html` (`_faqSalvageSlugKeyword`): after a successful substitution, stamp `out.__salvaged_from = slugTk` on the rewritten item so the renderer can produce a per-row badge.
+- `campaign-os/campaign-os.html` (`renderFAQs`): in the per-item template, emit a small `🔧 auto-fixed from /slug/` pill in the meta line when `it.__salvaged_from` is truthy. Pill uses neutral palette (`var(--bg-4)` bg, `var(--tx-2)` text, font-size:10px) and carries a hover `title=` explaining the data lineage ("Auto-fixed from /philosophy/ by the slug-salvage map. The original blog_beast producer emitted a URL path as the target_keyword."). Double-underscore field name (`__salvaged_from`) is a visual marker that this is an internal field, not real blog_beast schema data.
+
+Regression test (1 new file, +208 / -0): `campaign-os/tests/test_v2026_08_18_faq_salvage_badge.py` — 7 tests: helper stamps `__salvaged_from = slugTk`, renderer emits the badge only when truthy, badge text contains the escaped slug, badge carries a `title="...Auto-fixed..."` hover, badge uses neutral palette (NOT `--bad`), existing dedup + count contracts preserved, and the `__salvage_from` double-underscore convention is pinned so future refactors don't collide with real schema fields.
+
+Verified (LIVE, authed, Playwright, post-deploy):
+- LIVE `curl https://swing-shack-dashboard-production.up.railway.app/api/health` → 200 `{"status":"ok"}`.
+- Playwright on LIVE FAQ section, 5 rendered rows:
+  - "What is trackman golf?" → NO badge (correct, not a salvage).
+  - "What is philosophy?" → `🔧 AUTO-FIXED FROM /PHILOSOPHY/` badge visible.
+  - "What is club fitting?" → `🔧 AUTO-FIXED FROM /CLUB-FITTING/` badge visible.
+  - "What is book a session?" → `🔧 AUTO-FIXED FROM /BOOKINGS/` badge visible.
+  - "What is indoor golf johannesburg?" → NO badge (correct, not a salvage).
+- 7/7 new tests pass; 8/8 prior slug-salvage tests still pass.
+- Screenshot: `/tmp/co-nightshift/walkthrough_20260817T234447Z.png` — shows the FAQ section with the 3 auto-fixed badges rendering on the salvaged rows.
+
+**Standing rules honored:** SPA-only patch + 1 helper stamp + 1 renderer change; no API contract change; no publish/Postiz touched; no tokens stored in chat; branch stays on `feat/asset-state-engine`; atomic single commit; no force push; no main; regression test added so the fix is CI-locked.
+
+**Next pick:**
+- The remaining ~26 EXPLAINERS blocks still reference 2026-07-30 era card names — cheap text sweep, low urgency but the last cheap em-dash-risk lane.
+- The 8× 404s on `/api/visual-library/.../*.jpg` (pre-existing image-storage drift on Railway volume) — image-library data fix, carryover from multiple prior ticks; not an SPA fix.
+- `sec-faqs` cluster-mismatch for salvaged rows is now explained via the badge, but the underlying blog_beast producer still emits wrong cluster for slug leaks — data fix, needs daytime approval.
+
+**Learned:** A count-line credit ("3 slug auto-fixed") is invisible to a user scanning rows. Per-row badges are 10× more effective than aggregate counts because the user can see WHICH rows were touched and where they came from. The hovered title beats any modal because the user never has to leave the row to learn the lineage. The double-underscore convention (`__salvaged_from`) is a small thing but pays off when the field is just-spread into a log or analytics payload — it visually can't be confused with real schema data.
+
+**Asks:** None.
