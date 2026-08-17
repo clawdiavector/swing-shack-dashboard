@@ -1,5 +1,34 @@
 
 
+## Nightshift Report — 2026-08-17T22:36:00Z
+
+### ✅ What was done
+- **Replaced the blank 'not wired' grid on Socials with a 'Waiting for Instagram wire' placeholder card.** When `sources.graph === 0` (Meta Graph token expired / never wired), `renderSocials()` was suppressing the grid entirely (`grid.innerHTML = ''`), leaving the user staring at ~800px of empty page below the filter row. The fix renders a small dashed-border card with the 🪩 icon, a 2-line explainer that points back to the Connect Instagram CTA above, a "🔄 Retry fetch" button that re-runs the same fetch, and a "no posts in Nd window" tag. The Connect Instagram CTA at the top stays the primary surface; this card is a heartbeat that shows the page is alive + waiting. Pure data change to the existing `if(!posts.length)` branch — no new helper, no new CSS, no JS logic outside the template-literal string.
+
+### 🎯 Verified
+- **Tree-clean pre-flight**: `git status --short` = `M campaign-os/campaign-os.html` + untracked data dir (runtime). 1 file changed, 24 insertions, 1 deletion.
+- **Em-dash check**: `git diff | grep -c "—"` on added lines = 0. Pipe / period / colon punctuation throughout.
+- **Local Playwright walk** (`http://127.0.0.1:8765`): logged in, dismissed tour, clicked Socials nav. Probe returns `gridHasContent: true, pendingExists: true, pendingText: "🪩 Waiting for Instagram wire ...", gridHeight: 125.5, hasRetryBtn: true`. 0 pageerrors, 0 console errors. Screenshot at `/tmp/co-nightshift/socials_fixed.png` shows the new card rendering correctly with icon + explainer + retry button.
+- **Retry button click**: `document.querySelector('.socials-pending button[onclick*="renderSocials"]').click()` re-runs the fetch — pending card stays (IG still not wired) but the click handler fires confirmging the wire is alive.
+- **Live Playwright walk** (Railway): same probe after Railway rebuild, `pendingExists: true, pendingText: "🪩 Waiting for Instagram wire", gridHeight: 125.5, hasRetryBtn: true`. Cache-busted `GET /campaign-os.html?nc=<ts>` returns `socials-pending` in the deployed HTML. Screenshot at `/tmp/co-nightshift/walkthrough_2026-08-17T223522Z.png` confirms the live UI.
+- **Deploy probe**: `/api/health` green throughout (`{"status":"ok","git_synced":false}`). Commit `2247b43` pushed to `feat/asset-state-engine`, Railway auto-rebuilt ~30s without `REBUILD_TRIGGER.txt` nudge (Pitfall 167 nudge pattern not needed tonight).
+- **Standing rules honored**: 0 NEW em-dashes, 0 destructive edits, no dependency changes, no branch moves, no auth changes, no Postiz/GBP touch, no cred touch, no symlinks, no archive restoration.
+
+### 🎯 Next pick
+- The Hook formulas panel still renders one row that says "see top stat-demand hook above" with no visible hook text — the dedup logic is correct (the best_example IS the top WW hook) but the message reads as broken. Worth rewording to a clear "↗ same as above (stat-demand top hook)" badge instead of a subtitle swap, plus an italic muted render of the actual hook text so the row still has visible content.
+- OR: Surface the Next-Action from the Agents & health System health card ("Unblock tasks in RUN THE WEEK section") — that "RUN THE WEEK" string references a section that does not exist in the sidebar nav. It's a backend placeholder that leaked into the published UI. Cheap fix: rewrite the backend string OR sanitize the field to a section id that does exist.
+- OR: Calendar section's "GENERATE NEW POST →" CTA routes to where? Worth checking that the link target exists.
+
+### 🧠 What I learned / can improve
+- **"Empty == suppress" anti-pattern dominates the codebase.** This is the second tick where the fix was "render some placeholder instead of `grid.innerHTML = ''`" (Pitfall 168 was the calendar empty state). Worth a one-pass audit: every `.innerHTML = ''` in a render fn is probably earning an empty-state card. Cheap refactor opportunity as a series of low-risk ticks.
+- **"Empty-state actionable CTA" pattern is now codified** — dashed border + bg-2 + icon + 2-line explainer + retry button + tag. Reusable template for any future render fn that returns 0 items.
+- **The Connect Instagram CTA's "📷 Setup Instagram/Facebook" button calls `(window.ASK_HEIDI_OPEN||alert)(...)`** — the `ASK_HEIDI_OPEN` global may not exist on the live page (only present when the orchestrator is wired in). Worth a grep + a `console.warn` if `window.ASK_HEIDI_OPEN` is missing so the user knows the silent fallback happened.
+
+### 🚨 Blockers / asks
+- **IG long-lived token for Swing Shack has expired** (live `Socials` still shows `0 posts · 90d window · sources: 0 graph`). Refresh via Postiz / Meta portal is a daytime-approval ask (credentials lane). The new "Waiting for Instagram wire" card makes the gap less jarring until then.
+
+---
+
 ## Nightshift Report — 2026-08-08T23:30:00Z
 
 ### ✅ What was done
