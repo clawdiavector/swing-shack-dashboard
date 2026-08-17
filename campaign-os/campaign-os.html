@@ -12135,7 +12135,7 @@ async function renderAgents(){
   // and surfaces next_action + qa_warnings as a one-line summary + list,
   // matching the Status / Confidence / Generated KV rows above.
   $('#agents-health').innerHTML = `<dl class="kvs"><dt>Status</dt><dd>${esc(h.status||'—')}</dd><dt>Confidence</dt><dd>${esc(h.confidence||'—')}</dd><dt>Generated</dt><dd>${esc((h.generated||'').slice(0,19))}</dd></dl>` + systemHealthHtml(h);
-  $('#agents-int').innerHTML = safeList(a.integration_health?.health, 12).map(itemHtml).join('') || '<div class="empty">No integration data</div>';
+  $('#agents-int').innerHTML = safeList(a.integration_health?.health, 12).map(integrationHealthHtml).filter(Boolean).join('') || '<div class="empty">No integration data</div>';
 }
 
 // Pretty-print a single agent run row. Used by the Agent runs card on the
@@ -12243,6 +12243,98 @@ function systemHealthHtml(h){
   }
   if(!parts.length && !extra) return '';
   return `<dl class="kvs sh-extras">${parts.join('')}</dl>${extra}`;
+}
+
+// Pretty-print the per-integration health card. Used by renderAgents() to
+// paint each integration_health.health row with the fields that actually
+// matter (status, auth, last success, evidence, blockers, capabilities at
+// risk/unlocked). The pre-fix renderer used the generic itemHtml() which
+// only surfaced name + status + id and buried the rest of the payload,
+// leaving Christelle to click into the API just to see WHY Meta is
+// degraded or WHAT blocks WhatsApp. This renderer mirrors the system
+// health card body (KV grid + expandable detail rows + capability pills).
+// Em-dashes banned (pipes/commas/colons).
+function integrationHealthHtml(h){
+  if(!h || typeof h !== 'object') return '';
+  const name = h.name || h.id || 'integration';
+  // Status pill colour. connected=on, degraded=warn (amber),
+  // offline|stale|failed|missing=blocked (red), default=muted.
+  const statusRaw = (h.status || '').toString().toLowerCase();
+  let statusKind = 'muted';
+  if(statusRaw === 'connected' || statusRaw === 'active' || statusRaw === 'live') statusKind = 'on';
+  else if(statusRaw === 'degraded' || statusRaw === 'unstable' || statusRaw === 'warning') statusKind = 'warn';
+  else if(statusRaw === 'offline' || statusRaw === 'stale' || statusRaw === 'failed' || statusRaw === 'missing' || statusRaw === 'expired') statusKind = 'blocked';
+  // auth_status pill colour. active=on, active_but_unstable|expiring=warn,
+  // not_connected|expired|failed=blocked, default=muted.
+  const authRaw = (h.auth_status || '').toString().toLowerCase();
+  let authKind = 'muted';
+  if(authRaw === 'active') authKind = 'on';
+  else if(authRaw === 'active_but_unstable' || authRaw === 'expiring' || authRaw === 'unstable') authKind = 'warn';
+  else if(authRaw === 'not_connected' || authRaw === 'expired' || authRaw === 'failed') authKind = 'blocked';
+  // Age text. days_ago 999 = "never / unknown". Prefer hours_ago when fresh.
+  let ageLabel = '';
+  if(typeof h.hours_ago === 'number' && h.hours_ago < 999 && h.hours_ago >= 0){
+    const hrs = h.hours_ago;
+    if(hrs < 1) ageLabel = 'just now';
+    else if(hrs < 24) ageLabel = `${hrs}h ago`;
+    else if(typeof h.days_ago === 'number' && h.days_ago < 999) ageLabel = `${h.days_ago}d ago`;
+  } else if(typeof h.days_ago === 'number' && h.days_ago < 999 && h.days_ago >= 0){
+    ageLabel = `${h.days_ago}d ago`;
+  } else {
+    ageLabel = 'never';
+  }
+  // Connected boolean pill (separate from status: an integration can be
+  // status=connected but connected=false if the credentials file is missing).
+  const connected = h.connected === true;
+  const connectedKind = connected ? 'on' : 'blocked';
+  // last_success readable date.
+  let lastSuccess = '';
+  if(typeof h.last_success === 'string' && h.last_success.length > 10){
+    lastSuccess = h.last_success.slice(0, 19).replace('T', ' ');
+  }
+  // KV grid: status, connected, auth, age, last_success, scope_level
+  const kv = [];
+  kv.push(`<dt>Status</dt><dd><span class="pill ${statusKind}">${esc(h.status || 'unknown')}</span></dd>`);
+  kv.push(`<dt>Connected</dt><dd><span class="pill ${connectedKind}">${connected ? 'yes' : 'no'}</span></dd>`);
+  if(h.auth_status) kv.push(`<dt>Auth</dt><dd><span class="pill ${authKind}">${esc(h.auth_status.replace(/_/g,' '))}</span></dd>`);
+  if(ageLabel) kv.push(`<dt>Last seen</dt><dd>${esc(ageLabel)}</dd>`);
+  if(lastSuccess) kv.push(`<dt>Last success</dt><dd><span class="muted">${esc(lastSuccess)} UTC</span></dd>`);
+  if(h.scope_level) kv.push(`<dt>Scope</dt><dd>${esc(h.scope_level)}</dd>`);
+  if(h.api_key_prefix) kv.push(`<dt>Key</dt><dd><span class="muted">${esc(h.api_key_prefix)}</span></dd>`);
+  // Detail rows: evidence (the human-readable why-this-status), blockers
+  // (most actionable: exactly what to fix), capabilities at risk
+  // (downstream features that will silently fail), capabilities unlocked.
+  const detail = [];
+  if(typeof h.evidence === 'string' && h.evidence.length){
+    detail.push(`<div class="li-detail-row"><strong>Evidence</strong><span>${esc(h.evidence)}</span></div>`);
+  }
+  if(typeof h.note === 'string' && h.note.length && h.note !== h.evidence){
+    detail.push(`<div class="li-detail-row"><strong>Note</strong><span>${esc(h.note)}</span></div>`);
+  }
+  if(Array.isArray(h.blockers) && h.blockers.length){
+    const items = h.blockers.slice(0, 4).map(b => `<li>${esc(String(b))}</li>`).join('');
+    detail.push(`<div class="li-detail-row"><strong>Blockers</strong><span><ul style="margin:.15rem 0 .15rem 1.1rem;padding:0">${items}</ul></span></div>`);
+  }
+  // Capabilities at risk: render as compact pills so the user can see at
+  // a glance which downstream features will silently fail (e.g. losing
+  // low_risk_publish means the Queue tab will start failing).
+  const capsRisk = Array.isArray(h.capabilities_at_risk) ? h.capabilities_at_risk.filter(Boolean) : [];
+  const capsUnlocked = Array.isArray(h.capabilities_unlocked) ? h.capabilities_unlocked.filter(Boolean) : [];
+  if(capsRisk.length){
+    const pills = capsRisk.map(c => `<span class="pill blocked" style="font-size:10px">${esc(String(c).replace(/_/g,' '))}</span>`).join(' ');
+    detail.push(`<div class="li-detail-row"><strong>At risk</strong><span>${pills}</span></div>`);
+  }
+  if(capsUnlocked.length){
+    const pills = capsUnlocked.map(c => `<span class="pill on" style="font-size:10px">${esc(String(c).replace(/_/g,' '))}</span>`).join(' ');
+    detail.push(`<div class="li-detail-row"><strong>Unlocked</strong><span>${pills}</span></div>`);
+  }
+  return `<li class="li open">
+    <div class="li-body">
+      <div class="li-title">${esc(name)}</div>
+      <div class="li-meta">${kv.length ? `<dl class="kvs" style="grid-template-columns:max-content 1fr;gap:.15rem .5rem;margin:.25rem 0 0">${kv.join('')}</dl>` : ''}</div>
+      ${detail.length ? `<div class="li-detail" style="margin-top:.4rem">${detail.join('')}</div>` : ''}
+    </div>
+  </li>`;
 }
 
 // ─── Search ─────────────────────────────────────────────────────
