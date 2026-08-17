@@ -290,7 +290,21 @@
       document.getElementById('sched-summary').textContent = s.summary || `${items.length} in queue`;
       const list = document.getElementById('sched-list');
       if (items.length === 0) {
-        list.innerHTML = '<div class="empty">Nothing scheduled — review queue empty or all drafts sent.</div>';
+        // Schedule empty ≠ review queue empty. The two are independent:
+        //   - schedule = items the publisher sidecar has accepted & queued
+        //   - review queue = drafts awaiting human approval
+        // Pick a copy + CTA that reflects reality, not a guess about review.
+        const pendingReview = (review.status === 'fulfilled')
+          ? (review.value.pending?.length || 0)
+          : 0;
+        if (pendingReview > 0) {
+          list.innerHTML = `
+            <div class="empty">No posts scheduled yet — but <b>${pendingReview} draft${pendingReview===1?'':'s'}</b> waiting on your review.</div>
+            <div style="padding:6px 0 2px"><a class="mini-link" href="/#review-queue" style="color:var(--ac);font-size:12px">Open Review queue →</a></div>
+          `;
+        } else {
+          list.innerHTML = '<div class="empty">Nothing scheduled. All drafts reviewed and sent.</div>';
+        }
       } else {
         list.innerHTML = items.map(x => {
           const name = esc(x.name || x.title || x.caption?.slice(0, 50) || 'Untitled');

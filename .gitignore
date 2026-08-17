@@ -29,3 +29,7 @@ data/brand-directory/*/images/*.jpg
 data/brand-directory/*/images/*.jpeg
 data/brand-directory/*/images/*.png
 data/freshness-detail.json
+
+# Nightshift scratch dir (probes, screenshots, ad-hoc test scripts).
+# Created 2026-08-17 to stop the working-tree churning on every tick.
+.scratchpad/
