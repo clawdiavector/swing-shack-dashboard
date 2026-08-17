@@ -4471,35 +4471,38 @@ function initTheme(){
 // shows the placeholder).
 function _seasonIcon(s){return s==='summer'?'☀️':s==='autumn'?'🍂':s==='winter'?'❄️':'🌸'}
 function _loadChip(){
-  if(!$('sa-chip')) return;
+  // Note: $ is defined elsewhere as a querySelector wrapper, so bare IDs must be
+  // prefixed with '#'. Earlier code called $('sa-chip-...') without the prefix and
+  // silently returned null, leaving the topbar chip stuck on em-dash placeholders.
+  if(!$('#sa-chip')) return;
   fetch('/api/intel/sa_context').then(r => r.json()).then(d => {
     if(!d || !d.ok) return;
     const stage = d.loadshedding_stage || 0;
     // Dot colour: green if stage 0, amber if 1-2, red+pulse if 3+
-    const dot = $('sa-chip-dot');
+    const dot = $('#sa-chip-dot');
     if(dot){
       dot.classList.remove('warn','bad');
       if(stage >= 3) dot.classList.add('bad');
       else if(stage >= 1) dot.classList.add('warn');
     }
-    $('sa-chip-load').textContent = stage === 0 ? '⚡ no shedding' : `⚡ stage ${stage}`;
-    $('sa-chip-load').style.color = stage >= 3 ? 'var(--red,#dc2626)' : (stage >= 1 ? 'var(--amber,#d97706)' : 'var(--green)');
-    $('sa-chip-season').textContent = `${_seasonIcon(d.season)} ${d.season || '—'}`;
+    $('#sa-chip-load').textContent = stage === 0 ? '⚡ no shedding' : `⚡ stage ${stage}`;
+    $('#sa-chip-load').style.color = stage >= 3 ? 'var(--red,#dc2626)' : (stage >= 1 ? 'var(--amber,#d97706)' : 'var(--green)');
+    $('#sa-chip-season').textContent = `${_seasonIcon(d.season)} ${d.season || '—'}`;
     if(d.school_holiday){
-      $('sa-chip-hol-sep').style.display = '';
-      $('sa-chip-hol').style.display = '';
-      $('sa-chip-hol').textContent = '📚 school hols';
+      $('#sa-chip-hol-sep').style.display = '';
+      $('#sa-chip-hol').style.display = '';
+      $('#sa-chip-hol').textContent = '📚 school hols';
     } else {
-      $('sa-chip-hol-sep').style.display = 'none';
-      $('sa-chip-hol').style.display = 'none';
+      $('#sa-chip-hol-sep').style.display = 'none';
+      $('#sa-chip-hol').style.display = 'none';
     }
     if(d.public_holiday){
-      $('sa-chip-pub-sep').style.display = '';
-      $('sa-chip-pub').style.display = '';
-      $('sa-chip-pub').textContent = `🎉 ${d.public_holiday_name || 'public holiday'}`;
+      $('#sa-chip-pub-sep').style.display = '';
+      $('#sa-chip-pub').style.display = '';
+      $('#sa-chip-pub').textContent = `🎉 ${d.public_holiday_name || 'public holiday'}`;
     } else {
-      $('sa-chip-pub-sep').style.display = 'none';
-      $('sa-chip-pub').style.display = 'none';
+      $('#sa-chip-pub-sep').style.display = 'none';
+      $('#sa-chip-pub').style.display = 'none';
     }
   }).catch(() => {/* keep the placeholder dashes */});
 }
