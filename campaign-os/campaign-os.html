@@ -592,6 +592,15 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 .cal-empty-ctas .btn.primary{background:var(--ac);color:var(--bg);border-color:var(--ac);font-weight:600}
 .cal-empty-ctas .btn.primary:hover{background:var(--ac-2);border-color:var(--ac-2);box-shadow:0 0 0 4px var(--ac-glow)}
 @media (max-width:600px){.cal-empty-state{padding:1.6rem 1rem;min-height:200px}.cal-empty-ctas .btn{flex:1 1 auto;text-align:center}}
+/* Home "Ready to publish" empty state: same visual language as .cal-empty-state
+   but rendered as an <li> inside a .list, so it needs its own box rules. */
+.card:has(> ul > li.home-empty-state:only-child) li.home-empty-state,
+.home-empty-state{font-style:normal;font-size:inherit;color:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1.9rem 1.25rem;background:var(--bg-2);border:1px dashed var(--bd);border-radius:var(--r);list-style:none}
+.home-empty-state .cal-empty-title,.home-empty-state .cal-empty-sub,.home-empty-state .btn{font-style:normal}
+.home-empty-state .cal-empty-icon{font-size:30px;margin-bottom:.6rem;opacity:.85;line-height:1}
+.home-empty-state .cal-empty-title{font-size:14px;font-weight:600;color:var(--tx);margin-bottom:.35rem}
+.home-empty-state .cal-empty-sub{font-size:12.5px;color:var(--tx-2);max-width:44ch;line-height:1.45;margin-bottom:1rem}
+@media (max-width:600px){.home-empty-state{padding:1.4rem .9rem}}
 
 /* ─── Review row ─────────────────────────────────────────────── */
 .review{padding:.75rem 1rem;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);display:flex;align-items:flex-start;gap:1rem;margin-bottom:.5rem;transition:all var(--t)}
@@ -7121,7 +7130,7 @@ async function renderBrief(){
     <div class="card col-6"><div class="card-h"><h3 data-help="The single highest-leverage action for today, ranked by recency and brand-fit. Start here every morning. If you only do one thing in Campaign OS today, do the first item on this list." data-help-title="Do first">🎯 Do first</h3></div><ul class="list">${dofirst.map(x=>itemHtml(x)).join('') || '<li class="empty">Nothing urgent right now</li>'}</ul></div>
     <div class="card col-6"><div class="card-h"><h3 data-help="Drafts the agent produced that you have not approved or rejected yet. Click any item to open the review modal where you can approve, reject, or send back for revision. Empty state means the inbox is clean." data-help-title="Needs your review">📝 Needs your review</h3></div><ul class="list">${review.map(x => { const a = Object.assign({approvalStatus: 'revisionRequested'}, x); return itemHtml(a); }).join('') || '<li class="empty">No pending review</li>'}</ul></div>
 
-    <div class="card col-6"><div class="card-h"><h3 data-help="Drafts you approved that are still sitting in the queue. They have not been pushed to Postiz yet. Open any row to set a publish date or push live now. Until then, nothing here is on any platform." data-help-title="Ready to publish">🚀 Ready to publish</h3></div><ul class="list">${publish.map(x => { const a = Object.assign({approvalStatus: 'approved'}, x); return itemHtml(a); }).join('') || '<li class="empty">Nothing queued yet</li>'}</ul></div>
+    <div class="card col-6"><div class="card-h"><h3 data-help="Drafts you approved that are still sitting in the queue. They have not been pushed to Postiz yet. Open any row to set a publish date or push live now. Until then, nothing here is on any platform." data-help-title="Ready to publish">🚀 Ready to publish</h3></div><ul class="list">${publish.map(x => { const a = Object.assign({approvalStatus: 'approved'}, x); return itemHtml(a); }).join('') || `<li class="empty home-empty-state" data-home-empty="publish"><div class="cal-empty-icon" aria-hidden="true">\u{1F680}</div><div class="cal-empty-title">Nothing approved and waiting</div><div class="cal-empty-sub">${review.length > 0 ? `${review.length} draft${review.length === 1 ? '' : 's'} still need your sign-off. Approve one and it lands here, ready to schedule.` : `No drafts in review either. Generate a fresh post and it flows through review into this queue.`}</div><div class="cal-empty-ctas">${review.length > 0 ? `<button type="button" class="btn primary" data-home-empty-action="review">Open Review (${review.length}) \u2192</button>` : `<button type="button" class="btn primary" data-home-empty-action="create">Generate new post \u2192</button>`}<button type="button" class="btn" data-home-empty-action="calendar">View Calendar \u2192</button></div></li>`}</ul></div>
 
     <div class="card col-12" style="padding:0">
       <details class="brief-more-signals" id="brief-more-signals">
@@ -12332,6 +12341,18 @@ function toggleNavGroup(g){
 document.addEventListener('click', (e) => {
   const head = e.target.closest('[data-nav-group]');
   if(head) toggleNavGroup(head.getAttribute('data-nav-group'));
+});
+
+// Home "Ready to publish" empty-state CTAs. Delegated because renderBrief()
+// rebuilds the card's innerHTML on every refresh, so directly-bound
+// listeners would be discarded on the next render.
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-home-empty-action]');
+  if(!btn) return;
+  const action = btn.getAttribute('data-home-empty-action');
+  if(action === 'review') go('review');
+  else if(action === 'create') go('create');
+  else if(action === 'calendar') go('calendar');
 });
 
 // Stale helpers: the old toggle code referenced #all-tools-toggle and
