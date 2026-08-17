@@ -8006,8 +8006,18 @@ async function renderPublish(){
   // Falls back through caption / name / linked_hook_id so legacy shapes still render.
   const pickTitle = it => {
     const raw = (it.caption_preview || it.caption || it.name || it.linked_hook_id || '(no caption)');
+    // Seed caption templates embed the pillar label as a section header on the
+    // 2nd line (e.g. "...YARDS?\n\n🎮 Practice\n\nLink in bio..."). On the
+    // Publish tab that mid-caption pillar line reads like a leak — pillar info
+    // already lives in the Calendar colour-coding, so strip the redundant line
+    // for display. The pillar stays in the underlying payload (calendar +
+    // analytics still see it) — this is purely a render-time clean-up.
+    const strip = String(raw).replace(
+      /\n\n[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]\ufe0f? [A-Z][a-z]+(?: [A-Z][a-z]+)?\n\n/gu,
+      '\n\n'
+    );
     // Caption preview often contains line breaks; flatten so it fits one row.
-    return String(raw).replace(/\s+/g, ' ').trim().slice(0, 90);
+    return strip.replace(/\s+/g, ' ').trim().slice(0, 90);
   };
   // Pick the most useful timestamp: scheduled (if set), else generated.
   const pickDate = it => it.scheduled_date || it.generated || it.publish_timestamp || null;
