@@ -1,8 +1,8 @@
-# Weekly Marketing Report · 2026-08-06 to 2026-08-13
+# Weekly Marketing Report · 2026-08-08 to 2026-08-15
 
 **Brand:** swing-shack
 
-**Window:** 2026-08-06 → 2026-08-13
+**Window:** 2026-08-08 → 2026-08-15
 
 ## Headline
 - 21 published, 0 failed, 100.0% win rate.
@@ -25,6 +25,14 @@
 - Book your ball fitting at Swing Shack today. DM us or book online. (3 uses)
 - Sub 70 clubs are now available for fitting at Swing Shack. (2 uses)
 
+## SEO movers
+- ↑ putter fitting (rank 17)
+- ↑ custom club fitting (rank 17)
+- ↑ simulated golf (rank 2)
+- ↑ club fitting (rank 10)
+- ↓ indoor golf practice (rank 3)
+- ↓ club fitting near me (rank 5)
+
 ## Agents
 - **approval_captain** · 1 runs, 1 passed, 0 failed (100.0% pass)
 - **approval_runner** · 1 runs, 1 passed, 0 failed (100.0% pass)
@@ -44,8 +52,8 @@
 - **win_rate_pct:** 100.0% (prev: —)
 - **agent_runs:** 11 (prev: 0)
 
-### Sources read (14)
-`booking-events.json`, `conversion-attribution.json`, `ga4-attribution.json`, `ga4-metrics.json`, `hook-bank.json`, `ig-analytics.json`, `ig-business-analytics.json`, `post-conversion-score.json`, `reddit-opportunities.json + reddit-replies.json`, `roi-truth.json`, `seo-rankings.json`, `ubersuggest-competitors.json`, `ubersuggest-domain.json`, `youtube-trends.json`
+### Sources read (15)
+`booking-events.json`, `conversion-attribution.json`, `format-model-refit.json`, `ga4-attribution.json`, `ga4-metrics.json`, `hook-bank.json`, `ig-analytics.json`, `ig-business-analytics.json`, `post-conversion-score.json`, `reddit-opportunities.json + reddit-replies.json`, `roi-truth.json`, `seo-rankings.json`, `ubersuggest-competitors.json`, `ubersuggest-domain.json`, `youtube-trends.json`
 
 ## What's working
 - **Win rate is healthy at 100.0%.** _(category: publishing, source: `published-items.json`)_
@@ -54,14 +62,22 @@
   - Reuse = the system trusts it. Worth reading why it works in hook-bank.md.
 - **Agent fleet pass rate is 90.9%.** _(category: fleet, source: `agent-runs.json`)_
   - 10/11 runs passed across 11 agents.
+- **4 SEO keywords moved up this week.** _(category: seo, source: `seo-rankings.json`)_
+  - putter fitting, custom club fitting, simulated golf
 - **Instagram is the dominant publish channel (21 posts).** _(category: channels, source: `published-items.json`)_
   - Consider replicating winning formats to underused channels.
 - **Thu is your strongest publish day this week.** _(category: cadence, source: `published-items.json`)_
   - 21 posts went out on that day.
 - **GA4 recorded 880 website sessions; google is your top acquisition channel (541 sessions).** _(category: web_traffic, source: `ga4-metrics.json`)_
   - Source breakdown from ga4-metrics.json across 5 sources. Last fetch: 2026-08-13T11:18:53.950Z.
+- **4 SEO keyword(s) moved up this week.** _(category: seo, source: `seo-rankings.json`)_
+  - Cross-cut from seo-rankings.json movers list.
+- **Biggest SEO mover: 'putter fitting' rose from #35 to #17.** _(category: seo, source: `seo-rankings.json`)_
+  - seo-rankings.json — 4 keyword(s) ranked up this period, 2 ranked down, 10 unchanged. Source: Ubersuggest via daily fetch_ubersuggest.py cron.
+- **Avg position for swingshack.co.za improved 2.2 places over 7 weekly snapshots (#8.42 → #6.17).** _(category: seo, source: `seo-rankings.json`)_
+  - seo-rankings.json average_position_trend (7 points, 2026-06-30 → 2026-08-11). Source: Ubersuggest via fetch_ubersuggest.py.
 - **SEO domain snapshot — organic traffic = 967; organic keywords = 51; domain authority = 13; backlinks = 24; referring domains = 9.** _(category: seo, source: `ubersuggest-domain.json`)_
-  - ubersuggest-domain.json via daily fetch_ubersuggest.py cron. Last fetch: 2026-08-10. Pulled from `swingshack.co.za` `domain_overview` + `backlinks_overview` MCP tools.
+  - ubersuggest-domain.json via daily fetch_ubersuggest.py cron. Last fetch: 2026-08-14. Pulled from `swingshack.co.za` `domain_overview` + `backlinks_overview` MCP tools.
 - **Conversion truth band - Publishing ROI is STRONG_PROXY. Lead and ad ROI is UNMEASURABLE. Only DIRECT comes when GA4 → booking system integrates.. Last engine run: 2026-08-13.** _(category: attribution, source: `roi-truth.json`)_
   - roi-truth.json reclassifies every revenue source (publishing, lead routing, ad budget, etc.) into a confidence band based on whether the GA4 booking confirmation event is live. DIRECT = booking-confirmed; STRONG_PROXY = UTM chain + session trackable; WEAK_PROXY = indirect correlation only; UNMEASURABLE = no data path.
 - **Top attribution unblocker - WhatsApp Business API + CRM → booking system integration; Meta Ads API + GA4 goal tracking + ROAS calculation. Closing either lifts the affected sources from unmeasurable to verified revenue.** _(category: attribution, source: `roi-truth.json`)_
@@ -88,6 +104,8 @@ Book y". Themes: club_fitting, golf_humor, booking_cta.** _(category: content_pe
   - post-conversion-score.json ranks every IG post by its contribution to /bookings/ traffic. Score formula combines direct hook_id attribution (10x), time-window D+0/+1/+2 IG /bookings/ sessions (3x), reach (0.001x), and a 1.5x multiplier for historically winning theme combos (club_fitting + booking_cta). Lift % compares to the median IG /bookings/ traffic in the 30d window. Format: image, checked across all media types (reels vs images) in the top 10.
 - **Format winner: image. Reels (6 total) avg score 43.6, images (10 total) avg score 77.4 in the top 10. Images convert better per post.** _(category: content_strategy, source: `post-conversion-score.json`)_
   - Computed from post-conversion-score.json posts_ranked top 10. Reels typically get higher reach but lower per-post conversion. Images in our top 10 converted at higher per-post scores. Both formats drive /bookings/ lift. Choose by content type, not format alone.
+- **Format refit: image wins, but the reason matters. Images convert 7.1x better per reach than reels. Reels avg reach 530 vs images 128, but conversion per reach is 0.058 (images) vs 0.008 (reels). Reels attract browsers, images attract buyers.** _(category: content_strategy, source: `format-model-refit.json`)_
+  - format-model-refit.json re-scores all 16 posts with a format-aware formula: (direct*10 + (sessions/3)*3 + reach*0.001 + efficiency*50) * theme_mult * format_mult. Format multipliers: image=2.30, reel=0.32. Verdict: Old model said: image wins (avg score 61.6) | New model says: image wins (avg score 61.3) | No format flip. Image still wins, with bigger margin.
 - **Next-post recommendation: Combine these themes for max /bookings/ conversion: booking_cta, club_fitting, wrong_ball. Suggested format: image. Example angles: 'Off-the-rack is fine for groceries.
 For clubs, let’s aim a little higher.
 Book y; Wrong ball? Let’s fix it. 
@@ -106,12 +124,12 @@ Book your ball fitting today!'.** _(category: content_strategy, source: `post-co
   - Caption hook: "Tired of the same old setup 🥱 try Avoda today! ". Permalink: https://www.instagram.com/reel/DbVgJmCMZZC/. From ig-business-analytics.json top_post.
 
 ## What's not working
-- • **5 agent(s) didn't run this week: forge, retina, scout, imagegen, copywriter.** _(severity: low, source: `agent-runs.json`)_
+- • **2 SEO keywords moved down this week.** _(severity: low, source: `seo-rankings.json`)_
+  - indoor golf practice, club fitting near me
+- • **5 agent(s) didn't run this week: scout, imagegen, forge, copywriter, retina.** _(severity: low, source: `agent-runs.json`)_
   - Either nothing to do (fine) or a missed opportunity.
-- ⚠️ **10 SEO keywords tracked but zero have rank data — rankings fetcher is offline.** _(severity: medium, source: `seo-rankings.json`)_
-  - seo-rankings.json has 10 keywords, all current_rank: null. Need a live rank fetcher (Ubersuggest MCP wired). Last update: 2026-08-13T11:14:03.371Z.
 - ⚠️ **Strongest organic competitor: worldofgolf.co.za — 52 shared keywords, DA 26 (us: 13).** _(severity: medium, source: `ubersuggest-competitors.json`)_
-  - ubersuggest-competitors.json via fetch_ubersuggest.py. Top of list by commonKeywordCount. Gap keywords (we don't rank but they do): 300. Last fetch: 2026-08-10.
+  - ubersuggest-competitors.json via fetch_ubersuggest.py. Top of list by commonKeywordCount. Gap keywords (we don't rank but they do): 300. Last fetch: 2026-08-14.
 - 🛑 **Daily IG reach has fallen 62% over the past 15d (vs the prior 15d).** _(severity: high, source: `ig-business-analytics.json`)_
   - From ig-business-analytics.json daily_reach: prior 15d avg=1237, recent 15d avg=467. Reach contraction is the earliest signal of an audience that the algorithm has stopped pushing.
 
@@ -126,7 +144,7 @@ Book your ball fitting today!'.** _(category: content_strategy, source: `post-co
   - roi-truth.json sources[] filtered by can_measure='UNMEASURABLE'. Until the recommended integrations land (WhatsApp Business, Meta Ads + GA4 goal tracking, GA4 booking confirmation event), these channels are operating blind.
 - ? **GA4 booking_completed event is NOT being tracked. Amelia events are firing (form_view, checkout_view) but the confirmation page is not pushing booking_completed. Until this lands, all booking-revenue attribution is a proxy based on URL pattern, not event-tracked.** _(source: `ga4-attribution.json`)_
   - ga4-attribution.json events_tracked. Top events: page_view:5325, user_engagement:3802, session_start:3206, first_visit:2169, tel:12. Wiring the booking_completed event is a 1-2h code change on the Amelia booking confirmation page and would upgrade 3 channels from STRONG_PROXY to VERIFIED_REVENUE in the conversion truth band.
-- ? **Lowest-converting posts (bottom 3 of 16) share themes club_fitting, trackman_stats, golf_humor, booking_cta. These patterns are NOT driving /bookings/ traffic - consider rotating them out of the next-post rotation.** _(source: `post-conversion-score.json`)_
+- ? **Lowest-converting posts (bottom 3 of 16) share themes trackman_stats, golf_lessons, club_fitting, golf_humor. These patterns are NOT driving /bookings/ traffic - consider rotating them out of the next-post rotation.** _(source: `post-conversion-score.json`)_
   - post-conversion-score.json bottom 3 of 16 ranked posts. Lowest scores correlate with these themes. The content engine should deprioritise these in next-post selection.
 - ? **@swingshack has 2,490 IG followers as of this fetch.** _(source: `ig-business-analytics.json`)_
   - From ig-business-analytics.json account.followers_count. Compare against next fetch to detect follower-delta direction.
@@ -139,7 +157,7 @@ Book your ball fitting today!'.** _(category: content_strategy, source: `post-co
 - **GA4 (`ga4-metrics.json`)** — 880 sessions · top source: **google** (541 sessions) · 5 sources tracked · fetched: 2026-08-13
 - **YouTube trends (`youtube-trends.json`)** — 19 videos found · top 10 · active themes: trackman, slice_fix, practice, indoor, lessons
 - **Reddit (`reddit-opportunities.json + reddit-replies.json`)** — 5 opportunities · 5 drafted replies · ready_for_qa (opps: 5, replies: 5) · subs: r/golf=3, r/golftips=1, r/Johannesburg=1
-- **SEO (`seo-rankings.json`)** — 10 keywords · 0 have rank data · rising=0 falling=0 · freshness: 2026-08-13 ⚠️ fetcher offline
+- **SEO (`seo-rankings.json`)** — 16 keywords · 12 have rank data · rising=4 falling=2 · freshness: never
 - **Hook bank (`hook-bank.json`)** — proven_and_trending=0 · proven_only=3 · trending_to_test=0 · retire=5
   - ⚠️ **hook-bank mismatch:** 0 of published hook_ids are NOT in hook-bank (8 bank entries). Bank regenerated independently of publish history.
 

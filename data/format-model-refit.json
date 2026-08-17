@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/scripts/format-model-refit/v1",
-  "generated_at": "2026-08-14T07:46:11.575841+00:00",
+  "generated_at": "2026-08-16T03:00:01.666110+00:00",
   "source_data": {
     "post_conversion_score": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/post-conversion-score.json",
     "ig_business_analytics": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/ig-business-analytics.json"

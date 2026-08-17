@@ -1,9 +1,9 @@
 {
   "_meta": {
     "domain": "swingshack.co.za",
-    "fetched_at": "2026-08-14"
+    "fetched_at": "2026-08-16"
   },
-  "backlinks": 24,
+  "backlinks": 25,
   "domain": "swingshack.co.za",
   "domainAuthority": 13,
   "domainTraffic": {
@@ -248,7 +248,7 @@
       "topTier": 2
     }
   },
-  "follow": 22,
+  "follow": 23,
   "noFollow": 2,
   "organic": 51,
   "organicKeywords": [
@@ -306,7 +306,7 @@
   ],
   "paidKeywords": 0,
   "paidTraffic": 2,
-  "refDomains": 9,
+  "refDomains": 10,
   "serviceInfo": {
     "isConnectedToGA": true,
     "isConnectedToGSC": false,
