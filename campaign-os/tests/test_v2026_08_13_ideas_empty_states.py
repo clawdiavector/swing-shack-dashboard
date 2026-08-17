@@ -89,11 +89,12 @@ def test_funnel_empty_copy_is_friendly():
     assert m, "renderFunnelEmpty arrow function body not found"
     inner = m.group(1)
     assert "No funnel leaks detected" in inner, "must keep the friendly 'No funnel leaks detected' heading"
-    # Must explain the GA4 dependency and surface the next step
+    # Must explain the GA4 dependency and surface the next step.
+    # Point users at the /ga4 setup-portal (NOT /meta — /meta is for
+    # Instagram/Facebook; funnel-leaks feeds on GA4 specifically).
     assert "GA4" in inner, "renderFunnelEmpty must mention the GA4 dependency"
-    assert "setup-portal" in inner or "/meta" in inner, (
-        "renderFunnelEmpty should point users at the setup-portal (/meta)"
-    )
+    assert "setup-portal" in inner, "renderFunnelEmpty should point users at the setup-portal"
+    assert "/ga4" in inner, "renderFunnelEmpty must point at /ga4 (GA4 setup-portal), not /meta"
 
 
 def test_other_ideas_cards_kept_generic():

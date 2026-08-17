@@ -8755,11 +8755,12 @@ async function renderIdeas(){
   const renderFunnelEmpty = () => {
     // Funnel leaks requires GA4 page-view + conversion data. Empty usually means
     // GA4 is not connected yet OR there are no high-traffic pages with poor
-    // conversion. Tell the user both.
+    // conversion. Tell the user both. Point them at /ga4 (NOT /meta; /meta is
+    // for Instagram/Facebook, funnel-leaks feeds on GA4 specifically).
     return `<div class="empty-card ideas-empty-friendly" style="border-left:3px solid #f59e0b">
       <div style="font-size:18px;line-height:1">🪠</div>
       <div style="margin-top:.35rem;font-size:13px;color:var(--tx-1);font-weight:600">No funnel leaks detected</div>
-      <div class="muted" style="margin-top:.25rem;font-size:12px;line-height:1.5">This list needs GA4 page views + conversion events to spot high-traffic pages that fail to convert. If GA4 is not connected yet, ask Heidi to spin up the setup-portal at <code>/meta</code> (same pattern as Drive).</div>
+      <div class="muted" style="margin-top:.25rem;font-size:12px;line-height:1.5">This list needs GA4 page views + conversion events to spot high-traffic pages that fail to convert. If GA4 is not connected yet, ask Heidi to spin up the setup-portal at <code>/ga4</code> (same pattern as Drive).</div>
     </div>`;
   };
   $('#ideas-list').innerHTML = renderList(d.ideas, 'idea');
