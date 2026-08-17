@@ -10967,6 +10967,12 @@ function _faqSalvageSlugKeyword(it, slugTk){
   // Guard: if substitution emptied the first question, abandon salvage.
   const first = (out.questions[0] || '').trim();
   if(!first) return null;
+  // Stash the original slug so the renderer can show a small "auto-fixed"
+  // badge. Helps the user understand why a row like "What is philosophy?"
+  // sits inside a `TrackMan Golf Technology` cluster — the salvage
+  // preserves the original cluster, so without a badge the row looks
+  // like a data error rather than a known limiter.
+  out.__salvaged_from = slugTk;
   return out;
 }
 async function renderFAQs(){
@@ -11028,10 +11034,18 @@ async function renderFAQs(){
         const preview = rest.length
           ? `<div class="li-preview">${rest.map(q => esc(q.length > 120 ? q.slice(0, 119) + '…' : q)).join('<br>')}</div>`
           : '';
+        // Auto-fix badge: surfaced when the salvage helper rewrote the
+        // slug. Keeps the underlying data issue visible (the original
+        // path is right there on hover) without making the row look
+        // broken — it explains the cluster-mismatch instead of hiding it.
+        const salvaged = it.__salvaged_from
+          ? `<span class="pill" style="background:var(--bg-4);color:var(--tx-2);font-size:10px" title="Auto-fixed from ${esc(it.__salvaged_from)} by the slug-salvage map. The original blog_beast producer emitted a URL path as the target_keyword.">🔧 auto-fixed from ${esc(it.__salvaged_from)}</span>`
+          : '';
         const metaBits = [
           it.cluster ? `<span>📚 ${esc(it.cluster)}</span>` : '',
           it.target_keyword ? `<span>🎯 ${esc(it.target_keyword)}</span>` : '',
           it.status ? `<span class="pill">${esc(it.status)}</span>` : '',
+          salvaged,
         ].filter(Boolean).join(' · ');
         const meta = metaBits ? `<div class="li-meta">${metaBits}</div>` : '';
         return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${preview}${meta}</div></li>`;
