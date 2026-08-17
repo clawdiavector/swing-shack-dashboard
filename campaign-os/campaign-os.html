@@ -8295,8 +8295,18 @@ async function renderCalendar(){
     try {
       const panel = S.todayRail || await API.get('/api/today/panel');
       S.todayRail = panel;
-      reviewCount = (panel?.cards || []).filter(c => c.kind === 'review').length
-                  || (panel?.count ?? 0);
+      // v2026-08-17: prefer the true review+draft total from the panel's
+      // counts object (same source as the Today page's reviewTotal and
+      // the sidebar Review badge). The previous fallback chain read
+      // panel.cards.filter(kind=review).length which was capped at 8 by
+      // the /api/today/panel slice, so the empty-state copy said
+      // "8 review-queue items waiting" while the Today page said
+      // "41 need review" — confusing inconsistency. Backend now exposes
+      // panel.counts.review + panel.counts.draft (the unruncated total).
+      const panelCounts = panel?.counts || {};
+      const realReview = (panelCounts.review || 0) + (panelCounts.draft || 0);
+      const cappedReview = (panel?.cards || []).filter(c => c.kind === 'review').length;
+      reviewCount = realReview > 0 ? realReview : (cappedReview > 0 ? cappedReview : (panel?.count ?? 0));
     } catch(_){ /* keep zero — the CTA still works without a count */ }
     grid.innerHTML = `
       <div class="cal-empty-state" role="status" aria-live="polite">

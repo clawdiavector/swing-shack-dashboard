@@ -6910,7 +6910,32 @@ def today_panel():
             ident = str(item.get('assetId') or item.get('id') or item.get('name') or '')
             if ident and ident not in hidden:
                 cards.append({'id': ident, 'label': label, 'kind': kind, 'title': item.get('name') or item.get('title') or item.get('action') or 'Untitled', 'campaignId': item.get('campaignId'), 'updatedAt': item.get('updatedAt')})
-    return jsonify({'ok': True, 'ts': _now_iso(), 'summary': brief.get('summary', ''), 'cards': cards, 'dismissed': sorted(hidden), 'count': len(cards)})
+    # v2026-08-17: include the true review/publish totals (from brief.counts)
+    # in the panel response. The cards array is still capped at 8 per kind for
+    # UI rendering, but consumers like the Calendar empty-state need the
+    # TRUE review queue size — previously they fell through to `count`
+    # (the capped total) or `panel.cards.filter(kind=review).length` and
+    # showed "8 review-queue items waiting" when the real queue was 41.
+    # Frontend reads panel.counts.review + panel.counts.draft (matches the
+    # Today page's reviewTotal computation) so the numbers agree across
+    # surfaces.
+    panel_counts = brief.get('counts') or {}
+    return jsonify({
+        'ok': True,
+        'ts': _now_iso(),
+        'summary': brief.get('summary', ''),
+        'cards': cards,
+        'dismissed': sorted(hidden),
+        'count': len(cards),
+        'counts': {
+            'review': int(panel_counts.get('review') or 0),
+            'draft': int(panel_counts.get('draft') or 0),
+            'approved': int(panel_counts.get('approved') or 0),
+            'published': int(panel_counts.get('published') or 0),
+            'scheduled': int(panel_counts.get('scheduled') or 0),
+            'total': int(panel_counts.get('total') or 0),
+        },
+    })
 
 
 @app.route('/api/intel/post_conversion_score', methods=['GET'])
