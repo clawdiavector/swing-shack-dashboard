@@ -2107,9 +2107,38 @@ const HELP = (() => {
     const maxLeft = window.innerWidth - popR.width - 12;
     if (left > maxLeft) left = maxLeft;
     if (left < 8) left = 8;
-    // Vertical clamp: if pop would fall past viewport bottom, flip above
-    // the trigger. Keeps the pop on-screen regardless of scroll position.
-    if (top + popR.height > window.innerHeight - 8) {
+    // Default-above heuristic for help-tips on form fields inside a modal:
+    // if the pop would land on top of a sibling form field below the
+    // trigger (a textarea/input/select within the same modal), flip
+    // above the trigger when there is room. Without this, the GMB /
+    // Caption / Idea-edit modals show their tooltips plastered on top of
+    // the next form field, hiding the field from the user.
+    const isFormTip = target.matches('input, textarea, select, label, [data-help-title]');
+    const inModal = target.closest('.modal-bg, .modal-card, [class*="modal"]');
+    let overlapBelow = false;
+    if (isFormTip && inModal) {
+      overlapBelow = (() => {
+        const popBottom = top + popR.height;
+        // Find the next visible form sibling below the trigger
+        let node = target.parentElement;
+        const root = target.closest('.modal-bg') || target.closest('.modal-card') || document.body;
+        const candidates = root.querySelectorAll('input, textarea, select');
+        for (const c of candidates) {
+          if (c === target) continue;
+          const cr = c.getBoundingClientRect();
+          if (cr.top < r.bottom) continue;     // not below us
+          if (cr.top >= popBottom) continue;   // pop clears it cleanly
+          return true;                         // pop overlaps this field
+        }
+        return false;
+      })();
+    }
+    // Vertical clamp: if pop would fall past viewport bottom OR would
+    // overlap a sibling form field below (see overlapBelow above), flip
+    // above the trigger. Keeps the pop on-screen AND clear of form
+    // fields, regardless of scroll position.
+    const overflowBottom = (top + popR.height) > (window.innerHeight - 8);
+    if (overflowBottom || overlapBelow) {
       const aboveTop = r.top - popR.height - 6;
       if (aboveTop >= 8) top = aboveTop;
       else top = Math.max(8, window.innerHeight - popR.height - 8);
