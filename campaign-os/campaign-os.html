@@ -9070,9 +9070,29 @@ async function renderLearning(){
   const l = S.learn;
   $('#learn-worked').innerHTML = safeList(l.what_worked, 10).map(itemHtml).join('') || learnEmpty('worked');
   $('#learn-failed').innerHTML = safeList(l.what_failed, 10).map(itemHtml).join('') || learnEmpty('failed');
+  // cta-performance.json ships every ranking as
+  //   { cta_type, label, intent, post_count, avg_engagement_rate,
+  //     conversion_signal, rank, color, ... }
+  // The pre-fix renderer only knew it.cta / it.text, neither of which exists
+  // in this payload, so it fell through to JSON.stringify(it) and dumped
+  // the entire row as a flat string ("{"avg_comments":0,"avg_engagement_rate":0.26,...}")
+  // into the card title. The Caption Studio CTA renderer (see renderCaptions
+  // $cap-cta block) already handled the same payload correctly via
+  // it.label / it.cta_type. Mirror that here, and surface the meaningful
+  // stats (rank, post count, avg engagement, conversion signal, intent)
+  // instead of hiding them inside the raw JSON. Em-dash banned (pipes + dots).
   $('#learn-cta').innerHTML = safeList(l.cta_rankings, 10).map(it => {
-    const score = it.score ?? it.cvr ?? it.ctr ?? '';
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.cta||it.text||JSON.stringify(it))}</div>${score?`<div class="li-meta">score ${score}</div>`:''}</div></li>`;
+    const txt = it.label || it.cta || it.text || it.cta_type || '';
+    const perf = it.avg_engagement_rate ?? it.conversion_signal ?? it.score ?? it.cvr ?? it.ctr;
+    const perfLabel = (perf !== undefined && perf !== null && perf !== '')
+      ? `avg ${perf}${typeof perf === 'number' ? '%' : ''}`
+      : '';
+    const parts = [];
+    if (it.rank) parts.push(pill('on', 'rank ' + it.rank));
+    if (it.post_count) parts.push(pill('draft', it.post_count + ' post' + (it.post_count === 1 ? '' : 's')));
+    if (perfLabel) parts.push(pill('live', perfLabel));
+    if (it.intent) parts.push(pill('', 'intent ' + it.intent));
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt)}</div>${parts.length ? `<div class="li-meta">${parts.join(' ')}</div>` : ''}</div></li>`;
   }).join('') || learnEmpty('cta');
   $('#learn-trend').innerHTML = safeList(l.trend_delta, 10).map(itemHtml).join('') || learnEmpty('trend');
   // failure_patterns is a nested object, not an array: flatten it.
