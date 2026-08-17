@@ -9600,7 +9600,25 @@ async function renderCaptions(){
     const perf = it.avg_engagement_rate || it.cvr || it.score || '';
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt)}</div>${perf?`<div class="li-meta">${pill('on', 'avg '+perf+(typeof perf==='number'?'%':''))}</div>`:''}</div></li>`;
   }).join('') || '<div class="empty">No CTA data</div>';
-  empty('cap-results', 'Pick a voice + tone, then click Generate');
+  // First-render empty state for "Generated variants" — same fix as Headlines +
+  // CTAs in db97278 (tall blank cards confuse first-time visitors). Mirrors the
+  // _genEmptyState pattern: dashed card + icon + title + sub + a one-click CTA
+  // that triggers the existing #cap-gen button. Skipped after a successful
+  // generation via data-gen-state='filled' so a real batch doesn't get re-blanked.
+  if(!$('#cap-results').dataset.genState){
+    $('#cap-results').dataset.genState = 'empty';
+    $('#cap-results').innerHTML = _genEmptyState({
+      kind: 'fresh',
+      title: 'No captions generated yet',
+      sub: 'Generated caption variants land here with voice + tone chips and inline edit. Pick an asset (or leave on hook pool), pick voice + tone (or leave at any), set a variant count, then click Generate.',
+      primaryId: 'cap-gen',
+      primaryLabel: '⚡ Generate captions',
+    });
+    const link = $('#cap-results [data-gen-cta]');
+    if(link) link.addEventListener('click', (e) => {
+      e.preventDefault(); $('#cap-gen')?.click(); link.blur();
+    });
+  }
   // Restore previous selections
   if(CAP_STATE.voice) $('#cap-voice-select').value = CAP_STATE.voice;
   if(CAP_STATE.tone) $('#cap-tone-select').value = CAP_STATE.tone;
@@ -9649,6 +9667,7 @@ $('#cap-gen').addEventListener('click', async () => {
   const assetLabel = r.asset ? ` for ${esc(r.asset)}` : (id ? ` for ${esc(id)}` : ' (hook pool)');
   const saChip = renderSaRewritesBadge(r._sa_rewrites);
 
+  $('#cap-results').dataset.genState = 'filled';  // suppress empty-state on next visit (matches Headlines + CTAs pattern)
   $('#cap-results').innerHTML =
     `${saChip}<h4 data-help="Number of caption variants the agent just produced for the chosen asset / voice / tone combo. Each variant below can be edited inline or sent to the Review queue. The voice + tone chips show which recipe was applied." data-help-title="Generated variants" style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem;cursor:help;border-bottom:1px dotted var(--tx-2)">${r.count} variants${assetLabel} ${subtitle}</h4>` +
     (r.variants||[]).map((v, i) => {
