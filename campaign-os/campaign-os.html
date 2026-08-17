@@ -1140,7 +1140,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 
       <div class="grid" id="brief-grid"></div>
       <aside class="today-rail" id="today-rail">
-        <div class="today-rail-h"><h3 data-help="Right-rail ticker of the freshest signals and tasks for the active brand, sorted by urgency. Each card carries a kind tag (opportunity, scheduled, seo, etc.), a timestamp, and a dismiss button (✕) to clear once handled. New cards animate in at the top every refresh, so scroll to see older ones. Click any card to jump to its source surface." data-help-title="Today ticker (right rail)">⚡ Today</h3><span class="muted" id="today-rail-ts">…</span></div>
+        <div class="today-rail-h"><h3 data-help="Right-rail ticker of the freshest signals and tasks for the active brand, sorted by urgency. Each card carries a kind tag (opportunity, scheduled, seo, etc.), a timestamp, and a dismiss button (✕) to clear once handled. New cards animate in at the top every refresh, so scroll to see older ones. Click any card to jump to its source surface." data-help-title="Today ticker (right rail)">⚡ Today</h3></div>
         <div id="today-rail-list">
           <div class="rail-skel-card">
             <div class="skeleton" style="height:10px;width:30%;margin-bottom:.4rem"></div>
@@ -6775,7 +6775,8 @@ async function renderTodayRail(){
   if(!el) return;
   const lastTs = r.ts || '';
   const tsEl = $('#today-rail-ts');
-  if(tsEl) tsEl.textContent = lastTs.slice(11,19) + ' UTC';
+  // Header corner span was removed (duplicate of rail-meta). Kept as no-op for safety.
+  if(tsEl) tsEl.textContent = '';
   // Build the recommendation card (if we have one).
   // v2026-08-13: readability pass - show the WHY (lift %, theme combo,
   // suggested format) not just the theme names. One-click "Generate ideas"
@@ -6805,8 +6806,8 @@ async function renderTodayRail(){
       </div>`;
   }
   el.innerHTML = `
-    <div class="rail-meta">${esc(lastTs.slice(11,19))} UTC · ${r.count} live</div>
-    ${recCardHtml}
+      <div class="rail-meta">${r.count} live · updated ${esc(lastTs.slice(11,19))} UTC</div>
+      ${recCardHtml}
     ${(r.cards||[]).map((c,i) => `
       <div class="rail-card ${c.kind}" data-id="${esc(c.id)}" style="animation-delay:${i*60}ms">
         <div class="rail-cap"><span class="rail-kind">${esc(c.label)}</span><span class="rail-x" data-dismiss="${esc(c.id)}">✕</span></div>
