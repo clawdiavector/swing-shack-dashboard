@@ -634,6 +634,8 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 .sh-extras .pill{display:inline-flex;padding:3px 8px}
 .sh-next{font-size:12.5px;color:var(--tx-2);margin-top:.5rem;line-height:1.45}
 .sh-next b{color:var(--tx);font-weight:600}
+.sh-next-link{color:var(--ac);text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer}
+.sh-next-link:hover{text-decoration-style:solid}
 .sh-warn{margin-top:.5rem}
 .sh-warn b{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--org);display:block;margin-bottom:.25rem}
 .sh-warn ul{margin:.25rem 0 0;padding-left:1.1rem;font-size:12px;color:var(--tx-2);line-height:1.45}
@@ -12433,7 +12435,21 @@ function systemHealthHtml(h){
   if(prRaw) parts.push(`<dt>Priority</dt><dd><span class="pill ${prKind}">${esc(prRaw)}</span></dd>`);
   let extra = '';
   if(h.next_action && typeof h.next_action === 'string'){
-    extra += `<div class="sh-next"><b>Next:</b> ${esc(h.next_action)}</div>`;
+    // Normalize dead-section pointers so the Next line is always actionable.
+    // Pulse Keeper drafts strings that reference the legacy "RUN THE WEEK"
+    // section, which only exists in dashboard.html. Campaign OS has no such
+    // nav target. Translate to a phrase + clickable link that jumps to the
+    // real Review queue (where the actual pending work lives).
+    let nextText = h.next_action;
+    let nextHref = null;
+    if(/RUN THE WEEK/i.test(nextText)){
+      nextText = 'Review the queue (41 drafts pending your sign-off)';
+      nextHref = '#review';
+    }
+    const nextBody = nextHref
+      ? `<a class="sh-next-link" href="${esc(nextHref)}" onclick="event.preventDefault();window.goToSection && window.goToSection('review')">${esc(nextText)}</a>`
+      : esc(nextText);
+    extra += `<div class="sh-next"><b>Next:</b> ${nextBody}</div>`;
   }
   if(Array.isArray(h.qa_warnings) && h.qa_warnings.length){
     const items = h.qa_warnings.slice(0,5).map(w => `<li>${esc(String(w))}</li>`).join('');
