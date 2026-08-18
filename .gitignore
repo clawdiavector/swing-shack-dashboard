@@ -33,3 +33,13 @@ data/freshness-detail.json
 # Nightshift scratch dir (probes, screenshots, ad-hoc test scripts).
 # Created 2026-08-17 to stop the working-tree churning on every tick.
 .scratchpad/
+
+# Campaign OS runtime state (active-brand preference, gmb drafts, asset
+# media, weekly snapshots, brand-directory mirror). These are written by
+# the live server into this in-repo path when DATA_DIR is unset or
+# points inside the work-tree (local Flask), so they should never be
+# committed. Production on Railway uses DATA_DIR=/data (outside the
+# repo). Added 2026-08-18 to keep `git status --short` clean at nightshift
+# tick start so priority-1 product work doesn't get blocked by recurring
+# runtime writes.
+campaign-os/data/
