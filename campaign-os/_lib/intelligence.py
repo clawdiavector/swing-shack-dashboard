@@ -639,12 +639,20 @@ def review_inbox() -> Dict[str, Any]:
     """
     cd = _campaign_data()
     campaigns = cd.get("campaigns", {})
+    # Brand-scope: mirror morning_brief() so the Review tab never leaks
+    # another brand's drafts into the active brand's queue. Uses
+    # brands.json → brands.<id>.campaign_ids for STRICT ownership (not
+    # the campaign's own brand_id, which is unreliable because data
+    # delegation makes every campaign's brand_id point to swing-shack).
+    scoped_brand = get_request_brand()
 
     pending = []
     approved = []
     rejected = []
 
     for cid, c in campaigns.items():
+        if scoped_brand and not _owns_campaign(cid, scoped_brand):
+            continue
         cname = c.get("identity", {}).get("name", cid)
         for aid, asset in (c.get("assets") or {}).items():
             aps = asset.get("approvalStatus", "draft")
