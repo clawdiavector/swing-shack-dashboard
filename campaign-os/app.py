@@ -8048,11 +8048,30 @@ def intel_winning_theme_ideas_route():
         # Build ideas by recombining winning themes with caption templates.
         # Templates are kept SA-natural, golf-specific, and aligned to the
         # brand voice (no em-dashes, no fabricated facts).
+        # Pull the top-post lift from the actual data so the "why" line
+        # doesn't ship a hard-coded number that drifts from reality. v2026-08-18
+        # nightshift: the first template previously claimed "+267% more /bookings/
+        # traffic than baseline" as a literal string. The real number is in
+        # posts_ranked[0].lift_vs_baseline_pct (currently 266.7 for the Swing
+        # Shack cohort). Source from data so the line is honest whether the
+        # underlying number moves up or down between scoring runs.
+        ranked_top = (pcs.get('posts_ranked') or [])
+        top_lift_pct = None
+        if ranked_top:
+            v = ranked_top[0].get('lift_vs_baseline_pct')
+            if isinstance(v, (int, float)) and v > 0:
+                top_lift_pct = round(float(v))
+        # Display label: "Top post drove +267% more /bookings/ vs baseline"
+        # or a softer "Top post beat the /bookings/ baseline" if no number.
+        if top_lift_pct is not None:
+            lift_label = f"Top post drove +{top_lift_pct}% more /bookings/ sessions vs the channel baseline"
+        else:
+            lift_label = "Top posts beat the /bookings/ baseline for the active brand"
         idea_templates = [
             {
                 "title_template": "Book your {primary_theme_short} at Swing Shack",
                 "caption_hook_template": "{primary_cap}? Yes, that's a thing. \n\nBook your {primary_theme} today.",
-                "why": "Booking-CTA posts historically drive +267% more /bookings/ traffic than baseline. Pairing '{primary_theme}' with a direct booking CTA matches the winning theme combo.",
+                "why": "{lift_label}. Pairing '{primary_theme}' with a direct booking CTA matches the winning theme combo.",
             },
             {
                 "title_template": "Why most golfers {pain_point}",
@@ -8132,7 +8151,7 @@ def intel_winning_theme_ideas_route():
                     first_word_cap=primary_cap),
                 "format": chosen_format,
                 "themes": chosen_themes,
-                "why": t["why"].format(primary_theme=primary, secondary_theme=secondary),
+                "why": t["why"].format(primary_theme=primary, secondary_theme=secondary, lift_label=lift_label),
                 "source": "post-conversion-score.json winning themes",
                 "winning_themes_used": chosen_themes,
             })
