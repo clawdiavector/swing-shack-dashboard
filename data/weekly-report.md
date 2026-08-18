@@ -126,7 +126,7 @@ Book your ball fitting today!'.** _(category: content_strategy, source: `post-co
 ## What's not working
 - • **2 SEO keywords moved down this week.** _(severity: low, source: `seo-rankings.json`)_
   - indoor golf practice, club fitting near me
-- • **5 agent(s) didn't run this week: forge, copywriter, retina, scout, imagegen.** _(severity: low, source: `agent-runs.json`)_
+- • **5 agent(s) didn't run this week: imagegen, scout, retina, copywriter, forge.** _(severity: low, source: `agent-runs.json`)_
   - Either nothing to do (fine) or a missed opportunity.
 - ⚠️ **Strongest organic competitor: worldofgolf.co.za — 52 shared keywords, DA 26 (us: 13).** _(severity: medium, source: `ubersuggest-competitors.json`)_
   - ubersuggest-competitors.json via fetch_ubersuggest.py. Top of list by commonKeywordCount. Gap keywords (we don't rank but they do): 300. Last fetch: 2026-08-16.
@@ -144,7 +144,7 @@ Book your ball fitting today!'.** _(category: content_strategy, source: `post-co
   - roi-truth.json sources[] filtered by can_measure='UNMEASURABLE'. Until the recommended integrations land (WhatsApp Business, Meta Ads + GA4 goal tracking, GA4 booking confirmation event), these channels are operating blind.
 - ? **GA4 booking_completed event is NOT being tracked. Amelia events are firing (form_view, checkout_view) but the confirmation page is not pushing booking_completed. Until this lands, all booking-revenue attribution is a proxy based on URL pattern, not event-tracked.** _(source: `ga4-attribution.json`)_
   - ga4-attribution.json events_tracked. Top events: page_view:5325, user_engagement:3802, session_start:3206, first_visit:2169, tel:12. Wiring the booking_completed event is a 1-2h code change on the Amelia booking confirmation page and would upgrade 3 channels from STRONG_PROXY to VERIFIED_REVENUE in the conversion truth band.
-- ? **Lowest-converting posts (bottom 3 of 16) share themes trackman_stats, club_fitting, booking_cta, golf_lessons. These patterns are NOT driving /bookings/ traffic - consider rotating them out of the next-post rotation.** _(source: `post-conversion-score.json`)_
+- ? **Lowest-converting posts (bottom 3 of 16) share themes golf_humor, club_fitting, trackman_stats, booking_cta. These patterns are NOT driving /bookings/ traffic - consider rotating them out of the next-post rotation.** _(source: `post-conversion-score.json`)_
   - post-conversion-score.json bottom 3 of 16 ranked posts. Lowest scores correlate with these themes. The content engine should deprioritise these in next-post selection.
 - ? **@swingshack has 2,490 IG followers as of this fetch.** _(source: `ig-business-analytics.json`)_
   - From ig-business-analytics.json account.followers_count. Compare against next fetch to detect follower-delta direction.
