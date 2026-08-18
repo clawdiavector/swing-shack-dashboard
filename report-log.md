@@ -1792,3 +1792,34 @@ Also skipped the row date span when updatedAt is null so the 35 campaign-generat
 **Learned:** Small visual bugs in a high-traffic screen add up. The "pending = 41, but how many are rotting?" question is the first thing anyone scanning the queue asks, and the answer was hidden behind 41 rows. The count badge + the breakdown copy answers it in one line. The `planned` pill colour fix is a sub-fix of the same idea: the row's pills should already say "this is ready", not make the user click in to find out. The pattern (count badge + breakdown + correct pill colour) is the same idiom for any "long list" surface in the app — the Sections list on Billboards, the variants list on Captions, the campaigns list on Campaigns view all probably want the same treatment.
 
 **Next pick:** (a) Same idiom for the Calendar section-header sub-cards (Days / Weeks / Months view buttons have no count badge). (b) The Learning "What worked" card cross-reference to Trend + CTA patterns (existing commit `ab763ad` already bridges). (c) The Library "approved" tab — confirmed via the recent test fix that it now calls the right endpoint, but the in-renderer pill is still grey "approved" with no count badge. (d) The Ideas "Just generated" pill vs. empty-state-vs-fresh-list still mixing three signals — could consolidate.
+
+---
+
+## 2026-08-18 — 12:25 UTC — fix(campaigns): per-campaign work-view thumbnails load real images (a9f192c)
+
+**Bug:** Per-campaign detail view (`sec-campaigns` → 📋 Full plan) showed icon placeholders for the takomo-101t hero images (a/b/c), even though the images exist on disk (`assets/campaigns/trackman/takomo-101t-hero-*.png`).
+
+**Root cause (two layers):**
+1. `inferThumb()` in `campaign-os/campaign-os.html` constructed a guessed path `/assets/campaigns/<cid>/<type>-<n>.jpg` even when the asset record already carried the canonical `filePath` (e.g. `assets/campaigns/trackman/takomo-101t-hero-b.png`).
+2. Flask had no `/assets/<path:filename>` route — every `/assets/...` URL hit the catch-all static handler, which serves from `campaign-os/` and returned HTML 404.
+
+**Fix (atomic, 2 commits):**
+- `campaign-os/app.py` (+35 lines): new `@app.route('/assets/<path:filename>')` mirroring the existing `/brand-images/<brand>/<file>` pattern. Resolves `DATA_DIR/assets/` first (runtime volume mount) then `REPO_ROOT/assets/` (bundled in Docker image), rejects traversal, returns 404 JSON.
+- `campaign-os/campaign-os.html` (+10/-2): `inferThumb()` now returns `a.filePath` when present (with leading `/`), falls back to the legacy guess only for assets without a stored path.
+- `Dockerfile` (+2 lines): `COPY assets/ /app/assets/` — Nixpacks/Railway Docker build now ships the repo-root assets folder with the image.
+
+**Verification (LIVE post-deploy):**
+- `/assets/campaigns/trackman/takomo-101t-hero-a.png` → 200, 68351 B, `image/png` (was 404).
+- `/assets/campaigns/trackman/takomo-101t-hero-b.png` → 200, 55812 B, `image/png` (was 404).
+- `/assets/campaigns/trackman/takomo-101t-hero-c.png` → 200, 82440 B, `image/png` (was 404).
+- `/assets/campaigns/use-the-right-equipment-mq5l90bk/feed-post-04.jpg` → 200, 674989 B, `image/jpeg` (was 404).
+- Playwright on LIVE: Campaigns → Takomo → Full plan → 6 thumbs inspected → **3 REAL LOADED** (heroes a/b/c) + **3 ICON FALLBACK** (hook-a, production, research — those assets have no filePath and no on-disk image, which is the correct fallback behaviour).
+- All 29 sections still load, 0 pageerrors, 0 console errors, 0 nav regressions.
+
+**Files (2):** `campaign-os/app.py` + `campaign-os/campaign-os.html`. Follow-up commit: `Dockerfile` + `REBUILD_TRIGGER.txt` nudge.
+
+**Commit:** `a9f192c` on `feat/asset-state-engine` (fix in `3b29ec9`, deploy nudge + Dockerfile in `a9f192c`). Both pushed, Railway auto-deployed.
+
+**Learned:** Two-layer bugs like this are common: one layer assumes a route that doesn't exist; the other layer assumes a path the route would never serve. The fix pattern is to keep the data-layer source-of-truth (`filePath`) and make the serving layer responsible for where the bytes live. The `/brand-images/<brand>/<file>` route was already the right shape — we now have a `/assets/<path>` sibling, and both come from the same recipe (resolve + traversal-check + sibling-fallback). For future per-campaign visuals, the pattern is: store `filePath` on the asset, use it verbatim in the UI, and let Flask's `/assets/` route find the file under `BUNDLED_DATA_DIR` or `REPO_ROOT`. Next obvious follow-up: same idiom for any other surfaces (Meme Lord, Image Lab) that synthesise image URLs by hand instead of using the stored path.
+
+**Next pick:** (a) Same idiom for any other `/assets/...` URLs the JS still constructs by hand — quick grep + replace. (b) Library "Search everything" tile — `walk_buttons` flagged a 404 against the `🔎` button; needs a deeper click trace. (c) Learning "What failed" empty card (cross-ref to Failure patterns below — `56e09b0` already does the analogue for "What worked"). (d) Captions studio: weak empty-state when brand has no voice-bible examples.
