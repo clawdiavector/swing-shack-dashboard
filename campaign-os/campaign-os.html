@@ -1183,15 +1183,15 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         </div>
       </div>
       <div class="card">
-        <div class="card-h"><h3 data-help="Drafts the agent has produced but you have not reviewed yet. Click any item to open the review modal where you can approve, reject, or send back for revision. Empty state means the inbox is clean." data-help-title="Pending review queue">⏳ Pending</h3><span class="h-meta">Click an item to open</span></div>
+        <div class="card-h"><h3 data-help="Drafts the agent has produced but you have not reviewed yet. Click any item to open the review modal where you can approve, reject, or send back for revision. Empty state means the inbox is clean." data-help-title="Pending review queue">⏳ Pending <span id="review-pending-count" class="pill muted" style="font-size:11px;padding:2px 7px;margin-left:.3rem">0</span></h3><span class="h-meta"><span id="review-pending-breakdown" style="display:none"></span> · Click an item to open</span></div>
         <div id="review-pending"></div>
       </div>
       <div class="card" style="margin-top:1rem">
-        <div class="card-h"><h3 data-help="You said yes, these are ready to publish. The next step is the Publishing pipeline below: pick a date or push to Postiz now. Until then the copy sits here, unposted." data-help-title="Approved &amp; waiting to publish">✓ Approved (ready to publish)</h3></div>
+        <div class="card-h"><h3 data-help="You said yes, these are ready to publish. The next step is the Publishing pipeline below: pick a date or push to Postiz now. Until then the copy sits here, unposted." data-help-title="Approved &amp; waiting to publish">✓ Approved (ready to publish) <span id="review-approved-count" class="pill muted" style="font-size:11px;padding:2px 7px;margin-left:.3rem">0</span></h3></div>
         <div id="review-approved"></div>
       </div>
       <div class="card" style="margin-top:1rem">
-        <div class="card-h"><h3 data-help="Drafts you marked as not-ready. Kept here so you can revisit the rationale or re-open them if your mind changes. Nothing in this column will ever be published." data-help-title="Rejected drafts (archived)">✗ Rejected</h3></div>
+        <div class="card-h"><h3 data-help="Drafts you marked as not-ready. Kept here so you can revisit the rationale or re-open them if your mind changes. Nothing in this column will ever be published." data-help-title="Rejected drafts (archived)">✗ Rejected <span id="review-rejected-count" class="pill muted" style="font-size:11px;padding:2px 7px;margin-left:.3rem">0</span></h3></div>
         <div id="review-rejected"></div>
       </div>
     </section>
@@ -7297,6 +7297,33 @@ async function renderReview(){
   if(_staleAll > 0 && $('#review-summary')){
     $('#review-summary').textContent = `${r.summary} · ${_staleAll} stale (>7d)`;
   }
+  // Surface the pending bucket split (draft vs review) under the Pending
+  // sub-header so Christelle can see "35 ready for review · 6 draft" at
+  // a glance instead of scrolling 41 rows to spot the 6 rotting ones.
+  // `planned` publishStatus is the tell that an item is genuinely ready
+  // for human review; items without it are still agent-drafting.
+  const _pendingReviews = (r.pending || []).filter(x => (x.publishStatus || '').toLowerCase() === 'planned').length;
+  const _pendingDrafts = (r.pending || []).length - _pendingReviews;
+  const _pendingBreakdown = $('#review-pending-breakdown');
+  if (_pendingBreakdown) {
+    if (_pendingDrafts > 0 && _pendingReviews > 0) {
+      _pendingBreakdown.textContent = `${_pendingReviews} ready for review · ${_pendingDrafts} still drafting`;
+      _pendingBreakdown.style.display = '';
+    } else {
+      _pendingBreakdown.style.display = 'none';
+    }
+  }
+  // Count badges on each sub-section header so the user sees "Pending (41)"
+  // instead of having to count rows manually. Mirrors the sidebar badge
+  // count so the page never disagrees with the nav.
+  const _countEls = {
+    'pending': $('#review-pending-count'),
+    'approved': $('#review-approved-count'),
+    'rejected': $('#review-rejected-count'),
+  };
+  if (_countEls.pending)  _countEls.pending.textContent  = (r.pending  || []).length;
+  if (_countEls.approved) _countEls.approved.textContent = (r.approved || []).length;
+  if (_countEls.rejected) _countEls.rejected.textContent = (r.rejected || []).length;
   const renderRow = x => {
     const safeId = esc(x.assetId || '');
     const safeCid = esc(x.campaignId || '');
@@ -7335,8 +7362,8 @@ async function renderReview(){
         ${pill(x.approvalStatus||'draft', x.approvalStatus||'draft')}
         ${agePill}
         ${x.platform ? pill('live', x.platform) : ''}
-        ${x.publishStatus ? pill(x.publishStatus==='scheduled'?'on':x.publishStatus==='published'?'review':'draft', x.publishStatus) : ''}
-        <span class="muted">${esc((x.updatedAt||'').slice(0,10))}</span>
+        ${x.publishStatus ? pill(x.publishStatus==='scheduled'?'on':x.publishStatus==='published'?'review':x.publishStatus==='planned'?'live':'draft', x.publishStatus) : ''}
+        ${x.updatedAt ? `<span class="muted">${esc(x.updatedAt.slice(0,10))}</span>` : ''}
         <span class="review-actions" style="margin-left:auto;display:flex;gap:.35rem;flex-wrap:wrap">
           <button class="btn-mini" onclick="openReview('${safeCid}','${safeId}')">Open</button>
           ${!isApproved && !isRejected ? `<button class="btn-mini" style="color:var(--red)" onclick="window.reviewAction('${safeCid}','${safeId}','rejected')">Reject</button>` : ''}
