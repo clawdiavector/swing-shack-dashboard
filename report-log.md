@@ -1609,3 +1609,52 @@ Next: the summary string still embeds `bible=placeholder` inline (from _lib/bran
 **Learned:** Two cards on the same page that both speak to "failures" but read from different API keys is a recipe for contradiction. The pre-fix state was a literal lie: the empty card said "No failure patterns yet" while the debug card below it showed 7 patterns. The bridge pattern (insight-level empty + scroll-button to debug-level data) is reusable: any time the user sees "X not yet" in card N, while card M below it has rows that contradict the assertion, the right answer is a small cross-reference card, not a content rewrite (which would be a different fix and might silently fabricate patterns). The 8th test pins the consistency invariant: both cards use `_flattenFailurePatterns(l.failure_patterns)`, so the count is by construction identical — no possibility of drift even if a future refactor moves one path but not the other.
 
 **Next pick:** (a) The "What worked" card has the same flavor of problem: it shows 1 trivial signal entry ("21 recommendations published this week") with no real pattern insight — same idiom of "the data is in another card, scroll down" would help. (b) The Insights "Did the ad drive this spike?" panel shows 30+ Meta Ads rows all with `spent 0.0 and drove — clicks` because the META connector is expired — a small "Meta spend data unavailable (token expired)" notice at the top of the panel would be honest and save the user from a long dead-end read. (c) The Calendar empty state has a 14d window + CTA "Open Review (41)" but no inline explanation of what the calendar actually shows when populated; if/when the calendar starts populating, the first-time-user experience matters.
+
+## 2026-08-18T03:55Z — fix(insights): ad correlation surfaces proxy banner when Meta campaigns are organic-IG stand-ins
+
+**Done:** The "Did the ad drive this spike?" card on Insights rendered 20 "Meta Ads" rows from `data/meta-ads.json` all reading "spent — and drove — clicks to /" with R0 in the trend chip. The data file's `_meta` says `source: "analytics/instagram-analytics.json"` and every row carries `source: "instagram-analytics"` + `note: "Derived from organic IG post reach as ad-impression proxy"` — they're placeholder rows standing in for real paid-spend data the Meta Ads API would have returned. The Google Ads connector is live (R5,402 spend, 2,161 clicks, 16 campaigns) so the side-by-side reads as "wasted 88% over the window" next to "no data at all" with no sign that the empty side is a wiring gap, not a real result.
+
+**Fix (commit `8035e19`, Railway auto-deployed, LIVE post-deploy verified via Playwright):**
+
+`platformSection(label, block)` in `renderInsightsV2()` (`campaign-os/campaign-os.html`) now inspects `block.campaigns` and, when ≥80% of campaigns have either `source` matching `/instagram|organic|proxy/i` OR `note` matching `/proxy/i`, prepends a small amber banner above the verdict list that:
+- Names the platform ("Meta Ads spend data unavailable")
+- Counts the rows ("The 20 rows below...")
+- Explains the rows are organic IG reach, not real paid spend
+- Names the dead-end reason ("'Spent R0 | drove 0 clicks' is a data gap, not a real result")
+- Links to `/meta-portal` with a CTA chip ("→ Wire Meta Ads API")
+
+The verdict list is preserved below the banner — the user still sees the rows; the banner just labels them honestly instead of leaving them to read as "the ad spent R0".
+
+**New regression test (`campaign-os/tests/test_v2026_08_18_ad_correlation_proxy_banner.py`, 8 tests, all green):**
+1. test_proxy_banner_present_when_80pct_proxy_campaigns — live Swing Shack shape (20/20 proxy) fires
+2. test_proxy_banner_absent_when_real_paid_campaigns — Google Ads shape (0/2 proxy) does NOT fire
+3. test_proxy_banner_threshold_is_80pct — explicit loop 0/2 → 1/3 → 2/4 → 3/5 → 4/5/5 verifies the >= 0.8 cutoff
+4. test_proxy_banner_links_to_meta_portal — `href="/meta-portal"` present
+5. test_proxy_banner_does_not_suppress_verdict_list — first AND last verdict strings still render
+6. test_proxy_banner_copy_em_dash_free — standing rule (no em-dashes in new copy)
+7. test_proxy_banner_copy_names_real_situation — "organic Instagram post reach", "ad-impression proxy", "data gap"
+8. test_no_proxy_banner_for_empty_block — empty block short-circuits earlier (no banner + empty output)
+
+**Verified (Playwright LIVE on Railway, post-deploy, password-auth flow):**
+- DOM: `#ins-ad-block` now contains the amber banner with the new title + body + CTA link.
+- Rendered text matches spec: "⚠️ Meta Ads spend data unavailable / The 20 rows below are derived from organic Instagram post reach (ad-impression proxy), not real paid ad spend. 'Spent R0 | drove 0 clicks' is a data gap, not a real result. / → Wire Meta Ads API".
+- Google Ads section unaffected: 16 verdicts + "wasted 88% over the window" trend chip render as before.
+- 20 Meta Ads proxy rows still render (banner sits above, not replacing).
+- 0 pageerrors, 0 console errors during walkthrough.
+- `/api/health` 200; deployed commit = 8035e19.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via the test), 0 NEW deps. The link target is `/meta-portal` (existing) — no new route.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_proxy_banner_crop_20260818T035300Z.png` — cropped to the ad correlation card, showing the new banner above the Meta Ads block + Google Ads verdicts unaffected
+- `/tmp/co-nightshift/walkthrough_proxy_banner_full_20260818T035300Z.png` — full Insights page
+
+**Files (2, +313):**
+- `campaign-os/campaign-os.html` (+23): new proxy-detection block + banner in `platformSection()`.
+- `campaign-os/tests/test_v2026_08_18_ad_correlation_proxy_banner.py` (+290, NEW): 8-test source-shape regression suite using `node -e` to sandbox the production code path.
+
+**Commit:** `8035e19` on `feat/asset-state-engine`, pushed, Railway auto-deployed.
+
+**Learned:** The "organic-IG-as-ad-impression proxy" pattern is what happens when a connector (Meta Ads) is unavailable but the page still needs to render shape. The data file's `_meta` already disclaims the substitution ("Synthesised from IG post engagement. Replace with Meta Ads API for true paid-campaign data.") but the renderer was silent about it. The fix is in the renderer, not the data file — the data file's honesty is good; the surface just needs to surface it. The 80% threshold (vs 100%) means a partial mix of real + proxy rows can still surface the banner with mostly-proxy content, which matches the swing-shack reality where all 20 rows are proxy today.
+
+**Next pick:** (a) Same idiom for the Learning "What worked" card (1 trivial signal entry, no real pattern insight). (b) Same idiom for the Insights IG "Top posts" card if IG ever returns zero posts (empty state already bridges to "No posts yet / Connect Instagram"). (c) The Review "Pending" tab colour differentiation (41 items all labelled "DRAFT" — needs status-pill refinement). All three are small, reversible renderer-only changes.
