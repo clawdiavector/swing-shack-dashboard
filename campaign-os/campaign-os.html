@@ -8843,8 +8843,29 @@ async function renderIdeas(){
     </div>`;
   };
   $('#ideas-list').innerHTML = renderList(d.ideas, 'idea');
-  $('#ideas-today').innerHTML = renderList(d.post_today, 'idea');
-  $('#ideas-week').innerHTML = renderList(d.this_week, 'idea');
+  // "Post today" and "This week" columns used to render the same ideas already
+  // in the "Content ideas" list (the data file stores the top picks as a
+  // subset of the full backlog, so every entry in post_today also sat in
+  // ideas). Result: the same card appeared twice side-by-side, which looked
+  // like a rendering bug. Now we strip idea_ids already shown in the main
+  // list so each column carries unique content. If the column is empty after
+  // dedup, show a friendly fallback pointing at the main list.
+  const _ideaIds = new Set((d.ideas || []).map(i => i.idea_id).filter(Boolean));
+  const _dedup = (arr) => (arr || []).filter(i => !i.idea_id || !_ideaIds.has(i.idea_id));
+  const _todayUnique = _dedup(d.post_today);
+  const _weekUnique = _dedup(d.this_week);
+  const _todayFallback = `<div class="empty-card ideas-empty-friendly" style="border-left:3px solid #34d399">
+    <div style="font-size:18px;line-height:1">✅</div>
+    <div style="margin-top:.35rem;font-size:13px;color:var(--tx-1);font-weight:600">Today's top picks sit in the backlog</div>
+    <div class="muted" style="margin-top:.25rem;font-size:12px;line-height:1.5">The highest-urgency ideas for today are already in the Content ideas list above. Pick one from there.</div>
+  </div>`;
+  const _weekFallback = `<div class="empty-card ideas-empty-friendly" style="border-left:3px solid #34d399">
+    <div style="font-size:18px;line-height:1">📅</div>
+    <div style="margin-top:.35rem;font-size:13px;color:var(--tx-1);font-weight:600">Week batch already in backlog</div>
+    <div class="muted" style="margin-top:.25rem;font-size:12px;line-height:1.5">This week's queued ideas are already in the Content ideas list above. Scroll up to browse them in one place.</div>
+  </div>`;
+  $('#ideas-today').innerHTML = _todayUnique.length ? renderList(_todayUnique, 'idea') : _todayFallback;
+  $('#ideas-week').innerHTML = _weekUnique.length ? renderList(_weekUnique, 'idea') : _weekFallback;
   $('#ideas-missed').innerHTML = (d.missed && d.missed.length) ? renderList(d.missed) : renderMissedEmpty();
   $('#ideas-upsell').innerHTML = renderList(d.upsells);
   $('#ideas-bundles').innerHTML = renderList(d.bundles);
