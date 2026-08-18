@@ -1,5 +1,33 @@
 
 
+## Nightshift Report — 2026-08-18T22:17:00Z
+
+### ✅ What was done
+- **System health "Next:" line no longer points at a dead section.** Before: the card read `Next: Unblock tasks in RUN THE WEEK section`. That section only exists in the legacy `dashboard.html`; Campaign OS has no such nav target. The user clicked the line and got nowhere actionable. After: `systemHealthHtml()` detects the legacy reference and rewrites it to a clickable `Review the queue (41 drafts pending your sign-off)` link that calls `goToSection('review')`. All other `next_action` strings render verbatim (escaped) — fallback path untouched. New `.sh-next-link` CSS rule (dotted underline + `var(--ac)` colour + `cursor:pointer`) makes the link discoverable without looking like a raw nav button.
+
+### 🎯 Verified
+- **Pre-flight**: `git status --short` = clean before edit.
+- **Em-dash check**: `git diff -U0 campaign-os/campaign-os.html | grep -c "—"` on added lines = 0.
+- **Local Playwright walk** (port 8766): `{nextText: "Next: Review the queue (41 drafts pending your sign-off)", linkExists: true, linkHref: "#review", nav: 'sec-agents' -> 'sec-review'}`. 0 pageerrors, 0 console errors.
+- **Live Playwright walk** (Railway): after 2 nudges (`2bc55a2`, `38c82fb`) the deployed HTML now contains `sh-next-link` (855613 bytes vs prior 854678). Click test: `sec-agents -> sec-review`. 14-section regression: all sections render, 0 console errors.
+- **Tests**: 7/7 new in `campaign-os/tests/test_system_health_next_action_normalization_v2026_08_18.py` (regex present, rewrite phrase, goToSection('review') wired, .sh-next-link CSS exists, fallback still calls esc(), em-dash-free, dashboard.html legacy section untouched).
+- **Standing rules honored**: SPA-only patch, 2 files changed (+132 / -1), no API contract change, no publish/Postiz/GBP touch, no cred touch, no symlinks, no archive restore.
+- **Commit `df96f52`** + nudge `2bc55a2` + nudge `38c82fb` on `feat/asset-state-engine`.
+
+### 🎯 Next pick
+- Calendar section "GENERATE NEW POST →" CTA — worth tracing the link target to confirm it lands on a real section.
+- The Instagram long-lived token is still expired (Socials grid is the "Waiting for Instagram wire" placeholder from a prior tick). Daytime-approval ask.
+- Brand Directory detail cards (Palette, Archetypes, Typography, Voice, Headlines bank, CTA bank, Punctuation rules, Do-say-don't-say, Examples) still lack the `data-help + data-help-title` pattern that the explainer sweep codified — cheap text sweep.
+
+### 🧠 What I learned / can improve
+- **Dead-section pointers are a category.** This is the second time a backend string has leaked into the UI with a section name that doesn't exist in Campaign OS. Worth a future tick: collect ALL section names referenced from data files (`system-health.json`, `agent-runs.json`, `whats-new.json`) and compare against the live `data-go=` set — anything missing is a candidate for the same rewrite pattern.
+- **Railway auto-deploy was slow this tick.** ~6 minutes from `git push` to live serving the new code. Two empty `REBUILD_TRIGGER.txt` nudges were needed. Captured the slow-rebuild pattern in the dispatcher.
+- **The `systemHealthHtml()` function is the canonical entry point for any agent-status UI surface.** Worth keeping its renderer changes minimal and tested. Each future change should preserve the fallback path (unknown strings render verbatim, escaped) so we never lose data.
+
+### 🚨 Blockers / asks
+None.
+
+---
 ## Nightshift Report — 2026-08-18T18:22:00Z
 
 ### ✅ What was done
