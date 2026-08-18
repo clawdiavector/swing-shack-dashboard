@@ -1,4 +1,42 @@
 
+## 2026-08-18T05:11Z — fix(ideas): Post today + This week columns no longer duplicate the Content ideas list
+
+**Done:** The Opportunities (Ideas) page renders three idea columns side-by-side. Pre-pick walkthrough on the LIVE Railway URL caught the same idea card appearing TWICE: "THAT SLICE COSTING YOU YARDS?" (idea_id `slice-fix-2026-08-13-a`) showed up as the top item in the "Content ideas" column AND as the top item in the "Post today" column. The "This week" column showed the same 2 reels that were already in the Content ideas list. Three columns, all with overlapping content, looked like a rendering bug to the operator.
+
+**Root cause:** `data/content-ideas.json` stores `post_today` and `this_week` as *subsets* of the full `ideas` list (the source-of-truth ranking). The previous render path in `renderIdeas()` plumbed each list straight into its column without any deduplication:
+
+```js
+$('#ideas-list').innerHTML = renderList(d.ideas, 'idea');
+$('#ideas-today').innerHTML = renderList(d.post_today, 'idea');
+$('#ideas-week').innerHTML = renderList(d.this_week, 'idea');
+```
+
+For Swing Shack today: `ideas` has 8 entries, `post_today` has 2 (`slice-fix-2026-08-13-a`, `coaching-2026-08-13-a`) — both already in `ideas`. `this_week` has 6 entries — all already in `ideas`. 100% overlap.
+
+**Fix (commit `18a3a47`, test commit `6ad5f7f`, pushed, Railway auto-deployed):**
+- `campaign-os/campaign-os.html` (`renderIdeas()`, line 8845-8868): builds a `Set` of `idea_id`s from the main `ideas` list, filters `post_today` and `this_week` to exclude items already present, and shows a friendly fallback empty-state card if the column is empty after dedup. The fallback uses the existing `.ideas-empty-friendly` class (same border-left + emoji + title + sub as the Missed opportunities and Funnel leaks empties), so the column is never a blank card.
+  - Today fallback: "✅ Today's top picks sit in the backlog" + "The highest-urgency ideas for today are already in the Content ideas list above. Pick one from there."
+  - Week fallback: "📅 Week batch already in backlog" + "This week's queued ideas are already in the Content ideas list above. Scroll up to browse them in one place."
+- `campaign-os/tests/test_v2026_08_18_ideas_column_dedup.py` (NEW, 8 tests): pins the dedup block exists, post_today/this_week are filtered by idea_id against the main set, both fallback cards render the explicit "already in the backlog" copy, the fallbacks use `.ideas-empty-friendly`, the columns render the deduped lists (not the raw ones), the main `ideas` list is unchanged, and no em-dashes in new copy.
+
+**Verified (Playwright LIVE, cookie auth, post-deploy):**
+- **Before** (screenshot `/tmp/co-nightshift/snap_ideas_20260818T050514Z.png`): same idea card appeared in both Content ideas (col-6) AND Post today (col-3) columns. The user saw the same headline twice side-by-side.
+- **After** (screenshot `/tmp/co-nightshift/walkthrough_ideas_dedup_scrolled_20260818T051108Z.png`): Content ideas column has 8 unique cards. Post today column shows the friendly "Today's top picks sit in the backlog" fallback. This week column shows the friendly "Week batch already in backlog" fallback. Both fallbacks point at the main Content ideas list, so the user still finds the same items — just in one place, not three.
+- Overlap check (Playwright JS): `Content ideas ∩ Post today = ∅`, `Content ideas ∩ This week = ∅`. Zero overlap.
+- `/api/health` 200. 8/8 new tests pass. 0 PAGEERROR, 0 new console.errors, 0 new 4xx/5xx network responses.
+
+**Files (2):**
+- `campaign-os/campaign-os.html` (`renderIdeas` dedup + two fallback cards, +23/-2).
+- `campaign-os/tests/test_v2026_08_18_ideas_column_dedup.py` (NEW, 120 lines, 8 tests).
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 em-dashes (verified via diff + the new test), 0 schema changes, 0 helpers removed, 1 new regression test, 0 JS framework dependency added, 0 files deleted.
+
+**Learned:** The data-shape pattern that caused this — a *curated subset* stored alongside the *full list* in the same JSON file — is invisible at JS-time because both arrays look like independent data. The diff between render paths (`d.ideas` vs `d.post_today`) doesn't reveal that they're 100% overlapping by idea_id. The fix-style that's robust against this: any column that renders a *subset* of a master list should filter by the master's key before showing items. Worth a quick scan of other renderers that pull from subset-style data (e.g. `d.missed`, `d.upsells`, `d.bundles`) — but those draw from separate files, not the same `ideas` array, so the overlap risk is much lower.
+
+**Next pick:** The SEO Audit page's "Health score" cell renders a giant `0` (because audit ran 5d ago and found critical issues) that visually dominates the card and buries the real story: "16 findings, 8 high, 4 medium, 4 low". The score-vs-findings hierarchy is inverted. Cheap fix: when score is 0/stale, show the finding-counts as the primary number and the score as a small badge. The "Last audit 2026-08-13" timestamp is also 5d stale — the audit crawl cadence looks broken.
+
+**Asks:** None.
+
 ## 2026-08-11T04:01Z — fix(copy): 8 em-dashes gone from Connect-Instagram / Connect-analytics empty-state explainers + Check-Search-Console button
 
 **Done:** The Connect-Instagram explainer (Socials surface, visible daily while IG isn't wired) and the Connect-analytics explainer (Performance surface, visible daily while IG/GA4 aren't wired) no longer contain em-dashes in the bullet bodies, the "Ask Heidi to spin up the setup-portal" line, the inline "widening the range won't help" empty-state msg, or the "Check Search Console" button copy. 8 em-dashes replaced with colons + parentheses, following the same pattern as the b992ca4 fix.
