@@ -1739,3 +1739,56 @@ The new phrasing is also more accurate: it grounds the claim to the actual top p
 **Learned:** Hard-coded quantitative claims in generated copy are a slow-burning bug. The number was real *today* (266.7 rounds to 267), but the next re-scoring run could move it to 200 or 300 and the template would still say +267. The fix is always to source the number at request time, even when the data is small and only one row deep. The same pattern probably exists elsewhere — the Review "DRAFT" status pill, the Insight "Top-3 winners" framing, etc. — but those are not nightshift scope unless Christelle asks for a sweep.
 
 **Next pick:** (a) The Learning "What worked" card still has 1 trivial signal entry ("21 recommendations published this week") — cross-reference to Trend + CTA cards similar to the bridge pattern from `ab763ad` may be wanted but the existing commit already addresses it. (b) The Ideas "Just generated" empty-state-vs-fresh-list visual confusion on the page (the "🆕 Just generated" pill on the opportunity tile + the "No ideas generated this session yet" empty state + the 8 hard-coded ideas below) — could be one consolidated heading. (c) The Review "Pending" tab still labels all 41 items "DRAFT" with no status differentiation — small renderer change to surface `STALE 76D` / `STALE 63D` as a clearer pill.
+
+## 2026-08-18T11:07Z — fix(review): section count badges + pending draft/review split + planned pill color
+
+**Done:** The Review queue had three visual gaps that made the 41-item pending back-log hard to triage at a glance:
+
+1. **No count on sub-section headers.** Pending / Approved / Rejected cards had no number badge, so Christelle had to count rows manually to confirm "41 pending" even though the sidebar badge already shows 41. Fixed: added three count badge spans (#review-pending-count, #review-approved-count, #review-rejected-count) that renderReview() now writes into.
+
+2. **Pending bucket split hidden.** The 41 pending items split into 35 'review' (publishStatus=planned, ready for human review) + 6 'draft' (no publishStatus, agent-still-drafting, rotting at 64-76 days). The 6 rotting rows were indistinguishable from the 35 ready rows without scrolling every row. Fixed: added a #review-pending-breakdown span that surfaces "35 ready for review · 6 still drafting" under the Pending header. Hidden when only one bucket exists so single-bucket queues stay clean.
+
+3. **'planned' pill rendered as gray draft.** The pill() call for publishStatus mapped 'planned' to the default '.pill.draft' branch (gray, unfinished), so the 35 ready-for-review rows looked like messy drafts. Fixed: mapped 'planned' to '.pill.live' (blue) so the rows read as "ready to schedule", visually distinct from truly-draft work and matching the platform pill colour.
+
+Also skipped the row date span when updatedAt is null so the 35 campaign-generated rows no longer render an empty `<span class='muted'>` placeholder.
+
+**Fix (commit `69f8e29`, branch `feat/asset-state-engine`, pushed, Railway auto-deployed, LIVE post-deploy verified):**
+- `campaign-os/campaign-os.html` `renderReview()` + section headers
+  - JS: added `_pendingReviews` / `_pendingDrafts` split (publishStatus==='planned' filter), `[#review-pending-count|approved|rejected-count].textContent = (r.X || []).length`, `#review-pending-breakdown` write with `if (_pendingDrafts > 0 && _pendingReviews > 0)` guard.
+  - JS: pill() call for publishStatus now maps `planned → 'live'` (blue) instead of falling through to `'draft'` (gray).
+  - JS: row date span guarded with `x.updatedAt ? \`<span class="muted">...\</span>\` : ''` so null-updatedAt rows don't render an empty span.
+  - HTML: three count badge spans + one breakdown span on sub-section `<h3>` / `<h-meta>` headers.
+
+**New regression test (`campaign-os/tests/test_v2026_08_18_review_section_counts_and_pill_color.py`, 7 tests, all green):**
+1. test_section_count_badges_present_in_html — IDs exist in the header HTML
+2. test_renderReview_writes_count_into_each_badge — renderReview() writes the count into each badge (3 subtests for pending/approved/rejected)
+3. test_renderReview_writes_breakdown_copy_when_both_buckets_exist — "ready for review" + "still drafting" strings + the publishStatus==='planned' filter
+4. test_renderReview_hides_breakdown_when_only_one_bucket_exists — guard `if (_pendingDrafts > 0 && _pendingReviews > 0)` so copy never reads "0 ready for review"
+5. test_planned_pill_uses_live_class_not_draft — chained ternary maps `'planned' → 'live'` (blue)
+6. test_row_date_span_skipped_when_updatedAt_missing — guarded template literal
+7. test_no_em_dashes_in_new_copy — standing rule (no em-dashes in new copy)
+
+**Existing 33-test recent-nightshift suite still green:** ad_correlation_proxy_banner (8), ideas_column_dedup (8), winning_theme_ideas_lift_label (4), library_approved_tab_fix (6), this PR (7). No regressions.
+
+**Verified (Playwright LIVE on Railway, post-deploy, password-auth flow):**
+- DOM: `{pending: '41', approved: '1', rejected: '0', breakdown: '35 ready for review · 6 still drafting', breakdownVisible: true}` — section counts populated, breakdown rendered, visible.
+- Pills: 35 rows show `pill live` for "planned", 6 rows show `pill draft` for "draft" — no rows have empty muted spans.
+- Visual: the 35 ready-for-review rows now show `REVIEW` (yellow) + `INSTAGRAM` (blue) + `PLANNED` (blue) — clearly distinguish-able from the 6 stale `DRAFT` (gray) + `STALE 76D/64D` (red) rows.
+- 0 pageerrors, 0 console errors during walkthrough.
+- `/api/health` 200; deployed commit = 69f8e29.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via the test), 0 NEW deps, 0 auth/gates touched. Renderer-only change in `campaign-os.html`; new test in `campaign-os/tests/`.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_review_counts_20260818T110626Z.png` — full Review section; shows "Pending (41)" badge + "35 ready for review · 6 still drafting" breakdown + the 6 stale Takomo drafts.
+- `/tmp/co-nightshift/walkthrough_review_planned_pill_20260818T110626Z.png` — rows 10-15 of the pending list; the 35 ready-for-review rows now show `PLANNED` in blue, no longer looking like messy drafts.
+
+**Files (2, +37/-18):**
+- `campaign-os/campaign-os.html` (+27 in the JS + 10 in the section headers, ~+10/-8): added breakdown/counts/pill-color/date-span guard.
+- `campaign-os/tests/test_v2026_08_18_review_section_counts_and_pill_color.py` (NEW, 7 tests, source-shape regression suite).
+
+**Commit:** `69f8e29` on `feat/asset-state-engine`, pushed, Railway auto-deployed.
+
+**Learned:** Small visual bugs in a high-traffic screen add up. The "pending = 41, but how many are rotting?" question is the first thing anyone scanning the queue asks, and the answer was hidden behind 41 rows. The count badge + the breakdown copy answers it in one line. The `planned` pill colour fix is a sub-fix of the same idea: the row's pills should already say "this is ready", not make the user click in to find out. The pattern (count badge + breakdown + correct pill colour) is the same idiom for any "long list" surface in the app — the Sections list on Billboards, the variants list on Captions, the campaigns list on Campaigns view all probably want the same treatment.
+
+**Next pick:** (a) Same idiom for the Calendar section-header sub-cards (Days / Weeks / Months view buttons have no count badge). (b) The Learning "What worked" card cross-reference to Trend + CTA patterns (existing commit `ab763ad` already bridges). (c) The Library "approved" tab — confirmed via the recent test fix that it now calls the right endpoint, but the in-renderer pill is still grey "approved" with no count badge. (d) The Ideas "Just generated" pill vs. empty-state-vs-fresh-list still mixing three signals — could consolidate.
