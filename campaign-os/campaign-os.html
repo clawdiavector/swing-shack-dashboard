@@ -5320,12 +5320,35 @@ async function renderInsightsV2(){
         const verdicts = block?.verdicts || [];
         if(!verdicts.length) return '';
         const trend = block?.trend_summary;
+        // Detect the "organic-IG-as-ad-proxy" pattern. When the data file's
+        // _meta.source is instagram-analytics (or most of the campaigns are
+        // sourced from IG), the "Meta Ads" rows are placeholders standing in
+        // for real paid spend we don't have. Render an honest banner so the
+        // user knows the 0/0 verdicts below are a data gap, not a real result.
+        const blockCampaigns = block?.campaigns || [];
+        const proxyCampaigns = blockCampaigns.filter(c =>
+          (c.source && /instagram|organic|proxy/i.test(String(c.source))) ||
+          (c.note && /proxy/i.test(String(c.note)))
+        );
+        const isProxy = blockCampaigns.length > 0 && proxyCampaigns.length / blockCampaigns.length >= 0.8;
+        const proxyBanner = isProxy ? `
+          <div data-help="Real ${esc(label)} spend + click data is needed to answer 'did the ad drive this spike'. Until the Meta/Google Ads API is wired, this card uses organic IG post reach as a proxy so the row layout still renders. The numbers below are reach, not spend. Wire live tokens in /meta-portal or /google-ads-portal to replace the proxy." data-help-title="Ad spend data unavailable"
+               style="border:1px dashed #f59e0b;border-radius:8px;padding:.6rem .75rem;background:rgba(245,158,11,.07);margin-bottom:.55rem;font-size:11.5px;color:var(--tx-2);line-height:1.5">
+            <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem">
+              <span style="font-size:14px">⚠️</span>
+              <span style="font-weight:600;color:var(--tx-1)">${esc(label)} spend data unavailable</span>
+            </div>
+            <div style="margin-bottom:.4rem">The <b>${blockCampaigns.length}</b> rows below are derived from organic Instagram post reach (ad-impression proxy), not real paid ad spend. "Spent R0 | drove 0 clicks" is a data gap, not a real result.</div>
+            <a href="/meta-portal" style="display:inline-block;font-size:11px;font-weight:600;color:#92400e;background:#fde68a;padding:.3rem .6rem;border-radius:6px;text-decoration:none">→ Wire Meta Ads API</a>
+          </div>
+        ` : '';
         return `
           <div style="margin-bottom:.85rem">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem">
               <div style="font-weight:600;font-size:12px;color:var(--tx-2)">${esc(label)}</div>
               ${trend ? trendChip(trend, label) : ''}
             </div>
+            ${proxyBanner}
             ${verdicts.map(v => `
               <div style="border-left:3px solid var(--ac);padding:.55rem .7rem;background:var(--bg-2);border-radius:6px;margin-bottom:.4rem">
                 <div style="font-size:11px;color:var(--tx-3);margin-bottom:.15rem">${esc(v.start_date || '?')} → ${esc(v.end_date || 'ongoing')} · ${esc(v.campaign_name || v.campaign_id || '')}</div>
