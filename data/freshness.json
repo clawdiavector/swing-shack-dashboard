@@ -1,95 +1,95 @@
 {
-  "generated": "2026-08-16T05:30:00.686Z",
+  "generated": "2026-08-18T06:43:03.032Z",
   "stale_days_threshold": 14,
-  "total_files": 337,
+  "total_files": 338,
   "by_staleness": {
     "fresh": 114,
     "stale": 5,
     "rotten": 11,
     "unknown": 24,
-    "static": 182
+    "static": 183
   },
   "stale_files": [
     {
       "path": "data/campaign-data.json",
-      "age_days": 39.2,
+      "age_days": 41.3,
       "newest_ts": "2026-07-08T00:00:00.000Z"
     },
     {
       "path": "data/publishing-references.json",
-      "age_days": 22.8,
+      "age_days": 24.9,
       "newest_ts": "2026-07-24T10:14:07.017Z"
     },
     {
       "path": "data/brand-directory/stick/source.json",
-      "age_days": 18.2,
+      "age_days": 20.3,
       "newest_ts": "2026-07-29T00:00:00.000Z"
     },
     {
       "path": "data/brand-directory/swing-shack/source.json",
-      "age_days": 18.2,
+      "age_days": 20.3,
       "newest_ts": "2026-07-29T00:00:00.000Z"
     },
     {
       "path": "data/brand-directory/swing-shack/images/gen-swing-shack-1785493816-1.png.meta.json",
-      "age_days": 15.8,
+      "age_days": 17.8,
       "newest_ts": "2026-07-31T10:30:16.000Z"
     }
   ],
   "rotten_files": [
     {
       "path": "data/leads.json",
-      "age_days": 150.2,
+      "age_days": 152.3,
       "newest_ts": "2026-03-19T00:00:00.000Z"
     },
     {
       "path": "data/analytics/instagram-analytics.json",
-      "age_days": 128,
+      "age_days": 130.1,
       "newest_ts": "2026-04-10T05:04:06.680Z"
     },
     {
       "path": "data/route-log.json",
-      "age_days": 116.6,
+      "age_days": 118.7,
       "newest_ts": "2026-04-21T14:01:37.858Z"
     },
     {
       "path": "data/autonomy-performance.json",
-      "age_days": 114.8,
+      "age_days": 116.9,
       "newest_ts": "2026-04-23T10:05:09.142Z"
     },
     {
-      "path": "data/live-action-audit.json",
-      "age_days": 114.8,
-      "newest_ts": "2026-04-23T10:28:04.691Z"
-    },
-    {
       "path": "data/live-mode-scorecard.json",
-      "age_days": 114.8,
+      "age_days": 116.9,
       "newest_ts": "2026-04-23T10:05:09.329Z"
     },
     {
       "path": "data/mode-guardian.json",
-      "age_days": 114.8,
+      "age_days": 116.9,
       "newest_ts": "2026-04-23T10:05:09.204Z"
     },
     {
       "path": "data/rollback-log.json",
-      "age_days": 114.8,
+      "age_days": 116.9,
       "newest_ts": "2026-04-23T09:20:46.849Z"
     },
     {
       "path": "data/rollback-rehearsals.json",
-      "age_days": 114.8,
+      "age_days": 116.9,
       "newest_ts": "2026-04-23T10:05:09.267Z"
     },
     {
+      "path": "data/live-action-audit.json",
+      "age_days": 116.8,
+      "newest_ts": "2026-04-23T10:28:04.691Z"
+    },
+    {
       "path": "data/tracking-launch-checklist.json",
-      "age_days": 114.7,
+      "age_days": 116.8,
       "newest_ts": "2026-04-23T12:15:00.000Z"
     },
     {
       "path": "data/utm-enforcement-live.json",
-      "age_days": 114.7,
+      "age_days": 116.8,
       "newest_ts": "2026-04-23T12:15:00.000Z"
     }
   ]
