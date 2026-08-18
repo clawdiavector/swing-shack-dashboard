@@ -1,14 +1,14 @@
 {
-  "followers": 2491,
+  "followers": 2495,
   "followsCount": 177,
   "posts": 787,
   "postsInWindow": 10,
   "avgEngagement": "0.18",
-  "period": "2026-07-17 to 2026-08-16",
-  "reach30d": 30114,
-  "profileViews30d": 506,
-  "accountsEngaged30d": 167,
-  "totalInteractions30d": 365,
+  "period": "2026-07-19 to 2026-08-18",
+  "reach30d": 32171,
+  "profileViews30d": 495,
+  "accountsEngaged30d": 165,
+  "totalInteractions30d": 350,
   "recentPosts": [
     {
       "id": "18098215292347008",
@@ -121,12 +121,12 @@
       "engagementRate": "0.16"
     }
   ],
-  "lastUpdated": "2026-08-16T04:30:10.609Z",
+  "lastUpdated": "2026-08-18T04:30:12.092Z",
   "trackedFirst": "2026-07-01T08:30:31.524Z",
   "source": "automated",
   "fbPage": {
     "name": "Swing Shack",
-    "fanCount": 446,
+    "fanCount": 445,
     "link": "https://www.facebook.com/198859063301219"
   },
   "fbInsights30d": {
@@ -139,19 +139,11 @@
     "daily": []
   },
   "igInsights30d": {
-    "reach": 30114,
-    "profileViews": 506,
-    "accountsEngaged": 167,
-    "totalInteractions": 365,
+    "reach": 32171,
+    "profileViews": 495,
+    "accountsEngaged": 165,
+    "totalInteractions": 350,
     "daily": [
-      {
-        "date": "2026-07-17",
-        "reach": 1322
-      },
-      {
-        "date": "2026-07-18",
-        "reach": 961
-      },
       {
         "date": "2026-07-19",
         "reach": 1700
@@ -262,13 +254,21 @@
       },
       {
         "date": "2026-08-15",
-        "reach": 2252
+        "reach": 2538
+      },
+      {
+        "date": "2026-08-16",
+        "reach": 2101
+      },
+      {
+        "date": "2026-08-17",
+        "reach": 1953
       }
     ]
   },
   "window": {
-    "sinceUnix": 1784262600,
-    "untilUnix": 1786854600,
+    "sinceUnix": 1784435404,
+    "untilUnix": 1787027404,
     "days": 30
   },
   "warnings": []
