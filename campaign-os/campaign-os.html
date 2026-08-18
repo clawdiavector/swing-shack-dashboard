@@ -9129,7 +9129,27 @@ async function renderLearning(){
   if(!S.learn) S.learn = await API.get('/api/intel/learning');
   const l = S.learn;
   $('#learn-worked').innerHTML = safeList(l.what_worked, 10).map(itemHtml).join('') || learnEmpty('worked');
-  $('#learn-failed').innerHTML = safeList(l.what_failed, 10).map(itemHtml).join('') || learnEmpty('failed');
+  // what_failed is the insight-level list ("off-rack CTAs underperform fitting-led
+  // posts by 0.6x"). failure_patterns is the structured debug log. They are
+  // different data, but they both speak to "what's going wrong". When the
+  // insight list is empty AND the debug log has rows, the old code showed
+  // "No failure patterns yet" above a Failure patterns card with 7 entries:
+  // the two cards contradicted each other and the user couldn't tell where
+  // the real failure data lived. Bridge them with a small cross-reference
+  // card that scrolls to the Failure patterns table below and shows the row
+  // count, so the empty state is honest and the user finds the data.
+  const _failEmpty = safeList(l.what_failed, 10).length === 0;
+  const _failRows = _flattenFailurePatterns(l.failure_patterns);
+  if(_failEmpty && _failRows.length){
+    $('#learn-failed').innerHTML = `
+      <div class="empty" style="text-align:center">
+        <div class="empty-title">No failed-pattern insights yet</div>
+        <div class="empty-sub">This card fills in once the learning system has 3+ assets to compare against. The structured failure log below has <b>${_failRows.length} pattern${_failRows.length===1?'':'s'}</b> right now: scroll down for the per-agent + per-time breakdown.</div>
+        <button class="btn primary" style="margin-top:.7rem;font-size:12px;padding:.35rem .75rem" onclick="document.getElementById('learn-fail-pat')?.scrollIntoView({behavior:'smooth',block:'start'})">↓ See Failure patterns (${_failRows.length})</button>
+      </div>`;
+  } else {
+    $('#learn-failed').innerHTML = safeList(l.what_failed, 10).map(itemHtml).join('') || learnEmpty('failed');
+  }
   // cta-performance.json ships every ranking as
   //   { cta_type, label, intent, post_count, avg_engagement_rate,
   //     conversion_signal, rank, color, ... }
