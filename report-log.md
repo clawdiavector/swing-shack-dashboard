@@ -1560,3 +1560,52 @@ Next: the summary string still embeds `bible=placeholder` inline (from _lib/bran
 **Learned:** A "nothing here" empty state is technically correct but reads like a bug when the underlying meaning is nuanced (positive vs. data-driven vs. wiring-gap). Two distinct empty messages with colour-coded left borders (green = caught up, amber = needs setup) turn silent gaps into legible signal. Same visual idiom as `.card:has(> div > .empty:only-child)` already used elsewhere — kept the same `padding:1.5rem; border:1px dashed` so the new cards look like native siblings.
 
 **Next pick:** Two productive lanes remain: (a) the same friendly-empty treatment for the other 5 Ideas cards (only if they routinely empty — most don't on Swing Shack); (b) the `ideas-today` card when `post_today` is empty — current fallback is "Nothing here" but a "No 'post today' picks right now — try Generate new ideas above" would be more actionable; or (c) extend the same idiom to the Calendar sub-cards (pillar-strip when no scheduled posts in window) where "no rows" currently looks like a render failure.
+
+## 2026-08-18T02:39Z — fix(learning): What failed empty card bridges to Failure patterns below
+
+**Done:** The Learning page had two cards that both touched "failures" but read from different API keys and contradicted each other when one was empty and the other wasn't. The "What failed" card (insight-level list, key `what_failed`) showed the literal phrase "No failure patterns yet" directly above a "Failure patterns" card (structured debug log, key `failure_patterns`) that displayed 7 rows. Users landed on Learning, saw the empty state, scrolled past it, and then saw a card full of data, and lost trust in the empty state (it lied). The fix: `renderLearning()` now bridges the gap with a small cross-reference card that names the actual row count from `failure_patterns` and provides a primary button that scrolls to `#learn-fail-pat`.
+
+**Fix (commits `56e09b0` + nudge `9c40603`, pushed, Railway auto-deployed after nudge, LIVE post-deploy verified via Playwright):**
+
+- `campaign-os/campaign-os.html` `renderLearning()`:
+  - Computes `_failEmpty = safeList(l.what_failed, 10).length === 0` and `_failRows = _flattenFailurePatterns(l.failure_patterns)`.
+  - When both are true (the Swing Shack state), the empty slot now renders:
+    - Title: "No failed-pattern insights yet" (was the misleading "No failure patterns yet")
+    - Body: explains the card needs 3+ compared assets to fill, AND tells the user the failure log below has N rows
+    - Primary button: "↓ See Failure patterns (N)" that calls `scrollIntoView({behavior:'smooth', block:'start'})` on `#learn-fail-pat`
+  - When `what_failed` has rows OR `failure_patterns` is empty, the original `safeList(...) || learnEmpty('failed')` path fires (untouched).
+
+**New regression test (`campaign-os/tests/test_v2026_08_18_learn_failed_cross_ref.py`, 8 tests, all green):**
+- test_01_bridge_blocks_for_learning_failed
+- test_02_bridge_explicit_insight_level_framing (asserts old lie is gone, new phrasing is in)
+- test_03_bridge_names_real_row_count (uses `${_failRows.length}`, pluralisation)
+- test_04_bridge_button_scrolls_to_failure_patterns (getElementById + scrollIntoView)
+- test_05_original_empty_state_kept_in_else_branch (preserves the fallback)
+- test_06_no_new_em_dashes_in_published_copy (standing rule)
+- test_07_uses_existing_flatten_helper (drift guard: same count as Failure patterns card by construction)
+- test_08_bridge_consistent_with_failure_patterns_card (both code paths read the same helper)
+
+**Verified (Playwright LIVE on Railway, post-deploy):**
+- DOM: `#learn-failed` now renders the bridge card with the new title + body + button.
+- Rendered text matches spec: "No failed-pattern insights yet / This card fills in once the learning system has 3+ assets to compare against. The structured failure log below has 7 patterns right now: scroll down for the per-agent + per-time breakdown. / ↓ See Failure patterns (7)".
+- `getElementById('learn-fail-pat')` + `scrollIntoView` wired; button click moves the Failure patterns card into the viewport (in_view = true post-click).
+- 0 pageerrors, 0 console errors, 0 net failures during walkthrough.
+- /api/health 200; deployed commits visible (`_failEmpty` present in served DOM).
+- The `LEARN_EMPTY.failed` entry remains intact for the true-empty fallback path (when both `what_failed` and `failure_patterns` are empty). Bridge only fires when failure data exists below.
+
+**Test suite (all green):** 8/8 new tests pass. Regression suite for adjacent contracts (ideas empty states, learn CTA rankings, today panel counts, publish-tab pillar strip, FAQ salvage badge) all still green.
+
+**Files (2, +172/-1):**
+- `campaign-os/campaign-os.html` (+21/-1): new bridge block in `renderLearning()`; 18 lines of JS, 3 lines of comment.
+- `campaign-os/tests/test_v2026_08_18_learn_failed_cross_ref.py` (+151, NEW): 8-test source-shape regression suite.
+
+**Commits:** `56e09b0` on `feat/asset-state-engine`, pushed. Railway auto-deploy was slow this tick (~5 min) — empty-commit nudge `9c40603` triggered the rebuild (established pattern from Pitfall 167 + recipe from the nightshift log).
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via git diff), 0 NEW deps. Bridge text says "7 patterns" — that's the live count from the actual `_flattenFailurePatterns()` helper, not a hand-written number.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_learn_cross_ref_20260818T023924Z.png` — full Learning page; new "What failed" bridge card visible with "↓ See Failure patterns (7)" green button. Failure patterns table visible below with 7 rows.
+
+**Learned:** Two cards on the same page that both speak to "failures" but read from different API keys is a recipe for contradiction. The pre-fix state was a literal lie: the empty card said "No failure patterns yet" while the debug card below it showed 7 patterns. The bridge pattern (insight-level empty + scroll-button to debug-level data) is reusable: any time the user sees "X not yet" in card N, while card M below it has rows that contradict the assertion, the right answer is a small cross-reference card, not a content rewrite (which would be a different fix and might silently fabricate patterns). The 8th test pins the consistency invariant: both cards use `_flattenFailurePatterns(l.failure_patterns)`, so the count is by construction identical — no possibility of drift even if a future refactor moves one path but not the other.
+
+**Next pick:** (a) The "What worked" card has the same flavor of problem: it shows 1 trivial signal entry ("21 recommendations published this week") with no real pattern insight — same idiom of "the data is in another card, scroll down" would help. (b) The Insights "Did the ad drive this spike?" panel shows 30+ Meta Ads rows all with `spent 0.0 and drove — clicks` because the META connector is expired — a small "Meta spend data unavailable (token expired)" notice at the top of the panel would be honest and save the user from a long dead-end read. (c) The Calendar empty state has a 14d window + CTA "Open Review (41)" but no inline explanation of what the calendar actually shows when populated; if/when the calendar starts populating, the first-time-user experience matters.
