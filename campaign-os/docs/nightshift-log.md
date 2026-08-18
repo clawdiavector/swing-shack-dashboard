@@ -1,5 +1,34 @@
 
 
+## Nightshift Report — 2026-08-18T18:22:00Z
+
+### ✅ What was done
+- **Hook formulas dedup rows now show the actual hook text + a "↗ same as WW #N" badge** instead of the placeholder `<span class="muted">see top X hook above</span>`. The dedup logic was correct (the formula's `best_example` IS, by construction, the top-scoring hook in that bucket, so the same line appearing twice reads as broken), but the message read as a missing-text bug. Before: row 1 of Hook formulas showed only "see top stat-demand hook above" with no visible content. After: row 1 shows the actual hook text in italic muted (visually distinct from the bold WW primary) plus a small badge `↗ same as WW #1` that points to the matching entry in Watched + worked. Non-dup rows unchanged. 5-line data-only change to `renderFormula()` in `campaign-os/campaign-os.html`. Zero new JS logic, zero new CSS, zero new helpers — reuses the existing `_wwByKey` dedup map and the existing `.pill` / `.muted` classes.
+
+### 🎯 Verified
+- **Pre-flight**: `git status --short` = clean tree before edit. 1 file changed, 5 insertions, 1 deletion.
+- **Em-dash check**: `git diff | grep -c "—"` on added lines = 0. Pipe / period / colon punctuation throughout.
+- **Local Playwright walk** (`http://127.0.0.1:8765`): logged in, dismissed tour, clicked Hook Bank nav. Probe returns `has_old_placeholder=false, has_italic=true, has_badge=true`. First formula row HTML: `And we certainly do have spirit 🤣. Visit SwingShack today for all your golfing` (italic muted) + `↗ same as WW #1` pill. Other 3 rows (Tired of the same old setup / Wrong ball? / Wrong ball. Wrong numbers. Wrong feel.) render with the original bold text. 0 pageerrors, 0 console errors.
+- **Live Playwright walk** (Railway): same probe after Railway auto-rebuild, identical HTML payload. Screenshot `/tmp/co-nightshift/walkthrough_hooks_LIVE_20260818T182208Z.png` confirms the row is rendered with italic + badge on `https://swing-shack-dashboard-production.up.railway.app/campaign-os.html`.
+- **Standing rules honored**: 0 NEW em-dashes, 0 destructive edits, 0 dependency changes, no branch moves, no auth changes, no Postiz/GBP touch, no cred touch, no symlinks.
+- **Commit `732c3a0`** on `feat/asset-state-engine`, 1 file, 5 insertions / 1 deletion, pushed, Railway auto-rebuilt in ~90s.
+
+### 🎯 Next pick
+- The Calendar section's "GENERATE NEW POST →" CTA — what does it route to? Worth tracing the link target to confirm it lands on a real section (it could be a 404 if it points to a hash that doesn't exist).
+- OR: Surface the Next-Action from the Agents & health System health card ("Unblock tasks in RUN THE WEEK section") — that "RUN THE WEEK" string references a section that does not exist in the sidebar nav. It's a backend placeholder that leaked into the published UI. Cheap fix: rewrite the backend string OR sanitize the field to a section id that does exist.
+- OR: sweep the same `data-help` + `data-help-title` pattern across the remaining Brand Directory detail cards (Palette, Archetypes, Typography, Voice, Headlines bank, CTA bank, Punctuation rules, Do-say-don't-say, Examples) — the pattern is now codified across ~10 cards.
+
+### 🧠 What I learned / can improve
+- **The dedup map (`_wwByKey`) that was added in the previous dedup tick is now steering the badge** — the WW position index `idx + 1` we already stored is exactly what the badge needs. Zero new state. The fix is purely a renderer change.
+- **The "see top X hook above" anti-pattern is now codified** — anywhere a row dedups against a primary table, the canonical pattern is: italic muted duplicate text + small badge pointing to the primary row's position. Cheaper than "see above" breadcrumbs which read as broken on a scrolled page.
+- **EXPLAINERS coverage is 100%** (29/29 nav sections have an entry; only "meta" and "author" are extra keys, no nav-section gaps). The next-pick sweep of section-explainers is no longer about coverage, it's about depth.
+- **The DXB render of `#hooks-formulas` is identical between LOCAL and LIVE** — Railway auto-rebuild is reliable for small HTML-only patches (~90s); no `REBUILD_TRIGGER.txt` nudge needed.
+
+### 🚨 Blockers / asks
+- **IG long-lived token for Swing Shack has expired** (live `Socials` still shows `0 posts · 90d window · sources: 0 graph`). Refresh via Postiz / Meta portal is a daytime-approval ask (credentials lane). The new "Waiting for Instagram wire" placeholder card (last week) still makes the gap less jarring.
+
+---
+
 ## Nightshift Report — 2026-08-17T22:36:00Z
 
 ### ✅ What was done

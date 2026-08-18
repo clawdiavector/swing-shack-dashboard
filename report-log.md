@@ -1823,3 +1823,26 @@ Also skipped the row date span when updatedAt is null so the 35 campaign-generat
 **Learned:** Two-layer bugs like this are common: one layer assumes a route that doesn't exist; the other layer assumes a path the route would never serve. The fix pattern is to keep the data-layer source-of-truth (`filePath`) and make the serving layer responsible for where the bytes live. The `/brand-images/<brand>/<file>` route was already the right shape — we now have a `/assets/<path>` sibling, and both come from the same recipe (resolve + traversal-check + sibling-fallback). For future per-campaign visuals, the pattern is: store `filePath` on the asset, use it verbatim in the UI, and let Flask's `/assets/` route find the file under `BUNDLED_DATA_DIR` or `REPO_ROOT`. Next obvious follow-up: same idiom for any other surfaces (Meme Lord, Image Lab) that synthesise image URLs by hand instead of using the stored path.
 
 **Next pick:** (a) Same idiom for any other `/assets/...` URLs the JS still constructs by hand — quick grep + replace. (b) Library "Search everything" tile — `walk_buttons` flagged a 404 against the `🔎` button; needs a deeper click trace. (c) Learning "What failed" empty card (cross-ref to Failure patterns below — `56e09b0` already does the analogue for "What worked"). (d) Captions studio: weak empty-state when brand has no voice-bible examples.
+
+---
+
+## 2026-08-18 — 18:22 UTC — fix(hooks): formula dedup rows show real text + "↗ same as WW #N" badge (732c3a0)
+
+**Bug:** First row of the Hook Bank → Hook formulas panel rendered only the placeholder text `<span class="muted">see top stat-demand hook above</span>` with no visible hook text. The dedup logic was correct (the formula's `best_example` IS the top-scoring hook in that bucket, so the same line appearing twice reads as broken), but the placeholder read as a missing-text bug. Operators had no way to see *which* hook the formula was an example of.
+
+**Fix (commit `732c3a0`, atomic, pushed, Railway auto-deployed):**
+- `campaign-os/campaign-os.html` (`renderFormula()`, +5/-1): dedup rows now render the actual hook text in italic muted (visually distinct from the bold WW primary) plus a small `↗ same as WW #N` pill that points to the matching entry in Watched + worked. Non-dup rows unchanged. Reuses the existing `_wwByKey` dedup map (added in the previous dedup tick) and the existing `.pill` / `.muted` classes. Zero new JS logic, zero new CSS, zero new helpers.
+
+**Verification (LIVE post-deploy):**
+- Hook Bank nav → Hook formulas panel: row 1 HTML now reads `<span class="muted" style="font-style:italic;font-weight:400">And we certainly do have spirit 🤣. Visit SwingShack today for all your golfing</span> <span class="pill" ...>↗ same as WW #1</span>` — match against WW #1 in Watched + worked is confirmed.
+- Other 3 rows (Tired of the same old setup / Wrong ball? / Wrong ball. Wrong numbers. Wrong feel.) render with the original bold text, no badge.
+- 0 pageerrors, 0 console errors. Probe returns `has_old_placeholder=false, has_italic=true, has_badge=true`.
+- Screenshot: `/tmp/co-nightshift/walkthrough_hooks_LIVE_20260818T182208Z.png` — visual confirmation of the new row in the live UI.
+
+**Files (1):** `campaign-os/campaign-os.html`. Total diff: 5 insertions / 1 deletion.
+
+**Commit:** `732c3a0` on `feat/asset-state-engine`. Pushed, Railway auto-rebuilt in ~90s.
+
+**Learned:** The dedup map (`_wwByKey`) added in the previous dedup tick is now doing double duty — the per-row WW position index `idx + 1` we already stored is exactly what the badge needs. Zero new state. The fix is a one-pass renderer change. Pattern for future dedup work: italic muted duplicate text + small badge pointing to the primary row's position. Cheaper than "see above" breadcrumbs which read as broken on a scrolled page.
+
+**Next pick:** (a) Calendar "GENERATE NEW POST →" CTA — trace the link target to confirm it lands on a real section. (b) Agents & health "Next-Action" string ("Unblock tasks in RUN THE WEEK section") references a section id that doesn't exist in the sidebar nav — backend placeholder leaked into the UI. (c) Sweep the `data-help` + `data-help-title` pattern across the remaining Brand Directory detail cards (Palette, Archetypes, Typography, Voice, Headlines bank, CTA bank, Punctuation rules, Do-say-don't-say, Examples).
