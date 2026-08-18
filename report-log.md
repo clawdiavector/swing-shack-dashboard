@@ -1696,3 +1696,46 @@ The verdict list is preserved below the banner — the user still sees the rows;
 **Learned:** The "organic-IG-as-ad-impression proxy" pattern is what happens when a connector (Meta Ads) is unavailable but the page still needs to render shape. The data file's `_meta` already disclaims the substitution ("Synthesised from IG post engagement. Replace with Meta Ads API for true paid-campaign data.") but the renderer was silent about it. The fix is in the renderer, not the data file — the data file's honesty is good; the surface just needs to surface it. The 80% threshold (vs 100%) means a partial mix of real + proxy rows can still surface the banner with mostly-proxy content, which matches the swing-shack reality where all 20 rows are proxy today.
 
 **Next pick:** (a) Same idiom for the Learning "What worked" card (1 trivial signal entry, no real pattern insight). (b) Same idiom for the Insights IG "Top posts" card if IG ever returns zero posts (empty state already bridges to "No posts yet / Connect Instagram"). (c) The Review "Pending" tab colour differentiation (41 items all labelled "DRAFT" — needs status-pill refinement). All three are small, reversible renderer-only changes.
+
+## 2026-08-18T09:31Z — fix(intel): winning-theme-ideas 'why' line sources lift from data, not hard-coded literal
+
+**Done:** The "Generate 5 winning-theme ideas" button on the Today rail shipped an idea whose "Why" line was a hard-coded literal: "Booking-CTA posts historically drive +267% more /bookings/ traffic than baseline." The real number lives in `data/post-conversion-score.json` -> `posts_ranked[0].lift_vs_baseline_pct` (currently 266.7 for the Swing Shack cohort). The old template was a deliberate fabrication: a real claim that would silently drift out of truth the next time the scoring formula changed or the underlying posts ranked differently.
+
+**Fix (commit `4f47386`, branch `feat/asset-state-engine`, pushed, Railway auto-deployed, LIVE post-deploy verified):**
+
+`intel_winning_theme_ideas_route()` in `campaign-os/app.py` now:
+1. Reads `posts_ranked[0].lift_vs_baseline_pct` from the data file at request time, rounds to integer.
+2. Replaces the literal string with `{lift_label}` placeholder in the first template's `why` field.
+3. Fills `lift_label` with either:
+   - `"Top post drove +267% more /bookings/ sessions vs the channel baseline"` (when lift is present)
+   - `"Top posts beat the /bookings/ baseline for the active brand"` (graceful fallback when `posts_ranked` is empty)
+4. Passes `lift_label` into the per-idea `t['why'].format(...)` call.
+
+The new phrasing is also more accurate: it grounds the claim to the actual top post rather than asserting it about "Booking-CTA posts" as a sweeping category.
+
+**New regression test (`campaign-os/tests/test_v2026_08_18_winning_theme_ideas_lift_label.py`, 4 tests, all green):**
+1. `test_no_hardcoded_267_in_why_line` — substring `'Booking-CTA posts historically drive +267%'` cannot appear in any idea's why (catches the trap pattern for future).
+2. `test_why_line_carries_real_lift_from_data` — the actual `+N%` number from `posts_ranked[0].lift_vs_baseline_pct` shows up in the rendered why (verifies the data flow).
+3. `test_why_line_no_fabricated_lift_when_data_missing` — source-level check that the fallback branch is wired (no silent fabrication path).
+4. `test_em_dash_free_in_why_line` — standing rule (no em-dashes in published copy).
+
+**Existing 12-test winning-theme-ideas suite (`test_v2026_08_13_winning_theme_ideas.py`)** still green: shape, format override, themes override, n limits, booking_cta-not-in-title, em-dash-free all unchanged.
+
+**Verified (Playwright LIVE on Railway, post-deploy, password-auth flow):**
+- DOM: clicked the "Generate 5 winning-theme ideas" button on the Today rail recommendation card.
+- Rendered text matches spec: "Why: Top post drove +267% more /bookings/ sessions vs the channel baseline. Pairing 'club fitting' with a direct booking CTA matches the winning theme combo."
+- 5 ideas rendered, each with their own why line; idea 1 uses the data-sourced number, ideas 2-5 use existing template copy (unchanged).
+- Button transitions: "Generate 5 winning-theme ideas" → "Generating..." → "⚡ Regenerate ideas" (one-click re-runs).
+- 0 pageerrors, 0 console errors during walkthrough.
+- `/api/health` 200; direct `curl /api/intel/winning_theme_ideas?n=5` returns the new why text.
+
+**File (1, +18/-2):** `campaign-os/app.py`. 1 new test (+134 lines).
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via the test), 0 NEW deps, 0 auth/gates touched. The new test that pins no-`+267`-in-why is the drift guard: any future template change that re-introduces a hard-coded number will fail it.
+
+**Screenshot (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_lift_label_20260818T092932Z.png` — Today rail showing the recommendation card with 5 ideas, idea 1's "Why" line in the new copy.
+
+**Learned:** Hard-coded quantitative claims in generated copy are a slow-burning bug. The number was real *today* (266.7 rounds to 267), but the next re-scoring run could move it to 200 or 300 and the template would still say +267. The fix is always to source the number at request time, even when the data is small and only one row deep. The same pattern probably exists elsewhere — the Review "DRAFT" status pill, the Insight "Top-3 winners" framing, etc. — but those are not nightshift scope unless Christelle asks for a sweep.
+
+**Next pick:** (a) The Learning "What worked" card still has 1 trivial signal entry ("21 recommendations published this week") — cross-reference to Trend + CTA cards similar to the bridge pattern from `ab763ad` may be wanted but the existing commit already addresses it. (b) The Ideas "Just generated" empty-state-vs-fresh-list visual confusion on the page (the "🆕 Just generated" pill on the opportunity tile + the "No ideas generated this session yet" empty state + the 8 hard-coded ideas below) — could be one consolidated heading. (c) The Review "Pending" tab still labels all 41 items "DRAFT" with no status differentiation — small renderer change to surface `STALE 76D` / `STALE 63D` as a clearer pill.
