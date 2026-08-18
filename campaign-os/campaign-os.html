@@ -9345,8 +9345,12 @@ async function renderHooks(){
     const ex = it.best_example || '';
     const exKey = _normHook(ex);
     const dup = exKey && _wwByKey.has(exKey);
+    // Before this fix dedup rows showed only "see top X hook above" with no
+    // visible hook text, which read as broken. Now: italic muted hook text +
+    // a small badge pointing to the matching WW row at position N.
     const title = dup
-      ? `<span class="muted">see top ${esc(it.formula || '')} hook above</span>`
+      ? `<span class="muted" style="font-style:italic;font-weight:400">${esc(ex.slice(0, 120))}</span>`
+        + ` <span class="pill" style="font-size:10px;background:var(--bg-4);color:var(--tx-2)" title="Already shown in Watched + worked above">↗ same as WW #${_wwByKey.get(exKey)}</span>`
       : esc(ex.slice(0, 120));
     return `<li class="li"><div class="li-body"><div class="li-title">${title}</div><div class="li-meta">${pill('live', it.formula || '')} ${it.count?` · ${it.count} uses`:''} ${it.avg_cross_score?` · avg score ${it.avg_cross_score}`:''}</div></div></li>`;
   };
