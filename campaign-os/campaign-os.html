@@ -9188,7 +9188,47 @@ function _flattenFailurePatterns(fp){
 async function renderLearning(){
   if(!S.learn) S.learn = await API.get('/api/intel/learning');
   const l = S.learn;
-  $('#learn-worked').innerHTML = safeList(l.what_worked, 10).map(itemHtml).join('') || learnEmpty('worked');
+  // what_worked may contain only trivial operational signals like
+  // "21 recommendations published this week" with no actionable pattern.
+  // The real "what worked" data lives in the same API response under
+  // trend_delta (e.g. format_shift: static 0 → 21 posts) and cta_rankings[0]
+  // (best CTA, e.g. Soft CTA with 0.26 engagement rate). When the what_worked
+  // list is signal-only AND the other fields have real pattern data, the
+  // user saw "21 recommendations published this week" as the entire
+  // takeaway and assumed nothing was working. Same idiom as the
+  // what-failed bridge: keep the trivial signal visible (it's accurate),
+  // but add a small cross-reference panel that names the actionable wins
+  // sitting in the sibling cards so the user knows where to look. The
+  // top-of-page card stays honest (no fabrication), the action moves to
+  // the cards that have the data.
+  const _wwRaw = safeList(l.what_worked, 10);
+  const _wwSignalsOnly = _wwRaw.length > 0 && _wwRaw.every(it => it && (it.kind === 'signal' || typeof it === 'string'));
+  const _formatShift = (l.trend_delta || []).find(t => t && t.kind === 'format_shift');
+  const _bestCta = (l.cta_rankings || [])[0];
+  if(_wwSignalsOnly && (_formatShift || _bestCta)){
+    const wins = [];
+    if(_formatShift && _formatShift.delta > 0){
+      const prev = _formatShift.previous ?? 0;
+      const curr = _formatShift.current ?? _formatShift.delta;
+      wins.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(_formatShift.format || 'new format')}: ${curr} posts this week (was ${prev})</div><div class="li-meta">${pill('live', 'format_shift')} ${pill('draft', '+' + _formatShift.delta + ' posts')}</div></div><a href="#learn-trend" class="li-chevron" title="See Trend card">▶</a></li>`);
+    }
+    if(_bestCta && _bestCta.label){
+      const perf = _bestCta.avg_engagement_rate ?? _bestCta.conversion_signal;
+      const perfLabel = (perf !== undefined && perf !== null && perf !== '')
+        ? `avg ${perf}${typeof perf === 'number' ? '%' : ''}` : '';
+      const meta = [];
+      if(_bestCta.rank) meta.push(pill('on', 'rank ' + _bestCta.rank));
+      if(_bestCta.post_count) meta.push(pill('draft', _bestCta.post_count + ' post' + (_bestCta.post_count === 1 ? '' : 's')));
+      if(perfLabel) meta.push(pill('live', perfLabel));
+      const preview = (typeof _bestCta.cta_type === 'string' && _bestCta.cta_type) ? `${_bestCta.cta_type} · ` : '';
+      wins.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(preview + _bestCta.label)}</div>${meta.length ? `<div class="li-meta">${meta.join(' ')}</div>` : ''}</div><a href="#learn-cta" class="li-chevron" title="See CTA card">▶</a></li>`);
+    }
+    const _header = `<div class="muted" style="font-size:11px;margin-bottom:.4rem"><b>Operational signal</b> (this week): the items the agent flagged. The pattern wins are below.</div>`;
+    const _signalHtml = _wwRaw.map(it => itemHtml(it)).join('');
+    $('#learn-worked').innerHTML = _header + _signalHtml + (wins.length ? `<div class="muted" style="font-size:11px;margin:.5rem 0 .3rem"><b>Pattern wins</b> (from the Trend + CTA cards this week):</div><ul class="list">${wins.join('')}</ul>` : '');
+  } else {
+    $('#learn-worked').innerHTML = _wwRaw.map(itemHtml).join('') || learnEmpty('worked');
+  }
   // what_failed is the insight-level list ("off-rack CTAs underperform fitting-led
   // posts by 0.6x"). failure_patterns is the structured debug log. They are
   // different data, but they both speak to "what's going wrong". When the
