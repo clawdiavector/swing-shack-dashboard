@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY campaign-os/ /app/campaign-os/
 # Copy data dir (brands.json, voice_bible.json, etc. live at repo root in data/)
 COPY data/ /app/data/
+# Copy repo-root assets/ (campaign visuals, etc. — referenced by /assets/ route)
+COPY assets/ /app/assets/
 
 # Persistent data dir — Fly volume mounts here at runtime
 # (mkdir only needed for local Docker; Fly will mount over it)
