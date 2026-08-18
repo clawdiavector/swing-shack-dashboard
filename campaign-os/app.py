@@ -1274,6 +1274,41 @@ def brand_image_serve(brand_id, filename):
     return jsonify({"error": "not found", "path": str(target)}), 404
 
 
+@app.route('/assets/<path:filename>', methods=['GET'])
+def asset_serve(filename):
+    """GET /assets/<path:...> — serve a repo-root asset (campaign visuals, etc.).
+
+    Mirrors /brand-images/<brand>/ — resolves to a path inside
+    <BUNDLED_DATA_DIR>/../assets/ (i.e. the repo's top-level assets/ folder)
+    and rejects traversal attempts.
+
+    Per-campaign work-view thumbnails in Campaign OS store the canonical
+    image path on the asset record as `filePath` (e.g.
+    `assets/campaigns/trackman/takomo-101t-hero-b.png`). The frontend
+    uses that path verbatim so the URL `/assets/<...>` must work.
+
+    Falls back from DATA_DIR/assets/ → BUNDLED_DATA_DIR/../assets/ so the
+    same route works against either the runtime volume mount or the
+    bundled copy shipped in the Docker image.
+    """
+    from pathlib import Path as _P
+    candidates = []
+    runtime_assets = _P(DATA_DIR) / 'assets'
+    bundled_assets = _P(REPO_ROOT) / 'assets'
+    if runtime_assets.exists():
+        candidates.append(runtime_assets.resolve())
+    candidates.append(bundled_assets.resolve())
+    for base in candidates:
+        target = (base / filename).resolve()
+        try:
+            target.relative_to(base)
+        except ValueError:
+            return jsonify({"error": "path traversal denied"}), 403
+        if target.exists() and target.is_file():
+            return send_from_directory(str(target.parent), target.name)
+    return jsonify({"error": "not found", "filename": filename}), 404
+
+
 @app.route('/api/visual-library/<brand_id>/images', methods=['GET'])
 def visual_library_images(brand_id):
     """GET /api/visual-library/<brand>/images — full image roster with DNA preview.

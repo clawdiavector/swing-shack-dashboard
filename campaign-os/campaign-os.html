@@ -11585,9 +11585,15 @@ window.renderCampaignAssetGrid = (cid, c, assets, readyToApprove) => {
     return (approved && capReady && visReady) ? 'ready' : 'work';
   };
 
-  // Thumbnail path resolver — try <cid>/<assetType>-<n>.jpg pattern, then
-  // a generic <cid>/<assetType>.jpg, then fall back to icon.
+  // Thumbnail path resolver — prefer the canonical filePath stored on the
+  // asset (e.g. assets/campaigns/trackman/takomo-101t-hero-b.png). When the
+  // asset record doesn't carry a filePath, fall back to the legacy guess:
+  // <cid>/<assetType>-<n>.jpg. Frontend URLs always use the leading `/`.
   const inferThumb = (aid, a) => {
+    const fp = a && a.filePath;
+    if(fp && typeof fp === 'string' && fp.length){
+      return fp.startsWith('/') ? fp : `/${fp}`;
+    }
     // extract "feed-post-01" suffix
     const m = (aid.match(/-([a-z\-]+)-(\d+)$/) || aid.match(/-([a-z\-]+)$/));
     if(!m) return null;
