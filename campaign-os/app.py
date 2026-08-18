@@ -8688,10 +8688,21 @@ def meme_knowledge_route():
     if limit:
         enriched = enriched[:limit]
 
+    # ─── Meme Lord summary copy ────────────────────────────────────
+    # Bug 2026-08-18: backend returned debug-style "voice=X pillar=Y" on the
+    # user-facing summary line, leaking parameter names into the Meme Lord
+    # section header. Frontend just renders lib.summary verbatim (campaign-os.html
+    # line 9531) so every page load showed "30 of 75 memes · voice=swing-shack
+    # pillar=education". Replace with friendly labels. Voice and pillar IDs are
+    # still discoverable in the `filters` block + the brand-fit reasons below.
+    # The · separator (middle-dot, not em-dash) keeps the standing punctuation
+    # rule: em-dashes are banned in published copy.
+    _voice_label = (voice_score or 'default').replace('-', ' ').title()
+    _pillar_label = (pillar_score or 'all').replace('-', ' ')
     return jsonify({
         "ok": True,
         "ts": _now_iso(),
-        "summary": f"{len(enriched)} of {len(memes)} memes · voice={voice_score} pillar={pillar_score}",
+        "summary": f"{len(enriched)} of {len(memes)} memes · {_voice_label} voice · {_pillar_label} pillar",
         "taxonomy": kb.get('taxonomy', {}),
         "voice_bible": kb.get('voice_bible', {}),
         "stats": kb.get('stats', {}),
