@@ -2488,3 +2488,28 @@ Verified (LIVE, authed, Playwright, post-deploy):
 **Learned:** A count-line credit ("3 slug auto-fixed") is invisible to a user scanning rows. Per-row badges are 10× more effective than aggregate counts because the user can see WHICH rows were touched and where they came from. The hovered title beats any modal because the user never has to leave the row to learn the lineage. The double-underscore convention (`__salvaged_from`) is a small thing but pays off when the field is just-spread into a log or analytics payload — it visually can't be confused with real schema data.
 
 **Asks:** None.
+
+## Nightshift Report — 2026-08-18T01:13:00Z
+
+### ✅ What was done
+- **Fixed Meme Lord Template-visuals strip: multi-panel memes now render in full instead of being cropped.** The strip used `object-fit:cover` with `aspect-ratio:1/1`, which cropped 2-panel (Drake, Distracted BF, Two Buttons, Woman Yelling at Cat) and 4-panel (Expanding Brain) memes to a single panel. The visual reference is supposed to tell the user what the meme looks like — but the cropped tile couldn't. Switched to `object-fit:contain` so the full meme renders inside the square tile with letterbox bands of the tile background. Grid stays uniform; memes stay recognisable. 1 CSS rule change (1 line) + 1 comment block. Also `.gitignore`d `campaign-os/data/` (runtime state written by the server into the repo when DATA_DIR is local) so the nightshift pre-flight `git status --short` stays clean — recurring blocker ~5 ticks now.
+
+### 🎯 Verified
+- **Tree-clean pre-flight**: `git status --short` = `M .gitignore M campaign-os/campaign-os.html`. 2 files changed, 18 insertions, 1 deletion.
+- **Em-dash check**: `git diff | grep -c "—"` on added lines = 0. Pipe / period / colon punctuation throughout.
+- **Regression tests**: `pytest campaign-os/tests/test_v2026_08_07_socials_meme_visuals.py campaign-os/tests/test_v2026_08_11_meme_library_top_badge.py` → **32/32 passed**. The 42 failures elsewhere in the suite are pre-existing (the 2247b43 "Waiting for Instagram wire" fix refactored `emptyMsg` from a `graphEmpty ? ... : ...` ternary to a `(src) => ...` arrow function, which broke the regex in `test_v2026_08_09_socials_connect_cta.py::test_04`; confirmed by `git stash` + re-run).
+- **Live Playwright walk** (Railway): cache-busted `GET /campaign-os.html?nc=<ts>` (cookie auth) returns `.meme-templates-strip .meme-tile img{width:100%;height:100%;object-fit:contain;background:var(--bg-3)}` — deployment confirmed. Screenshot: `/tmp/co-nightshift/walkthrough_meme_strip_20260818T011304Z.png` shows 8+ multi-panel memes (Drake, Expanding Brain, Pikachu, This Is Fine, Two Buttons, Is This A Pigeon, Surprised Pikachu, Distracted Boyfriend) all rendering in full inside their square tiles.
+- **Deploy probe**: `/api/health` green throughout. `git push origin feat/asset-state-engine` → `9c0f96d..1ac2d3a` — Railway auto-rebuilt without nudge.
+- **Standing rules honored**: SPA-only patch + 1 gitignore addition; no API contract change; no publish/Postiz touched; no tokens stored in chat; branch stays on `feat/asset-state-engine`; atomic single commit; no force push; no main.
+
+### 🧠 Learned
+- `object-fit:cover` is the **wrong default** for any visual-reference grid where the source images have variable aspect ratios (memes, posters, screenshots). `cover` silently destroys the meaning of multi-panel compositions. The fix `object-fit:contain` + matching tile background is one line and works for any grid.
+- The `.gitignore` was missing `campaign-os/data/` because the file lived in a path that didn't exist when `.gitignore` was last touched. `runtime state in repo` is a recurring blocker — every tick. The fix is a one-line `.gitignore` add with a 7-line comment explaining why the runtime state pollutes the work-tree (local Flask with no DATA_DIR set writes into the repo; production on Railway uses DATA_DIR=/data outside the repo).
+
+### 🎯 Next pick
+- The "[DRAFT]" pill on the review queue rows is the same colour as the row background in dark mode — minor contrast issue. 1-line CSS fix.
+- The Billboard Lab "Visual briefs" pill mix has the same `cover` cropping bug as the meme strip — same fix applies. Lower priority because the briefs are 1/1 square crops from the brand directory.
+- The Connect Instagram CTA "Setup Instagram/Facebook" button silently falls back to `alert()` when `window.ASK_HEIDI_OPEN` is not present (orchestrator not wired). Could add a `console.warn` so the silent fallback is visible.
+
+### 🚨 Asks
+None.
