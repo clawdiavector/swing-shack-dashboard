@@ -5750,9 +5750,13 @@ async function renderLibrary(){
     });
   });
   $('#lib-search-trigger').addEventListener('click', () => {
-    // Switch to "captions" tab and focus the search input there
+    // Switch to "captions" tab and focus the search input there.
+    // $$() returns a NodeList, not an Array, so `.find` is not a method on it
+    // and the previous line threw "$$(...).find is not a function" silently,
+    // leaving the pane stuck on the previous tab's content with all tabs
+    // de-highlighted. Spread the NodeList into an Array first, then find.
     $$('#lib-tabs .lib-tab').forEach(b => b.classList.remove('on'));
-    const captionsTab = $$('#lib-tabs .lib-tab').find(b => b.dataset.libTab === 'captions');
+    const captionsTab = [...$$('#lib-tabs .lib-tab')].find(b => b.dataset.libTab === 'captions');
     if(captionsTab){ captionsTab.classList.add('on'); loadLibPane('captions', bid, true); }
   });
   // Initial pane
@@ -5831,16 +5835,28 @@ async function loadLibPane(kind, bid, focusSearch){
         </div>
       `;
     } else if(kind === 'approved'){
-      const r = await API.get('/api/assets?status=approved&brand=' + bid);
-      const items = (r.assets || r.items || []).slice(0, 60);
+      // /api/assets (GET) does not exist on the backend: it 404s and the
+      // pane shows "Failed to load." for every user on every brand. The
+      // canonical source of approved assets is /api/intel/review_inbox,
+      // which returns {approved: [...], pending: [...], rejected: [...]}
+      // already pre-bucketed by the backend. The ?brand= query is
+      // accepted but the campaignId shape (e.g. "use-the-right-equipment-...")
+      // does not start with the brand_id ("swing-shack"), so a client-side
+      // re-filter on campaignId would drop legitimate Swing Shack assets.
+      // We trust the backend's bucketing and surface everything r.approved
+      // returns for the active brand context. (The Library surface is a
+      // brand-scoped view by design; the endpoint is brand-aware in the
+      // request URL.)
+      const r = await API.get('/api/intel/review_inbox?brand=' + encodeURIComponent(bid));
+      const items = (r.approved || []).slice(0, 60);
       pane.innerHTML = items.length ? `
         <div class="lib-grid">${items.map(a => `
           <div class="lib-thumb lib-text">
-            <div class="lib-thumb-meta"><b>${esc(a.title || a.name || a.id)}</b></div>
-            <div class="lib-thumb-sub">${esc(a.kind || a.type || 'asset')} · ${esc(a.pillar || '')}</div>
+            <div class="lib-thumb-meta"><b>${esc(a.name || a.assetId || a.id)}</b></div>
+            <div class="lib-thumb-sub">${esc(a.campaignName || a.campaignId || '')} · ${esc(a.platform || 'instagram')}</div>
           </div>
         `).join('')}</div>
-      ` : '<div class="empty-card muted">No approved assets yet. Approve something from Review →</div>';
+      ` : `<div class="empty-card muted">No approved assets yet for ${esc(bid)}. Approve something from Review →</div>`;
     } else if(kind === 'captions' || kind === 'hooks' || kind === 'memes'){
       // For memes: also render the full catalog above the search so users see actual cards
       // (the original UX hid them entirely behind a search box).
