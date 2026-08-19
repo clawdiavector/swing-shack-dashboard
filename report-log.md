@@ -1973,3 +1973,42 @@ The test helper `_section_block(sec_id)` returns the static `<section>...</secti
 **Learned:** The Playwright walker should always dismiss the welcome tour before screenshot capture — on a fresh `localStorage`, the tour overlay covers the section header. The fix is a one-liner: `localStorage.setItem('cos.tour.skipped', '1')` + reload. Documenting this pattern in the walker would save future ticks the same 2 minutes of "where's the section header?" confusion. Also: the `data-help` self-documenting pattern from 1b0869c is paying compound interest — three sections in (Ideas, Library, Performance) the next editor gets a one-click popover explaining the line.
 
 **Next pick:** (a) The other 4 static subs I noticed in the audit: Hashtags+SEO (already has a good sub), but Trends (`Marketing · Golf News · Competitors` is a tag list, not a sub-list), Caption Studio (`Pick voice + tone → generate · regenerate · test` is good), Image Generation (`Provider-ready prompt specs: Ideogram · DALL-E · Midjourney · Stable Diffusion` is good but doesn't list the actual prompt structure). (b) Calendar section-h is currently fine (dynamic `cal-summary` slot), but the section-h lacks a `<span class="sub">` line — the previous tick's note (c) was wrong; the slot is wired but only shows after JS paints, leaving a "—" until then. Add a static fallback sub that mirrors the actual surface (14-day grid, drag-drop, HUD, pillar strip, duplicate zone). (c) `itemHtml()` debug-token scrub — the next-pick (a) from the 02:13Z tick is still unaddressed. Status/owner/schema fields leak through generic renderer on Performance, Hook Bank, and Capture rows.
+
+
+---
+
+**Tick 2026-08-19 11:44 UTC — Calendar static sub fallback (commit `ee5ae13`, atomic, pushed, Railway auto-deployed, LIVE post-deploy verified):**
+
+**Fix:**
+- `campaign-os/campaign-os.html` sec-calendar sub (`+1/-1`): replaced literal `—` placeholder with descriptive fallback `14-day grid with drag-drop · today's HUD · pillar strip · duplicate zone` and added `data-help` + `data-help-title` anchors. The line previously rendered as `—` for the first ~100 ms on page load until `renderCalendar()` resolved, leaving the Calendar header undescribed during that window. Now the section is self-describing on first frame; the JS call still overwrites `textContent` with the live `X planned in next 14 days · Y today · see Publish page for Postiz queue` summary when data resolves (line 8387 unchanged — `textContent` only, attributes survive).
+
+**New regression test (`campaign-os/tests/test_v2026_08_19_calendar_sub_mirrors_actual_cards.py`, 7 tests, all green):**
+1. `test_01_dash_placeholder_sub_is_gone` — pre-fix literal `—` and `-` placeholder variants removed
+2. `test_02_new_descriptive_sub_lists_every_visible_card` — sub contains `14-day grid with drag-drop` + every one of `today's HUD`, `pillar strip`, `duplicate zone`
+3. `test_03_sub_uses_standard_pattern` — wrapped in `<span class="sub" id="cal-summary">…</span>`
+4. `test_04_sub_has_data_help` — carries `data-help=` and `data-help-title=` attributes
+5. `test_05_sub_no_em_dash` — standing rule (no U+2014 / U+2013)
+6. `test_06_sub_uses_middot_separator` — uses · (U+00B7) consistent w/ rest of Campaign OS
+7. `test_07_js_overwrite_still_wired` — `renderCalendar()` line 8387 still sets `#cal-summary.textContent = data.totalScheduled + ...` so the static fallback is just a first-paint placeholder; live counts still replace it after JS resolves
+
+**Verified (Playwright LIVE on Railway, post-deploy, password-auth flow, welcome tour dismissed, sidebar nav groups expanded so visible `[data-go=calendar]` is clickable):**
+- `LIVE SUB: {textContent: '0 planned in next 14 days · 0 today · see Publish page for Postiz queue', has_data_help: True, has_data_help_title: True, help_title: 'What is in this section'}` — JS overwrite works AND the data-help explainer attributes survive (proves the static fallback would render first-paint text if JS were delayed).
+- 0 page errors, 0 console errors. `/api/health` 200; deployed commit = `ee5ae13`.
+- HTML payload size grew 877,776 → 878,454 bytes (+678 for the new static sub + data-help).
+
+**Screenshot (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_calendar_sub_20260819T114445Z.png` — Calendar section showing the dynamic sub (JS-overwritten "0 planned in next 14 days · 0 today · see Publish page for Postiz queue") + 14-day HUD (Today/Tomorrow/Planned/Overdue/Empty days) + Duplicate zone footer + empty-state CTA pointing back to Review.
+
+**Files (2, +159/-1):**
+- `campaign-os/campaign-os.html` (+1/-1): one `<span class="sub">` line replaced.
+- `campaign-os/tests/test_v2026_08_19_calendar_sub_mirrors_actual_cards.py` (NEW, 7 tests, 158 lines).
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via test_05), 0 NEW deps, 0 auth/gates touched. Renderer-only sub-text update + new test. Pre-existing data refresh from the analytics cron (commit 5487687) committed + pushed separately at tick start to land a clean tree.
+
+**Learned:** The static-sub pattern from 1b0869c (Ideas/Library) and a2c7692 (Performance) is now in 3 sections. The Calendar case is the subtle one — it has a JS-overwrite path that needed to survive, so I added a dedicated test (`test_07_js_overwrite_still_wired`) to prevent the next editor from accidentally deleting the dynamic summary path while editing the static fallback. Also: the Playwright walker needs to expand collapsed sidebar nav groups BEFORE trying to click `[data-go=X]` — the visible filter alone doesn't work because the duplicate selector hits hidden matches in collapsed groups. Pattern is now documented in the walker; future ticks can reuse it.
+
+**Next pick:** The remaining "Weak UX / Missing explanations" candidates from the report-log menu:
+(a) Trends section-h sub: currently `Marketing · Golf News · Competitors` is a tag list, not a sub-list. Could become `Scored 0-100 signals · Reddit · YouTube · golf news · competitor feeds · 1-line why-now`.
+(b) Image Generation sub: currently `Provider-ready prompt specs: Ideogram · DALL-E · Midjourney · Stable Diffusion` doesn't list the actual prompt structure (`Subject · Setting · Lighting · Mood · Composition · Style`). Adding that would help a first-time visitor know what to expect.
+(c) Caption Studio sub: already good (`Pick voice + tone → generate · regenerate · test`). Skip.
+(d) `itemHtml()` debug-token scrub — still unaddressed from the 02:13Z tick. Status/owner/schema fields leak through generic renderer on Performance, Hook Bank, and Capture rows. Bigger lift — needs new `pretty()` helpers per row type.
