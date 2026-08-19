@@ -27,6 +27,10 @@
     {
       "date": "2026-08-11",
       "position": 6.17
+    },
+    {
+      "date": "2026-08-18",
+      "position": 6.58
     }
   ],
   "binned": {
@@ -39,56 +43,39 @@
       "old": 3
     },
     "top_100": {
-      "new": 2,
+      "new": 3,
       "old": 3
     },
     "top_3": {
-      "new": 7,
+      "new": 6,
       "old": 6
     }
   },
   "falling": [
     {
       "_has_change": true,
-      "competition": 1,
-      "current_date": "2026-08-11",
-      "current_rank": 3,
-      "current_url": "https://swingshack.co.za/",
-      "keyword": "indoor golf practice",
+      "competition": 0.59,
+      "current_date": "2026-08-18",
+      "current_rank": 17,
+      "current_url": "https://swingshack.co.za/club-fitting/",
+      "keyword": "club fitting",
       "language": "en",
       "loc_id": 2710,
       "marked_unstable": false,
       "previous_date": "2026-06-30",
-      "previous_rank": 1,
-      "previous_url": "https://swingshack.co.za/",
-      "search_volume": 10,
-      "seo_difficulty": 44,
-      "status": "ok"
-    },
-    {
-      "_has_change": true,
-      "competition": 0.47,
-      "current_date": "2026-08-11",
-      "current_rank": 5,
-      "current_url": "https://swingshack.co.za/",
-      "keyword": "club fitting near me",
-      "language": "en",
-      "loc_id": 2710,
-      "marked_unstable": false,
-      "previous_date": "2026-06-30",
-      "previous_rank": 4,
-      "previous_url": "https://swingshack.co.za/",
-      "search_volume": 70,
-      "seo_difficulty": 20,
+      "previous_rank": 12,
+      "previous_url": "https://swingshack.co.za/club-fitting/",
+      "search_volume": 50,
+      "seo_difficulty": 36,
       "status": "ok"
     }
   ],
   "keywords": [
     {
-      "_has_change": true,
+      "_has_change": false,
       "competition": 1,
-      "current_date": "2026-08-11",
-      "current_rank": 3,
+      "current_date": "2026-08-18",
+      "current_rank": 1,
       "current_url": "https://swingshack.co.za/",
       "keyword": "indoor golf practice",
       "language": "en",
@@ -102,10 +89,10 @@
       "status": "ok"
     },
     {
-      "_has_change": true,
+      "_has_change": false,
       "competition": 0.47,
-      "current_date": "2026-08-11",
-      "current_rank": 5,
+      "current_date": "2026-08-18",
+      "current_rank": 4,
       "current_url": "https://swingshack.co.za/",
       "keyword": "club fitting near me",
       "language": "en",
@@ -121,7 +108,7 @@
     {
       "_has_change": false,
       "competition": 0.03,
-      "current_date": "2026-08-11",
+      "current_date": "2026-08-18",
       "current_rank": null,
       "current_url": null,
       "keyword": "golf course",
@@ -138,7 +125,7 @@
     {
       "_has_change": false,
       "competition": 1,
-      "current_date": "2026-08-11",
+      "current_date": "2026-08-18",
       "current_rank": null,
       "current_url": null,
       "keyword": "golf swing analysis",
@@ -155,8 +142,8 @@
     {
       "_has_change": true,
       "competition": 1,
-      "current_date": "2026-08-11",
-      "current_rank": 2,
+      "current_date": "2026-08-18",
+      "current_rank": 4,
       "current_url": "https://swingshack.co.za/",
       "keyword": "simulated golf",
       "language": "en",
@@ -172,7 +159,7 @@
     {
       "_has_change": false,
       "competition": 0.75,
-      "current_date": "2026-08-11",
+      "current_date": "2026-08-18",
       "current_rank": 2,
       "current_url": "https://swingshack.co.za/",
       "keyword": "indoor golf",
@@ -189,7 +176,7 @@
     {
       "_has_change": false,
       "competition": 0.04,
-      "current_date": "2026-08-11",
+      "current_date": "2026-08-18",
       "current_rank": 1,
       "current_url": "https://swingshack.co.za/",
       "keyword": "swing shack",
@@ -206,8 +193,8 @@
     {
       "_has_change": true,
       "competition": 0.2,
-      "current_date": "2026-08-11",
-      "current_rank": 17,
+      "current_date": "2026-08-18",
+      "current_rank": 19,
       "current_url": "https://swingshack.co.za/club-fitting/",
       "keyword": "custom club fitting",
       "language": "en",
@@ -223,7 +210,7 @@
     {
       "_has_change": false,
       "competition": 0.07,
-      "current_date": "2026-08-11",
+      "current_date": "2026-08-18",
       "current_rank": 3,
       "current_url": "https://swingshack.co.za/",
       "keyword": "indoor golf course",
@@ -240,7 +227,7 @@
     {
       "_has_change": false,
       "competition": 0.71,
-      "current_date": "2026-08-11",
+      "current_date": "2026-08-18",
       "current_rank": 2,
       "current_url": "https://swingshack.co.za/",
       "keyword": "indoor driving range",
@@ -257,8 +244,8 @@
     {
       "_has_change": true,
       "competition": 0.59,
-      "current_date": "2026-08-11",
-      "current_rank": 10,
+      "current_date": "2026-08-18",
+      "current_rank": 17,
       "current_url": "https://swingshack.co.za/club-fitting/",
       "keyword": "club fitting",
       "language": "en",
@@ -289,10 +276,10 @@
       "status": "ok"
     },
     {
-      "_has_change": false,
+      "_has_change": true,
       "competition": 0,
-      "current_date": "2026-08-11",
-      "current_rank": 10,
+      "current_date": "2026-08-18",
+      "current_rank": 9,
       "current_url": "https://swingshack.co.za/",
       "keyword": "golf lessons for beginners in johannesburg",
       "language": "en",
@@ -308,7 +295,7 @@
     {
       "_has_change": false,
       "competition": 0.56,
-      "current_date": "2026-08-11",
+      "current_date": "2026-08-18",
       "current_rank": 2,
       "current_url": "https://swingshack.co.za/",
       "keyword": "indoor golf range",
@@ -325,8 +312,8 @@
     {
       "_has_change": true,
       "competition": 0.48,
-      "current_date": "2026-08-11",
-      "current_rank": 17,
+      "current_date": "2026-08-18",
+      "current_rank": 15,
       "current_url": "https://swingshack.co.za/product/putter-fitting-1-5h-booking/",
       "keyword": "putter fitting",
       "language": "en",
@@ -342,7 +329,7 @@
     {
       "_has_change": false,
       "competition": 0.06,
-      "current_date": "2026-08-11",
+      "current_date": "2026-08-18",
       "current_rank": null,
       "current_url": null,
       "keyword": "golf course near me",
@@ -359,22 +346,22 @@
   ],
   "metadata": {
     "domain": "swingshack.co.za",
-    "fetched_at": "2026-08-16",
+    "fetched_at": "2026-08-19",
     "language": "en",
-    "next_update": "2026-08-18",
+    "next_update": "2026-08-25",
     "project_id_prefix": "a4f17b569f9d",
     "source": "ubersuggest.project_position_info",
     "window": {
-      "end": "2026-08-11",
+      "end": "2026-08-18",
       "start": "2026-06-30"
     }
   },
   "quick_wins": [
     {
-      "_has_change": true,
+      "_has_change": false,
       "competition": 0.47,
-      "current_date": "2026-08-11",
-      "current_rank": 5,
+      "current_date": "2026-08-18",
+      "current_rank": 4,
       "current_url": "https://swingshack.co.za/",
       "keyword": "club fitting near me",
       "language": "en",
@@ -389,9 +376,26 @@
     },
     {
       "_has_change": true,
+      "competition": 1,
+      "current_date": "2026-08-18",
+      "current_rank": 4,
+      "current_url": "https://swingshack.co.za/",
+      "keyword": "simulated golf",
+      "language": "en",
+      "loc_id": 2710,
+      "marked_unstable": false,
+      "previous_date": "2026-06-30",
+      "previous_rank": 5,
+      "previous_url": "https://swingshack.co.za/",
+      "search_volume": 2400,
+      "seo_difficulty": 49,
+      "status": "ok"
+    },
+    {
+      "_has_change": true,
       "competition": 0.2,
-      "current_date": "2026-08-11",
-      "current_rank": 17,
+      "current_date": "2026-08-18",
+      "current_rank": 19,
       "current_url": "https://swingshack.co.za/club-fitting/",
       "keyword": "custom club fitting",
       "language": "en",
@@ -407,8 +411,8 @@
     {
       "_has_change": true,
       "competition": 0.59,
-      "current_date": "2026-08-11",
-      "current_rank": 10,
+      "current_date": "2026-08-18",
+      "current_rank": 17,
       "current_url": "https://swingshack.co.za/club-fitting/",
       "keyword": "club fitting",
       "language": "en",
@@ -422,10 +426,10 @@
       "status": "ok"
     },
     {
-      "_has_change": false,
+      "_has_change": true,
       "competition": 0,
-      "current_date": "2026-08-11",
-      "current_rank": 10,
+      "current_date": "2026-08-18",
+      "current_rank": 9,
       "current_url": "https://swingshack.co.za/",
       "keyword": "golf lessons for beginners in johannesburg",
       "language": "en",
@@ -441,8 +445,8 @@
     {
       "_has_change": true,
       "competition": 0.48,
-      "current_date": "2026-08-11",
-      "current_rank": 17,
+      "current_date": "2026-08-18",
+      "current_rank": 15,
       "current_url": "https://swingshack.co.za/product/putter-fitting-1-5h-booking/",
       "keyword": "putter fitting",
       "language": "en",
@@ -460,8 +464,8 @@
     {
       "_has_change": true,
       "competition": 0.48,
-      "current_date": "2026-08-11",
-      "current_rank": 17,
+      "current_date": "2026-08-18",
+      "current_rank": 15,
       "current_url": "https://swingshack.co.za/product/putter-fitting-1-5h-booking/",
       "keyword": "putter fitting",
       "language": "en",
@@ -477,8 +481,8 @@
     {
       "_has_change": true,
       "competition": 0.2,
-      "current_date": "2026-08-11",
-      "current_rank": 17,
+      "current_date": "2026-08-18",
+      "current_rank": 19,
       "current_url": "https://swingshack.co.za/club-fitting/",
       "keyword": "custom club fitting",
       "language": "en",
@@ -494,8 +498,8 @@
     {
       "_has_change": true,
       "competition": 1,
-      "current_date": "2026-08-11",
-      "current_rank": 2,
+      "current_date": "2026-08-18",
+      "current_rank": 4,
       "current_url": "https://swingshack.co.za/",
       "keyword": "simulated golf",
       "language": "en",
@@ -510,25 +514,25 @@
     },
     {
       "_has_change": true,
-      "competition": 0.59,
-      "current_date": "2026-08-11",
-      "current_rank": 10,
-      "current_url": "https://swingshack.co.za/club-fitting/",
-      "keyword": "club fitting",
+      "competition": 0,
+      "current_date": "2026-08-18",
+      "current_rank": 9,
+      "current_url": "https://swingshack.co.za/",
+      "keyword": "golf lessons for beginners in johannesburg",
       "language": "en",
       "loc_id": 2710,
       "marked_unstable": false,
       "previous_date": "2026-06-30",
-      "previous_rank": 12,
-      "previous_url": "https://swingshack.co.za/club-fitting/",
-      "search_volume": 50,
-      "seo_difficulty": 36,
+      "previous_rank": 10,
+      "previous_url": "https://swingshack.co.za/",
+      "search_volume": 0,
+      "seo_difficulty": 4,
       "status": "ok"
     }
   ],
   "summary": {
-    "down": 2,
-    "unchanged": 10,
+    "down": 1,
+    "unchanged": 11,
     "up": 4
   }
 }
