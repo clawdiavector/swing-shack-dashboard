@@ -654,18 +654,29 @@ def review_inbox() -> Dict[str, Any]:
         if scoped_brand and not _owns_campaign(cid, scoped_brand):
             continue
         cname = c.get("identity", {}).get("name", cid)
+        # Brand pill: resolve via brands.json ownership so every row shows which
+        # brand the campaign belongs to. Pending/approved/rejected were all
+        # shipping without a `brand` field, so the review-card prettyBrand pill
+        # always rendered empty and users couldn't tell Swing Shack vs Stick vs
+        # Bag Drop apart from the campaign name alone (4 campaigns share the
+        # Swing Shack owner — including takomo-101t — so the name alone is
+        # ambiguous). Brands is the first owner from brands.json; for a single-
+        # owner brand that's unambiguous, for multi-owner campaigns we fall
+        # back to the row's identity.brand when set.
+        owner_brands = _brands_for_campaign(cid)
+        row_brand = (owner_brands[0] if owner_brands else "") or c.get("identity", {}).get("brand", "")
         for aid, asset in (c.get("assets") or {}).items():
             aps = asset.get("approvalStatus", "draft")
             ps = asset.get("publishStatus")
             if aps == "approved":
-                approved.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "caption": asset.get("caption", "")[:120], "approvalStatus": aps, "publishStatus": ps, "platform": asset.get("platform") or asset.get("integration", "instagram"), "updatedAt": asset.get("updatedAt")})
+                approved.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "brand": row_brand, "name": asset.get("name", aid), "caption": asset.get("caption", "")[:120], "approvalStatus": aps, "publishStatus": ps, "platform": asset.get("platform") or asset.get("integration", "instagram"), "updatedAt": asset.get("updatedAt")})
             elif aps in ("rejected",):
-                rejected.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "reason": asset.get("rejectionReason", ""), "approvalStatus": aps, "publishStatus": ps, "updatedAt": asset.get("updatedAt")})
+                rejected.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "brand": row_brand, "name": asset.get("name", aid), "reason": asset.get("rejectionReason", ""), "approvalStatus": aps, "publishStatus": ps, "updatedAt": asset.get("updatedAt")})
             elif aps == "archived":
                 # Don't surface archived in any queue — they're hidden but kept for audit.
                 pass
             else:
-                pending.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "name": asset.get("name", aid), "caption": asset.get("caption", "")[:200], "approvalStatus": aps, "publishStatus": ps, "platform": asset.get("platform") or asset.get("integration", "instagram"), "updatedAt": asset.get("updatedAt")})
+                pending.append({"campaignId": cid, "campaignName": cname, "assetId": aid, "brand": row_brand, "name": asset.get("name", aid), "caption": asset.get("caption", "")[:200], "approvalStatus": aps, "publishStatus": ps, "platform": asset.get("platform") or asset.get("integration", "instagram"), "updatedAt": asset.get("updatedAt")})
 
     # Sort pending so stale (>7d) items float to the top, oldest first.
     # Items with no updatedAt fall to the bottom of the fresh bucket —

@@ -7270,10 +7270,23 @@ async function renderReview(){
   const r = S.review;
   $('#review-summary').textContent = r.summary;
   // Build a brand_id -> display name lookup up front so every row can show the pretty name.
+  // /api/brands returns {active_brand_id, brands: {id: {...full record...}}, count, default_brand_id}
+  // (dict of brand records, NOT a flat array). The pre-fix code iterated the
+  // top-level keys as if they were brand records — `b` came back as a STRING
+  // (the brand record's nested values), so brandNames stayed empty and the
+  // review-row prettyBrand pill rendered nothing for every row. Now we read
+  // bl.brands when it's a dict, fall back to array iteration otherwise.
   const brandNames = {};
   try {
     const bl = await API.get('/api/brands');
-    (bl || []).forEach(b => { brandNames[b.id || b.brand_id] = b.name || b.identity?.name || b.id; });
+    if (bl && typeof bl === 'object') {
+      const records = Array.isArray(bl) ? bl : (bl.brands && typeof bl.brands === 'object' ? Object.values(bl.brands) : []);
+      records.forEach(b => {
+        if (b && typeof b === 'object') {
+          brandNames[b.id || b.brand_id] = b.display_name || b.name || b.identity?.name || b.id;
+        }
+      });
+    }
   } catch (_) {}
   // Count stale pending rows so the summary can surface "41 pending (12 stale)"
   // instead of leaving Christelle to spot the rotting entries by scrolling.
