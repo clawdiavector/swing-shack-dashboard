@@ -2320,3 +2320,32 @@ The test helper `_section_block(sec_id)` returns the static `<section>...</secti
 **Learned:** Walker-reported body-text em-dash counts undercount real copy violations in two ways: (a) body-text scanners miss server-rendered card content that only materializes after the API responds (the ad-correlation block is empty until `/api/insights/ad-correlation` resolves); (b) the walker counts each surface once, but the same template renders N times on a section. Fix the template, not the per-render copy. Also: `git_synced: false` on `/api/health` after a deploy means Railway hasn't pulled the commit yet — `REBUILD_TRIGGER.txt` nudge commit is the standard fix.
 
 **Next pick:** (a) Pre-existing em-dash on `insights v2 chrome h3 data-help` (test_v2026_08_12::test_08) — small renderer-only fix, ~1 line. (b) `socials-summary` `—` placeholder (10th section in the static-sub pattern series — billboard sub was the 9th). (c) Hashtags+SEO sub `+` vs `and` drift.
+
+---
+
+## 2026-08-19T22:13Z — nightshift tick: Data freshness help copy (actionable, em-dash free)
+
+**Pick:** Priority 5 (missing/weak explanation) plus the pre-existing test failure flagged as the next pick across several ticks.
+
+**Problem:** The Agents-page "Data freshness" card `<h3 data-help>` tooltip ended with an internal agent changelog note: "This card used to live on the home (brief) page but it was hiding the actual marketing recommendation - moved here where fleet + ops issues belong." Two faults: (a) it carried the LAST em-dash in any static `h3 data-help` in campaign-os.html, so `test_v2026_08_12_no_emdashes_insights_v2_chrome::test_08` failed on a clean tree; (b) changelog copy answers none of the NORTH_STAR five questions (what / why / why-it-matters / what-to-do / confidence). Christelle learns nothing from "this card used to live somewhere else".
+
+**Fix (renderer-only, 1 attribute):** Replaced the changelog sentence with the actual decision rule plus a plain reason for placement:
+"If a feed shows up as rotten here, treat any recommendation built on it as unreliable until it refreshes. It sits on this page with the other fleet and ops checks so the home brief stays focused on the marketing recommendation."
+
+**Tests:** `campaign-os/tests/test_v2026_08_20_freshness_help_actionable.py` (NEW, 6 tests) — exactly-one-match locator on the freshness h3, actionable sentence present, no em-dash, changelog phrasing banned in the attribute AND anywhere in the HTML, plus a mirror of the generic h3 em-dash guard. `test_v2026_08_12_no_emdashes_insights_v2_chrome` now 9/9 (was 8 pass / 1 fail). Combined run: 15 passed.
+
+**Playwright LIVE verification** (`scripts/walk_freshness_help_live.py`, NEW): served help attr len=478, actionable sentence present, 0 em-dashes, 0 changelog fragments, `h3 data-help` em-dash offenders on live = **0** (was 1). Tooltip opened via real hover and confirmed rendering the full new copy. 0 page errors, 0 console errors.
+
+**Screenshot:** `/tmp/co-nightshift/walkthrough_20260819T221311Z_freshness_help.png` — tooltip open over the Data freshness card, full new copy visible, no em-dash.
+
+**Files (3):** `campaign-os/campaign-os.html` (+1/-1), `campaign-os/tests/test_v2026_08_20_freshness_help_actionable.py` (NEW), `scripts/walk_freshness_help_live.py` (NEW), plus `REBUILD_TRIGGER.txt` nudge.
+
+**Commits:** `4f5033d` fix(help): Data freshness tooltip gives a decision rule, not a changelog · `7827d85` chore: nudge Railway rebuild.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main, 0 schema, 0 fabricated stats, 0 deletions, 0 new deps, 0 auth touched, 0 Meta credential access, 0 NEW em-dashes.
+
+**Learned (2 pitfalls):**
+1. `git_synced` in `/api/health` is `os.path.exists(REPO_DIR/'.git')` — it is ALWAYS `false` on Railway (the container has no `.git`). It is NOT a deploy-freshness signal. Prior ticks read it as deploy lag and burned minutes polling. Verify deploys by asserting the actual changed string in the SERVED page via Playwright, not via `git_synced`.
+2. Campaign OS help tooltips are HOVER-driven (`HELP.tip` attaches `mouseenter`/`mouseleave`, no click handler). A synthetic `el.click()` in `page.evaluate` never opens them, so screenshots silently capture no tooltip. Use Playwright's real `locator.hover()`. Also: the welcome tour overlay is `#welcome-bg` with class `.on`, key `TOUR_KEY = 'cos.tour.skipped'` — set that key AND strip `.on`, or the overlay covers the screenshot.
+
+**Next pick:** (a) `socials-summary` placeholder dash (10th in the static-sub series). (b) Hashtags+SEO sub `+` vs `and` drift. (c) The `<h2 data-help>` on Agents & health says "Click any red row to drill into the error log" — verify that interaction actually exists or the tooltip is promising a dead flow.
