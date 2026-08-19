@@ -9400,25 +9400,41 @@ def _load_landing_fixes():
 def _seo_audit_score(audit):
     """Compute a 0-100 SEO health score from audit findings.
 
-    Penalises: high severity findings 15pts each, medium 8, low 3.
-    Bonus: status==='OK' on every page gives +10.
+    Site score = average of per-page scores (same 25/10/3 penalty scale the
+    per-page breakdown uses). The +10 bonus only fires when EVERY page is
+    OK AND no page has any findings (i.e. the audit crawled cleanly and
+    found nothing to fix). This avoids the "score=0 whenever a site has
+    many findings" trap that the previous recommendation-list-based math
+    produced (e.g. 8 highs + 4 mediums + 4 lows = 164 deduction → clamped
+    to 0, hiding real per-page health).
     """
     if not audit:
         return 0
-    score = 100
-    recs = audit.get('recommendations') or []
-    for rec in recs:
-        sev = str(rec.get('severity') or '').lower()
-        if sev == 'high':
-            score -= 15
-        elif sev == 'medium':
-            score -= 8
-        elif sev == 'low':
-            score -= 3
     pages = audit.get('pages') or []
-    if pages and all(str(p.get('status') or '').upper() == 'OK' for p in pages):
-        score += 10
-    return max(0, min(100, score))
+    if not pages:
+        return 0
+    page_scores = []
+    for p in pages:
+        if not isinstance(p, dict):
+            continue
+        counts = {'high': 0, 'medium': 0, 'low': 0}
+        for f in (p.get('findings') or []):
+            if not isinstance(f, dict):
+                continue
+            sev = str(f.get('severity') or 'low').lower()
+            if sev not in counts:
+                continue
+            counts[sev] += 1
+        page_scores.append(max(0, 100 - counts['high'] * 25 - counts['medium'] * 10 - counts['low'] * 3))
+    if not page_scores:
+        return 0
+    avg = round(sum(page_scores) / len(page_scores))
+    # Bonus: every page is status OK AND no page has any findings.
+    all_ok = all(str(p.get('status') or '').upper() == 'OK' for p in pages if isinstance(p, dict))
+    any_findings = any(isinstance(p, dict) and (p.get('findings') or []) for p in pages)
+    if all_ok and not any_findings:
+        avg += 10
+    return max(0, min(100, avg))
 
 
 def _seo_audit_group_by_page(audit):

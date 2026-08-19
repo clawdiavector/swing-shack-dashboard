@@ -10875,7 +10875,7 @@ async function refreshSeoAudit(){
       </li>`).join('');
     return `
       <div class="review" style="margin-bottom:.75rem">
-        <div class="review-cap-t">${esc(p.page)} <span style="font-size:11px;color:var(--tx-3);font-weight:400">— score ${p.score}/100 · ${p.counts.high}H/${p.counts.medium}M/${p.counts.low}L</span></div>
+        <div class="review-cap-t">${esc(p.page)} <span style="font-size:11px;color:var(--tx-3);font-weight:400">: score ${p.score}/100 · ${p.counts.high}H/${p.counts.medium}M/${p.counts.low}L</span></div>
         <div class="review-cap-x" style="font-size:12px;color:var(--tx-3);margin-bottom:.5rem">
           <a href="${esc(p.url)}" target="_blank" style="color:var(--blu)">${esc(p.url)}</a>
         </div>
