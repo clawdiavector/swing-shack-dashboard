@@ -1,4 +1,56 @@
 
+## 2026-08-19T16:25Z — fix(hooks): Hook Bank sub mirrors actual surface (commit `ccc7b40`, Railway auto-deployed, LIVE post-deploy verified)
+
+**Pick rationale:** Eighth (and final-major) in the static-sub pattern series (Ideas, Library, Performance, Calendar, Trends, Image Gen, Meme Lord, Hooks). The Hook Bank section's `hooks-total` was the last major generator still showing the dash placeholder before the JS overwrite. Same proven pattern: static fallback that mirrors the surface + id+data-help anchor. Hooks has a JS overwrite (renderHooks line 9369), so the static text is the pre-API / API-failed frame and the dynamic text wins once the API responds (same contract as Calendar + Meme Lord).
+
+**Fix (renderer-only text update + anchors + tests + walker):**
+- `campaign-os/campaign-os.html` sec-hooks sub (`+1/-1`): replaced the dash with `Watched-and-worked hooks · Hook formulas · Fresh hooks from signals · ranked by 7-day engagement · 1-click generate 10 new hooks`. Added `data-help=` (long breadcrumb for next-editor) and `data-help-title="What is in this section"`.
+- `campaign-os/tests/test_v2026_08_19_hooks_sub_mirrors_actual_cards.py` (NEW, 7 tests, 138 lines, mirroring the memes/calendar/trends/imagegen convention exactly).
+- `campaign-os/tests/walk_hooks_sub_fix.py` (NEW Playwright walker, 152 lines, mirrors walk_memes_sub_fix.py structure with `renderHooks` swap and `sec-hooks` swap).
+
+**New regression test (7 tests, all green):**
+1. `test_01_hooks_sub_has_id` — `<span class="sub" id="hooks-total" ...>` anchor present
+2. `test_02_old_dash_placeholder_gone` — old `<span class="sub" id="hooks-total">—</span>` no longer present
+3. `test_03_sub_has_data_help` — `data-help=` AND `data-help-title=` present, title = "What is in this section"
+4. `test_04_sub_lists_visible_cards` — descriptive fallback includes every visible card + the generate action (Watched-and-worked, Hook formulas, Fresh hooks, generate)
+5. `test_05_sub_no_em_dash` — no U+2014 / U+2013 (standing rule)
+6. `test_06_sub_uses_middot_separator` — uses the middot (U+00B7) for the descriptive list, 4+ middots
+7. `test_07_no_js_textcontent_overwrite_on_hooks_total` — STATIC fallback longer than the dash, AND the JS overwrite path (renderHooks line 9369) is documented so a future editor can't drop the static frame without realising the dynamic overwrite needs to keep firing.
+
+**Playwright LIVE verification (commit `ccc7b40` served on Railway, password-auth flow, tour auto-suppressed via localStorage init script, sec-hooks set to `.on` for screenshot):**
+
+*Pre-API probe (static fallback visible during API call):*
+- `sub_text: "Watched-and-worked hooks · Hook formulas · Fresh hooks from signals · ranked by 7-day engagement · 1-click generate 10 new hooks"` — exactly the expected new text
+- `has_data_help: true`, `has_data_help_title: true`, `data_help_title: "What is in this section"`
+- 3 sub-cards visible: Watched + worked, Hook formulas, Fresh hooks from signals
+
+*Post-API probe (dynamic overwrite fires, lock-in contract holds):*
+- `sub_text: "10 hooks · 3 in active buckets"` — the JS overwrite took over exactly when the API responded
+- `outerHTML` still shows the full `data-help` attribute (attributes preserved by `.textContent =`, not stripped)
+- 0 page errors, 0 console errors. `/api/health` 200 OK.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_hooks_sub_20260819T162620Z.png` — full-page view of the section
+- `/tmp/co-nightshift/walkthrough_hooks_sub_section_20260819T162620Z.png` — section-only: Hook Bank header + dynamic sub "10 hooks · 3 in active buckets" + Generate 10 new hooks button + 3 cards visible (Watched + worked with 3 hook rows, Hook formulas with 4 formula rows, Fresh hooks from signals empty state with CTA)
+
+**Files (3, +291/-1):**
+- `campaign-os/campaign-os.html` (+1/-1): one `<span class="sub">…</span>` line replaced (id preserved + data-help + data-help-title + descriptive text).
+- `campaign-os/tests/test_v2026_08_19_hooks_sub_mirrors_actual_cards.py` (NEW, 7 tests, 138 lines).
+- `campaign-os/tests/walk_hooks_sub_fix.py` (NEW Playwright walker, 152 lines).
+
+**Commit (on `feat/asset-state-engine`, pushed, Railway auto-deployed):**
+- `ccc7b40` — fix(hooks): sub mirrors actual surface (atomic, the actual fix)
+
+**35-test recent-nightshift suite still green:** calendar_sub_mirrors (7) + trends_sub_mirrors (7) + imagegen_sub_mirrors (7) + memes_sub_mirrors (7) + hooks_sub_mirrors (7). No regressions.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via test_05, commit message amended to drop the U+2014 that bash swallowed into a command), 0 NEW deps, 0 auth/gates touched. Renderer-only sub-text update + new tests + new walker.
+
+**Learned:** Eight sections (Ideas, Library, Performance, Calendar, Trends, Image Gen, Meme Lord, Hooks) now follow the `<span class="sub" id="X-summary" data-help data-help-title>` pattern. The three "JS overwrite" sections (Calendar, Meme Lord, Hooks) all need a non-trivial `test_07` that locks BOTH the static fallback AND the JS overwrite contract. The walker for any section that has a JS overwrite has to probe BEFORE the render fn fires (otherwise the static text is overwritten and the test cannot tell if the static fallback is correct) — the new walker pattern uses a separate `pre` probe step. The bash `em-dash -> command substitution` bug: writing a multi-line git commit message that contains U+2014 makes the shell try to interpret the em-dash as a redirect operator. Use `git commit -F - <<'EOF'` heredoc with quoted EOF to keep the em-dash literal — or simpler, just don't use em-dashes in commit messages (the standing rule applies to messages too).
+
+**Next pick:** (a) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden (Performance, Hook Bank, Capture rows all leak status/owner/schema fields through the generic renderer). (b) Hashtags+SEO sub `+` vs `and` drift — quick fix but low value (already known pre-existing failure). (c) The remaining un-fixed section subs (if any) — likely none, all 8 major generator sections now follow the pattern; smaller sections (Captions, Headlines, CTAs, Calendar, etc.) might have other static-sub candidates worth a sweep.
+
+---
+
 ## 2026-08-18T05:11Z — fix(ideas): Post today + This week columns no longer duplicate the Content ideas list
 
 **Done:** The Opportunities (Ideas) page renders three idea columns side-by-side. Pre-pick walkthrough on the LIVE Railway URL caught the same idea card appearing TWICE: "THAT SLICE COSTING YOU YARDS?" (idea_id `slice-fix-2026-08-13-a`) showed up as the top item in the "Content ideas" column AND as the top item in the "Post today" column. The "This week" column showed the same 2 reels that were already in the Content ideas list. Three columns, all with overlapping content, looked like a rendering bug to the operator.
