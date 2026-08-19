@@ -8468,7 +8468,7 @@ async function renderSocials(){
     // can branch on it (🔌 not wired vs ⚪ empty).
     const graphEmpty = !meta.sources || (meta.sources.graph || 0) === 0;
     summary.textContent = `${posts.length} posts · ${meta.days_covered || days}d window · sources: ${(meta.sources?.graph || 0)} graph`;
-    status.textContent = `${meta.newest ? '🟢 live' : (graphEmpty ? '🔌 not wired' : '⚪ empty')} · newest ${meta.newest ? new Date(meta.newest).toLocaleDateString() : '—'}`;
+    status.textContent = `${meta.newest ? '🟢 live' : (graphEmpty ? '🔌 not wired' : '⚪ empty')} · newest ${meta.newest ? new Date(meta.newest).toLocaleDateString() : 'never'}`;
     // ── "Connect Instagram" CTA when both Meta graph + oembed fallback are empty ──
     // Mirrors the Performance > Connect analytics pattern (line 7760) so the user
     // gets a clear next-action when this section is genuinely empty because Instagram
@@ -11030,10 +11030,41 @@ const REDDIT_SENTIMENT_PILL = {
   medium_trust: 'warn',  // amber
   low_trust: 'blocked',  // red
 };
+// Reddit safety-check flag → user-facing label map. The backend's
+// safety_check object stores boolean fields with internal kebab-case
+// names (no_direct_link, native_tone, no_salesy_language,
+// adds_value_first). Rendering them raw produced rows of debug pills
+// ("no-link · native-tone · no-salesy · value-first") that looked like
+// agent internals leaking through to the UI. Each one now resolves to
+// a short, marketing-manager-friendly label that describes WHAT the
+// guard enforces, not the guard's variable name.
+const REDDIT_SAFETY_LABEL = {
+  'no-link':     '✓ no promo link',
+  'native-tone': '✓ native tone',
+  'no-salesy':   '✓ no sales pitch',
+  'value-first': '✓ value-first',
+};
 async function renderReddit(){
   if(!S.reddit) S.reddit = await API.get('/api/intel/reddit_outreach');
   const r = S.reddit;
-  $('#reddit-pain').innerHTML = safeList(r.pain_points, 12).map(itemHtml).join('') || '<div class="empty">No pain points yet</div>';
+  // Pain points use the generic itemHtml renderer, which surfaces the
+  // backend's raw `status` field ("opportunity_identified") as a visible
+  // pill. That's an internal agent label, not a user-facing state, so
+  // we strip it here before passing to the generic renderer. The
+  // urgency field (already handled by itemHtml) carries the meaningful
+  // signal (high / medium / low) the user actually needs.
+  const cleanedPain = safeList(r.pain_points, 12).map(p => {
+    if(!p || typeof p !== 'object') return p;
+    const copy = Object.assign({}, p);
+    delete copy.status;
+    delete copy.owner;
+    delete copy.ready_for_qa;
+    delete copy.schema;
+    delete copy.generated;
+    delete copy.opp_id;
+    return copy;
+  });
+  $('#reddit-pain').innerHTML = cleanedPain.map(itemHtml).join('') || '<div class="empty">No pain points yet</div>';
   $('#reddit-replies').innerHTML = safeList(r.replies, 12).map(rr => {
     const angle = (rr.angle || '').trim();
     const draft = (rr.reply_draft || rr.reply || rr.text || '').trim();
@@ -11050,7 +11081,7 @@ async function renderReddit(){
     const sentimentPill = REDDIT_SENTIMENT_PILL[sentiment]
       ? `<span class="pill ${REDDIT_SENTIMENT_PILL[sentiment]}">${esc(sentiment.replace('_', ' '))}</span>`
       : '';
-    const safetyPills = safetyFlags.map(f => `<span class="pill">${esc(f)}</span>`).join('');
+    const safetyPills = safetyFlags.map(f => `<span class="pill live" title="${esc(f)}">${esc(REDDIT_SAFETY_LABEL[f] || f)}</span>`).join('');
     const metaBits = [
       subreddit ? `<span>📍 ${esc(subreddit)}</span>` : '',
       upvotes !== null ? `<span>▲ ${upvotes}</span>` : '',
@@ -11201,10 +11232,14 @@ async function renderFAQs(){
         const salvaged = it.__salvaged_from
           ? `<span class="pill" style="background:var(--bg-4);color:var(--tx-2);font-size:10px" title="Auto-fixed from ${esc(it.__salvaged_from)} by the slug-salvage map. The original blog_beast producer emitted a URL path as the target_keyword.">🔧 auto-fixed from ${esc(it.__salvaged_from)}</span>`
           : '';
+        // The backend's `status` field on FAQ rows is an internal agent
+        // state ("draft", "ready_for_qa", etc.), not a meaningful
+        // user-facing flag. Hiding it stops "DRAFT" pills from leaking
+        // through; the cluster + target_keyword carry the signal users
+        // actually need.
         const metaBits = [
           it.cluster ? `<span>📚 ${esc(it.cluster)}</span>` : '',
           it.target_keyword ? `<span>🎯 ${esc(it.target_keyword)}</span>` : '',
-          it.status ? `<span class="pill">${esc(it.status)}</span>` : '',
           salvaged,
         ].filter(Boolean).join(' · ');
         const meta = metaBits ? `<div class="li-meta">${metaBits}</div>` : '';
