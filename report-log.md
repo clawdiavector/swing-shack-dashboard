@@ -1846,3 +1846,23 @@ Also skipped the row date span when updatedAt is null so the 35 campaign-generat
 **Learned:** The dedup map (`_wwByKey`) added in the previous dedup tick is now doing double duty — the per-row WW position index `idx + 1` we already stored is exactly what the badge needs. Zero new state. The fix is a one-pass renderer change. Pattern for future dedup work: italic muted duplicate text + small badge pointing to the primary row's position. Cheaper than "see above" breadcrumbs which read as broken on a scrolled page.
 
 **Next pick:** (a) Calendar "GENERATE NEW POST →" CTA — trace the link target to confirm it lands on a real section. (b) Agents & health "Next-Action" string ("Unblock tasks in RUN THE WEEK section") references a section id that doesn't exist in the sidebar nav — backend placeholder leaked into the UI. (c) Sweep the `data-help` + `data-help-title` pattern across the remaining Brand Directory detail cards (Palette, Archetypes, Typography, Voice, Headlines bank, CTA bank, Punctuation rules, Do-say-don't-say, Examples).
+
+## 2026-08-19T02:13Z — fix(reddit+faqs+socials): humanize internal agent labels, no more debug-token pills
+
+**Done:** Walked every Campaign OS section via `?page=` and found three places where backend-internal field values were leaking through to the marketing-manager UI as raw labels:
+1. **Reddit / Pain points** — `status: "opportunity_identified"` rendered as an `OPPORTUNITY_IDENTIFIED` pill on every row, plus a `reddit_ghost` owner detail row.
+2. **Reddit / Replies** — `safety_check.no_direct_link` etc. rendered as raw pills `no-link · native-tone · no-salesy · value-first` — looked like agent internals, not guard-check status.
+3. **FAQs** — `status: "draft"` rendered as a `DRAFT` pill on every FAQ row.
+4. **Socials header** — `newest —` (em-dash) when no Instagram posts exist; em-dash is banned in published copy.
+
+**Fix:** Pain points renderer strips internal agent fields (`status`, `owner`, `ready_for_qa`, `schema`, `generated`, `opp_id`) before passing to the generic `itemHtml()`. Replies card uses a `REDDIT_SAFETY_LABEL` lookup so `no-link` → "✓ no promo link", `native-tone` → "✓ native tone", `no-salesy` → "✓ no sales pitch", `value-first` → "✓ value-first" (with the raw token preserved in the hover `title=` attribute so the data is recoverable). FAQ renderer drops the `it.status` pill from the meta line; cluster + target_keyword remain. Socials status string swaps the em-dash for the literal `never`.
+
+**Verification:** Live URL Playwright probes on `https://swing-shack-dashboard-production.up.railway.app/campaign-os.html?page=reddit|faqs|socials` after push: `painHasInternal=False`, `repliesHasInternal=False`, `repliesHasFriendly=True`, `hasDraft=False`, `hasEmDash=False`. 0 pageerrors, 0 console errors. Screenshots: `/tmp/co-nightshift/walkthrough_reddit.png`, `walkthrough_faqs.png`, `walkthrough_socials.png`.
+
+**Files (1):** `campaign-os/campaign-os.html`. Diff: 39 insertions / 4 deletions.
+
+**Commits:** `156b95c` (fix) → `312025c` → `0816056` → `940a699` (rebuild nudges). Pushed to `feat/asset-state-engine`. Took ~3 rebuild-nudge commits before Railway's Nixpacks auto-detected the change and rebuilt.
+
+**Learned:** The generic `itemHtml()` helper is convenient but every new caller is one debug-token leak away. Pattern worth adding to the existing checklist: before passing an item to `itemHtml()`, scrub fields that aren't meaningful to a marketing manager (status/owner/schema/opp_id/schema_url/etc.). Centralize this in `itemHtml` itself with a `_internal_only_keys` blocklist so future pages don't have to remember.
+
+**Next pick:** (a) `itemHtml()` debug-token scrub — same leak likely lurks on Performance, Hook Bank, and Capture rows where status/owner fields also exist. (b) Calendar "GENERATE NEW POST →" CTA — confirm it actually lands on a real section. (c) Review queue still shows "Takomo 101T" items despite the active brand being Swing Shack — brand-scope leak that survived the recent review_inbox fix.
