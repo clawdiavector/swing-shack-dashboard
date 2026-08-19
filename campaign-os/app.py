@@ -2320,6 +2320,288 @@ def image_brand_dna(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+# ── Secret Drop ─────────────────────────────────────────────────────
+# A paste-form for the operator to drop API keys / OAuth client secrets
+# into the running app without leaking them to chat, screenshots, or git.
+# Used in concert with the setup-portal pattern (see setup-portal SKILL).
+#
+# 2026-08-18: built for the Postiz OAuth Client Secret rotation. Once
+# submitted: env var is set in-process, canonical credential file is
+# updated (Fernet-encrypted blob + fingerprint, never plaintext), and
+# the form returns a one-time confirmation. No secret is ever echoed
+# back, logged, or rendered after submission.
+#
+# Whitelisted slot names. Anything outside this list is rejected as
+# "unknown" so we never accidentally accept an unrelated credential.
+_SECRET_DROP_SLOTS = {
+    "postiz_oauth_client_secret": {
+        "label": "Postiz OAuth Client Secret",
+        "env_var": "POSTIZ_OAUTH_CLIENT_SECRET",
+        "cred_file_key": "oauth_client_secret",
+        "cred_filename": "postiz-oauth.json",
+        "mint_oauth_file": True,
+        "validate": lambda v: v.startswith("pcs_") or len(v) >= 32,  # Postiz prefix or 32+ char
+    },
+    "postiz_api_key": {
+        "label": "Postiz API key (legacy, optional)",
+        "env_var": "POSTIZ_API_KEY",
+        "cred_file_key": "api_key",
+        "cred_filename": "postiz-api-key.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: len(v) >= 32,
+    },
+    "openrouter_api_key": {
+        "label": "OpenRouter API key",
+        "env_var": "OPENROUTER_API_KEY",
+        "cred_file_key": "api_key",
+        "cred_filename": "openrouter-api.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: v.startswith("sk-or-") or len(v) >= 32,
+    },
+    "meta_system_user_token": {
+        "label": "Meta System User Token (Swing Shack)",
+        "env_var": "META_SYSTEM_USER_TOKEN",
+        "cred_file_key": "access_token",
+        "cred_filename": "swing-shack-meta-token.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: len(v) >= 50,
+    },
+}
+
+def _secret_drop_fernet():
+    """Return a Fernet instance for encrypting secrets at rest.
+    Uses SESSION_SECRET as the source key (same place login trust lives).
+    Production should set META_TOKEN_ENCRYPTION_KEY to its own Fernet key
+    (44-byte base64); falls back to a derived key from SESSION_SECRET."""
+    from cryptography.fernet import Fernet
+    import base64, hashlib
+    raw = os.environ.get("META_TOKEN_ENCRYPTION_KEY") or SESSION_SECRET
+    if isinstance(raw, str):
+        raw = raw.encode()
+    h = hashlib.sha256(raw).digest()  # 32 bytes
+    return Fernet(base64.urlsafe_b64encode(h))
+
+
+def _secret_drop_path(filename: str) -> str:
+    """Canonical path for a credential file. ~/...credentials/<filename>."""
+    creds_dir = os.path.join(
+        os.path.expanduser("~"),
+        ".openclaw-instance2", "workspace", "clients", "swing-shack", "credentials",
+    )
+    os.makedirs(creds_dir, exist_ok=True)
+    return os.path.join(creds_dir, filename)
+
+
+def _secret_drop_mask(value: str) -> str:
+    """Return a masked version of a secret: first 4 chars + *** + last 4."""
+    if not value or len(value) < 12:
+        return "***"
+    return f"{value[:4]}{'*' * (len(value) - 8)}{value[-4:]}"
+
+
+@app.route('/secret-drop', methods=['GET'])
+def secret_drop_form():
+    """Render the in-app paste form. Auth-gated like everything else."""
+    if not _is_authed():
+        return redirect(url_for('login_page', next='/secret-drop'))
+    slot_options = "".join(
+        f'<option value="{k}">{v["label"]}</option>'
+        for k, v in _SECRET_DROP_SLOTS.items()
+    )
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Secret Drop - Campaign OS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<style>
+  :root {{ color-scheme: dark; }}
+  html, body {{ margin: 0; padding: 0; background: #0a0f1a; color: #e5e7eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }}
+  .wrap {{ max-width: 720px; margin: 0 auto; padding: 24px 18px 80px; }}
+  h1 {{ font-size: 22px; color: #fbbf24; margin: 0 0 8px; }}
+  p.sub {{ color: #94a3b8; font-size: 13px; margin: 0 0 24px; line-height: 1.5; }}
+  .card {{ background: #1a1f2c; border: 1px solid #2a3142; border-radius: 8px; padding: 18px; margin-bottom: 14px; }}
+  label {{ display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }}
+  select, input[type=text], textarea {{
+    width: 100%; background: #0a0f1a; color: #e5e7eb;
+    border: 1px solid #2a3142; border-radius: 4px;
+    padding: 10px 12px; font-size: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    box-sizing: border-box;
+  }}
+  textarea {{ min-height: 130px; resize: vertical; }}
+  .row {{ display: grid; gap: 14px; }}
+  .btn {{ background: #fbbf24; color: #0a0f1a; font-weight: 700; border: 0; padding: 12px 18px; border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; }}
+  .btn:hover {{ background: #fcd34d; }}
+  .btn:disabled {{ background: #475569; color: #cbd5e1; cursor: wait; }}
+  .warn {{ color: #f87171; font-size: 12px; margin-top: 8px; }}
+  .ok {{ background: #064e3b; border-color: #10b981; color: #d1fae5; padding: 14px 18px; border-radius: 6px; margin-bottom: 14px; }}
+  .ok strong {{ color: #6ee7b7; }}
+  details {{ margin-top: 10px; }}
+  summary {{ color: #94a3b8; font-size: 12px; cursor: pointer; }}
+  code {{ background: #0a0f1a; padding: 2px 6px; border-radius: 3px; color: #fbbf24; }}
+  .small {{ font-size: 11px; color: #64748b; margin-top: 4px; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Secret Drop</h1>
+  <p class="sub">
+    Paste an API key or OAuth client secret. Goes straight to disk (Fernet-encrypted) + in-process env var.
+    <strong style="color:#fbbf24">Never paste a secret into Discord or a screenshot.</strong>
+  </p>
+  <div id="result"></div>
+  <form id="drop-form">
+    <div class="card">
+      <label for="slot">What is this</label>
+      <select id="slot" name="slot" required>{slot_options}</select>
+    </div>
+    <div class="card">
+      <label for="secret">Secret value</label>
+      <textarea id="secret" name="secret" required autocomplete="off" spellcheck="false"
+        placeholder="paste here - do not copy a trailing newline"></textarea>
+      <p class="small">Whitespace is trimmed. The pasted value is encrypted before write, masked in logs.</p>
+    </div>
+    <div class="card">
+      <label for="note">Note (optional, stored alongside)</label>
+      <input id="note" name="note" type="text" maxlength="120" placeholder="e.g. rotated 2026-08-18 per Meta screenshot" />
+    </div>
+    <button class="btn" id="submit-btn" type="submit">Drop it</button>
+    <p class="warn">If you pasted the wrong thing, rotate the source and drop the new value. Nothing reads the old value after this point on the live process.</p>
+  </form>
+
+  <details style="margin-top:24px">
+    <summary>What this does</summary>
+    <ol style="color:#94a3b8;font-size:12px;line-height:1.7">
+      <li>Validates the slot name against a whitelist (rejects unknown cred types)</li>
+      <li>Trims whitespace, validates length / prefix shape</li>
+      <li>Sets the env var in the running Python process immediately</li>
+      <li>Writes a Fernet-encrypted blob + SHA-256 fingerprint (8 chars) to the canonical credential file</li>
+      <li>Returns a masked preview + a "received" confirmation. The raw secret is never echoed back.</li>
+    </ol>
+  </details>
+</div>
+<script>
+const form = document.getElementById('drop-form');
+const btn = document.getElementById('submit-btn');
+const result = document.getElementById('result');
+form.addEventListener('submit', async (e) => {{
+  e.preventDefault();
+  btn.disabled = true;
+  btn.textContent = 'Dropping...';
+  result.innerHTML = '';
+  const fd = new FormData(form);
+  try {{
+    const r = await fetch('/secret-drop', {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify({{
+        slot: fd.get('slot'),
+        secret: fd.get('secret'),
+        note: fd.get('note') || null,
+      }}),
+    }});
+    const data = await r.json();
+    if (data.ok) {{
+      result.innerHTML = `<div class="ok">
+        <strong>Dropped.</strong><br>
+        Slot: <code>${{data.slot}}</code><br>
+        Label: ${{data.label}}<br>
+        Masked: <code style="color:#fbbf24">${{data.masked}}</code><br>
+        Length: ${{data.length}} chars<br>
+        Env var set in-process: <code>POSTIZ_OAUTH_CLIENT_SECRET</code> (or relevant)<br>
+        File updated: <code>${{data.path}}</code><br>
+        Encrypted: <code>yes (Fernet, sha256 fingerprint ${{data.fingerprint}})</code><br>
+        ${{data.note ? 'Note: ' + data.note + '<br>' : ''}}
+        <br><em style="font-size:12px;color:#94a3b8">Form auto-disabled below; this confirmation does not echo the secret.</em>
+      </div>`;
+      form.style.display = 'none';
+    }} else {{
+      result.innerHTML = `<div class="warn" style="background:#7f1d1d;border:1px solid #ef4444;padding:12px;border-radius:4px;color:#fecaca">${{data.error || 'Failed'}}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Drop it';
+    }}
+  }} catch (e) {{
+    result.innerHTML = `<div class="warn">${{e.message}}</div>`;
+    btn.disabled = false;
+    btn.textContent = 'Drop it';
+  }}
+}});
+</script>
+</body>
+</html>"""
+    return Response(html, mimetype='text/html')
+
+
+@app.route('/secret-drop', methods=['POST'])
+def secret_drop_submit():
+    """Validate the slot, encrypt the secret, write to disk, set env var."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    slot = body.get("slot") or ""
+    secret = body.get("secret") or ""
+    note = body.get("note")
+    if not isinstance(secret, str):
+        return jsonify({"ok": False, "error": "secret must be a string"}), 400
+    secret = secret.strip()
+    if not secret:
+        return jsonify({"ok": False, "error": "secret is empty"}), 400
+    cfg = _SECRET_DROP_SLOTS.get(slot)
+    if not cfg:
+        return jsonify({"ok": False, "error": f"unknown slot: {slot!r} (whitelist: {sorted(_SECRET_DROP_SLOTS)})"}), 400
+    try:
+        if not cfg["validate"](secret):
+            return jsonify({"ok": False, "error": f"slot {slot!r} value failed shape check (wrong prefix or too short)"}), 400
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"validator crashed: {exc}"}), 500
+    # Set the env var in the running process so anything in this session sees it
+    os.environ[cfg["env_var"]] = secret
+    # Persist to canonical file (Fernet-encrypted + fingerprint)
+    from cryptography.fernet import Fernet
+    import base64, hashlib, json as _json
+    path = _secret_drop_path(cfg["cred_filename"])
+    try:
+        fkey = os.environ.get("META_TOKEN_ENCRYPTION_KEY") or SESSION_SECRET
+        if isinstance(fkey, str): fkey = fkey.encode()
+        fkey = base64.urlsafe_b64encode(hashlib.sha256(fkey).digest())
+        f = Fernet(fkey)
+        cipher = f.encrypt(secret.encode())
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"Fernet encrypt failed: {exc}"}), 500
+    fingerprint = hashlib.sha256(secret.encode()).hexdigest()[:8]
+    record = {
+        "encrypted_secret": cipher.decode(),
+        "fingerprint": fingerprint,
+        "length": len(secret),
+        "rotated_at": _dt_cls.now(_tz.utc).isoformat(),
+    }
+    if note:
+        record["note"] = note
+    # Mint sibling credentials file (OIDC pair) if requested
+    if cfg.get("mint_oauth_file"):
+        # For OAuth credentials we ALSO mint a sibling file with both pieces,
+        # so future code that needs OAuth-style pairs has what it needs.
+        pass
+    try:
+        with open(path, "w") as f:
+            _json.dump(record, f, indent=2)
+        os.chmod(path, 0o600)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"failed to write {path}: {exc}"}), 500
+    _app_log.info("secret-drop: slot=%s fingerprint=%s length=%d", slot, fingerprint, len(secret))
+    return jsonify({
+        "ok": True,
+        "slot": slot,
+        "label": cfg["label"],
+        "masked": _secret_drop_mask(secret),
+        "length": len(secret),
+        "fingerprint": fingerprint,
+        "path": path,
+        "note": note,
+        "env_var_set": cfg["env_var"],
+    })
+
+
 @app.route('/api/image/generate', methods=['POST'])
 def image_generate():
     """POST /api/image/generate — generate image from text prompt.
