@@ -1,32 +1,32 @@
 {
-  "lastUpdated": "2026-08-19T04:00:07.776Z",
+  "lastUpdated": "2026-08-19T10:00:06.375Z",
   "source": "automated",
   "website": {
-    "activeUsers": 634,
-    "sessions": 768,
-    "pageViews": 1203,
-    "avgSessionSeconds": 110.58933177083333,
-    "bounceRate": 0.59375,
+    "activeUsers": 653,
+    "sessions": 797,
+    "pageViews": 1269,
+    "avgSessionSeconds": 114.30686302132997,
+    "bounceRate": 0.5420326223337516,
     "topPages": [
       {
         "path": "/",
-        "views": 668
+        "views": 700
       },
       {
         "path": "/bookings/",
-        "views": 238
+        "views": 259
       },
       {
         "path": "/customer-portal/",
-        "views": 103
+        "views": 109
       },
       {
         "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
-        "views": 68
+        "views": 72
       },
       {
         "path": "/club-fitting/",
-        "views": 57
+        "views": 58
       },
       {
         "path": "/philosophy/",
@@ -34,14 +34,14 @@
       },
       {
         "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
-        "views": 13
-      },
-      {
-        "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-        "views": 8
+        "views": 14
       },
       {
         "path": "/membership/",
+        "views": 9
+      },
+      {
+        "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
         "views": 8
       },
       {
@@ -52,23 +52,23 @@
     "topSources": [
       {
         "source": "google",
-        "sessions": 276
+        "sessions": 289
       },
       {
         "source": "fb",
-        "sessions": 240
+        "sessions": 251
       },
       {
         "source": "(direct)",
-        "sessions": 124
+        "sessions": 130
       },
       {
         "source": "clublab.app",
-        "sessions": 59
+        "sessions": 64
       },
       {
         "source": "(not set)",
-        "sessions": 51
+        "sessions": 14
       },
       {
         "source": "facebook",
@@ -79,12 +79,12 @@
         "sessions": 9
       },
       {
-        "source": "chatgpt.com",
-        "sessions": 6
+        "source": "(data not available)",
+        "sessions": 8
       },
       {
-        "source": "(data not available)",
-        "sessions": 5
+        "source": "chatgpt.com",
+        "sessions": 6
       },
       {
         "source": "instagram",
@@ -94,11 +94,11 @@
     "devices": [
       {
         "device": "mobile",
-        "sessions": 596
+        "sessions": 617
       },
       {
         "device": "desktop",
-        "sessions": 166
+        "sessions": 174
       },
       {
         "device": "tablet",
