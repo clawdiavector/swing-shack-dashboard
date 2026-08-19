@@ -2270,3 +2270,53 @@ The test helper `_section_block(sec_id)` returns the static `<section>...</secti
 **Learned:** Eight sections (Ideas, Library, Performance, Calendar, Trends, Image Gen, Meme Lord, Hook Bank, Billboard Lab) now follow the `<span class="sub" id="X-summary" data-help data-help-title>` pattern — Billboard Lab is the 9th. Five "JS overwrite" sections (Calendar, Meme Lord, Hook Bank, Library, Billboard Lab) all need a non-trivial `test_07` that locks BOTH the static fallback (>1 char) AND the JS overwrite contract. Worth noting: `bb-summary` has TWO JS overwrite callsites (line 9823 sets `b.summary` once the API responds, line 9849 overwrites again with `${r.count} freshly generated · ${b.summary || ''}` after a manual Generate) — the second writes the cumulative freshly-generated count into the same span, which the static fallback must NOT lock against (the post-generate overwrite is honest, useful, and references the API's previous summary as a sibling). The static fallback only matters for the brief window between section render and first API response.
 
 **Next pick:** (a) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden (Performance, Hook Bank, Capture rows all leak status/owner/schema fields through the generic renderer). (b) Hashtags+SEO sub `+` vs `and` drift — quick fix but low value. (c) `socials-summary` `—` placeholder (10th section in the static-sub pattern series). 7 remaining `—` placeholders total: review-summary, gmb-summary, publish-summary, bb-summary (DONE), socials-summary, head-summary (Headlines), cta-summary (CTAs), postiz-summary, camp-summary (Campaigns).
+
+---
+
+**Tick 2026-08-19T20:59:35Z — Insights ad-correlation verdicts: no em-dashes, spend formatted as Rands (commits `94c0a46` + `cddb236`, on `feat/asset-state-engine`, Railway auto-deployed, LIVE post-deploy verified):**
+
+**Pick rationale:** Walker sweep found 33 em-dashes inside the Insights ad-correlation card (20 Meta verdicts + 16 Google verdicts, all server-rendered by `campaign-os/_lib/insights_correlator.py`). Walker-reported Insight EMDASH=1 was the page-body count, not the API-served verdict count — the per-card verdict strings slip past the body-walker pattern because the card body text is replaced wholesale when the API responds. Picked this over the 9-section static-sub pattern series (last tick shipped `bb-summary`) because it's a real, user-visible copy violation, not a placeholder pattern.
+
+**Bug shape (live-captured before fix):**
+- `Campaign 'Coach Cat takes us through a simple process on getting into ' spent 1.5 and drove — clicks to /. GA4 shows 370 sessions on that page (clicks were 0.0% of sessions) - R0.0 per session.`
+- Two issues in one string: (a) `spent 1.5` without a currency prefix reads as a typo, not Rands; (b) `drove —` + `— clicks to /` + `- R0.0 per session` are three em-dash / typographic-dash leaks inside one line, repeated across 36 server-rendered verdict strings.
+
+**Fix (template + tests):**
+- `campaign-os/_lib/insights_correlator.py` (+24/-8 lines around the verdict f-string block): missing-spend placeholder is now the word `unknown spend` (was the typographic em-dash). Missing-clicks placeholder is now `unknown clicks`. Present spend is prefixed `R{spend}` so `1.5` reads as `R1.5`. The `- R{cps} per session` hyphen separator became ` · R{cps} per session` (mid-dot, same separator pattern the rest of the dashboard uses). The `tracking gap — low-traffic URL` em-dash also became a mid-dot. Verdict block stays ASCII-safe.
+- `campaign-os/tests/test_v2026_08_19_ad_correlation_no_emdashes.py` (NEW, 6 tests, 6 pinning assertions).
+- `REBUILD_TRIGGER.txt` (separate nudge commit `cddb236`; `git_synced` health field stayed false for the first probe, the nudge commit pulled it through).
+
+**New regression test (6 tests, all green):**
+1. `test_01_no_emdash_literal_in_verdict_block` — no U+2014 anywhere in the verdict f-string block (anchored on `# Verdict string:` comment, walks to `verdicts.append({`)
+2. `test_02_no_emdash_fallback_pattern` — no `or '—'` or `or "—"` fallback (the broken template pattern)
+3. `test_03_spend_includes_currency_prefix` — `R{spend}` regex match present
+4. `test_04_unknown_spend_placeholder_present` — literal `unknown spend` string present
+5. `test_05_unknown_clicks_placeholder_present` — literal `unknown clicks` string present
+6. `test_06_tracking_gap_message_no_emdash` — `tracking gap or a low-traffic URL` preserved, no U+2014 in the block
+
+**Playwright LIVE verification (commits `94c0a46` + `cddb236` served on Railway, password-auth flow, tour auto-suppressed):**
+- Meta verdicts: 20 (count unchanged). Em-dashes: 33 → **0**.
+- Google verdicts: 16 (count unchanged). Em-dashes included: **0**.
+- Sample post-fix Google verdict: `Campaign 'Swing Shack Paid Search (202410)' spent R117.5 and drove 47 clicks to /. GA4 shows 370 sessions on that page (clicks were 12.7% of sessions) · R0.32 per session.`
+- Sample post-fix Meta verdict: `Campaign 'Coach Cat takes us through a simple process on getting into ' spent R1.5 and drove 0 clicks to /. GA4 shows 370 sessions on that page (clicks were 0.0% of sessions) · R0.0 per session.`
+- 0 page errors, 0 console errors, 0 net failures. `/api/health` 200 OK.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_20260819T205827Z_insights_adblock_after.png` — Insights tab scrolled to `ins-ad-block`, 16 Google Ads verdict strings all reading `spent R…` with mid-dot separators, zero em-dashes visible.
+
+**Files (3, +176/-11):**
+- `campaign-os/_lib/insights_correlator.py` (+24/-8): verdict-block comment + 3 f-strings + spend/clicks helper lines.
+- `campaign-os/tests/test_v2026_08_19_ad_correlation_no_emdashes.py` (NEW, 167 lines, 6 tests).
+- `REBUILD_TRIGGER.txt` (separate nudge commit, +1/-1).
+
+**Commits (all on `feat/asset-state-engine`, pushed, Railway auto-deployed):**
+- `94c0a46` — fix(insights): ad-correlation verdicts drop em-dashes + format spend as Rands
+- `cddb236` — chore: nudge Railway rebuild for insights verdicts fix (94c0a46)
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (locked by test_01 + test_06), 0 NEW deps, 0 auth/gates touched, 0 secrets read, 0 Meta credential access. Renderer-only template + new test + nudge.
+
+**Pre-existing failure (NOT introduced by this tick, NOT fixed in this tick):** `test_v2026_08_12_no_emdashes_insights_v2_chrome::test_08_all_static_h3_datahelp_emdash_free` still fails on an unrelated em-dash in a `<h3 data-help="...">` attribute on the Insights v2 chrome (text: "This card used to live on the home (brief) page but it was hiding the actual marketing recommendation — moved here…"). Verified by `git stash` + re-run: fails identically on a clean tree. Different lane (static-help-copy, not server-rendered verdict strings). Out of scope; flagged as the next-next pick.
+
+**Learned:** Walker-reported body-text em-dash counts undercount real copy violations in two ways: (a) body-text scanners miss server-rendered card content that only materializes after the API responds (the ad-correlation block is empty until `/api/insights/ad-correlation` resolves); (b) the walker counts each surface once, but the same template renders N times on a section. Fix the template, not the per-render copy. Also: `git_synced: false` on `/api/health` after a deploy means Railway hasn't pulled the commit yet — `REBUILD_TRIGGER.txt` nudge commit is the standard fix.
+
+**Next pick:** (a) Pre-existing em-dash on `insights v2 chrome h3 data-help` (test_v2026_08_12::test_08) — small renderer-only fix, ~1 line. (b) `socials-summary` `—` placeholder (10th section in the static-sub pattern series — billboard sub was the 9th). (c) Hashtags+SEO sub `+` vs `and` drift.
