@@ -2012,3 +2012,50 @@ The test helper `_section_block(sec_id)` returns the static `<section>...</secti
 (b) Image Generation sub: currently `Provider-ready prompt specs: Ideogram · DALL-E · Midjourney · Stable Diffusion` doesn't list the actual prompt structure (`Subject · Setting · Lighting · Mood · Composition · Style`). Adding that would help a first-time visitor know what to expect.
 (c) Caption Studio sub: already good (`Pick voice + tone → generate · regenerate · test`). Skip.
 (d) `itemHtml()` debug-token scrub — still unaddressed from the 02:13Z tick. Status/owner/schema fields leak through generic renderer on Performance, Hook Bank, and Capture rows. Bigger lift — needs new `pretty()` helpers per row type.
+
+---
+
+**Tick 2026-08-19 13:00 UTC — Trends static sub mirrors actual surface (commit `438e846`, atomic, pushed; Railway nudge commit `5fa003b`, LIVE post-deploy verified):**
+
+**Pick rationale:** This was the (a) candidate flagged at the end of the previous (Calendar) tick — the Trends section header was a tag list that didn't describe the surface. The same static-sub pattern as 1b0869c (Ideas/Library) and a2c7692 (Performance) and ee5ae13 (Calendar) applies cleanly.
+
+**Fix (renderer-only text update + anchors):**
+- `campaign-os/campaign-os.html` sec-trends sub (`+1/-1`): replaced the tag-list `Marketing · Golf News · Competitors` with the descriptive `Signal radar (scored 0 to 100) · Reddit trends · YouTube signals · Golf news · Competitor moves · 1-line why-now on each`. Added `id="tr-summary"` (future-proof anchor, no JS overwrite path exists today) and `data-help=` + `data-help-title=` for next-editor context. The old label is preserved INSIDE the data-help attr as a "what we replaced" breadcrumb so future readers see why the line exists.
+- `campaign-os/tests/test_v2026_08_19_trends_sub_mirrors_actual_cards.py` (NEW, 7 tests, 188 lines).
+- `campaign-os/tests/walk_trends_sub_fix.py` (NEW, Playwright walker for live verification).
+- `REBUILD_TRIGGER.txt` (separate commit `5fa003b`, nudges Railway to pick up commit `438e846`).
+
+**New regression test (`test_v2026_08_19_trends_sub_mirrors_actual_cards.py`, 7 tests, all green):**
+1. `test_01_old_tag_list_sub_is_gone` — old label no longer appears as the visible sub text content (it survives inside data-help as a breadcrumb only)
+2. `test_02_new_descriptive_sub_lists_every_visible_card` — sub contains `Signal radar`, `Reddit`, `YouTube`, `Golf news`, `Competitor moves`, `1-line why-now`, `0 to 100`
+3. `test_03_sub_uses_standard_pattern` — wrapped in `<span class="sub" id="tr-summary" …>` with the data-help-title attribute
+4. `test_04_sub_has_data_help` — `data-help=` AND `data-help-title=` attributes present
+5. `test_05_sub_no_em_dash` — no U+2014 / U+2013 (standing rule)
+6. `test_06_sub_uses_middot_separator` — uses · (U+00B7), 4+ middots separating the 5 items
+7. `test_07_no_js_textContent_overwrite_on_tr_summary` — no `getElementById('#tr-summary').textContent` (or similar jQuery / direct-property) overwrite exists anywhere in the file, unlike Calendar which has a dynamic summary slot. Documents that this static sub IS the steady-state description, and prevents the next editor from adding a JS overwrite without a fallback.
+
+**Playwright LIVE verification (commit `438e846` served on Railway, password-auth flow, welcome tour dismissed, sidebar nav expanded, scrolled to Trends):**
+- `LIVE SUB: {found: True, text: 'Signal radar (scored 0 to 100) · Reddit trends · YouTube signals · Golf news · Competitor moves · 1-line why-now on each', has_data_help: True, has_data_help_title: True, data_help_title: 'What is in this section'}` — exactly the expected new text + anchors.
+- Trends section-h visible, 0 page errors, 0 console errors. `/api/health` 200.
+- Sub-card h3 titles found in Trends: `Signal radar`, `Reddit trends`, `YouTube signals`, `Golf news`, `Competitor moves` — all 5 sub-cards the new sub lists are actually rendered on the page (sub-text matches cards).
+
+**Screenshot (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_trends_sub_20260819T130048Z.png` — Trends section showing the new sub `Signal radar (scored 0 to 100) · Reddit trends · YouTube signals · Golf news · Competitor moves · 1-line why-now on each` + the v2 · scored signals badge + the Signal radar full-width card on top + the 2x2 grid of 4 source panels below.
+
+**Files (2, +201/-1):**
+- `campaign-os/campaign-os.html` (+1/-1): one `<span class="sub">…</span>` line replaced (id + data-help + text content).
+- `campaign-os/tests/test_v2026_08_19_trends_sub_mirrors_actual_cards.py` (NEW, 7 tests, 188 lines).
+- `campaign-os/tests/walk_trends_sub_fix.py` (NEW, Playwright walker; ~125 lines — run via `.venv/bin/python3 campaign-os/tests/walk_trends_sub_fix.py`).
+- `REBUILD_TRIGGER.txt` (separate nudge commit `5fa003b`, +1/-1).
+
+**Commits (both on `feat/asset-state-engine`, pushed, Railway auto-deployed):**
+- `438e846` — fix(trends): sub mirrors actual surface (signal radar + 4 source panels + scoring) — atomic, the actual fix
+- `5fa003b` — chore: nudge Railway rebuild for trends sub fix (438e846) — bumps REBUILD_TRIGGER.txt so Railway rebuild picks up 438e846
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via test_05), 0 NEW deps, 0 auth/gates touched. Renderer-only sub-text update + new test + new walker.
+
+**Pre-existing failures (still there, unrelated to this tick):** `test_v2026_08_12_no_emdashes_section_subheaders.test_01_hashtagseo_post_fix_present` (Hashtags+SEO sub still uses `+` not `and`), and `test_v2026_08_19_seo_score_no_clamp` + `test_v2026_08_19_review_row_brand_pill` (both fail at `setUpClass` with `OSError: Read-only file system: '/data'` because `app.py` calls `os.makedirs('/data/...')` on read-only env). None caused by this tick.
+
+**Learned:** Four sections (Ideas, Library, Performance, Calendar, Trends) now follow the `<span class="sub" id="X-summary" data-help data-help-title>` pattern. The subtle difference between Trends and Calendar: Calendar has a JS-overwrite path (live counts replace the static fallback after `renderCalendar()` resolves), Trends has no overwrite path so the static sub IS the steady-state. Documenting this in `test_07_no_js_textContent_overwrite_on_tr_summary` makes the contract explicit — the next editor who tries to add a JS overwrite without a fallback will get a red test. Also: when writing a Playwright walker for a section, scroll the section into view BEFORE the screenshot so the captured frame centers on what you fixed (not the global header). The walker saves 2 minutes of post-capture confusion.
+
+**Next pick:** (a) Image Generation sub — add the actual prompt structure (`Subject · Setting · Lighting · Mood · Composition · Style`) to the current `Provider-ready prompt specs: Ideogram · DALL-E · Midjourney · Stable Diffusion` so a first-time visitor knows what the prompt fields look like. Smallest possible lift after Trends. (b) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden. (c) Hashtags+SEO sub `+` vs `and` drift — quick fix but low value.
