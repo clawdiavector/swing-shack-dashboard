@@ -3950,6 +3950,15 @@ const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+// Decode common HTML entities that arrive already-encoded in upstream
+// feeds (YouTube titles, Reddit flair, some news scrapers). Without this,
+// strings like "DO&#39;S &amp; DON&#39;TS" render literally instead of as
+// "DO'S & DON'TS" after esc() re-escapes the &. Keep it tiny and
+// allow-listed — we only decode the entities that show up in real feeds,
+// not arbitrary HTML. Used by renderYT + the right-rail hot-trend pill.
+const _HTML_ENT = {"&amp;":"&","&lt;":"<","&gt;":">","&quot;":String.fromCharCode(34),"&#39;":String.fromCharCode(39),"&apos;":String.fromCharCode(39),"&nbsp;":String.fromCharCode(160)};
+const decodeHtml = s => String(s ?? '').replace(/&(?:amp|lt|gt|quot|apos|#39|nbsp);/g, m => _HTML_ENT[m] || m);
+
 // ─── SAFE MARKDOWN RENDERER ───────────────────────────────────────────
 // Renders the brand read-style panels (readme / tone_rules /
 // do_say_dont_say / headlines / ctas / examples). Input is plain text
@@ -7194,7 +7203,7 @@ async function renderBrief(){
           <span class="muted brief-more-signals-toggle" style="margin-left:auto;font-size:12px"><span class="when-closed">click to expand</span><span class="when-open">click to collapse</span></span>
         </summary>
         <div class="grid" style="padding:0 1rem 1rem 1rem">
-          <div class="card col-12" style="margin:0"><div class="card-h"><h3 data-help="The freshest live signals across every source the agent watches: Reddit threads, YouTube golf creators, golf news, competitor moves. Each pill is a 1-line headline with its source. Use this as the temperature check. If a signal here matches a brand pillar, it is worth a Post today slot." data-help-title="Hot right now">🔥 Hot right now</h3><span class="h-meta">Live signals</span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap">${hotTrend.length?hotTrend.map(t => `<span class="pill ${t.kind==='reddit'?'live':t.kind==='youtube'?'warn':'on'}">${esc(t.kind)} · ${esc(t.t.slice(0,60))}</span>`).join(''):'<span class="muted">No signals right now</span>'}</div></div>
+          <div class="card col-12" style="margin:0"><div class="card-h"><h3 data-help="The freshest live signals across every source the agent watches: Reddit threads, YouTube golf creators, golf news, competitor moves. Each pill is a 1-line headline with its source. Use this as the temperature check. If a signal here matches a brand pillar, it is worth a Post today slot." data-help-title="Hot right now">🔥 Hot right now</h3><span class="h-meta">Live signals</span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap">${hotTrend.length?hotTrend.map(t => `<span class="pill ${t.kind==='reddit'?'live':t.kind==='youtube'?'warn':'on'}">${esc(t.kind)} · ${esc(decodeHtml(t.t).slice(0,60))}</span>`).join(''):'<span class="muted">No signals right now</span>'}</div></div>
 
           <div class="card col-6" style="margin:0"><div class="card-h"><h3 data-help="Trends that already peaked and the brand did not post. The cost of a missed opportunity compounds: the next time the trend recycles, the brand is late again. Pick one retroactively and rewrite with fresh angles." data-help-title="High-impact misses">⚠️ High-impact misses</h3></div><ul class="list">${missed.map(itemHtml).join('') || '<li class="empty">No missed opportunities</li>'}</ul></div>
 
@@ -8689,9 +8698,13 @@ async function renderTrends(){
       }
       return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''} ${agePill}</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}">Use →</button></div></li>`;
     }
-    const title = it.title || it.headline || it.name || it.theme || it.angle || it.change || it.summary || it.suggested_angle || it.trend_pain_point || it.thread_topic || it.body || it.text || JSON.stringify(it).slice(0,80);
+    // decodeHtml first - YouTube / Reddit / some news feeds arrive with
+    // already-encoded entities (e.g. "DO&#39;S &amp; DON&#39;TS") and we
+    // would otherwise re-escape the & to show literal &#39; in the UI.
+    const rawTitle = it.title || it.headline || it.name || it.theme || it.angle || it.change || it.summary || it.suggested_angle || it.trend_pain_point || it.thread_topic || it.body || it.text || JSON.stringify(it).slice(0,80);
+    const title = decodeHtml(rawTitle);
     const src = it._src ? it._src.replace(/_/g,' ') : (it.kind || it.source || '');
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${src?`<div class="li-meta"><span class="muted">${esc(src)}</span></div>`:''}</div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(title).slice(0,80))}">Use →</button></div></li>`;
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${src?`<div class="li-meta"><span class="muted">${esc(src)}</span></div>`:''}</div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(title.slice(0,80))}">Use →</button></div></li>`;
   }).join('') || emptyMsg(src || 'this source');
   $('#tr-reddit').innerHTML = renderYT(t.reddit, 'reddit');
   $('#tr-yt').innerHTML = renderYT(t.youtube, 'youtube');
