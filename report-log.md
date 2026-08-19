@@ -1880,3 +1880,52 @@ Also skipped the row date span when updatedAt is null so the 35 campaign-generat
 **Learned:** The previous nightshift's "next pick (c)" was "Review queue still shows Takomo 101T items despite the active brand being Swing Shack". Investigated: Takomo 101T *is* a Swing Shack campaign (4 campaigns owned by swing-shack include takomo-101t). So not a brand-scope leak — all 41 rows are correctly Swing Shack's. The real UX gap is that rows never show a brand pill (backend `review_inbox()` doesn't include a `brand` field on each row, so `prettyBrand` always empty) and the pending breakdown didn't tell users that the visible rows were the stale-at-top slice. This tick only fixed the stale-at-top clarity; the brand-pill gap remains as a follow-up.
 
 **Next pick:** (a) `review_inbox()` should include the `brand` field per row so the brand pill renders and users can tell at a glance which campaign/brand each draft belongs to (4 lines in `_lib/intelligence.py`). (b) Walker couldn't reach nav items inside collapsed nav groups (Build/Insight/Reach/External/All-Tools) — `data-go` elements are `display:none` until the group is expanded; walker needs an "expand all groups before click" pre-step. (c) Welcome modal blocks first-run visitor navigation for ~600ms on every fresh load (mitigated by `localStorage.cos.tour.skipped`); consider collapsing the setTimeout to 0 once the page boot is settled.
+
+---
+
+## 2026-08-19 — 10:14 UTC — fix(section-subs): Opportunities + Library sub-heads mirror their actual sub-cards (1b0869c)
+
+**Done:** Walked every Campaign OS section via Playwright and compared the static `<span class="sub">` line under each section heading to the actual `<h3>` cards on the page. Found two sections whose sub-head listed a stale subset of the surface:
+
+1. **Opportunities (sec-ideas)** — sub said `Ideas · missed · upsell · bundles · funnel leaks` (5 of 9). Page actually has 9 cards: opportunity-detector (auto-picked), Just generated, Content ideas, Post today, This week, Missed, Upsells, Bundles, Funnel leaks, Landing-page fixes.
+2. **Library (sec-library)** — sub said `Everything you've already made: approved captions, generated memes, generated images. Search or filter.` (mentions 3 of 9). Page actually has 3 quick-launch tiles (Visual Library, Meme Lab, universal search) + 6 tabs (Recently generated, Approved assets, Captions, Hooks, Memes, Images).
+
+A first-time visitor who read the sub then scrolled would be surprised by 4-5 extra surfaces they didn't know were there. The sub-head is the first thing the user reads to know what a section is for, so the gap is a small but real UX bug.
+
+**Fix (commit `1b0869c`, atomic, pushed, Railway auto-deployed, LIVE post-deploy verified):**
+- `campaign-os/campaign-os.html` `sec-ideas` `<span class="sub">` (`+1/-1`): new copy lists all 8 idea sub-cards (omits opportunity-detector because it's data-driven and not always shown).
+- `campaign-os/campaign-os.html` `renderLibrary()` template (`+1/-1`): new copy lists all 6 tabs + 3 quick-launch tiles.
+- Both new subs carry `data-help` + `data-help-title` so the next editor sees why the line exists and can refresh it if the surface changes.
+
+**New regression test (`campaign-os/tests/test_v2026_08_19_section_sub_matches_actual_cards.py`, 10 tests, all green):**
+1. `test_01_ideas_sub_lists_all_eight_sub_cards` — Ideas sub contains the new 9-pillar string
+2. `test_02_library_sub_lists_all_six_tabs_plus_three_tiles` — Library sub contains the new 6-tabs + 3-tiles string
+3. `test_03_ideas_pre_fix_sub_is_gone` — pre-fix 5-pillar string removed
+4. `test_04_library_pre_fix_sub_is_gone` — pre-fix "approved captions, generated memes, generated images" string removed
+5. `test_05_ideas_sub_uses_standard_pattern` — wrapped in `<span class="sub">...</span>`
+6. `test_06_library_sub_uses_standard_pattern` — wrapped in `<span class="sub">...</span>`
+7. `test_07_ideas_sub_has_data_help` — carries `data-help` and `data-help-title`
+8. `test_08_library_sub_has_data_help` — carries `data-help` and `data-help-title`
+9. `test_09_ideas_sub_no_em_dash` — standing rule
+10. `test_10_library_sub_no_em_dash` — standing rule
+
+The test helper `_section_block(sec_id)` returns the static `<section>...</section>` body for static sections, and falls back to the body of the corresponding `render*()` JS function for dynamically-built sections (sec-library is built by `renderLibrary()` in a template literal, so the static block is empty). Walks braces to find the function body's end.
+
+**Verified (Playwright LIVE on Railway, post-deploy, password-auth flow):**
+- IDEAS_SUB: `Just generated · content ideas · post today · this week · missed · upsells · bundles · funnel leaks · landing-page fixes`
+- LIB_SUB: `6 tabs: generated · approved · captions · hooks · memes · images · plus Visual Library, Meme Lab, and universal search`
+- 0 pageerrors, 0 console errors. `/api/health` 200; deployed commit = `1b0869c`.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_ideas_sub_2026_08_19_20260819T081438Z.png` — Opportunities section, new sub visible
+- `/tmp/co-nightshift/walkthrough_library_sub_2026_08_19_20260819T081438Z.png` — Library section, new sub visible
+
+**Files (2, +195/-2):**
+- `campaign-os/campaign-os.html` (+2/-2): two `<span class="sub">` lines replaced.
+- `campaign-os/tests/test_v2026_08_19_section_sub_matches_actual_cards.py` (NEW, 10 tests, 193 lines).
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via the test), 0 NEW deps, 0 auth/gates touched. Renderer-only sub-text update + new test.
+
+**Learned:** Sub-headers are the cheapest "what is this section for" surface and they're frequently forgotten when sections grow. The helper-pattern in the new test (static-or-render-function fallback) means future audits can sweep every section without a Playwright session — read the file, compare the sub to the h3 list, done. Pattern: when a section grows past 5 sub-cards, refresh the sub to name them all; when a render function adds a new tile, refresh the corresponding sub. The `data-help` next-edit-pointer makes this self-documenting.
+
+**Next pick:** (a) Same audit for the 6 static subs that are still aspirational/categorical (Performance "What worked, what's leaking, what to scale" — the page actually has 4 stat cards + 5 content cards + Connect CTA + Why-explainer; the sub is more aspirational than descriptive). (b) Library "Meme Lord" section sub if any. (c) Calendar section-h is empty (only h2 + btn row), no sub at all — copy from the recently-shipped "section subtitle consistency" sweep is missing for Calendar.
