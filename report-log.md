@@ -2219,3 +2219,54 @@ The test helper `_section_block(sec_id)` returns the static `<section>...</secti
 **Learned:** Seven sections (Ideas, Library, Performance, Calendar, Trends, Image Gen, Meme Lord) now follow the `<span class="sub" id="X-summary" data-help data-help-title>` pattern. Three "JS overwrite" sections (Calendar, Meme Lord, Library) all need a non-trivial `test_07` that locks BOTH the static fallback AND the JS overwrite contract — i.e. the static fallback must stay meaningful (>1 char), AND the JS overwrite path must be acknowledged as the steady-state for that specific section. Documenting this in the docstring of the test makes the difference between "is overwrite present?" sections (Calendar: yes-overwrite, Meme Lord: yes-overwrite, Library: yes-overwrite) and "static-only" sections (Trends: no, Image Gen: no, Ideas/Performance: trivial overwrite or no) explicit for the next editor. Also: for screenshot-based walkers, suppress welcome tour via `ctx.add_init_script(localStorage.setItem)` BEFORE page load instead of `document.body.remove()` after load — the post-load approach nukes `brief-strip-txt` and crashes `renderBrief`, which then makes the whole screenshot a blank viewport. Sections are also `display: none` by default; only `.section.on` shows. The walker has to add `.on` to the target section explicitly to capture it.
 
 **Next pick:** (a) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden (Performance, Hook Bank, Capture rows all leak status/owner/schema fields through the generic renderer). (b) Hashtags+SEO sub `+` vs `and` drift — quick fix but low value. (c) Hook Bank (`sec-hooks`) section header — currently shows the section header + Generate button + `—` placeholder that gets JS-overwritten to "X hooks · Y in active buckets"; same static-sub pattern as the other 7 sections. Quick win.
+
+---
+
+**Tick 2026-08-19 17:34 UTC — Billboard Lab static sub mirrors actual surface (commits `d3d82df` + `da8bef1`, all on `feat/asset-state-engine`, Railway auto-deployed, LIVE post-deploy verified):**
+
+**Pick rationale:** Eight sections in the static-sub pattern series. The previous tick's "Next pick" listed Hook Bank as the next target, but Hook Bank was already shipped in commit `ccc7b40` (the "Next pick" note had gone stale). Picked Billboard Lab as the next clean target — its `bb-summary` was still a bare `—`, JS-overwrites on renderBillboards (line 9823 sets `b.summary`, line 9849 overwrites again post-generate), and the surface is small enough (2 cards + 1 button) to make the static fallback a true one-liner.
+
+**Fix (renderer-only text update + anchors + tests + walker):**
+- `campaign-os/campaign-os.html` bb-summary sub (`+1/-1`): replaced `—` with `Billboard concepts · Visual briefs · Generate 5 headlines · distance-read · brand-fit · 1-click lift to Review`. Added `data-help=` (long breadcrumb for next-editor) + `data-help-title="What is in this section"`. `id="bb-summary"` was already present.
+- `campaign-os/tests/test_v2026_08_19_billboard_sub_mirrors_actual_cards.py` (NEW, 7 tests, 173 lines).
+- `campaign-os/tests/walk_billboard_sub_fix.py` (NEW Playwright walker; 152 lines, copy of memes walker template).
+- `REBUILD_TRIGGER.txt` (separate nudge commit `da8bef1`).
+
+**New regression test (7 tests, all green):**
+1. `test_01_bb_sub_has_id` — `<span class="sub" id="bb-summary" ...>` anchor present
+2. `test_02_old_dash_placeholder_gone` — old `<span class="sub" id="bb-summary">—</span>` no longer present
+3. `test_03_sub_has_data_help` — `data-help=` AND `data-help-title=` present, title = "What is in this section"
+4. `test_04_sub_lists_visible_cards` — descriptive fallback includes every visible card + button (Billboard concepts · Visual briefs · Generate · distance-read · brand-fit · Review)
+5. `test_05_sub_no_em_dash` — no U+2014 / U+2013 (standing rule)
+6. `test_06_sub_uses_middot_separator` — uses · (U+00B7), 4+ middots (fallback uses 5)
+7. `test_07_no_js_textcontent_overwrite_on_bb_summary` — STATIC fallback longer than `—`, AND the JS overwrite path (renderBillboards line 9823 sets `b.summary`, line 9849 overwrites again post-generate) is documented so a future editor can't drop the static frame without realising the dynamic overwrite needs to keep firing
+
+**Playwright LIVE verification (commits `d3d82df` + `da8bef1` served on Railway, password-auth flow, tour auto-suppressed via localStorage init script, sec-billboards set to `.on` for screenshot):**
+
+*Post-API probe (dynamic overwrite fired, lock-in contract holds):*
+- `sub_text: "0 billboard concepts · 8 visual briefs"` — the JS overwrite took over exactly when the API responded
+- `section_visible: true` (after .on class added)
+- `has_data_help: true`, `has_data_help_title: true`, `data_help_title: "What is in this section"`
+- 2 sub-cards visible: `🪧 Concepts`, `🎨 Visual briefs`
+- 0 page errors, 0 console errors. `/api/health` 200 OK.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_billboard_sub_20260819T173344Z.png` — full-page with sec-billboards on, showing the dynamic sub + Generate 5 headline concepts button + both sub-cards
+- `/tmp/co-nightshift/walkthrough_billboard_sub_section_20260819T173344Z.png` — section-only screenshot showing the same surface
+
+**Files (3, +300/-1):**
+- `campaign-os/campaign-os.html` (+1/-1): one `<span class="sub">…</span>` line replaced (id preserved + data-help + data-help-title + descriptive text).
+- `campaign-os/tests/test_v2026_08_19_billboard_sub_mirrors_actual_cards.py` (NEW, 7 tests, 173 lines).
+- `campaign-os/tests/walk_billboard_sub_fix.py` (NEW Playwright walker; 152 lines, same init-script + .on toggle pattern as the memes walker).
+
+**Commits (all on `feat/asset-state-engine`, pushed, Railway auto-deployed):**
+- `d3d82df` — fix(billboards): sub mirrors actual surface (atomic, the actual fix)
+- `da8bef1` — chore: nudge Railway rebuild for billboards sub fix (d3d82df)
+
+**42-test recent-nightshift suite still green:** calendar_sub_mirrors (7) + trends_sub_mirrors (7) + imagegen_sub_mirrors (7) + memes_sub_mirrors (7) + hooks_sub_mirrors (7) + **billboard_sub_mirrors (7)**. No regressions.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via test_05), 0 NEW deps, 0 auth/gates touched. Renderer-only sub-text update + new test + new walker.
+
+**Learned:** Eight sections (Ideas, Library, Performance, Calendar, Trends, Image Gen, Meme Lord, Hook Bank, Billboard Lab) now follow the `<span class="sub" id="X-summary" data-help data-help-title>` pattern — Billboard Lab is the 9th. Five "JS overwrite" sections (Calendar, Meme Lord, Hook Bank, Library, Billboard Lab) all need a non-trivial `test_07` that locks BOTH the static fallback (>1 char) AND the JS overwrite contract. Worth noting: `bb-summary` has TWO JS overwrite callsites (line 9823 sets `b.summary` once the API responds, line 9849 overwrites again with `${r.count} freshly generated · ${b.summary || ''}` after a manual Generate) — the second writes the cumulative freshly-generated count into the same span, which the static fallback must NOT lock against (the post-generate overwrite is honest, useful, and references the API's previous summary as a sibling). The static fallback only matters for the brief window between section render and first API response.
+
+**Next pick:** (a) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden (Performance, Hook Bank, Capture rows all leak status/owner/schema fields through the generic renderer). (b) Hashtags+SEO sub `+` vs `and` drift — quick fix but low value. (c) `socials-summary` `—` placeholder (10th section in the static-sub pattern series). 7 remaining `—` placeholders total: review-summary, gmb-summary, publish-summary, bb-summary (DONE), socials-summary, head-summary (Headlines), cta-summary (CTAs), postiz-summary, camp-summary (Campaigns).
