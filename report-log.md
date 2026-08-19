@@ -1866,3 +1866,17 @@ Also skipped the row date span when updatedAt is null so the 35 campaign-generat
 **Learned:** The generic `itemHtml()` helper is convenient but every new caller is one debug-token leak away. Pattern worth adding to the existing checklist: before passing an item to `itemHtml()`, scrub fields that aren't meaningful to a marketing manager (status/owner/schema/opp_id/schema_url/etc.). Centralize this in `itemHtml` itself with a `_internal_only_keys` blocklist so future pages don't have to remember.
 
 **Next pick:** (a) `itemHtml()` debug-token scrub — same leak likely lurks on Performance, Hook Bank, and Capture rows where status/owner fields also exist. (b) Calendar "GENERATE NEW POST →" CTA — confirm it actually lands on a real section. (c) Review queue still shows "Takomo 101T" items despite the active brand being Swing Shack — brand-scope leak that survived the recent review_inbox fix.
+
+## 2026-08-19T04:38Z — fix(review-queue): breakdown surfaces 'X stale shown first' so the 6-rotting-rows-at-top isn't mistaken for the whole 41
+
+**Done:** The Pending sub-header on the Review queue was reporting "35 ready for review · 6 still drafting" — but the visible viewport was entirely 6 rows stamped "STALE 77D · 2026-06-02" because stale items are sorted to the top of the pending list. A first-time visitor would reasonably conclude the whole 41-pending queue was rotting at 77 days, when in reality only 6 were stale and 35 were fresh below the fold. The fix extends `#review-pending-breakdown` to include `· X stale shown first` whenever any pending row is stale, so the rows on screen match the header's count.
+
+**Verified live:** `https://swing-shack-dashboard-production.up.railway.app` Review tab now reads "⏳ Pending 41   35 ready for review · 6 still drafting · 6 stale shown first · Click an item to open". Active brand Swing Shack, 41 pending (35 ready, 6 drafting), 6 stale. Screenshot: `/tmp/co-nightshift/walkthrough_final.png`.
+
+**Files (1):** `campaign-os/campaign-os.html`. +11 / -1.
+
+**Commits:** `d2313ac` (fix) → `39ce513` (Railway rebuild nudge). Pushed to `feat/asset-state-engine`. Live on Railway within ~3 minutes.
+
+**Learned:** The previous nightshift's "next pick (c)" was "Review queue still shows Takomo 101T items despite the active brand being Swing Shack". Investigated: Takomo 101T *is* a Swing Shack campaign (4 campaigns owned by swing-shack include takomo-101t). So not a brand-scope leak — all 41 rows are correctly Swing Shack's. The real UX gap is that rows never show a brand pill (backend `review_inbox()` doesn't include a `brand` field on each row, so `prettyBrand` always empty) and the pending breakdown didn't tell users that the visible rows were the stale-at-top slice. This tick only fixed the stale-at-top clarity; the brand-pill gap remains as a follow-up.
+
+**Next pick:** (a) `review_inbox()` should include the `brand` field per row so the brand pill renders and users can tell at a glance which campaign/brand each draft belongs to (4 lines in `_lib/intelligence.py`). (b) Walker couldn't reach nav items inside collapsed nav groups (Build/Insight/Reach/External/All-Tools) — `data-go` elements are `display:none` until the group is expanded; walker needs an "expand all groups before click" pre-step. (c) Welcome modal blocks first-run visitor navigation for ~600ms on every fresh load (mitigated by `localStorage.cos.tour.skipped`); consider collapsing the setTimeout to 0 once the page boot is settled.
