@@ -2059,3 +2059,52 @@ The test helper `_section_block(sec_id)` returns the static `<section>...</secti
 **Learned:** Four sections (Ideas, Library, Performance, Calendar, Trends) now follow the `<span class="sub" id="X-summary" data-help data-help-title>` pattern. The subtle difference between Trends and Calendar: Calendar has a JS-overwrite path (live counts replace the static fallback after `renderCalendar()` resolves), Trends has no overwrite path so the static sub IS the steady-state. Documenting this in `test_07_no_js_textContent_overwrite_on_tr_summary` makes the contract explicit — the next editor who tries to add a JS overwrite without a fallback will get a red test. Also: when writing a Playwright walker for a section, scroll the section into view BEFORE the screenshot so the captured frame centers on what you fixed (not the global header). The walker saves 2 minutes of post-capture confusion.
 
 **Next pick:** (a) Image Generation sub — add the actual prompt structure (`Subject · Setting · Lighting · Mood · Composition · Style`) to the current `Provider-ready prompt specs: Ideogram · DALL-E · Midjourney · Stable Diffusion` so a first-time visitor knows what the prompt fields look like. Smallest possible lift after Trends. (b) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden. (c) Hashtags+SEO sub `+` vs `and` drift — quick fix but low value.
+
+---
+
+**Tick 2026-08-19 14:10 UTC — Image Generation static sub mirrors actual surface (commit `ef08893`, atomic, pushed; Railway nudge commit `5b50ee6`, LIVE post-deploy verified):**
+
+**Pick rationale:** This was the (a) candidate flagged at the end of the previous (Trends) tick — the Image Generation section header was a tag list of the 4 providers that didn't describe the surface. The same static-sub pattern as `1b0869c` (Ideas), `a2c7692` (Performance), `ee5ae13` (Calendar), and `438e846` (Trends) applies cleanly. Fifth section in the series.
+
+**Fix (renderer-only text update + anchors):**
+- `campaign-os/campaign-os.html` sec-imagegen sub (`+1/-1`): replaced the tag list `Provider-ready prompt specs: Ideogram · DALL-E · Midjourney · Stable Diffusion` with the descriptive `Visual Recipe from Brand Library · Prompt Spec (Reference · Negative · Colors · Platform · Composition · Hook) · 4 providers · brand-fit score`. Added `id="ig-summary"` (no JS overwrite path exists today — verified by `test_07`), `data-help=` and `data-help-title=` for next-editor context. The old label is preserved INSIDE the data-help attr as a "what we replaced" breadcrumb so future readers see why the line exists.
+- `campaign-os/tests/test_v2026_08_19_imagegen_sub_mirrors_actual_cards.py` (NEW, 7 tests, 187 lines).
+- `campaign-os/tests/walk_imagegen_sub_fix.py` (NEW, Playwright walker for live verification).
+- `REBUILD_TRIGGER.txt` (separate commit `5b50ee6`, nudges Railway to pick up commit `ef08893`).
+
+**New regression test (7 tests, all green):**
+1. `test_01_old_tag_list_sub_is_gone` — old "Provider-ready prompt specs" phrase no longer the visible sub text
+2. `test_02_new_descriptive_sub_lists_every_visible_card` — sub contains all 10 required phrases (Visual Recipe, Prompt Spec, Reference, Negative, Colors, Platform, Composition, Hook, 4 providers, brand-fit score)
+3. `test_03_sub_uses_standard_pattern` — wrapped in `<span class="sub" id="ig-summary" ...>`
+4. `test_04_sub_has_data_help` — `data-help=` AND `data-help-title=` attributes present, value = "What is in this section"
+5. `test_05_sub_no_em_dash` — no U+2014 / U+2013 (standing rule)
+6. `test_06_sub_uses_middot_separator` — uses · (U+00B7), 4+ middots
+7. `test_07_no_js_textContent_overwrite_on_ig_summary` — no `getElementById('ig-summary').textContent` or `$('#ig-summary').textContent` or `document.getElementById('ig-summary')` exists anywhere in the file; static sub IS the steady-state description (like Trends, unlike Calendar).
+
+**Playwright LIVE verification (commit `ef08893` served on Railway, password-auth flow, welcome tour dismissed, sidebar nav expanded, scrolled to Image Gen):**
+- `sub text: "Visual Recipe from Brand Library · Prompt Spec (Reference · Negative · Colors · Platform · Composition · Hook) · 4 providers · brand-fit score"` — exactly the expected new text
+- `has_data_help: True`, `has_data_help_title: True`, `data_help_title: "What is in this section"`
+- `Image Gen section-h visible: True`
+- Sub-card h3 titles found in Image Gen: `🎨 Visual Recipe from Brand Library` (with 122 approved images) + `Prompt Spec` — both cards the new sub lists are actually rendered on the page
+- 0 page errors, 0 console errors. `/api/health` 200, ts 2026-08-19T14:10:06Z.
+
+**Screenshot (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_imagegen_sub_20260819T141001Z.png` — Image Generation section showing the new sub (Visual Recipe + Prompt Spec with 6 sub-fields + 4 providers + brand-fit score) + the section header + the two sub-cards.
+
+**Files (3, +350/-1):**
+- `campaign-os/campaign-os.html` (+1/-1): one `<span class="sub">…</span>` line replaced (id + data-help + text content).
+- `campaign-os/tests/test_v2026_08_19_imagegen_sub_mirrors_actual_cards.py` (NEW, 7 tests, 187 lines).
+- `campaign-os/tests/walk_imagegen_sub_fix.py` (NEW, Playwright walker; ~145 lines).
+- `REBUILD_TRIGGER.txt` (separate nudge commit `5b50ee6`, +1/-1).
+
+**Commits (both on `feat/asset-state-engine`, pushed, Railway auto-deployed):**
+- `ef08893` — fix(imagegen): sub mirrors actual surface — atomic, the actual fix
+- `5b50ee6` — chore: nudge Railway rebuild for imagegen sub fix (ef08893) — bumps REBUILD_TRIGGER.txt so Railway picks up `ef08893`
+
+**Existing 21-test recent-nightshift suite still green:** calendar_sub_mirrors (7), trends_sub_mirrors (7), imagegen_sub_mirrors (7). No regressions.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via test_05), 0 NEW deps, 0 auth/gates touched. Renderer-only sub-text update + new test + new walker.
+
+**Learned:** Five sections (Ideas, Library, Performance, Calendar, Trends, Image Gen) now follow the `<span class="sub" id="X-summary" data-help data-help-title>` pattern. The two "no JS overwrite" sections (Trends, Image Gen) both lock that contract in `test_07`, and the one "has JS overwrite" section (Calendar) locks ITS contract in `test_07_js_overwrite_still_wired`. Together the three tests document the difference between the two sub-types for the next editor. The Pyright `reportOptionalMemberAccess` on `m.group(1)` is a known false positive in this codebase when `re.search` is followed by `assertIsNotNone(m, ...)` — the fix is to use `self.assertTrue(m, ...)` instead (Trends and Image Gen both use this idiom; Calendar uses the original `assertIsNotNone` and the Pyright warning persists there as a known-acceptable noise).
+
+**Next pick:** (a) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden (Performance, Hook Bank, Capture rows all leak status/owner/schema fields through the generic renderer). (b) Hashtags+SEO sub `+` vs `and` drift — quick fix but low value. (c) Hooks section-h sub — currently shows the kind of `Reddit` `YouTube` `FAQs` `Socials` tag list that Trends/Image Gen just fixed; could become `50+ categorized hooks · 6 source channels · ranked by 7-day engagement · one-click lift to brief`. Looks like the same pattern (c) of the nightshift menu again.
