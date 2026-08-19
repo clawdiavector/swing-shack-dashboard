@@ -6368,6 +6368,215 @@ def _asset_media_serve(filename):
     return send_from_directory(ASSET_MEDIA_DIR, safe)
 
 
+# ── Postiz routes (read-only verification + OAuth round-trip) ─────────────────
+# Built 2026-08-18 to unblock the long-standing ImportError on review_push_postiz
+# (app.py:6372 just below). The discipline here: status + channels are PURE
+# READS — they pass nothing to the destructive write path. OAuth login + callback
+# are the only routes that mutate state (the per-brand OAuth token file). The
+# import-only-once pattern avoids the hard-fail we used to hit on the legacy
+# `from _lib.postiz_client import postiz_create_post` call.
+_POSTIZ_CLIENT_AVAILABLE = True
+try:
+    from _lib import postiz_client as _postiz_lib  # type: ignore[assignment]
+except Exception as _exc:
+    _POSTIZ_CLIENT_AVAILABLE = False
+    _postiz_lib = None
+    _app_log.warning("postiz_client import failed: %s", _exc)
+
+# Every route that uses _postiz_lib first checks the bool guard and returns 503.
+# The local-block assertion below narrows the type for Pyright without changing
+# runtime behaviour — the runtime can only reach the assertion when the import
+# succeeded, so _postiz_lib is not None at that point.
+if _POSTIZ_CLIENT_AVAILABLE:
+    assert _postiz_lib is not None
+
+
+@app.route('/api/postiz/status', methods=['GET'])
+def postiz_status_route():
+    """GET /api/postiz/status — diagnostic snapshot of Postiz credentials.
+
+    Returns: {ok, api_key_present, api_key_length, api_key_prefix,
+              oauth_client_id_present, oauth_client_secret_present,
+              api_base, last_check, oauth_token_brands}
+
+    NEVER echoes the secret. NEVER calls the Postiz API. Safe to hit from
+    any authed session for a "is Postiz wired?" check.
+    """
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    status = _postiz_lib.postiz_status()
+    # Augment with per-brand OAuth token presence (read-only directory walk)
+    try:
+        path = Path(os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials/postiz-oauth"))
+        brands = []
+        if path.exists():
+            for fp in sorted(path.glob("*.json")):
+                rec = _safe_read_json(fp)
+                if rec:
+                    brands.append({
+                        "brand_id": fp.stem,
+                        "rotated_at": rec.get("rotated_at"),
+                        "expires_in": rec.get("expires_in"),
+                        "scope": rec.get("scope"),
+                        "fingerprint": rec.get("fingerprint"),
+                        "has_access_token": bool(rec.get("encrypted_tokens", {}).get("access_token")),
+                        "has_refresh_token": bool(rec.get("encrypted_tokens", {}).get("refresh_token")),
+                    })
+        status["oauth_token_brands"] = brands
+    except Exception as exc:
+        status["oauth_token_brands"] = []
+        status["oauth_token_dir_error"] = str(exc)
+    return jsonify(status), 200
+
+
+@app.route('/api/postiz/channels', methods=['GET'])
+def postiz_channels_route():
+    """GET /api/postiz/channels — list connected platforms under the API key.
+
+    Proxies Postiz's /public/v1/integrations so the OS can show "IG ✓, TikTok ✗"
+    without the user having to open Postiz. Cached for 60s to avoid burning
+    API quota on every page load.
+    """
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    status = _postiz_lib.postiz_status()
+    if not status["api_key_present"]:
+        return jsonify({"ok": False, "error": "POSTIZ_API_KEY not configured", "detail": status}), 503
+    try:
+        data, err = _postiz_lib.list_integrations()
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"transport error: {exc}"}), 502
+    if err:
+        code, msg = err
+        return jsonify({"ok": False, "error": f"postiz API {code}: {msg}"}), 502
+    # Normalise: Postiz may return {integrations: [...]} or {identities: [...]} or a bare list
+    items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or [])
+    if not isinstance(items, list):
+        items = []
+    # Reduce to a UI-friendly summary
+    channels = [
+        {
+            "id": it.get("id") or it.get("_id"),
+            "provider": it.get("providerIdentifier") or it.get("provider") or it.get("type"),
+            "name": it.get("name"),
+            "picture": it.get("picture"),
+            "disabled": it.get("disabled", False),
+        }
+        for it in items
+        if isinstance(it, dict)
+    ]
+    return jsonify({"ok": True, "channels": channels, "count": len(channels), "raw": data}), 200
+
+
+def _safe_read_json(path: Path) -> Optional[dict]:
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+@app.route('/api/postiz/oauth/login', methods=['GET'])
+def postiz_oauth_login_route():
+    """GET /api/postiz/oauth/login?brand=<brand> — start the OAuth round-trip.
+
+    Builds a signed state, redirects to Postiz's authorize URL. The user logs
+    in on Postiz, authorises the platform, and comes back to /api/postiz/oauth/callback.
+    """
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand = request.args.get("brand") or "swing-shack"
+    cid = _postiz_lib._read_oauth_client_id()
+    secret = _postiz_lib._read_oauth_client_secret()
+    if not cid or not secret:
+        return jsonify({
+            "ok": False,
+            "error": "POSTIZ_OAUTH_CLIENT_ID + POSTIZ_OAUTH_CLIENT_SECRET both required",
+            "status": _postiz_lib.postiz_status(),
+        }), 503
+    state = _postiz_lib.make_oauth_state(brand_id=brand, user_id="operator")
+    redirect_uri = request.url_root.rstrip("/") + "/api/postiz/oauth/callback"
+    auth_url = _postiz_lib.build_oauth_authorize_url(redirect_uri, state)
+    return redirect(auth_url, code=302)
+
+
+@app.route('/api/postiz/oauth/callback', methods=['GET'])
+def postiz_oauth_callback_route():
+    """GET /api/postiz/oauth/callback?code=...&state=... — finish the OAuth round-trip.
+
+    Exchanges the code for an access + refresh token, persists them per-brand as
+    a Fernet-encrypted blob, and returns a tiny confirmation page so the user
+    knows the connection landed.
+    """
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    code = request.args.get("code")
+    state = request.args.get("state")
+    error = request.args.get("error")
+    if error:
+        return jsonify({"ok": False, "error": f"postiz oauth returned error: {error}"}), 400
+    if not code or not state:
+        return jsonify({"ok": False, "error": "missing code or state"}), 400
+    # We need the brand from the state. The state is HMAC-signed; we can verify
+    # without the brand first, then re-derive it from the payload.
+    try:
+        padded = state + "=" * (-len(state) % 4)
+        raw = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+        payload, _sig = raw.rsplit("|", 1)
+        brand_id = payload.split("|")[0]
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"state decode failed: {exc}"}), 400
+    ok, reason = _postiz_lib.verify_oauth_state(state, brand_id)
+    if not ok:
+        return jsonify({"ok": False, "error": f"state invalid: {reason}"}), 400
+    redirect_uri = request.url_root.rstrip("/") + "/api/postiz/oauth/callback"
+    try:
+        data, err = _postiz_lib.exchange_oauth_code(code, redirect_uri)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"exchange failed: {exc}"}), 502
+    if err:
+        code_s, msg = err
+        return jsonify({"ok": False, "error": f"oauth token exchange {code_s}: {msg}"}), 502
+    if not data or "access_token" not in data:
+        return jsonify({"ok": False, "error": "no access_token in response", "response": data}), 502
+    # Persist per-brand
+    try:
+        path = _postiz_lib.save_oauth_token(brand_id, data, note=f"via OAuth callback {request.url_root}")
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"persist failed: {exc}"}), 500
+    # Return a small confirmation page (so the user sees something happens)
+    return Response(
+        f"""<!doctype html>
+<html><head><title>Postiz Connected</title>
+<style>body{{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0f1a;color:#e5e7eb;text-align:center;padding:80px 20px}}
+h1{{color:#6ee7b7}}p{{color:#94a3b8}}</style></head>
+<body>
+<h1>Postiz connected for <code>{brand_id}</code></h1>
+<p>You can close this tab and return to Campaign OS. The access token is now encrypted at rest.</p>
+<p>Next: visit <a href="/secret-drop" style="color:#fbbf24">Connected Accounts</a> to see what's wired.</p>
+</body></html>""",
+        mimetype="text/html",
+    ), 200
+
+
+@app.route('/api/postiz/oauth/<brand_id>/disconnect', methods=['POST'])
+def postiz_oauth_disconnect_route(brand_id):
+    """POST /api/postiz/oauth/<brand>/disconnect — hard-delete the per-brand OAuth token."""
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    removed = _postiz_lib.delete_oauth_token(brand_id)
+    return jsonify({"ok": True, "brand_id": brand_id, "removed": removed}), 200
+
+
 @app.route('/api/review/<asset_id>/schedule', methods=['POST'])
 def review_push_postiz(asset_id):
     """Push the asset's caption + visual to Postiz as a draft. Records the Postiz id
@@ -6402,32 +6611,74 @@ def review_push_postiz(asset_id):
         _app_log.warning("review_push_postiz: load asset failed: %s", exc)
     if not caption:
         return jsonify({"ok": False, "error": "no caption on asset"}), 400
-    # Push to Postiz (reuse the same publish helper the auto-publisher uses).
+    # Push to Postiz via the new client (built 2026-08-18). The legacy
+    # `from _lib.postiz_client import postiz_create_post` was failing because
+    # the module itself didn't exist; the new _lib/postiz_client.py mirrors
+    # that legacy signature on top of the Real Postiz API.
     postiz_id = None
     err = None
-    try:
-        from _lib.postiz_client import postiz_create_post  # late import — module optional
-        media = [visual_url] if visual_url else []
-        result = postiz_create_post(caption=caption, media=media, platform=platform)
-        postiz_id = result.get('id') or result.get('postizId') if isinstance(result, dict) else None
-    except Exception as exc:
-        err = str(exc)
-    if not postiz_id:
-        # Fallback: try the legacy helper if the new one failed/missing.
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz client unavailable"}), 503
+    assert _postiz_lib is not None  # runtime narrowed by the bool check above
+    # Capture the integration_id for the chosen platform from the channel list.
+    integration_id = body.get("integrationId") or body.get("integration_id")
+    if not integration_id:
         try:
-            from _lib.publisher import push_draft  # type: ignore
-            postiz_id = push_draft(asset_id=asset_id, campaign_id=campaign_id,
-                                    caption=caption, media=[visual_url] if visual_url else [],
-                                    platform=platform)
-        except Exception as exc2:
-            err = (err + " | " if err else "") + str(exc2)
+            data, ch_err = _postiz_lib.list_integrations()
+            if not ch_err and data:
+                items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or [])
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    provider = (it.get("providerIdentifier") or it.get("provider") or "").lower()
+                    if provider == platform.lower() or platform.lower() in (provider,):
+                        integration_id = it.get("id") or it.get("_id")
+                        if integration_id:
+                            break
+        except Exception as exc:
+            _app_log.warning("review_push_postiz: channel lookup failed: %s", exc)
+    if not integration_id:
+        return jsonify({
+            "ok": False,
+            "error": f"no Postiz integration found for platform={platform!r}. "
+                     f"Connect it via /api/postiz/oauth/login?brand=<brand> or pass integration_id in body.",
+        }), 400
+    # Upload the asset image first (if local path), then create the post.
+    media_ids: list[str] = []
+    if visual_url:
+        try:
+            upload_path = visual_url
+            if upload_path.startswith("/uploads/"):
+                full = os.path.join(ASSET_MEDIA_DIR, os.path.basename(upload_path))
+                if os.path.isfile(full):
+                    upload_path = full
+            upload_data, up_err = _postiz_lib.upload_media(upload_path)
+            if up_err:
+                err = f"upload {up_err[0]}: {up_err[1]}"
+            elif upload_data and upload_data.get("id"):
+                media_ids.append(upload_data["id"])
+        except Exception as exc:
+            err = f"upload exception: {exc}"
+    if not err:
+        try:
+            result, post_err = _postiz_lib.create_post(
+                integration_id=integration_id,
+                content=caption,
+                media_ids=media_ids,
+            )
+            if post_err:
+                err = f"create_post {post_err[0]}: {post_err[1]}"
+            elif result and result.get("id"):
+                postiz_id = result["id"]
+        except Exception as exc:
+            err = f"create_post exception: {exc}"
     if not postiz_id:
-        return jsonify({"ok": False, "error": f"postiz push failed: {err or 'no postiz client'}"}), 502
+        return jsonify({"ok": False, "error": f"postiz push failed: {err or 'unknown'}"}), 502
     # Record back onto the asset
     refs_update = [{"postizId": postiz_id, "platform": platform, "publishStatus": "draft"}]
     _update_asset_field(asset_id, campaign_id, 'publishingReferences', refs_update)
     _update_asset_field(asset_id, campaign_id, 'publishStatus', 'draft')
-    return jsonify({"ok": True, "assetId": asset_id, "postizId": postiz_id, "platform": platform}), 200
+    return jsonify({"ok": True, "assetId": asset_id, "postizId": postiz_id, "platform": platform, "integrationId": integration_id}), 200
 
 
 # ─── GMB DRAFTS CRUD (added 2026-08-04 polish pass) ──────────────────
