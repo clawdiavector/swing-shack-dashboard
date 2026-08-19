@@ -1238,7 +1238,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
     <section class="section" id="sec-calendar">
       <div class="section-h">
         <h2 data-help="Month grid of every planned post across all brands, with drag-drop planning. Move work between days by dragging, or click a day to add a new planned post. Filter by campaign, brand, or platform using the toolbar above the grid. Days turn red on dates with overdue items, green on dates with completed posts." data-help-title="Calendar">Calendar</h2>
-        <span class="sub" id="cal-summary">—</span>
+        <span class="sub" id="cal-summary" data-help="Sub-cards in this section: 14-day rolling grid (drag a card to move it between days) + today's HUD (overdue count + tomorrow preview) + pillar strip (coloured pills showing pillar distribution across the window) + duplicate zone (catch any post that fires more than once per week, brand-coloured). The page sub used to show a literal dash until the JS call finished (~100ms) on first paint; updated to name every visible surface so the section is self-describing on first frame, then the JS call overwrites it with the live planned/today/postiz count." data-help-title="What is in this section">14-day grid with drag-drop · today's HUD · pillar strip · duplicate zone</span>
         <div class="btn-row" style="margin-left:auto">
           <button class="btn-mini" id="cal-today-btn" title="Jump to today" type="button">📍 Today</button>
           <select class="mini-select" id="cal-filter-platform" title="Filter by platform">
