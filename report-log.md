@@ -1929,3 +1929,47 @@ The test helper `_section_block(sec_id)` returns the static `<section>...</secti
 **Learned:** Sub-headers are the cheapest "what is this section for" surface and they're frequently forgotten when sections grow. The helper-pattern in the new test (static-or-render-function fallback) means future audits can sweep every section without a Playwright session — read the file, compare the sub to the h3 list, done. Pattern: when a section grows past 5 sub-cards, refresh the sub to name them all; when a render function adds a new tile, refresh the corresponding sub. The `data-help` next-edit-pointer makes this self-documenting.
 
 **Next pick:** (a) Same audit for the 6 static subs that are still aspirational/categorical (Performance "What worked, what's leaking, what to scale" — the page actually has 4 stat cards + 5 content cards + Connect CTA + Why-explainer; the sub is more aspirational than descriptive). (b) Library "Meme Lord" section sub if any. (c) Calendar section-h is empty (only h2 + btn row), no sub at all — copy from the recently-shipped "section subtitle consistency" sweep is missing for Calendar.
+
+## 2026-08-19T10:38Z — fix(performance): sub mirrors actual sub-cards (a2c7692)
+
+**Done:** Picked up next-pick (a) from the 10:14Z tick (the previous section-sub audit fixed Ideas + Library; Performance was still aspirational). The Performance `<span class="sub">` previously read `What worked, what's leaking, what to scale` — a 3-phrase mission statement that named zero of the actual surfaces on the page. A first-time visitor who read the sub then scrolled would find 4 stat tiles, 5 content cards, an insight strip, a conditional connect CTA, and a why-this-worked explainer panel that were not mentioned in the sub at all.
+
+**Fix (commit `a2c7692`, atomic, pushed, Railway auto-deployed, LIVE post-deploy verified):**
+- `campaign-os/campaign-os.html` sec-performance sub (`+1/-1`): new copy is `4 stat tiles · 5 cards: top IG, top SEO, A/B tests, top pages, insights · why-this-worked explainer` — names every visible card with the · (middot) separator the rest of Campaign OS uses, no em-dashes.
+- Added `data-help` + `data-help-title` to the sub so the next editor sees why the line exists and can refresh it if the surface changes (same self-documenting pattern as the Ideas + Library subs from 1b0869c).
+
+**New regression test (`campaign-os/tests/test_v2026_08_19_performance_sub_matches_actual_cards.py`, 7 tests, all green):**
+1. `test_01_aspirational_pre_fix_sub_is_gone` — pre-fix mission-statement sub removed (HTML-escaped + raw apostrophe variants)
+2. `test_02_new_descriptive_sub_lists_every_visible_card` — sub contains `4 stat tiles` + every one of `top IG`, `top SEO`, `A/B tests`, `top pages`, `insights` + `why-this-worked explainer`
+3. `test_03_sub_uses_standard_pattern` — wrapped in `<span class="sub">...</span>`
+4. `test_04_sub_has_data_help` — carries `data-help=` and `data-help-title=` attributes
+5. `test_05_sub_no_em_dash` — standing rule: no U+2014 em-dash and no U+2013 en-dash
+6. `test_06_new_sub_visible_in_static_section` — sub text is the one in the static section block
+7. `test_07_sub_uses_middot_separator` — uses · (U+00B7) separators, consistent with the rest of Campaign OS
+
+**Verified (Playwright LIVE on Railway, post-deploy, password-auth flow, welcome tour dismissed so the section header is visible):**
+- `LIVE SUB: 4 stat tiles · 5 cards: top IG, top SEO, A/B tests, top pages, insights · why-this-worked explainer`
+- `DATA_HELP: {'has_help': True, 'has_title': True, 'help_text': 'Sub-cards in this section: insight strip (live data callout) + 4 stat tiles (IG ...'}`
+- 0 page errors, 0 console errors. `/api/health` 200; deployed commit = `a2c7692`.
+- Visual: 4 stat tiles visible (10 IG POSTS · 880 GA4 SESSIONS · 4 SEO RISING · 1 SEO FALLING) immediately below the new sub, matching the promise.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_perf_sub_20260819T103841Z.png` — Performance section header with new sub visible, 4 stat tiles, Top Instagram posts + Top SEO keywords cards, sidebar nav showing the full surface.
+
+**Files (2, +134/-1):**
+- `campaign-os/campaign-os.html` (+1/-1): one `<span class="sub">` line replaced.
+- `campaign-os/tests/test_v2026_08_19_performance_sub_matches_actual_cards.py` (NEW, 7 tests, 133 lines).
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via the test), 0 NEW deps, 0 auth/gates touched. Renderer-only sub-text update + new test.
+
+**Pre-existing failures (not caused by this tick, recorded so the next tick doesn't waste time re-triaging):**
+- `test_v2026_08_12_no_emdashes_section_subheaders.test_01_hashtagseo_post_fix_present` — test expects `Curated hashtag sets and on-page SEO scaffolding` (with `and`) but the live HTML has `Curated hashtag sets + on-page SEO scaffolding` (with `+`). Test/HTML drift on the Hashtags+SEO sub. Reverting my change to a clean tree still produces this failure, so it's not on me.
+- `test_v2026_08_19_seo_score_no_clamp` + `test_v2026_08_19_review_row_brand_pill` — both fail at `setUpClass` with `OSError: [Errno 30] Read-only file system: '/data'` because `app.py:10485` calls `os.makedirs('/data/...', exist_ok=True)` and `/data` is read-only on this environment. Local env limitation, unrelated to the fix.
+
+**Untracked files left alone (banned or out-of-scope):**
+- `campaign-os/_lib/postiz_client.py` — 23KB untracked, written to fix the long-standing `from _lib.postiz_client import postiz_create_post` ImportError on the "Push to Postiz" button in Review. Postiz publishing is explicitly NOT ALLOWED in my standing rules + Postiz credentials are INVALID (401). Not touching.
+- `data/dashboard-live.json` — auto-refreshed nightly by the analytics cron; stashed into `nightshift-preflight-2026-08-19-1034` at tick start, then `git stash pop`'d back at tick end so the next auto-refresh won't see a dirty tree.
+
+**Learned:** The Playwright walker should always dismiss the welcome tour before screenshot capture — on a fresh `localStorage`, the tour overlay covers the section header. The fix is a one-liner: `localStorage.setItem('cos.tour.skipped', '1')` + reload. Documenting this pattern in the walker would save future ticks the same 2 minutes of "where's the section header?" confusion. Also: the `data-help` self-documenting pattern from 1b0869c is paying compound interest — three sections in (Ideas, Library, Performance) the next editor gets a one-click popover explaining the line.
+
+**Next pick:** (a) The other 4 static subs I noticed in the audit: Hashtags+SEO (already has a good sub), but Trends (`Marketing · Golf News · Competitors` is a tag list, not a sub-list), Caption Studio (`Pick voice + tone → generate · regenerate · test` is good), Image Generation (`Provider-ready prompt specs: Ideogram · DALL-E · Midjourney · Stable Diffusion` is good but doesn't list the actual prompt structure). (b) Calendar section-h is currently fine (dynamic `cal-summary` slot), but the section-h lacks a `<span class="sub">` line — the previous tick's note (c) was wrong; the slot is wired but only shows after JS paints, leaving a "—" until then. Add a static fallback sub that mirrors the actual surface (14-day grid, drag-drop, HUD, pillar strip, duplicate zone). (c) `itemHtml()` debug-token scrub — the next-pick (a) from the 02:13Z tick is still unaddressed. Status/owner/schema fields leak through generic renderer on Performance, Hook Bank, and Capture rows.
