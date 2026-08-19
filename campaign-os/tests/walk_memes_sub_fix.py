@@ -24,6 +24,12 @@ def login_and_walk(base_url):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         ctx = browser.new_context(viewport={"width": 1440, "height": 1100})
+        # Pre-set the tour-dismiss localStorage so the welcome modal never shows.
+        ctx.add_init_script("""
+            localStorage.setItem('cos.tour.skipped','1');
+            localStorage.setItem('cos.tour.dismissed','1');
+            localStorage.setItem('cos.tour.done','1');
+        """)
         page = ctx.new_page()
         errors = []
         page.on("pageerror", lambda exc: errors.append(("pageerror", str(exc))))
@@ -40,38 +46,41 @@ def login_and_walk(base_url):
             )
             page.wait_for_url(lambda u: "/login" not in u, timeout=15000)
 
-        page.evaluate("""() => {
-            document.querySelectorAll('.modal-backdrop,.modal,.welcome-modal,[data-tour]').forEach(el => el.remove());
-            localStorage.setItem('cos.tour.skipped','1');
-            localStorage.setItem('cos.tour.dismissed','1');
-        }""")
-        page.wait_for_timeout(2500)
+        # Welcome modal is suppressed via the context init script above; no
+        # manual DOM removal needed (the previous approach crashed renderBrief).
+        page.wait_for_timeout(3000)
 
-        # Click any nav element pointing at memes
-        nav_clicked = page.evaluate("""() => {
-            const candidates = document.querySelectorAll('a,button,.nav-item,[data-nav],[data-section]');
-            for (const el of candidates) {
-                const t = (el.textContent || '').toLowerCase();
-                if (t.includes('meme lord') || el.dataset?.nav === 'memes' || el.dataset?.section === 'memes') {
-                    el.click();
-                    return (el.textContent || '').trim().slice(0, 40);
-                }
+        # Make sec-memes visible (sections are display:none by default; only .on shows).
+        # This is what the SPA does when you click a nav item. We do it manually
+        # so we can screenshot the section directly.
+        page.evaluate("""() => {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('on'));
+            const sec = document.getElementById('sec-memes');
+            if (sec) sec.classList.add('on');
+        }""")
+        page.wait_for_timeout(800)
+        page.wait_for_timeout(1500)
+
+        # Trigger renderMemes (the section was just scrolled into view; the
+        # SPA lazy-renders per section when shown).
+        render_attempt = page.evaluate("""async () => {
+            if (typeof renderMemes === 'function') {
+                try { await renderMemes(); return 'rendered'; } catch (e) { return 'err:' + e.message; }
             }
-            return null;
-        }""")
-        page.wait_for_timeout(2500)
-
-        # Force scroll to sec-memes
-        page.evaluate("""() => {
-            const el = document.getElementById('sec-memes');
-            if (el) el.scrollIntoView({block:'start',behavior:'instant'});
+            return 'no renderMemes';
         }""")
         page.wait_for_timeout(1500)
 
+        # No second-pass modal removal (the init script already suppresses it).
+        page.wait_for_timeout(500)
+
         result = page.evaluate(
-            """(nav) => {
+            """(render) => {
                 const sec = document.getElementById('sec-memes');
                 if (!sec) return {found: false};
+                // Scroll the section header into the centre of the viewport.
+                const rect = sec.getBoundingClientRect();
+                window.scrollTo({top: window.scrollY + rect.top - 80, behavior: 'instant'});
                 const sub = document.getElementById('memes-summary');
                 const subText = sub ? (sub.textContent || '').trim() : null;
                 const subAttrs = sub ? {
@@ -87,19 +96,20 @@ def login_and_walk(base_url):
                 });
                 const secVisible = (() => {
                     const r = sec.getBoundingClientRect();
-                    return r.width > 0 && r.height > 0;
+                    return r.width > 0 && r.height > 0 && r.top < window.innerHeight && r.bottom > 0;
                 })();
                 return {
                     found: true,
                     section_visible: secVisible,
-                    nav_clicked: nav,
+                    render_attempt: render,
                     sub_text: subText,
                     sub_attrs: subAttrs,
                     card_titles: cardTexts.slice(0, 12),
                 };
             }""",
-            nav_clicked,
+            render_attempt,
         )
+        page.wait_for_timeout(600)
 
         shot_path = SHOT_DIR / f"walkthrough_memes_sub_{TS}.png"
         page.screenshot(path=str(shot_path), full_page=False)
@@ -126,8 +136,8 @@ def login_and_walk(base_url):
             except Exception as e:
                 sec_shot = f"sec-screenshot failed: {e}"
 
-        print("=== nav_clicked ===")
-        print(nav_clicked)
+        print("=== render_attempt ===")
+        print(render_attempt)
         print("=== probe ===")
         print(json.dumps(result, indent=2, ensure_ascii=False))
         print("=== errors (first 10) ===")
