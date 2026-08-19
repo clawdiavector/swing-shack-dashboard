@@ -487,6 +487,19 @@ def env_debug():
         "GH_TOKEN",
         "CAMPAIGN_OS_PASSWORD",
         "CAMPAIGN_OS_SECRET",
+        # v2026-08-18: Postiz OAuth secret dropped via /secret-drop. Without
+        # this in the list, /api/admin/env-debug hides whether the rotation
+        # landed - which caused a misdiagnosis on the first Postiz drop.
+        "POSTIZ_OAUTH_CLIENT_SECRET",
+        "POSTIZ_OAUTH_CLIENT_ID",
+        "POSTIZ_API_KEY",
+        # OAuth tokens we mint from the in-app social login flow (Section E
+        # of the 2026-08-18 roadmap).
+        "META_SYSTEM_USER_TOKEN",
+        "X_ACCESS_TOKEN",
+        "X_BEARER_TOKEN",
+        "TIKTOK_ACCESS_TOKEN",
+        "GBP_REFRESH_TOKEN",
     ]
     out = {}
     for k in keys_of_interest:
@@ -2461,12 +2474,18 @@ def secret_drop_form():
         placeholder="paste here - do not copy a trailing newline"></textarea>
       <p class="small">Whitespace is trimmed. The pasted value is encrypted before write, masked in logs.</p>
     </div>
+    <div class="card" id="confirm-card" style="border-color:#f59e0b">
+      <label for="secret_confirm" style="color:#fbbf24">Type the secret again (confirm)</label>
+      <textarea id="secret_confirm" name="secret_confirm" required autocomplete="off" spellcheck="false"
+        placeholder="paste the same value - this guards against me clobbering a real value with a test value"></textarea>
+      <p class="small" id="confirm-help" style="color:#fbbf24">Two identical entries are required. The button stays disabled until they match.</p>
+    </div>
     <div class="card">
       <label for="note">Note (optional, stored alongside)</label>
       <input id="note" name="note" type="text" maxlength="120" placeholder="e.g. rotated 2026-08-18 per Meta screenshot" />
     </div>
-    <button class="btn" id="submit-btn" type="submit">Drop it</button>
-    <p class="warn">If you pasted the wrong thing, rotate the source and drop the new value. Nothing reads the old value after this point on the live process.</p>
+    <button class="btn" id="submit-btn" type="submit" disabled style="background:#475569;color:#cbd5e1;cursor:not-allowed">Drop it (paste + confirm to enable)</button>
+    <p class="warn">If you pasted the wrong thing, rotate the source and drop the new value. Nothing reads the old value after this point on the live process. 2026-08-18: type twice to confirm. Prevents the operator (or me, on a sanity check) from accidentally clobbering a real value.</p>
   </form>
 
   <details style="margin-top:24px">
@@ -2484,8 +2503,45 @@ def secret_drop_form():
 const form = document.getElementById('drop-form');
 const btn = document.getElementById('submit-btn');
 const result = document.getElementById('result');
+const secretField = document.getElementById('secret');
+const confirmField = document.getElementById('secret_confirm');
+const confirmCard = document.getElementById('confirm-card');
+const confirmHelp = document.getElementById('confirm-help');
+
+// 2026-08-18: enable the drop button ONLY when both fields are non-empty
+// and match exactly. Defends against the agent (or the operator) pasting a
+// test value into the slot while a real value already lives there.
+function refreshDropButton() {{
+  const a = (secretField.value || '');
+  const b = (confirmField.value || '');
+  const match = a.length > 0 && a === b;
+  if (btn) {{
+    btn.disabled = !match;
+    btn.textContent = match ? 'Drop it' : 'Drop it (paste + confirm to enable)';
+    btn.style.background = match ? '#fbbf24' : '#475569';
+    btn.style.color = match ? '#0a0f1a' : '#cbd5e1';
+    btn.style.cursor = match ? 'pointer' : 'not-allowed';
+  }}
+  if (confirmHelp) {{
+    confirmHelp.textContent = match
+      ? 'Confirm matches. Click Drop it.'
+      : 'Two identical entries are required. The button stays disabled until they match.';
+    confirmHelp.style.color = match ? '#6ee7b7' : '#fbbf24';
+    confirmCard.style.borderColor = match ? '#10b981' : '#f59e0b';
+  }}
+}}
+secretField && secretField.addEventListener('input', refreshDropButton);
+confirmField && confirmField.addEventListener('input', refreshDropButton);
+
 form.addEventListener('submit', async (e) => {{
   e.preventDefault();
+  // Double-check on submit too - in case someone autofilled or pasted both at once.
+  const a = (secretField.value || '');
+  const b = (confirmField.value || '');
+  if (a !== b) {{
+    result.innerHTML = '<div class="warn" style="background:#7f1d1d;border:1px solid #ef4444;padding:12px;border-radius:4px;color:#fecaca">Secret and confirm do not match. Re-type both fields identically.</div>';
+    return;
+  }}
   btn.disabled = true;
   btn.textContent = 'Dropping...';
   result.innerHTML = '';
