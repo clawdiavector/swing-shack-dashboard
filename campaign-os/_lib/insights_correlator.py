@@ -443,32 +443,40 @@ def get_ad_correlation_verdicts(days: int = 30) -> dict[str, Any]:
                 ctr_pct = round((float(clicks) / float(total_sessions)) * 100, 1) if (clicks not in (None, "") and total_sessions) else None
             except (TypeError, ValueError, ZeroDivisionError):
                 ctr_pct = None
-            # Verdict string: prefer the enriched one (clicks→sessions ratio +
-            # cost-per-session) when we have both numbers. Falls back to the
-            # plain "X clicks, Y sessions" line when one side is missing.
+            # Verdict string: prefer the enriched one (clicks-to-sessions ratio
+            # + cost-per-session) when we have both numbers. Falls back to
+            # the plain "X clicks, Y sessions" line when one side is missing.
+            #
+            # Standing rule: no em-dash in published copy. Missing spend/
+            # clicks render as the word "unknown" instead of a typographic
+            # placeholder, so the Insights tab never publishes an em-dash.
+            # Spend is also prefixed with "R" when present so a raw `1.5`
+            # can't be misread as a typo (R1.5 is unambiguously Rands).
+            spend_str = f"R{spend}" if spend not in (None, "") else "unknown spend"
+            clicks_str = str(int(clicks)) if clicks not in (None, "") else "unknown clicks"
             if matching_pages and total_sessions:
                 base = (
-                    f"Campaign '{c.get('name')}' spent {spend or '—'} "
-                    f"and drove {clicks or '—'} clicks to {lp}. "
+                    f"Campaign '{c.get('name')}' spent {spend_str} "
+                    f"and drove {clicks_str} clicks to {lp}. "
                     f"GA4 shows {total_sessions} sessions on that page"
                 )
                 if ctr_pct is not None:
                     base += f" (clicks were {ctr_pct}% of sessions)"
                 if cps is not None:
-                    base += f" - R{cps} per session"
+                    base += f" · R{cps} per session"
                 base += "."
                 verdict = base
             elif matching_pages:
                 verdict = (
-                    f"Campaign '{c.get('name')}' spent {spend or '—'} and drove "
-                    f"{clicks or '—'} clicks to {lp}. GA4 has the page in its "
+                    f"Campaign '{c.get('name')}' spent {spend_str} and drove "
+                    f"{clicks_str} clicks to {lp}. GA4 has the page in its "
                     f"index but no session count yet for that path."
                 )
             else:
                 verdict = (
-                    f"Campaign '{c.get('name')}' spent {spend or '—'} and drove "
-                    f"{clicks or '—'} clicks to {lp}. GA4 has no data for that "
-                    f"page yet — could be a tracking gap or a low-traffic URL."
+                    f"Campaign '{c.get('name')}' spent {spend_str} and drove "
+                    f"{clicks_str} clicks to {lp}. GA4 has no data for that "
+                    f"page yet · could be a tracking gap or a low-traffic URL."
                 )
             verdicts.append({
                 "campaign_id": c.get("id"),
