@@ -2108,3 +2108,62 @@ The test helper `_section_block(sec_id)` returns the static `<section>...</secti
 **Learned:** Five sections (Ideas, Library, Performance, Calendar, Trends, Image Gen) now follow the `<span class="sub" id="X-summary" data-help data-help-title>` pattern. The two "no JS overwrite" sections (Trends, Image Gen) both lock that contract in `test_07`, and the one "has JS overwrite" section (Calendar) locks ITS contract in `test_07_js_overwrite_still_wired`. Together the three tests document the difference between the two sub-types for the next editor. The Pyright `reportOptionalMemberAccess` on `m.group(1)` is a known false positive in this codebase when `re.search` is followed by `assertIsNotNone(m, ...)` — the fix is to use `self.assertTrue(m, ...)` instead (Trends and Image Gen both use this idiom; Calendar uses the original `assertIsNotNone` and the Pyright warning persists there as a known-acceptable noise).
 
 **Next pick:** (a) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden (Performance, Hook Bank, Capture rows all leak status/owner/schema fields through the generic renderer). (b) Hashtags+SEO sub `+` vs `and` drift — quick fix but low value. (c) Hooks section-h sub — currently shows the kind of `Reddit` `YouTube` `FAQs` `Socials` tag list that Trends/Image Gen just fixed; could become `50+ categorized hooks · 6 source channels · ranked by 7-day engagement · one-click lift to brief`. Looks like the same pattern (c) of the nightshift menu again.
+
+---
+
+**Tick 2026-08-19 15:20 UTC — Meme Lord static sub mirrors actual surface (commits `582373f` + `7da2418` + `51b18ec`, all on `feat/asset-state-engine`, Railway auto-deployed, LIVE post-deploy verified):**
+
+**Pick rationale:** Six sections in the static-sub pattern series (Ideas/Library/Performance/Calendar/Trends/Image Gen), Meme Lord was the last major generator left with a `—` placeholder. The same proven pattern — static fallback that mirrors the surface + id+data-help anchor — applies cleanly. The Meme Lord section has a JS overwrite (renderMemes sets `lib.summary` + star-count suffix), so the static text is the pre-API / API-failed frame, not the steady state (closer to the Calendar contract than Trends/Image Gen).
+
+**Fix (renderer-only text update + anchors + tests + walker):**
+- `campaign-os/campaign-os.html` sec-memes sub (`+1/-1`): replaced `—` with `Template visuals · Top picks for active brand · Historian library · filters: voice/pillar/platform/era · still-works toggle · search · 1-click generate caption`. Added `id="memes-summary"` (already there), `data-help=` (long breadcrumb for next-editor), `data-help-title="What is in this section"`.
+- `campaign-os/tests/test_v2026_08_19_memes_sub_mirrors_actual_cards.py` (NEW, 7 tests, 187 lines).
+- `campaign-os/tests/walk_memes_sub_fix.py` (NEW Playwright walker; nets out at ~140 lines after walker-tweak commit `51b18ec`).
+- `REBUILD_TRIGGER.txt` (separate nudge commit `7da2418`).
+- `campaign-os/tests/walk_memes_sub_fix.py` (walker-tweak commit `51b18ec`: pre-set `cos.tour.*` localStorage via `add_init_script` instead of wiping body divs after page load — the previous approach crashed `renderBrief` because `brief-strip-txt` got removed mid-render).
+
+**New regression test (7 tests, all green):**
+1. `test_01_memes_sub_has_id` — `<span class="sub" id="memes-summary" ...>` anchor present
+2. `test_02_old_dash_placeholder_gone` — old `<span class="sub" id="memes-summary">—</span>` no longer present
+3. `test_03_sub_has_data_help` — `data-help=` AND `data-help-title=` present, title = "What is in this section"
+4. `test_04_sub_lists_visible_cards` — descriptive fallback includes every visible card / filter / action (Template visuals · Top picks · Historian library · voice · pillar · platform · era · still-works · generate)
+5. `test_05_sub_no_em_dash` — no U+2014 / U+2013 (standing rule)
+6. `test_06_sub_uses_middot_separator` — uses · (U+00B7) for the descriptive list, 4+ middots
+7. `test_07_no_js_textcontent_overwrite_on_memes_summary` — STATIC fallback longer than `—`, AND the JS overwrite path (renderMemes line 9554 + star-count suffix line 9588) is documented so a future editor can't drop the static frame without realising the dynamic overwrite needs to keep firing.
+
+**Playwright LIVE verification (commit `582373f` served on Railway, password-auth flow, tour auto-suppressed via localStorage init script, sec-memes set to `.on` for screenshot):**
+
+*Pre-API probe (static fallback visible during API call):*
+- `sub_text: "Template visuals · Top picks for active brand · Historian library · filters: voice/pillar/platform/era · still-works toggle · search · 1-click generate caption"` — exactly the expected new text
+- `has_data_help: true`, `has_data_help_title: true`, `data_help_title: "What is in this section"`
+
+*Post-API probe (dynamic overwrite fires, lock-in contract holds):*
+- `sub_text: "30 of 75 memes · Swing Shack voice · education pillar · 7 ★ top in view"` — the JS overwrite took over exactly when the API responded
+- `section_visible: true` (after .on class added)
+- 3 sub-cards visible: Template visuals, Top picks for swing-shack/education/instagram, Meme historian 30 of 75
+- 0 page errors, 0 console errors. `/api/health` 200 OK.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_memes_sub_20260819T152209Z.png` — full-page with sec-memes on, showing the dynamic sub "30 of 75 memes · Swing Shack voice · education pillar · 7 ★ top in view" + Generate fresh meme concept button
+- `/tmp/co-nightshift/walkthrough_memes_sub_section_20260819T152209Z.png` — section-only screenshot showing: Meme Lord header, v2·meme historian tag, the explainer paragraph, the live sub, the filter bar (Voice/Pillar/Platform/Era/Only still-works/Search), Template visuals grid (14 iconic/trending meme thumbnails), Top picks grid (6 meme cards with peak year, formula, voice, fit-seeds, Generate caption CTA)
+
+**Files (4, +393/-1):**
+- `campaign-os/campaign-os.html` (+1/-1): one `<span class="sub">…</span>` line replaced (id preserved + data-help + data-help-title + descriptive text).
+- `campaign-os/tests/test_v2026_08_19_memes_sub_mirrors_actual_cards.py` (NEW, 7 tests, 187 lines).
+- `campaign-os/tests/walk_memes_sub_fix.py` (NEW Playwright walker; walker-tweak commit `51b18ec` +38/-28: switched from post-load body-div wipe to `add_init_script` cos.tour.* pre-set, and added `.section.on` toggle so the screenshot captures the actual section instead of the off-screen viewport).
+- `REBUILD_TRIGGER.txt` (separate nudge commit `7da2418`, +1/-1).
+
+**Commits (all on `feat/asset-state-engine`, pushed, Railway auto-deployed):**
+- `582373f` — fix(memes): sub mirrors actual surface — atomic, the actual fix
+- `7da2418` — chore: nudge Railway rebuild for memes sub fix (582373f)
+- `51b18ec` — test(memes): walker switches sec-memes to .on so screenshot captures the actual section (also fixes the walker-side bug where post-load modal removal crashed renderBrief)
+
+**28-test recent-nightshift suite still green:** calendar_sub_mirrors (7) + trends_sub_mirrors (7) + imagegen_sub_mirrors (7) + memes_sub_mirrors (7). No regressions.
+
+**Pre-existing failures (still there, unrelated to this tick):** the two `OSError: Read-only file system: '/data'` failures on `test_v2026_08_19_review_row_brand_pill.py` + `test_v2026_08_19_seo_score_no_clamp.py` (both fail at `setUpClass` because `app.py` calls `os.makedirs('/data/...')` on read-only env). Plus the pre-existing `test_v2026_08_12_no_emdashes_section_subheaders.test_01_hashtagseo_post_fix_present` failure (Hashtags+SEO sub still uses `+` not `and`). None caused by this tick.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified via test_05), 0 NEW deps, 0 auth/gates touched. Renderer-only sub-text update + new tests + new walker.
+
+**Learned:** Seven sections (Ideas, Library, Performance, Calendar, Trends, Image Gen, Meme Lord) now follow the `<span class="sub" id="X-summary" data-help data-help-title>` pattern. Three "JS overwrite" sections (Calendar, Meme Lord, Library) all need a non-trivial `test_07` that locks BOTH the static fallback AND the JS overwrite contract — i.e. the static fallback must stay meaningful (>1 char), AND the JS overwrite path must be acknowledged as the steady-state for that specific section. Documenting this in the docstring of the test makes the difference between "is overwrite present?" sections (Calendar: yes-overwrite, Meme Lord: yes-overwrite, Library: yes-overwrite) and "static-only" sections (Trends: no, Image Gen: no, Ideas/Performance: trivial overwrite or no) explicit for the next editor. Also: for screenshot-based walkers, suppress welcome tour via `ctx.add_init_script(localStorage.setItem)` BEFORE page load instead of `document.body.remove()` after load — the post-load approach nukes `brief-strip-txt` and crashes `renderBrief`, which then makes the whole screenshot a blank viewport. Sections are also `display: none` by default; only `.section.on` shows. The walker has to add `.on` to the target section explicitly to capture it.
+
+**Next pick:** (a) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden (Performance, Hook Bank, Capture rows all leak status/owner/schema fields through the generic renderer). (b) Hashtags+SEO sub `+` vs `and` drift — quick fix but low value. (c) Hook Bank (`sec-hooks`) section header — currently shows the section header + Generate button + `—` placeholder that gets JS-overwritten to "X hooks · Y in active buckets"; same static-sub pattern as the other 7 sections. Quick win.
