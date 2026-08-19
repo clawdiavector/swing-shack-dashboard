@@ -7306,9 +7306,19 @@ async function renderReview(){
   // for human review; items without it are still agent-drafting.
   const _pendingReviews = (r.pending || []).filter(x => (x.publishStatus || '').toLowerCase() === 'planned').length;
   const _pendingDrafts = (r.pending || []).length - _pendingReviews;
+  // Stale items are sorted to the top of the pending list — if there's a
+  // stale chunk, name it explicitly so the user knows the rows they're
+  // seeing are the rotten ones (not all 41 at once).
+  const _pendingStale = (r.pending || []).filter(_isStale).length;
   const _pendingBreakdown = $('#review-pending-breakdown');
   if (_pendingBreakdown) {
-    if (_pendingDrafts > 0 && _pendingReviews > 0) {
+    if (_pendingStale > 0 && _pendingReviews > 0 && _pendingDrafts > 0) {
+      _pendingBreakdown.textContent = `${_pendingReviews} ready for review · ${_pendingDrafts} still drafting · ${_pendingStale} stale shown first`;
+      _pendingBreakdown.style.display = '';
+    } else if (_pendingStale > 0 && (_pendingReviews > 0 || _pendingDrafts > 0)) {
+      _pendingBreakdown.textContent = `${_pendingStale} stale shown first · ${(r.pending||[]).length - _pendingStale} fresh below`;
+      _pendingBreakdown.style.display = '';
+    } else if (_pendingDrafts > 0 && _pendingReviews > 0) {
       _pendingBreakdown.textContent = `${_pendingReviews} ready for review · ${_pendingDrafts} still drafting`;
       _pendingBreakdown.style.display = '';
     } else {

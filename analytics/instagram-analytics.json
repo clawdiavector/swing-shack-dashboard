@@ -4,11 +4,11 @@
   "posts": 787,
   "postsInWindow": 10,
   "avgEngagement": "0.18",
-  "period": "2026-07-19 to 2026-08-18",
-  "reach30d": 32171,
-  "profileViews30d": 495,
-  "accountsEngaged30d": 165,
-  "totalInteractions30d": 350,
+  "period": "2026-07-20 to 2026-08-19",
+  "reach30d": 32757,
+  "profileViews30d": 480,
+  "accountsEngaged30d": 159,
+  "totalInteractions30d": 341,
   "recentPosts": [
     {
       "id": "18098215292347008",
@@ -121,7 +121,7 @@
       "engagementRate": "0.16"
     }
   ],
-  "lastUpdated": "2026-08-18T04:30:12.092Z",
+  "lastUpdated": "2026-08-19T04:30:09.134Z",
   "trackedFirst": "2026-07-01T08:30:31.524Z",
   "source": "automated",
   "fbPage": {
@@ -139,15 +139,11 @@
     "daily": []
   },
   "igInsights30d": {
-    "reach": 32171,
-    "profileViews": 495,
-    "accountsEngaged": 165,
-    "totalInteractions": 350,
+    "reach": 32757,
+    "profileViews": 480,
+    "accountsEngaged": 159,
+    "totalInteractions": 341,
     "daily": [
-      {
-        "date": "2026-07-19",
-        "reach": 1700
-      },
       {
         "date": "2026-07-20",
         "reach": 776
@@ -262,13 +258,17 @@
       },
       {
         "date": "2026-08-17",
-        "reach": 1953
+        "reach": 2118
+      },
+      {
+        "date": "2026-08-18",
+        "reach": 2121
       }
     ]
   },
   "window": {
-    "sinceUnix": 1784435404,
-    "untilUnix": 1787027404,
+    "sinceUnix": 1784521801,
+    "untilUnix": 1787113801,
     "days": 30
   },
   "warnings": []
