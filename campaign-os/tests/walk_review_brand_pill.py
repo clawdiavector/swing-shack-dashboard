@@ -33,6 +33,21 @@ def login_and_walk(base_url):
             page.fill("input[name=password]", PASSWORD)
             page.click("button[type=submit], button:has-text('Login'), button:has-text('Sign')")
             page.wait_for_url(lambda u: "/login" not in u, timeout=15000)
+        # Dismiss any welcome modal so it doesn't cover the screenshot.
+        try:
+            page.evaluate("""() => {
+                document.querySelectorAll('.modal-backdrop, .modal, .welcome-modal, [data-tour]').forEach(el => el.remove());
+                localStorage.setItem('cos.tour.skipped', '1');
+                localStorage.setItem('cos.tour.dismissed', '1');
+            }""")
+            # Click Skip the tour if it's visible
+            try:
+                page.click("text=Skip the tour", timeout=2000)
+                page.wait_for_timeout(400)
+            except Exception:
+                pass
+        except Exception:
+            pass
         # Click the Review nav.
         try:
             page.click("text=Review", timeout=5000)
