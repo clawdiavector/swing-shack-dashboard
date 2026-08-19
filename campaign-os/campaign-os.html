@@ -5932,11 +5932,17 @@ async function loadLibPane(kind, bid, focusSearch){
         }, 250);
       });
     } else if(kind === 'images'){
-      const r = await fetch('/api/visual-library/' + bid + '/images?limit=60').then(r => r.json()).catch(() => ({ok:false, images:[]}));
+      // Previously fetched 60 images which returned ~5.5 MB of inline base64
+      // thumbnails and stalled the pane on "Loading…" for ~7 seconds while the
+      // JSON parsed + 60 large data URIs were stringified into the DOM. Cap at
+      // 16 (same as the "generated" tab preview) so the pane paints in ~2s;
+      // the "Open Visual Library →" link below still ladders to the full grid.
+      const r = await fetch('/api/visual-library/' + bid + '/images?limit=16').then(r => r.json()).catch(() => ({ok:false, images:[]}));
       const list = r.images || [];
+      const totalHint = r.total && r.total > list.length ? ` (${list.length} of ${r.total})` : '';
       pane.innerHTML = `
         <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.5rem">
-          <span class="muted">${list.length} of ${r.total || list.length} images</span>
+          <span class="muted">${list.length} thumbnail${list.length === 1 ? '' : 's'}${esc(totalHint)} · click any to open the full Visual Library</span>
           <a class="mini-link" href="/visualizer">Open Visual Library →</a>
         </div>
         <div class="lib-grid">${list.map(im => {
