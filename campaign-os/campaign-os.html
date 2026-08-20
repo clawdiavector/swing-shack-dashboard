@@ -4812,13 +4812,16 @@ function attachExplainers(){
     //   - Calendar: the ? collided with the platform / campaign filter
     //     buttons on the right.
     // First try to sit beside the title (h2/h3) so the ? reads as
-    // "section help". If the title already carries a manual inline
-    // help-tip ?, skip injection to avoid the "double ??" anti-pattern
-    // (two stacked icons with overlapping tooltips). Fall back to the
-    // .section-h row when the section has no title element.
+    // "section help". If the title already carries ANY inline help
+    // affordance (a .help-tip child, OR a data-help / data-help-title on
+    // the h2 itself — the Calendar h2 uses the latter, surfacing the
+    // tooltip as a dotted-underline on the title text), skip injection
+    // to avoid the "double ??" anti-pattern. Fall back to the .section-h
+    // row when the section has no title element.
     const titleEl = h.querySelector('h2, h3');
     if (titleEl) {
-      if (titleEl.querySelector('.help-tip[data-help]')) return;
+      const hasInlineHelp = titleEl.matches('[data-help], [data-help-title]') || titleEl.querySelector('.help-tip[data-help]');
+      if (hasInlineHelp) return;
       titleEl.appendChild(btn);
     } else {
       h.appendChild(btn);
