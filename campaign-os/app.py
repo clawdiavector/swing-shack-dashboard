@@ -6455,27 +6455,70 @@ def postiz_channels_route():
     if err:
         code, msg = err
         return jsonify({"ok": False, "error": f"postiz API {code}: {msg}"}), 502
-    # TEMP DEBUG: surface the raw upstream so we can see which field holds the provider
+    # Normalise: Postiz may return {integrations: [...]} or {identities: [...]} or a bare list
     items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or data.get("data") or [])
-    try:
-        _app_log.warning("postiz channels RAW: type=%s sample=%s", type(data).__name__, str(data)[:600] if data else 'none')
-    except Exception:
-        pass
     if not isinstance(items, list):
         items = []
-    # Reduce to a UI-friendly summary
-    channels = [
-        {
+    # Reduce to a UI-friendly summary. Probe every plausible provider field
+    # name since Postiz versions vary wildly:
+    #   - providerIdentifier (canonical)
+    #   - provider / type / channelType / platform (alternates)
+    #   - it["integration"]["providerIdentifier"] (older wrapper shape)
+    #   - name-as-provider fallback (when no other field is set)
+    KNOWN_PROVIDER_NAMES = {"gmb", "instagram", "facebook", "tiktok", "twitter", "x",
+                              "linkedin", "youtube", "pinterest", "threads", "reddit"}
+    channels = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        pid = ""
+        for key in ("providerIdentifier", "provider", "type", "channelType", "platform"):
+            v = it.get(key)
+            if v and isinstance(v, str):
+                pid = v
+                break
+        # Some Postiz responses wrap the integration in a sub-object
+        if not pid and isinstance(it.get("integration"), dict):
+            sub = it["integration"]
+            for key in ("providerIdentifier", "provider", "type"):
+                v = sub.get(key)
+                if v and isinstance(v, str):
+                    pid = v
+                    break
+        # Last resort: name might BE the provider
+        if not pid:
+            n = (it.get("name") or "").strip().lower()
+            if n in KNOWN_PROVIDER_NAMES:
+                pid = n
+        channels.append({
             "id": it.get("id") or it.get("_id"),
-            "provider": it.get("providerIdentifier") or it.get("provider") or it.get("type"),
+            "provider": (pid or "").lower() or None,
             "name": it.get("name"),
             "picture": it.get("picture"),
             "disabled": it.get("disabled", False),
-        }
-        for it in items
-        if isinstance(it, dict)
-    ]
+        })
     return jsonify({"ok": True, "channels": channels, "count": len(channels)}), 200
+
+
+@app.route('/api/postiz/channels/raw', methods=['GET'])
+def postiz_channels_raw_route():
+    """GET /api/postiz/channels/raw — temp debug: dump the raw upstream payload.
+
+    Helps debug provider field discovery. Returns the raw Postiz response
+    verbatim so we can see which keys hold the provider. Will be removed
+    once the channels route extracts the right field.
+    """
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        data, err = _postiz_lib.list_integrations()
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 502
+    if err:
+        return jsonify({"ok": False, "error": err}), 502
+    return jsonify({"ok": True, "raw_type": type(data).__name__, "raw": data}), 200
 
 
 def _safe_read_json(path: Path) -> Optional[dict]:
