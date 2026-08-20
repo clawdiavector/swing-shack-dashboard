@@ -6577,6 +6577,136 @@ def postiz_oauth_disconnect_route(brand_id):
     return jsonify({"ok": True, "brand_id": brand_id, "removed": removed}), 200
 
 
+# ── GBP OAuth round-trip (Google Business Profile) ────────────────────────────
+# Built 2026-08-20 to unblock the daily GBP post generator. Same pattern as
+# Postiz OAuth (state HMAC-signed, brand-bound, Fernet at rest). Real-world
+# constraint: the OAuth client (737685980094-...) needs the GBP scope
+# https://www.googleapis.com/auth/business.manage added to its allowed
+# scopes on Google Cloud Console before the consent screen will accept
+# GBP reads/writes. 5-minute Google Cloud task.
+
+_GBP_OAUTH_AVAILABLE = True
+try:
+    from _lib import gbp_oauth as _gbp_lib
+except Exception as _exc:
+    _GBP_OAUTH_AVAILABLE = False
+    _gbp_lib = None
+    _app_log.warning("gbp_oauth import failed: %s", _exc)
+if _GBP_OAUTH_AVAILABLE:
+    assert _gbp_lib is not None
+
+
+@app.route('/api/gbp/oauth/login', methods=['GET'])
+def gbp_oauth_login_route():
+    """GET /api/gbp/oauth/login?brand=<brand> — start the GBP OAuth round-trip."""
+    if not _GBP_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _gbp_lib.gbp_oauth_credentials_present():
+        return jsonify({
+            "ok": False,
+            "error": "GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET both required",
+            "status": _gbp_lib.gbp_status(),
+        }), 503
+    brand = request.args.get("brand") or "swing-shack"
+    state = _gbp_lib.make_state(brand_id=brand, user_id="operator")
+    redirect_uri = request.url_root.rstrip("/") + "/api/gbp/oauth/callback"
+    auth_url = _gbp_lib.build_authorize_url(redirect_uri, state)
+    return redirect(auth_url, code=302)
+
+
+@app.route('/api/gbp/oauth/callback', methods=['GET'])
+def gbp_oauth_callback_route():
+    """GET /api/gbp/oauth/callback?code=...&state=... — finish the GBP OAuth round-trip."""
+    if not _GBP_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    code = request.args.get("code")
+    state = request.args.get("state")
+    error = request.args.get("error")
+    if error:
+        return jsonify({"ok": False, "error": f"google oauth returned error: {error}"}), 400
+    if not code or not state:
+        return jsonify({"ok": False, "error": "missing code or state"}), 400
+    brand_id = _gbp_lib.brand_from_state(state)
+    if not brand_id:
+        return jsonify({"ok": False, "error": "state brand recovery failed"}), 400
+    ok, reason = _gbp_lib.verify_state(state, brand_id)
+    if not ok:
+        return jsonify({"ok": False, "error": f"state invalid: {reason}"}), 400
+    redirect_uri = request.url_root.rstrip("/") + "/api/gbp/oauth/callback"
+    try:
+        data, err = _gbp_lib.exchange_code(code, redirect_uri)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"exchange failed: {exc}"}), 502
+    if err:
+        code_s, msg = err
+        return jsonify({"ok": False, "error": f"google token exchange {code_s}: {msg}"}), 502
+    if not data or "access_token" not in data:
+        return jsonify({"ok": False, "error": "no access_token in response", "response": data}), 502
+    # Best-effort: look up the google account email so we can show it on the
+    # Connected Accounts page.
+    email = None
+    try:
+        req = urllib.request.Request(
+            _gbp_lib.GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {data['access_token']}", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            info = json.loads(r.read().decode("utf-8"))
+            email = info.get("email")
+    except Exception:
+        pass
+    try:
+        path = _gbp_lib.save_token(brand_id, data, google_account_email=email,
+                                    note=f"via OAuth callback {request.url_root}")
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"persist failed: {exc}"}), 500
+    return Response(
+        f"""<!doctype html>
+<html><head><title>GBP Connected</title>
+<style>body{{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0f1a;color:#e5e7eb;text-align:center;padding:80px 20px}}
+h1{{color:#6ee7b7}}p{{color:#94a3b8}}</style></head>
+<body>
+<h1>Google Business Profile connected for <code>{brand_id}</code></h1>
+<p>You can close this tab and return to Campaign OS. The access + refresh tokens are encrypted at rest.</p>
+<p>Next: visit <a href="/connected-accounts" style="color:#fbbf24">Connected Accounts</a> to see what's wired.</p>
+</body></html>""",
+        mimetype="text/html",
+    ), 200
+
+
+@app.route('/api/gbp/status', methods=['GET'])
+def gbp_status_route():
+    """GET /api/gbp/status — diagnostic snapshot of GBP credentials + token presence per brand."""
+    if not _GBP_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brands = ["swing-shack", "stick", "bag-drop"]
+    out = {
+        "ok": False,
+        "credentials_present": _gbp_lib.gbp_oauth_credentials_present(),
+        "scopes": _gbp_lib.GBP_SCOPES,
+        "tokens_per_brand": {b: _gbp_lib.gbp_status(b) for b in brands},
+    }
+    out["ok"] = any(out["tokens_per_brand"][b]["ok"] for b in brands) and out["credentials_present"]
+    return jsonify(out), 200
+
+
+@app.route('/api/gbp/oauth/<brand_id>/disconnect', methods=['POST'])
+def gbp_oauth_disconnect_route(brand_id):
+    """POST /api/gbp/oauth/<brand>/disconnect — hard-delete the per-brand GBP token."""
+    if not _GBP_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    removed = _gbp_lib.delete_token(brand_id)
+    return jsonify({"ok": True, "brand_id": brand_id, "removed": removed}), 200
+
+
 @app.route('/api/review/<asset_id>/schedule', methods=['POST'])
 def review_push_postiz(asset_id):
     """Push the asset's caption + visual to Postiz as a draft. Records the Postiz id
@@ -7051,6 +7181,89 @@ def unschedule_asset(asset_id):
         return jsonify({"ok": False, "error": "Schedule entry not found"}), 404
     saved = save_schedule(manifest)
     return jsonify({"ok": True, "assetId": asset_id, "schedule": _schedule_response(saved)}), 200
+
+# ── Connected Accounts landing page ────────────────────────────────────────────
+# One screen, one tile per platform, each with a status pill + a Connect
+# button. The page reads from /api/connected-accounts/status (below) which
+# aggregates postiz + gbp + meta status. No destructive writes from the
+# page itself — Connect buttons just 302 to the OAuth login route.
+
+@app.route('/api/connected-accounts/status', methods=['GET'])
+def connected_accounts_status_route():
+    """GET /api/connected-accounts/status — per-platform connection snapshot.
+
+    Returns: { ok, postiz: {...}, gbp: {...}, meta: {...}, last_check }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    out = {"ok": True, "last_check": _dt_cls.now(_tz.utc).isoformat()}
+    if _POSTIZ_CLIENT_AVAILABLE:
+        try:
+            status = _postiz_lib.postiz_status()
+            ch_data, ch_err = _postiz_lib.list_integrations()
+            channels = []
+            if not ch_err and ch_data:
+                items = ch_data if isinstance(ch_data, list) else (ch_data.get("integrations") or ch_data.get("identities") or [])
+                for it in items:
+                    if not isinstance(it, dict): continue
+                    channels.append({
+                        "id": it.get("id") or it.get("_id"),
+                        "provider": (it.get("providerIdentifier") or it.get("provider") or "").lower() or None,
+                        "name": it.get("name"),
+                        "picture": it.get("picture"),
+                        "disabled": it.get("disabled", False),
+                    })
+            out["postiz"] = {
+                "credentials_ok": status.get("ok"),
+                "channels": channels,
+                "channel_count": len(channels),
+                "connect_url": "/api/postiz/oauth/login?brand=swing-shack",
+            }
+        except Exception as exc:
+            out["postiz"] = {"credentials_ok": False, "error": str(exc), "channels": []}
+    else:
+        out["postiz"] = {"credentials_ok": False, "error": "postiz client unavailable", "channels": []}
+    if _GBP_OAUTH_AVAILABLE:
+        try:
+            gbp_creds = _gbp_lib.gbp_oauth_credentials_present()
+            token = _gbp_lib.load_token("swing-shack")
+            out["gbp"] = {
+                "credentials_ok": gbp_creds,
+                "token_present": bool(token),
+                "google_account": (token or {}).get("google_account_email"),
+                "rotated_at": (token or {}).get("rotated_at"),
+                "connect_url": "/api/gbp/oauth/login?brand=swing-shack",
+            }
+        except Exception as exc:
+            out["gbp"] = {"credentials_ok": False, "error": str(exc)}
+    else:
+        out["gbp"] = {"credentials_ok": False, "error": "gbp client unavailable"}
+    # Meta Graph is handled separately via _lib/meta_api.py — for now just
+    # show the configured state from env-debug.
+    try:
+        meta_creds = bool(os.environ.get("META_SYSTEM_USER_TOKEN"))
+        out["meta"] = {
+            "credentials_ok": meta_creds,
+            "note": "Meta Graph wired read-only (no publishing yet). Setup is in meta_api.py.",
+        }
+    except Exception as exc:
+        out["meta"] = {"credentials_ok": False, "error": str(exc)}
+    return jsonify(out), 200
+
+
+@app.route('/connected-accounts', methods=['GET'])
+@app.route('/connected-accounts.html', methods=['GET'])
+def connected_accounts_page():
+    """GET /connected-accounts — the in-app landing page for OAuth connections.
+
+    Renders a single HTML page that lists every platform with its current
+    connection state and a Connect/Disconnect button per platform. The page
+    fetches /api/connected-accounts/status on load to populate the cards.
+    """
+    if not _is_authed():
+        return redirect(url_for("login_page", next="/connected-accounts"))
+    return send_from_directory(os.path.dirname(__file__), "connected-accounts.html")
+
 
 # ─── STATIC FILES ─────────────────────────────────────────────────────
 

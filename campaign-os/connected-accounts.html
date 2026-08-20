@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Connected Accounts — Campaign OS</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; background: #0a0f1a; color: #e5e7eb;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 26px; color: #fbbf24; margin: 0 0 6px; }
+  p.sub { color: #94a3b8; font-size: 14px; margin: 0 0 28px; line-height: 1.6; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .card { background: #1a1f2c; border: 1px solid #2a3142; border-radius: 10px;
+    padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .head { display: flex; align-items: center; gap: 12px; }
+  .icon { font-size: 28px; line-height: 1; }
+  .name { font-size: 17px; font-weight: 700; color: #f3f4f6; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
+    border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .pill-ok { background: #064e3b; color: #6ee7b7; }
+  .pill-err { background: #7f1d1d; color: #fecaca; }
+  .pill-warn { background: #78350f; color: #fcd34d; }
+  .pill-none { background: #1f2937; color: #94a3b8; }
+  .desc { color: #94a3b8; font-size: 13px; line-height: 1.5; }
+  .meta { color: #64748b; font-size: 11px; line-height: 1.5; }
+  .meta b { color: #94a3b8; }
+  .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+  .btn { background: #fbbf24; color: #0a0f1a; font-weight: 700; border: 0;
+    padding: 9px 16px; border-radius: 5px; cursor: pointer; font-size: 13px;
+    text-decoration: none; display: inline-block; }
+  .btn:hover { background: #fcd34d; }
+  .btn-secondary { background: transparent; color: #94a3b8; border: 1px solid #2a3142; }
+  .btn-secondary:hover { background: #1a1f2c; color: #e5e7eb; }
+  .btn:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
+  .channels { display: flex; flex-wrap: wrap; gap: 4px; }
+  .channel-chip { background: #0a0f1a; color: #94a3b8; border: 1px solid #2a3142;
+    border-radius: 4px; padding: 2px 8px; font-size: 10px; }
+  .channel-chip.ok { color: #6ee7b7; border-color: #064e3b; }
+  .refresh-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .refresh-row .meta { flex: 1; }
+  a.back { color: #94a3b8; font-size: 12px; text-decoration: none; }
+  a.back:hover { color: #fbbf24; }
+  .step-list { color: #94a3b8; font-size: 13px; line-height: 1.7; margin-top: 24px;
+    background: #1a1f2c; border: 1px solid #2a3142; border-radius: 8px; padding: 18px 22px; }
+  .step-list h3 { color: #fbbf24; font-size: 14px; margin: 0 0 8px; }
+  .step-list ol { margin: 0; padding-left: 22px; }
+  .step-list li { margin-bottom: 4px; }
+  code { background: #0a0f1a; padding: 2px 6px; border-radius: 3px; color: #fbbf24;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="refresh-row">
+    <a class="back" href="/">← back to home</a>
+    <div class="meta" id="last-check"></div>
+    <button class="btn btn-secondary" onclick="loadStatus()">Refresh</button>
+  </div>
+  <h1>Connected Accounts</h1>
+  <p class="sub">
+    One click to wire each social / GBP / analytics platform. We never see your password;
+    each Connect button sends you to the platform's own OAuth consent screen. Tokens are
+    stored Fernet-encrypted at rest.
+  </p>
+
+  <div class="grid" id="cards">
+    <div class="card"><div class="meta">Loading…</div></div>
+  </div>
+
+  <div class="step-list">
+    <h3>Why each platform</h3>
+    <ol>
+      <li><b>Postiz</b> — the publish hub. Connected channels appear below with their integration IDs.</li>
+      <li><b>Google Business Profile</b> — required for daily GBP posts (your local SEO + GEO surface).</li>
+      <li><b>Meta Graph (IG + FB)</b> — already wired read-only for analytics; we don't publish through it.</li>
+      <li><b>GA4 + Ubersuggest + YouTube</b> — already wired. Listed below for completeness.</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+const PROVIDERS = {
+  postiz: {
+    icon: "📮",
+    name: "Postiz (publish hub)",
+    desc: "The publish pipe for Instagram, Facebook, TikTok, X, GBP, YouTube, LinkedIn. We post via Postiz so we never trigger Meta's app-review process.",
+  },
+  gbp: {
+    icon: "📍",
+    name: "Google Business Profile",
+    desc: "Direct access to read your locations + write daily posts. Needed for the daily post generator.",
+  },
+  meta: {
+    icon: "📊",
+    name: "Meta Graph (read-only)",
+    desc: "IG + Facebook insights. Wired system-wide via META_SYSTEM_USER_TOKEN. No user action needed.",
+  },
+};
+
+function pillClass(state) {
+  if (state === "ok") return "pill pill-ok";
+  if (state === "warn") return "pill pill-warn";
+  if (state === "err") return "pill pill-err";
+  return "pill pill-none";
+}
+function pillLabel(state) {
+  if (state === "ok") return "Connected";
+  if (state === "warn") return "Partial";
+  if (state === "err") return "Error";
+  return "Not connected";
+}
+
+function renderPostiz(postiz) {
+  const ok = postiz.credentials_ok;
+  const channels = postiz.channels || [];
+  const channelChips = channels.map(c => {
+    const label = c.provider || "unknown";
+    const cls = c.disabled ? "channel-chip" : "channel-chip ok";
+    return `<span class="${cls}">${label}${c.name ? " · " + c.name : ""}</span>`;
+  }).join("");
+  const state = ok && channels.length > 0 ? "ok" : (ok ? "warn" : "err");
+  return `
+    <div class="card">
+      <div class="head">
+        <span class="icon">${PROVIDERS.postiz.icon}</span>
+        <span class="name">${PROVIDERS.postiz.name}</span>
+        <span class="${pillClass(state)}">${pillLabel(state)}</span>
+      </div>
+      <p class="desc">${PROVIDERS.postiz.desc}</p>
+      <div class="meta">
+        <b>${postiz.channel_count || 0}</b> channel${(postiz.channel_count || 0) === 1 ? "" : "s"} connected
+        ${postiz.error ? " · <b style='color:#f87171'>" + postiz.error + "</b>" : ""}
+      </div>
+      <div class="channels">${channelChips || '<span class="meta">No channels yet</span>'}</div>
+      <div class="btn-row">
+        <a class="btn" href="${postiz.connect_url || '/api/postiz/oauth/login?brand=swing-shack'}">Connect</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderGBP(gbp) {
+  const ok = gbp.credentials_ok && gbp.token_present;
+  const state = ok ? "ok" : (gbp.credentials_ok ? "warn" : "err");
+  const account = gbp.google_account ? `<div class="meta">Account: <b>${gbp.google_account}</b></div>` : "";
+  const rotated = gbp.rotated_at ? `<div class="meta">Last connected: <b>${gbp.rotated_at}</b></div>` : "";
+  return `
+    <div class="card">
+      <div class="head">
+        <span class="icon">${PROVIDERS.gbp.icon}</span>
+        <span class="name">${PROVIDERS.gbp.name}</span>
+        <span class="${pillClass(state)}">${pillLabel(state)}</span>
+      </div>
+      <p class="desc">${PROVIDERS.gbp.desc}</p>
+      ${account}${rotated}
+      <div class="meta">${gbp.error ? "<b style='color:#f87171'>" + gbp.error + "</b>" : ""}</div>
+      <div class="btn-row">
+        <a class="btn" href="${gbp.connect_url || '/api/gbp/oauth/login?brand=swing-shack'}">Connect</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderMeta(meta) {
+  const state = meta.credentials_ok ? "ok" : "none";
+  return `
+    <div class="card">
+      <div class="head">
+        <span class="icon">${PROVIDERS.meta.icon}</span>
+        <span class="name">${PROVIDERS.meta.name}</span>
+        <span class="${pillClass(state)}">${pillLabel(state)}</span>
+      </div>
+      <p class="desc">${PROVIDERS.meta.desc}</p>
+      <div class="meta">${meta.note || ""}</div>
+    </div>
+  `;
+}
+
+async function loadStatus() {
+  document.getElementById("cards").innerHTML = '<div class="card"><div class="meta">Loading…</div></div>';
+  try {
+    const r = await fetch("/api/connected-accounts/status");
+    const d = await r.json();
+    if (!d.ok) {
+      document.getElementById("cards").innerHTML = '<div class="card"><div class="meta">Failed to load: ' + (d.error || "unknown") + '</div></div>';
+      return;
+    }
+    document.getElementById("last-check").innerHTML = "Last checked: <b>" + (d.last_check || "—") + "</b>";
+    const cards = [];
+    if (d.postiz) cards.push(renderPostiz(d.postiz));
+    if (d.gbp) cards.push(renderGBP(d.gbp));
+    if (d.meta) cards.push(renderMeta(d.meta));
+    document.getElementById("cards").innerHTML = cards.join("");
+  } catch (e) {
+    document.getElementById("cards").innerHTML = '<div class="card"><div class="meta">Fetch failed: ' + e.message + '</div></div>';
+  }
+}
+
+loadStatus();
+</script>
+</body>
+</html>
