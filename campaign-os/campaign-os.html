@@ -12509,7 +12509,12 @@ function agentRunHtml(it){
   if(invalid.length){
     const items = invalid.map(v => `<li><span class="muted">${esc(v.file || '')}</span>: ${esc(v.reason || 'unknown')}</li>`).join('');
     detailInner += `<div class="li-detail-row"><strong>Invalid</strong><span><ul style="margin:.15rem 0 .15rem 1.1rem;padding:0">${items}</ul></span></div>`;
-  } else if(scripts.length && scripts.every(s => String(s.status || '').toUpperCase() === 'PASS')){
+  }
+  // Only say "all scripts passed" when the row status is PASS. A PARTIAL
+  // row with all scripts reporting PASS (common when validation failed
+  // downstream, e.g. hook_smith on 2026-04-22) needs the "Result" line to
+  // honour the row status, not contradict it.
+  if(scripts.length && status === 'PASS' && scripts.every(s => String(s.status || '').toUpperCase() === 'PASS')){
     detailInner += `<div class="li-detail-row"><strong>Result</strong><span class="muted">All ${scripts.length} script${scripts.length===1?'':'s'} passed</span></div>`;
   }
   const detail = `<div class="li-detail">${detailInner}</div>`;
