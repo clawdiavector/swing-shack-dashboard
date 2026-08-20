@@ -6502,7 +6502,8 @@ def postiz_oauth_login_route():
             "status": _postiz_lib.postiz_status(),
         }), 503
     state = _postiz_lib.make_oauth_state(brand_id=brand, user_id="operator")
-    redirect_uri = request.url_root.rstrip("/") + "/api/postiz/oauth/callback"
+    # Force https:// (Railway proxy returns http:// from request.url_root).
+    redirect_uri = ("https://" + request.host + "/api/postiz/oauth/callback")
     auth_url = _postiz_lib.build_oauth_authorize_url(redirect_uri, state)
     return redirect(auth_url, code=302)
 
@@ -6538,7 +6539,7 @@ def postiz_oauth_callback_route():
     ok, reason = _postiz_lib.verify_oauth_state(state, brand_id)
     if not ok:
         return jsonify({"ok": False, "error": f"state invalid: {reason}"}), 400
-    redirect_uri = request.url_root.rstrip("/") + "/api/postiz/oauth/callback"
+    redirect_uri = ("https://" + request.host + "/api/postiz/oauth/callback")
     try:
         data, err = _postiz_lib.exchange_oauth_code(code, redirect_uri)
     except Exception as exc:
@@ -6613,7 +6614,10 @@ def gbp_oauth_login_route():
         }), 503
     brand = request.args.get("brand") or "swing-shack"
     state = _gbp_lib.make_state(brand_id=brand, user_id="operator")
-    redirect_uri = request.url_root.rstrip("/") + "/api/gbp/oauth/callback"
+    # request.url_root returns the scheme as the proxy saw it. Railway's
+    # internal proxy returns "http://" even though the external URL is https.
+    # Force https so the registered Google redirect URI matches byte-for-byte.
+    redirect_uri = ("https://" + request.host + "/api/gbp/oauth/callback")
     auth_url = _gbp_lib.build_authorize_url(redirect_uri, state)
     return redirect(auth_url, code=302)
 
@@ -6638,7 +6642,7 @@ def gbp_oauth_callback_route():
     ok, reason = _gbp_lib.verify_state(state, brand_id)
     if not ok:
         return jsonify({"ok": False, "error": f"state invalid: {reason}"}), 400
-    redirect_uri = request.url_root.rstrip("/") + "/api/gbp/oauth/callback"
+    redirect_uri = ("https://" + request.host + "/api/gbp/oauth/callback")
     try:
         data, err = _gbp_lib.exchange_code(code, redirect_uri)
     except Exception as exc:
