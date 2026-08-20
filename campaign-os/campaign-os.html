@@ -8871,7 +8871,64 @@ async function renderTrends(){
 }
 
 // ─── IDEAS ──────────────────────────────────────────────────────
-async function renderIdeas(){
+async // ─── Campaign-from-idea preview modal (built 2026-08-20) ──────────
+// When the Opportunity Detector's "Build campaign" button fires the
+// /api/campaigns/from-idea endpoint, this function shows the user a
+// quick preview of the 5 channel-tailored assets that just got
+// drafted before navigating them to the Review queue. Pure UI sugar
+// over the assets[] the endpoint already returns.
+function _campaignFromIdeaPreview(r){
+  // Build or reuse the modal host
+  let modal = document.getElementById('campaign-from-idea-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'campaign-from-idea-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+    document.body.appendChild(modal);
+  }
+  const channelEmoji = {gmb: '📍', instagram: '📸', facebook: '📘', x: '🐦', tiktok: '🎬'};
+  const channelLabel = {gmb: 'Google Business Profile', instagram: 'Instagram', facebook: 'Facebook', x: 'X', tiktok: 'TikTok'};
+  const assets = (r.assets || []).map(a => `
+    <li class="li" style="display:block;margin-bottom:.75rem;padding:12px;border:1px solid var(--bd);border-radius:6px">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
+        <span style="font-size:18px">${channelEmoji[a.channel] || '📄'}</span>
+        <b style="color:var(--tx)">${channelLabel[a.channel] || a.channel}</b>
+        <span class="muted" style="font-size:11px">${esc(a.name)}</span>
+      </div>
+      <div style="font-size:13px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap;margin-bottom:.4rem">${esc(a.caption_preview)}</div>
+      <div style="font-size:11px;color:var(--tx-3)"><b>CTA:</b> ${esc(a.cta || '—')}</div>
+      ${a.hashtags && a.hashtags.length ? `<div style="font-size:11px;color:var(--tx-3)"><b>Hashtags:</b> ${a.hashtags.map(esc).join(' ')}</div>` : ''}
+      ${a.scheduled_for ? `<div style="font-size:11px;color:var(--tx-3)"><b>Suggested:</b> ${esc(a.scheduled_for)}</div>` : ''}
+    </li>
+  `).join('');
+  modal.innerHTML = `
+    <div style="background:var(--bg-1);color:var(--tx);border-radius:12px;padding:24px;max-width:760px;max-height:85vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.4)">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
+        <span style="font-size:28px">🚀</span>
+        <div style="flex:1">
+          <h3 style="margin:0;font-size:18px">Campaign built</h3>
+          <code style="font-size:12px;background:var(--bg-3);padding:2px 6px;border-radius:4px">${esc(r.campaign_id)}</code>
+        </div>
+        <button id="campaign-from-idea-close" class="link-btn" style="font-size:20px;background:none;border:none;cursor:pointer;color:var(--tx-3)">×</button>
+      </div>
+      <p style="margin:.5rem 0 1rem 0;color:var(--tx-2);font-size:13px">
+        <b>${(r.assets||[]).length} channel drafts</b> pending your review. Each one is platform-tailored
+        (X under 280 chars, Instagram hook-first, GBP neighbourhood-aware). Approve in bulk from the
+        Review queue, or edit per-card first.
+      </p>
+      <ul class="list" style="list-style:none;padding:0;margin:0">${assets}</ul>
+      <div style="margin-top:1.25rem;display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn" id="campaign-from-idea-secondary" style="font-size:13px">Stay on Ideas</button>
+        <button class="btn primary" id="campaign-from-idea-review" style="font-size:13px">Open Review Queue →</button>
+      </div>
+    </div>
+  `;
+  modal.style.display = 'flex';
+  modal.querySelector('#campaign-from-idea-close').onclick = () => { modal.style.display = 'none'; };
+  modal.querySelector('#campaign-from-idea-secondary').onclick = () => { modal.style.display = 'none'; };
+  modal.querySelector('#campaign-from-idea-review').onclick = () => { modal.style.display = 'none'; go('review'); };
+}
+function renderIdeas(){
   if(!S.ideas) S.ideas = await API.get('/api/intel/opportunities');
   const d = S.ideas;
 
@@ -8939,25 +8996,55 @@ async function renderIdeas(){
       $('#opportunity-detector-why').innerHTML =
         `<b>${top.label}.</b> ${esc(whyLine)}<br><span class="muted" style="font-size:11.5px">Source: ${top.key}${top.it.idea_id ? ' · ' + esc(top.it.idea_id) : ''}</span>`;
       const buildBtn = $('#opportunity-detector-build');
-      if (buildBtn) {
-        buildBtn.onclick = () => {
-          // Drop into the campaign builder with this opportunity pre-seeded.
-          // Uses the existing campaign_planner endpoint, which accepts a
-          // brief string and returns a full blueprint. Falls back to
-          // opening the Campaigns page if the API isn't wired.
-          const seed = (top.it.name || top.it.title || top.it.fix || '').toString();
-          goToSection('campaigns');
-          toast(`Building campaign from "${seed.slice(0, 50)}"…`, 'ok');
-          setTimeout(() => {
-            const brief = document.getElementById('camp-brief-input') ||
-                           document.querySelector('[data-camp-brief]');
-            if (brief) {
-              brief.value = seed;
-              brief.focus();
+            if (buildBtn) {
+              buildBtn.onclick = () => {
+                // One-click build pipeline (built 2026-08-20).
+                // POST /api/campaigns/from-idea creates a campaign with 5
+                // channel-tailored assets (gmb / instagram / facebook / x /
+                // tiktok) and returns the asset IDs so the user can review
+                // them in the Review queue. Per agent-destructive-write-
+                // discipline, this ONLY drafts. Publish-to-platform is gated
+                // behind each asset's individual approve+schedule flow.
+                const seed = (top.it.name || top.it.title || top.it.fix || top.it.hook || 'Untitled angle').toString();
+                const neighbourhood = (top.it.neighbourhood || top.it.neighborhood || '').toString();
+                const pillar = (top.it.pillar || top.it.category || '').toString();
+                buildBtn.disabled = true;
+                const origLabel = buildBtn.textContent;
+                buildBtn.textContent = '⏳ Building 5 assets…';
+                (async () => {
+                  try {
+                    const r = await API.post('/api/campaigns/from-idea', {
+                      idea: seed,
+                      brand_id: S.brand || 'swing-shack',
+                      voice: S.brand || 'swing-shack',
+                      tone: 'confident',
+                      neighbourhood: neighbourhood || undefined,
+                      pillar: pillar || undefined,
+                      goal: 'awareness',
+                    });
+                    if (r && r.ok) {
+                      const c = r.assets || [];
+                      buildBtn.textContent = `OK ${c.length} drafts ready`;
+                      toast(`Campaign "${r.campaign_id}" built - ${c.length} assets in Review queue`, 'ok');
+                      S.campaignList = null;
+                      S.campaignDetail = null;
+                      S.review = null;
+                      _campaignFromIdeaPreview(r);
+                      setTimeout(() => go('review'), 800);
+                    } else {
+                      buildBtn.textContent = origLabel;
+                      toast(r && r.error ? r.error : 'Build failed', 'err');
+                    }
+                  } catch (err) {
+                    buildBtn.textContent = origLabel;
+                    toast(err.message || 'Build failed', 'err');
+                  } finally {
+                    buildBtn.disabled = false;
+                    setTimeout(() => { buildBtn.textContent = origLabel; }, 4000);
+                  }
+                })();
+              };
             }
-          }, 400);
-        };
-      }
       detector.style.display = 'block';
     } else {
       detector.style.display = 'none';
@@ -8997,9 +9084,54 @@ async function renderIdeas(){
         <div class="li-meta">${pillar} ${format} ${difficulty} ${priority}</div>
         ${reason}
       </div>
-      <div class="li-act"><button class="btn-mini" title="Copy hook text" onclick="event.stopPropagation();navigator.clipboard?.writeText(this.closest('.li').dataset.copy||'');toast('Hook copied','ok')">📋 Copy</button></div>
+      <div class="li-act">
+        <button class="btn-mini" title="Build full campaign from this idea (5 channel drafts)" onclick="event.stopPropagation();_buildCampaignFromIdea(this)" style="margin-right:.25rem;background:var(--ac);color:var(--bg-1);font-weight:600">🚀 Campaign</button>
+        <button class="btn-mini" title="Copy hook text" onclick="event.stopPropagation();navigator.clipboard?.writeText(this.closest('.li').dataset.copy||'');toast('Hook copied','ok')">📋 Copy</button>
+      </div>
     </li>`;
   };
+  // Build a campaign from any idea card via the 🚀 Campaign button. Built 2026-08-20.
+  // Pulls the idea's title + hook + topic cluster + neighbourhood (when available)
+  // and POSTs to /api/campaigns/from-idea which creates 5 channel-tailored assets.
+  async function _buildCampaignFromIdea(btn){
+    const li = btn.closest('.li');
+    const seed = (li.querySelector('.li-title') || {}).textContent || 'New campaign';
+    const hookEl = li.querySelector('.idea-hook');
+    const idea = hookEl ? hookEl.textContent.replace(/^"|"$/g, '').trim() : seed;
+    const topicClusterPill = li.querySelector('.li-meta .pill');
+    const pillar = topicClusterPill ? topicClusterPill.textContent.trim().replace(/ /g,'_') : '';
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = '⏳ Building…';
+    try {
+      const r = await API.post('/api/campaigns/from-idea', {
+        idea: idea || seed,
+        brand_id: S.brand || 'swing-shack',
+        voice: S.brand || 'swing-shack',
+        tone: 'confident',
+        pillar: pillar || undefined,
+        goal: 'awareness',
+      });
+      if (r && r.ok) {
+        btn.textContent = `✓ ${(r.assets||[]).length} drafted`;
+        toast(`Campaign "${r.campaign_id}" built - ${(r.assets||[]).length} assets in Review queue`, 'ok');
+        S.campaignList = null;
+        S.campaignDetail = null;
+        S.review = null;
+        _campaignFromIdeaPreview(r);
+        setTimeout(() => go('review'), 800);
+      } else {
+        btn.textContent = orig;
+        toast(r && r.error ? r.error : 'Build failed', 'err');
+      }
+    } catch (err) {
+      btn.textContent = orig;
+      toast(err.message || 'Build failed', 'err');
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = orig; }, 4000);
+    }
+  }
   const renderList = (arr, fmt) => safeList(arr, 8).map(fmt === 'idea' ? renderIdeaCard : itemHtml).join('') || '<div class="empty">Nothing here</div>';
   // Empty-state cards for Ideas sections that need a friendlier "nothing here"
   // than the generic "Nothing here". These two cards routinely empty because the

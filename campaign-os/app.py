@@ -5912,6 +5912,284 @@ def create_campaign():
         response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
     return jsonify(response), 201
 
+@app.route('/api/campaigns/from-idea', methods=['POST'])
+def campaign_from_idea():
+    """POST /api/campaigns/from-idea — one-click campaign builder.
+
+    Takes a single idea (the seed of the campaign) and:
+      1. Creates a new campaign
+      2. Generates one asset draft per channel (GBP / Instagram / Facebook /
+         X / TikTok) with platform-tailored captions + CTAs
+      3. Persists each asset to data/campaigns.json → asset appears in the
+         Review queue (with approvalStatus='pending')
+      4. Returns the asset IDs + a one-stop "open review" URL so the user
+         can review + bulk-schedule from the Review queue
+
+    Body (JSON):
+      idea       - str, REQUIRED. The idea / hook / topic. Max 280 chars.
+      brand_id   - str, defaults to the active brand from session/brand switcher.
+      voice      - str, optional. 'swing-shack' | 'stick' | 'bag-drop'. Auto-detects from brand.
+      tone       - str, optional. 'educational' | 'confident' | 'funny' | 'relatable' | 'provocative' | 'sarcastic'.
+      goal       - str, optional. Stored on the campaign identity so future
+                   analytics tie back. Defaults to 'awareness'.
+      pillar     - str, optional. 'club_fitting' | 'booking' | 'community' | etc.
+      neighbourhood - str, optional. Used in the GBP caption.
+      channels   - list, optional. Subset of ['gmb','instagram','facebook','x','tiktok'].
+                   Defaults to all 5. Lets the user scope to just the channels they
+                   want without changing code.
+
+    Returns (200):
+      {
+        ok: true,
+        campaign_id: 'black-friday-trackman-2026',
+        assets: [
+          {channel: 'gmb', asset_id: 'black-friday-trackman-2026-gmb', name, caption_preview, cta, scheduled_for: null},
+          {channel: 'instagram', ...},
+          ...
+        ],
+        review_url: '/#sec-review',
+        generated_at: '2026-08-20T11:00:00Z'
+      }
+
+    Discipline: this endpoint WRITES to the campaign data file. The actual
+    publish-to-platform calls (Postiz / GBP / etc.) are gated behind each
+    asset's individual approve+schedule flow. The from-idea builder only
+    drafts; the user approves each in the Review queue.
+    """
+    body = request.get_json(silent=True) or {}
+    idea = (body.get("idea") or "").strip()
+    if not idea:
+        return jsonify({"ok": False, "error": "idea is required"}), 400
+    if len(idea) > 280:
+        idea = idea[:280]
+    brand_id = (body.get("brand_id") or _active_brand_id() or "swing-shack").strip()
+    voice = (body.get("voice") or "").strip() or None
+    tone = (body.get("tone") or "confident").strip()
+    goal = (body.get("goal") or "awareness").strip()
+    pillar = (body.get("pillar") or "").strip() or None
+    neighbourhood = (body.get("neighbourhood") or "").strip() or None
+    channels_req = body.get("channels") or ["gmb", "instagram", "facebook", "x", "tiktok"]
+    # Validate channels
+    valid_channels = {"gmb", "instagram", "facebook", "x", "tiktok"}
+    channels_req = [c for c in channels_req if c in valid_channels] or ["gmb", "instagram", "facebook", "x", "tiktok"]
+
+    # 1. Create the campaign
+    import re as _re
+    campaign_id = _re.sub(r'[^a-z0-9]+', '-', idea.lower()).strip('-')[:60] or "untitled-campaign"
+    # Disambiguate if it already exists
+    data = load_data()
+    campaigns = data.get("campaigns", {}) or {}
+    base = campaign_id
+    counter = 1
+    while campaign_id in campaigns:
+        campaign_id = f"{base}-{counter}"
+        counter += 1
+    now_iso = _dt_cls.now(_tz.utc).isoformat().replace("+00:00", "Z")
+    new_campaign = {
+        "identity": {
+            "campaignId": campaign_id,
+            "name": idea[:60],
+            "shortName": idea[:30],
+            "goal": goal,
+            "primaryGoal": goal,
+            "status": "drafting",
+            "owner": "christelle",
+            "brand_id": brand_id,
+            "pillar": pillar,
+            "neighbourhood": neighbourhood,
+            "source": "from-idea",
+            "createdAt": now_iso,
+            "updatedAt": now_iso,
+        },
+        "assets": {},
+        "productionPlan": None,
+        "blueprints": [],
+    }
+    campaigns[campaign_id] = new_campaign
+    data["campaigns"] = campaigns
+    data["activeCampaignId"] = campaign_id
+
+    # 2. Generate per-channel assets
+    assets = []
+    per_channel_prompts = _per_channel_prompts(idea, brand_id=brand_id, voice=voice, tone=tone, pillar=pillar, neighbourhood=neighbourhood, goal=goal)
+    for channel in channels_req:
+        prompt = per_channel_prompts.get(channel) or {"name": idea[:60], "caption": idea, "cta": "Read more →", "hashtags": []}
+        asset_id = f"{campaign_id}-{channel}"
+        asset = {
+            "assetId": asset_id,
+            "campaignId": campaign_id,
+            "name": prompt["name"][:120],
+            "assetType": "post",
+            "status": "draft",
+            "platform": channel,
+            "channel": channel,
+            "caption": prompt["caption"],
+            "caption_preview": prompt["caption"][:200],
+            "cta": prompt.get("cta", ""),
+            "hashtags": prompt.get("hashtags", []),
+            "voice": voice or brand_id,
+            "tone": tone,
+            "neighbourhood": neighbourhood,
+            "pillar": pillar,
+            "approvalStatus": "pending",
+            "owner": "agent",
+            "createdAt": now_iso,
+            "updatedAt": now_iso,
+            "history": [{"action": "created", "by": "from-idea", "at": now_iso, "reason": f"auto-generated for channel={channel}"}],
+        }
+        # Channel-specific shape tweaks the publishing pipeline expects
+        if channel == "gmb":
+            asset["postiz_channel"] = "gmb"
+            asset["postizType"] = "STANDARD"
+            asset["suggestedSchedule"] = _suggest_gbp_schedule()
+        elif channel == "x":
+            asset["postiz_channel"] = "x"
+            # X needs <280 chars; truncate body if generated copy is longer
+            if len(asset["caption"]) > 280:
+                asset["caption"] = asset["caption"][:277] + "…"
+                asset["caption_was_truncated"] = True
+        else:
+            asset["postiz_channel"] = channel
+            asset["suggestedSchedule"] = _suggest_social_schedule(channel)
+        campaigns[campaign_id]["assets"][asset_id] = asset
+        assets.append({
+            "channel": channel,
+            "asset_id": asset_id,
+            "name": asset["name"],
+            "caption_preview": asset["caption_preview"],
+            "cta": asset["cta"],
+            "hashtags": asset["hashtags"][:5],
+            "scheduled_for": asset.get("suggestedSchedule"),
+        })
+
+    # 3. Persist + git sync (best-effort)
+    save_data(data)
+    try:
+        git_push(f"campaign-builder: from-idea '{idea[:50]}' → {campaign_id} ({len(assets)} assets)")
+    except Exception:
+        _app_log.warning("campaign_from_idea git_push failed (data still saved)")
+
+    return jsonify({
+        "ok": True,
+        "campaign_id": campaign_id,
+        "assets": assets,
+        "review_url": "/#sec-review",
+        "channels": channels_req,
+        "generated_at": now_iso,
+        "brand_id": brand_id,
+        "voice": voice,
+        "tone": tone,
+        "goal": goal,
+    }), 201
+
+
+def _active_brand_id() -> Optional[str]:
+    """Best-effort active brand detection. Reads from session, falls back to global default."""
+    try:
+        from flask import session
+        b = session.get("active_brand_id")
+        if b:
+            return b
+    except Exception:
+        pass
+    return None
+
+
+def _suggest_gbp_schedule() -> str:
+    """Tomorrow at 11:00 SAST (09:00 UTC) — matches the daily-poster schedule."""
+    tomorrow = _dt_cls.now(_tz.utc) + _td(days=1)
+    return tomorrow.replace(hour=9, minute=0, second=0, microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _suggest_social_schedule(channel: str) -> str:
+    """Stagger social posts across the next 5 days, anchoring on the channel's peak hour.
+    instagram: 18:00 SAST (16:00 UTC)
+    facebook: 14:00 SAST (12:00 UTC)
+    tiktok:   20:00 SAST (18:00 UTC)
+    x:        09:00 SAST (07:00 UTC)
+    """
+    hours_utc = {"instagram": 16, "facebook": 12, "tiktok": 18, "x": 7, "gmb": 9}
+    hour = hours_utc.get(channel, 12)
+    day_offset = {"instagram": 1, "tiktok": 2, "facebook": 3, "x": 4, "gmb": 1}.get(channel, 1)
+    target = _dt_cls.now(_tz.utc) + _td(days=day_offset)
+    return target.replace(hour=hour, minute=0, second=0, microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+# ── Per-channel prompt templates (kept SA-natural, golf-aware, aligned to voice) ──
+_BD_HOOKS = {
+    "club_fitting": "Need clubs that fit your swing?",
+    "booking": "Ready to see your numbers?",
+    "community": "Welcome to the swing.",
+    "educational": "Quick swing truth:",
+    "awareness": "Indoor golf in Joburg, properly done:",
+}
+
+
+def _per_channel_prompts(idea: str, *, brand_id: str, voice: Optional[str], tone: str, pillar: Optional[str], neighbourhood: Optional[str], goal: str) -> dict:
+    """Build the per-channel caption + name + CTA + hashtags for the idea.
+
+    This is a deterministic local generator (no OpenAI call) so the endpoint
+    is cheap + reliable. It applies SA-natural sentence rhythm, the brand's
+    voice (if known), and platform-specific framing rules (X <280 char,
+    Instagram hooks-first + hashtag-heavy, etc).
+    """
+    brand_voice_tag = (voice or brand_id or "swing-shack").lower()
+    base_hook = _BD_HOOKS.get(pillar or "", "").strip()
+    if not base_hook:
+        base_hook = "Real talk."
+    if neighbourhood:
+        base_hook = base_hook + f" {neighbourhood}."
+    body_core = idea.strip().rstrip(".")
+    if not body_core.endswith("?") and not body_core.endswith("!"):
+        body_core += "."
+
+    domain = "swingshack.co.za"
+    if brand_voice_tag == "stick":
+        domain = "sticksa.co.za"
+    elif brand_voice_tag == "bag-drop":
+        domain = "bagdropgolf.co.za"
+
+    per_channel = {
+        # Google Business Profile (formerly Google My Business)
+        # Local-intent keyword-friendly, 1500 char max, location-focused.
+        "gmb": {
+            "name": f"{body_core[:55].rstrip('.')} — Swing Shack",
+            "caption": f"{body_core} Free swing analysis on first visit, and we are right here in {neighbourhood or 'Westcliff, Johannesburg'}. Book a session and we will show you your numbers on TrackMan. Try a free swing analysis → {domain}",
+            "cta": "Book a free swing analysis",
+            "hashtags": ["#IndoorGolfJohannesburg", "#SwingShack", "#TrackMan"],
+        },
+        # Instagram - hook-first, hashtag-heavy
+        "instagram": {
+            "name": f"{base_hook} {body_core[:30]}".strip()[:120],
+            "caption": f"{base_hook}\n\n{body_core}\n\nWhat we see on the TrackMan in 30 seconds: launch angle, club path, face angle. We will tell you what is real and what is noise. Bring 3 woods, leave with a plan.\n\nFirst-time visitors: free swing analysis. Booking link in bio.\n\n#IndoorGolf #TrackMan #GolfSimulator #SwingTips #GolfLife #SouthAfrica #Johannesburg #ClubFitting",
+            "cta": "Book a free swing analysis → link in bio",
+            "hashtags": ["#IndoorGolf", "#TrackMan", "#GolfSimulator", "#SwingTips", "#GolfLife", "#SouthAfrica", "#Johannesburg", "#ClubFitting"],
+        },
+        # Facebook - conversation-starting, longer-form OK
+        "facebook": {
+            "name": body_core[:80],
+            "caption": f"{body_core}\n\nWe see this one a lot: golfers who think they need new clubs but actually need 20 minutes on a TrackMan to see what their swing is doing. We will show you the data, you decide.\n\nSwing Shack — indoor golf in Johannesburg with TrackMan. R250 first session. Free swing analysis for first-time visitors.\n\nWho else has had the I-just-need-new-clubs moment?",
+            "cta": "Comment below or book a session",
+            "hashtags": [],
+        },
+        # X (formerly Twitter) - punchy, <280 chars, link-driven
+        "x": {
+            "name": body_core[:60],
+            "caption": f"{body_core} Free swing analysis on first visit, TrackMan data, indoor sim in Joburg. {domain}",
+            "cta": f"Read more → {domain}",
+            "hashtags": [],
+        },
+        # TikTok - trend-aware, sound-cue friendly
+        "tiktok": {
+            "name": body_core[:60],
+            "caption": f"{base_hook}\n\n{body_core}\n\nWhat we see on the TrackMan in 30s: launch angle, club path, face angle.\n\nFollow for swing data that actually means something.\n\n#GolfTok #SwingTips #IndoorGolf #TrackMan #GolfSim #Johannesburg",
+            "cta": "Follow for more swing data",
+            "hashtags": ["#GolfTok", "#SwingTips", "#IndoorGolf", "#TrackMan", "#GolfSim", "#Johannesburg"],
+        },
+    }
+    return per_channel
+
+
 @app.route('/api/review/<asset_id>', methods=['POST'])
 def review_asset(asset_id):
     """
