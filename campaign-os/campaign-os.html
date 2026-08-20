@@ -8901,28 +8901,107 @@ function _campaignFromIdeaPreview(r){
       ${a.scheduled_for ? `<div style="font-size:11px;color:var(--tx-3)"><b>Suggested:</b> ${esc(a.scheduled_for)}</div>` : ''}
     </li>
   `).join('');
+  // Build per-channel cards with full brief content. Built 2026-08-20.
+  // Each card now shows: caption + image brief (model + prompt +
+  // aspect ratio + overlay) + UTM tracking URL + hook formula +
+  // paid-ad plan + expected outcome. That's everything an agency
+  // brief includes — the user can copy the brief straight from the
+  // modal or jump to Review to approve.
+  const cards = (r.assets || []).map((a, i) => {
+    const img = a.image || {};
+    const utm = a.tracking_url || (a.brief && a.brief.utm && a.brief.utm.tracking_url) || '';
+    const paid = a.paid_plan || {};
+    const exp = a.expected_outcome || {};
+    const hook = a.hook_formula || '';
+    return `<li class="li" style="display:block;margin-bottom:1rem;padding:14px;border:1px solid var(--bd);border-radius:8px">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
+        <span style="font-size:22px">${channelEmoji[a.channel] || '📄'}</span>
+        <b style="color:var(--tx);font-size:15px">${channelLabel[a.channel] || a.channel}</b>
+        <span class="pill on" style="font-size:10px">asset_id: ${esc(a.asset_id)}</span>
+        ${paid.recommended ? `<span class="pill live" style="font-size:10px">R${paid.daily_budget_zar||0}/d paid</span>` : `<span class="pill draft" style="font-size:10px">organic-only</span>`}
+      </div>
+      <div style="font-size:13px;line-height:1.55;color:var(--tx-2);white-space:pre-wrap;margin-bottom:.5rem;padding:.5rem;background:var(--bg-2);border-radius:4px;font-family:var(--mono,monospace)">${esc(a.caption_preview)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;font-size:11.5px;line-height:1.5;margin-bottom:.5rem">
+        <div><b>📅 Schedule:</b> ${esc(a.scheduled_for || 'next empty slot')}</div>
+        <div><b>🪝 Hook formula:</b> ${esc(hook)}</div>
+        <div style="grid-column:1 / -1"><b>🔗 UTM:</b> <a href="${esc(utm)}" target="_blank" rel="noopener" style="color:var(--ac);font-size:11px">${esc(utm)}</a></div>
+      </div>
+      <details style="background:var(--bg-3);border-radius:4px;padding:.5rem;margin-bottom:.5rem">
+        <summary style="cursor:pointer;font-size:12px;font-weight:600">🎨 Image brief (${img.model || 'tbd'} · ${img.aspect_ratio || '1:1'})</summary>
+        <div style="margin-top:.5rem;font-size:11.5px;line-height:1.45">
+          <div style="margin-bottom:.35rem"><b>Prompt:</b></div>
+          <div style="background:var(--bg-1);padding:.5rem;border-radius:4px;white-space:pre-wrap;font-family:var(--mono,monospace);font-size:11px">${esc(img.prompt || '')}</div>
+          <div style="margin-top:.35rem"><b>Overlay:</b> ${esc(JSON.stringify(img.overlay_text || {}))}</div>
+          <div style="margin-top:.35rem"><b>Negative:</b> ${esc((img.negative_prompts || []).join(', '))}</div>
+        </div>
+      </details>
+      <details style="background:var(--bg-3);border-radius:4px;padding:.5rem">
+        <summary style="cursor:pointer;font-size:12px;font-weight:600">📊 Paid-ad plan + expected outcomes</summary>
+        <div style="margin-top:.5rem;font-size:11.5px;line-height:1.5">
+          <div><b>Objective:</b> ${esc(paid.objective || '')}</div>
+          <div><b>Target:</b> ${esc(paid.target || '')}</div>
+          <div><b>Daily budget:</b> ${paid.daily_budget_zar ? `R${paid.daily_budget_zar}/d` : 'free / organic'}</div>
+          <div><b>Expected reach:</b> ${esc(paid.expected_reach || '')}</div>
+          <div style="margin-top:.35rem;border-top:1px dashed var(--bd);padding-top:.35rem"><b>Engagement rate:</b> ${esc(exp.engagement_rate || '')}</div>
+          <div><b>CTR:</b> ${esc(exp.ctr || '')}</div>
+          <div><b>Expected bookings:</b> ${esc(exp.expected_bookings || '')}</div>
+          <div style="margin-top:.35rem;color:var(--tx-3)"><b>Why:</b> ${esc(paid.rationale || '')}</div>
+        </div>
+      </details>
+    </li>`;
+  }).join('');
+
+  // Tracking sheet preview (CSV-ready, pasted into the modal)
+  const trackingRows = (r.tracking_sheet || []);
+  const trackingTable = trackingRows.length ? `
+    <details style="margin-top:1rem;background:var(--bg-2);border-radius:4px;padding:.75rem">
+      <summary style="cursor:pointer;font-weight:600;font-size:13px">📋 Tracking sheet (${trackingRows.length} rows · paste-ready for Google Sheets)</summary>
+      <div style="margin-top:.5rem;font-size:11px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:10.5px">
+          <thead><tr style="background:var(--bg-3)">${Object.keys(trackingRows[0]).map(k => `<th style="text-align:left;padding:4px;border-bottom:1px solid var(--bd)">${esc(k)}</th>`).join('')}</tr></thead>
+          <tbody>${trackingRows.map(row => `<tr>${Object.values(row).map(v => `<td style="padding:4px;border-bottom:1px solid var(--bd);vertical-align:top">${esc(String(v))}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <button class="btn-mini" id="copy-tracking-csv" style="margin-top:.5rem">📋 Copy CSV</button>
+    </details>
+  ` : '';
+
   modal.innerHTML = `
-    <div style="background:var(--bg-1);color:var(--tx);border-radius:12px;padding:24px;max-width:760px;max-height:85vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.4)">
+    <div style="background:var(--bg-1);color:var(--tx);border-radius:12px;padding:24px;max-width:880px;max-height:88vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.4)">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
         <span style="font-size:28px">🚀</span>
         <div style="flex:1">
-          <h3 style="margin:0;font-size:18px">Campaign built</h3>
+          <h3 style="margin:0;font-size:18px">Campaign built — full brief</h3>
           <code style="font-size:12px;background:var(--bg-3);padding:2px 6px;border-radius:4px">${esc(r.campaign_id)}</code>
         </div>
         <button id="campaign-from-idea-close" class="link-btn" style="font-size:20px;background:none;border:none;cursor:pointer;color:var(--tx-3)">×</button>
       </div>
       <p style="margin:.5rem 0 1rem 0;color:var(--tx-2);font-size:13px">
-        <b>${(r.assets||[]).length} channel drafts</b> pending your review. Each one is platform-tailored
-        (X under 280 chars, Instagram hook-first, GBP neighbourhood-aware). Approve in bulk from the
-        Review queue, or edit per-card first.
+        <b>${(r.assets||[]).length} channel drafts</b> ready. Each card carries the full brief:
+        caption + image brief + UTM tracking + hook formula + paid budget + expected outcomes.
+        Expand any card to see the image prompt + ad plan. Approve in bulk from Review, or
+        copy the tracking sheet straight into Google Sheets / a planning doc.
       </p>
-      <ul class="list" style="list-style:none;padding:0;margin:0">${assets}</ul>
-      <div style="margin-top:1.25rem;display:flex;gap:.5rem;justify-content:flex-end">
+      <ul class="list" style="list-style:none;padding:0;margin:0">${cards}</ul>
+      ${trackingTable}
+      <div style="margin-top:1.25rem;display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
         <button class="btn" id="campaign-from-idea-secondary" style="font-size:13px">Stay on Ideas</button>
         <button class="btn primary" id="campaign-from-idea-review" style="font-size:13px">Open Review Queue →</button>
       </div>
     </div>
   `;
+  // Wire the copy-CSV button
+  const copyBtn = modal.querySelector('#copy-tracking-csv');
+  if (copyBtn) {
+    copyBtn.onclick = () => {
+      const cols = trackingRows.length ? Object.keys(trackingRows[0]) : [];
+      const csv = [
+        cols.join(','),
+        ...trackingRows.map(row => cols.map(k => `"${String(row[k]).replace(/"/g,'""')}"`).join(','))
+      ].join('\n');
+      navigator.clipboard?.writeText(csv).then(() => toast('CSV copied — paste into Sheets', 'ok')).catch(() => toast('Copy failed', 'err'));
+    };
+  }
   modal.style.display = 'flex';
   modal.querySelector('#campaign-from-idea-close').onclick = () => { modal.style.display = 'none'; };
   modal.querySelector('#campaign-from-idea-secondary').onclick = () => { modal.style.display = 'none'; };

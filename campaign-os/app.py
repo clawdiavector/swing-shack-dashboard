@@ -6009,12 +6009,19 @@ def campaign_from_idea():
     data["campaigns"] = campaigns
     data["activeCampaignId"] = campaign_id
 
-    # 2. Generate per-channel assets
+    # 2. Generate per-channel assets WITH full brief (built 2026-08-20)
+    # Each asset now ships: caption + image brief + UTM + hook formula +
+    # paid-ad budget + expected outcome + asset_id. That's the missing
+    # 90% of what a real agency brief includes.
     assets = []
     per_channel_prompts = _per_channel_prompts(idea, brand_id=brand_id, voice=voice, tone=tone, pillar=pillar, neighbourhood=neighbourhood, goal=goal)
     for channel in channels_req:
         prompt = per_channel_prompts.get(channel) or {"name": idea[:60], "caption": idea, "cta": "Read more →", "hashtags": []}
         asset_id = f"{campaign_id}-{channel}"
+        # Build the full per-channel brief (image / UTM / hook / paid / outcomes)
+        brief = _build_channel_brief_for(channel, idea, brand_id=brand_id, campaign_id=campaign_id,
+                                         pillar=pillar, neighbourhood=neighbourhood,
+                                         content_tag=f"from-idea-{now_iso[:10]}")
         asset = {
             "assetId": asset_id,
             "campaignId": campaign_id,
@@ -6036,6 +6043,10 @@ def campaign_from_idea():
             "createdAt": now_iso,
             "updatedAt": now_iso,
             "history": [{"action": "created", "by": "from-idea", "at": now_iso, "reason": f"auto-generated for channel={channel}"}],
+            # NEW 2026-08-20: the full per-channel brief is persisted on the
+            # asset so the Review queue + image lab can pull it without
+            # re-generating.
+            "brief": brief,
         }
         # Channel-specific shape tweaks the publishing pipeline expects
         if channel == "gmb":
@@ -6060,7 +6071,22 @@ def campaign_from_idea():
             "cta": asset["cta"],
             "hashtags": asset["hashtags"][:5],
             "scheduled_for": asset.get("suggestedSchedule"),
+            "tracking_url": brief["utm"]["tracking_url"],
+            "image": brief["image"],
+            "hook_formula": brief["hook_formula"],
+            "paid_plan": brief["paid_plan"],
+            "expected_outcome": brief["expected_outcome"],
         })
+
+    # Build the tracking sheet rows (CSV-ready) for the campaign
+    tracking_sheet = []
+    try:
+        from _lib import campaign_brief as _cb
+        tracking_sheet = _cb.tracking_sheet_rows(campaign_id, channels_req,
+                                                  pillar=pillar,
+                                                  neighbourhood=neighbourhood)
+    except Exception as exc:
+        _app_log.warning("tracking_sheet_rows failed: %s", exc)
 
     # 3. Persist + git sync (best-effort)
     save_data(data)
@@ -6073,6 +6099,7 @@ def campaign_from_idea():
         "ok": True,
         "campaign_id": campaign_id,
         "assets": assets,
+        "tracking_sheet": tracking_sheet,
         "review_url": "/#sec-review",
         "channels": channels_req,
         "generated_at": now_iso,
@@ -6080,7 +6107,23 @@ def campaign_from_idea():
         "voice": voice,
         "tone": tone,
         "goal": goal,
+        "pillar": pillar,
+        "neighbourhood": neighbourhood,
     }), 201
+
+
+def _build_channel_brief_for(channel: str, idea: str, *, brand_id: str, campaign_id: str,
+                                  pillar=None, neighbourhood=None, content_tag=None):
+    """Thin wrapper so the route stays agnostic of the campaign_brief module."""
+    try:
+        from _lib import campaign_brief as _cb
+        return _cb.build_channel_brief(channel, idea=idea, brand_id=brand_id,
+                                       campaign_id=campaign_id, pillar=pillar,
+                                       neighbourhood=neighbourhood, content_tag=content_tag)
+    except Exception as exc:
+        _app_log.warning("build_channel_brief failed for %s: %s", channel, exc)
+        return {"channel": channel, "image": {}, "utm": {"tracking_url": ""}, "hook_formula": "n/a",
+                "paid_plan": {}, "expected_outcome": {}}
 
 
 def _active_brand_id() -> Optional[str]:
