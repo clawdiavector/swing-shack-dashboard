@@ -346,6 +346,13 @@ a:hover{text-decoration:underline}
 .section-h h2[data-help-title]{cursor:help;border-bottom:1px dotted var(--tx-2);padding-bottom:1px;transition:border-color .15s ease}
 .section-h h2[data-help-title]:hover{border-bottom-color:var(--ac)}
 .section-h .sub{color:var(--tx-3);font-size:13px}
+/* When the auto-injected section-explain ? lives inside an h2 (nightshift
+   fix d73727c anchored it beside the title instead of at the end of the
+   .section-h flex row), keep it on the title's baseline. Without this the
+   inline-flex container has no text baseline, so it drops below the
+   heading text on surfaces like Calendar where the h2 is short and the
+   circle visually "leaks" under the word. */
+.section-h h2 .section-explain{vertical-align:middle}
 
 .grid{display:grid;gap:1rem;grid-template-columns:repeat(12,1fr)}
 .card{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);padding:1rem 1.1rem;box-shadow:var(--sh-2);transition:border var(--t)}
@@ -4797,18 +4804,18 @@ function attachExplainers(){
     });
     btn.addEventListener('mouseenter', () => $$('.section-explain[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false')) || btn.setAttribute('aria-expanded', 'true'));
     btn.addEventListener('mouseleave', () => btn.setAttribute('aria-expanded', 'false'));
-    // Anchor the auto-injected ? to the section title. Previously the button
-    // was appended to .section-h (the flex row), which placed it AFTER the
-    // .sub paragraph and every btn-row (e.g. the Calendar filter buttons) —
-    // so on Home it rendered as a stray ? after "Live signal from across all
-    // sources", and on Calendar it collided with the platform/campaign
-    // filters. Sitting beside the title keeps the button visually associated
-    // with the section name, where the user looks for help.
-    //
-    // If the h2 already has its own data-help-tip (a manual inline help ? on
-    // the title), skip injection so we don't stack two ? icons on the same
-    // title. The two tooltips duplicate the user's intent ("what is this
-    // section?") and create the "double ??" anti-pattern.
+    // Anchor placement: the original code appended to .section-h (the flex
+    // row), which placed the auto-? AFTER the .sub paragraph and every
+    // btn-row. That broke two surfaces:
+    //   - Home: stray ? floated at the end of the row, after "Live signal
+    //     from across all sources".
+    //   - Calendar: the ? collided with the platform / campaign filter
+    //     buttons on the right.
+    // First try to sit beside the title (h2/h3) so the ? reads as
+    // "section help". If the title already carries a manual inline
+    // help-tip ?, skip injection to avoid the "double ??" anti-pattern
+    // (two stacked icons with overlapping tooltips). Fall back to the
+    // .section-h row when the section has no title element.
     const titleEl = h.querySelector('h2, h3');
     if (titleEl) {
       if (titleEl.querySelector('.help-tip[data-help]')) return;
