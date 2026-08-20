@@ -236,7 +236,10 @@ def _score_keyword(item: dict) -> float:
     kd = max(item.get("kd") or 0, 1)
     intent = _INTENT_WEIGHTS.get(item.get("intent") or "informational", 0.5)
     # Volume * intent / (KD + small constant). KD of 0 means easy win.
-    return (vol * intent) / (kd + 5.0)
+    # insights_boost (1.0-1.30) is applied last to amplify keywords the
+    # brand's GBP has already proven drives calls/directions.
+    base = (vol * intent) / (kd + 5.0)
+    return base * (item.get("insights_boost") or 1.0)
 
 
 # ── Post body generation ─────────────────────────────────────────────
@@ -326,6 +329,16 @@ def build_daily_plan(
         return {"ok": False, "error": f"no seed keywords for brand_id: {brand_id}"}
     # Pull metrics
     metrics = _pull_keyword_metrics(seeds, location="ZA")
+    # Apply insights-driven brand-signal boost if available
+    try:
+        from _lib import gbp_insights as _gi
+        boost = _gi.score_boost(brand_id)
+        brand_mult = float((boost.get("boost") or {}).get("_brand_signal") or 1.0)
+        if brand_mult != 1.0:
+            for m in metrics:
+                m["insights_boost"] = brand_mult
+    except Exception:
+        brand_mult = 1.0
     # Score + rank
     for m in metrics:
         m["score"] = _score_keyword(m)

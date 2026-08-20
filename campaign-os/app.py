@@ -6821,6 +6821,69 @@ def gbp_daily_poster_latest_route():
     return jsonify(plan), 200
 
 
+# ── GBP Insights (built 2026-08-20) ────────────────────────────────────────
+# Reads last-30d metrics from GBP Insights API for the brand's locations.
+# Read-only: pulls QUERIES_DIRECT, QUERIES_INDIRECT, VIEWS_SEARCH,
+# VIEWS_MAPS, ACTIONS_WEBSITE, ACTIONS_PHONE, ACTIONS_DRIVING_DIRECTIONS,
+# PHOTOS_VIEWS_MERCHANT, PHOTOS_VIEWS_CUSTOMERS. Feeds the daily-poster
+# scoring so the keyword source learns from what actually drove calls
+# + direction requests.
+_GBP_INSIGHTS_AVAILABLE = True
+try:
+    from _lib import gbp_insights as _gbi
+except Exception as _exc:
+    _GBP_INSIGHTS_AVAILABLE = False
+    _gbi = None
+    _app_log.warning("gbp_insights import failed: %s", _exc)
+if _GBP_INSIGHTS_AVAILABLE:
+    assert _gbi is not None
+
+
+@app.route('/api/gbp/insights/sync', methods=['POST'])
+def gbp_insights_sync_route():
+    """POST /api/gbp/insights/sync — pull live insights from GBP + cache.
+
+    Body (JSON): {brand_id: swing-shack (default), days: 30 (default)}.
+
+    The only side effect is the cache file at
+    data/gbp-insights/<brand>-latest.json. No destructive writes.
+    The token is auto-refreshed if needed.
+    """
+    if not _GBP_INSIGHTS_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_insights unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    days = min(max(int(body.get("days") or 30), 1), 90)
+    try:
+        summary = _gbi.sync_for_brand(brand_id, days=days)
+    except Exception as exc:
+        _app_log.exception("gbp_insights_sync failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    status = 200 if summary.get("ok") else 502
+    return jsonify(summary), status
+
+
+@app.route('/api/gbp/insights/summary', methods=['GET'])
+def gbp_insights_summary_route():
+    """GET /api/gbp/insights/summary?brand_id=swing-shack — last cached summary.
+
+    Returns the most recent sync's totals (calls, directions, views, etc.)
+    plus the per-keyword boost the daily-poster will apply.
+    """
+    if not _GBP_INSIGHTS_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_insights unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    summary = _gbi.latest_summary(brand_id)
+    if not summary:
+        return jsonify({"ok": False, "error": f"no insights cached for {brand_id}. Run /api/gbp/insights/sync first."}), 404
+    boost = _gbi.score_boost(brand_id)
+    return jsonify({"ok": True, "summary": summary, "boost": boost, "brand_id": brand_id}), 200
+
+
 @app.route('/api/review/<asset_id>/schedule', methods=['POST'])
 def review_push_postiz(asset_id):
     """Push the asset's caption + visual to Postiz as a draft. Records the Postiz id
