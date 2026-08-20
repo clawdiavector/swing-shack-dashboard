@@ -379,22 +379,25 @@ def create_post(
 
     Mirrors the existing tiktok-marketing/postiz-setup.md payload shape so
     the swing-shack fields and the swing-shack TikTok fields stay aligned.
-
-    publish_date: ISO-8601 string. If None, posts are scheduled immediately
-                   (the Postiz default is "publish ASAP").
+    Postiz validates the payload strictly — `shortLink` and `tags` are
+    required booleans/arrays even when empty.
     """
-    value = [{"content": content, "image": [{"id": m} for m in media_ids]}]
+    value = [{"content": content, "image": [{"id": m} for m in media_ids], "shortLink": False, "tags": []}]
     settings = platform_settings or {}
     # Match the legacy _settings per platform by inferring from integration
     # providerIdentifier. Routes that call this can override via platform_settings.
     payload = {
         "type": "schedule" if publish_date else "now",
         "date": publish_date,
+        "shortLink": False,
+        "tags": [],
         "posts": [
             {
                 "integration": {"id": integration_id},
                 "value": value,
                 "settings": settings,
+                "shortLink": False,
+                "tags": [],
             }
         ],
     }
