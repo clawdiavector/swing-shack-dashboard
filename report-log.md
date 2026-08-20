@@ -1,3 +1,24 @@
+## 2026-08-20T06:15Z — fix(campaign-os): section-explain ? now anchored next to the section title (commits `d73727c` + `ef22c63` + `f8daf0e`, on `feat/asset-state-engine`, Railway auto-deployed, LIVE post-deploy verified)
+
+**Pick rationale:** Browser-visible UX bug spotted during the exploratory walk (`walk_v2026_08_20_explore.py`). The auto-injected section-explain `?` tooltip button was appended to `.section-h` (the flex row) — so on Home it landed AFTER the sub paragraph ("Live signal from across all sources") as a stray `?`, and on Calendar it collided with the platform / campaign filter buttons. After the first fix, also landed the `?` below the word on short titles because inline-flex containers have no text baseline. After the second fix, the same `?` re-appeared on Calendar because its h2 carries data-help directly (no separate help-tip child) — broadened the skip check to match data-help OR data-help-title on the h2 itself. Three small atomic commits, one CSS rule (`.section-h h2 .section-explain{vertical-align:middle}`), 19 lines added.
+
+**Where the user feels it now:**
+- Home header reads "What should you do today? [?] Live signal from across all sources" — single `?` next to title, no stray after the sub.
+- Calendar header reads "Calendar | 14-day grid with drag-drop · today HUD · pillar strip · duplicate zone | Today | All platforms | All campaigns | Prev week | Next week" — clean row, no floating `?`, filter buttons on the right.
+- Meme Lord, Billboards, Publishing, Trends all clean. No regressions on any other section header.
+
+**Verifier:** `tests/walk_v2026_08_20_explainer_anchor.py` (0 stray explainers, 0 double `?`s, 0 console errors).
+
+**Files:** `campaign-os/campaign-os.html` (attachExplainers + 1 CSS rule) · `campaign-os/tests/walk_v2026_08_20_explore.py` (new exploratory walker) · `campaign-os/tests/walk_v2026_08_20_explainer_anchor.py` (new verifier).
+
+**Commits:** `d73727c` fix(campaign-os): anchor section-explain ? next to title, suppress on h2 with manual help-tip · `ef22c63` fix(campaign-os): align auto ? vertically with section titles · `f8daf0e` fix(campaign-os): also skip section-explain injection when h2 has its own data-help.
+
+**Standing rules:** 0 publish, 0 tokens, 0 main, 0 schema, 0 fabricated stats, 0 deletions, 0 new deps, 0 auth touched, 0 Meta credential access, 0 NEW em-dashes.
+
+**Learned (1 pitfall):**
+1. `git_synced` in `/api/health` is `os.path.exists(REPO_DIR/.git)` — it is ALWAYS `false` on Railway (the container has no `.git`). It is NOT a deploy-freshness signal. Verify deploys by asserting the actual changed string in the SERVED page via Playwright, not via `git_synced`.
+
+**Next pick:** (a) The `sec-publish` `h-meta` `—` placeholders (Drafts, Scheduled, Published, Failed counts) flash on first paint for ~100ms before `renderPublish` fills them. Same fix pattern as the recent descriptive-sub fallback series — replace the `—` literal with a descriptive initial value that mirrors the actual surface. (b) `sec-meme` Top picks for swing-shack summary `—` placeholder. (c) Meme Lord "Meme" label `—` placeholder.
 
 ## 2026-08-20T00:27Z — fix(agents): rows actually drill into per-script results of last run (commits `c100109` + `599c0ff` + `375a468`, on `feat/asset-state-engine`, Railway auto-deployed, LIVE post-deploy verified)
 
