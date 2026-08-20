@@ -1,5 +1,36 @@
 
 
+## Nightshift Report — 2026-08-20T03:50:00Z
+
+### ✅ What was done
+- **Closed the literal-loading anti-pattern on the last two section sub-headers** (Insights v2 + SEO Audit). Before this tick, the Insights v2 page sub was a literal `loading…` and the SEO Audit sub was a 160px skeleton + `Auditing site…` for 100-800ms while the API call landed. After this tick both subs carry a self-describing static fallback (`Insight strip · 4 stat tiles …` and `Health score · filter bar …`) plus `id + data-help + data-help-title` so the `?` popover fires on hover. With the b40b7fe sweep (Review, GMB, Publish, Socials, CTA, Postiz, Campaigns), every section sub on the page is now self-describing on first paint.
+
+### 🎯 Verified
+- **Pre-flight**: `git status --short` clean (only the routine `data/format-model-refit.json` timestamp bump, committed as `43c85d8` to keep the tree clean).
+- **Em-dash check**: `git diff -U0 campaign-os/campaign-os.html | grep -c "—"` on added lines = 0. 0 em-dashes, 0 en-dashes in any new content. `↑↓` in the Insights sub are the same glyphs already used by the SEO movers card and Top post lift line.
+- **Test sweep (new)**: `campaign-os/tests/test_v2026_08_20_insights_seo_audit_subs.py` runs 8 tests, all green: placeholder-gone (no more `loading…` / `Auditing site…`), `data-help` + `data-help-title` present, required phrases listed, em-dash-free, middot count >= 3, fallback length >= 60 chars, JS overwrite paths (`const summary = $('#ins-v2-summary')` and `$('#sa-summary').textContent`) still intact, and the rationale breadcrumb (`literal 'loading…'` / `'Auditing site…'`) in each `data-help` long text.
+- **Test sweep (regression)**: `test_v2026_08_20_review_gmb_publish_socials_cta_postiz_camp_subs.py` still 8/8 green.
+- **Local Playwright walk** (`http://127.0.0.1:8765`, fresh restart with `DATA_DIR=/tmp/co-data`): `ins-v2-summary` shows live data `3 signals · 10 posts · 10 pages tracked` (JS overwrite fired), `sa-summary` shows new static fallback `Health score · filter bar (severity / pillar / applied) · findings ranked by impact-per-effort · fix-it drafts`. Both carry `has_data_help=true, has_data_help_title=true, data_help_title="What is in this section"`. 0 pageerrors, 0 console errors.
+- **Live Playwright walk** (Railway, after ~90s rebuild): identical payload, both sub texts confirmed, `BOTH SUBS OK: True`. Screenshot `/tmp/co-nightshift/walkthrough_2subs_seo_audit_20260820T035024Z.png` shows the new sub text rendering correctly. `/tmp/co-nightshift/walkthrough_2subs_insights_20260820T035024Z.png` shows the live overwrite.
+- **Standing rules honored**: 1 file modified + 2 files added, all SPA-only, no API contract change, no publish/Postiz/GBP touch, no cred touch, no symlinks, no archive restore, no branch move, no schema change. Routine `data/weekly-report.md` re-ordering was unstaged so the commit is atomic.
+- **Commit `34ebac6`** on `feat/asset-state-engine`, 3 files, 349 insertions / 2 deletions, pushed, Railway auto-rebuilt in ~90s without `REBUILD_TRIGGER.txt` nudge.
+
+### 🎯 Next pick
+- **Calendar "GENERATE NEW POST →" CTA** — worth tracing the link target to confirm it lands on a real section (the literal "RUN THE WEEK" placeholder leak in the agents-next-action was fixed last week; calendar CTA still unverified).
+- OR: the **system health next-action pattern** is now an established rewrite pattern — sweep remaining backend strings in `agent-runs.json` and `whats-new.json` for the same `data-go` section-id mismatch.
+- OR: **the Bridge to Insomnia** (empty Insights cards on slow networks) — Insights v2 shows 3 cards in the first 100ms but they are skeleton-only until the 3 parallel API calls land. A `Suspense`-style empty card for the API-error branch would be cheaper than the current 3-skeleton wait.
+
+### 🧠 What I learned / can improve
+- **The "literal-dash / loading-placeholder" anti-pattern is now fully closed across the page.** 17 sections ship the `data-help` + `data-help-title` pattern on their page sub. The remaining 3-4 hard-coded subs (Create hub, Create tab on default brand) already had self-describing text without help, so the pattern is now a coverage = 100% goal. Worth a final audit tick to confirm.
+- **`summary.textContent = …` overwrites the visible text but preserves `data-help` attributes** on the element. This means the tooltip-on-hover affordance is intact for the entire lifetime of the section, regardless of when the JS overwrites the sub. The pattern is robust.
+- **Local server trick for development on this codebase:** when restarting the Flask app, set `DATA_DIR=/tmp/co-data` (the default `/data` is read-only on macOS). The local server boots in ~3s and serves the latest `campaign-os/campaign-os.html` without cache.
+- **Walk script template is now reusable** — `walk_v2026_08_20_insights_seo_subs.py` accepts a `BASE_URL` argv so the same script tests against local + live. Worth porting to the older walks when they're next touched.
+
+### 🚨 Blockers / asks
+- **IG long-lived token for Swing Shack still expired** (Socials card still shows the "Waiting for Instagram wire" placeholder from the 2026-08-17 tick). Refresh via Postiz / Meta portal is a daytime-approval ask (credentials lane).
+
+---
+
 ## Nightshift Report — 2026-08-18T22:17:00Z
 
 ### ✅ What was done
