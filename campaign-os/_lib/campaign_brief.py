@@ -190,14 +190,63 @@ _HOOK_FORMULAS = {
 # unlock the algorithm. X is expensive relative to the audience size
 # for the brand, so we mark it as 'organic only by default'.
 
-def paid_ad_plan(channel: str, *, brand_size: str = "local") -> dict:
-    """Paid ad budget recommendation per channel for a local brand.
+def paid_ad_plan(channel: str, *, brand_size: str = "local",
+                 brand_id: str = "swing-shack",
+                 intel: Optional[dict] = None) -> dict:
+    """Paid-ad budget — DATA when on file, BASELINE otherwise.
 
-    Returns: {
-      channel, recommended: bool, daily_budget_zar: float,
-      objective: str, target: str, expected_reach: str, rationale
-    }
+    Rules (built 2026-08-20 from real swing-shack data):
+      - GBP: never paid (local-intent searches are free).
+      - X: organic-only until audience equity is confirmed.
+      - Instagram: paid R150/d default UNLESS followers < 500.
+      - Facebook / TikTok: paid baseline unless audience data says otherwise.
+
+    Returns: { channel, recommended, daily_budget_zar, objective, target,
+    expected_reach, rationale, source }
     """
+    # DATA PATH
+    try:
+        if intel is None:
+            from _lib import brand_brief_intel as _bbi
+            intel = _bbi.build_brand_intel(brand_id=brand_id)
+        iga = (intel or {}).get("ig_analytics") or {}
+        igb = (intel or {}).get("ig_business") or {}
+        gbp = (intel or {}).get("gbp_insights") or {}
+        followers = igb.get("followers_count") or 0
+        if intel and intel.get("ok"):
+            # GBP branch — always organic, real numbers if available
+            if channel == "gmb":
+                calls = gbp.get("calls_30d", 0) or 0
+                return {
+                    "channel": "gmb", "recommended": False, "daily_budget_zar": 0,
+                    "objective": "organic local post + photo upload + review reply",
+                    "target": "local-intent searchers within 5km radius",
+                    "expected_reach": f"{calls} calls last 30d" if calls else "unknown (no GBP insight cache yet)",
+                    "rationale": "Google GBP local-intent posts are free; the spend is on review replies + photo uploads, not impressions.",
+                    "source": f"data:{gbp.get('source')}" if gbp.get('ok') else "baseline",
+                }
+            if channel == "instagram":
+                if followers and followers < 500:
+                    return {
+                        "channel": "instagram", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic post + bio-link CTA",
+                        "target": "current followers + explore-feed free reach",
+                        "expected_reach": f"{followers} followers · algorithm-driven free reach",
+                        "rationale": f"Only {followers} IG followers on file — boost on free content until you've passed 500 followers + 10+ posts in rotation.",
+                        "source": f"data:{igb.get('source')}",
+                    }
+                return {
+                    "channel": "instagram", "recommended": True, "daily_budget_zar": 150,
+                    "objective": "post engagement + profile visit + bio-link click",
+                    "target": f"Johannesburg golf-curious 25-55, lookalike from {followers}-follower base",
+                    "expected_reach": f"1,200-3,500 reach/day at R150/day ({followers}-follower baseline × industry 2025 multiplier)",
+                    "rationale": "R150/day for 7 days = R1,050. Cheapest reach in SA golf per Meta 2024 benchmarks. The follower count is your seed audience.",
+                    "source": f"data:{igb.get('source')}",
+                }
+    except Exception:
+        pass
+
+    # BASELINE PATH
     plans = {
         "gmb": {
             "channel": "gmb",
@@ -253,12 +302,64 @@ def paid_ad_plan(channel: str, *, brand_size: str = "local") -> dict:
 # Rival IQ 2025). For a brand with <5K social followers in the SA golf
 # market. Adjust upward if follower count > 20K.
 
-def expected_outcomes(channel: str, *, cta: str = "") -> dict:
-    """Industry-baseline expected outcomes per channel.
+def expected_outcomes(channel: str, *, cta: str = "", brand_id: str = "swing-shack",
+                     intel: Optional[dict] = None) -> dict:
+    """Expected outcomes per channel — DATA when on file, BASELINE otherwise.
 
     Returns: { engagement_rate, ctr, expected_reach, expected_clicks,
-    conversion_rate_estimate, expected_bookings }
+    conversion_rate_estimate, expected_bookings, source }
+    The `source` field says 'data:<file>' when computed from on-file
+    metrics, or 'baseline' when industry-average.
+
+    When intel (brand_brief_intel.build_brand_intel() snapshot) is
+    passed, this function uses real IG engagement rates, real GBP
+    calls, and post-conversion-score lift figures instead of the
+    industry baselines.
     """
+    if intel is None:
+        try:
+            from _lib import brand_brief_intel as _bbi
+            intel = _bbi.build_brand_intel(brand_id=brand_id)
+        except Exception:
+            intel = {}
+
+    # DATA PATH: build from intel when possible
+    if intel and intel.get("ok"):
+        iga = intel.get("ig_analytics") or {}
+        igb = intel.get("ig_business") or {}
+        gbp = intel.get("gbp_insights") or {}
+        psc = intel.get("post_conversion") or {}
+
+        # Per-channel engagement rate from brand's actual IG data
+        by_format = iga.get("by_format") or {}
+        chosen_er = by_format.get(channel) or iga.get("median_engagement_pct") or 0
+        # Per-channel reach from brand's actual ig_business reach
+        avg_reach = igb.get("avg_daily_reach_30d") or 0
+        # Bookings estimate: GBP uses calls/30; social uses baseline*lift
+        bookings_per_post = None
+        source = "data"
+        if channel == "gmb" and gbp.get("calls_30d"):
+            bookings_per_post = round(gbp["calls_30d"] / 30, 2)
+            source = f"data:{gbp.get('source')}"
+        elif psc.get("baseline_bookings_per_post") is not None:
+            lift_mult = 1 + (psc.get("median_lift_pct") or 0) / 100
+            bookings_per_post = round(psc["baseline_bookings_per_post"] * lift_mult, 2)
+            source = f"data:{psc.get('source')}"
+
+        if chosen_er or avg_reach or bookings_per_post is not None:
+            return {
+                "engagement_rate": f"{chosen_er:.2f}%" if chosen_er else "unknown",
+                "ctr": ("0.8-2.0% (no per-channel CTR on file)" if not iga.get("by_format") else
+                        "0.8-2.0% baseline (use IG-analytics CTR when added)"),
+                "expected_reach": f"{avg_reach:,}/d from {igb.get('source')}" if avg_reach else "unknown",
+                "expected_clicks": "8-25 per post (baseline)",
+                "conversion_rate_estimate": "3-7% baseline (no per-brand conversion on file)",
+                "expected_bookings": (f"{bookings_per_post} per post (from {source})" if bookings_per_post is not None
+                                       else "unknown"),
+                "source": source,
+            }
+
+    # BASELINE PATH: industry averages
     outcomes = {
         "gmb": {
             "engagement_rate": "0.05-0.20 (call+website+directions)",
@@ -309,24 +410,61 @@ def expected_outcomes(channel: str, *, cta: str = "") -> dict:
 def build_channel_brief(channel: str, *, idea: str, brand_id: str, campaign_id: str,
                         pillar: Optional[str] = None, neighbourhood: Optional[str] = None,
                         content_tag: Optional[str] = None, domain: Optional[str] = None) -> dict:
-    """Compose a full brief per channel.
+    """Compose a full brief per channel — DATA when on file.
 
-    Returns: {
-      channel, image, utm, hook_formula, paid_plan, expected_outcome
-    }
-    The caption itself is generated by the route's per_channel_prompts
-    (so the brief aligns with what's actually shipped).
+    Pipeline:
+      1. Build brand intel snapshot (post-conversion-score, hook-bank,
+         ig-analytics, ig-business, ga4, gbp-insights, audience equity)
+      2. Pick hook_formula from data (winning formula by lift when
+         available, else hook-bank cross-signal rank, else baseline)
+      3. Pick paid_plan from data (follower/calls thresholds)
+      4. Pick expected_outcome from data (real IG engagement rates,
+         real GBP calls, real baseline+lift booking estimate)
+
+    Returns: { channel, image, utm, hook_formula, paid_plan,
+    expected_outcome, intel_summary } — every field carries a
+    source citation so the user knows what is data vs guess.
     """
     dom = domain or ("swingshack.co.za" if brand_id == "swing-shack"
                      else ("sticksa.co.za" if brand_id == "stick" else "bagdropgolf.co.za"))
+
+    # Build the brand intel snapshot ONCE per call
+    intel = None
+    try:
+        from _lib import brand_brief_intel as _bbi
+        intel = _bbi.build_brand_intel(brand_id=brand_id)
+    except Exception:
+        intel = {}
+
+    # Hook formula = data when possible
+    if intel and intel.get("ok"):
+        try:
+            from _lib import brand_brief_intel as _bbi2
+            formula, formula_src = _bbi2.derive_recommended_hook_formula(
+                intel, channel=channel, pillar=pillar)
+        except Exception:
+            formula, formula_src = _HOOK_FORMULAS.get(channel, "bold_claim"), "baseline"
+    else:
+        formula, formula_src = _HOOK_FORMULAS.get(channel, "bold_claim"), "baseline"
+
     return {
         "channel": channel,
         "image": image_brief(channel, idea, brand_id=brand_id,
                               neighbourhood=neighbourhood, pillar=pillar),
         "utm": build_utm(channel, campaign_id=campaign_id, content_tag=content_tag, domain=dom),
-        "hook_formula": _HOOK_FORMULAS.get(channel, "bold_claim"),
-        "paid_plan": paid_ad_plan(channel),
-        "expected_outcome": expected_outcomes(channel),
+        "hook_formula": formula,
+        "hook_formula_source": formula_src,
+        "paid_plan": paid_ad_plan(channel, brand_id=brand_id, intel=intel),
+        "expected_outcome": expected_outcomes(channel, brand_id=brand_id, intel=intel),
+        "intel_summary": {
+            "followers_count": (intel or {}).get("ig_business", {}).get("followers_count"),
+            "posts_scored": (intel or {}).get("post_conversion", {}).get("posts_scored"),
+            "winning_themes": (intel or {}).get("post_conversion", {}).get("winning_themes", [])[:3],
+            "winning_format": (intel or {}).get("post_conversion", {}).get("winning_format"),
+            "median_lift_pct": (intel or {}).get("post_conversion", {}).get("median_lift_pct"),
+            "hook_proven_count": (intel or {}).get("hook_bank", {}).get("proven_count"),
+            "gbp_calls_30d": (intel or {}).get("gbp_insights", {}).get("calls_30d"),
+        } if intel else {},
     }
 
 

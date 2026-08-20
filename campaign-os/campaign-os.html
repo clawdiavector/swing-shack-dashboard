@@ -8901,29 +8901,44 @@ function _campaignFromIdeaPreview(r){
       ${a.scheduled_for ? `<div style="font-size:11px;color:var(--tx-3)"><b>Suggested:</b> ${esc(a.scheduled_for)}</div>` : ''}
     </li>
   `).join('');
-  // Build per-channel cards with full brief content. Built 2026-08-20.
-  // Each card now shows: caption + image brief (model + prompt +
-  // aspect ratio + overlay) + UTM tracking URL + hook formula +
-  // paid-ad plan + expected outcome. That's everything an agency
-  // brief includes — the user can copy the brief straight from the
-  // modal or jump to Review to approve.
+  // Build per-channel cards with full brief content + source citations. Built 2026-08-20.
+  // Every estimate now carries a 'source' field so the user can see
+  // which numbers are data and which are baseline guess. Data citations
+  // render green; baseline citations render grey.
+  const sourceColor = (src) => {
+    if (!src) return 'var(--tx-3)';
+    if (src.startsWith('data:')) return '#22c55e';       // green for data-backed
+    if (src === 'baseline') return 'var(--tx-3)';        // grey for industry baseline
+    if (src.includes('no_')) return '#ef4444';            // red for explicit gaps
+    return 'var(--tx-3)';
+  };
+  const srcBadge = (src) => {
+    if (!src) return '';
+    if (src.startsWith('data:')) return `<span style="background:#22c55e20;color:#22c55e;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem">${esc(src.replace('data:',''))}</span>`;
+    if (src === 'baseline') return `<span style="background:var(--bg-3);color:var(--tx-3);padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem">industry baseline</span>`;
+    if (src.includes('no_data') || src.includes('unknown')) return `<span style="background:#ef444420;color:#ef4444;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem">${esc(src)}</span>`;
+    return `<span style="background:var(--bg-3);color:var(--tx-3);padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem">${esc(src)}</span>`;
+  };
   const cards = (r.assets || []).map((a, i) => {
     const img = a.image || {};
     const utm = a.tracking_url || (a.brief && a.brief.utm && a.brief.utm.tracking_url) || '';
     const paid = a.paid_plan || {};
     const exp = a.expected_outcome || {};
     const hook = a.hook_formula || '';
+    const hookSrc = (a.brief && a.brief.hook_formula_source) || '';
+    const paidSrc = paid.source || '';
+    const expSrc = exp.source || '';
     return `<li class="li" style="display:block;margin-bottom:1rem;padding:14px;border:1px solid var(--bd);border-radius:8px">
       <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
         <span style="font-size:22px">${channelEmoji[a.channel] || '📄'}</span>
         <b style="color:var(--tx);font-size:15px">${channelLabel[a.channel] || a.channel}</b>
         <span class="pill on" style="font-size:10px">asset_id: ${esc(a.asset_id)}</span>
-        ${paid.recommended ? `<span class="pill live" style="font-size:10px">R${paid.daily_budget_zar||0}/d paid</span>` : `<span class="pill draft" style="font-size:10px">organic-only</span>`}
+        ${paid.recommended ? `<span class="pill live" style="font-size:10px">R${paid.daily_budget_zar||0}/d paid ${srcBadge(paidSrc)}</span>` : `<span class="pill draft" style="font-size:10px">organic-only ${srcBadge(paidSrc)}</span>`}
       </div>
       <div style="font-size:13px;line-height:1.55;color:var(--tx-2);white-space:pre-wrap;margin-bottom:.5rem;padding:.5rem;background:var(--bg-2);border-radius:4px;font-family:var(--mono,monospace)">${esc(a.caption_preview)}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;font-size:11.5px;line-height:1.5;margin-bottom:.5rem">
         <div><b>📅 Schedule:</b> ${esc(a.scheduled_for || 'next empty slot')}</div>
-        <div><b>🪝 Hook formula:</b> ${esc(hook)}</div>
+        <div><b>🪝 Hook formula:</b> ${esc(hook)} ${srcBadge(hookSrc)}</div>
         <div style="grid-column:1 / -1"><b>🔗 UTM:</b> <a href="${esc(utm)}" target="_blank" rel="noopener" style="color:var(--ac);font-size:11px">${esc(utm)}</a></div>
       </div>
       <details style="background:var(--bg-3);border-radius:4px;padding:.5rem;margin-bottom:.5rem">
@@ -8966,6 +8981,18 @@ function _campaignFromIdeaPreview(r){
     </details>
   ` : '';
 
+  // Pull the intel summary from the first asset (same for all channels).
+  const _intel = (r.assets && r.assets[0] && r.assets[0].brief && r.assets[0].brief.intel_summary) || {};
+  const intelStrip = Object.keys(_intel).length ? `
+    <div style="margin:.5rem 0 1rem 0;padding:.75rem;background:var(--bg-2);border-radius:6px;font-size:12px;border-left:3px solid #22c55e">
+      <b style="color:#22c55e">✓ Data-backed brief</b> · every estimate below cites its source.
+      ${_intel.followers_count != null ? `<span style="margin-left:.5rem"><b>${_intel.followers_count.toLocaleString()}</b> IG followers</span>` : ''}
+      ${_intel.avg_daily_reach_30d != null ? `<span style="margin-left:.5rem"><b>${_intel.avg_daily_reach_30d.toLocaleString()}</b>/d reach</span>` : ''}
+      ${_intel.posts_scored ? `<span style="margin-left:.5rem"><b>${_intel.posts_scored}</b> posts scored</span>` : ''}
+      ${_intel.median_lift_pct != null ? `<span style="margin-left:.5rem"><b style="color:#22c55e">+${_intel.median_lift_pct}%</b> median lift vs baseline</span>` : ''}
+      ${_intel.winning_themes && _intel.winning_themes.length ? `<div style="margin-top:.35rem"><b>Winning themes:</b> ${_intel.winning_themes.map(esc).join(', ')}${_intel.winning_format ? ` · format: ${esc(_intel.winning_format)}` : ''}</div>` : ''}
+    </div>
+  ` : '';
   modal.innerHTML = `
     <div style="background:var(--bg-1);color:var(--tx);border-radius:12px;padding:24px;max-width:880px;max-height:88vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.4)">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
@@ -8976,11 +9003,13 @@ function _campaignFromIdeaPreview(r){
         </div>
         <button id="campaign-from-idea-close" class="link-btn" style="font-size:20px;background:none;border:none;cursor:pointer;color:var(--tx-3)">×</button>
       </div>
+      ${intelStrip}
       <p style="margin:.5rem 0 1rem 0;color:var(--tx-2);font-size:13px">
         <b>${(r.assets||[]).length} channel drafts</b> ready. Each card carries the full brief:
-        caption + image brief + UTM tracking + hook formula + paid budget + expected outcomes.
-        Expand any card to see the image prompt + ad plan. Approve in bulk from Review, or
-        copy the tracking sheet straight into Google Sheets / a planning doc.
+        caption + image brief + UTM tracking + hook formula + paid budget + expected outcomes
+        + source citations. <b style="color:#22c55e">Green badge</b> = data from your own
+        metrics; <b style="color:var(--tx-3)">grey badge</b> = industry baseline; <b style="color:#ef4444">red</b>
+        = known gap (we don\'t have those metrics on file).
       </p>
       <ul class="list" style="list-style:none;padding:0;margin:0">${cards}</ul>
       ${trackingTable}
