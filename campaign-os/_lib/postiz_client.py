@@ -73,8 +73,12 @@ from typing import Any, Optional, Tuple
 _LOG = logging.getLogger("campaign_os.postiz_client")
 
 POSTIZ_API_BASE = "https://api.postiz.com/public/v1"
-POSTIZ_OAUTH_AUTHORIZE_URL = "https://postiz.com/oauth/authorize"
-POSTIZ_OAUTH_TOKEN_URL = f"{POSTIZ_API_BASE}/oauth/token"
+# OAuth endpoints live on the api host WITHOUT the /public/v1 prefix. The
+# earlier 404 on https://postiz.com/oauth/authorize was because that path
+# doesn't exist on the marketing site — the actual authorize + token are
+# on the api host. Verified 2026-08-20 by probing each candidate URL.
+POSTIZ_OAUTH_AUTHORIZE_URL = "https://api.postiz.com/oauth/authorize"
+POSTIZ_OAUTH_TOKEN_URL = "https://api.postiz.com/oauth/token"
 
 # Sentinel for "function returned no usable data" — the route handler can
 # distinguish it from a tuple of (None, error) when the API genuinely returns
@@ -264,6 +268,49 @@ def _request(
         return None, (str(exc.code), body_parsed or body[:500] or "no body")
     except urllib.error.URLError as exc:
         # Transport error — let the caller decide.
+        raise
+
+
+def _request_oauth(
+    method: str,
+    path: str,
+    *,
+    form_data: Optional[dict] = None,
+    json_body: Optional[dict] = None,
+    timeout: int = 30,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+    """OAuth-specific transport. Uses api.postiz.com WITHOUT the /public/v1
+    prefix (the OAuth endpoints sit at the root). Same return contract as
+    _request: (data, None) on success, (None, (code, msg)) on HTTP error,
+    raises on transport error.
+    """
+    url = "https://api.postiz.com" + path
+    headers = {"Accept": "application/json"}
+    payload = None
+    if json_body is not None:
+        headers["Content-Type"] = "application/json"
+        payload = json.dumps(json_body).encode("utf-8")
+    elif form_data is not None:
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+        payload = urllib.parse.urlencode(form_data).encode("utf-8")
+    req = urllib.request.Request(url, data=payload, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            if not raw.strip():
+                return None, None
+            try:
+                return json.loads(raw), None
+            except json.JSONDecodeError:
+                return {"_raw": raw[:500]}, None
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
+        try:
+            body_parsed = json.loads(body) if body else None
+        except json.JSONDecodeError:
+            body_parsed = {"_raw": body[:500]} if body else None
+        return None, (str(exc.code), body_parsed or body[:500] or "no body")
+    except urllib.error.URLError:
         raise
 
 
@@ -475,7 +522,7 @@ def exchange_oauth_code(
         "client_secret": secret,
         "redirect_uri": redirect_uri,
     }
-    return _request("POST", "/oauth/token", form_data=form, auth_header=False)
+    return _request_oauth("POST", "/oauth/token", form_data=form)
 
 
 def refresh_oauth_token(refresh_token: str) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
@@ -489,7 +536,7 @@ def refresh_oauth_token(refresh_token: str) -> Tuple[Optional[dict], Optional[Tu
         "client_id": cid,
         "client_secret": secret,
     }
-    return _request("POST", "/oauth/refresh", form_data=form, auth_header=False)
+    return _request_oauth("POST", "/oauth/refresh", form_data=form)
 
 
 # ── Per-brand OAuth token storage ─────────────────────────────────────
