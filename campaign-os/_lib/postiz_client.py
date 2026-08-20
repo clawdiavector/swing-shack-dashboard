@@ -389,16 +389,20 @@ def create_post(
 
     Mirrors the existing tiktok-marketing/postiz-setup.md payload shape so
     the swing-shack fields and the swing-shack TikTok fields stay aligned.
-    Postiz validates the payload strictly — `shortLink` and `tags` are
-    required booleans/arrays even when empty.
+    Postiz validates the payload strictly:
+      - shortLink must be a boolean (not null)
+      - tags must be an array (not null)
+      - date must be a valid ISO 8601 string (even when type="now")
     """
+    import datetime as _dt
+    effective_date = publish_date or _dt.datetime.now(_dt.timezone.utc).isoformat()
     value = [{"content": content, "image": [{"id": m} for m in media_ids], "shortLink": False, "tags": []}]
     settings = platform_settings or {}
     # Match the legacy _settings per platform by inferring from integration
     # providerIdentifier. Routes that call this can override via platform_settings.
     payload = {
         "type": "schedule" if publish_date else "now",
-        "date": publish_date,
+        "date": effective_date,
         "shortLink": False,
         "tags": [],
         "posts": [
