@@ -1947,7 +1947,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
     <section class="section" id="sec-seo-audit">
       <div class="section-h">
         <h2 data-help="Deep-dive SEO audit for the active brand site. Returns a full health-score breakdown (technical, on-page, off-page, content, GEO), a priority queue ranked by impact-per-effort, and a fix-it draft for every flagged item (the agent writes the meta description fix, the alt text fix, the schema block, etc. so you can paste straight into the CMS). Click any priority card to expand the proposed fix. Runs on demand, not on a schedule, so the data is fresh from the last crawl." data-help-title="SEO Audit · deep-dive + fix-draft">SEO Audit <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · deep-dive + fix-draft</span></h2>
-        <span class="sub" id="sa-summary"><span class="skeleton" style="display:inline-block;height:10px;width:160px;vertical-align:middle"></span> Auditing site…</span>
+        <span class="sub" id="sa-summary" data-help="The page sub used to be a skeleton + literal 'Auditing site…' until the API call finished. Updated to mirror the actual surface: Health score (the 0-100 rollup) + Filter bar (severity / pillar / applied) + Findings list (ranked by impact-per-effort, each card expands the fix-it draft). The audit runs on demand so the data is fresh from the last crawl. The page sub gets overwritten with the live findings count + severity split + applied filter pill as soon as renderSEOAudit completes." data-help-title="What is in this section">Health score · filter bar (severity / pillar / applied) · findings ranked by impact-per-effort · fix-it drafts</span>
       </div>
 
       <!-- Top row: score band + filter bar -->
@@ -5059,7 +5059,7 @@ async function renderInsightsV2(){
     sec.innerHTML = `
       <div class="section-h">
         <h2 data-help="Plain-English view of what is happening with your marketing. Every card shows the data AND what it means in one short sentence. Green = good signal, yellow = watch, red = needs attention. Built for non-marketers: if you can't read a card in 5 seconds, it's a bug." data-help-title="Insights">📈 Insights <span style="font-size:11px;color:var(--ac);font-weight:600;margin-left:.5rem">v2 · layman terms · color-coded</span></h2>
-        <span class="sub" id="ins-v2-summary">loading…</span>
+        <span class="sub" id="ins-v2-summary" data-help="The page sub used to be a literal 'loading…' until the API call finished. Updated to mirror the actual surface: Insight strip (the 1-line takeaway at the top, plain-English and color-coded) + 4 stat tiles (IG posts · GA4 sessions · SEO rising · SEO falling) + 5 content cards (Top Instagram posts · Top SEO keywords · A/B tests · Top pages · plain-English Insights with verdicts) + a Weekly report. The page sub gets overwritten with the live signals + posts + pages tracked count as soon as renderInsights completes." data-help-title="What is in this section">Insight strip · 4 stat tiles (IG · GA4 · SEO ↑↓) · 5 cards (top IG · top SEO · A/B tests · top pages · insights) · weekly report</span>
         <div class="btn-row" style="margin-left:auto">
           <button class="btn" id="ins-v2-refresh">🔄 Refresh</button>
         </div>
