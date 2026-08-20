@@ -500,6 +500,8 @@ def env_debug():
         "X_BEARER_TOKEN",
         "TIKTOK_ACCESS_TOKEN",
         "GBP_REFRESH_TOKEN",
+        "GOOGLE_OAUTH_CLIENT_ID",
+        "GOOGLE_OAUTH_CLIENT_SECRET",
     ]
     out = {}
     for k in keys_of_interest:
