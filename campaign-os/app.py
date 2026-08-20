@@ -7434,9 +7434,17 @@ def connected_accounts_status_route():
                 items = ch_data if isinstance(ch_data, list) else (ch_data.get("integrations") or ch_data.get("identities") or [])
                 for it in items:
                     if not isinstance(it, dict): continue
+                    # Postiz reports the provider under multiple keys depending on
+                    # workspace version (providerIdentifier is the canonical one,
+                    # but older workspaces use provider / type / name).
+                    pid = it.get("providerIdentifier") or it.get("provider") or it.get("type") or ""
+                    # The name field sometimes IS the provider (e.g. "gmb", "instagram")
+                    # when no providerIdentifier is set. Detect that pattern.
+                    if not pid and (it.get("name") or "").lower() in {"gmb", "instagram", "facebook", "tiktok", "twitter", "x", "linkedin", "youtube", "pinterest", "threads", "reddit", "youtube"}:
+                        pid = it["name"].lower()
                     channels.append({
                         "id": it.get("id") or it.get("_id"),
-                        "provider": (it.get("providerIdentifier") or it.get("provider") or "").lower() or None,
+                        "provider": (pid or "").lower() or None,
                         "name": it.get("name"),
                         "picture": it.get("picture"),
                         "disabled": it.get("disabled", False),
