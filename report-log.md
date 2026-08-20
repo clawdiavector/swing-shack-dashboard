@@ -1,4 +1,70 @@
 
+## 2026-08-20T00:27Z — fix(agents): rows actually drill into per-script results of last run (commits `c100109` + `599c0ff` + `375a468`, on `feat/asset-state-engine`, Railway auto-deployed, LIVE post-deploy verified)
+
+**Pick rationale:** Flagged in last tick as the next-next pick — the Agents & health `<h2>` tooltip said "Click any red row to drill into the error log" but `agentRunHtml()` rendered an `<li class="li" onclick="this.classList.toggle('open')">` that toggled `.open` with NO inner `.li-detail` content. Clicking a red row did literally nothing visible. The tooltip promised a flow the renderer could not fulfill. Real product bug, user-visible, ships clean.
+
+**Bug shape (live-captured before fix):**
+- Tooltip text on `#sec-agents h2`: "Click any red row to drill into the error log." (`data-help` attribute, served 478 chars on the live page before this tick).
+- Row HTML: `<li class="li" onclick="this.classList.toggle('open')"><div class="li-body">...</div></li>` — no `.li-detail` block. CSS rule `.li.open .li-detail{display:block}` was already there from the original `.li` list styling, just no content to display.
+- Result: hover-then-click on any red agent row visually did nothing. The promise was a lie.
+
+**Fix (renderer-only + API backfill, 3 changes):**
+- `campaign-os/_lib/intelligence.py::agents_view()` (+40 lines): forwards `last_scripts` (per-script `{script, status, duration_ms}` from the most recent run) and `outputs_invalid` (the `{file, reason}` entries from `outputs_validated` whose `valid=false`). Always surfaces both as well-defined lists (empty when clean) so the front-end detail block is well-defined.
+- `campaign-os/campaign-os.html::agentRunHtml()` (+30 lines): now renders a `<div class="li-detail">` block inside every `<li>`. The existing CSS rule `.li.open .li-detail{display:block}` makes the click actually do something. The block surfaces per-script PASS/FAIL pills + duration, plus invalid output reasons, plus a "All N scripts passed" line for healthy runs so the click is never a dead action. Em-dash banned.
+- Tooltip text (line 2061): "Click any red row to drill into the error log" → "Click any agent row to see the per-script results (PASS/FAIL/duration) from the last run, plus the file paths that failed validation and the reason each one failed." Now the promise matches the flow.
+- Second-pass fix: PARTIAL rows no longer claim "All N scripts passed" (when row status is PARTIAL but per-script reports are all PASS, the summary line was contradicting the row status — e.g. `hook_smith` on 2026-04-22 with `analyse_hooks.js PASS` and a memory file failing ENOENT). The "Result" line is now gated on `status === 'PASS'`. The "Invalid outputs" list still appears, so PARTIAL runs that had validation failures still tell the user why.
+
+**New regression test (6 tests, all green):**
+- `campaign-os/tests/test_v2026_08_20_agent_run_drill_into_per_script.py` (NEW, 252 lines, 6 tests).
+  1. `test_agents_view_forwards_last_scripts` — agents_view() includes a `last_scripts` array preserving all per-script statuses (PASS + FAIL both present) in source order. Subprocess test against a synthetic agent-runs.json (monkey-patches `_i.DATA_DIR`).
+  2. `test_agents_view_forwards_outputs_invalid` — agents_view() includes `outputs_invalid` (the `{file, reason}` entries from `outputs_validated` where `valid=false`).
+  3. `test_agents_view_outputs_invalid_empty_when_clean` — clean runs surface `outputs_invalid=[]` (not the key absent) so the front-end detail block is well-defined.
+  4. `test_agentRunHtml_emits_li_detail_block` — `agentRunHtml()` must render a `<div class="li-detail">` block (the click-to-drill affordance relies on `.li.open .li-detail{display:block}`).
+  5. `test_agentRunHtml_renders_last_scripts` — `agentRunHtml()` must read `it.last_scripts` (the per-script array forwarded by `agents_view`).
+  6. `test_agents_health_tooltip_no_false_red_only_promise` — tooltip no longer contains "Click any red row" and now mentions "per-script" / "last run".
+
+**Playwright LIVE verification:**
+- `scripts/walk_agent_run_drill_into_per_script_live.py` (NEW, 170 lines): verifies served tooltip no longer contains the old broken promise, every rendered row has a `.li-detail` block, clicking toggles `.open` and reveals the per-script detail text, no em-dashes, 0 console / page errors.
+- `scripts/walk_agent_run_partial_drill_live.py` (NEW, 110 lines): clicks the first PARTIAL row (`hook_smith` on live data), confirms the row opens, captures the per-script detail, regression-asserts the "all scripts passed" summary is NOT shown on PARTIAL rows.
+
+**LIVE results (post-deploy, `https://swing-shack-dashboard-production.up.railway.app`):**
+- Served Agents h2 `data-help` length: 478 → 551 (new copy includes the accurate promise).
+- Tooltip no longer contains "Click any red row to drill into the error log".
+- Tooltip contains "per-script results" (the accurate promise).
+- Em-dashes in served tooltip: 0.
+- Agent rows rendered: 23/23 have a `.li-detail` block (was 0/23 before).
+- Sample PASS row (`pulse_keeper`) detail: `generate_pulse_keeper.js PASS 44ms · generate_agent_scorecards.js PASS 46ms · store_daily_learnings.js PASS 43ms · Result: All 3 scripts passed`.
+- Sample PARTIAL row (`hook_smith`) detail: `analyse_hooks.js PASS 45ms` (no "All 1 script passed" summary — row status wins).
+- 0 console errors, 0 page errors.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_20260820T002714Z_agent_runs_closed.png` — Agents section, all rows collapsed, ready-to-drill surface visible.
+- `/tmp/co-nightshift/walkthrough_20260820T002714Z_agent_runs_open.png` — `pulse_keeper` row clicked, per-script table visible with all 3 scripts and "All 3 scripts passed" summary.
+- `/tmp/co-nightshift/walkthrough_20260820T002705Z_agent_partial_open.png` — `hook_smith` row clicked (PARTIAL), only per-script table visible, no contradictory summary.
+
+**Files (5, +519/-5):**
+- `campaign-os/_lib/intelligence.py` (+41/-1): agents_view() now forwards `last_scripts` + `outputs_invalid` (well-defined lists, empty when clean).
+- `campaign-os/campaign-os.html` (+46/-2): agentRunHtml() now renders a `<div class="li-detail">` block + tooltip text changed + PARTIAL-summary guard.
+- `campaign-os/tests/test_v2026_08_20_agent_run_drill_into_per_script.py` (NEW, 252 lines, 6 tests).
+- `scripts/walk_agent_run_drill_into_per_script_live.py` (NEW, 170 lines).
+- `scripts/walk_agent_run_partial_drill_live.py` (NEW, 110 lines).
+- `REBUILD_TRIGGER.txt` (nudge commit, +1/-1).
+
+**Commits (all on `feat/asset-state-engine`, pushed, Railway auto-deployed, LIVE post-deploy verified):**
+- `c100109` — fix(agents): rows actually drill into per-script results of last run
+- `599c0ff` — chore: nudge Railway rebuild for agent-run drill fix (c100109)
+- `375a468` — fix(agents): PARTIAL rows no longer claim 'all scripts passed'
+
+**Standing rules:** 0 publish, 0 tokens, 0 main branch, 0 schema changes, 0 fabricated stats, 0 deleted files, 0 NEW em-dashes (verified by test_06 + the existing test_no_em_dash_added_in_new_agent_run_renderer which was green before and stayed green), 0 NEW deps, 0 auth/gates touched, 0 secrets read, 0 Meta credential access.
+
+**Pre-existing failure (NOT introduced by this tick, NOT fixed in this tick):** `test_v2026_08_09_system_health_json_to_pills.py::test_next_action_surfaced_as_one_line` and `::test_systemHealthHtml_escapes_user_fields` still fail — both look for the literal `<b>Next:</b> ${esc(h.next_action)}` template and `esc(h.next_action)` token, but `systemHealthHtml()` was rewritten on 2026-08-18 to wrap next_action in a `nextBody` (with conditional link normalisation). Verified by `git stash` + re-run: fails identically on a clean tree. Different lane (system-health next-action normalisation, not agent runs). Out of scope; flagged for a future tick.
+
+**Learned (2 pitfalls):**
+1. **The `.li.open .li-detail{display:block}` CSS rule is a half-implementation waiting for content.** The pre-existing CSS for `.li` rows already wired the toggle pattern — it just had no consumer. Easy pattern to re-use on any "drill into" affordance in the SPA: render a `<li class="li" onclick="this.classList.toggle('open')">` and put the drill content inside a `<div class="li-detail">`. No new CSS needed.
+2. **"Always well-defined lists" beats "absent keys" in API contracts.** When `agents_view()` returned a row without `last_scripts`, the front-end had to defend against `undefined` to render anything. Forcing `last_scripts=[]` + `outputs_invalid=[]` on every row (even the degenerate `else` branch) means the renderer is well-defined for all 23 rows, the test can assert `=== []` instead of `"key in row"`, and the front-end can always iterate `it.last_scripts.map(...)` without a guard. Same pattern is worth applying to the other agents_view-like endpoints (assets_view, campaign_views).
+
+**Next pick:** (a) `socials-summary` placeholder dash (10th in the static-sub pattern series — billboard sub was the 9th). (b) Hashtags+SEO sub `+` vs `and` drift. (c) `itemHtml()` debug-token scrub — bigger lift, multiple renderers to harden (Performance, Hook Bank, Capture rows all leak status/owner/schema fields through the generic renderer).
+
 ## 2026-08-19T16:25Z — fix(hooks): Hook Bank sub mirrors actual surface (commit `ccc7b40`, Railway auto-deployed, LIVE post-deploy verified)
 
 **Pick rationale:** Eighth (and final-major) in the static-sub pattern series (Ideas, Library, Performance, Calendar, Trends, Image Gen, Meme Lord, Hooks). The Hook Bank section's `hooks-total` was the last major generator still showing the dash placeholder before the JS overwrite. Same proven pattern: static fallback that mirrors the surface + id+data-help anchor. Hooks has a JS overwrite (renderHooks line 9369), so the static text is the pre-API / API-failed frame and the dynamic text wins once the API responds (same contract as Calendar + Meme Lord).
