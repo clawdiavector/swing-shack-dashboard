@@ -81,7 +81,7 @@ BRAND_PROFILES = {
             "WhatsApp us to book",
         ],
         "domain": "swingshack.co.za",
-        "postiz_gbp_integration_id": "cmmdgj0ty00r6o20ymzskvdw",  # GBP integration from /api/postiz/channels
+        "postiz_gbp_integration_id": "cmmdgju7f00r6o20ymzskvdw",  # GBP integration from /api/postiz/channels (verified 2026-08-20)
     },
     "stick": {
         "voice": (

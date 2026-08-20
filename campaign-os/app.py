@@ -6459,12 +6459,10 @@ def postiz_channels_route():
     items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or data.get("data") or [])
     if not isinstance(items, list):
         items = []
-    # Reduce to a UI-friendly summary. Probe every plausible provider field
-    # name since Postiz versions vary wildly:
-    #   - providerIdentifier (canonical)
-    #   - provider / type / channelType / platform (alternates)
-    #   - it["integration"]["providerIdentifier"] (older wrapper shape)
-    #   - name-as-provider fallback (when no other field is set)
+    # Reduce to a UI-friendly summary. Postiz hosted SaaS uses 'identifier' as
+    # the provider field (verified 2026-08-20 by probing /channels/raw). The
+    # canonical Postiz docs call it 'providerIdentifier' but the live API
+    # returns 'identifier'. We probe a handful of alternates too.
     KNOWN_PROVIDER_NAMES = {"gmb", "instagram", "facebook", "tiktok", "twitter", "x",
                               "linkedin", "youtube", "pinterest", "threads", "reddit"}
     channels = []
@@ -6472,7 +6470,8 @@ def postiz_channels_route():
         if not isinstance(it, dict):
             continue
         pid = ""
-        for key in ("providerIdentifier", "provider", "type", "channelType", "platform"):
+        for key in ("identifier", "providerIdentifier", "provider", "type",
+                     "channelType", "platform"):
             v = it.get(key)
             if v and isinstance(v, str):
                 pid = v
@@ -6480,7 +6479,7 @@ def postiz_channels_route():
         # Some Postiz responses wrap the integration in a sub-object
         if not pid and isinstance(it.get("integration"), dict):
             sub = it["integration"]
-            for key in ("providerIdentifier", "provider", "type"):
+            for key in ("identifier", "providerIdentifier", "provider", "type"):
                 v = sub.get(key)
                 if v and isinstance(v, str):
                     pid = v
@@ -6498,28 +6497,6 @@ def postiz_channels_route():
             "disabled": it.get("disabled", False),
         })
     return jsonify({"ok": True, "channels": channels, "count": len(channels)}), 200
-
-
-@app.route('/api/postiz/channels/raw', methods=['GET'])
-def postiz_channels_raw_route():
-    """GET /api/postiz/channels/raw — temp debug: dump the raw upstream payload.
-
-    Helps debug provider field discovery. Returns the raw Postiz response
-    verbatim so we can see which keys hold the provider. Will be removed
-    once the channels route extracts the right field.
-    """
-    if not _POSTIZ_CLIENT_AVAILABLE:
-        return jsonify({"ok": False, "error": "postiz client unavailable"}), 503
-    if not _is_authed():
-        return jsonify({"ok": False, "error": "authentication required"}), 401
-    try:
-        data, err = _postiz_lib.list_integrations()
-    except Exception as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 502
-    if err:
-        return jsonify({"ok": False, "error": err}), 502
-    return jsonify({"ok": True, "raw_type": type(data).__name__, "raw": data}), 200
-
 
 def _safe_read_json(path: Path) -> Optional[dict]:
     try:
