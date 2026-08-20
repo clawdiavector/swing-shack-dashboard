@@ -6455,8 +6455,12 @@ def postiz_channels_route():
     if err:
         code, msg = err
         return jsonify({"ok": False, "error": f"postiz API {code}: {msg}"}), 502
-    # Normalise: Postiz may return {integrations: [...]} or {identities: [...]} or a bare list
-    items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or [])
+    # TEMP DEBUG: surface the raw upstream so we can see which field holds the provider
+    items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or data.get("data") or [])
+    try:
+        _app_log.warning("postiz channels RAW: type=%s sample=%s", type(data).__name__, str(data)[:600] if data else 'none')
+    except Exception:
+        pass
     if not isinstance(items, list):
         items = []
     # Reduce to a UI-friendly summary
