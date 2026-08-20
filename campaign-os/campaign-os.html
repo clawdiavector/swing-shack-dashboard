@@ -4797,7 +4797,25 @@ function attachExplainers(){
     });
     btn.addEventListener('mouseenter', () => $$('.section-explain[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false')) || btn.setAttribute('aria-expanded', 'true'));
     btn.addEventListener('mouseleave', () => btn.setAttribute('aria-expanded', 'false'));
-    h.appendChild(btn);
+    // Anchor the auto-injected ? to the section title. Previously the button
+    // was appended to .section-h (the flex row), which placed it AFTER the
+    // .sub paragraph and every btn-row (e.g. the Calendar filter buttons) —
+    // so on Home it rendered as a stray ? after "Live signal from across all
+    // sources", and on Calendar it collided with the platform/campaign
+    // filters. Sitting beside the title keeps the button visually associated
+    // with the section name, where the user looks for help.
+    //
+    // If the h2 already has its own data-help-tip (a manual inline help ? on
+    // the title), skip injection so we don't stack two ? icons on the same
+    // title. The two tooltips duplicate the user's intent ("what is this
+    // section?") and create the "double ??" anti-pattern.
+    const titleEl = h.querySelector('h2, h3');
+    if (titleEl) {
+      if (titleEl.querySelector('.help-tip[data-help]')) return;
+      titleEl.appendChild(btn);
+    } else {
+      h.appendChild(btn);
+    }
   });
   // Click anywhere else to close
   document.addEventListener('click', e => {
