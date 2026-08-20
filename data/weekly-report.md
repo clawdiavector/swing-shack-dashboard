@@ -1,8 +1,8 @@
-# Weekly Marketing Report · 2026-08-11 to 2026-08-18
+# Weekly Marketing Report · 2026-08-13 to 2026-08-20
 
 **Brand:** swing-shack
 
-**Window:** 2026-08-11 → 2026-08-18
+**Window:** 2026-08-13 → 2026-08-20
 
 ## Headline
 - 21 published, 0 failed, 100.0% win rate.
@@ -26,12 +26,11 @@
 - Sub 70 clubs are now available for fitting at Swing Shack. (2 uses)
 
 ## SEO movers
-- ↑ putter fitting (rank 17)
-- ↑ custom club fitting (rank 17)
-- ↑ simulated golf (rank 2)
-- ↑ club fitting (rank 10)
-- ↓ indoor golf practice (rank 3)
-- ↓ club fitting near me (rank 5)
+- ↑ putter fitting (rank 15)
+- ↑ custom club fitting (rank 19)
+- ↑ simulated golf (rank 4)
+- ↑ golf lessons for beginners in johannesburg (rank 9)
+- ↓ club fitting (rank 17)
 
 ## Agents
 - **approval_captain** · 1 runs, 1 passed, 0 failed (100.0% pass)
@@ -72,12 +71,12 @@
   - Source breakdown from ga4-metrics.json across 5 sources. Last fetch: 2026-08-13T11:18:53.950Z.
 - **4 SEO keyword(s) moved up this week.** _(category: seo, source: `seo-rankings.json`)_
   - Cross-cut from seo-rankings.json movers list.
-- **Biggest SEO mover: 'putter fitting' rose from #35 to #17.** _(category: seo, source: `seo-rankings.json`)_
-  - seo-rankings.json — 4 keyword(s) ranked up this period, 2 ranked down, 10 unchanged. Source: Ubersuggest via daily fetch_ubersuggest.py cron.
-- **Avg position for swingshack.co.za improved 2.2 places over 7 weekly snapshots (#8.42 → #6.17).** _(category: seo, source: `seo-rankings.json`)_
-  - seo-rankings.json average_position_trend (7 points, 2026-06-30 → 2026-08-11). Source: Ubersuggest via fetch_ubersuggest.py.
+- **Biggest SEO mover: 'putter fitting' rose from #35 to #15.** _(category: seo, source: `seo-rankings.json`)_
+  - seo-rankings.json — 4 keyword(s) ranked up this period, 1 ranked down, 11 unchanged. Source: Ubersuggest via daily fetch_ubersuggest.py cron.
+- **Avg position for swingshack.co.za improved 1.8 places over 8 weekly snapshots (#8.42 → #6.58).** _(category: seo, source: `seo-rankings.json`)_
+  - seo-rankings.json average_position_trend (8 points, 2026-06-30 → 2026-08-18). Source: Ubersuggest via fetch_ubersuggest.py.
 - **SEO domain snapshot — organic traffic = 967; organic keywords = 51; domain authority = 13; backlinks = 25; referring domains = 10.** _(category: seo, source: `ubersuggest-domain.json`)_
-  - ubersuggest-domain.json via daily fetch_ubersuggest.py cron. Last fetch: 2026-08-16. Pulled from `swingshack.co.za` `domain_overview` + `backlinks_overview` MCP tools.
+  - ubersuggest-domain.json via daily fetch_ubersuggest.py cron. Last fetch: 2026-08-20. Pulled from `swingshack.co.za` `domain_overview` + `backlinks_overview` MCP tools.
 - **Conversion truth band - Publishing ROI is STRONG_PROXY. Lead and ad ROI is UNMEASURABLE. Only DIRECT comes when GA4 → booking system integrates.. Last engine run: 2026-08-13.** _(category: attribution, source: `roi-truth.json`)_
   - roi-truth.json reclassifies every revenue source (publishing, lead routing, ad budget, etc.) into a confidence band based on whether the GA4 booking confirmation event is live. DIRECT = booking-confirmed; STRONG_PROXY = UTM chain + session trackable; WEAK_PROXY = indirect correlation only; UNMEASURABLE = no data path.
 - **Top attribution unblocker - WhatsApp Business API + CRM → booking system integration; Meta Ads API + GA4 goal tracking + ROAS calculation. Closing either lifts the affected sources from unmeasurable to verified revenue.** _(category: attribution, source: `roi-truth.json`)_
@@ -124,12 +123,12 @@ Book your ball fitting today!'.** _(category: content_strategy, source: `post-co
   - Caption hook: "Tired of the same old setup 🥱 try Avoda today! ". Permalink: https://www.instagram.com/reel/DbVgJmCMZZC/. From ig-business-analytics.json top_post.
 
 ## What's not working
-- • **2 SEO keywords moved down this week.** _(severity: low, source: `seo-rankings.json`)_
-  - indoor golf practice, club fitting near me
-- • **5 agent(s) didn't run this week: imagegen, scout, retina, copywriter, forge.** _(severity: low, source: `agent-runs.json`)_
+- • **1 SEO keywords moved down this week.** _(severity: low, source: `seo-rankings.json`)_
+  - club fitting
+- • **5 agent(s) didn't run this week: forge, imagegen, copywriter, scout, retina.** _(severity: low, source: `agent-runs.json`)_
   - Either nothing to do (fine) or a missed opportunity.
 - ⚠️ **Strongest organic competitor: worldofgolf.co.za — 52 shared keywords, DA 26 (us: 13).** _(severity: medium, source: `ubersuggest-competitors.json`)_
-  - ubersuggest-competitors.json via fetch_ubersuggest.py. Top of list by commonKeywordCount. Gap keywords (we don't rank but they do): 300. Last fetch: 2026-08-16.
+  - ubersuggest-competitors.json via fetch_ubersuggest.py. Top of list by commonKeywordCount. Gap keywords (we don't rank but they do): 300. Last fetch: 2026-08-20.
 - 🛑 **Daily IG reach has fallen 62% over the past 15d (vs the prior 15d).** _(severity: high, source: `ig-business-analytics.json`)_
   - From ig-business-analytics.json daily_reach: prior 15d avg=1237, recent 15d avg=467. Reach contraction is the earliest signal of an audience that the algorithm has stopped pushing.
 
@@ -144,7 +143,7 @@ Book your ball fitting today!'.** _(category: content_strategy, source: `post-co
   - roi-truth.json sources[] filtered by can_measure='UNMEASURABLE'. Until the recommended integrations land (WhatsApp Business, Meta Ads + GA4 goal tracking, GA4 booking confirmation event), these channels are operating blind.
 - ? **GA4 booking_completed event is NOT being tracked. Amelia events are firing (form_view, checkout_view) but the confirmation page is not pushing booking_completed. Until this lands, all booking-revenue attribution is a proxy based on URL pattern, not event-tracked.** _(source: `ga4-attribution.json`)_
   - ga4-attribution.json events_tracked. Top events: page_view:5325, user_engagement:3802, session_start:3206, first_visit:2169, tel:12. Wiring the booking_completed event is a 1-2h code change on the Amelia booking confirmation page and would upgrade 3 channels from STRONG_PROXY to VERIFIED_REVENUE in the conversion truth band.
-- ? **Lowest-converting posts (bottom 3 of 16) share themes golf_humor, club_fitting, trackman_stats, booking_cta. These patterns are NOT driving /bookings/ traffic - consider rotating them out of the next-post rotation.** _(source: `post-conversion-score.json`)_
+- ? **Lowest-converting posts (bottom 3 of 16) share themes golf_lessons, club_fitting, golf_humor, booking_cta. These patterns are NOT driving /bookings/ traffic - consider rotating them out of the next-post rotation.** _(source: `post-conversion-score.json`)_
   - post-conversion-score.json bottom 3 of 16 ranked posts. Lowest scores correlate with these themes. The content engine should deprioritise these in next-post selection.
 - ? **@swingshack has 2,490 IG followers as of this fetch.** _(source: `ig-business-analytics.json`)_
   - From ig-business-analytics.json account.followers_count. Compare against next fetch to detect follower-delta direction.
@@ -157,7 +156,7 @@ Book your ball fitting today!'.** _(category: content_strategy, source: `post-co
 - **GA4 (`ga4-metrics.json`)** — 880 sessions · top source: **google** (541 sessions) · 5 sources tracked · fetched: 2026-08-13
 - **YouTube trends (`youtube-trends.json`)** — 19 videos found · top 10 · active themes: trackman, slice_fix, practice, indoor, lessons
 - **Reddit (`reddit-opportunities.json + reddit-replies.json`)** — 5 opportunities · 5 drafted replies · ready_for_qa (opps: 5, replies: 5) · subs: r/golf=3, r/golftips=1, r/Johannesburg=1
-- **SEO (`seo-rankings.json`)** — 16 keywords · 12 have rank data · rising=4 falling=2 · freshness: never
+- **SEO (`seo-rankings.json`)** — 16 keywords · 12 have rank data · rising=4 falling=1 · freshness: never
 - **Hook bank (`hook-bank.json`)** — proven_and_trending=0 · proven_only=3 · trending_to_test=0 · retire=5
   - ⚠️ **hook-bank mismatch:** 0 of published hook_ids are NOT in hook-bank (8 bank entries). Bank regenerated independently of publish history.
 
