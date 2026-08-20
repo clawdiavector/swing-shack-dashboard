@@ -1144,6 +1144,24 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         </div>
       </div>
 
+      <!-- Today's planned GBP auto-post (built 2026-08-20) — read-only mirror
+           of the daily auto-poster. Shows tomorrow's scheduled post so the
+           user sees what GBP will publish next. The destructive write lives
+           in the GBP Daily section; this card is the morning-brief signpost. -->
+      <div class="card" id="brief-gbp-today" style="margin-top:1rem" data-help="Tomorrow's planned GBP auto-post. Read-only mirror of the daily-poster plan so the morning brief tells you what is queued to publish on GBP next. Click 'Open GBP Daily' to review the full 7-day plan or publish a new one." data-help-title="GBP auto-post · tomorrow">
+        <div class="card-h">
+          <h3>🚀 GBP auto-post · tomorrow <span class="help-tip" tabindex="0" role="button" aria-label="What is GBP auto-post?" data-help="Tomorrow's scheduled GBP post. Read-only mirror of the daily-poster plan — the destructive publish button lives in the GBP Daily section. Click 'Open GBP Daily' to review the full 7-day plan or to generate + publish a new one. Empty means no plan exists yet, click the link to build one." data-help-title="GBP auto-post · tomorrow">?</span></h3>
+          <span class="muted" id="brief-gbp-today-meta" style="font-size:12px">—</span>
+        </div>
+        <div id="brief-gbp-today-body">
+          <div class="muted" style="padding:12px;font-size:12px">Loading latest plan…</div>
+        </div>
+        <div style="margin-top:.5rem;font-size:11px;color:var(--tx-3)">
+          <a href="#" data-go="gbp" style="color:var(--ac);text-decoration:none;font-weight:600">→ Open GBP Daily</a>
+          · generate / publish lives there
+        </div>
+      </div>
+
       <!-- Data freshness widget: hidden on the brief by default (it's an
            admin / fleet-health concern, not a marketing concern). Move it
            under the Agents & health surface where Christelle + Forge go to
@@ -4097,6 +4115,43 @@ function _extractHeadlinesFromBank(mdText, maxN){
 //             tweet_card_top → meme_punchline → first scale item → primary
 //   cta:      cta_pill → primary
 // Per pitfall #50: family name is escaped before interpolation.
+
+// ─── GBP auto-post · tomorrow tile (built 2026-08-20) ─────────────
+// Read-only mirror of the latest daily-poster plan. Shows tomorrow's
+// scheduled post so the morning brief surfaces what GBP will publish
+// next. The destructive publish lives in the GBP Daily section.
+async function _briefRenderGbpToday(){
+  const body = document.getElementById('brief-gbp-today-body');
+  const meta = document.getElementById('brief-gbp-today-meta');
+  if(!body) return;
+  try {
+    const r = await API.get('/api/gbp/daily-poster/latest?brand_id=swing-shack');
+    if(!r.ok || !r.posts || !r.posts.length){
+      body.innerHTML = `<div class="empty" style="font-size:12px">No plan yet. <a href="#" data-go="gbp" style="color:var(--ac);text-decoration:none">Open GBP Daily → generate one</a></div>`;
+      if(meta) meta.textContent = 'no plan';
+      return;
+    }
+    const posts = r.posts;
+    const schedule = r.schedule || [];
+    const next = posts[0];
+    const sched = schedule[0] || {};
+    const when = sched.scheduled_for ? new Date(sched.scheduled_for).toLocaleString('en-ZA', {dateStyle:'medium', timeStyle:'short', timeZone:'UTC'}) + ' UTC' : '';
+    if(meta) meta.textContent = `${posts.length} post${posts.length===1?'':'s'} queued`;
+    body.innerHTML = `
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
+        <span class="pill on" style="font-size:10px">${esc(next.intent || 'informational')}</span>
+        <span class="muted" style="font-size:11px">${when}</span>
+        <span class="muted" style="font-size:11px">📍 ${esc(next.neighborhood || '')}</span>
+      </div>
+      <div style="font-weight:600;color:var(--tx);margin-bottom:.4rem;font-size:14px">${esc(next.title || '')}</div>
+      <div style="font-size:13px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap">${esc(next.body || '')}</div>
+      <div style="margin-top:.4rem;font-size:11px;color:var(--tx-3)">${esc((next.hashtags||[]).join(' '))} · CTA: <b>${esc(next.cta || '')}</b></div>
+    `;
+  } catch (e) {
+    body.innerHTML = `<div class="empty" style="color:#f87171;font-size:12px">Failed: ${esc(e.message || 'unknown')}</div>`;
+  }
+}
+
 function renderBriefPreview(brief){
   const typography = brief && brief.typography && typeof brief.typography === 'object' ? brief.typography : null;
   if(!typography) return '';
@@ -7266,6 +7321,9 @@ async function renderBrief(){
     </div>
   `;
   renderTodayRail();
+
+  // GBP Daily tile (read-only mirror of latest plan)
+  _briefRenderGbpToday();
 }
 
 // ─── REVIEW ─────────────────────────────────────────────────────
