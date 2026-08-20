@@ -6713,6 +6713,114 @@ def gbp_oauth_disconnect_route(brand_id):
     return jsonify({"ok": True, "brand_id": brand_id, "removed": removed}), 200
 
 
+# ── GBP Daily Poster (built 2026-08-20) ────────────────────────────────────────
+# Per Christelle's "Real world wind" brief: GBP posts should go out daily,
+# driven by SEO signals (Ubersuggest + GA4 queries) + improve GEO finds.
+#
+# Three routes: preview (dry-run), publish (one-click approval), list (audit).
+# Discipline per the agent-destructive-write-discipline skill: destructive
+# publish only fires when publish=true is explicitly passed. The cron caller
+# never auto-publishes; it always generates the plan and surfaces it for review.
+
+_GBP_DAILY_AVAILABLE = True
+try:
+    from _lib import gbp_daily_poster as _gdp
+except Exception as _exc:
+    _GBP_DAILY_AVAILABLE = False
+    _gdp = None
+    _app_log.warning("gbp_daily_poster import failed: %s", _exc)
+if _GBP_DAILY_AVAILABLE:
+    assert _gdp is not None
+
+
+@app.route('/api/gbp/daily-poster/preview', methods=['POST'])
+def gbp_daily_poster_preview_route():
+    """POST /api/gbp/daily-poster/preview — build a plan (dry-run).
+
+    Body (JSON): {
+      brand_id: swing-shack | stick | bag-drop  (default swing-shack),
+      days: int  (default 7, max 30),
+      posts_per_day: int  (default 1, max 3),
+    }
+
+    Returns the full plan: posts + schedule + source breakdown + plan_file path.
+    No destructive writes — does NOT push to GBP, does NOT publish via Postiz.
+    """
+    if not _GBP_DAILY_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    days = min(max(int(body.get("days") or 7), 1), 30)
+    posts_per_day = min(max(int(body.get("posts_per_day") or 1), 1), 3)
+    try:
+        plan = _gdp.build_daily_plan(brand_id, days=days, posts_per_day=posts_per_day, publish=False)
+    except Exception as exc:
+        _app_log.exception("gbp_daily_poster_preview failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify(plan), 200
+
+
+@app.route('/api/gbp/daily-poster/publish', methods=['POST'])
+def gbp_daily_poster_publish_route():
+    """POST /api/gbp/daily-poster/publish — build AND schedule the plan.
+
+    Same body as /preview. Adds `publish: true` so the plan is pushed via
+    Postiz GBP integration to actually go live on the scheduled dates.
+
+    Real-world wind: this is the destructive-write path. It posts to GBP
+    via Postiz. Only fires when the user explicitly clicks 'publish'.
+    """
+    if not _GBP_DAILY_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    days = min(max(int(body.get("days") or 7), 1), 30)
+    posts_per_day = min(max(int(body.get("posts_per_day") or 1), 1), 3)
+    try:
+        plan = _gdp.build_daily_plan(brand_id, days=days, posts_per_day=posts_per_day, publish=True)
+    except Exception as exc:
+        _app_log.exception("gbp_daily_poster_publish failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify(plan), 200
+
+
+@app.route('/api/gbp/daily-poster/plans', methods=['GET'])
+def gbp_daily_poster_plans_route():
+    """GET /api/gbp/daily-poster/plans — list past plans (audit trail).
+
+    Query params: brand_id (optional), limit (default 30).
+    """
+    if not _GBP_DAILY_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or "").strip() or None
+    try:
+        limit = min(max(int(request.args.get("limit") or 30), 1), 100)
+    except ValueError:
+        limit = 30
+    plans = _gdp.list_plans(brand_id=brand_id, limit=limit)
+    return jsonify({"ok": True, "plans": plans, "count": len(plans)}), 200
+
+
+@app.route('/api/gbp/daily-poster/latest', methods=['GET'])
+def gbp_daily_poster_latest_route():
+    """GET /api/gbp/daily-poster/latest?brand_id=swing-shack — most recent plan."""
+    if not _GBP_DAILY_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    plan = _gdp.latest_plan(brand_id)
+    if not plan:
+        return jsonify({"ok": False, "error": f"no plan for {brand_id}"}), 404
+    return jsonify(plan), 200
+
+
 @app.route('/api/review/<asset_id>/schedule', methods=['POST'])
 def review_push_postiz(asset_id):
     """Push the asset's caption + visual to Postiz as a draft. Records the Postiz id
