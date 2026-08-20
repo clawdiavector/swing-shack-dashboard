@@ -6785,26 +6785,68 @@ def gmb_schedule_draft(draft_id):
         return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
     postiz_id = None
     err = None
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz client unavailable"}), 503
+    assert _postiz_lib is not None
+    # Resolve the GMB integration id from the channels list. Postiz reports
+    # the GBP integration under several possible provider strings depending
+    # on the workspace version; we accept any of the documented variants.
+    integration_id = None
+    gmb_provider_aliases = {"gmb", "google-business", "google-business-profile", "googlebusinessprofile", "googlemybusiness", "google_places"}
     try:
-        from _lib.postiz_client import postiz_create_post
-        text = draft.get('body') or draft.get('title') or ''
-        media = [draft['imageUrl']] if draft.get('imageUrl') else []
-        result = postiz_create_post(caption=text, media=media, platform='gmb')
-        postiz_id = result.get('id') or result.get('postizId') if isinstance(result, dict) else None
+        data, ch_err = _postiz_lib.list_integrations()
+        if not ch_err and data:
+            items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or [])
+            for it in items:
+                if not isinstance(it, dict):
+                    continue
+                provider = (it.get("providerIdentifier") or it.get("provider") or "").lower()
+                if provider in gmb_provider_aliases:
+                    integration_id = it.get("id") or it.get("_id")
+                    break
     except Exception as exc:
-        err = str(exc)
-    if not postiz_id:
+        _app_log.warning("gmb_schedule_draft: channel lookup failed: %s", exc)
+    if not integration_id:
+        return jsonify({
+            "ok": False,
+            "error": "no GMB integration under Postiz workspace. "
+                     "Connect GBP inside Postiz and retry, or pass integration_id in body.",
+        }), 400
+    # Build the post payload. GBP allows ~1500 char body, optional image.
+    text = (draft.get('body') or draft.get('title') or '')[:1500]
+    media_ids: list[str] = []
+    image_url = draft.get('imageUrl') or draft.get('image')
+    if image_url:
         try:
-            from _lib.publisher import push_draft  # type: ignore
-            postiz_id = push_draft(asset_id=draft_id, campaign_id=draft.get('brand'),
-                                    caption=draft.get('body') or draft.get('title', ''),
-                                    media=[draft['imageUrl']] if draft.get('imageUrl') else [],
-                                    platform='gmb')
-        except Exception as exc2:
-            err = (err + " | " if err else "") + str(exc2)
+            upload_path = image_url
+            if upload_path.startswith("/uploads/"):
+                full = os.path.join(ASSET_MEDIA_DIR, os.path.basename(upload_path))
+                if os.path.isfile(full):
+                    upload_path = full
+            upload_data, up_err = _postiz_lib.upload_media(upload_path)
+            if up_err:
+                err = f"upload {up_err[0]}: {up_err[1]}"
+            elif upload_data and upload_data.get("id"):
+                media_ids.append(upload_data["id"])
+        except Exception as exc:
+            err = f"upload exception: {exc}"
+    if not err:
+        try:
+            result, post_err = _postiz_lib.create_post(
+                integration_id=integration_id,
+                content=text,
+                media_ids=media_ids,
+            )
+            if post_err:
+                err = f"create_post {post_err[0]}: {post_err[1]}"
+            elif result and result.get("id"):
+                postiz_id = result["id"]
+        except Exception as exc:
+            err = f"create_post exception: {exc}"
     if not postiz_id:
-        return jsonify({"ok": False, "error": f"postiz push failed: {err or 'no postiz client'}"}), 502
+        return jsonify({"ok": False, "error": f"postiz push failed: {err or 'unknown'}"}), 502
     draft['postizId'] = postiz_id
+    draft['integrationId'] = integration_id
     draft['status'] = 'scheduled'
     draft['updatedAt'] = _now_iso()
     with open(path, 'w', encoding='utf-8') as f:
