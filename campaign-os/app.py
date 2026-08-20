@@ -6560,7 +6560,7 @@ h1{{color:#6ee7b7}}p{{color:#94a3b8}}</style></head>
 <body>
 <h1>Postiz connected for <code>{brand_id}</code></h1>
 <p>You can close this tab and return to Campaign OS. The access token is now encrypted at rest.</p>
-<p>Next: visit <a href="/secret-drop" style="color:#fbbf24">Connected Accounts</a> to see what's wired.</p>
+<p>Next: visit <a href="/connected-accounts" style="color:#fbbf24">Connected Accounts</a> to see what's wired.</p>
 </body></html>""",
         mimetype="text/html",
     ), 200
