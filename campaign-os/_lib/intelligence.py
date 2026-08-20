@@ -2408,6 +2408,38 @@ def agents_view() -> Dict[str, Any]:
         for agent_id, runs_list in list(agents_field.items())[:30]:
             last_run = runs_list[-1] if isinstance(runs_list, list) and runs_list else (runs_list if isinstance(runs_list, dict) else {})
             if isinstance(last_run, dict):
+                # last_scripts: per-script results from the most recent run.
+                # Forwarded so the Agents & health UI can render the actual
+                # per-script PASS/FAIL table inside the row's .li-detail
+                # block when the user clicks to drill in. Without this the
+                # tooltip promised a flow the renderer could not fulfil.
+                last_scripts = last_run.get("scripts") or []
+                last_scripts_compact = []
+                if isinstance(last_scripts, list):
+                    for s in last_scripts:
+                        if not isinstance(s, dict):
+                            continue
+                        last_scripts_compact.append({
+                            "script": s.get("script") or "",
+                            "status": str(s.get("status") or "").upper(),
+                            "duration_ms": s.get("duration_ms"),
+                        })
+                # outputs_invalid: the entries in outputs_validated whose
+                # valid=false, with file + reason, so the UI can show WHY
+                # a run went PARTIAL/FAIL (e.g. ENOENT on a memory file).
+                # Always surfaced as a list (empty when clean) so the
+                # front-end detail block is well-defined.
+                outputs_invalid = []
+                ov = last_run.get("outputs_validated")
+                if isinstance(ov, dict):
+                    for path, info in ov.items():
+                        if not isinstance(info, dict):
+                            continue
+                        if info.get("valid") is False:
+                            outputs_invalid.append({
+                                "file": path,
+                                "reason": info.get("reason") or "unknown",
+                            })
                 out.append({
                     "agent_id": agent_id,
                     "runs": len(runs_list) if isinstance(runs_list, list) else 1,
@@ -2422,9 +2454,16 @@ def agents_view() -> Dict[str, Any]:
                         or last_run.get("generated")
                         or last_run.get("updated")
                     ),
+                    "last_scripts": last_scripts_compact,
+                    "outputs_invalid": outputs_invalid,
                 })
             else:
-                out.append({"agent_id": agent_id, "runs": len(runs_list) if isinstance(runs_list, list) else 1})
+                out.append({
+                    "agent_id": agent_id,
+                    "runs": len(runs_list) if isinstance(runs_list, list) else 1,
+                    "last_scripts": [],
+                    "outputs_invalid": [],
+                })
     return {
         "ok": True,
         "ts": _now_iso(),

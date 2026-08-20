@@ -2058,7 +2058,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 
     <!-- ── AGENTS ────────────────────────────────────────── -->
     <section class="section" id="sec-agents">
-      <div class="section-h"><h2 data-help="The agent + integration health panel. Three live blocks: System (in-process helper functions, all heartbeat statuses), Integrations (every external service we talk to: Postiz, Meta Graph, GBP, GA4, etc. last-seen, last-error), and Runs (the last 20 agent invocations, ranked by duration and success). Use this to answer the question 'why is nothing posting right now?' without guessing. Click any red row to drill into the error log." data-help-title="Agents + health">Agents &amp; health</h2><span class="sub">Agent runs, integrations + system health: this is where to look when nothing is posting right now.</span></div>
+      <div class="section-h"><h2 data-help="The agent + integration health panel. Three live blocks: System (in-process helper functions, all heartbeat statuses), Integrations (every external service we talk to: Postiz, Meta Graph, GBP, GA4, etc. last-seen, last-error), and Runs (the last 20 agent invocations, ranked by duration and success). Use this to answer the question 'why is nothing posting right now?' without guessing. Click any agent row to see the per-script results (PASS/FAIL/duration) from the last run, plus the file paths that failed validation and the reason each one failed." data-help-title="Agents + health">Agents &amp; health</h2><span class="sub">Agent runs, integrations + system health: this is where to look when nothing is posting right now.</span></div>
       <div class="grid">
         <div class="card col-7"><div class="card-h"><h3 data-help="Live roster of every agent lane that ran in the last refresh cycle: copy agent, trend catcher, reddit scraper, gbp scraper, audit agent. Each row shows the lane name, last run time, status (ok / failed / queued), and a 1-line why-now. Click a row to open the lane detail page with full output and retry controls." data-help-title="Agent runs">🤖 Agent runs</h3></div><div id="agents-list"></div></div>
         <div class="card col-5"><div class="card-h"><h3 data-help="Site-wide health snapshot: overall status (green / amber / red), confidence score (how fresh the data is), and the per-integration row beneath. Generated timestamp tells you when the snapshot was taken. If the status is amber or red, scan the Integrations card below for the failing connector." data-help-title="System health">🩺 System health</h3></div><div id="agents-health"></div></div>
@@ -12451,6 +12451,17 @@ async function renderAgents(){
 // Pretty-print a single agent run row. Used by the Agent runs card on the
 // Agents & health surface. Returns an <li class="li"> compatible with the
 // standard list styling so it lines up with the integration health cards.
+//
+// The .li-detail block is wired to .li.open via CSS (`.li.open .li-detail
+// {display:block}`), so clicking the row surfaces the per-script status
+// table + invalid output reasons for the most recent run. Without the
+// detail block the click would be a no-op, even though the section h2
+// tooltip promises "click any row to drill into the per-script results".
+//
+// When the last run is PASS/PARTIAL/FAIL the detail block surfaces the
+// per-script status table; when outputs_invalid is non-empty (e.g. a
+// memory file failed validation), the invalid output reasons are added
+// below the scripts table so the user can see WHY a run went PARTIAL.
 function agentRunHtml(it){
   const id = esc(it.agent_id || 'unknown');
   const status = (it.last_status || 'UNKNOWN').toUpperCase();
@@ -12472,12 +12483,43 @@ function agentRunHtml(it){
     } catch(_){ age = 'never'; }
   }
   const runs = typeof it.runs === 'number' ? it.runs : 0;
+  // Detail block: per-script status table + invalid output reasons.
+  // Each script gets a status pill (PASS=on, FAIL=blocked, anything
+  // else=review) + the script name + optional duration. Invalid outputs
+  // appear below as a list of {file, reason}. When the agent is fully
+  // clean, the detail still says "All scripts passed" so the click is
+  // never a dead action. Em-dash banned (pipes/commas/colons).
+  const scripts = Array.isArray(it.last_scripts) ? it.last_scripts : [];
+  const invalid = Array.isArray(it.outputs_invalid) ? it.outputs_invalid : [];
+  let detailInner = '';
+  if(scripts.length){
+    const scriptRows = scripts.map(s => {
+      const ss = String(s.status || '').toUpperCase();
+      let sKind = 'review';
+      if(ss === 'PASS' || ss === 'OK') sKind = 'on';
+      else if(ss === 'FAIL' || ss === 'FAILED' || ss === 'ERROR') sKind = 'blocked';
+      const dur = (typeof s.duration_ms === 'number' && s.duration_ms >= 0)
+        ? ` <span class="muted" style="font-size:10px">${s.duration_ms}ms</span>` : '';
+      return `<div class="li-detail-row"><strong>${esc(s.script || 'script')}</strong><span><span class="pill ${sKind}" style="font-size:10px">${esc(ss || 'n/a')}</span>${dur}</span></div>`;
+    }).join('');
+    detailInner += scriptRows;
+  } else {
+    detailInner += `<div class="li-detail-row"><strong>Scripts</strong><span class="muted">no script breakdown recorded for the last run</span></div>`;
+  }
+  if(invalid.length){
+    const items = invalid.map(v => `<li><span class="muted">${esc(v.file || '')}</span>: ${esc(v.reason || 'unknown')}</li>`).join('');
+    detailInner += `<div class="li-detail-row"><strong>Invalid</strong><span><ul style="margin:.15rem 0 .15rem 1.1rem;padding:0">${items}</ul></span></div>`;
+  } else if(scripts.length && scripts.every(s => String(s.status || '').toUpperCase() === 'PASS')){
+    detailInner += `<div class="li-detail-row"><strong>Result</strong><span class="muted">All ${scripts.length} script${scripts.length===1?'':'s'} passed</span></div>`;
+  }
+  const detail = `<div class="li-detail">${detailInner}</div>`;
   return `<li class="li" onclick="this.classList.toggle('open')">
     <div class="li-body">
       <div class="li-title"><span style="font-family:var(--mono);font-size:13px">${id}</span></div>
-      <div class="li-preview">${runs} ${runs === 1 ? 'run' : 'runs'} total · last ${age}</div>
+      <div class="li-preview">${runs} ${runs === 1 ? 'run' : 'runs'} total · last ${age} · ${scripts.length} script${scripts.length===1?'':'s'}</div>
       <div class="li-meta"><span class="pill ${pillKind}">${esc(status)}</span></div>
     </div>
+    ${detail}
   </li>`;
 }
 
