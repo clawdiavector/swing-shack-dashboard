@@ -6471,7 +6471,11 @@ def postiz_channels_route():
         for it in items
         if isinstance(it, dict)
     ]
-    return jsonify({"ok": True, "channels": channels, "count": len(channels), "raw": data}), 200
+    # Return cleaned channels + (optional) the raw upstream payload when ?raw=1
+    out = {"ok": True, "channels": channels, "count": len(channels)}
+    if request.args.get("raw") == "1":
+        out["raw"] = ch_data
+    return jsonify(out), 200
 
 
 def _safe_read_json(path: Path) -> Optional[dict]:
