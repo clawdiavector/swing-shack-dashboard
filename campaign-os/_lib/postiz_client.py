@@ -261,11 +261,21 @@ def _request(
                 return {"_raw": raw[:500]}, None
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
-        try:
-            body_parsed = json.loads(body) if body else None
-        except json.JSONDecodeError:
-            body_parsed = {"_raw": body[:500]} if body else None
-        return None, (str(exc.code), body_parsed or body[:500] or "no body")
+        body_parsed = None
+        if body:
+            try:
+                parsed = json.loads(body)
+                # Postiz sometimes returns a list of error strings, not a dict
+                if isinstance(parsed, dict):
+                    body_parsed = parsed
+                elif isinstance(parsed, list):
+                    body_parsed = {"errors": parsed}
+                else:
+                    body_parsed = {"_raw": str(parsed)[:500]}
+            except json.JSONDecodeError:
+                body_parsed = {"_raw": body[:500]} if body else None
+        msg = body_parsed if body_parsed else (body[:500] if body else "no body")
+        return None, (str(exc.code), msg if isinstance(msg, str) else str(msg))
     except urllib.error.URLError as exc:
         # Transport error — let the caller decide.
         raise
