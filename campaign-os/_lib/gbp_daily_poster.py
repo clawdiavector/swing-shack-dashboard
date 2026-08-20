@@ -446,8 +446,15 @@ def _publish_plan(brand_id: str, plan: dict, profile: dict) -> dict:
             )
             if err:
                 errors.append({"post_index": i, "error": f"{err[0]}: {err[1]}"})
-            elif data and data.get("id"):
-                scheduled += 1
+            elif data:
+                # Postiz /posts returns a LIST of created posts, not a dict.
+                # The success signal is "list with at least one element".
+                if isinstance(data, list) and data:
+                    first = data[0] if isinstance(data[0], dict) else {}
+                    if first.get("postId") or first.get("id"):
+                        scheduled += 1
+                elif isinstance(data, dict) and (data.get("id") or data.get("postId")):
+                    scheduled += 1
         except Exception as exc:
             errors.append({"post_index": i, "error": str(exc)})
     return {"scheduled_count": scheduled, "errors": errors}
