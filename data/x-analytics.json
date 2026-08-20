@@ -1,0 +1,10 @@
+{
+  "schema": "https://clawdia.io/agents/x-analytics/v1",
+  "channel": "x",
+  "updated": "2026-08-20T11:25:44.109608Z",
+  "generated_by": "seed_channel_analytics.py (built 2026-08-20)",
+  "data_pending": true,
+  "posts": [],
+  "next_fetch_url": "https://api.twitter.com/2/users/<USER_ID>/tweets?tweet.fields=public_metrics,non_public_metrics&start_time=<ISO_8601>   OR  https://api.twitter.com/2/users/<USER_ID>/followers/count   (requires X Basic tier or above; ~$100/mo per agent-budget gate)",
+  "source_note": "Per-tweet metrics for Swing Shack X account. Empty until scripts/fetch_x_analytics.py runs against a live X Basic+ token."
+}

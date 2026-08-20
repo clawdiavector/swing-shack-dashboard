@@ -8904,19 +8904,19 @@ function _campaignFromIdeaPreview(r){
   // Build per-channel cards with full brief content + source citations. Built 2026-08-20.
   // Every estimate now carries a 'source' field so the user can see
   // which numbers are data and which are baseline guess. Data citations
-  // render green; baseline citations render grey.
+  // render green; baseline citations render grey; pending / no_data render red.
   const sourceColor = (src) => {
     if (!src) return 'var(--tx-3)';
     if (src.startsWith('data:')) return '#22c55e';       // green for data-backed
     if (src === 'baseline') return 'var(--tx-3)';        // grey for industry baseline
-    if (src.includes('no_')) return '#ef4444';            // red for explicit gaps
+    if (src.includes('pending') || src.includes('no_')) return '#ef4444';  // red for explicit gaps
     return 'var(--tx-3)';
   };
   const srcBadge = (src) => {
     if (!src) return '';
-    if (src.startsWith('data:')) return `<span style="background:#22c55e20;color:#22c55e;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem">${esc(src.replace('data:',''))}</span>`;
+    if (src.startsWith('data:')) return `<span style="background:#22c55e20;color:#22c55e;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem" title="${esc(src)}">${esc(src.replace('data:',''))}</span>`;
     if (src === 'baseline') return `<span style="background:var(--bg-3);color:var(--tx-3);padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem">industry baseline</span>`;
-    if (src.includes('no_data') || src.includes('unknown')) return `<span style="background:#ef444420;color:#ef4444;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem">${esc(src)}</span>`;
+    if (src.includes('pending') || src.includes('no_data') || src.includes('unknown')) return `<span style="background:#ef444420;color:#ef4444;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem" title="${esc(src)}">pending</span>`;
     return `<span style="background:var(--bg-3);color:var(--tx-3);padding:1px 6px;border-radius:3px;font-size:10px;margin-left:.35rem">${esc(src)}</span>`;
   };
   const cards = (r.assets || []).map((a, i) => {

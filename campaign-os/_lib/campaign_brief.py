@@ -212,6 +212,10 @@ def paid_ad_plan(channel: str, *, brand_size: str = "local",
         iga = (intel or {}).get("ig_analytics") or {}
         igb = (intel or {}).get("ig_business") or {}
         gbp = (intel or {}).get("gbp_insights") or {}
+        # Per-channel business JSONs
+        fbb = (intel or {}).get("facebook_business") or {}
+        ttb = (intel or {}).get("tiktok_business") or {}
+        xb = (intel or {}).get("x_business") or {}
         followers = igb.get("followers_count") or 0
         if intel and intel.get("ok"):
             # GBP branch — always organic, real numbers if available
@@ -224,6 +228,93 @@ def paid_ad_plan(channel: str, *, brand_size: str = "local",
                     "expected_reach": f"{calls} calls last 30d" if calls else "unknown (no GBP insight cache yet)",
                     "rationale": "Google GBP local-intent posts are free; the spend is on review replies + photo uploads, not impressions.",
                     "source": f"data:{gbp.get('source')}" if gbp.get('ok') else "baseline",
+                }
+            # Facebook branch — pull real follower count from business JSON
+            if channel == "facebook":
+                fb_followers = fbb.get("followers_count") if fbb.get("ok") else None
+                if fb_followers is None:
+                    return {
+                        "channel": "facebook", "recommended": True, "daily_budget_zar": 200,
+                        "objective": "post engagement + link click",
+                        "target": "Johannesburg 30-65, lookalike from page followers + interest targeting",
+                        "expected_reach": "1,500-4,000 reach/day at R200/day",
+                        "rationale": "FB algorithm favours longer captions + link clicks — perfect for free-swing-analysis CTAs. R200/day for 7 days = R1,400.",
+                        "source": "data_facebook_pending (no live Page access token yet — add Meta System User token + run scripts/fetch_facebook_analytics.py)",
+                    }
+                if fb_followers < 500:
+                    return {
+                        "channel": "facebook", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic post + comment-stir CTA",
+                        "target": "current followers + Facebook-recommended free reach",
+                        "expected_reach": f"{fb_followers} followers · FB algorithmic free reach",
+                        "rationale": f"Only {fb_followers} FB followers on file — paid on free content until you've passed 500 followers + got 10+ posts in rotation.",
+                        "source": f"data:{fbb.get('source')}",
+                    }
+                return {
+                    "channel": "facebook", "recommended": True, "daily_budget_zar": 200,
+                    "objective": "post engagement + link click",
+                    "target": f"Johannesburg 30-65, lookalike from {fb_followers}-follower base",
+                    "expected_reach": "1,500-4,000 reach/day at R200/day",
+                    "rationale": f"R200/day for 7 days = R1,400. FB algo favours longer captions + link clicks. {fb_followers} followers give the algorithm seed audience.",
+                    "source": f"data:{fbb.get('source')}",
+                }
+            # TikTok branch
+            if channel == "tiktok":
+                tt_followers = ttb.get("followers_count") if ttb.get("ok") else None
+                if tt_followers is None:
+                    return {
+                        "channel": "tiktok", "recommended": True, "daily_budget_zar": 250,
+                        "objective": "video views + profile visit",
+                        "target": "Johannesburg 18-40, interests ['golf', 'sport', 'lifestyle']",
+                        "expected_reach": "800-2,500 views/day at R250/day (Spark Ads)",
+                        "rationale": "TikTok Spark Ads unlock the algorithm — R250/day for 7 days = R1,750.",
+                        "source": "data_tiktok_pending (no live TikTok Business API token yet — add + run scripts/fetch_tiktok_analytics.py)",
+                    }
+                if tt_followers < 500:
+                    return {
+                        "channel": "tiktok", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic video + For You Page free reach",
+                        "target": "TikTok algorithmic free reach (no paid boost needed yet)",
+                        "expected_reach": f"{tt_followers} followers + free For-You exposure",
+                        "rationale": f"Only {tt_followers} TikTok followers on file — focus on free For You exposure first.",
+                        "source": f"data:{ttb.get('source')}",
+                    }
+                return {
+                    "channel": "tiktok", "recommended": True, "daily_budget_zar": 250,
+                    "objective": "video views + profile visit",
+                    "target": f"Johannesburg 18-40, interests ['golf', 'sport', 'lifestyle'], lookalike from {tt_followers}-follower base",
+                    "expected_reach": f"800-2,500 views/day at R250/day ({tt_followers}-follower baseline)",
+                    "rationale": f"TikTok Spark Ads unlock the algorithm — R250/day for 7 days = R1,750.",
+                    "source": f"data:{ttb.get('source')}",
+                }
+            # X branch — always organic-only given audience data is missing per the system-budget gate
+            if channel == "x":
+                x_followers = xb.get("followers_count") if xb.get("ok") else None
+                if x_followers is None:
+                    return {
+                        "channel": "x", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic tweet + hashtag use",
+                        "target": "SA golf Twitter + creators",
+                        "expected_reach": "200-1,500 organic impressions (no live data on file)",
+                        "rationale": "No X API token on file yet. Add X Basic token ($100/mo per agent-budget gate) + run scripts/fetch_x_analytics.py. Until then, organic-only.",
+                        "source": "data_x_pending (no live X API Basic+ token yet)",
+                    }
+                if x_followers < 200:
+                    return {
+                        "channel": "x", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic tweet + creator reply",
+                        "target": f"small audience: {x_followers} followers + reply-radius",
+                        "expected_reach": f"{x_followers * 5}-{x_followers * 20} organic impressions per tweet",
+                        "rationale": f"Only {x_followers} X followers on file — grow audience organically before paid.",
+                        "source": f"data:{xb.get('source')}",
+                    }
+                return {
+                    "channel": "x", "recommended": True, "daily_budget_zar": 100,
+                    "objective": "tweet engagement + profile visit",
+                    "target": f"SA golf Twitter + creator lookalike from {x_followers}-follower base",
+                    "expected_reach": f"{x_followers * 10:,}-{x_followers * 30:,} impressions per tweet at R100/day",
+                    "rationale": f"R100/day X promoted post for 7 days = R700. Cheap when you've got a healthy {x_followers}-follower base.",
+                    "source": f"data:{xb.get('source')}",
                 }
             if channel == "instagram":
                 if followers and followers < 500:
@@ -239,7 +330,7 @@ def paid_ad_plan(channel: str, *, brand_size: str = "local",
                     "channel": "instagram", "recommended": True, "daily_budget_zar": 150,
                     "objective": "post engagement + profile visit + bio-link click",
                     "target": f"Johannesburg golf-curious 25-55, lookalike from {followers}-follower base",
-                    "expected_reach": f"1,200-3,500 reach/day at R150/day ({followers}-follower baseline × industry 2025 multiplier)",
+                    "expected_reach": "1,200-3,500 reach/day at R150/day ({followers}-follower baseline × industry 2025 multiplier)",
                     "rationale": "R150/day for 7 days = R1,050. Cheapest reach in SA golf per Meta 2024 benchmarks. The follower count is your seed audience.",
                     "source": f"data:{igb.get('source')}",
                 }
@@ -308,13 +399,18 @@ def expected_outcomes(channel: str, *, cta: str = "", brand_id: str = "swing-sha
 
     Returns: { engagement_rate, ctr, expected_reach, expected_clicks,
     conversion_rate_estimate, expected_bookings, source }
-    The `source` field says 'data:<file>' when computed from on-file
-    metrics, or 'baseline' when industry-average.
 
     When intel (brand_brief_intel.build_brand_intel() snapshot) is
-    passed, this function uses real IG engagement rates, real GBP
-    calls, and post-conversion-score lift figures instead of the
-    industry baselines.
+    passed, this function uses real engagement rates for the SPECIFIC
+    channel being asked about (not IG's data for every channel).
+    - 'instagram' reads ig_analytics
+    - 'facebook' reads facebook_analytics
+    - 'tiktok' reads tiktok_analytics
+    - 'x' reads x_analytics
+    - 'gmb' reads gbp_insights
+
+    The `source` field says 'data:<file>' when computed from on-file
+    metrics, or 'baseline' when industry-average.
     """
     if intel is None:
         try:
@@ -323,21 +419,38 @@ def expected_outcomes(channel: str, *, cta: str = "", brand_id: str = "swing-sha
         except Exception:
             intel = {}
 
-    # DATA PATH: build from intel when possible
+    # DATA PATH: build from intel for the SPECIFIC channel
     if intel and intel.get("ok"):
-        iga = intel.get("ig_analytics") or {}
-        igb = intel.get("ig_business") or {}
+        # Pick the per-channel analytics + business loader outputs
+        per_channel_analytics_key = f"{channel}_analytics"
+        per_channel_business_key = f"{channel}_business"
+        cha = (intel.get(per_channel_analytics_key) or {})
+        chb = (intel.get(per_channel_business_key) or {})
         gbp = intel.get("gbp_insights") or {}
         psc = intel.get("post_conversion") or {}
+        # Fallback: GA4/IG numbers if per-channel absent
+        ga4 = intel.get("ga4") or {}
+        igb = intel.get("ig_business") or {}
 
-        # Per-channel engagement rate from brand's actual IG data
-        by_format = iga.get("by_format") or {}
-        chosen_er = by_format.get(channel) or iga.get("median_engagement_pct") or 0
-        # Per-channel reach from brand's actual ig_business reach
-        avg_reach = igb.get("avg_daily_reach_30d") or 0
-        # Bookings estimate: GBP uses calls/30; social uses baseline*lift
+        # Per-channel engagement rate from THAT channel's analytics (if available)
+        chosen_er = None
+        if cha.get("ok") and cha.get("by_format"):
+            chosen_er = list(cha["by_format"].values())[0]  # primary format
+            if not chosen_er and cha.get("median_engagement_pct"):
+                chosen_er = cha["median_engagement_pct"]
+        elif cha.get("ok") and cha.get("median_engagement_pct"):
+            chosen_er = cha["median_engagement_pct"]
+
+        # Per-channel reach from THAT channel's business JSON
+        reach = chb.get("avg_daily_reach_30d") if chb.get("ok") else None
+        source = "no_data"
+        if chosen_er:
+            source = f"data:{cha.get('source', per_channel_analytics_key + '.json')}"
+        if reach:
+            source = f"data:{chb.get('source', per_channel_business_key + '.json')}"
+
+        # Bookings estimate
         bookings_per_post = None
-        source = "data"
         if channel == "gmb" and gbp.get("calls_30d"):
             bookings_per_post = round(gbp["calls_30d"] / 30, 2)
             source = f"data:{gbp.get('source')}"
@@ -346,14 +459,13 @@ def expected_outcomes(channel: str, *, cta: str = "", brand_id: str = "swing-sha
             bookings_per_post = round(psc["baseline_bookings_per_post"] * lift_mult, 2)
             source = f"data:{psc.get('source')}"
 
-        if chosen_er or avg_reach or bookings_per_post is not None:
+        if chosen_er or reach or bookings_per_post is not None:
             return {
-                "engagement_rate": f"{chosen_er:.2f}%" if chosen_er else "unknown",
-                "ctr": ("0.8-2.0% (no per-channel CTR on file)" if not iga.get("by_format") else
-                        "0.8-2.0% baseline (use IG-analytics CTR when added)"),
-                "expected_reach": f"{avg_reach:,}/d from {igb.get('source')}" if avg_reach else "unknown",
-                "expected_clicks": "8-25 per post (baseline)",
-                "conversion_rate_estimate": "3-7% baseline (no per-brand conversion on file)",
+                "engagement_rate": f"{chosen_er:.2f}%" if chosen_er else "unknown (data_pending)",
+                "ctr": "0.8-2.0% baseline (no per-channel CTR on file yet)",
+                "expected_reach": f"{reach:,}/d" if reach else "unknown (data_pending)",
+                "expected_clicks": "8-25 per post (industry baseline, no per-brand click data on file)",
+                "conversion_rate_estimate": "3-7% baseline (no per-brand conversion data on file)",
                 "expected_bookings": (f"{bookings_per_post} per post (from {source})" if bookings_per_post is not None
                                        else "unknown"),
                 "source": source,

@@ -1,0 +1,10 @@
+{
+  "schema": "https://clawdia.io/agents/tiktok-analytics/v1",
+  "channel": "tiktok",
+  "updated": "2026-08-20T11:25:44.109608Z",
+  "generated_by": "seed_channel_analytics.py (built 2026-08-20)",
+  "data_pending": true,
+  "posts": [],
+  "next_fetch_url": "https://open.tiktokapis.com/v2/research/user/followers/?username=<TIKTOK_HANDLE>  (requires TikTok Research Application API approval)  OR  if Business: https://business-api.tiktok.com/open_api/v1.3/aweme/stats/   (see scripts/fetch_tiktok_analytics.py)",
+  "source_note": "Per-post metrics for Swing Shack TikTok account. Empty until scripts/fetch_tiktok_analytics.py runs against a live TikTok token."
+}

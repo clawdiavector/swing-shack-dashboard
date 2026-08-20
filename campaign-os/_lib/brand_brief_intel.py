@@ -276,39 +276,193 @@ def load_gbp_insights(brand_id: str = "swing-shack") -> dict:
     }
 
 
-# ── 7. AUDIENCE EQUITY (per-channel 'have we built an audience here?') ──
+# ── 7. FB / TIKTOK / X BUSINESS (account reach + followers) ─────────
+# All 3 mirror ig_business loader; they read their own per-channel
+# account file. confidence carries data_pending status through so the
+# brief renders the right badge (green for live, red for pending).
+
+def _load_channel_business(brand_id: str, channel: str) -> dict:
+    """Generic read for facebook/tiktok/x business JSONs.
+
+    Returns: same shape as load_ig_business() so brand_brief_intel's
+    downstream logic doesn't need per-channel conditionals.
+    Falls back to "no data" if file missing or data_pending=True.
+    """
+    fname = f"{channel}-business-analytics.json"
+    data = _read_json(fname)
+    if not data or data.get("data_pending") is True:
+        return {
+            "ok": False,
+            "channel": channel,
+            "confidence": "no_data",
+            "reason": data.get("_pending_reason") if data else f"{fname} not present",
+            "expected_next_fetch_url": data.get("next_fetch_url") if data else None,
+        }
+    account = data.get("account") or {}
+    reach_series = data.get("daily_reach") or []
+    reach_vals = [r.get("value") or 0 for r in reach_series if isinstance(r, dict)]
+    avg_reach = statistics.mean(reach_vals) if reach_vals else 0
+    return {
+        "ok": True,
+        "channel": channel,
+        "source": fname,
+        "updated": data.get("updated"),
+        "followers_count": account.get("followers_count"),
+        "follows_count": account.get("follows_count"),
+        "media_count": account.get("media_count"),
+        "avg_daily_reach_30d": int(avg_reach),
+        "window_totals": data.get("window_totals") or {},
+        "top_post_permalink": (data.get("top_post") or {}).get("permalink"),
+        "confidence": "data" if avg_reach > 0 else "thin_data",
+    }
+
+
+def load_facebook_business() -> dict:
+    return _load_channel_business("swing-shack", "facebook")
+
+
+def load_tiktok_business() -> dict:
+    return _load_channel_business("swing-shack", "tiktok")
+
+
+def load_x_business() -> dict:
+    return _load_channel_business("swing-shack", "x")
+
+
+# Generic post-level loader for non-IG channels
+def load_channel_analytics(channel: str) -> dict:
+    """Read <channel>-analytics.json per-post metrics (mirrors ig_analytics).
+
+    Returns: same shape as load_ig_analytics() — by_format / by_pillar /
+    median_engagement_pct — so downstream logic stays channel-agnostic.
+    """
+    fname = f"{channel}-analytics.json"
+    data = _read_json(fname)
+    if not data or data.get("data_pending") is True:
+        return {
+            "ok": False,
+            "channel": channel,
+            "confidence": "no_data",
+            "reason": data.get("_pending_reason") if data else f"{fname} not present",
+            "source": fname,
+        }
+    posts = data.get("posts") or []
+    by_format = {}
+    by_pillar = {}
+    all_er = []
+    for p in posts:
+        try:
+            er = float(p.get("engagementRate") or 0)
+        except (TypeError, ValueError):
+            er = 0.0
+        all_er.append(er)
+        fmt = p.get("format_type") or "unknown"
+        by_format.setdefault(fmt, []).append(er)
+        pillar = p.get("topic_cluster") or "unknown"
+        by_pillar.setdefault(pillar, []).append(er)
+    return {
+        "ok": True,
+        "channel": channel,
+        "source": fname,
+        "updated": data.get("updated"),
+        "post_count": len(posts),
+        "median_engagement_pct": round(statistics.median(all_er), 3) if all_er else 0,
+        "mean_engagement_pct": round(statistics.mean(all_er), 3) if all_er else 0,
+        "max_engagement_pct": round(max(all_er), 3) if all_er else 0,
+        "by_format": {fmt: round(statistics.mean(v), 3) for fmt, v in by_format.items() if v},
+        "by_pillar": {pi: round(statistics.mean(v), 3) for pi, v in by_pillar.items() if v},
+        "confidence": "data" if len(posts) >= 5 else "thin_data",
+    }
+
+
+def load_facebook_analytics() -> dict:
+    """Per-post metrics for swing-shack Facebook page."""
+    return load_channel_analytics("facebook")
+
+
+def load_tiktok_analytics() -> dict:
+    """Per-post metrics for swing-shack TikTok account."""
+    return load_channel_analytics("tiktok")
+
+
+def load_x_analytics() -> dict:
+    """Per-post metrics for swing-shack X account."""
+    return load_channel_analytics("x")
+
+
+# ── 8. AUDIENCE EQUITY (per-channel 'have we built an audience here?') ──
 
 def compute_audience_equity(brand_id: str = "swing-shack", *, ig: Optional[dict] = None,
-                              gbp: Optional[dict] = None) -> dict:
+                              gbp: Optional[dict] = None,
+                              facebook: Optional[dict] = None,
+                              tiktok: Optional[dict] = None,
+                              x: Optional[dict] = None) -> dict:
     """Score 0.0-1.0: 'do we have an active audience on this channel today?'
 
-    Inputs:
-      - ig followers_count + avg_daily_reach_30d
-      - gbp search_views_30d + calls_30d
-      - (postiz channels data for facebook / x / tiktok would go here
-        when those engagement numbers exist)
+    Inputs per channel:
+      - instagram:  followers_count + avg_daily_reach_30d
+      - facebook:   followers_count + page_impressions_30d (from window_totals)
+      - tiktok:     followers_count + video_views_30d (from window_totals)
+      - x:          followers_count + tweet_count_30d (from window_totals)
+      - gmb:        calls_30d + search_views_30d
 
-    For channels we don't have data for (facebook / x / tiktok), we
-    return a 'no_data' verdict and the brief surfaces that explicitly
-    instead of pretending we have audience equity.
+    For channels we don't have data for (data_pending=true or missing
+    file), return 'no_data' verdict so the brief surfaces that
+    explicitly instead of pretending we have audience equity.
     """
     if ig is None:
         ig = load_ig_business()
     if gbp is None:
         gbp = load_gbp_insights(brand_id)
+    if facebook is None:
+        facebook = load_facebook_business()
+    if tiktok is None:
+        tiktok = load_tiktok_business()
+    if x is None:
+        x = load_x_business()
+
     followers = (ig.get("followers_count") if ig.get("ok") else 0) or 0
     reach_30d = (ig.get("avg_daily_reach_30d") if ig.get("ok") else 0) or 0
     gbp_calls = (gbp.get("calls_30d") if gbp.get("ok") else 0) or 0
     gbp_views = (gbp.get("search_views_30d") if gbp.get("ok") else 0) or 0
 
-    # Heuristics — tuned for "swing-shack"-sized local golf brand
-    score = {
-        "instagram": min(1.0, followers / 10000 + reach_30d / 2000) if followers > 0 else 0,
+    def _fb_score(fb):
+        if not fb.get("ok"): return None
+        f = fb.get("followers_count") or 0
+        wt = (fb.get("window_totals") or {})
+        imp = wt.get("page_impressions") or 0
+        return min(1.0, f / 10000 + imp / 50000) if f > 0 else 0
+
+    def _tt_score(tt):
+        if not tt.get("ok"): return None
+        f = tt.get("followers_count") or 0
+        wt = (tt.get("window_totals") or {})
+        vw = wt.get("video_views_30d") or 0
+        return min(1.0, f / 10000 + vw / 50000) if f > 0 else 0
+
+    def _x_score(xd):
+        if not xd.get("ok"): return None
+        f = xd.get("followers_count") or 0
+        wt = (xd.get("window_totals") or {})
+        tw = wt.get("tweet_count_30d") or 0
+        return min(1.0, f / 5000 + tw / 1000) if f > 0 else 0
+
+    ig_score = min(1.0, followers / 10000 + reach_30d / 2000) if followers > 0 else 0
+
+    per_channel = {
+        "instagram": ig_score,
         "gmb": min(1.0, max(0, gbp_calls) / 30) if gbp.get("ok") else 0,
-        "facebook": None,  # no follower/reach data yet
-        "x": None,
-        "tiktok": None,
+        "facebook": _fb_score(facebook),
+        "tiktok": _tt_score(tiktok),
+        "x": _x_score(x),
     }
+
+    def verdict(score):
+        if score is None: return "no_data"
+        if score > 0.3: return "active"
+        if score > 0: return "early"
+        return "unknown"
+
     return {
         "ok": True,
         "source": "computed",
@@ -316,14 +470,15 @@ def compute_audience_equity(brand_id: str = "swing-shack", *, ig: Optional[dict]
         "reach_30d": reach_30d,
         "gbp_calls_30d": gbp_calls,
         "gbp_search_views_30d": gbp_views,
-        "per_channel": score,
-        "verdict": {
-            "instagram": ("active" if (score["instagram"] or 0) > 0.3 else ("early" if (score["instagram"] or 0) > 0 else "unknown")),
-            "gmb": ("active" if (score["gmb"] or 0) > 0.3 else ("early" if (score["gmb"] or 0) > 0 else "unknown")),
-            "facebook": "unknown",
-            "x": "unknown",
-            "tiktok": "unknown",
+        "per_channel": per_channel,
+        "per_channel_data_source": {
+            "instagram": "ig-business-analytics.json",
+            "facebook": "facebook-business-analytics.json",
+            "tiktok": "tiktok-business-analytics.json",
+            "x": "x-business-analytics.json",
+            "gmb": "gbp-insights/<brand>-latest.json",
         },
+        "verdict": {k: verdict(v) for k, v in per_channel.items()},
     }
 
 
@@ -334,8 +489,12 @@ def build_brand_intel(brand_id: str = "swing-shack") -> dict:
 
     Returns: {
       ok, brand_id, generated_at,
-      post_conversion: {...}, hook_bank: {...}, ig_analytics: {...},
-      ig_business: {...}, ga4: {...}, gbp_insights: {...},
+      post_conversion: {...}, hook_bank: {...},
+      ig_analytics: {...}, ig_business: {...},
+      facebook_analytics: {...}, facebook_business: {...},
+      tiktok_analytics: {...}, tiktok_business: {...},
+      x_analytics: {...}, x_business: {...},
+      ga4: {...}, gbp_insights: {...},
       audience_equity: {...}
     }
     """
@@ -343,9 +502,16 @@ def build_brand_intel(brand_id: str = "swing-shack") -> dict:
     hbk = load_hook_bank()
     iga = load_ig_analytics()
     igb = load_ig_business()
+    fba = load_facebook_analytics()
+    fbb = load_facebook_business()
+    tta = load_tiktok_analytics()
+    ttb = load_tiktok_business()
+    xa = load_x_analytics()
+    xb = load_x_business()
     ga4 = load_ga4()
     gbp = load_gbp_insights(brand_id)
-    eq = compute_audience_equity(brand_id, ig=igb, gbp=gbp)
+    eq = compute_audience_equity(brand_id, ig=igb, gbp=gbp,
+                                  facebook=fbb, tiktok=ttb, x=xb)
     return {
         "ok": True,
         "brand_id": brand_id,
@@ -354,6 +520,12 @@ def build_brand_intel(brand_id: str = "swing-shack") -> dict:
         "hook_bank": hbk,
         "ig_analytics": iga,
         "ig_business": igb,
+        "facebook_analytics": fba,
+        "facebook_business": fbb,
+        "tiktok_analytics": tta,
+        "tiktok_business": ttb,
+        "x_analytics": xa,
+        "x_business": xb,
         "ga4": ga4,
         "gbp_insights": gbp,
         "audience_equity": eq,
