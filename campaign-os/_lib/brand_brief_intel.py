@@ -41,21 +41,52 @@ from pathlib import Path
 from typing import Any, Optional, Tuple
 
 
-DATA_DIR = Path(os.environ.get("DATA_DIR") or os.path.expanduser(
-    "~/.openclaw-instance2/workspace/swing-shack-dashboard/data"
-))
+def _resolve_data_dir() -> Path:
+    """Return the live DATA_DIR when populated, else fall back to BUNDLED_DATA_DIR.
+
+    On Railway, DATA_DIR=/data is the persistent volume but starts empty
+    (no git clone happens unless GITHUB_TOKEN + the right bootstrap runs).
+    The repo ships a `data/` folder with every JSON the system needs
+    (post-conversion-score, hook-bank, ig-analytics, ga4-metrics, etc).
+    BUNDLED_DATA_DIR is exported by app.py at module-load so we always
+    read real on-file data even when the volume is empty.
+    """
+    env_dir = os.environ.get("DATA_DIR") or "/data"
+    runtime = Path(env_dir)
+    # Sample one file to see whether the runtime volume has it
+    # (e.g. `post-conversion-score.json` ships in the bundle).
+    sample = runtime / "post-conversion-score.json"
+    if sample.exists():
+        return runtime
+    bundled = os.environ.get("BUNDLED_DATA_DIR")
+    if bundled:
+        return Path(bundled)
+    return runtime
+
+
+DATA_DIR = _resolve_data_dir()
 
 
 def _read_json(fname: str) -> Optional[dict]:
-    """Read JSON file from DATA_DIR; None if missing or malformed."""
-    p = DATA_DIR / fname
-    if not p.exists():
-        return None
-    try:
-        with open(p) as f:
-            return json.load(f)
-    except Exception:
-        return None
+    """Read JSON file from DATA_DIR with BUNDLED_DATA_DIR fallback.
+
+    Resolution order:
+      1. DATA_DIR/<fname> (the persistent volume when populated)
+      2. BUNDLED_DATA_DIR/<fname> (the repo's data/ folder)
+      3. None (caller handles the gap honestly via the confidence flag)
+    """
+    candidates = [DATA_DIR / fname]
+    bundled = os.environ.get("BUNDLED_DATA_DIR")
+    if bundled and Path(bundled) != DATA_DIR:
+        candidates.append(Path(bundled) / fname)
+    for p in candidates:
+        if p.exists():
+            try:
+                with open(p) as f:
+                    return json.load(f)
+            except Exception:
+                continue
+    return None
 
 
 # ── 1. POST-CONVERSION-SCORE (theme lift + winning formula) ───────────
