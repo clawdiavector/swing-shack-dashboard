@@ -925,7 +925,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <div class="nav" data-go="review" data-help-title="Review" data-help="Inbox of drafts the agents produced. Click any row to approve, reject, or request a revision. Badge in the corner shows how many are waiting on you. Empty means inbox clean."><span class="nav-icon">✅</span> Review <span class="nav-badge" id="nav-review-count">0</span></div>
         <div class="nav" data-go="library" data-help-title="Library" data-help="Every piece of copy the agents have ever produced, searchable by brand / pillar / status / date. Use it to find a past winner, copy a structure, or audit a brand's voice drift over time."><span class="nav-icon">📚</span> Library</div>
         <div class="nav" data-go="socials" data-help-title="Socials" data-help="Live Instagram history for the active brand. Real thumbnails (last ~30 days) + oEmbed embeds (works forever for public posts). Use it to see what you posted about a topic, audit voice consistency, or feed context into Image Lab."><span class="nav-icon">🪩</span> Socials</div>
-        <div class="nav" data-go="gmb" data-help-title="Google Business drafts" data-help="Google Business profile post drafts. Edit the title + body, push to Postiz to schedule on your GBP listing. Templates are seeded from the daily GMB rotation; you can also write a fresh one."><span class="nav-icon">📍</span> Google Business <span class="nav-badge" id="nav-gmb-count" hidden>0</span></div>
+        <div class="nav" data-go="gmb" data-help-title="GMB Drafts" data-help="Manual GBP draft composer. Edit title + body, push to Postiz to schedule. Templates from the daily auto-poster land here too."><span class="nav-icon">📝</span> GMB Drafts <span class="nav-badge" id="nav-gmb-count" hidden>0</span></div>
       </div>
     </div>
 
@@ -986,7 +986,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar · month grid of every planned post across all brands."><span class="nav-icon">📅</span> Calendar</div>
         <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
         <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
-        <div class="nav" data-go="gbp" data-help-title="GBP workspace" data-help="GBP workspace · voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
+        <div class="nav" data-go="gbp" data-help-title="GBP Daily" data-help="Daily auto-post generator for GBP · SEO-keyword-driven · one-click plan + publish."><span class="nav-icon">🚀</span> GBP Daily</div>
         <!-- AGENTS nav hidden by default (v2026-08-13): the page monitors a
              fleet that no longer runs on this guild and its data is 80+ days
              stale. Page remains reachable at /?section=agents for diagnostics. -->
@@ -1028,7 +1028,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
         <div class="nav" data-go="campaigns" data-help-title="Brand" data-help="Switch active brand, edit the 9-slot brand directory."><span class="nav-icon">🎯</span> Brand</div>
         <div class="nav" data-go="create" data-help-title="Create" data-help="Brand-aware content generators hub."><span class="nav-icon">🪄</span> Create</div>
-        <div class="nav" data-go="gmb" data-help-title="Google Business drafts" data-help="Google Business profile post drafts."><span class="nav-icon">📍</span> Google Business</div>
+        <div class="nav" data-go="gmb" data-help-title="GMB Drafts" data-help="Manual GBP draft composer — write a specific post from scratch. Templates from the daily auto-poster land here too."><span class="nav-icon">�</span> GMB Drafts</div>
         <div class="nav" data-go="gbp" data-help-title="GBP workspace" data-help="GBP workspace · voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
         <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
         <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar · month grid."><span class="nav-icon">📅</span> Calendar</div>
@@ -2025,10 +2025,20 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 
     <!-- ── GBP ───────────────────────────────────────────── -->
     <section class="section" id="sec-gbp">
-      <div class="section-h"><h2 data-help="Google Business Profile workspace for the active brand location. View the live profile snapshot (name, address, hours, category, photo count), inspect the last posted Google Business update, and draft the next GBP post in the brand voice (events, offers, what is-new posts). Drafted GBP posts route through the Review queue just like every other asset before they hit the live profile. The lastpost card tells you when the profile was last updated so cadence is visible." data-help-title="Google Business">Google Business</h2><span class="sub">Google Business Profile snapshot + last post: GBP drafts route through Review before they hit the live profile.</span></div>
+      <div class="section-h"><h2 data-help="GBP workspace. Daily auto-post generator (driven by SEO keywords via Ubersuggest + brand voice) + Profile snapshot + Last post card. Generate plan builds the next 7 days of posts anchored on real SA-market queries (one-click, no publish). Publish plan pushes via Postiz GBP integration (destructive write). Each post is unique (different proof point, neighborhood, CTA, opening line) — never templated." data-help-title="GBP Daily">GBP Daily</h2><span class="sub" id="gbp-daily-summary">Daily auto-post generator: Generate plan (dry-run) → review → Publish to GBP. Profile + last post cards mirror the live GBP state.</span></div>
       <div class="grid">
-        <div class="card col-6"><div class="card-h"><h3 data-help="The active brand's Google Business Profile fields: business name, address, services, hours, plus the SEO opportunities the system found on the profile (categories the brand could claim, services it should add, photos it should upload). Edit these in Google Business Manager directly; this card is a read-only mirror plus the agent's recommendations." data-help-title="Profile &amp; services">📍 Profile &amp; services</h3></div><div id="gbp-profile"></div></div>
-        <div class="card col-6"><div class="card-h"><h3 data-help="The most recent GBP post the agent drafted: the angle it picked, the rationale (why this angle wins for this brand right now), and the SEO signals it used (local keyword, service tie-in, seasonal hook). Click into it to open the draft modal and either approve to Postiz or edit the angle." data-help-title="Last post">📝 Last post</h3></div><div id="gbp-last"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="The active brand's Google Business Profile fields: business name, address, services, hours, plus the SEO opportunities the system found on the profile. Edit these in Google Business Manager directly; this card is a read-only mirror." data-help-title="Profile &amp; services">📍 Profile &amp; services</h3></div><div id="gbp-profile"></div></div>
+        <div class="card col-6"><div class="card-h"><h3 data-help="The most recent GBP post the agent drafted: the angle it picked + the SEO signals it used. Click into it to open the draft modal." data-help-title="Last post">📝 Last post</h3></div><div id="gbp-last"></div></div>
+        <div class="card col-12"><div class="card-h"><h3 data-help="Daily GBP auto-post generator. Each click generates unique posts anchored on real SA-market SEO queries (Ubersuggest volume + KD scoring). Plan persists to disk for audit. Publish button pushes via Postiz GBP integration cmmdgj0ty00r6o20ymzskvdw." data-help-title="Daily auto-poster">🚀 Daily auto-poster</h3>
+          <div class="btn-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="btn primary" id="gbp-generate-btn" data-help="Build the next 7 days of GBP posts anchored on real SEO keywords. Read-only — does not push to GBP.">Generate 7-day plan</button>
+            <button class="btn" id="gbp-publish-btn" data-help="Push the current plan to GBP via Postiz. Destructive write — posts will go live on the scheduled dates. Only fires after you've reviewed the plan above.">Publish to GBP</button>
+            <button class="btn ghost" id="gbp-audit-btn" data-help="View all past plans (audit trail)." style="background:transparent;color:#94a3b8;border:1px solid #2a3142">View audit</button>
+          </div>
+          <div id="gbp-plan-output" data-help="Live plan output — title + body for each of the 7 posts + scheduled time. Read each before clicking Publish to GBP.">
+            <div class="muted" style="padding:24px;text-align:center">Click "Generate 7-day plan" to build tomorrow's posts anchored on SEO keywords.</div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -6451,7 +6461,7 @@ async function loadSection(sec){
     if(sec==='hashtagseo') return renderHashtagSeo();
     if(sec==='seo') return renderSEO();
     if(sec==='seo-audit') return renderSeoAudit();
-    if(sec==='gbp') return renderGBP();
+    if(sec==='gbp'){ _gbpDailyWire(); return renderGBP(); }
     if(sec==='reddit') return renderReddit();
     if(sec==='faqs') return renderFAQs();
     if(sec==='postiz') return renderPostiz();
@@ -11085,6 +11095,132 @@ async function renderGBP(){
   $('#gbp-profile').innerHTML = `<dl class="kvs"><dt>Business</dt><dd>${esc(inp.business_name||'—')}</dd><dt>Location</dt><dd>${esc(_gmb_location_line(inp))}</dd><dt>Services</dt><dd>${esc(services.join(', '))}</dd></dl>` + seoBlock;
   const last = g.last_post || {};
   $('#gbp-last').innerHTML = `<div style="margin-bottom:.75rem"><b>Last angle:</b> ${esc(last.chosen_angle||'—')}</div><div class="muted" style="font-size:12px">${esc(last.why_this_angle_wins||'')}</div>` + safeList(last.seo_signals_used, 4).map(itemHtml).join('');
+}
+
+// ─── GBP Daily auto-poster (built 2026-08-20) ───────────────────
+// Reads the 4 routes wired into app.py: /preview (dry-run), /publish
+// (destructive write to GBP via Postiz), /plans (audit list), /latest.
+// Plan is rendered inline so the user can read each post body before
+// deciding to publish. No destructive writes fire until the user clicks
+// the explicit Publish button — per the agent-destructive-write-discipline
+// skill (committed 2026-08-19).
+let _gbpDailyCurrentPlan = null;
+async function _gbpDailyGenerate(brand_id){
+  const out = document.getElementById('gbp-plan-output');
+  if (!out) return;
+  out.innerHTML = '<div class="muted" style="padding:18px;text-align:center">Generating plan…</div>';
+  try {
+    const r = await API.post('/api/gbp/daily-poster/preview', {
+      brand_id: brand_id || 'swing-shack',
+      days: 7,
+      posts_per_day: 1,
+    });
+    if (!r.ok) {
+      out.innerHTML = `<div class="empty" style="color:#f87171">Failed: ${esc(r.error || 'unknown')}</div>`;
+      return;
+    }
+    _gbpDailyCurrentPlan = r;
+    _gbpDailyRenderPlan(r);
+  } catch (e) {
+    out.innerHTML = `<div class="empty" style="color:#f87171">Network error: ${esc(e.message)}</div>`;
+  }
+}
+function _gbpDailyRenderPlan(plan) {
+  const out = document.getElementById('gbp-plan-output');
+  if (!out) return;
+  const posts = plan.posts || [];
+  const schedule = plan.schedule || [];
+  const breakdown = plan.source_breakdown || {};
+  const header = `<div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:12px;margin-bottom:1rem;padding:.5rem .75rem;background:var(--bg-3);border-radius:6px">
+    <span><b>${posts.length}</b> post${posts.length===1?'':'s'} ready</span>
+    <span class="muted">plan_id: <code>${esc(plan.plan_id)}</code></span>
+    <span class="muted">source: ${breakdown.ubersuggest || 0} via Ubersuggest + ${breakdown.fallback || 0} seed</span>
+  </div>`;
+  const cards = posts.map((p, i) => {
+    const sched = schedule[i] || {};
+    const when = sched.scheduled_for ? new Date(sched.scheduled_for).toLocaleString('en-ZA', {dateStyle:'medium', timeStyle:'short', timeZone:'UTC'}) + ' UTC' : '';
+    return `<li class="li" style="margin-bottom:.75rem;padding:12px;border:1px solid var(--bd);border-radius:6px;background:var(--bg-2)">
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem">
+        <span class="pill on" style="font-size:10px">${esc(p.intent || 'informational')}</span>
+        <span class="muted" style="font-size:11px">${when}</span>
+        <span class="muted" style="font-size:11px">📍 ${esc(p.neighborhood || '')}</span>
+      </div>
+      <div style="font-weight:600;color:var(--tx);margin-bottom:.4rem">${esc(p.title || '')}</div>
+      <div style="font-size:12px;line-height:1.5;color:var(--tx-2);white-space:pre-wrap">${esc(p.body || '')}</div>
+      <div style="margin-top:.4rem;font-size:11px;color:var(--tx-3)">${esc((p.hashtags||[]).join(' '))} · <i>${esc(p.proof_point || '')}</i> · CTA: <b>${esc(p.cta || '')}</b></div>
+    </li>`;
+  }).join('');
+  out.innerHTML = header + `<ul class="list" style="list-style:none;padding:0;margin:0">${cards}</ul>`;
+}
+async function _gbpDailyPublish(brand_id){
+  if (!_gbpDailyCurrentPlan) {
+    alert('Generate a plan first.');
+    return;
+  }
+  const postCount = (_gbpDailyCurrentPlan.posts || []).length;
+  const ok = confirm(`Publish ${postCount} posts to GBP via Postiz? This will schedule ${postCount} draft${postCount===1?'':'s'} for the next 7 days. This is the destructive write — there is no undo from the OS side once Postiz has them.`);
+  if (!ok) return;
+  const out = document.getElementById('gbp-plan-output');
+  out.innerHTML = '<div class="muted" style="padding:18px;text-align:center">Publishing…</div>';
+  try {
+    const r = await API.post('/api/gbp/daily-poster/publish', {
+      brand_id: brand_id || 'swing-shack',
+      days: 7,
+      posts_per_day: 1,
+    });
+    if (!r.ok) {
+      out.innerHTML = `<div class="empty" style="color:#f87171">Publish failed: ${esc(r.error || 'unknown')}</div>`;
+      return;
+    }
+    _gbpDailyCurrentPlan = r;
+    _gbpDailyRenderPlan(r);
+    const scheduled = (r.publish || {}).scheduled_count || 0;
+    const errors = (r.publish || {}).errors || [];
+    const summary = errors.length
+      ? `Published ${scheduled} posts · ${errors.length} errors: ${errors.map(e => esc(e.error || '')).slice(0,3).join(' · ')}`
+      : `Published ${scheduled} posts. They are now scheduled in Postiz for the next 7 days.`;
+    alert(summary);
+  } catch (e) {
+    out.innerHTML = `<div class="empty" style="color:#f87171">Network error: ${esc(e.message)}</div>`;
+  }
+}
+async function _gbpDailyAudit(brand_id){
+  const out = document.getElementById('gbp-plan-output');
+  out.innerHTML = '<div class="muted" style="padding:18px;text-align:center">Loading audit trail…</div>';
+  try {
+    const r = await API.get(`/api/gbp/daily-poster/plans?brand_id=${brand_id || 'swing-shack'}&limit=30`);
+    if (!r.ok) {
+      out.innerHTML = `<div class="empty" style="color:#f87171">Audit failed: ${esc(r.error || 'unknown')}</div>`;
+      return;
+    }
+    const rows = (r.plans || []).map(p =>
+      `<li class="li" style="padding:10px;border-bottom:1px solid var(--bd)">
+        <div style="font-size:12px;color:var(--tx-2)"><code>${esc(p.plan_id)}</code> · ${p.posts_count} posts · ${p.publish_scheduled} published · ${esc(p.generated_at)}</div>
+        <div class="muted" style="font-size:10px;margin-top:.2rem">file: <code>${esc(p.file)}</code></div>
+      </li>`
+    ).join('') || '<div class="empty">No plans yet</div>';
+    out.innerHTML = `<h4 style="margin:.5rem 0">Audit trail · ${r.count || 0} plans</h4><ul class="list" style="list-style:none;padding:0;margin:0">${rows}</ul>`;
+  } catch (e) {
+    out.innerHTML = `<div class="empty" style="color:#f87171">Network error: ${esc(e.message)}</div>`;
+  }
+}
+// Wire the 3 buttons on the Daily auto-poster card. Attached once at load.
+function _gbpDailyWire(){
+  const gen = document.getElementById('gbp-generate-btn');
+  const pub = document.getElementById('gbp-publish-btn');
+  const aud = document.getElementById('gbp-audit-btn');
+  if (gen && !gen.dataset.wired) {
+    gen.addEventListener('click', () => _gbpDailyGenerate('swing-shack'));
+    gen.dataset.wired = '1';
+  }
+  if (pub && !pub.dataset.wired) {
+    pub.addEventListener('click', () => _gbpDailyPublish('swing-shack'));
+    pub.dataset.wired = '1';
+  }
+  if (aud && !aud.dataset.wired) {
+    aud.addEventListener('click', () => _gbpDailyAudit('swing-shack'));
+    aud.dataset.wired = '1';
+  }
 }
 
 // ─── REDDIT ─────────────────────────────────────────────────────
