@@ -6821,6 +6821,57 @@ def gbp_daily_poster_latest_route():
     return jsonify(plan), 200
 
 
+# ── GBP Daily cron hook (built 2026-08-20) ────────────────────────────────
+# Fires at 06:00 SAST (04:00 UTC) every day. Previews tomorrow's 7 posts
+# anchored on the latest insights data so the Morning Brief tiles can
+# surface them with one click. Does NOT publish (destructive write is
+# always explicit via the GBP Daily card's Publish button).
+def _gbp_daily_cron_tick():
+    """06:00 SAST: rebuild tomorrow's plan from current insights."""
+    if not _GBP_DAILY_AVAILABLE or not _GBP_INSIGHTS_AVAILABLE:
+        return {"ok": False, "error": "modules unavailable"}
+    # 1. Refresh insights first (so the boost applies to the new plan)
+    insights = {}
+    try:
+        insights = _gbi.sync_for_brand("swing-shack", days=30)
+    except Exception as exc:
+        _app_log.warning("cron: insights sync failed: %s", exc)
+    # 2. Build plan (dry-run; never auto-publishes)
+    plan = {}
+    try:
+        plan = _gdp.build_daily_plan("swing-shack", days=7, posts_per_day=1, publish=False)
+    except Exception as exc:
+        _app_log.warning("cron: plan build failed: %s", exc)
+    return {
+        "ok": True,
+        "ran_at": _dt_cls.now(_tz.utc).isoformat(),
+        "insights_ok": insights.get("ok"),
+        "insights_records": insights.get("insights_records", 0),
+        "plan_ok": plan.get("ok"),
+        "plan_id": plan.get("plan_id"),
+        "posts": len(plan.get("posts", [])),
+    }
+
+
+@app.route('/api/gbp/cron/tick', methods=['POST'])
+def gbp_daily_cron_tick_route():
+    """POST /api/gbp/cron/tick — fire the daily cron tick (06:00 SAST).
+
+    This is the HTTP-facing version of the cron job so the operator can
+    trigger it manually (or so an external scheduler can ping it).
+    The same code path runs every morning at 06:00 SAST automatically
+    once the cron wiring is in place.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        result = _gbp_daily_cron_tick()
+    except Exception as exc:
+        _app_log.exception("gbp_daily_cron_tick failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify(result), 200
+
+
 # ── GBP Insights (built 2026-08-20) ────────────────────────────────────────
 # Reads last-30d metrics from GBP Insights API for the brand's locations.
 # Read-only: pulls QUERIES_DIRECT, QUERIES_INDIRECT, VIEWS_SEARCH,
