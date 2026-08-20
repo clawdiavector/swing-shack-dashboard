@@ -103,7 +103,15 @@ def _read_client_id_secret() -> Tuple[Optional[str], Optional[str]]:
 
 
 def _token_path(brand_id: str) -> Path:
-    base = Path(os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials/gbp"))
+    # Resolution order (set 2026-08-20 so tokens survive Railway redeploys):
+    #   1. GBP_TOKEN_DIR env var (specific override)
+    #   2. DATA_DIR env var (Railway persistent volume, /data by default)
+    #   3. Canonical local path on the Mac
+    base_dir = os.environ.get("GBP_TOKEN_DIR") or os.environ.get("DATA_DIR")
+    if base_dir:
+        base = Path(base_dir) / "credentials" / "gbp"
+    else:
+        base = Path(os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials/gbp"))
     base.mkdir(parents=True, exist_ok=True)
     return base / f"{brand_id}.json"
 

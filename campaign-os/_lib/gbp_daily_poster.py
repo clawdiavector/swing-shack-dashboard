@@ -169,11 +169,27 @@ SEED_KEYWORDS_BY_BRAND = {
 
 # ── Plan persistence ─────────────────────────────────────────────────
 
-PLAN_DIR = Path(os.path.expanduser("~/.openclaw-instance2/workspace/swing-shack-dashboard/data/gbp-daily-plans"))
+PLAN_DIR = None  # computed lazily so DATA_DIR on Railway wins
+
+
+def _plan_dir() -> Path:
+    # Resolution order (matches gbp_oauth + gbp_insights):
+    #   1. GBP_PLAN_DIR env var (specific override)
+    #   2. DATA_DIR env var (Railway persistent volume)
+    #   3. Canonical local path on the Mac
+    env = os.environ.get("GBP_PLAN_DIR") or os.environ.get("DATA_DIR")
+    if env:
+        base = Path(env) / "gbp-daily-plans"
+    else:
+        base = Path(os.path.expanduser("~/.openclaw-instance2/workspace/swing-shack-dashboard/data/gbp-daily-plans"))
+    base.mkdir(parents=True, exist_ok=True)
+    return base
 
 
 def _plan_path(brand_id: str, day: str) -> Path:
-    PLAN_DIR.mkdir(parents=True, exist_ok=True)
+    global PLAN_DIR
+    if PLAN_DIR is None:
+        PLAN_DIR = _plan_dir()
     return PLAN_DIR / f"{brand_id}-{day}.json"
 
 
@@ -441,10 +457,11 @@ def _publish_plan(brand_id: str, plan: dict, profile: dict) -> dict:
 
 def list_plans(brand_id: Optional[str] = None, limit: int = 30) -> list[dict]:
     """List past plans, newest first. Read-only — no destructive path."""
-    if not PLAN_DIR.exists():
+    base = _plan_dir()
+    if not base.exists():
         return []
     out = []
-    for p in sorted(PLAN_DIR.glob("*.json"), reverse=True):
+    for p in sorted(base.glob("*.json"), reverse=True):
         try:
             d = json.loads(p.read_text())
         except Exception:
@@ -466,9 +483,10 @@ def list_plans(brand_id: Optional[str] = None, limit: int = 30) -> list[dict]:
 
 def latest_plan(brand_id: str = "swing-shack") -> Optional[dict]:
     """Most recent plan for a brand, parsed. None if no plans."""
-    if not PLAN_DIR.exists():
+    base = _plan_dir()
+    if not base.exists():
         return None
-    for p in sorted(PLAN_DIR.glob(f"{brand_id}-*.json"), reverse=True):
+    for p in sorted(base.glob(f"{brand_id}-*.json"), reverse=True):
         try:
             return json.loads(p.read_text())
         except Exception:

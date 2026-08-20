@@ -51,11 +51,27 @@ from typing import Any, Optional, Tuple
 
 _LOG = logging.getLogger("campaign_os.gbp_insights")
 
-INSIGHTS_DIR = Path(os.path.expanduser("~/.openclaw-instance2/workspace/swing-shack-dashboard/data/gbp-insights"))
+INSIGHTS_DIR = None  # computed lazily; see _insights_dir()
+
+
+def _insights_dir() -> Path:
+    # Resolution order (matches gbp_oauth._token_path so they live together):
+    #   1. GBP_INSIGHTS_DIR env var (specific override)
+    #   2. DATA_DIR env var (Railway persistent volume)
+    #   3. Canonical local path on the Mac
+    env = os.environ.get("GBP_INSIGHTS_DIR") or os.environ.get("DATA_DIR")
+    if env:
+        base = Path(env) / "gbp-insights"
+    else:
+        base = Path(os.path.expanduser("~/.openclaw-instance2/workspace/swing-shack-dashboard/data/gbp-insights"))
+    base.mkdir(parents=True, exist_ok=True)
+    return base
 
 
 def _insights_path(brand_id: str) -> Path:
-    INSIGHTS_DIR.mkdir(parents=True, exist_ok=True)
+    global INSIGHTS_DIR
+    if INSIGHTS_DIR is None:
+        INSIGHTS_DIR = _insights_dir()
     return INSIGHTS_DIR / f"{brand_id}-latest.json"
 
 
