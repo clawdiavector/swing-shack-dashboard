@@ -1,0 +1,55 @@
+name: Meta Live Fetch (IG + FB analytics refresh)
+
+# Built 2026-08-20. Runs nightly at 03:00 SAST (01:00 UTC) so the
+# morning brief sees fresh IG + FB data. The script:
+#   - hits Meta Graph API with the live long-lived token at
+#     ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/meta-token.json
+#   - writes data/ig-analytics.json + data/ig-business-analytics.json +
+#     data/facebook-analytics.json + data/facebook-business-analytics.json
+#   - commits + pushes the JSONs so Railway picks up the fresh data
+# Per the campaign-os brief, the morning brief at 06:00 SAST will
+# pick up the fresh numbers via the BUNDLED_DATA_DIR fallback.
+#
+# Destructive-write discipline: only the 4 analytics JSONs get
+# committed. freshness.json + dashboard-live.json are excluded.
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # 03:00 SAST every day
+  workflow_dispatch:       # manual trigger
+
+jobs:
+  refresh-meta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        working-directory: campaign-os
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run fetcher
+        env:
+          DATA_DIR: ${{ github.workspace }}/data
+        run: |
+          python -c "from _lib.meta_live_fetch import fetch_all; import json; print(json.dumps(fetch_all(), indent=2))"
+
+      - name: Commit + push (analytics JSONs only)
+        run: |
+          git config user.email "agent@openclaw.ai"
+          git config user.name "Meta Live Fetch Cron"
+          git add data/ig-analytics.json data/ig-business-analytics.json \
+                  data/facebook-analytics.json data/facebook-business-analytics.json
+          # Don't commit if no changes
+          git diff --cached --quiet || git commit -m "chore(meta): nightly IG + FB analytics refresh"
+          git push origin feat/asset-state-engine

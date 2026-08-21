@@ -4307,21 +4307,15 @@ def meta_fetch_live():
     if not _is_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     try:
-        from pathlib import Path as _Path
+        from _lib import meta_live_fetch as _meta_fetch
         body = request.get_json(force=True, silent=True) or {}
         _brand_id = body.get("brand_id") or "swing-shack"
-        # Lazy-load the fetch script
-        import importlib.util
-        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        script_path = os.path.join(repo_root, "scripts", "fetch_facebook_analytics.py")
-        if not os.path.exists(script_path):
-            return jsonify({"ok": False, "error": f"missing {script_path}"}), 500
-        spec = importlib.util.spec_from_file_location("fetch_facebook_analytics", script_path)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
         # Point the mod at the data dir the app uses
-        mod._resolve_data_dir = lambda: _Path(os.environ.get("BUNDLED_DATA_DIR") or BUNDLED_DATA_DIR)
-        result = mod.fetch_all()
+        from pathlib import Path as _Path
+        _meta_fetch._resolve_data_dir = lambda: _Path(
+            os.environ.get("BUNDLED_DATA_DIR") or BUNDLED_DATA_DIR
+        )
+        result = _meta_fetch.fetch_all()
         return jsonify(result), 200 if result.get("ok") else 500
     except Exception as e:
         _app_log.exception("meta_fetch_live failed")
