@@ -4323,6 +4323,57 @@ def meta_fetch_live():
 # potential: real conversion data flowing INTO Meta so we can build
 # lookalike audiences from real bookings.
 
+@app.route('/api/meta/probe', methods=['POST'])
+def meta_probe():
+    """POST /api/meta/probe — show what the live META_SYSTEM_USER_TOKEN has access to.
+
+    Walks Meta Graph API with the live env-var token to enumerate:
+      - The token's bound identity (system user / user)
+      - The pages it can manage
+      - The ad accounts it can manage
+      - The catalogues it can manage
+      - The bound app
+
+    This is the diagnostic endpoint that explains why specific metrics
+    are or aren't accessible — the response is the audit record.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    _tok = os.environ.get("META_SYSTEM_USER_TOKEN")
+    if not _tok:
+        return jsonify({"ok": False, "error": "no META_SYSTEM_USER_TOKEN set"}), 503
+    out = {"ok": True, "token_prefix": _tok[:8] + "…", "token_length": len(_tok)}
+    # 1. /me — bound identity
+    try:
+        url = f"https://graph.facebook.com/v19.0/me?access_token={_tok}"
+        with urllib.request.urlopen(url, timeout=15) as r:
+            out["identity"] = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        out["identity"] = {"error": e.read().decode()[:200]}
+    # 2. /me/accounts — pages the token can manage
+    try:
+        url = f"https://graph.facebook.com/v19.0/me/accounts?access_token={_tok}"
+        with urllib.request.urlopen(url, timeout=15) as r:
+            out["pages"] = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        out["pages"] = {"error": e.read().decode()[:200]}
+    # 3. /me/adaccounts — ad accounts the token can manage
+    try:
+        url = f"https://graph.facebook.com/v19.0/me/adaccounts?access_token={_tok}"
+        with urllib.request.urlopen(url, timeout=15) as r:
+            out["adaccounts"] = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        out["adaccounts"] = {"error": e.read().decode()[:200]}
+    # 4. /me/businesses — businesses (might need different permission)
+    try:
+        url = f"https://graph.facebook.com/v19.0/me/businesses?access_token={_tok}"
+        with urllib.request.urlopen(url, timeout=15) as r:
+            out["businesses"] = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        out["businesses"] = {"error": e.read().decode()[:200]}
+    return jsonify(out), 200
+
+
 @app.route('/api/meta/conversion', methods=['POST'])
 def meta_conversion_submit():
     """POST /api/meta/conversion — send a conversion event to Meta CAPI.
