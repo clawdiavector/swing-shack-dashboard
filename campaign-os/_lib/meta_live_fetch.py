@@ -62,14 +62,15 @@ CRED_PATHS = [
 
 
 def _load_token() -> dict | None:
-    # CAPI System User token first (env var) — never expires, full access
+    # Detect CAPI System User by token prefix only (EAAB = system user, EAA = legacy).
     if os.environ.get("META_SYSTEM_USER_TOKEN"):
+        _tok_str = os.environ["META_SYSTEM_USER_TOKEN"]
         return {
-            "access_token": os.environ["META_SYSTEM_USER_TOKEN"],
+            "access_token": _tok_str,
             "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
             "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671"),
             "source": "env:META_SYSTEM_USER_TOKEN",
-            "token_kind": "capi_system_user",
+            "token_kind": "capi_system_user" if _tok_str.startswith("EAAB") else "long_lived_user",
         }
     # Then local file paths
     for p in CRED_PATHS:
