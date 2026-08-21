@@ -7932,6 +7932,7 @@ def connected_accounts_status_route():
                     try:
                         with open(fp) as f:
                             d = json.load(f)
+                        meta_out.setdefault("_debug_ig_account", {})[fname] = (d.get("account") or {}).get("followers_count")
                         if "fan_count" in fname:
                             if meta_out["fan_count"] is None:
                                 meta_out["fan_count"] = (d.get("account") or {}).get("followers_count")
