@@ -225,6 +225,7 @@ def _graph_get(path: str, params: Optional[dict] = None, timeout: int = 15, use_
         # Use the cached page-scoped token (exchanged from user/system)
         # when the request path mentions a numeric page id.
         # path like "/198859063301219/insights" → "198859063301219"
+        global _PAGE_TOKEN_CACHE  # ensure read below sees module-level
         import re as _re_page
         m = _re_page.match(r"^/(\d+)/", path)
         if m:
@@ -465,6 +466,7 @@ def list_page_posts(limit: int = 25, fields: Optional[list[str]] = None) -> dict
     # /{page_id}/insights endpoint requires a Page Access Token (admin
     # scope alone — even CAPI — returns #190). The exchange:
     #   GET /{page_id}?fields=access_token → returns a page-scoped token.
+    global _PAGE_TOKEN_CACHE  # ensure assignment below updates module-level
     if page_id not in _PAGE_TOKEN_CACHE:
         try:
             user_tok = _read_meta_access_token()
