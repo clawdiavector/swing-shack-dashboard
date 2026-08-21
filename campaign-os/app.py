@@ -7936,6 +7936,7 @@ def connected_accounts_status_route():
                     try:
                         with open(fp) as f:
                             d = json.load(f)
+                        meta_out.setdefault("_debug_files", []).append(fp)
                         if "fan_count" in fname:
                             if meta_out["fan_count"] is None:
                                 meta_out["fan_count"] = (d.get("account") or {}).get("followers_count")
@@ -7946,8 +7947,8 @@ def connected_accounts_status_route():
                                 meta_out["ig_followers"] = (d.get("account") or {}).get("followers_count")
                                 meta_out["ig_handle"] = (d.get("account") or {}).get("username")
                             meta_out["last_fetch"] = d.get("updated")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        meta_out.setdefault("_debug_errors", []).append(f"{fp}: {e}")
             meta_out["capabilities"] = [
                 "instagram_basic (IG account info)",
                 "instagram_manage_insights (IG engagement metrics)",
