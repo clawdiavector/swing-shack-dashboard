@@ -265,22 +265,31 @@ def fetch_all() -> dict:
                     ad_acct_id = adaccounts[0].get("id")
         except Exception:
             ad_acct_id = None
-        # If no ad account via the page, try me/adaccounts
+        # If no ad account via the page, try me/adaccounts.
+        # IMPORTANT: use the user/system token (tok), NOT the page token
+        # (page_tok). The page token is a child of /{page_id} exchange and
+        # has only page-level scope — ads_management is missing, so
+        # me/adaccounts returns #100 "Tried accessing nonexisting field".
         if not ad_acct_id:
             discovery["tried_me_adaccounts"] = True
-            url = f"https://graph.facebook.com/v19.0/me/adaccounts?access_token={page_tok}"
+            url = f"https://graph.facebook.com/v19.0/me/adaccounts?access_token={tok}"
             me_acct, me_err = _http(url)
             accts = (me_acct or {}).get("data", []) or []
             discovery["me_adaccounts_returned"] = len(accts)
             if me_err:
-                page_metric_errors["me_adaccounts"] = me_err[:200]
+                page_metric_errors["me_adaccounts"] = m_err[:200] if m_err else me_err
+                # Try again with page_tok as a last resort (already did above)
             elif accts:
                 ad_acct_id = accts[0].get("id")
         discovery["final_ad_account_id"] = ad_acct_id
         if ad_acct_id:
+            # IMPORTANT: use the system token (tok) here, not page_tok.
+            # page_impressions / page_fans / page_fan_adds are exposed via
+            # the ad-account endpoint, but page-level tokens lack the
+            # ads_management scope to hit it.
             for metric in ["page_impressions", "page_fans", "page_fan_adds"]:
                 since_ts = int((_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=30)).timestamp())
-                url = f"https://graph.facebook.com/v19.0/{ad_acct_id}/insights?metric={metric}&period=day&since={since_ts}&access_token={page_tok}"
+                url = f"https://graph.facebook.com/v19.0/{ad_acct_id}/insights?metric={metric}&period=day&since={since_ts}&access_token={tok}"
                 body, m_err = _http(url)
                 if m_err:
                     page_metric_errors[f"ad_account.{metric}"] = m_err[:200]
@@ -343,7 +352,9 @@ def fetch_all() -> dict:
                     for metric in ["post_impressions", "post_impressions_unique",
                                    "post_engaged_users", "post_reactions_by_type_total",
                                    "post_clicks"]:
-                        url2 = f"https://graph.facebook.com/v19.0/{post_id}/insights?metric={metric}&access_token={page_tok}"
+                        # Use the system token (tok) for per-post insights too —
+                        # page_tok is restricted to the single page's scope.
+                        url2 = f"https://graph.facebook.com/v19.0/{post_id}/insights?metric={metric}&access_token={tok}"
                         body2, e2 = _http(url2)
                         if e2:
                             continue
