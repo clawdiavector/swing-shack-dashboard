@@ -14189,6 +14189,21 @@ def weekly_report_snapshot():
     return jsonify({'brand_id': bid, 'path': path, 'iso_week': datetime.datetime.now(datetime.timezone.utc).isocalendar()[:2]}), 200
 
 
+@app.route('/api/weekly-report/snapshot.json', methods=['GET'])
+def weekly_report_snapshot_json():
+    """Return the current week's raw snapshot JSON for debugging.
+    Filename is swing-shack_<ISO week>.json — the path returned by the
+    snapshot endpoint.
+    """
+    bid = request.args.get('brand') or get_brand_id()
+    name = f'{bid}_{datetime.datetime.now(datetime.timezone.utc).isocalendar().year}-W{datetime.datetime.now(datetime.timezone.utc).isocalendar().week:02d}.json'
+    try:
+        with open(os.path.join(WEEKLY_REPORT_DATA_DIR, name)) as f:
+            return jsonify(json.loads(f.read())), 200
+    except Exception as e:
+        return jsonify({"error": str(e), "path": os.path.join(WEEKLY_REPORT_DATA_DIR, name)}), 500
+
+
 @app.route('/api/weekly-report/snapshots', methods=['GET'])
 def weekly_report_snapshots():
     """List all archived snapshots for a brand."""
