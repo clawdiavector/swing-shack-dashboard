@@ -14189,6 +14189,31 @@ def weekly_report_snapshot():
     return jsonify({'brand_id': bid, 'path': path, 'iso_week': datetime.datetime.now(datetime.timezone.utc).isocalendar()[:2]}), 200
 
 
+@app.route('/api/meta/test-exchange', methods=['GET'])
+def meta_test_exchange():
+    """Walk the page-scoped token exchange to see why page insights fails."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import meta_api as _meta
+    out = {"ok": True, "page_credentials_present": _meta._page_credentials_present()}
+    out["_read_meta_page_token_len"] = len(_meta._read_meta_page_token() or "")
+    out["_read_meta_access_token_len"] = len(_meta._read_meta_access_token() or "")
+    try:
+        info = _meta.get_page_info()
+        out["page_info_keys"] = list(info.keys())
+        out["fan_count"] = info.get("fan_count")
+        out["name"] = info.get("name")
+    except Exception as e:
+        out["page_info_error"] = str(e)[:300]
+    try:
+        ins = _meta.get_page_insights(metrics=["page_views_total", "page_post_engagements"], period="days_28")
+        out["page_insights_returned"] = list(ins.get("_flat", {}).keys())
+        out["page_insights_values"] = ins.get("_flat", {})
+    except Exception as e:
+        out["page_insights_error"] = str(e)[:300]
+    return jsonify(out), 200
+
+
 @app.route('/api/weekly-report/snapshot.json', methods=['GET'])
 def weekly_report_snapshot_json():
     """Return the current week's raw snapshot JSON for debugging."""
