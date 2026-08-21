@@ -14214,26 +14214,6 @@ def meta_test_exchange():
     except Exception as e:
         out["page_insights_error"] = str(e)[:300]
     out["cache_after_insights"] = dict(_meta._PAGE_TOKEN_CACHE)
-    # Direct inline exchange to compare
-    if page_id_val := _meta._read_meta_id('META_PAGE_ID', 'page_id'):
-        import urllib.request as _ur
-        import urllib.error as _ue
-        user_tok = os.environ.get('META_SYSTEM_USER_TOKEN')
-        if user_tok:
-            exch_url = f'https://graph.facebook.com/v18.0/{page_id_val}?fields=access_token&access_token={user_tok}'
-            try:
-                with _ur.urlopen(exch_url, timeout=10) as r:
-                    exch_body = json.loads(r.read().decode())
-                out["inline_exchange_ok"] = True
-                out["inline_exchange_pt_len"] = len(exch_body.get('access_token', ''))
-                # Use the cached result for one real insight call
-                page_tok_inline = exch_body.get('access_token')
-                if page_tok_inline:
-                    insight_url = f'https://graph.facebook.com/v18.0/{page_id_val}/insights?metric=page_views_total&period=days_28&access_token={page_tok_inline}'
-                    with _ur.urlopen(insight_url, timeout=10) as r:
-                        out["inline_insight_call"] = json.loads(r.read().decode())
-            except _ue.HTTPError as e:
-                out["inline_exchange_err"] = e.read().decode()[:200]
     out["cache_id"] = id(_meta._PAGE_TOKEN_CACHE)
 
     # Direct exchange probe - see what Meta returns
