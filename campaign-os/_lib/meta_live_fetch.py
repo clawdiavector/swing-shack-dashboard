@@ -212,13 +212,19 @@ def fetch_all() -> dict:
             from typing import Iterable
             for series in (body or {}).get("data", []):
                 vals = series.get("values", []) or []
-                total = sum((v.get("value") or 0) for v in vals)
+                total = 0
+                for v in vals:
+                    val = v.get("value", 0) or 0
+                    if isinstance(val, dict):
+                        val = sum((vv or 0) for vv in val.values())
+                    elif isinstance(val, list):
+                        val = sum((vv or 0) for vv in val)
+                    total += val
                 page_metrics[series["name"]] = {
                     "total_30d": total,
                     "points": len(vals),
                     "latest": (vals[-1] if vals else None) or {},
                 }
-            # Stop early on app-review-required 403
             if "blocked_by_app_review" in str(m_err):
                 break
 

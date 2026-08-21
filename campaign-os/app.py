@@ -8023,6 +8023,10 @@ def connected_accounts_status_route():
                 "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
                 "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671"),
             }
+        # Backfill token_kind when missing (legacy file has no kind field)
+        if meta_creds and "token_kind" not in meta_creds:
+            _tok_str = meta_creds.get("access_token", "") or ""
+            meta_creds["token_kind"] = "capi_system_user" if _tok_str.startswith("EAAB") else "long_lived_user"
         if meta_creds:
             meta_out["credentials_ok"] = True
             meta_out["page_id"] = meta_creds.get("page_id")
