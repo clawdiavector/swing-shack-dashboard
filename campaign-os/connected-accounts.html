@@ -165,17 +165,61 @@ function renderGBP(gbp) {
 
 function renderMeta(meta) {
   const state = meta.credentials_ok ? "ok" : "none";
+  // Surface live state — built 2026-08-20.
+  const fan = meta.fan_count != null ? `<div class="meta">FB page fans: <b>${meta.fan_count.toLocaleString()}</b>${meta.page_name ? ' (' + meta.page_name + ')' : ''}</div>` : '';
+  const ig = meta.ig_followers != null ? `<div class="meta">IG followers: <b>${meta.ig_followers.toLocaleString()}</b>${meta.ig_handle ? ' (@' + meta.ig_handle + ')' : ''}</div>` : '';
+  const exp = meta.expires_at ? `<div class="meta">Token expires: <b>${meta.expires_at}</b></div>` : '';
+  const last = meta.last_fetch ? `<div class="meta">Last analytics refresh: <b>${meta.last_fetch}</b></div>` : '';
+  const block = (meta.blockers || []).length
+    ? `<div class="meta" style="margin-top:6px;color:#fcd34d">${meta.blockers.map(b => '⚠ ' + b).join('<br>')}</div>` : '';
+  const cap = (meta.capabilities || []).length
+    ? `<div class="meta" style="margin-top:4px;font-size:10px">${meta.capabilities.join(' · ')}</div>` : '';
   return `
     <div class="card">
       <div class="head">
         <span class="icon">${PROVIDERS.meta.icon}</span>
         <span class="name">${PROVIDERS.meta.name}</span>
-        <span class="${pillClass(state)}">${pillLabel(state)}</span>
+        <span class="${pillClass(state)}">${meta.credentials_ok ? 'connected' : 'not connected'}</span>
       </div>
       <p class="desc">${PROVIDERS.meta.desc}</p>
-      <div class="meta">${meta.note || ""}</div>
+      ${fan}${ig}${exp}${last}
+      ${block}
+      ${cap}
+      <div class="btn-row">
+        <button class="btn" id="meta-refresh-btn" onclick="refreshMeta()">${meta.credentials_ok ? '🔄 Refresh from Meta' : 'Connect Meta'}</button>
+      </div>
     </div>
   `;
+}
+
+async function refreshMeta() {
+  const btn = document.getElementById('meta-refresh-btn');
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Fetching…';
+  try {
+    const r = await fetch('/api/meta/fetch', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({brand_id: 'swing-shack'}),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      btn.textContent = `✓ ${d.ig_posts} IG posts · ${d.fb_fan_count || 0} FB fans`;
+      toast('Meta refreshed: ' + (d.ig_posts || 0) + ' IG posts, ' + (d.fb_posts || 0) + ' FB posts, ' + (d.fb_fan_count || 0) + ' FB fans', 'ok');
+      setTimeout(() => loadStatus(), 1500);
+    } else {
+      btn.textContent = orig;
+      toast('Meta refresh failed: ' + (d.error || 'unknown'), 'err');
+    }
+  } catch (e) {
+    btn.textContent = orig;
+    toast('Meta refresh failed: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { if (btn) btn.textContent = orig; }, 5000);
+  }
 }
 
 async function loadStatus() {

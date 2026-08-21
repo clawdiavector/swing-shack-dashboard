@@ -4283,6 +4283,51 @@ def meta_status():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+# ─── META LIVE FETCH (2026-08-20) ───────────────────────────────────
+# POST /api/meta/fetch — pull IG + FB live analytics, write the JSONs.
+# The OS connected-accounts page surfaces a "Refresh from Meta" button
+# that POSTs here. Idempotent.
+
+@app.route('/api/meta/fetch', methods=['POST'])
+def meta_fetch_live():
+    """POST /api/meta/fetch — trigger live IG + FB analytics refresh.
+
+    Walks Meta Graph API with the live long-lived token at
+    ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/meta-token.json
+    and writes:
+      - data/ig-analytics.json (per-post engagement)
+      - data/ig-business-analytics.json (account + reach)
+      - data/facebook-analytics.json (per-post)
+      - data/facebook-business-analytics.json (fan_count)
+
+    Returns the summary so the OS can show what landed.
+
+    Body (JSON, optional): { brand_id } — defaults to swing-shack.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path as _Path
+        body = request.get_json(force=True, silent=True) or {}
+        _brand_id = body.get("brand_id") or "swing-shack"
+        # Lazy-load the fetch script
+        import importlib.util
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        script_path = os.path.join(repo_root, "scripts", "fetch_facebook_analytics.py")
+        if not os.path.exists(script_path):
+            return jsonify({"ok": False, "error": f"missing {script_path}"}), 500
+        spec = importlib.util.spec_from_file_location("fetch_facebook_analytics", script_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        # Point the mod at the data dir the app uses
+        mod._resolve_data_dir = lambda: _Path(os.environ.get("BUNDLED_DATA_DIR") or BUNDLED_DATA_DIR)
+        result = mod.fetch_all()
+        return jsonify(result), 200 if result.get("ok") else 500
+    except Exception as e:
+        _app_log.exception("meta_fetch_live failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/intel/ubersuggest/status', methods=['GET'])
 def ubersuggest_status():
     """GET /api/intel/ubersuggest/status — are Ubersuggest MCP creds configured?
@@ -7819,16 +7864,100 @@ def connected_accounts_status_route():
             out["gbp"] = {"credentials_ok": False, "error": str(exc)}
     else:
         out["gbp"] = {"credentials_ok": False, "error": "gbp client unavailable"}
-    # Meta Graph is handled separately via _lib/meta_api.py — for now just
-    # show the configured state from env-debug.
+    # Meta Graph — show real status from the live token + IG/FB analytics.
+    # Built 2026-08-20: the Clawdia app's long-lived user token works;
+    # we exchange it for a page token on every fetch, pull IG + FB live
+    # data, and write the analytics JSONs so the brief flips green.
+    meta_out = {
+        "credentials_ok": False,
+        "page_id": None,
+        "instagram_account_id": None,
+        "app_id": "1187824310088903",
+        "page_name": None,
+        "fan_count": None,
+        "ig_followers": None,
+        "ig_handle": None,
+        "connect_url": "/meta-portal",
+        "blockers": [],
+        "capabilities": [],
+        "last_fetch": None,
+    }
     try:
-        meta_creds = bool(os.environ.get("META_SYSTEM_USER_TOKEN"))
-        out["meta"] = {
-            "credentials_ok": meta_creds,
-            "note": "Meta Graph wired read-only (no publishing yet). Setup is in meta_api.py.",
-        }
+        _meta_cred_paths = [
+            os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials/meta-token.json"),
+            os.path.expanduser("~/.openclaw-instance2/workspace/swing-shack-dashboard/data/credentials/meta-token.json"),
+        ]
+        meta_creds = None
+        for _p in _meta_cred_paths:
+            if os.path.exists(_p):
+                try:
+                    with open(_p) as f:
+                        meta_creds = json.load(f)
+                    break
+                except Exception:
+                    continue
+        if not meta_creds and os.environ.get("META_SYSTEM_USER_TOKEN"):
+            meta_creds = {
+                "access_token": os.environ["META_SYSTEM_USER_TOKEN"],
+                "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
+                "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671"),
+            }
+        if meta_creds:
+            meta_out["credentials_ok"] = True
+            meta_out["page_id"] = meta_creds.get("page_id")
+            meta_out["instagram_account_id"] = meta_creds.get("instagram_account_id")
+            meta_out["expires_at"] = meta_creds.get("expires_at")
+            meta_out["scopes"] = [
+                "pages_show_list", "pages_read_engagement",
+                "pages_manage_metadata", "pages_manage_ads",
+                "instagram_basic", "instagram_manage_insights",
+                "instagram_content_publish", "instagram_manage_comments",
+                "instagram_manage_contents", "instagram_manage_messages",
+                "ads_management", "ads_read", "leads_retrieval",
+                "business_management", "public_profile", "email",
+            ]
+            data_root = os.environ.get("BUNDLED_DATA_DIR") or BUNDLED_DATA_DIR
+            for fname, key_fan, key_handle in [
+                ("facebook-business-analytics.json", "fan_count", "page_name"),
+                ("ig-business-analytics.json", "followers_count", "username"),
+            ]:
+                fp = os.path.join(data_root, fname)
+                if os.path.exists(fp):
+                    try:
+                        with open(fp) as f:
+                            d = json.load(f)
+                        if "fan_count" in fname:
+                            meta_out["fan_count"] = (d.get("account") or {}).get("followers_count")
+                            meta_out["page_name"] = (d.get("account") or {}).get("name") or (d.get("account") or {}).get("handle")
+                            meta_out["last_fetch"] = d.get("updated")
+                        else:
+                            meta_out["ig_followers"] = (d.get("account") or {}).get("followers_count")
+                            meta_out["ig_handle"] = (d.get("account") or {}).get("username")
+                            meta_out["last_fetch"] = d.get("updated")
+                    except Exception:
+                        pass
+            meta_out["capabilities"] = [
+                "instagram_basic (IG account info)",
+                "instagram_manage_insights (IG engagement metrics)",
+                "instagram_content_publish (IG publishing — Postiz proxies this)",
+                "instagram_manage_comments (IG comments)",
+                "pages_show_list (FB page list)",
+                "pages_read_engagement (FB page-level — pending app review)",
+            ]
+            if not meta_out["fan_count"]:
+                meta_out["blockers"].append("FB page info not yet fetched — run scripts/fetch_facebook_analytics.py")
+            meta_out["blockers"].append(
+                "FB page-level engagement metrics blocked: pages_read_user_content + read_insights on Clawdia app are pending Meta app review (see data/api-connections.json + meta-app-review/ folder)"
+            )
+            meta_out["blockers"].append(
+                "FB per-post engagement metrics pending same review"
+            )
+        else:
+            meta_out["blockers"].append("No Meta token found in credentials/ or env")
+            meta_out["connect_url"] = "/meta-portal"
     except Exception as exc:
-        out["meta"] = {"credentials_ok": False, "error": str(exc)}
+        meta_out["error"] = str(exc)
+    out["meta"] = meta_out
     return jsonify(out), 200
 
 
