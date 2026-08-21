@@ -7910,23 +7910,36 @@ def connected_accounts_status_route():
                 "ads_management", "ads_read", "leads_retrieval",
                 "business_management", "public_profile", "email",
             ]
-            data_root = os.environ.get("BUNDLED_DATA_DIR") or BUNDLED_DATA_DIR
+            # Read from BOTH the persistent volume (DATA_DIR) AND the bundled dir.
+            # The fetcher writes to DATA_DIR (the live volume mount) which is
+            # the freshest data. The bundled dir is the repo fallback.
+            data_roots = []
+            for d in [os.environ.get("DATA_DIR"), os.environ.get("BUNDLED_DATA_DIR"), BUNDLED_DATA_DIR]:
+                if d and d not in data_roots:
+                    data_roots.append(d)
             for fname, key_fan, key_handle in [
                 ("facebook-business-analytics.json", "fan_count", "page_name"),
                 ("ig-business-analytics.json", "followers_count", "username"),
             ]:
-                fp = os.path.join(data_root, fname)
-                if os.path.exists(fp):
+                fp = None
+                for r in data_roots:
+                    candidate = os.path.join(r, fname)
+                    if os.path.exists(candidate):
+                        fp = candidate
+                        break
+                if fp:
                     try:
                         with open(fp) as f:
                             d = json.load(f)
                         if "fan_count" in fname:
-                            meta_out["fan_count"] = (d.get("account") or {}).get("followers_count")
-                            meta_out["page_name"] = (d.get("account") or {}).get("name") or (d.get("account") or {}).get("handle")
+                            if meta_out["fan_count"] is None:
+                                meta_out["fan_count"] = (d.get("account") or {}).get("followers_count")
+                                meta_out["page_name"] = (d.get("account") or {}).get("name") or (d.get("account") or {}).get("handle")
                             meta_out["last_fetch"] = d.get("updated")
                         else:
-                            meta_out["ig_followers"] = (d.get("account") or {}).get("followers_count")
-                            meta_out["ig_handle"] = (d.get("account") or {}).get("username")
+                            if meta_out["ig_followers"] is None:
+                                meta_out["ig_followers"] = (d.get("account") or {}).get("followers_count")
+                                meta_out["ig_handle"] = (d.get("account") or {}).get("username")
                             meta_out["last_fetch"] = d.get("updated")
                     except Exception:
                         pass
