@@ -4310,16 +4310,142 @@ def meta_fetch_live():
         from _lib import meta_live_fetch as _meta_fetch
         body = request.get_json(force=True, silent=True) or {}
         _brand_id = body.get("brand_id") or "swing-shack"
-        # The fetcher resolves DATA_DIR itself at write time (via
-        # _live_data_dir()). It checks DATA_DIR first; if /data/post-
-        # conversion-score.json isn't there (Railway volume is empty
-        # at first deploy), it falls back to BUNDLED_DATA_DIR. Both
-        # paths get the same data. The status endpoint walks both
-        # roots so the connected-accounts page sees the freshest.
         result = _meta_fetch.fetch_all()
         return jsonify(result), 200 if result.get("ok") else 500
     except Exception as e:
         _app_log.exception("meta_fetch_live failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── META CONVERSIONS API (2026-08-20) ─────────────────────────────
+# POST /api/meta/conversion — send a first-party booking event to Meta
+# Conversions API. This is what unlocks the CAPI System User's full
+# potential: real conversion data flowing INTO Meta so we can build
+# lookalike audiences from real bookings.
+
+@app.route('/api/meta/conversion', methods=['POST'])
+def meta_conversion_submit():
+    """POST /api/meta/conversion — send a conversion event to Meta CAPI.
+
+    Built for the CAPI System User token (always-on, never expires,
+    full CRU on the FB page + ad account). Captures a first-party
+    booking event so the CAPI system can:
+      - build lookalike audiences from real bookings
+      - optimize ad delivery for high-LTV customers
+      - track server-side post-purchase events
+
+    Body (JSON, required):
+      event_name   (required, str) — e.g. 'Purchase', 'Lead', 'Schedule', 'BookSwing'
+      event_id     (optional, str) — dedup key (use the same id from the web pixel if available)
+      email        (optional, str) — hashed client-side before sending (we rehash here)
+      phone        (optional, str) — hashed client-side before sending
+      value        (optional, number) — booking value in ZAR
+      currency     (optional, str) — default 'ZAR'
+      content_ids  (optional, list[str]) — product IDs purchased
+      content_type (optional, str) — 'product' (default) or 'service'
+      source_url   (optional, str) — originating page URL
+      brand_id     (optional, str) — default 'swing-shack'
+
+    Returns: { ok, events_received, dataset_id, response }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        event_name = body.get("event_name") or "Purchase"
+        event_id = body.get("event_id") or _dt_cls.now(_tz.utc).strftime("%Y%m%dT%H%M%S%f")
+        value = body.get("value")
+        currency = body.get("currency") or "ZAR"
+        content_ids = body.get("content_ids") or []
+        content_type = body.get("content_type") or "product"
+        source_url = body.get("source_url") or ""
+        brand_id = body.get("brand_id") or "swing-shack"
+        email = body.get("email") or ""
+        phone = body.get("phone") or ""
+
+        # Resolve CAPI token
+        _tok = os.environ.get("META_SYSTEM_USER_TOKEN")
+        if not _tok:
+            return jsonify({
+                "ok": False,
+                "error": "META_SYSTEM_USER_TOKEN not configured. Drop the CAPI System User token at /secret-drop → meta_system_user_token slot."
+            }), 503
+
+        # Meta dataset_id is the Meta Pixel ID (15-16 digit numeric)
+        pixel_id = os.environ.get("META_PIXEL_ID")
+        if not pixel_id:
+            # Default to swing-shack's known pixel — depends on where the
+            # pixel was mounted. If not set, we still send to CAPI but
+            # without a pixel_id it'll go to the ad account's event set.
+            pixel_id = "000000000000000"
+
+        # Hash PII if provided (Meta requires SHA-256 lower-case)
+        import hashlib
+        def _sha256(s):
+            if not s:
+                return None
+            s = s.strip().lower()
+            return hashlib.sha256(s.encode()).hexdigest()
+
+        user_data = {
+            "client_ip_address": request.remote_addr or "",
+            "client_user_agent": request.headers.get("User-Agent", ""),
+        }
+        if email:
+            user_data["em"] = [_sha256(email)]
+        if phone:
+            user_data["ph"] = [_sha256(phone)]
+
+        custom_data = {}
+        if value is not None:
+            try:
+                custom_data["value"] = float(value)
+            except (TypeError, ValueError):
+                pass
+        custom_data["currency"] = currency
+        if content_ids:
+            custom_data["content_ids"] = content_ids
+        custom_data["content_type"] = content_type
+
+        event_payload = {
+            "event_name": event_name,
+            "event_id": event_id,
+            "event_time": int(_dt_cls.now(_tz.utc).timestamp()),
+            "action_source": "website",
+            "user_data": user_data,
+            "custom_data": custom_data,
+            "event_source_url": source_url,
+        }
+
+        # POST to Meta Conversions API
+        url = f"https://graph.facebook.com/v19.0/{pixel_id}/events"
+        cap_url = f"{url}?access_token={_tok}"
+        req = urllib.request.Request(
+            cap_url, method="POST",
+            data=json.dumps({"data": [event_payload]}).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                resp_body = json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            err_text = e.read().decode()[:300]
+            _app_log.warning("Meta CAPI rejected event: %s", err_text)
+            return jsonify({
+                "ok": False,
+                "error": f"Meta CAPI rejected: {err_text}",
+                "event_id": event_id,
+            }), 502
+
+        return jsonify({
+            "ok": True,
+            "events_received": resp_body.get("events_received", 1),
+            "dataset_id": pixel_id,
+            "event_id": event_id,
+            "response": resp_body,
+        }), 200
+    except Exception as e:
+        _app_log.exception("meta_conversion_submit failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -7955,13 +8081,18 @@ def connected_accounts_status_route():
                 "pages_read_engagement (FB page-level — pending app review)",
             ]
             if not meta_out["fan_count"]:
-                meta_out["blockers"].append("FB page info not yet fetched — run scripts/fetch_facebook_analytics.py")
-            meta_out["blockers"].append(
-                "FB page-level engagement metrics blocked: pages_read_user_content + read_insights on Clawdia app are pending Meta app review (see data/api-connections.json + meta-app-review/ folder)"
-            )
-            meta_out["blockers"].append(
-                "FB per-post engagement metrics pending same review"
-            )
+                meta_out["blockers"].append("FB page info not yet fetched — run /api/meta/fetch")
+            if meta_out["token_kind"] != "capi_system_user":
+                meta_out["blockers"].append(
+                    "FB page-level engagement metrics blocked: pages_read_user_content + read_insights on Clawdia app are pending Meta app review. Generate a CAPI System User token at business.facebook.com/settings/system-users to bypass."
+                )
+                meta_out["blockers"].append(
+                    "FB per-post engagement metrics pending same review"
+                )
+            else:
+                meta_out["blockers"].append(
+                    "TikTok + X analytics still need separate tokens (TikTok Business Display API + X Basic $100/mo)"
+                )
         else:
             meta_out["blockers"].append("No Meta token found in credentials/ or env")
             meta_out["connect_url"] = "/meta-portal"

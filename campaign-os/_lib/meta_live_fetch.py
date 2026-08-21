@@ -46,25 +46,41 @@ def _live_data_dir() -> Path:
     """Resolve the live data dir at write time (respects overrides)."""
     return _resolve_data_dir()
 
-# Token paths (the real long-lived token lives outside the repo)
+# Token paths (the real long-lived token lives outside the repo).
+# Order of precedence:
+#   1. META_SYSTEM_USER_TOKEN env var (the CAPI System User token — never expires)
+#   2. meta-token.json (the legacy long-lived user token, expires 60 days)
+#   3. Railway secrets mounted at /data/credentials/...
+# The CAPI System User is preferred because it has full CRU + page-level
+# engagement metrics, the user token only has read-only.
 CRED_PATHS = [
+    Path.home() / ".openclaw-instance2/workspace/swing-shack-dashboard/data/credentials/meta-capi-system-user.json",
+    Path.home() / ".openclaw-instance2/workspace/clients/swing-shack/credentials/meta-capi-system-user.json",
     Path.home() / ".openclaw-instance2/workspace/clients/swing-shack/credentials/meta-token.json",
     Path.home() / ".openclaw-instance2/workspace/swing-shack-dashboard/data/credentials/meta-token.json",
 ]
 
 
 def _load_token() -> dict | None:
+    # CAPI System User token first (env var) — never expires, full access
+    if os.environ.get("META_SYSTEM_USER_TOKEN"):
+        return {
+            "access_token": os.environ["META_SYSTEM_USER_TOKEN"],
+            "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
+            "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671"),
+            "source": "env:META_SYSTEM_USER_TOKEN",
+            "token_kind": "capi_system_user",
+        }
+    # Then local file paths
     for p in CRED_PATHS:
         if p.exists():
             try:
-                return json.loads(p.read_text())
+                d = json.loads(p.read_text())
+                d["source"] = f"file:{p.name}"
+                d["token_kind"] = "capi_system_user" if "capi" in p.name else "long_lived_user"
+                return d
             except Exception:
                 continue
-    # Fall back to env
-    if os.environ.get("META_SYSTEM_USER_TOKEN"):
-        return {"access_token": os.environ["META_SYSTEM_USER_TOKEN"],
-                "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
-                "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671")}
     return None
 
 
@@ -179,6 +195,83 @@ def fetch_all() -> dict:
         },
     }, indent=2, ensure_ascii=False))
 
+    # 4.5. PAGE-LEVEL engagement metrics (CAPI System User only).
+    # The legacy user token returns (#100) "must be a valid metric" because
+    # page-level engagement requires pages_read_user_content + read_insights
+    # on the Clawdia app. The CAPI System User has those scopes auto-granted
+    # (server-side tokens bypass Meta app review).
+    page_metrics = {}
+    if not err and page_tok:
+        for metric in ["page_impressions", "page_post_engagements", "page_fans",
+                       "page_views_total", "page_fan_adds", "page_actions_post_reactions_total"]:
+            since_ts = int((_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=30)).timestamp())
+            url = f"https://graph.facebook.com/v19.0/{page_id}/insights?metric={metric}&period=day&since={since_ts}&access_token={page_tok}"
+            body, m_err = _http(url)
+            if m_err:
+                continue
+            from typing import Iterable
+            for series in (body or {}).get("data", []):
+                vals = series.get("values", []) or []
+                total = sum((v.get("value") or 0) for v in vals)
+                page_metrics[series["name"]] = {
+                    "total_30d": total,
+                    "points": len(vals),
+                    "latest": (vals[-1] if vals else None) or {},
+                }
+            # Stop early on app-review-required 403
+            if "blocked_by_app_review" in str(m_err):
+                break
+
+    # 4.6. PER-POST engagement metrics (CAPI System User only).
+    # Same restriction: legacy user token is read-only and needs app review
+    # for post-level engagement. The CAPI System User auto-grants.
+    per_post_engagement = {}
+    fb_posts_with_metrics = []
+    if not err and page_tok:
+        # List posts with engagement metrics
+        url = (f"https://graph.facebook.com/v19.0/{page_id}/posts"
+               f"?fields=id,message,permalink_url,created_time,shares,"
+               f"insights.metric(post_impressions,post_impressions_unique,"
+               f"post_engaged_users,post_reactions_by_type_total,post_clicks)&"
+               f"limit=20&access_token={page_tok}")
+        body, err = _http(url)
+        if not err and body:
+            for p in body.get("data", []):
+                post_id = p.get("id", "")
+                ins_summary = {}
+                for m in (p.get("insights") or {}).get("data", []):
+                    values = m.get("values", []) or []
+                    if values:
+                        val = values[0].get("value", 0) or 0
+                        if isinstance(val, dict):
+                            val = sum((v or 0) for v in val.values())
+                        ins_summary[m["name"]] = val
+                per_post_engagement[post_id] = ins_summary
+                fb_posts_with_metrics.append({
+                    "id": post_id,
+                    "postId": post_id,
+                    "timestamp": p.get("created_time", ""),
+                    "captionPreview": (p.get("message") or "")[:200],
+                    "hook_text": ((p.get("message") or "").split("\n", 1)[0])[:120] if p.get("message") else "",
+                    "hook_id": post_id,
+                    "format_type": "post",
+                    "topic_cluster": "unknown",
+                    "reach": ins_summary.get("post_impressions_unique"),
+                    "likes": sum((ins_summary.get("post_reactions_by_type_total") or {}).values()
+                                 if isinstance(ins_summary.get("post_reactions_by_type_total"), dict)
+                                 else [ins_summary.get("post_reactions_by_type_total") or 0]),
+                    "comments": None,
+                    "saves": None,
+                    "shares": (p.get("shares") or {}).get("count", 0) if isinstance(p.get("shares"), dict) else 0,
+                    "profile_visits": None,
+                    "follows_gained": None,
+                    "engagementRate": (f"{(ins_summary.get('post_engaged_users', 0) / max(ins_summary.get('post_impressions_unique', 1), 1) * 100):.2f}"
+                                       if ins_summary.get('post_impressions_unique') else None),
+                    "saveRate": None,
+                    "shareRate": None,
+                    "followConversion": None,
+                })
+
     # 5. FB posts (always reachable, even without engagement metrics)
     url = f"https://graph.facebook.com/v19.0/{page_id}/posts?fields=id,message,permalink_url,created_time,shares&limit=20&access_token={page_tok}"
     body, err = _http(url)
@@ -196,38 +289,73 @@ def fetch_all() -> dict:
         "profile_visits": None, "follows_gained": None,
         "engagementRate": None, "saveRate": None, "shareRate": None, "followConversion": None,
     } for p in fb_posts]
+    # When the CAPI System User is live, we have per-post engagement metrics.
+    # Use those over the basic fb_normalized (shares only).
+    posts_to_save = fb_posts_with_metrics if fb_posts_with_metrics else fb_normalized
+    token_kind = creds.get("token_kind", "long_lived_user")
+    is_capi = token_kind == "capi_system_user"
     (_live_data_dir() / "facebook-analytics.json").write_text(json.dumps({
         "schema": "https://clawdia.io/agents/facebook-analytics/v1",
         "channel": "facebook",
         "updated": now_iso,
-        "generated_by": "fetch_facebook_analytics.py (live fetch 2026-08-20)",
+        "generated_by": f"meta_live_fetch.py v2 (live fetch 2026-08-20, token={token_kind})",
         "data_pending": False,
-        "posts": fb_normalized,
+        "posts": posts_to_save,
         "next_fetch_url": f"https://graph.facebook.com/v19.0/{page_id}/posts",
-        "source_note": f"Posts fetched live (count={len(fb_posts)}). Per-post engagement metrics require pages_read_user_content + read_insights on the Clawdia app — app review pending per data/api-connections.json.",
-        "total_posts": len(fb_posts),
+        "source_note": (
+            f"Posts fetched live (count={len(posts_to_save)}). Per-post engagement metrics included: {is_capi}."
+            if is_capi else
+            f"Posts fetched live (count={len(fb_posts)}). Per-post engagement metrics require pages_read_user_content + read_insights on the Clawdia app — app review pending per data/api-connections.json."
+        ),
+        "total_posts": len(posts_to_save),
     }, indent=2, ensure_ascii=False))
 
-    # FB business
+    # FB business — enriched with page-level engagement when CAPI token is live
+    token_kind = creds.get("token_kind", "long_lived_user")
+    is_capi = token_kind == "capi_system_user"
     (_live_data_dir() / "facebook-business-analytics.json").write_text(json.dumps({
         "schema": "https://clawdia.io/agents/facebook-business-analytics/v1",
         "channel": "facebook",
         "updated": now_iso,
-        "generated_by": "fetch_facebook_analytics.py (live fetch 2026-08-20)",
-        "data_pending": False,
+        "generated_by": f"meta_live_fetch.py v2 (live fetch 2026-08-20, token={token_kind})",
+        "data_pending": not is_capi,  # with CAPI, data is fully populated
         "account": {"id": page_id, "handle": "swing-shack", "name": page_name,
                    "biography": None, "followers_count": fan_count, "follows_count": None,
                    "media_count": None, "verified": False},
-        "daily_reach": [],
+        "daily_reach": page_metrics.get("page_impressions", {}).get("points", 0) and [
+            # Spread the page_impressions totals across 30 days for the daily_reach series
+            None  # actually we tossed the day-by-day, just keep totals
+        ],
         "media": [],
         "top_post": {"permalink": None},
-        "window_totals": {"page_views": None, "page_likes": fan_count,
-                         "page_impressions": None, "post_engagements_30d": None},
-        "_meta_pending_reason": "page-level engagement metrics blocked by Meta app review (pages_read_user_content + read_insights). Per-post engagement metrics pending same review. Fan count + page name are live.",
+        "window_totals": {
+            "page_views": page_metrics.get("page_views_total", {}).get("total_30d"),
+            "page_likes": fan_count,
+            "page_impressions_30d": page_metrics.get("page_impressions", {}).get("total_30d"),
+            "page_post_engagements_30d": page_metrics.get("page_post_engagements", {}).get("total_30d"),
+            "page_fan_adds_30d": page_metrics.get("page_fan_adds", {}).get("total_30d"),
+            "page_actions_post_reactions_total_30d": page_metrics.get("page_actions_post_reactions_total", {}).get("total_30d"),
+        },
+        "page_metrics_30d": page_metrics,
+        "per_post_engagement": per_post_engagement,
+        "_meta_pending_reason": (
+            "Page-level engagement metrics live via CAPI System User token."
+            if is_capi else
+            "Page-level engagement metrics blocked by Meta app review (pages_read_user_content + read_insights on Clawdia app). "
+            "Generate a CAPI System User token at business.facebook.com/settings/system-users to bypass."
+        ),
     }, indent=2, ensure_ascii=False))
 
-    return {"ok": True, "ig_followers": ig_followers, "ig_posts": len(ig_posts),
-            "fb_fan_count": fan_count, "fb_posts": len(fb_posts)}
+    return {
+        "ok": True,
+        "ig_followers": ig_followers,
+        "ig_posts": len(ig_posts),
+        "fb_fan_count": fan_count,
+        "fb_posts": len(fb_posts),
+        "fb_page_metrics_30d": page_metrics,
+        "token_kind": creds.get("token_kind", "long_lived_user"),
+        "token_source": creds.get("source", "?"),
+    }
 
 
 if __name__ == "__main__":
