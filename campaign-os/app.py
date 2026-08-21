@@ -14248,6 +14248,38 @@ def meta_test_exchange():
     return jsonify(out), 200
 
 
+@app.route('/api/meta/exchange-only', methods=['GET'])
+def meta_exchange_only():
+    """Just do the exchange and write to cache; skip insights."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import meta_api as _meta
+    # Reset exchange error
+    _meta._EXCHANGE_LAST_ERR = ""
+    out = {"before_exchange_cache": dict(_meta._PAGE_TOKEN_CACHE),
+           "before_exchange_err": _meta._EXCHANGE_LAST_ERR}
+    page_id = _meta._read_meta_id("META_PAGE_ID", "page_id")
+    out["page_id_read"] = page_id
+    user_tok = os.environ.get("META_SYSTEM_USER_TOKEN")
+    out["user_tok_len"] = len(user_tok) if user_tok else 0
+    try:
+        url = f"https://graph.facebook.com/v18.0/{page_id}?fields=access_token&access_token={user_tok}"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            body = json.loads(r.read().decode())
+        pt = body.get("access_token")
+        out["exchange_pt_len"] = len(pt) if pt else 0
+        if pt:
+            _meta._PAGE_TOKEN_CACHE[page_id] = pt
+            out["written_to_cache"] = True
+    except urllib.error.HTTPError as e:
+        out["exchange_error"] = e.read().decode()[:200]
+    except Exception as e:
+        out["exchange_exception"] = f"{type(e).__name__}: {e}"
+    out["after_exchange_cache"] = dict(_meta._PAGE_TOKEN_CACHE)
+    return jsonify(out), 200
+
+
 @app.route('/api/weekly-report/snapshot.json', methods=['GET'])
 def weekly_report_snapshot_json():
     """Return the current week's raw snapshot JSON for debugging."""
