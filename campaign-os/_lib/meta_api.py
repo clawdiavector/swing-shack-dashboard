@@ -153,10 +153,21 @@ def _read_meta_page_token() -> Optional[str]:
     return _read_meta_access_token()
 
 
-def _read_meta_id(env_key: str, bundled_key: str) -> Optional[str]:
-    """Resolve a Meta ID (page_id, ig_account_id, app_id) from env + bundled fallback.
+# Default IDs for swing-shack fallback when neither env nor bundle is set.
+# Mirrors meta_live_fetch.py's META_PAGE_ID / META_INSTAGRAM_BUSINESS_ACCOUNT_ID defaults.
+_META_DEFAULT_IDS = {
+    "META_PAGE_ID": "198859063301219",
+    "META_INSTAGRAM_BUSINESS_ACCOUNT_ID": "17841456713897671",
+    "META_APP_ID": "1187824310088903",
+}
 
-    Env wins. Falls back to data/meta-tokens.json[bundled_key]. Returns None if not set.
+
+def _read_meta_id(env_key: str, bundled_key: str) -> Optional[str]:
+    """Resolve a Meta ID (page_id, ig_account_id, app_id) from:
+      1. env vars (preferred)
+      2. data/meta-tokens.json (bundled credentials)
+      3. hardcoded fallback for swing-shack (matches meta_live_fetch.py)
+    Returns None if not set.
     """
     raw = os.environ.get(env_key)
     if raw and raw.strip():
@@ -175,6 +186,10 @@ def _read_meta_id(env_key: str, bundled_key: str) -> Optional[str]:
             continue
         except Exception as e:
             _LOG.warning("could not read bundled %s: %s", bundled, e)
+    # Ultimate fallback for swing-shack brand
+    default = _META_DEFAULT_IDS.get(env_key)
+    if default:
+        return default
     return None
 
 
