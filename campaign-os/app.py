@@ -14195,8 +14195,12 @@ def weekly_report_snapshot_json():
     bid = request.args.get('brand') or get_brand_id()
     cal = datetime.datetime.now(datetime.timezone.utc).isocalendar()
     name = f'{bid}_{cal.year}-W{cal.week:02d}.json'
-    # Try both possible locations
-    for parent in (WEEKLY_REPORT_DATA_DIR, os.path.join(DATA_DIR, 'campaign-os/weekly-snapshots')):
+    # Try multiple possible locations (legacy + new layouts)
+    for parent in (WEEKLY_REPORT_DATA_DIR,
+                   os.path.join(DATA_DIR, 'campaign-os/weekly-snapshots'),
+                   os.path.join('/data', 'campaign-os/weekly-snapshots'),
+                   os.path.join(BUNDLED_DATA_DIR, 'campaign-os/weekly-snapshots'),
+                   BUNDLED_DATA_DIR):
         p = os.path.join(parent, name)
         try:
             with open(p) as f:
