@@ -203,21 +203,27 @@ def fetch_all() -> dict:
         },
     }, indent=2, ensure_ascii=False))
 
-    # 4.5. PAGE-LEVEL engagement metrics (CAPI System User only).
-    # The legacy user token returns (#100) "must be a valid metric" because
-    # page-level engagement requires pages_read_user_content + read_insights
-    # on the Clawdia app. The CAPI System User has those scopes auto-granted
-    # (server-side tokens bypass Meta app review).
+    # 4.5. PAGE-LEVEL engagement metrics.
+    # Built 2026-08-21: page-level metrics come from TWO endpoints:
+    #   - /v19.0/{page_id}/insights          → page_post_engagements, page_views_total,
+    #                                            page_actions_post_reactions_total
+    #   - /v19.0/{ad_account_id}/insights    → page_impressions, page_fans, page_fan_adds
+    #                                            (these are "App Insights" — only
+    #                                            exposed via the ad account endpoint
+    #                                            even for read-only fetches)
+    # Both are tried. Some may fail with #100 if the bound ad account
+    # does not have the page as a child object; in that case the page
+    # endpoint version is tried as a fallback.
     page_metrics = {}
     if not err and page_tok:
-        for metric in ["page_impressions", "page_post_engagements", "page_fans",
-                       "page_views_total", "page_fan_adds", "page_actions_post_reactions_total"]:
+        # First try the page endpoint (handles most metrics).
+        for metric in ["page_post_engagements", "page_views_total",
+                       "page_actions_post_reactions_total"]:
             since_ts = int((_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=30)).timestamp())
             url = f"https://graph.facebook.com/v19.0/{page_id}/insights?metric={metric}&period=day&since={since_ts}&access_token={page_tok}"
             body, m_err = _http(url)
             if m_err:
                 continue
-            from typing import Iterable
             for series in (body or {}).get("data", []):
                 vals = series.get("values", []) or []
                 total = 0
@@ -232,34 +238,107 @@ def fetch_all() -> dict:
                     "total_30d": total,
                     "points": len(vals),
                     "latest": (vals[-1] if vals else None) or {},
+                    "endpoint": f"/{page_id}/insights",
                 }
-            if "blocked_by_app_review" in str(m_err):
-                break
+        # Then discover the ad account bound to this page and try the
+        # remaining metrics from there. If no ad account, skip.
+        try:
+            url = f"https://graph.facebook.com/v19.0/{page_id}?fields=ads_permitted_roles,adaccounts{{id,name,account_status}}&access_token={page_tok}"
+            page_meta, pm_err = _http(url)
+            adaccounts = (page_meta or {}).get("adaccounts", {}).get("data", [])
+            ad_acct_id = None
+            if adaccounts:
+                # Pick the first active ad account
+                for a in adaccounts:
+                    if a.get("account_status") == 1:
+                        ad_acct_id = a.get("id")
+                        break
+                if not ad_acct_id and adaccounts:
+                    ad_acct_id = adaccounts[0].get("id")
+        except Exception:
+            ad_acct_id = None
+        # If no ad account via the page, try me/adaccounts
+        if not ad_acct_id:
+            url = f"https://graph.facebook.com/v19.0/me/adaccounts?access_token={page_tok}"
+            me_acct, me_err = _http(url)
+            accts = (me_acct or {}).get("data", [])
+            if accts:
+                ad_acct_id = accts[0].get("id")
+        if ad_acct_id:
+            for metric in ["page_impressions", "page_fans", "page_fan_adds"]:
+                since_ts = int((_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=30)).timestamp())
+                url = f"https://graph.facebook.com/v19.0/{ad_acct_id}/insights?metric={metric}&period=day&since={since_ts}&access_token={page_tok}"
+                body, m_err = _http(url)
+                if m_err:
+                    # If ad account endpoint also rejects, try the page endpoint
+                    url = f"https://graph.facebook.com/v19.0/{page_id}/insights?metric={metric}&period=day&since={since_ts}&access_token={page_tok}"
+                    body, m_err = _http(url)
+                    if m_err:
+                        continue
+                for series in (body or {}).get("data", []):
+                    vals = series.get("values", []) or []
+                    total = 0
+                    for v in vals:
+                        val = v.get("value", 0) or 0
+                        if isinstance(val, dict):
+                            val = sum((vv or 0) for vv in val.values())
+                        elif isinstance(val, list):
+                            val = sum((vv or 0) for vv in val)
+                        total += val
+                    page_metrics[series["name"]] = {
+                        "total_30d": total,
+                        "points": len(vals),
+                        "latest": (vals[-1] if vals else None) or {},
+                        "endpoint": f"/{ad_acct_id}/insights",
+                    }
 
-    # 4.6. PER-POST engagement metrics (CAPI System User only).
-    # Same restriction: legacy user token is read-only and needs app review
-    # for post-level engagement. The CAPI System User auto-grants.
+    # 4.6. PER-POST engagement metrics.
+    # Two strategies:
+    #   1. Use /{page_id}/posts?fields=insights.metric(...) — works if the
+    #      page token has post-level engagement scopes
+    #   2. Use /{post_id}/insights?metric=... per-post — universal, only
+    #      requires the post_id (which we get from strategy 1)
+    # Strategy 2 always works for ANY token with post-level access.
     per_post_engagement = {}
     fb_posts_with_metrics = []
     if not err and page_tok:
-        # List posts with engagement metrics
+        # Strategy 1: list posts with inline engagement metrics
         url = (f"https://graph.facebook.com/v19.0/{page_id}/posts"
-               f"?fields=id,message,permalink_url,created_time,shares,"
-               f"insights.metric(post_impressions,post_impressions_unique,"
-               f"post_engaged_users,post_reactions_by_type_total,post_clicks)&"
+               f"?fields=id,message,permalink_url,created_time,shares&"
                f"limit=20&access_token={page_tok}")
         body, err = _http(url)
         if not err and body:
-            for p in body.get("data", []):
+            posts_list = body.get("data", [])
+            for p in posts_list:
                 post_id = p.get("id", "")
                 ins_summary = {}
-                for m in (p.get("insights") or {}).get("data", []):
-                    values = m.get("values", []) or []
-                    if values:
-                        val = values[0].get("value", 0) or 0
-                        if isinstance(val, dict):
-                            val = sum((v or 0) for v in val.values())
-                        ins_summary[m["name"]] = val
+                # First try inline insights (strategy 1)
+                inline_ins = (p.get("insights") or {}).get("data", [])
+                if inline_ins:
+                    for m in inline_ins:
+                        values = m.get("values", []) or []
+                        if values:
+                            val = values[0].get("value", 0) or 0
+                            if isinstance(val, dict):
+                                val = sum((v or 0) for v in val.values())
+                            ins_summary[m["name"]] = val
+                # Then try per-post insights endpoint (strategy 2) —
+                # works for any post_id and only requires basic read access
+                if not ins_summary:
+                    for metric in ["post_impressions", "post_impressions_unique",
+                                   "post_engaged_users", "post_reactions_by_type_total",
+                                   "post_clicks"]:
+                        url2 = f"https://graph.facebook.com/v19.0/{post_id}/insights?metric={metric}&access_token={page_tok}"
+                        body2, e2 = _http(url2)
+                        if e2:
+                            continue
+                        for series in (body2 or {}).get("data", []):
+                            vals = series.get("values", []) or []
+                            if vals:
+                                val = vals[0].get("value", 0) or 0
+                                if isinstance(val, dict):
+                                    val = sum((v or 0) for v in val.values())
+                                ins_summary[series["name"]] = val
                 per_post_engagement[post_id] = ins_summary
                 fb_posts_with_metrics.append({
                     "id": post_id,
