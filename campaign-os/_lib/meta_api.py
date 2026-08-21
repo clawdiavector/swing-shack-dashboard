@@ -638,11 +638,20 @@ def get_page_insights(metrics: Optional[list[str]] = None, period: str = "days_2
     if not page_id.isdigit():
         raise ValueError(f"META_PAGE_ID must be numeric, got: {page_id!r}")
     default_metrics = [
-        # Only request metrics we know this page+app can read. If a metric is
-        # not in the page's whitelist, Meta returns 400 and the WHOLE call
-        # fails - so we call each metric individually below and skip failures.
+        # The weekly report collector reads these names directly:
+        #   page_views_total → fb_views
+        #   page_post_engagements → fb_post_engagements
+        #   page_impressions_unique → fb_reach
+        #   page_impressions → fb_impressions
+        #   page_engaged_users → fb_engaged_users
+        # Some are rejected by Meta (#100 invalid metric) for specific
+        # pages even with full scope — get_page_insights() already
+        # handles per-metric failures, so we just attempt all.
         "page_views_total",
         "page_post_engagements",
+        "page_impressions_unique",
+        "page_impressions",
+        "page_engaged_users",
         "page_actions_post_reactions_total",
         "page_actions_post_reactions_like_total",
         "page_fan_adds",
