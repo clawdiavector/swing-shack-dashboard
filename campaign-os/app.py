@@ -14191,17 +14191,21 @@ def weekly_report_snapshot():
 
 @app.route('/api/weekly-report/snapshot.json', methods=['GET'])
 def weekly_report_snapshot_json():
-    """Return the current week's raw snapshot JSON for debugging.
-    Filename is swing-shack_<ISO week>.json — the path returned by the
-    snapshot endpoint.
-    """
+    """Return the current week's raw snapshot JSON for debugging."""
     bid = request.args.get('brand') or get_brand_id()
-    name = f'{bid}_{datetime.datetime.now(datetime.timezone.utc).isocalendar().year}-W{datetime.datetime.now(datetime.timezone.utc).isocalendar().week:02d}.json'
-    try:
-        with open(os.path.join(WEEKLY_REPORT_DATA_DIR, name)) as f:
-            return jsonify(json.loads(f.read())), 200
-    except Exception as e:
-        return jsonify({"error": str(e), "path": os.path.join(WEEKLY_REPORT_DATA_DIR, name)}), 500
+    cal = datetime.datetime.now(datetime.timezone.utc).isocalendar()
+    name = f'{bid}_{cal.year}-W{cal.week:02d}.json'
+    # Try both possible locations
+    for parent in (WEEKLY_REPORT_DATA_DIR, os.path.join(DATA_DIR, 'campaign-os/weekly-snapshots')):
+        p = os.path.join(parent, name)
+        try:
+            with open(p) as f:
+                return jsonify(json.loads(f.read())), 200
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            return jsonify({"error": str(e), "path": p}), 500
+    return jsonify({"error": "not found", "tried": [WEEKLY_REPORT_DATA_DIR, os.path.join(DATA_DIR, 'campaign-os/weekly-snapshots')], "filename": name}), 404
 
 
 @app.route('/api/weekly-report/snapshots', methods=['GET'])
