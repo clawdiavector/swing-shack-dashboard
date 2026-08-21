@@ -7918,9 +7918,9 @@ def connected_accounts_status_route():
             for d in [os.environ.get("DATA_DIR"), os.environ.get("BUNDLED_DATA_DIR"), BUNDLED_DATA_DIR]:
                 if d and d not in data_roots:
                     data_roots.append(d)
-            for fname, key_fan, key_handle in [
-                ("facebook-business-analytics.json", "fan_count", "page_name"),
-                ("ig-business-analytics.json", "followers_count", "username"),
+            for channel, fname, handle_key, name_key in [
+                ("facebook", "facebook-business-analytics.json", "name", "name"),
+                ("instagram", "ig-business-analytics.json", "username", None),
             ]:
                 fp = None
                 for r in data_roots:
@@ -7932,16 +7932,17 @@ def connected_accounts_status_route():
                     try:
                         with open(fp) as f:
                             d = json.load(f)
-                        meta_out.setdefault("_debug_ig_account", {})[fname] = (d.get("account") or {}).get("followers_count")
-                        if "fan_count" in fname:
+                        account = d.get("account") or {}
+                        followers = account.get("followers_count")
+                        if channel == "facebook":
                             if meta_out["fan_count"] is None:
-                                meta_out["fan_count"] = (d.get("account") or {}).get("followers_count")
-                                meta_out["page_name"] = (d.get("account") or {}).get("name") or (d.get("account") or {}).get("handle")
+                                meta_out["fan_count"] = followers
+                                meta_out["page_name"] = account.get(name_key) or account.get("handle")
                             meta_out["last_fetch"] = d.get("updated")
-                        else:
+                        else:  # instagram
                             if meta_out["ig_followers"] is None:
-                                meta_out["ig_followers"] = (d.get("account") or {}).get("followers_count")
-                                meta_out["ig_handle"] = (d.get("account") or {}).get("username")
+                                meta_out["ig_followers"] = followers
+                                meta_out["ig_handle"] = account.get(handle_key)
                             meta_out["last_fetch"] = d.get("updated")
                     except Exception:
                         pass
