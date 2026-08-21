@@ -147,10 +147,13 @@ def fetch_all() -> dict:
         ts = post.get("timestamp", "")
         ins = {}
         for m in post.get("insights", {}).get("data", []):
+            _m_name = m.get("name")
+            if not _m_name:
+                continue
             for v in m.get("values", []):
                 val = v.get("value", 0)
                 if isinstance(val, dict): val = sum(val.values())
-                ins[m["name"]] = val
+                ins[_m_name] = val
         likes = ins.get("likes", 0)
         comments = ins.get("comments", 0)
         saves = ins.get("saved", 0)
@@ -240,12 +243,14 @@ def fetch_all() -> dict:
                     elif isinstance(val, list):
                         val = sum((vv or 0) for vv in val)
                     total += val
-                page_metrics[series["name"]] = {
-                    "total_30d": total,
-                    "points": len(vals),
-                    "latest": (vals[-1] if vals else None) or {},
-                    "endpoint": f"/{page_id}/insights",
-                }
+                _m = series.get("name")
+                if _m:
+                    page_metrics[_m] = {
+                        "total_30d": total,
+                        "points": len(vals),
+                        "latest": (vals[-1] if vals else None) or {},
+                        "endpoint": f"/{page_id}/insights",
+                    }
         # Then discover the ad account bound to this page and try the
         # remaining metrics from there. If no ad account, skip.
         try:
@@ -309,12 +314,14 @@ def fetch_all() -> dict:
                         elif isinstance(val, list):
                             val = sum((vv or 0) for vv in val)
                         total += val
-                    page_metrics[series["name"]] = {
-                        "total_30d": total,
-                        "points": len(vals),
-                        "latest": (vals[-1] if vals else None) or {},
-                        "endpoint": f"/{ad_acct_id}/insights",
-                    }
+                    _m = series.get("name")
+                    if _m:
+                        page_metrics[_m] = {
+                            "total_30d": total,
+                            "points": len(vals),
+                            "latest": (vals[-1] if vals else None) or {},
+                            "endpoint": f"/{ad_acct_id}/insights",
+                        }
 
     # 4.6. PER-POST engagement metrics.
     # Two strategies:
@@ -364,7 +371,9 @@ def fetch_all() -> dict:
                                 val = vals[0].get("value", 0) or 0
                                 if isinstance(val, dict):
                                     val = sum((v or 0) for v in val.values())
-                                ins_summary[series["name"]] = val
+                                _metric_name = series.get("name")
+                                if _metric_name:
+                                    ins_summary[_metric_name] = val
                 per_post_engagement[post_id] = ins_summary
                 fb_posts_with_metrics.append({
                     "id": post_id,
