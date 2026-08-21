@@ -117,6 +117,11 @@ def _read_meta_page_token() -> Optional[str]:
          bundled user token if no page_token field)
       5. Fall back to user token (_read_meta_access_token)
     """
+    # META_SYSTEM_USER_TOKEN wins — system user tokens have admin scope
+    # on the page, work for /{page_id}/insights + /posts + per-post endpoints.
+    sys_user = os.environ.get("META_SYSTEM_USER_TOKEN")
+    if sys_user and sys_user.strip():
+        return sys_user.strip()
     for env_key in ("META_PAGE_ACCESS_TOKEN_FILE", "META_PAGE_TOKEN_FILE"):
         path = os.environ.get(env_key)
         if path:
