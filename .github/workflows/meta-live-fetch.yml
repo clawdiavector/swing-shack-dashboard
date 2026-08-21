@@ -42,6 +42,7 @@ jobs:
         env:
           DATA_DIR: ${{ github.workspace }}/data
         run: |
+          cd campaign-os
           python -c "from _lib.meta_live_fetch import fetch_all; import json; print(json.dumps(fetch_all(), indent=2))"
 
       - name: Commit + push (analytics JSONs only)

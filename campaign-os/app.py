@@ -4310,11 +4310,12 @@ def meta_fetch_live():
         from _lib import meta_live_fetch as _meta_fetch
         body = request.get_json(force=True, silent=True) or {}
         _brand_id = body.get("brand_id") or "swing-shack"
-        # Point the mod at the data dir the app uses
-        from pathlib import Path as _Path
-        _meta_fetch._resolve_data_dir = lambda: _Path(
-            os.environ.get("BUNDLED_DATA_DIR") or BUNDLED_DATA_DIR
-        )
+        # The fetcher resolves DATA_DIR itself at write time (via
+        # _live_data_dir()). It checks DATA_DIR first; if /data/post-
+        # conversion-score.json isn't there (Railway volume is empty
+        # at first deploy), it falls back to BUNDLED_DATA_DIR. Both
+        # paths get the same data. The status endpoint walks both
+        # roots so the connected-accounts page sees the freshest.
         result = _meta_fetch.fetch_all()
         return jsonify(result), 200 if result.get("ok") else 500
     except Exception as e:
@@ -7917,11 +7918,6 @@ def connected_accounts_status_route():
             for d in [os.environ.get("DATA_DIR"), os.environ.get("BUNDLED_DATA_DIR"), BUNDLED_DATA_DIR]:
                 if d and d not in data_roots:
                     data_roots.append(d)
-            # Debug: log which data_roots are being walked (visible via app logs)
-            try:
-                _app_log.info("meta_status data_roots=%s", data_roots)
-            except Exception:
-                pass
             for fname, key_fan, key_handle in [
                 ("facebook-business-analytics.json", "fan_count", "page_name"),
                 ("ig-business-analytics.json", "followers_count", "username"),
@@ -7936,7 +7932,6 @@ def connected_accounts_status_route():
                     try:
                         with open(fp) as f:
                             d = json.load(f)
-                        meta_out.setdefault("_debug_files", []).append(fp)
                         if "fan_count" in fname:
                             if meta_out["fan_count"] is None:
                                 meta_out["fan_count"] = (d.get("account") or {}).get("followers_count")
@@ -7947,8 +7942,8 @@ def connected_accounts_status_route():
                                 meta_out["ig_followers"] = (d.get("account") or {}).get("followers_count")
                                 meta_out["ig_handle"] = (d.get("account") or {}).get("username")
                             meta_out["last_fetch"] = d.get("updated")
-                    except Exception as e:
-                        meta_out.setdefault("_debug_errors", []).append(f"{fp}: {e}")
+                    except Exception:
+                        pass
             meta_out["capabilities"] = [
                 "instagram_basic (IG account info)",
                 "instagram_manage_insights (IG engagement metrics)",

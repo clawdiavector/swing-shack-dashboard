@@ -35,7 +35,16 @@ def _resolve_data_dir() -> Path:
     return Path(os.environ.get("DATA_DIR") or "data")
 
 
+# DATA_DIR / DATA_DIR_RESOLVED — the second is the resolved-at-runtime
+# path so the endpoint can override _resolve_data_dir() after import
+# and have the fetcher pick up the new path. The first is the
+# module-level constant for direct script invocation.
 DATA_DIR = _resolve_data_dir()
+
+
+def _live_data_dir() -> Path:
+    """Resolve the live data dir at write time (respects overrides)."""
+    return _resolve_data_dir()
 
 # Token paths (the real long-lived token lives outside the repo)
 CRED_PATHS = [
@@ -142,7 +151,7 @@ def fetch_all() -> dict:
             "followConversion": "0.000",
         })
 
-    (DATA_DIR / "ig-analytics.json").write_text(json.dumps({
+    (_live_data_dir() / "ig-analytics.json").write_text(json.dumps({
         "schema": "https://clawdia.io/agents/instagram-analytics/v1",
         "updated": now_iso,
         "source": "Meta Graph API /v19.0 IG media insights (live fetch 2026-08-20)",
@@ -152,7 +161,7 @@ def fetch_all() -> dict:
 
     # IG business
     avg_reach = sum(p["reach"] for p in ig_posts) / 30 if ig_posts else 0
-    (DATA_DIR / "ig-business-analytics.json").write_text(json.dumps({
+    (_live_data_dir() / "ig-business-analytics.json").write_text(json.dumps({
         "schema": "https://clawdia.io/agents/ig-business-analytics/v1",
         "updated": now_iso,
         "source": "Meta Graph API /v19.0 IG account info (live fetch 2026-08-20)",
@@ -187,7 +196,7 @@ def fetch_all() -> dict:
         "profile_visits": None, "follows_gained": None,
         "engagementRate": None, "saveRate": None, "shareRate": None, "followConversion": None,
     } for p in fb_posts]
-    (DATA_DIR / "facebook-analytics.json").write_text(json.dumps({
+    (_live_data_dir() / "facebook-analytics.json").write_text(json.dumps({
         "schema": "https://clawdia.io/agents/facebook-analytics/v1",
         "channel": "facebook",
         "updated": now_iso,
@@ -200,7 +209,7 @@ def fetch_all() -> dict:
     }, indent=2, ensure_ascii=False))
 
     # FB business
-    (DATA_DIR / "facebook-business-analytics.json").write_text(json.dumps({
+    (_live_data_dir() / "facebook-business-analytics.json").write_text(json.dumps({
         "schema": "https://clawdia.io/agents/facebook-business-analytics/v1",
         "channel": "facebook",
         "updated": now_iso,
