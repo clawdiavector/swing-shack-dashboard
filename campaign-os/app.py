@@ -14214,6 +14214,7 @@ def meta_test_exchange():
     except Exception as e:
         out["page_insights_error"] = str(e)[:300]
     out["cache_after_insights"] = dict(_meta._PAGE_TOKEN_CACHE)
+    out["cache_id"] = id(_meta._PAGE_TOKEN_CACHE)
     return jsonify(out), 200
 
 
