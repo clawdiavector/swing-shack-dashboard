@@ -215,6 +215,7 @@ def fetch_all() -> dict:
     # does not have the page as a child object; in that case the page
     # endpoint version is tried as a fallback.
     page_metrics = {}
+    page_metric_errors = {}  # for debugging — surfaced in the response
     if not err and page_tok:
         # First try the page endpoint (handles most metrics).
         for metric in ["page_post_engagements", "page_views_total",
@@ -223,6 +224,7 @@ def fetch_all() -> dict:
             url = f"https://graph.facebook.com/v19.0/{page_id}/insights?metric={metric}&period=day&since={since_ts}&access_token={page_tok}"
             body, m_err = _http(url)
             if m_err:
+                page_metric_errors[f"page_endpoint.{metric}"] = m_err[:200]
                 continue
             for series in (body or {}).get("data", []):
                 vals = series.get("values", []) or []
@@ -270,10 +272,12 @@ def fetch_all() -> dict:
                 url = f"https://graph.facebook.com/v19.0/{ad_acct_id}/insights?metric={metric}&period=day&since={since_ts}&access_token={page_tok}"
                 body, m_err = _http(url)
                 if m_err:
+                    page_metric_errors[f"ad_account.{metric}"] = m_err[:200]
                     # If ad account endpoint also rejects, try the page endpoint
                     url = f"https://graph.facebook.com/v19.0/{page_id}/insights?metric={metric}&period=day&since={since_ts}&access_token={page_tok}"
                     body, m_err = _http(url)
                     if m_err:
+                        page_metric_errors[f"page_endpoint.{metric}"] = m_err[:200]
                         continue
                 for series in (body or {}).get("data", []):
                     vals = series.get("values", []) or []
@@ -446,8 +450,10 @@ def fetch_all() -> dict:
         "fb_fan_count": fan_count,
         "fb_posts": len(fb_posts),
         "fb_page_metrics_30d": page_metrics,
+        "fb_page_metric_errors": page_metric_errors,
         "token_kind": creds.get("token_kind", "long_lived_user"),
         "token_source": creds.get("source", "?"),
+        "ad_account_id": ad_acct_id,
     }
 
 
