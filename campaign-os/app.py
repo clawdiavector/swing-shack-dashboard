@@ -14215,6 +14215,35 @@ def meta_test_exchange():
         out["page_insights_error"] = str(e)[:300]
     out["cache_after_insights"] = dict(_meta._PAGE_TOKEN_CACHE)
     out["cache_id"] = id(_meta._PAGE_TOKEN_CACHE)
+
+    # Direct exchange probe - see what Meta returns
+    import os
+    import urllib.request as ur
+    import urllib.error as ue
+    tok = os.environ.get("META_SYSTEM_USER_TOKEN")
+    if tok:
+        # 1. Try the page exchange directly
+        url = f"https://graph.facebook.com/v18.0/198859063301219?fields=access_token&access_token={tok}"
+        try:
+            with ur.urlopen(url, timeout=10) as r:
+                body = json.loads(r.read().decode())
+            out["exchange_page_keys"] = list(body.keys())
+            pt = body.get("access_token")
+            if pt:
+                out["exchange_page_token_len"] = len(pt)
+                # Now try insights with that token
+                url2 = f"https://graph.facebook.com/v18.0/198859063301219/insights?metric=page_views_total&period=days_28&access_token={pt}"
+                try:
+                    with ur.urlopen(url2, timeout=10) as r:
+                        body2 = json.loads(r.read().decode())
+                    out["exchange_then_insights_ok"] = True
+                    out["exchange_then_insights_data"] = body2
+                except ue.HTTPError as e:
+                    out["exchange_then_insights_error"] = e.read().decode()[:200]
+        except ue.HTTPError as e:
+            out["exchange_page_error"] = e.read().decode()[:300]
+        except Exception as e:
+            out["exchange_page_exception"] = str(e)[:200]
     return jsonify(out), 200
 
 
