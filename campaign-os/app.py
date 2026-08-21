@@ -8002,6 +8002,9 @@ def connected_accounts_status_route():
         "blockers": [],
         "capabilities": [],
         "last_fetch": None,
+        "token_kind": "long_lived_user",  # backfilled below if CAPI detected
+        "token_first_8": None,
+        "token_expires_never": False,
     }
     try:
         _meta_cred_paths = [
@@ -8032,6 +8035,11 @@ def connected_accounts_status_route():
             meta_out["page_id"] = meta_creds.get("page_id")
             meta_out["instagram_account_id"] = meta_creds.get("instagram_account_id")
             meta_out["expires_at"] = meta_creds.get("expires_at")
+            # Pull token_kind from creds (backfilled earlier if missing)
+            meta_out["token_kind"] = meta_creds.get("token_kind", "long_lived_user")
+            _tok = meta_creds.get("access_token", "") or ""
+            meta_out["token_first_8"] = (_tok[:8] + "…") if _tok else None
+            meta_out["token_expires_never"] = (meta_out["token_kind"] == "capi_system_user")
             meta_out["scopes"] = [
                 "pages_show_list", "pages_read_engagement",
                 "pages_manage_metadata", "pages_manage_ads",
