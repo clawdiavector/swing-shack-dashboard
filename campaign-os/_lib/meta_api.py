@@ -469,8 +469,12 @@ def list_page_posts(limit: int = 25, fields: Optional[list[str]] = None) -> dict
     #   GET /{page_id}?fields=access_token → returns a page-scoped token.
     global _PAGE_TOKEN_CACHE  # ensure assignment below updates module-level
     if page_id not in _PAGE_TOKEN_CACHE:
+        # Use the env var DIRECTLY — _read_meta_access_token returns the same
+        # env var but if something else is interfering we want to know.
+        user_tok = os.environ.get("META_SYSTEM_USER_TOKEN") or _read_meta_access_token()
+        global _EXCHANGE_LAST_ERR
+        _EXCHANGE_LAST_ERR = f"user_tok_len={len(user_tok or '')}; started exchange for page {page_id}"
         try:
-            user_tok = _read_meta_access_token()
             exchange_url = (f"{GRAPH_API_BASE}/{page_id}"
                             f"?fields=access_token&access_token={user_tok}")
             req = Request(exchange_url)
@@ -480,11 +484,12 @@ def list_page_posts(limit: int = 25, fields: Optional[list[str]] = None) -> dict
             if page_tok:
                 _PAGE_TOKEN_CACHE[page_id] = page_tok
                 _LOG.info("minted page-scoped token for page_id=%s (len=%d)", page_id, len(page_tok))
+                _EXCHANGE_LAST_ERR = f"OK: cached page token len={len(page_tok)} for {page_id}"
+            else:
+                _EXCHANGE_LAST_ERR = f"empty access_token in response: keys={list(ex_body.keys())}"
         except Exception as e:
             _LOG.warning("could not exchange to page token (will try direct): %s", e)
-            # Store error for diagnosis
-            global _EXCHANGE_LAST_ERR
-            _EXCHANGE_LAST_ERR = str(e)
+            _EXCHANGE_LAST_ERR = f"EXCEPTION: {type(e).__name__}: {e}; user_tok_len={len(user_tok or '')}"
     # Exchange code is now ONLY at the top of get_page_insights (line 460+)
     default_fields = [
         "id",
