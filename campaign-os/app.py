@@ -4371,6 +4371,32 @@ def meta_probe():
             out["businesses"] = json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         out["businesses"] = {"error": e.read().decode()[:200]}
+    # 5. Test page-level metrics with multiple period/level combos
+    if out.get('pages', {}).get('data'):
+        page_id = out['pages']['data'][0]['id']
+        out['page_metrics_test'] = {}
+        for metric in ['page_impressions', 'page_fans', 'page_fan_adds']:
+            out['page_metrics_test'][metric] = {}
+            for period in ['day', 'total_lifetime', 'week', 'month']:
+                since_ts = int(_dt_cls.now(_tz.utc).timestamp()) - 30 * 86400 if period == 'day' else None
+                url = f"https://graph.facebook.com/v19.0/{page_id}/insights?metric={metric}&period={period}"
+                if since_ts:
+                    url += f"&since={since_ts}"
+                url += f"&access_token={_tok}"
+                try:
+                    with urllib.request.urlopen(url, timeout=15) as r:
+                        body = json.loads(r.read().decode())
+                        data = body.get("data", [])
+                        if data:
+                            out['page_metrics_test'][metric][period] = {
+                                "ok": True,
+                                "values_count": len(data[0].get("values", [])),
+                                "sample": data[0].get("values", [{}])[0] if data[0].get("values") else None,
+                            }
+                        else:
+                            out['page_metrics_test'][metric][period] = {"ok": False, "reason": "no data"}
+                except urllib.error.HTTPError as e:
+                    out['page_metrics_test'][metric][period] = {"error": e.read().decode()[:200]}
     return jsonify(out), 200
 
 
