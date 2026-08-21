@@ -217,7 +217,25 @@ def _graph_get(path: str, params: Optional[dict] = None, timeout: int = 15, use_
       MetaNetworkError: connection/timeout failure
     """
     if use_page_token:
-        token = _read_meta_page_token()
+        # Prefer the cached page-scoped token (exchanged from user/system)
+        global _PAGE_TOKEN_CACHE
+        try:
+            _PAGE_TOKEN_CACHE
+        except NameError:
+            _PAGE_TOKEN_CACHE = {}
+        # Look up the page_id from the URL path being requested
+        # path like "/198859063301219/insights" -> "198859063301219"
+        import re as _re
+        m = _re.match(r"^/(\d+)/", path)
+        if m:
+            requested_page = m.group(1)
+            cached = _PAGE_TOKEN_CACHE.get(requested_page)
+            if cached:
+                token = cached
+            else:
+                token = _read_meta_page_token()
+        else:
+            token = _read_meta_page_token()
     else:
         token = _read_meta_access_token()
     if not token:
@@ -447,6 +465,21 @@ def list_page_posts(limit: int = 25, fields: Optional[list[str]] = None) -> dict
     page_id = _read_meta_id("META_PAGE_ID", "page_id") or ""
     if not page_id.isdigit():
         raise ValueError(f"META_PAGE_ID must be numeric, got: {page_id!r}")
+    # Exchange user/system token for page-scoped token if needed.
+    user_tok = _read_meta_access_token()
+    if user_tok and page_id not in _PAGE_TOKEN_CACHE:
+        try:
+            url = (f"https://graph.facebook.com/{GRAPH_API_VERSION}/{page_id}"
+                   f"?fields=access_token&access_token={user_tok}")
+            req = Request(url)
+            with urlopen(req, timeout=10) as r:
+                body = json.loads(r.read().decode())
+            page_tok = body.get("access_token")
+            if page_tok:
+                _PAGE_TOKEN_CACHE[page_id] = page_tok
+                _LOG.info("exchanged user/system token for page-scoped token (page_id=%s)", page_id)
+        except Exception as e:
+            _LOG.warning("could not exchange to page token (will fall back to user token): %s", e)
     default_fields = [
         "id",
         "message",
@@ -596,6 +629,14 @@ def get_page_info(fields: Optional[list[str]] = None) -> dict:
         raise MetaAuthError(
             "FB-page credentials not configured - set META_APP_ID, META_PAGE_ID, META_ACCESS_TOKEN[_FILE]"
         )
+    # If we have a user/system token (not a real page-scoped token), Meta returns
+    # #190 for /{page_id}/insights. Exchange the token for a page-scoped one
+    # via /me/accounts. Cached per page_id for the request lifetime.
+    global _PAGE_TOKEN_CACHE
+    try:
+        _PAGE_TOKEN_CACHE
+    except NameError:
+        _PAGE_TOKEN_CACHE = {}
     page_id = _read_meta_id("META_PAGE_ID", "page_id") or ""
     if not page_id.isdigit():
         raise ValueError(f"META_PAGE_ID must be numeric, got: {page_id!r}")
