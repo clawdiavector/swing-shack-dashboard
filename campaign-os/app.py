@@ -14198,6 +14198,7 @@ def meta_test_exchange():
     out = {"ok": True, "page_credentials_present": _meta._page_credentials_present()}
     out["_read_meta_page_token_len"] = len(_meta._read_meta_page_token() or "")
     out["_read_meta_access_token_len"] = len(_meta._read_meta_access_token() or "")
+    out["cache_before"] = dict(_meta._PAGE_TOKEN_CACHE)
     try:
         info = _meta.get_page_info()
         out["page_info_keys"] = list(info.keys())
@@ -14205,12 +14206,14 @@ def meta_test_exchange():
         out["name"] = info.get("name")
     except Exception as e:
         out["page_info_error"] = str(e)[:300]
+    out["cache_after_page_info"] = dict(_meta._PAGE_TOKEN_CACHE)
     try:
         ins = _meta.get_page_insights(metrics=["page_views_total", "page_post_engagements"], period="days_28")
         out["page_insights_returned"] = list(ins.get("_flat", {}).keys())
         out["page_insights_values"] = ins.get("_flat", {})
     except Exception as e:
         out["page_insights_error"] = str(e)[:300]
+    out["cache_after_insights"] = dict(_meta._PAGE_TOKEN_CACHE)
     return jsonify(out), 200
 
 
