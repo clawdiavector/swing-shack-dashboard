@@ -217,23 +217,14 @@ def _graph_get(path: str, params: Optional[dict] = None, timeout: int = 15, use_
       MetaNetworkError: connection/timeout failure
     """
     if use_page_token:
-        # Prefer the cached page-scoped token (exchanged from user/system)
-        global _PAGE_TOKEN_CACHE
-        try:
-            _PAGE_TOKEN_CACHE
-        except NameError:
-            _PAGE_TOKEN_CACHE = {}
-        # Look up the page_id from the URL path being requested
-        # path like "/198859063301219/insights" -> "198859063301219"
-        import re as _re
-        m = _re.match(r"^/(\d+)/", path)
+        # Use the cached page-scoped token (exchanged from user/system)
+        # when the request path mentions a numeric page id.
+        # path like "/198859063301219/insights" → "198859063301219"
+        import re as _re_page
+        m = _re_page.match(r"^/(\d+)/", path)
         if m:
             requested_page = m.group(1)
-            cached = _PAGE_TOKEN_CACHE.get(requested_page)
-            if cached:
-                token = cached
-            else:
-                token = _read_meta_page_token()
+            token = _PAGE_TOKEN_CACHE.get(requested_page) or _read_meta_page_token()
         else:
             token = _read_meta_page_token()
     else:
@@ -465,6 +456,24 @@ def list_page_posts(limit: int = 25, fields: Optional[list[str]] = None) -> dict
     page_id = _read_meta_id("META_PAGE_ID", "page_id") or ""
     if not page_id.isdigit():
         raise ValueError(f"META_PAGE_ID must be numeric, got: {page_id!r}")
+    # Pre-mint a page-scoped token if we don't have one yet. Meta's
+    # /{page_id}/insights endpoint requires a Page Access Token (admin
+    # scope alone — even CAPI — returns #190). The exchange:
+    #   GET /{page_id}?fields=access_token → returns a page-scoped token.
+    if page_id not in _PAGE_TOKEN_CACHE:
+        try:
+            user_tok = _read_meta_access_token()
+            exchange_url = (f"{GRAPH_API_BASE}/{page_id}"
+                            f"?fields=access_token&access_token={user_tok}")
+            req = Request(exchange_url)
+            with urlopen(req, timeout=10) as r:
+                ex_body = json.loads(r.read().decode())
+            page_tok = ex_body.get("access_token")
+            if page_tok:
+                _PAGE_TOKEN_CACHE[page_id] = page_tok
+                _LOG.info("minted page-scoped token for page_id=%s (len=%d)", page_id, len(page_tok))
+        except Exception as e:
+            _LOG.warning("could not exchange to page token (will try direct): %s", e)
     # Exchange user/system token for page-scoped token if needed.
     user_tok = _read_meta_access_token()
     if user_tok and page_id not in _PAGE_TOKEN_CACHE:
