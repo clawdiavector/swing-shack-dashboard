@@ -382,18 +382,26 @@ class MetaNetworkError(Exception):
 # render IG and FB data side-by-side from a single dashboard view.
 
 def _page_credentials_present() -> bool:
-    """True if META_APP_ID + token + META_PAGE_ID are set.
+    """True if a Page-scoped workflow has the bits it needs.
 
-    Unlike meta_credentials_present(), this does NOT require an IG business
-    account id — the FB-page endpoints work with just the page id.
+    Returns True if EITHER:
+      - META_APP_ID + token + META_PAGE_ID are all set (legacy user token)
+      - META_SYSTEM_USER_TOKEN + META_PAGE_ID are set (server-side CAPI
+        system user — no META_APP_ID needed because the token is bound
+        to a specific app at generation time)
 
     Env vars take priority; data/meta-tokens.json is the bundled fallback.
     """
-    if not _read_meta_id("META_APP_ID", "app_id"):
-        return False
-    if not _read_meta_access_token():
+    tok = _read_meta_access_token()
+    if not tok:
         return False
     if not _read_meta_id("META_PAGE_ID", "page_id"):
+        return False
+    # CAPI System User tokens don't need META_APP_ID — just the token + page id.
+    if os.environ.get("META_SYSTEM_USER_TOKEN"):
+        return True
+    # Legacy user-token path still requires META_APP_ID.
+    if not _read_meta_id("META_APP_ID", "app_id"):
         return False
     return True
 
