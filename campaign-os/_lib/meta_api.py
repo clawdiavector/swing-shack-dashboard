@@ -51,11 +51,18 @@ def meta_credentials_present() -> bool:
 
 def _read_meta_access_token() -> Optional[str]:
     """Read Meta access token from (in order):
-      1. META_ACCESS_TOKEN_FILE — JSON file with {"access_token": "..."}
-      2. data/meta-tokens.json — bundled credentials fallback (same shape)
-      3. META_ACCESS_TOKEN — raw env value
+      1. META_SYSTEM_USER_TOKEN — server-side CAPI / Admin System User token
+         (never expires, full CRUD on page/ad-account/catalogue).
+      2. META_ACCESS_TOKEN_FILE — JSON file with {"access_token": "..."}
+      3. data/meta-tokens.json — bundled credentials fallback (same shape)
+      4. META_ACCESS_TOKEN — raw env value
     Returns None if not configured.
     """
+    # META_SYSTEM_USER_TOKEN is the preferred source — it never expires and
+    # has full CAPI/admin scope (the secret-drop slot for the system user).
+    sys_user = os.environ.get("META_SYSTEM_USER_TOKEN")
+    if sys_user and sys_user.strip():
+        return sys_user.strip()
     from_file = os.environ.get("META_ACCESS_TOKEN_FILE")
     if from_file:
         try:
