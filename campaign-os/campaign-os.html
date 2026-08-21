@@ -7058,6 +7058,42 @@ async function renderBrief(){
       b.__cacheBrand = cacheKey;
       S.brief = b; S.review = r; S.trends = t;
     }
+    // Channel ranking widget — independent call, doesn't block brief load
+    API.get('/api/channels/weight?brand_id=' + encodeURIComponent(S.brand || 'swing-shack'))
+      .then(d => { S.channelRank = d; renderChannelRankCard(); })
+      .catch(e => console.warn('channel rank fetch failed', e?.message || e));
+  }
+  function renderChannelRankCard(){
+    const body = $('#channel-rank-body');
+    if(!body) return;
+    const d = S.channelRank;
+    if(!d || !d.ok || !d.ranked){ body.innerHTML = '<span class="muted">Channel rank unavailable right now.</span>'; return; }
+    const gens = d.generated_at || '';
+    $('#channel-rank-generated').textContent = gens ? ('Updated ' + new Date(gens).toLocaleTimeString()) : '';
+    const max = Math.max(...d.ranked.map(c => c.total_score), 1);
+    body.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.6rem">
+        ${d.ranked.map((c, i) => `
+          <div class="rank-row" style="padding:.5rem .6rem;border:1px solid var(--bg-3);border-radius:8px;background:${i===0?'rgba(34,197,94,.06)':'var(--bg-2)'}">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:600;font-size:13px">${i===0?'🥇 ':(i===1?'🥈 ':(i===2?'🥉 ':''))}${c.label.split(' (')[0]}</div>
+              <div style="font-weight:700;color:var(--green);font-size:14px">${c.total_score}</div>
+            </div>
+            <div style="height:6px;background:var(--bg-3);border-radius:3px;margin:.35rem 0 .4rem;overflow:hidden">
+              <div style="height:100%;width:${(c.total_score/100)*100}%;background:${i===0?'var(--green)':'#3b82f6'};transition:width .3s"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.25rem;font-size:10px;color:var(--tx-3);text-align:center">
+              <div><b style="color:var(--tx-2);font-size:11px">${(c.axes[0].score||0).toFixed(0)}</b><br>data</div>
+              <div><b style="color:var(--tx-2);font-size:11px">${(c.axes[1].score||0).toFixed(0)}</b><br>engage</div>
+              <div><b style="color:var(--tx-2);font-size:11px">${(c.axes[2].score||0).toFixed(0)}</b><br>convert</div>
+              <div><b style="color:var(--tx-2);font-size:11px">${(c.axes[3].score||0).toFixed(0)}</b><br>cost</div>
+            </div>
+            ${c.axes[0].reasons && c.axes[0].reasons[0] ? `<div style="font-size:10.5px;color:var(--tx-3);margin-top:.25rem;line-height:1.4">${esc(c.axes[0].reasons[0])}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:.6rem;font-size:11px;color:var(--tx-3)">Top channel today: <b style="color:var(--green)">${d.ranked[0].label.split(' (')[0]}</b>. Score = data coverage (0-25) + engagement velocity (0-25) + conversion potential (0-25) + cost efficiency (0-25).</div>
+    `;
   }
   const b = S.brief;
   // The brief-feed safeGet wrapper (top of this function) can leave S.brief
@@ -7288,6 +7324,14 @@ async function renderBrief(){
     <div class="card col-3"><div class="stat"><div class="stat-val">${c.approved||0}</div><div class="stat-lbl">Approved</div><div class="stat-trend">${c.scheduled||0} scheduled</div></div></div>
     <div class="card col-3"><div class="stat"><div class="stat-val">${reviewTotal}</div><div class="stat-lbl">Need review</div></div></div>
     <div class="card col-3"><div class="stat"><div class="stat-val">${publish.length}</div><div class="stat-lbl">Ready to publish</div></div></div>
+
+    <div class="card col-12" id="channel-rank-card" data-help="Ranked list of every publishing channel by 0-100 health score. Built from data coverage + engagement velocity + conversion potential + cost. Top 3 are where to publish next." data-help-title="Channel ranking">
+      <div class="card-h">
+        <h3>📊 Channel ranking</h3>
+        <span class="muted" id="channel-rank-generated" style="font-size:11px"></span>
+      </div>
+      <div id="channel-rank-body" class="muted">Loading channel ranks…</div>
+    </div>
 
     <div class="card col-6"><div class="card-h"><h3 data-help="The single highest-leverage action for today, ranked by recency and brand-fit. Start here every morning. If you only do one thing in Campaign OS today, do the first item on this list." data-help-title="Do first">🎯 Do first</h3></div><ul class="list">${dofirst.map(x=>itemHtml(x)).join('') || '<li class="empty">Nothing urgent right now</li>'}</ul></div>
     <div class="card col-6"><div class="card-h"><h3 data-help="Drafts the agent produced that you have not approved or rejected yet. Click any item to open the review modal where you can approve, reject, or send back for revision. Empty state means the inbox is clean." data-help-title="Needs your review">📝 Needs your review</h3>${reviewTotal > review.length ? `<span class="muted" style="font-size:11px">showing ${review.length} of ${reviewTotal}</span>` : ''}</div><ul class="list">${review.map(x => { const a = Object.assign({approvalStatus: 'revisionRequested'}, x); return itemHtml(a); }).join('') || '<li class="empty">No pending review</li>'}</ul>${reviewTotal > review.length ? `<div style="padding:.4rem .25rem 0;font-size:12px"><button type="button" class="btn" data-home-empty-action="review">Open Review (${reviewTotal}) \u2192</button></div>` : ''}</div>
