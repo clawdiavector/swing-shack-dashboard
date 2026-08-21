@@ -30,6 +30,11 @@ _LOG = logging.getLogger("campaign_os.meta_api")
 GRAPH_API_VERSION = "v18.0"
 GRAPH_API_BASE = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
 
+# Cache for page-scoped tokens minted via /{page_id}?fields=access_token.
+# Keyed by page_id; lives for the process lifetime (cleared on Railway
+# redeploy).
+_PAGE_TOKEN_CACHE: dict = {}
+
 
 # ── Credential resolution (mirrors truth_collector._read_meta_access_token) ──
 
