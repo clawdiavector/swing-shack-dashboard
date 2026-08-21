@@ -34,6 +34,7 @@ GRAPH_API_BASE = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
 # Keyed by page_id; lives for the process lifetime (cleared on Railway
 # redeploy).
 _PAGE_TOKEN_CACHE: dict = {}
+_EXCHANGE_LAST_ERR = ""  # last error from exchange attempt
 
 
 # ── Credential resolution (mirrors truth_collector._read_meta_access_token) ──
@@ -481,6 +482,9 @@ def list_page_posts(limit: int = 25, fields: Optional[list[str]] = None) -> dict
                 _LOG.info("minted page-scoped token for page_id=%s (len=%d)", page_id, len(page_tok))
         except Exception as e:
             _LOG.warning("could not exchange to page token (will try direct): %s", e)
+            # Store error for diagnosis
+            global _EXCHANGE_LAST_ERR
+            _EXCHANGE_LAST_ERR = str(e)
     # Exchange code is now ONLY at the top of get_page_insights (line 460+)
     default_fields = [
         "id",

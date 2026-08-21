@@ -14214,6 +14214,7 @@ def meta_test_exchange():
     except Exception as e:
         out["page_insights_error"] = str(e)[:300]
     out["cache_after_insights"] = dict(_meta._PAGE_TOKEN_CACHE)
+    out["_exchange_last_err"] = getattr(_meta, '_EXCHANGE_LAST_ERR', 'not set')
     out["cache_id"] = id(_meta._PAGE_TOKEN_CACHE)
 
     # Direct exchange probe - see what Meta returns
