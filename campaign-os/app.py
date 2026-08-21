@@ -7917,6 +7917,11 @@ def connected_accounts_status_route():
             for d in [os.environ.get("DATA_DIR"), os.environ.get("BUNDLED_DATA_DIR"), BUNDLED_DATA_DIR]:
                 if d and d not in data_roots:
                     data_roots.append(d)
+            # Debug: log which data_roots are being walked (visible via app logs)
+            try:
+                _app_log.info("meta_status data_roots=%s", data_roots)
+            except Exception:
+                pass
             for fname, key_fan, key_handle in [
                 ("facebook-business-analytics.json", "fan_count", "page_name"),
                 ("ig-business-analytics.json", "followers_count", "username"),
