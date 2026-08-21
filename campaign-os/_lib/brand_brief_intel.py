@@ -484,11 +484,39 @@ def compute_audience_equity(brand_id: str = "swing-shack", *, ig: Optional[dict]
 
 # ── ALL-IN-ONE BRAND INTEL SNAPSHOT ─────────────────────────────────
 
+def _detect_meta_token_kind() -> str:
+    """Detect whether the live Meta token is a server-side system user token."""
+    import os
+    # Server-side tokens like CAPI/EAAjT6... never expire — env var present
+    if os.environ.get("META_SYSTEM_USER_TOKEN"):
+        return "capi_system_user"
+    # Fall back to credentials files
+    from pathlib import Path
+    candidates = [
+        Path.home() / ".openclaw-instance2/workspace/clients/swing-shack/credentials/meta-capi-system-user.json",
+        Path.home() / ".openclaw-instance2/workspace/clients/swing-shack/credentials/swing-shack-meta-token.json",
+        Path.home() / ".openclaw-instance2/workspace/swing-shack-dashboard/data/credentials/meta-token.json",
+    ]
+    for c in candidates:
+        if c.exists():
+            try:
+                import json
+                d = json.load(open(c))
+                if d.get("system_user_id") or "capi" in c.name:
+                    return "capi_system_user"
+                if not d.get("expires_at"):
+                    return "capi_system_user"
+            except Exception:
+                pass
+    return "long_lived_user"
+
+
 def build_brand_intel(brand_id: str = "swing-shack") -> dict:
     """Pull every data source and assemble a single intel snapshot.
 
     Returns: {
       ok, brand_id, generated_at,
+      meta_token_kind: 'capi_system_user' | 'long_lived_user' | 'missing',
       post_conversion: {...}, hook_bank: {...},
       ig_analytics: {...}, ig_business: {...},
       facebook_analytics: {...}, facebook_business: {...},
@@ -529,6 +557,8 @@ def build_brand_intel(brand_id: str = "swing-shack") -> dict:
         "ga4": ga4,
         "gbp_insights": gbp,
         "audience_equity": eq,
+        # Detect token kind for downstream consumers (weighted sort, brief renderer)
+        "meta_token_kind": _detect_meta_token_kind(),
     }
 
 

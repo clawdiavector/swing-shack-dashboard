@@ -4400,6 +4400,80 @@ def meta_probe():
     return jsonify(out), 200
 
 
+@app.route('/api/channels/weight', methods=['GET'])
+def channels_weight():
+    """GET /api/channels/weight — per-channel health score for the brand.
+
+    Built 2026-08-21. Ranks every publishing channel by a 0-100 score
+    computed from:
+      - data_coverage (0-25): does this channel have live engagement
+        metrics today? Real numbers beat baseline guesses.
+      - engagement_velocity (0-25): are followers actually doing something?
+        Measured from page_post_engagements, IG engagement_rate, etc.
+      - conversion_potential (0-25): can this channel accept new posts
+        + measure conversions? CAPI/GBP = high; X = medium.
+      - cost_efficiency (0-25): free beats paid at the same quality.
+        Meta = $0, GBP = $0, TIKTOK = $0, X = $100/mo (heavy penalty).
+
+    The response is the canonical ranked channel list. The brief's
+    Morning Brief uses the top 3 to recommend where to publish next;
+    the publish queue picks the next 5 by this score.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.brand_brief_intel import build_brand_intel
+        from _lib.weighted_sort import compute_channel_weights
+        brand_id = request.args.get("brand_id") or "swing-shack"
+        intel = build_brand_intel(brand_id)
+        ranked = compute_channel_weights(intel)
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "ranked": ranked,
+            "generated_at": _dt_cls.now(_tz.utc).isoformat(),
+        }), 200
+    except Exception as e:
+        _app_log.exception("channels_weight failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/channels/publish-queue', methods=['POST'])
+def channels_publish_queue():
+    """POST /api/channels/publish-queue — pick the next N channels to publish to.
+
+    Body (JSON, optional):
+      n               (default 3) — channels to include
+      brand_id        (default swing-shack)
+      lookback_days   (default 14) — how far back to consider "fresh" content
+
+    Returns the top N channels by weighted sort, plus a brief reason
+    for each. Use this to drive the Opportunity Finder / Morning Brief
+    recommendations.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        n = int(body.get("n") or 3)
+        brand_id = body.get("brand_id") or "swing-shack"
+        from _lib.brand_brief_intel import build_brand_intel
+        from _lib.weighted_sort import compute_channel_weights
+        intel = build_brand_intel(brand_id)
+        ranked = compute_channel_weights(intel)
+        queue = ranked[:n]
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "queue": queue,
+            "queue_size": len(queue),
+            "generated_at": _dt_cls.now(_tz.utc).isoformat(),
+        }), 200
+    except Exception as e:
+        _app_log.exception("channels_publish_queue failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/meta/conversion', methods=['POST'])
 def meta_conversion_submit():
     """POST /api/meta/conversion — send a conversion event to Meta CAPI.
