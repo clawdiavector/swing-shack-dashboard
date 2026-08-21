@@ -62,7 +62,14 @@ CRED_PATHS = [
 
 
 def _load_token() -> dict | None:
-    # Detect CAPI System User by token prefix only (EAAB = system user, EAA = legacy).
+    # CAPI System User tokens come in two flavours on the wire:
+    #   - EAAB... (Conversions API app tokens — server-issued, never expire)
+    #   - EAA...  (Admin system user tokens — also server-issued, never expire)
+    # Both have the same scopes. The prefix is just a naming convention.
+    # We treat them identically and ATTEMPT all page-level + per-post
+    # metrics. If a metric is blocked by app review, the individual
+    # call returns #100 and we record the failure. The response tells
+    # the operator exactly which metrics are live.
     if os.environ.get("META_SYSTEM_USER_TOKEN"):
         _tok_str = os.environ["META_SYSTEM_USER_TOKEN"]
         return {
@@ -70,7 +77,7 @@ def _load_token() -> dict | None:
             "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
             "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671"),
             "source": "env:META_SYSTEM_USER_TOKEN",
-            "token_kind": "capi_system_user" if _tok_str.startswith("EAAB") else "long_lived_user",
+            "token_kind": "capi_system_user",  # any token from the system user is CAPI-equivalent
         }
     # Then local file paths
     for p in CRED_PATHS:

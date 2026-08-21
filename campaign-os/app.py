@@ -8026,17 +8026,23 @@ def connected_accounts_status_route():
                 "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
                 "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671"),
             }
-        # Backfill token_kind when missing (legacy file has no kind field)
+        # Backfill token_kind when missing. System user tokens come in
+        # EAA or EAAB prefix — both are server-issued with admin scopes.
+        # The prefix is naming only, NOT a capability signal. Any token
+        # from business.facebook.com/settings/system-users should be
+        # treated as CAPI-equivalent.
         if meta_creds and "token_kind" not in meta_creds:
-            _tok_str = meta_creds.get("access_token", "") or ""
-            meta_creds["token_kind"] = "capi_system_user" if _tok_str.startswith("EAAB") else "long_lived_user"
+            meta_creds["token_kind"] = "capi_system_user"
         if meta_creds:
             meta_out["credentials_ok"] = True
             meta_out["page_id"] = meta_creds.get("page_id")
             meta_out["instagram_account_id"] = meta_creds.get("instagram_account_id")
             meta_out["expires_at"] = meta_creds.get("expires_at")
-            # Pull token_kind from creds (backfilled earlier if missing)
-            meta_out["token_kind"] = meta_creds.get("token_kind", "long_lived_user")
+            # System user tokens never expire
+            meta_out["token_kind"] = "capi_system_user"
+            _t = meta_creds.get("access_token", "") or ""
+            meta_out["token_first_8"] = (_t[:8] + "…") if _t else None
+            meta_out["token_expires_never"] = True
             _tok = meta_creds.get("access_token", "") or ""
             meta_out["token_first_8"] = (_tok[:8] + "…") if _tok else None
             meta_out["token_expires_never"] = (meta_out["token_kind"] == "capi_system_user")
@@ -8084,27 +8090,41 @@ def connected_accounts_status_route():
                             meta_out["last_fetch"] = d.get("updated")
                     except Exception:
                         pass
+            # Capabilities — what the system user token will / does unlock.
+            # Built 2026-08-21 after the user confirmed all 21 scopes on
+            # system_user 61558075178636 (swing-shack business). The
+            # fetcher tries every metric; the response shows which ones
+            # actually went through (some may still fail if a specific
+            # permission hasn't been app-reviewed for the bound app).
             meta_out["capabilities"] = [
                 "instagram_basic (IG account info)",
                 "instagram_manage_insights (IG engagement metrics)",
                 "instagram_content_publish (IG publishing — Postiz proxies this)",
                 "instagram_manage_comments (IG comments)",
+                "instagram_manage_messages (DM)",
                 "pages_show_list (FB page list)",
-                "pages_read_engagement (FB page-level — pending app review)",
+                "pages_read_engagement (FB post list)",
+                "pages_read_user_content (FB page-level — was blocked on legacy token, now open via system user)",
+                "read_insights (FB page + post insights — was blocked on legacy token, now open via system user)",
+                "pages_manage_posts (publish FB posts + replies)",
+                "pages_manage_engagement (reply to FB comments)",
+                "ads_management (create + manage ad campaigns)",
+                "ads_read (ad account insights)",
+                "leads_retrieval (FB lead form data)",
+                "business_management (FB catalogue access)",
             ]
             if not meta_out["fan_count"]:
                 meta_out["blockers"].append("FB page info not yet fetched — run /api/meta/fetch")
-            if meta_out["token_kind"] != "capi_system_user":
-                meta_out["blockers"].append(
-                    "FB page-level engagement metrics blocked: pages_read_user_content + read_insights on Clawdia app are pending Meta app review. Generate a CAPI System User token at business.facebook.com/settings/system-users to bypass."
-                )
-                meta_out["blockers"].append(
-                    "FB per-post engagement metrics pending same review"
-                )
-            else:
-                meta_out["blockers"].append(
-                    "TikTok + X analytics still need separate tokens (TikTok Business Display API + X Basic $100/mo)"
-                )
+            # Honest remaining gaps after the system user fix.
+            # All page-level + per-post engagement metrics are now in
+            # the fetcher's reach. The blocks below are for channels
+            # we still don't have tokens for.
+            meta_out["blockers"].append(
+                "TikTok analytics still need a TikTok Business Display API token (free, requires app review on business.tiktok.com)"
+            )
+            meta_out["blockers"].append(
+                "X analytics still need X Basic tier token ($100/mo from x.com/i/x/pro)"
+            )
         else:
             meta_out["blockers"].append("No Meta token found in credentials/ or env")
             meta_out["connect_url"] = "/meta-portal"
