@@ -217,6 +217,10 @@ def fetch_all() -> dict:
     page_metrics = {}
     page_metric_errors = {}  # for debugging — surfaced in the response
     if not err and page_tok:
+        # Discovery trail: trace which ad-account path the fetcher tried
+        discovery = {"tried_page_endpoint": False, "page_endpoint_returned": None,
+                     "tried_me_adaccounts": False, "me_adaccounts_returned": None,
+                     "final_ad_account_id": None}
         # First try the page endpoint (handles most metrics).
         for metric in ["page_post_engagements", "page_views_total",
                        "page_actions_post_reactions_total"]:
@@ -245,9 +249,11 @@ def fetch_all() -> dict:
         # Then discover the ad account bound to this page and try the
         # remaining metrics from there. If no ad account, skip.
         try:
+            discovery["tried_page_endpoint"] = True
             url = f"https://graph.facebook.com/v19.0/{page_id}?fields=ads_permitted_roles,adaccounts{{id,name,account_status}}&access_token={page_tok}"
             page_meta, pm_err = _http(url)
             adaccounts = (page_meta or {}).get("adaccounts", {}).get("data", [])
+            discovery["page_endpoint_returned"] = len(adaccounts)
             ad_acct_id = None
             if adaccounts:
                 # Pick the first active ad account
@@ -261,11 +267,16 @@ def fetch_all() -> dict:
             ad_acct_id = None
         # If no ad account via the page, try me/adaccounts
         if not ad_acct_id:
+            discovery["tried_me_adaccounts"] = True
             url = f"https://graph.facebook.com/v19.0/me/adaccounts?access_token={page_tok}"
             me_acct, me_err = _http(url)
-            accts = (me_acct or {}).get("data", [])
-            if accts:
+            accts = (me_acct or {}).get("data", []) or []
+            discovery["me_adaccounts_returned"] = len(accts)
+            if me_err:
+                page_metric_errors["me_adaccounts"] = me_err[:200]
+            elif accts:
                 ad_acct_id = accts[0].get("id")
+        discovery["final_ad_account_id"] = ad_acct_id
         if ad_acct_id:
             for metric in ["page_impressions", "page_fans", "page_fan_adds"]:
                 since_ts = int((_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=30)).timestamp())
@@ -454,6 +465,7 @@ def fetch_all() -> dict:
         "token_kind": creds.get("token_kind", "long_lived_user"),
         "token_source": creds.get("source", "?"),
         "ad_account_id": ad_acct_id,
+        "ad_account_discovery": discovery,
     }
 
 
