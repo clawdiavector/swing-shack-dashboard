@@ -799,46 +799,44 @@ def compute_marketing_vs_advertising_balance(brand_id: str = "swing-shack") -> D
 # ─── Opportunity cost simulator ────────────────────────────────────
 
 def simulate_opportunity_cost(brand_id: str, proposed: Dict[str, Any]) -> Dict[str, Any]:
-    """What would adding a proposed bet do to the portfolio?"""
+    """What would adding a proposed bet do to the portfolio?
+    Approximation: weights the proposed item by 1 unit, recomputes area shares."""
     effort = compute_effort_allocation(brand_id, "month")
-    before_areas = dict(effort["by_strategic_area"])
-    before_themes = dict(effort["theme_concentration"])
-    total_before = effort["total_items"]
+    # by_strategic_area is already percentages; convert back to weights
+    total_items = max(effort["total_items"], 1)
+    before_area_weights = {k: round(v * total_items / 100) for k, v in effort["by_strategic_area"].items()}
+    before_theme_weights = dict(effort["theme_concentration"])
 
     # Build the proposed item
     proposed_themes = proposed.get("themes", [])
     proposed_areas = classify_strategic_areas(" ".join([proposed.get("title", "")] + proposed_themes))
 
-    # Simulate: add this item, recompute percentages
-    # Areas: items can have 1-2 areas each, so total area-slots = sum
-    total_area_slots_before = sum(v for v in before_areas.values())
-    # Estimate after slots
-    total_area_slots_after = total_area_slots_before + len(proposed_areas)
-    after_areas = dict(before_areas)
+    # Add 1 unit to each area the proposed item serves
+    after_area_weights = dict(before_area_weights)
     for area in proposed_areas:
-        after_areas[area] = after_areas.get(area, 0) + 1
-    if total_area_slots_after > 0:
-        after_areas = {k: round(100 * v / total_area_slots_after) for k, v in after_areas.items()}
-    else:
-        after_areas = {}
+        after_area_weights[area] = after_area_weights.get(area, 0) + 1
+    total_after_items = total_items + 1
+    after_areas = {k: round(100 * v / max(total_after_items, 1)) for k, v in after_area_weights.items()}
 
-    after_themes = dict(before_themes)
+    # Themes
+    after_theme_weights = dict(before_theme_weights)
     for t in proposed_themes:
         t_low = (t or "").lower().strip()
         if t_low:
-            after_themes[t_low] = after_themes.get(t_low, 0) + 1
-    total_themes_after = sum(after_themes.values()) or 1
-    after_themes = {k: round(100 * v / total_themes_after) for k, v in after_themes.items()}
+            after_theme_weights[t_low] = after_theme_weights.get(t_low, 0) + 1
+    total_theme_units = sum(after_theme_weights.values()) or 1
+    after_themes = {k: round(100 * v / total_theme_units) for k, v in after_theme_weights.items()}
 
-    # Find likely displaced areas (the smallest areas that don't include the proposed)
+    # Find likely displaced areas — smallest current areas not in proposed
     displaced = []
-    for area, pct in sorted(before_areas.items(), key=lambda x: x[1])[:3]:
+    for area, before_pct in sorted(effort["by_strategic_area"].items(), key=lambda x: x[1])[:3]:
         if area not in proposed_areas:
+            after_pct = after_areas.get(area, 0)
             displaced.append({
                 "area": area,
-                "before_pct": pct,
-                "after_pct": after_areas.get(area, 0),
-                "displaced_pct": pct - after_areas.get(area, 0),
+                "before_pct": before_pct,
+                "after_pct": after_pct,
+                "displaced_pct": round(before_pct - after_pct, 1),
             })
 
     # Concentration check
@@ -853,13 +851,21 @@ def simulate_opportunity_cost(brand_id: str, proposed: Dict[str, Any]) -> Dict[s
 
     return {
         "proposed": proposed,
-        "before": {"areas": before_areas, "themes": before_themes, "total_items": total_before},
-        "after": {"areas": after_areas, "themes": after_themes, "total_items": total_after},
+        "before": {
+            "areas": effort["by_strategic_area"],
+            "themes": effort["theme_concentration"],
+            "total_items": total_items,
+        },
+        "after": {
+            "areas": after_areas,
+            "themes": after_themes,
+            "total_items": total_after_items,
+        },
         "displaced": displaced,
         "concentration_warning": concentration_warning,
         "recommendation": (
             "Acceptable — fits current mix."
-            if not concentration_warning and not any(d["displaced_pct"] >= 5 for d in displaced)
+            if not concentration_warning and not any(abs(d["displaced_pct"]) >= 5 for d in displaced)
             else "Review trade-offs before adding."
         ),
     }
