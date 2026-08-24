@@ -14908,6 +14908,112 @@ def audit_clutter():
     return jsonify({"ok": True, "clutter": audit["clutter_report"]}), 200
 
 
+
+# ─── Marketing portfolio API ──────────────────────────────────────────
+
+@app.route('/api/portfolio/effort', methods=['GET'])
+def portfolio_effort():
+    """Where is marketing effort going? Per period (month|quarter)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    period = request.args.get('period', 'month')
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "effort": pf.compute_effort_allocation(bid, period)}), 200
+
+
+@app.route('/api/portfolio/demand-mismatch', methods=['GET'])
+def portfolio_demand_mismatch():
+    """Demand vs content mismatch. Effort vs customer behaviour."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "mismatch": pf.compute_demand_mismatch(bid)}), 200
+
+
+@app.route('/api/portfolio/opportunities', methods=['GET'])
+def portfolio_opportunities():
+    """Opportunities that don't currently exist in the calendar."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    opps = pf.detect_opportunities(bid)
+    return jsonify({"ok": True, "opportunities": opps}), 200
+
+
+@app.route('/api/portfolio/opportunity-decide', methods=['POST'])
+def portfolio_opportunity_decide():
+    """Create bet / Watch / Ignore decision for an opportunity.
+    Ignore writes to strategic memory."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import portfolio as pf
+    result = pf.record_opportunity_decision(
+        bid,
+        body.get('opportunity_id'),
+        body.get('decision'),
+        body.get('note', ''),
+    )
+    return jsonify(result), 200
+
+
+@app.route('/api/portfolio/coverage', methods=['GET'])
+def portfolio_coverage():
+    """Strategic coverage per market move."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "coverage": pf.compute_strategic_coverage(bid)}), 200
+
+
+@app.route('/api/portfolio/priority-vs-effort', methods=['GET'])
+def portfolio_priority_vs_effort():
+    """Priority vs Effort matrix per market move."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "matrix": pf.compute_priority_vs_effort(bid)}), 200
+
+
+@app.route('/api/portfolio/marketing-vs-advertising', methods=['GET'])
+def portfolio_mkt_vs_adv():
+    """Marketing vs Advertising balance view."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "balance": pf.compute_marketing_vs_advertising_balance(bid)}), 200
+
+
+@app.route('/api/portfolio/simulate', methods=['POST'])
+def portfolio_simulate():
+    """Simulate the opportunity cost of adding a proposed bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import portfolio as pf
+    result = pf.simulate_opportunity_cost(bid, body)
+    return jsonify({"ok": True, "simulation": result}), 200
+
+
+@app.route('/api/portfolio/monthly-meeting', methods=['GET'])
+def portfolio_monthly_meeting():
+    """The monthly strategy meeting: KEEP / KILL / SCALE / FIX / MISSING / BET."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    meeting = pf.generate_monthly_meeting(bid)
+    return jsonify({"ok": True, "meeting": meeting}), 200
+
+
 if __name__ == '__main__':
     _boot_load_persisted_secrets()
     _boot_selfheal_windsor()

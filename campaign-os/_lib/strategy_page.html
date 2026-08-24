@@ -405,6 +405,145 @@ body {
 .strip-day .ship.milestone-test_end::before { content: '🧪✓ '; }
 .strip-day .empty { color: var(--tx-3); font-style: italic; font-size: 10px; }
 
+/* Portfolio panel */
+.portfolio-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+}
+@media (max-width: 1200px) { .portfolio-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 800px) { .portfolio-grid { grid-template-columns: 1fr; } }
+.portfolio-card {
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: 8px;
+  padding: 1rem;
+}
+.portfolio-card h4 {
+  font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 0.75rem;
+}
+.bar-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+.bar-row .label { font-size: 11px; color: var(--tx-2); width: 110px; text-transform: capitalize; }
+.bar-row .track {
+  flex: 1; height: 8px; background: var(--bg-4); border-radius: 4px; overflow: hidden;
+}
+.bar-row .fill {
+  height: 100%; background: var(--gold); border-radius: 4px;
+}
+.bar-row .fill.mkt { background: var(--marketing); }
+.bar-row .fill.adv { background: var(--advertising); }
+.bar-row .fill.conversion { background: var(--green); }
+.bar-row .fill.authority { background: var(--gold); }
+.bar-row .fill.brand { background: var(--purple); }
+.bar-row .fill.seo { background: var(--blue); }
+.bar-row .fill.crm { background: var(--orange); }
+.bar-row .fill.retention { background: var(--orange); }
+.bar-row .fill.acquisition { background: var(--blue); }
+.bar-row .fill.community { background: var(--purple); }
+.bar-row .fill.partnerships { background: var(--blue); }
+.bar-row .fill.product_education { background: var(--green); }
+.bar-row .fill.promotions { background: var(--red); }
+.bar-row .pct { font-size: 11px; color: var(--tx-3); width: 35px; text-align: right; }
+
+.mismatch-flag {
+  background: rgba(255,107,107,0.08);
+  border-left: 3px solid var(--red);
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 0.4rem;
+  font-size: 11px;
+}
+.mismatch-flag.undersupported { background: rgba(251,146,60,0.08); border-color: var(--orange); }
+.mismatch-flag.aligned { background: rgba(93,255,157,0.08); border-color: var(--green); }
+.mismatch-narrative {
+  background: var(--bg-2); border-radius: 6px; padding: 0.5rem 0.75rem;
+  font-size: 11px; margin-top: 0.5rem; color: var(--tx-2);
+  font-style: italic;
+}
+
+.coverage-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 0; border-bottom: 1px dashed var(--line);
+  font-size: 11px;
+}
+.coverage-row:last-child { border-bottom: none; }
+.coverage-row .rating {
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 3px;
+}
+.rating.strong { background: rgba(93,255,157,0.15); color: var(--green); }
+.rating.moderate { background: rgba(251,191,36,0.15); color: var(--gold); }
+.rating.weak { background: rgba(251,146,60,0.15); color: var(--orange); }
+.rating.orphan { background: rgba(255,107,107,0.15); color: var(--red); }
+
+.matrix-row {
+  display: grid; grid-template-columns: 1fr 60px 60px;
+  gap: 0.5rem; align-items: center;
+  padding: 0.4rem 0; border-bottom: 1px dashed var(--line);
+  font-size: 11px;
+}
+.matrix-row .pill {
+  font-size: 9px; letter-spacing: 0.05em; padding: 2px 6px;
+  border-radius: 3px; font-weight: 700; text-align: center;
+}
+.pill.high { background: var(--green); color: var(--bg); }
+.pill.medium { background: var(--gold); color: var(--bg); }
+.pill.low { background: var(--tx-3); color: var(--bg); }
+.matrix-row .flag {
+  font-size: 10px; color: var(--orange);
+}
+
+.opp-card {
+  background: var(--bg-3); border: 1px solid var(--line);
+  border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+  font-size: 12px;
+}
+.opp-card .opp-type {
+  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 0.3rem;
+}
+.opp-card .opp-signal { font-weight: 600; color: var(--tx); margin-bottom: 0.3rem; }
+.opp-card .opp-evidence { font-size: 11px; color: var(--tx-3); margin-bottom: 0.4rem; }
+.opp-card .opp-hypothesis { font-size: 11px; color: var(--tx-2); font-style: italic; margin-bottom: 0.4rem; }
+.opp-card .opp-actions {
+  display: flex; gap: 0.4rem; margin-top: 0.4rem;
+}
+.opp-card .opp-actions button {
+  padding: 0.2rem 0.5rem; border-radius: 4px; font-family: inherit;
+  font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em;
+  border: 1px solid var(--line); background: transparent; color: var(--tx-2);
+}
+.opp-card .opp-actions button.create { border-color: var(--green); color: var(--green); }
+.opp-card .opp-actions button.create:hover { background: var(--green); color: var(--bg); }
+.opp-card .opp-actions button.watch { border-color: var(--blue); color: var(--blue); }
+.opp-card .opp-actions button.watch:hover { background: var(--blue); color: var(--bg); }
+.opp-card .opp-actions button.ignore { border-color: var(--red); color: var(--red); }
+.opp-card .opp-actions button.ignore:hover { background: var(--red); color: var(--bg); }
+.opp-card .opp-confidence {
+  font-size: 10px; padding: 1px 5px; border-radius: 3px;
+  margin-left: 0.5rem;
+}
+.opp-card .opp-confidence.high { background: rgba(93,255,157,0.15); color: var(--green); }
+.opp-card .opp-confidence.medium { background: rgba(251,191,36,0.15); color: var(--gold); }
+.opp-card .opp-confidence.low { background: rgba(174,184,197,0.15); color: var(--tx-2); }
+
+.meeting-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+}
+@media (max-width: 1200px) { .meeting-grid { grid-template-columns: 1fr 1fr; } }
+.meeting-col h4 {
+  font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.meeting-col h4.keep { color: var(--green); }
+.meeting-col h4.kill { color: var(--red); }
+.meeting-col h4.scale { color: var(--gold); }
+.meeting-col h4.fix { color: var(--orange); }
+.meeting-col h4.missing { color: var(--blue); }
+.meeting-col h4.bet { color: var(--purple); }
+.meeting-col ul { list-style: none; padding-left: 0; }
+.meeting-col li {
+  font-size: 11px; padding: 0.3rem 0; border-bottom: 1px dashed var(--line);
+  color: var(--tx-2);
+}
+
 /* Audit panel */
 .audit-summary {
   display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-bottom: 1rem;
@@ -585,6 +724,63 @@ body {
   <div id="audit-needs-cleaning"></div>
 </div>
 
+<!-- ─── Marketing portfolio ─── -->
+<div class="portfolio-section" style="background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:1.5rem;margin-bottom:2rem">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem">
+    <h2 style="font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:800">Portfolio balance</h2>
+    <div class="btn-group">
+      <button class="mode-chip active" data-period="month" onclick="setPortfolioPeriod('month')">Month</button>
+      <button class="mode-chip" data-period="quarter" onclick="setPortfolioPeriod('quarter')">Quarter</button>
+      <button class="btn" onclick="runPortfolio()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="portfolio-grid">
+    <!-- Left: effort allocation -->
+    <div class="portfolio-card">
+      <h4>Effort by area</h4>
+      <div id="effort-bars"></div>
+    </div>
+
+    <!-- Middle: funnel split -->
+    <div class="portfolio-card">
+      <h4>Funnel split</h4>
+      <div id="funnel-bars"></div>
+    </div>
+
+    <!-- Right: marketing vs advertising -->
+    <div class="portfolio-card">
+      <h4>Marketing vs Advertising</h4>
+      <div id="mkt-adv"></div>
+    </div>
+  </div>
+
+  <div class="portfolio-grid" style="margin-top:1rem">
+    <div class="portfolio-card">
+      <h4>Demand / content mismatch</h4>
+      <div id="mismatch"></div>
+    </div>
+    <div class="portfolio-card">
+      <h4>Strategic coverage</h4>
+      <div id="coverage"></div>
+    </div>
+    <div class="portfolio-card">
+      <h4>Priority vs Effort</h4>
+      <div id="priority-effort"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem">
+    <h4 style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:0.5rem">Opportunities</h4>
+    <div id="opportunities"></div>
+  </div>
+
+  <div style="margin-top:1.5rem">
+    <h4 style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:0.5rem">Monthly strategy meeting</h4>
+    <div id="meeting-m"></div>
+  </div>
+</div>
+
 <!-- ─── Lessons ledger (kept) ─── -->
 <div class="lessons-bar">
   <h2>The ledger</h2>
@@ -622,6 +818,7 @@ async function loadStrategy() {
   await renderStrip();  // strategic strip — always visible
   renderSwimlanes();
   renderLessons();
+  runPortfolio();  // portfolio panel auto-loads
   await loadCalendar();
   await loadDecisionQueue();
   if (!trendsRequested) {
@@ -1568,6 +1765,159 @@ async function mineLessons() {
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+let portfolioPeriod = 'month';
+
+function setPortfolioPeriod(p) {
+  portfolioPeriod = p;
+  document.querySelectorAll('[data-period]').forEach(el => el.classList.toggle('active', el.dataset.period === p));
+  runPortfolio();
+}
+
+async function runPortfolio() {
+  try {
+    const [effortR, mismatchR, oppR, covR, matR, balanceR, meetingR] = await Promise.all([
+      fetch(`/api/portfolio/effort?brand=${BRAND_ID}&period=${portfolioPeriod}`).then(r => r.json()),
+      fetch(`/api/portfolio/demand-mismatch?brand=${BRAND_ID}`).then(r => r.json()),
+      fetch(`/api/portfolio/opportunities?brand=${BRAND_ID}`).then(r => r.json()),
+      fetch(`/api/portfolio/coverage?brand=${BRAND_ID}`).then(r => r.json()),
+      fetch(`/api/portfolio/priority-vs-effort?brand=${BRAND_ID}`).then(r => r.json()),
+      fetch(`/api/portfolio/marketing-vs-advertising?brand=${BRAND_ID}`).then(r => r.json()),
+      fetch(`/api/portfolio/monthly-meeting?brand=${BRAND_ID}`).then(r => r.json()),
+    ]);
+    if (effortR.ok) renderEffort(effortR.effort);
+    if (mismatchR.ok) renderMismatch(mismatchR.mismatch);
+    if (oppR.ok) renderOpportunities(oppR.opportunities);
+    if (covR.ok) renderCoverage(covR.coverage);
+    if (matR.ok) renderPriorityEffort(matR.matrix);
+    if (balanceR.ok) renderMktAdv(balanceR.balance);
+    if (meetingR.ok) renderMeeting(meetingR.meeting);
+  } catch (e) { console.error('runPortfolio', e); }
+}
+
+function renderEffort(effort) {
+  // effort by area
+  const areaBars = Object.entries(effort.by_strategic_area).sort((a, b) => b[1] - a[1]);
+  document.getElementById('effort-bars').innerHTML = areaBars.map(([area, pct]) =>
+    `<div class="bar-row">
+      <span class="label">${esc(area.replace(/_/g, ' '))}</span>
+      <div class="track"><div class="fill ${esc(area)}" style="width:${pct}%"></div></div>
+      <span class="pct">${pct}%</span>
+    </div>`
+  ).join('') || '<div style="color:var(--tx-3);font-size:11px">No items this period.</div>';
+
+  // funnel bars
+  const funnelBars = Object.entries(effort.by_funnel_stage);
+  document.getElementById('funnel-bars').innerHTML = funnelBars.map(([stage, pct]) => {
+    const fillClass = stage === 'conversion' ? 'conversion' : (stage === 'retention' ? 'retention' : 'brand');
+    return `<div class="bar-row">
+      <span class="label">${esc(stage)}</span>
+      <div class="track"><div class="fill ${fillClass}" style="width:${pct}%"></div></div>
+      <span class="pct">${pct}%</span>
+    </div>`;
+  }).join('') || '<div style="color:var(--tx-3);font-size:11px">No items this period.</div>';
+
+  // marketing vs advertising
+  const mva = effort.marketing_vs_advertising;
+  document.getElementById('mkt-adv').innerHTML = `
+    <div class="bar-row"><span class="label">Marketing</span><div class="track"><div class="fill mkt" style="width:${mva.marketing_pct}%"></div></div><span class="pct">${mva.marketing_pct}%</span></div>
+    <div class="bar-row"><span class="label">Advertising</span><div class="track"><div class="fill adv" style="width:${mva.advertising_pct}%"></div></div><span class="pct">${mva.advertising_pct}%</span></div>
+  `;
+}
+
+function renderMismatch(m) {
+  const cont = document.getElementById('mismatch');
+  if (!m.mismatches.length) {
+    cont.innerHTML = `<div class="mismatch-flag aligned"><b>Aligned.</b> Effort follows demand.</div>`;
+    return;
+  }
+  let html = m.mismatches.slice(0, 5).map(mm =>
+    `<div class="mismatch-flag ${mm.direction === 'undersupported' ? 'undersupported' : ''}">
+      <b>${esc(mm.area)}</b> — effort ${mm.effort_pct}% vs demand ${mm.demand_pct}% (gap ${mm.gap > 0 ? '+' : ''}${mm.gap}%)
+    </div>`
+  ).join('');
+  if (m.narrative) html += `<div class="mismatch-narrative">${esc(m.narrative)}</div>`;
+  cont.innerHTML = html;
+}
+
+function renderCoverage(c) {
+  document.getElementById('coverage').innerHTML = c.coverage.map(cov =>
+    `<div class="coverage-row">
+      <span style="flex:1">${esc(cov.title)}</span>
+      <span style="color:var(--tx-3);margin-right:0.5rem">${cov.active_bets_count} bets</span>
+      <span class="rating ${cov.coverage_rating}">${cov.coverage_rating}</span>
+    </div>`
+  ).join('') || '<div style="color:var(--tx-3);font-size:11px">No active moves.</div>';
+}
+
+function renderPriorityEffort(m) {
+  document.getElementById('priority-effort').innerHTML = m.matrix.map(r =>
+    `<div class="matrix-row">
+      <span>${esc(r.title)}</span>
+      <span class="pill ${r.strategic_priority}">${r.strategic_priority[0].toUpperCase()}</span>
+      <span class="pill ${r.execution_effort}">${r.execution_effort[0].toUpperCase()}${r.flag ? `<div class="flag">${esc(r.flag.replace(/_/g, ' '))}</div>` : ''}</span>
+    </div>`
+  ).join('') || '<div style="color:var(--tx-3);font-size:11px">No moves.</div>';
+}
+
+function renderMktAdv(b) {
+  const cont = document.getElementById('mkt-adv');
+  if (b.mismatches.length) {
+    cont.innerHTML += `<div style="margin-top:0.5rem;font-size:11px;color:var(--orange)">⚠ ${b.mismatches.length} marketing bet${b.mismatches.length === 1 ? '' : 's'} with no advertising support.</div>`;
+  }
+}
+
+function renderOpportunities(opps) {
+  document.getElementById('opportunities').innerHTML = opps.length ? opps.map(o =>
+    `<div class="opp-card">
+      <div class="opp-type">${esc(o.type)} <span class="opp-confidence ${o.confidence}">${o.confidence}</span></div>
+      <div class="opp-signal">${esc(o.signal)}</div>
+      <div class="opp-evidence">📊 ${o.evidence.map(esc).join(' · ')}</div>
+      <div class="opp-hypothesis">${esc(o.hypothesis)}</div>
+      <div class="opp-actions">
+        <button class="create" onclick="oppDecide('${esc(o.id)}', 'create_bet')">Create bet</button>
+        <button class="watch" onclick="oppDecide('${esc(o.id)}', 'watch')">Watch</button>
+        <button class="ignore" onclick="oppDecide('${esc(o.id)}', 'ignore')">Ignore</button>
+      </div>
+    </div>`
+  ).join('') : '<div class="empty-state">No new opportunities surfaced.</div>';
+}
+
+async function oppDecide(id, decision) {
+  const note = decision === 'ignore' ? prompt('Why ignore? (saved to strategic memory so we don\'t nag)', '') : prompt(`Note for ${decision}:`, '');
+  if (note === null) return;
+  await fetch(`/api/portfolio/opportunity-decide?brand=${BRAND_ID}`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({opportunity_id: id, decision, note})
+  });
+  if (decision === 'create_bet') {
+    alert('OK — open the Strategy page and use "+ Add bet" to build this one. The hypothesis is logged.');
+  }
+  await runPortfolio();
+}
+
+function renderMeeting(m) {
+  const cols = [
+    {key: 'keep', label: 'KEEP', items: m.keep, cls: 'keep'},
+    {key: 'kill', label: 'KILL', items: m.kill, cls: 'kill'},
+    {key: 'scale', label: 'SCALE', items: m.scale, cls: 'scale'},
+    {key: 'fix', label: 'FIX', items: m.fix, cls: 'fix'},
+    {key: 'missing', label: 'MISSING', items: m.missing, cls: 'missing'},
+    {key: 'bet', label: 'BET', items: m.bet, cls: 'bet'},
+  ];
+  document.getElementById('meeting-m').innerHTML = `<div class="meeting-grid">${cols.map(c => `
+    <div class="meeting-col">
+      <h4 class="${c.cls}">${c.label}</h4>
+      <ul>
+        ${c.items.length ? c.items.slice(0, 5).map(i => {
+          const label = i.bet || i.theme || i.signal || JSON.stringify(i).slice(0, 100);
+          const reason = i.reason || i.hypothesis || i.evidence || '';
+          return `<li><b>${esc(label.slice(0, 60))}</b>${reason ? '<br>' + esc(reason.slice(0, 100)) : ''}</li>`;
+        }).join('') : '<li><i style="color:var(--tx-3)">Nothing</i></li>'}
+      </ul>
+    </div>
+  `).join('')}</div>`;
+}
 
 async function runAudit() {
   const r = await fetch(`/api/audit/run?brand=${BRAND_ID}&light=true`);
