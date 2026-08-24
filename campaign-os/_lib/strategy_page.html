@@ -1,0 +1,773 @@
+"""
+strategy_page.html — The Strategy layer UI.
+
+Sits above the marketing calendar as the big-picture view. Not a task
+manager — a board. Christelle asked for Ogilvy / Dietrich Mateschitz
+energy: where the brand is going, what we're trying to achieve,
+what the major plays are, and how plans are changing over time.
+
+Layout:
+  - Header: brand name + north star + positioning
+  - Time horizon tabs: Year / Quarter / Month
+  - Market Moves (year horizon): the 3-5 strategic plays
+  - Bets (quarter/month horizon): executions of the moves, linked to campaigns
+  - Lessons panel: 5 categories (worked / underperformed / disproved / retry /
+    data-suggests-test-next) — every claim cited, every source visible
+  - Drill-in modal: click any item to see the evidence + supporting content
+
+Each record is clickable. Drill-in shows:
+  - The thesis / hypothesis
+  - Linked campaigns (drill further into the calendar)
+  - Evidence for / against
+  - What the data is saying now
+  - "Run this bet" / "Mine more lessons" actions
+
+The strategy view talks to the calendar via campaign_id links — every bet
+in this view maps to a real campaign in campaign-data.json, and clicking
+through shows the supporting content schedule.
+"""
+
+STRATEGY_PAGE_HTML = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strategy · Campaign OS</title>
+<style>
+:root {
+  --bg: #0a0f1a;
+  --bg-2: #111821;
+  --bg-3: #1a2533;
+  --tx: #f4f7fb;
+  --tx-2: #aeb8c5;
+  --tx-3: #6b7889;
+  --line: #273443;
+  --gold: #fbbf24;
+  --green: #5dff9d;
+  --red: #ff6b6b;
+  --blue: #63b3ff;
+  --purple: #a78bfa;
+  --orange: #fb923c;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+  line-height: 1.5;
+  min-height: 100vh;
+  padding: 2rem 3rem 4rem;
+}
+.strategy-header {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+}
+.brand-line {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+  margin-bottom: 0.5rem;
+}
+.strategy-h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 48px;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+.strategy-h1 em {
+  font-style: italic;
+  color: var(--gold);
+  font-weight: 400;
+}
+.north-star-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+.north-star-block .label,
+.metric-block .label {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+  margin-bottom: 0.5rem;
+}
+.north-star-text {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tx);
+  margin-bottom: 0.5rem;
+}
+.metric-text {
+  font-size: 18px;
+  color: var(--gold);
+  font-weight: 700;
+}
+.positioning-text {
+  font-size: 14px;
+  color: var(--tx-2);
+  margin-top: 0.75rem;
+}
+.edit-link {
+  font-size: 11px;
+  color: var(--blue);
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  margin-top: 0.5rem;
+  display: inline-block;
+}
+
+.horizon-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 2rem;
+}
+.horizon-tab {
+  background: transparent;
+  border: none;
+  color: var(--tx-3);
+  padding: 1rem 1.5rem;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  text-transform: uppercase;
+}
+.horizon-tab:hover { color: var(--tx-2); }
+.horizon-tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.section-h {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 28px;
+  font-weight: 800;
+  margin: 3rem 0 0.5rem;
+  letter-spacing: -0.01em;
+}
+.section-sub {
+  color: var(--tx-2);
+  font-size: 14px;
+  margin-bottom: 1.5rem;
+  max-width: 720px;
+}
+
+.move-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+.move-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--purple);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  position: relative;
+}
+.move-card:hover { transform: translateY(-2px); border-color: var(--purple); }
+.move-card.status-delivered { border-left-color: var(--green); }
+.move-card.status-killed { border-left-color: var(--red); opacity: 0.7; }
+.move-card.status-parked { border-left-color: var(--tx-3); }
+.move-status {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+  margin-bottom: 0.5rem;
+}
+.move-status.active { color: var(--green); }
+.move-status.planned { color: var(--blue); }
+.move-status.delivered { color: var(--green); }
+.move-status.killed { color: var(--red); }
+.move-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+.move-thesis {
+  font-size: 13px;
+  color: var(--tx-2);
+  line-height: 1.55;
+  margin-bottom: 1rem;
+}
+.move-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 11px;
+  color: var(--tx-3);
+  margin-bottom: 0.75rem;
+}
+.move-meta b { color: var(--tx-2); font-weight: 600; }
+.move-evidence {
+  background: var(--bg-3);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 11px;
+  color: var(--tx-2);
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+}
+.move-evidence b { color: var(--gold); }
+.evidence-tag {
+  display: inline-block;
+  background: rgba(251,191,36,0.1);
+  border: 1px solid rgba(251,191,36,0.3);
+  color: var(--gold);
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.bet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.bet-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--blue);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.bet-card:hover { transform: translateY(-2px); }
+.bet-card.status-won { border-left-color: var(--green); }
+.bet-card.status-lost { border-left-color: var(--red); }
+.bet-card.status-inconclusive { border-left-color: var(--orange); }
+.bet-card.status-in_flight { border-left-color: var(--gold); }
+.bet-horizon {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+  margin-bottom: 0.5rem;
+}
+.bet-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.bet-hypothesis {
+  font-size: 12px;
+  color: var(--tx-2);
+  font-style: italic;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+.bet-kpi {
+  font-size: 11px;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+.bet-kpi b { color: var(--tx-2); }
+.bet-eval {
+  background: var(--bg-3);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 11px;
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+.eval-on-track { color: var(--green); }
+.eval-behind { color: var(--red); }
+.eval-mixed { color: var(--orange); }
+
+.lessons-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+@media (max-width: 1400px) {
+  .lessons-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+  .lessons-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.lesson-column {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1rem;
+}
+.lesson-col-h {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+.col-h-worked { color: var(--green); border-bottom-color: var(--green); }
+.col-h-underperformed { color: var(--orange); border-bottom-color: var(--orange); }
+.col-h-disproved { color: var(--red); border-bottom-color: var(--red); }
+.col-h-retry { color: var(--blue); border-bottom-color: var(--blue); }
+.col-h-test_next { color: var(--purple); border-bottom-color: var(--purple); }
+.lesson-item {
+  font-size: 12px;
+  color: var(--tx);
+  line-height: 1.5;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.lesson-item:last-child { border-bottom: none; }
+.lesson-item.invalid {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+.lesson-item .src {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--bg-3);
+  color: var(--tx-3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-top: 0.4rem;
+  margin-right: 4px;
+}
+.lesson-item .src a { color: var(--gold); text-decoration: none; }
+.mine-btn {
+  background: var(--bg-3);
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+.mine-btn:hover { background: var(--gold); color: var(--bg); }
+.mine-btn:disabled { opacity: 0.4; cursor: wait; }
+
+.empty-state {
+  color: var(--tx-3);
+  font-size: 13px;
+  font-style: italic;
+  padding: 2rem;
+  text-align: center;
+  background: var(--bg-2);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+
+/* Modal */
+.modal-back {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-back.open { display: flex; }
+.modal {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  max-width: 760px;
+  width: 90%;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 2rem;
+}
+.modal-h {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+.modal-meta {
+  font-size: 11px;
+  color: var(--tx-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+.modal-section {
+  margin: 1.5rem 0;
+}
+.modal-section h4 {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+.modal-section p {
+  color: var(--tx-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.modal-section ul {
+  list-style: none;
+  margin-top: 0.5rem;
+}
+.modal-section li {
+  font-size: 12px;
+  color: var(--tx-2);
+  padding: 0.4rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.modal-section li b { color: var(--gold); }
+.close-btn {
+  background: transparent;
+  color: var(--tx-2);
+  border: 1px solid var(--line);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 1.5rem;
+}
+.close-btn:hover { background: var(--bg-3); }
+.link-btn {
+  display: inline-block;
+  background: var(--blue);
+  color: var(--bg);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  text-decoration: none;
+  margin-top: 1rem;
+  margin-right: 0.5rem;
+}
+</style>
+</head>
+<body>
+
+<div class="strategy-header">
+  <div class="brand-line" id="brand-line">Brand</div>
+  <h1 class="strategy-h1">Where are we <em>going</em>?</h1>
+
+  <div class="north-star-card" id="north-star-card">
+    <div class="north-star-block">
+      <div class="label">North star</div>
+      <div class="north-star-text" id="north-star-text">Loading…</div>
+      <div class="positioning-text" id="positioning-text"></div>
+      <span class="edit-link" onclick="editNorthStar()">edit</span>
+    </div>
+    <div class="metric-block">
+      <div class="label">What success looks like</div>
+      <div class="metric-text" id="metric-text">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="horizon-tabs" role="tablist">
+  <button class="horizon-tab active" data-horizon="year" onclick="setHorizon('year')">Year · market moves</button>
+  <button class="horizon-tab" data-horizon="quarter" onclick="setHorizon('quarter')">Quarter · bets</button>
+  <button class="horizon-tab" data-horizon="month" onclick="setHorizon('month')">Month · in-flight</button>
+  <button class="horizon-tab" data-horizon="lessons" onclick="setHorizon('lessons')">Lessons · the ledger</button>
+</div>
+
+<!-- Year horizon — market moves -->
+<section id="year-pane">
+  <h2 class="section-h">Market moves</h2>
+  <p class="section-sub">The 3-5 strategic plays we are making over the year. Each move is a thesis — what we believe about the market and where we are placing our weight.</p>
+  <div class="move-grid" id="move-grid">
+    <div class="empty-state">Loading market moves…</div>
+  </div>
+</section>
+
+<!-- Quarter horizon — bets -->
+<section id="quarter-pane" style="display:none">
+  <h2 class="section-h">Bets in flight</h2>
+  <p class="section-sub">Each bet is a hypothesis tied to one of the market moves above. The data tells us whether each bet is on track, behind, or ready to be invalidated.</p>
+  <div class="bet-grid" id="bet-grid">
+    <div class="empty-state">Loading bets…</div>
+  </div>
+</section>
+
+<!-- Month horizon — quick view -->
+<section id="month-pane" style="display:none">
+  <h2 class="section-h">This month</h2>
+  <p class="section-sub">The bets that have to land in the next 30 days. These are the moves with the shortest runway.</p>
+  <div class="bet-grid" id="month-grid">
+    <div class="empty-state">Loading…</div>
+  </div>
+</section>
+
+<!-- Lessons -->
+<section id="lessons-pane" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:1rem">
+    <div>
+      <h2 class="section-h" style="margin-bottom:0.25rem">The ledger</h2>
+      <p class="section-sub" style="margin-bottom:0">What the data has told us. The lessons that survive the most weeks are the ones we should plan around.</p>
+    </div>
+    <button class="mine-btn" id="mine-btn" onclick="mineLessons()">Mine live data</button>
+  </div>
+  <div class="lessons-grid" id="lessons-grid">
+    <div class="lesson-column"><div class="lesson-col-h col-h-worked">Worked</div><div class="empty-state" style="padding:1rem;font-size:11px">No worked lessons yet.</div></div>
+    <div class="lesson-column"><div class="lesson-col-h col-h-underperformed">Underperformed</div><div class="empty-state" style="padding:1rem;font-size:11px">No underperformers yet.</div></div>
+    <div class="lesson-column"><div class="lesson-col-h col-h-disproved">Disproved</div><div class="empty-state" style="padding:1rem;font-size:11px">No disproven lessons yet.</div></div>
+    <div class="lesson-column"><div class="lesson-col-h col-h-retry">Retry differently</div><div class="empty-state" style="padding:1rem;font-size:11px">No retry candidates yet.</div></div>
+    <div class="lesson-column"><div class="lesson-col-h col-h-test_next">Test next</div><div class="empty-state" style="padding:1rem;font-size:11px">No test-next items yet.</div></div>
+  </div>
+</section>
+
+<!-- Modal for drill-in -->
+<div class="modal-back" id="modal" onclick="if(event.target===this) closeModal()">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+const BRAND_ID = {{ brand_id|tojson }};
+let strategy = null;
+
+async function loadStrategy() {
+  const r = await fetch(`/api/strategy?brand=${BRAND_ID}`);
+  const d = await r.json();
+  if (!d.ok) return;
+  strategy = d.strategy;
+  renderHeader();
+  renderMoves();
+  renderBets();
+  renderLessons();
+}
+
+function renderHeader() {
+  document.getElementById('brand-line').textContent = `Brand · ${BRAND_ID}`;
+  document.getElementById('north-star-text').textContent = strategy.north_star || 'Set your north star.';
+  document.getElementById('metric-text').textContent = strategy.north_star_metric || '—';
+  document.getElementById('positioning-text').textContent = strategy.positioning || '';
+}
+
+function renderMoves() {
+  const grid = document.getElementById('move-grid');
+  const moves = strategy.market_moves || [];
+  if (!moves.length) {
+    grid.innerHTML = '<div class="empty-state">No market moves yet. Add the 3-5 strategic plays you are making this year.</div>';
+    return;
+  }
+  grid.innerHTML = moves.map(m => {
+    const evFor = (m.evidence_for || []).slice(0, 2).map(e =>
+      `<div class="move-evidence"><span class="evidence-tag">FOR</span> ${esc(e.value)}</div>`
+    ).join('');
+    const evAgainst = (m.evidence_against || []).slice(0, 1).map(e =>
+      `<div class="move-evidence" style="border-left:2px solid var(--red)"><span class="evidence-tag" style="color:var(--red);border-color:var(--red);background:rgba(255,107,107,0.1)">AGAINST</span> ${esc(e.value)}</div>`
+    ).join('');
+    return `
+      <div class="move-card status-${m.status || 'planned'}" onclick="openMove('${m.id}')">
+        <div class="move-status ${m.status || 'planned'}">${m.horizon || 'year'} · ${m.status || 'planned'}</div>
+        <div class="move-title">${esc(m.title || '(untitled move)')}</div>
+        <div class="move-thesis">${esc(m.thesis || '')}</div>
+        <div class="move-meta">
+          <span><b>Start</b> ${(m.start_date || '—').slice(0,10)}</span>
+          <span><b>Target</b> ${(m.target_end_date || '—').slice(0,10)}</span>
+          <span><b>Owner</b> ${esc(m.owner || '—')}</span>
+        </div>
+        ${evFor}${evAgainst}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderBets() {
+  const grid = document.getElementById('bet-grid');
+  const monthGrid = document.getElementById('month-grid');
+  const bets = strategy.bets || [];
+  const inFlight = bets.filter(b => b.status === 'in_flight' || b.status === 'planned');
+  if (!inFlight.length) {
+    grid.innerHTML = '<div class="empty-state">No bets yet. Bets are quarter/month-horizon executions of a market move — linked to a campaign.</div>';
+    monthGrid.innerHTML = '<div class="empty-state">No in-flight bets this month.</div>';
+    return;
+  }
+  // Quarter grid: all in-flight bets
+  grid.innerHTML = inFlight.map(betCardHtml).join('');
+  // Month grid: only bets with target_end_date within next 30 days
+  const now = new Date();
+  const horizon = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
+  const monthly = inFlight.filter(b => b.target_end_date && new Date(b.target_end_date) <= horizon);
+  monthGrid.innerHTML = monthly.length ? monthly.map(betCardHtml).join('') : '<div class="empty-state">No bets landing in the next 30 days.</div>';
+}
+
+function betCardHtml(b) {
+  return `
+    <div class="bet-card status-${b.status || 'planned'}" onclick="openBet('${b.id}')">
+      <div class="bet-horizon">${b.horizon || 'quarter'} · ${b.status || 'planned'}</div>
+      <div class="bet-title">${esc(b.title || '(untitled bet)')}</div>
+      <div class="bet-hypothesis">${esc(b.hypothesis || '')}</div>
+      <div class="bet-kpi"><b>KPI</b> ${esc(b.primary_kpi || '—')} ${b.success_threshold ? `<span style="color:var(--tx-3)"> → ${esc(b.success_threshold)}</span>` : ''}</div>
+      ${b.learned ? `<div class="bet-eval eval-mixed">${esc(b.learned)}</div>` : ''}
+      <div class="move-meta" style="margin-top:.5rem">
+        <span><b>Target</b> ${(b.target_end_date || '—').slice(0,10)}</span>
+        <span><b>Owner</b> ${esc(b.owner || '—')}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderLessons() {
+  const cols = {
+    worked: 'col-h-worked',
+    underperformed: 'col-h-underperformed',
+    disproved: 'col-h-disproved',
+    retry_with_different_approach: 'col-h-retry',
+    data_suggests_test_next: 'col-h-test_next'
+  };
+  const labels = {
+    worked: 'Worked',
+    underperformed: 'Underperformed',
+    disproved: 'Disproved',
+    retry_with_different_approach: 'Retry differently',
+    data_suggests_test_next: 'Test next'
+  };
+  const grid = document.getElementById('lessons-grid');
+  const lessons = strategy.lessons || [];
+  grid.innerHTML = Object.keys(cols).map(cat => {
+    const items = lessons.filter(l => l.category === cat);
+    const colHtml = items.length ? items.map(l => {
+      const sources = (l.evidence || []).slice(0, 2).map(e =>
+        `<span class="src">${esc(e.source)}${e.value ? `: ${esc(e.value).slice(0,40)}` : ''}</span>`
+      ).join('');
+      return `
+        <div class="lesson-item ${l.still_valid === false ? 'invalid' : ''}">
+          ${esc(l.claim)}
+          ${sources ? `<div>${sources}</div>` : ''}
+        </div>
+      `;
+    }).join('') : `<div class="empty-state" style="padding:1rem;font-size:11px">No ${labels[cat].toLowerCase()} lessons yet.</div>`;
+    return `
+      <div class="lesson-column">
+        <div class="lesson-col-h ${cols[cat]}">${labels[cat]}</div>
+        ${colHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+function setHorizon(h) {
+  document.querySelectorAll('.horizon-tab').forEach(t => t.classList.toggle('active', t.dataset.horizon === h));
+  document.getElementById('year-pane').style.display = h === 'year' ? '' : 'none';
+  document.getElementById('quarter-pane').style.display = h === 'quarter' ? '' : 'none';
+  document.getElementById('month-pane').style.display = h === 'month' ? '' : 'none';
+  document.getElementById('lessons-pane').style.display = h === 'lessons' ? '' : 'none';
+}
+
+function openMove(id) {
+  const m = strategy.market_moves.find(x => x.id === id);
+  if (!m) return;
+  const evFor = (m.evidence_for || []).map(e => `<li><span class="evidence-tag">FOR</span> ${esc(e.value)} <span class="src">${esc(e.source || '')}</span></li>`).join('');
+  const evAgainst = (m.evidence_against || []).map(e => `<li><span class="evidence-tag" style="color:var(--red);border-color:var(--red);background:rgba(255,107,107,0.1)">AGAINST</span> ${esc(e.value)} <span class="src">${esc(e.source || '')}</span></li>`).join('');
+  const campaigns = (m.campaign_ids || []).map(cid => {
+    const c = strategy.bets.find(b => b.id === cid);
+    return c ? `<li><b>${esc(c.title)}</b> — ${esc(c.primary_kpi || '')} <a href="#" onclick="openBet('${cid}');return false;" style="color:var(--blue);margin-left:.5rem">view bet →</a></li>` : '';
+  }).join('');
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-meta">${m.horizon || 'year'} · ${m.status || 'planned'} · owner ${esc(m.owner || '—')}</div>
+    <div class="modal-h">${esc(m.title)}</div>
+    <div class="modal-section">
+      <h4>Thesis</h4>
+      <p>${esc(m.thesis || 'No thesis written yet.')}</p>
+    </div>
+    ${m.start_date || m.target_end_date ? `<div class="modal-section"><h4>Timeline</h4><p>${(m.start_date || '—').slice(0,10)} → ${(m.target_end_date || '—').slice(0,10)}</p></div>` : ''}
+    ${evFor || evAgainst ? `<div class="modal-section"><h4>Evidence</h4><ul>${evFor}${evAgainst}</ul></div>` : ''}
+    ${campaigns ? `<div class="modal-section"><h4>Campaigns / bets</h4><ul>${campaigns}</ul></div>` : ''}
+    <button class="close-btn" onclick="closeModal()">Close</button>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function openBet(id) {
+  const b = strategy.bets.find(x => x.id === id);
+  if (!b) return;
+  // Fetch live evaluation
+  fetch(`/api/strategy/evaluate/${id}?brand=${BRAND_ID}`).then(r => r.json()).then(d => {
+    const ev = d.evaluation || {};
+    const evFor = (ev.evidence_for || []).map(e => `<li><span class="evidence-tag">FOR</span> ${esc(e.value)} <span class="src">${esc(e.source)}</span></li>`).join('');
+    const evAgainst = (ev.evidence_against || []).map(e => `<li><span class="evidence-tag" style="color:var(--red);border-color:var(--red);background:rgba(255,107,107,0.1)">AGAINST</span> ${esc(e.value)} <span class="src">${esc(e.source)}</span></li>`).join('');
+    document.getElementById('modal-content').innerHTML = `
+      <div class="modal-meta">${b.horizon || 'quarter'} · ${b.status || 'planned'} · owner ${esc(b.owner || '—')}</div>
+      <div class="modal-h">${esc(b.title)}</div>
+      <div class="modal-section">
+        <h4>Hypothesis</h4>
+        <p>${esc(b.hypothesis || 'No hypothesis written.')}</p>
+      </div>
+      <div class="modal-section">
+        <h4>Primary KPI</h4>
+        <p><b>${esc(b.primary_kpi || '—')}</b>${b.success_threshold ? ` · winning threshold: ${esc(b.success_threshold)}` : ''}</p>
+      </div>
+      ${ev.verdict ? `<div class="modal-section"><h4>Live data says</h4><p class="bet-eval eval-${ev.verdict.replace('_','')}">${esc(ev.learned || ev.verdict)}</p></div>` : ''}
+      ${evFor || evAgainst ? `<div class="modal-section"><h4>Evidence (live)</h4><ul>${evFor}${evAgainst}</ul></div>` : ''}
+      ${b.campaign_id ? `<div class="modal-section"><h4>Linked campaign</h4><p>${esc(b.campaign_id)} — <a href="/?campaign=${esc(b.campaign_id)}" style="color:var(--blue)">open in calendar →</a></p></div>` : ''}
+      <button class="close-btn" onclick="closeModal()">Close</button>
+    `;
+    document.getElementById('modal').classList.add('open');
+  });
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+async function editNorthStar() {
+  const ns = prompt('North star (one sentence — where the brand is going):', strategy.north_star || '');
+  if (ns === null) return;
+  const m = prompt('What success looks like in numbers:', strategy.north_star_metric || '');
+  if (m === null) return;
+  const p = prompt('Positioning (one paragraph — where you sit in the market):', strategy.positioning || '');
+  if (p === null) return;
+  await fetch('/api/strategy/north-star?brand=' + BRAND_ID, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({north_star: ns, north_star_metric: m, positioning: p})
+  });
+  await loadStrategy();
+}
+
+async function mineLessons() {
+  const btn = document.getElementById('mine-btn');
+  btn.disabled = true; btn.textContent = 'Mining live data…';
+  const r = await fetch(`/api/strategy/mine?brand=${BRAND_ID}&accept=true`, {method: 'POST'});
+  const d = await r.json();
+  btn.disabled = false; btn.textContent = 'Mine live data';
+  alert(`Mined ${d.mined_count} candidate lessons.\nAdded ${d.to_add_count} new.\nInvalidated ${d.to_invalidate_count} existing.`);
+  await loadStrategy();
+}
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+loadStrategy();
+</script>
+
+</body>
+</html>
+'''

@@ -24,7 +24,7 @@ import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
 from pathlib import Path
 from typing import Optional, List
-from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response
+from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -164,6 +164,17 @@ def _data_paths():
 
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data')
+
+# Strategy page HTML template (rendered via render_template_string).
+# Loaded once at module import — the page is big but renders fast.
+try:
+    _STRATEGY_PAGE_PATH = os.path.join(os.path.dirname(__file__), '_lib', 'strategy_page.html')
+    with open(_STRATEGY_PAGE_PATH) as _f:
+        STRATEGY_PAGE_HTML = _f.read()
+except Exception as _e:
+    _app_log.warning('Could not load strategy_page.html: %s', _e)
+    STRATEGY_PAGE_HTML = '<html><body><h1>Strategy page failed to load</h1><p>{{ error }}</p></body></html>'
+
 CAMPAIGN_FILE = os.path.join(DATA_DIR, 'campaign-data.json')
 REPO_DIR = os.path.join(DATA_DIR, 'repo')
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -14415,6 +14426,157 @@ def _boot_selfheal_windsor():
         t.start()
     except Exception as e:
         _app_log.warning('Boot self-heal dispatch failed: %s', e)
+
+
+
+# ─── Strategy layer API ────────────────────────────────────────────────
+# Big-picture strategy view — sits above the calendar.
+# GET/POST/PATCH for market_moves, bets, lessons.
+# All routes respect brand_id (?brand=<id>).
+
+@app.route('/api/strategy', methods=['GET'])
+def strategy_get():
+    """Return the full strategy document for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    s = ss.load_strategy(bid)
+    if not (s.get('market_moves') or s.get('bets') or s.get('lessons')):
+        ss.seed_from_campaign_data(bid)
+        s = ss.load_strategy(bid)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/north-star', methods=['POST'])
+def strategy_north_star():
+    """Set the brand's north star."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.upsert_north_star(
+        bid,
+        north_star=body.get('north_star', ''),
+        north_star_metric=body.get('north_star_metric', ''),
+        positioning=body.get('positioning', ''),
+    )
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/market-move', methods=['POST'])
+def strategy_market_move():
+    """Create or update a market_move (year-horizon strategic play)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.upsert_market_move(bid, body)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/bet', methods=['POST'])
+def strategy_bet():
+    """Create or update a bet (quarter/month-horizon execution of a market_move)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.upsert_bet(bid, body)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/lesson', methods=['POST'])
+def strategy_lesson():
+    """Add a strategic lesson (worked/underperformed/disproved/retry/test-next)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.upsert_lesson(bid, body)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/lesson/<lesson_id>/invalidate', methods=['POST'])
+def strategy_lesson_invalidate(lesson_id):
+    """Mark a lesson as no longer valid (data disproved it)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    s = ss.mark_lesson_invalid(bid, lesson_id)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/<record_type>/<record_id>', methods=['DELETE'])
+def strategy_delete(record_type, record_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    s = ss.delete_strategy_record(bid, record_type, record_id)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/mine', methods=['POST'])
+def strategy_mine():
+    """Walk real data sources and derive new lessons. Returns the diff
+    (added vs invalidated) so the user can accept or reject before
+    they go into the persistent store."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    accept = request.args.get('accept', 'false').lower() == 'true'
+    from _lib import strategy_evidence as se
+    from _lib import strategy_store as ss
+    mined = se.mine_lessons_from_data(bid)
+    existing = ss.load_strategy(bid).get('lessons', [])
+    diff = se.diff_lessons(mined, existing)
+    if accept and diff['to_add']:
+        for nl in diff['to_add']:
+            ss.upsert_lesson(bid, {
+                'category': nl['category'],
+                'claim': nl['claim'],
+                'evidence': nl.get('evidence', []),
+                'from_bet': nl.get('source', ''),
+                'auto': True,
+            })
+    if accept and diff['to_invalidate']:
+        for lid in diff['to_invalidate']:
+            ss.mark_lesson_invalid(bid, lid)
+    return jsonify({"ok": True, "mined_count": len(mined), "to_add_count": len(diff['to_add']),
+                    "to_invalidate_count": len(diff['to_invalidate']),
+                    "to_add": diff['to_add'][:10],
+                    "to_invalidate": diff['to_invalidate'],
+                    "applied": accept}), 200
+
+
+@app.route('/api/strategy/evaluate/<bet_id>', methods=['GET'])
+def strategy_evaluate(bet_id):
+    """Pull live data and score this bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_evidence as se
+    from _lib import strategy_store as ss
+    s = ss.load_strategy(bid)
+    bet = next((b for b in s.get('bets', []) if b.get('id') == bet_id), None)
+    if not bet:
+        return jsonify({"ok": False, "error": "bet not found"}), 404
+    eval_result = se.evaluate_bet(bet, bid)
+    return jsonify({"ok": True, "evaluation": eval_result}), 200
+
+
+@app.route('/strategy', methods=['GET'])
+def strategy_page():
+    """The Strategy page UI — big-picture view above the calendar."""
+    bid = request.args.get('brand') or get_brand_id()
+    return render_template_string(STRATEGY_PAGE_HTML, brand_id=bid), 200
+
 
 
 if __name__ == '__main__':
