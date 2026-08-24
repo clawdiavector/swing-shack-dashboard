@@ -14578,6 +14578,109 @@ def strategy_page():
     return render_template_string(STRATEGY_PAGE_HTML, brand_id=bid), 200
 
 
+@app.route('/api/strategy/snapshot', methods=['POST'])
+def strategy_snapshot():
+    """Take a weekly trend snapshot (record evidence_for / against counts now).
+    Called manually or by weekly cron."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    trend = ss.snapshot_evidence(bid)
+    return jsonify({"ok": True, "snapshots": len(trend.get('snapshots', [])),
+                    "last_snap": trend.get('snapshots', [{}])[-1]}), 200
+
+
+@app.route('/api/strategy/trend/<record_type>/<record_id>', methods=['GET'])
+def strategy_trend(record_type, record_id):
+    """Get the trend signal (strengthening/flat/weakening/disproved) for a record."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    result = ss.compute_trend_signal(bid, record_id, record_type)
+    return jsonify({"ok": True, "trend": result}), 200
+
+
+@app.route('/api/strategy/seed', methods=['POST'])
+def strategy_seed_default():
+    """Seed the swing-shack default thesis + bets."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    s = ss.seed_swing_shack_default(bid)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/retire/<record_type>/<record_id>', methods=['POST'])
+def strategy_retire(record_type, record_id):
+    """Retire (not delete) a market move or bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    reason = body.get('reason', '')
+    from _lib import strategy_store as ss
+    if record_type == 'move':
+        s = ss.retire_market_move(bid, record_id, reason)
+    elif record_type == 'bet':
+        s = ss.retire_bet(bid, record_id, reason)
+    else:
+        return jsonify({"ok": False, "error": "record_type must be move or bet"}), 400
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/link-bet-move', methods=['POST'])
+def strategy_link_bet_move():
+    """Link a bet to a market move."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.link_bet_to_market_move(bid, body.get('bet_id'), body.get('market_move_id'))
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/link-post-bet', methods=['POST'])
+def strategy_link_post_bet():
+    """Link a calendar post to a bet. The bet will list it as supporting content."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.link_calendar_post_to_bet(bid, body.get('bet_id'), body.get('post_id'))
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/promote-lesson', methods=['POST'])
+def strategy_promote_lesson():
+    """Promote a lesson to a new bet (the worked/retry lesson becomes a hypothesis)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    try:
+        s = ss.promote_lesson_to_bet(bid, body.get('lesson_id'), body.get('bet_payload', {}))
+        return jsonify({"ok": True, "strategy": s}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/strategy/promotion-candidates', methods=['GET'])
+def strategy_promotion_candidates():
+    """List lessons that deserve to become bets."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_evidence as se
+    cands = se.mine_lesson_promotion_candidates(bid)
+    return jsonify({"ok": True, "candidates": cands}), 200
+
+
 
 if __name__ == '__main__':
     _boot_load_persisted_secrets()

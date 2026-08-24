@@ -291,6 +291,55 @@ def mine_lessons_from_data(brand_id: str = "swing-shack") -> list:
     return lessons
 
 
+# ─── Promote lesson → bet (forward-feeding the ledger) ────────────────
+
+def mine_lesson_promotion_candidates(brand_id: str = "swing-shack") -> list:
+    """Look at lessons and propose which deserve promotion to a bet.
+    Returns a list of {lesson, suggested_bet_payload, reason} dicts.
+    A 'worked' lesson with strong evidence + recent date = a candidate to scale.
+    A 'retry_with_different_approach' lesson = a candidate to spin a fresh bet.
+    """
+    from . import strategy_store as ss
+    s = ss.load_strategy(brand_id)
+    candidates = []
+    for l in s.get("lessons", []):
+        if not l.get("still_valid", True):
+            continue
+        cat = l.get("category")
+        ev_count = len(l.get("evidence", []))
+        if cat == "worked" and ev_count >= 2:
+            candidates.append({
+                "lesson": {"id": l["id"], "claim": l["claim"], "category": cat},
+                "suggested_bet": {
+                    "title": f"Scale: {l['claim'][:60]}",
+                    "hypothesis": f"Lesson says this works. Scale it: {l['claim']}",
+                    "horizon": "quarter",
+                    "workhorse": l.get("workhorse", "marketing"),
+                    "what_proves_it": "Same metric, 2x volume, holds",
+                    "what_kills_it": "Performance regresses when scaled",
+                    "next_action": "Schedule 4-week rollout of the proven pattern",
+                    "linked_lesson_ids": [l["id"]],
+                },
+                "reason": f"Worked with {ev_count} pieces of evidence — worth scaling.",
+            })
+        elif cat == "retry_with_different_approach":
+            candidates.append({
+                "lesson": {"id": l["id"], "claim": l["claim"], "category": cat},
+                "suggested_bet": {
+                    "title": f"Retry: {l['claim'][:60]}",
+                    "hypothesis": f"Old approach failed. Try: {l['claim']}",
+                    "horizon": "month",
+                    "workhorse": l.get("workhorse", "marketing"),
+                    "what_proves_it": "Different angle beats original on the same KPI",
+                    "what_kills_it": "Same result — move on",
+                    "next_action": "Draft a fresh creative angle against this lesson",
+                    "linked_lesson_ids": [l["id"]],
+                },
+                "reason": "Deserves a second attempt — current lesson says how.",
+            })
+    return candidates
+
+
 def diff_lessons(new_lessons: list, existing_lessons: list) -> dict:
     """Compare newly-mined lessons against the existing strategy store.
     Returns:
