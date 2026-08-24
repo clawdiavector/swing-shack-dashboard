@@ -14604,13 +14604,15 @@ def strategy_trend(record_type, record_id):
 
 @app.route('/api/strategy/seed', methods=['POST'])
 def strategy_seed_default():
-    """Seed the swing-shack default thesis + bets."""
+    """Seed the swing-shack default thesis + bets.
+    ?force=true wipes the existing strategy first."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     bid = request.args.get('brand') or get_brand_id()
+    force = request.args.get('force', 'false').lower() == 'true'
     from _lib import strategy_store as ss
-    s = ss.seed_swing_shack_default(bid)
-    return jsonify({"ok": True, "strategy": s}), 200
+    s = ss.seed_swing_shack_default(bid, force=force)
+    return jsonify({"ok": True, "strategy": s, "forced": force}), 200
 
 
 @app.route('/api/strategy/retire/<record_type>/<record_id>', methods=['POST'])

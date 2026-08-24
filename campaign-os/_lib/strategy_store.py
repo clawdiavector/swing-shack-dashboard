@@ -442,11 +442,14 @@ def link_calendar_post_to_bet(brand_id: str, bet_id: str, post_id: str) -> dict:
 
 # ─── Seeding ──────────────────────────────────────────────────────────
 
-def seed_swing_shack_default(brand_id: str = "swing-shack") -> dict:
+def seed_swing_shack_default(brand_id: str = "swing-shack", force: bool = False) -> dict:
     """First-run seed for swing-shack using the brief's example thesis."""
     s = load_strategy(brand_id)
-    if s.get("market_moves"):
+    if s.get("market_moves") and not force:
         return s  # don't overwrite existing
+    if force:
+        # Wipe + reseed
+        s = _empty_strategy(brand_id)
 
     s["north_star"] = "Make measurable golf improvement obvious and accessible in JHB."
     s["north_star_metric"] = "20 fitting bookings/month + 40% MoM IG engagement on coaching content."
