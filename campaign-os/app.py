@@ -14839,6 +14839,75 @@ def strategy_replay(record_type, record_id):
     return jsonify({"ok": True, "replay": replay}), 200
 
 
+
+# ─── Audit layer API ──────────────────────────────────────────────────
+
+@app.route('/api/audit/run', methods=['GET'])
+def audit_run():
+    """Run the audit. ?light=true for Monday-brief mode (max 3 needs_cleaning)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    light = request.args.get('light', 'false').lower() == 'true'
+    from _lib import audit as au
+    audit = au.run_audit(bid, light=light)
+    return jsonify({"ok": True, "audit": audit}), 200
+
+
+@app.route('/api/audit/why-still-here/<item_type>/<item_id>', methods=['GET'])
+def audit_why_still_here(item_type, item_id):
+    """One-shot answer to 'why is this still here?' for a single item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import audit as au
+    result = au.why_still_here(item_type, item_id, bid)
+    return jsonify(result), (200 if result.get("ok") else 404)
+
+
+@app.route('/api/audit/decide', methods=['POST'])
+def audit_decide():
+    """Record a KEEP/UPDATE/PAUSE/RETIRE/DELETE decision. Writes to strategic memory."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import audit as au
+    try:
+        result = au.record_audit_decision(
+            body.get('item_type'),
+            body.get('item_id'),
+            body.get('decision'),
+            body.get('note', ''),
+            bid,
+        )
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/audit/kill-meeting', methods=['GET'])
+def audit_kill_meeting():
+    """Generate the monthly 'WHAT SHOULD WE STOP DOING?' report."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import audit as au
+    meeting = au.kill_meeting(bid)
+    return jsonify({"ok": True, "meeting": meeting}), 200
+
+
+@app.route('/api/audit/clutter', methods=['GET'])
+def audit_clutter():
+    """Return the strategy clutter report only."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import audit as au
+    audit = au.run_audit(bid, light=True)
+    return jsonify({"ok": True, "clutter": audit["clutter_report"]}), 200
+
+
 if __name__ == '__main__':
     _boot_load_persisted_secrets()
     _boot_selfheal_windsor()

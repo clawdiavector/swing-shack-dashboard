@@ -54,6 +54,7 @@ from strategy_store import (
     EVIDENCE_CATEGORIES,
     VALID_DECISIONS,
 )
+from audit import run_audit as _run_audit, AUDIT_STATUSES
 
 
 def _now() -> str:
@@ -229,6 +230,21 @@ def detect_changes(brand_id: str) -> List[Dict[str, Any]]:
                 "detail": f"category={l['category']} · {len(l.get('evidence', []))} pieces of evidence",
                 "refs": [{"type": "lesson", "id": l["id"], "title": l.get("claim", "")[:80]}],
             })
+
+    # 7. Audit flags — items scoring low or flagged by the audit engine
+    try:
+        audit = _run_audit(brand_id, light=True)
+        for nc in audit.get("needs_cleaning", [])[:3]:
+            severity = "high" if nc["audit_status"] == "retire" else "medium"
+            changes.append({
+                "category": "audit_flag",
+                "severity": severity,
+                "summary": f"{nc['audit_status'].upper()}: {nc['title'][:60]}",
+                "detail": nc.get("reason", "")[:140],
+                "refs": [{"type": nc["item_type"], "id": nc["item_id"], "title": nc["title"]}],
+            })
+    except Exception as e:
+        pass  # audit failure should not break the brief
 
     # Dedupe (same summary)
     seen = set()
@@ -691,6 +707,13 @@ def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = T
     priorities = synthesize_priorities(brand_id)
     strip = build_compact_strip(brand_id)
 
+    # Audit — light mode for Monday brief
+    try:
+        audit = _run_audit(brand_id, light=True)
+        needs_cleaning = audit.get("needs_cleaning", [])[:3]
+    except Exception:
+        needs_cleaning = []
+
     return {
         "brand_id": brand_id,
         "generated_at": _now(),
@@ -701,6 +724,7 @@ def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = T
         "decisions_this_week": decisions,
         "priorities": priorities,
         "strip": strip,
+        "needs_cleaning": needs_cleaning,
     }
 
 
@@ -762,6 +786,17 @@ def render_brief_markdown(brief: Dict[str, Any]) -> str:
             md.append(f"- Last lesson: {d['last_lesson'][:140]}")
             md.append(f"- Recommended: **{d['recommended'].upper()}** — {d['rationale']}")
             md.append("")
+
+    # Needs cleaning (audit)
+    md.append("### Needs cleaning")
+    if brief.get("needs_cleaning"):
+        for nc in brief["needs_cleaning"]:
+            md.append(f"- **{nc['title']}** → {nc['audit_status'].upper()}")
+            md.append(f"  _{nc.get('reason', '')[:140]}_")
+            md.append(f"  _Action:_ {nc.get('next_action', '')}")
+    else:
+        md.append("_Nothing needs cleaning this week. Strategy is healthy._")
+    md.append("")
 
     # Priorities
     md.append("### This week's marketing priorities")

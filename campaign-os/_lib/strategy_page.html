@@ -405,6 +405,61 @@ body {
 .strip-day .ship.milestone-test_end::before { content: '🧪✓ '; }
 .strip-day .empty { color: var(--tx-3); font-style: italic; font-size: 10px; }
 
+/* Audit panel */
+.audit-summary {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-bottom: 1rem;
+}
+.audit-stat {
+  background: var(--bg-3); border-radius: 8px; padding: 0.6rem 0.5rem;
+  text-align: center; border: 1px solid var(--line);
+}
+.audit-stat .count {
+  font-family: 'Fraunces', Georgia, serif; font-size: 22px; font-weight: 800;
+  display: block;
+}
+.audit-stat .label {
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tx-3);
+}
+.audit-stat.s-keep .count { color: var(--green); }
+.audit-stat.s-update .count { color: var(--blue); }
+.audit-stat.s-scale .count { color: var(--gold); }
+.audit-stat.s-retest .count { color: var(--purple); }
+.audit-stat.s-pause .count { color: var(--orange); }
+.audit-stat.s-retire .count { color: var(--red); }
+.audit-stat.s-delete .count { color: var(--red); opacity: 0.6; }
+.clutter-card {
+  background: var(--bg-3); padding: 0.75rem 1rem; border-radius: 8px;
+  margin-bottom: 0.5rem; font-size: 12px;
+}
+.clutter-card .title { font-weight: 600; color: var(--tx); margin-bottom: 0.3rem; }
+.clutter-card .meta { font-size: 10px; color: var(--tx-3); letter-spacing: 0.1em; text-transform: uppercase; }
+.clutter-card .flags { margin-top: 0.4rem; font-size: 11px; color: var(--orange); }
+.clutter-card .why-btn {
+  background: transparent; color: var(--blue); border: 1px solid var(--blue);
+  padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 10px;
+  cursor: pointer; font-family: inherit; margin-left: 0.5rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.clutter-card .why-btn:hover { background: var(--blue); color: var(--bg); }
+.clutter-card .action-btns {
+  display: flex; gap: 0.4rem; margin-top: 0.5rem;
+}
+.clutter-card .action-btns button {
+  padding: 0.2rem 0.5rem; border-radius: 4px; font-family: inherit;
+  font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em;
+  border: 1px solid var(--line); background: transparent; color: var(--tx-2);
+}
+.clutter-card .action-btns button.keep { border-color: var(--green); color: var(--green); }
+.clutter-card .action-btns button.keep:hover { background: var(--green); color: var(--bg); }
+.clutter-card .action-btns button.update { border-color: var(--blue); color: var(--blue); }
+.clutter-card .action-btns button.update:hover { background: var(--blue); color: var(--bg); }
+.clutter-card .action-btns button.pause { border-color: var(--orange); color: var(--orange); }
+.clutter-card .action-btns button.pause:hover { background: var(--orange); color: var(--bg); }
+.clutter-card .action-btns button.retire { border-color: var(--red); color: var(--red); }
+.clutter-card .action-btns button.retire:hover { background: var(--red); color: var(--bg); }
+
+.calendar-posts { background: var(--bg-3); padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 12px; margin-top: 0.5rem; }
+
 /* Replay modal timeline */
 .replay-stats { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; padding: 0.75rem; background: var(--bg-3); border-radius: 8px; }
 .replay-stats div { font-size: 11px; color: var(--tx-3); }
@@ -518,6 +573,16 @@ body {
   <h2>Decisions due</h2>
   <div class="sub" id="dec-sub">Bets whose decision_date is approaching — SCALE, REFINE, RETRY DIFFERENTLY, or KILL.</div>
   <div id="decision-list"></div>
+</div>
+
+<!-- ─── Audit + kill meeting ─── -->
+<div class="audit-section" style="background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:1.5rem;margin-bottom:2rem">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <h2 style="font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:800">Audit & kill meeting</h2>
+    <button class="btn" onclick="runAudit()">Run audit</button>
+  </div>
+  <div class="audit-summary" id="audit-summary"></div>
+  <div id="audit-needs-cleaning"></div>
 </div>
 
 <!-- ─── Lessons ledger (kept) ─── -->
@@ -1283,6 +1348,7 @@ function openMoveModal(id, workhorse) {
       ${id ? `<button class="btn secondary" onclick="retireRecord('move', '${id}')">Retire</button>` : ''}
       ${id ? `<button class="btn secondary" onclick="openBetModal(null, '${id}')">+ Add bet</button>` : ''}
       ${id ? `<button class="btn secondary" onclick="openReplay('move', '${id}')">📼 Replay history</button>` : ''}
+      ${id ? `<button class="btn secondary" onclick="whyStillHere('market_move', '${id}')">🔍 Why is this still here?</button>` : ''}
       <button class="btn secondary right" onclick="closeModal()">Close</button>
       ${id ? `<button class="btn danger" onclick="deleteRecord('market_move', '${id}')">Delete</button>` : ''}
     </div>
@@ -1382,6 +1448,7 @@ function openBetModal(id, parentMoveId) {
       <button class="btn" onclick="saveBet('${id || ''}')">${id ? 'Save' : 'Create'}</button>
       ${id ? `<button class="btn secondary" onclick="retireRecord('bet', '${id}')">Retire</button>` : ''}
       ${id ? `<button class="btn secondary" onclick="openReplay('bet', '${id}')">📼 Replay history</button>` : ''}
+      ${id ? `<button class="btn secondary" onclick="whyStillHere('bet', '${id}')">🔍 Why is this still here?</button>` : ''}
       <button class="btn secondary right" onclick="closeModal()">Close</button>
       ${id ? `<button class="btn danger" onclick="deleteRecord('bet', '${id}')">Delete</button>` : ''}
     </div>
@@ -1501,6 +1568,94 @@ async function mineLessons() {
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+async function runAudit() {
+  const r = await fetch(`/api/audit/run?brand=${BRAND_ID}&light=true`);
+  const d = await r.json();
+  if (!d.ok) { alert('Audit failed'); return; }
+  const audit = d.audit;
+  renderAudit(audit);
+}
+
+function renderAudit(audit) {
+  const summary = document.getElementById('audit-summary');
+  const labels = {keep: 'KEEP', update: 'UPDATE', scale: 'SCALE', retest: 'RETEST', pause: 'PAUSE', retire: 'RETIRE', delete: 'DELETE'};
+  summary.innerHTML = Object.keys(labels).map(s => {
+    const count = audit.by_status[s] || 0;
+    const cls = `s-${s}`;
+    return `<div class="audit-stat ${cls}"><span class="count">${count}</span><span class="label">${labels[s]}</span></div>`;
+  }).join('');
+
+  const needs = document.getElementById('audit-needs-cleaning');
+  const items = (audit.items || []).filter(i => i.audit_status !== 'keep').slice(0, 12);
+  if (!items.length) {
+    needs.innerHTML = `<div class="empty-state">Strategy is healthy. Every item earns its place.</div>`;
+    return;
+  }
+  needs.innerHTML = `<h4 style="font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin:1rem 0 0.5rem">Items needing attention</h4>` + items.map(i => `
+    <div class="clutter-card">
+      <div class="title">${esc(i.title)}</div>
+      <div class="meta">${esc(i.item_type)} · ${i.audit_status.toUpperCase()} · score ${i.audit_score}/100
+        <button class="why-btn" onclick="whyStillHere('${i.item_type}', '${i.item_id}')">🔍 Why is this still here?</button>
+      </div>
+      <div style="margin-top:0.3rem; color:var(--tx-2)">${esc(i.reason_for_existence)}</div>
+      ${i.flags && i.flags.length ? `<div class="flags">${i.flags.map(f => esc(f.code) + ': ' + esc((f.detail || '').slice(0, 80))).join(' · ')}</div>` : ''}
+      <div class="action-btns">
+        <button class="keep" onclick="auditDecide('${i.item_type}', '${i.item_id}', 'keep')">Keep</button>
+        <button class="update" onclick="auditDecide('${i.item_type}', '${i.item_id}', 'update')">Update</button>
+        <button class="pause" onclick="auditDecide('${i.item_type}', '${i.item_id}', 'pause')">Pause</button>
+        <button class="retire" onclick="auditDecide('${i.item_type}', '${i.item_id}', 'retire')">Retire</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function auditDecide(itemType, itemId, decision) {
+  const note = prompt(`Note for ${decision.toUpperCase()} decision (saved to strategic memory):`, '');
+  if (note === null) return;
+  await fetch(`/api/audit/decide?brand=${BRAND_ID}`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({item_type: itemType, item_id: itemId, decision, note})
+  });
+  await loadStrategy();
+  await runAudit();
+}
+
+async function whyStillHere(itemType, itemId) {
+  const r = await fetch(`/api/audit/why-still-here/${itemType}/${itemId}?brand=${BRAND_ID}`);
+  const d = await r.json();
+  if (!d.ok) { alert(d.error || 'Failed'); return; }
+  const w = d;
+  const reasonHtml = w.reason_for_existence.includes('⚠')
+    ? `<b style="color:var(--red)">No strong reason to keep this active.</b><br>${esc(w.reason_for_existence)}`
+    : esc(w.reason_for_existence);
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-meta">Why is this still here? · ${esc(itemType)}</div>
+    <div class="modal-h">${esc(w.item.title)}</div>
+    <div class="modal-section">
+      <h4>Audit status</h4>
+      <p><b style="color:var(--gold)">${w.audit_status.toUpperCase()}</b> · score ${w.audit_score}/100</p>
+    </div>
+    <div class="modal-section">
+      <h4>Why</h4>
+      <p>${reasonHtml}</p>
+    </div>
+    ${w.flags && w.flags.length ? `
+      <div class="modal-section">
+        <h4>Flags raised</h4>
+        <ul>${w.flags.map(f => `<li><b>${esc(f.code)}</b> — ${esc((f.detail || '').slice(0, 140))}</li>`).join('')}</ul>
+      </div>
+    ` : ''}
+    <div class="modal-section">
+      <h4>Next action</h4>
+      <p>${esc(w.next_action)}</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary right" onclick="closeModal()">Close</button>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
 
 async function openReplay(type, id) {
   const r = await fetch(`/api/strategy/replay/${type}/${id}?brand=${BRAND_ID}`);
