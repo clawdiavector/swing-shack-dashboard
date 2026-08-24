@@ -1,19 +1,14 @@
 """
 strategy_page.html — Strategy layer planning wall.
 
-This is the big planning wall, not a task list. Single zoomable view
-where you pan between Year / Quarter / Month / Week without leaving the
-page. Two swimlanes — marketing and advertising — share strategy but
-run separately. Every move/bet/lesson shows the reasoning up front.
+The strategy board sits on top. The strategic calendar sits beneath it.
+Same zoom controls drive both. Click a bet on the board → it highlights
+on the calendar. Click a calendar bar → opens the strategy card.
 
-Christelle's brief (2026-08-24):
-  - "Make the Year / Quarter / Month view more visual" — one wall, not 4 screens
-  - "Add 'Why are we doing this?' everywhere" — hypothesis / what proves it /
-    what kills it / next action visible on the card
-  - "Marketing vs Advertising as separate workhorses" — swimlanes
-  - "Trend over time" — strengthening / flat / weakening / disproved
-  - "Lessons feed future strategy" — promote button on worked/retry lessons
-  - "Link bets to calendar" — supporting content visible per bet
+This is the planning wall, not a task list. Two swimlanes (marketing +
+advertising), Gantt-style year/quarter/month/week views, plan vs
+actual mode, decision prompts on decision_date, density warnings
+when 3+ bets run in the same month, milestone markers on bars.
 """
 
 STRATEGY_PAGE_HTML = '''<!DOCTYPE html>
@@ -38,8 +33,10 @@ STRATEGY_PAGE_HTML = '''<!DOCTYPE html>
   --blue: #63b3ff;
   --purple: #a78bfa;
   --orange: #fb923c;
-  --marketing: #a78bfa;       /* purple */
-  --advertising: #fb923c;      /* orange */
+  --marketing: #a78bfa;
+  --advertising: #fb923c;
+  --mkt-soft: rgba(167,139,250,0.15);
+  --adv-soft: rgba(251,146,60,0.15);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -52,485 +49,310 @@ body {
 }
 
 /* ─── Header ─── */
-.strategy-header {
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-.brand-line {
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--tx-3);
-  margin-bottom: 0.5rem;
-}
-.strategy-h1 {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 44px;
-  font-weight: 900;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.75rem;
-}
-.strategy-h1 em {
-  font-style: italic;
-  color: var(--gold);
-  font-weight: 400;
-}
+.strategy-header { border-bottom: 1px solid var(--line); padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+.brand-line { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tx-3); margin-bottom: 0.5rem; }
+.strategy-h1 { font-family: 'Fraunces', Georgia, serif; font-size: 44px; font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 0.75rem; }
+.strategy-h1 em { font-style: italic; color: var(--gold); font-weight: 400; }
 .north-star-card {
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1rem;
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 1.5rem;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
+  padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+  display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1.5rem;
 }
-.north-star-block .label,
-.metric-block .label,
-.positioning-block .label {
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--tx-3);
-  margin-bottom: 0.5rem;
+.north-star-block .label, .metric-block .label, .positioning-block .label {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--tx-3); margin-bottom: 0.5rem;
 }
-.north-star-text {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  line-height: 1.25;
-}
-.metric-text {
-  font-size: 16px;
-  color: var(--gold);
-  font-weight: 700;
-}
-.positioning-text {
-  font-size: 13px;
-  color: var(--tx-2);
-}
-.edit-link {
-  font-size: 11px;
-  color: var(--blue);
-  cursor: pointer;
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
-  margin-top: 0.5rem;
-  display: inline-block;
-}
+.north-star-text { font-family: 'Fraunces', Georgia, serif; font-size: 22px; font-weight: 700; margin-bottom: 0.5rem; line-height: 1.25; }
+.metric-text { font-size: 16px; color: var(--gold); font-weight: 700; }
+.positioning-text { font-size: 13px; color: var(--tx-2); }
+.edit-link { font-size: 11px; color: var(--blue); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; margin-top: 0.5rem; display: inline-block; }
 
-/* ─── Zoom controls ─── */
+/* ─── Zoom bar ─── */
 .zoom-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  padding: 1rem 1.25rem;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem; padding: 1rem 1.25rem;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+  flex-wrap: wrap; gap: 0.75rem;
 }
-.zoom-control {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+.zoom-control { display: flex; align-items: center; gap: 0.5rem; }
 .zoom-btn {
-  background: var(--bg-3);
-  color: var(--tx-2);
-  border: 1px solid var(--line);
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background: var(--bg-3); color: var(--tx-2); border: 1px solid var(--line);
+  padding: 0.5rem 1rem; border-radius: 8px; font-family: inherit;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  letter-spacing: 0.04em; text-transform: uppercase;
 }
-.zoom-btn.active {
-  background: var(--gold);
-  color: var(--bg);
-  border-color: var(--gold);
-}
+.zoom-btn.active { background: var(--gold); color: var(--bg); border-color: var(--gold); }
 .zoom-btn:hover:not(.active) { background: var(--bg-4); color: var(--tx); }
-.zoom-arrow {
-  font-size: 18px;
-  color: var(--gold);
-  user-select: none;
-  padding: 0 0.5rem;
-}
-.workhorse-filter {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 11px;
-  color: var(--tx-3);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.workhorse-chip {
-  padding: 0.4rem 0.9rem;
-  border-radius: 6px;
-  background: var(--bg-3);
-  border: 1px solid var(--line);
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--tx-2);
-}
+.workhorse-filter { display: flex; gap: 0.5rem; align-items: center; font-size: 11px; color: var(--tx-3); letter-spacing: 0.08em; text-transform: uppercase; }
+.workhorse-chip { padding: 0.4rem 0.9rem; border-radius: 6px; background: var(--bg-3); border: 1px solid var(--line); cursor: pointer; font-weight: 600; color: var(--tx-2); }
+.workhorse-chip.active.both { background: var(--gold); color: var(--bg); border-color: var(--gold); }
 .workhorse-chip.active.mkt { background: var(--marketing); color: var(--bg); border-color: var(--marketing); }
 .workhorse-chip.active.adv { background: var(--advertising); color: var(--bg); border-color: var(--advertising); }
-.workhorse-chip.active.both { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.mode-toggle { display: flex; gap: 0.5rem; align-items: center; font-size: 11px; color: var(--tx-3); letter-spacing: 0.08em; text-transform: uppercase; }
+.mode-chip { padding: 0.4rem 0.9rem; border-radius: 6px; background: var(--bg-3); border: 1px solid var(--line); cursor: pointer; font-weight: 600; color: var(--tx-2); }
+.mode-chip.active { background: var(--blue); color: var(--bg); border-color: var(--blue); }
 
-/* ─── Swimlane containers ─── */
-.swimlanes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-.swimlane {
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 1.25rem 1.5rem;
-  min-height: 400px;
-}
+/* ─── Board (cards) ─── */
+.swimlanes { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+.swimlane { background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 1.25rem 1.5rem; min-height: 400px; }
 .swimlane.mkt { border-top: 3px solid var(--marketing); }
 .swimlane.adv { border-top: 3px solid var(--advertising); }
-.swimlane-h {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-.swimlane-h h2 {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
+.swimlane-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.swimlane-h h2 { font-family: 'Fraunces', Georgia, serif; font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
 .swimlane.mkt h2 { color: var(--marketing); }
 .swimlane.adv h2 { color: var(--advertising); }
-.swimlane-sub {
-  font-size: 12px;
-  color: var(--tx-3);
-  margin-bottom: 0.5rem;
-}
+.swimlane-sub { font-size: 12px; color: var(--tx-3); margin-bottom: 0.5rem; }
 
-/* ─── Cards (move + bet) ─── */
 .card {
-  background: var(--bg-3);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 0.75rem;
-  cursor: pointer;
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px;
+  padding: 1rem 1.25rem; margin-bottom: 0.75rem; cursor: pointer;
   transition: transform 0.15s, border-color 0.15s;
 }
 .card:hover { transform: translateY(-1px); }
+.card.highlighted { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,0.3); }
 .card.status-active { border-left: 4px solid var(--green); }
 .card.status-in_flight { border-left: 4px solid var(--gold); }
 .card.status-planned { border-left: 4px solid var(--blue); }
 .card.status-won { border-left: 4px solid var(--green); }
 .card.status-lost { border-left: 4px solid var(--red); }
 .card.status-retired { border-left: 4px solid var(--tx-3); opacity: 0.65; }
-.card-meta {
-  display: flex;
-  gap: 0.75rem;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--tx-3);
-  margin-bottom: 0.5rem;
-  flex-wrap: wrap;
-}
-.card-meta .trend {
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-weight: 700;
-}
+.card-meta { display: flex; gap: 0.75rem; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tx-3); margin-bottom: 0.5rem; flex-wrap: wrap; align-items: center; }
+.card-meta .trend { padding: 1px 6px; border-radius: 3px; font-weight: 700; }
 .trend.strengthening { background: rgba(93,255,157,0.15); color: var(--green); }
 .trend.flat { background: rgba(174,184,197,0.15); color: var(--tx-2); }
 .trend.weakening { background: rgba(251,146,60,0.15); color: var(--orange); }
 .trend.disproved { background: rgba(255,107,107,0.15); color: var(--red); }
-.card-title {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 0.4rem;
-}
-.card-hypothesis {
-  font-size: 12px;
-  color: var(--tx-2);
-  font-style: italic;
-  margin-bottom: 0.6rem;
-  line-height: 1.45;
-}
-.why-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.4rem;
-  margin-top: 0.6rem;
-  font-size: 11px;
-}
-.why-block {
-  background: var(--bg-4);
-  padding: 0.4rem 0.6rem;
-  border-radius: 5px;
-  line-height: 1.4;
-}
+.card-title { font-family: 'Fraunces', Georgia, serif; font-size: 18px; font-weight: 700; margin-bottom: 0.4rem; }
+.card-hypothesis { font-size: 12px; color: var(--tx-2); font-style: italic; margin-bottom: 0.6rem; line-height: 1.45; }
+.why-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.6rem; font-size: 11px; }
+.why-block { background: var(--bg-4); padding: 0.4rem 0.6rem; border-radius: 5px; line-height: 1.4; }
 .why-block.proves { border-left: 2px solid var(--green); }
 .why-block.kills { border-left: 2px solid var(--red); }
 .why-block.next { border-left: 2px solid var(--gold); }
-.why-block .label {
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--tx-3);
-  margin-bottom: 2px;
-  display: block;
-}
+.why-block .label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tx-3); margin-bottom: 2px; display: block; }
 .why-block.proves .label { color: var(--green); }
 .why-block.kills .label { color: var(--red); }
 .why-block.next .label { color: var(--gold); }
-.evidence-counts {
-  display: flex;
-  gap: 0.5rem;
-  font-size: 10px;
-  margin-top: 0.5rem;
-  color: var(--tx-3);
-}
+.evidence-counts { display: flex; gap: 0.5rem; font-size: 10px; margin-top: 0.5rem; color: var(--tx-3); }
 .evidence-counts b { font-weight: 700; }
 .evidence-counts .for b { color: var(--green); }
 .evidence-counts .against b { color: var(--red); }
-.sparkline {
-  display: inline-block;
-  width: 50px;
-  height: 14px;
-  vertical-align: middle;
-  margin-left: 0.5rem;
+.sparkline { display: inline-block; width: 50px; height: 14px; vertical-align: middle; margin-left: 0.5rem; }
+
+/* ─── Strategic calendar ─── */
+.calendar-section {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
+  padding: 1.5rem; margin-bottom: 2rem;
 }
-.calendar-count {
+.cal-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.cal-h h2 { font-family: 'Fraunces', Georgia, serif; font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
+.cal-h .sub { font-size: 12px; color: var(--tx-3); margin-top: 0.25rem; }
+.cal-table {
+  background: var(--bg-3); border-radius: 10px; overflow: hidden;
+  display: grid; border: 1px solid var(--line);
+}
+.cal-row { display: grid; align-items: center; min-height: 36px; }
+.cal-row-header { background: var(--bg-4); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tx-3); padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--line); }
+.cal-row-label { padding: 0.5rem 0.75rem; font-size: 11px; font-weight: 700; color: var(--tx); border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-row-section { padding: 0.5rem 0.75rem; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+.cal-row-section.mkt { background: var(--mkt-soft); color: var(--marketing); border-left: 3px solid var(--marketing); }
+.cal-row-section.adv { background: var(--adv-soft); color: var(--advertising); border-left: 3px solid var(--advertising); }
+.cal-cell { padding: 0.5rem 0.4rem; font-size: 11px; color: var(--tx-3); text-align: center; border-right: 1px dashed var(--line); border-bottom: 1px dashed var(--line); position: relative; }
+.cal-cell.today { background: rgba(251,191,36,0.1); color: var(--gold); font-weight: 700; }
+.cal-cell.weekend { opacity: 0.5; }
+
+/* Year view columns */
+.cal-table.year-view { grid-template-columns: 200px repeat(12, 1fr); }
+.cal-table.year-view .cal-cell { padding: 0.5rem 0.2rem; }
+
+/* Quarter view columns */
+.cal-table.quarter-view { grid-template-columns: 200px repeat(13, 1fr); }
+.cal-table.quarter-view .cal-cell { padding: 0.5rem 0.15rem; font-size: 10px; }
+
+/* Month view columns */
+.cal-table.month-view { grid-template-columns: 200px repeat(35, 1fr); }
+.cal-table.month-view .cal-cell { padding: 0.4rem 0.1rem; font-size: 9px; }
+
+/* Week view columns */
+.cal-table.week-view { grid-template-columns: 200px repeat(7, 1fr); }
+.cal-table.week-view .cal-cell { padding: 0.6rem 0.3rem; font-size: 11px; }
+
+.cal-bar {
+  position: absolute;
+  top: 6px;
+  height: 22px;
+  border-radius: 4px;
   font-size: 10px;
-  color: var(--tx-3);
-  margin-top: 0.4rem;
-}
-
-/* ─── Zoom-level: zoomed-out big move cards ─── */
-.zoom-year .card-title { font-size: 22px; }
-.zoom-year .card { padding: 1.25rem 1.5rem; }
-.zoom-year .why-row { display: none; }
-.zoom-year .card-hypothesis { display: none; }
-
-/* ─── Lessons ledger ─── */
-.lessons-bar {
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin: 2rem 0 1rem;
-}
-.lessons-bar h2 {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 24px;
-  font-weight: 800;
-}
-.btn {
-  background: var(--gold);
-  color: var(--bg);
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
   cursor: pointer;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  z-index: 2;
 }
-.btn:hover { opacity: 0.85; }
-.btn.secondary {
-  background: var(--bg-3);
+.cal-bar.move { background: var(--marketing); color: var(--bg); height: 26px; top: 4px; font-weight: 700; }
+.cal-bar.move.adv { background: var(--advertising); color: var(--bg); }
+.cal-bar.bet { background: var(--mkt-soft); border: 1px solid var(--marketing); color: var(--marketing); height: 18px; top: 9px; font-weight: 600; }
+.cal-bar.bet.adv { background: var(--adv-soft); border-color: var(--advertising); color: var(--advertising); }
+.cal-bar.actual { background: rgba(251,191,36,0.25); border: 1px dashed var(--gold); }
+.cal-bar.highlighted { box-shadow: 0 0 0 2px var(--gold); z-index: 3; }
+.cal-bar.trend-strengthening::after { content: '↑'; margin-left: 4px; color: var(--green); font-weight: 700; }
+.cal-bar.trend-weakening::after { content: '↓'; margin-left: 4px; color: var(--orange); font-weight: 700; }
+.cal-bar.trend-disproved::after { content: '×'; margin-left: 4px; color: var(--red); font-weight: 700; }
+.cal-bar.trend-flat::after { content: '—'; margin-left: 4px; color: var(--tx-3); font-weight: 700; }
+.cal-bar.trend-gathering::after { content: '·'; margin-left: 4px; color: var(--tx-3); font-weight: 700; }
+
+.milestone {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: var(--gold);
+  border-radius: 50%;
+  z-index: 4;
+  cursor: pointer;
+  border: 2px solid var(--bg);
+}
+.milestone.launch { background: var(--green); }
+.milestone.test_start { background: var(--blue); }
+.milestone.test_end { background: var(--purple); }
+.milestone.review { background: var(--gold); }
+.milestone.decision { background: var(--red); }
+.milestone.peak { background: var(--gold); }
+.milestone.seasonal { background: var(--orange); }
+.milestone.product { background: var(--purple); }
+.milestone.partnership { background: var(--blue); }
+.cal-tooltip {
+  position: fixed;
+  background: var(--bg);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 11px;
+  z-index: 200;
+  pointer-events: none;
+  display: none;
+  max-width: 280px;
   color: var(--tx);
-  border: 1px solid var(--line);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
-.btn.secondary:hover { background: var(--bg-4); }
-.btn.danger {
-  background: var(--red);
-  color: var(--bg);
+
+/* ─── Density warning ─── */
+.density-warning {
+  background: rgba(255,107,107,0.08);
+  border: 1px solid var(--red);
+  border-left: 4px solid var(--red);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 12px;
+  color: var(--tx);
 }
-.btn-group { display: flex; gap: 0.5rem; }
-.lessons-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-@media (max-width: 1400px) { .lessons-grid { grid-template-columns: repeat(3, 1fr); } }
-.lesson-col {
+.density-warning.high { background: rgba(255,107,107,0.15); }
+.density-warning.medium { background: rgba(251,146,60,0.08); border-color: var(--orange); border-left-color: var(--orange); }
+.density-warning b { color: var(--gold); }
+.density-warning ul { list-style: none; margin-top: 0.5rem; padding-left: 0.5rem; }
+.density-warning li { font-size: 11px; color: var(--tx-2); padding: 0.2rem 0; }
+.density-warning li::before { content: '· '; color: var(--tx-3); }
+
+/* ─── Decision queue ─── */
+.decision-queue {
   background: var(--bg-2);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 1rem;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
 }
-.lesson-col-h {
-  font-size: 11px;
+.decision-queue h2 { font-family: 'Fraunces', Georgia, serif; font-size: 22px; font-weight: 800; margin-bottom: 0.5rem; }
+.decision-queue .sub { font-size: 12px; color: var(--tx-3); margin-bottom: 1rem; }
+.decision-item {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.75rem 0; border-bottom: 1px dashed var(--line);
+}
+.decision-item:last-child { border-bottom: none; }
+.decision-item .days { font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 11px; letter-spacing: 0.05em; }
+.days.due { background: rgba(255,107,107,0.15); color: var(--red); }
+.days.soon { background: rgba(251,146,36,0.15); color: var(--orange); }
+.days.future { background: rgba(174,184,197,0.15); color: var(--tx-2); }
+.decision-item .title { flex: 1; font-size: 13px; }
+.decision-item .actions { display: flex; gap: 0.4rem; }
+.decision-actions button {
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  cursor: pointer;
   text-transform: uppercase;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--line);
+  letter-spacing: 0.05em;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--tx-2);
 }
+.decision-actions button.scale { border-color: var(--green); color: var(--green); }
+.decision-actions button.scale:hover { background: var(--green); color: var(--bg); }
+.decision-actions button.refine { border-color: var(--orange); color: var(--orange); }
+.decision-actions button.refine:hover { background: var(--orange); color: var(--bg); }
+.decision-actions button.retry { border-color: var(--blue); color: var(--blue); }
+.decision-actions button.retry:hover { background: var(--blue); color: var(--bg); }
+.decision-actions button.kill { border-color: var(--red); color: var(--red); }
+.decision-actions button.kill:hover { background: var(--red); color: var(--bg); }
+
+/* ─── Lessons ledger (kept) ─── */
+.lessons-bar { display: flex; justify-content: space-between; align-items: center; margin: 2rem 0 1rem; }
+.lessons-bar h2 { font-family: 'Fraunces', Georgia, serif; font-size: 24px; font-weight: 800; }
+.btn { background: var(--gold); color: var(--bg); border: none; padding: 0.5rem 1rem; border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 0.04em; text-transform: uppercase; }
+.btn:hover { opacity: 0.85; }
+.btn.secondary { background: var(--bg-3); color: var(--tx); border: 1px solid var(--line); }
+.btn.secondary:hover { background: var(--bg-4); }
+.btn.danger { background: var(--red); color: var(--bg); }
+.btn-group { display: flex; gap: 0.5rem; }
+.lessons-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+@media (max-width: 1400px) { .lessons-grid { grid-template-columns: repeat(3, 1fr); } }
+.lesson-col { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 1rem; }
+.lesson-col-h { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--line); }
 .col-h-worked { color: var(--green); border-bottom-color: var(--green); }
 .col-h-underperformed { color: var(--orange); border-bottom-color: var(--orange); }
 .col-h-disproved { color: var(--red); border-bottom-color: var(--red); }
 .col-h-retry { color: var(--blue); border-bottom-color: var(--blue); }
 .col-h-test_next { color: var(--purple); border-bottom-color: var(--purple); }
-.lesson-item {
-  font-size: 12px;
-  padding: 0.6rem 0;
-  border-bottom: 1px dashed var(--line);
-}
+.lesson-item { font-size: 12px; padding: 0.6rem 0; border-bottom: 1px dashed var(--line); }
 .lesson-item:last-child { border-bottom: none; }
 .lesson-item.invalid { opacity: 0.45; text-decoration: line-through; }
-.lesson-item .src {
-  display: inline-block;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: var(--bg-3);
-  color: var(--tx-3);
-  padding: 1px 5px;
-  border-radius: 3px;
-  margin-top: 0.4rem;
-  margin-right: 4px;
-}
-.lesson-actions {
-  display: flex;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
-}
-.lesson-actions button {
-  background: transparent;
-  color: var(--blue);
-  border: 1px solid var(--blue);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 10px;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+.lesson-item .src { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; background: var(--bg-3); color: var(--tx-3); padding: 1px 5px; border-radius: 3px; margin-top: 0.4rem; margin-right: 4px; }
+.lesson-actions { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+.lesson-actions button { background: transparent; color: var(--blue); border: 1px solid var(--blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-family: inherit; font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; }
 .lesson-actions button:hover { background: var(--blue); color: var(--bg); }
 .lesson-actions button.danger { color: var(--red); border-color: var(--red); }
 .lesson-actions button.danger:hover { background: var(--red); }
 
 /* ─── Modal ─── */
-.modal-back {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 2rem;
-}
+.modal-back { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 100; padding: 2rem; }
 .modal-back.open { display: flex; }
-.modal {
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  max-width: 820px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 2rem;
-}
-.modal-h {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 26px;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-}
-.modal-meta {
-  font-size: 11px;
-  color: var(--tx-3);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 1.5rem;
-}
+.modal { background: var(--bg); border: 1px solid var(--line); border-radius: 16px; max-width: 820px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2rem; }
+.modal-h { font-family: 'Fraunces', Georgia, serif; font-size: 26px; font-weight: 800; margin-bottom: 0.5rem; }
+.modal-meta { font-size: 11px; color: var(--tx-3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1.5rem; }
 .modal-section { margin: 1.5rem 0; }
-.modal-section h4 {
-  font-size: 11px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin-bottom: 0.5rem;
-}
-.modal-section p, .modal-section li {
-  color: var(--tx-2);
-  font-size: 14px;
-  line-height: 1.6;
-}
+.modal-section h4 { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.5rem; }
+.modal-section p, .modal-section li { color: var(--tx-2); font-size: 14px; line-height: 1.6; }
 .modal-section ul { list-style: none; }
-.modal-section li {
-  padding: 0.5rem 0;
-  border-bottom: 1px dashed var(--line);
-}
+.modal-section li { padding: 0.5rem 0; border-bottom: 1px dashed var(--line); }
 .modal-section li b { color: var(--gold); font-weight: 600; }
-.modal-section input, .modal-section textarea, .modal-section select {
-  background: var(--bg-3);
-  color: var(--tx);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0.6rem 0.8rem;
-  font-family: inherit;
-  font-size: 13px;
-  width: 100%;
-  margin-bottom: 0.5rem;
-}
+.modal-section input, .modal-section textarea, .modal-section select { background: var(--bg-3); color: var(--tx); border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem 0.8rem; font-family: inherit; font-size: 13px; width: 100%; margin-bottom: 0.5rem; }
 .modal-section textarea { min-height: 80px; resize: vertical; }
-.modal-section label {
-  display: block;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--tx-3);
-  margin-bottom: 0.3rem;
-}
-.modal-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
+.modal-section label { display: block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tx-3); margin-bottom: 0.3rem; }
+.modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 .modal-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
 .modal-actions { display: flex; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap; }
 .modal-actions .right { margin-left: auto; }
-.calendar-posts {
-  background: var(--bg-3);
-  padding: 0.6rem 0.8rem;
-  border-radius: 6px;
-  font-size: 12px;
-  margin-top: 0.5rem;
-}
-.calendar-posts li { padding: 0.3rem 0; border-bottom: 1px dashed var(--line); }
+.calendar-posts { background: var(--bg-3); padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 12px; margin-top: 0.5rem; }
 
-.empty-state {
-  color: var(--tx-3);
-  font-size: 13px;
-  font-style: italic;
-  padding: 2rem;
-  text-align: center;
-  background: var(--bg-3);
-  border: 1px dashed var(--line);
-  border-radius: 10px;
-}
+.empty-state { color: var(--tx-3); font-size: 13px; font-style: italic; padding: 2rem; text-align: center; background: var(--bg-3); border: 1px dashed var(--line); border-radius: 10px; }
 </style>
 </head>
 <body>
@@ -538,7 +360,6 @@ body {
 <div class="strategy-header">
   <div class="brand-line" id="brand-line">Brand</div>
   <h1 class="strategy-h1">Where are we <em>going</em>?</h1>
-
   <div class="north-star-card">
     <div class="north-star-block">
       <div class="label">North star</div>
@@ -564,33 +385,57 @@ body {
     <button class="zoom-btn" data-zoom="month" onclick="setZoom('month')">Month</button>
     <button class="zoom-btn" data-zoom="week" onclick="setZoom('week')">Week</button>
   </div>
+  <div class="mode-toggle">
+    <span>Mode</span>
+    <span class="mode-chip active" data-mode="plan" onclick="setMode('plan')">Plan</span>
+    <span class="mode-chip" data-mode="actual" onclick="setMode('actual')">Actual</span>
+  </div>
   <div class="workhorse-filter">
     <span>Lanes</span>
-    <span class="workhorse-chip active both" data-wh="both" onclick="setWorkhorse('both')">Both</span>
-    <span class="workhorse-chip" data-wh="marketing" onclick="setWorkhorse('marketing')">Marketing</span>
-    <span class="workhorse-chip" data-wh="advertising" onclick="setWorkhorse('advertising')">Advertising</span>
+    <span class="workhorse-chip both active" data-wh="both" onclick="setWorkhorse('both')">Both</span>
+    <span class="workhorse-chip mkt" data-wh="marketing" onclick="setWorkhorse('marketing')">Marketing</span>
+    <span class="workhorse-chip adv" data-wh="advertising" onclick="setWorkhorse('advertising')">Advertising</span>
   </div>
 </div>
 
+<!-- ─── Board: swimlanes ─── -->
 <div class="swimlanes" id="swimlanes">
   <div class="swimlane mkt" id="swimlane-mkt">
-    <div class="swimlane-h">
-      <h2>Marketing</h2>
-      <button class="btn secondary" onclick="openMoveModal(null, 'marketing')">+ move</button>
-    </div>
+    <div class="swimlane-h"><h2>Marketing</h2><button class="btn secondary" onclick="openMoveModal(null, 'marketing')">+ move</button></div>
     <div class="swimlane-sub">Brand · positioning · content · SEO · partnerships · CRM · customer behaviour</div>
     <div id="mkt-cards"></div>
   </div>
   <div class="swimlane adv" id="swimlane-adv">
-    <div class="swimlane-h">
-      <h2>Advertising</h2>
-      <button class="btn secondary" onclick="openMoveModal(null, 'advertising')">+ move</button>
-    </div>
+    <div class="swimlane-h"><h2>Advertising</h2><button class="btn secondary" onclick="openMoveModal(null, 'advertising')">+ move</button></div>
     <div class="swimlane-sub">Paid distribution · audiences · creative tests · spend · CAC/CPL · retargeting</div>
     <div id="adv-cards"></div>
   </div>
 </div>
 
+<!-- ─── Strategic calendar ─── -->
+<div class="calendar-section">
+  <div class="cal-h">
+    <div>
+      <h2>Strategic calendar</h2>
+      <div class="sub" id="cal-sub">Year view · click any bar to open its strategy card</div>
+    </div>
+    <div class="btn-group">
+      <button class="btn secondary" onclick="snapshotNow()">Snapshot week</button>
+      <button class="btn" onclick="mineLessons()">Mine live data</button>
+    </div>
+  </div>
+  <div id="density-warnings"></div>
+  <div id="cal-table"></div>
+</div>
+
+<!-- ─── Decision queue ─── -->
+<div class="decision-queue" id="decision-queue-section">
+  <h2>Decisions due</h2>
+  <div class="sub" id="dec-sub">Bets whose decision_date is approaching — SCALE, REFINE, RETRY DIFFERENTLY, or KILL.</div>
+  <div id="decision-list"></div>
+</div>
+
+<!-- ─── Lessons ledger (kept) ─── -->
 <div class="lessons-bar">
   <h2>The ledger</h2>
   <div class="btn-group">
@@ -598,21 +443,25 @@ body {
     <button class="btn" onclick="mineLessons()">Mine live data</button>
   </div>
 </div>
-
 <div class="lessons-grid" id="lessons-grid"></div>
 
 <!-- Modal -->
 <div class="modal-back" id="modal" onclick="if(event.target===this) closeModal()">
   <div class="modal" id="modal-content"></div>
 </div>
+<div class="cal-tooltip" id="cal-tooltip"></div>
 
 <script>
 const BRAND_ID = {{ brand_id|tojson }};
 let strategy = null;
-let trends = {};  // cached trend signals by record_id
+let trends = {};
 let trendsRequested = false;
 let zoomLevel = 'year';
 let workhorseFilter = 'both';
+let modeFilter = 'plan';  // 'plan' or 'actual'
+let calendarData = null;
+let decisionQueue = [];
+let highlightedId = null;
 
 async function loadStrategy() {
   const r = await fetch(`/api/strategy?brand=${BRAND_ID}`);
@@ -622,7 +471,8 @@ async function loadStrategy() {
   renderHeader();
   renderSwimlanes();
   renderLessons();
-  // Request trend signals in background
+  await loadCalendar();
+  await loadDecisionQueue();
   if (!trendsRequested) {
     trendsRequested = true;
     loadTrends();
@@ -630,7 +480,6 @@ async function loadStrategy() {
 }
 
 async function loadTrends() {
-  // Hit each move + bet's trend endpoint. Cached.
   for (const m of (strategy.market_moves || [])) {
     try {
       const r = await fetch(`/api/strategy/trend/move/${m.id}?brand=${BRAND_ID}`);
@@ -648,6 +497,25 @@ async function loadTrends() {
   renderSwimlanes();
 }
 
+async function loadCalendar() {
+  const r = await fetch(`/api/strategy/calendar?brand=${BRAND_ID}&view=${zoomLevel}`);
+  const d = await r.json();
+  if (d.ok) {
+    calendarData = d.calendar;
+    renderCalendar();
+    renderDensityWarnings();
+  }
+}
+
+async function loadDecisionQueue() {
+  const r = await fetch(`/api/strategy/decision-queue?brand=${BRAND_ID}&within_days=120`);
+  const d = await r.json();
+  if (d.ok) {
+    decisionQueue = d.queue || [];
+    renderDecisionQueue();
+  }
+}
+
 function renderHeader() {
   document.getElementById('brand-line').textContent = `Brand · ${BRAND_ID}`;
   document.getElementById('north-star-text').textContent = strategy.north_star || 'Set your north star.';
@@ -659,54 +527,37 @@ function setZoom(z) {
   zoomLevel = z;
   document.querySelectorAll('.zoom-btn').forEach(b => b.classList.toggle('active', b.dataset.zoom === z));
   renderSwimlanes();
+  loadCalendar();
 }
 
 function setWorkhorse(w) {
   workhorseFilter = w;
-  document.querySelectorAll('.workhorse-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.wh === w);
-    if (c.dataset.wh === w && c.classList.contains('mkt')) c.classList.add('active');
-    if (c.dataset.wh === w && c.classList.contains('adv')) c.classList.add('active');
-    if (c.dataset.wh === w && c.classList.contains('both')) c.classList.add('active');
-  });
-  document.querySelectorAll('.workhorse-chip').forEach(c => {
-    c.classList.remove('mkt', 'adv');
-    c.classList.remove('active');
-  });
-  document.querySelectorAll('.workhorse-chip').forEach(c => {
-    if (c.dataset.wh === w) c.classList.add('active');
-  });
-  document.querySelector(`.workhorse-chip[data-wh="marketing"]`).classList.add('mkt');
-  document.querySelector(`.workhorse-chip[data-wh="advertising"]`).classList.add('adv');
-  document.querySelector(`.workhorse-chip[data-wh="both"]`).classList.add('both');
+  document.querySelectorAll('.workhorse-chip').forEach(c => c.classList.toggle('active', c.dataset.wh === w));
   renderSwimlanes();
+  renderCalendar();
+}
+
+function setMode(m) {
+  modeFilter = m;
+  document.querySelectorAll('.mode-chip').forEach(c => c.classList.toggle('active', c.dataset.mode === m));
+  renderCalendar();
 }
 
 function recordsAtZoom(records, type) {
-  // type = 'move' | 'bet'
-  if (type === 'move') {
-    // Market moves live at year horizon; their bets cascade down at quarter/month.
-    if (zoomLevel === 'year') return records.filter(r => r.horizon === 'year');
-    if (zoomLevel === 'quarter') return records.filter(r => r.horizon === 'year'); // same moves, but show bets
-    if (zoomLevel === 'month') return records.filter(r => r.horizon === 'year');
-    if (zoomLevel === 'week') return records.filter(r => r.horizon === 'year');
-  } else {
-    // bets cascade by horizon
-    if (zoomLevel === 'year') return records.filter(r => r.horizon === 'year');
-    if (zoomLevel === 'quarter') return records.filter(r => ['year','quarter'].includes(r.horizon));
-    if (zoomLevel === 'month') return records.filter(r => ['quarter','month'].includes(r.horizon));
-    if (zoomLevel === 'week') return records; // show all in-flight
-  }
-  return records;
+  if (type === 'move') return records.filter(r => r.horizon === 'year');
+  return records.filter(r => {
+    if (zoomLevel === 'year') return r.horizon === 'year';
+    if (zoomLevel === 'quarter') return ['year','quarter'].includes(r.horizon);
+    if (zoomLevel === 'month') return ['quarter','month'].includes(r.horizon);
+    if (zoomLevel === 'week') return true;
+    return true;
+  });
 }
 
 function renderSwimlanes() {
   for (const wh of ['marketing', 'advertising']) {
     const container = document.getElementById(`${wh === 'marketing' ? 'mkt' : 'adv'}-cards`);
-    if (workhorseFilter !== 'both' && workhorseFilter !== wh) {
-      container.innerHTML = '';
-      continue;
-    }
+    if (workhorseFilter !== 'both' && workhorseFilter !== wh) { container.innerHTML = ''; continue; }
     const moves = (strategy.market_moves || []).filter(m => (m.workhorse || 'marketing') === wh);
     const bets = (strategy.bets || []).filter(b => (b.workhorse || 'marketing') === wh);
 
@@ -714,11 +565,9 @@ function renderSwimlanes() {
     if (!moves.length && !bets.length) {
       html = `<div class="empty-state">No ${wh} strategy yet. Click "+ move" to start.</div>`;
     } else {
-      // At year zoom: just show moves
       if (zoomLevel === 'year') {
         html += moves.map(m => moveCard(m, bets.filter(b => b.links_to_market_move === m.id))).join('');
       } else {
-        // Quarter/Month/Week: show bets, grouped by move
         if (moves.length) {
           html += moves.map(m => {
             const moveBets = recordsAtZoom(bets.filter(b => b.links_to_market_move === m.id), 'bet');
@@ -745,9 +594,8 @@ function moveCard(m, linkedBets) {
   const evAgainst = (m.evidence_against || []).length;
   const sparkline = sparkSvg(trend.history || [], 50, 14);
   const calendarCount = linkedBets.reduce((n, b) => n + (b.calendar_post_ids || []).length, 0);
-
   return `
-    <div class="card status-${m.status || 'planned'}" onclick="openMoveModal('${m.id}', '${m.workhorse || 'marketing'}')">
+    <div class="card status-${m.status || 'planned'} ${highlightedId === m.id ? 'highlighted' : ''}" data-id="${m.id}" onclick="openMoveModal('${m.id}', '${m.workhorse || 'marketing'}')">
       <div class="card-meta">
         <span>${m.horizon || 'year'} · ${m.workhorse || 'marketing'}</span>
         <span class="trend ${trend.signal}">${trend.signal}</span>
@@ -757,18 +605,9 @@ function moveCard(m, linkedBets) {
       <div class="card-title">${esc(m.title || '(untitled move)')}</div>
       <div class="card-hypothesis">${esc(m.hypothesis || m.thesis || '')}</div>
       <div class="why-row">
-        <div class="why-block proves">
-          <span class="label">Proves it</span>
-          ${esc((m.what_proves_it || '—').slice(0, 80))}
-        </div>
-        <div class="why-block kills">
-          <span class="label">Kills it</span>
-          ${esc((m.what_kills_it || '—').slice(0, 80))}
-        </div>
-        <div class="why-block next" style="grid-column: span 2">
-          <span class="label">Next action</span>
-          ${esc((m.next_action || '—').slice(0, 120))}
-        </div>
+        <div class="why-block proves"><span class="label">Proves it</span>${esc((m.what_proves_it || '—').slice(0, 80))}</div>
+        <div class="why-block kills"><span class="label">Kills it</span>${esc((m.what_kills_it || '—').slice(0, 80))}</div>
+        <div class="why-block next" style="grid-column: span 2"><span class="label">Next action</span>${esc((m.next_action || '—').slice(0, 120))}</div>
       </div>
       <div class="evidence-counts">
         <span class="for">FOR <b>${evFor}</b></span>
@@ -782,12 +621,10 @@ function moveCard(m, linkedBets) {
 function betCard(b) {
   const trend = trends[`bet_${b.id}`] || {signal: 'flat', history: []};
   const evFor = (b.evidence || []).length;
-  const evAgainst = 0;
   const sparkline = sparkSvg(trend.history || [], 50, 14);
   const calendarPosts = b.calendar_post_ids || [];
-
   return `
-    <div class="card status-${b.status || 'planned'}" onclick="openBetModal('${b.id}')">
+    <div class="card status-${b.status || 'planned'} ${highlightedId === b.id ? 'highlighted' : ''}" data-id="${b.id}" onclick="openBetModal('${b.id}')">
       <div class="card-meta">
         <span>${b.horizon || 'quarter'} · ${b.workhorse || 'marketing'}</span>
         <span class="trend ${trend.signal}">${trend.signal}</span>
@@ -797,18 +634,9 @@ function betCard(b) {
       <div class="card-title">${esc(b.title || '(untitled bet)')}</div>
       <div class="card-hypothesis">${esc(b.hypothesis || '')}</div>
       <div class="why-row">
-        <div class="why-block proves">
-          <span class="label">Proves it</span>
-          ${esc((b.what_proves_it || '—').slice(0, 80))}
-        </div>
-        <div class="why-block kills">
-          <span class="label">Kills it</span>
-          ${esc((b.what_kills_it || '—').slice(0, 80))}
-        </div>
-        <div class="why-block next" style="grid-column: span 2">
-          <span class="label">Next action</span>
-          ${esc((b.next_action || '—').slice(0, 120))}
-        </div>
+        <div class="why-block proves"><span class="label">Proves it</span>${esc((b.what_proves_it || '—').slice(0, 80))}</div>
+        <div class="why-block kills"><span class="label">Kills it</span>${esc((b.what_kills_it || '—').slice(0, 80))}</div>
+        <div class="why-block next" style="grid-column: span 2"><span class="label">Next action</span>${esc((b.next_action || '—').slice(0, 120))}</div>
       </div>
       <div class="evidence-counts">
         <span class="for">FOR <b>${evFor}</b></span>
@@ -821,18 +649,447 @@ function betCard(b) {
 
 function sparkSvg(history, w, h) {
   if (!history.length) return '';
-  const xs = history.map((_, i) => i);
   const ys = history.map(h => (h.evidence_for || 0) - (h.evidence_against || 0));
   const min = Math.min(...ys, 0);
   const max = Math.max(...ys, 1);
   const range = Math.max(max - min, 1);
   const points = history.map((_, i) => {
-    const x = (xs[i] / Math.max(xs.length - 1, 1)) * w;
+    const x = (i / Math.max(history.length - 1, 1)) * w;
     const y = h - ((ys[i] - min) / range) * h;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
   return `<svg class="sparkline" viewBox="0 0 ${w} ${h}"><polyline points="${points}" fill="none" stroke="var(--gold)" stroke-width="1.5"/></svg>`;
 }
+
+// ─── Strategic calendar ───────────────────────────────────────────────
+
+const MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function renderCalendar() {
+  const cont = document.getElementById('cal-table');
+  if (!calendarData) { cont.innerHTML = '<div class="empty-state">Loading calendar…</div>'; return; }
+
+  const moves = calendarData.timeline.moves || [];
+  const bets = calendarData.timeline.bets || [];
+  const filteredMoves = (workhorseFilter === 'both') ? moves : moves.filter(m => m.workhorse === workhorseFilter);
+  const filteredBets = (workhorseFilter === 'both') ? bets : bets.filter(b => b.workhorse === workhorseFilter);
+
+  const year = calendarData.year;
+  const today = new Date(calendarData.today);
+  const view = zoomLevel;
+  document.getElementById('cal-sub').textContent = `${view} view · ${year} · ${modeFilter} mode`;
+
+  if (view === 'year') {
+    cont.className = 'cal-table year-view';
+    let html = '';
+    // Header row
+    html += `<div class="cal-row cal-row-header" style="grid-template-columns: 200px repeat(12, 1fr)">
+      <div class="cal-row-label" style="background:var(--bg-4)">Strategic item</div>
+      ${MONTHS.slice(1).map((m, i) => `<div class="cal-cell" style="background:var(--bg-4)">${m}</div>`).join('')}
+    </div>`;
+    // Marketing section
+    const mktMoves = filteredMoves.filter(m => m.workhorse === 'marketing');
+    const mktBets = filteredBets.filter(b => b.workhorse === 'marketing');
+    if (mktMoves.length || mktBets.length) {
+      html += `<div class="cal-row" style="grid-template-columns: 200px repeat(12, 1fr)">
+        <div class="cal-row-section mkt" style="grid-column: 1 / -1">Marketing</div>
+      </div>`;
+      // Move bars
+      for (const m of mktMoves) {
+        html += yearBarRow(m, 'move');
+      }
+      // Bet bars
+      for (const b of mktBets) {
+        html += yearBarRow(b, 'bet');
+      }
+    }
+    // Advertising section
+    const advMoves = filteredMoves.filter(m => m.workhorse === 'advertising');
+    const advBets = filteredBets.filter(b => b.workhorse === 'advertising');
+    if (advMoves.length || advBets.length) {
+      html += `<div class="cal-row" style="grid-template-columns: 200px repeat(12, 1fr)">
+        <div class="cal-row-section adv" style="grid-column: 1 / -1">Advertising</div>
+      </div>`;
+      for (const m of advMoves) html += yearBarRow(m, 'move');
+      for (const b of advBets) html += yearBarRow(b, 'bet');
+    }
+    if (!mktMoves.length && !mktBets.length && !advMoves.length && !advBets.length) {
+      html += `<div class="empty-state" style="grid-column: 1 / -1">No ${workhorseFilter === 'both' ? '' : workhorseFilter + ' '}items for this view.</div>`;
+    }
+    cont.innerHTML = html;
+  } else if (view === 'quarter') {
+    // 13 columns: 200px label + 12 weeks
+    cont.className = 'cal-table quarter-view';
+    const q = Math.floor(today.getMonth() / 3) + 1;
+    const qStartMonth = (q - 1) * 3 + 1;
+    const qEndMonth = q * 3;
+    let html = `<div class="cal-row cal-row-header" style="grid-template-columns: 200px repeat(13, 1fr)">
+      <div class="cal-row-label" style="background:var(--bg-4)">Q${q} ${year}</div>
+      ${MONTHS.slice(qStartMonth, qEndMonth + 1).map((m, i) => `<div class="cal-cell" style="background:var(--bg-4)">${m}</div>`).join('')}
+    </div>`;
+    // Group by workhorse
+    for (const wh of ['marketing', 'advertising']) {
+      if (workhorseFilter !== 'both' && workhorseFilter !== wh) continue;
+      const mMoves = filteredMoves.filter(m => m.workhorse === wh);
+      const mBets = filteredBets.filter(b => b.workhorse === wh);
+      if (!mMoves.length && !mBets.length) continue;
+      html += `<div class="cal-row" style="grid-template-columns: 200px repeat(13, 1fr)">
+        <div class="cal-row-section ${wh === 'marketing' ? 'mkt' : 'adv'}" style="grid-column: 1 / -1">${wh === 'marketing' ? 'Marketing' : 'Advertising'}</div>
+      </div>`;
+      for (const m of mMoves) html += quarterBarRow(m, 'move', qStartMonth, qEndMonth);
+      for (const b of mBets) html += quarterBarRow(b, 'bet', qStartMonth, qEndMonth);
+    }
+    cont.innerHTML = html;
+  } else if (view === 'month') {
+    // Month view: 35 daily cells
+    cont.className = 'cal-table month-view';
+    const m = today.getMonth() + 1;
+    const monthStart = new Date(year, m - 1, 1);
+    const monthEnd = new Date(year, m, 0);
+    const daysInMonth = monthEnd.getDate();
+    let html = `<div class="cal-row cal-row-header" style="grid-template-columns: 200px repeat(${daysInMonth}, 1fr)">
+      <div class="cal-row-label" style="background:var(--bg-4)">${MONTHS[m]} ${year}</div>
+      ${Array.from({length: daysInMonth}, (_, i) => {
+        const day = i + 1;
+        const isWeekend = [0, 6].includes(new Date(year, m - 1, day).getDay());
+        const isToday = day === today.getDate();
+        return `<div class="cal-cell ${isWeekend ? 'weekend' : ''} ${isToday ? 'today' : ''}">${day}</div>`;
+      }).join('')}
+    </div>`;
+    for (const wh of ['marketing', 'advertising']) {
+      if (workhorseFilter !== 'both' && workhorseFilter !== wh) continue;
+      const mMoves = filteredMoves.filter(m => m.workhorse === wh);
+      const mBets = filteredBets.filter(b => b.workhorse === wh);
+      if (!mMoves.length && !mBets.length) continue;
+      html += `<div class="cal-row" style="grid-template-columns: 200px repeat(${daysInMonth}, 1fr)">
+        <div class="cal-row-section ${wh === 'marketing' ? 'mkt' : 'adv'}" style="grid-column: 1 / -1">${wh === 'marketing' ? 'Marketing' : 'Advertising'}</div>
+      </div>`;
+      for (const mv of mMoves) html += monthBarRow(mv, 'move', m, daysInMonth);
+      for (const b of mBets) html += monthBarRow(b, 'bet', m, daysInMonth);
+    }
+    cont.innerHTML = html;
+  } else if (view === 'week') {
+    cont.className = 'cal-table week-view';
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay()); // Sunday
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    let html = `<div class="cal-row cal-row-header" style="grid-template-columns: 200px repeat(7, 1fr)">
+      <div class="cal-row-label" style="background:var(--bg-4)">This week</div>
+      ${days.map(d => `<div class="cal-cell" style="background:var(--bg-4)">${d}</div>`).join('')}
+    </div>`;
+    for (const wh of ['marketing', 'advertising']) {
+      if (workhorseFilter !== 'both' && workhorseFilter !== wh) continue;
+      const mMoves = filteredMoves.filter(m => m.workhorse === wh);
+      const mBets = filteredBets.filter(b => b.workhorse === wh);
+      if (!mMoves.length && !mBets.length) continue;
+      html += `<div class="cal-row" style="grid-template-columns: 200px repeat(7, 1fr)">
+        <div class="cal-row-section ${wh === 'marketing' ? 'mkt' : 'adv'}" style="grid-column: 1 / -1">${wh === 'marketing' ? 'Marketing' : 'Advertising'}</div>
+      </div>`;
+      for (const mv of mMoves) html += weekBarRow(mv, 'move', weekStart);
+      for (const b of mBets) {
+        html += weekBarRow(b, 'bet', weekStart);
+        // Add a "what ships this week" sub-row per bet
+        const themes = (b.content_themes || []).slice(0, 3).join(', ');
+        const watch = (b.watch_metrics || []).slice(0, 2).join(', ');
+        if (themes || watch) {
+          html += `<div class="cal-row" style="grid-template-columns: 200px repeat(7, 1fr); font-size: 10px">
+            <div class="cal-row-label" style="font-size:9px;color:var(--tx-3);font-style:italic">↳ ${esc(themes || 'content TBD')}<br><span style="color:var(--gold)">watch: ${esc(watch || '—')}</span></div>
+            ${[0,1,2,3,4,5,6].map(i => {
+              const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
+              return `<div class="cal-cell ${i===0||i===6?'weekend':''}" style="font-style:italic;color:var(--tx-3)">${i===0||i===6?'':'shipping'}</div>`;
+            }).join('')}
+          </div>`;
+        }
+      }
+    }
+    cont.innerHTML = html;
+  }
+
+  // Wire tooltip on bars
+  setTimeout(() => {
+    document.querySelectorAll('.cal-bar').forEach(bar => {
+      bar.addEventListener('mouseenter', e => showCalTooltip(bar, e));
+      bar.addEventListener('mousemove', e => moveCalTooltip(e));
+      bar.addEventListener('mouseleave', () => hideCalTooltip());
+    });
+    document.querySelectorAll('.milestone').forEach(ms => {
+      ms.addEventListener('mouseenter', e => showMsTooltip(ms, e));
+      ms.addEventListener('mouseleave', () => hideCalTooltip());
+    });
+  }, 50);
+}
+
+// ─── Bar rendering helpers ─────────────────────────────────────────────
+
+function trendClass(trend) {
+  if (!trend) return 'trend-flat';
+  if (trend.signal === 'strengthening') return 'trend-strengthening';
+  if (trend.signal === 'weakening') return 'trend-weakening';
+  if (trend.signal === 'disproved') return 'trend-disproved';
+  return 'trend-flat';
+}
+
+function yearBarRow(record, kind) {
+  const start = record.start_date || record.target_end_date;
+  const end = record.target_end_date || record.start_date;
+  if (!start || !end) return '';
+  try {
+    const s = new Date(start);
+    const e = new Date(end);
+    const yearStart = new Date(s.getFullYear(), 0, 1);
+    const yearEnd = new Date(s.getFullYear(), 11, 31);
+    const sClamp = s < yearStart ? yearStart : s;
+    const eClamp = e > yearEnd ? yearEnd : e;
+    const startMonth = Math.max(1, sClamp.getMonth() + 1);
+    const endMonth = Math.min(12, eClamp.getMonth() + 1);
+    const totalDays = (eClamp - sClamp) / 86400000;
+    const leftPct = ((startMonth - 1) / 12) * 100;
+    const rightPct = (endMonth / 12) * 100;
+    const widthPct = rightPct - leftPct;
+    const trendKey = kind === 'move' ? `move_${record.id}` : `bet_${record.id}`;
+    const trend = trends[trendKey];
+    const isActual = modeFilter === 'actual' && kind === 'bet' && record.execution_log && record.execution_log.length;
+    const cls = `cal-bar ${kind} ${record.workhorse === 'advertising' ? 'adv' : ''} ${trendClass(trend)} ${isActual ? 'actual' : ''} ${highlightedId === record.id ? 'highlighted' : ''}`;
+    const label = esc(record.title.length > Math.floor(widthPct / 1.5) ? record.title.slice(0, Math.floor(widthPct / 1.5) - 1) + '…' : record.title);
+    const milestones = (record.milestones || []).filter(m => {
+      try { return new Date(m.date).getFullYear() === s.getFullYear(); } catch { return false; }
+    }).map(m => {
+      const md = new Date(m.date);
+      const leftPctM = ((md.getMonth() + (md.getDate() / 30) + 1 - 1) / 12) * 100;
+      return `<div class="milestone ${m.type}" style="left: calc(200px + ${leftPctM}% * (100% - 200px) / 100)" title="${esc(m.label)} · ${esc(m.type)}"></div>`;
+    }).join('');
+    return `
+      <div class="cal-row" style="grid-template-columns: 200px repeat(12, 1fr); position: relative">
+        <div class="cal-row-label" onclick="highlightRecord('${record.id}')" style="cursor:pointer">${label}</div>
+        ${MONTHS.slice(1).map((m, i) => `<div class="cal-cell" style="position:relative"></div>`).join('')}
+        <div class="${cls}" style="left: calc(200px + ${leftPct}% * (100% - 200px) / 100); width: calc(${widthPct}% * (100% - 200px) / 100)"
+             data-id="${record.id}" data-kind="${kind}" data-title="${esc(record.title)}" data-trend="${trend?.signal || 'gathering'}" data-workhorse="${record.workhorse}"
+             onclick="event.stopPropagation(); openRecordByKind('${kind}', '${record.id}', '${record.workhorse || 'marketing'}')">${label}</div>
+        ${milestones}
+      </div>
+    `;
+  } catch (err) { return ''; }
+}
+
+function quarterBarRow(record, kind, qStartMonth, qEndMonth) {
+  const start = record.start_date || record.target_end_date;
+  const end = record.target_end_date || record.start_date;
+  if (!start || !end) return '';
+  try {
+    const s = new Date(start);
+    const e = new Date(end);
+    const qStart = new Date(s.getFullYear(), qStartMonth - 1, 1);
+    const qEnd = new Date(s.getFullYear(), qEndMonth, 0);
+    const sClamp = s < qStart ? qStart : s;
+    const eClamp = e > qEnd ? qEnd : e;
+    const sFrac = (sClamp.getMonth() + 1 - qStartMonth + (sClamp.getDate() - 1) / 31);
+    const eFrac = (eClamp.getMonth() + 1 - qStartMonth + eClamp.getDate() / 31);
+    const startCol = Math.max(0, Math.min(3, sFrac));
+    const endCol = Math.max(0, Math.min(3, eFrac));
+    const leftPct = (startCol / 3) * 100;
+    const widthPct = ((endCol - startCol) / 3) * 100;
+    const trendKey = kind === 'move' ? `move_${record.id}` : `bet_${record.id}`;
+    const trend = trends[trendKey];
+    const cls = `cal-bar ${kind} ${record.workhorse === 'advertising' ? 'adv' : ''} ${trendClass(trend)} ${highlightedId === record.id ? 'highlighted' : ''}`;
+    const label = esc(record.title);
+    const milestones = (record.milestones || []).filter(m => {
+      try { const md = new Date(m.date); return md >= qStart && md <= qEnd; } catch { return false; }
+    }).map(m => {
+      const md = new Date(m.date);
+      const mFrac = (md.getMonth() + 1 - qStartMonth + (md.getDate() - 1) / 31);
+      const leftPctM = (mFrac / 3) * 100;
+      return `<div class="milestone ${m.type}" style="left: calc(200px + ${leftPctM}% * (100% - 200px) / 100)" title="${esc(m.label)} · ${esc(m.type)}"></div>`;
+    }).join('');
+    return `
+      <div class="cal-row" style="grid-template-columns: 200px repeat(3, 1fr); position: relative">
+        <div class="cal-row-label">${label}</div>
+        ${[0,1,2].map(i => `<div class="cal-cell" style="position:relative"></div>`).join('')}
+        <div class="${cls}" style="left: calc(200px + ${leftPct}% * (100% - 200px) / 100); width: calc(${widthPct}% * (100% - 200px) / 100)"
+             data-id="${record.id}" data-kind="${kind}" onclick="event.stopPropagation(); openRecordByKind('${kind}', '${record.id}', '${record.workhorse || 'marketing'}')">${label}</div>
+        ${milestones}
+      </div>
+    `;
+  } catch (err) { return ''; }
+}
+
+function monthBarRow(record, kind, month, daysInMonth) {
+  const start = record.start_date || record.target_end_date;
+  const end = record.target_end_date || record.start_date;
+  if (!start || !end) return '';
+  try {
+    const s = new Date(start);
+    const e = new Date(end);
+    const mStart = new Date(s.getFullYear(), month - 1, 1);
+    const mEnd = new Date(s.getFullYear(), month, 0);
+    const sClamp = s < mStart ? mStart : s;
+    const eClamp = e > mEnd ? mEnd : e;
+    if (eClamp < mStart || sClamp > mEnd) return '';
+    const leftPct = ((sClamp.getDate() - 1) / daysInMonth) * 100;
+    const widthPct = ((eClamp.getDate() - sClamp.getDate() + 1) / daysInMonth) * 100;
+    const trendKey = kind === 'move' ? `move_${record.id}` : `bet_${record.id}`;
+    const trend = trends[trendKey];
+    const cls = `cal-bar ${kind} ${record.workhorse === 'advertising' ? 'adv' : ''} ${trendClass(trend)} ${highlightedId === record.id ? 'highlighted' : ''}`;
+    const label = esc(record.title);
+    const milestones = (record.milestones || []).filter(m => {
+      try { const md = new Date(m.date); return md.getMonth() + 1 === month; } catch { return false; }
+    }).map(m => {
+      const md = new Date(m.date);
+      const leftPctM = ((md.getDate() - 1) / daysInMonth) * 100;
+      return `<div class="milestone ${m.type}" style="left: calc(200px + ${leftPctM}% * (100% - 200px) / 100)" title="${esc(m.label)} · ${esc(m.type)}"></div>`;
+    }).join('');
+    return `
+      <div class="cal-row" style="grid-template-columns: 200px repeat(${daysInMonth}, 1fr); position: relative">
+        <div class="cal-row-label">${label}</div>
+        ${Array.from({length: daysInMonth}, () => `<div class="cal-cell" style="position:relative"></div>`).join('')}
+        <div class="${cls}" style="left: calc(200px + ${leftPct}% * (100% - 200px) / 100); width: calc(${widthPct}% * (100% - 200px) / 100)"
+             data-id="${record.id}" data-kind="${kind}" onclick="event.stopPropagation(); openRecordByKind('${kind}', '${record.id}', '${record.workhorse || 'marketing'}')">${label}</div>
+        ${milestones}
+      </div>
+    `;
+  } catch (err) { return ''; }
+}
+
+function weekBarRow(record, kind, weekStart) {
+  const start = record.start_date || record.target_end_date;
+  const end = record.target_end_date || record.start_date;
+  if (!start || !end) return '';
+  try {
+    const s = new Date(start);
+    const e = new Date(end);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
+    if (e < weekStart || s > weekEnd) return '';
+    const sClamp = s < weekStart ? weekStart : s;
+    const eClamp = e > weekEnd ? weekEnd : e;
+    const sDay = Math.floor((sClamp - weekStart) / 86400000);
+    const eDay = Math.ceil((eClamp - weekStart) / 86400000);
+    const leftPct = (sDay / 7) * 100;
+    const widthPct = ((eDay - sDay) / 7) * 100;
+    const trendKey = kind === 'move' ? `move_${record.id}` : `bet_${record.id}`;
+    const trend = trends[trendKey];
+    const cls = `cal-bar ${kind} ${record.workhorse === 'advertising' ? 'adv' : ''} ${trendClass(trend)} ${highlightedId === record.id ? 'highlighted' : ''}`;
+    const label = esc(record.title);
+    const milestones = (record.milestones || []).filter(m => {
+      try { const md = new Date(m.date); return md >= weekStart && md <= weekEnd; } catch { return false; }
+    }).map(m => {
+      const md = new Date(m.date);
+      const day = Math.floor((md - weekStart) / 86400000);
+      const leftPctM = (day / 7) * 100;
+      return `<div class="milestone ${m.type}" style="left: calc(200px + ${leftPctM}% * (100% - 200px) / 100)" title="${esc(m.label)} · ${esc(m.type)}"></div>`;
+    }).join('');
+    return `
+      <div class="cal-row" style="grid-template-columns: 200px repeat(7, 1fr); position: relative">
+        <div class="cal-row-label">${label}</div>
+        ${[0,1,2,3,4,5,6].map(i => `<div class="cal-cell" style="position:relative"></div>`).join('')}
+        <div class="${cls}" style="left: calc(200px + ${leftPct}% * (100% - 200px) / 100); width: calc(${widthPct}% * (100% - 200px) / 100)"
+             data-id="${record.id}" data-kind="${kind}" onclick="event.stopPropagation(); openRecordByKind('${kind}', '${record.id}', '${record.workhorse || 'marketing'}')">${label}</div>
+        ${milestones}
+      </div>
+    `;
+  } catch (err) { return ''; }
+}
+
+function highlightRecord(id) {
+  highlightedId = (highlightedId === id) ? null : id;
+  renderSwimlanes();
+  renderCalendar();
+}
+
+function openRecordByKind(kind, id, workhorse) {
+  if (kind === 'move') openMoveModal(id, workhorse);
+  else openBetModal(id);
+}
+
+function showCalTooltip(bar, e) {
+  const id = bar.dataset.id;
+  const title = bar.dataset.title;
+  const trend = bar.dataset.trend || 'gathering';
+  const wh = bar.dataset.workhorse || 'marketing';
+  const tooltip = document.getElementById('cal-tooltip');
+  tooltip.innerHTML = `<strong>${esc(title)}</strong><br>Workhorse: ${wh}<br>Trend: ${trend}`;
+  tooltip.style.display = 'block';
+  moveCalTooltip(e);
+}
+
+function moveCalTooltip(e) {
+  const tooltip = document.getElementById('cal-tooltip');
+  tooltip.style.left = (e.clientX + 12) + 'px';
+  tooltip.style.top = (e.clientY + 12) + 'px';
+}
+
+function hideCalTooltip() {
+  document.getElementById('cal-tooltip').style.display = 'none';
+}
+
+function showMsTooltip(ms, e) {
+  const tooltip = document.getElementById('cal-tooltip');
+  tooltip.innerHTML = `<strong>${esc(ms.title)}</strong>`;
+  tooltip.style.display = 'block';
+  moveCalTooltip(e);
+}
+
+// ─── Density warnings ────────────────────────────────────────────────
+
+function renderDensityWarnings() {
+  const cont = document.getElementById('density-warnings');
+  if (!calendarData || !calendarData.density) { cont.innerHTML = ''; return; }
+  const warnings = calendarData.density.warnings || [];
+  if (!warnings.length) {
+    cont.innerHTML = `<div class="density-warning" style="background:rgba(93,255,157,0.08);border-color:var(--green);border-left-color:var(--green)"><b>Strategy density: healthy.</b> No months have 3+ active bets. <span style="color:var(--tx-3)">Sustainable attention distribution.</span></div>`;
+    return;
+  }
+  cont.innerHTML = warnings.map(w => `
+    <div class="density-warning ${w.severity}">
+      <b>⚠ ${w.message}</b>
+      <ul>
+        ${w.bets.map(b => `<li>${esc(b.title)} <span style="color:var(--tx-3)">(${b.workhorse})</span></li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
+// ─── Decision queue ──────────────────────────────────────────────────
+
+function renderDecisionQueue() {
+  const cont = document.getElementById('decision-list');
+  if (!decisionQueue.length) {
+    cont.innerHTML = `<div style="color:var(--tx-3);font-size:12px;font-style:italic;padding:1rem;text-align:center">No decisions due in the next 120 days. Every bet has a clear runway.</div>`;
+    return;
+  }
+  cont.innerHTML = decisionQueue.map(item => {
+    const daysClass = item.days_away < 7 ? 'due' : (item.days_away < 30 ? 'soon' : 'future');
+    const daysText = item.overdue ? `${Math.abs(item.days_away)}d OVERDUE` : `${item.days_away}d`;
+    const recorded = item.decision_already_recorded;
+    return `
+      <div class="decision-item">
+        <div class="days ${daysClass}">${daysText}</div>
+        <div class="title">
+          <b>${esc(item.title)}</b><br>
+          <span style="font-size:11px;color:var(--tx-3)">decision: ${esc((item.decision_date || '').slice(0,10))} · KPI: ${esc(item.primary_kpi || '—')}</span>
+        </div>
+        ${recorded ? '<span style="color:var(--green);font-size:11px">✓ decided</span>' : `
+          <div class="decision-actions">
+            <button class="scale" onclick="recordDecision('${item.bet_id}', 'scale')">Scale</button>
+            <button class="refine" onclick="recordDecision('${item.bet_id}', 'refine')">Refine</button>
+            <button class="retry" onclick="recordDecision('${item.bet_id}', 'retry_differently')">Retry</button>
+            <button class="kill" onclick="recordDecision('${item.bet_id}', 'kill')">Kill</button>
+          </div>
+        `}
+      </div>
+    `;
+  }).join('');
+}
+
+async function recordDecision(betId, outcome) {
+  const note = prompt(`Note for "${outcome}" decision (saved to strategic memory):`, '');
+  if (note === null) return;
+  await fetch(`/api/strategy/decision?brand=${BRAND_ID}`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({bet_id: betId, outcome, note})
+  });
+  await loadStrategy();
+}
+
+// ─── Lessons (kept from before) ─────────────────────────────────────
 
 const COL_LABELS = {
   worked: 'Worked', underperformed: 'Underperformed', disproved: 'Disproved',
@@ -846,7 +1103,6 @@ const COL_CLASSES = {
 async function renderLessons() {
   const grid = document.getElementById('lessons-grid');
   const lessons = strategy.lessons || [];
-  // Fetch promotion candidates
   let cands = [];
   try {
     const r = await fetch(`/api/strategy/promotion-candidates?brand=${BRAND_ID}`);
@@ -855,7 +1111,6 @@ async function renderLessons() {
   } catch (e) {}
   const candMap = {};
   cands.forEach(c => { candMap[c.lesson.id] = c; });
-
   grid.innerHTML = Object.keys(COL_LABELS).map(cat => {
     const items = lessons.filter(l => l.category === cat);
     const itemsHtml = items.length ? items.map(l => {
@@ -864,109 +1119,45 @@ async function renderLessons() {
       ).join('');
       const cand = candMap[l.id];
       const actions = (l.still_valid !== false && cand && !l.promoted_to_bet_id)
-        ? `<div class="lesson-actions">
-            <button onclick="promoteLesson('${l.id}')">↑ Promote to bet</button>
-          </div>`
-        : (l.promoted_to_bet_id
-            ? `<div class="lesson-actions">
-                <button disabled style="opacity:0.5">↑ Promoted to bet</button>
-              </div>`
-            : '');
-      return `
-        <div class="lesson-item ${l.still_valid === false ? 'invalid' : ''}">
-          ${esc(l.claim)}
-          ${sources ? `<div>${sources}</div>` : ''}
-          ${actions}
-        </div>
-      `;
+        ? `<div class="lesson-actions"><button onclick="promoteLesson('${l.id}')">↑ Promote to bet</button></div>`
+        : (l.promoted_to_bet_id ? `<div class="lesson-actions"><button disabled style="opacity:0.5">↑ Promoted to bet</button></div>` : '');
+      return `<div class="lesson-item ${l.still_valid === false ? 'invalid' : ''}">${esc(l.claim)}${sources ? `<div>${sources}</div>` : ''}${actions}</div>`;
     }).join('') : `<div style="color:var(--tx-3);font-size:11px;font-style:italic;padding:1rem;text-align:center">No ${COL_LABELS[cat].toLowerCase()} lessons yet.</div>`;
-    return `
-      <div class="lesson-col">
-        <div class="lesson-col-h ${COL_CLASSES[cat]}">${COL_LABELS[cat]}</div>
-        ${itemsHtml}
-      </div>
-    `;
+    return `<div class="lesson-col"><div class="lesson-col-h ${COL_CLASSES[cat]}">${COL_LABELS[cat]}</div>${itemsHtml}</div>`;
   }).join('');
 }
 
-// ─── Modals ──────────────────────────────────────────────────────────
+// ─── Modals (move + bet) ─────────────────────────────────────────────
 
 function openMoveModal(id, workhorse) {
   const m = id ? strategy.market_moves.find(x => x.id === id) : null;
   const allBets = strategy.bets || [];
   const linkedBets = m ? allBets.filter(b => b.links_to_market_move === id) : [];
-
   document.getElementById('modal-content').innerHTML = `
     <div class="modal-meta">${id ? 'Edit move' : 'New move'} · ${workhorse || 'marketing'}</div>
     <div class="modal-h">${id ? esc(m.title) : 'New market move'}</div>
-
-    <div class="modal-section">
-      <label>Title</label>
-      <input id="move-title" value="${esc(m?.title || '')}" placeholder="Short, memorable (e.g. Own the serious golfer who wants measurable improvement)">
+    <div class="modal-section"><label>Title</label><input id="move-title" value="${esc(m?.title || '')}"></div>
+    <div class="modal-section"><label>Thesis</label><textarea id="move-thesis">${esc(m?.thesis || '')}</textarea></div>
+    <div class="modal-section"><label>Hypothesis (if X then Y because Z)</label><textarea id="move-hypothesis">${esc(m?.hypothesis || '')}</textarea></div>
+    <div class="modal-row-3">
+      <div class="modal-section"><label>Start</label><input id="move-start" type="date" value="${esc((m?.start_date || new Date().toISOString().slice(0,10)).slice(0,10))}"></div>
+      <div class="modal-section"><label>Target end</label><input id="move-end" type="date" value="${esc((m?.target_end_date || '2027-07-31').slice(0,10))}"></div>
+      <div class="modal-section"><label>Review date</label><input id="move-review" type="date" value="${esc((m?.review_date || '').slice(0,10))}"></div>
     </div>
-    <div class="modal-section">
-      <label>Thesis (why we believe this works)</label>
-      <textarea id="move-thesis">${esc(m?.thesis || '')}</textarea>
-    </div>
-    <div class="modal-section">
-      <label>Hypothesis (if X then Y because Z)</label>
-      <textarea id="move-hypothesis">${esc(m?.hypothesis || '')}</textarea>
-    </div>
+    <div class="modal-section"><label>What proves it</label><textarea id="move-proves">${esc(m?.what_proves_it || '')}</textarea></div>
+    <div class="modal-section"><label>What kills it</label><textarea id="move-kills">${esc(m?.what_kills_it || '')}</textarea></div>
+    <div class="modal-section"><label>Next action</label><textarea id="move-next">${esc(m?.next_action || '')}</textarea></div>
     <div class="modal-row">
-      <div class="modal-section">
-        <label>Start date</label>
-        <input id="move-start" type="date" value="${esc((m?.start_date || new Date().toISOString().slice(0,10)).slice(0,10))}">
-      </div>
-      <div class="modal-section">
-        <label>Target end</label>
-        <input id="move-end" type="date" value="${esc((m?.target_end_date || '2027-07-31').slice(0,10))}">
-      </div>
+      <div class="modal-section"><label>Status</label><select id="move-status">
+        <option value="planned" ${m?.status === 'planned' ? 'selected' : ''}>Planned</option>
+        <option value="active" ${m?.status === 'active' ? 'selected' : ''}>Active</option>
+        <option value="delivered" ${m?.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+        <option value="killed" ${m?.status === 'killed' ? 'selected' : ''}>Killed</option>
+        <option value="retired" ${m?.status === 'retired' ? 'selected' : ''}>Retired</option>
+      </select></div>
+      <div class="modal-section"><label>Owner</label><input id="move-owner" value="${esc(m?.owner || 'christelle')}"></div>
     </div>
-    <div class="modal-section">
-      <label>What proves it</label>
-      <textarea id="move-proves" placeholder="Specific signals that would confirm the thesis">${esc(m?.what_proves_it || '')}</textarea>
-    </div>
-    <div class="modal-section">
-      <label>What kills it</label>
-      <textarea id="move-kills" placeholder="What outcome means this thesis is wrong">${esc(m?.what_kills_it || '')}</textarea>
-    </div>
-    <div class="modal-section">
-      <label>Next action</label>
-      <textarea id="move-next" placeholder="The single thing that should happen next">${esc(m?.next_action || '')}</textarea>
-    </div>
-    <div class="modal-row">
-      <div class="modal-section">
-        <label>Status</label>
-        <select id="move-status">
-          <option value="planned" ${m?.status === 'planned' ? 'selected' : ''}>Planned</option>
-          <option value="active" ${m?.status === 'active' ? 'selected' : ''}>Active</option>
-          <option value="delivered" ${m?.status === 'delivered' ? 'selected' : ''}>Delivered</option>
-          <option value="killed" ${m?.status === 'killed' ? 'selected' : ''}>Killed</option>
-          <option value="retired" ${m?.status === 'retired' ? 'selected' : ''}>Retired</option>
-        </select>
-      </div>
-      <div class="modal-section">
-        <label>Owner</label>
-        <input id="move-owner" value="${esc(m?.owner || 'christelle')}">
-      </div>
-    </div>
-
-    ${id ? `
-      <div class="modal-section">
-        <h4>Linked bets (${linkedBets.length})</h4>
-        <ul>
-          ${linkedBets.map(b => `<li><b>${esc(b.title)}</b> — ${esc(b.primary_kpi || '')}</li>`).join('') || '<li>No bets linked yet.</li>'}
-        </ul>
-      </div>
-      <div class="modal-section">
-        <h4>Evidence (live)</h4>
-        <ul>
-          ${(m.evidence_for || []).map(e => `<li><span style="color:var(--green)">FOR</span> ${esc(e.value)} <span class="src">${esc(e.source || '')}</span></li>`).join('') || '<li>None yet.</li>'}
-          ${(m.evidence_against || []).map(e => `<li><span style="color:var(--red)">AGAINST</span> ${esc(e.value)} <span class="src">${esc(e.source || '')}</span></li>`).join('')}
-        </ul>
-      </div>
-    ` : ''}
-
+    ${id ? `<div class="modal-section"><h4>Linked bets (${linkedBets.length})</h4><ul>${linkedBets.map(b => `<li><b>${esc(b.title)}</b> — ${esc(b.primary_kpi || '')}</li>`).join('') || '<li>No bets linked yet.</li>'}</ul></div>` : ''}
     <div class="modal-actions">
       <button class="btn" onclick="saveMove('${id || ''}', '${workhorse || 'marketing'}')">${id ? 'Save' : 'Create'}</button>
       ${id ? `<button class="btn secondary" onclick="retireRecord('move', '${id}')">Retire</button>` : ''}
@@ -986,139 +1177,86 @@ async function saveMove(id, workhorse) {
     hypothesis: document.getElementById('move-hypothesis').value,
     start_date: document.getElementById('move-start').value,
     target_end_date: document.getElementById('move-end').value,
+    review_date: document.getElementById('move-review').value,
     what_proves_it: document.getElementById('move-proves').value,
     what_kills_it: document.getElementById('move-kills').value,
     next_action: document.getElementById('move-next').value,
     status: document.getElementById('move-status').value,
     owner: document.getElementById('move-owner').value,
-    workhorse: workhorse,
-    horizon: 'year',
+    workhorse: workhorse, horizon: 'year',
   };
   const r = await fetch(`/api/strategy/market-move?brand=${BRAND_ID}`, {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(payload)
   });
   const d = await r.json();
-  if (d.ok) { strategy = d.strategy; renderSwimlanes(); closeModal(); }
+  if (d.ok) { strategy = d.strategy; renderSwimlanes(); renderCalendar(); closeModal(); }
 }
 
 function openBetModal(id, parentMoveId) {
   const b = id ? strategy.bets.find(x => x.id === id) : null;
   const moves = strategy.market_moves || [];
   const lessons = strategy.lessons || [];
-
   document.getElementById('modal-content').innerHTML = `
     <div class="modal-meta">${id ? 'Edit bet' : 'New bet'}</div>
     <div class="modal-h">${id ? esc(b.title) : 'New bet'}</div>
-
-    <div class="modal-section">
-      <label>Title</label>
-      <input id="bet-title" value="${esc(b?.title || '')}" placeholder="Short, memorable">
-    </div>
+    <div class="modal-section"><label>Title</label><input id="bet-title" value="${esc(b?.title || '')}"></div>
     <div class="modal-row">
-      <div class="modal-section">
-        <label>Parent move</label>
-        <select id="bet-move">
-          ${moves.map(m => `<option value="${m.id}" ${(b?.links_to_market_move || parentMoveId) === m.id ? 'selected' : ''}>${esc(m.title)}</option>`).join('')}
-        </select>
-      </div>
-      <div class="modal-section">
-        <label>Workhorse</label>
-        <select id="bet-workhorse">
-          <option value="marketing" ${(b?.workhorse || 'marketing') === 'marketing' ? 'selected' : ''}>Marketing</option>
-          <option value="advertising" ${b?.workhorse === 'advertising' ? 'selected' : ''}>Advertising</option>
-        </select>
-      </div>
+      <div class="modal-section"><label>Parent move</label><select id="bet-move">${moves.map(m => `<option value="${m.id}" ${(b?.links_to_market_move || parentMoveId) === m.id ? 'selected' : ''}>${esc(m.title)}</option>`).join('')}</select></div>
+      <div class="modal-section"><label>Workhorse</label><select id="bet-workhorse">
+        <option value="marketing" ${(b?.workhorse || 'marketing') === 'marketing' ? 'selected' : ''}>Marketing</option>
+        <option value="advertising" ${b?.workhorse === 'advertising' ? 'selected' : ''}>Advertising</option>
+      </select></div>
     </div>
     <div class="modal-row-3">
-      <div class="modal-section">
-        <label>Horizon</label>
-        <select id="bet-horizon">
-          <option value="year" ${b?.horizon === 'year' ? 'selected' : ''}>Year</option>
-          <option value="quarter" ${(b?.horizon || 'quarter') === 'quarter' ? 'selected' : ''}>Quarter</option>
-          <option value="month" ${b?.horizon === 'month' ? 'selected' : ''}>Month</option>
-          <option value="week" ${b?.horizon === 'week' ? 'selected' : ''}>Week</option>
-        </select>
-      </div>
-      <div class="modal-section">
-        <label>Status</label>
-        <select id="bet-status">
-          <option value="planned" ${b?.status === 'planned' ? 'selected' : ''}>Planned</option>
-          <option value="in_flight" ${(b?.status || 'planned') === 'in_flight' ? 'selected' : ''}>In flight</option>
-          <option value="won" ${b?.status === 'won' ? 'selected' : ''}>Won</option>
-          <option value="lost" ${b?.status === 'lost' ? 'selected' : ''}>Lost</option>
-          <option value="inconclusive" ${b?.status === 'inconclusive' ? 'selected' : ''}>Inconclusive</option>
-          <option value="retired" ${b?.status === 'retired' ? 'selected' : ''}>Retired</option>
-        </select>
-      </div>
-      <div class="modal-section">
-        <label>Campaign</label>
-        <input id="bet-campaign" value="${esc(b?.campaign_id || '')}" placeholder="campaign id in campaign-data.json">
-      </div>
+      <div class="modal-section"><label>Horizon</label><select id="bet-horizon">
+        <option value="year" ${b?.horizon === 'year' ? 'selected' : ''}>Year</option>
+        <option value="quarter" ${(b?.horizon || 'quarter') === 'quarter' ? 'selected' : ''}>Quarter</option>
+        <option value="month" ${b?.horizon === 'month' ? 'selected' : ''}>Month</option>
+        <option value="week" ${b?.horizon === 'week' ? 'selected' : ''}>Week</option>
+      </select></div>
+      <div class="modal-section"><label>Status</label><select id="bet-status">
+        <option value="planned" ${b?.status === 'planned' ? 'selected' : ''}>Planned</option>
+        <option value="in_flight" ${(b?.status || 'planned') === 'in_flight' ? 'selected' : ''}>In flight</option>
+        <option value="won" ${b?.status === 'won' ? 'selected' : ''}>Won</option>
+        <option value="lost" ${b?.status === 'lost' ? 'selected' : ''}>Lost</option>
+        <option value="retired" ${b?.status === 'retired' ? 'selected' : ''}>Retired</option>
+      </select></div>
+      <div class="modal-section"><label>Campaign</label><input id="bet-campaign" value="${esc(b?.campaign_id || '')}"></div>
     </div>
-    <div class="modal-section">
-      <label>Hypothesis</label>
-      <textarea id="bet-hypothesis">${esc(b?.hypothesis || '')}</textarea>
-    </div>
+    <div class="modal-section"><label>Hypothesis</label><textarea id="bet-hypothesis">${esc(b?.hypothesis || '')}</textarea></div>
     <div class="modal-row">
-      <div class="modal-section">
-        <label>Primary KPI</label>
-        <input id="bet-kpi" value="${esc(b?.primary_kpi || '')}">
-      </div>
-      <div class="modal-section">
-        <label>Success threshold</label>
-        <input id="bet-threshold" value="${esc(b?.success_threshold || '')}" placeholder="e.g. 5 bookings/month from IG">
-      </div>
+      <div class="modal-section"><label>Primary KPI</label><input id="bet-kpi" value="${esc(b?.primary_kpi || '')}"></div>
+      <div class="modal-section"><label>Success threshold</label><input id="bet-threshold" value="${esc(b?.success_threshold || '')}"></div>
     </div>
-    <div class="modal-row">
-      <div class="modal-section">
-        <label>Start date</label>
-        <input id="bet-start" type="date" value="${esc((b?.start_date || new Date().toISOString().slice(0,10)).slice(0,10))}">
+    <div class="modal-row-3">
+      <div class="modal-section"><label>Start</label><input id="bet-start" type="date" value="${esc((b?.start_date || new Date().toISOString().slice(0,10)).slice(0,10))}"></div>
+      <div class="modal-section"><label>Target end</label><input id="bet-end" type="date" value="${esc((b?.target_end_date || new Date(Date.now()+90*24*3600*1000).toISOString().slice(0,10)).slice(0,10))}"></div>
+      <div class="modal-section"><label>Decision date</label><input id="bet-decision" type="date" value="${esc((b?.decision_date || '').slice(0,10))}"></div>
+    </div>
+    <div class="modal-section"><label>What proves it</label><textarea id="bet-proves">${esc(b?.what_proves_it || '')}</textarea></div>
+    <div class="modal-section"><label>What kills it</label><textarea id="bet-kills">${esc(b?.what_kills_it || '')}</textarea></div>
+    <div class="modal-section"><label>Next action</label><textarea id="bet-next">${esc(b?.next_action || '')}</textarea></div>
+    <div class="modal-section"><label>Watch metrics (comma-separated)</label><input id="bet-watch" value="${esc((b?.watch_metrics || []).join(', '))}"></div>
+    <div class="modal-section"><label>Content themes (comma-separated)</label><input id="bet-themes" value="${esc((b?.content_themes || []).join(', '))}"></div>
+    ${id && b.decision ? `<div class="modal-section" style="background:var(--bg-3);padding:1rem;border-radius:8px">
+      <h4>Recorded decision</h4>
+      <p><b>Outcome:</b> ${esc(b.decision.outcome)}<br>
+      <b>Decided at:</b> ${esc(b.decision.decided_at)}<br>
+      <b>Note:</b> ${esc(b.decision.note || '—')}</p>
+    </div>` : ''}
+    ${id ? `<div class="modal-section"><h4>Execution log (plan vs actual)</h4>
+      <ul>${(b.execution_log || []).map(e => `<li><span class="src">${esc(e.date)}</span> planned: ${esc(e.planned)} → actual: ${esc(e.actual)} <span class="src">${esc(e.delta)}</span></li>`).join('') || '<li>No entries yet.</li>'}</ul>
+      <div class="modal-row">
+        <input id="exec-planned" placeholder="What was planned">
+        <input id="exec-actual" placeholder="What actually happened">
+        <button class="btn secondary" onclick="addExecutionLog('${b.id}')">Log</button>
       </div>
-      <div class="modal-section">
-        <label>Target end</label>
-        <input id="bet-end" type="date" value="${esc((b?.target_end_date || new Date(Date.now()+90*24*3600*1000).toISOString().slice(0,10)).slice(0,10))}">
-      </div>
-    </div>
-    <div class="modal-section">
-      <label>What proves it</label>
-      <textarea id="bet-proves">${esc(b?.what_proves_it || '')}</textarea>
-    </div>
-    <div class="modal-section">
-      <label>What kills it</label>
-      <textarea id="bet-kills">${esc(b?.what_kills_it || '')}</textarea>
-    </div>
-    <div class="modal-section">
-      <label>Next action</label>
-      <textarea id="bet-next">${esc(b?.next_action || '')}</textarea>
-    </div>
-    <div class="modal-section">
-      <label>Link lesson (optional)</label>
-      <select id="bet-lesson">
-        <option value="">None</option>
-        ${lessons.filter(l => l.still_valid !== false).map(l => `<option value="${l.id}" ${(b?.linked_lesson_ids || []).includes(l.id) ? 'selected' : ''}>${esc(l.claim.slice(0,80))}</option>`).join('')}
-      </select>
-    </div>
-
-    ${id ? `
-      <div class="modal-section">
-        <h4>Supporting content (${(b.calendar_post_ids || []).length} posts)</h4>
-        <ul>
-          ${(b.calendar_post_ids || []).map(p => `<li>${esc(p)}</li>`).join('') || '<li>No posts linked yet.</li>'}
-        </ul>
-        <div class="modal-row">
-          <input id="post-id-input" placeholder="post / content id">
-          <button class="btn secondary" onclick="linkPost('${b.id}')">Link post</button>
-        </div>
-      </div>
-      <div class="modal-section">
-        <h4>Evidence (live)</h4>
-        <ul>
-          ${(b.evidence || []).map(e => `<li>${esc(e.value)} <span class="src">${esc(e.source)}</span></li>`).join('') || '<li>None yet.</li>'}
-        </ul>
-      </div>
-    ` : ''}
-
+    </div>` : ''}
+    ${id ? `<div class="modal-section"><h4>Supporting content (${(b.calendar_post_ids || []).length})</h4>
+      <ul>${(b.calendar_post_ids || []).map(p => `<li>${esc(p)}</li>`).join('') || '<li>No posts linked.</li>'}</ul>
+      <div class="modal-row"><input id="post-id-input" placeholder="post id"><button class="btn secondary" onclick="linkPost('${b.id}')">Link post</button></div>
+    </div>` : ''}
     <div class="modal-actions">
       <button class="btn" onclick="saveBet('${id || ''}')">${id ? 'Save' : 'Create'}</button>
       ${id ? `<button class="btn secondary" onclick="retireRecord('bet', '${id}')">Retire</button>` : ''}
@@ -1143,19 +1281,30 @@ async function saveBet(id) {
     success_threshold: document.getElementById('bet-threshold').value,
     start_date: document.getElementById('bet-start').value,
     target_end_date: document.getElementById('bet-end').value,
+    decision_date: document.getElementById('bet-decision').value,
     what_proves_it: document.getElementById('bet-proves').value,
     what_kills_it: document.getElementById('bet-kills').value,
     next_action: document.getElementById('bet-next').value,
+    watch_metrics: document.getElementById('bet-watch').value.split(',').map(s => s.trim()).filter(Boolean),
+    content_themes: document.getElementById('bet-themes').value.split(',').map(s => s.trim()).filter(Boolean),
   };
-  const lessonId = document.getElementById('bet-lesson').value;
-  if (lessonId) payload.linked_lesson_ids = [lessonId];
-
   const r = await fetch(`/api/strategy/bet?brand=${BRAND_ID}`, {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(payload)
   });
   const d = await r.json();
-  if (d.ok) { strategy = d.strategy; renderSwimlanes(); closeModal(); }
+  if (d.ok) { strategy = d.strategy; renderSwimlanes(); renderCalendar(); closeModal(); }
+}
+
+async function addExecutionLog(betId) {
+  const planned = document.getElementById('exec-planned').value;
+  const actual = document.getElementById('exec-actual').value;
+  if (!planned && !actual) return;
+  await fetch(`/api/strategy/execution-log?brand=${BRAND_ID}`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({bet_id: betId, planned, actual})
+  });
+  await loadStrategy(); openBetModal(betId); // refresh
 }
 
 async function linkPost(betId) {
@@ -1195,11 +1344,11 @@ async function promoteLesson(lessonId) {
 }
 
 async function editNorthStar() {
-  const ns = prompt('North star (one sentence — where the brand is going):', strategy.north_star || '');
+  const ns = prompt('North star:', strategy.north_star || '');
   if (ns === null) return;
-  const m = prompt('What success looks like in numbers:', strategy.north_star_metric || '');
+  const m = prompt('Success metric:', strategy.north_star_metric || '');
   if (m === null) return;
-  const p = prompt('Positioning (one paragraph — where you sit in the market):', strategy.positioning || '');
+  const p = prompt('Positioning:', strategy.positioning || '');
   if (p === null) return;
   await fetch('/api/strategy/north-star?brand=' + BRAND_ID, {
     method: 'POST', headers: {'Content-Type':'application/json'},
